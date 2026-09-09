@@ -269,6 +269,12 @@ func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: 
 				continue
 			if neighbor != start and neighbor in _occupied_spaces:
 				continue
+			if neighbor != start and _astargrid.is_point_solid(neighbor):
+				# Whatever the pathfinder currently refuses to route through -
+				# which includes tiles Fear has closed off - isn't somewhere the
+				# AI should be offered either, or it picks a destination its own
+				# move would then be refused for.
+				continue
 			var new_cost = current_cost + get_tile_cost_for_class(neighbor, movement_class)
 			if new_cost > movement_budget:
 				continue
@@ -381,8 +387,20 @@ func set_controlled_combatant(combatant: Dictionary):
 	_range_preview_positions = []
 	update_points_weight()
 
+## Tiles made unwalkable by Fear on the current combatant, so they can be
+## released again once the fear passes or someone else's turn begins. Nothing
+## else in update_points_weight would clear them, since they're neither
+## occupied nor blocking terrain.
+var _fear_blocked: Array = []
+
+
 func update_points_weight():
 	var current_comb = combat.get_current_combatant()
+	# Release last turn's fear tiles before anything else re-decides the grid.
+	for tile in _fear_blocked:
+		_astargrid.set_point_weight_scale(tile, 1)
+		_astargrid.set_point_solid(tile, false)
+	_fear_blocked.clear()
 	#Update occupied spaces for flying units
 	for point in _occupied_spaces:
 		if point == current_comb.position:
@@ -407,6 +425,43 @@ func update_points_weight():
 		else:
 			_astargrid.set_point_weight_scale(space, 1)
 			_astargrid.set_point_solid(space, false)
+	_apply_fear_restrictions(current_comb)
+
+
+## Closes off every tile nearer to the current combatant's nearest enemy than
+## the one they're standing on, for as long as Fear holds them.
+##
+## Done on the pathfinding grid rather than by refusing the move afterwards, so
+## routes simply go around - and, the real point, the blue movement preview
+## only ever offers destinations they're allowed to take. Refusing after the
+## click would leave the player guessing which part of the route was the
+## problem.
+##
+## This runs again after every step of a move, so the rule is strictly "never
+## reduce the distance": backing away raises the bar behind you rather than
+## letting them return to where they started.
+func _apply_fear_restrictions(current_comb: Dictionary):
+	if combat == null or not combat.has_restriction(current_comb, "prevents_approach"):
+		return
+	var nearest = combat.find_nearest_enemy_of(current_comb)
+	if nearest.is_empty():
+		return
+	var limit = combat.get_position_distance(current_comb.position, nearest.position)
+	var region = _astargrid.region
+	for x in range(region.position.x, region.position.x + region.size.x):
+		for y in range(region.position.y, region.position.y + region.size.y):
+			var tile = Vector2i(x, y)
+			if tile == current_comb.position:
+				# Never close off the tile they're standing on - a solid start
+				# point means no path can be found at all.
+				continue
+			if combat.get_position_distance(tile, nearest.position) >= limit:
+				continue
+			if _astargrid.is_point_solid(tile):
+				continue # already unwalkable for another reason; leave it be
+			_astargrid.set_point_weight_scale(tile, INF)
+			_astargrid.set_point_solid(tile, true)
+			_fear_blocked.append(tile)
 
 func get_distance(point1: Vector2i, point2: Vector2i):
 	return absi(point1.x - point2.x) + absi(point1.y - point2.y)
