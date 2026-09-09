@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scenes/game.gd" id="8_game"]
 [ext_resource type="Resource" path="res://encounters/encounter_01_ambush.tres" id="9_enc1"]
 [ext_resource type="PackedScene" path="res://ui/result_ui.tscn" id="10_resultui"]
+[ext_resource type="PackedScene" path="res://ui/reaction_prompt.tscn" id="11_reaction"]
 
 [node name="Game" type="Node" unique_id=614169276 node_paths=PackedStringArray("combat")]
 script = ExtResource("8_game")
@@ -30,10 +31,11 @@ texture_filter = 1
 script = ExtResource("3_dbxfm")
 combat = NodePath("../VisualCombat")
 
-[node name="VisualCombat" type="Node" parent="." unique_id=785847308 node_paths=PackedStringArray("game_ui", "controller")]
+[node name="VisualCombat" type="Node" parent="." unique_id=785847308 node_paths=PackedStringArray("game_ui", "controller", "reaction_prompt")]
 script = ExtResource("4_cujqt")
 game_ui = NodePath("../CanvasLayer/UI")
 controller = NodePath("../Controller")
+reaction_prompt = NodePath("../ReactionPrompt")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=681935609]
 
@@ -47,6 +49,8 @@ controller = NodePath("../Controller")
 
 [node name="ResultUI" parent="." node_paths=PackedStringArray("combat") instance=ExtResource("10_resultui")]
 combat = NodePath("../VisualCombat")
+
+[node name="ReactionPrompt" parent="." instance=ExtResource("11_reaction")]
 
 [connection signal="movement_changed" from="Controller" to="CanvasLayer/UI" method="set_movement"]
 [connection signal="target_selection_finished" from="Controller" to="CanvasLayer/UI" method="_target_selection_finished"]

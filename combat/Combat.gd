@@ -38,6 +38,10 @@ var turn_queue = []
 
 @export var game_ui : Control
 @export var controller : CController
+## Asks the player whether to spend a reaction when one of their combatants
+## triggers. Leave unassigned and reactions fire automatically for everyone,
+## which is how it behaved before.
+@export var reaction_prompt: ReactionPrompt
 ## Which battle this is. Assigned by GameScene before _ready runs (from the
 ## level select's choice, or its own fallback when game.tscn is run directly),
 ## so one scene plays every encounter - there is no per-encounter copy of this
@@ -396,10 +400,43 @@ func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_p
 			var was_in_range = distance_before >= skill.min_range and distance_before <= skill.max_range
 			var now_in_range = distance_after >= skill.min_range and distance_after <= skill.max_range
 			if was_in_range and not now_in_range:
+				if skill.respects_blocking and not has_line_of_sight(reactor.position, previous_position, reactor.movement_class):
+					# The shot was blocked anyway - use_reactive_skill would
+					# bail on the same check, so there's nothing worth asking
+					# the player about.
+					break
+				if not await confirm_reaction(reactor, mover, skill):
+					# Passed on it. The reaction stays unspent, so the next
+					# enemy to break away this round asks again - but this
+					# reactor is done being asked about *this* move.
+					break
 				await use_reactive_skill(skill_key, reactor, mover, previous_position)
 				if not mover.alive:
 					return
 				break
+
+
+## Whether `reactor` should spend their one reaction on `mover` right now.
+##
+## The player is asked; enemies always say yes and take the first opportunity.
+## A reaction is one per combatant between their own turns, so for the player
+## it's a real decision - spending it on the first enemy to walk past is often
+## the wrong call - while the AI having to weigh that up would be a whole
+## behaviour of its own.
+##
+## Answering parks the mover mid-step, which is the same await that already
+## lets a reaction's animation finish before movement carries on. The movement
+## safety timeouts are told to stop counting meanwhile, so taking a while to
+## decide can't be mistaken for a hung coroutine.
+func confirm_reaction(reactor: Dictionary, mover: Dictionary, skill: SkillDefinition) -> bool:
+	if reactor.side != 0 or reaction_prompt == null:
+		return true
+	controller.waiting_on_player = true
+	var use_it = await reaction_prompt.ask(reactor, mover, skill)
+	controller.waiting_on_player = false
+	if not use_it:
+		update_information.emit("[color=yellow]%s[/color] holds their reaction.\n" % reactor.name)
+	return use_it
 
 
 ## Resolves a reactive skill use: always a single-target hit against

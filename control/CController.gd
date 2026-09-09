@@ -481,6 +481,14 @@ var _previous_position : Vector2i
 
 var _processing_step := false
 
+## True while the game is legitimately parked waiting for a person to answer
+## something - the reaction prompt, currently. The movement safety timeouts
+## stop counting while it is set: they exist to catch a coroutine that has
+## genuinely hung, and someone taking thirty seconds over a decision is not
+## that. Without this a slow answer would trip the step-arrival timeout and
+## orphan the move that is waiting on it.
+var waiting_on_player := false
+
 ## Timeout safety net for the _processing_step lock specifically: if
 ## _handle_step_arrival() (most likely something inside a reactive-skill
 ## chain it triggers) never actually completes, _processing_step would stay
@@ -526,7 +534,8 @@ func _run_step_arrival_with_timeout():
 	var elapsed = 0.0
 	while not _step_arrival_finished and elapsed < STEP_ARRIVAL_TIMEOUT:
 		await get_tree().process_frame
-		elapsed += get_process_delta_time()
+		if not waiting_on_player:
+			elapsed += get_process_delta_time()
 	if not _step_arrival_finished:
 		push_warning("_handle_step_arrival didn't finish within %s seconds - force-unlocking movement processing anyway. This is a real bug worth reporting, ideally with repro steps." % STEP_ARRIVAL_TIMEOUT)
 	_processing_step = false
@@ -657,7 +666,8 @@ func ai_move(target_position: Vector2i):
 	var elapsed = 0.0
 	while not _arrived and elapsed < AI_MOVE_TIMEOUT:
 		await get_tree().process_frame
-		elapsed += get_process_delta_time()
+		if not waiting_on_player:
+			elapsed += get_process_delta_time()
 	if not _arrived:
 		push_warning("ai_move to %s (from %s) didn't finish within %s seconds - continuing anyway. This is a real bug worth reporting, ideally with repro steps." % [target_position, current_position, AI_MOVE_TIMEOUT])
 		push_warning("  diagnostic: _path.size()=%s _path=%s _arrived=%s _position_id=%s _next_position=%s controlled_node.position=%s _processing_step=%s" % [_path.size(), _path, _arrived, _position_id, _next_position, controlled_node.position, _processing_step])
