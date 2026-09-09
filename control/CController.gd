@@ -311,8 +311,8 @@ func _ready():
 		_astargrid.region = combat.encounter.resolve_playable_region(tile_map)
 	else:
 		_astargrid.region = tile_map.get_used_rect()
-	_astargrid.cell_size = Vector2i(32, 32)
-	_astargrid.offset = Vector2(16, 16)
+	_astargrid.cell_size = Grid.TILE_VECTOR
+	_astargrid.offset = Grid.HALF_TILE
 	_astargrid.default_compute_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
 	_astargrid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ALWAYS
 	_astargrid.update()
@@ -475,7 +475,7 @@ var _next_position
 
 var _position_id = 0
 
-var move_speed = 96
+var move_speed = Grid.tiles(3.0)
 
 var _previous_position : Vector2i
 
@@ -825,15 +825,15 @@ func _draw():
 	if _deployment_active:
 		# Where the party may stand, and which of them is currently picked up.
 		for tile in _deployment_tiles:
-			draw_texture(grid_tex, tile_map.map_to_local(tile) - Vector2(16, 16), Color(Color.GOLD, 0.45))
+			draw_texture(grid_tex, tile_map.map_to_local(tile) - Grid.HALF_TILE, Color(Color.GOLD, 0.45))
 		if _deployment_selection != null:
-			draw_texture(grid_tex, tile_map.map_to_local(_deployment_selection.position) - Vector2(16, 16), Color(Color.WHITE, 0.85))
+			draw_texture(grid_tex, tile_map.map_to_local(_deployment_selection.position) - Grid.HALF_TILE, Color(Color.WHITE, 0.85))
 		return
 	if _arrived == true and player_turn == true:
 		if _skill_selected:
 			for pos in _range_preview_positions:
 				var local = tile_map.map_to_local(pos)
-				draw_texture(grid_tex, local - Vector2(16, 16), Color(Color.CRIMSON, 0.5))
+				draw_texture(grid_tex, local - Grid.HALF_TILE, Color(Color.CRIMSON, 0.5))
 		else:
 			var path_length = movement
 			for i in range(_path.size()):
@@ -843,14 +843,14 @@ func _draw():
 				var draw_color = Color.WHITE
 				if path_length >= 0:
 					draw_color = Color.ROYAL_BLUE
-				draw_texture(grid_tex, point - Vector2(16, 16), draw_color)
+				draw_texture(grid_tex, point - Grid.HALF_TILE, draw_color)
 		if _attack_target_position != null:
-			draw_texture(grid_tex, _attack_target_position - Vector2(16, 16), Color.CRIMSON)
+			draw_texture(grid_tex, _attack_target_position - Grid.HALF_TILE, Color.CRIMSON)
 		if _ally_target_position != null:
-			draw_texture(grid_tex, _ally_target_position - Vector2(16, 16), Color.LIME_GREEN)
+			draw_texture(grid_tex, _ally_target_position - Grid.HALF_TILE, Color.LIME_GREEN)
 		for pos in _aoe_preview_positions:
 			var local = tile_map.map_to_local(pos)
 			var color = Color.LIME_GREEN if _aoe_preview_is_ally else Color.CRIMSON
-			draw_texture(grid_tex, local - Vector2(16, 16), Color(color, 0.6))
+			draw_texture(grid_tex, local - Grid.HALF_TILE, Color(color, 0.6))
 		if _blocked_target_position != null:
-			draw_texture(grid_tex, _blocked_target_position - Vector2(16, 16))
+			draw_texture(grid_tex, _blocked_target_position - Grid.HALF_TILE)

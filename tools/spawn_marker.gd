@@ -26,7 +26,7 @@ class_name SpawnMarker
 		display_name = value
 		queue_redraw()
 ## Set by EncounterEditor from the map being previewed.
-@export var tile_size := 32
+@export var tile_size := Grid.TILE_SIZE
 
 ## The database, read straight from its scene rather than through the
 ## CombatantDatabase autoload: autoloads aren't reliably available to @tool

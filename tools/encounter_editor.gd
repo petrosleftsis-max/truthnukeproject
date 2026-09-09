@@ -104,7 +104,7 @@ func _build_markers(tile_map: TileMap):
 func _tile_size(tile_map: TileMap) -> int:
 	if tile_map != null and tile_map.tile_set != null:
 		return tile_map.tile_set.tile_size.x
-	return 32
+	return Grid.TILE_SIZE
 
 
 func markers() -> Array:

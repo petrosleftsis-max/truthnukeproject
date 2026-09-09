@@ -221,7 +221,7 @@ func add_combatant(combatant: Dictionary, side: int, position: Vector2i):
 
 	var new_combatant_sprite = CombatantSprite.new()
 	$"../Terrain/TileMap".add_child(new_combatant_sprite)
-	new_combatant_sprite.position = Vector2(position * 32.0) + Vector2(16, 16)
+	new_combatant_sprite.position = Grid.tile_to_world(position)
 	new_combatant_sprite.z_index = 1
 	var facing_flip = side == 0
 	new_combatant_sprite.setup(combatant.sprite_frames, combatant.map_sprite, facing_flip)
@@ -881,7 +881,7 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 		final_position = candidate
 	if final_position != old_position:
 		target.position = final_position
-		target.sprite.position = Vector2(final_position * 32.0) + Vector2(16, 16)
+		target.sprite.position = Grid.tile_to_world(final_position)
 		controller.reposition_combatant(old_position, final_position)
 		var distance_moved = get_position_distance(old_position, final_position)
 		update_information.emit("[color=yellow]{0}[/color] {1} [color=red]{2}[/color] {3} tile(s)\n".format([
@@ -1094,7 +1094,7 @@ func apply_drift(comb: Dictionary):
 	if landed == from:
 		return
 	comb.position = landed
-	comb.sprite.position = Vector2(landed * 32.0) + Vector2(16, 16)
+	comb.sprite.position = Grid.tile_to_world(landed)
 	controller.reposition_combatant(from, landed)
 	update_information.emit("[color=red]%s[/color] is blown %d tile(s) off course.\n" % [
 		comb.name, get_position_distance(from, landed)

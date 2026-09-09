@@ -65,7 +65,7 @@ func setup(combatant_sprite_frames: SpriteFrames, map_sprite: Texture2D, facing_
 func _align_feet_to_tile():
 	var frame_height = _get_reference_frame_height()
 	if frame_height > 0:
-		_animated.offset.y = 16.0 - frame_height / 2.0
+		_animated.offset.y = Grid.HALF_TILE.y - frame_height / 2.0
 
 
 ## The height of this sprite's first "idle" frame (falling back to whichever
