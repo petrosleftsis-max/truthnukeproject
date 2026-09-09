@@ -131,6 +131,12 @@ func _unhandled_input(event):
 
 
 func _process(delta):
+	if get_viewport().gui_get_focus_owner() != null:
+		# Something on screen has keyboard focus - in practice the pause menu,
+		# since every combat HUD button is focus_mode = None and so can never
+		# take it. Leave the arrow keys to walk that menu's buttons instead of
+		# dragging the map around underneath it.
+		return
 	var pan = Vector2(
 		_axis(KEY_D, KEY_RIGHT) - _axis(KEY_A, KEY_LEFT),
 		_axis(KEY_S, KEY_DOWN) - _axis(KEY_W, KEY_UP)
