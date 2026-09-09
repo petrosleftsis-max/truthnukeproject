@@ -9,7 +9,6 @@
 [ext_resource type="Texture2D" uid="uid://tho1dgha8gr1" path="res://imagese/monsters.png" id="7_monsters"]
 [ext_resource type="Script" uid="uid://bx4mgbrftmp1c" path="res://exploration/DialogueInteractable.gd" id="8_e8hu0"]
 [ext_resource type="Resource" uid="uid://cepep6b0fajfa" path="res://Dialogue/test.dialogue" id="9_go82g"]
-[ext_resource type="Texture2D" uid="uid://cpgow4iranor2" path="res://imagese/cursor.png" id="10_5p2sx"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_goblin"]
 atlas = ExtResource("7_monsters")
@@ -61,6 +60,5 @@ position = Vector2(1356, 918)
 script = ExtResource("8_e8hu0")
 dialogue = ExtResource("9_go82g")
 prompt = "Talk"
-interaction_radius = 20.0
-texture = ExtResource("10_5p2sx")
+interaction_radius = 120.0
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
