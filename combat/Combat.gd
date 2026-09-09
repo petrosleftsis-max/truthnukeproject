@@ -629,41 +629,40 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 		EffectDefinition.EffectType.HEAL:
 			do_heal(attacker, target, effect, skill, mention_skill)
 		EffectDefinition.EffectType.STAT_MODIFIER:
+			var movement_before = get_effective_stat(target, "movement")
 			target.status_effects.append({
 				"stat" = effect.stat,
 				"op" = "add",
 				"amount" = effect.modifier_amount,
-				"duration" = effect.duration,
+				"duration" = stored_duration(target, effect),
 				"source_name" = attacker.name
 			})
+			if effect.stat == "movement":
+				resync_live_movement(target, movement_before)
 			var change_word = "weakened" if effect.modifier_amount < 0 else "strengthened"
 			var fallback = "%s %s" % [change_word, effect.stat]
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, fallback))
 			clamp_hp_to_max(target)
 		EffectDefinition.EffectType.STAT_MULTIPLIER:
+			var movement_before = get_effective_stat(target, "movement")
 			target.status_effects.append({
 				"stat" = effect.stat,
 				"op" = "multiply",
 				"amount" = effect.stat_multiplier,
-				"duration" = effect.duration,
+				"duration" = stored_duration(target, effect),
 				"source_name" = attacker.name
 			})
+			if effect.stat == "movement":
+				resync_live_movement(target, movement_before)
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
 				"%sx %s" % [effect.stat_multiplier, effect.stat]))
-			if effect.stat == "movement" and target == get_current_combatant():
-				# controller.movement is a live counter set once at the start
-				# of the turn - a status effect alone wouldn't retroactively
-				# grant more movement to spend right now, so top it up
-				# directly by however much the multiplier just added.
-				var bonus = int(round(target.movement * (effect.stat_multiplier - 1.0)))
-				controller.movement += bonus
 			clamp_hp_to_max(target)
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
 			target.status_effects.append({
 				"stat" = "dot", # reserved pseudo-stat marking a damage-over-time tick
 				"min_amount" = effect.min_amount,
 				"max_amount" = effect.max_amount,
-				"duration" = effect.duration,
+				"duration" = stored_duration(target, effect),
 				"source_name" = attacker.name
 			})
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, "a lingering wound"))
@@ -673,6 +672,41 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 			apply_knockback(attacker, target, effect, false)
 		EffectDefinition.EffectType.PULL:
 			apply_knockback(attacker, target, effect, true)
+
+
+## How long a freshly applied status effect should be recorded as lasting.
+##
+## Durations count down at the START of the affected combatant's turn, so an
+## effect placed on someone who hasn't acted yet gets its full count - their
+## next N turns. But one landing on whoever is acting right now is already
+## spending one of its turns, the rest of this one, so it's stored a turn
+## shorter. Otherwise a self-buff covers the turn it was cast AND the whole of
+## the next: Run at duration 1 left Cyrus still doubled at the start of his
+## following turn, so he began on 12 movement having used nothing.
+##
+## The upshot is that duration reads the same either way: 1 means "this turn"
+## for something you do to yourself, and "their next turn" for something you do
+## to someone else.
+func stored_duration(target: Dictionary, effect: EffectDefinition) -> int:
+	if target == get_current_combatant():
+		return maxi(effect.duration - 1, 0)
+	return effect.duration
+
+
+## Folds a movement buff or debuff that just landed into the live movement
+## counter for the combatant currently acting.
+##
+## controller.movement is a countdown set once at the start of the turn, so a
+## change to the movement stat mid-turn has to be applied to it by hand. This
+## re-derives it from the new effective stat minus whatever has already been
+## walked, rather than adding a flat bonus - so two multipliers stacked in one
+## turn compound properly (6 -> 12 -> 24) instead of adding the base value
+## twice (6 -> 12 -> 18), and a debuff can take movement away just as well.
+func resync_live_movement(target: Dictionary, effective_before: int):
+	if target != get_current_combatant():
+		return
+	var already_walked = effective_before - controller.movement
+	controller.movement = maxi(get_effective_stat(target, "movement") - already_walked, 0)
 
 
 ## One log line for a condition being applied. Uses the effect's own

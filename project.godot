@@ -26,6 +26,10 @@ CombatantDatabase="*res://databases/combatant_database.tscn"
 Campaign="*res://campaign/Campaign.gd"
 DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
 
+[dialogue_manager]
+
+runtime/state_autoload_shortcuts=PackedStringArray("Campaign")
+
 [display]
 
 window/size/viewport_width=1280
@@ -49,7 +53,3 @@ locale/translations_pot_files=PackedStringArray("res://Dialogue/test.dialogue")
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-
-[dialogue_manager]
-
-runtime/state_autoload_shortcuts=PackedStringArray("Campaign")
