@@ -6,14 +6,16 @@
 [ext_resource type="Script" uid="uid://da506va2ao1j4" path="res://combat/Combat.gd" id="4_cujqt"]
 [ext_resource type="PackedScene" uid="uid://ddgx1hll377nx" path="res://ui/ui.tscn" id="5_pc8ih"]
 [ext_resource type="PackedScene" path="res://ui/pause_ui.tscn" id="6_pauseui"]
+[ext_resource type="Script" path="res://control/CameraController.gd" id="7_camera"]
 
 [node name="Game" type="Node" unique_id=614169276]
 
 [node name="Terrain" parent="." unique_id=2014758552 instance=ExtResource("1_huxbe")]
 
 [node name="Camera2D" type="Camera2D" parent="Terrain" unique_id=1946268559]
-position = Vector2(576, 336)
+position = Vector2(592, 352)
 zoom = Vector2(1, 1)
+script = ExtResource("7_camera")
 
 [node name="Select" type="Sprite2D" parent="Terrain" unique_id=1956478372]
 position = Vector2(272, 208)
