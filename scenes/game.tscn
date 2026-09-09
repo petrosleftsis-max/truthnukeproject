@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b4xca7lc8vsi8"]
 
-[ext_resource type="Texture2D" uid="uid://xkkeet22l731" path="res://imagese/grid.png" id="2_icbvx"]
+[ext_resource type="Texture2D" uid="uid://hc0p1142q87l" path="res://imagese/grid.png" id="2_icbvx"]
 [ext_resource type="Script" uid="uid://c11l4cm22n2qk" path="res://control/CController.gd" id="3_dbxfm"]
 [ext_resource type="Script" uid="uid://da506va2ao1j4" path="res://combat/Combat.gd" id="4_cujqt"]
 [ext_resource type="PackedScene" uid="uid://ddgx1hll377nx" path="res://ui/ui.tscn" id="5_pc8ih"]
