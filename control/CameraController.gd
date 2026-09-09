@@ -36,6 +36,13 @@ class_name CameraController
 ## Which TileMap defines the map's extent - the same one the rest of the game
 ## treats as the board.
 @export var tile_map_path := NodePath("../TileMap")
+## Whether the player drives this camera themselves. On in battle, where the
+## camera is the only thing WASD and dragging control. Off in exploration,
+## where WASD walks the party and the camera follows them instead - leaving it
+## on there would have one set of keys doing two things at once, and the
+## follow would fight the drag for the camera's position every frame. Zooming
+## stays available either way.
+@export var free_look := true
 
 var _tile_map: TileMap = null
 var _dragging := false
@@ -120,7 +127,7 @@ func _unhandled_input(event):
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
 			zoom_at_screen_point(zoom.x / zoom_step, event.position)
 			get_viewport().set_input_as_handled()
-		elif event.button_index == MOUSE_BUTTON_MIDDLE:
+		elif event.button_index == MOUSE_BUTTON_MIDDLE and free_look:
 			_dragging = event.pressed
 			get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and _dragging:
@@ -131,6 +138,10 @@ func _unhandled_input(event):
 
 
 func _process(delta):
+	if not free_look:
+		# Exploration drives this camera by following the party; WASD walks
+		# them rather than panning the view.
+		return
 	if get_viewport().gui_get_focus_owner() != null:
 		# Something on screen has keyboard focus - in practice the pause menu,
 		# since every combat HUD button is focus_mode = None and so can never

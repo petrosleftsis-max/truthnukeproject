@@ -7,7 +7,36 @@ signal turn_ended()
 
 const TQIcon = preload("res://ui/tq_icon.tscn")
 const StatusIcon = preload("res://ui/status_icon.tscn")
-	
+
+## True while this HUD is being used for exploration rather than a battle.
+var exploration_mode := false
+
+
+## Switches the HUD between battle and exploration. Exploration keeps the party
+## status panel and the message log - both still useful while walking around -
+## and hides the three things that only mean anything on a combat turn: the
+## turn queue, the movement counter and End Turn. The action buttons are
+## emptied rather than hidden, so the panel stays where it is instead of the
+## layout shifting between modes; there is no Combat node to resolve a skill
+## against out here.
+func set_exploration_mode(enabled: bool):
+	exploration_mode = enabled
+	$TurnQueue.visible = not enabled
+	$Actions/Movement.visible = not enabled
+	$Actions/EndTurnButton.visible = not enabled
+	if enabled:
+		set_skill_list([], true)
+		$Actions/SelectTargetMessage.visible = false
+
+
+## Shows what the party can interact with right now, reusing the same banner
+## combat uses to say "select a target". Pass "" to clear it.
+func set_interaction_prompt(text: String):
+	$Actions/SelectTargetMessage.visible = text != ""
+	if text != "":
+		$Actions/SelectTargetMessage/MarginContainer/Label.text = text
+
+
 func add_turn_queue_icon(combatant: Dictionary):
 	var new_icon = TQIcon.instantiate()
 	$TurnQueue/Queue.add_child(new_icon)
@@ -77,7 +106,9 @@ func refresh_action_buttons():
 
 func set_skill_list(skill_list: Array, skill_used: bool = false):
 	var actions_grid_children = $Actions/ActionsPanel/ActionsGrid.get_children()
-	var player_turn = controller.player_turn
+	# There is no CController while exploring - no turn is in progress and
+	# nothing could resolve a skill - so every action button stays disabled.
+	var player_turn = controller.player_turn if controller != null else false
 	for i in range(actions_grid_children.size()):
 		var action = actions_grid_children[i] as Button
 		if player_turn == false or skill_used:

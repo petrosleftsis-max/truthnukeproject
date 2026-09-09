@@ -1,0 +1,54 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="1_terrain"]
+[ext_resource type="Script" path="res://exploration/EntryPoint.gd" id="2_entry"]
+[ext_resource type="Script" path="res://exploration/ExamineInteractable.gd" id="3_examine"]
+[ext_resource type="Script" path="res://exploration/EncounterInteractable.gd" id="4_encounter"]
+[ext_resource type="Resource" path="res://encounters/encounter_01_ambush.tres" id="5_enc1"]
+[ext_resource type="Resource" path="res://encounters/encounter_03_watcher.tres" id="6_enc3"]
+[ext_resource type="Texture2D" uid="uid://tho1dgha8gr1" path="res://imagese/monsters.png" id="7_monsters"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_goblin"]
+atlas = ExtResource("7_monsters")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_eye"]
+atlas = ExtResource("7_monsters")
+region = Rect2(64, 0, 32, 32)
+
+[node name="ExploreCrossroads" instance=ExtResource("1_terrain")]
+
+[node name="EntryPoint" type="Marker2D" parent="."]
+position = Vector2(208, 240)
+script = ExtResource("2_entry")
+entry_name = "start"
+
+[node name="Signpost" type="Node2D" parent="."]
+position = Vector2(304, 240)
+script = ExtResource("3_examine")
+prompt = "Read"
+text = "The crossroads. Goblins to the east, something worse beyond them."
+speaker = "Signpost"
+
+[node name="Bones" type="Node2D" parent="."]
+position = Vector2(240, 368)
+script = ExtResource("3_examine")
+prompt = "Examine"
+text = "Picked clean. Whatever did this went east."
+repeatable = false
+
+[node name="GoblinAmbush" type="Node2D" parent="."]
+position = Vector2(560, 240)
+script = ExtResource("4_encounter")
+prompt = "Fight"
+encounter = ExtResource("5_enc1")
+trigger_id = "crossroads_goblins"
+texture = SubResource("AtlasTexture_goblin")
+
+[node name="TheWatcher" type="Node2D" parent="."]
+position = Vector2(880, 400)
+script = ExtResource("4_encounter")
+prompt = "Fight"
+encounter = ExtResource("6_enc3")
+trigger_id = "crossroads_watcher"
+texture = SubResource("AtlasTexture_eye")

@@ -18,6 +18,66 @@ var current_encounter: EncounterDefinition = null
 ## are recorded. A key that isn't in here has never fought and starts fresh.
 var party_state := {}
 
+## --- Exploration ---
+##
+## Exploration is the hub: battles are started from inside a map and hand
+## control back to it afterwards, so the map and the spot you were standing on
+## have to survive a scene change.
+
+## Scene path of the exploration map to load, and where in it to put the party.
+## return_position is only used when return_to_position is true - otherwise the
+## map's own entry point decides, which is what happens when you walk through a
+## door into a new map.
+var current_map: String = ""
+var return_position := Vector2.ZERO
+var return_to_position := false
+## Which EntryPoint to arrive at, for a door that names one. Ignored when
+## return_to_position is set.
+var target_entry := ""
+## Ids of encounter triggers already beaten, so a fight doesn't restart every
+## time you walk back past where it happened.
+var cleared_triggers := {}
+
+
+## Remembers where the party is standing and starts `encounter`. Call this
+## instead of setting current_encounter directly when a battle is launched from
+## exploration, so the trigger can be retired and the map restored afterwards.
+func begin_battle_from_exploration(encounter: EncounterDefinition, map_path: String, party_position: Vector2, trigger_id: String):
+	current_encounter = encounter
+	current_map = map_path
+	return_position = party_position
+	return_to_position = true
+	_pending_trigger = trigger_id
+
+
+## Whether a battle is currently one the exploration map is waiting to get
+## control back from.
+func has_map_to_return_to() -> bool:
+	return return_to_position and current_map != ""
+
+
+## Called when a battle launched from exploration ends. A win retires its
+## trigger; a loss leaves it in place so the fight can be tried again.
+func finish_battle_from_exploration(won: bool):
+	if won and _pending_trigger != "":
+		cleared_triggers[_pending_trigger] = true
+	_pending_trigger = ""
+
+
+func is_trigger_cleared(trigger_id: String) -> bool:
+	return trigger_id != "" and cleared_triggers.has(trigger_id)
+
+
+## Sends the party through a door: a different map, arriving at the named
+## entry point rather than at remembered coordinates.
+func travel_to_map(map_path: String, entry_name: String):
+	current_map = map_path
+	target_entry = entry_name
+	return_to_position = false
+
+
+var _pending_trigger := ""
+
 
 ## Applies whatever condition `key` was left in by earlier battles to a
 ## freshly-created combatant dictionary. No stored state means untouched.
@@ -53,9 +113,11 @@ func record_party(combatants: Array):
 		}
 
 
-## Back to full strength: everyone alive, everyone at full health.
+## Back to full strength: everyone alive, everyone at full health, and every
+## encounter trigger in the world armed again.
 func reset():
 	party_state.clear()
+	cleared_triggers.clear()
 
 
 ## One-line summary of the party's condition for the level select, e.g.

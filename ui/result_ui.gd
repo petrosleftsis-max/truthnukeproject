@@ -29,6 +29,11 @@ func _on_combat_finished():
 		$Panel/VBox/Title.text = "Victory"
 	else:
 		$Panel/VBox/Title.text = "Defeat"
+	# A battle started from an exploration map retires its trigger on a win, so
+	# the same fight isn't waiting there when the party walks back past it.
+	if Campaign.has_map_to_return_to():
+		Campaign.finish_battle_from_exploration(not enemies_left)
+		$Panel/VBox/BackButton.text = "Continue"
 	$Panel/VBox/Summary.text = _describe_party()
 	$Panel.visible = true
 	$Panel/VBox/BackButton.grab_focus()
@@ -41,5 +46,10 @@ func _describe_party() -> String:
 	return "Party: " + party if party != "" else ""
 
 
+## Back to wherever the battle came from: the exploration map the party was
+## standing in, or the level select if the fight was picked from the menu.
 func _on_back_pressed():
-	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+	if Campaign.has_map_to_return_to():
+		get_tree().change_scene_to_file("res://scenes/exploration.tscn")
+	else:
+		get_tree().change_scene_to_file("res://scenes/level_select.tscn")

@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="2DTacticalRPGDemo"
-run/main_scene="res://scenes/level_select.tscn"
+run/main_scene="res://scenes/exploration.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.png"
 
@@ -24,6 +24,7 @@ config/icon="res://icon.png"
 SkillDatabase="*res://databases/skill_database.tscn"
 CombatantDatabase="*res://databases/combatant_database.tscn"
 Campaign="*res://campaign/Campaign.gd"
+DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
 
 [display]
 
@@ -40,3 +41,7 @@ mouse_cursor/tooltip_position_offset=Vector2(64, 10)
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/dialogue_manager/plugin.cfg")

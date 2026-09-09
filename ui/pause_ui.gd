@@ -22,6 +22,7 @@ extends CanvasLayer
 
 @onready var _pause_buttons: Array = [
 	$PausePanel/VBox/OptionsButton,
+	$PausePanel/VBox/LevelSelectButton,
 	$PausePanel/VBox/ExitButton,
 ]
 @onready var _options_buttons: Array = [
@@ -35,6 +36,7 @@ func _ready():
 	$PausePanel.visible = false
 	$OptionsPanel.visible = false
 	$PausePanel/VBox/OptionsButton.pressed.connect(_on_options_pressed)
+	$PausePanel/VBox/LevelSelectButton.pressed.connect(_on_level_select_pressed)
 	$PausePanel/VBox/ExitButton.pressed.connect(_on_exit_pressed)
 	$OptionsPanel/VBox/Res1280Button.pressed.connect(func(): set_resolution(1280, 720))
 	$OptionsPanel/VBox/Res1920Button.pressed.connect(func(): set_resolution(1920, 1080))
@@ -82,6 +84,15 @@ func _unhandled_input(event):
 
 func _on_options_pressed():
 	_show_panel($OptionsPanel, _options_buttons)
+
+
+## Jumps straight to the battle list. Exploration is the hub now, so this is
+## the way to reach a fight without walking to it - handy for testing an
+## encounter in isolation. It abandons whatever is on screen, so anything
+## unresolved in the current battle is simply dropped.
+func _on_level_select_pressed():
+	Campaign.return_to_position = false
+	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
 
 
 func _on_exit_pressed():
