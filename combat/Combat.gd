@@ -1279,6 +1279,9 @@ func find_most_afflicted_ally(comb: Dictionary) -> Dictionary:
 ## The offensive, single-target (not AoE) skill in comb's skill_list with
 ## the largest max_range - used by AI archetypes that fight from range with
 ## single-target skills specifically. Falls back to "attack_melee".
+## Picks by the range they can actually manage right now, not the range printed
+## on the skill - a blinded combatant should reach for something usable at one
+## tile rather than an archery skill it can no longer aim.
 func find_best_single_target_skill(comb: Dictionary) -> String:
 	var best_key = "attack_melee"
 	var best_range = -1
@@ -1286,10 +1289,21 @@ func find_best_single_target_skill(comb: Dictionary) -> String:
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 		if skill.targets_ally or skill.aoe_radius > 0:
 			continue
-		if skill.max_range > best_range:
-			best_range = skill.max_range
+		var reach = effective_max_range(comb, skill)
+		if reach < skill.min_range:
+			continue # capped below its own minimum - unusable at all
+		if reach > best_range:
+			best_range = reach
 			best_key = skill_key
 	return best_key
+
+
+## The movement an AI should plan around. Zero for anything rooting them, so a
+## crystallised enemy doesn't spend its turn choosing a tile it can't walk to.
+func movement_budget_of(comb: Dictionary) -> int:
+	if has_restriction(comb, "prevents_movement"):
+		return 0
+	return get_effective_stat(comb, "movement")
 
 
 ## The first skill in comb's skill_list that has at least one effect of
@@ -1347,7 +1361,7 @@ func is_effectively_in_range(skill: SkillDefinition, from_position: Vector2i, ta
 ## to land).
 func find_tile_at_ideal_range(comb: Dictionary, target_position: Vector2i, skill: SkillDefinition, movement_budget: int) -> Vector2i:
 	return find_best_reachable_tile(comb, movement_budget, func(tile):
-		if is_effectively_in_range(skill, tile, target_position, comb.movement_class):
+		if is_effectively_in_range(skill, tile, target_position, comb.movement_class, comb):
 			return 1000.0
 		var d = get_position_distance(tile, target_position)
 		return -absf(float(d) - float(clampi(d, skill.min_range, skill.max_range)))
@@ -1361,11 +1375,12 @@ func find_tile_at_ideal_range(comb: Dictionary, target_position: Vector2i, skill
 ## a direction from caster_position, so this just tries enough aim points to
 ## cover every relevant direction too). Returns {"position":Vector2i,
 ## "count":int}.
-func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, movement_class: int) -> Dictionary:
+func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, movement_class: int, caster: Dictionary = {}) -> Dictionary:
 	var best_aim = caster_position
 	var best_count = 0
-	for dx in range(-skill.max_range, skill.max_range + 1):
-		var remaining = skill.max_range - absi(dx)
+	var reach = effective_max_range(caster, skill) if not caster.is_empty() else skill.max_range
+	for dx in range(-reach, reach + 1):
+		var remaining = reach - absi(dx)
 		for dy in range(-remaining, remaining + 1):
 			var d = absi(dx) + absi(dy)
 			if d < skill.min_range:
@@ -1566,13 +1581,13 @@ func avoid_needless_opportunity_attacks(comb: Dictionary, best_tile: Vector2i, i
 ## run through avoid_needless_opportunity_attacks (with that as the intended
 ## target) before actually moving there.
 func move_into_range_of(comb: Dictionary, target_position: Vector2i, skill: SkillDefinition, movement_budget: int, seek_cover: bool = false, avoid_reactive_target: Dictionary = {}) -> bool:
-	if is_effectively_in_range(skill, comb.position, target_position, comb.movement_class) and not seek_cover:
+	if is_effectively_in_range(skill, comb.position, target_position, comb.movement_class, comb) and not seek_cover:
 		return true
 	var tile: Vector2i
 	if seek_cover:
 		tile = find_best_reachable_tile(comb, movement_budget, func(t):
 			var range_score: float
-			if is_effectively_in_range(skill, t, target_position, comb.movement_class):
+			if is_effectively_in_range(skill, t, target_position, comb.movement_class, comb):
 				# Any in-range (and, if applicable, unobstructed) position is
 				# equally valid - no bonus for being specifically close to
 				# max_range, so a large-range skill doesn't pull the AI
@@ -1592,7 +1607,7 @@ func move_into_range_of(comb: Dictionary, target_position: Vector2i, skill: Skil
 		await controller.ai_move(tile)
 	if not comb.alive:
 		return false
-	return is_effectively_in_range(skill, comb.position, target_position, comb.movement_class)
+	return is_effectively_in_range(skill, comb.position, target_position, comb.movement_class, comb)
 
 
 ## Spends whatever movement `comb` has left backing away to the safest tile it
@@ -1698,7 +1713,7 @@ func ai_hit_and_explode(comb: Dictionary):
 		await ai_melee_rush(comb)
 		return
 	var self_destruct: SkillDefinition = SkillDatabase.skills["self_destruct"]
-	var movement_budget = get_effective_stat(comb, "movement")
+	var movement_budget = movement_budget_of(comb)
 	var can_reach_now = can_reach_blast(comb, self_destruct, movement_budget)
 	if not can_reach_now and "run" in comb.skill_list:
 		await use_skill("run", comb, comb.position, false)
@@ -1740,7 +1755,7 @@ func ai_hit_and_explode(comb: Dictionary):
 ## retreating (see avoid_needless_opportunity_attacks), same as Healer and
 ## Caster.
 func ai_ranger(comb: Dictionary):
-	var movement_budget = get_effective_stat(comb, "movement")
+	var movement_budget = movement_budget_of(comb)
 	var effective_max_hp = get_effective_stat(comb, "max_hp")
 	if comb.hp * 2 < effective_max_hp:
 		var heal_skill_key = find_skill_of_type(comb, EffectDefinition.EffectType.HEAL)
@@ -1780,7 +1795,7 @@ func ai_ranger(comb: Dictionary):
 ## map with no line of sight to break came down to hugging alone, and left it
 ## standing still in exactly the spot the players were walking towards.
 func ai_healer(comb: Dictionary):
-	var movement_budget = get_effective_stat(comb, "movement")
+	var movement_budget = movement_budget_of(comb)
 	var heal_skill_key = find_skill_of_type(comb, EffectDefinition.EffectType.HEAL)
 	# How far away an ally can be and still be healable next turn - the
 	# constraint reposition_healer refuses to trade away for safety.
@@ -1834,7 +1849,7 @@ func ai_caster(comb: Dictionary):
 	if target.is_empty():
 		await advance_turn()
 		return
-	var movement_budget = get_effective_stat(comb, "movement")
+	var movement_budget = movement_budget_of(comb)
 	var best_skill_key = ""
 	var best_tile = comb.position
 	var best_aim = comb.position
@@ -1844,10 +1859,10 @@ func ai_caster(comb: Dictionary):
 		if skill.targets_ally or skill.aoe_radius <= 0:
 			continue
 		var tile = find_best_reachable_tile(comb, movement_budget, func(t):
-			var hits = find_best_aim_and_count(skill, t, comb.movement_class).count
+			var hits = find_best_aim_and_count(skill, t, comb.movement_class, comb).count
 			return float(hits) * HIT_WEIGHT + float(count_players_without_los(t)) * SAFETY_WEIGHT
 		)
-		var result = find_best_aim_and_count(skill, tile, comb.movement_class)
+		var result = find_best_aim_and_count(skill, tile, comb.movement_class, comb)
 		if result.count <= 0:
 			continue
 		var score = float(result.count) * HIT_WEIGHT + float(count_players_without_los(tile)) * SAFETY_WEIGHT
@@ -1862,7 +1877,7 @@ func ai_caster(comb: Dictionary):
 			# The original best position wasn't safe enough - recompute the
 			# aim (and check there's still something to hit) from wherever
 			# we're actually willing to end up instead.
-			var result = find_best_aim_and_count(SkillDatabase.skills[best_skill_key], safe_tile, comb.movement_class)
+			var result = find_best_aim_and_count(SkillDatabase.skills[best_skill_key], safe_tile, comb.movement_class, comb)
 			if result.count <= 0:
 				await advance_turn()
 				return
@@ -1917,7 +1932,7 @@ func ai_copycat(comb: Dictionary):
 		return
 	var skill_key = last_player_skill_used
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
-	var movement_budget = get_effective_stat(comb, "movement")
+	var movement_budget = movement_budget_of(comb)
 	if skill.targets_ally:
 		var ally_target = pick_ally_target_for_skill(comb, skill)
 		if await move_into_range_of(comb, ally_target.position, skill, movement_budget):

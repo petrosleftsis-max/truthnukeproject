@@ -113,8 +113,13 @@ func zoom_at_screen_point(new_zoom_level: float, screen_point: Vector2):
 	new_zoom_level = clampf(new_zoom_level, min_zoom, max_zoom)
 	if is_equal_approx(new_zoom_level, old_zoom_level):
 		return
-	var offset_from_centre = screen_point - get_viewport_rect().size * 0.5
-	position += offset_from_centre / old_zoom_level - offset_from_centre / new_zoom_level
+	if free_look:
+		var offset_from_centre = screen_point - get_viewport_rect().size * 0.5
+		position += offset_from_centre / old_zoom_level - offset_from_centre / new_zoom_level
+	# When the camera isn't the player's to steer it stays locked on whatever
+	# it is following - the party leader in exploration - so zooming pulls in
+	# and out around them rather than drifting towards wherever the pointer
+	# happened to be.
 	zoom = Vector2.ONE * new_zoom_level
 	clamp_to_map()
 
