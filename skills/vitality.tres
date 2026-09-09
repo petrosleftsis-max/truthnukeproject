@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://dhblpgxflcvi"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_gpjfk"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_bg4m5"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_agv8j"]
+
+[sub_resource type="Resource" id="Effect_vitality"]
+script = ExtResource("1_gpjfk")
+type = 2
+display_name = "Vitality"
+stat = "max_hp"
+modifier_amount = 5
+duration = 3
+
+[resource]
+script = ExtResource("3_agv8j")
+name = "Vitality"
+description = "Temporarily boosts an ally's maximum HP."
+max_range = 3
+accuracy = 100
+icon = ExtResource("2_bg4m5")
+targets_ally = true
+effects = Array[ExtResource("1_gpjfk")]([SubResource("Effect_vitality")])

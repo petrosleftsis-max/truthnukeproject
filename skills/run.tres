@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://dr2jn7owcw7b2"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_g061d"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_fwp5i"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_4yooe"]
+
+[sub_resource type="Resource" id="Effect_run"]
+script = ExtResource("1_g061d")
+type = 7
+display_name = "Haste"
+duration = 1
+
+[resource]
+script = ExtResource("3_4yooe")
+name = "Run"
+description = "Doubles your movement for this turn only."
+accuracy = 100
+icon = ExtResource("2_fwp5i")
+targets_ally = true
+effects = Array[ExtResource("1_g061d")]([SubResource("Effect_run")])

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://crho4pw88sgf2"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_o0rjh"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_i0q61"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_730sk"]
+
+[sub_resource type="Resource" id="Effect_slow_dmg"]
+script = ExtResource("1_o0rjh")
+min_amount = 4
+max_amount = 6
+
+[sub_resource type="Resource" id="Effect_slow_debuff"]
+script = ExtResource("1_o0rjh")
+type = 2
+display_name = "Slowed"
+modifier_amount = -2
+
+[resource]
+script = ExtResource("3_730sk")
+name = "Slowing Strike"
+description = "A heavy blow that also slows the target down."
+min_range = 1
+max_range = 1
+icon = ExtResource("2_i0q61")
+effects = Array[ExtResource("1_o0rjh")]([SubResource("Effect_slow_dmg"), SubResource("Effect_slow_debuff")])

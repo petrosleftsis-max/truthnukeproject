@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bm2l5pe0ktu2w"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_wujm7"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_ahj24"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_3np3a"]
+
+[sub_resource type="Resource" id="Effect_gravitypull"]
+script = ExtResource("1_wujm7")
+type = 6
+knockback_distance = 3
+
+[resource]
+script = ExtResource("3_3np3a")
+name = "Gravity Pull"
+description = "Drags the target towards the caster - no damage, just repositioning."
+min_range = 2
+max_range = 6
+accuracy = 95
+icon = ExtResource("2_ahj24")
+effects = Array[ExtResource("1_wujm7")]([SubResource("Effect_gravitypull")])

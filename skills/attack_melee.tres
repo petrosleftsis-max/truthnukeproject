@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://1i3sgnx07fqe"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_4r8k0"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_54tgk"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_0scva"]
+
+[sub_resource type="Resource" id="Effect_melee_dmg"]
+script = ExtResource("1_4r8k0")
+min_amount = 6
+max_amount = 8
+
+[resource]
+script = ExtResource("3_0scva")
+name = "Attack (Melee)"
+description = "A basic close-quarters strike."
+min_range = 1
+max_range = 1
+icon = ExtResource("2_54tgk")
+is_reactive = true
+animation = "attack"
+effects = Array[ExtResource("1_4r8k0")]([SubResource("Effect_melee_dmg")])

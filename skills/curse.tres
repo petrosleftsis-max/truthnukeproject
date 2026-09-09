@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bh7152ehf4coy"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_r1ihj"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_luh46"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_cop3u"]
+
+[sub_resource type="Resource" id="Effect_curse"]
+script = ExtResource("1_r1ihj")
+type = 2
+display_name = "Cursed"
+stat = "accuracy"
+modifier_amount = -20
+duration = 3
+
+[resource]
+script = ExtResource("3_cop3u")
+name = "Curse"
+description = "Saps the target's accuracy, making them more likely to miss."
+min_range = 1
+max_range = 6
+accuracy = 85
+icon = ExtResource("2_luh46")
+effects = Array[ExtResource("1_r1ihj")]([SubResource("Effect_curse")])

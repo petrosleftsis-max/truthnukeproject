@@ -64,16 +64,44 @@ enum AoEShape {
 ## animation here is never a requirement, only an option.
 @export var animation: String = "skill"
 
+## Everything this skill does on a successful hit. Add as many as you like -
+## e.g. one DAMAGE effect plus one STAT_MODIFIER effect for a slowing attack.
+##
+## Each entry only shows the fields its own type actually uses, so pick the
+## effect's type first and the rest of it follows.
+@export var effects: Array[EffectDefinition] = []
+
 @export_group("Area of Effect")
 ## 0 = single tile only (classic single-target). Any higher number gives this
 ## skill an area: for DIAMOND it's the radius around the clicked tile; for
 ## LINE and CONE it's how many tiles the shape reaches out from the caster.
-@export var aoe_radius: int = 0
+@export var aoe_radius: int = 0 : set = _set_aoe_radius
+@export var aoe_shape: AoEShape = AoEShape.DIAMOND : set = _set_aoe_shape
 ## Only used when aoe_shape is LINE. How many tiles wide the beam is,
 ## centred on the line (e.g. 3 = one tile either side of the centre).
 @export var aoe_width: int = 1
-@export var aoe_shape: AoEShape = AoEShape.DIAMOND
 
-## Everything this skill does on a successful hit. Add as many as you like -
-## e.g. one DAMAGE effect plus one STAT_MODIFIER effect for a slowing attack.
-@export var effects: Array[EffectDefinition] = []
+
+func _set_aoe_radius(value: int):
+	aoe_radius = value
+	notify_property_list_changed()
+
+
+func _set_aoe_shape(value: AoEShape):
+	aoe_shape = value
+	notify_property_list_changed()
+
+
+## Hides the area fields that don't apply yet, so a single-target skill isn't
+## asking you about beam widths. Nothing is lost by being hidden - the value is
+## still stored, and reappears if the skill is given an area again.
+func _validate_property(property: Dictionary) -> void:
+	var shown := true
+	match property.name:
+		"aoe_shape":
+			# Meaningless until the skill covers more than one tile.
+			shown = aoe_radius > 0
+		"aoe_width":
+			shown = aoe_radius > 0 and aoe_shape == AoEShape.LINE
+	if not shown:
+		property.usage = PROPERTY_USAGE_STORAGE

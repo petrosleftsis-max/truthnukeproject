@@ -22,7 +22,7 @@ enum DispelScope {
 	DEBUFFS_ONLY  ## Removes effects with a negative amount, and all damage-over-time effects.
 }
 
-@export var type: EffectType = EffectType.DAMAGE
+@export var type: EffectType = EffectType.DAMAGE : set = _set_type
 ## What this condition is called in the combat log - "Poisoning", "Slowed",
 ## "Blessed". Used for STAT_MODIFIER, STAT_MULTIPLIER and DAMAGE_OVER_TIME, so
 ## a message can read "Cyrus inflicted Poisoning on Goblin 1" rather than
@@ -37,15 +37,15 @@ enum DispelScope {
 @export var condition: ConditionDefinition
 
 @export_group("Damage / Heal / Damage over Time")
+## What kind of damage this deals. Used by DAMAGE, DAMAGE_OVER_TIME and the
+## collision damage a PUSH deals, and checked against the target's resistances
+## (see CombatantDefinition). Ignored by HEAL.
+@export var damage_type: Damage.Type = Damage.Type.PHYSICAL
 ## Used when type is DAMAGE, HEAL, or DAMAGE_OVER_TIME (as the per-tick
 ## amount). Actual amount is randomised between these each time it's rolled.
 ## Also used by PUSH: if the push gets stopped short by a wall or the map
 ## edge (not by bumping another combatant), it deals this much collision
 ## damage. Leave both at 0 for a push with no collision damage.
-## What kind of damage this deals. Used by DAMAGE, DAMAGE_OVER_TIME and the
-## collision damage a PUSH deals, and checked against the target's resistances
-## (see CombatantDefinition). Ignored by HEAL.
-@export var damage_type: Damage.Type = Damage.Type.PHYSICAL
 @export var min_amount: int = 0
 @export var max_amount: int = 0
 
@@ -83,3 +83,45 @@ enum DispelScope {
 ## hits the map edge, a blocking tile, another combatant, or - for PULL -
 ## the caster's own tile.
 @export var knockback_distance: int = 1
+
+
+## Which fields each effect type actually reads. Everything not listed for a
+## type is hidden while that type is selected - see _validate_property.
+const FIELDS_BY_TYPE := {
+	EffectType.DAMAGE: ["damage_type", "min_amount", "max_amount"],
+	EffectType.HEAL: ["min_amount", "max_amount"],
+	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration"],
+	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "min_amount", "max_amount", "duration"],
+	EffectType.DISPEL: ["dispel_stat", "dispel_scope"],
+	EffectType.PUSH: ["knockback_distance", "damage_type", "min_amount", "max_amount"],
+	EffectType.PULL: ["knockback_distance"],
+	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration"],
+	EffectType.CONDITION: ["condition"],
+}
+
+
+func _set_type(value: EffectType):
+	type = value
+	# The inspector caches the property list, so it has to be told the answer
+	# to _validate_property just changed.
+	notify_property_list_changed()
+
+
+## Shows only the fields the selected effect type actually uses. Every type
+## used to present all six groups - Condition, Damage, Stat Modifier,
+## Duration, Dispel, Push/Pull - and the only way to know which of them mattered
+## was to read each field's comment. Now picking the type answers that.
+##
+## Hidden is not cleared: the value stays stored and comes back if the type is
+## switched back, so trying DAMAGE_OVER_TIME and changing your mind doesn't
+## lose the numbers you typed.
+func _validate_property(property: Dictionary) -> void:
+	if not (property.usage & PROPERTY_USAGE_EDITOR):
+		return
+	if property.name == "type" or not FIELDS_BY_TYPE.has(type):
+		return
+	if property.name in FIELDS_BY_TYPE[type]:
+		return
+	if property.name in ["resource_local_to_scene", "resource_path", "resource_name", "script"]:
+		return
+	property.usage = PROPERTY_USAGE_STORAGE
