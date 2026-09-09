@@ -4,19 +4,19 @@
 [ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
 [ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="3_terrain"]
 
-[sub_resource type="Resource" id="Spawn_steve"]
+[sub_resource type="Resource" id="Spawn_enfina"]
 script = ExtResource("2_spawn")
-combatant_key = "steve"
+combatant_key = "enfina"
 position = Vector2i(8, 6)
 
-[sub_resource type="Resource" id="Spawn_bob"]
+[sub_resource type="Resource" id="Spawn_cyrus"]
 script = ExtResource("2_spawn")
-combatant_key = "bob"
+combatant_key = "cyrus"
 position = Vector2i(6, 7)
 
-[sub_resource type="Resource" id="Spawn_alexandra"]
+[sub_resource type="Resource" id="Spawn_prometheus"]
 script = ExtResource("2_spawn")
-combatant_key = "alexandra"
+combatant_key = "prometheus"
 position = Vector2i(4, 7)
 
 [sub_resource type="Resource" id="Spawn_goblin1"]
@@ -45,4 +45,4 @@ script = ExtResource("1_enc")
 display_name = "Goblin Ambush"
 description = "Three goblins block the road: a ranger, a sorcerer and a priest."
 terrain_scene = ExtResource("3_terrain")
-spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_steve"), SubResource("Spawn_bob"), SubResource("Spawn_alexandra"), SubResource("Spawn_goblin1"), SubResource("Spawn_goblin2"), SubResource("Spawn_goblin3")])
+spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_goblin1"), SubResource("Spawn_goblin2"), SubResource("Spawn_goblin3")])

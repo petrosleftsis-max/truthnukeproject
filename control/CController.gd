@@ -539,8 +539,23 @@ func set_movement(value):
 ## Combat.use_skill) - this covers the case of moving after already having
 ## used the skill.
 func check_turn_completion():
-	if player_turn and movement <= 0 and combat.get_current_combatant().skill_used_this_turn:
+	if player_turn and movement <= 0 and not combat.has_action_left(combat.get_current_combatant()):
 		await combat.advance_turn()
+	elif player_turn:
+		# Still something to do, but the walk is over - re-enable the skill
+		# buttons that were locked out while the combatant was moving.
+		game_ui_refresh()
+
+
+## Whether the controlled combatant is standing still - not mid-walk. The HUD
+## uses this to keep skills unselectable while someone is moving.
+func is_idle() -> bool:
+	return _arrived and not _processing_step
+
+
+func game_ui_refresh():
+	if combat != null and combat.game_ui != null and combat.game_ui.has_method("refresh_action_buttons"):
+		combat.game_ui.refresh_action_buttons()
 
 
 func get_movement():
@@ -635,13 +650,18 @@ func move_on_path(current_position):
 	_next_position = _path[_position_id]
 	_arrived = false
 	controlled_node.play_walk()
+	# Grey the skills out for the duration of the walk - see is_idle().
+	game_ui_refresh()
 	queue_redraw()
 
 
 var _selected_skill: String
+## Which action slot the selected skill will be spent from.
+var _selected_skill_is_secondary := false
 
-func set_selected_skill(skill: String):
+func set_selected_skill(skill: String, as_secondary: bool = false):
 	_selected_skill = skill
+	_selected_skill_is_secondary = as_secondary
 
 
 func begin_target_selection():
@@ -653,14 +673,17 @@ func begin_target_selection():
 	queue_redraw()
 
 
+## Commits the aimed skill. The HUD stays hidden until the skill has actually
+## finished resolving - awaited rather than fired and forgotten - because the
+## point of hiding it was to keep the map clear while the skill plays out, and
+## putting the panels back the instant the click lands would defeat that.
 func confirm_skill_target(position: Vector2i):
-	# Deliberately not awaited: exiting target-selection mode below doesn't
-	# need to wait for the skill to resolve, and use_skill() already locks
-	# input itself for the duration of its animation - awaiting here would
-	# just delay clearing this targeting UI state for no benefit.
-	combat.use_skill(_selected_skill, combat.get_current_combatant(), position)
+	# Leave aiming mode immediately so input state is correct, but hold the
+	# HUD back until the skill is done.
 	_skill_selected = false
 	_range_preview_positions = []
+	queue_redraw()
+	await combat.use_skill(_selected_skill, combat.get_current_combatant(), position, true, _selected_skill_is_secondary)
 	target_selection_finished.emit()
 	queue_redraw()
 

@@ -6,17 +6,17 @@
 
 [sub_resource type="Resource" id="Resource_y7mw8"]
 script = ExtResource("2_spawn")
-combatant_key = "steve"
+combatant_key = "enfina"
 position = Vector2i(30, 2)
 
 [sub_resource type="Resource" id="Resource_iq7ep"]
 script = ExtResource("2_spawn")
-combatant_key = "alexandra"
+combatant_key = "prometheus"
 position = Vector2i(33, 3)
 
 [sub_resource type="Resource" id="Resource_23sa8"]
 script = ExtResource("2_spawn")
-combatant_key = "bob"
+combatant_key = "cyrus"
 position = Vector2i(35, 5)
 
 [sub_resource type="Resource" id="Resource_44smm"]

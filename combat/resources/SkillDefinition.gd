@@ -43,6 +43,14 @@ enum AoEShape {
 ## like a self-destruct. This is unconditional: it still happens even if
 ## the skill's own hit roll against others missed.
 @export var kills_caster: bool = false
+## Which of a combatant's two action slots this uses. Main and secondary are
+## spent separately, so a turn can use one of each.
+##
+## This is the skill's default classification, used by everyone who has it. To
+## let one particular combatant also use it in the other slot, list it in their
+## CombatantDefinition.secondary_skills - Cyrus has Run there, so Run is a main
+## skill for everyone and additionally a secondary one for him.
+@export var is_secondary: bool = false
 
 @export_group("Area of Effect")
 ## 0 = single tile only (classic single-target). Any higher number gives this

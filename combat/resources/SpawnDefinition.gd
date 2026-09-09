@@ -4,7 +4,7 @@ class_name SpawnDefinition
 ## these is what an EncounterDefinition is mostly made of.
 
 
-## Key into CombatantDatabase.combatants - "steve", "ranger", "priest" and so
+## Key into CombatantDatabase.combatants - "enfina", "ranger", "priest" and so
 ## on. The same key can appear more than once in an encounter; give each one a
 ## different display_name so they can be told apart.
 @export var combatant_key: String = ""

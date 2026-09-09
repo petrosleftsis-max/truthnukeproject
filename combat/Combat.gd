@@ -192,6 +192,8 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		"turn_taken" = false,
 		"status_effects" = [], # Active timed effects: {"stat":"movement","amount":-2,"duration":2} or a DoT tick: {"stat":"dot","min_amount":2,"max_amount":4,"duration":3}
 		"skill_used_this_turn" = false,
+		"secondary_used_this_turn" = false,
+		"secondary_skills" = definition.secondary_skills.duplicate(),
 		"reaction_used" = false,
 		"ai_function" = definition.ai_function,
 		# Which CombatantDatabase entry this came from. Campaign keys the
@@ -236,6 +238,45 @@ func add_combatant(combatant: Dictionary, side: int, position: Vector2i):
 func get_current_combatant():
 	return combatants[current_combatant]
 
+
+## --- Action slots ---
+##
+## Every combatant has two per turn, spent independently: a main action and a
+## secondary one. A skill belongs to a slot via SkillDefinition.is_secondary,
+## and a combatant can be given extra skills in their secondary slot through
+## CombatantDefinition.secondary_skills - which is how Cyrus can Run twice in
+## one turn, once from each slot.
+
+func main_skills_of(comb: Dictionary) -> Array:
+	var found = []
+	for key in comb.skill_list:
+		if SkillDatabase.skills.has(key) and not SkillDatabase.skills[key].is_secondary:
+			found.append(key)
+	return found
+
+
+func secondary_skills_of(comb: Dictionary) -> Array:
+	var found = []
+	for key in comb.skill_list:
+		if SkillDatabase.skills.has(key) and SkillDatabase.skills[key].is_secondary:
+			found.append(key)
+	# A combatant's own secondary list can also grant a skill outright, so a
+	# character-specific secondary doesn't have to sit in their main list too.
+	for key in comb.get("secondary_skills", []):
+		if SkillDatabase.skills.has(key) and not found.has(key):
+			found.append(key)
+	return found
+
+
+## Whether `comb` still has either action available. Used to decide when a turn
+## has nothing left to do and can end on its own.
+func has_action_left(comb: Dictionary) -> bool:
+	if not comb.get("skill_used_this_turn", false) and not main_skills_of(comb).is_empty():
+		return true
+	if not comb.get("secondary_used_this_turn", false) and not secondary_skills_of(comb).is_empty():
+		return true
+	return false
+
 func get_distance(attacker: Dictionary, target: Dictionary):
 	return get_position_distance(attacker.position, target.position)
 
@@ -258,7 +299,7 @@ func get_distance(attacker: Dictionary, target: Dictionary):
 ## an enemy's whole turn. AI behaviors that mean to act again afterward
 ## (move further, use another skill) pass false and call advance_turn()
 ## themselves once they're truly done.
-func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2i, end_turn_after: bool = true):
+func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2i, end_turn_after: bool = true, as_secondary: bool = false):
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	var distance = get_position_distance(attacker.position, impact_position)
 	var valid = distance <= skill.max_range and distance >= skill.min_range
@@ -280,26 +321,35 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			var tiles = get_impact_tiles(skill, attacker.position, impact_position, attacker.movement_class)
 			var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally)
 			for target in targets:
+				# Only the first effect on each target names the skill, so a
+				# multi-effect hit reads as one action rather than repeating
+				# "used Poison Dart" for every effect it carries.
+				var mention_skill = true
 				for effect in skill.effects:
-					apply_effect(attacker, target, effect)
+					apply_effect(attacker, target, effect, skill, mention_skill)
+					mention_skill = false
 		else:
 			update_information.emit("{0} missed.\n".format([attacker.name]))
 		if skill.kills_caster and attacker.alive:
 			update_information.emit("[color=red]{0}[/color] is consumed by its own {1}!\n".format([attacker.name, skill.name]))
 			combatant_die(attacker)
-		attacker.skill_used_this_turn = true
+		if as_secondary:
+			attacker.secondary_used_this_turn = true
+		else:
+			attacker.skill_used_this_turn = true
 		if attacker.side == 1:
 			if end_turn_after:
 				await advance_turn()
 			# else: the AI behavior that called this will act further and
 			# end the turn itself when it's actually done.
-		elif controller.movement <= 0:
-			# No movement left either, so there's nothing more this turn can do.
+		elif controller.movement <= 0 and not has_action_left(attacker):
+			# No movement and neither action slot left - nothing more this turn
+			# can do.
 			await advance_turn()
 		else:
-			# Skill spent, but movement remains - stay on this combatant's turn
-			# and just refresh the action buttons so skills show as unavailable.
-			game_ui.set_skill_list(attacker.skill_list, true)
+			# Something's still available - stay on this combatant's turn and
+			# rebuild the panel so the spent slot shows as unavailable.
+			game_ui.refresh_action_buttons()
 	else:
 		update_information.emit("Target too far to attack.\n")
 		#advance turn if its currently the enemy turn
@@ -372,8 +422,10 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	var prob = clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
 	var random_number = randi() % 100
 	if random_number < prob:
+		var mention_skill = true
 		for effect in skill.effects:
-			apply_effect(attacker, target, effect)
+			apply_effect(attacker, target, effect, skill, mention_skill)
+			mention_skill = false
 	else:
 		update_information.emit("{0} missed.\n".format([attacker.name]))
 
@@ -566,12 +618,16 @@ func get_targets_in_tiles(tiles: Array, caster: Dictionary, targets_ally: bool) 
 
 ## Applies one EffectDefinition from a skill to a target. This is the single
 ## place to extend if you add a new EffectType later.
-func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition):
+## Applies one effect. `skill` is what's being used, and `mention_skill` is
+## true for the first effect landing on a given target, so the log reads
+## "Cyrus used Poison Dart on Goblin 1, dealing 5 damage. Cyrus inflicted
+## Poisoning on Goblin 1." rather than repeating the skill's name per effect.
+func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
-			do_damage(attacker, target, effect)
+			do_damage(attacker, target, effect, skill, mention_skill)
 		EffectDefinition.EffectType.HEAL:
-			do_heal(attacker, target, effect)
+			do_heal(attacker, target, effect, skill, mention_skill)
 		EffectDefinition.EffectType.STAT_MODIFIER:
 			target.status_effects.append({
 				"stat" = effect.stat,
@@ -581,12 +637,8 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"source_name" = attacker.name
 			})
 			var change_word = "weakened" if effect.modifier_amount < 0 else "strengthened"
-			update_information.emit("[color=red]{0}[/color]'s {1} was {2} by [color=yellow]{3}[/color]\n".format([
-				target.name,
-				effect.stat,
-				change_word,
-				attacker.name
-			]))
+			var fallback = "%s %s" % [change_word, effect.stat]
+			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, fallback))
 			clamp_hp_to_max(target)
 		EffectDefinition.EffectType.STAT_MULTIPLIER:
 			target.status_effects.append({
@@ -596,11 +648,8 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"duration" = effect.duration,
 				"source_name" = attacker.name
 			})
-			update_information.emit("[color=red]{0}[/color]'s {1} was multiplied by [color=yellow]{2}x[/color]\n".format([
-				target.name,
-				effect.stat,
-				effect.stat_multiplier
-			]))
+			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
+				"%sx %s" % [effect.stat_multiplier, effect.stat]))
 			if effect.stat == "movement" and target == get_current_combatant():
 				# controller.movement is a live counter set once at the start
 				# of the turn - a status effect alone wouldn't retroactively
@@ -617,16 +666,28 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"duration" = effect.duration,
 				"source_name" = attacker.name
 			})
-			update_information.emit("[color=red]{0}[/color] was afflicted by [color=yellow]{1}[/color]\n".format([
-				target.name,
-				attacker.name
-			]))
+			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, "a lingering wound"))
 		EffectDefinition.EffectType.DISPEL:
 			dispel_status_effects(attacker, target, effect)
 		EffectDefinition.EffectType.PUSH:
 			apply_knockback(attacker, target, effect, false)
 		EffectDefinition.EffectType.PULL:
 			apply_knockback(attacker, target, effect, true)
+
+
+## One log line for a condition being applied. Uses the effect's own
+## display_name where it has one ("Poisoning"), falling back to a description
+## of what it actually does when it doesn't. Names the skill only on the first
+## effect to land on this target.
+func describe_condition(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition, mention_skill: bool, fallback: String) -> String:
+	var condition = effect.display_name if effect.display_name != "" else fallback
+	if mention_skill and skill != null:
+		return "[color=yellow]%s[/color] used %s on [color=red]%s[/color], inflicting %s.\n" % [
+			attacker.name, skill.name, target.name, condition
+		]
+	return "[color=yellow]%s[/color] inflicted %s on [color=red]%s[/color].\n" % [
+		attacker.name, condition, target.name
+	]
 
 
 ## Removes status effects from `target` matching `effect`'s dispel filters
@@ -735,15 +796,22 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 ## Ticks any damage-over-time effects and removes one turn of duration from
 ## every status effect on this combatant, dropping any that have expired.
 ## Call once per combatant, at the start of their own turn.
+## Expiry is checked BEFORE the tick, not after it. Decrementing and then
+## dropping anything that reached zero in the same pass spent the effect's last
+## turn removing it, so a duration of N only ever lasted N-1 of the target's
+## turns - 1 did nothing at all. Now an effect ticks on each of N turns and is
+## cleared at the start of the turn after, so duration means what it says.
 func process_status_effects(comb: Dictionary):
 	var i = comb.status_effects.size() - 1
 	while i >= 0:
 		var eff = comb.status_effects[i]
+		if eff.duration <= 0:
+			comb.status_effects.remove_at(i)
+			i -= 1
+			continue
 		if eff.stat == "dot":
 			tick_damage_over_time(comb, eff)
 		eff.duration -= 1
-		if eff.duration <= 0:
-			comb.status_effects.remove_at(i)
 		i -= 1
 	clamp_hp_to_max(comb)
 
@@ -829,6 +897,7 @@ func advance_turn():
 			comb = combatants[current_combatant]
 			continue
 		comb.skill_used_this_turn = false
+		comb.secondary_used_this_turn = false
 		comb.reaction_used = false
 		process_status_effects(comb)
 		if not comb.alive:
@@ -865,28 +934,34 @@ func combat_finish():
 	emit_signal("combat_finished")
 
 
-func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition):
+func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
 	var damage = randi_range(effect.min_amount, effect.max_amount)
 	target.hp -= damage
 	update_combatants.emit(combatants)
-	update_information.emit("[color=yellow]{0}[/color] did [color=gray]{1} damage[/color] to [color=red]{2}[/color]\n".format([
-		attacker.name,
-		damage,
-		target.name
-		]))
+	if mention_skill and skill != null:
+		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=gray]%d damage[/color].\n" % [
+			attacker.name, skill.name, target.name, damage
+		])
+	else:
+		update_information.emit("[color=yellow]%s[/color] dealt [color=gray]%d damage[/color] to [color=red]%s[/color].\n" % [
+			attacker.name, damage, target.name
+		])
 	if target.hp <= 0:
 		combatant_die(target)
 
 
-func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition):
+func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
 	var amount = randi_range(effect.min_amount, effect.max_amount)
 	target.hp = mini(target.hp + amount, get_effective_stat(target, "max_hp"))
 	update_combatants.emit(combatants)
-	update_information.emit("[color=yellow]{0}[/color] healed [color=lightgreen]{1}[/color] for [color=gray]{2}[/color]\n".format([
-		attacker.name,
-		target.name,
-		amount
-		]))
+	if mention_skill and skill != null:
+		update_information.emit("[color=yellow]%s[/color] used %s on [color=lightgreen]%s[/color], healing [color=gray]%d[/color].\n" % [
+			attacker.name, skill.name, target.name, amount
+		])
+	else:
+		update_information.emit("[color=yellow]%s[/color] healed [color=lightgreen]%s[/color] for [color=gray]%d[/color].\n" % [
+			attacker.name, target.name, amount
+		])
 
 
 func combatant_die(combatant: Dictionary):

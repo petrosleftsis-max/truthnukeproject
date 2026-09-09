@@ -111,7 +111,7 @@ func battle_party() -> Array:
 ##
 ##     ~ enfina_joins
 ##     Enfina: I'll come with you.
-##     do Campaign.add_member("steve")
+##     do Campaign.add_member("enfina")
 ##     => END
 ##
 ## Anyone added is at full health unless they've fought before, and lands at

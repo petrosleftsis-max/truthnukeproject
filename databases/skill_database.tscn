@@ -60,6 +60,7 @@ max_amount = 6
 
 [sub_resource type="Resource" id="Effect_slow_debuff"]
 script = ExtResource("2_effdef")
+display_name = "Slowed"
 type = 2
 modifier_amount = -2
 
@@ -147,6 +148,7 @@ max_amount = 3
 
 [sub_resource type="Resource" id="Effect_poison_dot"]
 script = ExtResource("2_effdef")
+display_name = "Poisoning"
 type = 3
 min_amount = 2
 max_amount = 4
@@ -165,6 +167,7 @@ effects = Array[ExtResource("2_effdef")]([SubResource("Effect_poison_dmg"), SubR
 
 [sub_resource type="Resource" id="Effect_curse"]
 script = ExtResource("2_effdef")
+display_name = "Cursed"
 type = 2
 stat = "accuracy"
 modifier_amount = -20
@@ -182,6 +185,7 @@ effects = Array[ExtResource("2_effdef")]([SubResource("Effect_curse")])
 
 [sub_resource type="Resource" id="Effect_vitality"]
 script = ExtResource("2_effdef")
+display_name = "Vitality"
 type = 2
 stat = "max_hp"
 modifier_amount = 5
@@ -205,6 +209,7 @@ dispel_scope = 2
 [sub_resource type="Resource" id="Resource_cleanse"]
 script = ExtResource("2_twktv")
 name = "Cleanse"
+is_secondary = true
 description = "Removes harmful effects from an ally."
 max_range = 3
 accuracy = 100
@@ -251,6 +256,7 @@ effects = Array[ExtResource("2_effdef")]([SubResource("Effect_gravitypull")])
 
 [sub_resource type="Resource" id="Effect_run"]
 script = ExtResource("2_effdef")
+display_name = "Haste"
 type = 7
 stat = "movement"
 stat_multiplier = 2.0

@@ -34,6 +34,7 @@ region = Rect2(0, 64, 64, 32)
 script = ExtResource("2_rggep")
 name = "Cyrus"
 class_t = 1
+secondary_skills = Array[String](["run"])
 max_hp = 10
 movement = 6
 initiative = 8
@@ -150,8 +151,8 @@ ai_function = "ai_copycat"
 [node name="CombatantDatabase" type="Node" unique_id=1671407001]
 script = ExtResource("1_5ebs0")
 combatants = {
-"alexandra": SubResource("Resource_bwgmm"),
-"bob": SubResource("Resource_w6c3b"),
+"prometheus": SubResource("Resource_bwgmm"),
+"cyrus": SubResource("Resource_w6c3b"),
 "bomber": SubResource("Resource_bomber"),
 "eye": SubResource("Resource_3h68d"),
 "goblin": SubResource("Resource_s2oe2"),
@@ -159,5 +160,5 @@ combatants = {
 "priest": SubResource("Resource_priest"),
 "ranger": SubResource("Resource_ranger"),
 "sorcerer": SubResource("Resource_sorcerer"),
-"steve": SubResource("Resource_tkpbb")
+"enfina": SubResource("Resource_tkpbb")
 }

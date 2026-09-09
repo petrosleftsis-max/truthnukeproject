@@ -22,6 +22,12 @@ enum DispelScope {
 }
 
 @export var type: EffectType = EffectType.DAMAGE
+## What this condition is called in the combat log - "Poisoning", "Slowed",
+## "Blessed". Used for STAT_MODIFIER, STAT_MULTIPLIER and DAMAGE_OVER_TIME, so
+## a message can read "Cyrus inflicted Poisoning on Goblin 1" rather than
+## describing the raw stat change. Leave empty to fall back to a generated
+## description of what the effect actually does.
+@export var display_name: String = ""
 
 @export_group("Damage / Heal / Damage over Time")
 ## Used when type is DAMAGE, HEAL, or DAMAGE_OVER_TIME (as the per-tick

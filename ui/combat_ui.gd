@@ -13,6 +13,36 @@ const StatusIcon = preload("res://ui/status_icon.tscn")
 ## True while this HUD is being used for exploration rather than a battle.
 var exploration_mode := false
 
+## Which action slot the skill panel is showing: false = main, true = secondary.
+## Reset to main whenever the turn passes to someone new, so a turn always
+## starts on the panel you'd expect.
+var showing_secondary := false
+
+
+func _ready():
+	$Actions/SkillPanelToggle.pressed.connect(func(): set_skill_panel(not showing_secondary))
+
+
+## Switches the action panel between a combatant's main and secondary skills.
+## The two slots are spent separately - a turn can use one of each - so this is
+## purely a view switch and never costs anything.
+func set_skill_panel(secondary: bool):
+	showing_secondary = secondary
+	$Actions/SkillPanelLabel.text = "Secondary Skills" if secondary else "Main Skills"
+	$Actions/SkillPanelToggle.text = "Main" if secondary else "Secondary"
+	if combat != null and not exploration_mode:
+		_show_skills_for(combat.get_current_combatant())
+
+
+## Fills the action panel from whichever slot is currently on show.
+func _show_skills_for(comb: Dictionary):
+	if combat == null:
+		set_skill_list([], true)
+		return
+	var list = combat.secondary_skills_of(comb) if showing_secondary else combat.main_skills_of(comb)
+	var used = comb.get("secondary_used_this_turn", false) if showing_secondary else comb.get("skill_used_this_turn", false)
+	set_skill_list(list, used, showing_secondary)
+
 
 ## Switches the HUD between battle and exploration. Exploration keeps the party
 ## status panel and the message log - both still useful while walking around -
@@ -26,6 +56,8 @@ func set_exploration_mode(enabled: bool):
 	$TurnQueue.visible = not enabled
 	$Actions/Movement.visible = not enabled
 	$Actions/EndTurnButton.visible = not enabled
+	$Actions/SkillPanelLabel.visible = not enabled
+	$Actions/SkillPanelToggle.visible = not enabled
 	if enabled:
 		set_skill_list([], true)
 		$Actions/SelectTargetMessage.visible = false
@@ -105,7 +137,9 @@ func show_combatant_status_main(comb: Dictionary):
 	if comb.side == 0:
 		$Actions/StatusIcon.set_icon(comb.icon)
 		$Actions/StatusIcon.set_health(comb.hp, combat.get_effective_stat(comb, "max_hp"))
-	set_skill_list(comb.skill_list, comb.skill_used_this_turn)
+	# A new turn always opens on the main panel.
+	set_skill_panel(false)
+	_show_skills_for(comb)
 
 
 ## True while the player is placing the party, before the first turn.
@@ -157,18 +191,23 @@ func lock_action_buttons():
 ## Re-establishes normal button state for whoever's turn it currently is -
 ## used right after a skill's animation finishes, to undo lock_action_buttons.
 func refresh_action_buttons():
-	var current = combat.get_current_combatant()
-	set_skill_list(current.skill_list, current.skill_used_this_turn)
+	if combat == null:
+		return
+	_show_skills_for(combat.get_current_combatant())
 
 
-func set_skill_list(skill_list: Array, skill_used: bool = false):
+func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: bool = false):
 	var actions_grid_children = $Actions/ActionsPanel/ActionsGrid.get_children()
 	# There is no CController while exploring - no turn is in progress and
 	# nothing could resolve a skill - so every action button stays disabled.
 	var player_turn = controller.player_turn if controller != null else false
+	# Nothing may be picked while a combatant is walking or an animation is
+	# resolving: the turn's state is mid-change, and the skill would be aimed
+	# from wherever they happened to be standing at the time.
+	var busy = controller != null and (controller.action_locked or not controller.is_idle())
 	for i in range(actions_grid_children.size()):
 		var action = actions_grid_children[i] as Button
-		if player_turn == false or skill_used:
+		if player_turn == false or skill_used or busy:
 			action.disabled = true
 		else:
 			action.disabled = false
@@ -179,7 +218,7 @@ func set_skill_list(skill_list: Array, skill_used: bool = false):
 			action.tooltip_text = build_skill_tooltip(skill)
 			clear_action_button_connections(action)
 			action.pressed.connect(func():
-				controller.set_selected_skill(skill_key)
+				controller.set_selected_skill(skill_key, as_secondary)
 				controller.begin_target_selection()
 				)
 		else:
@@ -279,9 +318,30 @@ func set_movement(movement):
 	$Actions/Movement.text = str(movement)
 
 
+## While a skill is being aimed, everything but the party portraits and the
+## turn queue gets out of the way, so the map - and the skill's range and area
+## preview drawn on it - is unobstructed. The Actions cluster carries the skill
+## buttons, movement counter, End Turn and message log, so hiding it as a whole
+## clears all of them at once; the aiming banner is put back on top of it.
+func _set_aiming(aiming: bool):
+	$Actions.visible = true
+	for child in $Actions.get_children():
+		if child.name != "SelectTargetMessage":
+			child.visible = not aiming
+	$Actions/SelectTargetMessage.visible = aiming
+	if not aiming:
+		# Restore whatever the current mode says these should be, rather than
+		# blanket-showing things the mode had deliberately hidden.
+		$Actions/Movement.visible = not exploration_mode
+		$Actions/EndTurnButton.visible = not exploration_mode
+		$Actions/SkillPanelLabel.visible = not exploration_mode
+		$Actions/SkillPanelToggle.visible = not exploration_mode
+		$Actions/SelectTargetMessage.visible = false
+
+
 func _target_selection_finished():
-	$Actions/SelectTargetMessage.visible = false
+	_set_aiming(false)
 
 
 func _target_selection_started():
-	$Actions/SelectTargetMessage.visible = true
+	_set_aiming(true)

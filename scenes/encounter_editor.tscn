@@ -35,26 +35,26 @@ encounter = ExtResource("2_7khms")
 
 [node name="Spawns" type="Node2D" parent="." unique_id=217780757]
 
-[node name="Spawn_steve" type="Sprite2D" parent="Spawns" unique_id=1268886573]
+[node name="Spawn_enfina" type="Sprite2D" parent="Spawns" unique_id=1268886573]
 modulate = Color(0.6, 0.8, 1, 1)
 position = Vector2(976, 80)
 texture = SubResource("AtlasTexture_kwsrb")
 script = ExtResource("5_7srq1")
-combatant_key = "steve"
+combatant_key = "enfina"
 
-[node name="Spawn_bob" type="Sprite2D" parent="Spawns" unique_id=224291009]
+[node name="Spawn_cyrus" type="Sprite2D" parent="Spawns" unique_id=224291009]
 modulate = Color(0.6, 0.8, 1, 1)
 position = Vector2(1136, 176)
 texture = SubResource("AtlasTexture_8grfo")
 script = ExtResource("5_7srq1")
-combatant_key = "bob"
+combatant_key = "cyrus"
 
-[node name="Spawn_alexandra" type="Sprite2D" parent="Spawns" unique_id=2146555183]
+[node name="Spawn_prometheus" type="Sprite2D" parent="Spawns" unique_id=2146555183]
 modulate = Color(0.6, 0.8, 1, 1)
 position = Vector2(1072, 112)
 texture = SubResource("AtlasTexture_lhi33")
 script = ExtResource("5_7srq1")
-combatant_key = "alexandra"
+combatant_key = "prometheus"
 
 [node name="Spawn_bomber" type="Sprite2D" parent="Spawns" unique_id=1236709949]
 modulate = Color(1, 0.6, 0.6, 1)

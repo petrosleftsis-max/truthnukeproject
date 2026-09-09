@@ -175,6 +175,25 @@ focus_mode = 0
 icon_alignment = 1
 expand_icon = true
 
+[node name="SkillPanelLabel" type="Label" parent="Actions"]
+layout_mode = 0
+offset_left = 120.0
+offset_top = 50.0
+offset_right = 300.0
+offset_bottom = 74.0
+theme_override_colors/font_color = Color(0.960784, 0.898039, 0.231373, 1)
+text = "Main Skills"
+vertical_alignment = 1
+
+[node name="SkillPanelToggle" type="Button" parent="Actions"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 48.0
+offset_right = 443.0
+offset_bottom = 74.0
+focus_mode = 0
+text = "Secondary"
+
 [node name="Movement" type="Label" parent="Actions" unique_id=571617693]
 layout_mode = 0
 offset_left = 75.0

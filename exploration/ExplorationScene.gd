@@ -19,7 +19,7 @@ class_name ExplorationScene
 ## leads. Edit this to add or remove teammates; they need to exist in
 ## CombatantDatabase first. Only used to seed Campaign.party_order the first
 ## time, so it doesn't overwrite a party the player has since reordered.
-@export var starting_party: Array[String] = ["steve", "bob", "alexandra"]
+@export var starting_party: Array[String] = ["enfina", "cyrus", "prometheus"]
 ## Where an encounter trigger sends the party.
 @export_file("*.tscn") var battle_scene: String = "res://scenes/game.tscn"
 @export var game_ui: Control

@@ -22,6 +22,13 @@ class_name CombatantDefinition
 @export var sprite_frames: SpriteFrames
 @export_group("Skills")
 @export var skills: Array[String]
+## Skills this combatant can additionally use in their secondary slot, on top
+## of everything already marked is_secondary. This is the per-character
+## exception: Run is a main skill for everyone, but listing it here for Cyrus
+## lets him also use it as a secondary - so he can Run twice in one turn.
+## A skill listed here doesn't have to leave the main panel; it can appear in
+## both.
+@export var secondary_skills: Array[String]
 @export_group("Party")
 ## Whether this one actually fights. Turn it off for someone who travels with
 ## the party but takes no part in battles - a guide, a prisoner, a child - and
