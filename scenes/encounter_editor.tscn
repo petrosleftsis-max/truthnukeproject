@@ -1,6 +1,85 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://cnxcojo3yrgsi"]
 
-[ext_resource type="Script" path="res://tools/encounter_editor.gd" id="1_editor"]
+[ext_resource type="Script" uid="uid://bhijbic2jorww" path="res://tools/encounter_editor.gd" id="1_editor"]
+[ext_resource type="Resource" uid="uid://c3j4v4tmtl7gw" path="res://encounters/encounter_02_sappers.tres" id="2_7khms"]
+[ext_resource type="PackedScene" uid="uid://4ucd52nk0txi" path="res://scenes/sapperTerrain.tscn" id="3_rd23k"]
+[ext_resource type="Texture2D" uid="uid://mha8vbqb2djl" path="res://imagese/chars.png" id="4_v82vy"]
+[ext_resource type="Script" uid="uid://bq7xydje3fups" path="res://tools/spawn_marker.gd" id="5_7srq1"]
+[ext_resource type="Texture2D" uid="uid://tho1dgha8gr1" path="res://imagese/monsters.png" id="6_2cu7l"]
 
-[node name="EncounterEditor" type="Node2D"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_kwsrb"]
+atlas = ExtResource("4_v82vy")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8grfo"]
+atlas = ExtResource("4_v82vy")
+region = Rect2(0, 64, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lhi33"]
+atlas = ExtResource("4_v82vy")
+region = Rect2(0, 32, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6kjpw"]
+atlas = ExtResource("6_2cu7l")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o51yk"]
+atlas = ExtResource("6_2cu7l")
+region = Rect2(0, 0, 32, 32)
+
+[node name="EncounterEditor" type="Node2D" unique_id=1480793127]
 script = ExtResource("1_editor")
+encounter = ExtResource("2_7khms")
+
+[node name="TerrainPreview" type="Node2D" parent="." unique_id=752726230 instance=ExtResource("3_rd23k")]
+texture_filter = 1
+
+[node name="Spawns" type="Node2D" parent="." unique_id=217780757]
+
+[node name="Spawn_steve" type="Sprite2D" parent="Spawns" unique_id=1268886573]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(976, 80)
+texture = SubResource("AtlasTexture_kwsrb")
+script = ExtResource("5_7srq1")
+combatant_key = "steve"
+
+[node name="Spawn_bob" type="Sprite2D" parent="Spawns" unique_id=224291009]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(1136, 176)
+texture = SubResource("AtlasTexture_8grfo")
+script = ExtResource("5_7srq1")
+combatant_key = "bob"
+
+[node name="Spawn_alexandra" type="Sprite2D" parent="Spawns" unique_id=2146555183]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(1072, 112)
+texture = SubResource("AtlasTexture_lhi33")
+script = ExtResource("5_7srq1")
+combatant_key = "alexandra"
+
+[node name="Spawn_bomber" type="Sprite2D" parent="Spawns" unique_id=1236709949]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(496, 176)
+texture = SubResource("AtlasTexture_6kjpw")
+script = ExtResource("5_7srq1")
+combatant_key = "bomber"
+side = 1
+display_name = "Sapper 1"
+
+[node name="@Sprite2D@31577" type="Sprite2D" parent="Spawns" unique_id=1118740463]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(464, 304)
+texture = SubResource("AtlasTexture_6kjpw")
+script = ExtResource("5_7srq1")
+combatant_key = "bomber"
+side = 1
+display_name = "Sapper 2"
+
+[node name="Spawn_goblin" type="Sprite2D" parent="Spawns" unique_id=1736999889]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(464, 240)
+texture = SubResource("AtlasTexture_o51yk")
+script = ExtResource("5_7srq1")
+combatant_key = "goblin"
+side = 1
+display_name = "Grunt"
