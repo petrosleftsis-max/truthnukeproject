@@ -1,3 +1,4 @@
+@tool
 extends Interactable
 class_name DialogueInteractable
 ## An NPC (or anything else) that starts a Dialogue Manager conversation.

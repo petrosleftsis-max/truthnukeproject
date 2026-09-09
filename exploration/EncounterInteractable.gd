@@ -1,3 +1,4 @@
+@tool
 extends Interactable
 class_name EncounterInteractable
 ## An enemy (or ambush point) on the map that starts a battle.
@@ -24,6 +25,11 @@ func _init():
 
 func _ready():
 	super()
+	if Engine.is_editor_hint():
+		# Campaign is an autoload, so it only exists in the running game -
+		# nothing here should be asking it about cleared fights while the map
+		# is just being laid out in the editor.
+		return
 	if trigger_id == "":
 		trigger_id = "%s/%s" % [get_tree().current_scene.scene_file_path if get_tree() and get_tree().current_scene else "", name]
 	# A fight already won leaves nothing standing here.
@@ -31,6 +37,8 @@ func _ready():
 
 
 func is_available() -> bool:
+	if Engine.is_editor_hint():
+		return true
 	return not Campaign.is_trigger_cleared(trigger_id)
 
 

@@ -1,3 +1,4 @@
+@tool
 extends Node2D
 class_name Interactable
 ## Base for anything the party can walk up to and use in an exploration map.
@@ -15,32 +16,39 @@ class_name Interactable
 ## Shown above the party when they're close enough, e.g. "Talk", "Enter",
 ## "Examine". Keep it to a word or two.
 @export var prompt: String = "Interact"
-## How close the party leader has to be, in pixels. One tile is 32.
-@export var interaction_radius: float = 40.0
+## How close the party leader has to be, in pixels. One tile is 32. Drawn as a
+## ring in the editor so you can see the reach while placing it.
+@export var interaction_radius: float = 40.0:
+	set(value):
+		interaction_radius = value
+		queue_redraw()
 ## Optional sprite so the thing is visible on the map. Leave empty for an
 ## invisible trigger - a doorway painted into the tiles, say.
 @export var texture: Texture2D:
 	set(value):
 		texture = value
-		_refresh_sprite()
-
-var _sprite: Sprite2D = null
+		queue_redraw()
 
 
 func _ready():
-	_refresh_sprite()
+	queue_redraw()
 
 
-func _refresh_sprite():
-	if texture == null:
-		if _sprite != null:
-			_sprite.queue_free()
-			_sprite = null
+## Drawn rather than given a Sprite2D child, so this is a @tool script that
+## shows the real artwork in the editor while you position it - placing an
+## invisible dot and guessing is no way to lay out a map - without adding a
+## child node the scene would then have to carry around.
+func _draw():
+	if texture != null:
+		draw_texture(texture, -texture.get_size() * 0.5)
+	if not Engine.is_editor_hint():
 		return
-	if _sprite == null:
-		_sprite = Sprite2D.new()
-		add_child(_sprite)
-	_sprite.texture = texture
+	# Reach, shown only in the editor: how close the party has to get before
+	# this offers its prompt.
+	draw_arc(Vector2.ZERO, interaction_radius, 0.0, TAU, 32, Color(1.0, 0.85, 0.3, 0.5), 1.0)
+	if texture == null:
+		# An invisible trigger still needs something to grab hold of.
+		draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.85, 0.3, 0.8))
 
 
 ## Whether this can be used right now. An encounter trigger already beaten

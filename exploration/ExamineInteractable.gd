@@ -1,3 +1,4 @@
+@tool
 extends Interactable
 class_name ExamineInteractable
 ## Scenery with something to say: a sign, a chest, a body by the road.
