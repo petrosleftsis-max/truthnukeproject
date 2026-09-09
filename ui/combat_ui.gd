@@ -29,6 +29,33 @@ func set_exploration_mode(enabled: bool):
 		$Actions/SelectTargetMessage.visible = false
 
 
+## Draws the party portraits down the left while exploring.
+##
+## The combat path fills this panel from Combat's combatant_added signal, which
+## never fires out here - so before this the column simply sat empty. Takes
+## plain dictionaries (see Campaign.party_members) rather than combatant
+## dictionaries, because there is no Combat to ask for effective stats.
+##
+## The leader is shown at full brightness and mirrored into the large portrait
+## the combat HUD uses for whoever's turn it is, so it always reads as "this is
+## the one you're steering".
+func show_exploration_party(members: Array):
+	for child in $Status.get_children():
+		$Status.remove_child(child)
+		child.queue_free()
+	for member in members:
+		var new_status = StatusIcon.instantiate()
+		$Status.add_child(new_status)
+		new_status.set_icon(member.icon)
+		new_status.set_health(member.hp, member.max_hp)
+		new_status.name = member.name
+		new_status.modulate = Color.WHITE if member.is_leader else Color(0.62, 0.62, 0.62)
+	if members.is_empty():
+		return
+	$Actions/StatusIcon.set_icon(members[0].icon)
+	$Actions/StatusIcon.set_health(members[0].hp, members[0].max_hp)
+
+
 ## Shows what the party can interact with right now, reusing the same banner
 ## combat uses to say "select a target". Pass "" to clear it.
 func set_interaction_prompt(text: String):

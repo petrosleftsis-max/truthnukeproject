@@ -18,6 +18,100 @@ var current_encounter: EncounterDefinition = null
 ## are recorded. A key that isn't in here has never fought and starts fresh.
 var party_state := {}
 
+## --- The party ---
+##
+## Who is travelling, in marching order: the first entry leads and is the one
+## you steer, the rest follow. Keys index CombatantDatabase, the same way
+## encounter spawns do.
+##
+## Seeded from the Starting Party list on scenes/exploration.tscn the first
+## time an exploration map loads, so adding a teammate is an inspector edit
+## rather than a code change. Add them to CombatantDatabase first.
+var party_order: Array[String] = []
+
+
+## Fills the roster if it hasn't been set yet. Anything already in it wins, so
+## this can't stomp a party the player has since reordered.
+func seed_party(keys: Array):
+	if not party_order.is_empty():
+		return
+	for key in keys:
+		if CombatantDatabase.combatants.has(key) and not party_order.has(key):
+			party_order.append(key)
+		elif not CombatantDatabase.combatants.has(key):
+			push_warning("Starting party lists '%s', which isn't in CombatantDatabase - skipping it." % key)
+
+
+## The roster in marching order, leaving out anyone who has died. The leader is
+## first. Everything that draws or spawns the party uses this, so the line on
+## the map matches who is actually still standing.
+func living_party() -> Array:
+	var living: Array = []
+	for key in party_order:
+		if is_alive(key):
+			living.append(key)
+	return living
+
+
+## Who is currently being steered, or "" if the whole party has fallen.
+func leader() -> String:
+	var living = living_party()
+	return living[0] if not living.is_empty() else ""
+
+
+## Moves `key` to the front of the marching order. Ignored for someone who
+## isn't in the party, or who is dead - a corpse can't lead.
+func set_leader(key: String) -> bool:
+	if not party_order.has(key) or not is_alive(key):
+		return false
+	party_order.erase(key)
+	party_order.insert(0, key)
+	return true
+
+
+## Passes the lead to the next living member, wrapping around. Returns the new
+## leader's key, or "" if there was nobody to pass it to.
+##
+## Rotates the order rather than promoting the second member to the front:
+## promoting would swap the front two back and forth for ever and never reach
+## the third, so a party of three had only two possible leaders.
+func cycle_leader() -> String:
+	var living = living_party()
+	if living.size() < 2:
+		return leader()
+	party_order.append(party_order.pop_front())
+	# Step over anyone who has died, so the lead always lands on someone
+	# standing. Bounded by the roster size, since at least two are alive.
+	var guard = party_order.size()
+	while guard > 0 and not is_alive(party_order[0]):
+		party_order.append(party_order.pop_front())
+		guard -= 1
+	return leader()
+
+
+## What the HUD needs to draw the party: one entry per living member, leader
+## first. hp comes from what they carried out of the last battle, so the
+## portraits show real wear rather than everyone at full health.
+func party_members() -> Array:
+	var members: Array = []
+	for key in living_party():
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+		if definition == null:
+			continue
+		var hp = definition.max_hp
+		if party_state.has(key):
+			hp = party_state[key].hp
+		members.append({
+			"key": key,
+			"name": definition.name,
+			"icon": definition.icon,
+			"map_sprite": definition.map_sprite,
+			"hp": hp,
+			"max_hp": definition.max_hp,
+			"is_leader": key == leader(),
+		})
+	return members
+
 ## --- Exploration ---
 ##
 ## Exploration is the hub: battles are started from inside a map and hand
@@ -113,11 +207,13 @@ func record_party(combatants: Array):
 		}
 
 
-## Back to full strength: everyone alive, everyone at full health, and every
-## encounter trigger in the world armed again.
+## Back to full strength: everyone alive, everyone at full health, every
+## encounter trigger in the world armed again, and the marching order back to
+## however the starting party is configured.
 func reset():
 	party_state.clear()
 	cleared_triggers.clear()
+	party_order.clear()
 
 
 ## One-line summary of the party's condition for the level select, e.g.

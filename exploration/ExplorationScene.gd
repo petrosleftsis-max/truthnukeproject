@@ -15,6 +15,11 @@ class_name ExplorationScene
 ## Loaded when Campaign has no map set - running this scene straight from the
 ## editor, for instance.
 @export_file("*.tscn") var default_map: String = "res://scenes/explore_crossroads.tscn"
+## Who is in the party at the start of a run, in marching order - the first one
+## leads. Edit this to add or remove teammates; they need to exist in
+## CombatantDatabase first. Only used to seed Campaign.party_order the first
+## time, so it doesn't overwrite a party the player has since reordered.
+@export var starting_party: Array[String] = ["steve", "bob", "alexandra"]
 ## Where an encounter trigger sends the party.
 @export_file("*.tscn") var battle_scene: String = "res://scenes/game.tscn"
 @export var game_ui: Control
@@ -38,10 +43,19 @@ func _enter_tree():
 
 
 func _ready():
+	Campaign.seed_party(starting_party)
 	_spawn_party()
 	if game_ui != null and game_ui.has_method("set_exploration_mode"):
 		game_ui.set_exploration_mode(true)
+	_refresh_party_panel()
 	_update_prompt()
+
+
+## Redraws the portrait column down the left. Called whenever the party's
+## make-up or order changes - on arrival, and after passing the lead.
+func _refresh_party_panel():
+	if game_ui != null and game_ui.has_method("show_exploration_party"):
+		game_ui.show_exploration_party(Campaign.party_members())
 
 
 func map_path() -> String:
@@ -125,20 +139,18 @@ func _spawn_party():
 	_follow_camera(party.position_of_leader())
 
 
-## Map sprites for everyone still standing, leader first. Reads the same
-## CombatantDatabase entries the battles use, and skips anyone the party has
-## already lost, so the line on the map matches who you'd actually field.
+## Map sprites for everyone still standing, leader first - straight off the
+## campaign roster, so the line on the map is exactly the party you'd field.
 func _party_textures() -> Array:
 	var textures = []
-	for key in ["steve", "bob", "alexandra"]:
-		if not CombatantDatabase.combatants.has(key):
-			continue
-		if not Campaign.is_alive(key):
-			continue
-		textures.append(CombatantDatabase.combatants[key].map_sprite)
-	if textures.is_empty() and CombatantDatabase.combatants.has("steve"):
+	for member in Campaign.party_members():
+		textures.append(member.map_sprite)
+	if textures.is_empty():
 		# Everyone is down, but there still has to be something to walk with.
-		textures.append(CombatantDatabase.combatants["steve"].map_sprite)
+		for key in Campaign.party_order:
+			if CombatantDatabase.combatants.has(key):
+				textures.append(CombatantDatabase.combatants[key].map_sprite)
+				break
 	return textures
 
 
@@ -233,6 +245,10 @@ func _unhandled_input(event):
 		return
 	if not event is InputEventKey or not event.pressed or event.is_echo():
 		return
+	if event.physical_keycode == KEY_TAB:
+		get_viewport().set_input_as_handled()
+		swap_leader()
+		return
 	if event.physical_keycode != KEY_E and event.physical_keycode != KEY_SPACE:
 		return
 	if _current_target == null or not _current_target.is_available():
@@ -240,6 +256,25 @@ func _unhandled_input(event):
 	get_viewport().set_input_as_handled()
 	_current_target.interact(self)
 	_update_prompt()
+
+
+## Passes the lead to the next living party member (Tab).
+##
+## The line re-forms on the spot the old leader was standing, rather than the
+## new leader walking up from wherever they were trailing - swapping who you
+## steer shouldn't teleport the party's position, only its order.
+func swap_leader():
+	if party == null:
+		return
+	var standing_at = party_position()
+	var new_leader = Campaign.cycle_leader()
+	if new_leader == "":
+		return
+	party.setup(_party_textures(), standing_at, is_walkable)
+	_refresh_party_panel()
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(new_leader)
+	if definition != null:
+		log_message("[color=yellow]%s[/color] takes the lead.\n" % definition.name)
 
 
 ## Stops the party walking while something else has control - a conversation,
