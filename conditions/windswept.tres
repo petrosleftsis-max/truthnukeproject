@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Windswept"
+description = "Battered by wind - slowed, and blown about at the start of each turn."
+duration = 3
+dot_min = 1
+dot_max = 3
+movement_change = -3
+drift_tiles = 3

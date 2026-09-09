@@ -371,6 +371,9 @@ func set_controlled_combatant(combatant: Dictionary):
 		player_turn = false
 	controlled_node = combatant.sprite
 	movement = maxi(combat.get_effective_stat(combatant, "movement"), 0)
+	if combat.has_restriction(combatant, "prevents_movement"):
+		# Crystallised - rooted for the turn, whatever their movement stat says.
+		movement = 0
 	_skill_selected = false
 	_attack_target_position = null
 	_ally_target_position = null
@@ -638,7 +641,29 @@ func move_player():
 		move_on_path(current_position)
 
 
+## Whether whoever is acting may end their move on `tile`.
+##
+## Fear stops them closing on their nearest enemy - they can hold where they
+## are or back away, but not advance. Only the destination is checked, not
+## every step of the route, so a path that curves in and back out is allowed;
+## that's a deliberate simplification rather than an oversight.
+func can_move_to(tile: Vector2i) -> bool:
+	var comb = combat.get_current_combatant()
+	if not combat.has_restriction(comb, "prevents_approach"):
+		return true
+	var nearest = combat.find_nearest_enemy_of(comb)
+	if nearest.is_empty():
+		return true
+	return combat.get_position_distance(tile, nearest.position) >= combat.get_position_distance(comb.position, nearest.position)
+
+
 func move_on_path(current_position):
+	if _path.size() >= 2 and not can_move_to(tile_map.local_to_map(_path[_path.size() - 1])):
+		# Feared, and this move would close the distance. Enforced here rather
+		# than at the player's click so the AI is held to it too.
+		finished_move.emit()
+		_arrived = true
+		return
 	if _path.size() < 2:
 		# No usable path was found (e.g. the destination is unreachable) -
 		# stay put rather than crash trying to index into an empty path.
@@ -668,7 +693,9 @@ func begin_target_selection():
 	_skill_selected = true
 	var skill = SkillDatabase.skills[_selected_skill]
 	var caster = combat.get_current_combatant()
-	_range_preview_positions = combat.get_range_tiles(skill, caster.position, caster.movement_class)
+	# Passing the caster lets the preview shrink to match anything blinding
+	# them, so they're never shown a reach they don't have.
+	_range_preview_positions = combat.get_range_tiles(skill, caster.position, caster.movement_class, caster)
 	target_selection_started.emit()
 	queue_redraw()
 
@@ -709,9 +736,12 @@ func cancel_skill_selection():
 func is_valid_skill_target(target: Dictionary) -> bool:
 	var skill = SkillDatabase.skills[_selected_skill]
 	var caster = combat.get_current_combatant()
-	var right_side = target.side == caster.side if skill.targets_ally else target.side != caster.side
-	if not right_side:
-		return false
+	if not skill.affects_both_sides:
+		# A skill that affects both sides can be aimed at anyone; otherwise
+		# targets_ally decides which side is legal.
+		var right_side = target.side == caster.side if skill.targets_ally else target.side != caster.side
+		if not right_side:
+			return false
 	if skill.respects_blocking and not combat.has_line_of_sight(caster.position, target.position, caster.movement_class):
 		return false
 	return true

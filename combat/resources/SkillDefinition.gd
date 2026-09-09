@@ -22,6 +22,13 @@ enum AoEShape {
 ## If true, valid targets are the caster's own side (heals/buffs).
 ## If false (default), valid targets are the opposing side (attacks/debuffs).
 @export var targets_ally: bool = false
+## If true, this skill doesn't care whose side anyone is on: an area hits every
+## living combatant inside it, friend and foe alike, and a single-target one can
+## be aimed at either side. Use it for a shockwave that knocks back whoever it
+## catches, or a blast you have to be careful where you put.
+## targets_ally still decides how the aiming preview is coloured, and which side
+## the AI considers the point of using it.
+@export var affects_both_sides: bool = false
 ## If true, this skill needs a clear path from the caster: any tile that
 ## blocks the caster's own movement class (the same "Blocks" tile data
 ## movement already respects) blocks this skill too, and hides anything

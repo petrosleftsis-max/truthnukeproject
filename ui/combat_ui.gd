@@ -245,7 +245,7 @@ func build_skill_tooltip(skill: SkillDefinition) -> String:
 	lines.append("")
 	lines.append("Range: %d-%d" % [skill.min_range, skill.max_range])
 	lines.append("Hit chance: %d%%" % skill.accuracy)
-	lines.append("Targets: %s" % ("Allies" if skill.targets_ally else "Enemies"))
+	lines.append("Targets: %s" % ("Everyone caught in it" if skill.affects_both_sides else ("Allies" if skill.targets_ally else "Enemies")))
 	if skill.aoe_radius > 0:
 		lines.append("Area: %s" % describe_aoe_shape(skill))
 	if skill.respects_blocking:
@@ -289,10 +289,19 @@ func describe_effect(effect: EffectDefinition) -> String:
 				scope_str = "debuff"
 			var stat_str = effect.dispel_stat if effect.dispel_stat != "" else "all"
 			return "Dispels %s %s effects" % [scope_str, stat_str]
+		EffectDefinition.EffectType.CONDITION:
+			if effect.condition == null:
+				return "Inflicts a condition (none assigned)"
+			return "Inflicts %s for %d turn(s): %s" % [
+				effect.condition.display_name, effect.condition.duration, effect.condition.describe()
+			]
 		EffectDefinition.EffectType.PUSH:
+			# Spelled out as "only if", because the push's own min/max is
+			# collision damage and reads identically to a plain Damage line
+			# otherwise - which made it look like the skill dealt it twice.
 			var push_str = "Pushes target back %d tile(s)" % effect.knockback_distance
 			if effect.max_amount > 0:
-				push_str += " (%d-%d damage on collision)" % [effect.min_amount, effect.max_amount]
+				push_str += ", dealing %d-%d damage only if they hit a wall" % [effect.min_amount, effect.max_amount]
 			return push_str
 		EffectDefinition.EffectType.PULL:
 			return "Pulls target towards caster, up to %d tile(s)" % effect.knockback_distance

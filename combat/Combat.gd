@@ -257,6 +257,11 @@ func main_skills_of(comb: Dictionary) -> Array:
 
 func secondary_skills_of(comb: Dictionary) -> Array:
 	var found = []
+	if has_restriction(comb, "prevents_secondary"):
+		# Crystallised or Frozen - the slot exists but nothing can be spent
+		# from it, so the panel comes up empty rather than offering a skill
+		# that would be refused.
+		return found
 	for key in comb.skill_list:
 		if SkillDatabase.skills.has(key) and SkillDatabase.skills[key].is_secondary:
 			found.append(key)
@@ -302,7 +307,7 @@ func get_distance(attacker: Dictionary, target: Dictionary):
 func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2i, end_turn_after: bool = true, as_secondary: bool = false):
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	var distance = get_position_distance(attacker.position, impact_position)
-	var valid = distance <= skill.max_range and distance >= skill.min_range
+	var valid = distance <= effective_max_range(attacker, skill) and distance >= skill.min_range
 	if valid:
 		controller.action_locked = true
 		game_ui.lock_action_buttons()
@@ -319,7 +324,7 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			last_player_skill_used = skill_key
 		if random_number < prob:
 			var tiles = get_impact_tiles(skill, attacker.position, impact_position, attacker.movement_class)
-			var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally)
+			var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally, skill.affects_both_sides)
 			for target in targets:
 				# Only the first effect on each target names the skill, so a
 				# multi-effect hit reads as one action rather than repeating
@@ -372,6 +377,9 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_position: Vector2i):
 	for reactor in combatants:
 		if not reactor.alive or reactor == mover or reactor.reaction_used:
+			continue
+		if has_restriction(reactor, "prevents_reactions"):
+			# Poisoned - too sick to seize the opening.
 			continue
 		for skill_key in reactor.skill_list:
 			var skill: SkillDefinition = SkillDatabase.skills[skill_key]
@@ -546,9 +554,10 @@ func get_diamond_tiles(center: Vector2i, radius: int) -> Array:
 ## Every tile within a skill's min/max range of the caster, regardless of
 ## where (or whether) anything is standing there - shown as soon as a skill
 ## is selected, before aiming at anything specific.
-func get_range_tiles(skill: SkillDefinition, caster_position: Vector2i, movement_class: int = 0) -> Array:
+func get_range_tiles(skill: SkillDefinition, caster_position: Vector2i, movement_class: int = 0, caster: Dictionary = {}) -> Array:
 	var tiles = []
-	for tile in get_diamond_tiles(caster_position, skill.max_range):
+	var reach = effective_max_range(caster, skill) if not caster.is_empty() else skill.max_range
+	for tile in get_diamond_tiles(caster_position, reach):
 		if get_position_distance(caster_position, tile) >= skill.min_range:
 			tiles.append(tile)
 	if skill.respects_blocking:
@@ -603,14 +612,17 @@ func get_cone_tiles(origin: Vector2i, aim_position: Vector2i, length: int) -> Ar
 ## Every living combatant standing on one of `tiles`, on the correct side
 ## (targets_ally decides whether that's the caster's own side or the
 ## opposing one).
-func get_targets_in_tiles(tiles: Array, caster: Dictionary, targets_ally: bool) -> Array:
+func get_targets_in_tiles(tiles: Array, caster: Dictionary, targets_ally: bool, affects_both_sides: bool = false) -> Array:
 	var result = []
 	for comb in combatants:
 		if not comb.alive:
 			continue
-		var is_ally = comb.side == caster.side
-		if is_ally != targets_ally:
-			continue
+		# A skill that affects both sides catches everyone standing in it -
+		# that's the whole point of aiming one carefully.
+		if not affects_both_sides:
+			var is_ally = comb.side == caster.side
+			if is_ally != targets_ally:
+				continue
 		if comb.position in tiles:
 			result.append(comb)
 	return result
@@ -666,12 +678,73 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"source_name" = attacker.name
 			})
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, "a lingering wound"))
+		EffectDefinition.EffectType.CONDITION:
+			if effect.condition == null:
+				push_warning("A CONDITION effect on %s has no condition assigned." % (skill.name if skill != null else "an unnamed skill"))
+			else:
+				var movement_before = get_effective_stat(target, "movement")
+				target.status_effects.append({
+					"stat" = "condition",
+					"condition" = effect.condition,
+					"duration" = stored_duration(target, effect.condition),
+					"source_name" = attacker.name
+				})
+				if effect.condition.movement_change != 0:
+					resync_live_movement(target, movement_before)
+				update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, effect.condition.display_name))
 		EffectDefinition.EffectType.DISPEL:
 			dispel_status_effects(attacker, target, effect)
 		EffectDefinition.EffectType.PUSH:
 			apply_knockback(attacker, target, effect, false)
 		EffectDefinition.EffectType.PULL:
 			apply_knockback(attacker, target, effect, true)
+
+
+## --- Conditions ---
+##
+## A condition is stored in status_effects like anything else, under the
+## reserved pseudo-stat "condition", carrying the ConditionDefinition itself.
+## Everything that needs to know whether someone is stunned, blinded, poisoned
+## and so on asks through here, so there's one place that knows how conditions
+## are stored.
+
+## Every ConditionDefinition currently afflicting `comb`.
+func conditions_of(comb: Dictionary) -> Array:
+	var found: Array = []
+	for eff in comb.get("status_effects", []):
+		if eff.get("stat", "") == "condition" and eff.get("condition") != null:
+			found.append(eff.condition)
+	return found
+
+
+## Whether any active condition sets the given boolean restriction - e.g.
+## has_restriction(comb, "prevents_secondary").
+func has_restriction(comb: Dictionary, restriction: String) -> bool:
+	for condition in conditions_of(comb):
+		if condition.get(restriction):
+			return true
+	return false
+
+
+## The tightest skill-range cap any active condition imposes, or 0 for none.
+## Blind caps at 1.
+func condition_range_cap(comb: Dictionary) -> int:
+	var cap = 0
+	for condition in conditions_of(comb):
+		if condition.max_range > 0 and (cap == 0 or condition.max_range < cap):
+			cap = condition.max_range
+	return cap
+
+
+## How far `caster` can actually reach with `skill` right now - its own range,
+## capped by anything blinding them. Everything that asks "is this in range",
+## including the player's own range preview, goes through this so a blinded
+## combatant can't be shown or offered a shot they can't take.
+func effective_max_range(caster: Dictionary, skill: SkillDefinition) -> int:
+	var cap = condition_range_cap(caster)
+	if cap > 0:
+		return mini(skill.max_range, cap)
+	return skill.max_range
 
 
 ## How long a freshly applied status effect should be recorded as lasting.
@@ -687,10 +760,12 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 ## The upshot is that duration reads the same either way: 1 means "this turn"
 ## for something you do to yourself, and "their next turn" for something you do
 ## to someone else.
-func stored_duration(target: Dictionary, effect: EffectDefinition) -> int:
+## `source` is whatever carries the duration - an EffectDefinition, or a
+## ConditionDefinition, which keeps its own.
+func stored_duration(target: Dictionary, source) -> int:
 	if target == get_current_combatant():
-		return maxi(effect.duration - 1, 0)
-	return effect.duration
+		return maxi(source.duration - 1, 0)
+	return source.duration
 
 
 ## Folds a movement buff or debuff that just landed into the live movement
@@ -845,9 +920,27 @@ func process_status_effects(comb: Dictionary):
 			continue
 		if eff.stat == "dot":
 			tick_damage_over_time(comb, eff)
+		elif eff.get("stat", "") == "condition" and eff.condition != null and eff.condition.dot_max > 0:
+			tick_condition_damage(comb, eff.condition)
 		eff.duration -= 1
 		i -= 1
 	clamp_hp_to_max(comb)
+
+
+## Burns a turn's worth of damage off someone suffering a condition that deals
+## it. Same shape as tick_damage_over_time, but named by the condition so the
+## log says what is actually hurting them.
+func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition):
+	if not comb.alive:
+		return
+	var amount = randi_range(condition.dot_min, condition.dot_max)
+	comb.hp -= amount
+	update_combatants.emit(combatants)
+	update_information.emit("[color=red]%s[/color] took [color=gray]%d damage[/color] from %s.\n" % [
+		comb.name, amount, condition.display_name
+	])
+	if comb.hp <= 0:
+		combatant_die(comb)
 
 
 func tick_damage_over_time(comb: Dictionary, eff: Dictionary):
@@ -885,6 +978,18 @@ func get_effective_stat(comb: Dictionary, stat: String) -> int:
 	var additive = 0
 	var multiplier = 1.0
 	for eff in comb.status_effects:
+		if eff.get("stat", "") == "condition":
+			# Conditions carry their stat changes on the definition rather than
+			# as amount/op, so they're folded in here rather than matched by
+			# stat name like an ordinary modifier.
+			var condition = eff.get("condition")
+			if condition == null:
+				continue
+			if stat == "movement":
+				additive += condition.movement_change
+			elif stat == "accuracy":
+				additive += condition.accuracy_change
+			continue
 		if eff.stat != stat:
 			continue
 		if eff.get("op", "add") == "multiply":
@@ -940,12 +1045,60 @@ func advance_turn():
 			set_next_combatant()
 			comb = combatants[current_combatant]
 			continue
+		if has_restriction(comb, "skips_turn"):
+			# Stunned. The condition has already ticked a turn off itself in
+			# process_status_effects above, so it still wears off on schedule.
+			update_information.emit("[color=red]%s[/color] is stunned and loses their turn.\n" % comb.name)
+			set_next_combatant()
+			comb = combatants[current_combatant]
+			continue
 		break
+	apply_drift(comb)
 	emit_signal("turn_advanced", comb)
 	emit_signal("update_combatants", combatants)
 	if comb.side == 1:
 		await get_tree().create_timer(0.6).timeout
 		await ai_process(comb)
+
+
+## Blows a windswept combatant across the map at the start of their turn.
+##
+## This is not their own movement: it costs none of their budget and provokes
+## no reactive skills, because they aren't choosing to go anywhere. It stops
+## early at a wall, the map edge or another combatant, the same way a push
+## does.
+func apply_drift(comb: Dictionary):
+	if not comb.alive:
+		return
+	var tiles = 0
+	for condition in conditions_of(comb):
+		tiles = maxi(tiles, condition.drift_tiles)
+	if tiles <= 0:
+		return
+	const DIRECTIONS = [
+		Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN,
+		Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)
+	]
+	var direction = DIRECTIONS[randi() % DIRECTIONS.size()]
+	var from = comb.position
+	var landed = from
+	for step in range(1, tiles + 1):
+		var candidate = from + direction * step
+		if not controller.is_in_bounds(candidate):
+			break
+		if controller.is_tile_blocking(candidate, comb.movement_class):
+			break
+		if not get_combatant_at(candidate).is_empty():
+			break
+		landed = candidate
+	if landed == from:
+		return
+	comb.position = landed
+	comb.sprite.position = Vector2(landed * 32.0) + Vector2(16, 16)
+	controller.reposition_combatant(from, landed)
+	update_information.emit("[color=red]%s[/color] is blown %d tile(s) off course.\n" % [
+		comb.name, get_position_distance(from, landed)
+	])
 
 
 func combat_finish():
@@ -1178,9 +1331,10 @@ func find_best_reachable_tile(comb: Dictionary, movement_budget: int, score_func
 ## range but still blocked by a wall, in which case this correctly reports
 ## false - unlike a plain distance check, which use_skill() would then
 ## silently resolve to hitting nobody at all.
-func is_effectively_in_range(skill: SkillDefinition, from_position: Vector2i, target_position: Vector2i, movement_class: int) -> bool:
+func is_effectively_in_range(skill: SkillDefinition, from_position: Vector2i, target_position: Vector2i, movement_class: int, caster: Dictionary = {}) -> bool:
 	var d = get_position_distance(from_position, target_position)
-	if d < skill.min_range or d > skill.max_range:
+	var reach = effective_max_range(caster, skill) if not caster.is_empty() else skill.max_range
+	if d < skill.min_range or d > reach:
 		return false
 	if skill.respects_blocking and not has_line_of_sight(from_position, target_position, movement_class):
 		return false

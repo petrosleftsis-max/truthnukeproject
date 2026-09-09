@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Blind"
+description = "Can barely see - every skill reaches only one tile."
+duration = 3
+max_range = 1

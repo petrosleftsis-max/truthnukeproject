@@ -12,7 +12,8 @@ enum EffectType {
 	DISPEL,            ## Removes existing STAT_MODIFIER/STAT_MULTIPLIER/DAMAGE_OVER_TIME effects from the target.
 	PUSH,              ## Shoves the target directly away from the caster.
 	PULL,              ## Drags the target directly towards the caster.
-	STAT_MULTIPLIER    ## Multiplies a stat instead of adding to it, e.g. doubling movement for a turn.
+	STAT_MULTIPLIER,   ## Multiplies a stat instead of adding to it, e.g. doubling movement for a turn.
+	CONDITION          ## Inflicts a named ConditionDefinition - Poisoned, Stunned, Burned and so on.
 }
 
 enum DispelScope {
@@ -28,6 +29,12 @@ enum DispelScope {
 ## describing the raw stat change. Leave empty to fall back to a generated
 ## description of what the effect actually does.
 @export var display_name: String = ""
+
+@export_group("Condition")
+## Used when type is CONDITION. The condition to inflict - see
+## ConditionDefinition, and res://conditions/ for the ones already written.
+## Its own duration is used, not this effect's.
+@export var condition: ConditionDefinition
 
 @export_group("Damage / Heal / Damage over Time")
 ## Used when type is DAMAGE, HEAL, or DAMAGE_OVER_TIME (as the per-tick
