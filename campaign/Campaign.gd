@@ -66,6 +66,7 @@ func set_leader(key: String) -> bool:
 		return false
 	party_order.erase(key)
 	party_order.insert(0, key)
+	party_changed.emit()
 	return true
 
 
@@ -86,7 +87,69 @@ func cycle_leader() -> String:
 	while guard > 0 and not is_alive(party_order[0]):
 		party_order.append(party_order.pop_front())
 		guard -= 1
+	party_changed.emit()
 	return leader()
+
+
+## The members an encounter will actually deploy: living, and able to fight
+## (see CombatantDefinition.can_fight). A guide or a prisoner travelling with
+## the party walks the map and shows in the portraits, but is left out here.
+func battle_party() -> Array:
+	var fighters: Array = []
+	for key in living_party():
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+		if definition != null and definition.can_fight:
+			fighters.append(key)
+	return fighters
+
+
+## --- Recruiting and losing people ---
+##
+## These are the story hooks. They can be called from anywhere, including
+## straight out of a dialogue file, because Campaign is registered as a state
+## autoload shortcut for Dialogue Manager:
+##
+##     ~ enfina_joins
+##     Enfina: I'll come with you.
+##     do Campaign.add_member("steve")
+##     => END
+##
+## Anyone added is at full health unless they've fought before, and lands at
+## the back of the marching order so the lead doesn't change under the player.
+func add_member(key: String, at_front: bool = false) -> bool:
+	if not CombatantDatabase.combatants.has(key):
+		push_warning("Campaign.add_member('%s'): no such combatant in CombatantDatabase." % key)
+		return false
+	if party_order.has(key):
+		return false
+	if at_front:
+		party_order.insert(0, key)
+	else:
+		party_order.append(key)
+	party_changed.emit()
+	return true
+
+
+## Removes someone from the party - they left, or the story took them. Their
+## carried health is forgotten too, so rejoining later starts them fresh;
+## pass keep_state to remember the state they left in.
+func remove_member(key: String, keep_state: bool = false) -> bool:
+	if not party_order.has(key):
+		return false
+	party_order.erase(key)
+	if not keep_state:
+		party_state.erase(key)
+	party_changed.emit()
+	return true
+
+
+func has_member(key: String) -> bool:
+	return party_order.has(key)
+
+
+## Emitted whenever the roster changes, so anything showing the party (the
+## exploration line, the portrait column) can redraw itself without polling.
+signal party_changed()
 
 
 ## What the HUD needs to draw the party: one entry per living member, leader

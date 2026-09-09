@@ -61,3 +61,4 @@ combat = NodePath("../VisualCombat")
 [connection signal="update_information" from="VisualCombat" to="CanvasLayer/UI" method="update_information"]
 [connection signal="update_turn_queue" from="VisualCombat" to="CanvasLayer/UI" method="update_turn_queue"]
 [connection signal="turn_ended" from="CanvasLayer/UI" to="VisualCombat" method="advance_turn"]
+[connection signal="deployment_finished" from="CanvasLayer/UI" to="VisualCombat" method="finish_deployment"]

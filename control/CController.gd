@@ -40,7 +40,87 @@ var _skill_selected = false
 func is_skill_selected() -> bool:
 	return _skill_selected
 
+## --- Deployment ---
+##
+## Before the first turn the player arranges the party across the encounter's
+## starting tiles: click one of your own, then a highlighted tile to move them
+## there, swapping with whoever already has it.
+
+var _deployment_active := false
+var _deployment_tiles: Array = []
+var _deployment_selection = null
+
+
+func begin_deployment(tiles: Array):
+	_deployment_active = true
+	_deployment_tiles = tiles.duplicate()
+	_deployment_selection = null
+	queue_redraw()
+
+
+func end_deployment():
+	_deployment_active = false
+	_deployment_tiles = []
+	_deployment_selection = null
+	queue_redraw()
+
+
+func _handle_deployment_input(event):
+	if not event is InputEventMouseButton:
+		return
+	if event.button_index != MOUSE_BUTTON_LEFT or not event.is_released():
+		return
+	var tile = tile_map.local_to_map(get_global_mouse_position())
+	var comb = get_combatant_at_position(tile)
+	if _deployment_selection == null:
+		if comb != null and comb.side == 0:
+			_deployment_selection = comb
+			queue_redraw()
+		return
+	if tile in _deployment_tiles:
+		_swap_deployed(_deployment_selection, tile)
+		_deployment_selection = null
+	elif comb != null and comb.side == 0:
+		# Clicked a different hero instead - switch who's being moved.
+		_deployment_selection = comb
+	queue_redraw()
+
+
+## Moves `comb` onto `tile`, trading places with whoever is already standing
+## there. Enemies are never displaced - their positions are the encounter's
+## design, not the player's to rearrange.
+func _swap_deployed(comb: Dictionary, tile: Vector2i):
+	if comb.side != 0:
+		# Only the party is the player's to arrange. Input can't select an
+		# enemy in the first place, but this is the function that actually
+		# moves people, so it enforces it rather than trusting the caller.
+		return
+	var occupant = get_combatant_at_position(tile)
+	if occupant == comb:
+		return
+	if occupant != null and occupant.side != 0:
+		return
+	var from = comb.position
+	if occupant == null:
+		_occupied_spaces.erase(from)
+		_occupied_spaces.append(tile)
+	else:
+		# A straight swap: both tiles stay occupied, so the occupancy list
+		# doesn't change at all.
+		_set_deployed_position(occupant, from)
+	_set_deployed_position(comb, tile)
+	update_points_weight()
+
+
+func _set_deployed_position(comb: Dictionary, tile: Vector2i):
+	comb.position = tile
+	comb.sprite.position = tile_map.map_to_local(tile)
+
+
 func _unhandled_input(event):
+	if _deployment_active:
+		_handle_deployment_input(event)
+		return
 	if player_turn == false or action_locked:
 		return
 
@@ -634,6 +714,13 @@ func get_tile_cost_at_point(point):
 	return get_tile_cost(tile_map.local_to_map(point))
 
 func _draw():
+	if _deployment_active:
+		# Where the party may stand, and which of them is currently picked up.
+		for tile in _deployment_tiles:
+			draw_texture(grid_tex, tile_map.map_to_local(tile) - Vector2(16, 16), Color(Color.GOLD, 0.45))
+		if _deployment_selection != null:
+			draw_texture(grid_tex, tile_map.map_to_local(_deployment_selection.position) - Vector2(16, 16), Color(Color.WHITE, 0.85))
+		return
 	if _arrived == true and player_turn == true:
 		if _skill_selected:
 			for pos in _range_preview_positions:

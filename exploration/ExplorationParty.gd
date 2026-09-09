@@ -24,6 +24,10 @@ class_name ExplorationParty
 
 signal moved(position: Vector2)
 
+## Draw layer for the leader; each follower sits one below, so a party of any
+## realistic size still clears the map underneath.
+const PARTY_Z_TOP := 20
+
 var leader: Sprite2D = null
 var followers: Array = []
 var frozen := false
@@ -49,8 +53,12 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 		var sprite = Sprite2D.new()
 		sprite.texture = members[i]
 		sprite.position = start_position
-		# Behind the leader, so the line reads front-to-back.
-		sprite.z_index = -i
+		# Above the map, descending so the line reads front-to-back with the
+		# leader on top. Absolute rather than relative, and never at or below
+		# the terrain's own z_index of 0 - followers were previously at -1 and
+		# -2, which drew them underneath the map and made them invisible.
+		sprite.z_as_relative = false
+		sprite.z_index = PARTY_Z_TOP - i
 		add_child(sprite)
 		if i == 0:
 			leader = sprite

@@ -1,6 +1,8 @@
 extends Control
 
 signal turn_ended()
+## Emitted when the player is done arranging the party and wants to fight.
+signal deployment_finished()
 
 @export var combat: Combat
 @export var controller: CController
@@ -106,8 +108,36 @@ func show_combatant_status_main(comb: Dictionary):
 	set_skill_list(comb.skill_list, comb.skill_used_this_turn)
 
 
+## True while the player is placing the party, before the first turn.
+var _deployment_mode := false
+var _end_turn_default_text := ""
+
+
+## Switches the HUD into (or out of) the pre-battle deployment step. The End
+## Turn button doubles as Begin Battle - it's the one "I'm done" control the
+## layout already has, and it means nothing during deployment anyway. Skills
+## are locked out so a hero can't act before the fight has started.
+func set_deployment_mode(active: bool):
+	if _end_turn_default_text == "":
+		_end_turn_default_text = $Actions/EndTurnButton.text
+	_deployment_mode = active
+	$Actions/EndTurnButton.visible = true
+	$Actions/EndTurnButton.disabled = false
+	$Actions/EndTurnButton.text = "Begin Battle" if active else _end_turn_default_text
+	$Actions/SelectTargetMessage.visible = active
+	if active:
+		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Click a hero, then a highlighted tile to move them there."
+		lock_action_buttons()
+		$Actions/EndTurnButton.disabled = false
+	else:
+		refresh_action_buttons()
+
+
 func _on_end_turn_button_pressed():
-	turn_ended.emit()
+	if _deployment_mode:
+		deployment_finished.emit()
+	else:
+		turn_ended.emit()
 
 
 func update_information(info: String):

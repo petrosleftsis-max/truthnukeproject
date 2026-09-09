@@ -22,6 +22,12 @@ class_name CombatantDefinition
 @export var sprite_frames: SpriteFrames
 @export_group("Skills")
 @export var skills: Array[String]
+@export_group("Party")
+## Whether this one actually fights. Turn it off for someone who travels with
+## the party but takes no part in battles - a guide, a prisoner, a child - and
+## they'll walk in the line on the map and appear in the portrait column, but
+## be left out when an encounter deploys the party.
+@export var can_fight: bool = true
 @export_group("AI (enemies only - ignored for player-controlled units)")
 ## Which Combat.gd function drives this enemy's turn. Built-in options:
 ## "ai_melee_rush" (default - rushes the nearest enemy and melees it),

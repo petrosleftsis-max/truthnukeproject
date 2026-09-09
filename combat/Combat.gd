@@ -44,6 +44,12 @@ var turn_queue = []
 ## script or of game.tscn.
 var encounter: EncounterDefinition = null
 
+## Tiles the party may start on, from the encounter's side-0 spawns. Also what
+## the player is allowed to rearrange across during deployment.
+var deployment_tiles: Array = []
+## True while the player is arranging the party, before the first turn.
+var deployment_active := false
+
 var skills_lists = [
 	["attack_melee", "slowing_strike", "run"], #Melee
 	["attack_melee", "attack_ranged", "lightning_bolt", "poison_dart", "run"], #Ranged
@@ -66,6 +72,14 @@ func _ready():
 	# underneath. Easy to do by mistake when typing coordinates by hand, and
 	# silent until movement starts behaving strangely, so it's caught here.
 	var claimed_tiles := {}
+	# A side-0 spawn is a place a party member may start, not a fixed person:
+	# who actually stands there comes from the campaign roster, so recruiting
+	# someone mid-story puts them in the next battle without editing every
+	# encounter. Its combatant_key is kept only as a fallback for battles
+	# started from the menu, which may never have loaded a map to build a
+	# roster from.
+	var player_tiles: Array = []
+	var fallback_party: Array = []
 	for spawn in encounter.spawns:
 		if not CombatantDatabase.combatants.has(spawn.combatant_key):
 			push_warning("Encounter '%s' spawns unknown combatant key '%s' - skipping it." % [encounter.display_name, spawn.combatant_key])
@@ -75,16 +89,14 @@ func _ready():
 				encounter.display_name, spawn.combatant_key, spawn.position, claimed_tiles[spawn.position]
 			])
 			continue
-		if spawn.side == 0 and not Campaign.is_alive(spawn.combatant_key):
-			# They died in an earlier battle, and the party carries its losses
-			# forward - so they aren't in this one. "Reset Party" on the level
-			# select brings everyone back.
-			continue
-		var comb = create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name)
-		if spawn.side == 0:
-			Campaign.apply_carried_state(comb, spawn.combatant_key)
-		add_combatant(comb, spawn.side, spawn.position)
 		claimed_tiles[spawn.position] = spawn.combatant_key
+		if spawn.side == 0:
+			player_tiles.append(spawn.position)
+			fallback_party.append(spawn.combatant_key)
+			continue
+		add_combatant(create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name), 1, spawn.position)
+
+	_deploy_party(player_tiles, fallback_party)
 
 	emit_signal("update_turn_queue", combatants, turn_queue)
 
@@ -95,6 +107,57 @@ func _ready():
 	current_combatant = turn_queue[0]
 	controller.set_controlled_combatant(combatants[turn_queue[0]])
 	game_ui.show_combatant_status_main(combatants[turn_queue[0]])
+	# Let the player arrange the party across the starting tiles before anyone
+	# takes a turn. Pointless with only one tile to stand on.
+	if deployment_tiles.size() > 1 and groups[Group.PLAYERS].size() > 0:
+		begin_deployment()
+	else:
+		start_first_turn()
+
+
+## Puts the campaign's fighters on the encounter's starting tiles, in marching
+## order. Anyone who can't fight (see CombatantDefinition.can_fight) travels
+## with the party on the map but is left out here.
+func _deploy_party(tiles: Array, fallback_party: Array):
+	if tiles.is_empty():
+		push_warning("Encounter '%s' has no player starting tiles - there is nobody to play as." % encounter.display_name)
+		return
+	# Going straight to a battle from the menu can mean no map has ever loaded
+	# and so no roster exists yet; the encounter's own player spawns stand in.
+	Campaign.seed_party(fallback_party)
+	var fighters = Campaign.battle_party()
+	if fighters.size() > tiles.size():
+		push_warning("Encounter '%s' has %d starting tiles but %d fighters in the party - the last %d sit this one out." % [
+			encounter.display_name, tiles.size(), fighters.size(), fighters.size() - tiles.size()
+		])
+	for i in mini(fighters.size(), tiles.size()):
+		var key = fighters[i]
+		var comb = create_combatant(CombatantDatabase.combatants[key], key)
+		Campaign.apply_carried_state(comb, key)
+		add_combatant(comb, 0, tiles[i])
+	deployment_tiles = tiles
+
+
+## Hands control to the player to arrange the party before the first turn.
+func begin_deployment():
+	deployment_active = true
+	controller.begin_deployment(deployment_tiles)
+	game_ui.set_deployment_mode(true)
+
+
+## Called when the player presses Begin Battle.
+func finish_deployment():
+	if not deployment_active:
+		return
+	deployment_active = false
+	controller.end_deployment()
+	game_ui.set_deployment_mode(false)
+	start_first_turn()
+
+
+## Sets the battle actually running. Separate from _ready because deployment
+## sits in between.
+func start_first_turn():
 	if combatants[current_combatant].side == 1:
 		# An enemy rolled the highest initiative, so the battle opens on their
 		# turn - and nothing has run it. advance_turn() only drives the AI for

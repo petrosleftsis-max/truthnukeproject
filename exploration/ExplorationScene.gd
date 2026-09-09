@@ -44,11 +44,26 @@ func _enter_tree():
 
 func _ready():
 	Campaign.seed_party(starting_party)
+	# A conversation can recruit someone or send them away mid-map (see
+	# Campaign.add_member), so the line and the portraits rebuild themselves
+	# whenever the roster changes rather than only on arrival.
+	if not Campaign.party_changed.is_connected(_on_party_changed):
+		Campaign.party_changed.connect(_on_party_changed)
 	_spawn_party()
 	if game_ui != null and game_ui.has_method("set_exploration_mode"):
 		game_ui.set_exploration_mode(true)
 	_refresh_party_panel()
 	_update_prompt()
+
+
+## Someone joined or left. Rebuild the walking line where the party currently
+## stands, so a new recruit falls in behind rather than the party jumping back
+## to the map's entry point.
+func _on_party_changed():
+	if party == null or not is_inside_tree():
+		return
+	party.setup(_party_textures(), party_position(), is_walkable)
+	_refresh_party_panel()
 
 
 ## Redraws the portrait column down the left. Called whenever the party's
