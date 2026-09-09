@@ -821,19 +821,31 @@ func get_tile_cost(tile):
 func get_tile_cost_at_point(point):
 	return get_tile_cost(tile_map.local_to_map(point))
 
+## Draws the tile-highlight texture stretched to cover exactly one tile,
+## centred on `centre`.
+##
+## Stretched rather than drawn at the texture's own size, so the marker art
+## doesn't have to be redrawn every time the tile size changes - a 32px marker
+## and a 192px one both fill their tile, the smaller one just softer. Before
+## this it was drawn at native size from the tile's top-left corner, which at
+## 192-unit tiles would have covered a thirty-sixth of one.
+func _draw_tile_marker(centre: Vector2, colour: Color = Color.WHITE):
+	draw_texture_rect(grid_tex, Rect2(centre - Grid.HALF_TILE, Grid.HALF_TILE * 2.0), false, colour)
+
+
 func _draw():
 	if _deployment_active:
 		# Where the party may stand, and which of them is currently picked up.
 		for tile in _deployment_tiles:
-			draw_texture(grid_tex, tile_map.map_to_local(tile) - Grid.HALF_TILE, Color(Color.GOLD, 0.45))
+			_draw_tile_marker(tile_map.map_to_local(tile), Color(Color.GOLD, 0.45))
 		if _deployment_selection != null:
-			draw_texture(grid_tex, tile_map.map_to_local(_deployment_selection.position) - Grid.HALF_TILE, Color(Color.WHITE, 0.85))
+			_draw_tile_marker(tile_map.map_to_local(_deployment_selection.position), Color(Color.WHITE, 0.85))
 		return
 	if _arrived == true and player_turn == true:
 		if _skill_selected:
 			for pos in _range_preview_positions:
 				var local = tile_map.map_to_local(pos)
-				draw_texture(grid_tex, local - Grid.HALF_TILE, Color(Color.CRIMSON, 0.5))
+				_draw_tile_marker(local, Color(Color.CRIMSON, 0.5))
 		else:
 			var path_length = movement
 			for i in range(_path.size()):
@@ -843,14 +855,14 @@ func _draw():
 				var draw_color = Color.WHITE
 				if path_length >= 0:
 					draw_color = Color.ROYAL_BLUE
-				draw_texture(grid_tex, point - Grid.HALF_TILE, draw_color)
+				_draw_tile_marker(point, draw_color)
 		if _attack_target_position != null:
-			draw_texture(grid_tex, _attack_target_position - Grid.HALF_TILE, Color.CRIMSON)
+			_draw_tile_marker(_attack_target_position, Color.CRIMSON)
 		if _ally_target_position != null:
-			draw_texture(grid_tex, _ally_target_position - Grid.HALF_TILE, Color.LIME_GREEN)
+			_draw_tile_marker(_ally_target_position, Color.LIME_GREEN)
 		for pos in _aoe_preview_positions:
 			var local = tile_map.map_to_local(pos)
 			var color = Color.LIME_GREEN if _aoe_preview_is_ally else Color.CRIMSON
-			draw_texture(grid_tex, local - Grid.HALF_TILE, Color(color, 0.6))
+			_draw_tile_marker(local, Color(color, 0.6))
 		if _blocked_target_position != null:
-			draw_texture(grid_tex, _blocked_target_position - Grid.HALF_TILE)
+			_draw_tile_marker(_blocked_target_position)
