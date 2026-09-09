@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="2DTacticalRPGDemo"
-run/main_scene="res://scenes/game.tscn"
+run/main_scene="res://scenes/level_select.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.png"
 
@@ -23,6 +23,7 @@ config/icon="res://icon.png"
 
 SkillDatabase="*res://databases/skill_database.tscn"
 CombatantDatabase="*res://databases/combatant_database.tscn"
+Campaign="*res://campaign/Campaign.gd"
 
 [display]
 

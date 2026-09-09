@@ -39,26 +39,8 @@ func _ready():
 	$OptionsPanel/VBox/Res1280Button.pressed.connect(func(): set_resolution(1280, 720))
 	$OptionsPanel/VBox/Res1920Button.pressed.connect(func(): set_resolution(1920, 1080))
 	$OptionsPanel/VBox/Res2560Button.pressed.connect(func(): set_resolution(2560, 1440))
-	_link_focus_loop(_pause_buttons)
-	_link_focus_loop(_options_buttons)
-
-
-## Wires a vertical list of buttons into a loop, so Down past the last one
-## comes back round to the first rather than stopping dead at the end. Godot
-## works out neighbours automatically for the middle of a list, but
-## deliberately doesn't wrap at the ends - it has no way to know whether the
-## list is meant to be a cycle.
-func _link_focus_loop(buttons: Array):
-	if buttons.size() < 2:
-		return
-	for i in buttons.size():
-		var button: Button = buttons[i]
-		var next: Button = buttons[(i + 1) % buttons.size()]
-		var previous: Button = buttons[(i - 1 + buttons.size()) % buttons.size()]
-		button.focus_neighbor_bottom = button.get_path_to(next)
-		button.focus_neighbor_top = button.get_path_to(previous)
-		button.focus_next = button.get_path_to(next)
-		button.focus_previous = button.get_path_to(previous)
+	FocusLoop.link(_pause_buttons)
+	FocusLoop.link(_options_buttons)
 
 
 ## Shows one panel, hides the other, and puts keyboard focus on the first

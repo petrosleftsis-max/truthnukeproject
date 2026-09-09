@@ -1,0 +1,50 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://ui/level_select.gd" id="1_levelselect"]
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="2_encdef"]
+[ext_resource type="Resource" path="res://encounters/encounter_01_ambush.tres" id="3_enc1"]
+[ext_resource type="Resource" path="res://encounters/encounter_02_sappers.tres" id="4_enc2"]
+[ext_resource type="Resource" path="res://encounters/encounter_03_watcher.tres" id="5_enc3"]
+
+[node name="LevelSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_levelselect")
+encounters = Array[ExtResource("2_encdef")]([ExtResource("3_enc1"), ExtResource("4_enc2"), ExtResource("5_enc3")])
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Choose a Battle"
+horizontal_alignment = 1
+
+[node name="PartyStatus" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "Party at full strength."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="EncounterList" type="VBoxContainer" parent="Center/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ResetButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "Reset Party"

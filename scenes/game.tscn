@@ -1,23 +1,27 @@
 [gd_scene format=3 uid="uid://b4xca7lc8vsi8"]
 
-[ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="1_huxbe"]
 [ext_resource type="Texture2D" uid="uid://xkkeet22l731" path="res://imagese/grid.png" id="2_icbvx"]
 [ext_resource type="Script" uid="uid://c11l4cm22n2qk" path="res://control/CController.gd" id="3_dbxfm"]
 [ext_resource type="Script" uid="uid://da506va2ao1j4" path="res://combat/Combat.gd" id="4_cujqt"]
 [ext_resource type="PackedScene" uid="uid://ddgx1hll377nx" path="res://ui/ui.tscn" id="5_pc8ih"]
 [ext_resource type="PackedScene" path="res://ui/pause_ui.tscn" id="6_pauseui"]
 [ext_resource type="Script" path="res://control/CameraController.gd" id="7_camera"]
+[ext_resource type="Script" path="res://scenes/game.gd" id="8_game"]
+[ext_resource type="Resource" path="res://encounters/encounter_01_ambush.tres" id="9_enc1"]
+[ext_resource type="PackedScene" path="res://ui/result_ui.tscn" id="10_resultui"]
 
-[node name="Game" type="Node" unique_id=614169276]
+[node name="Game" type="Node" unique_id=614169276 node_paths=PackedStringArray("combat")]
+script = ExtResource("8_game")
+fallback_encounter = ExtResource("9_enc1")
+combat = NodePath("VisualCombat")
 
-[node name="Terrain" parent="." unique_id=2014758552 instance=ExtResource("1_huxbe")]
-
-[node name="Camera2D" type="Camera2D" parent="Terrain" unique_id=1946268559]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1946268559]
 position = Vector2(592, 352)
 zoom = Vector2(1, 1)
 script = ExtResource("7_camera")
+tile_map_path = NodePath("../Terrain/TileMap")
 
-[node name="Select" type="Sprite2D" parent="Terrain" unique_id=1956478372]
+[node name="Select" type="Sprite2D" parent="." unique_id=1956478372]
 position = Vector2(272, 208)
 texture = ExtResource("2_icbvx")
 
@@ -40,6 +44,9 @@ metadata/_edit_use_anchors_ = true
 
 [node name="PauseUI" parent="." node_paths=PackedStringArray("controller") instance=ExtResource("6_pauseui")]
 controller = NodePath("../Controller")
+
+[node name="ResultUI" parent="." node_paths=PackedStringArray("combat") instance=ExtResource("10_resultui")]
+combat = NodePath("../VisualCombat")
 
 [connection signal="movement_changed" from="Controller" to="CanvasLayer/UI" method="set_movement"]
 [connection signal="target_selection_finished" from="Controller" to="CanvasLayer/UI" method="_target_selection_finished"]

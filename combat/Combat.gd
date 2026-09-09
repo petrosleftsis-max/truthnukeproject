@@ -38,6 +38,11 @@ var turn_queue = []
 
 @export var game_ui : Control
 @export var controller : CController
+## Which battle this is. Assigned by GameScene before _ready runs (from the
+## level select's choice, or its own fallback when game.tscn is run directly),
+## so one scene plays every encounter - there is no per-encounter copy of this
+## script or of game.tscn.
+var encounter: EncounterDefinition = null
 
 var skills_lists = [
 	["attack_melee", "slowing_strike", "run"], #Melee
@@ -50,24 +55,51 @@ func _ready():
 	emit_signal("register_combat", self)
 	randomize()
 
-	#ADD PLAYERS
-	add_combatant(create_combatant(CombatantDatabase.combatants["steve"]), 0, Vector2i(8,6))
-	add_combatant(create_combatant(CombatantDatabase.combatants["bob"]), 0, Vector2i(6,7))
-	add_combatant(create_combatant(CombatantDatabase.combatants["alexandra"]), 0, Vector2i(4,7))
-	
-	#ADD ENEMIES
-	add_combatant(create_combatant(CombatantDatabase.combatants["ranger"], "Goblin 1"), 1, Vector2i(10,5))
-	add_combatant(create_combatant(CombatantDatabase.combatants["sorcerer"], "Goblin 2"), 1, Vector2i(10,7))
-	add_combatant(create_combatant(CombatantDatabase.combatants["priest"], "Goblin 3"), 1, Vector2i(10,9))
-	
+	if encounter == null:
+		push_error("Combat has no EncounterDefinition - GameScene assigns one before _ready. There is nothing to fight.")
+		return
+
+	for spawn in encounter.spawns:
+		if not CombatantDatabase.combatants.has(spawn.combatant_key):
+			push_warning("Encounter '%s' spawns unknown combatant key '%s' - skipping it." % [encounter.display_name, spawn.combatant_key])
+			continue
+		if spawn.side == 0 and not Campaign.is_alive(spawn.combatant_key):
+			# They died in an earlier battle, and the party carries its losses
+			# forward - so they aren't in this one. "Reset Party" on the level
+			# select brings everyone back.
+			continue
+		var comb = create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name)
+		if spawn.side == 0:
+			Campaign.apply_carried_state(comb, spawn.combatant_key)
+		add_combatant(comb, spawn.side, spawn.position)
+
 	emit_signal("update_turn_queue", combatants, turn_queue)
-	
+
+	if turn_queue.is_empty():
+		push_warning("Encounter '%s' spawned nobody at all." % encounter.display_name)
+		return
+
 	current_combatant = turn_queue[0]
 	controller.set_controlled_combatant(combatants[turn_queue[0]])
 	game_ui.show_combatant_status_main(combatants[turn_queue[0]])
+	if combatants[current_combatant].side == 1:
+		# An enemy rolled the highest initiative, so the battle opens on their
+		# turn - and nothing has run it. advance_turn() only drives the AI for
+		# whoever it moves *to*, and nothing has called it yet, so without this
+		# the game would sit forever on turn one waiting for a player who isn't
+		# up. Deferred so the scene finishes coming up first.
+		_start_opening_ai_turn.call_deferred()
 
 
-func create_combatant(definition: CombatantDefinition, override_name = ""):
+## Runs the AI for a battle that opens on an enemy's turn. Mirrors what
+## advance_turn() does when it hands off to an enemy, including the same short
+## pause first so the turn is readable rather than instant.
+func _start_opening_ai_turn():
+	await get_tree().create_timer(0.6).timeout
+	await ai_process(combatants[current_combatant])
+
+
+func create_combatant(definition: CombatantDefinition, combatant_key: String = "", override_name = ""):
 	var comb = {
 		"name" = definition.name,
 		"max_hp" = definition.max_hp,
@@ -85,7 +117,11 @@ func create_combatant(definition: CombatantDefinition, override_name = ""):
 		"status_effects" = [], # Active timed effects: {"stat":"movement","amount":-2,"duration":2} or a DoT tick: {"stat":"dot","min_amount":2,"max_amount":4,"duration":3}
 		"skill_used_this_turn" = false,
 		"reaction_used" = false,
-		"ai_function" = definition.ai_function
+		"ai_function" = definition.ai_function,
+		# Which CombatantDatabase entry this came from. Campaign keys the
+		# party's carried-over health off this, so it survives the combatant
+		# dictionary being rebuilt from scratch for each encounter.
+		"combatant_key" = combatant_key
 		}
 	if override_name != "":
 		comb.name = override_name
@@ -747,6 +783,9 @@ func combat_finish():
 		update_information.emit("[color=red]Defeat! Your party has fallen.[/color]\n")
 	controller.player_turn = false
 	game_ui.set_skill_list([], true)
+	# Hand the party's condition back to the campaign before anything unloads
+	# this scene - damage taken here is what they carry into the next battle.
+	Campaign.record_party(combatants)
 	emit_signal("combat_finished")
 
 

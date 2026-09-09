@@ -216,7 +216,15 @@ func get_grid_path(from: Vector2i, to: Vector2i) -> Array:
 func _ready():
 	tile_map = get_node("../Terrain/TileMap")
 #	controlled_node = tile_map.get_node("Steve")
-	_astargrid.region = Rect2i(0, 0, 36, 21)
+	# Sized from the map itself (see EncounterDefinition.resolve_playable_region)
+	# rather than hard-coded. It used to be a literal Rect2i(0, 0, 36, 21),
+	# which silently made everything outside that box unwalkable no matter what
+	# the map actually was - already one column and one row short of the 37x22
+	# this map paints, and unusable for encounters on differently-sized maps.
+	if combat != null and combat.encounter != null:
+		_astargrid.region = combat.encounter.resolve_playable_region(tile_map)
+	else:
+		_astargrid.region = tile_map.get_used_rect()
 	_astargrid.cell_size = Vector2i(32, 32)
 	_astargrid.offset = Vector2(16, 16)
 	_astargrid.default_compute_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
