@@ -31,8 +31,7 @@ region = Rect2(0, 0, 32, 32)
 script = ExtResource("1_editor")
 encounter = ExtResource("2_7khms")
 
-[node name="TerrainPreview" type="Node2D" parent="." unique_id=752726230 instance=ExtResource("3_rd23k")]
-texture_filter = 1
+[node name="TerrainPreview" parent="." unique_id=752726230 instance=ExtResource("3_rd23k")]
 
 [node name="Spawns" type="Node2D" parent="." unique_id=217780757]
 

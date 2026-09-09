@@ -1,25 +1,22 @@
-[gd_resource type="Resource" script_class="EncounterDefinition" load_steps=11 format=3]
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3 uid="uid://cpwijoqwu540n"]
 
-[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
-[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
+[ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
+[ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
 [ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="3_terrain"]
 
 [sub_resource type="Resource" id="Spawn_steve"]
 script = ExtResource("2_spawn")
 combatant_key = "steve"
-side = 0
 position = Vector2i(8, 6)
 
 [sub_resource type="Resource" id="Spawn_bob"]
 script = ExtResource("2_spawn")
 combatant_key = "bob"
-side = 0
 position = Vector2i(6, 7)
 
 [sub_resource type="Resource" id="Spawn_alexandra"]
 script = ExtResource("2_spawn")
 combatant_key = "alexandra"
-side = 0
 position = Vector2i(4, 7)
 
 [sub_resource type="Resource" id="Spawn_eye"]
