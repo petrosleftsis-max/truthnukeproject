@@ -3,9 +3,9 @@
 [ext_resource type="Script" uid="uid://bhijbic2jorww" path="res://tools/encounter_editor.gd" id="1_editor"]
 [ext_resource type="Resource" uid="uid://c3j4v4tmtl7gw" path="res://encounters/encounter_02_sappers.tres" id="2_7khms"]
 [ext_resource type="PackedScene" uid="uid://4ucd52nk0txi" path="res://scenes/sapperTerrain.tscn" id="3_rd23k"]
-[ext_resource type="Texture2D" uid="uid://mha8vbqb2djl" path="res://imagese/chars.png" id="4_v82vy"]
+[ext_resource type="Texture2D" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="4_v82vy"]
 [ext_resource type="Script" uid="uid://bq7xydje3fups" path="res://tools/spawn_marker.gd" id="5_7srq1"]
-[ext_resource type="Texture2D" uid="uid://tho1dgha8gr1" path="res://imagese/monsters.png" id="6_2cu7l"]
+[ext_resource type="Texture2D" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="6_2cu7l"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_kwsrb"]
 atlas = ExtResource("4_v82vy")

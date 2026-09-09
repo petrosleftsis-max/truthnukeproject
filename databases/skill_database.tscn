@@ -3,9 +3,6 @@
 [ext_resource type="Script" uid="uid://chnw3bl0q0dbf" path="res://databases/skill_database.gd" id="1_bnr7k"]
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="2_effdef"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_twktv"]
-[ext_resource type="Texture2D" uid="uid://b5bhqfskef7lb" path="res://imagese/icon/melee_attack.png" id="2_wuynl"]
-[ext_resource type="Texture2D" uid="uid://bonh4ibo7lwda" path="res://imagese/icon/ranged_attack.png" id="4_gjsae"]
-[ext_resource type="Texture2D" uid="uid://wxkh5qyiy8c1" path="res://imagese/icon/basic_magic.png" id="5_vgs37"]
 
 [sub_resource type="Resource" id="Effect_melee_dmg"]
 script = ExtResource("2_effdef")
@@ -20,7 +17,6 @@ description = "A basic close-quarters strike."
 min_range = 1
 max_range = 1
 accuracy = 90
-icon = ExtResource("2_wuynl")
 is_reactive = true
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_melee_dmg")])
 
@@ -37,7 +33,6 @@ description = "A basic ranged shot. Needs a clear line of sight."
 min_range = 2
 max_range = 20
 accuracy = 75
-icon = ExtResource("4_gjsae")
 respects_blocking = true
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_ranged_dmg")])
 
@@ -53,7 +48,6 @@ name = "Basic Magic"
 description = "A simple magical bolt."
 max_range = 20
 accuracy = 100
-icon = ExtResource("5_vgs37")
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_magic_dmg")])
 
 [sub_resource type="Resource" id="Effect_slow_dmg"]
@@ -74,7 +68,6 @@ description = "A heavy blow that also slows the target down."
 min_range = 1
 max_range = 1
 accuracy = 90
-icon = ExtResource("2_wuynl")
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_slow_dmg"), SubResource("Effect_slow_debuff")])
 
 [sub_resource type="Resource" id="Effect_heal"]
@@ -89,7 +82,6 @@ name = "Heal"
 description = "Mends an ally's wounds."
 max_range = 3
 accuracy = 100
-icon = ExtResource("5_vgs37")
 targets_ally = true
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_heal")])
 
@@ -106,7 +98,6 @@ description = "Explodes on impact, damaging everyone caught nearby."
 min_range = 1
 max_range = 6
 accuracy = 80
-icon = ExtResource("5_vgs37")
 aoe_radius = 3
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_fireball_dmg")])
 
@@ -123,7 +114,6 @@ description = "A crackling beam that can be aimed in any direction, including di
 min_range = 1
 max_range = 10
 accuracy = 80
-icon = ExtResource("4_gjsae")
 respects_blocking = true
 aoe_radius = 4
 aoe_shape = 1
@@ -142,7 +132,6 @@ description = "A wide gout of fire in front of the caster."
 min_range = 1
 max_range = 6
 accuracy = 80
-icon = ExtResource("5_vgs37")
 aoe_radius = 3
 aoe_shape = 2
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_flamecone_dmg")])
@@ -169,7 +158,6 @@ description = "A dart coated in a toxin that keeps damaging the target over time
 min_range = 2
 max_range = 8
 accuracy = 80
-icon = ExtResource("4_gjsae")
 respects_blocking = true
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_poison_dmg"), SubResource("Effect_poison_dot")])
 
@@ -188,7 +176,6 @@ description = "Saps the target's accuracy, making them more likely to miss."
 min_range = 1
 max_range = 6
 accuracy = 85
-icon = ExtResource("5_vgs37")
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_curse")])
 
 [sub_resource type="Resource" id="Effect_vitality"]
@@ -205,7 +192,6 @@ name = "Vitality"
 description = "Temporarily boosts an ally's maximum HP."
 max_range = 3
 accuracy = 100
-icon = ExtResource("5_vgs37")
 targets_ally = true
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_vitality")])
 
@@ -221,7 +207,6 @@ is_secondary = true
 description = "Removes harmful effects from an ally."
 max_range = 3
 accuracy = 100
-icon = ExtResource("5_vgs37")
 targets_ally = true
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_cleanse")])
 
@@ -244,7 +229,6 @@ description = "A burst of force that knocks the target back."
 min_range = 1
 max_range = 3
 accuracy = 85
-icon = ExtResource("5_vgs37")
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_repel_dmg"), SubResource("Effect_repel_push")])
 
 [sub_resource type="Resource" id="Effect_gravitypull"]
@@ -259,7 +243,6 @@ description = "Drags the target towards the caster - no damage, just repositioni
 min_range = 2
 max_range = 6
 accuracy = 95
-icon = ExtResource("5_vgs37")
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_gravitypull")])
 
 [sub_resource type="Resource" id="Effect_run"]
@@ -275,7 +258,6 @@ script = ExtResource("2_twktv")
 name = "Run"
 description = "Doubles your movement for this turn only."
 accuracy = 100
-icon = ExtResource("5_vgs37")
 targets_ally = true
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_run")])
 
@@ -289,7 +271,6 @@ script = ExtResource("2_twktv")
 name = "Self Destruct"
 description = "Detonates violently, damaging everyone nearby - and always kills the user."
 accuracy = 100
-icon = ExtResource("4_gjsae")
 aoe_radius = 3
 kills_caster = true
 effects = Array[ExtResource("2_effdef")]([SubResource("Effect_selfdestruct_dmg")])

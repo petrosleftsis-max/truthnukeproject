@@ -4,16 +4,6 @@
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="2_rggep"]
 [ext_resource type="SpriteFrames" path="res://combat/animations/cyrus.tres" id="90_cyrusframes"]
 [ext_resource type="Texture2D" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="91_cyrusstill"]
-[ext_resource type="Texture2D" uid="uid://mha8vbqb2djl" path="res://imagese/chars.png" id="3_vw1bw"]
-[ext_resource type="Texture2D" uid="uid://tho1dgha8gr1" path="res://imagese/monsters.png" id="4_72lse"]
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_lhi33"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 32, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_c6sc2"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 32, 64, 32)
 
 [sub_resource type="Resource" id="Resource_bwgmm"]
 script = ExtResource("2_rggep")
@@ -21,16 +11,9 @@ name = "Prometheus"
 class_t = 2
 max_hp = 8
 movement = 4
-icon = SubResource("AtlasTexture_lhi33")
-map_sprite = SubResource("AtlasTexture_c6sc2")
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_8grfo"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 64, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_i0li6"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 64, 64, 32)
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 
 [sub_resource type="Resource" id="Resource_w6c3b"]
 script = ExtResource("2_rggep")
@@ -44,14 +27,6 @@ icon = ExtResource("91_cyrusstill")
 map_sprite = ExtResource("91_cyrusstill")
 sprite_frames = ExtResource("90_cyrusframes")
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_6kjpw"]
-atlas = ExtResource("4_72lse")
-region = Rect2(64, 0, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_2pife"]
-atlas = ExtResource("4_72lse")
-region = Rect2(64, 0, 64, 32)
-
 [sub_resource type="Resource" id="Resource_3h68d"]
 script = ExtResource("2_rggep")
 name = "Eye"
@@ -59,33 +34,19 @@ class_m = 1
 max_hp = 5
 movement = 5
 initiative = 4
-icon = SubResource("AtlasTexture_6kjpw")
-map_sprite = SubResource("AtlasTexture_2pife")
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 skills = Array[String](["basic_magic"])
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_o51yk"]
-atlas = ExtResource("4_72lse")
-region = Rect2(0, 0, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_5856y"]
-atlas = ExtResource("4_72lse")
-region = Rect2(0, 0, 64, 32)
 
 [sub_resource type="Resource" id="Resource_s2oe2"]
 script = ExtResource("2_rggep")
 name = "Goblin"
 max_hp = 6
 initiative = 3
-icon = SubResource("AtlasTexture_o51yk")
-map_sprite = SubResource("AtlasTexture_5856y")
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_kwsrb"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 0, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_87cae"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 0, 64, 32)
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 
 [sub_resource type="Resource" id="Resource_tkpbb"]
 script = ExtResource("2_rggep")
@@ -93,8 +54,9 @@ name = "Enfina"
 max_hp = 16
 movement = 4
 initiative = 5
-icon = SubResource("AtlasTexture_kwsrb")
-map_sprite = SubResource("AtlasTexture_87cae")
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 
 [sub_resource type="Resource" id="Resource_ranger"]
 script = ExtResource("2_rggep")
@@ -103,8 +65,9 @@ class_t = 1
 max_hp = 6
 movement = 5
 initiative = 4
-icon = SubResource("AtlasTexture_o51yk")
-map_sprite = SubResource("AtlasTexture_5856y")
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 skills = Array[String](["heal"])
 ai_function = "ai_ranger"
 
@@ -114,8 +77,9 @@ name = "Bomber"
 max_hp = 4
 movement = 4
 initiative = 3
-icon = SubResource("AtlasTexture_6kjpw")
-map_sprite = SubResource("AtlasTexture_2pife")
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 skills = Array[String](["self_destruct"])
 ai_function = "ai_hit_and_explode"
 
@@ -127,8 +91,9 @@ class_t = 2
 max_hp = 6
 movement = 4
 initiative = 3
-icon = SubResource("AtlasTexture_6kjpw")
-map_sprite = SubResource("AtlasTexture_2pife")
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 ai_function = "ai_healer"
 
 [sub_resource type="Resource" id="Resource_sorcerer"]
@@ -139,8 +104,9 @@ class_t = 2
 max_hp = 7
 movement = 4
 initiative = 4
-icon = SubResource("AtlasTexture_6kjpw")
-map_sprite = SubResource("AtlasTexture_2pife")
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 ai_function = "ai_caster"
 
 [sub_resource type="Resource" id="Resource_mimic"]
@@ -149,8 +115,9 @@ name = "Mimic"
 max_hp = 8
 movement = 5
 initiative = 4
-icon = SubResource("AtlasTexture_o51yk")
-map_sprite = SubResource("AtlasTexture_5856y")
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 ai_function = "ai_copycat"
 
 [node name="CombatantDatabase" type="Node" unique_id=1671407001]

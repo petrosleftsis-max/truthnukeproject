@@ -3,9 +3,6 @@
 [ext_resource type="Script" uid="uid://dbehxp66yjbcd" path="res://ui/combat_ui.gd" id="1_cy8ae"]
 [ext_resource type="Shader" uid="uid://r376hboealta" path="res://ui/GrayscaleIcon.gdshader" id="3_pilcd"]
 [ext_resource type="PackedScene" uid="uid://d0hcis8q3seqg" path="res://ui/status_icon.tscn" id="4_mn0g0"]
-[ext_resource type="Texture2D" uid="uid://b5bhqfskef7lb" path="res://imagese/icon/melee_attack.png" id="6_puss2"]
-[ext_resource type="Texture2D" uid="uid://bonh4ibo7lwda" path="res://imagese/icon/ranged_attack.png" id="7_i51fj"]
-[ext_resource type="Texture2D" uid="uid://wxkh5qyiy8c1" path="res://imagese/icon/basic_magic.png" id="8_do1mp"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1qt58"]
 shader = ExtResource("3_pilcd")
@@ -92,7 +89,6 @@ columns = 6
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 focus_mode = 0
-icon = ExtResource("6_puss2")
 icon_alignment = 1
 expand_icon = true
 
@@ -100,7 +96,6 @@ expand_icon = true
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 focus_mode = 0
-icon = ExtResource("7_i51fj")
 icon_alignment = 1
 expand_icon = true
 
@@ -108,7 +103,6 @@ expand_icon = true
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 focus_mode = 0
-icon = ExtResource("8_do1mp")
 icon_alignment = 1
 expand_icon = true
 
