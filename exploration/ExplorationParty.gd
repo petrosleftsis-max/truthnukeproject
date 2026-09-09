@@ -15,12 +15,12 @@ class_name ExplorationParty
 
 
 ## Pixels per second.
-@export var move_speed: float = 110.0
+@export var move_speed: float = Grid.tiles(3.4375)
 ## How far apart party members sit along the trail, in pixels. One tile is 32.
-@export var follow_spacing: float = 26.0
+@export var follow_spacing: float = Grid.tiles(0.8125)
 ## Half-width of the box tested against the map. Smaller than a tile so you can
 ## walk down a one-tile corridor without catching on the walls.
-@export var body_radius: float = 10.0
+@export var body_radius: float = Grid.tiles(0.3125)
 
 signal moved(position: Vector2)
 

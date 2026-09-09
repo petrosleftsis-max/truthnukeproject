@@ -11,7 +11,7 @@ class_name Grid
 ## dozen files.
 
 
-const TILE_SIZE := 32
+const TILE_SIZE := 192
 ## Offset from a tile's top-left corner to its centre. Sprites sit on tile
 ## centres, so this comes up constantly.
 const HALF_TILE := Vector2(TILE_SIZE, TILE_SIZE) * 0.5

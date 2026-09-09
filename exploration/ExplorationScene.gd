@@ -28,7 +28,7 @@ class_name ExplorationScene
 const MAP_NODE = "Map"
 const PARTY_NODE = "Party"
 ## How close an automatic door or ambush has to be to fire on contact.
-const CONTACT_RADIUS = 18.0
+const CONTACT_RADIUS = Grid.TILE_SIZE * 0.5625
 
 var party: ExplorationParty = null
 var _tile_map: TileMap = null

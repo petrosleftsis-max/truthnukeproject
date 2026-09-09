@@ -16,8 +16,8 @@ fallback_encounter = ExtResource("9_enc1")
 combat = NodePath("VisualCombat")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1946268559]
-position = Vector2(592, 352)
-zoom = Vector2(1, 1)
+position = Vector2(3552, 2112)
+zoom = Vector2(0.5, 0.5)
 script = ExtResource("7_camera")
 tile_map_path = NodePath("../Terrain/TileMap")
 

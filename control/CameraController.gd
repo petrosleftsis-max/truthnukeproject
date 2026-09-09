@@ -24,9 +24,9 @@ class_name CameraController
 ## zoomed out shows everything and there is nothing left to pan to. If you
 ## enlarge the map past the viewport, lower this to still be able to take it
 ## all in at once.
-@export var min_zoom := 1.0
+@export var min_zoom := 0.17
 ## How far in you can push.
-@export var max_zoom := 4.0
+@export var max_zoom := 1.0
 ## What one mouse-wheel notch multiplies the zoom by.
 @export var zoom_step := 1.1
 ## Keyboard panning speed in screen pixels per second. Divided by zoom when

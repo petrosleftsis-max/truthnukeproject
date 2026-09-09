@@ -11,11 +11,11 @@ game_ui = NodePath("CanvasLayer/UI")
 camera = NodePath("Camera2D")
 
 [node name="Camera2D" type="Camera2D" parent="."]
-zoom = Vector2(2, 2)
+zoom = Vector2(0.7, 0.7)
 script = ExtResource("2_camera")
 tile_map_path = NodePath("../Map/TileMap")
-min_zoom = 1.0
-max_zoom = 4.0
+min_zoom = 0.17
+max_zoom = 1.0
 free_look = false
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]

@@ -18,7 +18,7 @@ class_name Interactable
 @export var prompt: String = "Interact"
 ## How close the party leader has to be, in pixels. One tile is 32. Drawn as a
 ## ring in the editor so you can see the reach while placing it.
-@export var interaction_radius: float = 40.0:
+@export var interaction_radius: float = Grid.tiles(1.25):
 	set(value):
 		interaction_radius = value
 		queue_redraw()

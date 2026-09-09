@@ -22,26 +22,26 @@ region = Rect2(64, 0, 32, 32)
 [node name="ExploreCrossroads" unique_id=1813498774 instance=ExtResource("1_terrain")]
 
 [node name="EntryPoint" type="Marker2D" parent="." index="2" unique_id=245944890]
-position = Vector2(208, 240)
+position = Vector2(1248, 1440)
 script = ExtResource("2_entry")
 entry_name = "start"
 
 [node name="Signpost" type="Node2D" parent="." index="3" unique_id=1278601289]
-position = Vector2(304, 240)
+position = Vector2(1824, 1440)
 script = ExtResource("3_examine")
 text = "The crossroads. Goblins to the east, something worse beyond them."
 speaker = "Signpost"
 prompt = "Read"
 
 [node name="Bones" type="Node2D" parent="." index="4" unique_id=1238560271]
-position = Vector2(240, 368)
+position = Vector2(1440, 2208)
 script = ExtResource("3_examine")
 text = "Picked clean. Whatever did this went east."
 repeatable = false
 prompt = "Examine"
 
 [node name="GoblinAmbush" type="Node2D" parent="." index="5" unique_id=376770803]
-position = Vector2(560, 240)
+position = Vector2(3360, 1440)
 script = ExtResource("4_encounter")
 encounter = ExtResource("5_enc1")
 trigger_id = "crossroads_goblins"
@@ -49,7 +49,7 @@ prompt = "Fight"
 texture = SubResource("AtlasTexture_goblin")
 
 [node name="TheWatcher" type="Node2D" parent="." index="6" unique_id=1879122408]
-position = Vector2(880, 400)
+position = Vector2(5280, 2400)
 script = ExtResource("4_encounter")
 encounter = ExtResource("6_enc3")
 trigger_id = "crossroads_watcher"
@@ -57,7 +57,7 @@ prompt = "Fight"
 texture = SubResource("AtlasTexture_eye")
 
 [node name="DialogueInteractable" type="Node2D" parent="." index="7" unique_id=1387684525]
-position = Vector2(226, 153)
+position = Vector2(1356, 918)
 script = ExtResource("8_e8hu0")
 dialogue = ExtResource("9_go82g")
 prompt = "Talk"
