@@ -65,12 +65,17 @@ func definition() -> CombatantDefinition:
 	return combatant_definitions().get(combatant_key)
 
 
-## The name this combatant will actually fight under.
+## The name this combatant will actually fight under. A marker with no
+## combatant chosen still says so on the map - a blank label on a blank square
+## is indistinguishable from nothing being there at all, which is exactly the
+## state a spawn added to the encounter by hand starts in.
 func effective_name() -> String:
 	if display_name != "":
 		return display_name
 	var found = definition()
-	return found.name if found != null else combatant_key
+	if found != null:
+		return found.name
+	return combatant_key if combatant_key != "" else "(pick a combatant)"
 
 
 func _refresh():

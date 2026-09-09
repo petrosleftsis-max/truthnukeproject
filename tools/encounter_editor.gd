@@ -38,8 +38,15 @@ const SPAWNS_NODE = "Spawns"
 
 
 func _ready():
-	if Engine.is_editor_hint() and get_child_count() == 0:
-		rebuild()
+	if not Engine.is_editor_hint():
+		return
+	# Always rebuild, even though there are already children. The preview and
+	# markers are nodes like any other, so saving this scene saves them too -
+	# a snapshot of whichever encounter was assigned at the time. Keeping that
+	# snapshot means opening the scene shows the last session's markers rather
+	# than the assigned encounter's, and adding spawns to the encounter appears
+	# to do nothing at all. rebuild() throws the snapshot away.
+	rebuild()
 
 
 ## Rebuilds both the map preview and the markers from the encounter resource,
@@ -107,6 +114,22 @@ func _tile_size(tile_map: TileMap) -> int:
 	return Grid.TILE_SIZE
 
 
+## A marker works out its tile from its own position, which is only the tile
+## you can see it on while the container holding it sits at the origin. It is
+## easy to nudge that container by accident in the 2D viewport - and then every
+## marker reads as being several tiles from where it looks. Rather than refuse
+## to save, push the offset down into the markers: they stay exactly where they
+## appear on the map, and now agree about which tile that is.
+func _reanchor_spawn_container():
+	var container = get_node_or_null(SPAWNS_NODE)
+	if container == null or container.position == Vector2.ZERO:
+		return
+	var offset = container.position
+	for marker in markers():
+		marker.position += offset
+	container.position = Vector2.ZERO
+
+
 func markers() -> Array:
 	var container = get_node_or_null(SPAWNS_NODE)
 	if container == null:
@@ -149,10 +172,11 @@ func save_to_encounter():
 		push_error("No encounter assigned - nothing to save to.")
 		return
 	if encounter.resource_path == "":
-		push_error("The assigned encounter has no file on disk to save to.")
+		push_error("This encounter is built into the editor scene rather than being a file of its own, so there is nowhere to save it. Assign one of res://encounters/*.tres to Encounter and press Reload, or save this one to a file first (in the inspector, the dropdown next to the resource -> Save As).")
 		return
 	var terrain = get_node_or_null(TERRAIN_NODE)
 	var tile_map: TileMap = terrain.get_node_or_null("TileMap") if terrain != null else null
+	_reanchor_spawn_container()
 
 	var problems = []
 	var claimed = {}
