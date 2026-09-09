@@ -1,26 +1,23 @@
-[gd_resource type="Resource" script_class="EncounterDefinition" load_steps=10 format=3]
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3 uid="uid://c3j4v4tmtl7gw"]
 
-[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
-[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
-[ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="3_terrain"]
+[ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
+[ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
+[ext_resource type="PackedScene" uid="uid://4ucd52nk0txi" path="res://scenes/sapperTerrain.tscn" id="3_y7mw8"]
 
 [sub_resource type="Resource" id="Spawn_steve"]
 script = ExtResource("2_spawn")
 combatant_key = "steve"
-side = 0
-position = Vector2i(8, 6)
+position = Vector2i(20, 6)
 
 [sub_resource type="Resource" id="Spawn_bob"]
 script = ExtResource("2_spawn")
 combatant_key = "bob"
-side = 0
-position = Vector2i(6, 7)
+position = Vector2i(20, 7)
 
 [sub_resource type="Resource" id="Spawn_alexandra"]
 script = ExtResource("2_spawn")
 combatant_key = "alexandra"
-side = 0
-position = Vector2i(4, 7)
+position = Vector2i(20, 7)
 
 [sub_resource type="Resource" id="Spawn_bomber1"]
 script = ExtResource("2_spawn")
@@ -47,5 +44,5 @@ display_name = "Grunt"
 script = ExtResource("1_enc")
 display_name = "Sappers"
 description = "Two bombers rush in to self-destruct, screened by a goblin grunt. Do not let them close."
-terrain_scene = ExtResource("3_terrain")
+terrain_scene = ExtResource("3_y7mw8")
 spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_steve"), SubResource("Spawn_bob"), SubResource("Spawn_alexandra"), SubResource("Spawn_bomber1"), SubResource("Spawn_bomber2"), SubResource("Spawn_grunt")])

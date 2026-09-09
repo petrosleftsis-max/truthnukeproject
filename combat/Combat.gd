@@ -59,9 +59,21 @@ func _ready():
 		push_error("Combat has no EncounterDefinition - GameScene assigns one before _ready. There is nothing to fight.")
 		return
 
+	# Tiles already claimed by an earlier spawn in this encounter. Two
+	# combatants sharing a tile corrupts occupancy tracking - _occupied_spaces
+	# holds one entry per combatant, so the first of them to move frees the
+	# tile for both - and there is no way for the player to click the one
+	# underneath. Easy to do by mistake when typing coordinates by hand, and
+	# silent until movement starts behaving strangely, so it's caught here.
+	var claimed_tiles := {}
 	for spawn in encounter.spawns:
 		if not CombatantDatabase.combatants.has(spawn.combatant_key):
 			push_warning("Encounter '%s' spawns unknown combatant key '%s' - skipping it." % [encounter.display_name, spawn.combatant_key])
+			continue
+		if claimed_tiles.has(spawn.position):
+			push_warning("Encounter '%s' spawns '%s' on tile %s, which '%s' already occupies - skipping it. Give them their own tile." % [
+				encounter.display_name, spawn.combatant_key, spawn.position, claimed_tiles[spawn.position]
+			])
 			continue
 		if spawn.side == 0 and not Campaign.is_alive(spawn.combatant_key):
 			# They died in an earlier battle, and the party carries its losses
@@ -72,6 +84,7 @@ func _ready():
 		if spawn.side == 0:
 			Campaign.apply_carried_state(comb, spawn.combatant_key)
 		add_combatant(comb, spawn.side, spawn.position)
+		claimed_tiles[spawn.position] = spawn.combatant_key
 
 	emit_signal("update_turn_queue", combatants, turn_queue)
 

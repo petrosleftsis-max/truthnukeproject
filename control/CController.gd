@@ -239,6 +239,37 @@ func _ready():
 			_all_blocking_spaces.append(tile)
 		for block in blocks:
 			_blocking_spaces[block].append(tile)
+	_mark_unpainted_cells_as_blocking()
+
+
+## Treats every cell inside the grid with no tile painted on it as blocking.
+##
+## The grid is sized from the TileMap's used *rect*, which is a bounding box -
+## so any map that isn't a perfect rectangle leaves holes inside it. Nothing
+## builds those cells into _blocking_spaces (that loop only walks cells that
+## exist), which left them perfectly walkable: routes were planned straight
+## across empty space, and the moment the hover preview asked one of those
+## tiles for its movement cost, get_cell_tile_data returned null and
+## get_tile_cost crashed on it.
+##
+## Blocking them fixes that at the source, and does it once here rather than
+## needing a null check at every call site: pathfinding, reachability, line of
+## sight and area-of-effect all already route through _blocking_spaces, so all
+## of them start treating the holes as the edge of the map. Note this includes
+## line of sight - you can't see across a gap in the map, which is what you
+## want for the outside of a non-rectangular map. If you ever want a hole
+## inside the map that units can see across but not walk on, paint it with a
+## real tile whose Blocks data lists every movement class instead.
+func _mark_unpainted_cells_as_blocking():
+	var region = _astargrid.region
+	for x in range(region.position.x, region.position.x + region.size.x):
+		for y in range(region.position.y, region.position.y + region.size.y):
+			var tile = Vector2i(x, y)
+			if tile_map.get_cell_tile_data(0, tile) != null:
+				continue
+			_all_blocking_spaces.append(tile)
+			for movement_class in _blocking_spaces.size():
+				_blocking_spaces[movement_class].append(tile)
 
 
 func combatant_added(combatant):
@@ -481,6 +512,14 @@ func ai_move(target_position: Vector2i):
 
 func find_path(tile_position: Vector2i):
 	var current_position = tile_map.local_to_map(controlled_node.position)
+	if not is_in_bounds(tile_position):
+		# The cursor is off the map entirely - easy to do, since at full zoom-out
+		# the viewport is larger than the map. There's nowhere to path to, and
+		# asking AStarGrid2D about a point outside its region is an error in its
+		# own right, so stop before doing either.
+		_path = PackedVector2Array()
+		queue_redraw()
+		return
 	if _astargrid.get_point_weight_scale(tile_position) > 999999:
 		# The destination is occupied or blocked (e.g. clicking directly on
 		# a combatant to move adjacent to them instead) - step back one tile
@@ -577,20 +616,22 @@ func is_valid_skill_target(target: Dictionary) -> bool:
 
 const grid_tex = preload("res://imagese/grid_marker.png")
 
+## The movement cost of `tile` for whoever's turn it is. Unpainted tiles - the
+## holes in a non-rectangular map - report a nominal 1: movement can't reach
+## one (they're blocking, see _mark_unpainted_cells_as_blocking), but the hover
+## preview is free to ask about any tile the cursor crosses, and a null
+## TileData here used to be a hard crash.
 func get_tile_cost(tile):
-	var tile_data = tile_map.get_cell_tile_data(0, tile)
-	if combat.get_current_combatant().movement_class == 0:
-		return int(tile_data.get_custom_data("Cost"))
-	else:
+	if combat.get_current_combatant().movement_class != 0:
 		return 1
+	var tile_data = tile_map.get_cell_tile_data(0, tile)
+	if tile_data == null:
+		return 1
+	return int(tile_data.get_custom_data("Cost"))
 
+## As get_tile_cost, but taking a local/world position rather than a grid tile.
 func get_tile_cost_at_point(point):
-	var tile = tile_map.local_to_map(point)
-	var tile_data = tile_map.get_cell_tile_data(0, tile)
-	if combat.get_current_combatant().movement_class == 0:
-		return int(tile_data.get_custom_data("Cost"))
-	else:
-		return 1
+	return get_tile_cost(tile_map.local_to_map(point))
 
 func _draw():
 	if _arrived == true and player_turn == true:

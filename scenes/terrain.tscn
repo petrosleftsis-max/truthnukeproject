@@ -1,7 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://ww05yde5nb2t"]
+[gd_scene format=3 uid="uid://ww05yde5nb2t"]
 
-[ext_resource type="TileSet" path="res://tilesets/terrain_tileset.tres" id="1_terrainset"]
-[ext_resource type="TileSet" path="res://tilesets/grid_tileset.tres" id="2_gridset"]
+[ext_resource type="TileSet" uid="uid://sakecgskem2q" path="res://tilesets/terrain_tileset.tres" id="1_terrainset"]
+[ext_resource type="TileSet" uid="uid://dro6gitq1wumf" path="res://tilesets/grid_tileset.tres" id="2_gridset"]
 
 [node name="Terrain" type="Node2D" unique_id=752726230]
 texture_filter = 1
