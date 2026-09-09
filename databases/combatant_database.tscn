@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" uid="uid://bg8tpdh4cwe8b" path="res://databases/combatant_database.gd" id="1_5ebs0"]
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="2_rggep"]
+[ext_resource type="SpriteFrames" path="res://combat/animations/cyrus.tres" id="90_cyrusframes"]
+[ext_resource type="Texture2D" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="91_cyrusstill"]
 [ext_resource type="Texture2D" uid="uid://mha8vbqb2djl" path="res://imagese/chars.png" id="3_vw1bw"]
 [ext_resource type="Texture2D" uid="uid://tho1dgha8gr1" path="res://imagese/monsters.png" id="4_72lse"]
 
@@ -38,8 +40,9 @@ secondary_skills = Array[String](["run"])
 max_hp = 10
 movement = 6
 initiative = 8
-icon = SubResource("AtlasTexture_8grfo")
-map_sprite = SubResource("AtlasTexture_i0li6")
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_6kjpw"]
 atlas = ExtResource("4_72lse")

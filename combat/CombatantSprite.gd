@@ -111,12 +111,18 @@ const SKILL_ANIMATION_TIMEOUT = 5.0
 ## full timeout instead of ending when the animation actually did.
 var _skill_animation_finished := false
 
-func play_skill_and_wait():
-	if not (_animated and _animated.sprite_frames.has_animation("skill")):
+func play_skill_and_wait(animation_name: String = "skill"):
+	if _animated == null:
 		return
+	if not _animated.sprite_frames.has_animation(animation_name):
+		# A skill can name its own animation ("attack", say); fall back to the
+		# general one for a combatant who hasn't got that specific set.
+		if animation_name == "skill" or not _animated.sprite_frames.has_animation("skill"):
+			return
+		animation_name = "skill"
 	_skill_animation_finished = false
 	_animated.animation_finished.connect(_on_skill_animation_finished, CONNECT_ONE_SHOT)
-	_animated.play("skill")
+	_animated.play(animation_name)
 	var elapsed = 0.0
 	while not _skill_animation_finished and elapsed < SKILL_ANIMATION_TIMEOUT:
 		await get_tree().process_frame

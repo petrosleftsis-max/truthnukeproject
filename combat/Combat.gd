@@ -314,7 +314,7 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 	if valid:
 		controller.action_locked = true
 		game_ui.lock_action_buttons()
-		await attacker.sprite.play_skill_and_wait()
+		await attacker.sprite.play_skill_and_wait(skill.animation)
 		controller.action_locked = false
 		game_ui.refresh_action_buttons()
 		if not attacker.alive:
@@ -425,7 +425,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	]))
 	controller.action_locked = true
 	game_ui.lock_action_buttons()
-	await attacker.sprite.play_skill_and_wait()
+	await attacker.sprite.play_skill_and_wait(skill.animation)
 	controller.action_locked = false
 	game_ui.refresh_action_buttons()
 	if not attacker.alive or not target.alive:

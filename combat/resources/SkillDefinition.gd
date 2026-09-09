@@ -58,6 +58,11 @@ enum AoEShape {
 ## CombatantDefinition.secondary_skills - Cyrus has Run there, so Run is a main
 ## skill for everyone and additionally a secondary one for him.
 @export var is_secondary: bool = false
+## Which animation the caster plays when using this. A combatant whose
+## SpriteFrames has no animation by this name falls back to "skill", and one
+## with no animations at all just resolves the skill instantly - so naming an
+## animation here is never a requirement, only an option.
+@export var animation: String = "skill"
 
 @export_group("Area of Effect")
 ## 0 = single tile only (classic single-target). Any higher number gives this
