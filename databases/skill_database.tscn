@@ -41,6 +41,7 @@ effects = Array[ExtResource("2_effdef")]([SubResource("Effect_ranged_dmg")])
 
 [sub_resource type="Resource" id="Effect_magic_dmg"]
 script = ExtResource("2_effdef")
+damage_type = 7
 min_amount = 3
 max_amount = 7
 
@@ -92,6 +93,7 @@ effects = Array[ExtResource("2_effdef")]([SubResource("Effect_heal")])
 
 [sub_resource type="Resource" id="Effect_fireball_dmg"]
 script = ExtResource("2_effdef")
+damage_type = 1
 min_amount = 4
 max_amount = 7
 
@@ -108,6 +110,7 @@ effects = Array[ExtResource("2_effdef")]([SubResource("Effect_fireball_dmg")])
 
 [sub_resource type="Resource" id="Effect_lightning_dmg"]
 script = ExtResource("2_effdef")
+damage_type = 7
 min_amount = 3
 max_amount = 5
 
@@ -126,6 +129,7 @@ effects = Array[ExtResource("2_effdef")]([SubResource("Effect_lightning_dmg")])
 
 [sub_resource type="Resource" id="Effect_flamecone_dmg"]
 script = ExtResource("2_effdef")
+damage_type = 1
 min_amount = 3
 max_amount = 5
 
@@ -143,11 +147,13 @@ effects = Array[ExtResource("2_effdef")]([SubResource("Effect_flamecone_dmg")])
 
 [sub_resource type="Resource" id="Effect_poison_dmg"]
 script = ExtResource("2_effdef")
+damage_type = 5
 min_amount = 2
 max_amount = 3
 
 [sub_resource type="Resource" id="Effect_poison_dot"]
 script = ExtResource("2_effdef")
+damage_type = 5
 display_name = "Poisoning"
 type = 3
 min_amount = 2

@@ -273,14 +273,16 @@ func describe_aoe_shape(skill: SkillDefinition) -> String:
 func describe_effect(effect: EffectDefinition) -> String:
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
-			return "Damage: %d-%d" % [effect.min_amount, effect.max_amount]
+			return "Damage: %d-%d %s" % [effect.min_amount, effect.max_amount, Damage.type_name(effect.damage_type).to_lower()]
 		EffectDefinition.EffectType.HEAL:
 			return "Heal: %d-%d" % [effect.min_amount, effect.max_amount]
 		EffectDefinition.EffectType.STAT_MODIFIER:
 			var sign_str = "+" if effect.modifier_amount >= 0 else ""
 			return "%s%d %s for %d turn(s)" % [sign_str, effect.modifier_amount, effect.stat, effect.duration]
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
-			return "Damage over time: %d-%d for %d turn(s)" % [effect.min_amount, effect.max_amount, effect.duration]
+			return "Damage over time: %d-%d %s for %d turn(s)" % [
+				effect.min_amount, effect.max_amount, Damage.type_name(effect.damage_type).to_lower(), effect.duration
+			]
 		EffectDefinition.EffectType.DISPEL:
 			var scope_str = "all"
 			if effect.dispel_scope == EffectDefinition.DispelScope.BUFFS_ONLY:

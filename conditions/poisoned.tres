@@ -7,6 +7,7 @@ script = ExtResource("1_cond")
 display_name = "Poisoned"
 description = "Venom works through them. Too sick to react to anything."
 duration = 3
+dot_type = 5
 dot_min = 2
 dot_max = 3
 prevents_reactions = true

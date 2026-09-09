@@ -119,6 +119,7 @@ ai_function = "ai_hit_and_explode"
 [sub_resource type="Resource" id="Resource_priest"]
 script = ExtResource("2_rggep")
 name = "Priest"
+resist_earth = -20
 class_t = 2
 max_hp = 6
 movement = 4
@@ -130,6 +131,7 @@ ai_function = "ai_healer"
 [sub_resource type="Resource" id="Resource_sorcerer"]
 script = ExtResource("2_rggep")
 name = "Sorcerer"
+resist_fire = 20
 class_t = 2
 max_hp = 7
 movement = 4

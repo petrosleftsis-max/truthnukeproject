@@ -42,6 +42,10 @@ enum DispelScope {
 ## Also used by PUSH: if the push gets stopped short by a wall or the map
 ## edge (not by bumping another combatant), it deals this much collision
 ## damage. Leave both at 0 for a push with no collision damage.
+## What kind of damage this deals. Used by DAMAGE, DAMAGE_OVER_TIME and the
+## collision damage a PUSH deals, and checked against the target's resistances
+## (see CombatantDefinition). Ignored by HEAL.
+@export var damage_type: Damage.Type = Damage.Type.PHYSICAL
 @export var min_amount: int = 0
 @export var max_amount: int = 0
 

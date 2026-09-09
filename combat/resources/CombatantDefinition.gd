@@ -29,6 +29,24 @@ class_name CombatantDefinition
 ## A skill listed here doesn't have to leave the main panel; it can appear in
 ## both.
 @export var secondary_skills: Array[String]
+@export_group("Resistances")
+## How this combatant stands up to each kind of damage, as a percentage.
+## Positive resists - 20 means a fifth of that damage is shrugged off, 100
+## means immune. Negative is a vulnerability - -20 means a fifth extra gets
+## through. Zero is normal.
+##
+## Per character, not per AI archetype: two combatants running the same AI can
+## have completely different resistances, and changing one never affects how
+## they behave.
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_physical: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_fire: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_water: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_wind: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_earth: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_poison: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_psychic: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_pure_energy: int = 0
+
 @export_group("Party")
 ## Whether this one actually fights. Turn it off for someone who travels with
 ## the party but takes no part in battles - a guide, a prisoner, a child - and
@@ -44,3 +62,19 @@ class_name CombatantDefinition
 ## it ends by either using a skill or calling advance_turn() itself) and
 ## type its name here. An unrecognised name falls back to ai_melee_rush.
 @export var ai_function: String = "ai_melee_rush"
+
+
+## The resistances above, keyed by Damage.Type, so combat can look one up by
+## the type of damage being dealt rather than knowing the field names. Copied
+## onto each combatant when they're created.
+func resistance_table() -> Dictionary:
+	return {
+		Damage.Type.PHYSICAL: resist_physical,
+		Damage.Type.FIRE: resist_fire,
+		Damage.Type.WATER: resist_water,
+		Damage.Type.WIND: resist_wind,
+		Damage.Type.EARTH: resist_earth,
+		Damage.Type.POISON: resist_poison,
+		Damage.Type.PSYCHIC: resist_psychic,
+		Damage.Type.PURE_ENERGY: resist_pure_energy,
+	}

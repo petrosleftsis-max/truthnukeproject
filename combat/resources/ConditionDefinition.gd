@@ -25,6 +25,9 @@ class_name ConditionDefinition
 @export_group("Damage over time")
 ## Rolled fresh at the start of each of the afflicted's turns. Leave at 0 for a
 ## condition that doesn't burn away at them.
+## What kind of damage the tick deals - Burn is fire, Poisoned is poison - so
+## resistances apply to conditions the same as to a direct hit.
+@export var dot_type: Damage.Type = Damage.Type.PHYSICAL
 @export var dot_min: int = 0
 @export var dot_max: int = 0
 

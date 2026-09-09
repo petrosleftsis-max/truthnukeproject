@@ -194,6 +194,9 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		"skill_used_this_turn" = false,
 		"secondary_used_this_turn" = false,
 		"secondary_skills" = definition.secondary_skills.duplicate(),
+		# Copied off the definition so combat can look a resistance up by damage
+		# type without going back to the database for it.
+		"resistances" = definition.resistance_table(),
 		"reaction_used" = false,
 		"ai_function" = definition.ai_function,
 		# Which CombatantDatabase entry this came from. Campaign keys the
@@ -672,6 +675,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
 			target.status_effects.append({
 				"stat" = "dot", # reserved pseudo-stat marking a damage-over-time tick
+				"damage_type" = effect.damage_type,
 				"min_amount" = effect.min_amount,
 				"max_amount" = effect.max_amount,
 				"duration" = stored_duration(target, effect),
@@ -891,7 +895,7 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 			distance_moved
 		]))
 	if hit_obstacle and not pulling and target.alive and effect.max_amount > 0:
-		var collision_damage = randi_range(effect.min_amount, effect.max_amount)
+		var collision_damage = resisted_damage(target, effect.damage_type, randi_range(effect.min_amount, effect.max_amount))
 		target.hp -= collision_damage
 		update_combatants.emit(combatants)
 		update_information.emit("[color=red]{0}[/color] slammed into an obstacle, taking [color=gray]{1} damage[/color]\n".format([
@@ -933,11 +937,13 @@ func process_status_effects(comb: Dictionary):
 func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition):
 	if not comb.alive:
 		return
-	var amount = randi_range(condition.dot_min, condition.dot_max)
+	var resistance = resistance_of(comb, condition.dot_type)
+	var amount = resisted_damage(comb, condition.dot_type, randi_range(condition.dot_min, condition.dot_max))
 	comb.hp -= amount
 	update_combatants.emit(combatants)
-	update_information.emit("[color=red]%s[/color] took [color=gray]%d damage[/color] from %s.\n" % [
-		comb.name, amount, condition.display_name
+	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from %s.\n" % [
+		comb.name, amount, Damage.type_name(condition.dot_type).to_lower(),
+		Damage.describe_resistance(resistance), condition.display_name
 	])
 	if comb.hp <= 0:
 		combatant_die(comb)
@@ -946,14 +952,15 @@ func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition):
 func tick_damage_over_time(comb: Dictionary, eff: Dictionary):
 	if not comb.alive:
 		return
-	var amount = randi_range(eff.min_amount, eff.max_amount)
+	var type = eff.get("damage_type", Damage.Type.PHYSICAL)
+	var resistance = resistance_of(comb, type)
+	var amount = resisted_damage(comb, type, randi_range(eff.min_amount, eff.max_amount))
 	comb.hp -= amount
 	update_combatants.emit(combatants)
-	update_information.emit("[color=red]{0}[/color] took [color=gray]{1} damage[/color] from a lingering effect ({2})\n".format([
-		comb.name,
-		amount,
+	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from a lingering effect (%s).\n" % [
+		comb.name, amount, Damage.type_name(type).to_lower(), Damage.describe_resistance(resistance),
 		eff.get("source_name", "unknown")
-	]))
+	])
 	if comb.hp <= 0:
 		combatant_die(comb)
 
@@ -1121,17 +1128,31 @@ func combat_finish():
 	emit_signal("combat_finished")
 
 
+## How much `type` damage `target` actually takes from a raw `amount`, after
+## their own resistance to it. The single place resistances are applied, so a
+## direct hit, a damage-over-time tick, a condition burning away and a shove
+## into a wall are all treated the same way.
+func resisted_damage(target: Dictionary, type: int, amount: int) -> int:
+	return Damage.after_resistance(amount, resistance_of(target, type))
+
+
+func resistance_of(target: Dictionary, type: int) -> int:
+	return target.get("resistances", {}).get(type, 0)
+
+
 func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
-	var damage = randi_range(effect.min_amount, effect.max_amount)
+	var resistance = resistance_of(target, effect.damage_type)
+	var damage = resisted_damage(target, effect.damage_type, randi_range(effect.min_amount, effect.max_amount))
+	var flavour = "%s damage%s" % [Damage.type_name(effect.damage_type).to_lower(), Damage.describe_resistance(resistance)]
 	target.hp -= damage
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
-		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=gray]%d damage[/color].\n" % [
-			attacker.name, skill.name, target.name, damage
+		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=gray]%d %s[/color].\n" % [
+			attacker.name, skill.name, target.name, damage, flavour
 		])
 	else:
-		update_information.emit("[color=yellow]%s[/color] dealt [color=gray]%d damage[/color] to [color=red]%s[/color].\n" % [
-			attacker.name, damage, target.name
+		update_information.emit("[color=yellow]%s[/color] dealt [color=gray]%d %s[/color] to [color=red]%s[/color].\n" % [
+			attacker.name, damage, flavour, target.name
 		])
 	if target.hp <= 0:
 		combatant_die(target)
