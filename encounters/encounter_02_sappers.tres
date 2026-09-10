@@ -28,7 +28,7 @@ display_name = "Sapper 1"
 
 [sub_resource type="Resource" id="Resource_x3lcq"]
 script = ExtResource("2_spawn")
-combatant_key = "goblin"
+combatant_key = "barbarian"
 side = 1
 position = Vector2i(14, 7)
 display_name = "Grunt"
@@ -43,6 +43,6 @@ display_name = "Sapper 2"
 [resource]
 script = ExtResource("1_enc")
 display_name = "Sappers"
-description = "Two bombers rush in to self-destruct, screened by a goblin grunt. Do not let them close."
+description = "Two bombers rush in to self-destruct, screened by a barbarian grunt. Do not let them close."
 terrain_scene = ExtResource("3_y7mw8")
 spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_y7mw8"), SubResource("Resource_iq7ep"), SubResource("Resource_23sa8"), SubResource("Resource_44smm"), SubResource("Resource_x3lcq"), SubResource("Resource_64obj")])
