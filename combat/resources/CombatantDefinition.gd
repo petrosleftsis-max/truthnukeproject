@@ -12,18 +12,19 @@ class_name CombatantDefinition
 @export_range(1, 2, 1, "or_greater") var initiative = 1
 
 @export_subgroup("Attributes")
-## The four attributes every skill scales from, plus the one that soaks
-## incoming damage. See Stats.gd for how they turn into a damage number.
+## The two attributes this character is built around. A combatant's level
+## decides the numbers - main stat 47 at level 2 and 85 at level 3, secondary
+## half that, everything else a flat 10 - so all that is set here is which two
+## they are. See Stats.stats_for_level.
 ##
-## Named self_stat rather than self because "self" is a GDScript keyword; it is
-## the Self attribute everywhere it is shown to a player.
-@export_range(1, 100) var physical: int = 10
-@export_range(1, 100) var mindfulness: int = 10
-@export_range(1, 100) var intellect: int = 10
-@export_range(1, 100) var self_stat: int = 10
-## Damage is multiplied by 40/(40 + this), so 40 halves an incoming hit and 120
-## quarters it. Diminishing returns, so no amount of it makes anyone immune.
-@export_range(1, 100) var defense: int = 10
+## Per character, not per AI archetype: two enemies driven by the same AI can
+## be built around completely different attributes.
+##
+## Defense and weapon base are deliberately not here. Both are set per spawn in
+## the encounter editor, so the same character can be tougher or better armed
+## in one fight than another.
+@export var main_stat: Stats.Type = Stats.Type.PHYSICAL
+@export var secondary_stat: Stats.Type = Stats.Type.MINDFULNESS
 
 @export_subgroup("Spell Slots")
 ## How many casts of each level this combatant starts a battle with. A skill
@@ -85,17 +86,6 @@ class_name CombatantDefinition
 ## it ends by either using a skill or calling advance_turn() itself) and
 ## type its name here. An unrecognised name falls back to ai_melee_rush.
 @export var ai_function: String = "ai_melee_rush"
-
-
-## The attributes above, keyed the way a combatant dictionary carries them.
-func stat_table() -> Dictionary:
-	return {
-		"physical": physical,
-		"mindfulness": mindfulness,
-		"intellect": intellect,
-		"self_stat": self_stat,
-		"defense": defense,
-	}
 
 
 ## Starting spell slots, indexed by level - [0] is unused so the level number

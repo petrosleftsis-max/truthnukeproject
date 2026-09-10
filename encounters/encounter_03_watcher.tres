@@ -19,13 +19,6 @@ script = ExtResource("2_spawn")
 combatant_key = "prometheus"
 position = Vector2i(4, 7)
 
-[sub_resource type="Resource" id="Spawn_eye"]
-script = ExtResource("2_spawn")
-combatant_key = "eye"
-side = 1
-position = Vector2i(10, 7)
-display_name = "The Watcher"
-
 [sub_resource type="Resource" id="Spawn_mimic"]
 script = ExtResource("2_spawn")
 combatant_key = "mimic"
@@ -52,4 +45,4 @@ script = ExtResource("1_enc")
 display_name = "The Watcher"
 description = "A flying eye and its attendants. The priest keeps them standing, so it dies first."
 terrain_scene = ExtResource("3_terrain")
-spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_eye"), SubResource("Spawn_mimic"), SubResource("Spawn_sorcerer"), SubResource("Spawn_priest")])
+spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_mimic"), SubResource("Spawn_sorcerer"), SubResource("Spawn_priest")])

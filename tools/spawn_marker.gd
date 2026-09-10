@@ -25,6 +25,17 @@ class_name SpawnMarker
 	set(value):
 		display_name = value
 		queue_redraw()
+## The level this combatant fights at here - 1 to 3. Decides every attribute
+## they have and which of their skills are unlocked. See SpawnDefinition.
+@export_range(1, 3) var level: int = 1:
+	set(value):
+		level = value
+		queue_redraw()
+## What their attacks start from before any stat, and how much damage they
+## soak. Per spawn so the same character can be armed and armoured differently
+## from one encounter to the next.
+@export_range(0, 100) var weapon_base: int = 6
+@export_range(1, 100) var defense: int = 10
 ## Set by EncounterEditor from the map being previewed.
 @export var tile_size := Grid.TILE_SIZE
 
@@ -96,6 +107,10 @@ func _draw():
 	draw_rect(box, outline, false, 2.0)
 	var font = ThemeDB.fallback_font
 	var label = effective_name()
+	if level > 1:
+		# The level is the one thing about a marker you cannot see from the
+		# portrait, and it changes every number the combatant has.
+		label += " Lv%d" % level
 	var width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 	draw_string(font, Vector2(-width * 0.5, half + 11), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.WHITE)
 

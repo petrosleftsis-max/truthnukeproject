@@ -19,6 +19,12 @@ enum AoEShape {
 ## before this ever matters). Ignored entirely when uses_stat_contest is on.
 @export_range(0, 100) var accuracy: int = 90
 @export var icon: Texture2D
+## The level a combatant has to have reached before this appears in their
+## skill panel at all. 1 means everybody has it from the start.
+##
+## Filtered out rather than shown greyed out: a level 1 character's panel is
+## what they can do, not a preview of what they will be able to do later.
+@export_range(1, 3) var required_level: int = 1
 ## If true, valid targets are the caster's own side (heals/buffs).
 ## If false (default), valid targets are the opposing side (attacks/debuffs).
 @export var targets_ally: bool = false

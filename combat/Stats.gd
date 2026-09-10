@@ -36,6 +36,64 @@ const STAT_SCALING := 0.7
 const DEFENSE_PIVOT := 40.0
 
 
+## --- Levels ---
+##
+## Three of them, and a level is the whole of a combatant's growth: it decides
+## every attribute they have. There is no experience and nothing is earned -
+## a level is set per spawn in the encounter editor, so the same character can
+## be brought into one fight at level 1 and the next at level 3.
+
+const MAX_LEVEL := 3
+
+## What a combatant is at before their level does anything. Every attribute
+## sits here except the two their character is built around.
+const BASE_STAT := 10
+
+## The main stat at each level, indexed by level - [0] is unused so the level
+## number reads straight into it. The secondary stat is half of these, so a
+## character is unmistakably better at the one thing they are for, without the
+## other being an afterthought.
+const MAIN_STAT_BY_LEVEL := [BASE_STAT, BASE_STAT, 47, 85]
+
+
+## The value of a combatant's main stat at `level`.
+static func main_stat_at(level: int) -> int:
+	return MAIN_STAT_BY_LEVEL[clampi(level, 1, MAX_LEVEL)]
+
+
+## The value of their secondary stat: half the main one, rounded up so a level
+## 2 secondary is 24 rather than 23.
+static func secondary_stat_at(level: int) -> int:
+	return int(ceil(main_stat_at(level) / 2.0))
+
+
+## Every attribute for a combatant of `level` whose character is built around
+## `main` and `secondary` (Stats.Type values). Everything else stays at
+## BASE_STAT, and level 1 leaves even those two there - a level 1 combatant is
+## flat 10s whoever they are.
+##
+## Defense is deliberately absent: it comes from the spawn rather than the
+## level, so the same character can be made tougher or more fragile for one
+## encounter without touching what they can do.
+static func stats_for_level(level: int, main: int, secondary: int) -> Dictionary:
+	var table := {}
+	for key in KEYS:
+		table[key] = BASE_STAT
+	if level <= 1:
+		# Level 1 is flat 10s for everyone. Half of BASE_STAT would otherwise
+		# leave the secondary attribute at 5 - worse than an attribute the
+		# character has nothing to do with, which is not what being level 1
+		# should mean.
+		return table
+	var main_key = stat_key(main)
+	var secondary_key = stat_key(secondary)
+	if main_key != "":
+		table[main_key] = main_stat_at(level)
+	if secondary_key != "" and secondary_key != main_key:
+		table[secondary_key] = secondary_stat_at(level)
+	return table
+
+
 static func stat_name(type: int) -> String:
 	if type < 0 or type >= NAMES.size():
 		return "Unknown"
@@ -49,8 +107,12 @@ static func stat_key(type: int) -> String:
 
 
 ## WeaponBase + 0.7 x Stat, before the skill's own modifier and the target.
-static func base_damage(stat_value: int) -> float:
-	return WEAPON_BASE + STAT_SCALING * stat_value
+##
+## `weapon_base` is per combatant and set on the spawn, so the same character
+## can be brought into one encounter better armed than another. Defaults to
+## WEAPON_BASE for anything created without one.
+static func base_damage(stat_value: int, weapon_base: int = WEAPON_BASE) -> float:
+	return weapon_base + STAT_SCALING * stat_value
 
 
 ## The full chain: BaseDamage x AbilityModifier x 40/(40 + Defense), rounded to

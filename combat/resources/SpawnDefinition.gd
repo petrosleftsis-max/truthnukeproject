@@ -15,3 +15,22 @@ class_name SpawnDefinition
 ## "Goblin 1" / "Goblin 2" / "Goblin 3" are. Leave empty to use the
 ## definition's own name.
 @export var display_name: String = ""
+
+@export_group("Level and gear")
+## 1 to 3. A combatant's level decides every attribute they have (see
+## Stats.stats_for_level) and which of their skills are unlocked, so this is
+## the one dial that says how developed they are in this particular fight.
+##
+## Set per spawn rather than per character on purpose: the same Cyrus can be
+## brought into an early encounter at level 1 and a later one at level 3, and
+## an enemy can be scaled up without a second database entry.
+@export_range(1, 3) var level: int = 1
+## What this combatant's attacks start from before any stat is added - the
+## weapon in their hands, until equipment exists to put one there. Per spawn so
+## the same character can be better armed in one encounter than another.
+@export_range(0, 100) var weapon_base: int = 6
+## How much incoming damage this combatant soaks. Damage is multiplied by
+## 40/(40 + this), so 40 halves a hit and 120 quarters it. Per spawn for the
+## same reason weapon_base is: it is the other half of how tough somebody is in
+## this fight specifically.
+@export_range(1, 100) var defense: int = 10

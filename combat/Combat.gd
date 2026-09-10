@@ -91,6 +91,9 @@ func _ready():
 	# roster from.
 	var player_tiles: Array = []
 	var fallback_party: Array = []
+	# The spawn each player tile came from, in the same order, so a deploying
+	# party member picks up the level and gear that tile was set up with.
+	var player_loadouts: Array = []
 	for spawn in encounter.spawns:
 		if not CombatantDatabase.combatants.has(spawn.combatant_key):
 			push_warning("Encounter '%s' spawns unknown combatant key '%s' - skipping it." % [encounter.display_name, spawn.combatant_key])
@@ -104,10 +107,14 @@ func _ready():
 		if spawn.side == 0:
 			player_tiles.append(spawn.position)
 			fallback_party.append(spawn.combatant_key)
+			# A player spawn is a place, not a person - who stands there comes
+			# from the roster. So the level and gear on it belong to the tile,
+			# and whoever deploys onto it fights at that level with that gear.
+			player_loadouts.append(spawn)
 			continue
-		add_combatant(create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name), 1, spawn.position)
+		add_combatant(create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name, spawn), 1, spawn.position)
 
-	_deploy_party(player_tiles, fallback_party)
+	_deploy_party(player_tiles, fallback_party, player_loadouts)
 
 	emit_signal("update_turn_queue", combatants, turn_queue)
 
@@ -129,7 +136,7 @@ func _ready():
 ## Puts the campaign's fighters on the encounter's starting tiles, in marching
 ## order. Anyone who can't fight (see CombatantDefinition.can_fight) travels
 ## with the party on the map but is left out here.
-func _deploy_party(tiles: Array, fallback_party: Array):
+func _deploy_party(tiles: Array, fallback_party: Array, loadouts: Array = []):
 	if tiles.is_empty():
 		push_warning("Encounter '%s' has no player starting tiles - there is nobody to play as." % encounter.display_name)
 		return
@@ -143,7 +150,8 @@ func _deploy_party(tiles: Array, fallback_party: Array):
 		])
 	for i in mini(fighters.size(), tiles.size()):
 		var key = fighters[i]
-		var comb = create_combatant(CombatantDatabase.combatants[key], key)
+		var loadout = loadouts[i] if i < loadouts.size() else null
+		var comb = create_combatant(CombatantDatabase.combatants[key], key, "", loadout)
 		Campaign.apply_carried_state(comb, key)
 		add_combatant(comb, 0, tiles[i])
 	deployment_tiles = tiles
@@ -186,7 +194,16 @@ func _start_opening_ai_turn():
 	await ai_process(combatants[current_combatant])
 
 
-func create_combatant(definition: CombatantDefinition, combatant_key: String = "", override_name = ""):
+## `spawn` carries the level, weapon base and defense this combatant fights
+## this particular encounter at - see SpawnDefinition. Null means the defaults:
+## level 1, flat attributes, an ordinary weapon.
+func create_combatant(definition: CombatantDefinition, combatant_key: String = "", override_name = "", spawn: SpawnDefinition = null):
+	var level = spawn.level if spawn != null else 1
+	var weapon_base = spawn.weapon_base if spawn != null else Stats.WEAPON_BASE
+	var stats = Stats.stats_for_level(level, definition.main_stat, definition.secondary_stat)
+	# Defense is the spawn's, not the level's - it is how tough this character is
+	# in this fight rather than how developed they are.
+	stats["defense"] = spawn.defense if spawn != null else Stats.BASE_STAT
 	var comb = {
 		"name" = definition.name,
 		"max_hp" = definition.max_hp,
@@ -211,7 +228,9 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# Physical / Mindfulness / Intellect / Self / Defense, keyed as
 		# Stats.KEYS names them. Flattened onto the combatant for the same
 		# reason resistances are: damage is worked out here, not in the database.
-		"stats" = definition.stat_table(),
+		"stats" = stats,
+		"level" = level,
+		"weapon_base" = weapon_base,
 		# Spell slots remaining, indexed by level - [0] is unused so a skill's
 		# spell_slot_level reads straight into it. Battle-scoped: a fight starts
 		# with the full allowance and spends down from there.
@@ -270,6 +289,13 @@ func get_current_combatant():
 ## CombatantDefinition.secondary_skills - which is how Cyrus can Run twice in
 ## one turn, once from each slot.
 
+## Whether `comb` has reached the level `skill` needs. Everything a combatant
+## cannot use yet is left out of their panels entirely rather than shown greyed
+## out - the panel is what they can do now, not a preview of later.
+func meets_level_for(comb: Dictionary, skill: SkillDefinition) -> bool:
+	return comb.get("level", 1) >= skill.required_level
+
+
 func main_skills_of(comb: Dictionary) -> Array:
 	var found = []
 	for key in comb.skill_list:
@@ -279,6 +305,8 @@ func main_skills_of(comb: Dictionary) -> Array:
 		# Anything with a slot cost is shown on the Spells panel instead, even
 		# though it is spent from this same action.
 		if skill.is_secondary or skill.spell_slot_level > 0:
+			continue
+		if not meets_level_for(comb, skill):
 			continue
 		found.append(key)
 	return found
@@ -295,7 +323,7 @@ func secondary_skills_of(comb: Dictionary) -> Array:
 		if not SkillDatabase.skills.has(key):
 			continue
 		var skill: SkillDefinition = SkillDatabase.skills[key]
-		if skill.is_secondary and skill.spell_slot_level == 0:
+		if skill.is_secondary and skill.spell_slot_level == 0 and meets_level_for(comb, skill):
 			found.append(key)
 	# A combatant's own secondary list can also grant a skill outright, so a
 	# character-specific secondary doesn't have to sit in their main list too.
@@ -303,6 +331,8 @@ func secondary_skills_of(comb: Dictionary) -> Array:
 		if not SkillDatabase.skills.has(key) or found.has(key):
 			continue
 		if SkillDatabase.skills[key].spell_slot_level > 0:
+			continue
+		if not meets_level_for(comb, SkillDatabase.skills[key]):
 			continue
 		found.append(key)
 	return found
@@ -320,6 +350,8 @@ func spell_skills_of(comb: Dictionary) -> Array:
 			continue
 		var skill: SkillDefinition = SkillDatabase.skills[key]
 		if skill.spell_slot_level == 0:
+			continue
+		if not meets_level_for(comb, skill):
 			continue
 		if skill.is_secondary and has_restriction(comb, "prevents_secondary"):
 			continue
@@ -412,6 +444,12 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	var distance = get_position_distance(attacker.position, impact_position)
 	var valid = distance <= effective_max_range(attacker, skill) and distance >= skill.min_range
+	if valid and not meets_level_for(attacker, skill):
+		update_information.emit("[color=yellow]%s[/color] has not learned %s yet.
+" % [attacker.name, skill.name])
+		if attacker.side == 1 and end_turn_after:
+			await advance_turn()
+		return
 	if valid and not can_afford_skill(attacker, skill):
 		update_information.emit("[color=yellow]%s[/color] has no level %d spell slot left for %s.\n" % [
 			attacker.name, skill.spell_slot_level, skill.name
@@ -518,9 +556,9 @@ func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_p
 			var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 			if not skill.is_reactive:
 				continue
-			if not can_afford_skill(reactor, skill):
-				# Out of slots for it, so there is nothing to offer and nothing
-				# to ask the player about.
+			if not can_afford_skill(reactor, skill) or not meets_level_for(reactor, skill):
+				# Out of slots for it, or not learned yet - either way there is
+				# nothing to offer and nothing to ask the player about.
 				continue
 			var valid_side = (reactor.side == mover.side) if skill.targets_ally else (reactor.side != mover.side)
 			if not valid_side:
@@ -1454,7 +1492,7 @@ func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 ## the skill's modifier, which is what makes the same spell scale with whoever
 ## casts it.
 func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefinition, power: float = 1.0) -> int:
-	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat))
+	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat), attacker.get("weapon_base", Stats.WEAPON_BASE))
 	return Stats.final_damage(base, skill.ability_modifier * power, stat_of(target, Stats.Type.DEFENSE))
 
 
@@ -1644,8 +1682,8 @@ func find_best_single_target_skill(comb: Dictionary) -> String:
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 		if skill.targets_ally or skill.aoe_radius > 0:
 			continue
-		if not can_afford_skill(comb, skill):
-			continue # out of slots for it
+		if not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
+			continue # out of slots for it, or not learned yet
 		var reach = effective_max_range(comb, skill)
 		if reach < skill.min_range:
 			continue # capped below its own minimum - unusable at all
@@ -1668,7 +1706,7 @@ func movement_budget_of(comb: Dictionary) -> int:
 func find_skill_of_type(comb: Dictionary, effect_type: EffectDefinition.EffectType) -> String:
 	for skill_key in comb.skill_list:
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
-		if not can_afford_skill(comb, skill):
+		if not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
 			continue
 		for effect in skill.effects:
 			if effect.type == effect_type:
@@ -2222,8 +2260,8 @@ func ai_caster(comb: Dictionary):
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 		if skill.targets_ally or skill.aoe_radius <= 0:
 			continue
-		if not can_afford_skill(comb, skill):
-			continue # out of slots for it
+		if not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
+			continue # out of slots for it, or not learned yet
 		var tile = find_best_reachable_tile(comb, movement_budget, func(t):
 			var hits = find_best_aim_and_count(skill, t, comb.movement_class, comb).count
 			return float(hits) * HIT_WEIGHT + float(count_players_without_los(t)) * SAFETY_WEIGHT

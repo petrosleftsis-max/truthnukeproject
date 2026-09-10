@@ -8,6 +8,8 @@
 [sub_resource type="Resource" id="Resource_bwgmm"]
 script = ExtResource("2_rggep")
 name = "Prometheus"
+main_stat = 2
+secondary_stat = 1
 spell_slots_1 = 3
 spell_slots_2 = 2
 spell_slots_3 = 1
@@ -21,6 +23,8 @@ sprite_frames = ExtResource("90_cyrusframes")
 [sub_resource type="Resource" id="Resource_w6c3b"]
 script = ExtResource("2_rggep")
 name = "Cyrus"
+main_stat = 3
+secondary_stat = 0
 class_t = 1
 secondary_skills = Array[String](["run"])
 max_hp = 10
@@ -30,21 +34,11 @@ icon = ExtResource("91_cyrusstill")
 map_sprite = ExtResource("91_cyrusstill")
 sprite_frames = ExtResource("90_cyrusframes")
 
-[sub_resource type="Resource" id="Resource_3h68d"]
-script = ExtResource("2_rggep")
-name = "Eye"
-class_m = 1
-max_hp = 5
-movement = 5
-initiative = 4
-icon = ExtResource("91_cyrusstill")
-map_sprite = ExtResource("91_cyrusstill")
-sprite_frames = ExtResource("90_cyrusframes")
-skills = Array[String](["basic_magic"])
-
 [sub_resource type="Resource" id="Resource_s2oe2"]
 script = ExtResource("2_rggep")
 name = "Goblin"
+main_stat = 0
+secondary_stat = 3
 max_hp = 6
 initiative = 3
 icon = ExtResource("91_cyrusstill")
@@ -54,6 +48,8 @@ sprite_frames = ExtResource("90_cyrusframes")
 [sub_resource type="Resource" id="Resource_tkpbb"]
 script = ExtResource("2_rggep")
 name = "Enfina"
+main_stat = 0
+secondary_stat = 2
 max_hp = 16
 movement = 4
 initiative = 5
@@ -64,6 +60,8 @@ sprite_frames = ExtResource("90_cyrusframes")
 [sub_resource type="Resource" id="Resource_ranger"]
 script = ExtResource("2_rggep")
 name = "Ranger"
+main_stat = 0
+secondary_stat = 1
 class_t = 1
 max_hp = 6
 movement = 5
@@ -77,6 +75,8 @@ ai_function = "ai_ranger"
 [sub_resource type="Resource" id="Resource_bomber"]
 script = ExtResource("2_rggep")
 name = "Bomber"
+main_stat = 1
+secondary_stat = 0
 max_hp = 4
 movement = 4
 initiative = 3
@@ -89,6 +89,8 @@ ai_function = "ai_hit_and_explode"
 [sub_resource type="Resource" id="Resource_priest"]
 script = ExtResource("2_rggep")
 name = "Priest"
+main_stat = 1
+secondary_stat = 3
 spell_slots_1 = 2
 spell_slots_2 = 1
 resist_earth = -20
@@ -104,6 +106,8 @@ ai_function = "ai_healer"
 [sub_resource type="Resource" id="Resource_sorcerer"]
 script = ExtResource("2_rggep")
 name = "Sorcerer"
+main_stat = 2
+secondary_stat = 1
 spell_slots_1 = 2
 spell_slots_2 = 1
 spell_slots_3 = 1
@@ -120,6 +124,8 @@ ai_function = "ai_caster"
 [sub_resource type="Resource" id="Resource_mimic"]
 script = ExtResource("2_rggep")
 name = "Mimic"
+main_stat = 3
+secondary_stat = 1
 max_hp = 8
 movement = 5
 initiative = 4
@@ -128,17 +134,32 @@ map_sprite = ExtResource("91_cyrusstill")
 sprite_frames = ExtResource("90_cyrusframes")
 ai_function = "ai_copycat"
 
+[sub_resource type="Resource" id="Resource_alithia"]
+script = ExtResource("2_rggep")
+name = "Alithia"
+main_stat = 1
+secondary_stat = 3
+class_t = 2
+max_hp = 14
+movement = 4
+initiative = 5
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("90_cyrusframes")
+spell_slots_1 = 2
+spell_slots_2 = 1
+
 [node name="CombatantDatabase" type="Node" unique_id=1671407001]
 script = ExtResource("1_5ebs0")
 combatants = {
 "prometheus": SubResource("Resource_bwgmm"),
 "cyrus": SubResource("Resource_w6c3b"),
 "bomber": SubResource("Resource_bomber"),
-"eye": SubResource("Resource_3h68d"),
 "goblin": SubResource("Resource_s2oe2"),
 "mimic": SubResource("Resource_mimic"),
 "priest": SubResource("Resource_priest"),
 "ranger": SubResource("Resource_ranger"),
 "sorcerer": SubResource("Resource_sorcerer"),
-"enfina": SubResource("Resource_tkpbb")
+"enfina": SubResource("Resource_tkpbb"),
+"alithia": SubResource("Resource_alithia")
 }

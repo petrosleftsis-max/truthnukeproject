@@ -183,6 +183,9 @@ func _build_markers(tile_map: TileMap):
 		marker.combatant_key = spawn.combatant_key
 		marker.side = spawn.side
 		marker.display_name = spawn.display_name
+		marker.level = spawn.level
+		marker.weapon_base = spawn.weapon_base
+		marker.defense = spawn.defense
 		marker.position = Vector2(spawn.position * tile_size) + Vector2(tile_size, tile_size) * 0.5
 		container.add_child(marker)
 		_adopt(marker)
@@ -329,6 +332,9 @@ func save_to_encounter():
 		spawn.side = marker.side
 		spawn.position = marker.grid_position()
 		spawn.display_name = marker.display_name
+		spawn.level = marker.level
+		spawn.weapon_base = marker.weapon_base
+		spawn.defense = marker.defense
 		spawns.append(spawn)
 	encounter.spawns = spawns
 
