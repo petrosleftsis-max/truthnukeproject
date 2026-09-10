@@ -46,6 +46,9 @@ var turn_queue = []
 ## works without it - a battle scene with no camera assigned just doesn't
 ## shake.
 @export var camera: CameraController
+## Optional. Frames the screen in the damage colour when the player's own side
+## is hurt. A battle scene without one simply does not flash its edges.
+@export var hurt_vignette: HurtVignette
 ## Which battle this is. Assigned by GameScene before _ready runs (from the
 ## level select's choice, or its own fallback when game.tscn is run directly),
 ## so one scene plays every encounter - there is no per-encounter copy of this
@@ -459,7 +462,9 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 					# would stick, slow, poison or shove comes with it.
 					if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
 						continue
-					apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0)
+					# An area skill shoves everyone caught outward from where it
+					# landed, so the shape of the blast reads off the recoil.
+					apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0, impact_position if skill.aoe_radius > 0 else attacker.position)
 					mention_skill = false
 		else:
 			update_information.emit("{0} missed.\n".format([attacker.name]))
@@ -810,11 +815,16 @@ func get_targets_in_tiles(tiles: Array, caster: Dictionary, targets_ally: bool, 
 ## true for the first effect landing on a given target, so the log reads
 ## "Cyrus used Poison Dart on Goblin 1, dealing 5 damage. Cyrus inflicted
 ## Poisoning on Goblin 1." rather than repeating the skill's name per effect.
-func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):
+func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0, blast_origin = null):
 	# Flagged by who sent it, not by what it does: a heal from an enemy is
 	# still something the other side did to you, and reading the colour as
 	# "whose doing was this" stays true for buffs, shoves and dispels alike.
-	flash_target(attacker, target)
+	# Damage additionally shows its own type for a moment before settling into
+	# the side colour, so a hit says what it was as well as who sent it.
+	var damage_colour = null
+	if effect.type == EffectDefinition.EffectType.DAMAGE:
+		damage_colour = Damage.type_colour(effect.damage_type)
+	flash_target(attacker, target, damage_colour, blast_origin)
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
 			do_damage(attacker, target, effect, skill, mention_skill, power)
@@ -1329,13 +1339,89 @@ func shake_camera(pixels: float):
 
 
 ## Flashes `target` to show a skill landed on them - red when it came from the
-## other side, green when it came from their own. Called once per effect; the
+## other side, green when it came from their own, and briefly the damage
+## type's own colour first when there was damage. Called once per effect; the
 ## sprite collapses repeats so a two-effect skill still reads as one hit.
-func flash_target(attacker: Dictionary, target: Dictionary):
+##
+## Also shoves the drawn sprite away from wherever the hit came from. For an
+## area skill that is away from the blast rather than from the caster, so the
+## shape of what just went off is readable from the recoil alone.
+func flash_target(attacker: Dictionary, target: Dictionary, damage_colour = null, from_position = null):
 	var sprite = target.get("sprite")
 	if sprite == null or not is_instance_valid(sprite):
 		return
-	sprite.flash_hit(attacker.side != target.side)
+	sprite.flash_hit(attacker.side != target.side, damage_colour)
+	var origin = from_position if from_position != null else attacker.position
+	if origin != target.position:
+		sprite.recoil(Vector2(target.position - origin))
+
+
+## Floats a number off `target` - what they just lost, or gained. Parented to
+## whatever holds the combatant sprites so it shares their coordinate space and
+## scrolls with the map.
+func float_number(target: Dictionary, text: String, colour: Color):
+	var sprite = target.get("sprite")
+	if sprite == null or not is_instance_valid(sprite) or sprite.get_parent() == null:
+		return
+	FloatingNumber.spawn(sprite.get_parent(), sprite.position, text, colour)
+
+
+## Blooms the screen edges in `colour`. Silent when this battle has no vignette
+## wired up, so nothing depends on it existing.
+func flare_hurt(colour: Color, share_of_health: float):
+	if hurt_vignette == null or not is_instance_valid(hurt_vignette):
+		return
+	# A scratch should barely register; a blow that takes a third of someone
+	# should be impossible to miss. Floored so even a small hit says something.
+	hurt_vignette.flare(colour, clampf(0.25 + share_of_health * 2.0, 0.0, 1.0))
+
+
+## --- Hit stop ---
+##
+## A beat of frozen time on impact. It is most of what makes a hit feel like it
+## weighs something, and it costs nothing to produce - no art, no sound, no
+## animation. Scaled by how much of the target it took off, so a scratch does
+## not stop the world.
+
+const HIT_STOP_MINIMUM = 0.03
+const HIT_STOP_MAXIMUM = 0.13
+
+## How many hit stops are currently waiting to end. Time only starts again
+## when the last of them does - otherwise two hits landing together would have
+## the first one's release cut the second one short.
+var _hit_stop_depth := 0
+
+
+## Freezes everything for `seconds` of real time. Deliberately not awaited by
+## its callers: the freeze is a garnish on a hit that has already resolved, and
+## making the whole combat coroutine wait on it would put it in the path of
+## everything that follows.
+func hit_stop(seconds: float):
+	_hit_stop_depth += 1
+	Engine.time_scale = 0.0
+	# Real seconds, not scaled ones - a timer running on scaled time would
+	# never tick while the scale is zero, and the freeze would be permanent.
+	await get_tree().create_timer(seconds, true, false, true).timeout
+	_hit_stop_depth = maxi(_hit_stop_depth - 1, 0)
+	if _hit_stop_depth == 0:
+		Engine.time_scale = 1.0
+
+
+## The freeze for a hit that took `damage` off a target with `max_hp`, or 0 for
+## one too small to be worth stopping for.
+func hit_stop_for(damage: int, max_hp: int) -> float:
+	if damage <= 0 or max_hp <= 0:
+		return 0.0
+	var share = clampf(float(damage) / float(max_hp), 0.0, 1.0)
+	return lerpf(HIT_STOP_MINIMUM, HIT_STOP_MAXIMUM, share)
+
+
+## Time scale is global, so a battle torn down mid-freeze would leave the whole
+## game stopped with nothing left running to start it again.
+func _exit_tree():
+	if _hit_stop_depth > 0:
+		_hit_stop_depth = 0
+		Engine.time_scale = 1.0
 
 
 ## --- Attributes and the damage they produce ---
@@ -1381,6 +1467,17 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	var damage = resisted_damage(target, effect.damage_type, raw)
 	var flavour = "%s damage%s" % [Damage.type_name(effect.damage_type).to_lower(), Damage.describe_resistance(resistance)]
 	target.hp -= damage
+	# The number where the hit happened, in the colour of what hit them, and a
+	# beat of frozen time proportional to how much of them it took off.
+	float_number(target, str(damage), Damage.type_colour(effect.damage_type))
+	# Only the player's own side frames the screen. An enemy being hurt is good
+	# news, and flashing the border for it would teach the player to tune the
+	# border out.
+	if target.side == 0:
+		flare_hurt(Damage.type_colour(effect.damage_type), float(damage) / maxf(get_effective_stat(target, "max_hp"), 1.0))
+	var freeze = hit_stop_for(damage, get_effective_stat(target, "max_hp"))
+	if freeze > 0.0:
+		hit_stop(freeze)
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
 		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=gray]%d %s[/color].\n" % [
@@ -1397,6 +1494,7 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
 	var amount = randi_range(effect.min_amount, effect.max_amount)
 	target.hp = mini(target.hp + amount, get_effective_stat(target, "max_hp"))
+	float_number(target, "+" + str(amount), Color("7fe08a"))
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
 		update_information.emit("[color=yellow]%s[/color] used %s on [color=lightgreen]%s[/color], healing [color=gray]%d[/color].\n" % [

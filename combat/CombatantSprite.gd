@@ -145,10 +145,30 @@ func _on_skill_animation_finished():
 ## state change - long enough to catch across a busy board.
 const FLASH_SECONDS = 0.18
 
+## How long the damage type's own colour shows before the flash settles into
+## the side colour. Brief on purpose: the type is a detail, whose skill it was
+## is the thing that has to register.
+const TYPE_FLASH_SECONDS = 0.07
+
 const FLASH_HOSTILE = Color(1.0, 0.35, 0.35)
 const FLASH_FRIENDLY = Color(0.4, 1.0, 0.5)
 
+## How far a struck combatant is knocked back before springing home, and how
+## long the whole recoil takes. Purely cosmetic - it moves the drawn sprite
+## inside its tile and never the tile the combatant is actually on.
+const RECOIL_DISTANCE = Grid.TILE_SIZE * 0.16
+const RECOIL_SECONDS = 0.22
+
 var _flash_tween: Tween = null
+var _recoil_tween: Tween = null
+
+
+## The node that actually draws this combatant - an AnimatedSprite2D or a plain
+## Sprite2D depending on whether it has SpriteFrames. Recoil moves this rather
+## than the CombatantSprite itself, because the outer node's position is the
+## tile it occupies and movement, knockback and line of sight all read it.
+func _drawn() -> Node2D:
+	return _animated if _animated != null else _static
 
 
 ## Flashes this combatant to show something landed on them: red from the other
@@ -156,18 +176,60 @@ var _flash_tween: Tween = null
 ## works for every combatant, animated or static, without any art existing for
 ## it - and it reads at any zoom, which a 4-frame recoil would not.
 ##
+## `damage_colour` briefly tints them the damage type's own colour first, so a
+## hit says what it was as well as who sent it. Left null for anything that
+## isn't damage - a heal, a buff, a shove.
+##
 ## Tints the whole node rather than the sprite child so it works the same for
 ## an AnimatedSprite2D and a plain Sprite2D.
-func flash_hit(hostile: bool):
+func flash_hit(hostile: bool, damage_colour = null):
 	if _flash_tween != null and _flash_tween.is_valid():
 		# A combatant caught by two effects of one skill flashes once, brightly,
 		# rather than the second restarting a half-faded first.
 		_flash_tween.kill()
-	modulate = FLASH_HOSTILE if hostile else FLASH_FRIENDLY
+	var settled = FLASH_HOSTILE if hostile else FLASH_FRIENDLY
 	_flash_tween = create_tween()
+	if damage_colour != null:
+		modulate = damage_colour
+		_flash_tween.tween_property(self, "modulate", settled, TYPE_FLASH_SECONDS)
+	else:
+		modulate = settled
 	_flash_tween.tween_property(self, "modulate", Color.WHITE, FLASH_SECONDS)
 
 
+## Knocks the drawn sprite back along `direction` and springs it home. Sells
+## the hit as something that arrived from somewhere, which a flash alone does
+## not - an area skill going off shoves everyone caught outward from its
+## centre, and you can see where it landed from that alone.
+func recoil(direction: Vector2):
+	var drawn = _drawn()
+	if drawn == null or direction == Vector2.ZERO:
+		return
+	if _recoil_tween != null and _recoil_tween.is_valid():
+		_recoil_tween.kill()
+		drawn.position = Vector2.ZERO
+	var away = direction.normalized() * RECOIL_DISTANCE
+	_recoil_tween = create_tween()
+	_recoil_tween.tween_property(drawn, "position", away, RECOIL_SECONDS * 0.3).set_ease(Tween.EASE_OUT)
+	# Springs back rather than easing, so it reads as a body absorbing a blow
+	# instead of sliding.
+	_recoil_tween.tween_property(drawn, "position", Vector2.ZERO, RECOIL_SECONDS * 0.7).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+
+## How far a corpse sinks, and how much of it is left showing.
+const DEATH_SINK = Grid.TILE_SIZE * 0.12
+const DEATH_ALPHA = 0.35
+const DEATH_SECONDS = 0.45
+
+
+## Puts a combatant down: whatever "dead" art they have, then a sink and a fade
+## to a fraction of full opacity.
+##
+## Faded rather than removed, because a body still says something about the
+## fight - where the line broke, which flank went badly - and a combatant
+## vanishing between one frame and the next reads as a glitch rather than a
+## death. Kept partly visible rather than gone, and clearly dimmer than anyone
+## still standing, so the board is never ambiguous about who can still act.
 func set_dead():
 	if _animated:
 		if _animated.sprite_frames.has_animation("dead"):
@@ -176,3 +238,15 @@ func set_dead():
 			_animated.stop()
 	else:
 		_static.frame = 1
+	# Any recoil still springing back would fight the sink for the same
+	# property, and the corpse would end up wherever the two happened to stop.
+	if _recoil_tween != null and _recoil_tween.is_valid():
+		_recoil_tween.kill()
+	if _flash_tween != null and _flash_tween.is_valid():
+		_flash_tween.kill()
+	var drawn = _drawn()
+	var fade = create_tween()
+	fade.set_parallel(true)
+	fade.tween_property(self, "modulate", Color(0.6, 0.6, 0.6, DEATH_ALPHA), DEATH_SECONDS)
+	if drawn != null:
+		fade.tween_property(drawn, "position:y", drawn.position.y + DEATH_SINK, DEATH_SECONDS).set_ease(Tween.EASE_OUT)
