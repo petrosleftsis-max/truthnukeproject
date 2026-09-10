@@ -213,6 +213,20 @@ func _reanchor_spawn_container():
 	container.position = Vector2.ZERO
 
 
+## Whether the encounter's named track resolves to a file, so a typo shows up
+## here rather than as a fight that opens in unexplained silence.
+##
+## The lookup rules live on Music; this only mirrors where it looks, because a
+## @tool script cannot call into an autoload that is not running in the editor.
+func _music_exists(track: String) -> bool:
+	if track.begins_with("res://") or track.begins_with("user://"):
+		return ResourceLoader.exists(track)
+	for extension in Music.EXTENSIONS:
+		if ResourceLoader.exists("%s/%s.%s" % [Music.MUSIC_DIR, track, extension]):
+			return true
+	return false
+
+
 func markers() -> Array:
 	var container = get_node_or_null(SPAWNS_NODE)
 	if container == null:
@@ -261,6 +275,8 @@ func _problems_with_layout() -> Array:
 		return problems
 	if encounter.resource_path == "":
 		problems.append("This encounter is built into the editor scene rather than being a file of its own, so there is nowhere to save it. Assign one of res://encounters/*.tres to Encounter and press Reload, or save this one to a file first (in the inspector, the dropdown next to the resource -> Save As).")
+	if encounter.music != "" and not _music_exists(encounter.music):
+		problems.append("Music track '%s' is not in %s - the fight would start in silence." % [encounter.music, Music.MUSIC_DIR])
 	var terrain = get_node_or_null(TERRAIN_NODE)
 	var tile_map: TileMap = terrain.get_node_or_null("TileMap") if terrain != null else null
 

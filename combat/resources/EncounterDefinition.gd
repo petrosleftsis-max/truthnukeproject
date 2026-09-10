@@ -18,6 +18,14 @@ class_name EncounterDefinition
 ## of the scene.
 @export var terrain_scene: PackedScene
 @export var spawns: Array[SpawnDefinition]
+## The track this fight opens on, by name - "battle" finds audio/music/battle
+## with any supported extension, the same names dialogue uses.
+##
+## Left empty means "leave the music alone", so an encounter without one keeps
+## whatever was already playing rather than dropping into silence. Starting the
+## track already playing does nothing, so walking into a second fight with the
+## same music does not restart it.
+@export var music: String = ""
 ## Optional. Restricts the playable area to these tile coordinates, for
 ## fencing off a decorative border that units should not be able to walk into.
 ## Leave the size at zero to use every tile the map actually has painted,
