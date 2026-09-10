@@ -35,23 +35,61 @@ const PANEL_NAMES := {
 	SkillPanel.SPELLS: "Spells",
 }
 
+## The node name of each panel's button, in enum order.
+const PANEL_TABS := {
+	SkillPanel.MAIN: "MainTab",
+	SkillPanel.SECONDARY: "SecondaryTab",
+	SkillPanel.SPELLS: "SpellsTab",
+}
+
+## The tab you are on, so it reads as selected rather than as another thing to
+## press. Matching ui/blue_theme.tres.
+const TAB_ON := Color("dce8f5")
+const TAB_OFF := Color("8296a9")
+
 
 func _ready():
-	$Actions/SkillPanelToggle.pressed.connect(_cycle_skill_panel)
+	for panel in PANEL_TABS:
+		var tab := _tab(panel)
+		if tab != null:
+			tab.pressed.connect(set_skill_panel.bind(panel))
 
 
-## Steps Main -> Secondary -> Spells -> Main. The button names where it goes
-## next rather than where you are, matching how it read with two.
-func _cycle_skill_panel():
-	set_skill_panel((showing_panel + 1) % SkillPanel.size())
+func _tab(panel: int) -> Button:
+	return $Actions/SkillPanelTabs.get_node_or_null(PANEL_TABS[panel]) as Button
 
 
+## Switches which list the action panel is showing. A button per panel rather
+## than one that cycles: with three of them, cycling meant pressing twice to
+## reach the last one and remembering the order to know which press got you
+## there. Three buttons say where you can go and which one you are on.
 func set_skill_panel(panel: int):
 	showing_panel = panel
 	$Actions/SkillPanelLabel.text = PANEL_NAMES[showing_panel]
-	$Actions/SkillPanelToggle.text = PANEL_NAMES[(showing_panel + 1) % SkillPanel.size()].split(" ")[0]
+	for other in PANEL_TABS:
+		var tab := _tab(other)
+		if tab == null:
+			continue
+		var selected = other == showing_panel
+		tab.add_theme_color_override("font_color", TAB_ON if selected else TAB_OFF)
+		tab.add_theme_color_override("font_hover_color", TAB_ON)
+		tab.button_pressed = selected
 	if combat != null and not exploration_mode:
 		_show_skills_for(combat.get_current_combatant())
+
+
+## Hides the Spells tab for anyone who casts nothing, so a swordsman is not
+## offered a panel that can only ever be empty. Main and Secondary always
+## stand: both are action slots everybody has, and an empty one is worth
+## seeing as empty.
+func _refresh_tabs(comb):
+	var spells_tab := _tab(SkillPanel.SPELLS)
+	if spells_tab == null:
+		return
+	var has_spells = combat != null and comb != null and not comb.is_empty() and not combat.spell_skills_of(comb).is_empty()
+	spells_tab.visible = has_spells
+	if not has_spells and showing_panel == SkillPanel.SPELLS:
+		set_skill_panel(SkillPanel.MAIN)
 
 
 ## Fills the action panel from whichever list is currently on show, and keeps
@@ -62,6 +100,7 @@ func _show_skills_for(comb: Dictionary):
 		_update_spell_slots(null)
 		return
 	_update_spell_slots(comb)
+	_refresh_tabs(comb)
 	var list = []
 	var used = false
 	match showing_panel:
@@ -92,7 +131,7 @@ func set_exploration_mode(enabled: bool):
 	$Actions/Movement.visible = not enabled
 	$Actions/EndTurnButton.visible = not enabled
 	$Actions/SkillPanelLabel.visible = not enabled
-	$Actions/SkillPanelToggle.visible = not enabled
+	$Actions/SkillPanelTabs.visible = not enabled
 	if enabled:
 		set_skill_list([], true)
 		_update_spell_slots(null)
@@ -442,7 +481,7 @@ func _set_aiming(aiming: bool):
 		$Actions/Movement.visible = not exploration_mode
 		$Actions/EndTurnButton.visible = not exploration_mode
 		$Actions/SkillPanelLabel.visible = not exploration_mode
-		$Actions/SkillPanelToggle.visible = not exploration_mode
+		$Actions/SkillPanelTabs.visible = not exploration_mode
 		$Actions/SelectTargetMessage.visible = false
 		# The slot row hides itself for anyone with no slots, so it can't just
 		# be switched back on with the rest.

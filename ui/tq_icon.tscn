@@ -11,10 +11,15 @@ region = Rect2(0, 0, 32, 32)
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_mrefd"]
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_xela3"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_track"]
+bg_color = Color(0.070588, 0.086275, 0.113725, 0.858824)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gfopb"]
-bg_color = Color(1, 0, 0.0313726, 0.509804)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fill"]
+; Each icon recolours its own fill by how hurt that combatant is, so the
+; style has to be per instance - shared, the last one to update would set the
+; colour for the entire queue.
+resource_local_to_scene = true
+bg_color = Color(0.435294, 0.698039, 0.415686, 1)
 
 [node name="TQIcon" type="TextureRect"]
 texture_filter = 1
@@ -27,20 +32,20 @@ stretch_mode = 4
 flip_h = true
 script = ExtResource("2_cl45y")
 
-[node name="Deadness" type="ProgressBar" parent="."]
-modulate = Color(1, 0.952941, 1, 1)
+[node name="Health" type="ProgressBar" parent="."]
 material = SubResource("CanvasItemMaterial_mrefd")
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -6.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/background = SubResource("StyleBoxEmpty_xela3")
-theme_override_styles/fill = SubResource("StyleBoxFlat_gfopb")
+grow_vertical = 0
+theme_override_styles/background = SubResource("StyleBoxFlat_track")
+theme_override_styles/fill = SubResource("StyleBoxFlat_fill")
 max_value = 20.0
 step = 1.0
-fill_mode = 3
 show_percentage = false
 
 [node name="Border" type="TextureRect" parent="."]

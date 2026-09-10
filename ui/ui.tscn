@@ -179,14 +179,32 @@ theme_override_colors/font_color = Color(0.960784, 0.898039, 0.231373, 1)
 text = "Main Skills"
 vertical_alignment = 1
 
-[node name="SkillPanelToggle" type="Button" parent="Actions"]
+[node name="SkillPanelTabs" type="HBoxContainer" parent="Actions"]
 layout_mode = 0
-offset_left = 340.0
+offset_left = 240.0
 offset_top = 48.0
 offset_right = 443.0
 offset_bottom = 74.0
+alignment = 2
+theme_override_constants/separation = 4
+
+[node name="MainTab" type="Button" parent="Actions/SkillPanelTabs"]
+layout_mode = 2
+toggle_mode = true
+focus_mode = 0
+text = "Main"
+
+[node name="SecondaryTab" type="Button" parent="Actions/SkillPanelTabs"]
+layout_mode = 2
+toggle_mode = true
 focus_mode = 0
 text = "Secondary"
+
+[node name="SpellsTab" type="Button" parent="Actions/SkillPanelTabs"]
+layout_mode = 2
+toggle_mode = true
+focus_mode = 0
+text = "Spells"
 
 [node name="SpellSlots" type="HBoxContainer" parent="Actions"]
 visible = false
