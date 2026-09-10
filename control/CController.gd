@@ -487,7 +487,17 @@ var _processing_step := false
 ## genuinely hung, and someone taking thirty seconds over a decision is not
 ## that. Without this a slow answer would trip the step-arrival timeout and
 ## orphan the move that is waiting on it.
-var waiting_on_player := false
+## True while a reaction prompt is genuinely up and waiting for an answer. The
+## movement timeouts below stop counting while it is, since a person taking
+## twenty seconds to decide must not look like a hung coroutine.
+##
+## Asked of the prompt itself rather than kept as a flag Combat sets and clears
+## around its await. A flag left true - by an await that never returns, a
+## battle ending mid-question, anything - would switch off both safety nets for
+## good, turning a recoverable stall into exactly the permanent lockup they
+## exist to prevent. Derived state cannot be left behind.
+func waiting_on_player() -> bool:
+	return combat != null and combat.reaction_prompt != null and combat.reaction_prompt.is_asking()
 
 ## Timeout safety net for the _processing_step lock specifically: if
 ## _handle_step_arrival() (most likely something inside a reactive-skill
@@ -522,10 +532,29 @@ func _process(delta):
 		# mid-step and process the same arrival twice.
 		return
 	if _arrived == false:
-		controlled_node.position += controlled_node.position.direction_to(_next_position) * delta * move_speed
+		controlled_node.position = advance_towards(controlled_node.position, _next_position, delta * move_speed)
 		if controlled_node.position.distance_to(_next_position) < 1:
 			_processing_step = true
 			_run_step_arrival_with_timeout()
+
+
+## One frame of walking along the line to the next waypoint, never overshooting
+## it: once the waypoint is within a single frame's travel, land exactly on it.
+##
+## The clamp is what makes arrival certain rather than lucky. Moving a fixed
+## step every frame and waiting to be within a pixel only terminates if the
+## distance happens to divide nearly evenly by the step - and it doesn't for a
+## diagonal. At 60fps a frame covers 9.6px; a straight tile is 192px, which is
+## exactly 20 frames, but a diagonal is 271.5px, which leaves 2.7px over. That
+## last frame jumps 2.7px past the waypoint, the next jumps 6.9px back, and it
+## bounces between the two forever without ever coming within a pixel. Movement
+## then hangs mid-step with the walk animation still playing, and because
+## _process() bails out while a step is in flight, nobody else can move either.
+static func advance_towards(from: Vector2, to: Vector2, step: float) -> Vector2:
+	var remaining := to - from
+	if remaining.length() <= step:
+		return to
+	return from + remaining.normalized() * step
 
 
 func _run_step_arrival_with_timeout():
@@ -534,7 +563,7 @@ func _run_step_arrival_with_timeout():
 	var elapsed = 0.0
 	while not _step_arrival_finished and elapsed < STEP_ARRIVAL_TIMEOUT:
 		await get_tree().process_frame
-		if not waiting_on_player:
+		if not waiting_on_player():
 			elapsed += get_process_delta_time()
 	if not _step_arrival_finished:
 		push_warning("_handle_step_arrival didn't finish within %s seconds - force-unlocking movement processing anyway. This is a real bug worth reporting, ideally with repro steps." % STEP_ARRIVAL_TIMEOUT)
@@ -666,7 +695,7 @@ func ai_move(target_position: Vector2i):
 	var elapsed = 0.0
 	while not _arrived and elapsed < AI_MOVE_TIMEOUT:
 		await get_tree().process_frame
-		if not waiting_on_player:
+		if not waiting_on_player():
 			elapsed += get_process_delta_time()
 	if not _arrived:
 		push_warning("ai_move to %s (from %s) didn't finish within %s seconds - continuing anyway. This is a real bug worth reporting, ideally with repro steps." % [target_position, current_position, AI_MOVE_TIMEOUT])

@@ -431,9 +431,10 @@ func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_p
 func confirm_reaction(reactor: Dictionary, mover: Dictionary, skill: SkillDefinition) -> bool:
 	if reactor.side != 0 or reaction_prompt == null:
 		return true
-	controller.waiting_on_player = true
+	# Nothing to set or clear here: CController asks the prompt directly
+	# whether a question is up, so the movement timeouts can't be left
+	# switched off if this await never comes back.
 	var use_it = await reaction_prompt.ask(reactor, mover, skill)
-	controller.waiting_on_player = false
 	if not use_it:
 		update_information.emit("[color=yellow]%s[/color] holds their reaction.\n" % reactor.name)
 	return use_it

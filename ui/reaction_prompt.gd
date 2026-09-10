@@ -51,6 +51,13 @@ func ask(reactor: Dictionary, target: Dictionary, skill: SkillDefinition) -> boo
 	return _answer
 
 
+## Whether a question is up and waiting for an answer right now. CController
+## reads this to pause its movement timeouts, rather than being told to, so
+## there is no state to be left behind if ask() is interrupted.
+func is_asking() -> bool:
+	return _waiting
+
+
 func _answer_with(use_it: bool):
 	if not _waiting:
 		return
