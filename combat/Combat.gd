@@ -1392,7 +1392,10 @@ func flash_target(attacker: Dictionary, target: Dictionary, damage_colour = null
 	var sprite = target.get("sprite")
 	if sprite == null or not is_instance_valid(sprite):
 		return
-	sprite.flash_hit(attacker.side != target.side, damage_colour)
+	# Defaulted for the same reason do_damage defaults it: side belongs to being
+	# on the board, and this can be reached by anything that has been created
+	# but not placed.
+	sprite.flash_hit(attacker.get("side", 1) != target.get("side", 1), damage_colour)
 	var origin = from_position if from_position != null else attacker.position
 	if origin != target.position:
 		sprite.recoil(Vector2(target.position - origin))
@@ -1515,7 +1518,12 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	# Only the player's own side frames the screen. An enemy being hurt is good
 	# news, and flashing the border for it would teach the player to tune the
 	# border out.
-	if target.side == 0:
+	#
+	# Read with a default because side is set by add_combatant, not by
+	# create_combatant - a combatant that exists but has not been put on the
+	# board yet has no side at all, and treating that as an enemy is the
+	# harmless way round.
+	if target.get("side", 1) == 0:
 		flare_hurt(Damage.type_colour(effect.damage_type), float(damage) / maxf(get_effective_stat(target, "max_hp"), 1.0))
 	var freeze = hit_stop_for(damage, get_effective_stat(target, "max_hp"))
 	if freeze > 0.0:
