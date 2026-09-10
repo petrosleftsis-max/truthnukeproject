@@ -47,54 +47,56 @@ func _ready():
 	_frame.modulate.a = 0.0
 
 
-## One strip per edge, each a two-stop gradient running inward from the border.
+## One strip per edge, each with its own gradient running inward from that
+## border. Four gradients rather than one texture rotated four ways: rotation
+## is about a Control's own corner, which swings the left and right strips
+## clean off the screen - and nothing about the node's opacity says so, which
+## is exactly how this shipped once already looking like it did nothing.
 func _build_edges():
-	var gradient := Gradient.new()
-	gradient.set_color(0, Color(1, 1, 1, PEAK_ALPHA))
-	gradient.set_color(1, Color(1, 1, 1, 0))
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.width = 64
-	texture.height = 64
-	texture.fill_from = Vector2(0, 0)
-	texture.fill_to = Vector2(0, 1)
-
-	# anchor preset, and the rotation that points the gradient inward.
-	var edges = [
-		[Control.PRESET_TOP_WIDE, 0.0],
-		[Control.PRESET_BOTTOM_WIDE, 180.0],
-		[Control.PRESET_LEFT_WIDE, 90.0],
-		[Control.PRESET_RIGHT_WIDE, 270.0],
+	# fill_from -> fill_to, in the texture's own 0..1 space. Each runs from the
+	# screen edge inward, so the opaque end is always against the border.
+	var directions = [
+		[Vector2(0, 0), Vector2(0, 1)], # top, fading downward
+		[Vector2(0, 1), Vector2(0, 0)], # bottom, fading upward
+		[Vector2(0, 0), Vector2(1, 0)], # left, fading rightward
+		[Vector2(1, 0), Vector2(0, 0)], # right, fading leftward
 	]
-	for spec in edges:
+	for direction in directions:
+		var gradient := Gradient.new()
+		gradient.set_color(0, Color(1, 1, 1, PEAK_ALPHA))
+		gradient.set_color(1, Color(1, 1, 1, 0))
+		var texture := GradientTexture2D.new()
+		texture.gradient = gradient
+		texture.width = 64
+		texture.height = 64
+		texture.fill_from = direction[0]
+		texture.fill_to = direction[1]
 		var strip := TextureRect.new()
 		strip.texture = texture
 		strip.stretch_mode = TextureRect.STRETCH_SCALE
 		strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		strip.set_anchors_preset(spec[0])
-		strip.pivot_offset = Vector2.ZERO
-		strip.rotation_degrees = spec[1]
 		_frame.add_child(strip)
 		_edges.append(strip)
 	_resize_edges()
 	get_viewport().size_changed.connect(_resize_edges)
 
 
-## Sized in code rather than by anchors alone, because each strip is rotated
-## about its own corner and the anchor presets do not account for that.
+## Laid out by hand rather than by anchor presets, because each strip is a
+## fixed depth against one edge and stretched along it - which is two different
+## rules for the two axes, and no single preset does that.
 func _resize_edges():
-	var screen = get_viewport().get_visible_rect().size
-	var depth = minf(screen.x, screen.y) * THICKNESS
 	if _edges.size() < 4:
 		return
+	var screen = get_viewport().get_visible_rect().size
+	var depth = minf(screen.x, screen.y) * THICKNESS
 	_edges[0].position = Vector2.ZERO
 	_edges[0].size = Vector2(screen.x, depth)
-	_edges[1].position = Vector2(screen.x, screen.y)
+	_edges[1].position = Vector2(0, screen.y - depth)
 	_edges[1].size = Vector2(screen.x, depth)
-	_edges[2].position = Vector2(0, screen.y)
-	_edges[2].size = Vector2(screen.y, depth)
-	_edges[3].position = Vector2(screen.x, 0)
-	_edges[3].size = Vector2(screen.y, depth)
+	_edges[2].position = Vector2.ZERO
+	_edges[2].size = Vector2(depth, screen.y)
+	_edges[3].position = Vector2(screen.x - depth, 0)
+	_edges[3].size = Vector2(depth, screen.y)
 
 
 ## Blooms the edges in `colour` and fades them out. `strength` scales how hard
