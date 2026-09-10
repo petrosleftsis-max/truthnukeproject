@@ -21,9 +21,14 @@ class_name HurtVignette
 
 ## How thick the glow is, as a fraction of the screen's shorter side.
 const THICKNESS = 0.14
-## Peak opacity at the very edge. Deliberately low - this is meant to be felt
-## at the corner of the eye, not to obscure the fight.
+## How much of the gradient an ordinary hit uses. Deliberately half - this is
+## meant to be felt at the corner of the eye, not to obscure the fight.
 const PEAK_ALPHA = 0.5
+## And what the blow that actually takes someone down uses: twice as much, and
+## the reason the gradient itself is built at full opacity rather than at
+## PEAK_ALPHA. Losing somebody is the one thing here that should be impossible
+## to miss.
+const LETHAL_PEAK_ALPHA = 1.0
 const IN_SECONDS = 0.08
 const OUT_SECONDS = 0.45
 
@@ -63,7 +68,7 @@ func _build_edges():
 	]
 	for direction in directions:
 		var gradient := Gradient.new()
-		gradient.set_color(0, Color(1, 1, 1, PEAK_ALPHA))
+		gradient.set_color(0, Color(1, 1, 1, 1.0))
 		gradient.set_color(1, Color(1, 1, 1, 0))
 		var texture := GradientTexture2D.new()
 		texture.gradient = gradient
@@ -101,10 +106,10 @@ func _resize_edges():
 
 ## Blooms the edges in `colour` and fades them out. `strength` scales how hard
 ## it hits, so a scratch barely registers and a near-fatal blow is unmissable.
-func flare(colour: Color, strength: float = 1.0):
+func flare(colour: Color, strength: float = 1.0, lethal: bool = false):
 	if _edges.is_empty() or _frame == null:
 		return
-	strength = clampf(strength, 0.0, 1.0)
+	strength = clampf(strength, 0.0, 1.0) * (LETHAL_PEAK_ALPHA if lethal else PEAK_ALPHA)
 	if strength <= 0.0:
 		return
 	_frame.modulate = Color(colour.r, colour.g, colour.b, _frame.modulate.a)

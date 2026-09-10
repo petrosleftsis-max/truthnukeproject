@@ -1146,6 +1146,7 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 	if hit_obstacle and not pulling and target.alive and effect.max_amount > 0:
 		var collision_damage = resisted_damage(target, effect.damage_type, randi_range(effect.min_amount, effect.max_amount))
 		target.hp -= collision_damage
+		show_damage(target, collision_damage, effect.damage_type, true)
 		update_combatants.emit(combatants)
 		update_information.emit("[color=red]{0}[/color] slammed into an obstacle, taking [color=gray]{1} damage[/color]\n".format([
 			target.name,
@@ -1198,6 +1199,7 @@ func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition, dot
 	var resistance = resistance_of(comb, condition.dot_type)
 	var amount = resisted_damage(comb, condition.dot_type, dot_tick(comb, dot_base, condition.dot_min, condition.dot_max))
 	comb.hp -= amount
+	show_damage(comb, amount, condition.dot_type, true)
 	update_combatants.emit(combatants)
 	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from %s.\n" % [
 		comb.name, amount, Damage.type_name(condition.dot_type).to_lower(),
@@ -1214,6 +1216,7 @@ func tick_damage_over_time(comb: Dictionary, eff: Dictionary):
 	var resistance = resistance_of(comb, type)
 	var amount = resisted_damage(comb, type, dot_tick(comb, eff.get("dot_base", 0.0), eff.min_amount, eff.max_amount))
 	comb.hp -= amount
+	show_damage(comb, amount, type, true)
 	update_combatants.emit(combatants)
 	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from a lingering effect (%s).\n" % [
 		comb.name, amount, Damage.type_name(type).to_lower(), Damage.describe_resistance(resistance),
@@ -1442,12 +1445,39 @@ func float_number(target: Dictionary, text: String, colour: Color):
 
 ## Blooms the screen edges in `colour`. Silent when this battle has no vignette
 ## wired up, so nothing depends on it existing.
-func flare_hurt(colour: Color, share_of_health: float):
+func flare_hurt(colour: Color, share_of_health: float, lethal: bool = false):
 	if hurt_vignette == null or not is_instance_valid(hurt_vignette):
 		return
 	# A scratch should barely register; a blow that takes a third of someone
 	# should be impossible to miss. Floored so even a small hit says something.
-	hurt_vignette.flare(colour, clampf(0.25 + share_of_health * 2.0, 0.0, 1.0))
+	hurt_vignette.flare(colour, clampf(0.25 + share_of_health * 2.0, 0.0, 1.0), lethal)
+
+
+## Everything that shows a point of damage arriving: the number where it landed,
+## the screen edges for the player's own side, and a beat of frozen time.
+##
+## Shared by a direct hit, a lingering tick and a shove into a wall, because a
+## poison that kills you should look no less like something that happened than
+## a sword that does - and before this, only the sword did. `flash` is for the
+## paths with no attacker to recoil away from, where apply_effect has not
+## already tinted the target.
+func show_damage(target: Dictionary, amount: int, type: int, flash: bool = false):
+	if amount <= 0:
+		return
+	var ceiling = get_effective_stat(target, "max_hp")
+	float_number(target, str(amount), Damage.type_colour(type))
+	if flash:
+		var sprite = target.get("sprite")
+		if sprite != null and is_instance_valid(sprite):
+			sprite.flash_hit(true, Damage.type_colour(type))
+	if target.get("side", 1) == 0:
+		# Twice the intensity when this is the blow that takes them down, and
+		# read before the death is applied - target.hp is already below zero by
+		# the time anyone would ask afterwards.
+		flare_hurt(Damage.type_colour(type), float(amount) / maxf(ceiling, 1.0), target.hp <= 0)
+	var freeze = hit_stop_for(amount, ceiling)
+	if freeze > 0.0:
+		hit_stop(freeze)
 
 
 ## --- Hit stop ---
@@ -1556,22 +1586,7 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	var damage = resisted_damage(target, effect.damage_type, raw)
 	var flavour = "%s damage%s" % [Damage.type_name(effect.damage_type).to_lower(), Damage.describe_resistance(resistance)]
 	target.hp -= damage
-	# The number where the hit happened, in the colour of what hit them, and a
-	# beat of frozen time proportional to how much of them it took off.
-	float_number(target, str(damage), Damage.type_colour(effect.damage_type))
-	# Only the player's own side frames the screen. An enemy being hurt is good
-	# news, and flashing the border for it would teach the player to tune the
-	# border out.
-	#
-	# Read with a default because side is set by add_combatant, not by
-	# create_combatant - a combatant that exists but has not been put on the
-	# board yet has no side at all, and treating that as an enemy is the
-	# harmless way round.
-	if target.get("side", 1) == 0:
-		flare_hurt(Damage.type_colour(effect.damage_type), float(damage) / maxf(get_effective_stat(target, "max_hp"), 1.0))
-	var freeze = hit_stop_for(damage, get_effective_stat(target, "max_hp"))
-	if freeze > 0.0:
-		hit_stop(freeze)
+	show_damage(target, damage, effect.damage_type)
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
 		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=gray]%d %s[/color].\n" % [
