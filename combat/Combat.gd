@@ -919,7 +919,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				target.status_effects.append({
 					"stat" = "condition",
 					"condition" = effect.condition,
-					"duration" = stored_duration(target, effect.condition),
+					"duration" = condition_turns(target, effect),
 					"source_name" = attacker.name
 				})
 				if effect.condition.movement_change != 0:
@@ -999,6 +999,24 @@ func stored_duration(target: Dictionary, source) -> int:
 	if target == get_current_combatant():
 		return maxi(source.duration - 1, 0)
 	return source.duration
+
+
+## How long the condition `effect` inflicts should last on `target`.
+##
+## The skill decides if it has an opinion - EffectDefinition.condition_duration
+## above zero - and the condition's own duration is used otherwise. That way a
+## skill can land a brief Blind or a punishing one without a second Blind
+## resource existing just to hold a different number, and every skill that
+## does not care keeps behaving as it always did.
+##
+## Docked by one when it lands on whoever is currently acting, for the same
+## reason stored_duration docks it: they are part-way through the turn it would
+## otherwise get for free.
+func condition_turns(target: Dictionary, effect: EffectDefinition) -> int:
+	var turns = effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration
+	if target == get_current_combatant():
+		return maxi(turns - 1, 0)
+	return turns
 
 
 ## Folds a movement buff or debuff that just landed into the live movement

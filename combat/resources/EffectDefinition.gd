@@ -33,8 +33,16 @@ enum DispelScope {
 @export_group("Condition")
 ## Used when type is CONDITION. The condition to inflict - see
 ## ConditionDefinition, and res://conditions/ for the ones already written.
-## Its own duration is used, not this effect's.
 @export var condition: ConditionDefinition
+## How many of the target's own turns the condition lasts when THIS skill is
+## what inflicted it.
+##
+## 0 means "however long the condition itself says", which is what every skill
+## did before this existed - so Blind is its own 3 turns unless a skill
+## deliberately says otherwise. Set it when one skill should land a longer or
+## shorter version of a condition another skill also inflicts, rather than
+## writing a second near-identical ConditionDefinition just to hold one number.
+@export_range(0, 20) var condition_duration: int = 0
 
 @export_group("Damage / Heal / Damage over Time")
 ## What kind of damage this deals. Used by DAMAGE, DAMAGE_OVER_TIME and the
@@ -96,7 +104,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.PUSH: ["knockback_distance", "damage_type", "min_amount", "max_amount"],
 	EffectType.PULL: ["knockback_distance"],
 	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration"],
-	EffectType.CONDITION: ["condition"],
+	EffectType.CONDITION: ["condition", "condition_duration"],
 }
 
 

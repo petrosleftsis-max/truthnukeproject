@@ -424,8 +424,12 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.CONDITION:
 			if effect.condition == null:
 				return "Inflicts a condition (none assigned)"
+			# The skill's own duration when it sets one, so the tooltip says what
+			# this skill actually lands rather than what the condition says on
+			# its own - those are allowed to differ now.
+			var turns = effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration
 			return "Inflicts %s for %d turn(s): %s" % [
-				effect.condition.display_name, effect.condition.duration, effect.condition.describe()
+				effect.condition.display_name, turns, effect.condition.describe()
 			]
 		EffectDefinition.EffectType.PUSH:
 			# Spelled out as "only if", because the push's own min/max is
