@@ -19,3 +19,4 @@ accuracy = 100
 icon = ExtResource("2_oejdn")
 targets_ally = true
 effects = Array[ExtResource("1_d34oe")]([SubResource("Effect_heal")])
+scaling_stat = 1

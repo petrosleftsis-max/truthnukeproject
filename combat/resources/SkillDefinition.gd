@@ -16,7 +16,7 @@ enum AoEShape {
 @export var max_range: int
 ## Chance to hit, as a percentage - the same no matter the distance, as long
 ## as the target is within range at all (being out of range is rejected
-## before this ever matters).
+## before this ever matters). Ignored entirely when uses_stat_contest is on.
 @export_range(0, 100) var accuracy: int = 90
 @export var icon: Texture2D
 ## If true, valid targets are the caster's own side (heals/buffs).
@@ -71,6 +71,44 @@ enum AoEShape {
 ## effect's type first and the rest of it follows.
 @export var effects: Array[EffectDefinition] = []
 
+@export_group("Damage")
+## Which of the caster's attributes this scales from. The whole of a skill's
+## damage comes from this one stat: BaseDamage = WeaponBase + 0.7 x Stat.
+@export var scaling_stat: Stats.Type = Stats.Type.PHYSICAL
+## How hard this skill hits for its stat. 1.0 is an ordinary attack, 0.5 a
+## glancing one, 2.0 something that should hurt. Multiplied straight into the
+## damage, so this is the dial to turn when a skill feels weak or oppressive.
+##
+## Only DAMAGE effects go through this. Healing, damage-over-time ticks and a
+## shove's collision damage still use the flat amounts on the effect itself.
+@export_range(0.0, 5.0, 0.05, "or_greater") var ability_modifier: float = 1.0
+
+@export_group("Hitting")
+## Off: the skill rolls against accuracy, and a miss does nothing at all.
+##
+## On: no roll. The skill lands in full on anyone whose contest_stat is below
+## the caster's scaling_stat, and merely grazes anyone whose is equal or
+## higher - half damage, and none of the skill's other effects. So a Fireball
+## scaling from Intellect and contesting Physical burns everyone frailer than
+## the caster is clever, and only singes the rest.
+@export var uses_stat_contest: bool = false : set = _set_uses_stat_contest
+## The target's attribute weighed against the caster's scaling_stat.
+@export var contest_stat: Stats.Type = Stats.Type.PHYSICAL
+
+@export_group("Cost")
+## Which spell slot this costs, or 0 for a skill that costs nothing.
+##
+## A skill can always be paid for with a higher slot than it asks for - a level
+## 1 spell can burn a level 2 or 3 - but never a lower one. Combat spends the
+## cheapest slot that will do, so a level 3 is never wasted on a level 1 spell
+## while a level 1 is still going spare.
+##
+## Anything with a cost lives on its own Spells panel rather than in the main
+## list, but still spends the same action: the main one, or the secondary one
+## if is_secondary is also set. Casting a spell and swinging a sword in the
+## same turn is one action either way, so only one of them happens.
+@export_range(0, 3) var spell_slot_level: int = 0
+
 @export_group("Area of Effect")
 ## 0 = single tile only (classic single-target). Any higher number gives this
 ## skill an area: for DIAMOND it's the radius around the clicked tile; for
@@ -92,9 +130,15 @@ func _set_aoe_shape(value: AoEShape):
 	notify_property_list_changed()
 
 
-## Hides the area fields that don't apply yet, so a single-target skill isn't
-## asking you about beam widths. Nothing is lost by being hidden - the value is
-## still stored, and reappears if the skill is given an area again.
+func _set_uses_stat_contest(value: bool):
+	uses_stat_contest = value
+	notify_property_list_changed()
+
+
+## Hides the fields that don't apply yet, so a single-target skill isn't asking
+## you about beam widths and a skill that contests a stat isn't also offering
+## an accuracy it will never roll. Nothing is lost by being hidden - the value
+## is still stored, and reappears if the skill is set back the other way.
 func _validate_property(property: Dictionary) -> void:
 	var shown := true
 	match property.name:
@@ -103,5 +147,9 @@ func _validate_property(property: Dictionary) -> void:
 			shown = aoe_radius > 0
 		"aoe_width":
 			shown = aoe_radius > 0 and aoe_shape == AoEShape.LINE
+		"accuracy":
+			shown = not uses_stat_contest
+		"contest_stat":
+			shown = uses_stat_contest
 	if not shown:
 		property.usage = PROPERTY_USAGE_STORAGE

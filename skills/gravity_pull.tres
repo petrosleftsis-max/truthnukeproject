@@ -18,3 +18,4 @@ max_range = 6
 accuracy = 95
 icon = ExtResource("2_ahj24")
 effects = Array[ExtResource("1_wujm7")]([SubResource("Effect_gravitypull")])
+scaling_stat = 2

@@ -19,3 +19,4 @@ icon = ExtResource("2_djbbj")
 targets_ally = true
 is_secondary = true
 effects = Array[ExtResource("1_svi67")]([SubResource("Effect_cleanse")])
+scaling_stat = 1

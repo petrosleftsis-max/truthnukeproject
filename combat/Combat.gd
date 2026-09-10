@@ -201,6 +201,15 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# Copied off the definition so combat can look a resistance up by damage
 		# type without going back to the database for it.
 		"resistances" = definition.resistance_table(),
+		# Physical / Mindfulness / Intellect / Self / Defense, keyed as
+		# Stats.KEYS names them. Flattened onto the combatant for the same
+		# reason resistances are: damage is worked out here, not in the database.
+		"stats" = definition.stat_table(),
+		# Spell slots remaining, indexed by level - [0] is unused so a skill's
+		# spell_slot_level reads straight into it. Battle-scoped: a fight starts
+		# with the full allowance and spends down from there.
+		"spell_slots" = definition.spell_slot_table(),
+		"max_spell_slots" = definition.spell_slot_table(),
 		"reaction_used" = false,
 		"ai_function" = definition.ai_function,
 		# Which CombatantDatabase entry this came from. Campaign keys the
@@ -257,8 +266,14 @@ func get_current_combatant():
 func main_skills_of(comb: Dictionary) -> Array:
 	var found = []
 	for key in comb.skill_list:
-		if SkillDatabase.skills.has(key) and not SkillDatabase.skills[key].is_secondary:
-			found.append(key)
+		if not SkillDatabase.skills.has(key):
+			continue
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		# Anything with a slot cost is shown on the Spells panel instead, even
+		# though it is spent from this same action.
+		if skill.is_secondary or skill.spell_slot_level > 0:
+			continue
+		found.append(key)
 	return found
 
 
@@ -270,23 +285,98 @@ func secondary_skills_of(comb: Dictionary) -> Array:
 		# that would be refused.
 		return found
 	for key in comb.skill_list:
-		if SkillDatabase.skills.has(key) and SkillDatabase.skills[key].is_secondary:
+		if not SkillDatabase.skills.has(key):
+			continue
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		if skill.is_secondary and skill.spell_slot_level == 0:
 			found.append(key)
 	# A combatant's own secondary list can also grant a skill outright, so a
 	# character-specific secondary doesn't have to sit in their main list too.
 	for key in comb.get("secondary_skills", []):
-		if SkillDatabase.skills.has(key) and not found.has(key):
-			found.append(key)
+		if not SkillDatabase.skills.has(key) or found.has(key):
+			continue
+		if SkillDatabase.skills[key].spell_slot_level > 0:
+			continue
+		found.append(key)
 	return found
+
+
+## Everything `comb` knows that costs a spell slot, whichever action it spends.
+## Its own panel, because a caster's spell list is the part of their sheet that
+## needs reading against a resource, and mixing it into the main list buries it.
+func spell_skills_of(comb: Dictionary) -> Array:
+	var found = []
+	var offered = comb.skill_list.duplicate()
+	offered.append_array(comb.get("secondary_skills", []))
+	for key in offered:
+		if not SkillDatabase.skills.has(key) or found.has(key):
+			continue
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		if skill.spell_slot_level == 0:
+			continue
+		if skill.is_secondary and has_restriction(comb, "prevents_secondary"):
+			continue
+		found.append(key)
+	return found
+
+
+## --- Spell slots ---
+##
+## Three levels, spent from a pool that lasts the battle. A skill can always be
+## paid for with a slot at or above its own level, never below - so a level 3
+## slot is the most flexible thing a caster has, and the most worth hoarding.
+
+
+## The cheapest slot that could pay for a level `level` skill, or 0 if none can.
+func slot_available_for(comb: Dictionary, level: int) -> int:
+	if level <= 0:
+		return 0
+	var slots = comb.get("spell_slots", [])
+	for candidate in range(level, 4):
+		if candidate < slots.size() and slots[candidate] > 0:
+			return candidate
+	return 0
+
+
+## Whether `comb` can currently afford `skill` at all. Free skills always can.
+func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
+	if skill.spell_slot_level <= 0:
+		return true
+	return slot_available_for(comb, skill.spell_slot_level) > 0
+
+
+## Spends the cheapest slot that covers `skill`, so a level 3 is never burned
+## on a level 1 spell while a level 1 is still going spare. Returns the level
+## actually spent, or 0 if the skill was free.
+func spend_slot_for(comb: Dictionary, skill: SkillDefinition) -> int:
+	var level = slot_available_for(comb, skill.spell_slot_level)
+	if level > 0:
+		comb.spell_slots[level] -= 1
+	return level
 
 
 ## Whether `comb` still has either action available. Used to decide when a turn
 ## has nothing left to do and can end on its own.
+##
+## A spell nobody can pay for does not count as something left to do, or a
+## caster out of slots would sit on a turn that can never end.
 func has_action_left(comb: Dictionary) -> bool:
-	if not comb.get("skill_used_this_turn", false) and not main_skills_of(comb).is_empty():
-		return true
-	if not comb.get("secondary_used_this_turn", false) and not secondary_skills_of(comb).is_empty():
-		return true
+	var castable = []
+	for key in spell_skills_of(comb):
+		if can_afford_skill(comb, SkillDatabase.skills[key]):
+			castable.append(key)
+	if not comb.get("skill_used_this_turn", false):
+		if not main_skills_of(comb).is_empty():
+			return true
+		for key in castable:
+			if not SkillDatabase.skills[key].is_secondary:
+				return true
+	if not comb.get("secondary_used_this_turn", false):
+		if not secondary_skills_of(comb).is_empty():
+			return true
+		for key in castable:
+			if SkillDatabase.skills[key].is_secondary:
+				return true
 	return false
 
 func get_distance(attacker: Dictionary, target: Dictionary):
@@ -315,6 +405,13 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	var distance = get_position_distance(attacker.position, impact_position)
 	var valid = distance <= effective_max_range(attacker, skill) and distance >= skill.min_range
+	if valid and not can_afford_skill(attacker, skill):
+		update_information.emit("[color=yellow]%s[/color] has no level %d spell slot left for %s.\n" % [
+			attacker.name, skill.spell_slot_level, skill.name
+		])
+		if attacker.side == 1 and end_turn_after:
+			await advance_turn()
+		return
 	if valid:
 		controller.action_locked = true
 		game_ui.lock_action_buttons()
@@ -325,11 +422,19 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			# Something else killed them while their own skill's animation
 			# was still playing - nothing left to resolve.
 			return
-		var prob = clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
-		var random_number = randi() % 100
 		if attacker.side == 0:
 			last_player_skill_used = skill_key
-		if random_number < prob:
+		var spent = spend_slot_for(attacker, skill)
+		if spent > 0:
+			update_information.emit("[color=yellow]%s[/color] spends a level %d slot.\n" % [attacker.name, spent])
+		# A contested skill never rolls: it lands on everyone, in full on those
+		# it beats and as a graze on those it doesn't. An accuracy skill rolls
+		# once for the whole use, hit or miss.
+		var connected = true
+		if not skill.uses_stat_contest:
+			var prob = clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
+			connected = (randi() % 100) < prob
+		if connected:
 			var tiles = get_impact_tiles(skill, attacker.position, impact_position, attacker.movement_class)
 			var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally, skill.affects_both_sides)
 			for target in targets:
@@ -337,8 +442,15 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 				# multi-effect hit reads as one action rather than repeating
 				# "used Poison Dart" for every effect it carries.
 				var mention_skill = true
+				var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
+				if grazed:
+					update_information.emit("[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name])
 				for effect in skill.effects:
-					apply_effect(attacker, target, effect, skill, mention_skill)
+					# A graze is damage only, at half strength - nothing that
+					# would stick, slow, poison or shove comes with it.
+					if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
+						continue
+					apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0)
 					mention_skill = false
 		else:
 			update_information.emit("{0} missed.\n".format([attacker.name]))
@@ -391,6 +503,10 @@ func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_p
 		for skill_key in reactor.skill_list:
 			var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 			if not skill.is_reactive:
+				continue
+			if not can_afford_skill(reactor, skill):
+				# Out of slots for it, so there is nothing to offer and nothing
+				# to ask the player about.
 				continue
 			var valid_side = (reactor.side == mover.side) if skill.targets_ally else (reactor.side != mover.side)
 			if not valid_side:
@@ -457,6 +573,9 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	attacker.reaction_used = true
 	if attacker.side == 0:
 		last_player_skill_used = skill_key
+	var spent = spend_slot_for(attacker, skill)
+	if spent > 0:
+		update_information.emit("[color=yellow]%s[/color] spends a level %d slot.\n" % [attacker.name, spent])
 	update_information.emit("[color=yellow]{0}[/color] reacts as [color=red]{1}[/color] leaves range!\n".format([
 		attacker.name,
 		target.name
@@ -468,12 +587,19 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	game_ui.refresh_action_buttons()
 	if not attacker.alive or not target.alive:
 		return
-	var prob = clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
-	var random_number = randi() % 100
-	if random_number < prob:
+	var connected = true
+	if not skill.uses_stat_contest:
+		var prob = clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
+		connected = (randi() % 100) < prob
+	if connected:
 		var mention_skill = true
+		var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
+		if grazed:
+			update_information.emit("[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name])
 		for effect in skill.effects:
-			apply_effect(attacker, target, effect, skill, mention_skill)
+			if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
+				continue
+			apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0)
 			mention_skill = false
 	else:
 		update_information.emit("{0} missed.\n".format([attacker.name]))
@@ -675,10 +801,10 @@ func get_targets_in_tiles(tiles: Array, caster: Dictionary, targets_ally: bool, 
 ## true for the first effect landing on a given target, so the log reads
 ## "Cyrus used Poison Dart on Goblin 1, dealing 5 damage. Cyrus inflicted
 ## Poisoning on Goblin 1." rather than repeating the skill's name per effect.
-func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
+func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
-			do_damage(attacker, target, effect, skill, mention_skill)
+			do_damage(attacker, target, effect, skill, mention_skill, power)
 		EffectDefinition.EffectType.HEAL:
 			do_heal(attacker, target, effect, skill, mention_skill)
 		EffectDefinition.EffectType.STAT_MODIFIER:
@@ -1178,9 +1304,47 @@ func resistance_of(target: Dictionary, type: int) -> int:
 	return target.get("resistances", {}).get(type, 0)
 
 
-func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
+## --- Attributes and the damage they produce ---
+
+
+## One of the five attributes on `comb`, by Stats.Type. Ten for anyone created
+## before stats existed, which is the database default too, so an unfilled
+## entry behaves like an ordinary one rather than dealing nothing.
+func stat_of(comb: Dictionary, type: int) -> int:
+	var key = Stats.stat_key(type)
+	if key == "":
+		return 0
+	return comb.get("stats", {}).get(key, 10)
+
+
+## Whether a contested skill lands in full on `target`. The caster's own
+## scaling stat is weighed against whichever stat the skill names - so the same
+## Fireball that overwhelms a frail sorcerer only singes an armoured knight,
+## with no dice involved either way.
+func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> bool:
+	return stat_of(target, skill.contest_stat) < stat_of(attacker, skill.scaling_stat)
+
+
+## What one DAMAGE effect of `skill` does to `target`, before resistances.
+## `power` is 1.0 for a clean hit and 0.5 for a graze.
+##
+## BaseDamage = WeaponBase + 0.7 x Stat, FinalDamage = BaseDamage x
+## AbilityModifier x 40/(40 + Defense). The effect's own min/max amounts are
+## not consulted at all - a skill's damage is entirely the caster's stat and
+## the skill's modifier, which is what makes the same spell scale with whoever
+## casts it.
+func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefinition, power: float = 1.0) -> int:
+	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat))
+	return Stats.final_damage(base, skill.ability_modifier * power, stat_of(target, Stats.Type.DEFENSE))
+
+
+func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):
 	var resistance = resistance_of(target, effect.damage_type)
-	var damage = resisted_damage(target, effect.damage_type, randi_range(effect.min_amount, effect.max_amount))
+	# A skill's damage comes from the caster's stat and the skill's modifier.
+	# The effect's own min/max only stand in when there is no skill behind the
+	# damage at all - a condition burning away, a shove into a wall.
+	var raw = skill_damage(attacker, target, skill, power) if skill != null else randi_range(effect.min_amount, effect.max_amount)
+	var damage = resisted_damage(target, effect.damage_type, raw)
 	var flavour = "%s damage%s" % [Damage.type_name(effect.damage_type).to_lower(), Damage.describe_resistance(resistance)]
 	target.hp -= damage
 	update_combatants.emit(combatants)
@@ -1348,6 +1512,8 @@ func find_best_single_target_skill(comb: Dictionary) -> String:
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 		if skill.targets_ally or skill.aoe_radius > 0:
 			continue
+		if not can_afford_skill(comb, skill):
+			continue # out of slots for it
 		var reach = effective_max_range(comb, skill)
 		if reach < skill.min_range:
 			continue # capped below its own minimum - unusable at all
@@ -1370,6 +1536,8 @@ func movement_budget_of(comb: Dictionary) -> int:
 func find_skill_of_type(comb: Dictionary, effect_type: EffectDefinition.EffectType) -> String:
 	for skill_key in comb.skill_list:
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
+		if not can_afford_skill(comb, skill):
+			continue
 		for effect in skill.effects:
 			if effect.type == effect_type:
 				return skill_key
@@ -1578,14 +1746,19 @@ func find_triggering_reactions_along_path(comb: Dictionary, path: Array) -> Arra
 	return triggered
 
 
-## The largest possible damage a skill could deal in one hit - sums every
-## DAMAGE effect's max_amount, ignoring accuracy/hit chance entirely. Used
-## for a worst-case "could this possibly kill me" check, not an average.
-func get_max_possible_damage(skill: SkillDefinition) -> int:
+## The largest damage `skill` could deal to `victim` in one hit, ignoring
+## accuracy and hit chance entirely. Used for a worst-case "could this possibly
+## kill me" check, not an average.
+##
+## Worked out through the real damage function, so an AI weighing up whether to
+## step past a guard is reading the same number the guard would actually deal.
+## Estimating it from the effect's own amounts stopped being right the moment
+## damage started coming from the caster's stats instead.
+func get_max_possible_damage(skill: SkillDefinition, wielder: Dictionary, victim: Dictionary) -> int:
 	var total = 0
 	for effect in skill.effects:
 		if effect.type == EffectDefinition.EffectType.DAMAGE:
-			total += effect.max_amount
+			total += resisted_damage(victim, effect.damage_type, skill_damage(wielder, victim, skill))
 	return total
 
 
@@ -1621,7 +1794,7 @@ func avoid_needless_opportunity_attacks(comb: Dictionary, best_tile: Vector2i, i
 	var total_possible_damage = 0
 	for entry in triggered:
 		var reactive_skill: SkillDefinition = SkillDatabase.skills[entry.skill_key]
-		total_possible_damage += get_max_possible_damage(reactive_skill)
+		total_possible_damage += get_max_possible_damage(reactive_skill, entry.reactor, comb)
 	if total_possible_damage < comb.hp:
 		return best_tile
 	return comb.position
@@ -1917,6 +2090,8 @@ func ai_caster(comb: Dictionary):
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 		if skill.targets_ally or skill.aoe_radius <= 0:
 			continue
+		if not can_afford_skill(comb, skill):
+			continue # out of slots for it
 		var tile = find_best_reachable_tile(comb, movement_budget, func(t):
 			var hits = find_best_aim_and_count(skill, t, comb.movement_class, comb).count
 			return float(hits) * HIT_WEIGHT + float(count_players_without_los(t)) * SAFETY_WEIGHT

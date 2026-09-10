@@ -13,35 +13,70 @@ const StatusIcon = preload("res://ui/status_icon.tscn")
 ## True while this HUD is being used for exploration rather than a battle.
 var exploration_mode := false
 
-## Which action slot the skill panel is showing: false = main, true = secondary.
-## Reset to main whenever the turn passes to someone new, so a turn always
+## Which list the action panel is showing. Three of them now: the two action
+## slots, plus everything that costs a spell slot. Spells are a panel of their
+## own rather than part of the main list because they are read against a
+## resource - you pick one knowing what it will cost, not just what it does.
+enum SkillPanel { MAIN, SECONDARY, SPELLS }
+
+## Reset to MAIN whenever the turn passes to someone new, so a turn always
 ## starts on the panel you'd expect.
-var showing_secondary := false
+var showing_panel := SkillPanel.MAIN
+
+## Kept for anything still asking the old question. A spell is spent from the
+## main slot unless it is also marked secondary, so "is this the secondary
+## panel" is no longer the same question as "which slot will this spend".
+var showing_secondary: bool:
+	get: return showing_panel == SkillPanel.SECONDARY
+
+const PANEL_NAMES := {
+	SkillPanel.MAIN: "Main Skills",
+	SkillPanel.SECONDARY: "Secondary Skills",
+	SkillPanel.SPELLS: "Spells",
+}
 
 
 func _ready():
-	$Actions/SkillPanelToggle.pressed.connect(func(): set_skill_panel(not showing_secondary))
+	$Actions/SkillPanelToggle.pressed.connect(_cycle_skill_panel)
 
 
-## Switches the action panel between a combatant's main and secondary skills.
-## The two slots are spent separately - a turn can use one of each - so this is
-## purely a view switch and never costs anything.
-func set_skill_panel(secondary: bool):
-	showing_secondary = secondary
-	$Actions/SkillPanelLabel.text = "Secondary Skills" if secondary else "Main Skills"
-	$Actions/SkillPanelToggle.text = "Main" if secondary else "Secondary"
+## Steps Main -> Secondary -> Spells -> Main. The button names where it goes
+## next rather than where you are, matching how it read with two.
+func _cycle_skill_panel():
+	set_skill_panel((showing_panel + 1) % SkillPanel.size())
+
+
+func set_skill_panel(panel: int):
+	showing_panel = panel
+	$Actions/SkillPanelLabel.text = PANEL_NAMES[showing_panel]
+	$Actions/SkillPanelToggle.text = PANEL_NAMES[(showing_panel + 1) % SkillPanel.size()].split(" ")[0]
 	if combat != null and not exploration_mode:
 		_show_skills_for(combat.get_current_combatant())
 
 
-## Fills the action panel from whichever slot is currently on show.
+## Fills the action panel from whichever list is currently on show, and keeps
+## the spell slot readout in step with whoever's turn it is.
 func _show_skills_for(comb: Dictionary):
 	if combat == null:
 		set_skill_list([], true)
+		_update_spell_slots(null)
 		return
-	var list = combat.secondary_skills_of(comb) if showing_secondary else combat.main_skills_of(comb)
-	var used = comb.get("secondary_used_this_turn", false) if showing_secondary else comb.get("skill_used_this_turn", false)
-	set_skill_list(list, used, showing_secondary)
+	_update_spell_slots(comb)
+	var list = []
+	var used = false
+	match showing_panel:
+		SkillPanel.SECONDARY:
+			list = combat.secondary_skills_of(comb)
+			used = comb.get("secondary_used_this_turn", false)
+		SkillPanel.SPELLS:
+			list = combat.spell_skills_of(comb)
+			# A spell spends whichever slot its own is_secondary says, so the
+			# panel is only fully spent once both are gone.
+			used = comb.get("skill_used_this_turn", false) and comb.get("secondary_used_this_turn", false)
+		_:
+			list = combat.main_skills_of(comb)
+			used = comb.get("skill_used_this_turn", false)
+	set_skill_list(list, used, showing_panel == SkillPanel.SECONDARY)
 
 
 ## Switches the HUD between battle and exploration. Exploration keeps the party
@@ -60,6 +95,7 @@ func set_exploration_mode(enabled: bool):
 	$Actions/SkillPanelToggle.visible = not enabled
 	if enabled:
 		set_skill_list([], true)
+		_update_spell_slots(null)
 		$Actions/SelectTargetMessage.visible = false
 
 
@@ -138,7 +174,7 @@ func show_combatant_status_main(comb: Dictionary):
 		$Actions/StatusIcon.set_icon(comb.icon)
 		$Actions/StatusIcon.set_health(comb.hp, combat.get_effective_stat(comb, "max_hp"))
 	# A new turn always opens on the main panel.
-	set_skill_panel(false)
+	set_skill_panel(SkillPanel.MAIN)
 	_show_skills_for(comb)
 
 
@@ -205,6 +241,7 @@ func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: b
 	# resolving: the turn's state is mid-change, and the skill would be aimed
 	# from wherever they happened to be standing at the time.
 	var busy = controller != null and (controller.action_locked or not controller.is_idle())
+	var comb = combat.get_current_combatant() if combat != null and not exploration_mode else {}
 	for i in range(actions_grid_children.size()):
 		var action = actions_grid_children[i] as Button
 		if player_turn == false or skill_used or busy:
@@ -214,11 +251,20 @@ func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: b
 		if skill_list.size() > i:
 			var skill_key = skill_list[i]
 			var skill = SkillDatabase.skills[skill_key]
+			# On the Spells panel each entry decides its own slot, since a
+			# spell marked secondary is cast from the secondary action while
+			# the rest are cast from the main one.
+			var spends_secondary = skill.is_secondary if showing_panel == SkillPanel.SPELLS else as_secondary
+			if showing_panel == SkillPanel.SPELLS and not comb.is_empty() and not action.disabled:
+				var slot_spent = comb.get("secondary_used_this_turn", false) if spends_secondary else comb.get("skill_used_this_turn", false)
+				# Greyed out for the two separate reasons a spell can be
+				# unavailable: the action is gone, or the slots are.
+				action.disabled = slot_spent or not combat.can_afford_skill(comb, skill)
 			action.icon = skill.icon
 			action.tooltip_text = build_skill_tooltip(skill)
 			clear_action_button_connections(action)
 			action.pressed.connect(func():
-				controller.set_selected_skill(skill_key, as_secondary)
+				controller.set_selected_skill(skill_key, spends_secondary)
 				controller.begin_target_selection()
 				)
 		else:
@@ -226,6 +272,33 @@ func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: b
 			action.tooltip_text = ""
 			clear_action_button_connections(action)
 	$Actions/EndTurnButton.disabled = !player_turn
+
+
+## Spell slots for whoever's turn it is: one bar per level, each with the
+## number left over how many the battle started with. Hidden entirely for
+## anyone with no slots at all, so a swordsman's HUD isn't carrying three empty
+## gauges around.
+func _update_spell_slots(comb):
+	var row = $Actions/SpellSlots
+	if comb == null or comb.is_empty() or exploration_mode:
+		row.visible = false
+		return
+	var slots = comb.get("spell_slots", [])
+	var maximums = comb.get("max_spell_slots", [])
+	var any = false
+	for level in range(1, 4):
+		var ceiling = maximums[level] if level < maximums.size() else 0
+		var entry = row.get_node("Level%d" % level)
+		entry.visible = ceiling > 0
+		if ceiling <= 0:
+			continue
+		any = true
+		var left = slots[level] if level < slots.size() else 0
+		var bar: ProgressBar = entry.get_node("Bar")
+		bar.max_value = ceiling
+		bar.value = left
+		entry.get_node("Count").text = "%d/%d" % [left, ceiling]
+	row.visible = any
 
 
 func clear_action_button_connections(action: Button):
@@ -243,8 +316,15 @@ func build_skill_tooltip(skill: SkillDefinition) -> String:
 	if skill.description != "":
 		lines.append(skill.description)
 	lines.append("")
+	if skill.spell_slot_level > 0:
+		lines.append("Costs: a level %d spell slot (or any higher)" % skill.spell_slot_level)
 	lines.append("Range: %d-%d" % [skill.min_range, skill.max_range])
-	lines.append("Hit chance: %d%%" % skill.accuracy)
+	if skill.uses_stat_contest:
+		lines.append("Lands on anyone with %s below the caster's %s. Everyone else takes half damage and none of the rest." % [
+			Stats.stat_name(skill.contest_stat), Stats.stat_name(skill.scaling_stat)
+		])
+	else:
+		lines.append("Hit chance: %d%%" % skill.accuracy)
 	lines.append("Targets: %s" % ("Everyone caught in it" if skill.affects_both_sides else ("Allies" if skill.targets_ally else "Enemies")))
 	if skill.aoe_radius > 0:
 		lines.append("Area: %s" % describe_aoe_shape(skill))
@@ -256,7 +336,7 @@ func build_skill_tooltip(skill: SkillDefinition) -> String:
 		lines.append("")
 		lines.append("Effects:")
 		for effect in skill.effects:
-			lines.append("- " + describe_effect(effect))
+			lines.append("- " + describe_effect(effect, skill))
 	return "\n".join(lines)
 
 
@@ -270,10 +350,17 @@ func describe_aoe_shape(skill: SkillDefinition) -> String:
 			return "Radius %d" % skill.aoe_radius
 
 
-func describe_effect(effect: EffectDefinition) -> String:
+func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) -> String:
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
-			return "Damage: %d-%d %s" % [effect.min_amount, effect.max_amount, Damage.type_name(effect.damage_type).to_lower()]
+			# Damage is the caster's stat, so there is no fixed number to print
+			# here - what the skill contributes is which stat and how hard.
+			if skill != null:
+				return "Damage: %s x%s %s" % [
+					Stats.stat_name(skill.scaling_stat), skill.ability_modifier,
+					Damage.type_name(effect.damage_type).to_lower()
+				]
+			return "Damage: %s" % Damage.type_name(effect.damage_type).to_lower()
 		EffectDefinition.EffectType.HEAL:
 			return "Heal: %d-%d" % [effect.min_amount, effect.max_amount]
 		EffectDefinition.EffectType.STAT_MODIFIER:
@@ -333,13 +420,16 @@ func set_movement(movement):
 ## turn queue gets out of the way, so the map - and the skill's range and area
 ## preview drawn on it - is unobstructed. The Actions cluster carries the skill
 ## buttons, movement counter, End Turn and message log, so hiding it as a whole
-## clears all of them at once; the aiming banner is put back on top of it.
+## clears all of them at once.
+##
+## The banner goes too. It is only ever given text by deployment and by
+## exploration, so aiming a skill brought it back still reading "Click a hero,
+## then a highlighted tile to move them there" - advice for a step that ended
+## before the battle started.
 func _set_aiming(aiming: bool):
 	$Actions.visible = true
 	for child in $Actions.get_children():
-		if child.name != "SelectTargetMessage":
-			child.visible = not aiming
-	$Actions/SelectTargetMessage.visible = aiming
+		child.visible = not aiming
 	if not aiming:
 		# Restore whatever the current mode says these should be, rather than
 		# blanket-showing things the mode had deliberately hidden.
@@ -348,6 +438,9 @@ func _set_aiming(aiming: bool):
 		$Actions/SkillPanelLabel.visible = not exploration_mode
 		$Actions/SkillPanelToggle.visible = not exploration_mode
 		$Actions/SelectTargetMessage.visible = false
+		# The slot row hides itself for anyone with no slots, so it can't just
+		# be switched back on with the rest.
+		_update_spell_slots(combat.get_current_combatant() if combat != null and not exploration_mode else null)
 
 
 func _target_selection_finished():

@@ -8,6 +8,9 @@
 [sub_resource type="Resource" id="Resource_bwgmm"]
 script = ExtResource("2_rggep")
 name = "Prometheus"
+spell_slots_1 = 3
+spell_slots_2 = 2
+spell_slots_3 = 1
 class_t = 2
 max_hp = 8
 movement = 4
@@ -86,6 +89,8 @@ ai_function = "ai_hit_and_explode"
 [sub_resource type="Resource" id="Resource_priest"]
 script = ExtResource("2_rggep")
 name = "Priest"
+spell_slots_1 = 2
+spell_slots_2 = 1
 resist_earth = -20
 class_t = 2
 max_hp = 6
@@ -99,6 +104,9 @@ ai_function = "ai_healer"
 [sub_resource type="Resource" id="Resource_sorcerer"]
 script = ExtResource("2_rggep")
 name = "Sorcerer"
+spell_slots_1 = 2
+spell_slots_2 = 1
+spell_slots_3 = 1
 resist_fire = 20
 class_t = 2
 max_hp = 7

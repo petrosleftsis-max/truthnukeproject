@@ -20,3 +20,7 @@ accuracy = 80
 icon = ExtResource("2_0ef30")
 effects = Array[ExtResource("1_lwqms")]([SubResource("Effect_fireball_dmg")])
 aoe_radius = 3
+scaling_stat = 2
+spell_slot_level = 3
+uses_stat_contest = true
+contest_stat = 0
