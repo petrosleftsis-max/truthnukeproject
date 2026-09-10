@@ -9,6 +9,11 @@ class_name DialogueInteractable
 
 
 ## The .dialogue file this conversation lives in.
+## The balloon this game talks through - ui/dialogue_balloon.tscn, a copy of
+## Dialogue Manager's example with a portrait added, so updating the addon
+## cannot overwrite it.
+const BALLOON_SCENE = "res://ui/dialogue_balloon.tscn"
+
 @export var dialogue: Resource
 ## Which title inside that file to start at. Dialogue Manager's own convention
 ## is "start" when you don't say otherwise.
@@ -28,12 +33,15 @@ func interact(scene: Node):
 		return
 	scene.begin_blocking_interaction()
 	var manager = scene.get_node("/root/DialogueManager")
-	# The balloon is Dialogue Manager's own UI. dialogue_ended fires whichever
-	# way the conversation finishes, including the player closing it early, so
-	# it's the one signal that reliably hands control back.
+	# dialogue_ended fires whichever way the conversation finishes, including
+	# the player closing it early, so it is the one signal that reliably hands
+	# control back.
 	if not manager.dialogue_ended.is_connected(scene.end_blocking_interaction):
 		manager.dialogue_ended.connect(scene.end_blocking_interaction, CONNECT_ONE_SHOT)
-	manager.show_dialogue_balloon(dialogue, dialogue_title)
+	# Our own balloon rather than the addon's, because it carries the portrait.
+	# It began as a copy of the addon's example and lives in ui/ so that
+	# updating Dialogue Manager cannot overwrite it.
+	manager.show_dialogue_balloon_scene(BALLOON_SCENE, dialogue, dialogue_title)
 
 
 func _has_autoload() -> bool:
