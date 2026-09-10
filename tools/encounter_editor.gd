@@ -49,6 +49,23 @@ func _ready():
 	rebuild()
 
 
+## Puts the map back if it has gone missing - the preview was deleted by hand,
+## or a terrain_scene was assigned to an encounter that had none, which leaves
+## the editor showing markers floating over nothing. Cheap to check, and it
+## saves knowing that Reload is the button that fixes it.
+##
+## Deliberately not triggered by markers being absent: an encounter with no
+## spawns yet legitimately has none, and rebuilding every frame over that would
+## make new markers impossible to keep.
+func _process(_delta):
+	if not Engine.is_editor_hint():
+		return
+	if encounter == null or encounter.terrain_scene == null:
+		return
+	if get_node_or_null(TERRAIN_NODE) == null:
+		rebuild()
+
+
 ## Rebuilds both the map preview and the markers from the encounter resource,
 ## throwing away any unsaved dragging.
 func rebuild():
