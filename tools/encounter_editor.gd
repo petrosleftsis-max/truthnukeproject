@@ -84,11 +84,29 @@ func _process(delta):
 	_status_countdown -= delta
 	if _status_countdown <= 0.0:
 		_status_countdown = 0.5
+		_sync_if_encounter_changed()
 		_refresh_status()
 	if encounter == null or encounter.terrain_scene == null:
 		return
 	if get_node_or_null(TERRAIN_NODE) == null:
 		rebuild()
+
+
+## Picks up edits made to the encounter itself - typing gear or a level into
+## its spawn list in the inspector, or editing the .tres by hand - while this
+## scene sits open in another tab.
+##
+## Only while nothing has been changed here, where there is nothing to lose by
+## replacing the markers. If both sides have moved on, the markers are left
+## alone and Save refuses instead: quietly throwing away one of the two sets of
+## edits is the one thing this must not do, and there is no way to tell from
+## here which of them was meant.
+func _sync_if_encounter_changed():
+	if encounter == null or _encounter_fingerprint() == _built_from:
+		return
+	if _marker_fingerprint() != _built_from:
+		return
+	rebuild()
 
 
 ## Keeps the status line describing what Save would do if pressed now, so a
@@ -189,6 +207,40 @@ func _build_markers(tile_map: TileMap):
 		marker.position = Vector2(spawn.position * tile_size) + Vector2(tile_size, tile_size) * 0.5
 		container.add_child(marker)
 		_adopt(marker)
+	_built_from = _encounter_fingerprint()
+
+
+## What the encounter said when these markers were made from it. The markers
+## are a copy, not a live view, so anything done to the encounter itself after
+## this point is invisible here - and Save writes the markers, which would put
+## the old values back over it. Remembering what was copied is what lets that
+## be noticed instead of silently happening.
+var _built_from := ""
+
+
+## One line per spawn, in encounter order. Text rather than the spawn objects
+## themselves so two snapshots can just be compared, with no dependence on how
+## Godot decides two Resources or two Dictionaries are equal.
+func _encounter_fingerprint() -> String:
+	if encounter == null:
+		return ""
+	var lines := PackedStringArray()
+	for spawn in encounter.spawns:
+		lines.append("%s|%d|%s|%s|%d|%d|%d" % [spawn.combatant_key, spawn.side, spawn.position,
+			spawn.display_name, spawn.level, spawn.weapon_base, spawn.defense])
+	return "
+".join(lines)
+
+
+## The same, read off the markers, so it can be told whether the markers or the
+## encounter is the side that has moved on.
+func _marker_fingerprint() -> String:
+	var lines := PackedStringArray()
+	for marker in markers():
+		lines.append("%s|%d|%s|%s|%d|%d|%d" % [marker.combatant_key, marker.side, marker.grid_position(),
+			marker.display_name, marker.level, marker.weapon_base, marker.defense])
+	return "
+".join(lines)
 
 
 func _tile_size(tile_map: TileMap) -> int:
@@ -275,6 +327,8 @@ func _problems_with_layout() -> Array:
 		return problems
 	if encounter.resource_path == "":
 		problems.append("This encounter is built into the editor scene rather than being a file of its own, so there is nowhere to save it. Assign one of res://encounters/*.tres to Encounter and press Reload, or save this one to a file first (in the inspector, the dropdown next to the resource -> Save As).")
+	if _encounter_fingerprint() != _built_from and _marker_fingerprint() != _built_from:
+		problems.append("The encounter has been edited since these markers were built, and the markers have been changed here too - saving would write the markers over those edits. Press 'Reload from encounter' to take the encounter's version instead, which discards the changes made here.")
 	if encounter.music != "" and not _music_exists(encounter.music):
 		problems.append("Music track '%s' is not in %s - the fight would start in silence." % [encounter.music, Music.MUSIC_DIR])
 	var terrain = get_node_or_null(TERRAIN_NODE)
@@ -361,6 +415,9 @@ func save_to_encounter():
 		_announce()
 		push_error(failure)
 		return
+	# The markers and the encounter now say the same thing, so neither counts as
+	# having moved on until one of them is edited again.
+	_built_from = _encounter_fingerprint()
 	var done = "Saved %d spawns (%d players, %d enemies) to %s" % [
 		spawns.size(), players, enemies, encounter.resource_path
 	]

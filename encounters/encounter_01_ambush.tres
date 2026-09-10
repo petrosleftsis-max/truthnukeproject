@@ -25,6 +25,7 @@ combatant_key = "priest"
 side = 1
 position = Vector2i(27, 15)
 display_name = "Goblin 3"
+defense = 18
 
 [sub_resource type="Resource" id="Resource_5depv"]
 script = ExtResource("2_spawn")
@@ -32,6 +33,7 @@ combatant_key = "ranger"
 side = 1
 position = Vector2i(30, 16)
 display_name = "Goblin 1"
+defense = 18
 
 [sub_resource type="Resource" id="Resource_nl4kq"]
 script = ExtResource("2_spawn")
@@ -39,6 +41,7 @@ combatant_key = "sorcerer"
 side = 1
 position = Vector2i(33, 16)
 display_name = "Goblin 2"
+defense = 5
 
 [resource]
 script = ExtResource("1_enc")
