@@ -101,6 +101,19 @@ enum AoEShape {
 ## The target's attribute weighed against the caster's scaling_stat.
 @export var contest_stat: Stats.Type = Stats.Type.PHYSICAL
 
+@export_group("Sound")
+## Played when this skill goes off. Left empty for a skill that makes no noise,
+## which is every skill until one is given a sound - nothing here needs audio
+## to exist.
+##
+## It fires as the skill animation ENDS rather than when the skill is chosen,
+## so the noise lands with the blow instead of underneath the wind-up. A
+## combatant with no animation resolves instantly and the sound plays then.
+@export var sound: AudioStream
+## Per-skill trim, because raw samples arrive at wildly different levels and
+## the alternative is re-exporting the audio to balance a fight.
+@export_range(-40.0, 12.0, 0.5) var sound_volume_db: float = 0.0
+
 @export_group("Cost")
 ## Which spell slot this costs, or 0 for a skill that costs nothing.
 ##

@@ -465,6 +465,7 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 		controller.action_locked = true
 		game_ui.lock_action_buttons()
 		await attacker.sprite.play_skill_and_wait(skill.animation)
+		play_skill_sound(skill)
 		controller.action_locked = false
 		game_ui.refresh_action_buttons()
 		if not attacker.alive:
@@ -639,6 +640,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	controller.action_locked = true
 	game_ui.lock_action_buttons()
 	await attacker.sprite.play_skill_and_wait(skill.animation)
+	play_skill_sound(skill)
 	controller.action_locked = false
 	game_ui.refresh_action_buttons()
 	if not attacker.alive or not target.alive:
@@ -1399,6 +1401,44 @@ func resisted_damage(target: Dictionary, type: int, amount: int) -> int:
 
 func resistance_of(target: Dictionary, type: int) -> int:
 	return target.get("resistances", {}).get(type, 0)
+
+
+## --- Skill sounds ---
+##
+## A skill names its own sound (see SkillDefinition.sound) and it plays as the
+## animation finishes, so the noise lands with the blow rather than under the
+## wind-up. Silent for any skill with no sound set, which is all of them until
+## one is given audio.
+
+## Enough players that a reaction going off during someone else's swing does
+## not cut it short. Beyond this the oldest sound is the one that loses, which
+## at four overlapping noises is what you would want anyway.
+const SOUND_VOICES = 4
+
+var _sound_players: Array = []
+var _next_voice := 0
+
+
+func _build_sound_players():
+	for i in SOUND_VOICES:
+		var player = AudioStreamPlayer.new()
+		player.bus = "SFX"
+		add_child(player)
+		_sound_players.append(player)
+
+
+## Plays `skill`'s sound, if it has one. Round-robin across the voices rather
+## than one shared player, so two skills resolving close together both sound.
+func play_skill_sound(skill: SkillDefinition):
+	if skill == null or skill.sound == null:
+		return
+	if _sound_players.is_empty():
+		_build_sound_players()
+	var player = _sound_players[_next_voice]
+	_next_voice = (_next_voice + 1) % _sound_players.size()
+	player.stream = skill.sound
+	player.volume_db = skill.sound_volume_db
+	player.play()
 
 
 ## How hard a level 3 spell rattles the view, in screen pixels at its peak.
