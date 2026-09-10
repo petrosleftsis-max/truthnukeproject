@@ -138,6 +138,36 @@ func _on_skill_animation_finished():
 	_skill_animation_finished = true
 
 
+## --- Being hit ---
+
+
+## How long a hit flash lasts. Short enough to read as an impact rather than a
+## state change - long enough to catch across a busy board.
+const FLASH_SECONDS = 0.18
+
+const FLASH_HOSTILE = Color(1.0, 0.35, 0.35)
+const FLASH_FRIENDLY = Color(0.4, 1.0, 0.5)
+
+var _flash_tween: Tween = null
+
+
+## Flashes this combatant to show something landed on them: red from the other
+## side, green from their own. Colour rather than a wince animation because it
+## works for every combatant, animated or static, without any art existing for
+## it - and it reads at any zoom, which a 4-frame recoil would not.
+##
+## Tints the whole node rather than the sprite child so it works the same for
+## an AnimatedSprite2D and a plain Sprite2D.
+func flash_hit(hostile: bool):
+	if _flash_tween != null and _flash_tween.is_valid():
+		# A combatant caught by two effects of one skill flashes once, brightly,
+		# rather than the second restarting a half-faded first.
+		_flash_tween.kill()
+	modulate = FLASH_HOSTILE if hostile else FLASH_FRIENDLY
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(self, "modulate", Color.WHITE, FLASH_SECONDS)
+
+
 func set_dead():
 	if _animated:
 		if _animated.sprite_frames.has_animation("dead"):

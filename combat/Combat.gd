@@ -42,6 +42,10 @@ var turn_queue = []
 ## triggers. Leave unassigned and reactions fire automatically for everyone,
 ## which is how it behaved before.
 @export var reaction_prompt: ReactionPrompt
+## Optional. Used to rattle the view when something big goes off. Everything
+## works without it - a battle scene with no camera assigned just doesn't
+## shake.
+@export var camera: CameraController
 ## Which battle this is. Assigned by GameScene before _ready runs (from the
 ## level select's choice, or its own fallback when game.tscn is run directly),
 ## so one scene plays every encounter - there is no per-encounter copy of this
@@ -427,6 +431,11 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 		var spent = spend_slot_for(attacker, skill)
 		if spent > 0:
 			update_information.emit("[color=yellow]%s[/color] spends a level %d slot.\n" % [attacker.name, spent])
+		# The heaviest thing a caster can do should land like it. Keyed off the
+		# skill's own level rather than the slot spent, so paying for a level 1
+		# spell with a level 3 slot doesn't shake the map.
+		if skill.spell_slot_level >= 3:
+			shake_camera(LEVEL_THREE_SHAKE)
 		# A contested skill never rolls: it lands on everyone, in full on those
 		# it beats and as a graze on those it doesn't. An accuracy skill rolls
 		# once for the whole use, hit or miss.
@@ -802,6 +811,10 @@ func get_targets_in_tiles(tiles: Array, caster: Dictionary, targets_ally: bool, 
 ## "Cyrus used Poison Dart on Goblin 1, dealing 5 damage. Cyrus inflicted
 ## Poisoning on Goblin 1." rather than repeating the skill's name per effect.
 func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):
+	# Flagged by who sent it, not by what it does: a heal from an enemy is
+	# still something the other side did to you, and reading the colour as
+	# "whose doing was this" stays true for buffs, shoves and dispels alike.
+	flash_target(attacker, target)
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
 			do_damage(attacker, target, effect, skill, mention_skill, power)
@@ -1302,6 +1315,27 @@ func resisted_damage(target: Dictionary, type: int, amount: int) -> int:
 
 func resistance_of(target: Dictionary, type: int) -> int:
 	return target.get("resistances", {}).get(type, 0)
+
+
+## How hard a level 3 spell rattles the view, in screen pixels at its peak.
+const LEVEL_THREE_SHAKE = 14.0
+
+
+## Rattles the view, if this battle has a camera to rattle. Silent when it
+## doesn't, so nothing needs a camera to work.
+func shake_camera(pixels: float):
+	if camera != null and is_instance_valid(camera):
+		camera.shake(pixels)
+
+
+## Flashes `target` to show a skill landed on them - red when it came from the
+## other side, green when it came from their own. Called once per effect; the
+## sprite collapses repeats so a two-effect skill still reads as one hit.
+func flash_target(attacker: Dictionary, target: Dictionary):
+	var sprite = target.get("sprite")
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	sprite.flash_hit(attacker.side != target.side)
 
 
 ## --- Attributes and the damage they produce ---

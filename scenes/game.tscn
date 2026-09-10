@@ -31,11 +31,12 @@ texture_filter = 1
 script = ExtResource("3_dbxfm")
 combat = NodePath("../VisualCombat")
 
-[node name="VisualCombat" type="Node" parent="." unique_id=785847308 node_paths=PackedStringArray("game_ui", "controller", "reaction_prompt")]
+[node name="VisualCombat" type="Node" parent="." unique_id=785847308 node_paths=PackedStringArray("game_ui", "controller", "reaction_prompt", "camera")]
 script = ExtResource("4_cujqt")
 game_ui = NodePath("../CanvasLayer/UI")
 controller = NodePath("../Controller")
 reaction_prompt = NodePath("../ReactionPrompt")
+camera = NodePath("../Camera2D")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=681935609]
 

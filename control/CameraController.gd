@@ -142,7 +142,47 @@ func _unhandled_input(event):
 		clamp_to_map()
 
 
+## --- Screen shake ---
+##
+## Driven through `offset` rather than `position`, for two reasons: position is
+## clamped to the map every frame, so a shake written there would be fought by
+## the clamp and would stop dead at the map edge, and offset is not something
+## panning or zooming ever touches, so a shake can never leave the view
+## somewhere the player didn't put it.
+
+## How fast a shake dies away. Higher is snappier.
+const SHAKE_DECAY = 9.0
+## Below this the shake is over - stops it trailing off into a jitter too small
+## to see but still costing a frame's work.
+const SHAKE_MINIMUM = 0.4
+
+## Current shake, in screen pixels.
+var _shake := 0.0
+
+
+## Rattles the view by `pixels` at its strongest, decaying to nothing. Takes
+## the strongest of any overlapping calls rather than adding them up, so three
+## things going off together shake once rather than throwing the camera.
+func shake(pixels: float):
+	_shake = maxf(_shake, pixels)
+
+
+func _shake_step(delta: float):
+	if _shake <= 0.0:
+		return
+	_shake = lerpf(_shake, 0.0, minf(SHAKE_DECAY * delta, 1.0))
+	if _shake < SHAKE_MINIMUM:
+		_shake = 0.0
+		offset = Vector2.ZERO
+		return
+	# Divided by zoom so the shake is the same size on screen however far out
+	# the view is - offset is in world units, which zoom then scales.
+	var amount = _shake / maxf(zoom.x, 0.001)
+	offset = Vector2(randf_range(-amount, amount), randf_range(-amount, amount))
+
+
 func _process(delta):
+	_shake_step(delta)
 	if not free_look:
 		# Exploration drives this camera by following the party; WASD walks
 		# them rather than panning the view.
