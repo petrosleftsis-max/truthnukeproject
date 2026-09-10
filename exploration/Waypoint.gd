@@ -17,7 +17,7 @@ class_name Waypoint
 
 ## What dialogue calls this spot. Falls back to the node's own name, so a node
 ## called "Gate" is already reachable as "gate" without filling anything in.
-@export var point_name: String = ""
+@export var point_name: String = "" : set = _set_point_name
 
 
 ## Case-insensitive, so dialogue can say "gate" for a node named "Gate".
@@ -29,6 +29,24 @@ func _name() -> String:
 	return point_name if point_name != "" else name
 
 
+## Visible while you are placing it and invisible in the game, with no need to
+## hide it: a Node2D draws nothing by itself, so this is the whole of its
+## appearance and it only happens in the editor.
+func _draw():
+	if not Engine.is_editor_hint():
+		return
+	var reach = Grid.TILE_SIZE * 0.4
+	draw_circle(Vector2.ZERO, reach * 0.35, Color(0.35, 0.75, 1.0, 0.5))
+	draw_line(Vector2(-reach, 0), Vector2(reach, 0), Color(0.35, 0.75, 1.0), 3.0)
+	draw_line(Vector2(0, -reach), Vector2(0, reach), Color(0.35, 0.75, 1.0), 3.0)
+	draw_string(ThemeDB.fallback_font, Vector2(-reach, -reach * 0.6), _name(),
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color.WHITE)
+
+
 func _ready():
-	# A marker is scenery for the author, never for the player.
-	visible = false
+	queue_redraw()
+
+
+func _set_point_name(value: String):
+	point_name = value
+	queue_redraw()
