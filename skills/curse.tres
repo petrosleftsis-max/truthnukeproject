@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bh7152ehf4coy"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_r1ihj"]
+[ext_resource type="Resource" path="res://conditions/burn.tres" id="2_cop3u"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_luh46"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_cop3u"]
 
@@ -8,6 +9,7 @@
 script = ExtResource("1_r1ihj")
 type = 2
 display_name = "Cursed"
+condition = ExtResource("2_cop3u")
 stat = "accuracy"
 modifier_amount = -20
 duration = 3

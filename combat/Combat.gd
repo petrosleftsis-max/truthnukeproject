@@ -907,6 +907,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"damage_type" = effect.damage_type,
 				"min_amount" = effect.min_amount,
 				"max_amount" = effect.max_amount,
+				"dot_base" = dot_base_damage(attacker, skill, effect.damage_modifier),
 				"duration" = stored_duration(target, effect),
 				"source_name" = attacker.name
 			})
@@ -919,6 +920,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				target.status_effects.append({
 					"stat" = "condition",
 					"condition" = effect.condition,
+					"dot_base" = dot_base_damage(attacker, skill, effect.condition.dot_modifier),
 					"duration" = condition_turns(target, effect),
 					"source_name" = attacker.name
 				})
@@ -1171,8 +1173,8 @@ func process_status_effects(comb: Dictionary):
 			continue
 		if eff.stat == "dot":
 			tick_damage_over_time(comb, eff)
-		elif eff.get("stat", "") == "condition" and eff.condition != null and eff.condition.dot_max > 0:
-			tick_condition_damage(comb, eff.condition)
+		elif eff.get("stat", "") == "condition" and eff.condition != null and (eff.condition.dot_max > 0 or eff.condition.dot_modifier > 0.0):
+			tick_condition_damage(comb, eff.condition, eff.get("dot_base", 0.0))
 		eff.duration -= 1
 		i -= 1
 	clamp_hp_to_max(comb)
@@ -1181,11 +1183,20 @@ func process_status_effects(comb: Dictionary):
 ## Burns a turn's worth of damage off someone suffering a condition that deals
 ## it. Same shape as tick_damage_over_time, but named by the condition so the
 ## log says what is actually hurting them.
-func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition):
+## One tick of a lingering effect, before resistance. Uses the snapshot taken
+## when it landed if there is one, and the flat range if there is not - which
+## is what a condition inflicted with no skill behind it falls back to.
+func dot_tick(target: Dictionary, dot_base: float, flat_min: int, flat_max: int) -> int:
+	if dot_base > 0.0:
+		return Stats.final_damage(dot_base, 1.0, stat_of(target, Stats.Type.DEFENSE))
+	return randi_range(flat_min, flat_max)
+
+
+func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition, dot_base: float = 0.0):
 	if not comb.alive:
 		return
 	var resistance = resistance_of(comb, condition.dot_type)
-	var amount = resisted_damage(comb, condition.dot_type, randi_range(condition.dot_min, condition.dot_max))
+	var amount = resisted_damage(comb, condition.dot_type, dot_tick(comb, dot_base, condition.dot_min, condition.dot_max))
 	comb.hp -= amount
 	update_combatants.emit(combatants)
 	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from %s.\n" % [
@@ -1201,7 +1212,7 @@ func tick_damage_over_time(comb: Dictionary, eff: Dictionary):
 		return
 	var type = eff.get("damage_type", Damage.Type.PHYSICAL)
 	var resistance = resistance_of(comb, type)
-	var amount = resisted_damage(comb, type, randi_range(eff.min_amount, eff.max_amount))
+	var amount = resisted_damage(comb, type, dot_tick(comb, eff.get("dot_base", 0.0), eff.min_amount, eff.max_amount))
 	comb.hp -= amount
 	update_combatants.emit(combatants)
 	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from a lingering effect (%s).\n" % [
@@ -1519,6 +1530,21 @@ func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefinition, power: float = 1.0) -> int:
 	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat), attacker.get("weapon_base", Stats.WEAPON_BASE))
 	return Stats.final_damage(base, skill.ability_modifier * power, stat_of(target, Stats.Type.DEFENSE))
+
+
+## What a lingering tick from `skill` should be worth, before the target's own
+## defence and resistance are applied. Zero when there is no skill to scale
+## off, which tells the tick to fall back to its flat amounts.
+##
+## Snapshotted when the effect lands rather than recomputed each turn: the
+## caster may be dead, moved, or debuffed by the time it ticks, and a poison
+## getting weaker because the poisoner was hit is not what anyone expects.
+## The target's side of it - defence and resistance - is still read live, so
+## shoring yourself up mid-burn does help.
+func dot_base_damage(attacker: Dictionary, skill: SkillDefinition, modifier: float) -> float:
+	if skill == null or modifier <= 0.0:
+		return 0.0
+	return Stats.base_damage(stat_of(attacker, skill.scaling_stat)) * skill.ability_modifier * modifier
 
 
 func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):

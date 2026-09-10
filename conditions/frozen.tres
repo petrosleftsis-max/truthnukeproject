@@ -8,6 +8,7 @@ display_name = "Frozen"
 description = "Locked in ice. Too stiff for a secondary action."
 duration = 3
 dot_type = 2
+dot_modifier = 0.3
 dot_min = 2
 dot_max = 4
 prevents_secondary = true

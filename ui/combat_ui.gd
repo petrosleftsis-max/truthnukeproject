@@ -400,7 +400,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# here - what the skill contributes is which stat and how hard.
 			if skill != null:
 				return "Damage: %s x%s %s" % [
-					Stats.stat_name(skill.scaling_stat), skill.ability_modifier,
+					Stats.stat_name(skill.scaling_stat), skill.ability_modifier * effect.damage_modifier,
 					Damage.type_name(effect.damage_type).to_lower()
 				]
 			return "Damage: %s" % Damage.type_name(effect.damage_type).to_lower()
@@ -410,6 +410,13 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			var sign_str = "+" if effect.modifier_amount >= 0 else ""
 			return "%s%d %s for %d turn(s)" % [sign_str, effect.modifier_amount, effect.stat, effect.duration]
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
+			# Reads like the direct-damage line, because it is worked out the same
+			# way now - the caster's stat rather than a flat range.
+			if skill != null:
+				return "Damage over time: %s x%s %s each turn for %d turn(s)" % [
+					Stats.stat_name(skill.scaling_stat), skill.ability_modifier * effect.damage_modifier,
+					Damage.type_name(effect.damage_type).to_lower(), effect.duration
+				]
 			return "Damage over time: %d-%d %s for %d turn(s)" % [
 				effect.min_amount, effect.max_amount, Damage.type_name(effect.damage_type).to_lower(), effect.duration
 			]

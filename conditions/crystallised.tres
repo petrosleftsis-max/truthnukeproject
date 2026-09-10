@@ -8,6 +8,7 @@ display_name = "Crystallised"
 description = "Encased and cracking. Cannot move or take a secondary action."
 duration = 3
 dot_type = 4
+dot_modifier = 0.3
 dot_min = 2
 dot_max = 4
 prevents_movement = true

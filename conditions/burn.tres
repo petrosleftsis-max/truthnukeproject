@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3 uid="uid://1ld4g4lgfheh"]
 
-[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
 
 [resource]
 script = ExtResource("1_cond")
 display_name = "Burn"
 description = "Alight, and running from it."
-duration = 3
 dot_type = 1
+dot_modifier = 0.45
 dot_min = 3
 dot_max = 6
 movement_change = 2

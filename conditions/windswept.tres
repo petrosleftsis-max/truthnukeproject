@@ -8,6 +8,7 @@ display_name = "Windswept"
 description = "Battered by wind - slowed, and blown about at the start of each turn."
 duration = 3
 dot_type = 3
+dot_modifier = 0.2
 dot_min = 1
 dot_max = 3
 movement_change = -3
