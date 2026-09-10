@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://ui/result_ui.tscn" id="10_resultui"]
 [ext_resource type="PackedScene" path="res://ui/reaction_prompt.tscn" id="11_reaction"]
 [ext_resource type="Script" path="res://ui/hurt_vignette.gd" id="12_vignette"]
+[ext_resource type="Script" path="res://ui/character_sheet.gd" id="13_sheet"]
 
 [node name="Game" type="Node" unique_id=614169276 node_paths=PackedStringArray("combat")]
 script = ExtResource("8_game")
@@ -54,6 +55,10 @@ controller = NodePath("../Controller")
 combat = NodePath("../VisualCombat")
 
 [node name="ReactionPrompt" parent="." instance=ExtResource("11_reaction")]
+
+[node name="CharacterSheet" type="CanvasLayer" parent="." node_paths=PackedStringArray("combat")]
+script = ExtResource("13_sheet")
+combat = NodePath("../VisualCombat")
 
 [node name="HurtVignette" type="CanvasLayer" parent="."]
 script = ExtResource("12_vignette")

@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://control/CameraController.gd" id="2_camera"]
 [ext_resource type="PackedScene" uid="uid://ddgx1hll377nx" path="res://ui/ui.tscn" id="3_ui"]
 [ext_resource type="PackedScene" path="res://ui/pause_ui.tscn" id="4_pauseui"]
+[ext_resource type="Script" path="res://ui/character_sheet.gd" id="5_sheet"]
 
 [node name="Exploration" type="Node" node_paths=PackedStringArray("game_ui", "camera")]
 script = ExtResource("1_explore")
@@ -24,3 +25,6 @@ free_look = false
 metadata/_edit_use_anchors_ = true
 
 [node name="PauseUI" parent="." instance=ExtResource("4_pauseui")]
+
+[node name="CharacterSheet" type="CanvasLayer" parent="."]
+script = ExtResource("5_sheet")
