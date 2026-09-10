@@ -3,10 +3,11 @@
 [ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="1_terrain"]
 [ext_resource type="Script" uid="uid://cuc3ggd1v8ak1" path="res://exploration/EntryPoint.gd" id="2_entry"]
 [ext_resource type="Script" uid="uid://bvf5j5cha8oo0" path="res://exploration/ExamineInteractable.gd" id="3_examine"]
+[ext_resource type="Texture2D" uid="uid://fxw2rmu784hb" path="res://imagese/icon/icon.png" id="4_e8hu0"]
 [ext_resource type="Script" uid="uid://cq2s71a1q831b" path="res://exploration/EncounterInteractable.gd" id="4_encounter"]
 [ext_resource type="Resource" uid="uid://b24liue2xhn55" path="res://encounters/encounter_01_ambush.tres" id="5_enc1"]
 [ext_resource type="Resource" uid="uid://cpwijoqwu540n" path="res://encounters/encounter_03_watcher.tres" id="6_enc3"]
-[ext_resource type="Texture2D" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="7_monsters"]
+[ext_resource type="Texture2D" uid="uid://b0w7nfii5aqsf" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="7_monsters"]
 [ext_resource type="Script" uid="uid://bx4mgbrftmp1c" path="res://exploration/DialogueInteractable.gd" id="8_e8hu0"]
 [ext_resource type="Resource" uid="uid://cepep6b0fajfa" path="res://Dialogue/test.dialogue" id="9_go82g"]
 
@@ -21,23 +22,26 @@ region = Rect2(64, 0, 32, 32)
 [node name="ExploreCrossroads" unique_id=1813498774 instance=ExtResource("1_terrain")]
 
 [node name="EntryPoint" type="Marker2D" parent="." index="2" unique_id=245944890]
-position = Vector2(1248, 1440)
+position = Vector2(1230, 1428)
 script = ExtResource("2_entry")
 entry_name = "start"
 
 [node name="Signpost" type="Node2D" parent="." index="3" unique_id=1278601289]
-position = Vector2(1824, 1440)
+position = Vector2(1873, 2113)
 script = ExtResource("3_examine")
 text = "The crossroads. Goblins to the east, something worse beyond them."
 speaker = "Signpost"
 prompt = "Read"
+interaction_radius = 240.0
+texture = ExtResource("4_e8hu0")
 
 [node name="Bones" type="Node2D" parent="." index="4" unique_id=1238560271]
-position = Vector2(1440, 2208)
+position = Vector2(1501, 2899)
 script = ExtResource("3_examine")
 text = "Picked clean. Whatever did this went east."
 repeatable = false
 prompt = "Examine"
+interaction_radius = 240.0
 
 [node name="GoblinAmbush" type="Node2D" parent="." index="5" unique_id=376770803]
 position = Vector2(3360, 1440)
@@ -45,6 +49,7 @@ script = ExtResource("4_encounter")
 encounter = ExtResource("5_enc1")
 trigger_id = "crossroads_goblins"
 prompt = "Fight"
+interaction_radius = 240.0
 texture = SubResource("AtlasTexture_goblin")
 
 [node name="TheWatcher" type="Node2D" parent="." index="6" unique_id=1879122408]
@@ -53,6 +58,7 @@ script = ExtResource("4_encounter")
 encounter = ExtResource("6_enc3")
 trigger_id = "crossroads_watcher"
 prompt = "Fight"
+interaction_radius = 240.0
 texture = SubResource("AtlasTexture_eye")
 
 [node name="DialogueInteractable" type="Node2D" parent="." index="7" unique_id=1387684525]

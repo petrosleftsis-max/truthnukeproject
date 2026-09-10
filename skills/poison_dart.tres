@@ -12,10 +12,10 @@ max_amount = 3
 
 [sub_resource type="Resource" id="Effect_poison_dot"]
 script = ExtResource("1_mcofx")
-damage_modifier = 0.3
 type = 3
 display_name = "Poisoning"
 damage_type = 5
+damage_modifier = 0.3
 min_amount = 2
 max_amount = 4
 duration = 3

@@ -179,8 +179,9 @@ func _start_position() -> Vector2:
 	var entries = []
 	_collect_entries(get_node_or_null(MAP_NODE), entries)
 	if entries.is_empty():
-		push_warning("Exploration map '%s' has no EntryPoint - the party will start at the origin." % map_path())
-		return Vector2.ZERO
+		var ground = _first_standable_position()
+		push_warning("Exploration map '%s' has no EntryPoint - starting the party on the first ground found, at %s. Add one to say where they should arrive." % [map_path(), ground])
+		return ground
 	if Campaign.target_entry != "":
 		for entry in entries:
 			if entry.entry_name == Campaign.target_entry:
@@ -189,6 +190,39 @@ func _start_position() -> Vector2:
 		push_warning("Map '%s' has no entry point named '%s' - using its first one." % [map_path(), Campaign.target_entry])
 		Campaign.target_entry = ""
 	return entries[0].position
+
+
+## Somewhere on this map the party can actually stand, for a map with no
+## EntryPoint to fall back to.
+##
+## The origin used to be that fallback, which only ever worked by luck: it is
+## the corner of the coordinate system, not a promise of walkable ground. The
+## moment a map gains a border of solid rock, or simply does not start at tile
+## zero, the party arrives sealed inside a wall with every direction blocked -
+## which looks exactly like movement being broken.
+##
+## Checked at the same four corners the party itself uses, so a tile picked
+## here is one it can genuinely occupy rather than merely the centre of.
+func _first_standable_position() -> Vector2:
+	if _tile_map == null:
+		return Vector2.ZERO
+	var radius = ExplorationParty.new().body_radius
+	var used = _tile_map.get_used_rect()
+	for y in range(used.position.y, used.position.y + used.size.y):
+		for x in range(used.position.x, used.position.x + used.size.x):
+			var centre = _tile_map.map_to_local(Vector2i(x, y))
+			var clear = true
+			for offset in [
+				Vector2(-radius, -radius), Vector2(radius, -radius),
+				Vector2(-radius, radius), Vector2(radius, radius)
+			]:
+				if not is_walkable(centre + offset):
+					clear = false
+					break
+			if clear:
+				return centre
+	push_error("Exploration map '%s' has nowhere the party can stand at all." % map_path())
+	return Vector2.ZERO
 
 
 func _collect_entries(node: Node, into: Array):
