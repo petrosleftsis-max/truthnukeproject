@@ -108,6 +108,9 @@ func _build_map():
 	_build_blocking()
 	_interactables = []
 	_collect_interactables(map)
+	# Dialogue can walk people about this map now, and anything it was walking
+	# on the last one is gone with it.
+	Actors.use_scene(self, _tile_map)
 
 
 ## Which tiles the party can't walk on. Built once from the same "Blocks"
@@ -161,13 +164,13 @@ func _spawn_party():
 func _party_textures() -> Array:
 	var looks = []
 	for member in Campaign.party_members():
-		looks.append({"map_sprite": member.map_sprite, "sprite_frames": member.sprite_frames})
+		looks.append({"key": member.key, "map_sprite": member.map_sprite, "sprite_frames": member.sprite_frames})
 	if looks.is_empty():
 		# Everyone is down, but there still has to be something to walk with.
 		for key in Campaign.party_order:
 			if CombatantDatabase.combatants.has(key):
 				var definition = CombatantDatabase.combatants[key]
-				looks.append({"map_sprite": definition.map_sprite, "sprite_frames": definition.sprite_frames})
+				looks.append({"key": key, "map_sprite": definition.map_sprite, "sprite_frames": definition.sprite_frames})
 				break
 	return looks
 

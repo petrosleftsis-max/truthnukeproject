@@ -58,6 +58,9 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 		sprite.position = start_position
 		add_child(sprite)
 		sprite.setup(members[i].get("sprite_frames"), members[i].get("map_sprite"), false)
+		# Who this actually is, so a conversation can send "cyrus" somewhere
+		# rather than "the second one in the line".
+		sprite.set_meta("combatant_key", members[i].get("key", ""))
 		# Above the map, descending so the line reads front-to-back with the
 		# leader on top. Absolute rather than relative, and never at or below
 		# the terrain's own z_index of 0 - followers were previously at -1 and
@@ -69,6 +72,15 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 		else:
 			followers.append(sprite)
 	_trail.append({"position": start_position, "distance": 0.0})
+
+
+## The party member with this combatant key, or null for anyone not in the
+## line. How dialogue addresses the people the player is already walking with.
+func sprite_for(combatant_key: String) -> CombatantSprite:
+	for sprite in _members():
+		if String(sprite.get_meta("combatant_key", "")).to_lower() == combatant_key.to_lower():
+			return sprite
+	return null
 
 
 ## Whether the line is currently walking, and which way it faces. Kept rather

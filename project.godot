@@ -25,12 +25,13 @@ SkillDatabase="*res://databases/skill_database.tscn"
 CombatantDatabase="*res://databases/combatant_database.tscn"
 Campaign="*res://campaign/Campaign.gd"
 Music="*res://audio/Music.gd"
+Actors="*res://exploration/Actors.gd"
 SceneTransition="*res://ui/scene_transition.gd"
 DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
 
 [dialogue_manager]
 
-runtime/state_autoload_shortcuts=PackedStringArray("Campaign", "Music")
+runtime/state_autoload_shortcuts=PackedStringArray("Campaign", "Music", "Actors")
 
 [display]
 
@@ -51,7 +52,7 @@ theme/custom="res://ui/blue_theme.tres"
 
 [internationalization]
 
-locale/translations_pot_files=PackedStringArray("res://Dialogue/test.dialogue")
+locale/translations_pot_files=PackedStringArray("res://Dialogue/test.dialogue", "res://Dialogue/cyrus_intro.dialogue", "res://Dialogue/intro_sewer_guard_loot.dialogue", "res://Dialogue/intro_sewer_homeless_beds.dialogue", "res://Dialogue/intro_sewer_idol_accident.dialogue", "res://Dialogue/intro_sewer_before_encounter.dialogue", "res://Dialogue/walking_example.dialogue")
 
 [rendering]
 
