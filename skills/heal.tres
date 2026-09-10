@@ -20,4 +20,5 @@ icon = ExtResource("2_oejdn")
 targets_ally = true
 effects = Array[ExtResource("1_d34oe")]([SubResource("Effect_heal")])
 deals_damage = false
+ability_modifier = 0.45
 scaling_stat = 1

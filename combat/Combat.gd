@@ -1602,6 +1602,15 @@ func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 	return Stats.final_damage(base, skill.ability_modifier * power, stat_of(target, Stats.Type.DEFENSE))
 
 
+
+## What `skill` mends when `healer` casts it. No defence on the other side of
+## it - being tough does not make you harder to patch up - and no randomness,
+## so a heal is something you can count on when deciding whether it is enough.
+func heal_amount(healer: Dictionary, skill: SkillDefinition) -> int:
+	var base = Stats.base_damage(stat_of(healer, skill.scaling_stat), healer.get("weapon_base", Stats.WEAPON_BASE))
+	return maxi(roundi(base * skill.ability_modifier), 0)
+
+
 ## What a lingering tick from `skill` should be worth, before the target's own
 ## defence and resistance are applied. Zero when there is no skill to scale
 ## off, which tells the tick to fall back to its flat amounts.
@@ -1641,7 +1650,10 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 
 
 func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
-	var amount = randi_range(effect.min_amount, effect.max_amount)
+	# The same shape as damage: the healer's stat and the skill's modifier. The
+	# effect's flat range only stands in when there is no skill behind the
+	# healing at all, the way it does for damage.
+	var amount = heal_amount(attacker, skill) if skill != null else randi_range(effect.min_amount, effect.max_amount)
 	target.hp = mini(target.hp + amount, get_effective_stat(target, "max_hp"))
 	float_number(target, "+" + str(amount), Color("7fe08a"))
 	update_combatants.emit(combatants)

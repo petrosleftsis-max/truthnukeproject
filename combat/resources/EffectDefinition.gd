@@ -49,8 +49,10 @@ enum DispelScope {
 ## collision damage a PUSH deals, and checked against the target's resistances
 ## (see CombatantDefinition). Ignored by HEAL.
 @export var damage_type: Damage.Type = Damage.Type.PHYSICAL
-## Used when type is DAMAGE, HEAL, or DAMAGE_OVER_TIME (as the per-tick
-## amount). Actual amount is randomised between these each time it's rolled.
+## The flat fallback, used only when there is no skill behind the effect - a
+## shove into a wall, something applied by hand. A skill's damage and healing
+## both come from its caster's stat and its own AbilityModifier instead.
+## Randomised between these each time it is rolled.
 ## Also used by PUSH: if the push gets stopped short by a wall or the map
 ## edge (not by bumping another combatant), it deals this much collision
 ## damage. Leave both at 0 for a push with no collision damage.

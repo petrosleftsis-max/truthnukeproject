@@ -77,7 +77,7 @@ enum AoEShape {
 ## effect's type first and the rest of it follows.
 @export var effects: Array[EffectDefinition] = []
 
-@export_group("Damage")
+@export_group("Power")
 ## Whether this skill hits for damage by itself.
 ##
 ## On for an attack. Off for a heal, a buff, a shove, or a skill that only
@@ -89,15 +89,19 @@ enum AoEShape {
 ## that decides how hard a skill hits - the stat, the modifier, the contest -
 ## was already here, and the effect only carried the damage type.
 @export var deals_damage: bool = true : set = _set_deals_damage
-## How hard this skill hits for its stat. 1.0 is an ordinary attack, 0.5 a
-## glancing one, 2.0 something that should hurt. Multiplied straight into the
-## damage, so this is the dial to turn when a skill feels weak or oppressive.
+## How strong this skill is, whatever it does. 1.0 is an ordinary attack, 0.5 a
+## glancing one, 2.0 something that should hurt. This is the dial to turn when
+## a skill feels weak or oppressive.
 ##
-## Damage-over-time ticks scale from this too, taking a fraction of it - see
-## the effect's own DamageModifier.
+## One dial for the lot: a hit, a heal and a poison tick all work out to
+## (WeaponBase + 0.7 x ScalingStat) x this, so a healer's mending grows with
+## her Mindfulness exactly as an attacker's damage grows with his Physical. A
+## damage-over-time tick takes a fraction of it on top - see the effect's own
+## DamageModifier. What the skill actually does is decided by DealsDamage and
+## by the effects it carries, not here.
 @export_range(0.0, 5.0, 0.05, "or_greater") var ability_modifier: float = 1.0
 ## Which of the caster's attributes this scales from. The whole of a skill's
-## damage comes from this one stat: BaseDamage = WeaponBase + 0.7 x Stat.
+## strength comes from this one stat: Base = WeaponBase + 0.7 x Stat.
 ##
 ## Also the caster's side of a stat contest, whether or not the skill damages.
 @export var scaling_stat: Stats.Type = Stats.Type.PHYSICAL

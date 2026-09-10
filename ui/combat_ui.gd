@@ -405,6 +405,9 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 				]
 			return "Damage: %s" % Damage.type_name(effect.damage_type).to_lower()
 		EffectDefinition.EffectType.HEAL:
+			# Reads like the damage line, because it is worked out the same way.
+			if skill != null:
+				return "Heal: %s x%s" % [Stats.stat_name(skill.scaling_stat), skill.ability_modifier]
 			return "Heal: %d-%d" % [effect.min_amount, effect.max_amount]
 		EffectDefinition.EffectType.STAT_MODIFIER:
 			var sign_str = "+" if effect.modifier_amount >= 0 else ""
