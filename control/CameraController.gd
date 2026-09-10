@@ -43,6 +43,12 @@ class_name CameraController
 ## follow would fight the drag for the camera's position every frame. Zooming
 ## stays available either way.
 @export var free_look := true
+## Whether the player may change the zoom. On in battle, where seeing the whole
+## board or leaning in on one corner is part of playing it. Off in exploration,
+## where the view is a composed shot: the map is drawn to be read at one
+## distance, and a scene that walks someone in from off the edge only works if
+## the edge is where the framing says it is.
+@export var allow_zoom := true
 
 var _tile_map: TileMap = null
 var _dragging := false
@@ -109,6 +115,8 @@ func clamp_to_map():
 ## applied at the end of the frame, so that would report the pre-zoom position
 ## both times and correct by nothing.
 func zoom_at_screen_point(new_zoom_level: float, screen_point: Vector2):
+	if not allow_zoom:
+		return
 	var old_zoom_level = zoom.x
 	new_zoom_level = clampf(new_zoom_level, min_zoom, max_zoom)
 	if is_equal_approx(new_zoom_level, old_zoom_level):
@@ -126,10 +134,10 @@ func zoom_at_screen_point(new_zoom_level: float, screen_point: Vector2):
 
 func _unhandled_input(event):
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed and allow_zoom:
 			zoom_at_screen_point(zoom.x * zoom_step, event.position)
 			get_viewport().set_input_as_handled()
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed and allow_zoom:
 			zoom_at_screen_point(zoom.x / zoom_step, event.position)
 			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_MIDDLE and free_look:
