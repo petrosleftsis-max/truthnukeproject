@@ -50,6 +50,6 @@ func _describe_party() -> String:
 ## standing in, or the level select if the fight was picked from the menu.
 func _on_back_pressed():
 	if Campaign.has_map_to_return_to():
-		get_tree().change_scene_to_file("res://scenes/exploration.tscn")
+		SceneTransition.change_scene("res://scenes/exploration.tscn")
 	else:
-		get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+		SceneTransition.change_scene("res://scenes/level_select.tscn")

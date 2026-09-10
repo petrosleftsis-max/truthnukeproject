@@ -295,7 +295,7 @@ func _note(text: String) -> Label:
 
 func _on_encounter_pressed(encounter: EncounterDefinition):
 	Campaign.current_encounter = encounter
-	get_tree().change_scene_to_file(battle_scene)
+	SceneTransition.change_scene(battle_scene)
 
 
 func _on_reset_pressed():

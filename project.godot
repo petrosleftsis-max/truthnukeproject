@@ -24,6 +24,7 @@ config/icon="res://imagese/icon/icon.png"
 SkillDatabase="*res://databases/skill_database.tscn"
 CombatantDatabase="*res://databases/combatant_database.tscn"
 Campaign="*res://campaign/Campaign.gd"
+SceneTransition="*res://ui/scene_transition.gd"
 DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
 
 [dialogue_manager]

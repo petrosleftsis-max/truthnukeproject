@@ -92,7 +92,7 @@ func _on_options_pressed():
 ## unresolved in the current battle is simply dropped.
 func _on_level_select_pressed():
 	Campaign.return_to_position = false
-	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+	SceneTransition.change_scene("res://scenes/level_select.tscn")
 
 
 func _on_exit_pressed():

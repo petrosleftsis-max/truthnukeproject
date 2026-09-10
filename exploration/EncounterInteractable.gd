@@ -47,4 +47,4 @@ func interact(scene: Node):
 		push_warning("EncounterInteractable '%s' has no encounter assigned." % name)
 		return
 	Campaign.begin_battle_from_exploration(encounter, scene.map_path(), scene.party_position(), trigger_id)
-	scene.get_tree().change_scene_to_file(scene.battle_scene)
+	SceneTransition.change_scene(scene.battle_scene)
