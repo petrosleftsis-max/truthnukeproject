@@ -89,6 +89,7 @@ ai_function = "ai_hit_and_explode"
 [sub_resource type="Resource" id="Resource_priest"]
 script = ExtResource("2_rggep")
 name = "Priest"
+skills = Array[String](["heal", "cleanse"])
 main_stat = 1
 secondary_stat = 3
 spell_slots_1 = 2
@@ -137,6 +138,7 @@ ai_function = "ai_copycat"
 [sub_resource type="Resource" id="Resource_alithia"]
 script = ExtResource("2_rggep")
 name = "Alithia"
+skills = Array[String](["heal", "cleanse", "vitality"])
 main_stat = 1
 secondary_stat = 3
 class_t = 2

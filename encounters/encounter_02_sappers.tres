@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
 [ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
-[ext_resource type="PackedScene" uid="uid://4ucd52nk0txi" path="res://scenes/sapperTerrain.tscn" id="3_y7mw8"]
+[ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="3_y7mw8"]
 
 [sub_resource type="Resource" id="Resource_y7mw8"]
 script = ExtResource("2_spawn")
@@ -17,7 +17,7 @@ position = Vector2i(33, 3)
 [sub_resource type="Resource" id="Resource_23sa8"]
 script = ExtResource("2_spawn")
 combatant_key = "cyrus"
-position = Vector2i(35, 5)
+position = Vector2i(34, 5)
 
 [sub_resource type="Resource" id="Resource_44smm"]
 script = ExtResource("2_spawn")

@@ -64,7 +64,11 @@ var deployment_active := false
 var skills_lists = [
 	["attack_melee", "slowing_strike", "run"], #Melee
 	["attack_melee", "attack_ranged", "lightning_bolt", "poison_dart", "run"], #Ranged
-	["attack_melee", "basic_magic", "heal", "fireball", "flame_cone", "curse", "vitality", "cleanse", "repel", "gravity_pull", "run"] #Magic
+	# Heal, Cleanse and Vitality are deliberately not here. They are the support
+	# kit rather than part of being a caster, so they are granted per character
+	# (see CombatantDefinition.skills) - Alithia and the Priest have them,
+	# Prometheus and the Sorcerer do not.
+	["attack_melee", "basic_magic", "fireball", "flame_cone", "curse", "repel", "gravity_pull", "run"] #Magic
 ]
 
 
