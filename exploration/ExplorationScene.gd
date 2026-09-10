@@ -154,19 +154,22 @@ func _spawn_party():
 	_follow_camera(party.position_of_leader())
 
 
-## Map sprites for everyone still standing, leader first - straight off the
-## campaign roster, so the line on the map is exactly the party you'd field.
+## What everyone still standing looks like, leader first - straight off the
+## campaign roster, so the line on the map is exactly the party you would
+## field. Each entry carries both the still and the animation set, because the
+## party walks with the same SpriteFrames it fights with.
 func _party_textures() -> Array:
-	var textures = []
+	var looks = []
 	for member in Campaign.party_members():
-		textures.append(member.map_sprite)
-	if textures.is_empty():
+		looks.append({"map_sprite": member.map_sprite, "sprite_frames": member.sprite_frames})
+	if looks.is_empty():
 		# Everyone is down, but there still has to be something to walk with.
 		for key in Campaign.party_order:
 			if CombatantDatabase.combatants.has(key):
-				textures.append(CombatantDatabase.combatants[key].map_sprite)
+				var definition = CombatantDatabase.combatants[key]
+				looks.append({"map_sprite": definition.map_sprite, "sprite_frames": definition.sprite_frames})
 				break
-	return textures
+	return looks
 
 
 ## Coming back from a battle puts the party exactly where they left; arriving

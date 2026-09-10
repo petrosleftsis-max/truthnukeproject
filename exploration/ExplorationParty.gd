@@ -28,8 +28,8 @@ signal moved(position: Vector2)
 ## realistic size still clears the map underneath.
 const PARTY_Z_TOP := 20
 
-var leader: Sprite2D = null
-var followers: Array = []
+var leader: CombatantSprite = null
+var followers: Array[CombatantSprite] = []
 var frozen := false
 
 ## Positions the leader has occupied, newest last, with the distance walked to
@@ -50,16 +50,20 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 	_trail.clear()
 	_trail_length = 0.0
 	for i in members.size():
-		var sprite = Sprite2D.new()
-		sprite.texture = members[i]
+		# The same CombatantSprite battles use, so the party walks with the
+		# animation set it fights with rather than sliding along as a still. It
+		# falls back to the flat map sprite on its own for anyone with no
+		# SpriteFrames, so nothing has to be animated for this to work.
+		var sprite = CombatantSprite.new()
 		sprite.position = start_position
+		add_child(sprite)
+		sprite.setup(members[i].get("sprite_frames"), members[i].get("map_sprite"), false)
 		# Above the map, descending so the line reads front-to-back with the
 		# leader on top. Absolute rather than relative, and never at or below
 		# the terrain's own z_index of 0 - followers were previously at -1 and
 		# -2, which drew them underneath the map and made them invisible.
 		sprite.z_as_relative = false
 		sprite.z_index = PARTY_Z_TOP - i
-		add_child(sprite)
 		if i == 0:
 			leader = sprite
 		else:
@@ -67,15 +71,30 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 	_trail.append({"position": start_position, "distance": 0.0})
 
 
+## Whether the line is currently walking, and which way it faces. Kept rather
+## than set every frame so the animation is only told to change when it
+## actually changes - restarting "walk" sixty times a second would hold it on
+## its first frame and look like no animation at all.
+var _walking := false
+var _facing_left := false
+
+
 func _process(delta):
 	if leader == null or frozen:
+		_set_walking(false)
 		return
 	var direction = Vector2(
 		_axis(KEY_D, KEY_RIGHT) - _axis(KEY_A, KEY_LEFT),
 		_axis(KEY_S, KEY_DOWN) - _axis(KEY_W, KEY_UP)
 	)
 	if direction == Vector2.ZERO:
+		_set_walking(false)
 		return
+	if direction.x != 0.0:
+		# Only a horizontal press turns the line. Walking straight up or down
+		# leaves everyone facing the way they last went, rather than snapping
+		# back to the default every time the path turns a corner.
+		_set_facing(direction.x < 0.0)
 	var step = direction.normalized() * move_speed * delta
 	var before = leader.position
 	# Each axis separately, so running into a wall at an angle slides along it
@@ -88,11 +107,44 @@ func _process(delta):
 	if _can_stand(candidate):
 		moved_to = candidate
 	if moved_to == before:
+		# Pressed into a wall: still facing that way, but not walking anywhere.
+		_set_walking(false)
 		return
+	_set_walking(true)
 	leader.position = moved_to
 	_record_trail(before, moved_to)
 	_place_followers()
 	moved.emit(moved_to)
+
+
+## Everyone in the line, leader first.
+func _members() -> Array:
+	var all = []
+	if leader != null:
+		all.append(leader)
+	all.append_array(followers)
+	return all
+
+
+func _set_walking(walking: bool):
+	if walking == _walking:
+		return
+	_walking = walking
+	for sprite in _members():
+		if walking:
+			sprite.play_walk()
+		else:
+			sprite.play_idle()
+
+
+## Turns the whole line, followers included - they are walking the same path
+## the leader just walked, so they face the same way.
+func _set_facing(left: bool):
+	if left == _facing_left:
+		return
+	_facing_left = left
+	for sprite in _members():
+		sprite.set_facing(left)
 
 
 func _axis(key_a: Key, key_b: Key) -> float:

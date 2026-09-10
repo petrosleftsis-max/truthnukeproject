@@ -230,6 +230,15 @@ const DEATH_SECONDS = 0.45
 ## vanishing between one frame and the next reads as a glitch rather than a
 ## death. Kept partly visible rather than gone, and clearly dimmer than anyone
 ## still standing, so the board is never ambiguous about who can still act.
+## Turns this combatant around. Exploration flips the whole line to face the
+## way it is walking; combat sets it once when the sprite is built.
+func set_facing(flip: bool):
+	if _animated != null:
+		_animated.flip_h = flip
+	elif _static != null:
+		_static.flip_h = flip
+
+
 func set_dead():
 	if _animated:
 		if _animated.sprite_frames.has_animation("dead"):

@@ -169,6 +169,9 @@ func party_members() -> Array:
 			"name": definition.name,
 			"icon": definition.icon,
 			"map_sprite": definition.map_sprite,
+			# The animation set travels with the still: the party walks the map
+			# with the same SpriteFrames it fights with.
+			"sprite_frames": definition.sprite_frames,
 			"hp": hp,
 			"max_hp": definition.max_hp,
 			"is_leader": key == leader(),
