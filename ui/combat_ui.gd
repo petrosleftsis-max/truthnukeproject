@@ -176,6 +176,10 @@ func show_combatant_status_main(comb: Dictionary):
 	# A new turn always opens on the main panel.
 	set_skill_panel(SkillPanel.MAIN)
 	_show_skills_for(comb)
+	# The queue has to be redrawn on every turn change, not only when someone
+	# takes damage, or the ring stays on whoever acted last.
+	if combat != null:
+		update_combatants(combat.combatants)
 
 
 ## True while the player is placing the party, before the first turn.
@@ -408,7 +412,9 @@ func update_combatants(combatants: Array):
 		if turn_queue_icon != null:
 			turn_queue_icon.set_max_hp(effective_max_hp)
 			turn_queue_icon.set_hp(comb.hp)
-			turn_queue_icon.set_side(comb.side)
+			# Order matters: set_current works out the border colour, so it has
+			# to run before anything reads it.
+			turn_queue_icon.set_current(combat.get_current_combatant() == comb, comb.side)
 			turn_queue_icon.set_turn_taken(comb.turn_taken)
 
 
