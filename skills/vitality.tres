@@ -21,4 +21,5 @@ accuracy = 100
 icon = ExtResource("2_bg4m5")
 targets_ally = true
 effects = Array[ExtResource("1_gpjfk")]([SubResource("Effect_vitality")])
+deals_damage = false
 scaling_stat = 1

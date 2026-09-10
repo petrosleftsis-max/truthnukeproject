@@ -23,4 +23,5 @@ max_range = 6
 accuracy = 85
 icon = ExtResource("2_luh46")
 effects = Array[ExtResource("1_r1ihj")]([SubResource("Effect_curse")])
+deals_damage = false
 scaling_stat = 2

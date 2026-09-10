@@ -4,12 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_y1vqh"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_2al5t"]
 
-[sub_resource type="Resource" id="Effect_flamecone_dmg"]
-script = ExtResource("1_crdpa")
-damage_type = 1
-min_amount = 3
-max_amount = 5
-
 [resource]
 script = ExtResource("3_2al5t")
 name = "Flame Cone"
@@ -18,8 +12,8 @@ min_range = 1
 max_range = 6
 accuracy = 80
 icon = ExtResource("2_y1vqh")
-effects = Array[ExtResource("1_crdpa")]([SubResource("Effect_flamecone_dmg")])
 scaling_stat = 2
+damage_type = 1
 spell_slot_level = 1
 aoe_radius = 3
 aoe_shape = 2

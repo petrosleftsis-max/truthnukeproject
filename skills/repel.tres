@@ -4,11 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_jhtu7"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_2orsb"]
 
-[sub_resource type="Resource" id="Effect_repel_dmg"]
-script = ExtResource("1_530t1")
-min_amount = 2
-max_amount = 4
-
 [sub_resource type="Resource" id="Effect_repel_push"]
 script = ExtResource("1_530t1")
 type = 5
@@ -24,4 +19,4 @@ min_range = 1
 max_range = 3
 accuracy = 85
 icon = ExtResource("2_jhtu7")
-effects = Array[ExtResource("1_530t1")]([SubResource("Effect_repel_dmg"), SubResource("Effect_repel_push")])
+effects = Array[ExtResource("1_530t1")]([SubResource("Effect_repel_push")])

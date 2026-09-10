@@ -59,8 +59,9 @@ enum DispelScope {
 ## Poison Dart does - and they should not be forced to the same strength just
 ## because they came from the same skill.
 ##
-## Used by DAMAGE and DAMAGE_OVER_TIME. A damage-over-time tick usually wants a
-## fraction of a direct hit, since it lands once per turn for several turns.
+## Used by DAMAGE_OVER_TIME, where a tick usually wants a fraction of a direct
+## hit, since it lands once per turn for several turns. A direct hit has no use
+## for it: a skill's own damage carries its strength on the skill itself.
 @export_range(0.0, 5.0, 0.05, "or_greater") var damage_modifier: float = 1.0
 ## Only consulted when there is no skill behind the damage at all - a shove
 ## into a wall, something applied by hand. A skill's damage comes from its
@@ -107,7 +108,7 @@ enum DispelScope {
 ## Which fields each effect type actually reads. Everything not listed for a
 ## type is hidden while that type is selected - see _validate_property.
 const FIELDS_BY_TYPE := {
-	EffectType.DAMAGE: ["damage_type", "damage_modifier", "min_amount", "max_amount"],
+	EffectType.DAMAGE: ["damage_type", "min_amount", "max_amount"],
 	EffectType.HEAL: ["min_amount", "max_amount"],
 	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration"],
 	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "damage_modifier", "min_amount", "max_amount", "duration"],

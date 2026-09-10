@@ -500,7 +500,7 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 				var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
 				if grazed:
 					update_information.emit("[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name])
-				for effect in skill.effects:
+				for effect in skill.all_effects():
 					# A graze is damage only, at half strength - nothing that
 					# would stick, slow, poison or shove comes with it.
 					if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
@@ -654,7 +654,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 		var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
 		if grazed:
 			update_information.emit("[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name])
-		for effect in skill.effects:
+		for effect in skill.all_effects():
 			if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
 				continue
 			apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0)
@@ -1819,7 +1819,7 @@ func find_skill_of_type(comb: Dictionary, effect_type: EffectDefinition.EffectTy
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 		if not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
 			continue
-		for effect in skill.effects:
+		for effect in skill.all_effects():
 			if effect.type == effect_type:
 				return skill_key
 	return ""
@@ -2037,7 +2037,7 @@ func find_triggering_reactions_along_path(comb: Dictionary, path: Array) -> Arra
 ## damage started coming from the caster's stats instead.
 func get_max_possible_damage(skill: SkillDefinition, wielder: Dictionary, victim: Dictionary) -> int:
 	var total = 0
-	for effect in skill.effects:
+	for effect in skill.all_effects():
 		if effect.type == EffectDefinition.EffectType.DAMAGE:
 			total += resisted_damage(victim, effect.damage_type, skill_damage(wielder, victim, skill))
 	return total
@@ -2423,7 +2423,7 @@ func ai_caster(comb: Dictionary):
 ## Vitality) - falling back to comb itself if there's no better candidate
 ## (e.g. a HEAL skill but nobody's actually hurt).
 func pick_ally_target_for_skill(comb: Dictionary, skill: SkillDefinition) -> Dictionary:
-	for effect in skill.effects:
+	for effect in skill.all_effects():
 		if effect.type == EffectDefinition.EffectType.HEAL:
 			var patient = find_most_injured_ally(comb)
 			return patient if not patient.is_empty() else comb

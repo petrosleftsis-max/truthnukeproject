@@ -4,11 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_rvp4t"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_3tcsn"]
 
-[sub_resource type="Resource" id="Effect_selfdestruct_dmg"]
-script = ExtResource("1_1323k")
-min_amount = 20
-max_amount = 20
-
 [resource]
 script = ExtResource("3_3tcsn")
 name = "Self Destruct"
@@ -16,5 +11,4 @@ description = "Detonates violently, damaging everyone nearby - and always kills 
 accuracy = 100
 icon = ExtResource("2_rvp4t")
 kills_caster = true
-effects = Array[ExtResource("1_1323k")]([SubResource("Effect_selfdestruct_dmg")])
 aoe_radius = 3

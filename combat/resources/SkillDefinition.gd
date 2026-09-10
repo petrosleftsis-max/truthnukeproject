@@ -78,16 +78,31 @@ enum AoEShape {
 @export var effects: Array[EffectDefinition] = []
 
 @export_group("Damage")
-## Which of the caster's attributes this scales from. The whole of a skill's
-## damage comes from this one stat: BaseDamage = WeaponBase + 0.7 x Stat.
-@export var scaling_stat: Stats.Type = Stats.Type.PHYSICAL
+## Whether this skill hits for damage by itself.
+##
+## On for an attack. Off for a heal, a buff, a shove, or a skill that only
+## inflicts a condition - and off is not the same as harmless: a skill that
+## deals no direct damage can still leave a poison burning, since a tick takes
+## its strength from AbilityModifier below.
+##
+## Damage used to be an entry in Effects instead. It is here because everything
+## that decides how hard a skill hits - the stat, the modifier, the contest -
+## was already here, and the effect only carried the damage type.
+@export var deals_damage: bool = true : set = _set_deals_damage
 ## How hard this skill hits for its stat. 1.0 is an ordinary attack, 0.5 a
 ## glancing one, 2.0 something that should hurt. Multiplied straight into the
 ## damage, so this is the dial to turn when a skill feels weak or oppressive.
 ##
-## Only DAMAGE effects go through this. Healing, damage-over-time ticks and a
-## shove's collision damage still use the flat amounts on the effect itself.
+## Damage-over-time ticks scale from this too, taking a fraction of it - see
+## the effect's own DamageModifier.
 @export_range(0.0, 5.0, 0.05, "or_greater") var ability_modifier: float = 1.0
+## Which of the caster's attributes this scales from. The whole of a skill's
+## damage comes from this one stat: BaseDamage = WeaponBase + 0.7 x Stat.
+##
+## Also the caster's side of a stat contest, whether or not the skill damages.
+@export var scaling_stat: Stats.Type = Stats.Type.PHYSICAL
+## What kind of damage this deals, weighed against the target's resistances.
+@export var damage_type: Damage.Type = Damage.Type.PHYSICAL : set = _set_damage_type
 
 @export_group("Hitting")
 ## Off: the skill rolls against accuracy, and a miss does nothing at all.
@@ -170,5 +185,53 @@ func _validate_property(property: Dictionary) -> void:
 			shown = not uses_stat_contest
 		"contest_stat":
 			shown = uses_stat_contest
+		"damage_type":
+			# Nothing to resist when the skill does no damage of its own. The stat
+			# and the modifier stay: a contest reads one, a poison tick the other.
+			shown = deals_damage
 	if not shown:
 		property.usage = PROPERTY_USAGE_STORAGE
+
+
+func _set_deals_damage(value: bool):
+	deals_damage = value
+	notify_property_list_changed()
+
+
+func _set_damage_type(value: Damage.Type):
+	damage_type = value
+	if _own_damage != null:
+		_own_damage.damage_type = value
+
+
+## The skill's own damage, expressed as the kind of effect the rest of combat
+## already knows how to apply, describe, colour and estimate.
+##
+## Damage used to be one more entry in `effects`, which meant every attack
+## carried an effect whose only real content was the damage type - the strength
+## and the stat were already on the skill. Two places to look, one of which was
+## mostly empty, and a per-effect modifier that quietly did nothing for a direct
+## hit. Now the skill says it, and this turns it back into an effect so nothing
+## downstream needs a special case for it.
+##
+## Kept and updated rather than rebuilt each time: it is asked for on every hit,
+## and on every tooltip.
+var _own_damage: EffectDefinition = null
+
+func damage_effect() -> EffectDefinition:
+	if _own_damage == null:
+		_own_damage = EffectDefinition.new()
+		_own_damage.type = EffectDefinition.EffectType.DAMAGE
+		_own_damage.damage_type = damage_type
+	return _own_damage
+
+
+## Everything this skill does to what it lands on: its own damage first, then
+## whatever else it carries. This is what combat resolves and what the tooltip
+## lists - `effects` alone is only the extras.
+func all_effects() -> Array[EffectDefinition]:
+	if not deals_damage:
+		return effects
+	var everything: Array[EffectDefinition] = [damage_effect()]
+	everything.append_array(effects)
+	return everything

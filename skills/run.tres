@@ -18,3 +18,4 @@ accuracy = 100
 icon = ExtResource("2_fwp5i")
 targets_ally = true
 effects = Array[ExtResource("1_g061d")]([SubResource("Effect_run")])
+deals_damage = false

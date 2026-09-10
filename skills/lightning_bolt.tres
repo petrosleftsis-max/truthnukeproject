@@ -4,12 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_0q3yc"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_k8562"]
 
-[sub_resource type="Resource" id="Effect_lightning_dmg"]
-script = ExtResource("1_qifkp")
-damage_type = 7
-min_amount = 3
-max_amount = 5
-
 [resource]
 script = ExtResource("3_k8562")
 name = "Lightning Bolt"
@@ -19,8 +13,8 @@ max_range = 10
 accuracy = 80
 icon = ExtResource("2_0q3yc")
 respects_blocking = true
-effects = Array[ExtResource("1_qifkp")]([SubResource("Effect_lightning_dmg")])
 scaling_stat = 2
+damage_type = 7
 spell_slot_level = 2
 aoe_radius = 4
 aoe_shape = 1

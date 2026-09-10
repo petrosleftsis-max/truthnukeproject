@@ -375,10 +375,10 @@ func build_skill_tooltip(skill: SkillDefinition) -> String:
 		lines.append("Requires a clear line of sight")
 	if skill.is_reactive:
 		lines.append("Reactive: triggers automatically if a valid target leaves its range on their turn")
-	if skill.effects.size() > 0:
+	if skill.all_effects().size() > 0:
 		lines.append("")
 		lines.append("Effects:")
-		for effect in skill.effects:
+		for effect in skill.all_effects():
 			lines.append("- " + describe_effect(effect, skill))
 	return "\n".join(lines)
 
@@ -400,7 +400,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# here - what the skill contributes is which stat and how hard.
 			if skill != null:
 				return "Damage: %s x%s %s" % [
-					Stats.stat_name(skill.scaling_stat), skill.ability_modifier * effect.damage_modifier,
+					Stats.stat_name(skill.scaling_stat), skill.ability_modifier,
 					Damage.type_name(effect.damage_type).to_lower()
 				]
 			return "Damage: %s" % Damage.type_name(effect.damage_type).to_lower()

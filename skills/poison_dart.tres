@@ -4,12 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_v0ngf"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_mm41o"]
 
-[sub_resource type="Resource" id="Effect_poison_dmg"]
-script = ExtResource("1_mcofx")
-damage_type = 5
-min_amount = 2
-max_amount = 3
-
 [sub_resource type="Resource" id="Effect_poison_dot"]
 script = ExtResource("1_mcofx")
 type = 3
@@ -29,4 +23,5 @@ max_range = 8
 accuracy = 80
 icon = ExtResource("2_v0ngf")
 respects_blocking = true
-effects = Array[ExtResource("1_mcofx")]([SubResource("Effect_poison_dmg"), SubResource("Effect_poison_dot")])
+effects = Array[ExtResource("1_mcofx")]([SubResource("Effect_poison_dot")])
+damage_type = 5
