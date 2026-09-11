@@ -24,13 +24,76 @@ class_name Interactable
 		queue_redraw()
 ## Optional sprite so the thing is visible on the map. Leave empty for an
 ## invisible trigger - a doorway painted into the tiles, say.
+##
+## Ignored when SpriteFrames below is set: a thing that moves does not also need
+## a still of itself.
 @export var texture: Texture2D:
 	set(value):
 		texture = value
 		queue_redraw()
 
+@export_group("Animation")
+## An animation set, for anything that should move where it stands - a torch, a
+## portal, a machine with something turning in it. Made the same way a
+## combatant's is: right-click in the FileSystem dock -> New Resource ->
+## SpriteFrames, then drag the frames in.
+##
+## It plays in the editor too, so what you are placing is what you will see.
+@export var sprite_frames: SpriteFrames:
+	set(value):
+		sprite_frames = value
+		_rebuild_animation()
+## Which animation to play. SpriteFrames calls its first one "default" unless
+## you rename it, so that is what this starts as.
+@export var animation: String = "default":
+	set(value):
+		animation = value
+		_rebuild_animation()
+## How fast, as a multiple of the speed set on the animation itself. A row of
+## torches all playing at 1.0 flicker in lockstep, which reads as machinery;
+## give each a slightly different number and they stop looking synchronised.
+@export_range(0.1, 4.0, 0.05, "or_greater") var animation_speed: float = 1.0:
+	set(value):
+		animation_speed = value
+		if _animated != null:
+			_animated.speed_scale = value
+
+## The node doing the animating, made only for interactables that have frames.
+var _animated: AnimatedSprite2D = null
+
 
 func _ready():
+	_rebuild_animation()
+	queue_redraw()
+
+
+## Puts an AnimatedSprite2D underneath this when there are frames to play, and
+## takes it away again when there are not.
+##
+## Not owned by the scene: it is made from the SpriteFrames every time, so
+## saving it into the scene file would be storing the same thing twice and
+## leaving a stale copy behind the moment the frames change.
+func _rebuild_animation():
+	if _animated != null and is_instance_valid(_animated):
+		_animated.queue_free()
+		_animated = null
+	if sprite_frames == null:
+		queue_redraw()
+		return
+	_animated = AnimatedSprite2D.new()
+	_animated.sprite_frames = sprite_frames
+	_animated.speed_scale = animation_speed
+	# Whatever the author named it, falling back to whatever the set actually
+	# has - a resource with one animation called something else should still
+	# show rather than sit there blank.
+	var wanted = animation
+	if not sprite_frames.has_animation(wanted):
+		var names = sprite_frames.get_animation_names()
+		wanted = names[0] if names.size() > 0 else ""
+	if wanted != "":
+		_animated.animation = wanted
+		_animated.play()
+	add_child(_animated)
 	queue_redraw()
 
 
@@ -39,14 +102,15 @@ func _ready():
 ## invisible dot and guessing is no way to lay out a map - without adding a
 ## child node the scene would then have to carry around.
 func _draw():
-	if texture != null:
+	# The animation draws itself; the still is only for anything without one.
+	if sprite_frames == null and texture != null:
 		draw_texture(texture, -texture.get_size() * 0.5)
 	if not Engine.is_editor_hint():
 		return
 	# Reach, shown only in the editor: how close the party has to get before
 	# this offers its prompt.
 	draw_arc(Vector2.ZERO, interaction_radius, 0.0, TAU, 32, Color(1.0, 0.85, 0.3, 0.5), 1.0)
-	if texture == null:
+	if texture == null and sprite_frames == null:
 		# An invisible trigger still needs something to grab hold of.
 		draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.85, 0.3, 0.8))
 
