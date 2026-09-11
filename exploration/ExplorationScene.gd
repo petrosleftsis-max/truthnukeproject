@@ -266,7 +266,7 @@ func _check_contact_triggers(leader_position: Vector2):
 		if not interactable.get("automatic"):
 			continue
 		if interactable.global_position.distance_to(leader_position) <= CONTACT_RADIUS:
-			interactable.interact(self)
+			interactable.use(self)
 			return
 
 
@@ -309,7 +309,7 @@ func _unhandled_input(event):
 	if _current_target == null or not _current_target.is_available():
 		return
 	get_viewport().set_input_as_handled()
-	_current_target.interact(self)
+	_current_target.use(self)
 	_update_prompt()
 
 

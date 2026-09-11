@@ -51,10 +51,52 @@ func _draw():
 		draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.85, 0.3, 0.8))
 
 
-## Whether this can be used right now. An encounter trigger already beaten
-## says no, and stops offering its prompt.
+@export_group("Flags")
+## Set on Campaign when this is used - the whole of what a button has to say to
+## open a door somewhere else. Left empty for anything that changes nothing.
+##
+## Set even when the thing itself does nothing else, so an invisible trigger in
+## a doorway can record that the party came this way.
+@export var sets_flag: String = ""
+## What to store under it. true unless you need a count or a choice.
+@export var flag_value: String = ""
+## Refuses to work until this flag is set on Campaign. The door asks for the
+## flag the button sets, and that is the whole puzzle.
+@export var requires_flag: String = ""
+## What the message log says when it refuses. The prompt still appears either
+## way: a locked door that gives no sign it is a door is indistinguishable from
+## a wall, and the player needs to know there is something here to come back to.
+@export var locked_message: String = "It won't budge."
+
+
+## Whether this can be used right now. An encounter trigger already beaten says
+## no, and stops offering its prompt.
+##
+## Deliberately not where requires_flag is checked: something locked should
+## still say what it is.
 func is_available() -> bool:
 	return true
+
+
+## Whether the flag this waits on has been set. Anything with no requires_flag
+## is always unlocked.
+func is_unlocked() -> bool:
+	return requires_flag == "" or Campaign.flag(requires_flag)
+
+
+## What the player actually presses the key on: the lock first, then the thing
+## itself, then the flag it leaves behind.
+##
+## Separate from interact() so that every kind of interactable - and every kind
+## added later - is gated and records itself without knowing any of this exists.
+func use(scene: Node):
+	if not is_unlocked():
+		if locked_message != "" and scene != null and scene.has_method("log_message"):
+			scene.log_message(locked_message)
+		return
+	interact(scene)
+	if sets_flag != "":
+		Campaign.set_flag(sets_flag, flag_value if flag_value != "" else true)
 
 
 ## Do the thing. `scene` is the ExplorationScene, passed in so subclasses can

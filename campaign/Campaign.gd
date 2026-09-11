@@ -280,6 +280,9 @@ func reset():
 	party_state.clear()
 	cleared_triggers.clear()
 	party_order.clear()
+	# Starting over starts over: what the last playthrough had read, pulled and
+	# opened is not true of this one.
+	flags.clear()
 
 
 ## One-line summary of the party's condition for the level select, e.g.
@@ -310,3 +313,72 @@ func is_party_wiped() -> bool:
 		if party_state[key].alive:
 			return false
 	return true
+
+
+## --- Flags ---
+##
+## Named facts about this playthrough: what has been read, pulled, opened,
+## agreed to. Kept here because this is the one thing that survives walking to
+## another map and fighting a battle, which is exactly the span a flag has to
+## last for to be worth anything.
+##
+## Dialogue reads and writes them directly, since Campaign is a Dialogue
+## Manager state autoload:
+##
+##     if Campaign.flag("read_the_notice")
+##         Guard: So you have seen it.
+##     else
+##         Guard: There is a notice by the gate.
+##     do Campaign.set_flag("spoke_to_guard")
+##
+## Interactables set and require them without any code at all - see the Flags
+## group on Interactable, which is how a button opens a door.
+
+## name -> value. Usually true, but anything can be stored: a count of how many
+## times something was asked, which of three endings was taken.
+var flags := {}
+
+
+## Sets `flag_name`. The value is true unless you say otherwise, because
+## "this happened" is what almost every flag means.
+func set_flag(flag_name: String, value = true):
+	if flag_name == "":
+		return
+	flags[flag_name] = value
+
+
+## Whether `flag_name` is set and not switched off. false for one never set, so
+## a condition can be written before the thing that sets it exists.
+func flag(flag_name: String) -> bool:
+	if not flags.has(flag_name):
+		return false
+	var value = flags[flag_name]
+	# An explicit false, 0 or "" reads as not set, so a flag can be turned off
+	# either by clearing it or by setting it false, and a condition written
+	# against it means the same thing either way.
+	#
+	# Tested by type rather than by comparing the value against false, 0 and ""
+	# in turn: comparing a bool against a String is an error at runtime, not a
+	# false, and it takes the whole expression - and the flag - down with it.
+	match typeof(value):
+		TYPE_NIL:
+			return false
+		TYPE_BOOL:
+			return value
+		TYPE_INT, TYPE_FLOAT:
+			return value != 0
+		TYPE_STRING, TYPE_STRING_NAME:
+			return value != ""
+	return true
+
+
+## What was stored under `flag_name`, for the flags carrying more than yes or
+## no - a count, a name, a choice.
+func flag_value(flag_name: String, fallback = null):
+	return flags.get(flag_name, fallback)
+
+
+## Forgets `flag_name` entirely, so flag() reads false and flag_value() gives
+## its fallback again.
+func clear_flag(flag_name: String):
+	flags.erase(flag_name)

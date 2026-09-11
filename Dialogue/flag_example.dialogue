@@ -1,0 +1,29 @@
+~ start
+# Dialogue that remembers what the player has already done.
+#
+# Flags live on Campaign, which survives walking to another map and fighting a
+# battle - so a flag set here is still set an hour later. Anything can set one:
+# a line below, or an Interactable with its Sets Flag field filled in.
+
+if Campaign.flag("read_the_notice")
+	Guard: So you've read the notice. Then you know why I can't let you through.
+	Guard: Don't take it personally.
+else
+	Guard: Turn back. There's a notice by the gate if you want the long version.
+
+# Counting, rather than a plain yes or no: the same store holds both.
+do Campaign.set_flag("times_asked", Campaign.flag_value("times_asked", 0) + 1)
+if Campaign.flag_value("times_asked", 0) > 2
+	Guard: And asking a fourth time won't change it.
+
+do Campaign.set_flag("spoke_to_guard")
+=> END
+
+
+~ notice
+# What an Examine interactable might point at. Setting the flag here rather
+# than on the interactable would work just as well - do whichever reads better
+# for the scene.
+Cyrus: "By order of the watch: the east road is closed until further notice."
+do Campaign.set_flag("read_the_notice")
+=> END
