@@ -135,11 +135,11 @@ func enter_behind(actor: String, where, y = null) -> void:
 	var sprite = _actor(actor)
 	if sprite == null:
 		return
-	var edge = _edge_tile_towards(_tile(to))
-	sprite.position = _off_map_point(edge)
+	var way_in = _edge_towards(_tile(to))
+	sprite.position = _off_map_point(way_in)
 	sprite.visible = true
-	var path: Array[Vector2] = [_tile_map.map_to_local(edge)]
-	path.append_array(_route(_tile_map.map_to_local(edge), to))
+	var path: Array[Vector2] = [_tile_map.map_to_local(way_in.tile)]
+	path.append_array(_route(_tile_map.map_to_local(way_in.tile), to))
 	_start(actor, sprite, path, false)
 
 
@@ -162,9 +162,9 @@ func exit_behind(actor: String, where = null, y = null) -> void:
 		if to != null:
 			path = _route(sprite.position, to)
 			leaving_from = to
-	var edge = _edge_tile_towards(_tile(leaving_from))
-	path.append_array(_route(leaving_from, _tile_map.map_to_local(edge)))
-	path.append(_off_map_point(edge))
+	var way_out = _edge_towards(_tile(leaving_from))
+	path.append_array(_route(leaving_from, _tile_map.map_to_local(way_out.tile)))
+	path.append(_off_map_point(way_out))
 	_start(actor, sprite, path, true)
 
 
@@ -416,9 +416,14 @@ func _nearest_open_tile(around: Vector2i) -> Vector2i:
 	return around
 
 
-## The tile on the map's edge nearest `from` - where someone entering arrives,
-## and where someone leaving heads for.
-func _edge_tile_towards(from: Vector2i) -> Vector2i:
+## The way out of the map nearest `from`: the tile to walk to, and which side
+## of the map lies beyond it.
+##
+## Both, rather than just the tile, because the tile can be nudged inland when
+## the edge itself is a cliff or a wall - and a nudged tile no longer says which
+## way "out" was, which is how someone walking in once started from a tile in
+## the middle of the map.
+func _edge_towards(from: Vector2i) -> Dictionary:
 	var region = _tile_map.get_used_rect()
 	var left = from.x - region.position.x
 	var right = region.position.x + region.size.x - 1 - from.x
@@ -426,28 +431,39 @@ func _edge_tile_towards(from: Vector2i) -> Vector2i:
 	var bottom = region.position.y + region.size.y - 1 - from.y
 	var nearest = mini(mini(left, right), mini(top, bottom))
 	var edge = from
+	var outward = Vector2i.DOWN
 	if nearest == left:
 		edge = Vector2i(region.position.x, from.y)
+		outward = Vector2i.LEFT
 	elif nearest == right:
 		edge = Vector2i(region.position.x + region.size.x - 1, from.y)
+		outward = Vector2i.RIGHT
 	elif nearest == top:
 		edge = Vector2i(from.x, region.position.y)
+		outward = Vector2i.UP
 	else:
 		edge = Vector2i(from.x, region.position.y + region.size.y - 1)
 	if _grid != null and _grid.is_point_solid(edge):
 		edge = _nearest_open_tile(edge)
-	return edge
+	return {"tile": edge, "outward": outward}
 
 
-## Just outside the map, straight out from `edge` - where someone entering
-## starts and someone leaving ends up.
-func _off_map_point(edge: Vector2i) -> Vector2:
+## Genuinely outside the map, off the side `way_out` names - where someone
+## entering starts and someone leaving ends up.
+##
+## Measured from the map's own boundary rather than from the tile they walk in
+## to, since that tile may be some way inland on a map with a ragged edge.
+func _off_map_point(way_out: Dictionary) -> Vector2:
 	var region = _tile_map.get_used_rect()
-	var outward = Vector2i.DOWN
-	if edge.x == region.position.x:
-		outward = Vector2i.LEFT
-	elif edge.x == region.position.x + region.size.x - 1:
-		outward = Vector2i.RIGHT
-	elif edge.y == region.position.y:
-		outward = Vector2i.UP
-	return _tile_map.map_to_local(edge + outward * OFF_MAP_TILES)
+	var tile: Vector2i = way_out.tile
+	var outward: Vector2i = way_out.outward
+	var beyond = tile
+	if outward == Vector2i.LEFT:
+		beyond = Vector2i(region.position.x - OFF_MAP_TILES, tile.y)
+	elif outward == Vector2i.RIGHT:
+		beyond = Vector2i(region.position.x + region.size.x - 1 + OFF_MAP_TILES, tile.y)
+	elif outward == Vector2i.UP:
+		beyond = Vector2i(tile.x, region.position.y - OFF_MAP_TILES)
+	else:
+		beyond = Vector2i(tile.x, region.position.y + region.size.y - 1 + OFF_MAP_TILES)
+	return _tile_map.map_to_local(beyond)
