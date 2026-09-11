@@ -265,9 +265,15 @@ func _check_contact_triggers(leader_position: Vector2):
 			continue
 		if not interactable.get("automatic"):
 			continue
-		if interactable.global_position.distance_to(leader_position) <= CONTACT_RADIUS:
-			interactable.use(self)
-			return
+		if interactable.global_position.distance_to(leader_position) > CONTACT_RADIUS:
+			# Out of it again, so walking back in counts as walking in.
+			interactable.contact_spent = false
+			continue
+		if interactable.contact_spent:
+			continue
+		interactable.contact_spent = true
+		interactable.use(self)
+		return
 
 
 ## The nearest usable thing in range, or null.

@@ -13,8 +13,15 @@ class_name Interactable
 ## interact(); everything else is handled for you.
 
 
+## Whether walking into this is enough, or the player has to press the interact
+## key. Off by default: something that happens to you without asking is a
+## decision, not a default - an open doorway, an ambush, a scene that starts the
+## moment you round the corner.
+##
+## The prompt is not shown for one of these, since there is nothing to press.
+@export var automatic: bool = false
 ## Shown above the party when they're close enough, e.g. "Talk", "Enter",
-## "Examine". Keep it to a word or two.
+## "Examine". Keep it to a word or two. Ignored when Automatic is on.
 @export var prompt: String = "Interact"
 ## How close the party leader has to be, in pixels. One tile is 32. Drawn as a
 ## ring in the editor so you can see the reach while placing it.
@@ -60,6 +67,14 @@ class_name Interactable
 
 ## The node doing the animating, made only for interactables that have frames.
 var _animated: AnimatedSprite2D = null
+
+## Whether an automatic one has already gone off where the party is standing.
+##
+## Without it, anything automatic that leaves the party on the map - a
+## conversation, an examine - starts again the instant it ends, because they are
+## still inside it. Cleared by walking out of range, which is what "again" ought
+## to mean.
+var contact_spent := false
 
 
 func _ready():

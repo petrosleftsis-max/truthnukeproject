@@ -10,9 +10,6 @@ class_name EncounterInteractable
 
 
 @export var encounter: EncounterDefinition
-## When true the battle starts on contact rather than on a key press - an
-## ambush rather than a fight you choose to pick.
-@export var automatic: bool = false
 ## Identity used to remember that this fight has been won. Defaults to the
 ## node's own name, which is unique within a map; set it explicitly only if you
 ## rename the node and want its cleared state to carry over.

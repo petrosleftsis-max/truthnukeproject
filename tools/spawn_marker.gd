@@ -91,7 +91,10 @@ func effective_name() -> String:
 
 func _refresh():
 	var found = definition()
-	texture = found.icon if found != null else null
+	# portrait() rather than icon: a combatant whose picture comes from their
+	# animation has no icon of their own, and a marker with no texture is an
+	# invisible marker - which is exactly what the enemies became.
+	texture = found.portrait() if found != null else null
 	# Blue for your party, red for the opposition - the same read as the rest
 	# of the game's UI, so a glance at the map tells you the shape of the fight.
 	modulate = Color(0.6, 0.8, 1.0) if side == 0 else Color(1.0, 0.6, 0.6)
