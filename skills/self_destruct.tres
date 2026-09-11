@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_1323k"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_rvp4t"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_3tcsn"]
+[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [resource]
 script = ExtResource("3_3tcsn")
@@ -11,4 +12,5 @@ description = "Detonates violently, damaging everyone nearby - and always kills 
 accuracy = 100
 icon = ExtResource("2_rvp4t")
 kills_caster = true
+sound = ExtResource("90_sfx")
 aoe_radius = 3

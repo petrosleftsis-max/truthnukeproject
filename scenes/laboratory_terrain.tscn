@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://c3lmgx560ue1y"]
+
+[ext_resource type="TileSet" uid="uid://sakecgskem2q" path="res://tilesets/terrain_tileset.tres" id="1_gei66"]
+[ext_resource type="Script" uid="uid://bvxg6wn4mrssx" path="res://scenes/grid_overlay.gd" id="2_mwbr2"]
+
+[node name="Terrain" type="Node2D" unique_id=1208668441]
+texture_filter = 1
+
+[node name="TileMap" type="TileMap" parent="." unique_id=2005066819]
+tile_set = ExtResource("1_gei66")
+format = 2
+
+[node name="Grid" type="Node2D" parent="." unique_id=1941732560]
+visible = false
+modulate = Color(0.933333, 1, 0, 0.47451)
+script = ExtResource("2_mwbr2")
+metadata/_custom_type_script = "uid://bvxg6wn4mrssx"

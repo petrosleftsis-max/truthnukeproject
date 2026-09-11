@@ -4,6 +4,7 @@
 [ext_resource type="Resource" path="res://conditions/windswept.tres" id="2_ejn1x"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_ohx0v"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_75462"]
+[ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [sub_resource type="Resource" id="Resource_feskj"]
 script = ExtResource("1_77oc1")
@@ -24,4 +25,5 @@ icon = ExtResource("3_75462")
 required_level = 2
 effects = Array[ExtResource("1_77oc1")]([SubResource("Resource_feskj")])
 deals_damage = false
+sound = ExtResource("90_sfx")
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

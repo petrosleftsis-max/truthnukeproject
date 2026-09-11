@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_gpgpy"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_olqgu"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_t55fu"]
+[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [sub_resource type="Resource" id="Resource_sdx31"]
 script = ExtResource("1_gpgpy")
@@ -19,4 +20,5 @@ accuracy = 100
 icon = ExtResource("2_olqgu")
 effects = Array[ExtResource("1_gpgpy")]([SubResource("Resource_sdx31")])
 ability_modifier = 1.2
+sound = ExtResource("90_sfx")
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

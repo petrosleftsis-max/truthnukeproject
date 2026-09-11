@@ -4,6 +4,7 @@
 [ext_resource type="Resource" path="res://conditions/frozen.tres" id="2_2euv7"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_uvvmi"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_0pa21"]
+[ext_resource type="AudioStream" uid="uid://0xf5qiq405h8" path="res://audio/sfx/SciFi_Water_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [sub_resource type="Resource" id="Resource_3t3cr"]
 script = ExtResource("1_vsgl5")
@@ -25,4 +26,7 @@ icon = ExtResource("3_0pa21")
 required_level = 2
 effects = Array[ExtResource("1_vsgl5")]([SubResource("Resource_3t3cr")])
 deals_damage = false
+scaling_stat = 1
+damage_type = 2
+sound = ExtResource("90_sfx")
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

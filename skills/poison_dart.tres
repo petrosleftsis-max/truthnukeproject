@@ -4,6 +4,7 @@
 [ext_resource type="Resource" path="res://conditions/poisoned.tres" id="2_mm41o"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_v0ngf"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_mm41o"]
+[ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [sub_resource type="Resource" id="Effect_poison_dot"]
 script = ExtResource("1_mcofx")
@@ -29,3 +30,4 @@ required_level = 2
 respects_blocking = true
 effects = Array[ExtResource("1_mcofx")]([SubResource("Effect_poison_dot")])
 scaling_stat = 3
+sound = ExtResource("90_sfx")

@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_kbf5o"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_i3j34"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_lo4se"]
+[ext_resource type="AudioStream" uid="uid://0xf5qiq405h8" path="res://audio/sfx/SciFi_Water_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [resource]
 script = ExtResource("2_i3j34")
@@ -15,4 +16,5 @@ icon = ExtResource("2_lo4se")
 ability_modifier = 0.7
 scaling_stat = 1
 damage_type = 2
+sound = ExtResource("90_sfx")
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

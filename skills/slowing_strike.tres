@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_o0rjh"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_i0q61"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_730sk"]
+[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [resource]
 script = ExtResource("3_730sk")
@@ -13,3 +14,4 @@ max_range = 1
 icon = ExtResource("2_i0q61")
 required_level = 3
 ability_modifier = 1.4
+sound = ExtResource("90_sfx")
