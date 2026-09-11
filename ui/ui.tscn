@@ -324,9 +324,9 @@ text = "End Turn"
 [node name="Information" type="PanelContainer" parent="Actions" unique_id=180685541]
 layout_mode = 0
 offset_left = 541.0
-offset_top = 84.0
-offset_right = 789.0
-offset_bottom = 169.0
+offset_top = 21.0
+offset_right = 929.0
+offset_bottom = 195.0
 
 [node name="Text" type="RichTextLabel" parent="Actions/Information" unique_id=572141551]
 layout_mode = 2

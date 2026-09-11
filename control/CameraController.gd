@@ -133,6 +133,9 @@ func zoom_at_screen_point(new_zoom_level: float, screen_point: Vector2):
 
 
 func _unhandled_input(event):
+	if is_following():
+		# Locked on somebody: their turn is the thing to be looking at.
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed and allow_zoom:
 			zoom_at_screen_point(zoom.x * zoom_step, event.position)
@@ -191,6 +194,10 @@ func _shake_step(delta: float):
 
 func _process(delta):
 	_shake_step(delta)
+	if is_following():
+		position = position.lerp(_watched.global_position, minf(1.0, follow_lerp * delta))
+		clamp_to_map()
+		return
 	if not free_look:
 		# Exploration drives this camera by following the party; WASD walks
 		# them rather than panning the view.
@@ -217,3 +224,36 @@ func _process(delta):
 ## hold focus (the arrow keys would otherwise be spent navigating it).
 func _axis(key_a: Key, key_b: Key) -> float:
 	return 1.0 if Input.is_physical_key_pressed(key_a) or Input.is_physical_key_pressed(key_b) else 0.0
+
+
+## --- Watching somebody act ---
+##
+## An enemy's turn happens wherever they are standing, which is as often as not
+## somewhere the player is not looking - across the map, or off the edge of the
+## view entirely. A fight you cannot see reads as the game having hung. While
+## the AI plays a turn the view rides along with whoever is taking it, and is
+## handed straight back afterwards.
+
+## How fast the view closes on whoever it is watching, as a fraction of the
+## remaining distance per second. Eased rather than snapped: a cut leaves the
+## player with no idea which part of the map they are now looking at, while a
+## glide carries the eye across and answers that on the way.
+@export var follow_lerp := 6.0
+
+var _watched: Node2D = null
+
+
+## Rides along with `target` until release() is called. Manual panning and
+## dragging are ignored meanwhile - it is a lock, and a camera that fights the
+## player for the view is worse than either behaviour on its own.
+func follow(target: Node2D):
+	_watched = target
+
+
+func release():
+	_watched = null
+
+
+## Whether the view is currently locked onto somebody.
+func is_following() -> bool:
+	return _watched != null and is_instance_valid(_watched)

@@ -188,8 +188,10 @@ func start_first_turn():
 ## advance_turn() does when it hands off to an enemy, including the same short
 ## pause first so the turn is readable rather than instant.
 func _start_opening_ai_turn():
+	watch_combatant(combatants[current_combatant])
 	await get_tree().create_timer(0.6).timeout
 	await ai_process(combatants[current_combatant])
+	stop_watching()
 
 
 ## `spawn` carries the level, weapon base and defense this combatant fights
@@ -1404,8 +1406,12 @@ func advance_turn():
 	emit_signal("turn_advanced", comb)
 	emit_signal("update_combatants", combatants)
 	if comb.side == 1:
+		# Look at them before they act, so the pause below is the view travelling
+		# rather than dead air.
+		watch_combatant(comb)
 		await get_tree().create_timer(0.6).timeout
 		await ai_process(comb)
+		stop_watching()
 
 
 ## Blows a windswept combatant across the map at the start of their turn.
@@ -2601,3 +2607,22 @@ func hit_chance(attacker: Dictionary, skill: SkillDefinition, target: Dictionary
 	if _has_studied(attacker, target):
 		chance += STUDIED_ACCURACY_BONUS
 	return clampi(chance, 0, 100)
+
+
+## Locks the view onto whoever is acting for the length of an AI turn.
+##
+## Only for the AI. On the player's own turn they are steering the view
+## themselves and having it taken away mid-decision is worse than not knowing
+## where an enemy is. Silent when this battle has no camera, the same way
+## shake_camera is, so nothing depends on there being one.
+func watch_combatant(comb: Dictionary):
+	if camera == null or not is_instance_valid(camera):
+		return
+	var sprite = comb.get("sprite")
+	if sprite != null and is_instance_valid(sprite):
+		camera.follow(sprite)
+
+
+func stop_watching():
+	if camera != null and is_instance_valid(camera):
+		camera.release()

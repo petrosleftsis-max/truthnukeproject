@@ -244,7 +244,7 @@ func _gather() -> Array:
 				"in_battle": true,
 				"movement": combat.get_effective_stat(comb, "movement"),
 				"resistances": comb.get("resistances", {}),
-				"skills": comb.get("skill_list", []),
+				"skills": _skills_they_actually_have(comb),
 				"studied": comb.side != 0,
 			})
 		return found
@@ -411,3 +411,22 @@ func _show_members():
 func _on_member_pressed(index: int):
 	_index = index
 	_show_entry()
+
+
+## The skills a combatant actually has at the level they are fighting at.
+##
+## Only narrowed for enemies, which is what Study reports: a level 1 sorcerer
+## listing a spell they cannot cast until level 3 reads as a threat that is not
+## there, and planning around it is planning around nothing. The player's own
+## sheet still lists everything, because what is coming at the next level is
+## worth knowing when it is your own character.
+func _skills_they_actually_have(comb: Dictionary) -> Array:
+	var keys: Array = comb.get("skill_list", [])
+	if comb.side == 0 or combat == null:
+		return keys
+	var found: Array = []
+	for key in keys:
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if skill != null and combat.meets_level_for(comb, skill):
+			found.append(key)
+	return found
