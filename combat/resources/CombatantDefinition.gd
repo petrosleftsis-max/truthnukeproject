@@ -38,14 +38,10 @@ class_name CombatantDefinition
 @export var main_stat: Stats.Type = Stats.Type.PHYSICAL
 @export var secondary_stat: Stats.Type = Stats.Type.MINDFULNESS
 
-@export_subgroup("Gates")
-## How many casts through each gate this combatant starts a battle with. A spell
-## cast through the Gates of World can be paid for with Hermes or Yaldabaoth
-## instead, and a Hermes spell with Yaldabaoth - never the other way round.
-## Leave at zero for anyone who casts nothing.
-@export_range(0, 9) var gates_of_world: int = 0
-@export_range(0, 9) var gates_of_hermes: int = 0
-@export_range(0, 9) var gates_of_yaldabaoth: int = 0
+## Gates are not set here. How many castings someone has is decided by how far
+## along they are - see Stats.GATES_BY_LEVEL - and they only have any at all if
+## they carry a spell to cast. A spell can be cast through a higher gate than it
+## asks for but never a lower one, and combat spends the cheapest that will do.
 @export_group("Visual")
 @export var icon: Texture2D
 ## Used only if sprite_frames below is empty - a single static image on the
@@ -113,8 +109,22 @@ func hp_at(level: int) -> int:
 	return health
 
 
-func spell_slot_table() -> Array:
-	return [0, gates_of_world, gates_of_hermes, gates_of_yaldabaoth]
+## What this combatant may cast at `level`: their level's allowance if they have
+## a spell at all, and nothing if they have not. A swordsman does not walk
+## around with two unused castings of a gate he cannot open.
+func gates_at(level: int) -> Array:
+	if not casts_spells():
+		return [0, 0, 0, 0]
+	return Stats.gates_for_level(level)
+
+
+## Whether anything they know is cast through a gate.
+func casts_spells() -> bool:
+	for key in skills + secondary_skills:
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if skill != null and skill.spell_slot_level > 0:
+			return true
+	return false
 
 
 ## The resistances above, keyed by Damage.Type, so combat can look one up by

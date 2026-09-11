@@ -139,3 +139,26 @@ static func gate_name(level: int) -> String:
 	if level < 1 or level >= GATE_NAMES.size():
 		return ""
 	return GATE_NAMES[level]
+
+
+## How many castings through each gate a combatant has at each level, indexed
+## [level][gate] with a nothing entry at 0 on both so a level and a gate number
+## read straight in.
+##
+## A rule of how far along someone is rather than a number set per character:
+## being level 2 is what opens Hermes to you, and nobody is a special case. Only
+## combatants who actually carry a spell get any of it - a swordsman is not
+## walking around with two unused castings.
+const GATES_BY_LEVEL := [
+	[0, 0, 0, 0],
+	[0, 2, 0, 0], ## Level 1: two castings through the Gates of World.
+	[0, 3, 1, 0], ## Level 2: three, and the Gates of Hermes open once.
+	[0, 3, 3, 1], ## Level 3: three of each, and Yaldabaoth opens once.
+]
+
+
+## The allowance at `level`, as a fresh array - it is spent down over a fight,
+## so handing out the shared constant would spend it for everyone.
+static func gates_for_level(level: int) -> Array:
+	var row = GATES_BY_LEVEL[clampi(level, 0, GATES_BY_LEVEL.size() - 1)]
+	return row.duplicate()

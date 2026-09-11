@@ -236,8 +236,8 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# Spell slots remaining, indexed by level - [0] is unused so a skill's
 		# spell_slot_level reads straight into it. Battle-scoped: a fight starts
 		# with the full allowance and spends down from there.
-		"spell_slots" = definition.spell_slot_table(),
-		"max_spell_slots" = definition.spell_slot_table(),
+		"spell_slots" = definition.gates_at(level),
+		"max_spell_slots" = definition.gates_at(level),
 		"reaction_used" = false,
 		"ai_function" = definition.ai_function,
 		# Which CombatantDatabase entry this came from. Campaign keys the
