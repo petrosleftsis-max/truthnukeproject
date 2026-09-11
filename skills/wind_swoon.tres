@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://ds6s1gs6bjrbc"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_77oc1"]
+[ext_resource type="Resource" path="res://conditions/windswept.tres" id="2_ejn1x"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_ohx0v"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_75462"]
+
+[sub_resource type="Resource" id="Resource_feskj"]
+script = ExtResource("1_77oc1")
+type = 8
+condition = ExtResource("2_ejn1x")
+condition_duration = 5
+damage_type = 3
+damage_modifier = 0.15
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_ohx0v")
+name = "Wind Swoon"
+description = "Swoon them with the wind."
+max_range = 10
+accuracy = 100
+icon = ExtResource("3_75462")
+required_level = 2
+effects = Array[ExtResource("1_77oc1")]([SubResource("Resource_feskj")])
+deals_damage = false
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://c8kblee6iok6u"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_vsgl5"]
+[ext_resource type="Resource" path="res://conditions/frozen.tres" id="2_2euv7"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_uvvmi"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_0pa21"]
+
+[sub_resource type="Resource" id="Resource_3t3cr"]
+script = ExtResource("1_vsgl5")
+type = 8
+condition = ExtResource("2_2euv7")
+condition_duration = 5
+damage_type = 2
+damage_modifier = 0.2
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_uvvmi")
+name = "River Flow"
+description = "Control water to freeze the target."
+min_range = 1
+max_range = 10
+accuracy = 100
+icon = ExtResource("3_0pa21")
+required_level = 2
+effects = Array[ExtResource("1_vsgl5")]([SubResource("Resource_3t3cr")])
+deals_damage = false
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

@@ -1,0 +1,110 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0000.png" id="1_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0001.png" id="2_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0002.png" id="3_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0003.png" id="4_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0004.png" id="5_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0005.png" id="6_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0006.png" id="7_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0007.png" id="8_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0008.png" id="9_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0009.png" id="10_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0010.png" id="11_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0011.png" id="12_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0012.png" id="13_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0013.png" id="14_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0014.png" id="15_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0015.png" id="16_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0016.png" id="17_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0017.png" id="18_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0018.png" id="19_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0019.png" id="20_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0020.png" id="21_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0021.png" id="22_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0022.png" id="23_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0023.png" id="24_f"]
+[ext_resource type="Texture2D" path="res://imagese/prometheus idle/prometheus_idle_0024.png" id="25_f"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("13_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("17_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("21_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_f")
+}, {
+"duration": 1.0,
+"texture": ExtResource("25_f")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 12.0
+}]

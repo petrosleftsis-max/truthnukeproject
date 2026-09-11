@@ -17,6 +17,14 @@
 [ext_resource type="Resource" uid="uid://da4yriqsacyd5" path="res://skills/self_destruct.tres" id="15_ncop4"]
 [ext_resource type="Resource" uid="uid://crho4pw88sgf2" path="res://skills/slowing_strike.tres" id="16_ha562"]
 [ext_resource type="Resource" uid="uid://dhblpgxflcvi" path="res://skills/vitality.tres" id="17_mfut3"]
+[ext_resource type="Resource" uid="uid://bod53nqr1b8u0" path="res://skills/flash.tres" id="18_r41b3"]
+[ext_resource type="Resource" uid="uid://tuhjhhdtktws" path="res://skills/rapier.tres" id="19_lyvp1"]
+[ext_resource type="Resource" uid="uid://c8kblee6iok6u" path="res://skills/river_flow.tres" id="20_dbes0"]
+[ext_resource type="Resource" uid="uid://e3oe70sg53ob" path="res://skills/shoving_strike.tres" id="21_dbes0"]
+[ext_resource type="Resource" uid="uid://ds6s1gs6bjrbc" path="res://skills/wind_swoon.tres" id="22_8fqdd"]
+[ext_resource type="Resource" uid="uid://csess3rt4dg6s" path="res://skills/water_spike.tres" id="23_8fqdd"]
+[ext_resource type="Resource" uid="uid://b0upcs6tuhnyk" path="res://skills/warning_shot.tres" id="24_pp4aq"]
+[ext_resource type="Resource" uid="uid://c2xk3fh5n0i1y" path="res://skills/burning_shot.tres" id="25_q8moi"]
 
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
 script = ExtResource("1_bnr7k")
@@ -24,17 +32,25 @@ skills = {
 "attack_melee": ExtResource("2_g7odk"),
 "attack_ranged": ExtResource("3_t1ypb"),
 "basic_magic": ExtResource("4_2m8rc"),
+"burning_shot": ExtResource("25_q8moi"),
 "cleanse": ExtResource("5_r41b3"),
 "curse": ExtResource("6_lyvp1"),
 "fireball": ExtResource("7_dbes0"),
 "flame_cone": ExtResource("8_8fqdd"),
+"flash": ExtResource("18_r41b3"),
 "gravity_pull": ExtResource("9_gou5f"),
 "heal": ExtResource("10_pp4aq"),
 "lightning_bolt": ExtResource("11_q8moi"),
 "poison_dart": ExtResource("12_66cmj"),
+"rapier": ExtResource("19_lyvp1"),
 "repel": ExtResource("13_tuk3s"),
+"river_flow": ExtResource("20_dbes0"),
 "run": ExtResource("14_oiqse"),
 "self_destruct": ExtResource("15_ncop4"),
+"shoving_strike": ExtResource("21_dbes0"),
 "slowing_strike": ExtResource("16_ha562"),
-"vitality": ExtResource("17_mfut3")
+"vitality": ExtResource("17_mfut3"),
+"warning_shot": ExtResource("24_pp4aq"),
+"water_spike": ExtResource("23_8fqdd"),
+"wind_swoon": ExtResource("22_8fqdd")
 }

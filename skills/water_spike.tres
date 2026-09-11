@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://csess3rt4dg6s"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_kbf5o"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_i3j34"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_lo4se"]
+
+[resource]
+script = ExtResource("2_i3j34")
+name = "Water Spike"
+description = "A streak of water used as projectile."
+min_range = 2
+max_range = 20
+accuracy = 100
+icon = ExtResource("2_lo4se")
+ability_modifier = 0.7
+scaling_stat = 1
+damage_type = 2
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"
