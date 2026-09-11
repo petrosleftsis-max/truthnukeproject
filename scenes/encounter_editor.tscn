@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bhijbic2jorww" path="res://tools/encounter_editor.gd" id="1_editor"]
 [ext_resource type="Resource" uid="uid://b24liue2xhn55" path="res://encounters/encounter_01_ambush.tres" id="2_scipg"]
 [ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://scenes/crossroads_terrain.tscn" id="3_scipg"]
+[ext_resource type="Texture2D" uid="uid://nx1negu4ijrl" path="res://imagese/enfina idle/enfina_idle_color0000.png" id="4_7khms"]
 [ext_resource type="Texture2D" uid="uid://cr14x2kddoe53" path="res://imagese/cyrus idle/cyrus idle_color0000.png" id="5_7khms"]
 [ext_resource type="Script" uid="uid://bq7xydje3fups" path="res://tools/spawn_marker.gd" id="6_rd23k"]
 
@@ -14,59 +15,23 @@ status = "Ready: 9 spawns to save."
 [node name="TerrainPreview" type="Node2D" parent="." unique_id=752726230 instance=ExtResource("3_scipg")]
 texture_filter = 1
 
-[node name="Spawns" type="Node2D" parent="." unique_id=1467318312]
+[node name="Spawns" type="Node2D" parent="." unique_id=352457978]
 
-[node name="Spawn_enfina" type="Sprite2D" parent="Spawns" unique_id=1120613770]
+[node name="Spawn_enfina" type="Sprite2D" parent="Spawns" unique_id=1429273438]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(8736, -2592)
+texture = ExtResource("4_7khms")
+script = ExtResource("6_rd23k")
+combatant_key = "enfina"
+
+[node name="Spawn_cyrus" type="Sprite2D" parent="Spawns" unique_id=1088473117]
 modulate = Color(0.6, 0.8, 1, 1)
 position = Vector2(7968, -2592)
 texture = ExtResource("5_7khms")
 script = ExtResource("6_rd23k")
-combatant_key = "enfina"
-
-[node name="Spawn_cyrus" type="Sprite2D" parent="Spawns" unique_id=1240855400]
-modulate = Color(0.6, 0.8, 1, 1)
-position = Vector2(8736, -2592)
-texture = ExtResource("5_7khms")
-script = ExtResource("6_rd23k")
 combatant_key = "cyrus"
 
-[node name="Spawn_barbarian" type="Sprite2D" parent="Spawns" unique_id=843926726]
-modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(7200, -2592)
-texture = ExtResource("5_7khms")
-script = ExtResource("6_rd23k")
-combatant_key = "barbarian"
-side = 1
-defense = 35
-
-[node name="Spawn_barbarian2" type="Sprite2D" parent="Spawns" unique_id=634976273]
-modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(7008, -2592)
-texture = ExtResource("5_7khms")
-script = ExtResource("6_rd23k")
-combatant_key = "barbarian"
-side = 1
-defense = 35
-
-[node name="Spawn_barbarian3" type="Sprite2D" parent="Spawns" unique_id=971444307]
-modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(6816, -2592)
-texture = ExtResource("5_7khms")
-script = ExtResource("6_rd23k")
-combatant_key = "barbarian"
-side = 1
-defense = 35
-
-[node name="Spawn_barbarian4" type="Sprite2D" parent="Spawns" unique_id=170999233]
-modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(6624, -2592)
-texture = ExtResource("5_7khms")
-script = ExtResource("6_rd23k")
-combatant_key = "barbarian"
-side = 1
-defense = 35
-
-[node name="Spawn_priest" type="Sprite2D" parent="Spawns" unique_id=73466508]
+[node name="Spawn_priest" type="Sprite2D" parent="Spawns" unique_id=1008751692]
 modulate = Color(1, 0.6, 0.6, 1)
 position = Vector2(10272, -3168)
 texture = ExtResource("5_7khms")
@@ -76,7 +41,7 @@ side = 1
 display_name = "Goblin 3"
 defense = 18
 
-[node name="Spawn_ranger" type="Sprite2D" parent="Spawns" unique_id=388892285]
+[node name="Spawn_ranger" type="Sprite2D" parent="Spawns" unique_id=330845237]
 modulate = Color(1, 0.6, 0.6, 1)
 position = Vector2(10464, -2784)
 texture = ExtResource("5_7khms")
@@ -86,7 +51,43 @@ side = 1
 display_name = "Goblin 1"
 defense = 18
 
-[node name="Spawn_sorcerer" type="Sprite2D" parent="Spawns" unique_id=836457615]
+[node name="Spawn_barbarian" type="Sprite2D" parent="Spawns" unique_id=740538749]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(6624, -2592)
+texture = ExtResource("5_7khms")
+script = ExtResource("6_rd23k")
+combatant_key = "barbarian"
+side = 1
+defense = 35
+
+[node name="@Sprite2D@43379" type="Sprite2D" parent="Spawns" unique_id=1244662564]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(6816, -2592)
+texture = ExtResource("5_7khms")
+script = ExtResource("6_rd23k")
+combatant_key = "barbarian"
+side = 1
+defense = 35
+
+[node name="@Sprite2D@43380" type="Sprite2D" parent="Spawns" unique_id=729644516]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(7008, -2592)
+texture = ExtResource("5_7khms")
+script = ExtResource("6_rd23k")
+combatant_key = "barbarian"
+side = 1
+defense = 35
+
+[node name="@Sprite2D@43381" type="Sprite2D" parent="Spawns" unique_id=1286669731]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(7200, -2592)
+texture = ExtResource("5_7khms")
+script = ExtResource("6_rd23k")
+combatant_key = "barbarian"
+side = 1
+defense = 35
+
+[node name="Spawn_sorcerer" type="Sprite2D" parent="Spawns" unique_id=234427174]
 modulate = Color(1, 0.6, 0.6, 1)
 position = Vector2(10464, -2400)
 texture = ExtResource("5_7khms")

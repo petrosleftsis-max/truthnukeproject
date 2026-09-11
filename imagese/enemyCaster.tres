@@ -1,0 +1,81 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://nlca2j2ewp4s"]
+
+[ext_resource type="Texture2D" uid="uid://73tgj0jrlu64" path="res://imagese/Enemies/dapper guy 5/dapper_guy_skill_50000.png" id="1_6f8b4"]
+[ext_resource type="Texture2D" uid="uid://xh1c6qiqhk0p" path="res://imagese/Enemies/dapper guy 5/dapper_guy_skill_50001.png" id="2_vx33e"]
+[ext_resource type="Texture2D" uid="uid://c0vj3mbuud4io" path="res://imagese/Enemies/dapper guy 5/dapper_guy_skill_50002.png" id="3_g0ni6"]
+[ext_resource type="Texture2D" uid="uid://dd4cflqp7v18y" path="res://imagese/Enemies/dapper guy 5/dapper_guy_skill_50003.png" id="4_7i650"]
+[ext_resource type="Texture2D" uid="uid://cgq6r2xl2ykk" path="res://imagese/Enemies/dapper guy 5/dapper_guy_skill_50004.png" id="5_yo5ly"]
+[ext_resource type="Texture2D" uid="uid://c5a216cm84g3v" path="res://imagese/Enemies/dapper guy 5/dapper_guy_skill_50005.png" id="6_mysih"]
+[ext_resource type="Texture2D" uid="uid://d33u4cavr0rke" path="res://imagese/Enemies/dapper guy 5/dapper_guy_skill_50006.png" id="7_jxsw4"]
+[ext_resource type="Texture2D" uid="uid://bs6ustairtbut" path="res://imagese/Enemies/dapper guy 5.png" id="8_g3i7l"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_6f8b4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_vx33e")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_g0ni6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_7i650")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_yo5ly")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_mysih")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_jxsw4")
+}],
+"loop": 0,
+"name": &"attack",
+"speed": 25.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("8_g3i7l")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 25.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_6f8b4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_vx33e")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_g0ni6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_7i650")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_yo5ly")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_mysih")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_jxsw4")
+}],
+"loop": 0,
+"name": &"skill",
+"speed": 25.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("8_g3i7l")
+}],
+"loop": 1,
+"name": &"walk",
+"speed": 25.0
+}]

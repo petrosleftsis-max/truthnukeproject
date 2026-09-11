@@ -8,7 +8,7 @@
 [ext_resource type="Resource" uid="uid://b24liue2xhn55" path="res://encounters/encounter_01_ambush.tres" id="5_enc1"]
 [ext_resource type="Resource" uid="uid://cpwijoqwu540n" path="res://encounters/encounter_03_watcher.tres" id="6_enc3"]
 [ext_resource type="Script" uid="uid://bx4mgbrftmp1c" path="res://exploration/DialogueInteractable.gd" id="8_e8hu0"]
-[ext_resource type="Resource" uid="uid://cepep6b0fajfa" path="res://Dialogue/test.dialogue" id="9_go82g"]
+[ext_resource type="Resource" uid="uid://ctuytdwjs4qt" path="res://Dialogue/intro_sewer_homeless_beds.dialogue" id="9_go82g"]
 [ext_resource type="Resource" uid="uid://bdmc5m6qtvfop" path="res://Dialogue/intro_sewer_guard_loot.dialogue" id="11_5p2sx"]
 [ext_resource type="Script" uid="uid://tn5n7wtckj10" path="res://exploration/Waypoint.gd" id="11_go82g"]
 
@@ -65,11 +65,12 @@ interaction_radius = 240.0
 texture = SubResource("AtlasTexture_eye")
 
 [node name="DialogueInteractable" type="Node2D" parent="." index="7" unique_id=1387684525]
-position = Vector2(1356, 918)
+position = Vector2(2955, -1821)
 script = ExtResource("8_e8hu0")
 dialogue = ExtResource("9_go82g")
 prompt = "Talk"
 interaction_radius = 120.0
+sprite_frames = ExtResource("4_go82g")
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
 
 [node name="Waypoint" type="Node2D" parent="." index="8" unique_id=1902865563]

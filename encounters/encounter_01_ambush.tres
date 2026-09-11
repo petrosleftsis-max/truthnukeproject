@@ -6,12 +6,12 @@
 
 [sub_resource type="Resource" id="Resource_86m2p"]
 script = ExtResource("2_spawn")
-combatant_key = "enfina"
+combatant_key = "cyrus"
 position = Vector2i(41, -14)
 
 [sub_resource type="Resource" id="Resource_njrfk"]
 script = ExtResource("2_spawn")
-combatant_key = "cyrus"
+combatant_key = "enfina"
 position = Vector2i(45, -14)
 
 [sub_resource type="Resource" id="Resource_x3x4f"]
@@ -72,3 +72,4 @@ display_name = "Sewer Intro Fight"
 description = "Cyrus and Enfina find themselves surrounded."
 terrain_scene = ExtResource("3_86m2p")
 spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_86m2p"), SubResource("Resource_njrfk"), SubResource("Resource_x3x4f"), SubResource("Resource_6a1lt"), SubResource("Resource_5depv"), SubResource("Resource_nl4kq"), SubResource("Resource_kpvjc"), SubResource("Resource_wdid1"), SubResource("Resource_l8d11")])
+music = "My_Gospel_is_Gunpowder_feat_The_Epoch_House_Choir_Instrumental_Version"
