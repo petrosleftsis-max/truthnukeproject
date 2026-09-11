@@ -225,8 +225,8 @@ func _enemy_icons(encounter: EncounterDefinition) -> Array:
 		if spawn.side == 0:
 			continue
 		var definition: CombatantDefinition = CombatantDatabase.combatants.get(spawn.combatant_key)
-		if definition != null and definition.icon != null:
-			found.append(definition.icon)
+		if definition != null and definition.portrait() != null:
+			found.append(definition.portrait())
 	return found
 
 

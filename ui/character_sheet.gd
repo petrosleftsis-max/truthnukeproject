@@ -260,7 +260,7 @@ func _gather() -> Array:
 			"stats": Stats.stats_for_level(1, definition.main_stat, definition.secondary_stat),
 			"weapon_base": Stats.WEAPON_BASE,
 			"sprite_frames": definition.sprite_frames,
-			"map_sprite": definition.map_sprite,
+			"map_sprite": definition.map_still(),
 			"in_battle": false,
 		})
 	return found

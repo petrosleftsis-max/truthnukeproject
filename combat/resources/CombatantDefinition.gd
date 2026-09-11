@@ -141,3 +141,35 @@ func resistance_table() -> Dictionary:
 		Damage.Type.PSYCHIC: resist_psychic,
 		Damage.Type.PURE_ENERGY: resist_pure_energy,
 	}
+
+
+## --- What this combatant looks like ---
+##
+## Icon and MapSprite are optional. Left empty they are taken from the first
+## frame of the animation set, so a character with art never wears somebody
+## else's face for want of a second field kept in step with the first - which is
+## exactly what happened when the enemies were given their own animations and
+## their portraits stayed pointing at Cyrus.
+
+
+## The still that stands for them in the turn queue, the party panel and the
+## battle selector.
+func portrait() -> Texture2D:
+	return icon if icon != null else first_frame()
+
+
+## The still used on the map for anyone with no animation set at all.
+func map_still() -> Texture2D:
+	return map_sprite if map_sprite != null else first_frame()
+
+
+## The first frame of their idle, or of whatever animation they do have. Null
+## for a combatant with no animation set, which is what an empty portrait means.
+func first_frame() -> Texture2D:
+	if sprite_frames == null:
+		return null
+	var names = sprite_frames.get_animation_names()
+	var wanted = "idle" if sprite_frames.has_animation("idle") else (names[0] if names.size() > 0 else "")
+	if wanted == "" or sprite_frames.get_frame_count(wanted) == 0:
+		return null
+	return sprite_frames.get_frame_texture(wanted, 0)

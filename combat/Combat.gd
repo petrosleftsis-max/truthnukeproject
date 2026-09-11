@@ -214,8 +214,8 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# the database only added to it - which meant a skill could not be taken
 		# away from a character without taking it from their whole class.
 		"skill_list" = definition.skills.duplicate(),
-		"icon" = definition.icon,
-		"map_sprite" = definition.map_sprite,
+		"icon" = definition.portrait(),
+		"map_sprite" = definition.map_still(),
 		"sprite_frames" = definition.sprite_frames,
 		"movement" = definition.movement,
 		"initiative" = definition.initiative,

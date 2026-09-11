@@ -2,10 +2,15 @@
 
 [ext_resource type="Script" uid="uid://bg8tpdh4cwe8b" path="res://databases/combatant_database.gd" id="1_5ebs0"]
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="2_rggep"]
-[ext_resource type="Texture2D" uid="uid://cr14x2kddoe53" path="res://imagese/cyrus idle/cyrus idle_color0000.png" id="91_cyrusstill"]
 [ext_resource type="SpriteFrames" uid="uid://dnmvfgx7ep08b" path="res://imagese/cyrus.tres" id="6_ct236"]
+[ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://imagese/enemyBarb.tres" id="6_w4l2p"]
+[ext_resource type="SpriteFrames" uid="uid://yqamqggrjvrb" path="res://imagese/enemyBomb.tres" id="7_6bef5"]
 [ext_resource type="SpriteFrames" uid="uid://xijinqpsikft" path="res://imagese/prometheus.tres" id="10_ad2ke"]
-[ext_resource type="SpriteFrames" uid="uid://dkn1m81k8vltb" path="res://combat/animations/cyrus.tres" id="90_cyrusframes"]
+[ext_resource type="SpriteFrames" uid="uid://oj6iqwkm1foe" path="res://imagese/enemyMimic.tres" id="11_o6bu1"]
+[ext_resource type="SpriteFrames" uid="uid://c0sudq6qa2nsr" path="res://imagese/enemyPriest.tres" id="12_qkqyl"]
+[ext_resource type="SpriteFrames" uid="uid://cs4nt6q8p61i5" path="res://imagese/enemyRanger.tres" id="15_eyeq6"]
+[ext_resource type="SpriteFrames" uid="uid://nlca2j2ewp4s" path="res://imagese/enemyCaster.tres" id="16_r0t0t"]
+[ext_resource type="Texture2D" uid="uid://cr14x2kddoe53" path="res://imagese/cyrus idle/cyrus idle_color0000.png" id="91_cyrusstill"]
 [ext_resource type="SpriteFrames" path="res://combat/animations/enfina.tres" id="92_enfinaframes"]
 [ext_resource type="Texture2D" uid="uid://nx1negu4ijrl" path="res://imagese/enfina idle/enfina_idle_color0000.png" id="93_enfinastill"]
 [ext_resource type="SpriteFrames" path="res://combat/animations/alithia.tres" id="94_alithiaframes"]
@@ -32,9 +37,7 @@ name = "Barbarian"
 max_hp = 50
 initiative = 3
 secondary_stat = 3
-icon = ExtResource("91_cyrusstill")
-map_sprite = ExtResource("91_cyrusstill")
-sprite_frames = ExtResource("90_cyrusframes")
+sprite_frames = ExtResource("6_w4l2p")
 skills = Array[String](["attack_melee", "shoving_strike", "flame_cone", "run"])
 
 [sub_resource type="Resource" id="Resource_bomber"]
@@ -45,9 +48,7 @@ movement = 4
 initiative = 3
 main_stat = 1
 secondary_stat = 0
-icon = ExtResource("91_cyrusstill")
-map_sprite = ExtResource("91_cyrusstill")
-sprite_frames = ExtResource("90_cyrusframes")
+sprite_frames = ExtResource("7_6bef5")
 skills = Array[String](["self_destruct", "run"])
 ai_function = "ai_hit_and_explode"
 
@@ -85,9 +86,7 @@ max_hp = 32
 movement = 5
 initiative = 4
 main_stat = 3
-icon = ExtResource("91_cyrusstill")
-map_sprite = ExtResource("91_cyrusstill")
-sprite_frames = ExtResource("90_cyrusframes")
+sprite_frames = ExtResource("11_o6bu1")
 ai_function = "ai_copycat"
 
 [sub_resource type="Resource" id="Resource_priest"]
@@ -99,9 +98,7 @@ movement = 4
 initiative = 3
 main_stat = 1
 secondary_stat = 3
-icon = ExtResource("91_cyrusstill")
-map_sprite = ExtResource("91_cyrusstill")
-sprite_frames = ExtResource("90_cyrusframes")
+sprite_frames = ExtResource("12_qkqyl")
 skills = Array[String](["heal", "cleanse", "water_spike", "run"])
 resist_earth = -20
 ai_function = "ai_healer"
@@ -125,9 +122,7 @@ class_t = 1
 max_hp = 32
 movement = 5
 initiative = 4
-icon = ExtResource("91_cyrusstill")
-map_sprite = ExtResource("91_cyrusstill")
-sprite_frames = ExtResource("90_cyrusframes")
+sprite_frames = ExtResource("15_eyeq6")
 skills = Array[String](["heal", "attack_ranged", "poison_dart", "burning_shot", "run"])
 ai_function = "ai_ranger"
 
@@ -139,9 +134,7 @@ max_hp = 8
 movement = 4
 initiative = 4
 main_stat = 2
-icon = ExtResource("91_cyrusstill")
-map_sprite = ExtResource("91_cyrusstill")
-sprite_frames = ExtResource("90_cyrusframes")
+sprite_frames = ExtResource("16_r0t0t")
 skills = Array[String](["curse", "fireball", "gravity_pull", "repel", "wind_swoon", "run"])
 resist_fire = 20
 ai_function = "ai_caster"

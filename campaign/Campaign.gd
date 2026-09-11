@@ -171,8 +171,8 @@ func party_members() -> Array:
 		members.append({
 			"key": key,
 			"name": definition.name,
-			"icon": definition.icon,
-			"map_sprite": definition.map_sprite,
+			"icon": definition.portrait(),
+			"map_sprite": definition.map_still(),
 			# The animation set travels with the still: the party walks the map
 			# with the same SpriteFrames it fights with.
 			"sprite_frames": definition.sprite_frames,
