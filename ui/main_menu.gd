@@ -108,7 +108,7 @@ func _build_root() -> Control:
 	buttons.custom_minimum_size = Vector2(280, 0)
 	buttons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	buttons.add_child(_menu_button("Play", func(): _show("play")))
-	buttons.add_child(_menu_button("Battle Select", func(): SceneTransition.change_scene(BATTLE_SELECT)))
+	buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
 	buttons.add_child(_menu_button("Options", func(): _show("options")))
 	buttons.add_child(_menu_button("Exit", _quit))
 	holder.add_child(buttons)
@@ -158,49 +158,12 @@ func _build_resolution() -> Control:
 
 func _build_volume() -> Control:
 	var holder := _panel("Volume")
-	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 12)
+	var rows := VolumeSliders.new()
 	rows.custom_minimum_size = Vector2(360, 0)
 	rows.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	rows.add_child(_volume_row("Music", "music"))
-	rows.add_child(_volume_row("Sound effects", "sfx"))
 	holder.add_child(rows)
 	holder.add_child(_back_button())
 	return holder
-
-
-## One slider, with what it controls on the left and where it currently sits on
-## the right - a slider with no number is a guess.
-func _volume_row(label_text: String, which: String) -> Control:
-	var row := VBoxContainer.new()
-	row.add_theme_constant_override("separation", 4)
-	var heading := HBoxContainer.new()
-	var label := Label.new()
-	label.text = label_text
-	label.add_theme_font_size_override("font_size", 15)
-	label.add_theme_color_override("font_color", INK_DIM)
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_child(label)
-	var readout := Label.new()
-	readout.add_theme_font_size_override("font_size", 15)
-	readout.add_theme_color_override("font_color", MUTED)
-	heading.add_child(readout)
-	row.add_child(heading)
-
-	var slider := HSlider.new()
-	slider.name = "%sSlider" % which.capitalize()
-	slider.min_value = 0.0
-	slider.max_value = 1.0
-	slider.step = 0.05
-	slider.value = Music.volume(which)
-	slider.custom_minimum_size = Vector2(0, 20)
-	readout.text = "%d%%" % roundi(slider.value * 100.0)
-	slider.value_changed.connect(func(level):
-		Music.set_volume(which, level)
-		readout.text = "%d%%" % roundi(level * 100.0)
-	)
-	row.add_child(slider)
-	return row
 
 
 ## --- The pieces ---

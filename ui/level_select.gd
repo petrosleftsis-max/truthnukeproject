@@ -42,13 +42,16 @@ const ICON_SIZE := 18
 @onready var _party_box: VBoxContainer = $Center/VBox/PartyPanel/PartyBox
 @onready var _list: VBoxContainer = $Center/VBox/EncounterList
 @onready var _reset_button: Button = $Center/VBox/ResetButton
+@onready var _main_menu_button: Button = $Center/VBox/MainMenuButton
 
 
 func _ready():
 	_title.add_theme_color_override("font_color", INK)
 	_style_party_panel()
 	_style_reset_button()
+	_style_quiet_button(_main_menu_button)
 	_reset_button.pressed.connect(_on_reset_pressed)
+	_main_menu_button.pressed.connect(Campaign.to_main_menu)
 	_rebuild()
 
 
@@ -254,21 +257,28 @@ func _card_box(fill: Color, edge: Color) -> StyleBoxFlat:
 
 
 func _style_reset_button():
-	_reset_button.add_theme_color_override("font_color", MUTED)
-	_reset_button.add_theme_color_override("font_hover_color", INK)
-	_reset_button.add_theme_color_override("font_focus_color", INK)
+	_style_quiet_button(_reset_button)
+
+
+## The understated look the buttons under the list share: no fill, a hairline
+## above, and the accent only when it is being pointed at. They are ways out of
+## the screen rather than things to pick, and should not compete with the cards.
+func _style_quiet_button(button: Button):
+	button.add_theme_color_override("font_color", MUTED)
+	button.add_theme_color_override("font_hover_color", INK)
+	button.add_theme_color_override("font_focus_color", INK)
 	var flat := StyleBoxFlat.new()
 	flat.bg_color = Color(0, 0, 0, 0)
 	flat.border_width_top = 1
 	flat.border_color = CARD_EDGE
 	flat.content_margin_top = 8
 	flat.content_margin_bottom = 6
-	_reset_button.add_theme_stylebox_override("normal", flat)
+	button.add_theme_stylebox_override("normal", flat)
 	var lit := flat.duplicate()
 	lit.border_color = ACCENT
-	_reset_button.add_theme_stylebox_override("hover", lit)
-	_reset_button.add_theme_stylebox_override("pressed", lit)
-	_reset_button.add_theme_stylebox_override("focus", lit)
+	button.add_theme_stylebox_override("hover", lit)
+	button.add_theme_stylebox_override("pressed", lit)
+	button.add_theme_stylebox_override("focus", lit)
 
 
 ## --- Small shared pieces ---

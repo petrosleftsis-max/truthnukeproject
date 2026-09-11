@@ -1,9 +1,11 @@
 extends CanvasLayer
 ## Simple pause/options overlay, independent of the combat HUD - works no
 ## matter whose turn it is or what's happening. Escape toggles the Pause
-## panel (title "Pause", "Options" and "Exit" buttons); Options swaps to a
-## resolution picker (title "Options", one button per resolution). Picking
-## a resolution just resizes the actual game window - the project's
+## panel (title "Pause", with "Options", "Arena Mode" and "Main Menu");
+## Options swaps to a resolution picker with the volume sliders under it.
+## The sliders are the same ones the main menu shows (ui/volume_sliders.gd)
+## and are driven with the mouse - the arrow keys belong to the button loop
+## here. Picking a resolution just resizes the actual game window - the project's
 ## canvas_items stretch mode (set up when the game was moved to widescreen
 ## resolutions) handles rescaling everything else automatically, so nothing
 ## else needs to happen here.
@@ -23,7 +25,7 @@ extends CanvasLayer
 @onready var _pause_buttons: Array = [
 	$PausePanel/VBox/OptionsButton,
 	$PausePanel/VBox/LevelSelectButton,
-	$PausePanel/VBox/ExitButton,
+	$PausePanel/VBox/MainMenuButton,
 ]
 @onready var _options_buttons: Array = [
 	$OptionsPanel/VBox/Res1280Button,
@@ -31,16 +33,22 @@ extends CanvasLayer
 	$OptionsPanel/VBox/Res2560Button,
 ]
 
+## Built rather than placed, so the sliders and what they do live in one place
+## shared with the main menu (see ui/volume_sliders.gd).
+var _volume: VolumeSliders = null
+
 
 func _ready():
 	$PausePanel.visible = false
 	$OptionsPanel.visible = false
 	$PausePanel/VBox/OptionsButton.pressed.connect(_on_options_pressed)
 	$PausePanel/VBox/LevelSelectButton.pressed.connect(_on_level_select_pressed)
-	$PausePanel/VBox/ExitButton.pressed.connect(_on_exit_pressed)
+	$PausePanel/VBox/MainMenuButton.pressed.connect(_on_main_menu_pressed)
 	$OptionsPanel/VBox/Res1280Button.pressed.connect(func(): set_resolution(1280, 720))
 	$OptionsPanel/VBox/Res1920Button.pressed.connect(func(): set_resolution(1920, 1080))
 	$OptionsPanel/VBox/Res2560Button.pressed.connect(func(): set_resolution(2560, 1440))
+	_volume = VolumeSliders.new()
+	$OptionsPanel/VBox.add_child(_volume)
 	FocusLoop.link(_pause_buttons)
 	FocusLoop.link(_options_buttons)
 
@@ -95,8 +103,10 @@ func _on_level_select_pressed():
 	SceneTransition.change_scene("res://scenes/level_select.tscn")
 
 
-func _on_exit_pressed():
-	get_tree().quit()
+## Back to the title screen. Abandons the battle, the same way Arena Mode
+## above does - and unlike quitting, which in a web build does nothing at all.
+func _on_main_menu_pressed():
+	Campaign.to_main_menu()
 
 
 func set_resolution(width: int, height: int):
