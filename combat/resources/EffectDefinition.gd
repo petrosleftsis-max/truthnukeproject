@@ -13,7 +13,8 @@ enum EffectType {
 	PUSH,              ## Shoves the target directly away from the caster.
 	PULL,              ## Drags the target directly towards the caster.
 	STAT_MULTIPLIER,   ## Multiplies a stat instead of adding to it, e.g. doubling movement for a turn.
-	CONDITION          ## Inflicts a named ConditionDefinition - Poisoned, Stunned, Burned and so on.
+	CONDITION,         ## Inflicts a named ConditionDefinition - Poisoned, Stunned, Burned and so on.
+	REVEAL             ## Lays the target open to inspection - what Study does.
 }
 
 enum DispelScope {
@@ -119,6 +120,8 @@ const FIELDS_BY_TYPE := {
 	EffectType.PULL: ["knockback_distance"],
 	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration"],
 	EffectType.CONDITION: ["condition", "condition_duration"],
+	# Nothing to configure: it either lays the target open or it does not.
+	EffectType.REVEAL: [],
 }
 
 

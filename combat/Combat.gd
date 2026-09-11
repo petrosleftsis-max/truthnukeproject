@@ -9,6 +9,9 @@ signal update_turn_queue(combatants: Array, turn_queue: Array)
 signal update_information(text: String)
 signal update_combatants(combatants: Array)
 signal combat_finished()
+## Someone has been studied and can now be read in full. The character sheet
+## opens on them.
+signal combatant_studied(combatant: Dictionary)
 
 var combatants = []
 
@@ -61,15 +64,6 @@ var deployment_tiles: Array = []
 ## True while the player is arranging the party, before the first turn.
 var deployment_active := false
 
-var skills_lists = [
-	["attack_melee", "slowing_strike", "run"], #Melee
-	["attack_melee", "attack_ranged", "lightning_bolt", "poison_dart", "run"], #Ranged
-	# Heal, Cleanse and Vitality are deliberately not here. They are the support
-	# kit rather than part of being a caster, so they are granted per character
-	# (see CombatantDefinition.skills) - Alithia and the Priest have them,
-	# Prometheus and the Sorcerer do not.
-	["attack_melee", "basic_magic", "fireball", "flame_cone", "curse", "repel", "gravity_pull", "run"] #Magic
-]
 
 
 func _ready():
@@ -215,7 +209,11 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		"class" = definition.class_t,
 		"alive" = true,
 		"movement_class" = definition.class_m,
-		"skill_list" = skills_lists[definition.class_t].duplicate(),
+		# Exactly what the database says this character knows. There used to be a
+		# list per class underneath this, so being a mage granted a mage's kit and
+		# the database only added to it - which meant a skill could not be taken
+		# away from a character without taking it from their whole class.
+		"skill_list" = definition.skills.duplicate(),
 		"icon" = definition.icon,
 		"map_sprite" = definition.map_sprite,
 		"sprite_frames" = definition.sprite_frames,
@@ -247,11 +245,40 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# dictionary being rebuilt from scratch for each encounter.
 		"combatant_key" = combatant_key
 		}
+	# Kept so duplicates can be numbered off the name they share rather than off
+	# a name that has already been numbered.
+	comb["base_name"] = definition.name
 	if override_name != "":
 		comb.name = override_name
-	if definition.skills.size() > 0:
-		comb["skill_list"].append_array(definition.skills)
+		# The author has said what to call this one, so nothing renumbers it.
+		comb["named_by_author"] = true
 	return comb
+
+## Counts up forever within a battle, so an id is never reused even after a
+## combatant dies and another takes their place in the array.
+var _next_combatant_id := 1
+
+
+## Tells apart combatants who would otherwise share a name.
+##
+## The first Barbarian keeps the plain name; when a second arrives they become
+## "Barbarian 1" and "Barbarian 2", and so on. Anyone given a display_name on
+## their spawn is left alone - that is the author saying what to call them, and
+## "Goblin 3" should not become "Goblin 3 1".
+func _number_duplicates(arrival: Dictionary):
+	var base = arrival.get("base_name", arrival.name)
+	if arrival.get("named_by_author", false):
+		return
+	var sharing := []
+	for comb in combatants:
+		if comb.get("named_by_author", false):
+			continue
+		if comb.get("base_name", comb.name) == base:
+			sharing.append(comb)
+	if sharing.size() < 2:
+		return
+	for i in sharing.size():
+		sharing[i].name = "%s %d" % [base, i + 1]
 
 func sort_turn_queue(a, b):
 	if combatants[b].initiative < combatants[a].initiative:
@@ -262,7 +289,14 @@ func sort_turn_queue(a, b):
 func add_combatant(combatant: Dictionary, side: int, position: Vector2i):
 	combatant["position"] = position
 	combatant["side"] = side
+	# Something to be addressed by that is not their name. An encounter can field
+	# three barbarians, and the HUD used to find a combatant's icon by name -
+	# which meant killing one of the three could take the wrong icon off the
+	# screen, or none of them.
+	combatant["id"] = _next_combatant_id
+	_next_combatant_id += 1
 	combatants.append(combatant)
+	_number_duplicates(combatant)
 	groups[side].append(combatants.size() - 1)
 
 	var new_combatant_sprite = CombatantSprite.new()
@@ -931,6 +965,16 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, effect.condition.display_name))
 		EffectDefinition.EffectType.DISPEL:
 			dispel_status_effects(attacker, target, effect)
+		EffectDefinition.EffectType.REVEAL:
+			# Knowledge, not an injury: it lasts the battle, nothing cleanses it
+			# off, and studying the same enemy twice is the same knowledge again.
+			var already_known = target.get("studied", false)
+			target["studied"] = true
+			if already_known:
+				update_information.emit("[color=yellow]%s[/color] already has [color=red]%s[/color] measured.\n" % [attacker.name, target.name])
+			else:
+				update_information.emit("[color=yellow]%s[/color] studies [color=red]%s[/color], and can read them in full - press C.\n" % [attacker.name, target.name])
+			combatant_studied.emit(target)
 		EffectDefinition.EffectType.PUSH:
 			apply_knockback(attacker, target, effect, false)
 		EffectDefinition.EffectType.PULL:

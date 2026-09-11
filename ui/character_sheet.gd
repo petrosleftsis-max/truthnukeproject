@@ -52,6 +52,28 @@ func _ready():
 	layer = 8
 	_build()
 	_root.visible = false
+	if combat != null and combat.has_signal("combatant_studied"):
+		combat.combatant_studied.connect(_on_combatant_studied)
+
+
+## Study has just opened someone up, so show what was found rather than making
+## the player go and look: the skill costs an action, and its whole payoff is
+## the reading.
+func _on_combatant_studied(combatant: Dictionary):
+	open_on(combatant.name)
+
+
+## Opens the sheet on a named combatant, falling back to the usual choice when
+## there is nobody by that name to show.
+func open_on(who: String):
+	open()
+	if not _open:
+		return
+	for i in range(_entries.size()):
+		if _entries[i].name == who:
+			_index = i
+			_show_entry()
+			return
 
 
 ## --- Layout ---
@@ -202,7 +224,13 @@ func _gather() -> Array:
 	var found: Array = []
 	if combat != null and is_instance_valid(combat) and not combat.combatants.is_empty():
 		for comb in combat.combatants:
-			if comb.side != 0 or not comb.alive:
+			if not comb.alive:
+				continue
+			# The player's own, plus any enemy Study has opened up. An enemy
+			# nobody has studied is not here at all: that their numbers are
+			# hidden until somebody goes and measures them is the whole point
+			# of the skill.
+			if comb.side != 0 and not comb.get("studied", false):
 				continue
 			found.append({
 				"name": comb.name,
@@ -214,6 +242,10 @@ func _gather() -> Array:
 				"sprite_frames": comb.get("sprite_frames"),
 				"map_sprite": comb.get("map_sprite"),
 				"in_battle": true,
+				"movement": combat.get_effective_stat(comb, "movement"),
+				"resistances": comb.get("resistances", {}),
+				"skills": comb.get("skill_list", []),
+				"studied": comb.side != 0,
 			})
 		return found
 	for member in Campaign.party_members():
@@ -288,6 +320,44 @@ func _show_stats(entry: Dictionary):
 	# Weapon base belongs with them: it is half of every damage number they
 	# produce, and unlike the attributes it is set per encounter.
 	_stat_rows.add_child(_stat_row("Weapon base", str(entry.get("weapon_base", Stats.WEAPON_BASE))))
+	if entry.has("movement"):
+		_stat_rows.add_child(_stat_row("Movement", str(entry.movement)))
+	_show_resistances(entry)
+	_show_skills(entry)
+
+
+## What they shrug off and what gets through them, listed only where it is not
+## simply "normal" - a wall of zeroes says nothing worth reading.
+func _show_resistances(entry: Dictionary):
+	var resistances: Dictionary = entry.get("resistances", {})
+	var resists := []
+	var weak := []
+	for type in resistances:
+		var amount = resistances[type]
+		if amount > 0:
+			resists.append("%s %d%%" % [Damage.type_name(type), amount])
+		elif amount < 0:
+			weak.append("%s %d%%" % [Damage.type_name(type), amount])
+	if resists.is_empty() and weak.is_empty():
+		if entry.has("resistances"):
+			_stat_rows.add_child(_stat_row("Resistances", "none"))
+		return
+	if not resists.is_empty():
+		_stat_rows.add_child(_stat_row("Resists", ", ".join(resists)))
+	if not weak.is_empty():
+		_stat_rows.add_child(_stat_row("Weak to", ", ".join(weak)))
+
+
+## Everything they can do, by the names the player sees on their own buttons.
+func _show_skills(entry: Dictionary):
+	var keys: Array = entry.get("skills", [])
+	if keys.is_empty():
+		return
+	var names := []
+	for key in keys:
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		names.append(skill.name if skill != null else key)
+	_stat_rows.add_child(_stat_row("Skills", ", ".join(names)))
 
 
 func _stat_row(label_text: String, value_text: String) -> Control:

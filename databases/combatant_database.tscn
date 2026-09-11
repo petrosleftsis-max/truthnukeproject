@@ -25,7 +25,7 @@ spell_slots_2 = 1
 icon = ExtResource("95_alithiastill")
 map_sprite = ExtResource("95_alithiastill")
 sprite_frames = ExtResource("94_alithiaframes")
-skills = Array[String](["heal", "cleanse", "flash", "river_flow", "water_spike", "run"])
+skills = Array[String](["study", "heal", "cleanse", "flash", "river_flow", "water_spike", "run"])
 
 [sub_resource type="Resource" id="Resource_s2oe2"]
 script = ExtResource("2_rggep")
@@ -64,7 +64,7 @@ secondary_stat = 0
 icon = ExtResource("91_cyrusstill")
 map_sprite = ExtResource("91_cyrusstill")
 sprite_frames = ExtResource("90_cyrusframes")
-skills = Array[String](["rapier", "attack_ranged", "poison_dart", "run"])
+skills = Array[String](["study", "rapier", "attack_ranged", "poison_dart", "run"])
 secondary_skills = Array[String](["run"])
 
 [sub_resource type="Resource" id="Resource_tkpbb"]
@@ -77,7 +77,7 @@ secondary_stat = 2
 icon = ExtResource("93_enfinastill")
 map_sprite = ExtResource("93_enfinastill")
 sprite_frames = ExtResource("92_enfinaframes")
-skills = Array[String](["attack_melee", "shoving_strike", "flame_cone", "run", "slowing_strike"])
+skills = Array[String](["study", "attack_melee", "shoving_strike", "flame_cone", "run", "slowing_strike"])
 
 [sub_resource type="Resource" id="Resource_mimic"]
 script = ExtResource("2_rggep")
@@ -122,7 +122,7 @@ spell_slots_3 = 1
 icon = ExtResource("97_prometheusstill")
 map_sprite = ExtResource("97_prometheusstill")
 sprite_frames = ExtResource("96_prometheusframes")
-skills = Array[String](["basic_magic", "curse", "fireball", "gravity_pull", "repel", "run"])
+skills = Array[String](["study", "basic_magic", "curse", "fireball", "gravity_pull", "repel", "run"])
 
 [sub_resource type="Resource" id="Resource_ranger"]
 script = ExtResource("2_rggep")

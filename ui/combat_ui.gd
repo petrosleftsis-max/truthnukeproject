@@ -179,7 +179,10 @@ func add_turn_queue_icon(combatant: Dictionary):
 	new_icon.set_max_hp(combat.get_effective_stat(combatant, "max_hp"))
 	new_icon.set_hp(combatant.hp)
 	new_icon.texture = combatant.icon
-	new_icon.name = combatant.name
+	# Named for the editor's benefit, found by id: three barbarians share a name,
+	# and Godot would quietly make the second one "Barbarian2" anyway.
+	new_icon.name = "TQ%d" % combatant.get("id", 0)
+	new_icon.set_meta("combatant_id", combatant.get("id", 0))
 	new_icon.set_side(combatant.side)
 
 
@@ -190,7 +193,7 @@ func update_turn_queue(combatants: Array, turn_queue: Array):
 
 
 func combatant_died(combatant):
-	var turn_queue_icon = $TurnQueue/Queue.find_child(combatant.name, false, false)
+	var turn_queue_icon = _icon_for($TurnQueue/Queue, combatant)
 #	if combatant.side == 0:
 #		var status = $Status.find_child(combatant.name, false, false)
 #		if status != null:
@@ -199,13 +202,24 @@ func combatant_died(combatant):
 		turn_queue_icon.queue_free()
 
 
+## The icon standing for `comb`, or null. By id rather than by name, so a fight
+## with three of the same combatant in it takes the right one off the screen.
+func _icon_for(container: Node, comb: Dictionary) -> Node:
+	var wanted = comb.get("id", -1)
+	for child in container.get_children():
+		if child.get_meta("combatant_id", -2) == wanted:
+			return child
+	return null
+
+
 func add_combatant_status(comb: Dictionary):
 	if comb.side == 0:
 		var new_status = StatusIcon.instantiate()
 		$Status.add_child(new_status)
 		new_status.set_icon(comb.icon)
 		new_status.set_health(comb.hp, combat.get_effective_stat(comb, "max_hp"))
-		new_status.name = comb.name
+		new_status.name = "Status%d" % comb.get("id", 0)
+		new_status.set_meta("combatant_id", comb.get("id", 0))
 
 
 func show_combatant_status_main(comb: Dictionary):
@@ -396,29 +410,29 @@ func describe_aoe_shape(skill: SkillDefinition) -> String:
 func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) -> String:
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
-			# Damage is the caster's stat, so there is no fixed number to print
-			# here - what the skill contributes is which stat and how hard.
-			if skill != null:
-				return "Damage: %s x%s %s" % [
-					Stats.stat_name(skill.scaling_stat), skill.ability_modifier,
-					Damage.type_name(effect.damage_type).to_lower()
-				]
+			# What it will actually take off, worked out against the enemies
+			# standing on the board - "Intellect x1.5" is the rule behind the
+			# number, and the number is what the decision is made on.
+			var hits = _damage_against_enemies(skill, effect.damage_type)
+			if hits != "":
+				return "Damage: %s %s" % [hits, Damage.type_name(effect.damage_type).to_lower()]
 			return "Damage: %s" % Damage.type_name(effect.damage_type).to_lower()
 		EffectDefinition.EffectType.HEAL:
 			# Reads like the damage line, because it is worked out the same way.
-			if skill != null:
-				return "Heal: %s x%s" % [Stats.stat_name(skill.scaling_stat), skill.ability_modifier]
+			var mended = _heal_amount(skill)
+			if mended >= 0:
+				return "Heal: %d" % mended
 			return "Heal: %d-%d" % [effect.min_amount, effect.max_amount]
 		EffectDefinition.EffectType.STAT_MODIFIER:
 			var sign_str = "+" if effect.modifier_amount >= 0 else ""
 			return "%s%d %s for %d turn(s)" % [sign_str, effect.modifier_amount, effect.stat, effect.duration]
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
-			# Reads like the direct-damage line, because it is worked out the same
-			# way now - the caster's stat rather than a flat range.
-			if skill != null:
-				return "Damage over time: %s x%s %s each turn for %d turn(s)" % [
-					Stats.stat_name(skill.scaling_stat), skill.ability_modifier * effect.damage_modifier,
-					Damage.type_name(effect.damage_type).to_lower(), effect.duration
+			# Per turn and in total, because a wound that ticks for 6 over 4 turns
+			# is a different decision from one that ticks for 20 once.
+			var ticks = _dot_against_enemies(skill, effect.damage_type, effect.damage_modifier)
+			if ticks != "":
+				return "Damage over time: %s %s a turn for %d turn(s)" % [
+					ticks, Damage.type_name(effect.damage_type).to_lower(), effect.duration
 				]
 			return "Damage over time: %d-%d %s for %d turn(s)" % [
 				effect.min_amount, effect.max_amount, Damage.type_name(effect.damage_type).to_lower(), effect.duration
@@ -458,11 +472,13 @@ func update_combatants(combatants: Array):
 	for comb in combatants:
 		var effective_max_hp = combat.get_effective_stat(comb, "max_hp")
 		if comb.side == 0:
-			var status = $Status.find_child(comb.name, false, false)
+			var status = _icon_for($Status, comb)
 			if status != null:
 				status.set_health(comb.hp, effective_max_hp)
-		var turn_queue_icon = $TurnQueue/Queue.find_child(comb.name, false, false)
+				_refresh_conditions(status, comb)
+		var turn_queue_icon = _icon_for($TurnQueue/Queue, comb)
 		if turn_queue_icon != null:
+			_refresh_conditions(turn_queue_icon, comb)
 			turn_queue_icon.set_max_hp(effective_max_hp)
 			turn_queue_icon.set_hp(comb.hp)
 			# Order matters: set_current works out the border colour, so it has
@@ -508,3 +524,115 @@ func _target_selection_finished():
 
 func _target_selection_started():
 	_set_aiming(true)
+
+
+## --- What a skill will actually do ---
+##
+## The tooltip used to print the rule behind a number - "Intellect x1.5" - and
+## leave the arithmetic to the player. These work the number out instead, from
+## whoever's turn it is against the enemies actually standing on the board, so
+## what the tooltip promises is what the log will report.
+
+
+## Whoever is choosing a skill right now, or an empty dictionary out of battle.
+func _caster() -> Dictionary:
+	if combat == null or not combat.has_method("get_current_combatant"):
+		return {}
+	var current = combat.get_current_combatant()
+	return current if current != null else {}
+
+
+## Everyone this caster's attacks would land on.
+func _opposition(caster: Dictionary) -> Array:
+	var found: Array = []
+	if combat == null:
+		return found
+	for comb in combat.combatants:
+		if comb.get("alive", false) and comb.get("side", 1) != caster.get("side", 0):
+			found.append(comb)
+	return found
+
+
+## The damage `skill` would do to the enemies on the board, as one number when
+## they would all take the same and a range when they would not - resistances
+## and defences differ, and the spread is the useful part.
+func _damage_against_enemies(skill: SkillDefinition, damage_type: int) -> String:
+	var caster = _caster()
+	if skill == null or caster.is_empty():
+		return ""
+	var lowest = -1
+	var highest = -1
+	for target in _opposition(caster):
+		var hit = combat.resisted_damage(target, damage_type, combat.skill_damage(caster, target, skill))
+		if lowest < 0 or hit < lowest:
+			lowest = hit
+		if hit > highest:
+			highest = hit
+	if lowest < 0:
+		return ""
+	return "%d" % lowest if lowest == highest else "%d-%d" % [lowest, highest]
+
+
+## The same for a lingering tick, which is worked out the same way and then
+## scaled by the effect's own fraction.
+func _dot_against_enemies(skill: SkillDefinition, damage_type: int, modifier: float) -> String:
+	var caster = _caster()
+	if skill == null or caster.is_empty():
+		return ""
+	var base = combat.dot_base_damage(caster, skill, modifier)
+	if base <= 0.0:
+		return ""
+	var lowest = -1
+	var highest = -1
+	for target in _opposition(caster):
+		var tick = combat.resisted_damage(target, damage_type, combat.dot_tick(target, base, 0, 0))
+		if lowest < 0 or tick < lowest:
+			lowest = tick
+		if tick > highest:
+			highest = tick
+	if lowest < 0:
+		return ""
+	return "%d" % lowest if lowest == highest else "%d-%d" % [lowest, highest]
+
+
+## What a heal from whoever is acting would restore, or -1 with nobody to ask.
+func _heal_amount(skill: SkillDefinition) -> int:
+	var caster = _caster()
+	if skill == null or caster.is_empty() or not combat.has_method("heal_amount"):
+		return -1
+	return combat.heal_amount(caster, skill)
+
+
+## --- What is currently on somebody ---
+
+
+## Hangs a strip of condition marks on `holder` and keeps it in step with what
+## `comb` is actually suffering. Built on demand rather than in the scene, since
+## the portraits and queue icons are themselves built on demand.
+##
+## `where` is a layout preset: the party portraits carry theirs beside the face,
+## the turn queue underneath it, which is where there is room in each.
+func _refresh_conditions(holder: Control, comb: Dictionary, where: int = -1):
+	var anchor: Control = holder.get_node_or_null("Icon")
+	if anchor == null:
+		anchor = holder
+	var strip: ConditionStrip = anchor.get_node_or_null("Conditions")
+	if strip == null:
+		strip = ConditionStrip.new()
+		strip.name = "Conditions"
+		strip.add_theme_constant_override("separation", 2)
+		anchor.add_child(strip)
+		var preset = where
+		if preset < 0:
+			preset = Control.PRESET_CENTER_RIGHT if comb.get("side", 1) == 0 else Control.PRESET_CENTER_BOTTOM
+		strip.set_anchors_and_offsets_preset(preset, Control.PRESET_MODE_KEEP_SIZE)
+		# Clear of the portrait rather than over it: beside it for the party
+		# column, below it for the queue along the top.
+		if preset == Control.PRESET_CENTER_RIGHT:
+			strip.position.x += 8
+		else:
+			strip.position.y += 6
+		strip.grow_horizontal = Control.GROW_DIRECTION_END
+		strip.grow_vertical = Control.GROW_DIRECTION_END
+		strip.mouse_filter = Control.MOUSE_FILTER_PASS
+	strip.show_for(comb, combat)

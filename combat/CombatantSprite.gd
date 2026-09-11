@@ -121,7 +121,12 @@ func play_skill_and_wait(animation_name: String = "skill"):
 			return
 		animation_name = "skill"
 	_skill_animation_finished = false
-	_animated.animation_finished.connect(_on_skill_animation_finished, CONNECT_ONE_SHOT)
+	# Only once, even if this is asked for again while the last one is still
+	# playing - a reaction can fire in the middle of somebody's own animation,
+	# and connecting a second time is an error Godot reports every time it
+	# happens. The one connection serves whichever call is currently waiting.
+	if not _animated.animation_finished.is_connected(_on_skill_animation_finished):
+		_animated.animation_finished.connect(_on_skill_animation_finished, CONNECT_ONE_SHOT)
 	_animated.play(animation_name)
 	var elapsed = 0.0
 	while not _skill_animation_finished and elapsed < SKILL_ANIMATION_TIMEOUT:

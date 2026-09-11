@@ -26,6 +26,8 @@
 [ext_resource type="Resource" uid="uid://b0upcs6tuhnyk" path="res://skills/warning_shot.tres" id="24_pp4aq"]
 [ext_resource type="Resource" uid="uid://c2xk3fh5n0i1y" path="res://skills/burning_shot.tres" id="25_q8moi"]
 
+[ext_resource type="Resource" path="res://skills/study.tres" id="99_study"]
+
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
 script = ExtResource("1_bnr7k")
 skills = {
@@ -50,6 +52,7 @@ skills = {
 "shoving_strike": ExtResource("21_dbes0"),
 "slowing_strike": ExtResource("16_ha562"),
 "vitality": ExtResource("17_mfut3"),
+"study": ExtResource("99_study"),
 "warning_shot": ExtResource("24_pp4aq"),
 "water_spike": ExtResource("23_8fqdd"),
 "wind_swoon": ExtResource("22_8fqdd")
