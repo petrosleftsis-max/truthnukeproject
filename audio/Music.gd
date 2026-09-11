@@ -148,6 +148,17 @@ func _with_loop(stream: AudioStream, loop: bool) -> AudioStream:
 func _apply_loop(stream: AudioStream, loop: bool):
 	if stream is AudioStreamWAV:
 		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD if loop else AudioStreamWAV.LOOP_DISABLED
+		if loop and stream.loop_end <= stream.loop_begin:
+			# A WAV imported with no loop point of its own has loop_begin and
+			# loop_end both at zero. Turning looping on then asks the player to
+			# repeat a region of no length, and it plays silence rather than
+			# looping - which is how three encounters ended up fighting in
+			# total quiet while the .mp3 maps were fine, an .mp3 having a plain
+			# loop flag with no region to get wrong.
+			#
+			# The whole file is the loop unless the import says otherwise.
+			stream.loop_begin = 0
+			stream.loop_end = int(stream.get_length() * stream.mix_rate)
 	elif "loop" in stream:
 		stream.loop = loop
 
