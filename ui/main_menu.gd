@@ -25,8 +25,8 @@ const EXPLORATION := "res://scenes/exploration.tscn"
 const BATTLE := "res://scenes/game.tscn"
 const STORY := "res://scenes/story.tscn"
 
-## The four ways in, left to right. Each is either a story to play, an encounter
-## to fight, or both - a story that leads somewhere when it ends.
+## The four ways in, left to right. Each names what it opens: a `dialogue` to
+## play over black, a `map` to walk around in, or an `encounter` to fight.
 const WAYS_IN := [
 	{
 		"name": "Cyrus",
@@ -39,7 +39,7 @@ const WAYS_IN := [
 		"name": "Prometheus",
 		"icon": "res://imagese/icon/prometheus colors.png",
 		"description": "Narrative and gameplay team dynamics with an intermediate stage.",
-		"encounter": "res://encounters/encounter_02_sappers.tres",
+		"map": "res://skills/laboratory_terrain_explore.tscn",
 	},
 	{
 		"name": "Enfina",
@@ -51,7 +51,10 @@ const WAYS_IN := [
 		"name": "Alithia",
 		"icon": "res://imagese/icon/alithia colors.png",
 		"description": "Narrative snippet of mid to end game.",
-		"dialogue": "res://Dialogue/church_after_reveal_alithia_intro.dialogue",
+		# The conversation is in the map rather than named here: it is a scene
+		# that happens in the church, on arrival, and leaves her standing in it
+		# afterwards - see the ArrivalConversation node in church.tscn.
+		"map": "res://church.tscn",
 	},
 ]
 
@@ -324,15 +327,21 @@ func _focus_first(panel: Control):
 
 
 ## Starts one of the four. A story plays over black and then goes wherever it
-## says; an encounter goes straight to the fight.
+## says; a map drops the party into it; an encounter goes straight to the fight.
 func _start(way: Dictionary):
+	Campaign.reset()
 	if way.has("dialogue"):
-		Campaign.reset()
 		Campaign.begin_story(way.dialogue, "start", way.get("then", ""))
 		SceneTransition.change_scene(STORY)
 		return
+	if way.has("map"):
+		# Named here rather than left to the exploration scene's own default,
+		# which is only what running that scene straight from the editor opens.
+		Campaign.current_map = way.map
+		Campaign.target_entry = ""
+		SceneTransition.change_scene(EXPLORATION)
+		return
 	if way.has("encounter"):
-		Campaign.reset()
 		Campaign.current_encounter = load(way.encounter)
 		SceneTransition.change_scene(BATTLE)
 

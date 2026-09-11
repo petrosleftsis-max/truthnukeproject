@@ -8,6 +8,10 @@ extends Node
 ## wipes it back to full strength.
 
 
+## The title screen, which is where the game starts and where to_main_menu()
+## sends it back to.
+const MAIN_MENU := "res://main_menu.tscn"
+
 ## Set by the level select immediately before it loads scenes/game.tscn.
 ## GameScene reads it on entering the tree; if it is null (running game.tscn
 ## directly from the editor) GameScene falls back to its own exported default,
@@ -420,3 +424,28 @@ func clear_story():
 	story_dialogue = ""
 	story_title = "start"
 	story_next_scene = ""
+
+
+## --- Leaving ---
+
+
+## Back to the title screen, from wherever the game currently is.
+##
+## Written to be called from a dialogue: Campaign is one of the autoloads the
+## Dialogue Manager exposes to `do` lines (see state_autoload_shortcuts in
+## project.godot), so the last line of a story scene can be
+##
+##     do Campaign.to_main_menu()
+##
+## and the conversation ends by handing the player back to the menu.
+##
+## Clears the run on the way out. Whatever the player picks next starts from
+## the menu's own idea of a beginning, and a half-finished party left lying
+## around would be inherited by it.
+func to_main_menu():
+	reset()
+	clear_story()
+	current_map = ""
+	current_encounter = null
+	return_to_position = false
+	SceneTransition.change_scene(MAIN_MENU)
