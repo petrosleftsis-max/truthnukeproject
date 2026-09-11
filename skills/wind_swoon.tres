@@ -26,4 +26,5 @@ required_level = 2
 effects = Array[ExtResource("1_77oc1")]([SubResource("Resource_feskj")])
 deals_damage = false
 sound = ExtResource("90_sfx")
+spell_slot_level = 2
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

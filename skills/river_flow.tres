@@ -29,4 +29,5 @@ deals_damage = false
 scaling_stat = 1
 damage_type = 2
 sound = ExtResource("90_sfx")
+spell_slot_level = 2
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

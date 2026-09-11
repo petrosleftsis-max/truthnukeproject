@@ -26,3 +26,4 @@ scaling_stat = 2
 damage_type = 3
 uses_stat_contest = true
 sound = ExtResource("90_sfx")
+spell_slot_level = 2

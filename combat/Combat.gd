@@ -460,10 +460,10 @@ func get_distance(attacker: Dictionary, target: Dictionary):
 	return get_position_distance(attacker.position, target.position)
 
 
-## Generic entry point for using ANY skill - this replaced the old separate
-## attack_melee()/attack_ranged()/basic_magic() functions. A new skill needs
-## no new code here at all: just add it to skill_database.tscn and reference
-## its key in a combatant's skill list.
+## Generic entry point for using ANY skill, in place of the separate function
+## per attack this used to have. A new skill needs no new code here at all:
+## just add it to skill_database.tscn and reference its key in a combatant's
+## skill list.
 ## Targets a grid position, not a specific combatant - single-target skills
 ## are simply skills with aoe_radius = 0, so this one path handles both.
 ## Waits for attacker's skill animation (see CombatantSprite) to finish -
@@ -1152,11 +1152,14 @@ func get_combatant_at(position: Vector2i) -> Dictionary:
 ## combatant, or - when pulling - one tile short of the attacker (capped by
 ## proximity, not just an exact-tile match, since the aimed direction is
 ## snapped to the nearest 45° and so rarely lines up on the attacker's tile
-## exactly unless they're already aligned). If a PUSH (not a PULL) gets
-## stopped short specifically by the map edge or a blocking tile, it also
-## deals effect.min_amount-max_amount collision damage - being slammed into
-## a wall hurts; bumping into another combatant, or a pull falling short,
-## doesn't.
+## exactly unless they're already aligned).
+##
+## A PUSH (not a PULL) stopped short deals effect.min_amount-max_amount
+## collision damage: into the map edge or a blocking tile it hurts whoever was
+## shoved, and into another combatant it hurts them both, since a body stopping
+## a body is a collision from either side of it. One roll for the impact, each
+## of them resisting it with their own resistances - it is a single event, not
+## two coincidental ones. A pull falling short never hurts anybody.
 func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, pulling: bool):
 	if target.position == attacker.position:
 		return
@@ -1166,6 +1169,8 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 	var old_position = target.position
 	var final_position = target.position
 	var hit_obstacle = false
+	## Whoever the shove ran into, if it ran into somebody rather than something.
+	var bumped: Dictionary = {}
 	var max_steps = effect.knockback_distance
 	if pulling:
 		# Chebyshev distance, since movement (and this) is 8-directional -
@@ -1183,6 +1188,7 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 			break
 		var occupant = get_combatant_at(candidate)
 		if occupant.size() > 0:
+			bumped = occupant
 			break
 		final_position = candidate
 	if final_position != old_position:
@@ -1196,17 +1202,37 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 			target.name,
 			distance_moved
 		]))
-	if hit_obstacle and not pulling and target.alive and effect.max_amount > 0:
-		var collision_damage = resisted_damage(target, effect.damage_type, randi_range(effect.min_amount, effect.max_amount))
-		target.hp -= collision_damage
-		show_damage(target, collision_damage, effect.damage_type, true)
-		update_combatants.emit(combatants)
-		update_information.emit("[color=red]{0}[/color] slammed into an obstacle, taking [color=gray]{1} damage[/color]\n".format([
-			target.name,
-			collision_damage
-		]))
-		if target.hp <= 0:
-			combatant_die(target)
+	if pulling or effect.max_amount <= 0:
+		return
+	var impact = randi_range(effect.min_amount, effect.max_amount)
+	if hit_obstacle and target.alive:
+		_take_collision_damage(target, effect, impact, "slammed into an obstacle")
+	elif not bumped.is_empty() and bumped.alive:
+		# Both of them, and the one still standing where they were takes it too:
+		# they are what stopped the other.
+		if target.alive:
+			_take_collision_damage(target, effect, impact,
+				"slammed into [color=red]%s[/color]" % bumped.name)
+		if bumped.alive:
+			_take_collision_damage(bumped, effect, impact,
+				"was slammed into by [color=red]%s[/color]" % target.name)
+
+
+## Applies one collision's worth of damage to `who`, resisted by them, and
+## reports it. Shared by the wall case and both halves of a body-to-body one so
+## the three cannot drift apart.
+func _take_collision_damage(who: Dictionary, effect: EffectDefinition, impact: int, what_happened: String):
+	var collision_damage = resisted_damage(who, effect.damage_type, impact)
+	who.hp -= collision_damage
+	show_damage(who, collision_damage, effect.damage_type, true)
+	update_combatants.emit(combatants)
+	update_information.emit("[color=red]{0}[/color] {1}, taking [color=gray]{2} damage[/color]\n".format([
+		who.name,
+		what_happened,
+		collision_damage
+	]))
+	if who.hp <= 0:
+		combatant_die(who)
 
 
 ## Ticks any damage-over-time effects and removes one turn of duration from
@@ -1845,12 +1871,12 @@ func find_most_afflicted_ally(comb: Dictionary) -> Dictionary:
 
 ## The offensive, single-target (not AoE) skill in comb's skill_list with
 ## the largest max_range - used by AI archetypes that fight from range with
-## single-target skills specifically. Falls back to "attack_melee".
+## single-target skills specifically. Falls back to "greatsword_attack".
 ## Picks by the range they can actually manage right now, not the range printed
 ## on the skill - a blinded combatant should reach for something usable at one
 ## tile rather than an archery skill it can no longer aim.
 func find_best_single_target_skill(comb: Dictionary) -> String:
-	var best_key = "attack_melee"
+	var best_key = "greatsword_attack"
 	var best_range = -1
 	for skill_key in comb.skill_list:
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
@@ -2268,11 +2294,11 @@ func ai_melee_rush(comb: Dictionary):
 		await advance_turn()
 		return
 	if get_distance(comb, target) == 1:
-		await use_skill("attack_melee", comb, target.position)
+		await use_skill("greatsword_attack", comb, target.position)
 		return
 	await controller.ai_process(target.position)
 	if comb.alive:
-		await use_skill("attack_melee", comb, target.position)
+		await use_skill("greatsword_attack", comb, target.position)
 
 
 ## If it can already reach (get adjacent to, per Self Destruct's blast)
@@ -2401,7 +2427,7 @@ func ai_healer(comb: Dictionary):
 		return
 	var nearest_enemy = find_nearest_enemy_of(comb)
 	if not nearest_enemy.is_empty() and get_distance(comb, nearest_enemy) == 1:
-		await use_skill("attack_melee", comb, nearest_enemy.position, false)
+		await use_skill("greatsword_attack", comb, nearest_enemy.position, false)
 		await reposition_healer(comb, heal_reach)
 		await advance_turn()
 		return
@@ -2476,7 +2502,7 @@ func ai_caster(comb: Dictionary):
 	# normal approach-and-attack instead of wasting the turn.
 	await controller.ai_process(target.position)
 	if comb.alive:
-		await use_skill("attack_melee", comb, target.position, false)
+		await use_skill("greatsword_attack", comb, target.position, false)
 	await advance_turn()
 
 
@@ -2531,7 +2557,7 @@ func ai_copycat(comb: Dictionary):
 	# rush-and-melee approach so the turn isn't wasted.
 	await controller.ai_process(target.position)
 	if comb.alive:
-		await use_skill("attack_melee", comb, target.position, false)
+		await use_skill("greatsword_attack", comb, target.position, false)
 	await advance_turn()
 
 

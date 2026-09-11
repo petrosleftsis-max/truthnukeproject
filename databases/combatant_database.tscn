@@ -22,6 +22,8 @@ script = ExtResource("2_rggep")
 name = "Alithia"
 class_t = 2
 max_hp = 75
+max_hp_level_2 = 90
+max_hp_level_3 = 115
 movement = 4
 initiative = 5
 main_stat = 1
@@ -29,21 +31,25 @@ secondary_stat = 3
 icon = ExtResource("95_alithiastill")
 map_sprite = ExtResource("95_alithiastill")
 sprite_frames = ExtResource("94_alithiaframes")
-skills = Array[String](["heal", "cleanse", "flash", "river_flow", "water_spike", "run"])
+skills = Array[String](["heal", "cleanse", "flash", "river_flow", "water_spike", "run", "revitalizer"])
 
 [sub_resource type="Resource" id="Resource_s2oe2"]
 script = ExtResource("2_rggep")
 name = "Barbarian"
 max_hp = 50
+max_hp_level_2 = 180
+max_hp_level_3 = 250
 initiative = 3
 secondary_stat = 3
 sprite_frames = ExtResource("6_w4l2p")
-skills = Array[String](["attack_melee", "shoving_strike", "flame_cone", "run"])
+skills = Array[String](["greatsword_attack", "shoving_strike", "sweep_strike", "run"])
 
 [sub_resource type="Resource" id="Resource_bomber"]
 script = ExtResource("2_rggep")
 name = "Bomber"
-max_hp = 4
+max_hp = 8
+max_hp_level_2 = 35
+max_hp_level_3 = 70
 movement = 4
 initiative = 3
 main_stat = 1
@@ -57,6 +63,8 @@ script = ExtResource("2_rggep")
 name = "Cyrus"
 class_t = 1
 max_hp = 75
+max_hp_level_2 = 90
+max_hp_level_3 = 115
 movement = 6
 initiative = 8
 main_stat = 3
@@ -64,25 +72,29 @@ secondary_stat = 0
 icon = ExtResource("91_cyrusstill")
 map_sprite = ExtResource("91_cyrusstill")
 sprite_frames = ExtResource("6_ct236")
-skills = Array[String](["rapier", "attack_ranged", "poison_dart", "run"])
+skills = Array[String](["rapier", "gun", "poison_dart", "run"])
 secondary_skills = Array[String](["run"])
 
 [sub_resource type="Resource" id="Resource_tkpbb"]
 script = ExtResource("2_rggep")
 name = "Enfina"
 max_hp = 130
+max_hp_level_2 = 160
+max_hp_level_3 = 190
 movement = 4
-initiative = 5
+initiative = 6
 secondary_stat = 2
 icon = ExtResource("93_enfinastill")
 map_sprite = ExtResource("93_enfinastill")
 sprite_frames = ExtResource("92_enfinaframes")
-skills = Array[String](["study", "attack_melee", "shoving_strike", "flame_cone", "run", "slowing_strike"])
+skills = Array[String](["study", "greatsword_attack", "shoving_strike", "sweep_strike", "run", "follow_up_attack"])
 
 [sub_resource type="Resource" id="Resource_mimic"]
 script = ExtResource("2_rggep")
 name = "Mimic"
 max_hp = 32
+max_hp_level_2 = 110
+max_hp_level_3 = 150
 movement = 5
 initiative = 4
 main_stat = 3
@@ -94,12 +106,14 @@ script = ExtResource("2_rggep")
 name = "Priest"
 class_t = 2
 max_hp = 32
+max_hp_level_2 = 110
+max_hp_level_3 = 150
 movement = 4
 initiative = 3
 main_stat = 1
 secondary_stat = 3
 sprite_frames = ExtResource("12_qkqyl")
-skills = Array[String](["heal", "cleanse", "water_spike", "run"])
+skills = Array[String](["heal", "cleanse", "water_spike", "run", "revitalizer"])
 resist_earth = -20
 ai_function = "ai_healer"
 
@@ -108,22 +122,27 @@ script = ExtResource("2_rggep")
 name = "Prometheus"
 class_t = 2
 max_hp = 30
+max_hp_level_2 = 40
+max_hp_level_3 = 58
 movement = 4
+initiative = 6
 main_stat = 2
 icon = ExtResource("97_prometheusstill")
 map_sprite = ExtResource("97_prometheusstill")
 sprite_frames = ExtResource("10_ad2ke")
-skills = Array[String](["basic_magic", "curse", "fireball", "gravity_pull", "repel", "run"])
+skills = Array[String](["fire_burst", "burner", "fireball", "wind_vacuum", "gust_blast", "run", "crystalise", "wind_swoon"])
 
 [sub_resource type="Resource" id="Resource_ranger"]
 script = ExtResource("2_rggep")
 name = "Ranger"
 class_t = 1
 max_hp = 32
+max_hp_level_2 = 110
+max_hp_level_3 = 150
 movement = 5
 initiative = 4
 sprite_frames = ExtResource("15_eyeq6")
-skills = Array[String](["heal", "attack_ranged", "poison_dart", "burning_shot", "run"])
+skills = Array[String](["heal", "gun", "poison_dart", "burning_shot", "run"])
 ai_function = "ai_ranger"
 
 [sub_resource type="Resource" id="Resource_sorcerer"]
@@ -131,11 +150,13 @@ script = ExtResource("2_rggep")
 name = "Sorcerer"
 class_t = 2
 max_hp = 8
+max_hp_level_2 = 35
+max_hp_level_3 = 70
 movement = 4
 initiative = 4
 main_stat = 2
 sprite_frames = ExtResource("16_r0t0t")
-skills = Array[String](["curse", "fireball", "gravity_pull", "repel", "wind_swoon", "run"])
+skills = Array[String](["burner", "fireball", "wind_vacuum", "gust_blast", "wind_swoon", "run"])
 resist_fire = 20
 ai_function = "ai_caster"
 

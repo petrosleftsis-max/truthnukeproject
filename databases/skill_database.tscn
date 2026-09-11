@@ -1,22 +1,22 @@
 [gd_scene format=3 uid="uid://csoe2cma4kbg6"]
 
 [ext_resource type="Script" uid="uid://chnw3bl0q0dbf" path="res://databases/skill_database.gd" id="1_bnr7k"]
-[ext_resource type="Resource" uid="uid://1i3sgnx07fqe" path="res://skills/attack_melee.tres" id="2_g7odk"]
-[ext_resource type="Resource" uid="uid://bmuprut4xin6n" path="res://skills/attack_ranged.tres" id="3_t1ypb"]
-[ext_resource type="Resource" uid="uid://f8t2a23m804r" path="res://skills/basic_magic.tres" id="4_2m8rc"]
+[ext_resource type="Resource" uid="uid://1i3sgnx07fqe" path="res://skills/greatsword_attack.tres" id="2_g7odk"]
+[ext_resource type="Resource" uid="uid://bmuprut4xin6n" path="res://skills/gun.tres" id="3_t1ypb"]
+[ext_resource type="Resource" uid="uid://f8t2a23m804r" path="res://skills/fire_burst.tres" id="4_2m8rc"]
 [ext_resource type="Resource" uid="uid://wocacvg5a2vw" path="res://skills/cleanse.tres" id="5_r41b3"]
-[ext_resource type="Resource" uid="uid://bh7152ehf4coy" path="res://skills/curse.tres" id="6_lyvp1"]
+[ext_resource type="Resource" uid="uid://bh7152ehf4coy" path="res://skills/burner.tres" id="6_lyvp1"]
 [ext_resource type="Resource" uid="uid://jn3607ob8bue" path="res://skills/fireball.tres" id="7_dbes0"]
-[ext_resource type="Resource" uid="uid://c360pknondsny" path="res://skills/flame_cone.tres" id="8_8fqdd"]
-[ext_resource type="Resource" uid="uid://bm2l5pe0ktu2w" path="res://skills/gravity_pull.tres" id="9_grav"]
+[ext_resource type="Resource" uid="uid://c360pknondsny" path="res://skills/sweep_strike.tres" id="8_8fqdd"]
+[ext_resource type="Resource" uid="uid://bm2l5pe0ktu2w" path="res://skills/wind_vacuum.tres" id="9_grav"]
 [ext_resource type="Resource" uid="uid://c1jab5it2hnwp" path="res://skills/heal.tres" id="10_pp4aq"]
 [ext_resource type="Resource" uid="uid://cn4eg34gtf5r" path="res://skills/lightning_bolt.tres" id="11_q8moi"]
 [ext_resource type="Resource" uid="uid://cv4cf5r2pw5xt" path="res://skills/poison_dart.tres" id="12_66cmj"]
-[ext_resource type="Resource" uid="uid://s63icuvd2y3c" path="res://skills/repel.tres" id="13_tuk3s"]
+[ext_resource type="Resource" uid="uid://s63icuvd2y3c" path="res://skills/gust_blast.tres" id="13_tuk3s"]
 [ext_resource type="Resource" uid="uid://dr2jn7owcw7b2" path="res://skills/run.tres" id="14_oiqse"]
 [ext_resource type="Resource" uid="uid://da4yriqsacyd5" path="res://skills/self_destruct.tres" id="15_ncop4"]
-[ext_resource type="Resource" uid="uid://crho4pw88sgf2" path="res://skills/slowing_strike.tres" id="16_ha562"]
-[ext_resource type="Resource" uid="uid://dhblpgxflcvi" path="res://skills/vitality.tres" id="17_mfut3"]
+[ext_resource type="Resource" uid="uid://crho4pw88sgf2" path="res://skills/follow_up_attack.tres" id="16_ha562"]
+[ext_resource type="Resource" uid="uid://dhblpgxflcvi" path="res://skills/light_heal.tres" id="17_mfut3"]
 [ext_resource type="Resource" uid="uid://bod53nqr1b8u0" path="res://skills/flash.tres" id="18_r41b3"]
 [ext_resource type="Resource" uid="uid://tuhjhhdtktws" path="res://skills/rapier.tres" id="19_lyvp1"]
 [ext_resource type="Resource" uid="uid://c8kblee6iok6u" path="res://skills/river_flow.tres" id="20_dbes0"]
@@ -32,30 +32,30 @@
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
 script = ExtResource("1_bnr7k")
 skills = {
-"crystalise": ExtResource("27_66cmj"),
-"revitalizer": ExtResource("27_tuk3s"),
-"attack_melee": ExtResource("2_g7odk"),
-"attack_ranged": ExtResource("3_t1ypb"),
-"basic_magic": ExtResource("4_2m8rc"),
+"greatsword_attack": ExtResource("2_g7odk"),
+"gun": ExtResource("3_t1ypb"),
+"fire_burst": ExtResource("4_2m8rc"),
 "burning_shot": ExtResource("25_q8moi"),
 "cleanse": ExtResource("5_r41b3"),
-"curse": ExtResource("6_lyvp1"),
+"crystalise": ExtResource("27_66cmj"),
+"burner": ExtResource("6_lyvp1"),
 "fireball": ExtResource("7_dbes0"),
-"flame_cone": ExtResource("8_8fqdd"),
+"sweep_strike": ExtResource("8_8fqdd"),
 "flash": ExtResource("18_r41b3"),
-"gravity_pull": ExtResource("9_grav"),
+"wind_vacuum": ExtResource("9_grav"),
 "heal": ExtResource("10_pp4aq"),
 "lightning_bolt": ExtResource("11_q8moi"),
 "poison_dart": ExtResource("12_66cmj"),
 "rapier": ExtResource("19_lyvp1"),
-"repel": ExtResource("13_tuk3s"),
+"gust_blast": ExtResource("13_tuk3s"),
+"revitalizer": ExtResource("27_tuk3s"),
 "river_flow": ExtResource("20_dbes0"),
 "run": ExtResource("14_oiqse"),
 "self_destruct": ExtResource("15_ncop4"),
 "shoving_strike": ExtResource("21_dbes0"),
-"slowing_strike": ExtResource("16_ha562"),
+"follow_up_attack": ExtResource("16_ha562"),
 "study": ExtResource("99_study"),
-"vitality": ExtResource("17_mfut3"),
+"light_heal": ExtResource("17_mfut3"),
 "warning_shot": ExtResource("24_pp4aq"),
 "water_spike": ExtResource("23_8fqdd"),
 "wind_swoon": ExtResource("22_8fqdd")
