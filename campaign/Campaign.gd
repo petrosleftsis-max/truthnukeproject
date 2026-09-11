@@ -33,6 +33,30 @@ var party_state := {}
 ## rather than a code change. Add them to CombatantDatabase first.
 var party_order: Array[String] = []
 
+## How far along the party is while walking a map, 1 to 3. Set by the map's
+## PartySetup; decides the health they carry and what the character sheet
+## shows them as. Encounter spawns carry their own levels, so this does not
+## decide what they fight at.
+var party_level: int = 1
+
+
+## Puts a named party on the map, replacing whoever was travelling.
+##
+## Unlike seed_party this is authoritative: a map that declares its own cast is
+## stating a fact about that part of the story, not offering a default. Walking
+## into such a map through a door therefore changes who you are steering, which
+## is the point - the church is Alithia alone whichever way you arrive at it.
+func set_party(keys: Array, level: int = 1):
+	party_order.clear()
+	for key in keys:
+		if not CombatantDatabase.combatants.has(key):
+			push_warning("A map's party lists '%s', which isn't in CombatantDatabase - skipping it." % key)
+			continue
+		if not party_order.has(key):
+			party_order.append(key)
+	party_level = clampi(level, 1, 3)
+	party_changed.emit()
+
 
 ## Fills the roster if it hasn't been set yet. Anything already in it wins, so
 ## this can't stomp a party the player has since reordered.
@@ -165,13 +189,15 @@ func party_members() -> Array:
 		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
 		if definition == null:
 			continue
-		var hp = definition.max_hp
-		var max_hp = definition.max_hp
+		# What they have at the level this map has them at - a level 3 Alithia
+		# walking around with her level 1 health would read as badly wounded.
+		var hp = definition.hp_at(party_level)
+		var max_hp = hp
 		if party_state.has(key):
 			hp = party_state[key].hp
 			# What they were last fielded with, so the bar reads against the
 			# health they actually had rather than their level 1 figure.
-			max_hp = party_state[key].get("max_hp", definition.max_hp)
+			max_hp = party_state[key].get("max_hp", definition.hp_at(party_level))
 		members.append({
 			"key": key,
 			"name": definition.name,
@@ -295,6 +321,7 @@ func reset():
 	party_state.clear()
 	cleared_triggers.clear()
 	party_order.clear()
+	party_level = 1
 	# Starting over starts over: what the last playthrough had read, pulled and
 	# opened is not true of this one.
 	flags.clear()

@@ -218,8 +218,8 @@ func _unhandled_input(event):
 ## Two sources, because there are two situations. In a battle the combatants
 ## exist and carry real levels, real attributes and whatever damage they have
 ## taken. While exploring none of that exists yet - nobody has been deployed -
-## so the entry is built from the database at level 1, which is what they would
-## fight at on a spawn that hasn't been given a level.
+## so the entry is built from the database at the level the map has the party
+## at (see PartySetup), which is what they are until a fight says otherwise.
 func _gather() -> Array:
 	var found: Array = []
 	if combat != null and is_instance_valid(combat) and not combat.combatants.is_empty():
@@ -254,10 +254,10 @@ func _gather() -> Array:
 			continue
 		found.append({
 			"name": member.name,
-			"level": 1,
+			"level": Campaign.party_level,
 			"hp": member.hp,
 			"max_hp": member.max_hp,
-			"stats": Stats.stats_for_level(1, definition.main_stat, definition.secondary_stat),
+			"stats": Stats.stats_for_level(Campaign.party_level, definition.main_stat, definition.secondary_stat),
 			"weapon_base": Stats.WEAPON_BASE,
 			"sprite_frames": definition.sprite_frames,
 			"map_sprite": definition.map_still(),

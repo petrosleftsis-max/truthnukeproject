@@ -3,20 +3,14 @@
 [ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://scenes/crossroads_terrain.tscn" id="1_terrain"]
 [ext_resource type="Script" uid="uid://cuc3ggd1v8ak1" path="res://exploration/EntryPoint.gd" id="2_entry"]
 [ext_resource type="Script" uid="uid://bvf5j5cha8oo0" path="res://exploration/ExamineInteractable.gd" id="3_examine"]
-[ext_resource type="Script" uid="uid://cq2s71a1q831b" path="res://exploration/EncounterInteractable.gd" id="4_encounter"]
 [ext_resource type="SpriteFrames" uid="uid://dj4efx57eiy1p" path="res://imagese/icon/interactable_anim.tres" id="4_go82g"]
-[ext_resource type="Resource" uid="uid://b24liue2xhn55" path="res://encounters/encounter_01_ambush.tres" id="5_enc1"]
-[ext_resource type="Resource" uid="uid://cpwijoqwu540n" path="res://encounters/encounter_03_watcher.tres" id="6_enc3"]
 [ext_resource type="Script" uid="uid://bx4mgbrftmp1c" path="res://exploration/DialogueInteractable.gd" id="8_e8hu0"]
+[ext_resource type="Resource" uid="uid://b24liue2xhn55" path="res://encounters/encounter_01_ambush.tres" id="9_25qp7"]
+[ext_resource type="Resource" uid="uid://bhcfiqup4yeg7" path="res://Dialogue/intro_sewer_before_encounter.dialogue" id="9_e8hu0"]
 [ext_resource type="Resource" uid="uid://ctuytdwjs4qt" path="res://Dialogue/intro_sewer_homeless_beds.dialogue" id="9_go82g"]
 [ext_resource type="Resource" uid="uid://bdmc5m6qtvfop" path="res://Dialogue/intro_sewer_guard_loot.dialogue" id="11_5p2sx"]
 [ext_resource type="Script" uid="uid://tn5n7wtckj10" path="res://exploration/Waypoint.gd" id="11_go82g"]
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_goblin"]
-region = Rect2(0, 0, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_eye"]
-region = Rect2(64, 0, 32, 32)
+[ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/PartySetup.gd" id="90_party"]
 
 [node name="ExploreCrossroads" unique_id=1813498774 instance=ExtResource("1_terrain")]
 
@@ -46,25 +40,7 @@ prompt = "Examine"
 interaction_radius = 240.0
 sprite_frames = ExtResource("4_go82g")
 
-[node name="GoblinAmbush" type="Node2D" parent="." index="5" unique_id=376770803]
-position = Vector2(3360, 1440)
-script = ExtResource("4_encounter")
-encounter = ExtResource("5_enc1")
-trigger_id = "crossroads_goblins"
-prompt = "Fight"
-interaction_radius = 240.0
-texture = SubResource("AtlasTexture_goblin")
-
-[node name="TheWatcher" type="Node2D" parent="." index="6" unique_id=1879122408]
-position = Vector2(5280, 2400)
-script = ExtResource("4_encounter")
-encounter = ExtResource("6_enc3")
-trigger_id = "crossroads_watcher"
-prompt = "Fight"
-interaction_radius = 240.0
-texture = SubResource("AtlasTexture_eye")
-
-[node name="DialogueInteractable" type="Node2D" parent="." index="7" unique_id=1387684525]
+[node name="DialogueInteractable" type="Node2D" parent="." index="5" unique_id=1387684525]
 position = Vector2(2955, -1821)
 script = ExtResource("8_e8hu0")
 dialogue = ExtResource("9_go82g")
@@ -73,13 +49,13 @@ interaction_radius = 120.0
 sprite_frames = ExtResource("4_go82g")
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
 
-[node name="Waypoint" type="Node2D" parent="." index="8" unique_id=1902865563]
-position = Vector2(6449, 2203)
+[node name="Waypoint" type="Node2D" parent="." index="6" unique_id=1902865563]
+position = Vector2(8742, -2598)
 script = ExtResource("11_go82g")
 point_name = "intro_sewer_alley_dest"
 metadata/_custom_type_script = "uid://tn5n7wtckj10"
 
-[node name="DialogueInteractable2" type="Node2D" parent="." index="9" unique_id=344194875]
+[node name="DialogueInteractable2" type="Node2D" parent="." index="7" unique_id=344194875]
 position = Vector2(5000, 330)
 script = ExtResource("8_e8hu0")
 dialogue = ExtResource("11_5p2sx")
@@ -87,3 +63,19 @@ prompt = "Talk"
 interaction_radius = 240.0
 sprite_frames = ExtResource("4_go82g")
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
+
+[node name="DialogueInteractable3" type="Node2D" parent="." index="8" unique_id=1694549548]
+position = Vector2(8107, -2595)
+script = ExtResource("8_e8hu0")
+dialogue = ExtResource("9_e8hu0")
+encounter_after = ExtResource("9_25qp7")
+automatic = true
+prompt = "Talk"
+interaction_radius = 240.0
+metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
+
+[node name="PartySetup" type="Node" parent="."]
+script = ExtResource("90_party")
+members = Array[String](["cyrus"])
+level = 1
+metadata/_custom_type_script = "uid://c58kyys4p7s13"

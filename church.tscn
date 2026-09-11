@@ -10,6 +10,7 @@
 [ext_resource type="Resource" uid="uid://ycckibomvsxm" path="res://Dialogue/church_after_reveal_door_blocked.dialogue" id="8_0t755"]
 [ext_resource type="Resource" uid="uid://c6igu63xdnrps" path="res://Dialogue/church_after_reveal_alithia_intro.dialogue" id="10_alith"]
 [ext_resource type="Script" uid="uid://cuc3ggd1v8ak1" path="res://exploration/EntryPoint.gd" id="9_7u5lq"]
+[ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/PartySetup.gd" id="90_party"]
 
 [node name="Node2D" type="Node2D" unique_id=806661825]
 
@@ -71,3 +72,9 @@ automatic = true
 interaction_radius = 120.0
 dialogue = ExtResource("10_alith")
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
+
+[node name="PartySetup" type="Node" parent="."]
+script = ExtResource("90_party")
+members = Array[String](["alithia"])
+level = 3
+metadata/_custom_type_script = "uid://c58kyys4p7s13"
