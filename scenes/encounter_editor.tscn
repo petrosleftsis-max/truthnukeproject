@@ -18,14 +18,14 @@ texture_filter = 1
 
 [node name="Spawn_enfina" type="Sprite2D" parent="Spawns" unique_id=1120613770]
 modulate = Color(0.6, 0.8, 1, 1)
-position = Vector2(5856, 1632)
+position = Vector2(7968, -2592)
 texture = ExtResource("5_7khms")
 script = ExtResource("6_rd23k")
 combatant_key = "enfina"
 
 [node name="Spawn_cyrus" type="Sprite2D" parent="Spawns" unique_id=1240855400]
 modulate = Color(0.6, 0.8, 1, 1)
-position = Vector2(6432, 1632)
+position = Vector2(8736, -2592)
 texture = ExtResource("5_7khms")
 script = ExtResource("6_rd23k")
 combatant_key = "cyrus"

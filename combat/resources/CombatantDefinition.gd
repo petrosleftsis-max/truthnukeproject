@@ -7,7 +7,19 @@ class_name CombatantDefinition
 @export_enum("Melee", "Ranged", "Magic") var class_t = 0
 @export_enum("Ground", "Flying", "Mounted") var class_m = 0
 @export_group("Stats")
+## Health at level 1, and what every level inherits unless it says otherwise.
 @export_range(1, 2, 1, "or_greater") var max_hp = 1
+## Health at levels 2 and 3. Zero means "same as the level below", so a
+## character who is only ever fought at one strength needs nothing here, and
+## setting only level 3 gives a jump at 3 with level 2 still matching level 1.
+##
+## Separate from the attribute curve on purpose: attributes are worked out from
+## the level by formula, because they are how developed someone is. How much
+## punishment a character can take is a design decision per character - a mage
+## who never gets sturdier and a knight who doubles are both reasonable, and
+## neither falls out of a formula.
+@export_range(0, 2, 1, "or_greater") var max_hp_level_2 = 0
+@export_range(0, 2, 1, "or_greater") var max_hp_level_3 = 0
 @export_range(1, 3, 1, "or_greater") var movement = 3
 @export_range(1, 2, 1, "or_greater") var initiative = 1
 
@@ -90,6 +102,17 @@ class_name CombatantDefinition
 
 ## Starting spell slots, indexed by level - [0] is unused so the level number
 ## reads straight into the array.
+## Health at `level`, following the "same as the level below" rule: a level 3
+## with nothing set of its own takes level 2's, which takes level 1's.
+func hp_at(level: int) -> int:
+	var health = max_hp
+	if level >= 2 and max_hp_level_2 > 0:
+		health = max_hp_level_2
+	if level >= 3 and max_hp_level_3 > 0:
+		health = max_hp_level_3
+	return health
+
+
 func spell_slot_table() -> Array:
 	return [0, spell_slots_1, spell_slots_2, spell_slots_3]
 

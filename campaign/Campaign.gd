@@ -162,8 +162,12 @@ func party_members() -> Array:
 		if definition == null:
 			continue
 		var hp = definition.max_hp
+		var max_hp = definition.max_hp
 		if party_state.has(key):
 			hp = party_state[key].hp
+			# What they were last fielded with, so the bar reads against the
+			# health they actually had rather than their level 1 figure.
+			max_hp = party_state[key].get("max_hp", definition.max_hp)
 		members.append({
 			"key": key,
 			"name": definition.name,
@@ -173,7 +177,7 @@ func party_members() -> Array:
 			# with the same SpriteFrames it fights with.
 			"sprite_frames": definition.sprite_frames,
 			"hp": hp,
-			"max_hp": definition.max_hp,
+			"max_hp": max_hp,
 			"is_leader": key == leader(),
 		})
 	return members
@@ -245,7 +249,10 @@ func apply_carried_state(comb: Dictionary, key: String):
 	if not party_state.has(key):
 		return
 	var stored = party_state[key]
-	comb.hp = stored.hp
+	# Clamped, because the health carried out of one fight can exceed what this
+	# one allows: walking a level 3 survivor into a battle that fields them at
+	# level 1 should not start them above full.
+	comb.hp = mini(stored.hp, comb.max_hp)
 	comb.alive = stored.alive
 
 
@@ -269,6 +276,10 @@ func record_party(combatants: Array):
 			continue
 		party_state[key] = {
 			"hp": maxi(comb.hp, 0),
+			# The health they fought at, which is their level's rather than their
+			# level 1 figure - without it the level select would show a level 3
+			# survivor as 25/10 once per-level health entered the picture.
+			"max_hp": comb.max_hp,
 			"alive": comb.alive,
 		}
 
@@ -299,7 +310,9 @@ func describe_party() -> String:
 		if not stored.alive:
 			parts.append("%s (dead)" % display)
 		else:
-			var max_hp = definition.max_hp if definition != null else stored.hp
+			# The health they were last fielded with, for the same reason the party
+			# panel uses it: "12/10" reads as a bug rather than as a veteran.
+			var max_hp = stored.get("max_hp", definition.max_hp if definition != null else stored.hp)
 			parts.append("%s %d/%d" % [display, stored.hp, max_hp])
 	return ", ".join(parts)
 

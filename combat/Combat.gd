@@ -210,8 +210,8 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 	stats["defense"] = spawn.defense if spawn != null else Stats.BASE_STAT
 	var comb = {
 		"name" = definition.name,
-		"max_hp" = definition.max_hp,
-		"hp" = definition.max_hp,
+		"max_hp" = definition.hp_at(level),
+		"hp" = definition.hp_at(level),
 		"class" = definition.class_t,
 		"alive" = true,
 		"movement_class" = definition.class_m,
