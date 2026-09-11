@@ -64,7 +64,7 @@ enum DispelScope {
 ## Used by DAMAGE_OVER_TIME, where a tick usually wants a fraction of a direct
 ## hit, since it lands once per turn for several turns. A direct hit has no use
 ## for it: a skill's own damage carries its strength on the skill itself.
-@export_range(0.0, 5.0, 0.05, "or_greater") var damage_modifier: float = 1.0
+@export_range(0.0, 5.0, 0.05, "or_greater") var damage_modifier: float = 1.0 : set = _set_damage_modifier
 ## Only consulted when there is no skill behind the damage at all - a shove
 ## into a wall, something applied by hand. A skill's damage comes from its
 ## caster's stat and the modifiers above.
@@ -122,6 +122,12 @@ const FIELDS_BY_TYPE := {
 }
 
 
+func _set_damage_modifier(value: float):
+	damage_modifier = value
+	# Whether the flat fallback is worth showing has just changed.
+	notify_property_list_changed()
+
+
 func _set_type(value: EffectType):
 	type = value
 	# The inspector caches the property list, so it has to be told the answer
@@ -139,6 +145,12 @@ func _set_type(value: EffectType):
 ## lose the numbers you typed.
 func _validate_property(property: Dictionary) -> void:
 	if not (property.usage & PROPERTY_USAGE_EDITOR):
+		return
+	# The flat range only stands in when there is no skill behind the damage,
+	# and a tick with a modifier always has one. Showing both is what made a
+	# lingering wound look like it was set in two places at once.
+	if type == EffectType.DAMAGE_OVER_TIME and damage_modifier > 0.0 and property.name in ["min_amount", "max_amount"]:
+		property.usage = PROPERTY_USAGE_STORAGE
 		return
 	if property.name == "type" or not FIELDS_BY_TYPE.has(type):
 		return

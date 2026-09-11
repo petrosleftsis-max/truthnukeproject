@@ -58,7 +58,9 @@ func _draw():
 ## Set even when the thing itself does nothing else, so an invisible trigger in
 ## a doorway can record that the party came this way.
 @export var sets_flag: String = ""
-## What to store under it. true unless you need a count or a choice.
+## What to store under it. Left empty stores true, which is what "this
+## happened" needs. Type a number for a count and it is stored as a number, so
+## a condition can compare it; anything else is stored as the text you wrote.
 @export var flag_value: String = ""
 ## Refuses to work until this flag is set on Campaign. The door asks for the
 ## flag the button sets, and that is the whole puzzle.
@@ -96,7 +98,7 @@ func use(scene: Node):
 		return
 	interact(scene)
 	if sets_flag != "":
-		Campaign.set_flag(sets_flag, flag_value if flag_value != "" else true)
+		Campaign.set_flag(sets_flag, _flag_value_to_store())
 
 
 ## Do the thing. `scene` is the ExplorationScene, passed in so subclasses can
@@ -104,3 +106,21 @@ func use(scene: Node):
 ## tree for them.
 func interact(_scene: Node):
 	pass
+
+
+## The inspector can only offer text here, but a flag holding "3" and a flag
+## holding 3 are not the same thing the moment a condition tries to count with
+## it - so a value that is written as a number is stored as one.
+func _flag_value_to_store():
+	if flag_value == "":
+		return true
+	if flag_value.is_valid_int():
+		return flag_value.to_int()
+	if flag_value.is_valid_float():
+		return flag_value.to_float()
+	match flag_value.to_lower():
+		"true":
+			return true
+		"false":
+			return false
+	return flag_value

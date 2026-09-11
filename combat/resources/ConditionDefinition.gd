@@ -33,9 +33,11 @@ class_name ConditionDefinition
 ## target's defence soak. So a Burn from a stronger caster genuinely burns
 ## harder, without a number here to maintain per level.
 ##
-## Zero falls back to the flat dot_min-dot_max below, which is what a condition
-## applied with no skill behind it has to use - there is no caster to scale off.
-@export_range(0.0, 5.0, 0.05, "or_greater") var dot_modifier: float = 0.0
+## This is the dial to turn. Zero falls back to the flat dot_min-dot_max below,
+## which only a condition applied with no skill behind it ever needs - there is
+## no caster to scale off - and which stays hidden while this is set, so a
+## condition has one place its damage comes from rather than two.
+@export_range(0.0, 5.0, 0.05, "or_greater") var dot_modifier: float = 0.0 : set = _set_dot_modifier
 @export var dot_min: int = 0
 @export var dot_max: int = 0
 
@@ -98,3 +100,17 @@ func describe() -> String:
 	if parts.is_empty():
 		return "No effect"
 	return ", ".join(parts).capitalize()
+
+
+func _set_dot_modifier(value: float):
+	dot_modifier = value
+	# Whether the flat fallback below is worth showing has just changed.
+	notify_property_list_changed()
+
+
+## Hides the flat tick range while the tick is scaling off its caster, which is
+## how every condition in the game works. Nothing is lost by hiding it - the
+## values are still stored, and come back if the modifier is set to zero.
+func _validate_property(property: Dictionary) -> void:
+	if dot_modifier > 0.0 and property.name in ["dot_min", "dot_max"]:
+		property.usage = PROPERTY_USAGE_STORAGE
