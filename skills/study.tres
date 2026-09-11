@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://b03pv5bjmcr1"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_icon"]
@@ -17,6 +17,5 @@ max_range = 6
 accuracy = 100
 icon = ExtResource("2_icon")
 is_secondary = true
-animation = "skill"
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_study_reveal")])
 deals_damage = false

@@ -382,6 +382,9 @@ func build_skill_tooltip(skill: SkillDefinition) -> String:
 		])
 	else:
 		lines.append("Hit chance: %d%%" % skill.accuracy)
+		var caster = _caster()
+		if not caster.is_empty() and combat.STUDIED_ACCURACY_BONUS > 0:
+			lines.append("+%d%% against anyone this character has studied" % combat.STUDIED_ACCURACY_BONUS)
 	lines.append("Targets: %s" % ("Everyone caught in it" if skill.affects_both_sides else ("Allies" if skill.targets_ally else "Enemies")))
 	if skill.aoe_radius > 0:
 		lines.append("Area: %s" % describe_aoe_shape(skill))

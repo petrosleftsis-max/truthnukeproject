@@ -521,8 +521,9 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 		# once for the whole use, hit or miss.
 		var connected = true
 		if not skill.uses_stat_contest:
-			var prob = clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
-			connected = (randi() % 100) < prob
+			# One roll for the whole use, before it knows who it caught - so the
+			# study bonus is judged on whoever is standing where it was aimed.
+			connected = (randi() % 100) < hit_chance(attacker, skill, get_combatant_at(impact_position))
 		if connected:
 			var tiles = get_impact_tiles(skill, attacker.position, impact_position, attacker.movement_class)
 			var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally, skill.affects_both_sides)
@@ -681,8 +682,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 		return
 	var connected = true
 	if not skill.uses_stat_contest:
-		var prob = clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
-		connected = (randi() % 100) < prob
+		connected = (randi() % 100) < hit_chance(attacker, skill, target)
 	if connected:
 		var mention_skill = true
 		var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
@@ -968,8 +968,15 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 		EffectDefinition.EffectType.REVEAL:
 			# Knowledge, not an injury: it lasts the battle, nothing cleanses it
 			# off, and studying the same enemy twice is the same knowledge again.
-			var already_known = target.get("studied", false)
+			var already_known = _has_studied(attacker, target)
 			target["studied"] = true
+			# Who did the measuring, as well as that it has been done. The reading
+			# is the player's either way - one sheet, shared - but the edge it gives
+			# in a fight belongs to whoever spent the action on it.
+			var measured_by: Array = target.get("studied_by", [])
+			if not (attacker.get("id", -1) in measured_by):
+				measured_by.append(attacker.get("id", -1))
+			target["studied_by"] = measured_by
 			if already_known:
 				update_information.emit("[color=yellow]%s[/color] already has [color=red]%s[/color] measured.\n" % [attacker.name, target.name])
 			else:
@@ -2536,3 +2543,35 @@ func ai_pick_target(weights):
 		full_weight -= weight
 		if rand_num > full_weight - 0.001: #full_weight - 0.001 due to float inaccuracy
 			return w[1]
+
+
+## --- Knowing your enemy ---
+
+
+## What studying someone is worth when you then take a swing at them. Ten points
+## of accuracy: enough to be worth the action against anything you were going to
+## struggle to hit, and not enough to make a bad shot a good one.
+const STUDIED_ACCURACY_BONUS := 10
+
+
+## Whether `attacker` is the one who measured `target`.
+##
+## Per studier rather than per side: the sheet is the player's to read once
+## anybody has looked, but the advantage of having looked is the studier's.
+func _has_studied(attacker: Dictionary, target: Dictionary) -> bool:
+	if attacker == null or target == null or target.is_empty():
+		return false
+	return attacker.get("id", -1) in target.get("studied_by", [])
+
+
+## The chance `attacker` has of landing `skill` on `target`, all in: the skill's
+## own accuracy, whatever conditions are helping or hindering them, and the
+## bonus for having studied who they are aiming at.
+##
+## `target` may be empty - an area skill rolls once before it knows who it
+## caught, and rolls against whoever is standing where it was aimed.
+func hit_chance(attacker: Dictionary, skill: SkillDefinition, target: Dictionary = {}) -> int:
+	var chance = skill.accuracy + get_effective_stat(attacker, "accuracy")
+	if _has_studied(attacker, target):
+		chance += STUDIED_ACCURACY_BONUS
+	return clampi(chance, 0, 100)
