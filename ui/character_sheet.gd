@@ -219,7 +219,7 @@ func _unhandled_input(event):
 ## exist and carry real levels, real attributes and whatever damage they have
 ## taken. While exploring none of that exists yet - nobody has been deployed -
 ## so the entry is built from the database at the level the map has the party
-## at (see PartySetup), which is what they are until a fight says otherwise.
+## at (see MapSetup), which is what they are until a fight says otherwise.
 func _gather() -> Array:
 	var found: Array = []
 	if combat != null and is_instance_valid(combat) and not combat.combatants.is_empty():

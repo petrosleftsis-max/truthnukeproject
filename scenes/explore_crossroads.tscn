@@ -10,7 +10,7 @@
 [ext_resource type="Resource" uid="uid://ctuytdwjs4qt" path="res://Dialogue/intro_sewer_homeless_beds.dialogue" id="9_go82g"]
 [ext_resource type="Resource" uid="uid://bdmc5m6qtvfop" path="res://Dialogue/intro_sewer_guard_loot.dialogue" id="11_5p2sx"]
 [ext_resource type="Script" uid="uid://tn5n7wtckj10" path="res://exploration/Waypoint.gd" id="11_go82g"]
-[ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/PartySetup.gd" id="90_party"]
+[ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/MapSetup.gd" id="90_party"]
 
 [node name="ExploreCrossroads" unique_id=1813498774 instance=ExtResource("1_terrain")]
 
@@ -74,8 +74,7 @@ prompt = "Talk"
 interaction_radius = 240.0
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
 
-[node name="PartySetup" type="Node" parent="."]
+[node name="MapSetup" type="Node" parent="." index="9" unique_id=649111327]
 script = ExtResource("90_party")
 members = Array[String](["cyrus"])
-level = 1
-metadata/_custom_type_script = "uid://c58kyys4p7s13"
+music = "Vadim Krakhmal - Mountain Spirit"

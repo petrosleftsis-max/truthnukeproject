@@ -47,11 +47,15 @@ func _ready():
 	# stating who is there at that point in the story, while Starting Party is
 	# only a fallback for a map that says nothing (and for running one straight
 	# from the editor).
-	var setup = _party_setup()
+	var setup = _map_setup()
 	if setup != null and setup.is_set():
 		Campaign.set_party(setup.members, setup.level)
 	else:
 		Campaign.seed_party(starting_party)
+	if setup != null and setup.music != "":
+		# Starting the track already playing does nothing, so stepping out to a
+		# fight and back does not restart the map's music from the top.
+		Music.play(setup.music)
 	# A conversation can recruit someone or send them away mid-map (see
 	# Campaign.add_member), so the line and the portraits rebuild themselves
 	# whenever the roster changes rather than only on arrival.
@@ -377,14 +381,14 @@ func reload_map():
 	get_tree().reload_current_scene()
 
 
-## The loaded map's PartySetup, if it has one. Searched the whole way down
+## The loaded map's MapSetup, if it has one. Searched the whole way down
 ## rather than only among the map's own children, because a map can be a
 ## wrapper around an instanced terrain scene - the same reason finding the
 ## TileMap looks in both places.
-func _party_setup() -> PartySetup:
+func _map_setup() -> MapSetup:
 	var map = get_node_or_null(MAP_NODE)
 	if map == null:
 		return null
-	for node in map.find_children("*", "PartySetup", true, false):
+	for node in map.find_children("*", "MapSetup", true, false):
 		return node
 	return null

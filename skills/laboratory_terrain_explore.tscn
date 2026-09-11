@@ -10,7 +10,7 @@
 [ext_resource type="Resource" uid="uid://ct32fg4sufmo8" path="res://Dialogue/lab_prometheus_pain.dialogue" id="8_kxgt0"]
 [ext_resource type="Script" uid="uid://cq2s71a1q831b" path="res://exploration/EncounterInteractable.gd" id="9_hlptl"]
 [ext_resource type="Resource" uid="uid://c3j4v4tmtl7gw" path="res://encounters/encounter_02_sappers.tres" id="10_lh2ad"]
-[ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/PartySetup.gd" id="90_party"]
+[ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/MapSetup.gd" id="90_party"]
 
 [node name="Node2D" type="Node2D" unique_id=557726441]
 
@@ -65,8 +65,9 @@ prompt = "Fight"
 interaction_radius = 500.0
 metadata/_custom_type_script = "uid://cq2s71a1q831b"
 
-[node name="PartySetup" type="Node" parent="."]
+[node name="MapSetup" type="Node" parent="."]
 script = ExtResource("90_party")
 members = Array[String](["cyrus", "enfina", "prometheus", "alithia"])
 level = 2
+music = "Tokyo Music Walker - Gotta Go"
 metadata/_custom_type_script = "uid://c58kyys4p7s13"

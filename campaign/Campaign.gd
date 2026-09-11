@@ -34,7 +34,7 @@ var party_state := {}
 var party_order: Array[String] = []
 
 ## How far along the party is while walking a map, 1 to 3. Set by the map's
-## PartySetup; decides the health they carry and what the character sheet
+## MapSetup; decides the health they carry and what the character sheet
 ## shows them as. Encounter spawns carry their own levels, so this does not
 ## decide what they fight at.
 var party_level: int = 1
