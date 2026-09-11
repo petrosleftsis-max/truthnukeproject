@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://bhijbic2jorww" path="res://tools/encounter_editor.gd" id="1_editor"]
 [ext_resource type="Resource" uid="uid://b24liue2xhn55" path="res://encounters/encounter_01_ambush.tres" id="2_scipg"]
 [ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://scenes/crossroads_terrain.tscn" id="3_scipg"]
-[ext_resource type="Texture2D" uid="uid://b0w7nfii5aqsf" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="5_7khms"]
+[ext_resource type="Texture2D" uid="uid://cr14x2kddoe53" path="res://imagese/cyrus idle/cyrus idle_color0000.png" id="5_7khms"]
 [ext_resource type="Script" uid="uid://bq7xydje3fups" path="res://tools/spawn_marker.gd" id="6_rd23k"]
 
 [node name="EncounterEditor" type="Node2D" unique_id=1480793127]

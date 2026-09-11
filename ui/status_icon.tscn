@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://d0hcis8q3seqg"]
 
 [ext_resource type="Script" path="res://ui/status_icon.gd" id="1_a6vcq"]
-[ext_resource type="Texture2D" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="1_xfc1u"]
+[ext_resource type="Texture2D" path="res://imagese/cyrus idle/cyrus idle_color0000.png" id="1_xfc1u"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_3jwjc"]
 atlas = ExtResource("1_xfc1u")
