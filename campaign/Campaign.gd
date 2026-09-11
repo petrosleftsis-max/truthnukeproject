@@ -179,6 +179,10 @@ func has_member(key: String) -> bool:
 ## exploration line, the portrait column) can redraw itself without polling.
 signal party_changed()
 
+## Somebody's bag changed - used, given, or handed to somebody else. Carries
+## whose it was, so a screen showing several at once can redraw just the one.
+signal inventory_changed(combatant_key)
+
 
 ## What the HUD needs to draw the party: one entry per living member, leader
 ## first. hp comes from what they carried out of the last battle, so the
@@ -322,6 +326,7 @@ func reset():
 	cleared_triggers.clear()
 	party_order.clear()
 	party_level = 1
+	inventories.clear()
 	# Starting over starts over: what the last playthrough had read, pulled and
 	# opened is not true of this one.
 	flags.clear()
@@ -476,3 +481,125 @@ func to_main_menu():
 	current_encounter = null
 	return_to_position = false
 	SceneTransition.change_scene(MAIN_MENU)
+
+
+## --- Inventories ---
+##
+## A bag per character rather than one shared pool, so who is carrying the last
+## potion is a real question. Everyone in the party can reach everyone else's
+## outside a fight (see the inventory screen on I); in a battle a character has
+## only what is in their own first four slots.
+
+
+## How much anybody can carry. Slots rather than a growing list so a bag has a
+## shape on screen and "full" means something.
+const INVENTORY_SIZE := 12
+
+## The slots that come with you into a fight. They are the front of the same
+## bag rather than a separate pocket, so packing for a battle is a decision
+## made with the inventory screen before walking into one.
+const COMBAT_SLOTS := 4
+
+## combatant_key -> Array[String] of exactly INVENTORY_SIZE entries, "" where
+## the slot is empty. Empty slots are kept rather than compacted away so an
+## item stays where it was put.
+var inventories: Dictionary = {}
+
+
+## Somebody's bag, made if they have never had one.
+func inventory_of(key: String) -> Array:
+	if not inventories.has(key):
+		var slots: Array = []
+		slots.resize(INVENTORY_SIZE)
+		slots.fill("")
+		# What this character already carries, from their database entry. Done
+		# here rather than at the start of a run so anyone recruited mid-story
+		# arrives with their own kit rather than an empty bag.
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+		if definition != null:
+			for i in mini(definition.starting_items.size(), INVENTORY_SIZE):
+				if ItemDatabase.items.has(definition.starting_items[i]):
+					slots[i] = definition.starting_items[i]
+				else:
+					push_warning("%s starts with '%s', which is not in ItemDatabase." % [key, definition.starting_items[i]])
+		inventories[key] = slots
+	return inventories[key]
+
+
+## Puts `item_id` in `key`'s first free slot. False if there is no such item or
+## nowhere to put it - a full bag refuses rather than silently dropping it.
+##
+## Written to be called from a dialogue:
+##
+##     do Campaign.give_item("cyrus", "cure_potion")
+##
+## Campaign is one of the autoloads the Dialogue Manager exposes to `do` lines
+## (see state_autoload_shortcuts in project.godot).
+func give_item(key: String, item_id: String) -> bool:
+	if not ItemDatabase.items.has(item_id):
+		push_warning("Campaign.give_item('%s', '%s'): no such item." % [key, item_id])
+		return false
+	if not CombatantDatabase.combatants.has(key):
+		push_warning("Campaign.give_item('%s', '%s'): no such character." % [key, item_id])
+		return false
+	var slots = inventory_of(key)
+	for i in slots.size():
+		if slots[i] == "":
+			slots[i] = item_id
+			inventory_changed.emit(key)
+			return true
+	push_warning("Campaign.give_item('%s', '%s'): their bag is full." % [key, item_id])
+	return false
+
+
+## Takes one `item_id` off `key`, preferring the combat slots so that using one
+## in a fight spends the one that was to hand. False if they had none.
+func take_item(key: String, item_id: String) -> bool:
+	var slots = inventory_of(key)
+	for i in slots.size():
+		if slots[i] == item_id:
+			slots[i] = ""
+			inventory_changed.emit(key)
+			return true
+	return false
+
+
+## Moves whatever is in one slot to another, swapping if the destination is
+## taken. The two slots can belong to different people, which is how the party
+## hands things round: both bags are open on the same screen.
+func move_item(from_key: String, from_slot: int, to_key: String, to_slot: int) -> bool:
+	var from_slots = inventory_of(from_key)
+	var to_slots = inventory_of(to_key)
+	if from_slot < 0 or from_slot >= from_slots.size():
+		return false
+	if to_slot < 0 or to_slot >= to_slots.size():
+		return false
+	if from_key == to_key and from_slot == to_slot:
+		return false
+	var moving = from_slots[from_slot]
+	from_slots[from_slot] = to_slots[to_slot]
+	to_slots[to_slot] = moving
+	inventory_changed.emit(from_key)
+	if to_key != from_key:
+		inventory_changed.emit(to_key)
+	return true
+
+
+## What `key` can actually reach in a fight: the item ids in their first
+## COMBAT_SLOTS slots, in order, with the empties left out.
+func combat_items_of(key: String) -> Array:
+	var found: Array = []
+	var slots = inventory_of(key)
+	for i in mini(COMBAT_SLOTS, slots.size()):
+		if slots[i] != "":
+			found.append(slots[i])
+	return found
+
+
+## How many of `item_id` somebody is carrying, anywhere in their bag.
+func count_of(key: String, item_id: String) -> int:
+	var total = 0
+	for slot in inventory_of(key):
+		if slot == item_id:
+			total += 1
+	return total

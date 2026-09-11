@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://ddgx1hll377nx" path="res://ui/ui.tscn" id="3_ui"]
 [ext_resource type="PackedScene" path="res://ui/pause_ui.tscn" id="4_pauseui"]
 [ext_resource type="Script" uid="uid://cpekxbgt3nmpg" path="res://ui/character_sheet.gd" id="5_sheet"]
+[ext_resource type="Script" path="res://ui/inventory_ui.gd" id="9_inventory"]
 
 [node name="Exploration" type="Node" unique_id=2077045176 node_paths=PackedStringArray("game_ui", "camera")]
 script = ExtResource("1_explore")
@@ -27,3 +28,6 @@ metadata/_edit_use_anchors_ = true
 
 [node name="CharacterSheet" type="CanvasLayer" parent="." unique_id=590313453]
 script = ExtResource("5_sheet")
+
+[node name="InventoryUI" type="CanvasLayer" parent="."]
+script = ExtResource("9_inventory")

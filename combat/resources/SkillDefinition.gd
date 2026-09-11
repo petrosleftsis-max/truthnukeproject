@@ -56,6 +56,12 @@ enum AoEShape {
 ## like a self-destruct. This is unconditional: it still happens even if
 ## the skill's own hit roll against others missed.
 @export var kills_caster: bool = false
+
+## Whether using this makes the user impossible to react to for the rest of
+## their turn: they can walk out of a reactive skill's reach and nobody gets
+## the free swing. Movement itself is unchanged - what changes is that leaving
+## somebody's threatened space stops being an opening.
+@export var suppresses_reactions: bool = false
 ## Which of a combatant's two action slots this uses. Main and secondary are
 ## spent separately, so a turn can use one of each.
 ##

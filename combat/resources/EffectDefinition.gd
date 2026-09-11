@@ -100,6 +100,11 @@ enum DispelScope {
 @export var dispel_stat: String = ""
 @export var dispel_scope: DispelScope = DispelScope.BOTH
 
+## How many to take off, newest first. Zero means all of them, which is what
+## a cleanse does. One is a remedy rather than a cure: it lifts whatever went
+## wrong most recently and leaves the rest.
+@export_range(0, 10, 1, "or_greater") var dispel_count: int = 0
+
 @export_group("Push / Pull")
 ## Used when type is PUSH or PULL. How many tiles to try to move the target,
 ## straight along the line from the caster through them. Stops early if it
@@ -115,7 +120,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.HEAL: ["min_amount", "max_amount"],
 	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration"],
 	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "damage_modifier", "min_amount", "max_amount", "duration"],
-	EffectType.DISPEL: ["dispel_stat", "dispel_scope"],
+	EffectType.DISPEL: ["dispel_stat", "dispel_scope", "dispel_count"],
 	EffectType.PUSH: ["knockback_distance", "damage_type", "min_amount", "max_amount"],
 	EffectType.PULL: ["knockback_distance"],
 	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration"],

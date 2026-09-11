@@ -225,7 +225,9 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		"status_effects" = [], # Active timed effects: {"stat":"movement","amount":-2,"duration":2} or a DoT tick: {"stat":"dot","min_amount":2,"max_amount":4,"duration":3}
 		"skill_used_this_turn" = false,
 		"secondary_used_this_turn" = false,
+		"reactions_suppressed" = false,
 		"secondary_skills" = definition.secondary_skills.duplicate(),
+		"items_as_secondary" = definition.items_as_secondary,
 		# Copied off the definition so combat can look a resistance up by damage
 		# type without going back to the database for it.
 		"resistances" = definition.resistance_table(),
@@ -349,6 +351,12 @@ func main_skills_of(comb: Dictionary) -> Array:
 		if not meets_level_for(comb, skill):
 			continue
 		found.append(key)
+	# Whatever is packed in the first four slots, alongside what they know how
+	# to do - a potion is another thing this turn could be spent on.
+	for key in items_of(comb):
+		var item: ItemDefinition = ItemDatabase.item(key)
+		if item != null and not item.is_secondary and not found.has(key):
+			found.append(key)
 	return found
 
 
@@ -375,6 +383,17 @@ func secondary_skills_of(comb: Dictionary) -> Array:
 		if not meets_level_for(comb, SkillDatabase.skills[key]):
 			continue
 		found.append(key)
+	# Consumables meant for the secondary slot, and - for anyone whose hands are
+	# quick enough - the ones that would otherwise cost the main action. That is
+	# Cyrus, and it is why he can drink and still swing.
+	for key in items_of(comb):
+		if found.has(key):
+			continue
+		var item: ItemDefinition = ItemDatabase.item(key)
+		if item == null:
+			continue
+		if item.is_secondary or comb.get("items_as_secondary", false):
+			found.append(key)
 	return found
 
 
@@ -555,6 +574,16 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			attacker.secondary_used_this_turn = true
 		else:
 			attacker.skill_used_this_turn = true
+		if skill.suppresses_reactions:
+			# Only for the rest of this turn. Cleared in advance_turn alongside the
+			# action slots, so it can never carry into the next one.
+			attacker.reactions_suppressed = true
+			update_information.emit("[color=yellow]%s[/color] moves unseen - nothing can react to them this turn.
+" % attacker.name)
+		# Spent here rather than at the click: an item aimed and then cancelled is
+		# still in the bag, and one that missed is still gone.
+		if is_item(skill_key):
+			consume_item(attacker, skill_key)
 		if attacker.side == 1:
 			if end_turn_after:
 				await advance_turn()
@@ -588,6 +617,9 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 ## caller (CController's per-step movement handler) depends on that to know
 ## mover's actual alive state before deciding whether to continue moving.
 func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_position: Vector2i):
+	if mover.get("reactions_suppressed", false):
+		# Slipped past: leaving somebody's reach is not an opening this turn.
+		return
 	for reactor in combatants:
 		if not reactor.alive or reactor == mover or reactor.reaction_used:
 			continue
@@ -1111,8 +1143,13 @@ func describe_condition(attacker: Dictionary, target: Dictionary, effect: Effect
 ## (see EffectDefinition.dispel_stat / dispel_scope).
 func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: EffectDefinition):
 	var removed = 0
+	# From the end, so the most recently acquired goes first. That only shows
+	# when dispel_count limits how many come off - a remedy that lifts one thing
+	# should lift the thing that just happened.
 	var i = target.status_effects.size() - 1
 	while i >= 0:
+		if effect.dispel_count > 0 and removed >= effect.dispel_count:
+			break
 		if should_dispel(target.status_effects[i], effect):
 			target.status_effects.remove_at(i)
 			removed += 1
@@ -1387,6 +1424,7 @@ func advance_turn():
 		comb.skill_used_this_turn = false
 		comb.secondary_used_this_turn = false
 		comb.reaction_used = false
+		comb.reactions_suppressed = false
 		process_status_effects(comb)
 		if not comb.alive:
 			# A damage-over-time tick (or similar) killed them just as their
@@ -1681,6 +1719,11 @@ func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 ## the skill's modifier, which is what makes the same spell scale with whoever
 ## casts it.
 func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefinition, power: float = 1.0) -> int:
+	if skill is ItemDefinition:
+		# A bomb is a bomb whoever throws it, so nothing of the thrower goes into
+		# this. The target still soaks it with their Defense exactly as they would
+		# a skill - an item does not scale, but it is still contested.
+		return Stats.final_damage(skill.flat_power, power, stat_of(target, Stats.Type.DEFENSE))
 	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat), attacker.get("weapon_base", Stats.WEAPON_BASE))
 	return Stats.final_damage(base, skill.ability_modifier * power, stat_of(target, Stats.Type.DEFENSE))
 
@@ -1690,6 +1733,10 @@ func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 ## it - being tough does not make you harder to patch up - and no randomness,
 ## so a heal is something you can count on when deciding whether it is enough.
 func heal_amount(healer: Dictionary, skill: SkillDefinition) -> int:
+	if skill is ItemDefinition:
+		# What is written on the bottle, whoever uncorks it. Nothing contests a
+		# heal, so unlike damage it is simply the number.
+		return maxi(skill.flat_power, 0)
 	var base = Stats.base_damage(stat_of(healer, skill.scaling_stat), healer.get("weapon_base", Stats.WEAPON_BASE))
 	return maxi(roundi(base * skill.ability_modifier), 0)
 
@@ -2626,3 +2673,39 @@ func watch_combatant(comb: Dictionary):
 func stop_watching():
 	if camera != null and is_instance_valid(camera):
 		camera.release()
+
+
+## --- Consumables ---
+
+
+## The items `comb` can reach this fight: whatever is in the first four slots of
+## their own bag. Enemies carry nothing - they have no campaign inventory, and
+## asking for one would make them a bag they never use.
+func items_of(comb: Dictionary) -> Array:
+	if comb.side != 0:
+		return []
+	var key = comb.get("combatant_key", "")
+	if key == "":
+		return []
+	return Campaign.combat_items_of(key)
+
+
+## Whether a key names a consumable rather than a skill. Items are registered
+## in SkillDatabase alongside the skills so everything that resolves a key
+## works unchanged; this is the one question that has to tell them apart.
+func is_item(key: String) -> bool:
+	return ItemDatabase.is_item(key)
+
+
+## Takes one off whoever used it. Called once a use has actually gone through,
+## so an item aimed at nothing and cancelled is still in the bag.
+func consume_item(comb: Dictionary, key: String):
+	var item: ItemDefinition = ItemDatabase.item(key)
+	if item == null or not item.consumed_on_use:
+		return
+	var owner_key = comb.get("combatant_key", "")
+	if owner_key == "" or not Campaign.take_item(owner_key, key):
+		return
+	update_information.emit("[color=yellow]%s[/color] used their last %s.\n" % [comb.name, item.name]
+		if Campaign.count_of(owner_key, key) == 0
+		else "[color=yellow]%s[/color] has %d %s left.\n" % [comb.name, Campaign.count_of(owner_key, key), item.name])

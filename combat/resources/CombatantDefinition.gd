@@ -91,6 +91,16 @@ class_name CombatantDefinition
 ## they'll walk in the line on the map and appear in the portrait column, but
 ## be left out when an encounter deploys the party.
 @export var can_fight: bool = true
+
+## Whether consumables that would normally cost the main action can be used as
+## a secondary one instead. Cyrus can: quick hands are his, and it is why he
+## can drink a potion and still swing in the same turn.
+@export var items_as_secondary: bool = false
+
+## What they are already carrying the first time a bag is made for them, in
+## slot order - so the first four here are what they walk into a fight with.
+## Keys index ItemDatabase. Anything picked up later goes in on top.
+@export var starting_items: Array[String] = []
 @export_group("AI (enemies only - ignored for player-controlled units)")
 ## Which Combat.gd function drives this enemy's turn. Built-in options:
 ## "ai_melee_rush" (default - rushes the nearest enemy and melees it),

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ItemDefinition.gd" id="2_item"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_icon"]
+[ext_resource type="AudioStream" uid="uid://cqnubt85xto1y" path="res://audio/sfx/Debris_Scattering_-_Free_Sound_Effect.wav" id="4_sfx"]
+
+[resource]
+script = ExtResource("2_item")
+name = "Bomb"
+description = "Thrown. Bursts over everything standing within a tile of where it lands."
+max_range = 4
+accuracy = 100
+icon = ExtResource("3_icon")
+affects_both_sides = true
+deals_damage = true
+damage_type = 4
+flat_power = 30
+aoe_radius = 1
+sound = ExtResource("4_sfx")

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_eff"]
+[ext_resource type="Script" path="res://combat/resources/ItemDefinition.gd" id="2_item"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_icon"]
+
+[sub_resource type="Resource" id="Effect_med_heal"]
+script = ExtResource("1_eff")
+type = 1
+min_amount = 15
+max_amount = 15
+
+[sub_resource type="Resource" id="Effect_med_cure"]
+script = ExtResource("1_eff")
+type = 4
+dispel_scope = 2
+dispel_count = 1
+
+[resource]
+script = ExtResource("2_item")
+name = "Medicine"
+description = "Restores 15 health and lifts whatever went wrong most recently."
+max_range = 2
+accuracy = 100
+icon = ExtResource("3_icon")
+targets_ally = true
+effects = Array[ExtResource("1_eff")]([SubResource("Effect_med_heal"), SubResource("Effect_med_cure")])
+deals_damage = false
+flat_power = 15

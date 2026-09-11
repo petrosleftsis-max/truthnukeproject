@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_eff"]
+[ext_resource type="Script" path="res://combat/resources/ItemDefinition.gd" id="2_item"]
+[ext_resource type="Resource" path="res://conditions/stunned.tres" id="3_cond"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_shock_bottle"]
+script = ExtResource("1_eff")
+type = 8
+condition = ExtResource("3_cond")
+condition_duration = 1
+
+[resource]
+script = ExtResource("2_item")
+name = "Shock Bottle"
+description = "Glass, and something unpleasant inside. Thrown at one enemy."
+max_range = 3
+accuracy = 100
+icon = ExtResource("4_icon")
+effects = Array[ExtResource("1_eff")]([SubResource("Effect_shock_bottle")])
+deals_damage = false
+flat_power = 0
