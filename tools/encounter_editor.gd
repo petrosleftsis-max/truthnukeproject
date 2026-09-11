@@ -113,15 +113,35 @@ func _sync_if_encounter_changed():
 ## problem is visible before the button is reached rather than after.
 func _refresh_status():
 	var problems = _problems_with_layout()
-	var summary = ""
+	var summary = _map_extent_note() + "\n"
 	if problems.is_empty():
-		summary = "Ready: %d spawns to save." % markers().size()
+		summary += "Ready: %d spawns to save." % markers().size()
 	else:
-		summary = "Cannot save yet:\n  - %s" % "\n  - ".join(problems)
+		summary += "Cannot save yet:\n  - %s" % "\n  - ".join(problems)
 	if summary == status:
 		return
 	status = summary
 	notify_property_list_changed()
+
+
+## Where the painted floor actually is, in tiles.
+##
+## A map is far bigger than one screenful and its corners are usually empty, so
+## a marker left at the origin can be standing on nothing with nothing nearby to
+## see. From behind the viewport, "the terrain didn't load" and "you are looking
+## at an unpainted corner of it" are the same black rectangle; this says which.
+func _map_extent_note() -> String:
+	var terrain = get_node_or_null(TERRAIN_NODE)
+	var tile_map: TileMap = terrain.get_node_or_null("TileMap") if terrain != null else null
+	if tile_map == null:
+		return "No terrain loaded - set the encounter's Terrain Scene, then press Reload."
+	var rect = tile_map.get_used_rect()
+	if rect.size == Vector2i.ZERO:
+		return "The terrain loaded, but nothing is painted on it yet."
+	# Inclusive corners: end is one past the last tile, and a range quoted to
+	# somebody about to type coordinates has to name a tile that exists.
+	return "Map: tiles %s to %s are painted. Select a marker and press F to look at it." % [
+		rect.position, rect.end - Vector2i.ONE]
 
 
 ## Puts a message in the status line and holds it there. Without the hold, the
@@ -136,6 +156,12 @@ func _announce():
 ## Rebuilds both the map preview and the markers from the encounter resource,
 ## throwing away any unsaved dragging.
 func rebuild():
+	# A hidden root hides the map, the grid and every marker at once, while the
+	# Scene dock goes on listing them - which looks exactly like the terrain
+	# failing to load, and sends you looking for the bug anywhere but the eye
+	# icon. This scene is nothing but the tool for placing spawns; there is no
+	# version of using it where it should be invisible.
+	visible = true
 	_clear()
 	if encounter == null:
 		return

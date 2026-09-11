@@ -1,98 +1,95 @@
 [gd_scene format=3 uid="uid://cnxcojo3yrgsi"]
 
 [ext_resource type="Script" uid="uid://bhijbic2jorww" path="res://tools/encounter_editor.gd" id="1_editor"]
-[ext_resource type="Resource" uid="uid://b24liue2xhn55" path="res://encounters/encounter_01_ambush.tres" id="2_scipg"]
-[ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://scenes/crossroads_terrain.tscn" id="3_scipg"]
+[ext_resource type="Resource" uid="uid://c3j4v4tmtl7gw" path="res://encounters/encounter_02_sappers.tres" id="2_v82vy"]
+[ext_resource type="PackedScene" uid="uid://dqucchdhp3fkm" path="res://laboratory_terrain_fight.tscn" id="3_7srq1"]
 [ext_resource type="Texture2D" uid="uid://nx1negu4ijrl" path="res://imagese/enfina idle/enfina_idle_color0000.png" id="4_7khms"]
 [ext_resource type="Texture2D" uid="uid://cr14x2kddoe53" path="res://imagese/cyrus idle/cyrus idle_color0000.png" id="5_7khms"]
+[ext_resource type="Texture2D" uid="uid://bswamhyohs8qy" path="res://imagese/prometheus idle/prometheus_idle_0000.png" id="6_2cu7l"]
 [ext_resource type="Script" uid="uid://bq7xydje3fups" path="res://tools/spawn_marker.gd" id="6_rd23k"]
+[ext_resource type="Texture2D" uid="uid://j18c0awsyfjm" path="res://imagese/alithia idle/alithia_idle_color0000.png" id="8_1xuoy"]
+[ext_resource type="Texture2D" uid="uid://bewcayi5doecc" path="res://imagese/Enemies/dapper guy 6.png" id="8_2cu7l"]
+[ext_resource type="Texture2D" uid="uid://67ak0ta2g84d" path="res://imagese/Enemies/dapper guy 3.png" id="9_1xuoy"]
 
 [node name="EncounterEditor" type="Node2D" unique_id=1480793127]
 script = ExtResource("1_editor")
-encounter = ExtResource("2_scipg")
-status = "Ready: 9 spawns to save."
+encounter = ExtResource("2_v82vy")
+status = "Cannot save yet:
+  - Enfina is at (30, 2), on an unpainted hole in the map
+  - Prometheus is at (33, 3), on an unpainted hole in the map
+  - Cyrus is at (34, 5), on an unpainted hole in the map
+  - Sapper 1 is at (15, 5), on an unpainted hole in the map
+  - Grunt is at (14, 7), on an unpainted hole in the map
+  - Sapper 2 is at (14, 9), on an unpainted hole in the map
+  - Alithia is at (0, 0), on terrain its movement class can't enter"
 
-[node name="TerrainPreview" type="Node2D" parent="." unique_id=752726230 instance=ExtResource("3_scipg")]
-texture_filter = 1
+[node name="TerrainPreview" type="Node2D" parent="." unique_id=557726441 instance=ExtResource("3_7srq1")]
 
-[node name="Spawns" type="Node2D" parent="." unique_id=352457978]
+[node name="Spawns" type="Node2D" parent="." unique_id=1723027167]
 
-[node name="Spawn_enfina" type="Sprite2D" parent="Spawns" unique_id=1429273438]
+[node name="Spawn_enfina" type="Sprite2D" parent="Spawns" unique_id=1083572938]
 modulate = Color(0.6, 0.8, 1, 1)
-position = Vector2(8736, -2592)
+position = Vector2(5856, 480)
 texture = ExtResource("4_7khms")
 script = ExtResource("6_rd23k")
 combatant_key = "enfina"
+level = 2
+weapon_base = 9
+defense = 20
 
-[node name="Spawn_cyrus" type="Sprite2D" parent="Spawns" unique_id=1088473117]
+[node name="Spawn_prometheus" type="Sprite2D" parent="Spawns" unique_id=2132319950]
 modulate = Color(0.6, 0.8, 1, 1)
-position = Vector2(7968, -2592)
+position = Vector2(6432, 672)
+texture = ExtResource("6_2cu7l")
+script = ExtResource("6_rd23k")
+combatant_key = "prometheus"
+level = 2
+weapon_base = 9
+defense = 5
+
+[node name="Spawn_cyrus" type="Sprite2D" parent="Spawns" unique_id=353668218]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(6624, 1056)
 texture = ExtResource("5_7khms")
 script = ExtResource("6_rd23k")
 combatant_key = "cyrus"
+level = 2
+weapon_base = 9
+defense = 12
 
-[node name="Spawn_priest" type="Sprite2D" parent="Spawns" unique_id=1008751692]
+[node name="Spawn_bomber" type="Sprite2D" parent="Spawns" unique_id=2053895020]
 modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(10272, -3168)
-texture = ExtResource("5_7khms")
+position = Vector2(2976, 1056)
+texture = ExtResource("8_2cu7l")
 script = ExtResource("6_rd23k")
-combatant_key = "priest"
+combatant_key = "bomber"
 side = 1
-display_name = "Goblin 3"
-defense = 18
+display_name = "Sapper 1"
 
-[node name="Spawn_ranger" type="Sprite2D" parent="Spawns" unique_id=330845237]
+[node name="Spawn_barbarian" type="Sprite2D" parent="Spawns" unique_id=525742129]
 modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(10464, -2784)
-texture = ExtResource("5_7khms")
-script = ExtResource("6_rd23k")
-combatant_key = "ranger"
-side = 1
-display_name = "Goblin 1"
-defense = 18
-
-[node name="Spawn_barbarian" type="Sprite2D" parent="Spawns" unique_id=740538749]
-modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(6624, -2592)
-texture = ExtResource("5_7khms")
+position = Vector2(2784, 1440)
+texture = ExtResource("9_1xuoy")
 script = ExtResource("6_rd23k")
 combatant_key = "barbarian"
 side = 1
-defense = 35
+display_name = "Grunt"
 
-[node name="@Sprite2D@43379" type="Sprite2D" parent="Spawns" unique_id=1244662564]
+[node name="@Sprite2D@28659" type="Sprite2D" parent="Spawns" unique_id=163914061]
 modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(6816, -2592)
-texture = ExtResource("5_7khms")
+position = Vector2(2784, 1824)
+texture = ExtResource("8_2cu7l")
 script = ExtResource("6_rd23k")
-combatant_key = "barbarian"
+combatant_key = "bomber"
 side = 1
-defense = 35
+display_name = "Sapper 2"
 
-[node name="@Sprite2D@43380" type="Sprite2D" parent="Spawns" unique_id=729644516]
-modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(7008, -2592)
-texture = ExtResource("5_7khms")
+[node name="Spawn_alithia" type="Sprite2D" parent="Spawns" unique_id=1794558815]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(96, 96)
+texture = ExtResource("8_1xuoy")
 script = ExtResource("6_rd23k")
-combatant_key = "barbarian"
-side = 1
-defense = 35
-
-[node name="@Sprite2D@43381" type="Sprite2D" parent="Spawns" unique_id=1286669731]
-modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(7200, -2592)
-texture = ExtResource("5_7khms")
-script = ExtResource("6_rd23k")
-combatant_key = "barbarian"
-side = 1
-defense = 35
-
-[node name="Spawn_sorcerer" type="Sprite2D" parent="Spawns" unique_id=234427174]
-modulate = Color(1, 0.6, 0.6, 1)
-position = Vector2(10464, -2400)
-texture = ExtResource("5_7khms")
-script = ExtResource("6_rd23k")
-combatant_key = "sorcerer"
-side = 1
-display_name = "Goblin 2"
-defense = 5
+combatant_key = "alithia"
+level = 2
+weapon_base = 9
+defense = 12
