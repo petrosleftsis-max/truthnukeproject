@@ -134,18 +134,20 @@ enum AoEShape {
 @export_range(-40.0, 12.0, 0.5) var sound_volume_db: float = 0.0
 
 @export_group("Cost")
-## Which spell slot this costs, or 0 for a skill that costs nothing.
+## Which gate this spell is cast through, or None for a skill that costs
+## nothing.
 ##
-## A skill can always be paid for with a higher slot than it asks for - a level
-## 1 spell can burn a level 2 or 3 - but never a lower one. Combat spends the
-## cheapest slot that will do, so a level 3 is never wasted on a level 1 spell
-## while a level 1 is still going spare.
+## A spell can always be paid for with a higher gate than it asks for - one cast
+## through the Gates of World can burn Hermes or Yaldabaoth - but never a lower
+## one. Combat spends the cheapest gate that will do, so Yaldabaoth is never
+## wasted on a World spell while a World casting is still going spare.
 ##
 ## Anything with a cost lives on its own Spells panel rather than in the main
 ## list, but still spends the same action: the main one, or the secondary one
 ## if is_secondary is also set. Casting a spell and swinging a sword in the
 ## same turn is one action either way, so only one of them happens.
-@export_range(0, 3) var spell_slot_level: int = 0
+@export_enum("None", "Gates of World", "Gates of Hermes", "Gates of Yaldabaoth")
+var spell_slot_level: int = 0
 
 @export_group("Area of Effect")
 ## 0 = single tile only (classic single-target). Any higher number gives this

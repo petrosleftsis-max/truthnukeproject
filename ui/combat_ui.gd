@@ -355,6 +355,10 @@ func _update_spell_slots(comb):
 		bar.max_value = ceiling
 		bar.value = left
 		entry.get_node("Count").text = "%d/%d" % [left, ceiling]
+		# Named rather than numbered: a spell is cast through a gate, and the
+		# tooltip says which even where the row is too narrow to spell it out.
+		entry.get_node("Name").text = Stats.gate_name(level)
+		entry.tooltip_text = "%s: %d of %d left" % [Stats.gate_name(level), left, ceiling]
 	row.visible = any
 
 
@@ -374,7 +378,7 @@ func build_skill_tooltip(skill: SkillDefinition) -> String:
 		lines.append(skill.description)
 	lines.append("")
 	if skill.spell_slot_level > 0:
-		lines.append("Costs: a level %d spell slot (or any higher)" % skill.spell_slot_level)
+		lines.append("Costs: %s, or any higher gate" % Stats.gate_name(skill.spell_slot_level))
 	lines.append("Range: %d-%d" % [skill.min_range, skill.max_range])
 	if skill.uses_stat_contest:
 		lines.append("Lands on anyone with %s below the caster's %s. Everyone else takes half damage and none of the rest." % [

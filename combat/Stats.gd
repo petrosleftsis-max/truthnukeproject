@@ -121,3 +121,21 @@ static func base_damage(stat_value: int, weapon_base: int = WEAPON_BASE) -> floa
 static func final_damage(base: float, ability_modifier: float, defense: int) -> int:
 	var soak := DEFENSE_PIVOT / (DEFENSE_PIVOT + maxf(defense, 0.0))
 	return maxi(int(round(base * ability_modifier * soak)), 1)
+
+
+## --- The gates ---
+##
+## What each spell slot level is called. A spell does not cost "a level 2 slot",
+## it is cast through the Gates of Hermes - and the game says so everywhere it
+## mentions one, so the fiction and the rules use the same words.
+##
+## Indexed by level, with nothing at 0 because a skill that costs no gate is
+## simply free.
+const GATE_NAMES := ["", "Gates of World", "Gates of Hermes", "Gates of Yaldabaoth"]
+
+
+## The gate at `level`, or "" for a skill that costs nothing.
+static func gate_name(level: int) -> String:
+	if level < 1 or level >= GATE_NAMES.size():
+		return ""
+	return GATE_NAMES[level]

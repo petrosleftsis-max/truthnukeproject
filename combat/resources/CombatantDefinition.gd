@@ -38,14 +38,14 @@ class_name CombatantDefinition
 @export var main_stat: Stats.Type = Stats.Type.PHYSICAL
 @export var secondary_stat: Stats.Type = Stats.Type.MINDFULNESS
 
-@export_subgroup("Spell Slots")
-## How many casts of each level this combatant starts a battle with. A skill
-## costing a level 1 slot can be paid for with a level 2 or 3 instead, and a
-## level 2 skill with a level 3 - never the other way round. Leave at zero for
-## anyone who casts nothing.
-@export_range(0, 9) var spell_slots_1: int = 0
-@export_range(0, 9) var spell_slots_2: int = 0
-@export_range(0, 9) var spell_slots_3: int = 0
+@export_subgroup("Gates")
+## How many casts through each gate this combatant starts a battle with. A spell
+## cast through the Gates of World can be paid for with Hermes or Yaldabaoth
+## instead, and a Hermes spell with Yaldabaoth - never the other way round.
+## Leave at zero for anyone who casts nothing.
+@export_range(0, 9) var gates_of_world: int = 0
+@export_range(0, 9) var gates_of_hermes: int = 0
+@export_range(0, 9) var gates_of_yaldabaoth: int = 0
 @export_group("Visual")
 @export var icon: Texture2D
 ## Used only if sprite_frames below is empty - a single static image on the
@@ -114,7 +114,7 @@ func hp_at(level: int) -> int:
 
 
 func spell_slot_table() -> Array:
-	return [0, spell_slots_1, spell_slots_2, spell_slots_3]
+	return [0, gates_of_world, gates_of_hermes, gates_of_yaldabaoth]
 
 
 ## The resistances above, keyed by Damage.Type, so combat can look one up by
