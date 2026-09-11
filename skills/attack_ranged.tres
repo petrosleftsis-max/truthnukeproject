@@ -15,3 +15,4 @@ icon = ExtResource("2_2u77k")
 respects_blocking = true
 animation = "attack"
 ability_modifier = 1.5
+scaling_stat = 3

@@ -7,11 +7,13 @@
 [resource]
 script = ExtResource("3_jae8u")
 name = "Fireball"
-description = "Explodes on impact, damaging everyone caught nearby."
+description = "Fire engulf everyone, even behind cover."
 min_range = 1
 max_range = 6
 accuracy = 80
 icon = ExtResource("2_0ef30")
+required_level = 3
+affects_both_sides = true
 scaling_stat = 2
 damage_type = 1
 uses_stat_contest = true

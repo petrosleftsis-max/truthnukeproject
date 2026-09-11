@@ -1,0 +1,11 @@
+~ start
+if Campaign.flag("after_reveal_reminisced_enfina") && Campaign.flag("after_reveal_reminisced_cyrus") && Campaign.flag("after_reveal_reminisced_prometheus") && Campaign.flag("after_reveal_reminisced_clown"):
+	alithia: To live... is to suffer.
+	alithia: Hah. You've always been overdramatic. I wouldn't be able to bare it if you and Cyrus ever met.
+elif Campaign.flag("after_reveal_door_blocked"):
+	alithia: The cloud is still in my way.
+elif:
+	alithia: I...
+	alithia: There it is again. That cloud that makes me unable to take a single step.
+	alithia: I'll just need to find a way to clear it up. Somehow.
+=> END

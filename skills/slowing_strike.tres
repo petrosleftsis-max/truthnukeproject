@@ -4,17 +4,12 @@
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_i0q61"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_730sk"]
 
-[sub_resource type="Resource" id="Effect_slow_debuff"]
-script = ExtResource("1_o0rjh")
-type = 2
-display_name = "Slowed"
-modifier_amount = -2
-
 [resource]
 script = ExtResource("3_730sk")
-name = "Slowing Strike"
-description = "A heavy blow that also slows the target down."
+name = "Follow Up Attack"
+description = "Move the greatsword with such ease that your strikers are endless."
 min_range = 1
 max_range = 1
 icon = ExtResource("2_i0q61")
-effects = Array[ExtResource("1_o0rjh")]([SubResource("Effect_slow_debuff")])
+required_level = 3
+ability_modifier = 1.4

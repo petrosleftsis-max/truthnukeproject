@@ -13,12 +13,13 @@ max_amount = 8
 [resource]
 script = ExtResource("3_5f2sg")
 name = "Heal"
-description = "Mends an ally's wounds."
+description = "Recover one's vitality."
 max_range = 3
 accuracy = 100
 icon = ExtResource("2_oejdn")
 targets_ally = true
 effects = Array[ExtResource("1_d34oe")]([SubResource("Effect_heal")])
 deals_damage = false
-ability_modifier = 0.45
+ability_modifier = 0.7
 scaling_stat = 1
+spell_slot_level = 1

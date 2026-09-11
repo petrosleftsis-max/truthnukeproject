@@ -6,10 +6,12 @@
 
 [resource]
 script = ExtResource("3_qhl6x")
-name = "Basic Magic"
-description = "A simple magical bolt."
+name = "Fire Burst"
+description = "A weak outburst of flames."
+min_range = 1
 max_range = 20
 accuracy = 100
 icon = ExtResource("2_ak3j8")
+ability_modifier = 0.7
 scaling_stat = 2
-damage_type = 7
+damage_type = 1

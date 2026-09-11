@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bhijbic2jorww" path="res://tools/encounter_editor.gd" id="1_editor"]
 [ext_resource type="Resource" uid="uid://b24liue2xhn55" path="res://encounters/encounter_01_ambush.tres" id="2_scipg"]
-[ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="4_7khms"]
+[ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://scenes/crossroads_terrain.tscn" id="3_scipg"]
 [ext_resource type="Texture2D" uid="uid://b0w7nfii5aqsf" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="5_7khms"]
 [ext_resource type="Script" uid="uid://bq7xydje3fups" path="res://tools/spawn_marker.gd" id="6_rd23k"]
 
@@ -11,33 +11,26 @@ script = ExtResource("1_editor")
 encounter = ExtResource("2_scipg")
 status = "Ready: 6 spawns to save."
 
-[node name="TerrainPreview" type="Node2D" parent="." unique_id=752726230 instance=ExtResource("4_7khms")]
+[node name="TerrainPreview" type="Node2D" parent="." unique_id=752726230 instance=ExtResource("3_scipg")]
 texture_filter = 1
 
-[node name="Spawns" type="Node2D" parent="." unique_id=870300470]
+[node name="Spawns" type="Node2D" parent="." unique_id=1443375521]
 
-[node name="Spawn_prometheus" type="Sprite2D" parent="Spawns" unique_id=127000193]
-modulate = Color(0.6, 0.8, 1, 1)
-position = Vector2(5856, 864)
-texture = ExtResource("5_7khms")
-script = ExtResource("6_rd23k")
-combatant_key = "prometheus"
-
-[node name="Spawn_enfina" type="Sprite2D" parent="Spawns" unique_id=1375939462]
+[node name="Spawn_enfina" type="Sprite2D" parent="Spawns" unique_id=1179910338]
 modulate = Color(0.6, 0.8, 1, 1)
 position = Vector2(5856, 1632)
 texture = ExtResource("5_7khms")
 script = ExtResource("6_rd23k")
 combatant_key = "enfina"
 
-[node name="Spawn_cyrus" type="Sprite2D" parent="Spawns" unique_id=1520957130]
+[node name="Spawn_cyrus" type="Sprite2D" parent="Spawns" unique_id=1937993035]
 modulate = Color(0.6, 0.8, 1, 1)
 position = Vector2(6432, 1632)
 texture = ExtResource("5_7khms")
 script = ExtResource("6_rd23k")
 combatant_key = "cyrus"
 
-[node name="Spawn_priest" type="Sprite2D" parent="Spawns" unique_id=1909834026]
+[node name="Spawn_priest" type="Sprite2D" parent="Spawns" unique_id=1455818156]
 modulate = Color(1, 0.6, 0.6, 1)
 position = Vector2(5280, 2976)
 texture = ExtResource("5_7khms")
@@ -47,7 +40,7 @@ side = 1
 display_name = "Goblin 3"
 defense = 18
 
-[node name="Spawn_ranger" type="Sprite2D" parent="Spawns" unique_id=1236955768]
+[node name="Spawn_ranger" type="Sprite2D" parent="Spawns" unique_id=1487332983]
 modulate = Color(1, 0.6, 0.6, 1)
 position = Vector2(5856, 3168)
 texture = ExtResource("5_7khms")
@@ -57,7 +50,7 @@ side = 1
 display_name = "Goblin 1"
 defense = 18
 
-[node name="Spawn_sorcerer" type="Sprite2D" parent="Spawns" unique_id=1901366554]
+[node name="Spawn_sorcerer" type="Sprite2D" parent="Spawns" unique_id=1505765207]
 modulate = Color(1, 0.6, 0.6, 1)
 position = Vector2(6432, 3168)
 texture = ExtResource("5_7khms")
@@ -66,3 +59,11 @@ combatant_key = "sorcerer"
 side = 1
 display_name = "Goblin 2"
 defense = 5
+
+[node name="Spawn_" type="Sprite2D" parent="Spawns" unique_id=2112775641]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(7200, -2592)
+texture = ExtResource("5_7khms")
+script = ExtResource("6_rd23k")
+combatant_key = "barbarian"
+side = 1

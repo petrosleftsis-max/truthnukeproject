@@ -2,22 +2,23 @@
 
 [ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
 [ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
-[ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="3_terrain"]
+[ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://scenes/crossroads_terrain.tscn" id="3_86m2p"]
 
 [sub_resource type="Resource" id="Resource_86m2p"]
-script = ExtResource("2_spawn")
-combatant_key = "prometheus"
-position = Vector2i(30, 4)
-
-[sub_resource type="Resource" id="Resource_njrfk"]
 script = ExtResource("2_spawn")
 combatant_key = "enfina"
 position = Vector2i(30, 8)
 
-[sub_resource type="Resource" id="Resource_x3x4f"]
+[sub_resource type="Resource" id="Resource_njrfk"]
 script = ExtResource("2_spawn")
 combatant_key = "cyrus"
 position = Vector2i(33, 8)
+
+[sub_resource type="Resource" id="Resource_x3x4f"]
+script = ExtResource("2_spawn")
+combatant_key = "barbarian"
+side = 1
+position = Vector2i(37, -14)
 
 [sub_resource type="Resource" id="Resource_6a1lt"]
 script = ExtResource("2_spawn")
@@ -45,7 +46,7 @@ defense = 5
 
 [resource]
 script = ExtResource("1_enc")
-display_name = "Goblin Ambush"
-description = "Three goblins block the road: a ranger, a sorcerer and a priest."
-terrain_scene = ExtResource("3_terrain")
+display_name = "Sewer Intro Fight"
+description = "Cyrus and Enfina find themselves surrounded."
+terrain_scene = ExtResource("3_86m2p")
 spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_86m2p"), SubResource("Resource_njrfk"), SubResource("Resource_x3x4f"), SubResource("Resource_6a1lt"), SubResource("Resource_5depv"), SubResource("Resource_nl4kq")])

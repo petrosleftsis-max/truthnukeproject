@@ -6,14 +6,13 @@
 
 [resource]
 script = ExtResource("3_2al5t")
-name = "Flame Cone"
-description = "A wide gout of fire in front of the caster."
-min_range = 1
-max_range = 6
-accuracy = 80
+name = "Sweep Strike"
+description = "Attack and push everyone in front of you."
+max_range = 1
+accuracy = 100
 icon = ExtResource("2_y1vqh")
-scaling_stat = 2
-damage_type = 1
-spell_slot_level = 1
+required_level = 2
+ability_modifier = 1.2
 aoe_radius = 3
 aoe_shape = 2
+aoe_width = 3

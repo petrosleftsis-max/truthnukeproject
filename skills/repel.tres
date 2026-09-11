@@ -13,10 +13,16 @@ knockback_distance = 2
 
 [resource]
 script = ExtResource("3_2orsb")
-name = "Repel"
-description = "A burst of force that knocks the target back."
+name = "Gust Blast"
+description = "Blast a powerful gust that pushes the target."
 min_range = 1
 max_range = 3
-accuracy = 85
+accuracy = 100
 icon = ExtResource("2_jhtu7")
+required_level = 2
+affects_both_sides = true
 effects = Array[ExtResource("1_530t1")]([SubResource("Effect_repel_push")])
+ability_modifier = 0.2
+scaling_stat = 2
+damage_type = 3
+spell_slot_level = 2

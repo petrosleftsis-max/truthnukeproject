@@ -4,22 +4,16 @@
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_bg4m5"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_agv8j"]
 
-[sub_resource type="Resource" id="Effect_vitality"]
-script = ExtResource("1_gpjfk")
-type = 2
-display_name = "Vitality"
-stat = "max_hp"
-modifier_amount = 5
-duration = 3
-
 [resource]
 script = ExtResource("3_agv8j")
-name = "Vitality"
-description = "Temporarily boosts an ally's maximum HP."
+name = "Light Heal"
+description = "Swiftly recover one's vitality."
 max_range = 3
 accuracy = 100
 icon = ExtResource("2_bg4m5")
 targets_ally = true
-effects = Array[ExtResource("1_gpjfk")]([SubResource("Effect_vitality")])
+is_secondary = true
 deals_damage = false
+ability_modifier = 0.5
 scaling_stat = 1
+spell_slot_level = 1

@@ -12,7 +12,7 @@ dispel_scope = 2
 [resource]
 script = ExtResource("3_bc5pw")
 name = "Cleanse"
-description = "Removes harmful effects from an ally."
+description = "Removes debuff effects from an ally."
 max_range = 3
 accuracy = 100
 icon = ExtResource("2_djbbj")
