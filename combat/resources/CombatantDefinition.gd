@@ -1,3 +1,9 @@
+@tool
+## Marked @tool so the encounter editor can ask a definition what it looks
+## like. A resource whose script is not a tool script is a placeholder in the
+## editor: its properties can be read but none of its methods exist, which is
+## why spawn markers drew nothing the moment portraits started coming from a
+## method rather than straight off a field.
 extends Resource
 class_name CombatantDefinition
 
@@ -120,6 +126,10 @@ func gates_at(level: int) -> Array:
 
 ## Whether anything they know is cast through a gate.
 func casts_spells() -> bool:
+	# SkillDatabase is an autoload, so it is not there while the editor is just
+	# laying a map out. Nothing casts anything in the editor either.
+	if Engine.is_editor_hint():
+		return false
 	for key in skills + secondary_skills:
 		var skill: SkillDefinition = SkillDatabase.skills.get(key)
 		if skill != null and skill.spell_slot_level > 0:
