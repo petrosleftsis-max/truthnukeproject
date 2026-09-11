@@ -385,7 +385,15 @@ func set_controlled_combatant(combatant: Dictionary):
 	_ally_target_position = null
 	_aoe_preview_positions = []
 	_range_preview_positions = []
+	# Whatever route was drawn under the cursor belonged to whoever was acting a
+	# moment ago: it starts on their tile and was checked against their movement
+	# class. Left lying around, the next click walks this combatant along it -
+	# from the wrong place, through whatever the previous one was allowed to
+	# cross. Aim again.
+	_path = PackedVector2Array()
+	_position_id = 0
 	update_points_weight()
+	queue_redraw()
 
 ## Tiles made unwalkable by Fear on the current combatant, so they can be
 ## released again once the fear passes or someone else's turn begins. Nothing
@@ -731,6 +739,15 @@ func find_path(tile_position: Vector2i):
 func move_player():
 	var current_position = tile_map.local_to_map(controlled_node.position)
 	var _path_size = _path.size()
+	if _path_size > 1 and tile_map.local_to_map(_path[0]) != current_position:
+		# A route that does not start where this combatant is standing was drawn
+		# for somebody else. Clearing it on every turn change should mean this
+		# never happens; it is checked here as well because the cost of being
+		# wrong is a combatant walking through walls, and the cost of the check
+		# is one comparison per click.
+		_path = PackedVector2Array()
+		queue_redraw()
+		return
 	if _path_size > 1 and movement > 0:
 		move_on_path(current_position)
 

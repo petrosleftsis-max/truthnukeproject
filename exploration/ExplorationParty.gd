@@ -72,6 +72,18 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 		else:
 			followers.append(sprite)
 	_trail.append({"position": start_position, "distance": 0.0})
+	# The line has just been rebuilt, and the new sprites know nothing of which
+	# way it was facing or whether it was walking - they all start idle, facing
+	# right. _set_walking and _set_facing only act on a change, so without this
+	# they would both decide there was nothing to do and leave everyone sliding
+	# along in their idle pose until the player stopped and set off again. Which
+	# is exactly what passing the lead mid-stride looked like.
+	for sprite in _members():
+		sprite.set_facing(_facing_left)
+		if _walking:
+			sprite.play_walk()
+		else:
+			sprite.play_idle()
 
 
 ## The party member with this combatant key, or null for anyone not in the
