@@ -62,6 +62,14 @@ func _ready():
 		game_ui.set_exploration_mode(true)
 	_refresh_party_panel()
 	_update_prompt()
+	# Anything automatic the party has arrived standing on fires now rather than
+	# on their first step. "Activates when the player gets in range" has to
+	# include arriving already in range, which is exactly where you put the
+	# conversation that opens a map.
+	#
+	# Deferred so the map has finished coming up before a conversation starts
+	# over the top of it.
+	_check_contact_triggers.call_deferred(party_position())
 
 
 ## Someone joined or left. Rebuild the walking line where the party currently

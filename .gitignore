@@ -18,3 +18,5 @@ data_*/
 mono_crash.*.json
 # Export output
 builds/
+export/
+export.zip
