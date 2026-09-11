@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cu05cj7aq8rca"
+path="res://.godot/imported/Scott Buckley - Childhood.mp3-78318d27183d2b8679753e9ffd2b7a01.mp3str"
+
+[deps]
+
+source_file="res://audio/music/Scott Buckley - Childhood.mp3"
+dest_files=["res://.godot/imported/Scott Buckley - Childhood.mp3-78318d27183d2b8679753e9ffd2b7a01.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
