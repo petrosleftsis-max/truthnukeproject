@@ -9,6 +9,7 @@
 [ext_resource type="Resource" uid="uid://dvrlsm201sd6x" path="res://Dialogue/church_after_reveal_enfina.dialogue" id="7_xcmki"]
 [ext_resource type="Resource" uid="uid://ycckibomvsxm" path="res://Dialogue/church_after_reveal_door_blocked.dialogue" id="8_0t755"]
 [ext_resource type="Resource" uid="uid://c6igu63xdnrps" path="res://Dialogue/church_after_reveal_alithia_intro.dialogue" id="10_alith"]
+[ext_resource type="Resource" path="res://Dialogue/church_after_reveal_clown.dialogue" id="11_clown"]
 [ext_resource type="Script" uid="uid://cuc3ggd1v8ak1" path="res://exploration/EntryPoint.gd" id="9_7u5lq"]
 [ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/MapSetup.gd" id="90_party"]
 
@@ -69,6 +70,7 @@ metadata/_custom_type_script = "uid://cuc3ggd1v8ak1"
 position = Vector2(1266, 664)
 script = ExtResource("3_6f434")
 automatic = true
+only_once = true
 interaction_radius = 120.0
 dialogue = ExtResource("10_alith")
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
@@ -79,3 +81,12 @@ members = Array[String](["alithia"])
 level = 3
 music = "Scott Buckley - Filaments"
 metadata/_custom_type_script = "uid://c58kyys4p7s13"
+
+[node name="DialogueInteractable5" type="Node2D" parent="."]
+position = Vector2(288, 288)
+script = ExtResource("3_6f434")
+dialogue = ExtResource("11_clown")
+prompt = "Talk"
+interaction_radius = 240.0
+sprite_frames = ExtResource("5_5se3q")
+metadata/_custom_type_script = "uid://bx4mgbrftmp1c"

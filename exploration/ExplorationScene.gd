@@ -286,8 +286,10 @@ func _check_contact_triggers(leader_position: Vector2):
 		if not interactable.get("automatic"):
 			continue
 		if interactable.global_position.distance_to(leader_position) > CONTACT_RADIUS:
-			# Out of it again, so walking back in counts as walking in.
-			interactable.contact_spent = false
+			# Out of it again, so walking back in counts as walking in - unless it
+			# only ever fires once, in which case leaving changes nothing.
+			if not interactable.get("only_once"):
+				interactable.contact_spent = false
 			continue
 		if interactable.contact_spent:
 			continue

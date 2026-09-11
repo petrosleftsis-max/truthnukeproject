@@ -139,7 +139,11 @@ func _unhandled_input(event):
 					var mouse_position = get_global_mouse_position()
 					var mouse_position_i = tile_map.local_to_map(mouse_position)
 					var skill = SkillDatabase.skills[_selected_skill]
-					if skill.aoe_radius > 0:
+					if waiting_for_destination():
+						# Second click of a teleport: where to, which is a bare tile
+						# rather than somebody to aim at.
+						confirm_skill_target(mouse_position_i)
+					elif skill.aoe_radius > 0:
 						# Area skills can be aimed at any tile, occupied or not.
 						confirm_skill_target(mouse_position_i)
 					else:
@@ -815,13 +819,35 @@ func begin_target_selection():
 ## finished resolving - awaited rather than fired and forgotten - because the
 ## point of hiding it was to keep the map clear while the skill plays out, and
 ## putting the panels back the instant the click lands would defeat that.
+## Who a two-stage skill has picked up but not yet put down. A teleport that
+## moves somebody else needs two answers - who, and where to - and the first
+## click only gives the first.
+var _teleport_subject = Vector2i(-99999, -99999)
+
+
+func waiting_for_destination() -> bool:
+	return _teleport_subject != Vector2i(-99999, -99999)
+
+
 func confirm_skill_target(position: Vector2i):
+	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	if skill.teleports == SkillDefinition.TeleportWho.TARGET and not waiting_for_destination():
+		# First click chose who travels. Stay in aiming mode: the next one says
+		# where to, and until then nothing has been spent.
+		_teleport_subject = position
+		queue_redraw()
+		return
+	var subject = _teleport_subject
+	_teleport_subject = Vector2i(-99999, -99999)
 	# Leave aiming mode immediately so input state is correct, but hold the
 	# HUD back until the skill is done.
 	_skill_selected = false
 	_range_preview_positions = []
 	queue_redraw()
-	await combat.use_skill(_selected_skill, combat.get_current_combatant(), position, true, _selected_skill_is_secondary)
+	if skill.teleports == SkillDefinition.TeleportWho.TARGET:
+		await combat.use_skill(_selected_skill, combat.get_current_combatant(), subject, true, _selected_skill_is_secondary, position)
+	else:
+		await combat.use_skill(_selected_skill, combat.get_current_combatant(), position, true, _selected_skill_is_secondary)
 	target_selection_finished.emit()
 	queue_redraw()
 
@@ -830,6 +856,7 @@ func confirm_skill_target(position: Vector2i):
 ## the skill, returning to normal move mode.
 func cancel_skill_selection():
 	_skill_selected = false
+	_teleport_subject = Vector2i(-99999, -99999)
 	_attack_target_position = null
 	_ally_target_position = null
 	_aoe_preview_positions = []

@@ -37,6 +37,19 @@ var _fade: Tween = null
 
 
 func _ready():
+	_ensure_player()
+
+
+## Builds the player if it is not there yet.
+##
+## Called from _ready and from everything that touches the player, because
+## _ready is not early enough: a scene's _enter_tree runs before it, and
+## GameScene asks for its encounter's music from exactly there. Without this
+## the first track of a battle opened as the main scene was assigned to
+## nothing and the fight was silent.
+func _ensure_player():
+	if _player != null and is_instance_valid(_player):
+		return
 	# Music outlives scene changes, and should keep playing through a pause.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_player = AudioStreamPlayer.new()
@@ -52,6 +65,7 @@ func _ready():
 ## `loop` is true by default, which is what background music almost always
 ## wants; pass false for a sting that should play once and stop.
 func play(track: String, loop: bool = true):
+	_ensure_player()
 	if track == "":
 		return
 	if track == _current and _player.playing:
@@ -70,6 +84,7 @@ func play(track: String, loop: bool = true):
 ## Stops and forgets the current track, so a later play() of the same one
 ## starts it again rather than treating it as already playing.
 func stop():
+	_ensure_player()
 	_cancel_fade()
 	_player.stop()
 	_current = ""
@@ -77,22 +92,26 @@ func stop():
 
 ## Holds the music where it is. resume() picks it up from the same point.
 func pause():
+	_ensure_player()
 	if _player.playing:
 		_player.stream_paused = true
 
 
 func resume():
+	_ensure_player()
 	_player.stream_paused = false
 
 
 ## Whether the track keeps repeating. Changing it mid-track takes effect
 ## without restarting - the loop flag is read when playback reaches the end.
 func set_looping(loop: bool):
+	_ensure_player()
 	if _player.stream != null:
 		_apply_loop(_player.stream, loop)
 
 
 func is_playing() -> bool:
+	_ensure_player()
 	return _player.playing and not _player.stream_paused
 
 
@@ -105,6 +124,7 @@ func current() -> String:
 ## Takes the music down to nothing over `seconds` and then stops it, for a
 ## scene that should end in quiet rather than be cut off.
 func fade_out(seconds: float = 1.5):
+	_ensure_player()
 	if not _player.playing:
 		return
 	_cancel_fade()

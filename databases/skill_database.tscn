@@ -15,6 +15,8 @@
 [ext_resource type="Resource" uid="uid://s63icuvd2y3c" path="res://skills/gust_blast.tres" id="13_tuk3s"]
 [ext_resource type="Resource" uid="uid://dr2jn7owcw7b2" path="res://skills/run.tres" id="14_oiqse"]
 [ext_resource type="Resource" path="res://skills/slip_past.tres" id="26_slip"]
+[ext_resource type="Resource" path="res://skills/hermes_step.tres" id="27_hermes"]
+[ext_resource type="Resource" path="res://skills/blink_strike.tres" id="28_blink"]
 [ext_resource type="Resource" uid="uid://da4yriqsacyd5" path="res://skills/self_destruct.tres" id="15_ncop4"]
 [ext_resource type="Resource" uid="uid://crho4pw88sgf2" path="res://skills/follow_up_attack.tres" id="16_ha562"]
 [ext_resource type="Resource" uid="uid://dhblpgxflcvi" path="res://skills/light_heal.tres" id="17_mfut3"]
@@ -52,6 +54,8 @@ skills = {
 "revitalizer": ExtResource("27_tuk3s"),
 "river_flow": ExtResource("20_dbes0"),
 "run": ExtResource("14_oiqse"),
+"blink_strike": ExtResource("28_blink"),
+"hermes_step": ExtResource("27_hermes"),
 "slip_past": ExtResource("26_slip"),
 "self_destruct": ExtResource("15_ncop4"),
 "shoving_strike": ExtResource("21_dbes0"),

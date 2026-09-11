@@ -62,6 +62,15 @@ enum AoEShape {
 ## the free swing. Movement itself is unchanged - what changes is that leaving
 ## somebody's threatened space stops being an opening.
 @export var suppresses_reactions: bool = false
+
+@export_group("Teleport")
+## Who this puts somewhere else, and whether it does at all.
+##
+## CASTER moves the user to the tile they aimed at, before anything resolves -
+## so an area skill bursts from where they land rather than where they left.
+## TARGET moves whoever is aimed at to a second tile, picked afterwards.
+enum TeleportWho { NOBODY, CASTER, TARGET }
+@export var teleports: TeleportWho = TeleportWho.NOBODY
 ## Which of a combatant's two action slots this uses. Main and secondary are
 ## spent separately, so a turn can use one of each.
 ##

@@ -20,6 +20,14 @@ class_name Interactable
 ##
 ## The prompt is not shown for one of these, since there is nothing to press.
 @export var automatic: bool = false
+## Whether an automatic one fires only on arrival, rather than every time the
+## party walks back into it. For the conversation that opens a map: walking
+## out of the room and back in is not arriving again, and a scene that replays
+## whenever you retrace your steps stops being a scene.
+##
+## Scoped to this visit rather than the whole campaign - the node is rebuilt
+## when the map loads, so coming back to the map later does play it again.
+@export var only_once: bool = false
 ## Shown above the party when they're close enough, e.g. "Talk", "Enter",
 ## "Examine". Keep it to a word or two. Ignored when Automatic is on.
 @export var prompt: String = "Interact"

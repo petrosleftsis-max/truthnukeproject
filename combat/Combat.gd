@@ -499,7 +499,7 @@ func get_distance(attacker: Dictionary, target: Dictionary):
 ## an enemy's whole turn. AI behaviors that mean to act again afterward
 ## (move further, use another skill) pass false and call advance_turn()
 ## themselves once they're truly done.
-func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2i, end_turn_after: bool = true, as_secondary: bool = false):
+func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2i, end_turn_after: bool = true, as_secondary: bool = false, destination: Vector2i = Vector2i(-99999, -99999)):
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	var distance = get_position_distance(attacker.position, impact_position)
 	var valid = distance <= effective_max_range(attacker, skill) and distance >= skill.min_range
@@ -519,6 +519,15 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 	if valid:
 		controller.action_locked = true
 		game_ui.lock_action_buttons()
+		# Moved before the animation plays, so a blink-and-strike is seen landing
+		# and then swinging rather than swinging and then arriving. An area skill
+		# that moves its caster therefore bursts from where they end up.
+		if skill.teleports == SkillDefinition.TeleportWho.CASTER:
+			teleport_to(attacker, impact_position)
+		elif skill.teleports == SkillDefinition.TeleportWho.TARGET:
+			var travelling = get_combatant_at(impact_position)
+			if not travelling.is_empty():
+				teleport_to(travelling, destination)
 		await attacker.sprite.play_skill_and_wait(skill.animation)
 		play_skill_sound(skill)
 		controller.action_locked = false
@@ -2709,3 +2718,34 @@ func consume_item(comb: Dictionary, key: String):
 	update_information.emit("[color=yellow]%s[/color] used their last %s.\n" % [comb.name, item.name]
 		if Campaign.count_of(owner_key, key) == 0
 		else "[color=yellow]%s[/color] has %d %s left.\n" % [comb.name, Campaign.count_of(owner_key, key), item.name])
+
+
+## --- Teleporting ---
+
+
+## Whether somebody could be put down on `tile`: on the map, on ground their
+## movement class can enter, and with nobody already standing there.
+##
+## Deliberately the same three questions a knockback asks, so being moved by a
+## spell and being shoved agree about where a body can end up.
+func can_land_on(comb: Dictionary, tile: Vector2i) -> bool:
+	if not controller.is_in_bounds(tile):
+		return false
+	if controller.is_tile_blocking(tile, comb.movement_class):
+		return false
+	var sitting = get_combatant_at(tile)
+	return sitting.is_empty() or sitting == comb
+
+
+## Puts `comb` on `tile`, if they can stand there. Costs no movement and
+## provokes no reaction: they did not walk out of anybody's reach, they simply
+## stopped being where they were.
+func teleport_to(comb: Dictionary, tile: Vector2i) -> bool:
+	if not can_land_on(comb, tile) or comb.position == tile:
+		return false
+	var from = comb.position
+	comb.position = tile
+	comb.sprite.position = Grid.tile_to_world(tile)
+	controller.reposition_combatant(from, tile)
+	update_information.emit("[color=yellow]%s[/color] is somewhere else.\n" % comb.name)
+	return true
