@@ -1,4 +1,4 @@
-# 2DTacticalRPGDemo
+# Messengers of Truth
 
 A turn-based tactical RPG in Godot 4.7: a party of characters, a grid, and
 fights you win by positioning as much as by damage. Between fights there is a

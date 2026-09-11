@@ -98,7 +98,7 @@ func _panel(title_text: String) -> VBoxContainer:
 
 
 func _build_root() -> Control:
-	var holder := _panel("Eidolon")
+	var holder := _panel("Messengers of Truth")
 	var buttons := VBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 8)
