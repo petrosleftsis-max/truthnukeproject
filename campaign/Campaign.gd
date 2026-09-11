@@ -395,3 +395,28 @@ func flag_value(flag_name: String, fallback = null):
 ## its fallback again.
 func clear_flag(flag_name: String):
 	flags.erase(flag_name)
+
+
+## --- Story screens ---
+##
+## A conversation played over a black screen, with somewhere to go afterwards.
+## Set here rather than passed in because changing scene cannot carry arguments,
+## and this is already the thing that survives the change.
+
+var story_dialogue := ""
+var story_title := "start"
+var story_next_scene := ""
+
+
+## Queues `dialogue` to play over black, then `next_scene` - or the menu, when
+## the story has nowhere to be yet.
+func begin_story(dialogue: String, title: String = "start", next_scene: String = ""):
+	story_dialogue = dialogue
+	story_title = title
+	story_next_scene = next_scene
+
+
+func clear_story():
+	story_dialogue = ""
+	story_title = "start"
+	story_next_scene = ""

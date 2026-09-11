@@ -156,7 +156,8 @@ func _build_party_row(member: Dictionary) -> Control:
 ## which lets a click land on the button underneath them.
 func _build_encounter_card(encounter: EncounterDefinition, wiped: bool) -> Button:
 	var card := Button.new()
-	card.custom_minimum_size = Vector2(0, 52)
+	# Tall enough for a name, the enemy portraits, and two lines of description.
+	card.custom_minimum_size = Vector2(0, 88)
 	# The name is the button's own text rather than a label laid over it, so the
 	# card still announces what it is to anything that reads buttons - and so
 	# hovering, focus and the disabled tint all treat it as one thing.
@@ -195,6 +196,12 @@ func _build_encounter_card(encounter: EncounterDefinition, wiped: bool) -> Butto
 		var description := Label.new()
 		description.text = encounter.description
 		description.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Wrapped, and trimmed with an ellipsis if even two lines will not hold
+		# it - a description that runs off the side of its own card reads as a
+		# layout fault rather than as text. The whole of it is in the tooltip.
+		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		description.max_lines_visible = 2
+		description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		description.add_theme_font_size_override("font_size", 11)
 		description.add_theme_color_override("font_color", MUTED)
 		description.anchor_top = 1.0
@@ -202,8 +209,10 @@ func _build_encounter_card(encounter: EncounterDefinition, wiped: bool) -> Butto
 		description.anchor_bottom = 1.0
 		description.offset_left = 11
 		description.offset_right = -11
-		description.offset_top = -21
-		description.offset_bottom = -5
+		# Room for two lines at this size; a third is trimmed with an ellipsis and
+		# the whole of it stays in the tooltip.
+		description.offset_top = -40
+		description.offset_bottom = -8
 		card.add_child(description)
 	return card
 

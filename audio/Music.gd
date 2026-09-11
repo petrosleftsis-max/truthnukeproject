@@ -42,6 +42,9 @@ func _ready():
 	_player = AudioStreamPlayer.new()
 	_player.bus = "Music"
 	add_child(_player)
+	_load_settings()
+	for which in BUSES:
+		_apply(which)
 
 
 ## Starts `track`, or does nothing if it is already the one playing.
@@ -147,3 +150,63 @@ func _apply_loop(stream: AudioStream, loop: bool):
 		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD if loop else AudioStreamWAV.LOOP_DISABLED
 	elif "loop" in stream:
 		stream.loop = loop
+
+
+## --- How loud everything is ---
+##
+## Two dials, one per bus, because music and effects want balancing against each
+## other rather than together - and kept here because this is already the node
+## that owns the mixer.
+##
+## Stored as a fraction from 0 to 1, which is what a slider is, and converted to
+## decibels on the way to the bus, which is what a mixer is. Remembered between
+## runs: a player who turns the music down means it, and having to do it again
+## every launch is how a setting becomes an annoyance.
+
+const SETTINGS_PATH := "user://settings.cfg"
+const BUSES := {"music": "Music", "sfx": "SFX"}
+
+var _levels := {"music": 1.0, "sfx": 1.0}
+
+
+## How loud `which` ("music" or "sfx") is, from 0 to 1.
+func volume(which: String) -> float:
+	return _levels.get(which, 1.0)
+
+
+## Sets it, applies it, and remembers it.
+func set_volume(which: String, level: float):
+	if not BUSES.has(which):
+		return
+	_levels[which] = clampf(level, 0.0, 1.0)
+	_apply(which)
+	_save_settings()
+
+
+func _apply(which: String):
+	var index = AudioServer.get_bus_index(BUSES[which])
+	if index < 0:
+		return
+	var level: float = _levels[which]
+	# Silence is its own case: linear_to_db(0) is -inf, which some platforms
+	# handle badly, and muting the bus says the same thing unambiguously.
+	AudioServer.set_bus_mute(index, level <= 0.0)
+	AudioServer.set_bus_volume_db(index, linear_to_db(maxf(level, 0.0001)))
+
+
+func _load_settings():
+	var config := ConfigFile.new()
+	if config.load(SETTINGS_PATH) != OK:
+		return
+	for which in BUSES:
+		_levels[which] = clampf(config.get_value("audio", which, 1.0), 0.0, 1.0)
+
+
+func _save_settings():
+	var config := ConfigFile.new()
+	# Loaded first so writing one setting cannot drop the others, now or when
+	# there is more in here than volume.
+	config.load(SETTINGS_PATH)
+	for which in BUSES:
+		config.set_value("audio", which, _levels[which])
+	config.save(SETTINGS_PATH)
