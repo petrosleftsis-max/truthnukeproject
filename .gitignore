@@ -20,3 +20,4 @@ mono_crash.*.json
 builds/
 export/
 export.zip
+*-web.zip
