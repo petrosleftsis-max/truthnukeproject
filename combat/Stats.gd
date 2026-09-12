@@ -152,7 +152,7 @@ static func gate_name(level: int) -> String:
 const GATES_BY_LEVEL := [
 	[0, 0, 0, 0],
 	[0, 2, 0, 0], ## Level 1: two castings through the Gates of World.
-	[0, 3, 1, 0], ## Level 2: three, and the Gates of Hermes open once.
+	[0, 3, 2, 0], ## Level 2: three, and the Gates of Hermes open twice.
 	[0, 3, 3, 1], ## Level 3: three of each, and Yaldabaoth opens once.
 ]
 

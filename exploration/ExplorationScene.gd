@@ -52,6 +52,11 @@ func _ready():
 		Campaign.set_party(setup.members, setup.level)
 	else:
 		Campaign.seed_party(starting_party)
+	if setup != null and setup.empty_handed:
+		# Before the story has given anybody anything. Done after the party is
+		# set, so it empties the bags of whoever is actually here.
+		for key in Campaign.living_party():
+			Campaign.empty_inventory(key)
 	if setup != null and setup.music != "":
 		# Starting the track already playing does nothing, so stepping out to a
 		# fight and back does not restart the map's music from the top.

@@ -42,6 +42,11 @@ class_name MapSetup
 ## restart it.
 @export var music: String = ""
 
+## Whether the party arrives carrying nothing, whatever their database entry
+## says they start with. For a map that opens before the story has handed
+## anybody anything.
+@export var empty_handed: bool = false
+
 
 ## Whether a party is actually named here. An empty list is "not set" rather
 ## than "nobody", because a map that meant nobody would have no exploration.

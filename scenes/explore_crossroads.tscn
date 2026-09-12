@@ -77,4 +77,5 @@ metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
 [node name="MapSetup" type="Node" parent="." index="9" unique_id=649111327]
 script = ExtResource("90_party")
 members = Array[String](["cyrus"])
+empty_handed = true
 music = "Vadim Krakhmal - Mountain Spirit"

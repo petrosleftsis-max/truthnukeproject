@@ -475,6 +475,10 @@ func clear_story():
 ## the menu's own idea of a beginning, and a half-finished party left lying
 ## around would be inherited by it.
 func to_main_menu():
+	# The title screen plays nothing of its own, and a battle's music carrying
+	# on underneath it belongs to a fight that is over. Only here: Arena Mode and
+	# the maps set their own, so those keep playing until something says otherwise.
+	Music.stop()
 	reset()
 	clear_story()
 	current_map = ""
@@ -603,3 +607,18 @@ func count_of(key: String, item_id: String) -> int:
 		if slot == item_id:
 			total += 1
 	return total
+
+
+## Gives somebody an empty bag, and stops their starting kit filling it later.
+##
+## For a map that opens before anybody has been given anything: the crossroads
+## is Cyrus at the very beginning, and the potions he is written as owning
+## belong to a later part of the story. Making the bag here rather than leaving
+## it unmade is the point - inventory_of() seeds an unmade one from the
+## database, so "empty" has to be a bag that exists and is empty.
+func empty_inventory(key: String):
+	var slots: Array = []
+	slots.resize(INVENTORY_SIZE)
+	slots.fill("")
+	inventories[key] = slots
+	inventory_changed.emit(key)

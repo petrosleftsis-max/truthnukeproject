@@ -312,7 +312,18 @@ func _note(text: String) -> Label:
 	return label
 
 
+## Arena Mode is a fight picked off a list rather than one walked into, so the
+## encounter decides who is in it. Clearing the roster lets Combat seed it from
+## the encounter's own player spawns - without this, trying the lab fight after
+## walking the crossroads as Cyrus fielded Cyrus alone, because the roster was
+## still the one that map had set.
+##
+## Carried damage is left alone: "Reset party" on this screen is how that is
+## cleared, and quietly healing everyone would make that button a lie.
 func _on_encounter_pressed(encounter: EncounterDefinition):
+	Campaign.party_order.clear()
+	Campaign.current_map = ""
+	Campaign.return_to_position = false
 	Campaign.current_encounter = encounter
 	SceneTransition.change_scene(battle_scene)
 

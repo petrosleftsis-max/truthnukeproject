@@ -194,6 +194,8 @@ func start_first_turn():
 func _start_opening_ai_turn():
 	watch_combatant(combatants[current_combatant])
 	await get_tree().create_timer(0.6).timeout
+	if not still_running():
+		return
 	await ai_process(combatants[current_combatant])
 	stop_watching()
 
@@ -1461,6 +1463,9 @@ func advance_turn():
 		# rather than dead air.
 		watch_combatant(comb)
 		await get_tree().create_timer(0.6).timeout
+		if not still_running():
+			# The fight was left during the pause before this enemy acted.
+			return
 		await ai_process(comb)
 		stop_watching()
 
@@ -1697,9 +1702,15 @@ func hit_stop_for(damage: int, max_hp: int) -> float:
 ## Time scale is global, so a battle torn down mid-freeze would leave the whole
 ## game stopped with nothing left running to start it again.
 func _exit_tree():
-	if _hit_stop_depth > 0:
+	# Leaving a battle mid-flight, by any route: Arena Mode, the title screen, or
+	# walking back out to the map. Anything this battle turned on globally has to
+	# come off here rather than at the end of an await chain the scene change has
+	# already cut - a hit-stop left behind freezes the game everywhere, including
+	# the menu just opened.
+	if _hit_stop_depth > 0 or Engine.time_scale == 0.0:
 		_hit_stop_depth = 0
 		Engine.time_scale = 1.0
+	stop_watching()
 
 
 ## --- Attributes and the damage they produce ---
@@ -2775,3 +2786,13 @@ func centre_on_party():
 	camera.release()
 	camera.position = total / counted
 	camera.clamp_to_map()
+
+
+## Whether this battle is still the one being played.
+##
+## An AI turn is a chain of awaits, and leaving a fight - to Arena Mode, to the
+## title screen - changes the scene while that chain is parked. Whatever
+## resumes afterwards is acting on a battle nobody is looking at, in a node
+## that has been taken out of the tree. Each step asks this before carrying on.
+func still_running() -> bool:
+	return is_inside_tree() and get_tree() != null

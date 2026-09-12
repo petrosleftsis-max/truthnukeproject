@@ -574,7 +574,13 @@ func _run_step_arrival_with_timeout():
 	_run_step_arrival_and_flag()
 	var elapsed = 0.0
 	while not _step_arrival_finished and elapsed < STEP_ARRIVAL_TIMEOUT:
+		if not still_in_a_battle():
+			_processing_step = false
+			return
 		await get_tree().process_frame
+		if not still_in_a_battle():
+			_processing_step = false
+			return
 		if not waiting_on_player():
 			elapsed += get_process_delta_time()
 	if not _step_arrival_finished:
@@ -706,7 +712,13 @@ func ai_move(target_position: Vector2i):
 	move_on_path(current_position)
 	var elapsed = 0.0
 	while not _arrived and elapsed < AI_MOVE_TIMEOUT:
+		if not still_in_a_battle():
+			return
 		await get_tree().process_frame
+		if not still_in_a_battle():
+			# The battle was left while this enemy was still walking. There is no
+			# tree to wait on and nothing to walk to.
+			return
 		if not waiting_on_player():
 			elapsed += get_process_delta_time()
 	if not _arrived:
@@ -949,3 +961,14 @@ func _draw():
 			_draw_tile_marker(local, Color(color, 0.6))
 		if _blocked_target_position != null:
 			_draw_tile_marker(_blocked_target_position)
+
+
+## Whether this controller still belongs to a running battle.
+##
+## Every loop below parks itself on the next frame, and leaving a fight - to
+## Arena Mode, to the title screen - changes the scene out from under whichever
+## coroutine was mid-await. It resumes into a node that has been taken out of
+## the tree, and get_tree() is null by then. Checked on both sides of an await,
+## since the scene can change during it.
+func still_in_a_battle() -> bool:
+	return is_inside_tree() and get_tree() != null
