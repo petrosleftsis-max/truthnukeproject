@@ -26,4 +26,5 @@ deals_damage = false
 uses_stat_contest = true
 contest_stat = 1
 spell_slot_level = 2
+aoe_radius = 2
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

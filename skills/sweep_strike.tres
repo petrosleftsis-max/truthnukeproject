@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("3_2al5t")
 name = "Sweep Strike"
-description = "Attack and push everyone in front of you."
+description = "Use the greatsword for what it was made and swing at all the enemies."
 max_range = 1
 accuracy = 100
 icon = ExtResource("2_y1vqh")

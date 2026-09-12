@@ -15,6 +15,6 @@ accuracy = 100
 icon = ExtResource("2_2u77k")
 respects_blocking = true
 animation = "attack"
-ability_modifier = 1.5
+ability_modifier = 1.35
 scaling_stat = 3
 sound = ExtResource("90_sfx")

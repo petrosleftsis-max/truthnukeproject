@@ -31,7 +31,7 @@ secondary_stat = 3
 icon = ExtResource("95_alithiastill")
 map_sprite = ExtResource("95_alithiastill")
 sprite_frames = ExtResource("94_alithiaframes")
-skills = Array[String](["heal", "cleanse", "flash", "river_flow", "water_spike", "run", "revitalizer", "slip_past"])
+skills = Array[String](["heal", "cleanse", "flash", "river_flow", "water_spike", "revitalizer", "run", "slip_past"])
 starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])
 
 [sub_resource type="Resource" id="Resource_s2oe2"]
@@ -73,7 +73,7 @@ secondary_stat = 0
 icon = ExtResource("91_cyrusstill")
 map_sprite = ExtResource("91_cyrusstill")
 sprite_frames = ExtResource("6_ct236")
-skills = Array[String](["rapier", "gun", "poison_dart", "run", "slip_past", "blink_strike"])
+skills = Array[String](["rapier", "gun", "poison_dart", "warning_shot", "burning_shot", "slip_past", "run"])
 secondary_skills = Array[String](["run", "slip_past"])
 items_as_secondary = true
 starting_items = Array[String](["cure_potion", "bomb", "poison_bottle", "medicine"])
@@ -90,7 +90,7 @@ secondary_stat = 2
 icon = ExtResource("93_enfinastill")
 map_sprite = ExtResource("93_enfinastill")
 sprite_frames = ExtResource("92_enfinaframes")
-skills = Array[String](["study", "greatsword_attack", "shoving_strike", "sweep_strike", "run", "follow_up_attack", "slip_past"])
+skills = Array[String](["study", "greatsword_attack", "shoving_strike", "sweep_strike", "blink_strike", "run", "follow_up_attack", "slip_past"])
 starting_items = Array[String](["bomb", "bomb", "crystal_bottle"])
 
 [sub_resource type="Resource" id="Resource_mimic"]
@@ -134,7 +134,7 @@ main_stat = 2
 icon = ExtResource("97_prometheusstill")
 map_sprite = ExtResource("97_prometheusstill")
 sprite_frames = ExtResource("10_ad2ke")
-skills = Array[String](["fire_burst", "burner", "fireball", "wind_vacuum", "gust_blast", "run", "crystalise", "wind_swoon", "slip_past", "hermes_step"])
+skills = Array[String](["fire_burst", "burner", "fireball", "wind_vacuum", "gust_blast", "crystalise", "wind_swoon", "hermes_step", "run", "slip_past"])
 starting_items = Array[String](["burn_bottle", "frost_bottle", "gale_bottle", "cure_potion"])
 
 [sub_resource type="Resource" id="Resource_ranger"]

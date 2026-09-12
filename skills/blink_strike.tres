@@ -1,18 +1,17 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://nfvbeq0wc8fn"]
 
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="1_skill"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_eu26k"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="1_skill"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_icon"]
 [ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="3_sfx"]
 
 [resource]
 script = ExtResource("1_skill")
 name = "Blink Strike"
-description = "Arrive on a tile within reach and cut down everything standing beside it, all at once."
+description = "Arrive on a tile within reach and cut down everything standing beside it, all at once. Aim at open ground, or stay where you are and cut anyway."
 max_range = 4
-accuracy = 90
 icon = ExtResource("2_icon")
-deals_damage = true
-ability_modifier = 0.8
 teleports = 1
-aoe_radius = 1
+ability_modifier = 0.8
 sound = ExtResource("3_sfx")
+aoe_radius = 1

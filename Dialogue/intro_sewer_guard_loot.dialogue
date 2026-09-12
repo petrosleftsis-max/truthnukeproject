@@ -3,5 +3,9 @@ cyrus: Hm?
 cyrus: Guards have gone through here. They seem to have been rampaging through their belongings for something. Assuming from the blood in the area, someone got hurt. 
 cyrus: What kind of thug did they come across that was able to wound them? The others should be located elsewhere right now for a different mission. 
 cyrus: ... Hm? These fools haven’t even used some of these! 
-cyrus: Now, how could I ever leave something so useful just laying around like that? It would be such a huge waste~. 
+cyrus: Now, how could I ever leave something so useful just laying around like that? It would be such a huge waste~.
+do Campaign.give_item("cyrus", "cure_potion")
+do Campaign.give_item("cyrus", "medicine")
+do Campaign.give_item("cyrus", "bomb")
+do Campaign.give_item("cyrus", "poison_bottle")
 => END

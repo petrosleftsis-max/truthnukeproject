@@ -29,4 +29,5 @@ scaling_stat = 2
 damage_type = 4
 sound = ExtResource("90_sfx")
 spell_slot_level = 2
+aoe_radius = 2
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

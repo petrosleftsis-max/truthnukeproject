@@ -8,7 +8,6 @@
 [sub_resource type="Resource" id="Resource_sdx31"]
 script = ExtResource("1_gpgpy")
 type = 5
-damage_type = 0
 min_amount = 3
 max_amount = 6
 knockback_distance = 3

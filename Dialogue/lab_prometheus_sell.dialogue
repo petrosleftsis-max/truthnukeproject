@@ -1,0 +1,36 @@
+~ start
+Cyrus: Woah, that looks complicated. Hey, Prometheus, is there some part of it we can take and sell for a lot? 
+
+Prometheus: Are you crazy? Now you’re just being ridiculous, Cyrus. 
+Alithia: Thank you! 
+
+Prometheus: Almost half of those small parts over there would obviously sell for a fortune. 
+
+Alithia: Wha- Are you both for real right now?! This isn’t the reason we are here! 
+
+Enfina: Yeah. 
+
+Enfina: We could come back later. 
+
+Alithia: Aren’t you a city guard?! 
+
+Enfina: Eh, no law really protects the unlawful. 
+
+Alithia: ... 
+
+Cyrus: As you guys were talking, I found supplies! Here, have some.
+
+Prometheus: Efficient as ever.
+
+do Campaign.give_item("cyrus", "cure_potion")
+do Campaign.give_item("enfina", "cure_potion")
+do Campaign.give_item("alithia", "cure_potion")
+do Campaign.give_item("prometheus", "cure_potion")
+do Campaign.give_item("cyrus", "bomb")
+do Campaign.give_item("cyrus", "medicine")
+do Campaign.give_item("cyrus", "poison_bottle")
+do Campaign.give_item("enfina", "crystal_bottle")
+do Campaign.give_item("prometheus", "burn_bottle")
+do Campaign.give_item("prometheus", "gale_bottle")
+do Campaign.give_item("alithia", "freeze_bottle")
+=> END
