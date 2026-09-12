@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GlossaryBook" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/GlossaryBook.gd" id="1_book"]
+
+[resource]
+script = ExtResource("1_book")
+foreword = ""
+cast_intro = ""
+conditions_intro = ""
+skills_intro = ""
+gates_intro = ""
+gates_of_world = ""
+gates_of_hermes = ""
+gates_of_yaldabaoth = ""
+metadata/_custom_type_script = "res://combat/resources/GlossaryBook.gd"

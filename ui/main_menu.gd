@@ -77,6 +77,7 @@ func _ready():
 	_panels["options"] = _build_options()
 	_panels["resolution"] = _build_resolution()
 	_panels["volume"] = _build_volume()
+	_panels["glossary"] = _build_glossary()
 	for key in _panels:
 		add_child(_panels[key])
 	_show("root")
@@ -110,6 +111,7 @@ func _build_root() -> Control:
 	buttons.add_child(_menu_button("Play", func(): _show("play")))
 	buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
 	buttons.add_child(_menu_button("Options", func(): _show("options")))
+	buttons.add_child(_menu_button("Glossary", func(): _open_glossary()))
 	buttons.add_child(_menu_button("Exit", _quit))
 	holder.add_child(buttons)
 	return holder
@@ -128,6 +130,24 @@ func _build_play() -> Control:
 	holder.add_child(row)
 	holder.add_child(_back_button())
 	return holder
+
+
+## The glossary keeps its own little stack of screens, so it arrives as one
+## panel rather than six. Back inside it walks its own trail; Back on its first
+## screen hands the menu back.
+func _build_glossary() -> Control:
+	var panel := GlossaryPanel.new()
+	panel.closed.connect(_go_back)
+	return panel
+
+
+## Opened at its contents page rather than wherever it was last left, because
+## coming back to the menu and pressing Glossary is starting again.
+func _open_glossary():
+	_show("glossary")
+	var panel = _panels["glossary"]
+	if panel.has_method("show_contents"):
+		panel.show_contents()
 
 
 func _build_options() -> Control:
