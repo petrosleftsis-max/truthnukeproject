@@ -146,14 +146,14 @@ static func gate_name(level: int) -> String:
 ## read straight in.
 ##
 ## A rule of how far along someone is rather than a number set per character:
-## being level 2 is what opens Hermes to you, and nobody is a special case. Only
-## combatants who actually carry a spell get any of it - a swordsman is not
-## walking around with two unused castings.
+## reaching level 2 is what opens Hermes and Yaldabaoth to you, and nobody is a
+## special case. Only combatants who actually carry a spell get any of it - a
+## swordsman is not walking around with unused castings.
 const GATES_BY_LEVEL := [
 	[0, 0, 0, 0],
 	[0, 2, 0, 0], ## Level 1: two castings through the Gates of World.
-	[0, 3, 2, 0], ## Level 2: three, and the Gates of Hermes open twice.
-	[0, 3, 3, 1], ## Level 3: three of each, and Yaldabaoth opens once.
+	[0, 3, 2, 1], ## Level 2: three World, Hermes twice, and Yaldabaoth once.
+	[0, 3, 3, 3], ## Level 3: three through every gate.
 ]
 
 
