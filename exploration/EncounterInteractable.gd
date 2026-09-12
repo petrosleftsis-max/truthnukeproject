@@ -36,7 +36,9 @@ func _ready():
 func is_available() -> bool:
 	if Engine.is_editor_hint():
 		return true
-	return not Campaign.is_trigger_cleared(trigger_id)
+	# super() first, so a once-only trigger is spent the same way anything else
+	# is; then the campaign's own memory of having beaten this fight.
+	return super() and not Campaign.is_trigger_cleared(trigger_id)
 
 
 func interact(scene: Node):

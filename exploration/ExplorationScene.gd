@@ -27,8 +27,6 @@ class_name ExplorationScene
 
 const MAP_NODE = "Map"
 const PARTY_NODE = "Party"
-## How close an automatic door or ambush has to be to fire on contact.
-const CONTACT_RADIUS = Grid.TILE_SIZE * 0.5625
 
 var party: ExplorationParty = null
 var _tile_map: TileMap = null
@@ -290,7 +288,12 @@ func _check_contact_triggers(leader_position: Vector2):
 			continue
 		if not interactable.get("automatic"):
 			continue
-		if interactable.global_position.distance_to(leader_position) > CONTACT_RADIUS:
+		# Its own reach, the same one the interact key measures against and the
+		# same ring drawn around it in the editor. It used to be a single
+		# scene-wide radius of barely half a tile, so an automatic trigger only
+		# fired if you walked almost exactly onto it - while pressing E worked
+		# from a tile and a quarter away. The ring is what it says it is now.
+		if interactable.global_position.distance_to(leader_position) > interactable.interaction_radius:
 			# Out of it again, so walking back in counts as walking in - unless it
 			# only ever fires once, in which case leaving changes nothing.
 			if not interactable.get("only_once"):
@@ -310,6 +313,11 @@ func _nearest_interactable() -> Interactable:
 	var best_distance := INF
 	for interactable in _interactables:
 		if not is_instance_valid(interactable) or not interactable.is_available():
+			continue
+		if interactable.get("automatic"):
+			# Nothing to press: it goes off by being walked into, and it has no
+			# prompt to offer. Handing it to the interact key as well is how an
+			# arrival scene got replayed by standing on the spot and pressing E.
 			continue
 		var distance = interactable.global_position.distance_to(leader_position)
 		if distance <= interactable.interaction_radius and distance < best_distance:

@@ -164,7 +164,11 @@ func _draw():
 ## Deliberately not where requires_flag is checked: something locked should
 ## still say what it is.
 func is_available() -> bool:
-	return true
+	# Once means once, whichever way it is reached. Enforced here rather than
+	# only in the walk-into check, because an automatic thing was also being
+	# offered to the interact key: the party could stand on a scene that had
+	# already played and press E to watch it again.
+	return not (only_once and contact_spent)
 
 
 ## Whether the flag this waits on has been set. Anything with no requires_flag
