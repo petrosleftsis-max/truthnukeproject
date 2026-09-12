@@ -123,6 +123,10 @@ func _ready():
 	current_combatant = turn_queue[0]
 	controller.set_controlled_combatant(combatants[turn_queue[0]])
 	game_ui.show_combatant_status_main(combatants[turn_queue[0]])
+	# Open looking at your own people. A battle that starts with the view parked
+	# wherever the map happens to begin makes the first thing you do hunting for
+	# yourself, and on a large map that can be most of a screen away.
+	centre_on_party()
 	# Let the player arrange the party across the starting tiles before anyone
 	# takes a turn. Pointless with only one tile to stand on.
 	if deployment_tiles.size() > 1 and groups[Group.PLAYERS].size() > 0:
@@ -2749,3 +2753,25 @@ func teleport_to(comb: Dictionary, tile: Vector2i) -> bool:
 	controller.reposition_combatant(from, tile)
 	update_information.emit("[color=yellow]%s[/color] is somewhere else.\n" % comb.name)
 	return true
+
+
+## Puts the view on the middle of the player's side.
+##
+## The average of where they are standing rather than any one of them, so a
+## party spread across a line of starting tiles is framed as a group. Set
+## outright rather than eased: there is nothing on screen yet for a glide to
+## carry the eye from.
+func centre_on_party():
+	if camera == null or not is_instance_valid(camera):
+		return
+	var total := Vector2.ZERO
+	var counted := 0
+	for comb in combatants:
+		if comb.side == 0 and comb.alive:
+			total += Grid.tile_to_world(comb.position)
+			counted += 1
+	if counted == 0:
+		return
+	camera.release()
+	camera.position = total / counted
+	camera.clamp_to_map()
