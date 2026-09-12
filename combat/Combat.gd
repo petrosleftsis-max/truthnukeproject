@@ -150,9 +150,16 @@ func _deploy_party(tiles: Array, fallback_party: Array, loadouts: Array = []):
 		push_warning("Encounter '%s' has %d starting tiles but %d fighters in the party - the last %d sit this one out." % [
 			encounter.display_name, tiles.size(), fighters.size(), fighters.size() - tiles.size()
 		])
+	# A battle walked into from a map keeps whatever the party was carrying when
+	# they walked in. One opened straight from the menu has no such history, so
+	# what each of them holds is the encounter's to say, spawn by spawn -
+	# nothing listed there means empty-handed.
+	var walked_in_from_a_map = Campaign.has_map_to_return_to()
 	for i in mini(fighters.size(), tiles.size()):
 		var key = fighters[i]
 		var loadout = loadouts[i] if i < loadouts.size() else null
+		if not walked_in_from_a_map:
+			Campaign.set_inventory(key, loadout.starting_items if loadout != null else [])
 		var comb = create_combatant(CombatantDatabase.combatants[key], key, "", loadout)
 		Campaign.apply_carried_state(comb, key)
 		add_combatant(comb, 0, tiles[i])
@@ -344,6 +351,10 @@ func meets_level_for(comb: Dictionary, skill: SkillDefinition) -> bool:
 	return comb.get("level", 1) >= skill.required_level
 
 
+## The skills and the consumables are listed apart now: what somebody knows how
+## to do does not belong in the same list as what happens to be in their bag,
+## and a party carrying four kinds of bottle buried their actual kit. See the
+## Consumables tab, filled from items_of().
 func main_skills_of(comb: Dictionary) -> Array:
 	var found = []
 	for key in comb.skill_list:
@@ -357,12 +368,6 @@ func main_skills_of(comb: Dictionary) -> Array:
 		if not meets_level_for(comb, skill):
 			continue
 		found.append(key)
-	# Whatever is packed in the first four slots, alongside what they know how
-	# to do - a potion is another thing this turn could be spent on.
-	for key in items_of(comb):
-		var item: ItemDefinition = ItemDatabase.item(key)
-		if item != null and not item.is_secondary and not found.has(key):
-			found.append(key)
 	return found
 
 
@@ -389,17 +394,6 @@ func secondary_skills_of(comb: Dictionary) -> Array:
 		if not meets_level_for(comb, SkillDatabase.skills[key]):
 			continue
 		found.append(key)
-	# Consumables meant for the secondary slot, and - for anyone whose hands are
-	# quick enough - the ones that would otherwise cost the main action. That is
-	# Cyrus, and it is why he can drink and still swing.
-	for key in items_of(comb):
-		if found.has(key):
-			continue
-		var item: ItemDefinition = ItemDatabase.item(key)
-		if item == null:
-			continue
-		if item.is_secondary or comb.get("items_as_secondary", false):
-			found.append(key)
 	return found
 
 
@@ -1011,6 +1005,10 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				})
 				if effect.condition.movement_change != 0:
 					resync_live_movement(target, movement_before)
+				# The icons hang off the portraits, and the portraits are only
+				# redrawn when this goes out. Without it, a condition landing
+				# mid-turn showed on nobody until the turn changed.
+				update_combatants.emit(combatants)
 				update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, effect.condition.display_name))
 		EffectDefinition.EffectType.DISPEL:
 			dispel_status_effects(attacker, target, effect)
@@ -1170,6 +1168,9 @@ func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: Eff
 			removed += 1
 		i -= 1
 	if removed > 0:
+		# Same reason as applying one: the icon has to leave the portrait as
+		# the cleanse lands, not when the turn happens to end.
+		update_combatants.emit(combatants)
 		update_information.emit("[color=yellow]{0}[/color] cleansed {1} effect(s) from [color=lightgreen]{2}[/color]\n".format([
 			attacker.name,
 			removed,
@@ -1183,7 +1184,12 @@ func should_dispel(status_effect: Dictionary, dispel_effect: EffectDefinition) -
 	if dispel_effect.dispel_scope == EffectDefinition.DispelScope.BOTH:
 		return true
 	var is_multiply = status_effect.get("op", "add") == "multiply"
-	var is_debuff = status_effect.stat == "dot"
+	# A condition is always something done to you - there is no such thing as a
+	# helpful one in this game, and every entry in res://conditions is an
+	# affliction. It carries no `amount`, so the tests below could never see it
+	# as a debuff: Cleanse, which exists to lift debuffs, could not lift a
+	# single Poisoning, Burn or Crystallisation off anybody.
+	var is_debuff = status_effect.stat == "dot" or status_effect.stat == "condition"
 	is_debuff = is_debuff or (is_multiply and status_effect.get("amount", 1.0) < 1.0)
 	is_debuff = is_debuff or (not is_multiply and status_effect.get("amount", 0) < 0)
 	if dispel_effect.dispel_scope == EffectDefinition.DispelScope.DEBUFFS_ONLY:
@@ -1488,7 +1494,26 @@ func apply_drift(comb: Dictionary):
 		Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN,
 		Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)
 	]
-	var direction = DIRECTIONS[randi() % DIRECTIONS.size()]
+	# Somewhere it can actually take them. Picking one of the eight at random
+	# and giving up when that way happened to be a wall meant the wind did
+	# nothing at all most of the time in a room - which reads as the condition
+	# being broken rather than as the body being braced against something.
+	var options := DIRECTIONS.duplicate()
+	options.shuffle()
+	var direction = Vector2i.ZERO
+	for candidate in options:
+		var first_step = comb.position + candidate
+		if not controller.is_in_bounds(first_step):
+			continue
+		if controller.is_tile_blocking(first_step, comb.movement_class):
+			continue
+		if not get_combatant_at(first_step).is_empty():
+			continue
+		direction = candidate
+		break
+	if direction == Vector2i.ZERO:
+		# Hemmed in on all eight sides. Nowhere for the wind to put them.
+		return
 	var from = comb.position
 	var landed = from
 	for step in range(1, tiles + 1):
@@ -1751,6 +1776,20 @@ func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat), attacker.get("weapon_base", Stats.WEAPON_BASE))
 	return Stats.final_damage(base, skill.ability_modifier * power, stat_of(target, Stats.Type.DEFENSE))
 
+
+
+## What `skill` swings for before anybody's defence takes its share - the number
+## the skill itself is worth, which is what the action panel shows.
+##
+## The same arithmetic as skill_damage with the target's half left out, and the
+## mirror of heal_amount: a heal has never had a target's defence in it either,
+## which is why the two now read the same way on the panel.
+func base_skill_damage(attacker: Dictionary, skill: SkillDefinition) -> int:
+	if skill is ItemDefinition:
+		# What is written on the bomb, whoever throws it.
+		return maxi(skill.flat_power, 0)
+	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat), attacker.get("weapon_base", Stats.WEAPON_BASE))
+	return maxi(roundi(base * skill.ability_modifier), 0)
 
 
 ## What `skill` mends when `healer` casts it. No defence on the other side of

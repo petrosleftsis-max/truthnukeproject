@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://b4xca7lc8vsi8"]
 
-[ext_resource type="Texture2D" uid="uid://hc0p1142q87l" path="res://imagese/grid.png" id="2_icbvx"]
 [ext_resource type="Script" uid="uid://c11l4cm22n2qk" path="res://control/CController.gd" id="3_dbxfm"]
 [ext_resource type="Script" uid="uid://da506va2ao1j4" path="res://combat/Combat.gd" id="4_cujqt"]
 [ext_resource type="PackedScene" uid="uid://ddgx1hll377nx" path="res://ui/ui.tscn" id="5_pc8ih"]
@@ -23,10 +22,6 @@ position = Vector2(3552, 2112)
 zoom = Vector2(0.5, 0.5)
 script = ExtResource("7_camera")
 tile_map_path = NodePath("../Terrain/TileMap")
-
-[node name="Select" type="Sprite2D" parent="." unique_id=1956478372]
-position = Vector2(272, 208)
-texture = ExtResource("2_icbvx")
 
 [node name="Controller" type="Node2D" parent="." unique_id=1583794866 node_paths=PackedStringArray("combat")]
 texture_filter = 1

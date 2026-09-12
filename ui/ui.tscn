@@ -206,6 +206,12 @@ toggle_mode = true
 focus_mode = 0
 text = "Spells"
 
+[node name="ItemsTab" type="Button" parent="Actions/SkillPanelTabs"]
+layout_mode = 2
+toggle_mode = true
+focus_mode = 0
+text = "Items"
+
 [node name="SpellSlots" type="HBoxContainer" parent="Actions"]
 visible = false
 layout_mode = 0
@@ -333,6 +339,15 @@ layout_mode = 2
 bbcode_enabled = true
 scroll_following = true
 shortcut_keys_enabled = false
+
+[node name="LogToggle" type="Button" parent="Actions"]
+layout_mode = 0
+offset_left = 899.0
+offset_top = 24.0
+offset_right = 925.0
+offset_bottom = 50.0
+tooltip_text = "Hide the combat log"
+text = "-"
 
 [node name="SelectTargetMessage" type="PanelContainer" parent="Actions" unique_id=1651068056]
 visible = false

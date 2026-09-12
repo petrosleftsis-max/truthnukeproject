@@ -17,7 +17,7 @@ var exploration_mode := false
 ## slots, plus everything that costs a spell slot. Spells are a panel of their
 ## own rather than part of the main list because they are read against a
 ## resource - you pick one knowing what it will cost, not just what it does.
-enum SkillPanel { MAIN, SECONDARY, SPELLS }
+enum SkillPanel { MAIN, SECONDARY, SPELLS, ITEMS }
 
 ## Reset to MAIN whenever the turn passes to someone new, so a turn always
 ## starts on the panel you'd expect.
@@ -33,6 +33,7 @@ const PANEL_NAMES := {
 	SkillPanel.MAIN: "Main Skills",
 	SkillPanel.SECONDARY: "Secondary Skills",
 	SkillPanel.SPELLS: "Spells",
+	SkillPanel.ITEMS: "Consumables",
 }
 
 ## The node name of each panel's button, in enum order.
@@ -40,6 +41,7 @@ const PANEL_TABS := {
 	SkillPanel.MAIN: "MainTab",
 	SkillPanel.SECONDARY: "SecondaryTab",
 	SkillPanel.SPELLS: "SpellsTab",
+	SkillPanel.ITEMS: "ItemsTab",
 }
 
 ## The tab you are on, so it reads as selected rather than as another thing to
@@ -48,11 +50,44 @@ const TAB_ON := Color("dce8f5")
 const TAB_OFF := Color("8296a9")
 
 
+## Whether the player has tucked the combat log out of the way. Kept for the
+## whole battle rather than reset per turn: having to hide it again every time
+## somebody else acted would be worse than not being able to hide it at all.
+var _log_minimised := false
+
+
 func _ready():
 	for panel in PANEL_TABS:
 		var tab := _tab(panel)
 		if tab != null:
 			tab.pressed.connect(set_skill_panel.bind(panel))
+	var toggle = $Actions.get_node_or_null("LogToggle")
+	if toggle != null:
+		toggle.pressed.connect(toggle_log)
+	_apply_log_state()
+
+
+## Folds the combat log away, or brings it back. The button stays where the
+## log's corner was, so there is always something to press to get it back.
+func toggle_log():
+	_log_minimised = not _log_minimised
+	_apply_log_state()
+
+
+func log_minimised() -> bool:
+	return _log_minimised
+
+
+func _apply_log_state():
+	var panel = $Actions.get_node_or_null("Information")
+	if panel != null:
+		# Nothing has happened yet while the party is being placed, and the
+		# cluster is meant to be out of the way until the battle starts.
+		panel.visible = not _log_minimised and not _deployment_mode
+	var toggle = $Actions.get_node_or_null("LogToggle")
+	if toggle != null:
+		toggle.text = "+" if _log_minimised else "-"
+		toggle.tooltip_text = "Show the combat log" if _log_minimised else "Hide the combat log"
 
 
 func _tab(panel: int) -> Button:
@@ -83,13 +118,20 @@ func set_skill_panel(panel: int):
 ## stand: both are action slots everybody has, and an empty one is worth
 ## seeing as empty.
 func _refresh_tabs(comb):
+	var known = combat != null and comb != null and not comb.is_empty()
 	var spells_tab := _tab(SkillPanel.SPELLS)
-	if spells_tab == null:
-		return
-	var has_spells = combat != null and comb != null and not comb.is_empty() and not combat.spell_skills_of(comb).is_empty()
-	spells_tab.visible = has_spells
-	if not has_spells and showing_panel == SkillPanel.SPELLS:
-		set_skill_panel(SkillPanel.MAIN)
+	if spells_tab != null:
+		var has_spells = known and not combat.spell_skills_of(comb).is_empty()
+		spells_tab.visible = has_spells
+		if not has_spells and showing_panel == SkillPanel.SPELLS:
+			set_skill_panel(SkillPanel.MAIN)
+	var items_tab := _tab(SkillPanel.ITEMS)
+	if items_tab != null:
+		# Empty hands, no tab - the same rule the Spells tab follows.
+		var carrying = known and not combat.items_of(comb).is_empty()
+		items_tab.visible = carrying
+		if not carrying and showing_panel == SkillPanel.ITEMS:
+			set_skill_panel(SkillPanel.MAIN)
 
 
 ## Fills the action panel from whichever list is currently on show, and keeps
@@ -111,6 +153,11 @@ func _show_skills_for(comb: Dictionary):
 			list = combat.spell_skills_of(comb)
 			# A spell spends whichever slot its own is_secondary says, so the
 			# panel is only fully spent once both are gone.
+			used = comb.get("skill_used_this_turn", false) and comb.get("secondary_used_this_turn", false)
+		SkillPanel.ITEMS:
+			list = combat.items_of(comb)
+			# Same as the spells: which slot a consumable costs is the item's
+			# own business, so the panel dies only when both slots have gone.
 			used = comb.get("skill_used_this_turn", false) and comb.get("secondary_used_this_turn", false)
 		_:
 			list = combat.main_skills_of(comb)
@@ -244,6 +291,23 @@ var _end_turn_default_text := ""
 ## Turn button doubles as Begin Battle - it's the one "I'm done" control the
 ## layout already has, and it means nothing during deployment anyway. Skills
 ## are locked out so a hero can't act before the fight has started.
+## What deployment still needs on screen. Everything else in the Actions
+## cluster goes away until the battle starts.
+const DEPLOYMENT_KEEP := ["EndTurnButton", "SelectTargetMessage"]
+
+
+## Clears the HUD for the deployment step, the same way aiming a skill does.
+##
+## Hiding rather than merely disabling: a disabled skill button was re-enabled
+## by any refresh_action_buttons() that happened to run while the party was
+## being placed, and pressing one then began target selection - which hid the
+## whole cluster and waited for a target that deployment would never deliver,
+## leaving the HUD gone for the rest of the battle.
+func _apply_deployment_visibility():
+	for child in $Actions.get_children():
+		child.visible = child.name in DEPLOYMENT_KEEP
+
+
 func set_deployment_mode(active: bool):
 	if _end_turn_default_text == "":
 		_end_turn_default_text = $Actions/EndTurnButton.text
@@ -256,7 +320,11 @@ func set_deployment_mode(active: bool):
 		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Click a hero, then a highlighted tile to move them there."
 		lock_action_buttons()
 		$Actions/EndTurnButton.disabled = false
+		_apply_deployment_visibility()
 	else:
+		# Put back everything deployment tucked away, then let the normal rules
+		# for whoever is acting decide what is actually pressable.
+		_set_aiming(false)
 		refresh_action_buttons()
 
 
@@ -286,7 +354,26 @@ func lock_action_buttons():
 func refresh_action_buttons():
 	if combat == null:
 		return
+	if _deployment_mode:
+		# The party is still being placed. Nothing here is anybody's to press
+		# yet, and a refresh from elsewhere must not quietly hand it back.
+		lock_action_buttons()
+		$Actions/EndTurnButton.disabled = false
+		_apply_deployment_visibility()
+		return
 	_show_skills_for(combat.get_current_combatant())
+
+
+## Which action a consumable costs whoever is holding it. Its own is_secondary
+## decides, except for anyone quick enough to reach for a potion with their off
+## hand once the main action has gone - that is Cyrus, and it is why he can
+## drink and still swing.
+func _consumable_spends_secondary(comb: Dictionary, item: SkillDefinition) -> bool:
+	if item.is_secondary:
+		return true
+	if comb.is_empty():
+		return false
+	return comb.get("items_as_secondary", false) and comb.get("skill_used_this_turn", false)
 
 
 func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: bool = false):
@@ -311,8 +398,12 @@ func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: b
 			# On the Spells panel each entry decides its own slot, since a
 			# spell marked secondary is cast from the secondary action while
 			# the rest are cast from the main one.
-			var spends_secondary = skill.is_secondary if showing_panel == SkillPanel.SPELLS else as_secondary
-			if showing_panel == SkillPanel.SPELLS and not comb.is_empty() and not action.disabled:
+			var spends_secondary = as_secondary
+			if showing_panel == SkillPanel.SPELLS:
+				spends_secondary = skill.is_secondary
+			elif showing_panel == SkillPanel.ITEMS:
+				spends_secondary = _consumable_spends_secondary(comb, skill)
+			if showing_panel in [SkillPanel.SPELLS, SkillPanel.ITEMS] and not comb.is_empty() and not action.disabled:
 				var slot_spent = comb.get("secondary_used_this_turn", false) if spends_secondary else comb.get("skill_used_this_turn", false)
 				# Greyed out for the two separate reasons a spell can be
 				# unavailable: the action is gone, or the slots are.
@@ -420,10 +511,14 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# What it will actually take off, worked out against the enemies
 			# standing on the board - "Intellect x1.5" is the rule behind the
 			# number, and the number is what the decision is made on.
-			var hits = _damage_against_enemies(skill, effect.damage_type)
-			if hits != "":
-				return "Damage: %s %s" % [hits, Damage.type_name(effect.damage_type).to_lower()]
-			return "Damage: %s" % Damage.type_name(effect.damage_type).to_lower()
+			# What the skill is worth before any defence is taken off it. It
+			# used to be worked out against every enemy on the board and shown
+			# as the spread, which read as the skill rolling dice rather than
+			# as the targets differing.
+			var swing = _base_damage(skill)
+			if swing >= 0:
+				return "Base Damage: %d %s" % [swing, Damage.type_name(effect.damage_type).to_lower()]
+			return "Base Damage: %s" % Damage.type_name(effect.damage_type).to_lower()
 		EffectDefinition.EffectType.HEAL:
 			# Reads like the damage line, because it is worked out the same way.
 			var mended = _heal_amount(skill)
@@ -483,6 +578,12 @@ func update_combatants(combatants: Array):
 			if status != null:
 				status.set_health(comb.hp, effective_max_hp)
 				_refresh_conditions(status, comb)
+		if comb.side == 0 and not exploration_mode and combat.get_current_combatant() == comb:
+			# The big portrait beside the skill panel belongs to whoever is
+			# acting, and used to be written only on a turn change - so healing
+			# or being hurt during your own turn left it showing the health you
+			# started with, while the party portraits beside it told the truth.
+			$Actions/StatusIcon.set_health(comb.hp, effective_max_hp)
 		var turn_queue_icon = _icon_for($TurnQueue/Queue, comb)
 		if turn_queue_icon != null:
 			_refresh_conditions(turn_queue_icon, comb)
@@ -523,6 +624,11 @@ func _set_aiming(aiming: bool):
 		# The slot row hides itself for anyone with no slots, so it can't just
 		# be switched back on with the rest.
 		_update_spell_slots(combat.get_current_combatant() if combat != null and not exploration_mode else null)
+		# Nor can the log, if the player folded it away before aiming.
+		_apply_log_state()
+		if _deployment_mode:
+			# Still placing the party - the cluster stays out of the way.
+			_apply_deployment_visibility()
 
 
 func _target_selection_finished():
@@ -560,24 +666,13 @@ func _opposition(caster: Dictionary) -> Array:
 	return found
 
 
-## The damage `skill` would do to the enemies on the board, as one number when
-## they would all take the same and a range when they would not - resistances
-## and defences differ, and the spread is the useful part.
-func _damage_against_enemies(skill: SkillDefinition, damage_type: int) -> String:
+## What `skill` swings for in the hands of whoever is acting, before the target
+## on the other end of it soaks any. -1 with nobody to ask.
+func _base_damage(skill: SkillDefinition) -> int:
 	var caster = _caster()
-	if skill == null or caster.is_empty():
-		return ""
-	var lowest = -1
-	var highest = -1
-	for target in _opposition(caster):
-		var hit = combat.resisted_damage(target, damage_type, combat.skill_damage(caster, target, skill))
-		if lowest < 0 or hit < lowest:
-			lowest = hit
-		if hit > highest:
-			highest = hit
-	if lowest < 0:
-		return ""
-	return "%d" % lowest if lowest == highest else "%d-%d" % [lowest, highest]
+	if skill == null or caster.is_empty() or not combat.has_method("base_skill_damage"):
+		return -1
+	return combat.base_skill_damage(caster, skill)
 
 
 ## The same for a lingering tick, which is worked out the same way and then
