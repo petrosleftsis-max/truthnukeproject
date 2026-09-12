@@ -34,3 +34,16 @@ class_name SpawnDefinition
 ## same reason weapon_base is: it is the other half of how tough somebody is in
 ## this fight specifically.
 @export_range(1, 100) var defense: int = 10
+## What this character has in their bag for this fight, by item key -
+## "cure_potion", "bomb", "medicine" and so on, from ItemDatabase.
+##
+## Per spawn, for the same reason the level is: the same Cyrus can walk into
+## one encounter with a full satchel and the next with nothing. Only the first
+## four come to the fight itself (Campaign.COMBAT_SLOTS); the rest ride along
+## to be swapped in between battles.
+##
+## This is what a battle opened from Arena Mode hands out, and an empty list
+## means empty-handed - a character's own starting_items are their kit for a
+## story run, not a standing supply for every fight in the arena. A battle
+## walked into from a map ignores this and keeps whatever the party carried in.
+@export var starting_items: Array[String] = []

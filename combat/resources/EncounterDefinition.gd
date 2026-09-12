@@ -17,6 +17,18 @@ class_name EncounterDefinition
 ## what lets every encounter have its own terrain without duplicating the rest
 ## of the scene.
 @export var terrain_scene: PackedScene
+@export_group("When it ends")
+## A conversation to play the moment this battle is won, before the result
+## panel comes up. Leave it empty and the panel comes up straight away.
+##
+## Written like any other: a .dialogue file in res://Dialogue. The result panel
+## waits for it to finish, so it can be as long as it needs to be.
+@export var victory_dialogue: Resource
+## Which title inside that file to start at. "start" unless you say otherwise.
+@export var victory_dialogue_title: String = "start"
+## The same, for losing it. A defeat is worth a word as much as a win is.
+@export var defeat_dialogue: Resource
+@export var defeat_dialogue_title: String = "start"
 @export var spawns: Array[SpawnDefinition]
 ## The track this fight opens on, by name - "battle" finds audio/music/battle
 ## with any supported extension, the same names dialogue uses.

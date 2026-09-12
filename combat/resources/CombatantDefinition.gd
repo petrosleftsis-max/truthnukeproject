@@ -9,6 +9,12 @@ class_name CombatantDefinition
 
 
 @export var name = ""
+## Who this is, for the glossary's Character intros. Freeform - write as much or
+## as little as you like; a character with nothing written here simply says so.
+##
+## Kept next to everything else about them rather than in the glossary book, so
+## there is one place a character is described.
+@export_multiline var glossary_text: String = ""
 @export_group("Class")
 @export_enum("Melee", "Ranged", "Magic") var class_t = 0
 @export_enum("Ground", "Flying", "Mounted") var class_m = 0
@@ -97,9 +103,13 @@ class_name CombatantDefinition
 ## can drink a potion and still swing in the same turn.
 @export var items_as_secondary: bool = false
 
-## What they are already carrying the first time a bag is made for them, in
-## slot order - so the first four here are what they walk into a fight with.
-## Keys index ItemDatabase. Anything picked up later goes in on top.
+## The kit this character is written as carrying: what an encounter's spawn
+## list is seeded from when you want them to turn up equipped.
+##
+## Nothing is handed out from here automatically. A bag is filled by something
+## that happens in the game - an encounter's spawn saying what its fighter
+## brings, or a dialogue giving somebody something - so walking onto a map
+## starts everyone empty-handed.
 @export var starting_items: Array[String] = []
 @export_group("AI (enemies only - ignored for player-controlled units)")
 ## Which Combat.gd function drives this enemy's turn. Built-in options:

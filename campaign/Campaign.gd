@@ -516,18 +516,33 @@ func inventory_of(key: String) -> Array:
 		var slots: Array = []
 		slots.resize(INVENTORY_SIZE)
 		slots.fill("")
-		# What this character already carries, from their database entry. Done
-		# here rather than at the start of a run so anyone recruited mid-story
-		# arrives with their own kit rather than an empty bag.
-		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
-		if definition != null:
-			for i in mini(definition.starting_items.size(), INVENTORY_SIZE):
-				if ItemDatabase.items.has(definition.starting_items[i]):
-					slots[i] = definition.starting_items[i]
-				else:
-					push_warning("%s starts with '%s', which is not in ItemDatabase." % [key, definition.starting_items[i]])
+		# Empty. A bag is filled by something that happens - an encounter's
+		# spawn list handing one out in Arena Mode, or a dialogue giving
+		# somebody something - never by simply existing. Walking onto a map
+		# used to grant a character their database kit, which meant every
+		# exploration started with a satchel nobody had been given.
 		inventories[key] = slots
 	return inventories[key]
+
+
+## Replaces somebody's bag outright, in the order given.
+##
+## Used when a battle is opened straight from the menu: what each character is
+## carrying is the encounter's to decide there, rather than whatever their
+## database entry lists or they happened to be holding on some map.
+func set_inventory(key: String, items: Array):
+	var slots: Array = []
+	slots.resize(INVENTORY_SIZE)
+	slots.fill("")
+	for i in mini(items.size(), INVENTORY_SIZE):
+		if items[i] == "":
+			continue
+		if ItemDatabase.items.has(items[i]):
+			slots[i] = items[i]
+		else:
+			push_warning("A spawn hands '%s' to %s, which is not in ItemDatabase." % [items[i], key])
+	inventories[key] = slots
+	inventory_changed.emit(key)
 
 
 ## Puts `item_id` in `key`'s first free slot. False if there is no such item or
