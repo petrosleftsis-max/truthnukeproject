@@ -24,22 +24,7 @@ class_name GlossaryBook
 @export_multiline var skills_intro: String = ""
 
 @export_group("The Gates")
-## What the gates are, before the three of them are named.
-@export_multiline var gates_intro: String = ""
-## The first gate. Level 1 opens this one and nothing else.
-@export_multiline var gates_of_world: String = ""
-## The second.
-@export_multiline var gates_of_hermes: String = ""
-## The third, and the one a level 3 combatant has three of.
-@export_multiline var gates_of_yaldabaoth: String = ""
-
-
-## The written page for a gate by its spell slot level, or "" if nobody has
-## written one yet. Keyed by level so it reads straight out of a skill's
-## spell_slot_level.
-func gate_text(level: int) -> String:
-	match level:
-		1: return gates_of_world
-		2: return gates_of_hermes
-		3: return gates_of_yaldabaoth
-	return ""
+## The whole Gates page, written as one piece. Shown as a page rather than a
+## list, because the gates are one idea explained together rather than three
+## things to look up separately.
+@export_multiline var gates: String = ""

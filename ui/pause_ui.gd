@@ -53,13 +53,20 @@ func _ready():
 	FocusLoop.link(_options_buttons)
 
 
-## Shows one panel, hides the other, and puts keyboard focus on the first
-## button of whatever is now visible.
+## Holds the keyboard's place on the first button of whatever is now visible,
+## without lighting it up for somebody using the mouse. See FocusOnDemand.
+var _keyboard: FocusOnDemand
+
+
+## Shows one panel, hides the other, and remembers where the keyboard starts.
 func _show_panel(panel: Control, buttons: Array):
 	$PausePanel.visible = panel == $PausePanel
 	$OptionsPanel.visible = panel == $OptionsPanel
 	if not buttons.is_empty():
-		buttons[0].grab_focus()
+		if _keyboard == null:
+			_keyboard = FocusOnDemand.attach(self, buttons[0])
+		else:
+			_keyboard.remember(buttons[0])
 
 
 ## Closes the overlay and hands keyboard control back to the game - without

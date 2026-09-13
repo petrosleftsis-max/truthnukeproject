@@ -246,6 +246,10 @@ func _gather() -> Array:
 				"resistances": comb.get("resistances", {}),
 				"skills": _skills_they_actually_have(comb),
 				"studied": comb.side != 0,
+				# Kept so a skill can be previewed in their hands rather than
+				# in whoever's happens to be acting - what an enemy hits for is
+				# the reason to read their sheet at all.
+				"combatant": comb,
 			})
 		return found
 	for member in Campaign.party_members():
@@ -348,16 +352,63 @@ func _show_resistances(entry: Dictionary):
 		_stat_rows.add_child(_stat_row("Weak to", ", ".join(weak)))
 
 
-## Everything they can do, by the names the player sees on their own buttons.
+## Everything they can do, as the icons the player already knows from the action
+## panel - each carrying the same preview the panel would show, worked out for
+## the character whose sheet this is.
+##
+## Names alone said what an enemy could do without saying what it would cost
+## you, which is the half worth knowing before you walk into it.
 func _show_skills(entry: Dictionary):
 	var keys: Array = entry.get("skills", [])
 	if keys.is_empty():
 		return
-	var names := []
+	var subject: Dictionary = entry.get("combatant", {})
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	var label := Label.new()
+	label.text = "Skills"
+	label.custom_minimum_size = Vector2(150, 0)
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", MUTED)
+	row.add_child(label)
+	var icons := HFlowContainer.new()
+	icons.add_theme_constant_override("h_separation", 6)
+	icons.add_theme_constant_override("v_separation", 6)
+	icons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for key in keys:
 		var skill: SkillDefinition = SkillDatabase.skills.get(key)
-		names.append(skill.name if skill != null else key)
-	_stat_rows.add_child(_stat_row("Skills", ", ".join(names)))
+		if skill == null:
+			continue
+		icons.add_child(_skill_chip(skill, subject))
+	row.add_child(icons)
+	_stat_rows.add_child(row)
+
+
+## One skill, as its icon with its preview on it. A TextureRect rather than a
+## button: there is nothing to press here, only something to read.
+func _skill_chip(skill: SkillDefinition, subject: Dictionary) -> Control:
+	var chip := TextureRect.new()
+	chip.texture = skill.icon
+	chip.custom_minimum_size = Vector2(40, 40)
+	chip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	chip.tooltip_text = _preview_of(skill, subject)
+	return chip
+
+
+## The action panel's own words for a skill, in `subject`'s hands. Falls back to
+## the skill's name and description when there is no panel to ask - the sheet is
+## also opened from the exploration map, where no battle is running.
+func _preview_of(skill: SkillDefinition, subject: Dictionary) -> String:
+	var panel = combat.game_ui if combat != null and is_instance_valid(combat) else null
+	if panel != null and panel.has_method("build_skill_tooltip"):
+		return panel.build_skill_tooltip(skill, subject)
+	var lines := [skill.name]
+	if skill.description != "":
+		lines.append(skill.description)
+	return "
+".join(lines)
 
 
 func _stat_row(label_text: String, value_text: String) -> Control:

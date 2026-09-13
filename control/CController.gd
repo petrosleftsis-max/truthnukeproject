@@ -126,13 +126,29 @@ func reading_a_character_sheet() -> bool:
 	return sheet != null and sheet.has_method("is_open") and sheet.is_open()
 
 
+## Whether anything the player is reading or choosing from is over the map -
+## the character sheet, or the pause menu and its options. Neither the map nor
+## the End Turn key is theirs to drive while one of those is up.
+func a_menu_is_over_the_map() -> bool:
+	if reading_a_character_sheet():
+		return true
+	var pause = get_node_or_null("../PauseUI")
+	if pause == null:
+		return false
+	for panel in ["PausePanel", "OptionsPanel"]:
+		var node = pause.get_node_or_null(panel)
+		if node != null and node.visible:
+			return true
+	return false
+
+
 func _unhandled_input(event):
 	if _deployment_active:
 		_handle_deployment_input(event)
 		return
 	if player_turn == false or action_locked:
 		return
-	if reading_a_character_sheet():
+	if a_menu_is_over_the_map():
 		return
 
 	if _skill_selected and event.is_action_pressed("ui_cancel"):

@@ -153,7 +153,7 @@ const GATES_BY_LEVEL := [
 	[0, 0, 0, 0],
 	[0, 2, 0, 0], ## Level 1: two castings through the Gates of World.
 	[0, 3, 2, 1], ## Level 2: three World, Hermes twice, and Yaldabaoth once.
-	[0, 3, 3, 3], ## Level 3: three through every gate.
+	[0, 3, 3, 2], ## Level 3: three World, three Hermes, and Yaldabaoth twice.
 ]
 
 

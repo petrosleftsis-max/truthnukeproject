@@ -144,13 +144,13 @@ func _view_conditions():
 	_offer(entries)
 
 
+## One page rather than three buttons: the gates are a single idea explained
+## together - what they are, how they are spent, and how the three of them
+## differ - and splitting that across three entries made the reader assemble it.
 func _view_gates():
 	var book := _book()
-	_heading("The Gates", book.gates_intro if book != null else "")
-	var entries := []
-	for level in [1, 2, 3]:
-		entries.append([Stats.gate_name(level), _page_for_gate.bind(level)])
-	_offer(entries)
+	var written = book.gates if book != null else ""
+	_read("The Gates", written if written != "" else _unwritten("glossary/glossary_book.tres"))
 
 
 func _view_skills():
@@ -218,34 +218,6 @@ func _page_for_condition(condition: ConditionDefinition):
 	lines.append("")
 	lines.append("[i]%s[/i]" % DEFAULTS_NOTE)
 	_read(condition.display_name, "\n".join(lines))
-
-
-func _page_for_gate(level: int):
-	var book := _book()
-	var lines := []
-	var written = book.gate_text(level) if book != null else ""
-	lines.append(written if written != "" else _unwritten("glossary/glossary_book.tres"))
-	lines.append("")
-	lines.append("[b]What it opens[/b]")
-	for at_level in [1, 2, 3]:
-		var castings = Stats.gates_for_level(at_level)[level]
-		if castings <= 0:
-			lines.append("Level %d: closed." % at_level)
-		elif castings == 1:
-			lines.append("Level %d: once a battle." % at_level)
-		else:
-			lines.append("Level %d: %d times a battle." % [at_level, castings])
-	var through := []
-	for key in SkillDatabase.skills:
-		var skill: SkillDefinition = SkillDatabase.skills[key]
-		if skill != null and not (skill is ItemDefinition) and skill.spell_slot_level == level:
-			through.append(skill.name if skill.name != "" else String(key))
-	if not through.is_empty():
-		through.sort()
-		lines.append("")
-		lines.append("[b]Cast through it[/b]")
-		lines.append(", ".join(through) + ".")
-	_read(Stats.gate_name(level), "\n".join(lines))
 
 
 func _page_for_skill(skill: SkillDefinition):

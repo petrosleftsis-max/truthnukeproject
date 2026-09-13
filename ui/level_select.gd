@@ -80,7 +80,9 @@ func _rebuild():
 
 	buttons.append(_reset_button)
 	FocusLoop.link(buttons)
-	buttons[0].grab_focus()
+	# Held back rather than taken: a first card lit up under a mouse that is
+	# elsewhere reads as already chosen. See FocusOnDemand.
+	FocusOnDemand.attach(self, buttons[0])
 
 
 ## --- The party panel ---

@@ -155,6 +155,8 @@ func add_member(key: String, at_front: bool = false) -> bool:
 	else:
 		party_order.append(key)
 	party_changed.emit()
+	announce("[color=lightgreen]%s[/color] joins the party.
+" % display_name_of(key))
 	return true
 
 
@@ -168,6 +170,8 @@ func remove_member(key: String, keep_state: bool = false) -> bool:
 	if not keep_state:
 		party_state.erase(key)
 	party_changed.emit()
+	announce("[color=red]%s[/color] leaves the party.
+" % display_name_of(key))
 	return true
 
 
@@ -178,6 +182,26 @@ func has_member(key: String) -> bool:
 ## Emitted whenever the roster changes, so anything showing the party (the
 ## exploration line, the portrait column) can redraw itself without polling.
 signal party_changed()
+
+## Something worth saying in the log, wherever the log happens to be.
+##
+## Campaign outlives every scene, so whatever wants to say something - an item
+## changing hands, somebody joining or leaving - says it here without having to
+## know whether a battle or a map is on screen. The HUD is the same scene in
+## both, and it listens.
+signal announced(text: String)
+
+
+## Says `text` in the log. Takes the same BBCode the combat log does.
+func announce(text: String):
+	announced.emit(text)
+
+
+## What to call somebody in the log: their proper name, falling back to the key
+## so a line is never blank about who it is talking about.
+func display_name_of(key: String) -> String:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	return definition.name if definition != null and definition.name != "" else key
 
 ## Somebody's bag changed - used, given, or handed to somebody else. Carries
 ## whose it was, so a screen showing several at once can redraw just the one.
@@ -566,6 +590,10 @@ func give_item(key: String, item_id: String) -> bool:
 		if slots[i] == "":
 			slots[i] = item_id
 			inventory_changed.emit(key)
+			var item: ItemDefinition = ItemDatabase.item(item_id)
+			announce("[color=lightgreen]%s[/color] receives [color=yellow]%s[/color].
+" % [
+				display_name_of(key), item.name if item != null else item_id])
 			return true
 	push_warning("Campaign.give_item('%s', '%s'): their bag is full." % [key, item_id])
 	return false

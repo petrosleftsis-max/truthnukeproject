@@ -80,6 +80,7 @@ func _ready():
 	_panels["glossary"] = _build_glossary()
 	for key in _panels:
 		add_child(_panels[key])
+	_keyboard = FocusOnDemand.attach(self, null)
 	_show("root")
 
 
@@ -300,13 +301,21 @@ func _go_back():
 	_show(_stack.back() if not _stack.is_empty() else "root", false)
 
 
-## Keyboard focus on whatever the panel offers first, so the menu can be driven
-## without a mouse.
+## Remembers whatever the panel offers first, so the menu can be driven without
+## a mouse - without lighting it up for somebody who is using one. See
+## FocusOnDemand: the highlight is claimed on the first arrow key and let go
+## again the moment the mouse moves.
 func _focus_first(panel: Control):
 	for node in panel.find_children("*", "Button", true, false):
 		if node.visible:
-			node.grab_focus()
+			_keyboard.remember(node)
 			return
+	_keyboard.remember(null)
+
+
+## Holds the keyboard's place without taking it. Built in _ready, before any
+## panel is shown.
+var _keyboard: FocusOnDemand
 
 
 ## Starts one of the four. A story plays over black and then goes wherever it

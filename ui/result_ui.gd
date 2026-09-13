@@ -82,7 +82,8 @@ func _on_closing_words_ended(_resource = null):
 
 func _show_panel():
 	$Panel.visible = true
-	$Panel/VBox/BackButton.grab_focus()
+	# Offered to the keyboard, not pressed into its hand - see FocusOnDemand.
+	FocusOnDemand.attach(self, $Panel/VBox/BackButton)
 
 
 ## What the party is walking away with - the same information the level select

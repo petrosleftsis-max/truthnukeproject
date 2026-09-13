@@ -65,6 +65,11 @@ func _ready():
 	if toggle != null:
 		toggle.pressed.connect(toggle_log)
 	_apply_log_state()
+	# Things that happen to the party rather than in a fight - an item changing
+	# hands, somebody joining or leaving - are announced by Campaign, which is
+	# the one thing on screen in a battle and on a map alike.
+	if not Campaign.announced.is_connected(update_information):
+		Campaign.announced.connect(update_information)
 
 
 ## Folds the combat log away, or brings it back. The button stays where the
@@ -328,6 +333,33 @@ func set_deployment_mode(active: bool):
 		refresh_action_buttons()
 
 
+## Space ends the turn, the same as pressing the button.
+##
+## The key itself rather than ui_accept, which is also Enter and the gamepad's
+## A: those advance dialogue and press whatever button has focus, and a turn
+## ending because somebody dismissed a line would be a nasty surprise.
+## Everything the button refuses, this refuses too - it is the same press, so
+## it cannot end a turn the button would not.
+func _unhandled_input(event):
+	if not (event is InputEventKey and event.pressed and not event.is_echo()):
+		return
+	if event.physical_keycode != KEY_SPACE:
+		return
+	if exploration_mode or _deployment_mode or combat == null:
+		return
+	if controller == null or not controller.player_turn:
+		return
+	# Mid-aim, mid-walk or mid-animation: not now.
+	if controller.is_skill_selected() or controller.action_locked or not controller.is_idle():
+		return
+	if controller.has_method("a_menu_is_over_the_map") and controller.a_menu_is_over_the_map():
+		return
+	if $Actions/EndTurnButton.disabled or not $Actions/EndTurnButton.visible:
+		return
+	get_viewport().set_input_as_handled()
+	_on_end_turn_button_pressed()
+
+
 func _on_end_turn_button_pressed():
 	if _deployment_mode:
 		deployment_finished.emit()
@@ -463,7 +495,21 @@ func clear_action_button_connections(action: Button):
 ## author-written description (if any), and an auto-generated stats summary
 ## read straight from the skill's actual data - so the numbers shown can
 ## never drift out of sync with what the skill really does.
-func build_skill_tooltip(skill: SkillDefinition) -> String:
+## What a skill does, as the action panel says it.
+##
+## `in_the_hands_of` asks what it would be worth for somebody other than whoever
+## is currently acting - which is what a character sheet wants, since the whole
+## point of reading an enemy's sheet is knowing what *they* hit for rather than
+## what you would hit for with their skill.
+func build_skill_tooltip(skill: SkillDefinition, in_the_hands_of: Dictionary = {}) -> String:
+	var was_subject = _tooltip_subject
+	_tooltip_subject = in_the_hands_of
+	var built = _build_skill_tooltip(skill)
+	_tooltip_subject = was_subject
+	return built
+
+
+func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	var lines: Array[String] = [skill.name]
 	if skill.description != "":
 		lines.append(skill.description)
@@ -477,9 +523,11 @@ func build_skill_tooltip(skill: SkillDefinition) -> String:
 		])
 	else:
 		lines.append("Hit chance: %d%%" % skill.accuracy)
-		var caster = _caster()
-		if not caster.is_empty() and combat.STUDIED_ACCURACY_BONUS > 0:
-			lines.append("+%d%% against anyone this character has studied" % combat.STUDIED_ACCURACY_BONUS)
+		if combat.STUDIED_ACCURACY_BONUS > 0 and _reveals(skill):
+			# Said once, on the action that earns it, rather than repeated on
+			# every move in the game - where it was a line of small print on
+			# thirty tooltips explaining a rule that belongs to one of them.
+			lines.append("This character has +%d%% accuracy on an enemy studied by them." % combat.STUDIED_ACCURACY_BONUS)
 	lines.append("Targets: %s" % ("Everyone caught in it" if skill.affects_both_sides else ("Allies" if skill.targets_ally else "Enemies")))
 	if skill.aoe_radius > 0:
 		lines.append("Area: %s" % describe_aoe_shape(skill))
@@ -503,6 +551,17 @@ func describe_aoe_shape(skill: SkillDefinition) -> String:
 			return "Cone, length %d" % skill.aoe_radius
 		_:
 			return "Radius %d" % skill.aoe_radius
+
+
+## Whether `skill` is the one that takes an enemy's measure - the action the
+## studied accuracy bonus belongs to.
+func _reveals(skill: SkillDefinition) -> bool:
+	if skill == null:
+		return false
+	for effect in skill.all_effects():
+		if effect.type == EffectDefinition.EffectType.REVEAL:
+			return true
+	return false
 
 
 func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) -> String:
@@ -558,12 +617,16 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 				effect.condition.display_name, turns, effect.condition.describe()
 			]
 		EffectDefinition.EffectType.PUSH:
-			# Spelled out as "only if", because the push's own min/max is
-			# collision damage and reads identically to a plain Damage line
-			# otherwise - which made it look like the skill dealt it twice.
+			# Said as "on collision", because the push's own min/max is collision
+			# damage and reads identically to a plain Damage line otherwise -
+			# which made it look like the skill dealt it twice. It used to say
+			# "only if they hit a wall", which was wrong in the other direction:
+			# a shove stopped by a body hurts both of them.
 			var push_str = "Pushes target back %d tile(s)" % effect.knockback_distance
 			if effect.max_amount > 0:
-				push_str += ", dealing %d-%d damage only if they hit a wall" % [effect.min_amount, effect.max_amount]
+				# Not only a wall: a shove stopped by another body hurts them both,
+				# and the map edge counts too.
+				push_str += ", dealing %d-%d damage on collision" % [effect.min_amount, effect.max_amount]
 			return push_str
 		EffectDefinition.EffectType.PULL:
 			return "Pulls target towards caster, up to %d tile(s)" % effect.knockback_distance
@@ -648,7 +711,15 @@ func _target_selection_started():
 
 
 ## Whoever is choosing a skill right now, or an empty dictionary out of battle.
+## Whose hands a tooltip is being worked out for, when it is not the hands of
+## whoever is acting. Set only for the length of one build_skill_tooltip call -
+## see build_skill_tooltip's `in_the_hands_of`.
+var _tooltip_subject: Dictionary = {}
+
+
 func _caster() -> Dictionary:
+	if not _tooltip_subject.is_empty():
+		return _tooltip_subject
 	if combat == null or not combat.has_method("get_current_combatant"):
 		return {}
 	var current = combat.get_current_combatant()
