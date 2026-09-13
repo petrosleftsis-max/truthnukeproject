@@ -30,6 +30,9 @@
 [ext_resource type="Resource" uid="uid://cvamxn5tduee0" path="res://skills/hermes_step.tres" id="27_hermes"]
 [ext_resource type="Resource" uid="uid://c2joaowui0c45" path="res://skills/revitalizer.tres" id="27_tuk3s"]
 [ext_resource type="Resource" uid="uid://nfvbeq0wc8fn" path="res://skills/blink_strike.tres" id="28_blink"]
+[ext_resource type="Resource" uid="uid://capj80o1w8kc7" path="res://skills/wind_shot.tres" id="32_chsfo"]
+[ext_resource type="Resource" uid="uid://bbnfuqi4laykv" path="res://skills/fire_blast.tres" id="33_o3emf"]
+[ext_resource type="Resource" uid="uid://mxqiapo23q11" path="res://skills/rock_throw.tres" id="34_5x0hn"]
 [ext_resource type="Resource" uid="uid://b03pv5bjmcr1" path="res://skills/study.tres" id="99_study"]
 
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
@@ -40,6 +43,7 @@ skills = {
 "burning_shot": ExtResource("25_q8moi"),
 "cleanse": ExtResource("5_r41b3"),
 "crystalise": ExtResource("27_66cmj"),
+"fire_blast": ExtResource("33_o3emf"),
 "fire_burst": ExtResource("4_2m8rc"),
 "fireball": ExtResource("7_dbes0"),
 "flash": ExtResource("18_r41b3"),
@@ -55,6 +59,7 @@ skills = {
 "rapier": ExtResource("19_lyvp1"),
 "revitalizer": ExtResource("27_tuk3s"),
 "river_flow": ExtResource("20_dbes0"),
+"rock_throw": ExtResource("34_5x0hn"),
 "run": ExtResource("14_oiqse"),
 "self_destruct": ExtResource("15_ncop4"),
 "shoving_strike": ExtResource("21_dbes0"),
@@ -63,6 +68,7 @@ skills = {
 "sweep_strike": ExtResource("8_8fqdd"),
 "warning_shot": ExtResource("24_pp4aq"),
 "water_spike": ExtResource("23_8fqdd"),
+"wind_shot": ExtResource("32_chsfo"),
 "wind_swoon": ExtResource("22_8fqdd"),
 "wind_vacuum": ExtResource("9_grav")
 }

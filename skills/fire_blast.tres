@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bbnfuqi4laykv"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_7j457"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_83nw4"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_n556w"]
+[ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("2_83nw4")
+name = "Fire Blast"
+description = "Shoot a flaming laser onto the target."
+max_range = 20
+accuracy = 100
+icon = ExtResource("2_n556w")
+ability_modifier = 1.2
+scaling_stat = 2
+damage_type = 1
+sound = ExtResource("90_sfx")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

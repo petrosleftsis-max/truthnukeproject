@@ -20,6 +20,17 @@
 [sub_resource type="Resource" id="Resource_alithia"]
 script = ExtResource("2_rggep")
 name = "Alithia"
+glossary_text = "A prideful and arrogant cleric with several capabilities of protecting her allies.
+
+Narrative: 
+One of the most talented Idol Users of the Holy Order, she always kept the Divine close to her heart as It has guided her many times.
+
+And yet the way people see her are very mixed, for many feel uncomfortable with how much she questions even the smallest thing instead of showing silent obedience. Throughout her studies and career she has infuriated a lot of clerics and yet has also helped the souls of many followers. Due to her debates, the clergy find themselves in an unspoken split between those who consider her blasphemous and those whose faith only became stronger with her masterful questioning.
+
+Gameplay:
+Even though she's really important for the party to not be worn out from the duration of combat, she is durable enough to survive hits herself. Prioritise keeping her in range of everyone!
+
+She is also capable of weakening enemies to mitigate their offensive capabilities."
 class_t = 2
 max_hp = 75
 max_hp_level_2 = 90
@@ -31,7 +42,7 @@ secondary_stat = 3
 icon = ExtResource("95_alithiastill")
 map_sprite = ExtResource("95_alithiastill")
 sprite_frames = ExtResource("94_alithiaframes")
-skills = Array[String](["heal", "cleanse", "flash", "river_flow", "water_spike", "revitalizer", "run", "slip_past"])
+skills = Array[String](["heal", "light_heal", "revitalizer", "cleanse", "flash", "river_flow", "water_spike", "run", "slip_past"])
 starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])
 
 [sub_resource type="Resource" id="Resource_s2oe2"]
@@ -44,6 +55,8 @@ initiative = 3
 secondary_stat = 3
 sprite_frames = ExtResource("6_w4l2p")
 skills = Array[String](["greatsword_attack", "shoving_strike", "sweep_strike", "run"])
+resist_fire = -20
+resist_earth = 20
 
 [sub_resource type="Resource" id="Resource_bomber"]
 script = ExtResource("2_rggep")
@@ -62,6 +75,19 @@ ai_function = "ai_hit_and_explode"
 [sub_resource type="Resource" id="Resource_w6c3b"]
 script = ExtResource("2_rggep")
 name = "Cyrus"
+glossary_text = "A swift cunning cat with a bunch of tricks up his sleeves to hide from enemies and hunt down his targets.
+
+Narrative:
+An unfortunate circumstance which resulted in his mother's passing and him running away from home, has caused him to be stranded and struggling to survive since his teenage years. These harsh circumstances have forced him to develop the skills and greed of a thief.
+
+And yet, despite the cruelty of reality, he still keeps on to his red scarf. The scarf that reminds him of the oath he swore to himself of becoming a hero.
+
+These childish ambitions have lead him into a secret group, which has the intention to steal and weaken those who grow too strong.
+
+Gameplay:
+By having high initiative and movement, he gets to decide how a combat begins and where he is needed to go. He is capable of reaching even the most hidden enemy and hunt them down until they're no more. This makes him the only member who can get away from the team to take care of potent but frail targets, such as casters!
+
+He also has the special capability of using consumables as a secondary action, making him the most adaptable member in the team."
 class_t = 1
 max_hp = 75
 max_hp_level_2 = 90
@@ -81,6 +107,21 @@ starting_items = Array[String](["cure_potion", "bomb", "poison_bottle", "medicin
 [sub_resource type="Resource" id="Resource_tkpbb"]
 script = ExtResource("2_rggep")
 name = "Enfina"
+glossary_text = "A city guard who has trained and studied to perfectly respond to any combat situation.
+
+Narrative:
+Not born in favourable circumstances, she was faced with a lot of disadvantages. Unable to be trusted to become a knight of the Holy Order, too useful to just leave her out of the picture, yet still faced with uncertainty. An uncertainty that she also sees in herself and how cut out she truly is for the path she chose. 
+
+And yet, she still raises her sword. She still trains unrelentlessly, to perform as well as possible, even if no one has any intention of recognising and rewarding her for it with a higher rank.
+
+But Enfina's intentions are pure. For she does not raise her sword for herself. She raises it for everyone else.
+
+Gameplay:
+Capable of dealing the most damage and take the most hit, she is an invaluable piece that allows her to fend off the mightiest of foe. 
+
+Her foes fear her reactive skill, so staying close to one will either force them to stay in place, or move and be damaged.
+
+As a frontliner, she controls where the fight takes place. Make sure she is always in front of your allies and at the part of the map where you want the fight to take place."
 max_hp = 130
 max_hp_level_2 = 160
 max_hp_level_3 = 190
@@ -103,6 +144,8 @@ movement = 5
 initiative = 4
 main_stat = 3
 sprite_frames = ExtResource("11_o6bu1")
+resist_water = -20
+resist_wind = 20
 ai_function = "ai_copycat"
 
 [sub_resource type="Resource" id="Resource_priest"]
@@ -118,23 +161,35 @@ main_stat = 1
 secondary_stat = 3
 sprite_frames = ExtResource("12_qkqyl")
 skills = Array[String](["heal", "cleanse", "water_spike", "run", "revitalizer"])
+resist_water = 20
 resist_earth = -20
 ai_function = "ai_healer"
 
 [sub_resource type="Resource" id="Resource_bwgmm"]
 script = ExtResource("2_rggep")
 name = "Prometheus"
+glossary_text = "A messy pragmatic scholar who can never be seen without a book and a drink.
+
+Narrative:
+He was an up and rising star in Idology from his late teen years. This lead him to quickly get into high and important research. However... It is now a painful memory that only destroys him further and further as time passes.
+
+Despite it all, or perhaps because of it all, he is now a really warm and caring person that, despite not saying it out loud, would always be there for you.
+
+Gameplay:
+The hardest unit to use well, he has the most potent capabilities in the party. Yet they are limited by resource and his frail frame makes him easy to be killed in but an instant. It is more important for him to stay alive, rather than cast spells earlier! Make sure to properly utilise cover!
+
+He also can provide with utility, such as weakening enemies or teleporting allies. To make the most of him is to make the most of all!"
 class_t = 2
 max_hp = 30
 max_hp_level_2 = 40
 max_hp_level_3 = 58
 movement = 4
-initiative = 6
+initiative = 7
 main_stat = 2
 icon = ExtResource("97_prometheusstill")
 map_sprite = ExtResource("97_prometheusstill")
 sprite_frames = ExtResource("10_ad2ke")
-skills = Array[String](["fire_burst", "burner", "fireball", "wind_vacuum", "gust_blast", "crystalise", "wind_swoon", "hermes_step", "run", "slip_past"])
+skills = Array[String](["fire_burst", "fire_blast", "wind_shot", "rock_throw", "burner", "fireball", "wind_vacuum", "gust_blast", "crystalise", "wind_swoon", "hermes_step", "run", "slip_past"])
 starting_items = Array[String](["burn_bottle", "frost_bottle", "gale_bottle", "cure_potion"])
 
 [sub_resource type="Resource" id="Resource_ranger"]
@@ -148,6 +203,8 @@ movement = 5
 initiative = 4
 sprite_frames = ExtResource("15_eyeq6")
 skills = Array[String](["heal", "gun", "poison_dart", "burning_shot", "run"])
+resist_wind = -20
+resist_poison = 20
 ai_function = "ai_ranger"
 
 [sub_resource type="Resource" id="Resource_sorcerer"]
@@ -163,6 +220,7 @@ main_stat = 2
 sprite_frames = ExtResource("16_r0t0t")
 skills = Array[String](["burner", "fireball", "wind_vacuum", "gust_blast", "wind_swoon", "run"])
 resist_fire = 20
+resist_poison = -20
 ai_function = "ai_caster"
 
 [node name="CombatantDatabase" type="Node" unique_id=1671407001]

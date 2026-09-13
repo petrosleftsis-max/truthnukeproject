@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_eu26k"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="1_skill"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_icon"]
 [ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="3_sfx"]
 
 [resource]

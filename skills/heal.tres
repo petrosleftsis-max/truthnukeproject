@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://c1jab5it2hnwp"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_d34oe"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_oejdn"]
+[ext_resource type="Texture2D" uid="uid://ben5jlwrg6fhf" path="res://imagese/skills/heal_skill.png" id="2_oejdn"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_5f2sg"]
 
 [sub_resource type="Resource" id="Effect_heal"]
@@ -14,7 +14,7 @@ max_amount = 8
 script = ExtResource("3_5f2sg")
 name = "Heal"
 description = "Recover one's vitality."
-max_range = 3
+max_range = 5
 accuracy = 100
 icon = ExtResource("2_oejdn")
 targets_ally = true

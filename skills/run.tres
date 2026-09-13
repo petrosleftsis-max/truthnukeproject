@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://dr2jn7owcw7b2"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_g061d"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_fwp5i"]
+[ext_resource type="Texture2D" uid="uid://c7ygk4gdgi0qo" path="res://imagese/skills/debuff_skill.png" id="2_fwp5i"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_4yooe"]
 
 [sub_resource type="Resource" id="Effect_run"]

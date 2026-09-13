@@ -3,44 +3,45 @@
 [ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
 [ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
 [ext_resource type="PackedScene" uid="uid://dqucchdhp3fkm" path="res://laboratory_terrain_fight.tscn" id="3_y7mw8"]
+[ext_resource type="Resource" uid="uid://dyi7n5npes6a3" path="res://Dialogue/lab_prometheus_end.dialogue" id="4_iq7ep"]
 
-[sub_resource type="Resource" id="Resource_y7mw8"]
+[sub_resource type="Resource" id="Resource_iq7ep"]
 script = ExtResource("2_spawn")
 combatant_key = "alithia"
 position = Vector2i(25, 19)
 level = 2
 weapon_base = 9
 defense = 12
-starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])
+starting_items = Array[String](["cure_potion", "poison_bottle"])
 
-[sub_resource type="Resource" id="Resource_iq7ep"]
+[sub_resource type="Resource" id="Resource_23sa8"]
 script = ExtResource("2_spawn")
 combatant_key = "cyrus"
 position = Vector2i(24, 21)
 level = 2
 weapon_base = 9
 defense = 12
-starting_items = Array[String](["cure_potion", "bomb", "poison_bottle", "medicine"])
+starting_items = Array[String](["cure_potion", "bomb", "medicine", "crystal_bottle"])
 
-[sub_resource type="Resource" id="Resource_23sa8"]
+[sub_resource type="Resource" id="Resource_44smm"]
 script = ExtResource("2_spawn")
 combatant_key = "enfina"
 position = Vector2i(26, 22)
 level = 2
 weapon_base = 9
 defense = 20
-starting_items = Array[String](["bomb", "bomb", "crystal_bottle"])
+starting_items = Array[String](["cure_potion", "burn_bottle"])
 
-[sub_resource type="Resource" id="Resource_44smm"]
+[sub_resource type="Resource" id="Resource_x3lcq"]
 script = ExtResource("2_spawn")
 combatant_key = "prometheus"
 position = Vector2i(25, 23)
 level = 2
 weapon_base = 9
 defense = 5
-starting_items = Array[String](["burn_bottle", "frost_bottle", "gale_bottle", "cure_potion"])
+starting_items = Array[String](["cure_potion", "gale_bottle", "medicine"])
 
-[sub_resource type="Resource" id="Resource_x3lcq"]
+[sub_resource type="Resource" id="Resource_64obj"]
 script = ExtResource("2_spawn")
 combatant_key = "priest"
 side = 1
@@ -50,7 +51,7 @@ level = 2
 weapon_base = 9
 defense = 30
 
-[sub_resource type="Resource" id="Resource_64obj"]
+[sub_resource type="Resource" id="Resource_gdsj2"]
 script = ExtResource("2_spawn")
 combatant_key = "bomber"
 side = 1
@@ -59,7 +60,7 @@ display_name = "Bomber 2"
 level = 2
 weapon_base = 9
 
-[sub_resource type="Resource" id="Resource_gdsj2"]
+[sub_resource type="Resource" id="Resource_a5v1p"]
 script = ExtResource("2_spawn")
 combatant_key = "barbarian"
 side = 1
@@ -69,7 +70,7 @@ level = 2
 weapon_base = 9
 defense = 45
 
-[sub_resource type="Resource" id="Resource_a5v1p"]
+[sub_resource type="Resource" id="Resource_qpxaj"]
 script = ExtResource("2_spawn")
 combatant_key = "ranger"
 side = 1
@@ -79,7 +80,7 @@ level = 2
 weapon_base = 9
 defense = 30
 
-[sub_resource type="Resource" id="Resource_qpxaj"]
+[sub_resource type="Resource" id="Resource_xgvbf"]
 script = ExtResource("2_spawn")
 combatant_key = "sorcerer"
 side = 1
@@ -89,7 +90,7 @@ level = 2
 weapon_base = 9
 defense = 30
 
-[sub_resource type="Resource" id="Resource_xgvbf"]
+[sub_resource type="Resource" id="Resource_acq2p"]
 script = ExtResource("2_spawn")
 combatant_key = "mimic"
 side = 1
@@ -99,7 +100,7 @@ level = 2
 weapon_base = 9
 defense = 45
 
-[sub_resource type="Resource" id="Resource_acq2p"]
+[sub_resource type="Resource" id="Resource_fmdef"]
 script = ExtResource("2_spawn")
 combatant_key = "barbarian"
 side = 1
@@ -114,5 +115,6 @@ script = ExtResource("1_enc")
 display_name = "Lab Fight"
 description = "Intermediate fight with full party."
 terrain_scene = ExtResource("3_y7mw8")
-spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_y7mw8"), SubResource("Resource_iq7ep"), SubResource("Resource_23sa8"), SubResource("Resource_44smm"), SubResource("Resource_x3lcq"), SubResource("Resource_64obj"), SubResource("Resource_gdsj2"), SubResource("Resource_a5v1p"), SubResource("Resource_qpxaj"), SubResource("Resource_xgvbf"), SubResource("Resource_acq2p")])
+victory_dialogue = ExtResource("4_iq7ep")
+spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_iq7ep"), SubResource("Resource_23sa8"), SubResource("Resource_44smm"), SubResource("Resource_x3lcq"), SubResource("Resource_64obj"), SubResource("Resource_gdsj2"), SubResource("Resource_a5v1p"), SubResource("Resource_qpxaj"), SubResource("Resource_xgvbf"), SubResource("Resource_acq2p"), SubResource("Resource_fmdef")])
 music = "Elegy_of_the_End"

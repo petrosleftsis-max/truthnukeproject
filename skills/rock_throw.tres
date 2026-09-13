@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://mxqiapo23q11"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_5o216"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_4evrp"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_a2hwr"]
+[ext_resource type="AudioStream" uid="uid://cqnubt85xto1y" path="res://audio/sfx/Debris_Scattering_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("2_a2hwr")
+name = "Rock Throw"
+description = "Create a stone that throws itself at high velocity."
+max_range = 20
+accuracy = 100
+icon = ExtResource("2_4evrp")
+ability_modifier = 1.2
+scaling_stat = 2
+damage_type = 4
+sound = ExtResource("90_sfx")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

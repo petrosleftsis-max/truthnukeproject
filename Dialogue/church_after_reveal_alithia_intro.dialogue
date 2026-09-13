@@ -1,4 +1,5 @@
 ~ start
+do Music.play("Scott Buckley - The Long Dark")
 From behind the door a voice can be heard.
 Aleksander Asker: ... Alithia. 
 alithia: Mister Asker... 
@@ -36,6 +37,7 @@ Aleksander Asker: Such a foolish task not even a great computer can manage.
 alithia: ...!
 alithia: ... Then what am I supposed to do?
 Aleksander Asker: Alithia. If there is one thing life has taught me, it's this.
+do Music.play("Scott Buckley - Childhood")   
 Aleksander Asker: To live is to suffer.
 alithia: Ugh.
 Aleksander Asker: To walk is to feel the weight of every step. To see is to struggle to comprehend what you perceive. To breathe is to move muscles against their own will.
@@ -76,4 +78,6 @@ Aleksander Asker: I'll be going now. You know how to find me if you need me, don
 alithia: Yes. Don't worry. Thank you.
 Aleksander Asker: I just want the best for you. And I'll do my everything for you.
 alithia: ... I should leave the room too.
+do Music.play("Scott Buckley - Permafrost") 
+do Campaign.to_main_menu()
 => END

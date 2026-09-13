@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://c360pknondsny"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_crdpa"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_y1vqh"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_y1vqh"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_2al5t"]
 [ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
 
@@ -15,6 +15,6 @@ icon = ExtResource("2_y1vqh")
 required_level = 2
 ability_modifier = 1.2
 sound = ExtResource("90_sfx")
-aoe_radius = 3
-aoe_shape = 2
+aoe_radius = 2
+aoe_shape = 1
 aoe_width = 3

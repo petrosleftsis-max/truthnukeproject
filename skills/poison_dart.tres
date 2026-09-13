@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_mcofx"]
 [ext_resource type="Resource" path="res://conditions/poisoned.tres" id="2_mm41o"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_v0ngf"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_v0ngf"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_mm41o"]
 [ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
 
@@ -22,7 +22,7 @@ duration = 3
 script = ExtResource("3_mm41o")
 name = "Poison Dart"
 description = "A dart coated in a toxin that poisons the target."
-min_range = 2
+min_range = 1
 max_range = 15
 accuracy = 100
 icon = ExtResource("2_v0ngf")
