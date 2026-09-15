@@ -59,6 +59,7 @@ metadata/_custom_type_script = "uid://tn5n7wtckj10"
 position = Vector2(5000, 330)
 script = ExtResource("8_e8hu0")
 dialogue = ExtResource("11_5p2sx")
+only_once = true
 prompt = "Talk"
 interaction_radius = 240.0
 sprite_frames = ExtResource("4_go82g")

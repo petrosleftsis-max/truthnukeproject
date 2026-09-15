@@ -79,5 +79,4 @@ alithia: Yes. Don't worry. Thank you.
 Aleksander Asker: I just want the best for you. And I'll do my everything for you.
 alithia: ... I should leave the room too.
 do Music.play("Scott Buckley - Permafrost") 
-do Campaign.to_main_menu()
 => END

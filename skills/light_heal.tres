@@ -4,6 +4,14 @@
 [ext_resource type="Texture2D" uid="uid://ben5jlwrg6fhf" path="res://imagese/skills/heal_skill.png" id="2_bg4m5"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_agv8j"]
 
+[sub_resource type="Resource" id="Effect_light_heal"]
+script = ExtResource("1_gpjfk")
+type = 1
+damage_modifier = 0.5
+min_amount = 3
+max_amount = 6
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
 [resource]
 script = ExtResource("3_agv8j")
 name = "Light Heal"
@@ -14,6 +22,7 @@ icon = ExtResource("2_bg4m5")
 required_level = 2
 targets_ally = true
 is_secondary = true
+effects = Array[ExtResource("1_gpjfk")]([SubResource("Effect_light_heal")])
 deals_damage = false
 ability_modifier = 0.5
 scaling_stat = 1

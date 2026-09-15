@@ -23,6 +23,7 @@ max_range = 15
 accuracy = 100
 icon = ExtResource("3_75462")
 required_level = 2
+respects_blocking = true
 effects = Array[ExtResource("1_77oc1")]([SubResource("Resource_feskj")])
 deals_damage = false
 sound = ExtResource("90_sfx")

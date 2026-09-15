@@ -9,7 +9,7 @@
 script = ExtResource("3_hu7ck")
 name = "Gun"
 description = "Cyrus uses gun."
-min_range = 1
+min_range = 2
 max_range = 20
 accuracy = 100
 icon = ExtResource("2_2u77k")

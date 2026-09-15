@@ -13,6 +13,7 @@ min_range = 2
 max_range = 20
 accuracy = 100
 icon = ExtResource("2_lo4se")
+respects_blocking = true
 ability_modifier = 0.7
 scaling_stat = 1
 damage_type = 2

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_7j457"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_83nw4"]
-[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_n556w"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_n556w"]
 [ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [resource]
@@ -12,8 +12,10 @@ description = "Shoot a flaming laser onto the target."
 max_range = 20
 accuracy = 100
 icon = ExtResource("2_n556w")
+respects_blocking = true
 ability_modifier = 1.2
 scaling_stat = 2
 damage_type = 1
 sound = ExtResource("90_sfx")
+spell_slot_level = 1
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

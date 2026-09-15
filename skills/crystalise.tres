@@ -23,6 +23,7 @@ max_range = 15
 accuracy = 100
 icon = ExtResource("3_nxawm")
 required_level = 2
+respects_blocking = true
 effects = Array[ExtResource("1_468qc")]([SubResource("Resource_v3tq0")])
 ability_modifier = 0.4
 scaling_stat = 2

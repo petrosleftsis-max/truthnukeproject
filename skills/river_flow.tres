@@ -24,6 +24,7 @@ max_range = 15
 accuracy = 100
 icon = ExtResource("3_0pa21")
 required_level = 2
+respects_blocking = true
 effects = Array[ExtResource("1_vsgl5")]([SubResource("Resource_3t3cr")])
 deals_damage = false
 scaling_stat = 1

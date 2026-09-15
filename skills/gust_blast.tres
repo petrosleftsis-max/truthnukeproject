@@ -22,6 +22,7 @@ accuracy = 100
 icon = ExtResource("2_jhtu7")
 required_level = 2
 affects_both_sides = true
+respects_blocking = true
 effects = Array[ExtResource("1_530t1")]([SubResource("Effect_repel_push")])
 ability_modifier = 0.2
 scaling_stat = 2

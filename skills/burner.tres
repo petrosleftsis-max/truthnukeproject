@@ -26,6 +26,7 @@ max_range = 15
 accuracy = 85
 icon = ExtResource("2_luh46")
 required_level = 2
+respects_blocking = true
 effects = Array[ExtResource("1_r1ihj")]([SubResource("Effect_curse")])
 ability_modifier = 0.8
 scaling_stat = 2

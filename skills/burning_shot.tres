@@ -24,6 +24,7 @@ max_range = 15
 accuracy = 100
 icon = ExtResource("3_yibo3")
 required_level = 3
+respects_blocking = true
 effects = Array[ExtResource("1_pf4ur")]([SubResource("Resource_ng6aw")])
 scaling_stat = 3
 sound = ExtResource("90_sfx")
