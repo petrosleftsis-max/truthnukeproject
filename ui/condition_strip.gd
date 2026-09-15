@@ -70,6 +70,11 @@ func _is_helpful(effect: Dictionary) -> bool:
 			if condition.skips_turn or condition.prevents_movement or condition.prevents_secondary:
 				return false
 			return condition.movement_change > 0 or condition.accuracy_change > 0
+		"movement_class":
+			# Being lifted off the ground opens tiles rather than closing them.
+			# Being put back on it is the only unwelcome direction, and nothing
+			# in the game does that yet.
+			return effect.get("amount", 0) != 0
 	if effect.get("op", "add") == "mul":
 		return effect.get("multiplier", 1.0) > 1.0
 	return effect.get("amount", 0) > 0
@@ -91,6 +96,14 @@ func describe(comb: Dictionary, effect: Dictionary) -> String:
 			]
 		"condition":
 			return _describe_condition(comb, effect)
+		"movement_class":
+			var moving_as = Stats.movement_class_name(effect.get("amount", 0))
+			var lines := ["Moving as %s" % moving_as.to_lower()]
+			if effect.get("amount", 0) == 1:
+				lines.append("Crosses what stops a walker, and ignores rough ground.")
+			lines.append("Lasts %s." % _turns(turns))
+			return "
+".join(lines)
 	return _describe_stat_change(effect)
 
 

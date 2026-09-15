@@ -224,6 +224,9 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		"class" = definition.class_t,
 		"alive" = true,
 		"movement_class" = definition.class_m,
+		# What they go back to when a Hover or the like wears off. The live one
+		# above is what everything reads; this is only the floor under it.
+		"base_movement_class" = definition.class_m,
 		# Exactly what the database says this character knows. There used to be a
 		# list per class underneath this, so being a mage granted a mage's kit and
 		# the database only added to it - which meant a skill could not be taken
@@ -1010,6 +1013,20 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				# mid-turn showed on nobody until the turn changed.
 				update_combatants.emit(combatants)
 				update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, effect.condition.display_name))
+		EffectDefinition.EffectType.MOVEMENT_CLASS:
+			target.status_effects.append({
+				"stat" = "movement_class",
+				"op" = "set",
+				"amount" = effect.movement_class,
+				"duration" = stored_duration(target, effect),
+				"source_name" = attacker.name
+			})
+			resync_movement_class(target)
+			# The strip under the portrait is only redrawn when this goes out,
+			# and a change to how somebody moves should show the moment it lands.
+			update_combatants.emit(combatants)
+			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
+				"moving as %s" % Stats.movement_class_name(effect.movement_class).to_lower()))
 		EffectDefinition.EffectType.DISPEL:
 			dispel_status_effects(attacker, target, effect)
 		EffectDefinition.EffectType.REVEAL:
@@ -1037,6 +1054,27 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 
 ## --- Conditions ---
 ##
+## Puts `comb` on whichever movement class it should be on right now: the last
+## one a skill laid on it that is still running, or the one it was born with.
+##
+## Everything that asks how somebody gets about - pathfinding, what blocks them,
+## what they can shoot past, what a tile costs them - reads comb.movement_class
+## straight off the dictionary. So this keeps that single field honest rather
+## than making twenty call sites remember to ask a question instead, which is
+## the version of this where one of them forgets and a flying unit walks a
+## grounded path.
+##
+## Safe to call at any time, and idempotent: it recomputes from scratch rather
+## than undoing anything, so it does not care what order effects were added or
+## taken away in.
+func resync_movement_class(comb: Dictionary):
+	var wanted = comb.get("base_movement_class", comb.get("movement_class", 0))
+	for eff in comb.get("status_effects", []):
+		if eff.get("stat", "") == "movement_class":
+			wanted = eff.get("amount", wanted)
+	comb["movement_class"] = wanted
+
+
 ## A condition is stored in status_effects like anything else, under the
 ## reserved pseudo-stat "condition", carrying the ConditionDefinition itself.
 ## Everything that needs to know whether someone is stunned, blinded, poisoned
@@ -1167,6 +1205,8 @@ func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: Eff
 			target.status_effects.remove_at(i)
 			removed += 1
 		i -= 1
+	# One of the things lifted may have been what was keeping them off the floor.
+	resync_movement_class(target)
 	if removed > 0:
 		# Same reason as applying one: the icon has to leave the portrait as
 		# the cleanse lands, not when the turn happens to end.
@@ -1317,6 +1357,8 @@ func process_status_effects(comb: Dictionary):
 			tick_condition_damage(comb, eff.condition, eff.get("dot_base", 0.0))
 		eff.duration -= 1
 		i -= 1
+	# Anything that just expired may have been holding them in the air.
+	resync_movement_class(comb)
 	clamp_hp_to_max(comb)
 
 

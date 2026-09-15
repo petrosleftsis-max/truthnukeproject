@@ -587,6 +587,11 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.STAT_MODIFIER:
 			var sign_str = "+" if effect.modifier_amount >= 0 else ""
 			return "%s%d %s for %d turn(s)" % [sign_str, effect.modifier_amount, effect.stat, effect.duration]
+		EffectDefinition.EffectType.MOVEMENT_CLASS:
+			var moving_as = Stats.movement_class_name(effect.movement_class).to_lower()
+			if effect.movement_class == 1:
+				return "Moves as flying for %d turn(s): over what blocks a walker, and across rough ground as though it were flat" % effect.duration
+			return "Moves as %s for %d turn(s)" % [moving_as, effect.duration]
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
 			# Per turn and in total, because a wound that ticks for 6 over 4 turns
 			# is a different decision from one that ticks for 20 once.

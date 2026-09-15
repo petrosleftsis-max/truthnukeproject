@@ -33,6 +33,8 @@
 [ext_resource type="Resource" uid="uid://capj80o1w8kc7" path="res://skills/wind_shot.tres" id="32_chsfo"]
 [ext_resource type="Resource" uid="uid://bbnfuqi4laykv" path="res://skills/fire_blast.tres" id="33_o3emf"]
 [ext_resource type="Resource" uid="uid://mxqiapo23q11" path="res://skills/rock_throw.tres" id="34_5x0hn"]
+[ext_resource type="Resource" uid="uid://dxpv317v73o0p" path="res://skills/quicken.tres" id="35_o3emf"]
+[ext_resource type="Resource" uid="uid://cryo284fo8l4r" path="res://skills/hover.tres" id="36_hover"]
 [ext_resource type="Resource" uid="uid://b03pv5bjmcr1" path="res://skills/study.tres" id="99_study"]
 
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
@@ -53,9 +55,11 @@ skills = {
 "gust_blast": ExtResource("13_tuk3s"),
 "heal": ExtResource("10_pp4aq"),
 "hermes_step": ExtResource("27_hermes"),
+"hover": ExtResource("36_hover"),
 "light_heal": ExtResource("17_mfut3"),
 "lightning_bolt": ExtResource("11_q8moi"),
 "poison_dart": ExtResource("12_66cmj"),
+"quicken": ExtResource("35_o3emf"),
 "rapier": ExtResource("19_lyvp1"),
 "revitalizer": ExtResource("27_tuk3s"),
 "river_flow": ExtResource("20_dbes0"),

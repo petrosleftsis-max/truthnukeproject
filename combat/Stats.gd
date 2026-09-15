@@ -133,6 +133,17 @@ static func final_damage(base: float, ability_modifier: float, defense: int) -> 
 ## simply free.
 const GATE_NAMES := ["", "Gates of World", "Gates of Hermes", "Gates of Yaldabaoth"]
 
+## How a combatant gets about, in the order CombatantDefinition.class_m lists
+## them. Kept here so a number in a resource has one place that says what it
+## means.
+const MOVEMENT_CLASS_NAMES := ["Ground", "Flying", "Mounted"]
+
+
+static func movement_class_name(movement_class: int) -> String:
+	if movement_class < 0 or movement_class >= MOVEMENT_CLASS_NAMES.size():
+		return "Ground"
+	return MOVEMENT_CLASS_NAMES[movement_class]
+
 
 ## The gate at `level`, or "" for a skill that costs nothing.
 static func gate_name(level: int) -> String:

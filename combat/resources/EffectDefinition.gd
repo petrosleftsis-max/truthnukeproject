@@ -14,7 +14,8 @@ enum EffectType {
 	PULL,              ## Drags the target directly towards the caster.
 	STAT_MULTIPLIER,   ## Multiplies a stat instead of adding to it, e.g. doubling movement for a turn.
 	CONDITION,         ## Inflicts a named ConditionDefinition - Poisoned, Stunned, Burned and so on.
-	REVEAL             ## Lays the target open to inspection - what Study does.
+	REVEAL,            ## Lays the target open to inspection - what Study does.
+	MOVEMENT_CLASS     ## Changes how the target gets about - on foot, flying, mounted - for a duration.
 }
 
 enum DispelScope {
@@ -30,6 +31,22 @@ enum DispelScope {
 ## describing the raw stat change. Leave empty to fall back to a generated
 ## description of what the effect actually does.
 @export var display_name: String = ""
+
+@export_group("Movement class")
+## Used when type is MOVEMENT_CLASS. What the target moves as while this lasts,
+## on top of whatever it was born as - and back to that when the duration runs
+## out.
+##
+## The three are not decoration: each has its own set of tiles it can cross and
+## its own terrain costs (see CController.is_tile_blocking and
+## get_tile_cost_for_class). Flying is the generous one - it ignores rough
+## ground, crosses what stops a walker, and passes over other combatants.
+## Ground is the default deliberately. Godot leaves a property out of a saved
+## resource when it equals its default, so a default of Flying meant Hover
+## saved with no movement class written in it at all and flew only because the
+## default happened to say so. Ground is the ordinary case, the same as
+## CombatantDefinition.class_m, so anything that lifts somebody has to say it.
+@export_enum("Ground", "Flying", "Mounted") var movement_class: int = 0
 
 @export_group("Condition")
 ## Used when type is CONDITION. The condition to inflict - see
@@ -127,6 +144,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.CONDITION: ["condition", "condition_duration"],
 	# Nothing to configure: it either lays the target open or it does not.
 	EffectType.REVEAL: [],
+	EffectType.MOVEMENT_CLASS: ["display_name", "movement_class", "duration"],
 }
 
 
