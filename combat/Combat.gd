@@ -503,6 +503,11 @@ func get_distance(attacker: Dictionary, target: Dictionary):
 ## (move further, use another skill) pass false and call advance_turn()
 ## themselves once they're truly done.
 func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2i, end_turn_after: bool = true, as_secondary: bool = false, destination: Vector2i = Vector2i(-99999, -99999)):
+	# Same reason as advance_turn: an AI that was walking when the battle was
+	# left comes back here to swing at somebody, on a battlefield that has
+	# already been freed.
+	if not still_running():
+		return
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	var distance = get_position_distance(attacker.position, impact_position)
 	var valid = distance <= effective_max_range(attacker, skill) and distance >= skill.min_range
@@ -1469,6 +1474,14 @@ func set_next_combatant():
 ## its own turn - must await it for this chain to actually hold; skipping
 ## await anywhere reopens the same race.
 func advance_turn():
+	# The fight may have been walked out of while somebody was mid-move. The
+	# enemy's turn is a coroutine several awaits deep, and the scene it stands
+	# on is freed the moment the title screen is asked for - but ai_move returns
+	# cleanly rather than vanishing, so the chain unwinds back to here and asks
+	# a Combat that is no longer in the tree for a timer. There is no turn to
+	# advance once the battle is gone.
+	if not still_running():
+		return
 	combatants[current_combatant].turn_taken = true
 	set_next_combatant()
 	var comb = combatants[current_combatant]
