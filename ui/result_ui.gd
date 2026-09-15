@@ -44,11 +44,21 @@ func _on_combat_finished():
 	if Campaign.has_map_to_return_to():
 		Campaign.finish_battle_from_exploration(not enemies_left)
 		$Panel/VBox/BackButton.text = "Continue"
+	# A fight that finishes its story offers the title screen and nothing else.
+	# The encounter says so itself - see EncounterDefinition.victory_ends_the_run
+	# - rather than this knowing which fights are last.
+	$Panel/VBox/BackButton.visible = not (won and _ends_the_run())
 	$Panel/VBox/Summary.text = _describe_party()
 	# Whatever this encounter has to say about how it went, before the panel.
 	if _speak_for(won):
 		return
 	_show_panel()
+
+
+## Whether winning this battle is the end of what it belongs to.
+func _ends_the_run() -> bool:
+	var encounter: EncounterDefinition = combat.encounter if combat != null else null
+	return encounter != null and encounter.victory_ends_the_run
 
 
 ## Plays the encounter's own closing conversation, if it has one for this
@@ -83,7 +93,11 @@ func _on_closing_words_ended(_resource = null):
 func _show_panel():
 	$Panel.visible = true
 	# Offered to the keyboard, not pressed into its hand - see FocusOnDemand.
-	FocusOnDemand.attach(self, $Panel/VBox/BackButton)
+	# Whichever button is actually on the panel is where the keyboard starts.
+	var first = $Panel/VBox/BackButton
+	if not first.visible:
+		first = $Panel/VBox/MainMenuButton
+	FocusOnDemand.attach(self, first)
 
 
 ## What the party is walking away with - the same information the level select

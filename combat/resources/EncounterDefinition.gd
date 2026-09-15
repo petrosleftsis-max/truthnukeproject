@@ -29,6 +29,13 @@ class_name EncounterDefinition
 ## The same, for losing it. A defeat is worth a word as much as a win is.
 @export var defeat_dialogue: Resource
 @export var defeat_dialogue_title: String = "start"
+## Winning this one is the end of the story it belongs to, so the result panel
+## offers the title screen and nothing else - no Back to the battle list, no
+## Continue on to the map. For a fight that finishes a demo, or a chapter.
+##
+## Only on a win. Losing the last fight of a chapter still wants the way back,
+## because the player is going to want another go at it.
+@export var victory_ends_the_run: bool = false
 @export var spawns: Array[SpawnDefinition]
 ## The track this fight opens on, by name - "battle" finds audio/music/battle
 ## with any supported extension, the same names dialogue uses.

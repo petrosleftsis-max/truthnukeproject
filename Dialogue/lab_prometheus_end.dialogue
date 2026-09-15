@@ -1,3 +1,2 @@
 ~ start
-do Campaign.to_main_menu()
 => END

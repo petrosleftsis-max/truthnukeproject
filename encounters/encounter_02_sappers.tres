@@ -116,5 +116,6 @@ display_name = "Lab Fight"
 description = "Intermediate fight with full party."
 terrain_scene = ExtResource("3_y7mw8")
 victory_dialogue = ExtResource("4_iq7ep")
+victory_ends_the_run = true
 spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_iq7ep"), SubResource("Resource_23sa8"), SubResource("Resource_44smm"), SubResource("Resource_x3lcq"), SubResource("Resource_64obj"), SubResource("Resource_gdsj2"), SubResource("Resource_a5v1p"), SubResource("Resource_qpxaj"), SubResource("Resource_xgvbf"), SubResource("Resource_acq2p"), SubResource("Resource_fmdef")])
 music = "Elegy_of_the_End"
