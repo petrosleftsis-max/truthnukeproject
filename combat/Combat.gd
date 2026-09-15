@@ -2092,6 +2092,34 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 	var best_aim = caster_position
 	var best_count = 0
 	var reach = effective_max_range(caster, skill) if not caster.is_empty() else skill.max_range
+	# A blast is centred on the tile aimed at, so whether it catches somebody is
+	# a distance test - and whether the caster could land it on them at all is a
+	# question about where the caster is STANDING, not about where it aims. So
+	# both are settled once, here, instead of rebuilding the whole blast and
+	# re-walking its line of sight for each of the hundreds of tiles it might
+	# aim at.
+	#
+	# Same answer as building the tiles and looking for players in them. Not the
+	# same price: a caster with three area skills and fifteen tiles of reach was
+	# taking eleven seconds to decide one turn, which on the web build reads as
+	# the game having died rather than as the game thinking. See ai_caster.
+	#
+	# Only blasts. A LINE or CONE is aimed as a direction from the caster, so
+	# its tiles do not sit around the aim and the shortcut does not hold.
+	var is_blast = skill.aoe_shape != SkillDefinition.AoEShape.LINE 		and skill.aoe_shape != SkillDefinition.AoEShape.CONE
+	var catchable: Array[Vector2i] = []
+	if is_blast:
+		for index in groups[Group.PLAYERS]:
+			var p = combatants[index]
+			if not p.alive:
+				continue
+			# Exactly what filter_tiles_by_line_of_sight would have dropped.
+			if skill.respects_blocking:
+				if controller.is_tile_blocking(p.position, movement_class):
+					continue
+				if not has_line_of_sight(caster_position, p.position, movement_class):
+					continue
+			catchable.append(p.position)
 	for dx in range(-reach, reach + 1):
 		var remaining = reach - absi(dx)
 		for dy in range(-remaining, remaining + 1):
@@ -2099,12 +2127,17 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 			if d < skill.min_range:
 				continue
 			var aim = caster_position + Vector2i(dx, dy)
-			var tiles = get_impact_tiles(skill, caster_position, aim, movement_class)
 			var count = 0
-			for index in groups[Group.PLAYERS]:
-				var p = combatants[index]
-				if p.alive and p.position in tiles:
-					count += 1
+			if is_blast:
+				for position in catchable:
+					if get_position_distance(aim, position) <= skill.aoe_radius:
+						count += 1
+			else:
+				var tiles = get_impact_tiles(skill, caster_position, aim, movement_class)
+				for index in groups[Group.PLAYERS]:
+					var p = combatants[index]
+					if p.alive and p.position in tiles:
+						count += 1
 			if count > best_count:
 				best_count = count
 				best_aim = aim
