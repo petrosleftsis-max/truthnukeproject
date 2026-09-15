@@ -135,12 +135,8 @@ func _view_conditions():
 	var book := _book()
 	_heading("Conditions", book.conditions_intro if book != null else "")
 	var entries := []
-	for path in condition_paths():
-		var condition: ConditionDefinition = load(path)
-		if condition == null:
-			continue
-		var shown = condition.display_name if condition.display_name != "" else path.get_file().get_basename()
-		entries.append([shown, _page_for_condition.bind(condition)])
+	for condition in conditions():
+		entries.append([_condition_name(condition), _page_for_condition.bind(condition)])
 	_offer(entries)
 
 
@@ -217,7 +213,7 @@ func _page_for_condition(condition: ConditionDefinition):
 		lines.append("Stops them " + ", ".join(stops) + ".")
 	lines.append("")
 	lines.append("[i]%s[/i]" % DEFAULTS_NOTE)
-	_read(condition.display_name, "\n".join(lines))
+	_read(_condition_name(condition), "\n".join(lines))
 
 
 func _page_for_skill(skill: SkillDefinition):
@@ -251,17 +247,51 @@ func _page_for_skill(skill: SkillDefinition):
 ## --- The furniture ---
 
 
-## Every condition the game ships with, by path, in alphabetical order.
-static func condition_paths() -> Array:
-	var found := []
+## Every condition the game can inflict, in alphabetical order.
+##
+## Read from the skills and items that inflict them rather than by listing
+## res://conditions/, because an exported build does not have that folder in
+## the shape the editor does: the .tres files are converted to binary and
+## renamed on the way into the pack, so a scan for "*.tres" came back empty and
+## the Conditions page was blank in the export while working perfectly in the
+## editor. What a skill points at survives the conversion, so this asks the
+## skills.
+##
+## It still scans the folder as well, so a condition written but not yet given
+## to anybody shows up while it is being worked on.
+static func conditions() -> Array:
+	var found := {}
+	for source in [SkillDatabase.skills, ItemDatabase.items]:
+		for key in source:
+			var skill: SkillDefinition = source[key]
+			if skill == null:
+				continue
+			for effect in skill.effects:
+				if effect != null and effect.condition != null:
+					found[effect.condition.resource_path] = effect.condition
 	var dir = DirAccess.open("res://conditions")
-	if dir == null:
-		return found
-	for file in dir.get_files():
-		if file.ends_with(".tres"):
-			found.append("res://conditions/".path_join(file))
-	found.sort()
-	return found
+	if dir != null:
+		for file in dir.get_files():
+			# What the export leaves in this folder is "blind.tres.remap" and
+			# nothing else - the resource itself has been converted to binary
+			# and moved. The name it is still known by is underneath.
+			if file.ends_with(".remap"):
+				file = file.get_basename()
+			var path = "res://conditions/".path_join(file)
+			if not ResourceLoader.exists(path):
+				continue
+			var loaded = load(path)
+			if loaded is ConditionDefinition and not found.has(loaded.resource_path):
+				found[loaded.resource_path] = loaded
+	var listed := found.values()
+	listed.sort_custom(func(a, b): return _condition_name(a).naturalnocasecmp_to(_condition_name(b)) < 0)
+	return listed
+
+
+static func _condition_name(condition: ConditionDefinition) -> String:
+	if condition.display_name != "":
+		return condition.display_name
+	return condition.resource_path.get_file().get_basename().capitalize()
 
 
 func _book() -> GlossaryBook:
