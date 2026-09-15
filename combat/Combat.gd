@@ -656,8 +656,13 @@ func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_p
 				continue
 			var distance_before = get_position_distance(reactor.position, previous_position)
 			var distance_after = get_position_distance(reactor.position, new_position)
-			var was_in_range = distance_before >= skill.min_range and distance_before <= skill.max_range
-			var now_in_range = distance_after >= skill.min_range and distance_after <= skill.max_range
+			# The reactor's reach, not the skill's: a blinded one can only see
+			# the tile beside them, and use_reactive_skill checks line of sight
+			# but never range, so this is the only thing standing between a
+			# blinded combatant and a shot across the map.
+			var reach = effective_max_range(reactor, skill)
+			var was_in_range = distance_before >= skill.min_range and distance_before <= reach
+			var now_in_range = distance_after >= skill.min_range and distance_after <= reach
 			if was_in_range and not now_in_range:
 				if skill.respects_blocking and not has_line_of_sight(reactor.position, previous_position, reactor.movement_class):
 					# The shot was blocked anyway - use_reactive_skill would
@@ -2311,8 +2316,11 @@ func find_triggering_reactions_along_path(comb: Dictionary, path: Array) -> Arra
 					continue
 				var distance_before = get_position_distance(reactor.position, from_tile)
 				var distance_after = get_position_distance(reactor.position, to_tile)
-				var was_in_range = distance_before >= skill.min_range and distance_before <= skill.max_range
-				var now_in_range = distance_after >= skill.min_range and distance_after <= skill.max_range
+				# Same reach as the real check above, or the AI plans around
+				# reactions that cannot happen and walks into ones that can.
+				var reach = effective_max_range(reactor, skill)
+				var was_in_range = distance_before >= skill.min_range and distance_before <= reach
+				var now_in_range = distance_after >= skill.min_range and distance_after <= reach
 				if was_in_range and not now_in_range:
 					triggered.append({"reactor": reactor, "skill_key": skill_key})
 					already_triggered.append(reactor)

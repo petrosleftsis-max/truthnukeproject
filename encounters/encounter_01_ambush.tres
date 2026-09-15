@@ -61,5 +61,6 @@ display_name = "Sewer Intro Fight"
 description = "Cyrus and Enfina find themselves surrounded."
 terrain_scene = ExtResource("3_86m2p")
 victory_dialogue = ExtResource("4_njrfk")
+victory_ends_the_run = true
 spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_86m2p"), SubResource("Resource_njrfk"), SubResource("Resource_x3x4f"), SubResource("Resource_6a1lt"), SubResource("Resource_5depv"), SubResource("Resource_nl4kq"), SubResource("Resource_kpvjc")])
 music = "My_Gospel_is_Gunpowder_feat_The_Epoch_House_Choir_Instrumental_Version"
