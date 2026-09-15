@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://bt4kcbtgx7lv8"
+path="res://.godot/imported/church_after_reveal_prometheus.dialogue-96311f8baa17893061455b15ef0baf9a.tres"
+
+[deps]
+
+source_file="res://Dialogue/church_after_reveal_prometheus.dialogue"
+dest_files=["res://.godot/imported/church_after_reveal_prometheus.dialogue-96311f8baa17893061455b15ef0baf9a.tres"]
+
+[params]
+
+defaults=true

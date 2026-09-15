@@ -14,21 +14,25 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="2DTacticalRPGDemo"
-run/main_scene="res://scenes/exploration.tscn"
+config/name="Messengers of Truth"
+run/main_scene="res://main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
-config/icon="res://icon.png"
+config/icon="res://imagese/icon/icon.png"
 
 [autoload]
 
 SkillDatabase="*res://databases/skill_database.tscn"
+ItemDatabase="*res://databases/item_database.tscn"
 CombatantDatabase="*res://databases/combatant_database.tscn"
 Campaign="*res://campaign/Campaign.gd"
+Music="*res://audio/Music.gd"
+SceneTransition="*res://ui/scene_transition.gd"
 DialogueManager="*res://addons/dialogue_manager/dialogue_manager.gd"
+Actors="*res://exploration/Actors.gd"
 
 [dialogue_manager]
 
-runtime/state_autoload_shortcuts=PackedStringArray("Campaign")
+runtime/state_autoload_shortcuts=PackedStringArray("Campaign", "Music", "Actors")
 
 [display]
 
@@ -38,18 +42,22 @@ window/size/resizable=false
 window/size/window_width_override=1920
 window/size/window_height_override=1080
 window/stretch/mode="canvas_items"
-mouse_cursor/custom_image="res://imagese/cursor.png"
-mouse_cursor/tooltip_position_offset=Vector2(64, 10)
 
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/dialogue_manager/plugin.cfg")
 
+[gui]
+
+theme/custom="res://ui/blue_theme.tres"
+
 [internationalization]
 
-locale/translations_pot_files=PackedStringArray("res://Dialogue/test.dialogue")
+locale/translations_pot_files=PackedStringArray("res://Dialogue/test.dialogue", "res://Dialogue/cyrus_intro.dialogue", "res://Dialogue/intro_sewer_guard_loot.dialogue", "res://Dialogue/intro_sewer_homeless_beds.dialogue", "res://Dialogue/intro_sewer_idol_accident.dialogue", "res://Dialogue/intro_sewer_before_encounter.dialogue", "res://Dialogue/walking_example.dialogue", "res://Dialogue/intro_sewer_after_encounter.dialogue", "res://Dialogue/church_after_reveal_alithia_intro.dialogue", "res://Dialogue/church_after_reveal_door_blocked.dialogue", "res://Dialogue/flag_example.dialogue", "res://Dialogue/church_after_reveal_prometheus.dialogue", "res://Dialogue/church_after_reveal_enfina.dialogue", "res://Dialogue/church_after_reveal_cyrus.dialogue", "res://Dialogue/church_after_reveal_clown.dialogue", "res://Dialogue/church_after_reveal_finale.dialogue", "res://Dialogue/lab_prometheus_sell.dialogue", "res://Dialogue/lab_prometheus_lore.dialogue", "res://Dialogue/lab_prometheus_pain.dialogue", "res://Dialogue/lab_prometheus_end.dialogue")
 
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://ui/pause_ui.gd" id="1_pauseui"]
 
 [node name="PauseUI" type="CanvasLayer"]
-layer = 10
+layer = 70
 script = ExtResource("1_pauseui")
 
 [node name="PausePanel" type="PanelContainer" parent="."]
@@ -36,11 +36,11 @@ text = "Options"
 
 [node name="LevelSelectButton" type="Button" parent="PausePanel/VBox"]
 layout_mode = 2
-text = "Battle Select"
+text = "Arena Mode"
 
-[node name="ExitButton" type="Button" parent="PausePanel/VBox"]
+[node name="MainMenuButton" type="Button" parent="PausePanel/VBox"]
 layout_mode = 2
-text = "Exit"
+text = "Main Menu"
 
 [node name="OptionsPanel" type="PanelContainer" parent="."]
 visible = false

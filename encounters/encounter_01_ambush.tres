@@ -2,47 +2,65 @@
 
 [ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
 [ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
-[ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="3_terrain"]
+[ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://scenes/crossroads_terrain.tscn" id="3_86m2p"]
+[ext_resource type="Resource" uid="uid://dian6e70shlvo" path="res://Dialogue/intro_sewer_after_encounter.dialogue" id="4_njrfk"]
 
-[sub_resource type="Resource" id="Spawn_enfina"]
-script = ExtResource("2_spawn")
-combatant_key = "enfina"
-position = Vector2i(8, 6)
-
-[sub_resource type="Resource" id="Spawn_cyrus"]
+[sub_resource type="Resource" id="Resource_86m2p"]
 script = ExtResource("2_spawn")
 combatant_key = "cyrus"
-position = Vector2i(6, 7)
+position = Vector2i(41, -14)
+starting_items = Array[String](["cure_potion", "bomb", "poison_bottle", "medicine"])
 
-[sub_resource type="Resource" id="Spawn_prometheus"]
+[sub_resource type="Resource" id="Resource_njrfk"]
 script = ExtResource("2_spawn")
-combatant_key = "prometheus"
-position = Vector2i(4, 7)
+combatant_key = "enfina"
+position = Vector2i(45, -14)
+starting_items = Array[String](["bomb", "bomb", "crystal_bottle"])
 
-[sub_resource type="Resource" id="Spawn_goblin1"]
-script = ExtResource("2_spawn")
-combatant_key = "ranger"
-side = 1
-position = Vector2i(10, 5)
-display_name = "Goblin 1"
-
-[sub_resource type="Resource" id="Spawn_goblin2"]
-script = ExtResource("2_spawn")
-combatant_key = "sorcerer"
-side = 1
-position = Vector2i(10, 7)
-display_name = "Goblin 2"
-
-[sub_resource type="Resource" id="Spawn_goblin3"]
+[sub_resource type="Resource" id="Resource_x3x4f"]
 script = ExtResource("2_spawn")
 combatant_key = "priest"
 side = 1
-position = Vector2i(10, 9)
+position = Vector2i(53, -17)
 display_name = "Goblin 3"
+defense = 18
+
+[sub_resource type="Resource" id="Resource_6a1lt"]
+script = ExtResource("2_spawn")
+combatant_key = "ranger"
+side = 1
+position = Vector2i(54, -15)
+display_name = "Goblin 1"
+defense = 18
+
+[sub_resource type="Resource" id="Resource_5depv"]
+script = ExtResource("2_spawn")
+combatant_key = "mimic"
+side = 1
+position = Vector2i(36, -14)
+defense = 18
+
+[sub_resource type="Resource" id="Resource_nl4kq"]
+script = ExtResource("2_spawn")
+combatant_key = "mimic"
+side = 1
+position = Vector2i(37, -14)
+defense = 18
+
+[sub_resource type="Resource" id="Resource_kpvjc"]
+script = ExtResource("2_spawn")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(54, -13)
+display_name = "Goblin 2"
+defense = 5
 
 [resource]
 script = ExtResource("1_enc")
-display_name = "Goblin Ambush"
-description = "Three goblins block the road: a ranger, a sorcerer and a priest."
-terrain_scene = ExtResource("3_terrain")
-spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_goblin1"), SubResource("Spawn_goblin2"), SubResource("Spawn_goblin3")])
+display_name = "Sewer Intro Fight"
+description = "Cyrus and Enfina find themselves surrounded."
+terrain_scene = ExtResource("3_86m2p")
+victory_dialogue = ExtResource("4_njrfk")
+victory_ends_the_run = true
+spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_86m2p"), SubResource("Resource_njrfk"), SubResource("Resource_x3x4f"), SubResource("Resource_6a1lt"), SubResource("Resource_5depv"), SubResource("Resource_nl4kq"), SubResource("Resource_kpvjc")])
+music = "My_Gospel_is_Gunpowder_feat_The_Epoch_House_Choir_Instrumental_Version"

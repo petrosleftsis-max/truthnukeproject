@@ -1,0 +1,92 @@
+[gd_scene format=3 uid="uid://b34v1b0sqpbu1"]
+
+[ext_resource type="Script" uid="uid://bvxg6wn4mrssx" path="res://scenes/grid_overlay.gd" id="1_1kxs5"]
+[ext_resource type="TileSet" uid="uid://sakecgskem2q" path="res://tilesets/terrain_tileset.tres" id="1_yyuqe"]
+[ext_resource type="Script" uid="uid://bx4mgbrftmp1c" path="res://exploration/DialogueInteractable.gd" id="3_6f434"]
+[ext_resource type="Resource" uid="uid://d1unk0ca3527a" path="res://Dialogue/church_after_reveal_cyrus.dialogue" id="4_7u5lq"]
+[ext_resource type="SpriteFrames" uid="uid://dj4efx57eiy1p" path="res://imagese/icon/interactable_anim.tres" id="5_5se3q"]
+[ext_resource type="Resource" uid="uid://bt4kcbtgx7lv8" path="res://Dialogue/church_after_reveal_prometheus.dialogue" id="6_33n2h"]
+[ext_resource type="Resource" uid="uid://dvrlsm201sd6x" path="res://Dialogue/church_after_reveal_enfina.dialogue" id="7_xcmki"]
+[ext_resource type="Resource" uid="uid://ycckibomvsxm" path="res://Dialogue/church_after_reveal_door_blocked.dialogue" id="8_0t755"]
+[ext_resource type="Resource" uid="uid://c6igu63xdnrps" path="res://Dialogue/church_after_reveal_alithia_intro.dialogue" id="10_alith"]
+[ext_resource type="Resource" path="res://Dialogue/church_after_reveal_clown.dialogue" id="11_clown"]
+[ext_resource type="Script" uid="uid://cuc3ggd1v8ak1" path="res://exploration/EntryPoint.gd" id="9_7u5lq"]
+[ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/MapSetup.gd" id="90_party"]
+
+[node name="Node2D" type="Node2D" unique_id=806661825]
+
+[node name="TileMap" type="TileMap" parent="." unique_id=275766605]
+tile_set = ExtResource("1_yyuqe")
+format = 2
+layer_0/tile_data = PackedInt32Array(65537, 196608, 2, 65538, 262144, 2, 131073, 196608, 2, 131074, 262144, 2, 196609, 196608, 2, 196610, 262144, 2, 262145, 196608, 2, 262146, 262144, 2, 327681, 196608, 2, 327682, 262144, 2, 327683, 131072, 805306371, 327684, 262144, 2, 327685, 196608, 2, 327686, 262144, 2, 327687, 196608, 2, 327688, 262144, 2, 262151, 196608, 2, 262152, 262144, 2, 196615, 196608, 2, 196616, 262144, 2, 131079, 196608, 2, 131080, 262144, 2, 65543, 196608, 2, 65544, 262144, 2, 65541, 196608, 2, 65542, 262144, 2, 65539, 131072, 805306371, 65540, 262144, 2, 131075, 131072, 805306371, 131076, 262144, 2, 196611, 196608, 2, 196612, 262144, 2, 262147, 131072, 805306371, 262148, 262144, 2, 262149, 196608, 2, 262150, 262144, 2, 196613, 196608, 2, 196614, 262144, 2, 131077, 196608, 2, 131078, 262144, 2, 65536, 131072, 3, 131072, 131072, 3, 196608, 131072, 4, 262144, 131072, 3, 327680, 131072, 3, 1, 131072, 1342177283, 2, 131072, 1342177283, 3, 0, 2, 4, 131072, 1342177283, 5, 131072, 1342177283, 6, 131072, 1342177284, 7, 131072, 1342177283, 8, 131072, 1342177283, 65545, 131072, 805306371, 131081, 131072, 805306371, 196617, 131072, 805306371, 262153, 131072, 805306371, 327689, 131072, 805306371, 393217, 131072, 1610612739, 393218, 131072, 1610612739, 393219, 0, 2, 393220, 131072, 1610612739, 393221, 131072, 1610612739, 393222, 131072, 1610612740, 393223, 131072, 1610612739, 393224, 131072, 1610612739, 393216, 0, 2, 393225, 0, 2, 9, 0, 2, 0, 0, 2)
+
+[node name="Grid" type="Node2D" parent="." unique_id=1298001046]
+script = ExtResource("1_1kxs5")
+metadata/_custom_type_script = "uid://bvxg6wn4mrssx"
+
+[node name="DialogueInteractable" type="Node2D" parent="." unique_id=955032129]
+position = Vector2(255, 647)
+script = ExtResource("3_6f434")
+dialogue = ExtResource("4_7u5lq")
+prompt = "Talk"
+interaction_radius = 240.0
+sprite_frames = ExtResource("5_5se3q")
+metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
+
+[node name="DialogueInteractable2" type="Node2D" parent="." unique_id=1946109693]
+position = Vector2(928, 213)
+script = ExtResource("3_6f434")
+dialogue = ExtResource("6_33n2h")
+prompt = "Talk"
+interaction_radius = 240.0
+sprite_frames = ExtResource("5_5se3q")
+metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
+
+[node name="DialogueInteractable3" type="Node2D" parent="." unique_id=1954128750]
+position = Vector2(1588, 1099)
+script = ExtResource("3_6f434")
+dialogue = ExtResource("7_xcmki")
+prompt = "Talk"
+interaction_radius = 240.0
+sprite_frames = ExtResource("5_5se3q")
+metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
+
+[node name="DialogueInteractable4" type="Node2D" parent="." unique_id=564665730]
+position = Vector2(1722, 665)
+script = ExtResource("3_6f434")
+dialogue = ExtResource("8_0t755")
+prompt = "Talk"
+interaction_radius = 240.0
+sprite_frames = ExtResource("5_5se3q")
+metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
+
+[node name="EntryPoint" type="Marker2D" parent="." unique_id=282070881]
+position = Vector2(1266, 664)
+script = ExtResource("9_7u5lq")
+entry_name = "church"
+metadata/_custom_type_script = "uid://cuc3ggd1v8ak1"
+
+[node name="ArrivalConversation" type="Node2D" parent="." unique_id=1188340692]
+position = Vector2(1266, 664)
+script = ExtResource("3_6f434")
+automatic = true
+only_once = true
+interaction_radius = 120.0
+dialogue = ExtResource("10_alith")
+metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
+
+[node name="MapSetup" type="Node" parent="."]
+script = ExtResource("90_party")
+members = Array[String](["alithia"])
+level = 3
+music = "Scott Buckley - Filaments"
+metadata/_custom_type_script = "uid://c58kyys4p7s13"
+
+[node name="DialogueInteractable5" type="Node2D" parent="."]
+position = Vector2(288, 288)
+script = ExtResource("3_6f434")
+dialogue = ExtResource("11_clown")
+prompt = "Talk"
+interaction_radius = 240.0
+sprite_frames = ExtResource("5_5se3q")
+metadata/_custom_type_script = "uid://bx4mgbrftmp1c"

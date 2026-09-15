@@ -10,9 +10,6 @@ class_name EncounterInteractable
 
 
 @export var encounter: EncounterDefinition
-## When true the battle starts on contact rather than on a key press - an
-## ambush rather than a fight you choose to pick.
-@export var automatic: bool = false
 ## Identity used to remember that this fight has been won. Defaults to the
 ## node's own name, which is unique within a map; set it explicitly only if you
 ## rename the node and want its cleared state to carry over.
@@ -39,7 +36,9 @@ func _ready():
 func is_available() -> bool:
 	if Engine.is_editor_hint():
 		return true
-	return not Campaign.is_trigger_cleared(trigger_id)
+	# super() first, so a once-only trigger is spent the same way anything else
+	# is; then the campaign's own memory of having beaten this fight.
+	return super() and not Campaign.is_trigger_cleared(trigger_id)
 
 
 func interact(scene: Node):
@@ -47,4 +46,4 @@ func interact(scene: Node):
 		push_warning("EncounterInteractable '%s' has no encounter assigned." % name)
 		return
 	Campaign.begin_battle_from_exploration(encounter, scene.map_path(), scene.party_position(), trigger_id)
-	scene.get_tree().change_scene_to_file(scene.battle_scene)
+	SceneTransition.change_scene(scene.battle_scene)

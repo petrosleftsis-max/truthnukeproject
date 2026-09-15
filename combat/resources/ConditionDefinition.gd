@@ -25,6 +25,19 @@ class_name ConditionDefinition
 @export_group("Damage over time")
 ## Rolled fresh at the start of each of the afflicted's turns. Leave at 0 for a
 ## condition that doesn't burn away at them.
+## What kind of damage the tick deals - Burn is fire, Poisoned is poison - so
+## resistances apply to conditions the same as to a direct hit.
+@export var dot_type: Damage.Type = Damage.Type.PHYSICAL
+## How hard the tick is, as a fraction of a direct hit from whoever inflicted
+## the condition: the same WeaponBase + 0.7 x Stat, times this, times the
+## target's defence soak. So a Burn from a stronger caster genuinely burns
+## harder, without a number here to maintain per level.
+##
+## This is the dial to turn. Zero falls back to the flat dot_min-dot_max below,
+## which only a condition applied with no skill behind it ever needs - there is
+## no caster to scale off - and which stays hidden while this is set, so a
+## condition has one place its damage comes from rather than two.
+@export_range(0.0, 5.0, 0.05, "or_greater") var dot_modifier: float = 0.0 : set = _set_dot_modifier
 @export var dot_min: int = 0
 @export var dot_max: int = 0
 
@@ -87,3 +100,17 @@ func describe() -> String:
 	if parts.is_empty():
 		return "No effect"
 	return ", ".join(parts).capitalize()
+
+
+func _set_dot_modifier(value: float):
+	dot_modifier = value
+	# Whether the flat fallback below is worth showing has just changed.
+	notify_property_list_changed()
+
+
+## Hides the flat tick range while the tick is scaling off its caster, which is
+## how every condition in the game works. Nothing is lost by hiding it - the
+## values are still stored, and come back if the modifier is set to zero.
+func _validate_property(property: Dictionary) -> void:
+	if dot_modifier > 0.0 and property.name in ["dot_min", "dot_max"]:
+		property.usage = PROPERTY_USAGE_STORAGE

@@ -1,0 +1,30 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://dj4efx57eiy1p"]
+
+[ext_resource type="Texture2D" uid="uid://sa8wi2nwejyw" path="res://imagese/icon/sparkle_interactable0000.png" id="1_qt3au"]
+[ext_resource type="Texture2D" uid="uid://fux7ylbh6sml" path="res://imagese/icon/sparkle_interactable0001.png" id="2_dy8ox"]
+[ext_resource type="Texture2D" uid="uid://bg1wm80kgec0l" path="res://imagese/icon/sparkle_interactable0002.png" id="3_bg74e"]
+[ext_resource type="Texture2D" uid="uid://dys4sbjy3dafm" path="res://imagese/icon/sparkle_interactable0003.png" id="4_aq7il"]
+[ext_resource type="Texture2D" uid="uid://dsh525lxlxpm6" path="res://imagese/icon/sparkle_interactable0004.png" id="5_6f7cc"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_qt3au")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_dy8ox")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_bg74e")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_aq7il")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_6f7cc")
+}],
+"loop": 1,
+"name": &"default",
+"speed": 5.0
+}]

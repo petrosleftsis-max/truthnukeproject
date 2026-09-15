@@ -9,6 +9,9 @@ signal update_turn_queue(combatants: Array, turn_queue: Array)
 signal update_information(text: String)
 signal update_combatants(combatants: Array)
 signal combat_finished()
+## Someone has been studied and can now be read in full. The character sheet
+## opens on them.
+signal combatant_studied(combatant: Dictionary)
 
 var combatants = []
 
@@ -38,6 +41,17 @@ var turn_queue = []
 
 @export var game_ui : Control
 @export var controller : CController
+## Asks the player whether to spend a reaction when one of their combatants
+## triggers. Leave unassigned and reactions fire automatically for everyone,
+## which is how it behaved before.
+@export var reaction_prompt: ReactionPrompt
+## Optional. Used to rattle the view when something big goes off. Everything
+## works without it - a battle scene with no camera assigned just doesn't
+## shake.
+@export var camera: CameraController
+## Optional. Frames the screen in the damage colour when the player's own side
+## is hurt. A battle scene without one simply does not flash its edges.
+@export var hurt_vignette: HurtVignette
 ## Which battle this is. Assigned by GameScene before _ready runs (from the
 ## level select's choice, or its own fallback when game.tscn is run directly),
 ## so one scene plays every encounter - there is no per-encounter copy of this
@@ -50,11 +64,6 @@ var deployment_tiles: Array = []
 ## True while the player is arranging the party, before the first turn.
 var deployment_active := false
 
-var skills_lists = [
-	["attack_melee", "slowing_strike", "run"], #Melee
-	["attack_melee", "attack_ranged", "lightning_bolt", "poison_dart", "run"], #Ranged
-	["attack_melee", "basic_magic", "heal", "fireball", "flame_cone", "curse", "vitality", "cleanse", "repel", "gravity_pull", "run"] #Magic
-]
 
 
 func _ready():
@@ -80,6 +89,9 @@ func _ready():
 	# roster from.
 	var player_tiles: Array = []
 	var fallback_party: Array = []
+	# The spawn each player tile came from, in the same order, so a deploying
+	# party member picks up the level and gear that tile was set up with.
+	var player_loadouts: Array = []
 	for spawn in encounter.spawns:
 		if not CombatantDatabase.combatants.has(spawn.combatant_key):
 			push_warning("Encounter '%s' spawns unknown combatant key '%s' - skipping it." % [encounter.display_name, spawn.combatant_key])
@@ -93,10 +105,14 @@ func _ready():
 		if spawn.side == 0:
 			player_tiles.append(spawn.position)
 			fallback_party.append(spawn.combatant_key)
+			# A player spawn is a place, not a person - who stands there comes
+			# from the roster. So the level and gear on it belong to the tile,
+			# and whoever deploys onto it fights at that level with that gear.
+			player_loadouts.append(spawn)
 			continue
-		add_combatant(create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name), 1, spawn.position)
+		add_combatant(create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name, spawn), 1, spawn.position)
 
-	_deploy_party(player_tiles, fallback_party)
+	_deploy_party(player_tiles, fallback_party, player_loadouts)
 
 	emit_signal("update_turn_queue", combatants, turn_queue)
 
@@ -107,6 +123,10 @@ func _ready():
 	current_combatant = turn_queue[0]
 	controller.set_controlled_combatant(combatants[turn_queue[0]])
 	game_ui.show_combatant_status_main(combatants[turn_queue[0]])
+	# Open looking at your own people. A battle that starts with the view parked
+	# wherever the map happens to begin makes the first thing you do hunting for
+	# yourself, and on a large map that can be most of a screen away.
+	centre_on_party()
 	# Let the player arrange the party across the starting tiles before anyone
 	# takes a turn. Pointless with only one tile to stand on.
 	if deployment_tiles.size() > 1 and groups[Group.PLAYERS].size() > 0:
@@ -118,7 +138,7 @@ func _ready():
 ## Puts the campaign's fighters on the encounter's starting tiles, in marching
 ## order. Anyone who can't fight (see CombatantDefinition.can_fight) travels
 ## with the party on the map but is left out here.
-func _deploy_party(tiles: Array, fallback_party: Array):
+func _deploy_party(tiles: Array, fallback_party: Array, loadouts: Array = []):
 	if tiles.is_empty():
 		push_warning("Encounter '%s' has no player starting tiles - there is nobody to play as." % encounter.display_name)
 		return
@@ -130,9 +150,17 @@ func _deploy_party(tiles: Array, fallback_party: Array):
 		push_warning("Encounter '%s' has %d starting tiles but %d fighters in the party - the last %d sit this one out." % [
 			encounter.display_name, tiles.size(), fighters.size(), fighters.size() - tiles.size()
 		])
+	# A battle walked into from a map keeps whatever the party was carrying when
+	# they walked in. One opened straight from the menu has no such history, so
+	# what each of them holds is the encounter's to say, spawn by spawn -
+	# nothing listed there means empty-handed.
+	var walked_in_from_a_map = Campaign.has_map_to_return_to()
 	for i in mini(fighters.size(), tiles.size()):
 		var key = fighters[i]
-		var comb = create_combatant(CombatantDatabase.combatants[key], key)
+		var loadout = loadouts[i] if i < loadouts.size() else null
+		if not walked_in_from_a_map:
+			Campaign.set_inventory(key, loadout.starting_items if loadout != null else [])
+		var comb = create_combatant(CombatantDatabase.combatants[key], key, "", loadout)
 		Campaign.apply_carried_state(comb, key)
 		add_combatant(comb, 0, tiles[i])
 	deployment_tiles = tiles
@@ -171,21 +199,41 @@ func start_first_turn():
 ## advance_turn() does when it hands off to an enemy, including the same short
 ## pause first so the turn is readable rather than instant.
 func _start_opening_ai_turn():
+	watch_combatant(combatants[current_combatant])
 	await get_tree().create_timer(0.6).timeout
+	if not still_running():
+		return
 	await ai_process(combatants[current_combatant])
+	stop_watching()
 
 
-func create_combatant(definition: CombatantDefinition, combatant_key: String = "", override_name = ""):
+## `spawn` carries the level, weapon base and defense this combatant fights
+## this particular encounter at - see SpawnDefinition. Null means the defaults:
+## level 1, flat attributes, an ordinary weapon.
+func create_combatant(definition: CombatantDefinition, combatant_key: String = "", override_name = "", spawn: SpawnDefinition = null):
+	var level = spawn.level if spawn != null else 1
+	var weapon_base = spawn.weapon_base if spawn != null else Stats.WEAPON_BASE
+	var stats = Stats.stats_for_level(level, definition.main_stat, definition.secondary_stat)
+	# Defense is the spawn's, not the level's - it is how tough this character is
+	# in this fight rather than how developed they are.
+	stats["defense"] = spawn.defense if spawn != null else Stats.BASE_STAT
 	var comb = {
 		"name" = definition.name,
-		"max_hp" = definition.max_hp,
-		"hp" = definition.max_hp,
+		"max_hp" = definition.hp_at(level),
+		"hp" = definition.hp_at(level),
 		"class" = definition.class_t,
 		"alive" = true,
 		"movement_class" = definition.class_m,
-		"skill_list" = skills_lists[definition.class_t].duplicate(),
-		"icon" = definition.icon,
-		"map_sprite" = definition.map_sprite,
+		# What they go back to when a Hover or the like wears off. The live one
+		# above is what everything reads; this is only the floor under it.
+		"base_movement_class" = definition.class_m,
+		# Exactly what the database says this character knows. There used to be a
+		# list per class underneath this, so being a mage granted a mage's kit and
+		# the database only added to it - which meant a skill could not be taken
+		# away from a character without taking it from their whole class.
+		"skill_list" = definition.skills.duplicate(),
+		"icon" = definition.portrait(),
+		"map_sprite" = definition.map_still(),
 		"sprite_frames" = definition.sprite_frames,
 		"movement" = definition.movement,
 		"initiative" = definition.initiative,
@@ -193,7 +241,23 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		"status_effects" = [], # Active timed effects: {"stat":"movement","amount":-2,"duration":2} or a DoT tick: {"stat":"dot","min_amount":2,"max_amount":4,"duration":3}
 		"skill_used_this_turn" = false,
 		"secondary_used_this_turn" = false,
+		"reactions_suppressed" = false,
 		"secondary_skills" = definition.secondary_skills.duplicate(),
+		"items_as_secondary" = definition.items_as_secondary,
+		# Copied off the definition so combat can look a resistance up by damage
+		# type without going back to the database for it.
+		"resistances" = definition.resistance_table(),
+		# Physical / Mindfulness / Intellect / Self / Defense, keyed as
+		# Stats.KEYS names them. Flattened onto the combatant for the same
+		# reason resistances are: damage is worked out here, not in the database.
+		"stats" = stats,
+		"level" = level,
+		"weapon_base" = weapon_base,
+		# Spell slots remaining, indexed by level - [0] is unused so a skill's
+		# spell_slot_level reads straight into it. Battle-scoped: a fight starts
+		# with the full allowance and spends down from there.
+		"spell_slots" = definition.gates_at(level),
+		"max_spell_slots" = definition.gates_at(level),
 		"reaction_used" = false,
 		"ai_function" = definition.ai_function,
 		# Which CombatantDatabase entry this came from. Campaign keys the
@@ -201,11 +265,40 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# dictionary being rebuilt from scratch for each encounter.
 		"combatant_key" = combatant_key
 		}
+	# Kept so duplicates can be numbered off the name they share rather than off
+	# a name that has already been numbered.
+	comb["base_name"] = definition.name
 	if override_name != "":
 		comb.name = override_name
-	if definition.skills.size() > 0:
-		comb["skill_list"].append_array(definition.skills)
+		# The author has said what to call this one, so nothing renumbers it.
+		comb["named_by_author"] = true
 	return comb
+
+## Counts up forever within a battle, so an id is never reused even after a
+## combatant dies and another takes their place in the array.
+var _next_combatant_id := 1
+
+
+## Tells apart combatants who would otherwise share a name.
+##
+## The first Barbarian keeps the plain name; when a second arrives they become
+## "Barbarian 1" and "Barbarian 2", and so on. Anyone given a display_name on
+## their spawn is left alone - that is the author saying what to call them, and
+## "Goblin 3" should not become "Goblin 3 1".
+func _number_duplicates(arrival: Dictionary):
+	var base = arrival.get("base_name", arrival.name)
+	if arrival.get("named_by_author", false):
+		return
+	var sharing := []
+	for comb in combatants:
+		if comb.get("named_by_author", false):
+			continue
+		if comb.get("base_name", comb.name) == base:
+			sharing.append(comb)
+	if sharing.size() < 2:
+		return
+	for i in sharing.size():
+		sharing[i].name = "%s %d" % [base, i + 1]
 
 func sort_turn_queue(a, b):
 	if combatants[b].initiative < combatants[a].initiative:
@@ -216,12 +309,19 @@ func sort_turn_queue(a, b):
 func add_combatant(combatant: Dictionary, side: int, position: Vector2i):
 	combatant["position"] = position
 	combatant["side"] = side
+	# Something to be addressed by that is not their name. An encounter can field
+	# three barbarians, and the HUD used to find a combatant's icon by name -
+	# which meant killing one of the three could take the wrong icon off the
+	# screen, or none of them.
+	combatant["id"] = _next_combatant_id
+	_next_combatant_id += 1
 	combatants.append(combatant)
+	_number_duplicates(combatant)
 	groups[side].append(combatants.size() - 1)
 
 	var new_combatant_sprite = CombatantSprite.new()
 	$"../Terrain/TileMap".add_child(new_combatant_sprite)
-	new_combatant_sprite.position = Vector2(position * 32.0) + Vector2(16, 16)
+	new_combatant_sprite.position = Grid.tile_to_world(position)
 	new_combatant_sprite.z_index = 1
 	var facing_flip = side == 0
 	new_combatant_sprite.setup(combatant.sprite_frames, combatant.map_sprite, facing_flip)
@@ -247,11 +347,30 @@ func get_current_combatant():
 ## CombatantDefinition.secondary_skills - which is how Cyrus can Run twice in
 ## one turn, once from each slot.
 
+## Whether `comb` has reached the level `skill` needs. Everything a combatant
+## cannot use yet is left out of their panels entirely rather than shown greyed
+## out - the panel is what they can do now, not a preview of later.
+func meets_level_for(comb: Dictionary, skill: SkillDefinition) -> bool:
+	return comb.get("level", 1) >= skill.required_level
+
+
+## The skills and the consumables are listed apart now: what somebody knows how
+## to do does not belong in the same list as what happens to be in their bag,
+## and a party carrying four kinds of bottle buried their actual kit. See the
+## Consumables tab, filled from items_of().
 func main_skills_of(comb: Dictionary) -> Array:
 	var found = []
 	for key in comb.skill_list:
-		if SkillDatabase.skills.has(key) and not SkillDatabase.skills[key].is_secondary:
-			found.append(key)
+		if not SkillDatabase.skills.has(key):
+			continue
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		# Anything with a slot cost is shown on the Spells panel instead, even
+		# though it is spent from this same action.
+		if skill.is_secondary or skill.spell_slot_level > 0:
+			continue
+		if not meets_level_for(comb, skill):
+			continue
+		found.append(key)
 	return found
 
 
@@ -263,33 +382,112 @@ func secondary_skills_of(comb: Dictionary) -> Array:
 		# that would be refused.
 		return found
 	for key in comb.skill_list:
-		if SkillDatabase.skills.has(key) and SkillDatabase.skills[key].is_secondary:
+		if not SkillDatabase.skills.has(key):
+			continue
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		if skill.is_secondary and skill.spell_slot_level == 0 and meets_level_for(comb, skill):
 			found.append(key)
 	# A combatant's own secondary list can also grant a skill outright, so a
 	# character-specific secondary doesn't have to sit in their main list too.
 	for key in comb.get("secondary_skills", []):
-		if SkillDatabase.skills.has(key) and not found.has(key):
-			found.append(key)
+		if not SkillDatabase.skills.has(key) or found.has(key):
+			continue
+		if SkillDatabase.skills[key].spell_slot_level > 0:
+			continue
+		if not meets_level_for(comb, SkillDatabase.skills[key]):
+			continue
+		found.append(key)
 	return found
+
+
+## Everything `comb` knows that costs a spell slot, whichever action it spends.
+## Its own panel, because a caster's spell list is the part of their sheet that
+## needs reading against a resource, and mixing it into the main list buries it.
+func spell_skills_of(comb: Dictionary) -> Array:
+	var found = []
+	var offered = comb.skill_list.duplicate()
+	offered.append_array(comb.get("secondary_skills", []))
+	for key in offered:
+		if not SkillDatabase.skills.has(key) or found.has(key):
+			continue
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		if skill.spell_slot_level == 0:
+			continue
+		if not meets_level_for(comb, skill):
+			continue
+		if skill.is_secondary and has_restriction(comb, "prevents_secondary"):
+			continue
+		found.append(key)
+	return found
+
+
+## --- Spell slots ---
+##
+## Three levels, spent from a pool that lasts the battle. A skill can always be
+## paid for with a slot at or above its own level, never below - so a level 3
+## slot is the most flexible thing a caster has, and the most worth hoarding.
+
+
+## The cheapest slot that could pay for a level `level` skill, or 0 if none can.
+func slot_available_for(comb: Dictionary, level: int) -> int:
+	if level <= 0:
+		return 0
+	var slots = comb.get("spell_slots", [])
+	for candidate in range(level, 4):
+		if candidate < slots.size() and slots[candidate] > 0:
+			return candidate
+	return 0
+
+
+## Whether `comb` can currently afford `skill` at all. Free skills always can.
+func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
+	if skill.spell_slot_level <= 0:
+		return true
+	return slot_available_for(comb, skill.spell_slot_level) > 0
+
+
+## Spends the cheapest slot that covers `skill`, so a level 3 is never burned
+## on a level 1 spell while a level 1 is still going spare. Returns the level
+## actually spent, or 0 if the skill was free.
+func spend_slot_for(comb: Dictionary, skill: SkillDefinition) -> int:
+	var level = slot_available_for(comb, skill.spell_slot_level)
+	if level > 0:
+		comb.spell_slots[level] -= 1
+	return level
 
 
 ## Whether `comb` still has either action available. Used to decide when a turn
 ## has nothing left to do and can end on its own.
+##
+## A spell nobody can pay for does not count as something left to do, or a
+## caster out of slots would sit on a turn that can never end.
 func has_action_left(comb: Dictionary) -> bool:
-	if not comb.get("skill_used_this_turn", false) and not main_skills_of(comb).is_empty():
-		return true
-	if not comb.get("secondary_used_this_turn", false) and not secondary_skills_of(comb).is_empty():
-		return true
+	var castable = []
+	for key in spell_skills_of(comb):
+		if can_afford_skill(comb, SkillDatabase.skills[key]):
+			castable.append(key)
+	if not comb.get("skill_used_this_turn", false):
+		if not main_skills_of(comb).is_empty():
+			return true
+		for key in castable:
+			if not SkillDatabase.skills[key].is_secondary:
+				return true
+	if not comb.get("secondary_used_this_turn", false):
+		if not secondary_skills_of(comb).is_empty():
+			return true
+		for key in castable:
+			if SkillDatabase.skills[key].is_secondary:
+				return true
 	return false
 
 func get_distance(attacker: Dictionary, target: Dictionary):
 	return get_position_distance(attacker.position, target.position)
 
 
-## Generic entry point for using ANY skill - this replaced the old separate
-## attack_melee()/attack_ranged()/basic_magic() functions. A new skill needs
-## no new code here at all: just add it to skill_database.tscn and reference
-## its key in a combatant's skill list.
+## Generic entry point for using ANY skill, in place of the separate function
+## per attack this used to have. A new skill needs no new code here at all:
+## just add it to skill_database.tscn and reference its key in a combatant's
+## skill list.
 ## Targets a grid position, not a specific combatant - single-target skills
 ## are simply skills with aoe_radius = 0, so this one path handles both.
 ## Waits for attacker's skill animation (see CombatantSprite) to finish -
@@ -304,25 +502,67 @@ func get_distance(attacker: Dictionary, target: Dictionary):
 ## an enemy's whole turn. AI behaviors that mean to act again afterward
 ## (move further, use another skill) pass false and call advance_turn()
 ## themselves once they're truly done.
-func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2i, end_turn_after: bool = true, as_secondary: bool = false):
+func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2i, end_turn_after: bool = true, as_secondary: bool = false, destination: Vector2i = Vector2i(-99999, -99999)):
+	# Same reason as advance_turn: an AI that was walking when the battle was
+	# left comes back here to swing at somebody, on a battlefield that has
+	# already been freed.
+	if not still_running():
+		return
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	var distance = get_position_distance(attacker.position, impact_position)
 	var valid = distance <= effective_max_range(attacker, skill) and distance >= skill.min_range
+	if valid and not meets_level_for(attacker, skill):
+		update_information.emit("[color=yellow]%s[/color] has not learned %s yet.
+" % [attacker.name, skill.name])
+		if attacker.side == 1 and end_turn_after:
+			await advance_turn()
+		return
+	if valid and not can_afford_skill(attacker, skill):
+		update_information.emit("[color=yellow]%s[/color] has no level %d spell slot left for %s.\n" % [
+			attacker.name, skill.spell_slot_level, skill.name
+		])
+		if attacker.side == 1 and end_turn_after:
+			await advance_turn()
+		return
 	if valid:
 		controller.action_locked = true
 		game_ui.lock_action_buttons()
-		await attacker.sprite.play_skill_and_wait()
+		# Moved before the animation plays, so a blink-and-strike is seen landing
+		# and then swinging rather than swinging and then arriving. An area skill
+		# that moves its caster therefore bursts from where they end up.
+		if skill.teleports == SkillDefinition.TeleportWho.CASTER:
+			teleport_to(attacker, impact_position)
+		elif skill.teleports == SkillDefinition.TeleportWho.TARGET:
+			var travelling = get_combatant_at(impact_position)
+			if not travelling.is_empty():
+				teleport_to(travelling, destination)
+		await attacker.sprite.play_skill_and_wait(skill.animation)
+		play_skill_sound(skill)
 		controller.action_locked = false
 		game_ui.refresh_action_buttons()
 		if not attacker.alive:
 			# Something else killed them while their own skill's animation
 			# was still playing - nothing left to resolve.
 			return
-		var prob = clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
-		var random_number = randi() % 100
 		if attacker.side == 0:
 			last_player_skill_used = skill_key
-		if random_number < prob:
+		var spent = spend_slot_for(attacker, skill)
+		if spent > 0:
+			update_information.emit("[color=yellow]%s[/color] spends a level %d slot.\n" % [attacker.name, spent])
+		# The heaviest thing a caster can do should land like it. Keyed off the
+		# skill's own level rather than the slot spent, so paying for a level 1
+		# spell with a level 3 slot doesn't shake the map.
+		if skill.spell_slot_level >= 3:
+			shake_camera(LEVEL_THREE_SHAKE)
+		# A contested skill never rolls: it lands on everyone, in full on those
+		# it beats and as a graze on those it doesn't. An accuracy skill rolls
+		# once for the whole use, hit or miss.
+		var connected = true
+		if not skill.uses_stat_contest:
+			# One roll for the whole use, before it knows who it caught - so the
+			# study bonus is judged on whoever is standing where it was aimed.
+			connected = (randi() % 100) < hit_chance(attacker, skill, get_combatant_at(impact_position))
+		if connected:
 			var tiles = get_impact_tiles(skill, attacker.position, impact_position, attacker.movement_class)
 			var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally, skill.affects_both_sides)
 			for target in targets:
@@ -330,8 +570,17 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 				# multi-effect hit reads as one action rather than repeating
 				# "used Poison Dart" for every effect it carries.
 				var mention_skill = true
-				for effect in skill.effects:
-					apply_effect(attacker, target, effect, skill, mention_skill)
+				var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
+				if grazed:
+					update_information.emit("[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name])
+				for effect in skill.all_effects():
+					# A graze is damage only, at half strength - nothing that
+					# would stick, slow, poison or shove comes with it.
+					if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
+						continue
+					# An area skill shoves everyone caught outward from where it
+					# landed, so the shape of the blast reads off the recoil.
+					apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0, impact_position if skill.aoe_radius > 0 else attacker.position)
 					mention_skill = false
 		else:
 			update_information.emit("{0} missed.\n".format([attacker.name]))
@@ -342,6 +591,16 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			attacker.secondary_used_this_turn = true
 		else:
 			attacker.skill_used_this_turn = true
+		if skill.suppresses_reactions:
+			# Only for the rest of this turn. Cleared in advance_turn alongside the
+			# action slots, so it can never carry into the next one.
+			attacker.reactions_suppressed = true
+			update_information.emit("[color=yellow]%s[/color] moves unseen - nothing can react to them this turn.
+" % attacker.name)
+		# Spent here rather than at the click: an item aimed and then cancelled is
+		# still in the bag, and one that missed is still gone.
+		if is_item(skill_key):
+			consume_item(attacker, skill_key)
 		if attacker.side == 1:
 			if end_turn_after:
 				await advance_turn()
@@ -375,6 +634,9 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 ## caller (CController's per-step movement handler) depends on that to know
 ## mover's actual alive state before deciding whether to continue moving.
 func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_position: Vector2i):
+	if mover.get("reactions_suppressed", false):
+		# Slipped past: leaving somebody's reach is not an opening this turn.
+		return
 	for reactor in combatants:
 		if not reactor.alive or reactor == mover or reactor.reaction_used:
 			continue
@@ -385,18 +647,61 @@ func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_p
 			var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 			if not skill.is_reactive:
 				continue
+			if not can_afford_skill(reactor, skill) or not meets_level_for(reactor, skill):
+				# Out of slots for it, or not learned yet - either way there is
+				# nothing to offer and nothing to ask the player about.
+				continue
 			var valid_side = (reactor.side == mover.side) if skill.targets_ally else (reactor.side != mover.side)
 			if not valid_side:
 				continue
 			var distance_before = get_position_distance(reactor.position, previous_position)
 			var distance_after = get_position_distance(reactor.position, new_position)
-			var was_in_range = distance_before >= skill.min_range and distance_before <= skill.max_range
-			var now_in_range = distance_after >= skill.min_range and distance_after <= skill.max_range
+			# The reactor's reach, not the skill's: a blinded one can only see
+			# the tile beside them, and use_reactive_skill checks line of sight
+			# but never range, so this is the only thing standing between a
+			# blinded combatant and a shot across the map.
+			var reach = effective_max_range(reactor, skill)
+			var was_in_range = distance_before >= skill.min_range and distance_before <= reach
+			var now_in_range = distance_after >= skill.min_range and distance_after <= reach
 			if was_in_range and not now_in_range:
+				if skill.respects_blocking and not has_line_of_sight(reactor.position, previous_position, reactor.movement_class):
+					# The shot was blocked anyway - use_reactive_skill would
+					# bail on the same check, so there's nothing worth asking
+					# the player about.
+					break
+				if not await confirm_reaction(reactor, mover, skill):
+					# Passed on it. The reaction stays unspent, so the next
+					# enemy to break away this round asks again - but this
+					# reactor is done being asked about *this* move.
+					break
 				await use_reactive_skill(skill_key, reactor, mover, previous_position)
 				if not mover.alive:
 					return
 				break
+
+
+## Whether `reactor` should spend their one reaction on `mover` right now.
+##
+## The player is asked; enemies always say yes and take the first opportunity.
+## A reaction is one per combatant between their own turns, so for the player
+## it's a real decision - spending it on the first enemy to walk past is often
+## the wrong call - while the AI having to weigh that up would be a whole
+## behaviour of its own.
+##
+## Answering parks the mover mid-step, which is the same await that already
+## lets a reaction's animation finish before movement carries on. The movement
+## safety timeouts are told to stop counting meanwhile, so taking a while to
+## decide can't be mistaken for a hung coroutine.
+func confirm_reaction(reactor: Dictionary, mover: Dictionary, skill: SkillDefinition) -> bool:
+	if reactor.side != 0 or reaction_prompt == null:
+		return true
+	# Nothing to set or clear here: CController asks the prompt directly
+	# whether a question is up, so the movement timeouts can't be left
+	# switched off if this await never comes back.
+	var use_it = await reaction_prompt.ask(reactor, mover, skill)
+	if not use_it:
+		update_information.emit("[color=yellow]%s[/color] holds their reaction.\n" % reactor.name)
+	return use_it
 
 
 ## Resolves a reactive skill use: always a single-target hit against
@@ -416,23 +721,33 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	attacker.reaction_used = true
 	if attacker.side == 0:
 		last_player_skill_used = skill_key
+	var spent = spend_slot_for(attacker, skill)
+	if spent > 0:
+		update_information.emit("[color=yellow]%s[/color] spends a level %d slot.\n" % [attacker.name, spent])
 	update_information.emit("[color=yellow]{0}[/color] reacts as [color=red]{1}[/color] leaves range!\n".format([
 		attacker.name,
 		target.name
 	]))
 	controller.action_locked = true
 	game_ui.lock_action_buttons()
-	await attacker.sprite.play_skill_and_wait()
+	await attacker.sprite.play_skill_and_wait(skill.animation)
+	play_skill_sound(skill)
 	controller.action_locked = false
 	game_ui.refresh_action_buttons()
 	if not attacker.alive or not target.alive:
 		return
-	var prob = clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
-	var random_number = randi() % 100
-	if random_number < prob:
+	var connected = true
+	if not skill.uses_stat_contest:
+		connected = (randi() % 100) < hit_chance(attacker, skill, target)
+	if connected:
 		var mention_skill = true
-		for effect in skill.effects:
-			apply_effect(attacker, target, effect, skill, mention_skill)
+		var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
+		if grazed:
+			update_information.emit("[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name])
+		for effect in skill.all_effects():
+			if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
+				continue
+			apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0)
 			mention_skill = false
 	else:
 		update_information.emit("{0} missed.\n".format([attacker.name]))
@@ -634,10 +949,19 @@ func get_targets_in_tiles(tiles: Array, caster: Dictionary, targets_ally: bool, 
 ## true for the first effect landing on a given target, so the log reads
 ## "Cyrus used Poison Dart on Goblin 1, dealing 5 damage. Cyrus inflicted
 ## Poisoning on Goblin 1." rather than repeating the skill's name per effect.
-func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
+func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0, blast_origin = null):
+	# Flagged by who sent it, not by what it does: a heal from an enemy is
+	# still something the other side did to you, and reading the colour as
+	# "whose doing was this" stays true for buffs, shoves and dispels alike.
+	# Damage additionally shows its own type for a moment before settling into
+	# the side colour, so a hit says what it was as well as who sent it.
+	var damage_colour = null
+	if effect.type == EffectDefinition.EffectType.DAMAGE:
+		damage_colour = Damage.type_colour(effect.damage_type)
+	flash_target(attacker, target, damage_colour, blast_origin)
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
-			do_damage(attacker, target, effect, skill, mention_skill)
+			do_damage(attacker, target, effect, skill, mention_skill, power)
 		EffectDefinition.EffectType.HEAL:
 			do_heal(attacker, target, effect, skill, mention_skill)
 		EffectDefinition.EffectType.STAT_MODIFIER:
@@ -672,8 +996,10 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
 			target.status_effects.append({
 				"stat" = "dot", # reserved pseudo-stat marking a damage-over-time tick
+				"damage_type" = effect.damage_type,
 				"min_amount" = effect.min_amount,
 				"max_amount" = effect.max_amount,
+				"dot_base" = dot_base_damage(attacker, skill, effect.damage_modifier),
 				"duration" = stored_duration(target, effect),
 				"source_name" = attacker.name
 			})
@@ -686,14 +1012,50 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				target.status_effects.append({
 					"stat" = "condition",
 					"condition" = effect.condition,
-					"duration" = stored_duration(target, effect.condition),
+					"dot_base" = dot_base_damage(attacker, skill, effect.condition.dot_modifier),
+					"duration" = condition_turns(target, effect),
 					"source_name" = attacker.name
 				})
 				if effect.condition.movement_change != 0:
 					resync_live_movement(target, movement_before)
+				# The icons hang off the portraits, and the portraits are only
+				# redrawn when this goes out. Without it, a condition landing
+				# mid-turn showed on nobody until the turn changed.
+				update_combatants.emit(combatants)
 				update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, effect.condition.display_name))
+		EffectDefinition.EffectType.MOVEMENT_CLASS:
+			target.status_effects.append({
+				"stat" = "movement_class",
+				"op" = "set",
+				"amount" = effect.movement_class,
+				"duration" = stored_duration(target, effect),
+				"source_name" = attacker.name
+			})
+			resync_movement_class(target)
+			# The strip under the portrait is only redrawn when this goes out,
+			# and a change to how somebody moves should show the moment it lands.
+			update_combatants.emit(combatants)
+			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
+				"moving as %s" % Stats.movement_class_name(effect.movement_class).to_lower()))
 		EffectDefinition.EffectType.DISPEL:
 			dispel_status_effects(attacker, target, effect)
+		EffectDefinition.EffectType.REVEAL:
+			# Knowledge, not an injury: it lasts the battle, nothing cleanses it
+			# off, and studying the same enemy twice is the same knowledge again.
+			var already_known = _has_studied(attacker, target)
+			target["studied"] = true
+			# Who did the measuring, as well as that it has been done. The reading
+			# is the player's either way - one sheet, shared - but the edge it gives
+			# in a fight belongs to whoever spent the action on it.
+			var measured_by: Array = target.get("studied_by", [])
+			if not (attacker.get("id", -1) in measured_by):
+				measured_by.append(attacker.get("id", -1))
+			target["studied_by"] = measured_by
+			if already_known:
+				update_information.emit("[color=yellow]%s[/color] already has [color=red]%s[/color] measured.\n" % [attacker.name, target.name])
+			else:
+				update_information.emit("[color=yellow]%s[/color] studies [color=red]%s[/color], and can read them in full - press C.\n" % [attacker.name, target.name])
+			combatant_studied.emit(target)
 		EffectDefinition.EffectType.PUSH:
 			apply_knockback(attacker, target, effect, false)
 		EffectDefinition.EffectType.PULL:
@@ -702,6 +1064,27 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 
 ## --- Conditions ---
 ##
+## Puts `comb` on whichever movement class it should be on right now: the last
+## one a skill laid on it that is still running, or the one it was born with.
+##
+## Everything that asks how somebody gets about - pathfinding, what blocks them,
+## what they can shoot past, what a tile costs them - reads comb.movement_class
+## straight off the dictionary. So this keeps that single field honest rather
+## than making twenty call sites remember to ask a question instead, which is
+## the version of this where one of them forgets and a flying unit walks a
+## grounded path.
+##
+## Safe to call at any time, and idempotent: it recomputes from scratch rather
+## than undoing anything, so it does not care what order effects were added or
+## taken away in.
+func resync_movement_class(comb: Dictionary):
+	var wanted = comb.get("base_movement_class", comb.get("movement_class", 0))
+	for eff in comb.get("status_effects", []):
+		if eff.get("stat", "") == "movement_class":
+			wanted = eff.get("amount", wanted)
+	comb["movement_class"] = wanted
+
+
 ## A condition is stored in status_effects like anything else, under the
 ## reserved pseudo-stat "condition", carrying the ConditionDefinition itself.
 ## Everything that needs to know whether someone is stunned, blinded, poisoned
@@ -768,6 +1151,24 @@ func stored_duration(target: Dictionary, source) -> int:
 	return source.duration
 
 
+## How long the condition `effect` inflicts should last on `target`.
+##
+## The skill decides if it has an opinion - EffectDefinition.condition_duration
+## above zero - and the condition's own duration is used otherwise. That way a
+## skill can land a brief Blind or a punishing one without a second Blind
+## resource existing just to hold a different number, and every skill that
+## does not care keeps behaving as it always did.
+##
+## Docked by one when it lands on whoever is currently acting, for the same
+## reason stored_duration docks it: they are part-way through the turn it would
+## otherwise get for free.
+func condition_turns(target: Dictionary, effect: EffectDefinition) -> int:
+	var turns = effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration
+	if target == get_current_combatant():
+		return maxi(turns - 1, 0)
+	return turns
+
+
 ## Folds a movement buff or debuff that just landed into the live movement
 ## counter for the combatant currently acting.
 ##
@@ -803,13 +1204,23 @@ func describe_condition(attacker: Dictionary, target: Dictionary, effect: Effect
 ## (see EffectDefinition.dispel_stat / dispel_scope).
 func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: EffectDefinition):
 	var removed = 0
+	# From the end, so the most recently acquired goes first. That only shows
+	# when dispel_count limits how many come off - a remedy that lifts one thing
+	# should lift the thing that just happened.
 	var i = target.status_effects.size() - 1
 	while i >= 0:
+		if effect.dispel_count > 0 and removed >= effect.dispel_count:
+			break
 		if should_dispel(target.status_effects[i], effect):
 			target.status_effects.remove_at(i)
 			removed += 1
 		i -= 1
+	# One of the things lifted may have been what was keeping them off the floor.
+	resync_movement_class(target)
 	if removed > 0:
+		# Same reason as applying one: the icon has to leave the portrait as
+		# the cleanse lands, not when the turn happens to end.
+		update_combatants.emit(combatants)
 		update_information.emit("[color=yellow]{0}[/color] cleansed {1} effect(s) from [color=lightgreen]{2}[/color]\n".format([
 			attacker.name,
 			removed,
@@ -823,7 +1234,12 @@ func should_dispel(status_effect: Dictionary, dispel_effect: EffectDefinition) -
 	if dispel_effect.dispel_scope == EffectDefinition.DispelScope.BOTH:
 		return true
 	var is_multiply = status_effect.get("op", "add") == "multiply"
-	var is_debuff = status_effect.stat == "dot"
+	# A condition is always something done to you - there is no such thing as a
+	# helpful one in this game, and every entry in res://conditions is an
+	# affliction. It carries no `amount`, so the tests below could never see it
+	# as a debuff: Cleanse, which exists to lift debuffs, could not lift a
+	# single Poisoning, Burn or Crystallisation off anybody.
+	var is_debuff = status_effect.stat == "dot" or status_effect.stat == "condition"
 	is_debuff = is_debuff or (is_multiply and status_effect.get("amount", 1.0) < 1.0)
 	is_debuff = is_debuff or (not is_multiply and status_effect.get("amount", 0) < 0)
 	if dispel_effect.dispel_scope == EffectDefinition.DispelScope.DEBUFFS_ONLY:
@@ -846,11 +1262,14 @@ func get_combatant_at(position: Vector2i) -> Dictionary:
 ## combatant, or - when pulling - one tile short of the attacker (capped by
 ## proximity, not just an exact-tile match, since the aimed direction is
 ## snapped to the nearest 45° and so rarely lines up on the attacker's tile
-## exactly unless they're already aligned). If a PUSH (not a PULL) gets
-## stopped short specifically by the map edge or a blocking tile, it also
-## deals effect.min_amount-max_amount collision damage - being slammed into
-## a wall hurts; bumping into another combatant, or a pull falling short,
-## doesn't.
+## exactly unless they're already aligned).
+##
+## A PUSH (not a PULL) stopped short deals effect.min_amount-max_amount
+## collision damage: into the map edge or a blocking tile it hurts whoever was
+## shoved, and into another combatant it hurts them both, since a body stopping
+## a body is a collision from either side of it. One roll for the impact, each
+## of them resisting it with their own resistances - it is a single event, not
+## two coincidental ones. A pull falling short never hurts anybody.
 func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, pulling: bool):
 	if target.position == attacker.position:
 		return
@@ -860,6 +1279,8 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 	var old_position = target.position
 	var final_position = target.position
 	var hit_obstacle = false
+	## Whoever the shove ran into, if it ran into somebody rather than something.
+	var bumped: Dictionary = {}
 	var max_steps = effect.knockback_distance
 	if pulling:
 		# Chebyshev distance, since movement (and this) is 8-directional -
@@ -877,11 +1298,12 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 			break
 		var occupant = get_combatant_at(candidate)
 		if occupant.size() > 0:
+			bumped = occupant
 			break
 		final_position = candidate
 	if final_position != old_position:
 		target.position = final_position
-		target.sprite.position = Vector2(final_position * 32.0) + Vector2(16, 16)
+		target.sprite.position = Grid.tile_to_world(final_position)
 		controller.reposition_combatant(old_position, final_position)
 		var distance_moved = get_position_distance(old_position, final_position)
 		update_information.emit("[color=yellow]{0}[/color] {1} [color=red]{2}[/color] {3} tile(s)\n".format([
@@ -890,16 +1312,37 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 			target.name,
 			distance_moved
 		]))
-	if hit_obstacle and not pulling and target.alive and effect.max_amount > 0:
-		var collision_damage = randi_range(effect.min_amount, effect.max_amount)
-		target.hp -= collision_damage
-		update_combatants.emit(combatants)
-		update_information.emit("[color=red]{0}[/color] slammed into an obstacle, taking [color=gray]{1} damage[/color]\n".format([
-			target.name,
-			collision_damage
-		]))
-		if target.hp <= 0:
-			combatant_die(target)
+	if pulling or effect.max_amount <= 0:
+		return
+	var impact = randi_range(effect.min_amount, effect.max_amount)
+	if hit_obstacle and target.alive:
+		_take_collision_damage(target, effect, impact, "slammed into an obstacle")
+	elif not bumped.is_empty() and bumped.alive:
+		# Both of them, and the one still standing where they were takes it too:
+		# they are what stopped the other.
+		if target.alive:
+			_take_collision_damage(target, effect, impact,
+				"slammed into [color=red]%s[/color]" % bumped.name)
+		if bumped.alive:
+			_take_collision_damage(bumped, effect, impact,
+				"was slammed into by [color=red]%s[/color]" % target.name)
+
+
+## Applies one collision's worth of damage to `who`, resisted by them, and
+## reports it. Shared by the wall case and both halves of a body-to-body one so
+## the three cannot drift apart.
+func _take_collision_damage(who: Dictionary, effect: EffectDefinition, impact: int, what_happened: String):
+	var collision_damage = resisted_damage(who, effect.damage_type, impact)
+	who.hp -= collision_damage
+	show_damage(who, collision_damage, effect.damage_type, true)
+	update_combatants.emit(combatants)
+	update_information.emit("[color=red]{0}[/color] {1}, taking [color=gray]{2} damage[/color]\n".format([
+		who.name,
+		what_happened,
+		collision_damage
+	]))
+	if who.hp <= 0:
+		combatant_die(who)
 
 
 ## Ticks any damage-over-time effects and removes one turn of duration from
@@ -920,24 +1363,38 @@ func process_status_effects(comb: Dictionary):
 			continue
 		if eff.stat == "dot":
 			tick_damage_over_time(comb, eff)
-		elif eff.get("stat", "") == "condition" and eff.condition != null and eff.condition.dot_max > 0:
-			tick_condition_damage(comb, eff.condition)
+		elif eff.get("stat", "") == "condition" and eff.condition != null and (eff.condition.dot_max > 0 or eff.condition.dot_modifier > 0.0):
+			tick_condition_damage(comb, eff.condition, eff.get("dot_base", 0.0))
 		eff.duration -= 1
 		i -= 1
+	# Anything that just expired may have been holding them in the air.
+	resync_movement_class(comb)
 	clamp_hp_to_max(comb)
 
 
 ## Burns a turn's worth of damage off someone suffering a condition that deals
 ## it. Same shape as tick_damage_over_time, but named by the condition so the
 ## log says what is actually hurting them.
-func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition):
+## One tick of a lingering effect, before resistance. Uses the snapshot taken
+## when it landed if there is one, and the flat range if there is not - which
+## is what a condition inflicted with no skill behind it falls back to.
+func dot_tick(target: Dictionary, dot_base: float, flat_min: int, flat_max: int) -> int:
+	if dot_base > 0.0:
+		return Stats.final_damage(dot_base, 1.0, stat_of(target, Stats.Type.DEFENSE))
+	return randi_range(flat_min, flat_max)
+
+
+func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition, dot_base: float = 0.0):
 	if not comb.alive:
 		return
-	var amount = randi_range(condition.dot_min, condition.dot_max)
+	var resistance = resistance_of(comb, condition.dot_type)
+	var amount = resisted_damage(comb, condition.dot_type, dot_tick(comb, dot_base, condition.dot_min, condition.dot_max))
 	comb.hp -= amount
+	show_damage(comb, amount, condition.dot_type, true)
 	update_combatants.emit(combatants)
-	update_information.emit("[color=red]%s[/color] took [color=gray]%d damage[/color] from %s.\n" % [
-		comb.name, amount, condition.display_name
+	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from %s.\n" % [
+		comb.name, amount, Damage.type_name(condition.dot_type).to_lower(),
+		Damage.describe_resistance(resistance), condition.display_name
 	])
 	if comb.hp <= 0:
 		combatant_die(comb)
@@ -946,14 +1403,16 @@ func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition):
 func tick_damage_over_time(comb: Dictionary, eff: Dictionary):
 	if not comb.alive:
 		return
-	var amount = randi_range(eff.min_amount, eff.max_amount)
+	var type = eff.get("damage_type", Damage.Type.PHYSICAL)
+	var resistance = resistance_of(comb, type)
+	var amount = resisted_damage(comb, type, dot_tick(comb, eff.get("dot_base", 0.0), eff.min_amount, eff.max_amount))
 	comb.hp -= amount
+	show_damage(comb, amount, type, true)
 	update_combatants.emit(combatants)
-	update_information.emit("[color=red]{0}[/color] took [color=gray]{1} damage[/color] from a lingering effect ({2})\n".format([
-		comb.name,
-		amount,
+	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from a lingering effect (%s).\n" % [
+		comb.name, amount, Damage.type_name(type).to_lower(), Damage.describe_resistance(resistance),
 		eff.get("source_name", "unknown")
-	]))
+	])
 	if comb.hp <= 0:
 		combatant_die(comb)
 
@@ -1020,6 +1479,14 @@ func set_next_combatant():
 ## its own turn - must await it for this chain to actually hold; skipping
 ## await anywhere reopens the same race.
 func advance_turn():
+	# The fight may have been walked out of while somebody was mid-move. The
+	# enemy's turn is a coroutine several awaits deep, and the scene it stands
+	# on is freed the moment the title screen is asked for - but ai_move returns
+	# cleanly rather than vanishing, so the chain unwinds back to here and asks
+	# a Combat that is no longer in the tree for a timer. There is no turn to
+	# advance once the battle is gone.
+	if not still_running():
+		return
 	combatants[current_combatant].turn_taken = true
 	set_next_combatant()
 	var comb = combatants[current_combatant]
@@ -1038,6 +1505,7 @@ func advance_turn():
 		comb.skill_used_this_turn = false
 		comb.secondary_used_this_turn = false
 		comb.reaction_used = false
+		comb.reactions_suppressed = false
 		process_status_effects(comb)
 		if not comb.alive:
 			# A damage-over-time tick (or similar) killed them just as their
@@ -1057,8 +1525,15 @@ func advance_turn():
 	emit_signal("turn_advanced", comb)
 	emit_signal("update_combatants", combatants)
 	if comb.side == 1:
+		# Look at them before they act, so the pause below is the view travelling
+		# rather than dead air.
+		watch_combatant(comb)
 		await get_tree().create_timer(0.6).timeout
+		if not still_running():
+			# The fight was left during the pause before this enemy acted.
+			return
 		await ai_process(comb)
+		stop_watching()
 
 
 ## Blows a windswept combatant across the map at the start of their turn.
@@ -1079,7 +1554,26 @@ func apply_drift(comb: Dictionary):
 		Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN,
 		Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)
 	]
-	var direction = DIRECTIONS[randi() % DIRECTIONS.size()]
+	# Somewhere it can actually take them. Picking one of the eight at random
+	# and giving up when that way happened to be a wall meant the wind did
+	# nothing at all most of the time in a room - which reads as the condition
+	# being broken rather than as the body being braced against something.
+	var options := DIRECTIONS.duplicate()
+	options.shuffle()
+	var direction = Vector2i.ZERO
+	for candidate in options:
+		var first_step = comb.position + candidate
+		if not controller.is_in_bounds(first_step):
+			continue
+		if controller.is_tile_blocking(first_step, comb.movement_class):
+			continue
+		if not get_combatant_at(first_step).is_empty():
+			continue
+		direction = candidate
+		break
+	if direction == Vector2i.ZERO:
+		# Hemmed in on all eight sides. Nowhere for the wind to put them.
+		return
 	var from = comb.position
 	var landed = from
 	for step in range(1, tiles + 1):
@@ -1094,7 +1588,7 @@ func apply_drift(comb: Dictionary):
 	if landed == from:
 		return
 	comb.position = landed
-	comb.sprite.position = Vector2(landed * 32.0) + Vector2(16, 16)
+	comb.sprite.position = Grid.tile_to_world(landed)
 	controller.reposition_combatant(from, landed)
 	update_information.emit("[color=red]%s[/color] is blown %d tile(s) off course.\n" % [
 		comb.name, get_position_distance(from, landed)
@@ -1121,25 +1615,300 @@ func combat_finish():
 	emit_signal("combat_finished")
 
 
-func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
-	var damage = randi_range(effect.min_amount, effect.max_amount)
+## How much `type` damage `target` actually takes from a raw `amount`, after
+## their own resistance to it. The single place resistances are applied, so a
+## direct hit, a damage-over-time tick, a condition burning away and a shove
+## into a wall are all treated the same way.
+func resisted_damage(target: Dictionary, type: int, amount: int) -> int:
+	return Damage.after_resistance(amount, resistance_of(target, type))
+
+
+func resistance_of(target: Dictionary, type: int) -> int:
+	return target.get("resistances", {}).get(type, 0)
+
+
+## --- Skill sounds ---
+##
+## A skill names its own sound (see SkillDefinition.sound) and it plays as the
+## animation finishes, so the noise lands with the blow rather than under the
+## wind-up. Silent for any skill with no sound set, which is all of them until
+## one is given audio.
+
+## Enough players that a reaction going off during someone else's swing does
+## not cut it short. Beyond this the oldest sound is the one that loses, which
+## at four overlapping noises is what you would want anyway.
+const SOUND_VOICES = 4
+
+var _sound_players: Array = []
+var _next_voice := 0
+
+
+func _build_sound_players():
+	for i in SOUND_VOICES:
+		var player = AudioStreamPlayer.new()
+		player.bus = "SFX"
+		add_child(player)
+		_sound_players.append(player)
+
+
+## Plays `skill`'s sound, if it has one. Round-robin across the voices rather
+## than one shared player, so two skills resolving close together both sound.
+func play_skill_sound(skill: SkillDefinition):
+	if skill == null or skill.sound == null:
+		return
+	if _sound_players.is_empty():
+		_build_sound_players()
+	var player = _sound_players[_next_voice]
+	_next_voice = (_next_voice + 1) % _sound_players.size()
+	player.stream = skill.sound
+	player.volume_db = skill.sound_volume_db
+	player.play()
+
+
+## How hard a level 3 spell rattles the view, in screen pixels at its peak.
+const LEVEL_THREE_SHAKE = 14.0
+
+
+## Rattles the view, if this battle has a camera to rattle. Silent when it
+## doesn't, so nothing needs a camera to work.
+func shake_camera(pixels: float):
+	if camera != null and is_instance_valid(camera):
+		camera.shake(pixels)
+
+
+## Flashes `target` to show a skill landed on them - red when it came from the
+## other side, green when it came from their own, and briefly the damage
+## type's own colour first when there was damage. Called once per effect; the
+## sprite collapses repeats so a two-effect skill still reads as one hit.
+##
+## Also shoves the drawn sprite away from wherever the hit came from. For an
+## area skill that is away from the blast rather than from the caster, so the
+## shape of what just went off is readable from the recoil alone.
+func flash_target(attacker: Dictionary, target: Dictionary, damage_colour = null, from_position = null):
+	var sprite = target.get("sprite")
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	# Defaulted for the same reason do_damage defaults it: side belongs to being
+	# on the board, and this can be reached by anything that has been created
+	# but not placed.
+	sprite.flash_hit(attacker.get("side", 1) != target.get("side", 1), damage_colour)
+	var origin = from_position if from_position != null else attacker.position
+	if origin != target.position:
+		sprite.recoil(Vector2(target.position - origin))
+
+
+## Floats a number off `target` - what they just lost, or gained. Parented to
+## whatever holds the combatant sprites so it shares their coordinate space and
+## scrolls with the map.
+func float_number(target: Dictionary, text: String, colour: Color):
+	var sprite = target.get("sprite")
+	if sprite == null or not is_instance_valid(sprite) or sprite.get_parent() == null:
+		return
+	FloatingNumber.spawn(sprite.get_parent(), sprite.position, text, colour)
+
+
+## Blooms the screen edges in `colour`. Silent when this battle has no vignette
+## wired up, so nothing depends on it existing.
+func flare_hurt(colour: Color, share_of_health: float, lethal: bool = false):
+	if hurt_vignette == null or not is_instance_valid(hurt_vignette):
+		return
+	# A scratch should barely register; a blow that takes a third of someone
+	# should be impossible to miss. Floored so even a small hit says something.
+	hurt_vignette.flare(colour, clampf(0.25 + share_of_health * 2.0, 0.0, 1.0), lethal)
+
+
+## Everything that shows a point of damage arriving: the number where it landed,
+## the screen edges for the player's own side, and a beat of frozen time.
+##
+## Shared by a direct hit, a lingering tick and a shove into a wall, because a
+## poison that kills you should look no less like something that happened than
+## a sword that does - and before this, only the sword did. `flash` is for the
+## paths with no attacker to recoil away from, where apply_effect has not
+## already tinted the target.
+func show_damage(target: Dictionary, amount: int, type: int, flash: bool = false):
+	if amount <= 0:
+		return
+	var ceiling = get_effective_stat(target, "max_hp")
+	float_number(target, str(amount), Damage.type_colour(type))
+	if flash:
+		var sprite = target.get("sprite")
+		if sprite != null and is_instance_valid(sprite):
+			sprite.flash_hit(true, Damage.type_colour(type))
+	if target.get("side", 1) == 0:
+		# Twice the intensity when this is the blow that takes them down, and
+		# read before the death is applied - target.hp is already below zero by
+		# the time anyone would ask afterwards.
+		flare_hurt(Damage.type_colour(type), float(amount) / maxf(ceiling, 1.0), target.hp <= 0)
+	var freeze = hit_stop_for(amount, ceiling)
+	if freeze > 0.0:
+		hit_stop(freeze)
+
+
+## --- Hit stop ---
+##
+## A beat of frozen time on impact. It is most of what makes a hit feel like it
+## weighs something, and it costs nothing to produce - no art, no sound, no
+## animation. Scaled by how much of the target it took off, so a scratch does
+## not stop the world.
+
+const HIT_STOP_MINIMUM = 0.03
+const HIT_STOP_MAXIMUM = 0.13
+
+## How many hit stops are currently waiting to end. Time only starts again
+## when the last of them does - otherwise two hits landing together would have
+## the first one's release cut the second one short.
+var _hit_stop_depth := 0
+
+
+## Freezes everything for `seconds` of real time. Deliberately not awaited by
+## its callers: the freeze is a garnish on a hit that has already resolved, and
+## making the whole combat coroutine wait on it would put it in the path of
+## everything that follows.
+func hit_stop(seconds: float):
+	_hit_stop_depth += 1
+	Engine.time_scale = 0.0
+	# Real seconds, not scaled ones - a timer running on scaled time would
+	# never tick while the scale is zero, and the freeze would be permanent.
+	await get_tree().create_timer(seconds, true, false, true).timeout
+	_hit_stop_depth = maxi(_hit_stop_depth - 1, 0)
+	if _hit_stop_depth == 0:
+		Engine.time_scale = 1.0
+
+
+## The freeze for a hit that took `damage` off a target with `max_hp`, or 0 for
+## one too small to be worth stopping for.
+func hit_stop_for(damage: int, max_hp: int) -> float:
+	if damage <= 0 or max_hp <= 0:
+		return 0.0
+	var share = clampf(float(damage) / float(max_hp), 0.0, 1.0)
+	return lerpf(HIT_STOP_MINIMUM, HIT_STOP_MAXIMUM, share)
+
+
+## Time scale is global, so a battle torn down mid-freeze would leave the whole
+## game stopped with nothing left running to start it again.
+func _exit_tree():
+	# Leaving a battle mid-flight, by any route: Arena Mode, the title screen, or
+	# walking back out to the map. Anything this battle turned on globally has to
+	# come off here rather than at the end of an await chain the scene change has
+	# already cut - a hit-stop left behind freezes the game everywhere, including
+	# the menu just opened.
+	if _hit_stop_depth > 0 or Engine.time_scale == 0.0:
+		_hit_stop_depth = 0
+		Engine.time_scale = 1.0
+	stop_watching()
+
+
+## --- Attributes and the damage they produce ---
+
+
+## One of the five attributes on `comb`, by Stats.Type. Ten for anyone created
+## before stats existed, which is the database default too, so an unfilled
+## entry behaves like an ordinary one rather than dealing nothing.
+func stat_of(comb: Dictionary, type: int) -> int:
+	var key = Stats.stat_key(type)
+	if key == "":
+		return 0
+	return comb.get("stats", {}).get(key, 10)
+
+
+## Whether a contested skill lands in full on `target`. The caster's own
+## scaling stat is weighed against whichever stat the skill names - so the same
+## Fireball that overwhelms a frail sorcerer only singes an armoured knight,
+## with no dice involved either way.
+func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> bool:
+	return stat_of(target, skill.contest_stat) < stat_of(attacker, skill.scaling_stat)
+
+
+## What one DAMAGE effect of `skill` does to `target`, before resistances.
+## `power` is 1.0 for a clean hit and 0.5 for a graze.
+##
+## BaseDamage = WeaponBase + 0.7 x Stat, FinalDamage = BaseDamage x
+## AbilityModifier x 40/(40 + Defense). The effect's own min/max amounts are
+## not consulted at all - a skill's damage is entirely the caster's stat and
+## the skill's modifier, which is what makes the same spell scale with whoever
+## casts it.
+func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefinition, power: float = 1.0) -> int:
+	if skill is ItemDefinition:
+		# A bomb is a bomb whoever throws it, so nothing of the thrower goes into
+		# this. The target still soaks it with their Defense exactly as they would
+		# a skill - an item does not scale, but it is still contested.
+		return Stats.final_damage(skill.flat_power, power, stat_of(target, Stats.Type.DEFENSE))
+	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat), attacker.get("weapon_base", Stats.WEAPON_BASE))
+	return Stats.final_damage(base, skill.ability_modifier * power, stat_of(target, Stats.Type.DEFENSE))
+
+
+
+## What `skill` swings for before anybody's defence takes its share - the number
+## the skill itself is worth, which is what the action panel shows.
+##
+## The same arithmetic as skill_damage with the target's half left out, and the
+## mirror of heal_amount: a heal has never had a target's defence in it either,
+## which is why the two now read the same way on the panel.
+func base_skill_damage(attacker: Dictionary, skill: SkillDefinition) -> int:
+	if skill is ItemDefinition:
+		# What is written on the bomb, whoever throws it.
+		return maxi(skill.flat_power, 0)
+	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat), attacker.get("weapon_base", Stats.WEAPON_BASE))
+	return maxi(roundi(base * skill.ability_modifier), 0)
+
+
+## What `skill` mends when `healer` casts it. No defence on the other side of
+## it - being tough does not make you harder to patch up - and no randomness,
+## so a heal is something you can count on when deciding whether it is enough.
+func heal_amount(healer: Dictionary, skill: SkillDefinition) -> int:
+	if skill is ItemDefinition:
+		# What is written on the bottle, whoever uncorks it. Nothing contests a
+		# heal, so unlike damage it is simply the number.
+		return maxi(skill.flat_power, 0)
+	var base = Stats.base_damage(stat_of(healer, skill.scaling_stat), healer.get("weapon_base", Stats.WEAPON_BASE))
+	return maxi(roundi(base * skill.ability_modifier), 0)
+
+
+## What a lingering tick from `skill` should be worth, before the target's own
+## defence and resistance are applied. Zero when there is no skill to scale
+## off, which tells the tick to fall back to its flat amounts.
+##
+## Snapshotted when the effect lands rather than recomputed each turn: the
+## caster may be dead, moved, or debuffed by the time it ticks, and a poison
+## getting weaker because the poisoner was hit is not what anyone expects.
+## The target's side of it - defence and resistance - is still read live, so
+## shoring yourself up mid-burn does help.
+func dot_base_damage(attacker: Dictionary, skill: SkillDefinition, modifier: float) -> float:
+	if skill == null or modifier <= 0.0:
+		return 0.0
+	return Stats.base_damage(stat_of(attacker, skill.scaling_stat)) * skill.ability_modifier * modifier
+
+
+func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):
+	var resistance = resistance_of(target, effect.damage_type)
+	# A skill's damage comes from the caster's stat and the skill's modifier.
+	# The effect's own min/max only stand in when there is no skill behind the
+	# damage at all - a condition burning away, a shove into a wall.
+	var raw = skill_damage(attacker, target, skill, power) if skill != null else randi_range(effect.min_amount, effect.max_amount)
+	var damage = resisted_damage(target, effect.damage_type, raw)
+	var flavour = "%s damage%s" % [Damage.type_name(effect.damage_type).to_lower(), Damage.describe_resistance(resistance)]
 	target.hp -= damage
+	show_damage(target, damage, effect.damage_type)
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
-		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=gray]%d damage[/color].\n" % [
-			attacker.name, skill.name, target.name, damage
+		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=gray]%d %s[/color].\n" % [
+			attacker.name, skill.name, target.name, damage, flavour
 		])
 	else:
-		update_information.emit("[color=yellow]%s[/color] dealt [color=gray]%d damage[/color] to [color=red]%s[/color].\n" % [
-			attacker.name, damage, target.name
+		update_information.emit("[color=yellow]%s[/color] dealt [color=gray]%d %s[/color] to [color=red]%s[/color].\n" % [
+			attacker.name, damage, flavour, target.name
 		])
 	if target.hp <= 0:
 		combatant_die(target)
 
 
 func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
-	var amount = randi_range(effect.min_amount, effect.max_amount)
+	# The same shape as damage: the healer's stat and the skill's modifier. The
+	# effect's flat range only stands in when there is no skill behind the
+	# healing at all, the way it does for damage.
+	var amount = heal_amount(attacker, skill) if skill != null else randi_range(effect.min_amount, effect.max_amount)
 	target.hp = mini(target.hp + amount, get_effective_stat(target, "max_hp"))
+	float_number(target, "+" + str(amount), Color("7fe08a"))
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
 		update_information.emit("[color=yellow]%s[/color] used %s on [color=lightgreen]%s[/color], healing [color=gray]%d[/color].\n" % [
@@ -1278,17 +2047,19 @@ func find_most_afflicted_ally(comb: Dictionary) -> Dictionary:
 
 ## The offensive, single-target (not AoE) skill in comb's skill_list with
 ## the largest max_range - used by AI archetypes that fight from range with
-## single-target skills specifically. Falls back to "attack_melee".
+## single-target skills specifically. Falls back to "greatsword_attack".
 ## Picks by the range they can actually manage right now, not the range printed
 ## on the skill - a blinded combatant should reach for something usable at one
 ## tile rather than an archery skill it can no longer aim.
 func find_best_single_target_skill(comb: Dictionary) -> String:
-	var best_key = "attack_melee"
+	var best_key = "greatsword_attack"
 	var best_range = -1
 	for skill_key in comb.skill_list:
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 		if skill.targets_ally or skill.aoe_radius > 0:
 			continue
+		if not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
+			continue # out of slots for it, or not learned yet
 		var reach = effective_max_range(comb, skill)
 		if reach < skill.min_range:
 			continue # capped below its own minimum - unusable at all
@@ -1311,7 +2082,9 @@ func movement_budget_of(comb: Dictionary) -> int:
 func find_skill_of_type(comb: Dictionary, effect_type: EffectDefinition.EffectType) -> String:
 	for skill_key in comb.skill_list:
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
-		for effect in skill.effects:
+		if not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
+			continue
+		for effect in skill.all_effects():
 			if effect.type == effect_type:
 				return skill_key
 	return ""
@@ -1379,6 +2152,34 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 	var best_aim = caster_position
 	var best_count = 0
 	var reach = effective_max_range(caster, skill) if not caster.is_empty() else skill.max_range
+	# A blast is centred on the tile aimed at, so whether it catches somebody is
+	# a distance test - and whether the caster could land it on them at all is a
+	# question about where the caster is STANDING, not about where it aims. So
+	# both are settled once, here, instead of rebuilding the whole blast and
+	# re-walking its line of sight for each of the hundreds of tiles it might
+	# aim at.
+	#
+	# Same answer as building the tiles and looking for players in them. Not the
+	# same price: a caster with three area skills and fifteen tiles of reach was
+	# taking eleven seconds to decide one turn, which on the web build reads as
+	# the game having died rather than as the game thinking. See ai_caster.
+	#
+	# Only blasts. A LINE or CONE is aimed as a direction from the caster, so
+	# its tiles do not sit around the aim and the shortcut does not hold.
+	var is_blast = skill.aoe_shape != SkillDefinition.AoEShape.LINE 		and skill.aoe_shape != SkillDefinition.AoEShape.CONE
+	var catchable: Array[Vector2i] = []
+	if is_blast:
+		for index in groups[Group.PLAYERS]:
+			var p = combatants[index]
+			if not p.alive:
+				continue
+			# Exactly what filter_tiles_by_line_of_sight would have dropped.
+			if skill.respects_blocking:
+				if controller.is_tile_blocking(p.position, movement_class):
+					continue
+				if not has_line_of_sight(caster_position, p.position, movement_class):
+					continue
+			catchable.append(p.position)
 	for dx in range(-reach, reach + 1):
 		var remaining = reach - absi(dx)
 		for dy in range(-remaining, remaining + 1):
@@ -1386,12 +2187,17 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 			if d < skill.min_range:
 				continue
 			var aim = caster_position + Vector2i(dx, dy)
-			var tiles = get_impact_tiles(skill, caster_position, aim, movement_class)
 			var count = 0
-			for index in groups[Group.PLAYERS]:
-				var p = combatants[index]
-				if p.alive and p.position in tiles:
-					count += 1
+			if is_blast:
+				for position in catchable:
+					if get_position_distance(aim, position) <= skill.aoe_radius:
+						count += 1
+			else:
+				var tiles = get_impact_tiles(skill, caster_position, aim, movement_class)
+				for index in groups[Group.PLAYERS]:
+					var p = combatants[index]
+					if p.alive and p.position in tiles:
+						count += 1
 			if count > best_count:
 				best_count = count
 				best_aim = aim
@@ -1510,8 +2316,11 @@ func find_triggering_reactions_along_path(comb: Dictionary, path: Array) -> Arra
 					continue
 				var distance_before = get_position_distance(reactor.position, from_tile)
 				var distance_after = get_position_distance(reactor.position, to_tile)
-				var was_in_range = distance_before >= skill.min_range and distance_before <= skill.max_range
-				var now_in_range = distance_after >= skill.min_range and distance_after <= skill.max_range
+				# Same reach as the real check above, or the AI plans around
+				# reactions that cannot happen and walks into ones that can.
+				var reach = effective_max_range(reactor, skill)
+				var was_in_range = distance_before >= skill.min_range and distance_before <= reach
+				var now_in_range = distance_after >= skill.min_range and distance_after <= reach
 				if was_in_range and not now_in_range:
 					triggered.append({"reactor": reactor, "skill_key": skill_key})
 					already_triggered.append(reactor)
@@ -1519,14 +2328,19 @@ func find_triggering_reactions_along_path(comb: Dictionary, path: Array) -> Arra
 	return triggered
 
 
-## The largest possible damage a skill could deal in one hit - sums every
-## DAMAGE effect's max_amount, ignoring accuracy/hit chance entirely. Used
-## for a worst-case "could this possibly kill me" check, not an average.
-func get_max_possible_damage(skill: SkillDefinition) -> int:
+## The largest damage `skill` could deal to `victim` in one hit, ignoring
+## accuracy and hit chance entirely. Used for a worst-case "could this possibly
+## kill me" check, not an average.
+##
+## Worked out through the real damage function, so an AI weighing up whether to
+## step past a guard is reading the same number the guard would actually deal.
+## Estimating it from the effect's own amounts stopped being right the moment
+## damage started coming from the caster's stats instead.
+func get_max_possible_damage(skill: SkillDefinition, wielder: Dictionary, victim: Dictionary) -> int:
 	var total = 0
-	for effect in skill.effects:
+	for effect in skill.all_effects():
 		if effect.type == EffectDefinition.EffectType.DAMAGE:
-			total += effect.max_amount
+			total += resisted_damage(victim, effect.damage_type, skill_damage(wielder, victim, skill))
 	return total
 
 
@@ -1562,7 +2376,7 @@ func avoid_needless_opportunity_attacks(comb: Dictionary, best_tile: Vector2i, i
 	var total_possible_damage = 0
 	for entry in triggered:
 		var reactive_skill: SkillDefinition = SkillDatabase.skills[entry.skill_key]
-		total_possible_damage += get_max_possible_damage(reactive_skill)
+		total_possible_damage += get_max_possible_damage(reactive_skill, entry.reactor, comb)
 	if total_possible_damage < comb.hp:
 		return best_tile
 	return comb.position
@@ -1692,11 +2506,11 @@ func ai_melee_rush(comb: Dictionary):
 		await advance_turn()
 		return
 	if get_distance(comb, target) == 1:
-		await use_skill("attack_melee", comb, target.position)
+		await use_skill("greatsword_attack", comb, target.position)
 		return
 	await controller.ai_process(target.position)
 	if comb.alive:
-		await use_skill("attack_melee", comb, target.position)
+		await use_skill("greatsword_attack", comb, target.position)
 
 
 ## If it can already reach (get adjacent to, per Self Destruct's blast)
@@ -1825,7 +2639,7 @@ func ai_healer(comb: Dictionary):
 		return
 	var nearest_enemy = find_nearest_enemy_of(comb)
 	if not nearest_enemy.is_empty() and get_distance(comb, nearest_enemy) == 1:
-		await use_skill("attack_melee", comb, nearest_enemy.position, false)
+		await use_skill("greatsword_attack", comb, nearest_enemy.position, false)
 		await reposition_healer(comb, heal_reach)
 		await advance_turn()
 		return
@@ -1858,6 +2672,8 @@ func ai_caster(comb: Dictionary):
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 		if skill.targets_ally or skill.aoe_radius <= 0:
 			continue
+		if not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
+			continue # out of slots for it, or not learned yet
 		var tile = find_best_reachable_tile(comb, movement_budget, func(t):
 			var hits = find_best_aim_and_count(skill, t, comb.movement_class, comb).count
 			return float(hits) * HIT_WEIGHT + float(count_players_without_los(t)) * SAFETY_WEIGHT
@@ -1898,7 +2714,7 @@ func ai_caster(comb: Dictionary):
 	# normal approach-and-attack instead of wasting the turn.
 	await controller.ai_process(target.position)
 	if comb.alive:
-		await use_skill("attack_melee", comb, target.position, false)
+		await use_skill("greatsword_attack", comb, target.position, false)
 	await advance_turn()
 
 
@@ -1908,7 +2724,7 @@ func ai_caster(comb: Dictionary):
 ## Vitality) - falling back to comb itself if there's no better candidate
 ## (e.g. a HEAL skill but nobody's actually hurt).
 func pick_ally_target_for_skill(comb: Dictionary, skill: SkillDefinition) -> Dictionary:
-	for effect in skill.effects:
+	for effect in skill.all_effects():
 		if effect.type == EffectDefinition.EffectType.HEAL:
 			var patient = find_most_injured_ally(comb)
 			return patient if not patient.is_empty() else comb
@@ -1953,7 +2769,7 @@ func ai_copycat(comb: Dictionary):
 	# rush-and-melee approach so the turn isn't wasted.
 	await controller.ai_process(target.position)
 	if comb.alive:
-		await use_skill("attack_melee", comb, target.position, false)
+		await use_skill("greatsword_attack", comb, target.position, false)
 	await advance_turn()
 
 
@@ -1965,3 +2781,153 @@ func ai_pick_target(weights):
 		full_weight -= weight
 		if rand_num > full_weight - 0.001: #full_weight - 0.001 due to float inaccuracy
 			return w[1]
+
+
+## --- Knowing your enemy ---
+
+
+## What studying someone is worth when you then take a swing at them. Ten points
+## of accuracy: enough to be worth the action against anything you were going to
+## struggle to hit, and not enough to make a bad shot a good one.
+const STUDIED_ACCURACY_BONUS := 10
+
+
+## Whether `attacker` is the one who measured `target`.
+##
+## Per studier rather than per side: the sheet is the player's to read once
+## anybody has looked, but the advantage of having looked is the studier's.
+func _has_studied(attacker: Dictionary, target: Dictionary) -> bool:
+	if attacker == null or target == null or target.is_empty():
+		return false
+	return attacker.get("id", -1) in target.get("studied_by", [])
+
+
+## The chance `attacker` has of landing `skill` on `target`, all in: the skill's
+## own accuracy, whatever conditions are helping or hindering them, and the
+## bonus for having studied who they are aiming at.
+##
+## `target` may be empty - an area skill rolls once before it knows who it
+## caught, and rolls against whoever is standing where it was aimed.
+func hit_chance(attacker: Dictionary, skill: SkillDefinition, target: Dictionary = {}) -> int:
+	var chance = skill.accuracy + get_effective_stat(attacker, "accuracy")
+	if _has_studied(attacker, target):
+		chance += STUDIED_ACCURACY_BONUS
+	return clampi(chance, 0, 100)
+
+
+## Locks the view onto whoever is acting for the length of an AI turn.
+##
+## Only for the AI. On the player's own turn they are steering the view
+## themselves and having it taken away mid-decision is worse than not knowing
+## where an enemy is. Silent when this battle has no camera, the same way
+## shake_camera is, so nothing depends on there being one.
+func watch_combatant(comb: Dictionary):
+	if camera == null or not is_instance_valid(camera):
+		return
+	var sprite = comb.get("sprite")
+	if sprite != null and is_instance_valid(sprite):
+		camera.follow(sprite)
+
+
+func stop_watching():
+	if camera != null and is_instance_valid(camera):
+		camera.release()
+
+
+## --- Consumables ---
+
+
+## The items `comb` can reach this fight: whatever is in the first four slots of
+## their own bag. Enemies carry nothing - they have no campaign inventory, and
+## asking for one would make them a bag they never use.
+func items_of(comb: Dictionary) -> Array:
+	if comb.side != 0:
+		return []
+	var key = comb.get("combatant_key", "")
+	if key == "":
+		return []
+	return Campaign.combat_items_of(key)
+
+
+## Whether a key names a consumable rather than a skill. Items are registered
+## in SkillDatabase alongside the skills so everything that resolves a key
+## works unchanged; this is the one question that has to tell them apart.
+func is_item(key: String) -> bool:
+	return ItemDatabase.is_item(key)
+
+
+## Takes one off whoever used it. Called once a use has actually gone through,
+## so an item aimed at nothing and cancelled is still in the bag.
+func consume_item(comb: Dictionary, key: String):
+	var item: ItemDefinition = ItemDatabase.item(key)
+	if item == null or not item.consumed_on_use:
+		return
+	var owner_key = comb.get("combatant_key", "")
+	if owner_key == "" or not Campaign.take_item(owner_key, key):
+		return
+	update_information.emit("[color=yellow]%s[/color] used their last %s.\n" % [comb.name, item.name]
+		if Campaign.count_of(owner_key, key) == 0
+		else "[color=yellow]%s[/color] has %d %s left.\n" % [comb.name, Campaign.count_of(owner_key, key), item.name])
+
+
+## --- Teleporting ---
+
+
+## Whether somebody could be put down on `tile`: on the map, on ground their
+## movement class can enter, and with nobody already standing there.
+##
+## Deliberately the same three questions a knockback asks, so being moved by a
+## spell and being shoved agree about where a body can end up.
+func can_land_on(comb: Dictionary, tile: Vector2i) -> bool:
+	if not controller.is_in_bounds(tile):
+		return false
+	if controller.is_tile_blocking(tile, comb.movement_class):
+		return false
+	var sitting = get_combatant_at(tile)
+	return sitting.is_empty() or sitting == comb
+
+
+## Puts `comb` on `tile`, if they can stand there. Costs no movement and
+## provokes no reaction: they did not walk out of anybody's reach, they simply
+## stopped being where they were.
+func teleport_to(comb: Dictionary, tile: Vector2i) -> bool:
+	if not can_land_on(comb, tile) or comb.position == tile:
+		return false
+	var from = comb.position
+	comb.position = tile
+	comb.sprite.position = Grid.tile_to_world(tile)
+	controller.reposition_combatant(from, tile)
+	update_information.emit("[color=yellow]%s[/color] is somewhere else.\n" % comb.name)
+	return true
+
+
+## Puts the view on the middle of the player's side.
+##
+## The average of where they are standing rather than any one of them, so a
+## party spread across a line of starting tiles is framed as a group. Set
+## outright rather than eased: there is nothing on screen yet for a glide to
+## carry the eye from.
+func centre_on_party():
+	if camera == null or not is_instance_valid(camera):
+		return
+	var total := Vector2.ZERO
+	var counted := 0
+	for comb in combatants:
+		if comb.side == 0 and comb.alive:
+			total += Grid.tile_to_world(comb.position)
+			counted += 1
+	if counted == 0:
+		return
+	camera.release()
+	camera.position = total / counted
+	camera.clamp_to_map()
+
+
+## Whether this battle is still the one being played.
+##
+## An AI turn is a chain of awaits, and leaving a fight - to Arena Mode, to the
+## title screen - changes the scene while that chain is parked. Whatever
+## resumes afterwards is acting on a battle nobody is looking at, in a node
+## that has been taken out of the tree. Each step asks this before carrying on.
+func still_running() -> bool:
+	return is_inside_tree() and get_tree() != null

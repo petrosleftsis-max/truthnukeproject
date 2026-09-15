@@ -1,0 +1,28 @@
+~ start
+do Music.play("Mehul ShaRma - CURSE")
+cyrus: ...
+cyrus: It isn't just quiet. There is no echo.
+cyrus: How is this...? Wait, but I hear some people-
+do Actors.enter("enfina", "intro_sewer_alley_dest")     
+cyrus: ...!
+cyrus: D-didn't expect to meet you here!
+enfina: ?!
+enfina: You mongrel! Return the relic you stole!
+cyrus: Now, that'd just kill the fun, don't you think?
+enfina: You... Ugh. I don't have time for this.
+cyrus: What was that sound...?
+enfina: Just get out of my way, Cyrus. I don't have time for this.
+cyrus: ...
+cyrus: You're protecting the sewer residents, aren't you?
+enfina: Try anything funny and you'll lose more than just an arm.
+cyrus: What are those things?!
+cyrus: Wait, those... body parts. Those mangled faces. The bloodied skin as fractured bone goes through the skin...
+enfina: You don't need to narrate it!
+cyrus: [shake rate=20 level=10]I-I recognise those faces... That's... Ah...[/shake]
+cyrus: This isn't the Wolf's work. Whose is it then?!
+enfina: Why are you still standing here?
+cyrus: ...
+enfina: ... This won't help your case, you know.
+cyrus: Never counted on it.
+do Campaign.add_member("enfina")
+=> END

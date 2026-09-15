@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://b6dj4ypvmsxya"
+path="res://.godot/imported/walking_example.dialogue-e7dd2ef58cdc5d1c8980ba7f6e89d635.tres"
+
+[deps]
+
+source_file="res://Dialogue/walking_example.dialogue"
+dest_files=["res://.godot/imported/walking_example.dialogue-e7dd2ef58cdc5d1c8980ba7f6e89d635.tres"]
+
+[params]
+
+defaults=true

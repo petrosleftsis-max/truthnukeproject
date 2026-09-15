@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://wocacvg5a2vw"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_svi67"]
+[ext_resource type="Texture2D" uid="uid://ben5jlwrg6fhf" path="res://imagese/skills/heal_skill.png" id="2_djbbj"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_bc5pw"]
+
+[sub_resource type="Resource" id="Effect_cleanse"]
+script = ExtResource("1_svi67")
+type = 4
+dispel_scope = 2
+
+[resource]
+script = ExtResource("3_bc5pw")
+name = "Cleanse"
+description = "Removes debuff effects from an ally."
+max_range = 10
+accuracy = 100
+icon = ExtResource("2_djbbj")
+targets_ally = true
+is_secondary = true
+effects = Array[ExtResource("1_svi67")]([SubResource("Effect_cleanse")])
+deals_damage = false
+scaling_stat = 1
+spell_slot_level = 1

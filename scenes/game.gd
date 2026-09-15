@@ -34,6 +34,10 @@ func _enter_tree():
 		return
 	combat.encounter = encounter
 	_build_terrain(encounter)
+	# Named rather than a stream so it matches what dialogue writes, and so
+	# Music can tell "already playing" from "start this" by name.
+	if encounter.music != "":
+		Music.play(encounter.music)
 
 
 ## Instantiates the encounter's map and puts it in as "Terrain" - the name the

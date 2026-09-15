@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://capj80o1w8kc7"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_umv2o"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_nhhdn"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_weg6h"]
+[ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("2_weg6h")
+name = "Wind Shot"
+description = "Conjure wind in your fingernails before leading it to the target."
+max_range = 20
+accuracy = 100
+icon = ExtResource("2_nhhdn")
+respects_blocking = true
+ability_modifier = 1.2
+scaling_stat = 2
+damage_type = 3
+sound = ExtResource("90_sfx")
+spell_slot_level = 1
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

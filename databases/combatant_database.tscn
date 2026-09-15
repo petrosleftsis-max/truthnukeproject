@@ -2,163 +2,238 @@
 
 [ext_resource type="Script" uid="uid://bg8tpdh4cwe8b" path="res://databases/combatant_database.gd" id="1_5ebs0"]
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="2_rggep"]
-[ext_resource type="Texture2D" uid="uid://mha8vbqb2djl" path="res://imagese/chars.png" id="3_vw1bw"]
-[ext_resource type="Texture2D" uid="uid://tho1dgha8gr1" path="res://imagese/monsters.png" id="4_72lse"]
+[ext_resource type="SpriteFrames" uid="uid://dnmvfgx7ep08b" path="res://imagese/cyrus.tres" id="6_ct236"]
+[ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://imagese/enemyBarb.tres" id="6_w4l2p"]
+[ext_resource type="SpriteFrames" uid="uid://yqamqggrjvrb" path="res://imagese/enemyBomb.tres" id="7_6bef5"]
+[ext_resource type="SpriteFrames" uid="uid://xijinqpsikft" path="res://imagese/prometheus.tres" id="10_ad2ke"]
+[ext_resource type="SpriteFrames" uid="uid://oj6iqwkm1foe" path="res://imagese/enemyMimic.tres" id="11_o6bu1"]
+[ext_resource type="SpriteFrames" uid="uid://c0sudq6qa2nsr" path="res://imagese/enemyPriest.tres" id="12_qkqyl"]
+[ext_resource type="SpriteFrames" uid="uid://cs4nt6q8p61i5" path="res://imagese/enemyRanger.tres" id="15_eyeq6"]
+[ext_resource type="SpriteFrames" uid="uid://nlca2j2ewp4s" path="res://imagese/enemyCaster.tres" id="16_r0t0t"]
+[ext_resource type="Texture2D" uid="uid://cr14x2kddoe53" path="res://imagese/cyrus idle/cyrus idle_color0000.png" id="91_cyrusstill"]
+[ext_resource type="SpriteFrames" path="res://combat/animations/enfina.tres" id="92_enfinaframes"]
+[ext_resource type="Texture2D" uid="uid://nx1negu4ijrl" path="res://imagese/enfina idle/enfina_idle_color0000.png" id="93_enfinastill"]
+[ext_resource type="SpriteFrames" path="res://combat/animations/alithia.tres" id="94_alithiaframes"]
+[ext_resource type="Texture2D" uid="uid://j18c0awsyfjm" path="res://imagese/alithia idle/alithia_idle_color0000.png" id="95_alithiastill"]
+[ext_resource type="Texture2D" uid="uid://bswamhyohs8qy" path="res://imagese/prometheus idle/prometheus_idle_0000.png" id="97_prometheusstill"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_lhi33"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 32, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_c6sc2"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 32, 64, 32)
-
-[sub_resource type="Resource" id="Resource_bwgmm"]
+[sub_resource type="Resource" id="Resource_alithia"]
 script = ExtResource("2_rggep")
-name = "Prometheus"
+name = "Alithia"
+glossary_text = "A prideful and arrogant cleric with several capabilities of protecting her allies.
+
+Narrative: 
+One of the most talented Idol Users of the Holy Order, she always kept the Divine close to her heart as It has guided her many times.
+
+And yet the way people see her are very mixed, for many feel uncomfortable with how much she questions even the smallest thing instead of showing silent obedience. Throughout her studies and career she has infuriated a lot of clerics and yet has also helped the souls of many followers. Due to her debates, the clergy find themselves in an unspoken split between those who consider her blasphemous and those whose faith only became stronger with her masterful questioning.
+
+Gameplay:
+Even though she's really important for the party to not be worn out from the duration of combat, she is durable enough to survive hits herself. Prioritise keeping her in range of everyone!
+
+She is also capable of weakening enemies to mitigate their offensive capabilities."
 class_t = 2
-max_hp = 8
+max_hp = 75
+max_hp_level_2 = 90
+max_hp_level_3 = 115
 movement = 4
-icon = SubResource("AtlasTexture_lhi33")
-map_sprite = SubResource("AtlasTexture_c6sc2")
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_8grfo"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 64, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_i0li6"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 64, 64, 32)
-
-[sub_resource type="Resource" id="Resource_w6c3b"]
-script = ExtResource("2_rggep")
-name = "Cyrus"
-class_t = 1
-secondary_skills = Array[String](["run"])
-max_hp = 10
-movement = 6
-initiative = 8
-icon = SubResource("AtlasTexture_8grfo")
-map_sprite = SubResource("AtlasTexture_i0li6")
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_6kjpw"]
-atlas = ExtResource("4_72lse")
-region = Rect2(64, 0, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_2pife"]
-atlas = ExtResource("4_72lse")
-region = Rect2(64, 0, 64, 32)
-
-[sub_resource type="Resource" id="Resource_3h68d"]
-script = ExtResource("2_rggep")
-name = "Eye"
-class_m = 1
-max_hp = 5
-movement = 5
-initiative = 4
-icon = SubResource("AtlasTexture_6kjpw")
-map_sprite = SubResource("AtlasTexture_2pife")
-skills = Array[String](["basic_magic"])
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_o51yk"]
-atlas = ExtResource("4_72lse")
-region = Rect2(0, 0, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_5856y"]
-atlas = ExtResource("4_72lse")
-region = Rect2(0, 0, 64, 32)
+initiative = 5
+main_stat = 1
+secondary_stat = 3
+icon = ExtResource("95_alithiastill")
+map_sprite = ExtResource("95_alithiastill")
+sprite_frames = ExtResource("94_alithiaframes")
+skills = Array[String](["heal", "light_heal", "revitalizer", "cleanse", "flash", "river_flow", "water_spike", "run", "slip_past"])
+starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])
 
 [sub_resource type="Resource" id="Resource_s2oe2"]
 script = ExtResource("2_rggep")
-name = "Goblin"
-max_hp = 6
+name = "Barbarian"
+max_hp = 50
+max_hp_level_2 = 180
+max_hp_level_3 = 250
 initiative = 3
-icon = SubResource("AtlasTexture_o51yk")
-map_sprite = SubResource("AtlasTexture_5856y")
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_kwsrb"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 0, 32, 32)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_87cae"]
-atlas = ExtResource("3_vw1bw")
-region = Rect2(0, 0, 64, 32)
-
-[sub_resource type="Resource" id="Resource_tkpbb"]
-script = ExtResource("2_rggep")
-name = "Enfina"
-max_hp = 16
-movement = 4
-initiative = 5
-icon = SubResource("AtlasTexture_kwsrb")
-map_sprite = SubResource("AtlasTexture_87cae")
-
-[sub_resource type="Resource" id="Resource_ranger"]
-script = ExtResource("2_rggep")
-name = "Ranger"
-class_t = 1
-max_hp = 6
-movement = 5
-initiative = 4
-icon = SubResource("AtlasTexture_o51yk")
-map_sprite = SubResource("AtlasTexture_5856y")
-skills = Array[String](["heal"])
-ai_function = "ai_ranger"
+secondary_stat = 3
+sprite_frames = ExtResource("6_w4l2p")
+skills = Array[String](["greatsword_attack", "shoving_strike", "sweep_strike", "run"])
+resist_fire = -20
+resist_earth = 20
 
 [sub_resource type="Resource" id="Resource_bomber"]
 script = ExtResource("2_rggep")
 name = "Bomber"
-max_hp = 4
+max_hp = 8
+max_hp_level_2 = 35
+max_hp_level_3 = 70
 movement = 4
 initiative = 3
-icon = SubResource("AtlasTexture_6kjpw")
-map_sprite = SubResource("AtlasTexture_2pife")
-skills = Array[String](["self_destruct"])
+main_stat = 1
+secondary_stat = 0
+sprite_frames = ExtResource("7_6bef5")
+skills = Array[String](["self_destruct", "run"])
 ai_function = "ai_hit_and_explode"
+
+[sub_resource type="Resource" id="Resource_w6c3b"]
+script = ExtResource("2_rggep")
+name = "Cyrus"
+glossary_text = "A swift cunning cat with a bunch of tricks up his sleeves to hide from enemies and hunt down his targets.
+
+Narrative:
+An unfortunate circumstance which resulted in his mother's passing and him running away from home, has caused him to be stranded and struggling to survive since his teenage years. These harsh circumstances have forced him to develop the skills and greed of a thief.
+
+And yet, despite the cruelty of reality, he still keeps on to his red scarf. The scarf that reminds him of the oath he swore to himself of becoming a hero.
+
+These childish ambitions have lead him into a secret group, which has the intention to steal and weaken those who grow too strong.
+
+Gameplay:
+By having high initiative and movement, he gets to decide how a combat begins and where he is needed to go. He is capable of reaching even the most hidden enemy and hunt them down until they're no more. This makes him the only member who can get away from the team to take care of potent but frail targets, such as casters!
+
+He also has the special capability of using consumables as a secondary action, making him the most adaptable member in the team."
+class_t = 1
+max_hp = 75
+max_hp_level_2 = 90
+max_hp_level_3 = 115
+movement = 6
+initiative = 8
+main_stat = 3
+secondary_stat = 0
+icon = ExtResource("91_cyrusstill")
+map_sprite = ExtResource("91_cyrusstill")
+sprite_frames = ExtResource("6_ct236")
+skills = Array[String](["rapier", "gun", "poison_dart", "warning_shot", "burning_shot", "slip_past", "run"])
+secondary_skills = Array[String](["run", "slip_past"])
+items_as_secondary = true
+starting_items = Array[String](["cure_potion", "bomb", "poison_bottle", "medicine"])
+
+[sub_resource type="Resource" id="Resource_tkpbb"]
+script = ExtResource("2_rggep")
+name = "Enfina"
+glossary_text = "A city guard who has trained and studied to perfectly respond to any combat situation.
+
+Narrative:
+Not born in favourable circumstances, she was faced with a lot of disadvantages. Unable to be trusted to become a knight of the Holy Order, too useful to just leave her out of the picture, yet still faced with uncertainty. An uncertainty that she also sees in herself and how cut out she truly is for the path she chose. 
+
+And yet, she still raises her sword. She still trains unrelentlessly, to perform as well as possible, even if no one has any intention of recognising and rewarding her for it with a higher rank.
+
+But Enfina's intentions are pure. For she does not raise her sword for herself. She raises it for everyone else.
+
+Gameplay:
+Capable of dealing the most damage and take the most hit, she is an invaluable piece that allows her to fend off the mightiest of foe. 
+
+Her foes fear her reactive skill, so staying close to one will either force them to stay in place, or move and be damaged.
+
+As a frontliner, she controls where the fight takes place. Make sure she is always in front of your allies and at the part of the map where you want the fight to take place."
+max_hp = 130
+max_hp_level_2 = 160
+max_hp_level_3 = 190
+movement = 4
+initiative = 6
+secondary_stat = 2
+icon = ExtResource("93_enfinastill")
+map_sprite = ExtResource("93_enfinastill")
+sprite_frames = ExtResource("92_enfinaframes")
+skills = Array[String](["study", "greatsword_attack", "shoving_strike", "sweep_strike", "blink_strike", "run", "follow_up_attack", "slip_past"])
+starting_items = Array[String](["bomb", "bomb", "crystal_bottle"])
+
+[sub_resource type="Resource" id="Resource_mimic"]
+script = ExtResource("2_rggep")
+name = "Mimic"
+max_hp = 32
+max_hp_level_2 = 110
+max_hp_level_3 = 150
+movement = 5
+initiative = 4
+main_stat = 3
+sprite_frames = ExtResource("11_o6bu1")
+resist_water = -20
+resist_wind = 20
+ai_function = "ai_copycat"
 
 [sub_resource type="Resource" id="Resource_priest"]
 script = ExtResource("2_rggep")
 name = "Priest"
 class_t = 2
-max_hp = 6
+max_hp = 32
+max_hp_level_2 = 110
+max_hp_level_3 = 150
 movement = 4
 initiative = 3
-icon = SubResource("AtlasTexture_6kjpw")
-map_sprite = SubResource("AtlasTexture_2pife")
+main_stat = 1
+secondary_stat = 3
+sprite_frames = ExtResource("12_qkqyl")
+skills = Array[String](["heal", "cleanse", "water_spike", "run", "revitalizer"])
+resist_water = 20
+resist_earth = -20
 ai_function = "ai_healer"
+
+[sub_resource type="Resource" id="Resource_bwgmm"]
+script = ExtResource("2_rggep")
+name = "Prometheus"
+glossary_text = "A messy pragmatic scholar who can never be seen without a book and a drink.
+
+Narrative:
+He was an up and rising star in Idology from his late teen years. This lead him to quickly get into high and important research. However... It is now a painful memory that only destroys him further and further as time passes.
+
+Despite it all, or perhaps because of it all, he is now a really warm and caring person that, despite not saying it out loud, would always be there for you.
+
+Gameplay:
+The hardest unit to use well, he has the most potent capabilities in the party. Yet they are limited by resource and his frail frame makes him easy to be killed in but an instant. It is more important for him to stay alive, rather than cast spells earlier! Make sure to properly utilise cover!
+
+He also can provide with utility, such as weakening enemies or teleporting allies. To make the most of him is to make the most of all!"
+class_t = 2
+max_hp = 30
+max_hp_level_2 = 40
+max_hp_level_3 = 58
+movement = 4
+initiative = 7
+main_stat = 2
+icon = ExtResource("97_prometheusstill")
+map_sprite = ExtResource("97_prometheusstill")
+sprite_frames = ExtResource("10_ad2ke")
+skills = Array[String](["fire_burst", "fire_blast", "wind_shot", "rock_throw", "quicken", "burner", "fireball", "wind_vacuum", "gust_blast", "crystalise", "wind_swoon", "hermes_step", "hover", "run", "slip_past"])
+starting_items = Array[String](["burn_bottle", "frost_bottle", "gale_bottle", "cure_potion"])
+
+[sub_resource type="Resource" id="Resource_ranger"]
+script = ExtResource("2_rggep")
+name = "Ranger"
+class_t = 1
+max_hp = 32
+max_hp_level_2 = 110
+max_hp_level_3 = 150
+movement = 5
+initiative = 4
+sprite_frames = ExtResource("15_eyeq6")
+skills = Array[String](["heal", "gun", "poison_dart", "burning_shot", "run"])
+resist_wind = -20
+resist_poison = 20
+ai_function = "ai_ranger"
 
 [sub_resource type="Resource" id="Resource_sorcerer"]
 script = ExtResource("2_rggep")
 name = "Sorcerer"
 class_t = 2
-max_hp = 7
+max_hp = 8
+max_hp_level_2 = 35
+max_hp_level_3 = 70
 movement = 4
 initiative = 4
-icon = SubResource("AtlasTexture_6kjpw")
-map_sprite = SubResource("AtlasTexture_2pife")
+main_stat = 2
+sprite_frames = ExtResource("16_r0t0t")
+skills = Array[String](["burner", "fireball", "wind_vacuum", "gust_blast", "wind_swoon", "run"])
+resist_fire = 20
+resist_poison = -20
 ai_function = "ai_caster"
-
-[sub_resource type="Resource" id="Resource_mimic"]
-script = ExtResource("2_rggep")
-name = "Mimic"
-max_hp = 8
-movement = 5
-initiative = 4
-icon = SubResource("AtlasTexture_o51yk")
-map_sprite = SubResource("AtlasTexture_5856y")
-ai_function = "ai_copycat"
 
 [node name="CombatantDatabase" type="Node" unique_id=1671407001]
 script = ExtResource("1_5ebs0")
 combatants = {
-"prometheus": SubResource("Resource_bwgmm"),
-"cyrus": SubResource("Resource_w6c3b"),
+"alithia": SubResource("Resource_alithia"),
+"barbarian": SubResource("Resource_s2oe2"),
 "bomber": SubResource("Resource_bomber"),
-"eye": SubResource("Resource_3h68d"),
-"goblin": SubResource("Resource_s2oe2"),
+"cyrus": SubResource("Resource_w6c3b"),
+"enfina": SubResource("Resource_tkpbb"),
 "mimic": SubResource("Resource_mimic"),
 "priest": SubResource("Resource_priest"),
+"prometheus": SubResource("Resource_bwgmm"),
 "ranger": SubResource("Resource_ranger"),
-"sorcerer": SubResource("Resource_sorcerer"),
-"enfina": SubResource("Resource_tkpbb")
+"sorcerer": SubResource("Resource_sorcerer")
 }

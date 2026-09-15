@@ -2,54 +2,146 @@
 
 [ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
 [ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
-[ext_resource type="PackedScene" uid="uid://ww05yde5nb2t" path="res://scenes/terrain.tscn" id="3_terrain"]
+[ext_resource type="PackedScene" uid="uid://bg6jpyiju3kft" path="res://city_fight.tscn" id="3_35bqs"]
 
-[sub_resource type="Resource" id="Spawn_enfina"]
-script = ExtResource("2_spawn")
-combatant_key = "enfina"
-position = Vector2i(8, 6)
-
-[sub_resource type="Resource" id="Spawn_cyrus"]
-script = ExtResource("2_spawn")
-combatant_key = "cyrus"
-position = Vector2i(6, 7)
-
-[sub_resource type="Resource" id="Spawn_prometheus"]
+[sub_resource type="Resource" id="Resource_35bqs"]
 script = ExtResource("2_spawn")
 combatant_key = "prometheus"
-position = Vector2i(4, 7)
+position = Vector2i(4, 2)
+level = 3
+weapon_base = 12
+defense = 8
+starting_items = Array[String](["burn_bottle", "frost_bottle", "gale_bottle", "cure_potion"])
 
-[sub_resource type="Resource" id="Spawn_eye"]
+[sub_resource type="Resource" id="Resource_4gfyf"]
 script = ExtResource("2_spawn")
-combatant_key = "eye"
-side = 1
-position = Vector2i(10, 7)
-display_name = "The Watcher"
+combatant_key = "alithia"
+position = Vector2i(1, 4)
+level = 3
+weapon_base = 12
+defense = 20
+starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])
 
-[sub_resource type="Resource" id="Spawn_mimic"]
+[sub_resource type="Resource" id="Resource_guhuk"]
 script = ExtResource("2_spawn")
-combatant_key = "mimic"
-side = 1
-position = Vector2i(10, 5)
-display_name = "Mimic"
+combatant_key = "enfina"
+position = Vector2i(24, 14)
+level = 3
+weapon_base = 12
+defense = 32
+starting_items = Array[String](["bomb", "bomb", "crystal_bottle"])
 
-[sub_resource type="Resource" id="Spawn_sorcerer"]
+[sub_resource type="Resource" id="Resource_sd4ao"]
+script = ExtResource("2_spawn")
+combatant_key = "cyrus"
+position = Vector2i(21, 17)
+level = 3
+weapon_base = 12
+defense = 20
+starting_items = Array[String](["cure_potion", "bomb", "poison_bottle", "medicine"])
+
+[sub_resource type="Resource" id="Resource_6rd2x"]
+script = ExtResource("2_spawn")
+combatant_key = "ranger"
+side = 1
+position = Vector2i(20, 2)
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_h0e1a"]
+script = ExtResource("2_spawn")
+combatant_key = "bomber"
+side = 1
+position = Vector2i(13, 4)
+display_name = "Bomber"
+level = 3
+weapon_base = 12
+defense = 25
+
+[sub_resource type="Resource" id="Resource_k1vfo"]
+script = ExtResource("2_spawn")
+combatant_key = "barbarian"
+side = 1
+position = Vector2i(5, 7)
+display_name = "Striker"
+level = 3
+weapon_base = 12
+defense = 60
+
+[sub_resource type="Resource" id="Resource_lwarc"]
 script = ExtResource("2_spawn")
 combatant_key = "sorcerer"
 side = 1
-position = Vector2i(10, 9)
-display_name = "Acolyte"
+position = Vector2i(7, 8)
+display_name = "Caster"
+level = 3
+weapon_base = 12
+defense = 25
 
-[sub_resource type="Resource" id="Spawn_priest"]
+[sub_resource type="Resource" id="Resource_gyvxp"]
+script = ExtResource("2_spawn")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(22, 8)
+display_name = "Caster"
+level = 3
+weapon_base = 12
+defense = 25
+
+[sub_resource type="Resource" id="Resource_2hadd"]
 script = ExtResource("2_spawn")
 combatant_key = "priest"
 side = 1
-position = Vector2i(11, 7)
-display_name = "Attendant"
+position = Vector2i(4, 9)
+display_name = "Striker"
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_5dowi"]
+script = ExtResource("2_spawn")
+combatant_key = "mimic"
+side = 1
+position = Vector2i(17, 10)
+display_name = "Mimic"
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_5k2mo"]
+script = ExtResource("2_spawn")
+combatant_key = "priest"
+side = 1
+position = Vector2i(18, 13)
+display_name = "Priest"
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_tapxy"]
+script = ExtResource("2_spawn")
+combatant_key = "bomber"
+side = 1
+position = Vector2i(10, 14)
+display_name = "Bomber"
+level = 3
+weapon_base = 12
+defense = 25
+
+[sub_resource type="Resource" id="Resource_10mjb"]
+script = ExtResource("2_spawn")
+combatant_key = "ranger"
+side = 1
+position = Vector2i(3, 16)
+level = 3
+weapon_base = 12
+defense = 55
 
 [resource]
 script = ExtResource("1_enc")
-display_name = "The Watcher"
-description = "A flying eye and its attendants. The priest keeps them standing, so it dies first."
-terrain_scene = ExtResource("3_terrain")
-spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_eye"), SubResource("Spawn_mimic"), SubResource("Spawn_sorcerer"), SubResource("Spawn_priest")])
+display_name = "City Fight"
+description = "Difficult fight with every enemy type."
+terrain_scene = ExtResource("3_35bqs")
+spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_35bqs"), SubResource("Resource_4gfyf"), SubResource("Resource_guhuk"), SubResource("Resource_sd4ao"), SubResource("Resource_6rd2x"), SubResource("Resource_h0e1a"), SubResource("Resource_k1vfo"), SubResource("Resource_lwarc"), SubResource("Resource_gyvxp"), SubResource("Resource_2hadd"), SubResource("Resource_5dowi"), SubResource("Resource_5k2mo"), SubResource("Resource_tapxy"), SubResource("Resource_10mjb")])
+music = "Luce_del_Desiderio"

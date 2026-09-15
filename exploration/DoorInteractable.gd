@@ -11,9 +11,6 @@ class_name DoorInteractable
 @export_file("*.tscn") var target_map: String = ""
 ## The EntryPoint node in the target map to arrive at, by its entry_name.
 @export var target_entry: String = ""
-## When true the party walks through just by touching it, with no key press -
-## for an open doorway where stopping to "use" it would feel wrong.
-@export var automatic: bool = false
 
 
 func _init():

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://cvamxn5tduee0"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_d606h"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="1_skill"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_icon"]
+[ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="3_sfx"]
+
+[resource]
+script = ExtResource("1_skill")
+name = "Hermes Step"
+description = "Pick an ally, then pick where they should be. They are simply there. Click them first, then the tile."
+max_range = 6
+accuracy = 100
+icon = ExtResource("2_icon")
+required_level = 2
+targets_ally = true
+teleports = 2
+deals_damage = false
+sound = ExtResource("3_sfx")
+spell_slot_level = 2

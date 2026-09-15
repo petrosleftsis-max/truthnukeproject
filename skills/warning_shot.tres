@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://b0upcs6tuhnyk"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_bpsw1"]
+[ext_resource type="Texture2D" uid="uid://c7ygk4gdgi0qo" path="res://imagese/skills/debuff_skill.png" id="2_hlj50"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_lpy43"]
+[ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Resource_hlj50"]
+script = ExtResource("1_bpsw1")
+type = 2
+modifier_amount = -2
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_lpy43")
+name = "Warning Shot"
+description = "A shot that should slow their advances."
+min_range = 1
+max_range = 20
+accuracy = 100
+icon = ExtResource("2_hlj50")
+effects = Array[ExtResource("1_bpsw1")]([SubResource("Resource_hlj50")])
+scaling_stat = 3
+sound = ExtResource("90_sfx")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

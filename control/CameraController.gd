@@ -24,9 +24,9 @@ class_name CameraController
 ## zoomed out shows everything and there is nothing left to pan to. If you
 ## enlarge the map past the viewport, lower this to still be able to take it
 ## all in at once.
-@export var min_zoom := 1.0
+@export var min_zoom := 0.17
 ## How far in you can push.
-@export var max_zoom := 4.0
+@export var max_zoom := 1.0
 ## What one mouse-wheel notch multiplies the zoom by.
 @export var zoom_step := 1.1
 ## Keyboard panning speed in screen pixels per second. Divided by zoom when
@@ -43,6 +43,12 @@ class_name CameraController
 ## follow would fight the drag for the camera's position every frame. Zooming
 ## stays available either way.
 @export var free_look := true
+## Whether the player may change the zoom. On in battle, where seeing the whole
+## board or leaning in on one corner is part of playing it. Off in exploration,
+## where the view is a composed shot: the map is drawn to be read at one
+## distance, and a scene that walks someone in from off the edge only works if
+## the edge is where the framing says it is.
+@export var allow_zoom := true
 
 var _tile_map: TileMap = null
 var _dragging := false
@@ -109,6 +115,8 @@ func clamp_to_map():
 ## applied at the end of the frame, so that would report the pre-zoom position
 ## both times and correct by nothing.
 func zoom_at_screen_point(new_zoom_level: float, screen_point: Vector2):
+	if not allow_zoom:
+		return
 	var old_zoom_level = zoom.x
 	new_zoom_level = clampf(new_zoom_level, min_zoom, max_zoom)
 	if is_equal_approx(new_zoom_level, old_zoom_level):
@@ -125,11 +133,14 @@ func zoom_at_screen_point(new_zoom_level: float, screen_point: Vector2):
 
 
 func _unhandled_input(event):
+	if is_following():
+		# Locked on somebody: their turn is the thing to be looking at.
+		return
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed and allow_zoom:
 			zoom_at_screen_point(zoom.x * zoom_step, event.position)
 			get_viewport().set_input_as_handled()
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed and allow_zoom:
 			zoom_at_screen_point(zoom.x / zoom_step, event.position)
 			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_MIDDLE and free_look:
@@ -142,7 +153,51 @@ func _unhandled_input(event):
 		clamp_to_map()
 
 
+## --- Screen shake ---
+##
+## Driven through `offset` rather than `position`, for two reasons: position is
+## clamped to the map every frame, so a shake written there would be fought by
+## the clamp and would stop dead at the map edge, and offset is not something
+## panning or zooming ever touches, so a shake can never leave the view
+## somewhere the player didn't put it.
+
+## How fast a shake dies away. Higher is snappier.
+const SHAKE_DECAY = 9.0
+## Below this the shake is over - stops it trailing off into a jitter too small
+## to see but still costing a frame's work.
+const SHAKE_MINIMUM = 0.4
+
+## Current shake, in screen pixels.
+var _shake := 0.0
+
+
+## Rattles the view by `pixels` at its strongest, decaying to nothing. Takes
+## the strongest of any overlapping calls rather than adding them up, so three
+## things going off together shake once rather than throwing the camera.
+func shake(pixels: float):
+	_shake = maxf(_shake, pixels)
+
+
+func _shake_step(delta: float):
+	if _shake <= 0.0:
+		return
+	_shake = lerpf(_shake, 0.0, minf(SHAKE_DECAY * delta, 1.0))
+	if _shake < SHAKE_MINIMUM:
+		_shake = 0.0
+		offset = Vector2.ZERO
+		return
+	# Divided by zoom so the shake is the same size on screen however far out
+	# the view is - offset is in world units, which zoom then scales.
+	var amount = _shake / maxf(zoom.x, 0.001)
+	offset = Vector2(randf_range(-amount, amount), randf_range(-amount, amount))
+
+
 func _process(delta):
+	_shake_step(delta)
+	if is_following():
+		position = position.lerp(_watched.global_position, minf(1.0, follow_lerp * delta))
+		clamp_to_map()
+		return
 	if not free_look:
 		# Exploration drives this camera by following the party; WASD walks
 		# them rather than panning the view.
@@ -169,3 +224,36 @@ func _process(delta):
 ## hold focus (the arrow keys would otherwise be spent navigating it).
 func _axis(key_a: Key, key_b: Key) -> float:
 	return 1.0 if Input.is_physical_key_pressed(key_a) or Input.is_physical_key_pressed(key_b) else 0.0
+
+
+## --- Watching somebody act ---
+##
+## An enemy's turn happens wherever they are standing, which is as often as not
+## somewhere the player is not looking - across the map, or off the edge of the
+## view entirely. A fight you cannot see reads as the game having hung. While
+## the AI plays a turn the view rides along with whoever is taking it, and is
+## handed straight back afterwards.
+
+## How fast the view closes on whoever it is watching, as a fraction of the
+## remaining distance per second. Eased rather than snapped: a cut leaves the
+## player with no idea which part of the map they are now looking at, while a
+## glide carries the eye across and answers that on the way.
+@export var follow_lerp := 6.0
+
+var _watched: Node2D = null
+
+
+## Rides along with `target` until release() is called. Manual panning and
+## dragging are ignored meanwhile - it is a lock, and a camera that fights the
+## player for the view is worse than either behaviour on its own.
+func follow(target: Node2D):
+	_watched = target
+
+
+func release():
+	_watched = null
+
+
+## Whether the view is currently locked onto somebody.
+func is_following() -> bool:
+	return _watched != null and is_instance_valid(_watched)

@@ -16,3 +16,20 @@ export_presets.cfg
 .mono/
 data_*/
 mono_crash.*.json
+# Export output
+builds/
+export/
+export.zip
+*-web.zip
+
+# Music sources. Three WAVs, 126 MB between them, and nothing in the game
+# depends on their being here: Music.gd warns and carries on in silence when a
+# track is missing, so a clone without them plays fine and fights quietly.
+# The sound effects stay tracked - they are 6 MB for the lot and every skill
+# uses one.
+audio/music/*.wav
+audio/music/*.wav.import
+
+# A local backup of the audio, kept beside the project. 177 MB, and the whole
+# point of ignoring the music is not to carry it around.
+audio.zip
