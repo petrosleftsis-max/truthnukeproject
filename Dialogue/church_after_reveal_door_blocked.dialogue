@@ -14,6 +14,7 @@ if Campaign.flag("after_reveal_reminisced_enfina") && Campaign.flag("after_revea
 	cyrus: “You are so very petty, do you know that?” 
 	alithia: I release my other hand. The wooden platform responds with several thuds as it rolls onto it before stopping. The only object that can bring an ending to all of this. 
 	alithia: The die is cast. 
+	do Campaign.to_main_menu()
 elif Campaign.flag("after_reveal_door_blocked"):
 	alithia: The cloud is still in my way.
 elif:
