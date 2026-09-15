@@ -13,6 +13,7 @@ class_name StoryScreen
 ## Campaign.begin_story.
 
 const BALLOON_SCENE = "res://ui/dialogue_balloon.tscn"
+const PAUSE_UI = "res://ui/pause_ui.tscn"
 
 ## Where to go when the conversation ends and Campaign names nothing - the menu,
 ## so a story that has nowhere to be yet still leads somewhere.
@@ -21,6 +22,10 @@ const FALLBACK_SCENE = "res://main_menu.tscn"
 
 func _ready():
 	_paint_black()
+	# The pause menu, so an opening is not somewhere you are stuck. There is no
+	# map here for Escape to belong to, and a conversation over black is exactly
+	# where somebody wants the volume, or the way out to the title screen.
+	add_child(load(PAUSE_UI).instantiate())
 	var path = Campaign.story_dialogue
 	if path == "" or not ResourceLoader.exists(path):
 		push_warning("StoryScreen: no dialogue at '%s' - going straight on." % path)

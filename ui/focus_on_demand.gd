@@ -46,7 +46,12 @@ func _input(event):
 	# Mouse motion comes through a Control before _unhandled_input ever sees it,
 	# so this listens early rather than politely.
 	if event is InputEventMouseMotion:
-		_let_go()
+		# Not while a button is being held down. Godot cancels a button's press
+		# the moment it loses focus, so letting go here mid-click threw away
+		# every click that had the slightest drag in it - which is a menu that
+		# has to be pressed two or three times before anything happens.
+		if event.button_mask == 0:
+			_let_go()
 		return
 	if not (event is InputEventKey or event is InputEventJoypadButton):
 		return

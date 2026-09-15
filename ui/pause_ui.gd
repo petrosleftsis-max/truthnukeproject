@@ -37,8 +37,15 @@ extends CanvasLayer
 ## shared with the main menu (see ui/volume_sliders.gd).
 var _volume: VolumeSliders = null
 
+## Whatever held the keyboard when this opened, handed back when it closes.
+var _focus_before: Control = null
+
 
 func _ready():
+	# The whole point of this menu is that nothing happens while it is up, so
+	# it has to be the one thing that still runs while the game is held. See
+	# MenuPause.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	$PausePanel.visible = false
 	$OptionsPanel.visible = false
 	$PausePanel/VBox/OptionsButton.pressed.connect(_on_options_pressed)
@@ -59,7 +66,17 @@ var _keyboard: FocusOnDemand
 
 
 ## Shows one panel, hides the other, and remembers where the keyboard starts.
+##
+## Also stops the game. Blocking input was not enough on its own: a click that
+## landed beside the panel rather than on it reached the map underneath and
+## moved somebody, and whatever was already in flight carried on regardless.
 func _show_panel(panel: Control, buttons: Array):
+	if not $PausePanel.visible and not $OptionsPanel.visible:
+		# Who had the keyboard before this opened. A dialogue balloon holds it
+		# while a conversation is on, and Enter stops advancing the conversation
+		# if it doesn't get it back.
+		_focus_before = get_viewport().gui_get_focus_owner()
+	MenuPause.hold(self)
 	$PausePanel.visible = panel == $PausePanel
 	$OptionsPanel.visible = panel == $OptionsPanel
 	if not buttons.is_empty():
@@ -75,9 +92,13 @@ func _show_panel(panel: Control, buttons: Array):
 func _close():
 	$PausePanel.visible = false
 	$OptionsPanel.visible = false
+	MenuPause.release(self)
 	var focused = get_viewport().gui_get_focus_owner()
 	if focused != null:
 		focused.release_focus()
+	if is_instance_valid(_focus_before) and _focus_before.is_visible_in_tree():
+		_focus_before.grab_focus()
+	_focus_before = null
 
 
 func _unhandled_input(event):
@@ -106,6 +127,8 @@ func _on_options_pressed():
 ## encounter in isolation. It abandons whatever is on screen, so anything
 ## unresolved in the current battle is simply dropped.
 func _on_level_select_pressed():
+	# Let go before leaving, or the battle list arrives frozen.
+	_close()
 	Campaign.return_to_position = false
 	SceneTransition.change_scene("res://scenes/level_select.tscn")
 
@@ -113,6 +136,7 @@ func _on_level_select_pressed():
 ## Back to the title screen. Abandons the battle, the same way Arena Mode
 ## above does - and unlike quitting, which in a web build does nothing at all.
 func _on_main_menu_pressed():
+	_close()
 	Campaign.to_main_menu()
 
 

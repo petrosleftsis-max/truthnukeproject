@@ -17,8 +17,11 @@ class_name DialogueBalloon extends CanvasLayer
 ## The action to use for advancing the dialogue
 @export var next_action: StringName = &"ui_accept"
 
-## The action to use to skip typing the dialogue
-@export var skip_action: StringName = &"ui_cancel"
+## The action to use to skip typing the dialogue. The same key that advances a
+## line, so one key reads the conversation: it finishes the line being typed,
+## then moves on. Escape is deliberately not this - it opens the pause menu,
+## which has to be reachable in the middle of a conversation.
+@export var skip_action: StringName = &"ui_accept"
 
 ## A sound player for voice lines (if they exist).
 @onready var audio_stream_player: AudioStreamPlayer = %AudioStreamPlayer
@@ -74,6 +77,15 @@ var mutation_cooldown: Timer = Timer.new()
 ## Indicator to show that player can progress dialogue.
 @onready var progress: Polygon2D = %Progress
 
+## Gets you out of a conversation you have already read. Built here rather than
+## placed in the scene, so the balloon stays as close to the addon's example as
+## it can and updating the addon has less to collide with.
+var skip_button: Button
+
+## True while the rest of the conversation is being walked through without
+## being shown. See skip_conversation().
+var _skipping := false
+
 
 func _ready() -> void:
 	balloon.hide()
@@ -85,6 +97,7 @@ func _ready() -> void:
 
 	mutation_cooldown.timeout.connect(_on_mutation_cooldown_timeout)
 	add_child(mutation_cooldown)
+	_build_skip_button()
 
 	if auto_start:
 		if not is_instance_valid(dialogue_resource):
@@ -98,7 +111,13 @@ func _process(_delta: float) -> void:
 		progress.visible = not dialogue_label.is_typing and dialogue_line.responses.size() == 0 and not dialogue_line.has_tag("voice")
 
 
-func _unhandled_input(_event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
+	# Escape is not ours. Everything else that happens on screen stops while a
+	# conversation is up, but the pause menu has to be reachable from inside one
+	# - a conversation is exactly where somebody wants to turn the music down or
+	# leave - so this is the one key that goes past.
+	if event.is_action_pressed("ui_cancel"):
+		return
 	# Only the balloon is allowed to handle input while it's showing
 	if will_block_other_input:
 		get_viewport().set_input_as_handled()
@@ -128,9 +147,16 @@ func start(with_dialogue_resource: DialogueResource = null, cue: String = "", ex
 
 ## Apply any changes to the balloon given a new [DialogueLine].
 func apply_dialogue_line() -> void:
+	# Being skipped past. Whatever this line does has already been done by the
+	# time it arrives here - what is skipped is the reading of it, not the
+	# doing. See skip_conversation().
+	if _skipping:
+		return
 	mutation_cooldown.stop()
 
 	progress.hide()
+	if skip_button != null:
+		skip_button.visible = true
 	is_waiting_for_input = false
 	balloon.focus_mode = Control.FOCUS_ALL
 	balloon.grab_focus()
@@ -157,6 +183,11 @@ func apply_dialogue_line() -> void:
 		dialogue_label.type_out()
 		await dialogue_label.finished_typing
 
+	# Skipping began while this line was typing. The skip is walking the
+	# conversation now, and this must not walk it as well.
+	if _skipping:
+		return
+
 	# Wait for next line
 	if dialogue_line.has_tag("voice"):
 		audio_stream_player.stream = load(dialogue_line.get_tag_value("voice"))
@@ -165,6 +196,8 @@ func apply_dialogue_line() -> void:
 		next(dialogue_line.next_id)
 	elif dialogue_line.responses.size() > 0:
 		balloon.focus_mode = Control.FOCUS_NONE
+		if skip_button != null:
+			skip_button.visible = false
 		responses_menu.show()
 	elif dialogue_line.time != "":
 		var time: float = dialogue_line.text.length() * 0.02 if dialogue_line.time == "auto" else dialogue_line.time.to_float()
@@ -178,6 +211,12 @@ func apply_dialogue_line() -> void:
 
 ## Go to the next line
 func next(next_id: String) -> void:
+	# The one place every way of advancing ends up - a click, Enter, a voice
+	# line finishing, a timed line running out, an answer being picked. While a
+	# skip is walking the conversation it is the only thing allowed to, or two
+	# walkers race each other and lines get stepped over twice.
+	if _skipping:
+		return
 	dialogue_line = await dialogue_resource.get_next_dialogue_line(next_id, temporary_game_states)
 
 
@@ -198,6 +237,12 @@ func _on_mutated(mutation: Dictionary) -> void:
 
 
 func _on_balloon_gui_input(event: InputEvent) -> void:
+	# Not while the game is held. A paused Control can still be handed a click,
+	# and a conversation advancing behind the pause menu is not what pressing
+	# Escape asked for.
+	if get_tree().paused:
+		return
+
 	# See if we need to skip typing of the dialogue
 	if dialogue_label.is_typing:
 		var mouse_was_clicked: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed()
@@ -209,6 +254,13 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 
 	if not is_waiting_for_input: return
 	if dialogue_line.responses.size() > 0: return
+
+	# Escape is not ours either way round: the balloon holds the keyboard while
+	# a line is up, so a key reaches this before it reaches anything else, and
+	# swallowing it here is what made the pause menu unreachable during a
+	# conversation. See _unhandled_input.
+	if event.is_action_pressed("ui_cancel"):
+		return
 
 	# When there are no response options the balloon itself is the clickable thing
 	get_viewport().set_input_as_handled()
@@ -224,6 +276,108 @@ func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 
 
 #endregion
+
+## --- Skipping ---
+##
+## A conversation you have read before is a conversation you should be able to
+## get out of. What it does is not skippable, though - if a line adds somebody
+## to the party, or sets a flag, or lines up the fight that follows, skipping
+## has to leave the game in the state reading it would have. So the lines are
+## still walked, one after another, exactly as pressing through them would walk
+## them: get_next_dialogue_line() runs everything on the way past. Only the
+## showing is dropped.
+
+
+## The button in the corner.
+func _build_skip_button() -> void:
+	skip_button = Button.new()
+	skip_button.name = "SkipButton"
+	skip_button.text = "Skip  >>"
+	skip_button.tooltip_text = "Skip to the end of the conversation. Everything it does still happens."
+	# Never takes the keyboard. Advancing a line is "is the balloon focused",
+	# so a button that grabbed focus on click would stop Enter working for the
+	# rest of the conversation.
+	skip_button.focus_mode = Control.FOCUS_NONE
+	skip_button.anchor_left = 1.0
+	skip_button.anchor_right = 1.0
+	skip_button.offset_left = -136
+	skip_button.offset_right = -18
+	skip_button.offset_top = 18
+	skip_button.offset_bottom = 54
+	skip_button.pressed.connect(skip_conversation)
+	_dress(skip_button)
+	# Last, so it is over the response menu's full-rect container rather than
+	# under it, and gets the click.
+	balloon.add_child(skip_button)
+
+
+## The same dark blue the menus and the glossary are built in, so a button that
+## is made here rather than placed in the scene still looks like it belongs to
+## the game it sits on top of.
+func _dress(button: Button) -> void:
+	const INK := Color("dce8f5")
+	const CARD := Color("1c2531")
+	const CARD_LIT := Color("24344a")
+	const CARD_EDGE := Color("2b3947")
+	button.add_theme_font_size_override("font_size", 15)
+	for role in ["font_color", "font_hover_color", "font_pressed_color"]:
+		button.add_theme_color_override(role, INK)
+	button.add_theme_color_override("font_disabled_color", INK.darkened(0.45))
+	button.add_theme_stylebox_override("normal", _plate(CARD, CARD_EDGE))
+	button.add_theme_stylebox_override("hover", _plate(CARD_LIT, CARD_EDGE))
+	button.add_theme_stylebox_override("pressed", _plate(CARD_LIT, CARD_EDGE))
+	button.add_theme_stylebox_override("disabled", _plate(CARD, CARD_EDGE))
+
+
+func _plate(fill: Color, edge: Color) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = fill
+	box.border_color = edge
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(6)
+	return box
+
+
+## Walks the rest of the conversation without showing any of it.
+##
+## Stops at a question: choosing an answer for somebody is not skipping, so the
+## conversation comes back to them there and carries on normally.
+func skip_conversation() -> void:
+	if _skipping or not is_inside_tree() or get_tree().paused:
+		return
+	if not is_instance_valid(dialogue_line):
+		return
+	if dialogue_line.responses.size() > 0:
+		return
+	_skipping = true
+	skip_button.disabled = true
+	dialogue_label.skip_typing()
+
+	# A conversation that loops back on itself would otherwise be skipped for
+	# ever. Far more lines than any conversation in the game has.
+	var remaining := 5000
+	while _skipping and is_instance_valid(dialogue_line) and remaining > 0:
+		remaining -= 1
+		if dialogue_line.responses.size() > 0:
+			break
+		var line = await dialogue_resource.get_next_dialogue_line(dialogue_line.next_id, temporary_game_states)
+		# One of the lines just walked past may have closed this down - a
+		# command that changes scene, for one - and there is nothing left to
+		# come back to.
+		if not is_inside_tree():
+			return
+		# Assigning null is how this balloon closes itself; get_next_dialogue_line
+		# has already said the conversation ended.
+		dialogue_line = line
+		if line == null:
+			return
+
+	_skipping = false
+	skip_button.disabled = false
+	# Whatever we stopped at has not been shown yet, so show it now.
+	if is_instance_valid(dialogue_line):
+		apply_dialogue_line()
+
 
 ## --- Portraits ---
 ##

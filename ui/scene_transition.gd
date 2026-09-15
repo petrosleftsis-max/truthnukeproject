@@ -22,8 +22,11 @@ extends CanvasLayer
 const FADE_OUT = 0.22
 const FADE_IN = 0.3
 
-## Above everything - the whole point is to cover the HUD too. The pause menu
-## is 10, the reaction prompt 15.
+## Above everything - the whole point is to cover the HUD too. The layers under
+## it, in order: the hurt vignette 5, the character sheet 8, the reaction prompt
+## 15, the result panel 20, the dialogue balloon 30, the inventory 60 and the
+## pause menu 70, which has to be over the balloon so that Escape during a
+## conversation opens something you can see.
 const LAYER = 100
 
 ## True while a change is in flight, so a second request cannot land mid-fade
@@ -66,6 +69,9 @@ func change_scene(path: String):
 
 func _run_change(path: String):
 	await fade_out()
+	# Whoever was holding the game is about to stop existing and can no longer
+	# let go of it, so the scene arriving would arrive frozen. See MenuPause.
+	MenuPause.clear(get_tree())
 	get_tree().change_scene_to_file(path)
 	# One frame for the new scene to be built, so the fade back in reveals it
 	# rather than the gap where it is about to be.

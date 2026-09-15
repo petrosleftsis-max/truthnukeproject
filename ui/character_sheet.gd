@@ -50,6 +50,9 @@ var _members: HBoxContainer = null
 
 func _ready():
 	layer = 8
+	# Still runs while the game is held, since it is one of the two things that
+	# can be doing the holding. See MenuPause.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
 	_root.visible = false
 	if combat != null and combat.has_signal("combatant_studied"):
@@ -65,8 +68,13 @@ func _on_combatant_studied(combatant: Dictionary):
 
 ## Opens the sheet on a named combatant, falling back to the usual choice when
 ## there is nobody by that name to show.
+##
+## Doesn't stop the game the way opening it yourself does: this is the sheet
+## arriving in the middle of the skill that measured them, which is still
+## resolving, and freezing it half-finished is not what was asked for. Nobody
+## can move while the sheet is up either way.
 func open_on(who: String):
-	open()
+	open(false)
 	if not _open:
 		return
 	for i in range(_entries.size()):
@@ -175,19 +183,25 @@ func toggle():
 		open()
 
 
-func open():
+## `hold_the_game` is what makes this a menu rather than an overlay: the game
+## stops behind it, so a click that lands beside the panel cannot reach the map
+## and move somebody.
+func open(hold_the_game: bool = true):
 	_entries = _gather()
 	if _entries.is_empty():
 		return
 	_index = _default_index()
 	_open = true
 	_root.visible = true
+	if hold_the_game:
+		MenuPause.hold(self)
 	_show_entry()
 
 
 func close():
 	_open = false
 	_root.visible = false
+	MenuPause.release(self)
 	if _animated != null:
 		_animated.stop()
 	# Handed back so the camera stops thinking a menu has the keyboard.
@@ -200,6 +214,10 @@ func _unhandled_input(event):
 	if not event is InputEventKey or not event.pressed or event.is_echo():
 		return
 	if event.keycode == KEY_C:
+		# Not while the pause menu has the game held - one menu at a time, and
+		# the sheet opening behind the pause panel is nobody's intention.
+		if MenuPause.held_by_another(self):
+			return
 		get_viewport().set_input_as_handled()
 		toggle()
 		return
