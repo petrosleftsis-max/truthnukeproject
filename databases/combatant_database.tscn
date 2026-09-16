@@ -147,6 +147,7 @@ sprite_frames = ExtResource("11_o6bu1")
 resist_water = -20
 resist_wind = 20
 ai_function = "ai_copycat"
+casts_without_gates = true
 
 [sub_resource type="Resource" id="Resource_priest"]
 script = ExtResource("2_rggep")

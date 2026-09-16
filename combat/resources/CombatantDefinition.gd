@@ -122,7 +122,12 @@ class_name CombatantDefinition
 @export var ai_function: String = "ai_melee_rush"
 
 
-## Starting spell slots, indexed by level - [0] is unused so the level number
+## Casts without spending anything. What it knows it can use, however deep a
+## gate the spell is cast through and however many gates it has of its own -
+## which is none. For a Mimic, whose whole trick is doing what it just saw
+## done and which would otherwise copy a spell and then fail to pay for it.
+@export var casts_without_gates: bool = false
+## Starting gates, indexed by level - [0] is unused so the level number
 ## reads straight into the array.
 ## Health at `level`, following the "same as the level below" rule: a level 3
 ## with nothing set of its own takes level 2's, which takes level 1's.

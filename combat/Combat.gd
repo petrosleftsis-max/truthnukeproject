@@ -256,6 +256,11 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# Spell slots remaining, indexed by level - [0] is unused so a skill's
 		# spell_slot_level reads straight into it. Battle-scoped: a fight starts
 		# with the full allowance and spends down from there.
+		# Casts through any gate without holding one. The Mimic's whole trick is
+		# doing what it just watched somebody else do, and it has no gates of its
+		# own to pay with - so without this it copies a spell and then cannot
+		# cast it, which is a turn spent doing nothing at all.
+		"casts_without_gates" = definition.casts_without_gates,
 		"spell_slots" = definition.gates_at(level),
 		"max_spell_slots" = definition.gates_at(level),
 		"reaction_used" = false,
@@ -443,6 +448,8 @@ func slot_available_for(comb: Dictionary, level: int) -> int:
 func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
 	if skill.spell_slot_level <= 0:
 		return true
+	if comb.get("casts_without_gates", false):
+		return true
 	return slot_available_for(comb, skill.spell_slot_level) > 0
 
 
@@ -450,6 +457,9 @@ func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
 ## on a level 1 spell while a level 1 is still going spare. Returns the level
 ## actually spent, or 0 if the skill was free.
 func spend_slot_for(comb: Dictionary, skill: SkillDefinition) -> int:
+	if comb.get("casts_without_gates", false):
+		# Nothing to spend and nothing to say about it - no gate was opened.
+		return 0
 	var level = slot_available_for(comb, skill.spell_slot_level)
 	if level > 0:
 		comb.spell_slots[level] -= 1
@@ -518,8 +528,8 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			await advance_turn()
 		return
 	if valid and not can_afford_skill(attacker, skill):
-		update_information.emit("[color=yellow]%s[/color] has no level %d spell slot left for %s.\n" % [
-			attacker.name, skill.spell_slot_level, skill.name
+		update_information.emit("[color=yellow]%s[/color] has no %s left for %s.\n" % [
+			attacker.name, Stats.gate_name(skill.spell_slot_level), skill.name
 		])
 		if attacker.side == 1 and end_turn_after:
 			await advance_turn()
@@ -548,7 +558,7 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			last_player_skill_used = skill_key
 		var spent = spend_slot_for(attacker, skill)
 		if spent > 0:
-			update_information.emit("[color=yellow]%s[/color] spends a level %d slot.\n" % [attacker.name, spent])
+			update_information.emit("[color=yellow]%s[/color] spends a %s.\n" % [attacker.name, Stats.gate_name(spent)])
 		# The heaviest thing a caster can do should land like it. Keyed off the
 		# skill's own level rather than the slot spent, so paying for a level 1
 		# spell with a level 3 slot doesn't shake the map.
@@ -723,7 +733,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 		last_player_skill_used = skill_key
 	var spent = spend_slot_for(attacker, skill)
 	if spent > 0:
-		update_information.emit("[color=yellow]%s[/color] spends a level %d slot.\n" % [attacker.name, spent])
+		update_information.emit("[color=yellow]%s[/color] spends a %s.\n" % [attacker.name, Stats.gate_name(spent)])
 	update_information.emit("[color=yellow]{0}[/color] reacts as [color=red]{1}[/color] leaves range!\n".format([
 		attacker.name,
 		target.name
@@ -2622,29 +2632,65 @@ func ai_healer(comb: Dictionary):
 			var skill: SkillDefinition = SkillDatabase.skills[heal_skill_key]
 			if await move_into_range_of(comb, patient.position, skill, movement_budget, true, patient):
 				await use_skill(heal_skill_key, comb, patient.position, false)
+				# Mending somebody spends the main action and nothing else, so
+				# the secondary is still there to lift a condition with.
+				await cleanse_as_secondary(comb)
 				await reposition_healer(comb, heal_reach)
 				await advance_turn()
 				return
+	# Nobody worth healing. A cleanse that costs the secondary is free to take
+	# on the way to doing something else; one that costs the main action is the
+	# turn, and ends it.
 	var cleanse_skill_key = find_skill_of_type(comb, EffectDefinition.EffectType.DISPEL)
 	if cleanse_skill_key != "" and comb.alive:
 		var afflicted = find_most_afflicted_ally(comb)
 		if not afflicted.is_empty():
 			var skill: SkillDefinition = SkillDatabase.skills[cleanse_skill_key]
 			if await move_into_range_of(comb, afflicted.position, skill, movement_budget, true, afflicted):
-				await use_skill(cleanse_skill_key, comb, afflicted.position, false)
-				await reposition_healer(comb, heal_reach)
-				await advance_turn()
-				return
+				await use_skill(cleanse_skill_key, comb, afflicted.position, false, skill.is_secondary)
+				if not skill.is_secondary:
+					await reposition_healer(comb, heal_reach)
+					await advance_turn()
+					return
 	if not comb.alive:
 		return
 	var nearest_enemy = find_nearest_enemy_of(comb)
 	if not nearest_enemy.is_empty() and get_distance(comb, nearest_enemy) == 1:
 		await use_skill("greatsword_attack", comb, nearest_enemy.position, false)
+		await cleanse_as_secondary(comb)
 		await reposition_healer(comb, heal_reach)
 		await advance_turn()
 		return
+	await cleanse_as_secondary(comb)
 	await reposition_healer(comb, heal_reach)
 	await advance_turn()
+
+
+## Lifts a condition off whoever most needs it, if that costs only the
+## secondary action and somebody is already in reach.
+##
+## Deliberately without moving: by the time this is called the main action has
+## decided where the healer is standing, and walking off to cleanse somebody
+## would undo the positioning that mattered more. It is a turn's spare half,
+## taken when it happens to be there.
+func cleanse_as_secondary(comb: Dictionary) -> bool:
+	if not comb.alive or comb.get("secondary_used_this_turn", false):
+		return false
+	if has_restriction(comb, "prevents_secondary"):
+		return false
+	var key = find_skill_of_type(comb, EffectDefinition.EffectType.DISPEL)
+	if key == "":
+		return false
+	var skill: SkillDefinition = SkillDatabase.skills[key]
+	if not skill.is_secondary or not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
+		return false
+	var afflicted = find_most_afflicted_ally(comb)
+	if afflicted.is_empty():
+		return false
+	if not is_effectively_in_range(skill, comb.position, afflicted.position, comb.movement_class, comb):
+		return false
+	await use_skill(key, comb, afflicted.position, false, true)
+	return true
 
 
 ## Searches, for each area-effect offensive skill in its kit, every

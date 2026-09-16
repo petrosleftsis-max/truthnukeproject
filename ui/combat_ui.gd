@@ -516,6 +516,10 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	lines.append("")
 	if skill.spell_slot_level > 0:
 		lines.append("Costs: %s, or any higher gate" % Stats.gate_name(skill.spell_slot_level))
+	# Which of the two actions a turn gives you this spends. It decides
+	# whether a skill can be used alongside another one, which is worth
+	# knowing before choosing it rather than after.
+	lines.append("Action: %s" % ("Secondary" if skill.is_secondary else "Main"))
 	lines.append("Range: %d-%d" % [skill.min_range, skill.max_range])
 	if skill.uses_stat_contest:
 		lines.append("Lands on anyone with %s below the caster's %s. Everyone else takes half damage and none of the rest." % [
