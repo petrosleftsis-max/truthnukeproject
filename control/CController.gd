@@ -32,6 +32,15 @@ var _aoe_preview_positions: Array = []
 var _aoe_preview_is_ally: bool = false
 var _range_preview_positions: Array = []
 
+## Every tile some living enemy can see, drawn while a hidden player is taking
+## their turn so they can plan a route that keeps them hidden.
+##
+## Worked out once when the turn starts rather than per frame: it is a line of
+## sight from every enemy to every tile in the region, which is far too much to
+## do sixty times a second, and it cannot change while the player is the one
+## moving - the watchers stay where they are.
+var _watched_tiles: Array = []
+
 var _skill_selected = false
 
 ## Whether a skill is currently being aimed (target selection in progress).
@@ -214,7 +223,7 @@ func _unhandled_input(event):
 				_attack_target_position = local_map
 			elif comb != null:
 				_blocked_target_position = local_map
-			elif mouse_position_i in _blocking_spaces[combat.get_current_combatant().movement_class]:
+			elif is_tile_blocking(mouse_position_i, combat.get_current_combatant().movement_class):
 				_blocked_target_position = local_map
 			else:
 				_blocked_target_position = null
@@ -239,11 +248,24 @@ var _blocking_spaces = [
 ## Blocks = [0, 2]) only appears here a single time.
 var _all_blocking_spaces = []
 
+## The same tiles as _blocking_spaces, as a set, for asking whether one tile is
+## in there.
+##
+## "tile in array" walks the array. There are around fifteen hundred blocking
+## tiles on the lab map, and is_tile_blocking is asked on every step of every
+## line of sight - which the AI works out tens of thousands of times a turn, and
+## which now also draws the enemy's field of view for a hidden player. That made
+## the commonest question in the game a fifteen-hundred-element scan.
+##
+## Kept alongside the arrays rather than replacing them: other code walks them
+## in order, and nothing ever removes a blocking tile, so the two cannot drift.
+var _blocking_lookup: Array[Dictionary] = [{}, {}, {}]
+
 ## Whether `tile` blocks movement (and, when a skill opts in via
 ## SkillDefinition.respects_blocking, line of sight) for `movement_class`
 ## (0=Ground, 1=Flying, 2=Mounted). Same data movement already uses.
 func is_tile_blocking(tile: Vector2i, movement_class: int) -> bool:
-	return tile in _blocking_spaces[movement_class]
+	return _blocking_lookup[movement_class].has(tile)
 
 
 ## Whether `tile` is inside the playable grid at all, regardless of blocking.
@@ -381,6 +403,7 @@ func _ready():
 			_all_blocking_spaces.append(tile)
 		for block in blocks:
 			_blocking_spaces[block].append(tile)
+			_blocking_lookup[block][tile] = true
 	_mark_unpainted_cells_as_blocking()
 
 
@@ -412,6 +435,7 @@ func _mark_unpainted_cells_as_blocking():
 			_all_blocking_spaces.append(tile)
 			for movement_class in _blocking_spaces.size():
 				_blocking_spaces[movement_class].append(tile)
+				_blocking_lookup[movement_class][tile] = true
 
 
 func combatant_added(combatant):
@@ -456,7 +480,37 @@ func set_controlled_combatant(combatant: Dictionary):
 	_next_position = tile_map.map_to_local(combatant.position)
 	_previous_position = combatant.position
 	update_points_weight()
+	refresh_watched_tiles(combatant)
 	queue_redraw()
+
+
+## Recomputes where the enemy can see, for a hidden player about to move.
+##
+## Only for them: it is expensive, and it is only worth drawing for somebody who
+## has something to lose by stepping into it. Anybody else gets an empty list
+## and nothing drawn.
+func refresh_watched_tiles(combatant: Dictionary):
+	_watched_tiles = []
+	if combatant.is_empty() or combatant.side != 0 or not combat.is_hidden(combatant):
+		return
+	var watchers := []
+	for other in combat.combatants:
+		if other.alive and other.side != combatant.side:
+			watchers.append(other)
+	if watchers.is_empty():
+		return
+	var region: Rect2i = _astargrid.region
+	for y in range(region.position.y, region.end.y):
+		for x in range(region.position.x, region.end.x):
+			var tile := Vector2i(x, y)
+			if is_tile_blocking(tile, combatant.movement_class):
+				# Nowhere they could stand anyway.
+				continue
+			for watcher in watchers:
+				if combat.has_line_of_sight(watcher.position, tile, watcher.movement_class):
+					_watched_tiles.append(tile)
+					break
+
 
 ## Tiles made unwalkable by Fear on the current combatant, so they can be
 ## released again once the fear passes or someone else's turn begins. Nothing
@@ -697,6 +751,19 @@ func _handle_step_arrival():
 		finished_move.emit()
 		_arrived = true
 		combat.advance_turn.call_deferred()
+		return
+	# Somebody may have just walked into view, or walked into somebody's view.
+	# Stopping here is the point of it: the reveal is worth seeing rather than
+	# happening somewhere in the middle of a run, and whoever was walking gets
+	# to decide what to do now that there is somebody on the map who was not
+	# there a moment ago.
+	if not combat.reveal_anyone_now_seen().is_empty():
+		movement -= get_tile_cost(new_position)
+		_path = []
+		finished_move.emit()
+		_arrived = true
+		controlled_node.play_idle()
+		check_turn_completion.call_deferred()
 		return
 	# Pay for the tile just entered (not the one left behind), and only
 	# continue if the *next* waypoint - not this one again - is actually
@@ -1123,6 +1190,11 @@ func _draw():
 			_draw_tile_marker(tile_map.map_to_local(_deployment_selection.position), Color(Color.WHITE, 0.85))
 		return
 	if _arrived == true and player_turn == true:
+		# Where the enemy is looking, for somebody whose turn depends on not
+		# being looked at. Drawn under everything else, since it is the ground
+		# the rest of the turn is planned on rather than a choice being made.
+		for tile in _watched_tiles:
+			_draw_tile_marker(tile_map.map_to_local(tile), Color(Color.CRIMSON, 0.5))
 		if _skill_selected:
 			for pos in _range_preview_positions:
 				var local = tile_map.map_to_local(pos)

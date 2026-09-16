@@ -10,6 +10,7 @@ script = ExtResource("2_bdlsq")
 name = "Rapier"
 description = "One feign, another feign, strike your enemy with swiftness and cunning."
 max_range = 1
+respects_blocking = true
 accuracy = 100
 icon = ExtResource("2_3t3cr")
 is_reactive = true

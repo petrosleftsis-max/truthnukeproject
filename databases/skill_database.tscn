@@ -35,6 +35,7 @@
 [ext_resource type="Resource" uid="uid://mxqiapo23q11" path="res://skills/rock_throw.tres" id="34_5x0hn"]
 [ext_resource type="Resource" uid="uid://dxpv317v73o0p" path="res://skills/quicken.tres" id="35_o3emf"]
 [ext_resource type="Resource" uid="uid://cryo284fo8l4r" path="res://skills/hover.tres" id="36_hover"]
+[ext_resource type="Resource" uid="uid://byq7wlj15dbsw" path="res://skills/stealth.tres" id="37_stealth"]
 [ext_resource type="Resource" uid="uid://b03pv5bjmcr1" path="res://skills/study.tres" id="99_study"]
 
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
@@ -68,6 +69,7 @@ skills = {
 "self_destruct": ExtResource("15_ncop4"),
 "shoving_strike": ExtResource("21_dbes0"),
 "slip_past": ExtResource("26_slip"),
+"stealth": ExtResource("37_stealth"),
 "study": ExtResource("99_study"),
 "sweep_strike": ExtResource("8_8fqdd"),
 "warning_shot": ExtResource("24_pp4aq"),

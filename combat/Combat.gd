@@ -261,6 +261,9 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# own to pay with - so without this it copies a spell and then cannot
 		# cast it, which is a turn spent doing nothing at all.
 		"casts_without_gates" = definition.casts_without_gates,
+		# Out of sight, and treated by the other side as not being there at
+		# all. See the hiding section further down.
+		"hidden" = false,
 		"spell_slots" = definition.gates_at(level),
 		"max_spell_slots" = definition.gates_at(level),
 		"reaction_used" = false,
@@ -601,6 +604,13 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			attacker.secondary_used_this_turn = true
 		else:
 			attacker.skill_used_this_turn = true
+		# Shooting somebody means having a clear line to them, and a clear line
+		# runs both ways: whoever was just shot at can see who did it. So this
+		# asks, after every action, who can now be seen - which is what stops a
+		# hidden archer emptying a quiver from behind a rock all fight. A skill
+		# that ignores cover would slip through this, which is why Cyrus has
+		# none: see his kit in the combatant database.
+		reveal_anyone_now_seen()
 		if skill.suppresses_reactions:
 			# Only for the rest of this turn. Cleared in advance_turn alongside the
 			# action slots, so it can never carry into the next one.
@@ -652,6 +662,10 @@ func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_p
 			continue
 		if has_restriction(reactor, "prevents_reactions"):
 			# Poisoned - too sick to seize the opening.
+			continue
+		if is_hidden(reactor) or is_hidden(mover):
+			# Nobody strikes at what they cannot see, and nobody hidden gives
+			# themselves away by striking.
 			continue
 		for skill_key in reactor.skill_list:
 			var skill: SkillDefinition = SkillDatabase.skills[skill_key]
@@ -813,7 +827,21 @@ func get_impact_tiles(skill: SkillDefinition, caster_position: Vector2i, aim_pos
 			# DIAMOND is centred on the clicked/aimed tile, not the caster.
 			tiles = get_diamond_tiles(aim_position, skill.aoe_radius)
 	if skill.respects_blocking:
-		tiles = filter_tiles_by_line_of_sight(tiles, caster_position, movement_class)
+		# Seen from where it lands, not from whoever threw it.
+		#
+		# A LINE or a CONE is thrown out of the caster, so the caster's view is
+		# what decides how far it gets. A blast is different: it arrives at the
+		# tile aimed at and spreads from there, so what it can touch is what
+		# THAT tile can see. Filtering a blast from the caster meant a bomb
+		# landing round a corner still only caught what the thrower could see of
+		# it, which is not how anything falling in a room behaves. Range is
+		# still the caster's question - see get_range_tiles, which is where the
+		# caster's own line of sight decides what may be aimed at in the first
+		# place.
+		var seen_from = caster_position
+		if skill.aoe_shape != SkillDefinition.AoEShape.LINE 			and skill.aoe_shape != SkillDefinition.AoEShape.CONE:
+			seen_from = aim_position
+		tiles = filter_tiles_by_line_of_sight(tiles, seen_from, movement_class)
 	return tiles
 
 
@@ -834,8 +862,33 @@ func filter_tiles_by_line_of_sight(tiles: Array, from: Vector2i, movement_class:
 ## `movement_class` - no blocking tile anywhere strictly between them
 ## (the endpoints themselves aren't checked here; see is_tile_blocking).
 func has_line_of_sight(from: Vector2i, to: Vector2i, movement_class: int) -> bool:
-	for tile in get_tiles_between(from, to):
-		if controller.is_tile_blocking(tile, movement_class):
+	# The same walk get_tiles_between does, without building the list.
+	#
+	# This is the most-called function in the game - every blast, every shot the
+	# AI considers, and now every tile of the enemy's field of view drawn for a
+	# hidden player - and the list it used to build was thrown away one tile
+	# later. Allocating an array per call, tens of thousands of times a turn,
+	# cost more than the walk itself.
+	#
+	# Deliberately the same arithmetic, in the same order, so it cannot disagree
+	# with get_tiles_between about what lies between two tiles. The blindcast
+	# and stealth suites check the two against each other.
+	var dx = absi(to.x - from.x)
+	var dy = -absi(to.y - from.y)
+	var sx = 1 if from.x < to.x else -1
+	var sy = 1 if from.y < to.y else -1
+	var err = dx + dy
+	var x = from.x
+	var y = from.y
+	while x != to.x or y != to.y:
+		var e2 = 2 * err
+		if e2 >= dy:
+			err += dy
+			x += sx
+		if e2 <= dx:
+			err += dx
+			y += sy
+		if (x != to.x or y != to.y) and controller.is_tile_blocking(Vector2i(x, y), movement_class):
 			return false
 	return true
 
@@ -1047,6 +1100,14 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 			update_combatants.emit(combatants)
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
 				"moving as %s" % Stats.movement_class_name(effect.movement_class).to_lower()))
+		EffectDefinition.EffectType.HIDE:
+			if is_seen_by_opponents(target):
+				update_information.emit("[color=yellow]%s[/color] cannot slip away while they are being watched.
+" % target.name)
+			else:
+				set_hidden(target, true)
+				update_information.emit("[color=yellow]%s[/color] slips out of sight.
+" % target.name)
 		EffectDefinition.EffectType.DISPEL:
 			dispel_status_effects(attacker, target, effect)
 		EffectDefinition.EffectType.REVEAL:
@@ -1070,6 +1131,86 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 			apply_knockback(attacker, target, effect, false)
 		EffectDefinition.EffectType.PULL:
 			apply_knockback(attacker, target, effect, true)
+
+
+## --- Hiding ---
+##
+## Somebody hidden is somebody the other side cannot see, and the other side
+## behaves accordingly - not because each AI archetype was taught a special
+## case, but because the functions that look for somebody to fight stop
+## returning them. An enemy that cannot see Cyrus does exactly what it would do
+## if Cyrus were not on the map at all.
+##
+## You may only slip away out of sight, and you stay hidden until somebody can
+## see you again. That is checked after every step of every move - by whoever is
+## walking, whichever side they are on - because a hiding place is given away
+## either by somebody coming round to look at it or by leaving it. The move is
+## cut short on the step that does it: see CController._handle_step_arrival.
+
+## A hidden ally is still drawn, faintly, so the player can see where their own
+## character is standing. A hidden enemy is not drawn at all - not knowing where
+## it is is the whole point of it being hidden.
+const HIDDEN_ALLY_ALPHA := 0.4
+const HIDDEN_ENEMY_ALPHA := 0.0
+
+
+func is_hidden(comb: Dictionary) -> bool:
+	return comb.get("hidden", false)
+
+
+## Whether anybody on the far side can see `comb` from where they are standing.
+func is_seen_by_opponents(comb: Dictionary) -> bool:
+	var opposing = Group.PLAYERS if comb.side == Group.ENEMIES else Group.ENEMIES
+	for index in groups[opposing]:
+		var watcher = combatants[index]
+		if not watcher.alive:
+			continue
+		if has_line_of_sight(watcher.position, comb.position, watcher.movement_class):
+			return true
+	return false
+
+
+## Hides or reveals `comb`, and dresses them for it.
+func set_hidden(comb: Dictionary, hidden: bool):
+	if comb.get("hidden", false) == hidden:
+		return
+	comb["hidden"] = hidden
+	dress_for_hiding(comb)
+	update_combatants.emit(combatants)
+	# Slipping away is a secondary action, so it can happen in the middle of
+	# somebody's own turn - and the overlay showing where the enemy is looking
+	# has to arrive with it rather than next turn, when the walking is over.
+	if controller != null and is_instance_valid(controller) 		and controller.has_method("refresh_watched_tiles"):
+		controller.refresh_watched_tiles(get_current_combatant())
+		controller.queue_redraw()
+
+
+func dress_for_hiding(comb: Dictionary):
+	var sprite = comb.get("sprite")
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var alpha := 1.0
+	if comb.get("hidden", false):
+		alpha = HIDDEN_ALLY_ALPHA if comb.side == Group.PLAYERS else HIDDEN_ENEMY_ALPHA
+	if sprite.has_method("set_hidden_alpha"):
+		sprite.set_hidden_alpha(alpha)
+	else:
+		sprite.modulate.a = alpha
+
+
+## Gives away anybody who can now be seen, and hands back who that was, so the
+## caller can stop what it was doing and let it land.
+func reveal_anyone_now_seen() -> Array:
+	var revealed := []
+	for comb in combatants:
+		if not comb.alive or not comb.get("hidden", false):
+			continue
+		if is_seen_by_opponents(comb):
+			set_hidden(comb, false)
+			revealed.append(comb)
+			update_information.emit("[color=yellow]%s[/color] is spotted!
+" % comb.name)
+	return revealed
 
 
 ## --- Conditions ---
@@ -1897,6 +2038,13 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	var raw = skill_damage(attacker, target, skill, power) if skill != null else randi_range(effect.min_amount, effect.max_amount)
 	var damage = resisted_damage(target, effect.damage_type, raw)
 	var flavour = "%s damage%s" % [Damage.type_name(effect.damage_type).to_lower(), Damage.describe_resistance(resistance)]
+	# Being hit gives you away, whoever was aimed at. A blast thrown at somebody
+	# else that happens to catch a hidden combatant has found them, even though
+	# nobody knew they were there to aim at.
+	if is_hidden(target):
+		set_hidden(target, false)
+		update_information.emit("[color=yellow]%s[/color] is caught, and their cover is blown!
+" % target.name)
 	target.hp -= damage
 	show_damage(target, damage, effect.damage_type)
 	update_combatants.emit(combatants)
@@ -1931,6 +2079,8 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 
 
 func combatant_die(combatant: Dictionary):
+	# Whatever they were hiding behind, they are not hiding any more.
+	set_hidden(combatant, false)
 	var	comb_id = combatants.find(combatant)
 	if comb_id != -1:
 		combatant.alive = false
@@ -1977,7 +2127,8 @@ func find_nearest_enemy_of(comb: Dictionary) -> Dictionary:
 	var best_distance = INF
 	for index in groups[opposing_side]:
 		var candidate = combatants[index]
-		if not candidate.alive:
+		# Hidden is not "harder to hit" - it is not being there.
+		if not candidate.alive or is_hidden(candidate):
 			continue
 		var distance = get_distance(comb, candidate)
 		if distance < best_distance:
@@ -2181,14 +2332,11 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 	if is_blast:
 		for index in groups[Group.PLAYERS]:
 			var p = combatants[index]
-			if not p.alive:
+			if not p.alive or is_hidden(p):
 				continue
 			# Exactly what filter_tiles_by_line_of_sight would have dropped.
-			if skill.respects_blocking:
-				if controller.is_tile_blocking(p.position, movement_class):
-					continue
-				if not has_line_of_sight(caster_position, p.position, movement_class):
-					continue
+			if skill.respects_blocking and controller.is_tile_blocking(p.position, movement_class):
+				continue
 			catchable.append(p.position)
 	for dx in range(-reach, reach + 1):
 		var remaining = reach - absi(dx)
@@ -2200,13 +2348,20 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 			var count = 0
 			if is_blast:
 				for position in catchable:
-					if get_position_distance(aim, position) <= skill.aoe_radius:
-						count += 1
+					if get_position_distance(aim, position) > skill.aoe_radius:
+						continue
+					# Line of sight is a question about where the blast lands
+					# now, so it is asked here rather than once per tile - but
+					# only for somebody actually inside it, and the walk is at
+					# most the blast's own radius.
+					if skill.respects_blocking and not has_line_of_sight(aim, position, movement_class):
+						continue
+					count += 1
 			else:
 				var tiles = get_impact_tiles(skill, caster_position, aim, movement_class)
 				for index in groups[Group.PLAYERS]:
 					var p = combatants[index]
-					if p.alive and p.position in tiles:
+					if p.alive and not is_hidden(p) and p.position in tiles:
 						count += 1
 			if count > best_count:
 				best_count = count
@@ -2243,6 +2398,9 @@ func count_players_without_los(position: Vector2i) -> int:
 	var count = 0
 	for index in groups[Group.PLAYERS]:
 		var p = combatants[index]
+		if is_hidden(p):
+			# Cover from somebody nobody can see is not worth walking for.
+			continue
 		if p.alive and not has_line_of_sight(p.position, position, p.movement_class):
 			count += 1
 	return count
@@ -2316,6 +2474,8 @@ func find_triggering_reactions_along_path(comb: Dictionary, path: Array) -> Arra
 		var to_tile = path[i]
 		for reactor in combatants:
 			if not reactor.alive or reactor == comb or reactor.reaction_used or reactor in already_triggered:
+				continue
+			if is_hidden(reactor) or is_hidden(comb):
 				continue
 			for skill_key in reactor.skill_list:
 				var skill: SkillDefinition = SkillDatabase.skills[skill_key]

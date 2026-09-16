@@ -39,6 +39,23 @@ class_name CombatantSprite
 var _animated: AnimatedSprite2D = null
 var _static: Sprite2D = null
 
+## How solid this combatant is drawn, for hiding.
+##
+## Kept off `modulate` on purpose: that one is already spoken for by the hit
+## flash and the death fade, both of which tween it back to a colour of their
+## own choosing and would wipe a hidden combatant back into view mid-fight. The
+## child sprite's own self_modulate is a separate channel that multiplies with
+## the parent's, so a hidden combatant can still flash when hit without either
+## effect undoing the other.
+var hidden_alpha := 1.0
+
+
+func set_hidden_alpha(alpha: float):
+	hidden_alpha = alpha
+	for sprite in [_animated, _static]:
+		if sprite != null and is_instance_valid(sprite):
+			sprite.self_modulate.a = alpha
+
 
 func setup(combatant_sprite_frames: SpriteFrames, map_sprite: Texture2D, facing_flip: bool):
 	if combatant_sprite_frames != null:
@@ -54,6 +71,7 @@ func setup(combatant_sprite_frames: SpriteFrames, map_sprite: Texture2D, facing_
 		_static.hframes = 2
 		_static.flip_h = facing_flip
 		add_child(_static)
+	set_hidden_alpha(hidden_alpha)
 
 
 ## Shifts the sprite's drawn position upward via `offset` - which only

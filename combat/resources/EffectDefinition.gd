@@ -15,7 +15,8 @@ enum EffectType {
 	STAT_MULTIPLIER,   ## Multiplies a stat instead of adding to it, e.g. doubling movement for a turn.
 	CONDITION,         ## Inflicts a named ConditionDefinition - Poisoned, Stunned, Burned and so on.
 	REVEAL,            ## Lays the target open to inspection - what Study does.
-	MOVEMENT_CLASS     ## Changes how the target gets about - on foot, flying, mounted - for a duration.
+	MOVEMENT_CLASS,    ## Changes how the target gets about - on foot, flying, mounted - for a duration.
+	HIDE               ## Takes the target out of sight, until somebody sees them again.
 }
 
 enum DispelScope {
@@ -145,6 +146,9 @@ const FIELDS_BY_TYPE := {
 	# Nothing to configure: it either lays the target open or it does not.
 	EffectType.REVEAL: [],
 	EffectType.MOVEMENT_CLASS: ["display_name", "movement_class", "duration"],
+	# Nothing to configure: hiding lasts until somebody sees you, not a number
+	# of turns, so there is no duration to set either.
+	EffectType.HIDE: [],
 }
 
 
