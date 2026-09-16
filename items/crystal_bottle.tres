@@ -15,10 +15,12 @@ condition_duration = 3
 [resource]
 script = ExtResource("2_item")
 name = "Crystal Bottle"
-description = "Glass, and something unpleasant inside. Thrown at one enemy."
-max_range = 3
+description = "Give them a highly volatile crystal in a bottle."
+max_range = 5
 accuracy = 100
 icon = ExtResource("4_icon")
 effects = Array[ExtResource("1_eff")]([SubResource("Effect_crystal_bottle")])
 deals_damage = false
+uses_stat_contest = true
+contest_stat = 3
 sound = ExtResource("90_sfx")

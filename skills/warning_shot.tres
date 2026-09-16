@@ -19,6 +19,7 @@ min_range = 1
 max_range = 20
 accuracy = 100
 icon = ExtResource("2_hlj50")
+respects_blocking = true
 effects = Array[ExtResource("1_bpsw1")]([SubResource("Resource_hlj50")])
 scaling_stat = 3
 sound = ExtResource("90_sfx")

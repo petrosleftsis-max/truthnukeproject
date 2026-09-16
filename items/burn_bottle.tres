@@ -15,10 +15,12 @@ condition_duration = 3
 [resource]
 script = ExtResource("2_item")
 name = "Burn Bottle"
-description = "Glass, and something unpleasant inside. Thrown at one enemy."
-max_range = 3
+description = "Bring on the heat."
+max_range = 5
 accuracy = 100
 icon = ExtResource("4_icon")
 effects = Array[ExtResource("1_eff")]([SubResource("Effect_burn_bottle")])
 deals_damage = false
+uses_stat_contest = true
+contest_stat = 1
 sound = ExtResource("90_sfx")

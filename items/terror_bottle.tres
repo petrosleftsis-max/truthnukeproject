@@ -14,9 +14,11 @@ condition_duration = 2
 [resource]
 script = ExtResource("2_item")
 name = "Terror Bottle"
-description = "Glass, and something unpleasant inside. Thrown at one enemy."
-max_range = 3
+description = "Some say that emotions are just chemical reactions."
+max_range = 5
 accuracy = 100
 icon = ExtResource("4_icon")
 effects = Array[ExtResource("1_eff")]([SubResource("Effect_terror_bottle")])
 deals_damage = false
+uses_stat_contest = true
+contest_stat = 1
