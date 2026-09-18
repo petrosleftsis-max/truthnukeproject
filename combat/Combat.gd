@@ -2672,6 +2672,33 @@ func move_into_range_of(comb: Dictionary, target_position: Vector2i, skill: Skil
 ## retreat would forbid the disengage on exactly the turns it matters most.
 ## The lethality check still applies, so retreating never walks into a
 ## reaction that could kill.
+## Spends whatever movement is left getting nearer to `target`, taking the
+## safest of the tiles that get equally near.
+##
+## The mirror of retreat_with_remaining_movement: that one asks for the safest
+## tile that stays in contact, this one asks for the nearest tile and uses
+## safety to break the tie. Distance is weighted well above safety on purpose -
+## a ranger that cannot shoot anybody has nothing to be safe for, and creeping
+## one tile a turn towards cover it is already in is what it was doing before.
+const APPROACH_WEIGHT := 10.0
+
+
+func approach_with_remaining_movement(comb: Dictionary, target: Dictionary):
+	if not comb.alive or controller.movement <= 0:
+		return
+	if target.is_empty() or not target.alive:
+		target = find_nearest_enemy_of(comb)
+	if target.is_empty():
+		return
+	var goal = target.position
+	var closer = find_best_reachable_tile(comb, controller.movement, func(tile):
+		return -float(get_position_distance(tile, goal)) * APPROACH_WEIGHT + score_tile_safety(tile)
+	)
+	closer = avoid_needless_opportunity_attacks(comb, closer, target)
+	if closer != comb.position:
+		await controller.ai_move(closer)
+
+
 func retreat_with_remaining_movement(comb: Dictionary, reengage_target: Dictionary, reengage_cap: int):
 	if not comb.alive or controller.movement <= 0:
 		return
@@ -2818,8 +2845,15 @@ func ai_ranger(comb: Dictionary):
 	var attacked = await move_into_range_of(comb, target.position, skill, movement_budget, true, target)
 	if attacked:
 		await use_skill(skill_key, comb, target.position, false)
-	if attacked:
 		await retreat_with_remaining_movement(comb, target, skill.max_range + movement_budget)
+	else:
+		# Nothing it could reach from anywhere it could get to. It used to spend
+		# the rest of the turn standing still, because the tile it was already
+		# on was as safe as any other and safety was all that was being scored -
+		# so a ranger out of range simply waited, all fight, while the players
+		# walked around it. Close the distance instead, and keep preferring
+		# cover among the tiles that close it.
+		await approach_with_remaining_movement(comb, target)
 	await advance_turn()
 
 
