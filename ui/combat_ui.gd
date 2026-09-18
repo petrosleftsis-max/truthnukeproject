@@ -405,7 +405,15 @@ func _consumable_spends_secondary(comb: Dictionary, item: SkillDefinition) -> bo
 		return true
 	if comb.is_empty():
 		return false
-	return comb.get("items_as_secondary", false) and comb.get("skill_used_this_turn", false)
+	if not comb.get("items_as_secondary", false):
+		return false
+	# The secondary first, and the main action only once the secondary is gone.
+	#
+	# It read the other way round - the main action unless that had already been
+	# spent - which meant reaching for a bottle cost the turn's real action
+	# while the slot that exists precisely so it would not sat unused. Somebody
+	# who can use items from either slot should be spending the cheaper one.
+	return not comb.get("secondary_used_this_turn", false)
 
 
 func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: bool = false):
@@ -519,7 +527,19 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	# Which of the two actions a turn gives you this spends. It decides
 	# whether a skill can be used alongside another one, which is worth
 	# knowing before choosing it rather than after.
-	lines.append("Action: %s" % ("Secondary" if skill.is_secondary else "Main"))
+	#
+	# For a consumable it depends on who is holding it: somebody with
+	# items_as_secondary - Cyrus - can spend a bottle from either slot, where
+	# everybody else spends their main action on one. Reading the flag off the
+	# skill alone told Cyrus his own bottles cost him his turn.
+	#
+	# "Main or Secondary" because either is true depending on what is left of
+	# the turn; which one it actually takes is decided by
+	# _consumable_spends_secondary, and it reaches for the secondary first.
+	var action_slot = "Secondary" if skill.is_secondary else "Main"
+	if skill is ItemDefinition and not skill.is_secondary 		and _caster().get("items_as_secondary", false):
+		action_slot = "Main or Secondary"
+	lines.append("Action: %s" % action_slot)
 	lines.append("Range: %d-%d" % [skill.min_range, skill.max_range])
 	if skill.uses_stat_contest:
 		lines.append("Lands on anyone with %s below the caster's %s. Everyone else takes half damage and none of the rest." % [
