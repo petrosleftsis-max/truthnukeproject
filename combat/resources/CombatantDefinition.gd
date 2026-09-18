@@ -89,7 +89,15 @@ class_name CombatantDefinition
 @export_range(-100, 100, 1, "or_greater", "or_less") var resist_earth: int = 0
 @export_range(-100, 100, 1, "or_greater", "or_less") var resist_poison: int = 0
 @export_range(-100, 100, 1, "or_greater", "or_less") var resist_psychic: int = 0
-@export_range(-100, 100, 1, "or_greater", "or_less") var resist_pure_energy: int = 0
+## The upgraded elements. An upgraded type is its own element, not a stronger
+## version of the one it came from, so resisting Fire does nothing against
+## Plasma unless this says so too.
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_plasma: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_ice: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_lightning: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_metal: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_acid: int = 0
+@export_range(-100, 100, 1, "or_greater", "or_less") var resist_idol: int = 0
 
 @export_group("Party")
 ## Whether this one actually fights. Turn it off for someone who travels with
@@ -174,7 +182,12 @@ func resistance_table() -> Dictionary:
 		Damage.Type.EARTH: resist_earth,
 		Damage.Type.POISON: resist_poison,
 		Damage.Type.PSYCHIC: resist_psychic,
-		Damage.Type.PURE_ENERGY: resist_pure_energy,
+		Damage.Type.PLASMA: resist_plasma,
+		Damage.Type.ICE: resist_ice,
+		Damage.Type.LIGHTNING: resist_lightning,
+		Damage.Type.METAL: resist_metal,
+		Damage.Type.ACID: resist_acid,
+		Damage.Type.IDOL: resist_idol,
 	}
 
 
