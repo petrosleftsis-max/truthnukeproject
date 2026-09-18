@@ -616,6 +616,13 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.STAT_MODIFIER:
 			var sign_str = "+" if effect.modifier_amount >= 0 else ""
 			return "%s%d %s for %d turn(s)" % [sign_str, effect.modifier_amount, effect.stat, effect.duration]
+		EffectDefinition.EffectType.RESISTANCE:
+			var harder = effect.modifier_amount > 0
+			return "%s %s resistance by %d%% for %d turn(s)" % [
+				"Raises" if harder else "Lowers",
+				Damage.type_name(effect.damage_type).to_lower(),
+				absi(effect.modifier_amount), effect.duration
+			]
 		EffectDefinition.EffectType.MOVEMENT_CLASS:
 			var moving_as = Stats.movement_class_name(effect.movement_class).to_lower()
 			if effect.movement_class == 1:

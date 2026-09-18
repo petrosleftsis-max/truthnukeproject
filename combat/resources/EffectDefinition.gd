@@ -16,7 +16,8 @@ enum EffectType {
 	CONDITION,         ## Inflicts a named ConditionDefinition - Poisoned, Stunned, Burned and so on.
 	REVEAL,            ## Lays the target open to inspection - what Study does.
 	MOVEMENT_CLASS,    ## Changes how the target gets about - on foot, flying, mounted - for a duration.
-	HIDE               ## Takes the target out of sight, until somebody sees them again.
+	HIDE,              ## Takes the target out of sight, until somebody sees them again.
+	RESISTANCE         ## Raises or lowers how much of one damage type gets through, for a duration.
 }
 
 enum DispelScope {
@@ -159,6 +160,7 @@ const FIELDS_BY_TYPE := {
 	# Nothing to configure: hiding lasts until somebody sees you, not a number
 	# of turns, so there is no duration to set either.
 	EffectType.HIDE: [],
+	EffectType.RESISTANCE: ["display_name", "damage_type", "modifier_amount", "duration"],
 }
 
 

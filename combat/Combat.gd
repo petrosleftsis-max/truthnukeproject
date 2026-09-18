@@ -1111,6 +1111,18 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 			update_combatants.emit(combatants)
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
 				"moving as %s" % Stats.movement_class_name(effect.movement_class).to_lower()))
+		EffectDefinition.EffectType.RESISTANCE:
+			target.status_effects.append({
+				"stat" = Damage.resistance_key(effect.damage_type),
+				"op" = "add",
+				"amount" = effect.modifier_amount,
+				"duration" = stored_duration(target, effect),
+				"source_name" = attacker.name
+			})
+			update_combatants.emit(combatants)
+			var direction = "harder" if effect.modifier_amount > 0 else "easier"
+			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
+				"%s to hurt with %s" % [direction, Damage.type_name(effect.damage_type).to_lower()]))
 		EffectDefinition.EffectType.HIDE:
 			if alone_on_their_side(target):
 				update_information.emit("[color=yellow]%s[/color] is the last one standing - there is nobody else to slip behind.
@@ -1811,7 +1823,15 @@ func resisted_damage(target: Dictionary, type: int, amount: int) -> int:
 
 
 func resistance_of(target: Dictionary, type: int) -> int:
-	return target.get("resistances", {}).get(type, 0)
+	var standing = target.get("resistances", {}).get(type, 0)
+	# Anything raising or lowering it for a while. Stored under the same name
+	# the definition uses - "resist_fire" - so it dispels, expires and shows on
+	# the portrait exactly like any other timed change.
+	var key = Damage.resistance_key(type)
+	for eff in target.get("status_effects", []):
+		if eff.get("stat", "") == key:
+			standing += eff.get("amount", 0)
+	return standing
 
 
 ## --- Skill sounds ---
