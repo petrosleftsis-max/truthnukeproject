@@ -1101,7 +1101,10 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
 				"moving as %s" % Stats.movement_class_name(effect.movement_class).to_lower()))
 		EffectDefinition.EffectType.HIDE:
-			if is_seen_by_opponents(target):
+			if alone_on_their_side(target):
+				update_information.emit("[color=yellow]%s[/color] is the last one standing - there is nobody else to slip behind.
+" % target.name)
+			elif is_seen_by_opponents(target):
 				update_information.emit("[color=yellow]%s[/color] cannot slip away while they are being watched.
 " % target.name)
 			else:
@@ -1158,6 +1161,20 @@ func is_hidden(comb: Dictionary) -> bool:
 	return comb.get("hidden", false)
 
 
+## Whether `comb` is the last one left on their side.
+##
+## Hiding is something you do while the enemy has somebody else to look at.
+## Alone, there is nobody else for them to be looking at, so there is nowhere
+## to slip to - and the fight cannot go anywhere while the only person left in
+## it is one nobody can see.
+func alone_on_their_side(comb: Dictionary) -> bool:
+	var standing := 0
+	for index in groups[comb.side]:
+		if combatants[index].alive:
+			standing += 1
+	return standing <= 1
+
+
 ## Whether anybody on the far side can see `comb` from where they are standing.
 func is_seen_by_opponents(comb: Dictionary) -> bool:
 	var opposing = Group.PLAYERS if comb.side == Group.ENEMIES else Group.ENEMIES
@@ -1204,6 +1221,14 @@ func reveal_anyone_now_seen() -> Array:
 	var revealed := []
 	for comb in combatants:
 		if not comb.alive or not comb.get("hidden", false):
+			continue
+		if alone_on_their_side(comb):
+			# The last of their side cannot stay hidden: there is nobody else
+			# for the enemy to be busy with.
+			set_hidden(comb, false)
+			revealed.append(comb)
+			update_information.emit("[color=yellow]%s[/color] is the last one standing, and can hide no longer.
+" % comb.name)
 			continue
 		if is_seen_by_opponents(comb):
 			set_hidden(comb, false)
@@ -2091,6 +2116,10 @@ func combatant_die(combatant: Dictionary):
 	))
 	combatant.sprite.set_dead()
 	combatant_died.emit(combatant)
+	# Somebody falling is exactly what leaves the last of their side standing
+	# alone, and the last one standing cannot stay hidden. Asked here, after the
+	# groups above have been updated, so the count is the one that is now true.
+	reveal_anyone_now_seen()
 	if groups[Group.ENEMIES].size() < 1 or groups[Group.PLAYERS].size() < 1:
 		combat_finish()
 
