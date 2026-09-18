@@ -26,6 +26,16 @@ enum DispelScope {
 }
 
 @export var type: EffectType = EffectType.DAMAGE : set = _set_type
+## Lands on whoever used the skill rather than on what it was aimed at.
+##
+## So one skill can hurt an enemy and do something to its own caster - a swing
+## that cuts and steadies the arm that swung it. Without this, a skill aimed at
+## an enemy could only ever do things to that enemy, and a buff for the caster
+## needed a second skill and a second action to go with it.
+##
+## Applied once however many it hit, not once per victim, and only when the
+## skill actually lands.
+@export var applies_to_caster: bool = false
 ## What this condition is called in the combat log - "Poisoning", "Slowed",
 ## "Blessed". Used for STAT_MODIFIER, STAT_MULTIPLIER and DAMAGE_OVER_TIME, so
 ## a message can read "Cyrus inflicted Poisoning on Goblin 1" rather than

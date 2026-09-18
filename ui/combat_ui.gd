@@ -563,7 +563,12 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		lines.append("")
 		lines.append("Effects:")
 		for effect in skill.all_effects():
-			lines.append("- " + describe_effect(effect, skill))
+			var line = "- " + describe_effect(effect, skill)
+			if effect.applies_to_caster:
+				# Otherwise a skill aimed at an enemy reads as though the buff
+				# on the end of it lands on them.
+				line += " (on yourself)"
+			lines.append(line)
 	return "\n".join(lines)
 
 

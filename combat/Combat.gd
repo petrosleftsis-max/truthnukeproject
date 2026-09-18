@@ -587,6 +587,10 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 				if grazed:
 					update_information.emit("[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name])
 				for effect in skill.all_effects():
+					# Whatever the skill does to its own caster is done once,
+					# below, rather than once for every person it caught.
+					if effect.applies_to_caster:
+						continue
 					# A graze is damage only, at half strength - nothing that
 					# would stick, slow, poison or shove comes with it.
 					if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
@@ -595,6 +599,13 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 					# landed, so the shape of the blast reads off the recoil.
 					apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0, impact_position if skill.aoe_radius > 0 else attacker.position)
 					mention_skill = false
+			# And what the skill does to whoever used it - a swing that steadies
+			# the arm that swung it. Once, however many it caught, and only
+			# because the skill landed at all.
+			for effect in skill.all_effects():
+				if not effect.applies_to_caster or not attacker.alive:
+					continue
+				apply_effect(attacker, attacker, effect, skill, false)
 		else:
 			update_information.emit("{0} missed.\n".format([attacker.name]))
 		if skill.kills_caster and attacker.alive:
