@@ -2186,7 +2186,12 @@ func combatant_die(combatant: Dictionary):
 			combatant.name
 		]
 	))
-	combatant.sprite.set_dead()
+	# Guarded the way every other sprite reach in this file is: create_combatant
+	# makes a combatant with no sprite on it, so the logic layer killing one of
+	# its own must not depend on there being something drawn.
+	var dying_sprite = combatant.get("sprite")
+	if dying_sprite != null and is_instance_valid(dying_sprite):
+		dying_sprite.set_dead()
 	combatant_died.emit(combatant)
 	# Somebody falling is exactly what leaves the last of their side standing
 	# alone, and the last one standing cannot stay hidden. Asked here, after the
