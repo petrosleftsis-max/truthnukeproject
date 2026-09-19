@@ -37,6 +37,7 @@
 [ext_resource type="Resource" uid="uid://cryo284fo8l4r" path="res://skills/hover.tres" id="36_hover"]
 [ext_resource type="Resource" uid="uid://byq7wlj15dbsw" path="res://skills/stealth.tres" id="37_stealth"]
 [ext_resource type="Resource" uid="uid://c3t33q31bj08p" path="res://skills/trailblaze.tres" id="38_m4jk1"]
+[ext_resource type="Resource" uid="uid://d2oqgavj2l0w6" path="res://skills/element_up.tres" id="39_56xb4"]
 [ext_resource type="Resource" uid="uid://b03pv5bjmcr1" path="res://skills/study.tres" id="99_study"]
 
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
@@ -47,6 +48,7 @@ skills = {
 "burning_shot": ExtResource("25_q8moi"),
 "cleanse": ExtResource("5_r41b3"),
 "crystalise": ExtResource("27_66cmj"),
+"element_up": ExtResource("39_56xb4"),
 "fire_blast": ExtResource("33_o3emf"),
 "fire_burst": ExtResource("4_2m8rc"),
 "fireball": ExtResource("7_dbes0"),

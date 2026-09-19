@@ -42,7 +42,7 @@ secondary_stat = 3
 icon = ExtResource("95_alithiastill")
 map_sprite = ExtResource("95_alithiastill")
 sprite_frames = ExtResource("94_alithiaframes")
-skills = Array[String](["heal", "light_heal", "revitalizer", "cleanse", "flash", "river_flow", "water_spike", "run", "slip_past"])
+skills = Array[String](["water_spike", "heal", "light_heal", "revitalizer", "cleanse", "flash", "river_flow", "run", "slip_past"])
 starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])
 
 [sub_resource type="Resource" id="Resource_s2oe2"]
@@ -55,9 +55,9 @@ movement = 5
 initiative = 3
 secondary_stat = 3
 sprite_frames = ExtResource("6_w4l2p")
-skills = Array[String](["greatsword_attack", "shoving_strike", "sweep_strike", "run"])
-resist_fire = -20
-resist_earth = 20
+skills = Array[String](["greatsword_attack", "follow_up_attack", "sweep_strike", "run"])
+resist_fire = -50
+resist_earth = 50
 
 [sub_resource type="Resource" id="Resource_bomber"]
 script = ExtResource("2_rggep")
@@ -71,6 +71,11 @@ main_stat = 1
 secondary_stat = 0
 sprite_frames = ExtResource("7_6bef5")
 skills = Array[String](["self_destruct", "run"])
+resist_plasma = -50
+resist_ice = -50
+resist_lightning = -50
+resist_metal = -50
+resist_acid = -50
 ai_function = "ai_hit_and_explode"
 
 [sub_resource type="Resource" id="Resource_w6c3b"]
@@ -145,8 +150,8 @@ movement = 5
 initiative = 4
 main_stat = 3
 sprite_frames = ExtResource("11_o6bu1")
-resist_water = -20
-resist_wind = 20
+resist_water = -50
+resist_wind = 50
 ai_function = "ai_copycat"
 casts_without_gates = true
 
@@ -162,9 +167,9 @@ initiative = 3
 main_stat = 1
 secondary_stat = 3
 sprite_frames = ExtResource("12_qkqyl")
-skills = Array[String](["heal", "cleanse", "water_spike", "run", "revitalizer"])
-resist_water = 20
-resist_earth = -20
+skills = Array[String](["water_spike", "heal", "cleanse", "river_flow", "revitalizer", "run"])
+resist_water = 50
+resist_earth = -50
 ai_function = "ai_healer"
 
 [sub_resource type="Resource" id="Resource_bwgmm"]
@@ -205,8 +210,8 @@ movement = 5
 initiative = 4
 sprite_frames = ExtResource("15_eyeq6")
 skills = Array[String](["heal", "gun", "poison_dart", "burning_shot", "run"])
-resist_wind = -20
-resist_poison = 20
+resist_wind = -50
+resist_poison = 50
 ai_function = "ai_ranger"
 
 [sub_resource type="Resource" id="Resource_sorcerer"]
@@ -220,9 +225,9 @@ movement = 4
 initiative = 4
 main_stat = 2
 sprite_frames = ExtResource("16_r0t0t")
-skills = Array[String](["burner", "fireball", "wind_vacuum", "gust_blast", "wind_swoon", "run"])
-resist_fire = 20
-resist_poison = -20
+skills = Array[String](["burner", "fireball", "crystalise", "gust_blast", "wind_swoon", "run", "fire_burst", "fire_blast", "rock_throw", "wind_shot", "wind_swoon"])
+resist_fire = 50
+resist_poison = -50
 ai_function = "ai_caster"
 
 [node name="CombatantDatabase" type="Node" unique_id=1671407001]

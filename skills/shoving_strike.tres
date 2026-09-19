@@ -21,6 +21,5 @@ max_range = 1
 accuracy = 100
 icon = ExtResource("2_olqgu")
 effects = Array[ExtResource("1_gpgpy")]([SubResource("Resource_sdx31")])
-ability_modifier = 1.2
 sound = ExtResource("90_sfx")
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"
