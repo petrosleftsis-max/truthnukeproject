@@ -55,6 +55,12 @@ func _ready():
 		# set, so it empties the bags of whoever is actually here.
 		for key in Campaign.living_party():
 			Campaign.empty_inventory(key)
+	if setup != null and setup.hands_kit_out():
+		# After emptying, so a map that wants the party holding exactly this and
+		# nothing else can set both and get it.
+		for key in Campaign.living_party():
+			for item in setup.kit_for(key):
+				Campaign.give_item(key, item)
 	if setup != null and setup.music != "":
 		# Starting the track already playing does nothing, so stepping out to a
 		# fight and back does not restart the map's music from the top.

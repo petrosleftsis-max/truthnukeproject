@@ -47,6 +47,38 @@ class_name MapSetup
 ## anybody anything.
 @export var empty_handed: bool = false
 
+@export_group("Kit")
+## One of each of these for every member of the party, handed out on arrival.
+##
+## Added to what they are already carrying, so a map that wants a party to hold
+## exactly this and nothing else sets Empty Handed as well - the two compose,
+## rather than this quietly meaning "and throw the rest away".
+@export var everyone_carries: Array[String] = []
+
+## Extra items for particular people, keyed by combatant key, e.g.
+## {"cyrus": ["bomb"]}. Handed out on top of Everyone Carries.
+@export var also_carries: Dictionary = {}
+
+
+## What `key` should be given on arrival - the common kit plus anything named
+## for them in particular.
+func kit_for(key: String) -> Array:
+	var kit: Array = []
+	kit.append_array(everyone_carries)
+	var theirs = also_carries.get(key, [])
+	if theirs is Array:
+		kit.append_array(theirs)
+	elif theirs is String and theirs != "":
+		# One item written without the brackets, which is the easy mistake to
+		# make in the inspector and harmless to allow.
+		kit.append(theirs)
+	return kit
+
+
+## Whether this map hands anything out at all.
+func hands_kit_out() -> bool:
+	return not everyone_carries.is_empty() or not also_carries.is_empty()
+
 
 ## Whether a party is actually named here. An empty list is "not set" rather
 ## than "nobody", because a map that meant nobody would have no exploration.
