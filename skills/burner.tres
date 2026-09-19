@@ -8,14 +8,10 @@
 
 [sub_resource type="Resource" id="Effect_curse"]
 script = ExtResource("1_r1ihj")
-type = 3
-display_name = "Cursed"
+type = 8
 condition = ExtResource("2_cop3u")
-condition_duration = 3
-stat = ""
-modifier_amount = 0
-stat_multiplier = 0.0
-duration = 3
+condition_duration = 5
+condition_dot_modifier = 1.0
 
 [resource]
 script = ExtResource("3_cop3u")
@@ -28,6 +24,7 @@ icon = ExtResource("2_luh46")
 required_level = 2
 respects_blocking = true
 effects = Array[ExtResource("1_r1ihj")]([SubResource("Effect_curse")])
+deals_damage = false
 ability_modifier = 0.8
 scaling_stat = 2
 damage_type = 1
