@@ -69,12 +69,13 @@ func _on_combatant_studied(combatant: Dictionary):
 ## Opens the sheet on a named combatant, falling back to the usual choice when
 ## there is nobody by that name to show.
 ##
-## Doesn't stop the game the way opening it yourself does: this is the sheet
-## arriving in the middle of the skill that measured them, which is still
-## resolving, and freezing it half-finished is not what was asked for. Nobody
-## can move while the sheet is up either way.
+## Stops the game while it is up, exactly as opening it yourself does. Study
+## costs an action and its whole payoff is the reading, so the reading gets the
+## same quiet the C key gets - the skill that opened it carries on the moment
+## the sheet is closed. This panel runs while the tree is paused, so closing it
+## is always possible.
 func open_on(who: String):
-	open(false)
+	open(true)
 	if not _open:
 		return
 	for i in range(_entries.size()):
