@@ -22,11 +22,6 @@ Cyrus Rowe: As you guys were talking, I found supplies! Here, have some.
 
 Prometheus Iliopoulos: Efficient as ever.
 
-do Campaign.give_item("cyrus", "cure_potion")
-do Campaign.give_item("enfina", "cure_potion")
-do Campaign.give_item("alithia", "cure_potion")
-do Campaign.give_item("prometheus", "cure_potion")
-do Campaign.give_item("cyrus", "bomb")
 do Campaign.give_item("cyrus", "medicine")
 do Campaign.give_item("cyrus", "crystal_bottle")
 do Campaign.give_item("enfina", "burn_bottle")
