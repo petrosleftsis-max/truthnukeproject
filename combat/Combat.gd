@@ -1068,6 +1068,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"%sx %s" % [effect.stat_multiplier, effect.stat]))
 			clamp_hp_to_max(target)
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
+			replace_matching_tick(target, "dot", null, effect.damage_type)
 			target.status_effects.append({
 				"stat" = "dot", # reserved pseudo-stat marking a damage-over-time tick
 				"damage_type" = effect.damage_type,
@@ -1083,6 +1084,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				push_warning("A CONDITION effect on %s has no condition assigned." % (skill.name if skill != null else "an unnamed skill"))
 			else:
 				var movement_before = get_effective_stat(target, "movement")
+				replace_matching_tick(target, "condition", effect.condition, 0)
 				target.status_effects.append({
 					"stat" = "condition",
 					"condition" = effect.condition,
@@ -1401,6 +1403,35 @@ func describe_condition(attacker: Dictionary, target: Dictionary, effect: Effect
 
 ## Removes status effects from `target` matching `effect`'s dispel filters
 ## (see EffectDefinition.dispel_stat / dispel_scope).
+## Takes off whatever the effect about to land would double up on.
+##
+## Two Burns are one Burn - the newer one. Stacked, the same affliction ticks
+## twice a turn under a single name in the panel, and a second casting is
+## quietly worth more than the first while reading as though nothing happened.
+## Replacing also means the fresher caster's strength and duration are the ones
+## that count, which is what "burned by them, then by yourself" should mean.
+##
+## Matched on identity rather than on the whole effect: the same
+## ConditionDefinition for a condition, the same damage type for a nameless
+## lingering wound. A Burn and a Poisoning are different afflictions and both
+## stay.
+func replace_matching_tick(target: Dictionary, kind: String, condition: ConditionDefinition, damage_type: int) -> int:
+	var removed = 0
+	var i = target.status_effects.size() - 1
+	while i >= 0:
+		var existing = target.status_effects[i]
+		var same := false
+		if kind == "condition" and existing.get("stat", "") == "condition":
+			same = existing.get("condition") == condition
+		elif kind == "dot" and existing.get("stat", "") == "dot":
+			same = existing.get("damage_type", -1) == damage_type
+		if same:
+			target.status_effects.remove_at(i)
+			removed += 1
+		i -= 1
+	return removed
+
+
 func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: EffectDefinition):
 	var removed = 0
 	# From the end, so the most recently acquired goes first. That only shows
