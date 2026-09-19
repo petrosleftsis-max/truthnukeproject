@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://jmcow0oiohwc"
+path="res://.godot/imported/lab_prometheus_encounter.dialogue-d8d044095bd238ab5cb660be48a52468.tres"
+
+[deps]
+
+source_file="res://Dialogue/lab_prometheus_encounter.dialogue"
+dest_files=["res://.godot/imported/lab_prometheus_encounter.dialogue-d8d044095bd238ab5cb660be48a52468.tres"]
+
+[params]
+
+defaults=true

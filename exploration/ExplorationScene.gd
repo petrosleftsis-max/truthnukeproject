@@ -409,6 +409,24 @@ func end_blocking_interaction(_arg = null):
 	_update_prompt()
 
 
+## Walks the party back out of `interactable`'s reach.
+##
+## For something they were asked about and turned down. An automatic trigger
+## fires again the moment it is in range, so leaving them standing on it would
+## either loop the conversation or let them stroll past it while it was still
+## deciding - they are walked clear instead, and walking back in asks again.
+##
+## Half a tile past the edge rather than exactly on it, so a single step in any
+## direction does not immediately re-offer what they just declined.
+func step_party_back_from(interactable: Node) -> void:
+	if party == null or interactable == null or not is_instance_valid(interactable):
+		return
+	await party.retreat_from(interactable.global_position,
+		interactable.interaction_radius + Grid.tiles(0.5))
+	if is_instance_valid(self):
+		_update_prompt()
+
+
 ## Rebuilds the whole scene for whatever map Campaign now points at - how a
 ## door moves the party between maps.
 func reload_map():

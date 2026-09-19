@@ -345,7 +345,49 @@ func record_party(combatants: Array):
 ## Back to full strength: everyone alive, everyone at full health, every
 ## encounter trigger in the world armed again, and the marching order back to
 ## however the starting party is configured.
+## What a conversation standing in front of a fight decided.
+##
+## A dialogue answers with a `do` line on the branch that means it:
+##
+##     - We're ready
+##         do Campaign.accept_encounter()
+##     - Let's look around a bit more first
+##         do Campaign.decline_encounter()
+##
+## Saying nothing counts as declining. Closing the balloon must not be a way of
+## slipping past a fight you were asked about - the trigger is standing in the
+## party's path, and the answer decides whether they walk into it or back out
+## of it, never whether they get to walk through it.
+enum EncounterAnswer { UNANSWERED, ACCEPTED, DECLINED }
+
+var _encounter_answer := EncounterAnswer.UNANSWERED
+
+
+## Walk into the fight this conversation is about, once it has finished.
+func accept_encounter():
+	_encounter_answer = EncounterAnswer.ACCEPTED
+
+
+## Back away from it instead. The party is walked out of the trigger's reach
+## when the conversation ends, so they can come back when they are ready.
+func decline_encounter():
+	_encounter_answer = EncounterAnswer.DECLINED
+
+
+## Clears any answer left over, so a conversation begins with nothing assumed.
+func forget_encounter_answer():
+	_encounter_answer = EncounterAnswer.UNANSWERED
+
+
+## Reads the answer and clears it in one go, so it can never be acted on twice.
+func take_encounter_answer() -> EncounterAnswer:
+	var answer = _encounter_answer
+	_encounter_answer = EncounterAnswer.UNANSWERED
+	return answer
+
+
 func reset():
+	_encounter_answer = EncounterAnswer.UNANSWERED
 	party_state.clear()
 	cleared_triggers.clear()
 	party_order.clear()

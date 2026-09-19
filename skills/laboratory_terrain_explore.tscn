@@ -10,6 +10,7 @@
 [ext_resource type="Resource" uid="uid://ct32fg4sufmo8" path="res://Dialogue/lab_prometheus_pain.dialogue" id="8_kxgt0"]
 [ext_resource type="Script" uid="uid://cq2s71a1q831b" path="res://exploration/EncounterInteractable.gd" id="9_hlptl"]
 [ext_resource type="Resource" uid="uid://c3j4v4tmtl7gw" path="res://encounters/encounter_02_sappers.tres" id="10_lh2ad"]
+[ext_resource type="Resource" uid="uid://jmcow0oiohwc" path="res://Dialogue/lab_prometheus_encounter.dialogue" id="11_labenc"]
 [ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/MapSetup.gd" id="90_party"]
 
 [node name="Node2D" type="Node2D" unique_id=557726441]
@@ -60,6 +61,7 @@ metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
 position = Vector2(4703, 4207)
 script = ExtResource("9_hlptl")
 encounter = ExtResource("10_lh2ad")
+dialogue = ExtResource("11_labenc")
 automatic = true
 prompt = "Fight"
 interaction_radius = 500.0

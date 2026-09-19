@@ -103,7 +103,15 @@ var _walking := false
 var _facing_left := false
 
 
+## True while something other than the player is walking the line - a retreat
+## out of a trigger they turned down. The keys are ignored for the duration
+## rather than fought with.
+var _scripted := false
+
+
 func _process(delta):
+	if _scripted:
+		return
 	if leader == null or frozen:
 		_set_walking(false)
 		return
@@ -114,6 +122,17 @@ func _process(delta):
 	if direction == Vector2.ZERO:
 		_set_walking(false)
 		return
+	_step(direction, delta)
+
+
+## One step of the line in `direction`, sliding along anything it runs into.
+## False when it could not move at all, which is a wall.
+##
+## Shared by the player's own walking and by a scripted retreat, so a retreat
+## respects the map exactly as walking does rather than sliding through it.
+func _step(direction: Vector2, delta: float) -> bool:
+	if leader == null:
+		return false
 	if direction.x != 0.0:
 		# Only a horizontal press turns the line. Walking straight up or down
 		# leaves everyone facing the way they last went, rather than snapping
@@ -133,12 +152,39 @@ func _process(delta):
 	if moved_to == before:
 		# Pressed into a wall: still facing that way, but not walking anywhere.
 		_set_walking(false)
-		return
+		return false
 	_set_walking(true)
 	leader.position = moved_to
 	_record_trail(before, moved_to)
 	_place_followers()
 	moved.emit(moved_to)
+	return true
+
+
+## Walks the line away from `point` until the leader is `clearance` clear of it.
+##
+## Under its own steam rather than put there: the same stepping the player's
+## keys drive, so the party retreats at walking pace with the tail following,
+## and stops dead against a wall instead of backing through it. Returns when
+## they are clear, or when there is nowhere further to back into.
+func retreat_from(point: Vector2, clearance: float) -> void:
+	if leader == null or not is_inside_tree():
+		return
+	_scripted = true
+	# A step is a frame's worth of walking, so a party wedged in a corner cannot
+	# spin here for ever - at walking pace this is a few seconds of map at most.
+	var steps = 0
+	while leader.position.distance_to(point) < clearance and steps < 600:
+		steps += 1
+		var away = leader.position - point
+		if away.length() < 0.001:
+			# Standing exactly on it: any direction is away from here.
+			away = Vector2.RIGHT
+		if not _step(away.normalized(), get_process_delta_time()):
+			break
+		await get_tree().process_frame
+	_set_walking(false)
+	_scripted = false
 
 
 ## Everyone in the line, leader first.
