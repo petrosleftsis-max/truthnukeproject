@@ -52,3 +52,19 @@ func _build_terrain(encounter: EncounterDefinition):
 	terrain.name = "Terrain"
 	add_child(terrain)
 	move_child(terrain, 0)
+	# A battle is played on tiles, so it gets the grid. Which terrain scenes
+	# happened to save it switched on was a coin toss - the crossroads shipped
+	# without one while the lab and the city had one - and the crossroads
+	# terrain is the same scene exploration walks about on, so no per-scene
+	# setting could tell the two apart. The mode decides instead, exactly as
+	# ExplorationScene switches it off at its end.
+	_show_grid(terrain)
+
+
+## Turns on any grid overlay the terrain brought with it, wherever it sits.
+func _show_grid(node: Node):
+	for child in node.get_children():
+		if child is GridOverlay:
+			child.visible = true
+		else:
+			_show_grid(child)

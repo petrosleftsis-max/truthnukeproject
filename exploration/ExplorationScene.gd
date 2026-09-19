@@ -128,12 +128,31 @@ func _build_map():
 			if found != null:
 				_tile_map = found
 				break
+	# Most terrain scenes save their grid overlay hidden and the encounter
+	# editor turns it on while placing units, but a couple of maps were authored
+	# without it switched off and carry a visible grid. Exploration is not
+	# played on tiles as far as the player is concerned - they walk about
+	# freely - so the mode settles it here rather than every map having to
+	# remember. The scene on disk is untouched, so the grid is still there to
+	# lay things out against in the editor.
+	_hide_grid(map)
 	_build_blocking()
 	_interactables = []
 	_collect_interactables(map)
 	# Dialogue can walk people about this map now, and anything it was walking
 	# on the last one is gone with it.
 	Actors.use_scene(self, _tile_map)
+
+
+## Switches off any grid overlay the map brought with it, wherever it sits -
+## a map may be a plain wrapper around a terrain scene, so the grid is not
+## always a direct child.
+func _hide_grid(node: Node):
+	for child in node.get_children():
+		if child is GridOverlay:
+			child.visible = false
+		else:
+			_hide_grid(child)
 
 
 ## Which tiles the party can't walk on. Built once from the same "Blocks"
