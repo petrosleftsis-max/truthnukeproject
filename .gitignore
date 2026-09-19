@@ -21,6 +21,7 @@ builds/
 export/
 export.zip
 *-web.zip
+*-windows.zip
 
 # Music sources. Three WAVs, 126 MB between them, and nothing in the game
 # depends on their being here: Music.gd warns and carries on in silence when a
