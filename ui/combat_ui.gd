@@ -542,8 +542,18 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	lines.append("Action: %s" % action_slot)
 	lines.append("Range: %d-%d" % [skill.min_range, skill.max_range])
 	if skill.uses_stat_contest:
-		lines.append("Lands on anyone with %s below the caster's %s. Everyone else takes half damage and none of the rest." % [
-			Stats.stat_name(skill.contest_stat), Stats.stat_name(skill.scaling_stat)
+		# A graze keeps the damage at half strength and drops everything else,
+		# so a skill carrying no damage at all does nothing whatever to whoever
+		# shrugs it off - and saying "half damage" of Blind names a number that
+		# was never there.
+		var hurts := false
+		for contested in skill.all_effects():
+			if contested != null and contested.type == EffectDefinition.EffectType.DAMAGE:
+				hurts = true
+		lines.append("Lands on anyone with %s below the caster's %s. %s" % [
+			Stats.stat_name(skill.contest_stat), Stats.stat_name(skill.scaling_stat),
+			"Everyone else takes half damage and none of the rest." if hurts
+				else "Everyone else shrugs it off entirely."
 		])
 	else:
 		lines.append("Hit chance: %d%%" % skill.accuracy)
