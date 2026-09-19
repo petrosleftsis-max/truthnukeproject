@@ -1,8 +1,9 @@
 extends CanvasLayer
 ## Simple pause/options overlay, independent of the combat HUD - works no
 ## matter whose turn it is or what's happening. Escape toggles the Pause
-## panel (title "Pause", with "Options", "Arena Mode" and "Main Menu");
-## Options swaps to a resolution picker with the volume sliders under it.
+## panel (title "Pause", with "Glossary", "Options", "Arena Mode" and "Main
+## Menu"); Options swaps to a resolution picker with the volume sliders under
+## it, and Glossary swaps to the same book the main menu opens.
 ## The sliders are the same ones the main menu shows (ui/volume_sliders.gd)
 ## and are driven with the mouse - the arrow keys belong to the button loop
 ## here. Picking a resolution just resizes the actual game window - the project's
@@ -23,6 +24,7 @@ extends CanvasLayer
 @export var controller: CController
 
 @onready var _pause_buttons: Array = [
+	$PausePanel/VBox/GlossaryButton,
 	$PausePanel/VBox/OptionsButton,
 	$PausePanel/VBox/LevelSelectButton,
 	$PausePanel/VBox/MainMenuButton,
@@ -37,6 +39,12 @@ extends CanvasLayer
 ## shared with the main menu (see ui/volume_sliders.gd).
 var _volume: VolumeSliders = null
 
+## The same book the main menu opens, built the same way and for the same
+## reason: one glossary, read from wherever you happen to be. It wants far more
+## room than the other two panels, since it is a list and a page side by side.
+var _glossary: GlossaryPanel = null
+var _glossary_panel: PanelContainer = null
+
 ## Whatever held the keyboard when this opened, handed back when it closes.
 var _focus_before: Control = null
 
@@ -48,6 +56,7 @@ func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	$PausePanel.visible = false
 	$OptionsPanel.visible = false
+	$PausePanel/VBox/GlossaryButton.pressed.connect(_on_glossary_pressed)
 	$PausePanel/VBox/OptionsButton.pressed.connect(_on_options_pressed)
 	$PausePanel/VBox/LevelSelectButton.pressed.connect(_on_level_select_pressed)
 	$PausePanel/VBox/MainMenuButton.pressed.connect(_on_main_menu_pressed)
@@ -56,6 +65,7 @@ func _ready():
 	$OptionsPanel/VBox/Res2560Button.pressed.connect(func(): set_resolution(2560, 1440))
 	_volume = VolumeSliders.new()
 	$OptionsPanel/VBox.add_child(_volume)
+	_build_glossary()
 	FocusLoop.link(_pause_buttons)
 	FocusLoop.link(_options_buttons)
 
@@ -71,7 +81,7 @@ var _keyboard: FocusOnDemand
 ## landed beside the panel rather than on it reached the map underneath and
 ## moved somebody, and whatever was already in flight carried on regardless.
 func _show_panel(panel: Control, buttons: Array):
-	if not $PausePanel.visible and not $OptionsPanel.visible:
+	if not $PausePanel.visible and not $OptionsPanel.visible and not _glossary_showing():
 		# Who had the keyboard before this opened. A dialogue balloon holds it
 		# while a conversation is on, and Enter stops advancing the conversation
 		# if it doesn't get it back.
@@ -79,6 +89,8 @@ func _show_panel(panel: Control, buttons: Array):
 	MenuPause.hold(self)
 	$PausePanel.visible = panel == $PausePanel
 	$OptionsPanel.visible = panel == $OptionsPanel
+	if _glossary_panel != null:
+		_glossary_panel.visible = panel == _glossary_panel
 	if not buttons.is_empty():
 		if _keyboard == null:
 			_keyboard = FocusOnDemand.attach(self, buttons[0])
@@ -92,6 +104,8 @@ func _show_panel(panel: Control, buttons: Array):
 func _close():
 	$PausePanel.visible = false
 	$OptionsPanel.visible = false
+	if _glossary_panel != null:
+		_glossary_panel.visible = false
 	MenuPause.release(self)
 	var focused = get_viewport().gui_get_focus_owner()
 	if focused != null:
@@ -108,8 +122,10 @@ func _unhandled_input(event):
 		# Let CController's own Escape handling cancel the in-progress skill
 		# targeting instead - that takes priority over opening this.
 		return
-	if $OptionsPanel.visible:
-		# Escape from Options goes back to Pause, rather than closing everything.
+	if $OptionsPanel.visible or _glossary_showing():
+		# Escape from a sub-panel goes back to Pause rather than closing
+		# everything, so one key does not drop you out of the game from three
+		# screens deep.
 		_show_panel($PausePanel, _pause_buttons)
 	elif $PausePanel.visible:
 		_close()
@@ -120,6 +136,39 @@ func _unhandled_input(event):
 
 func _on_options_pressed():
 	_show_panel($OptionsPanel, _options_buttons)
+
+
+func _glossary_showing() -> bool:
+	return _glossary_panel != null and _glossary_panel.visible
+
+
+## The book, in a panel of its own. Wide, because it puts a list of entries
+## beside the page they open.
+func _build_glossary():
+	_glossary_panel = PanelContainer.new()
+	_glossary_panel.name = "GlossaryPanel"
+	_glossary_panel.visible = false
+	_glossary_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_glossary_panel.offset_left = -420.0
+	_glossary_panel.offset_top = -280.0
+	_glossary_panel.offset_right = 420.0
+	_glossary_panel.offset_bottom = 280.0
+	_glossary_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_glossary_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_glossary = GlossaryPanel.new()
+	# Back inside the book walks its own trail; Back on its first screen is
+	# what hands the pause menu back, exactly as it hands the main menu back.
+	_glossary.closed.connect(func(): _show_panel($PausePanel, _pause_buttons))
+	_glossary_panel.add_child(_glossary)
+	add_child(_glossary_panel)
+
+
+## Opened at its contents page rather than wherever it was last left, because
+## pressing Glossary is starting again - the same as from the main menu.
+func _on_glossary_pressed():
+	_show_panel(_glossary_panel, [])
+	if _glossary != null and _glossary.has_method("show_contents"):
+		_glossary.show_contents()
 
 
 ## Jumps straight to the battle list. Exploration is the hub now, so this is
