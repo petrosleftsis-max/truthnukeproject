@@ -2683,6 +2683,16 @@ func move_into_range_of(comb: Dictionary, target_position: Vector2i, skill: Skil
 		return true
 	var tile: Vector2i
 	if seek_cover:
+		# Cover is only worth spending a turn's movement on if the move ends
+		# with a shot. Nothing reachable being in range used to leave safety as
+		# the only thing being scored, so the ranger walked to whichever nearby
+		# tile hid it best, arrived unable to shoot, and had no movement left to
+		# close with - then did the same thing again next turn, stepping between
+		# two equally safe tiles for the whole fight while the players walked
+		# around it. Better to not move at all here and let the caller spend the
+		# full budget closing the distance.
+		if not can_shoot_from_anywhere_reachable(comb, target_position, skill, movement_budget):
+			return false
 		tile = find_best_reachable_tile(comb, movement_budget, func(t):
 			var range_score: float
 			if is_effectively_in_range(skill, t, target_position, comb.movement_class, comb):
@@ -2706,6 +2716,18 @@ func move_into_range_of(comb: Dictionary, target_position: Vector2i, skill: Skil
 	if not comb.alive:
 		return false
 	return is_effectively_in_range(skill, comb.position, target_position, comb.movement_class, comb)
+
+
+## Whether any tile `comb` can reach this turn would put `target_position` in
+## range of `skill` - the question of whether there is a shot to be had at all,
+## asked before any movement is spent looking for a good place to take it from.
+func can_shoot_from_anywhere_reachable(comb: Dictionary, target_position: Vector2i, skill: SkillDefinition, movement_budget: int) -> bool:
+	if is_effectively_in_range(skill, comb.position, target_position, comb.movement_class, comb):
+		return true
+	for tile in controller.get_reachable_tiles(comb.position, comb.movement_class, movement_budget):
+		if is_effectively_in_range(skill, tile, target_position, comb.movement_class, comb):
+			return true
+	return false
 
 
 ## Spends whatever movement `comb` has left backing away to the safest tile it
