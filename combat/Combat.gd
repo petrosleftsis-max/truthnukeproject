@@ -570,6 +570,10 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 		# A contested skill never rolls: it lands on everyone, in full on those
 		# it beats and as a graze on those it doesn't. An accuracy skill rolls
 		# once for the whole use, hit or miss.
+		# Decided once for the whole cast rather than per target: a blast that
+		# catches three people is one spell, so it upgrades for all three and
+		# spends the one charge.
+		spend_element_upgrade(attacker, skill)
 		var connected = true
 		if not skill.uses_stat_contest:
 			# One roll for the whole use, before it knows who it caught - so the
@@ -1068,10 +1072,11 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"%sx %s" % [effect.stat_multiplier, effect.stat]))
 			clamp_hp_to_max(target)
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
-			replace_matching_tick(target, "dot", null, effect.damage_type)
+			var lingering = effective_damage_type(attacker, effect.damage_type)
+			replace_matching_tick(target, "dot", null, lingering)
 			target.status_effects.append({
 				"stat" = "dot", # reserved pseudo-stat marking a damage-over-time tick
-				"damage_type" = effect.damage_type,
+				"damage_type" = lingering,
 				"min_amount" = effect.min_amount,
 				"max_amount" = effect.max_amount,
 				"dot_base" = dot_base_damage(attacker, skill, effect.damage_modifier),
@@ -1099,6 +1104,18 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				# mid-turn showed on nobody until the turn changed.
 				update_combatants.emit(combatants)
 				update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, effect.condition.display_name))
+		EffectDefinition.EffectType.UPGRADE_ELEMENT:
+			# Only one is worth holding: two of these would still only upgrade
+			# the next spell once, and would then sit there looking like two.
+			replace_matching_tick(target, "element_up", null, 0)
+			target.status_effects.append({
+				"stat" = "element_up",
+				"duration" = stored_duration(target, effect),
+				"source_name" = attacker.name
+			})
+			update_combatants.emit(combatants)
+			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
+				"their next element raised"))
 		EffectDefinition.EffectType.MOVEMENT_CLASS:
 			target.status_effects.append({
 				"stat" = "movement_class",
@@ -1425,6 +1442,8 @@ func replace_matching_tick(target: Dictionary, kind: String, condition: Conditio
 			same = existing.get("condition") == condition
 		elif kind == "dot" and existing.get("stat", "") == "dot":
 			same = existing.get("damage_type", -1) == damage_type
+		elif kind == "element_up" and existing.get("stat", "") == "element_up":
+			same = true
 		if same:
 			target.status_effects.remove_at(i)
 			removed += 1
@@ -2128,13 +2147,17 @@ func dot_base_damage(attacker: Dictionary, skill: SkillDefinition, modifier: flo
 
 
 func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):
-	var resistance = resistance_of(target, effect.damage_type)
+	# The raised element while an upgrade is being spent on this cast, and the
+	# written one otherwise - read once, so what is resisted, what is shown and
+	# what the log says can never disagree.
+	var element = effective_damage_type(attacker, effect.damage_type)
+	var resistance = resistance_of(target, element)
 	# A skill's damage comes from the caster's stat and the skill's modifier.
 	# The effect's own min/max only stand in when there is no skill behind the
 	# damage at all - a condition burning away, a shove into a wall.
 	var raw = skill_damage(attacker, target, skill, power) if skill != null else randi_range(effect.min_amount, effect.max_amount)
-	var damage = resisted_damage(target, effect.damage_type, raw)
-	var flavour = "%s damage%s" % [Damage.type_name(effect.damage_type).to_lower(), Damage.describe_resistance(resistance)]
+	var damage = resisted_damage(target, element, raw)
+	var flavour = "%s damage%s" % [Damage.type_name(element).to_lower(), Damage.describe_resistance(resistance)]
 	# Being hit gives you away, whoever was aimed at. A blast thrown at somebody
 	# else that happens to catch a hidden combatant has found them, even though
 	# nobody knew they were there to aim at.
@@ -2143,7 +2166,7 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 		update_information.emit("[color=yellow]%s[/color] is caught, and their cover is blown!
 " % target.name)
 	target.hp -= damage
-	show_damage(target, damage, effect.damage_type)
+	show_damage(target, damage, element)
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
 		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=gray]%d %s[/color].\n" % [
@@ -2716,6 +2739,72 @@ func move_into_range_of(comb: Dictionary, target_position: Vector2i, skill: Skil
 	if not comb.alive:
 		return false
 	return is_effectively_in_range(skill, comb.position, target_position, comb.movement_class, comb)
+
+
+## Whether `comb` is holding an element upgrade for their next spell.
+func has_element_upgrade(comb: Dictionary) -> bool:
+	for eff in comb.get("status_effects", []):
+		if eff.get("stat", "") == "element_up":
+			return true
+	return false
+
+
+## Every element `skill` would deal, raised or not.
+##
+## Only what the skill itself throws. A condition it inflicts keeps its own
+## element, because a condition is a named thing - Burn is fire by definition,
+## and a Burn that was sometimes plasma would be a second condition wearing the
+## first one's name.
+func elements_of(skill: SkillDefinition) -> Array:
+	var found: Array = []
+	for effect in skill.all_effects():
+		if effect == null:
+			continue
+		if effect.type == EffectDefinition.EffectType.DAMAGE 			or effect.type == EffectDefinition.EffectType.DAMAGE_OVER_TIME 			or effect.type == EffectDefinition.EffectType.PUSH:
+			if not effect.damage_type in found:
+				found.append(effect.damage_type)
+	return found
+
+
+## Uses up `comb`'s element upgrade, if they are holding one and `skill` has an
+## element it could raise. Marks the cast so every damage figure it produces
+## reads the raised element, and says so in the log.
+##
+## A skill with nothing upgradeable about it - a heal, a physical swing, or one
+## already throwing plasma - leaves the charge alone rather than wasting it.
+func spend_element_upgrade(comb: Dictionary, skill: SkillDefinition):
+	comb["element_upgraded_cast"] = false
+	if not has_element_upgrade(comb):
+		return
+	var raisable := false
+	for type in elements_of(skill):
+		if Damage.can_upgrade(type):
+			raisable = true
+	if not raisable:
+		return
+	for i in range(comb.status_effects.size() - 1, -1, -1):
+		if comb.status_effects[i].get("stat", "") == "element_up":
+			comb.status_effects.remove_at(i)
+			break
+	comb["element_upgraded_cast"] = true
+	update_combatants.emit(combatants)
+	var became: Array = []
+	for type in elements_of(skill):
+		if Damage.can_upgrade(type):
+			became.append("%s becomes %s" % [Damage.type_name(type),
+				Damage.type_name(Damage.upgraded_form(type))])
+	update_information.emit("[color=yellow]%s[/color] raises the element of %s - %s.
+" % [
+		comb.name, skill.name, ", ".join(became)])
+
+
+## The element a hit from `attacker` actually lands as: the raised form while
+## they are casting a spell they spent an upgrade on, and the written one
+## otherwise.
+func effective_damage_type(attacker: Dictionary, type: int) -> int:
+	if attacker.get("element_upgraded_cast", false):
+		return Damage.upgraded_form(type)
+	return type
 
 
 ## Whether any tile `comb` can reach this turn would put `target_position` in

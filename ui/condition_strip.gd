@@ -70,6 +70,8 @@ func _is_helpful(effect: Dictionary) -> bool:
 			if condition.skips_turn or condition.prevents_movement or condition.prevents_secondary:
 				return false
 			return condition.movement_change > 0 or condition.accuracy_change > 0
+		"element_up":
+			return true
 		"movement_class":
 			# Being lifted off the ground opens tiles rather than closing them.
 			# Being put back on it is the only unwelcome direction, and nothing
@@ -96,6 +98,10 @@ func describe(comb: Dictionary, effect: Dictionary) -> String:
 			]
 		"condition":
 			return _describe_condition(comb, effect)
+		"element_up":
+			return "Element raised
+Their next damaging spell lands as the upgraded form of its element.
+Lasts %s." % _turns(turns)
 		"movement_class":
 			var moving_as = Stats.movement_class_name(effect.get("amount", 0))
 			var lines := ["Moving as %s" % moving_as.to_lower()]

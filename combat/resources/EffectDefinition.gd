@@ -17,7 +17,8 @@ enum EffectType {
 	REVEAL,            ## Lays the target open to inspection - what Study does.
 	MOVEMENT_CLASS,    ## Changes how the target gets about - on foot, flying, mounted - for a duration.
 	HIDE,              ## Takes the target out of sight, until somebody sees them again.
-	RESISTANCE         ## Raises or lowers how much of one damage type gets through, for a duration.
+	RESISTANCE,        ## Raises or lowers how much of one damage type gets through, for a duration.
+	UPGRADE_ELEMENT    ## The target's next damaging skill is cast with the upgraded form of its element.
 }
 
 enum DispelScope {

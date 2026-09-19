@@ -634,6 +634,15 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.STAT_MODIFIER:
 			var sign_str = "+" if effect.modifier_amount >= 0 else ""
 			return "%s%d %s for %d turn(s)" % [sign_str, effect.modifier_amount, effect.stat, effect.duration]
+		EffectDefinition.EffectType.UPGRADE_ELEMENT:
+			# Named rather than described in the abstract, because "the upgraded
+			# form" means nothing until you know fire becomes plasma.
+			var pairs: Array = []
+			for base in Damage.UPGRADES:
+				pairs.append("%s to %s" % [Damage.type_name(base),
+					Damage.type_name(Damage.UPGRADES[base])])
+			return "Raises the element of their next damaging spell (%s), for %d turn(s)" % [
+				", ".join(pairs), effect.duration]
 		EffectDefinition.EffectType.RESISTANCE:
 			var harder = effect.modifier_amount > 0
 			return "%s %s resistance by %d%% for %d turn(s)" % [
