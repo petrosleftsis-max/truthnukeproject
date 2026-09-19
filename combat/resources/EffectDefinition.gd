@@ -164,10 +164,13 @@ const FIELDS_BY_TYPE := {
 	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration"],
 	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "damage_modifier", "min_amount", "max_amount", "duration"],
 	EffectType.DISPEL: ["dispel_stat", "dispel_scope", "dispel_count"],
-	EffectType.PUSH: ["knockback_distance", "damage_type", "min_amount", "max_amount"],
+	EffectType.PUSH: ["knockback_distance", "damage_type", "damage_modifier", "min_amount", "max_amount"],
 	EffectType.PULL: ["knockback_distance"],
 	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration"],
 	EffectType.CONDITION: ["condition", "condition_duration", "condition_dot_modifier"],
+	# Nothing to configure but how long they have to use it - which element it
+	# becomes is the element's own business (see Damage.UPGRADES).
+	EffectType.UPGRADE_ELEMENT: ["duration"],
 	# Nothing to configure: it either lays the target open or it does not.
 	EffectType.REVEAL: [],
 	EffectType.MOVEMENT_CLASS: ["display_name", "movement_class", "duration"],

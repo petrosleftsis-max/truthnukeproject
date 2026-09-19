@@ -695,15 +695,20 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 				effect.condition.display_name, turns, says
 			]
 		EffectDefinition.EffectType.PUSH:
-			# Said as "on collision", because the push's own min/max is collision
-			# damage and reads identically to a plain Damage line otherwise -
-			# which made it look like the skill dealt it twice. It used to say
-			# "only if they hit a wall", which was wrong in the other direction:
-			# a shove stopped by a body hurts both of them.
+			# A collision is worked out from the shover now, the same as any
+			# other hit, so it is quoted the same way: the base figure, before
+			# whoever lands takes their defence and resistances off it. It used
+			# to print the effect's own min-max pair, which since the change is
+			# only the fallback for a shove with no skill behind it - and a
+			# skill quoting its fallback is quoting a number it will not use.
 			var push_str = "Pushes target back %d tile(s)" % effect.knockback_distance
-			if effect.max_amount > 0:
-				# Not only a wall: a shove stopped by another body hurts them both,
-				# and the map edge counts too.
+			# Not only a wall: a shove stopped by another body hurts them both,
+			# and the map edge counts too.
+			var slam = _collision_damage(skill, effect)
+			if slam > 0:
+				push_str += ", for a base %d %s on collision" % [
+					slam, Damage.type_name(effect.damage_type).to_lower()]
+			elif effect.max_amount > 0:
 				push_str += ", dealing %d-%d damage on collision" % [effect.min_amount, effect.max_amount]
 			return push_str
 		EffectDefinition.EffectType.PULL:
@@ -836,6 +841,16 @@ func _tick_figure(skill: SkillDefinition, damage_type: int, modifier: float, on_
 	if on_self:
 		return combat.resisted_damage(caster, damage_type, combat.dot_tick(caster, base, 0, 0))
 	return maxi(roundi(base), 0)
+
+
+## What a collision from this skill is worth in the hands of whoever is acting,
+## before the one who lands soaks it. -1 with nobody to ask, and 0 for a shove
+## that does not hurt.
+func _collision_damage(skill: SkillDefinition, effect: EffectDefinition) -> int:
+	var caster = _caster()
+	if skill == null or caster.is_empty() or not combat.has_method("collision_impact"):
+		return -1
+	return combat.collision_impact(caster, effect, skill)
 
 
 ## What a hit this skill turns on its own caster would actually take off them,

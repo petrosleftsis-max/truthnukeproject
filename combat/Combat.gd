@@ -1173,9 +1173,9 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				update_information.emit("[color=yellow]%s[/color] studies [color=red]%s[/color], and can read them in full - press C.\n" % [attacker.name, target.name])
 			combatant_studied.emit(target)
 		EffectDefinition.EffectType.PUSH:
-			apply_knockback(attacker, target, effect, false)
+			apply_knockback(attacker, target, effect, false, skill)
 		EffectDefinition.EffectType.PULL:
-			apply_knockback(attacker, target, effect, true)
+			apply_knockback(attacker, target, effect, true, skill)
 
 
 ## --- Hiding ---
@@ -1513,13 +1513,20 @@ func get_combatant_at(position: Vector2i) -> Dictionary:
 ## snapped to the nearest 45° and so rarely lines up on the attacker's tile
 ## exactly unless they're already aligned).
 ##
-## A PUSH (not a PULL) stopped short deals effect.min_amount-max_amount
-## collision damage: into the map edge or a blocking tile it hurts whoever was
-## shoved, and into another combatant it hurts them both, since a body stopping
-## a body is a collision from either side of it. One roll for the impact, each
-## of them resisting it with their own resistances - it is a single event, not
-## two coincidental ones. A pull falling short never hurts anybody.
-func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, pulling: bool):
+## A PUSH (not a PULL) stopped short deals collision damage: into the map edge
+## or a blocking tile it hurts whoever was shoved, and into another combatant it
+## hurts them both, since a body stopping a body is a collision from either side
+## of it. One impact, worked out once from whoever threw the shove, which each
+## of them then soaks with their own defence and resistances - it is a single
+## event, not two coincidental ones. A pull falling short never hurts anybody.
+##
+## How hard it lands is the same arithmetic as any other hit: the shover's stat
+## and weapon behind the skill's own modifier, times the effect's
+## damage_modifier so a shove can be worth a fraction of a swing. It was a flat
+## min-max roll that no stat touched, which meant a stronger character shoved
+## people into walls exactly as hard as a weaker one. The flat pair is still
+## the fallback for a shove with no skill behind it.
+func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, pulling: bool, skill: SkillDefinition = null):
 	if target.position == attacker.position:
 		return
 	var direction = get_octant_direction(attacker.position, target.position)
@@ -1563,27 +1570,41 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 		]))
 	if pulling or effect.max_amount <= 0:
 		return
-	var impact = randi_range(effect.min_amount, effect.max_amount)
+	var impact = collision_impact(attacker, effect, skill)
 	if hit_obstacle and target.alive:
-		_take_collision_damage(target, effect, impact, "slammed into an obstacle")
+		_take_collision_damage(attacker, target, effect, impact, "slammed into an obstacle")
 	elif not bumped.is_empty() and bumped.alive:
 		# Both of them, and the one still standing where they were takes it too:
 		# they are what stopped the other.
 		if target.alive:
-			_take_collision_damage(target, effect, impact,
+			_take_collision_damage(attacker, target, effect, impact,
 				"slammed into [color=red]%s[/color]" % bumped.name)
 		if bumped.alive:
-			_take_collision_damage(bumped, effect, impact,
+			_take_collision_damage(attacker, bumped, effect, impact,
 				"was slammed into by [color=red]%s[/color]" % target.name)
+
+
+## What a shove from `attacker` is worth before anybody soaks it.
+##
+## The same base figure the action panel quotes for a swing, times the effect's
+## own damage_modifier, so a shove that should hurt less than a full hit says so
+## on the effect rather than needing a special case here. The flat min-max range
+## stands in when there is no skill behind the shove.
+func collision_impact(attacker: Dictionary, effect: EffectDefinition, skill: SkillDefinition) -> int:
+	if skill == null:
+		return randi_range(effect.min_amount, effect.max_amount)
+	return maxi(roundi(float(base_skill_damage(attacker, skill)) * effect.damage_modifier), 0)
 
 
 ## Applies one collision's worth of damage to `who`, resisted by them, and
 ## reports it. Shared by the wall case and both halves of a body-to-body one so
 ## the three cannot drift apart.
-func _take_collision_damage(who: Dictionary, effect: EffectDefinition, impact: int, what_happened: String):
-	var collision_damage = resisted_damage(who, effect.damage_type, impact)
+func _take_collision_damage(shover: Dictionary, who: Dictionary, effect: EffectDefinition, impact: int, what_happened: String):
+	var shove_element = effective_damage_type(shover, effect.damage_type)
+	var collision_damage = resisted_damage(who, shove_element,
+		Stats.final_damage(float(impact), 1.0, stat_of(who, Stats.Type.DEFENSE)))
 	who.hp -= collision_damage
-	show_damage(who, collision_damage, effect.damage_type, true)
+	show_damage(who, collision_damage, shove_element, true)
 	update_combatants.emit(combatants)
 	update_information.emit("[color=red]{0}[/color] {1}, taking [color=gray]{2} damage[/color]\n".format([
 		who.name,
