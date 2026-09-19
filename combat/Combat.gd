@@ -2087,7 +2087,13 @@ func dot_base_damage(attacker: Dictionary, skill: SkillDefinition, modifier: flo
 	# here sends dot_tick to the condition's own flat range instead.
 	if skill == null or skill is ItemDefinition or modifier <= 0.0:
 		return 0.0
-	return Stats.base_damage(stat_of(attacker, skill.scaling_stat)) * skill.ability_modifier * modifier
+	# The caster's own weapon base, the same as skill_damage, base_skill_damage
+	# and heal_amount all read. Left out, a tick was always worked out as though
+	# whoever inflicted it carried the default weapon - so a spawn given a
+	# heavier one hit harder with its attacks and burned exactly as before.
+	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat),
+		attacker.get("weapon_base", Stats.WEAPON_BASE))
+	return base * skill.ability_modifier * modifier
 
 
 func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):
