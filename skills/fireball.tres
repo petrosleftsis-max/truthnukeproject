@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://jn3607ob8bue"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_lwqms"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_0ef30"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_jae8u"]
+[ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("3_jae8u")
+name = "Fireball"
+description = "Fire engulf everyone, even behind cover."
+min_range = 1
+max_range = 15
+accuracy = 80
+icon = ExtResource("2_0ef30")
+required_level = 2
+affects_both_sides = true
+ability_modifier = 2.0
+scaling_stat = 2
+damage_type = 1
+uses_stat_contest = true
+sound = ExtResource("90_sfx")
+spell_slot_level = 3
+aoe_radius = 3

@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://ctuytdwjs4qt"
+path="res://.godot/imported/intro_sewer_homeless_beds.dialogue-62ff7a4de76b64336f1efcac036abbcd.tres"
+
+[deps]
+
+source_file="res://Dialogue/intro_sewer_homeless_beds.dialogue"
+dest_files=["res://.godot/imported/intro_sewer_homeless_beds.dialogue-62ff7a4de76b64336f1efcac036abbcd.tres"]
+
+[params]
+
+defaults=true

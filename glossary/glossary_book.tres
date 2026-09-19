@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="GlossaryBook" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/GlossaryBook.gd" id="1_book"]
+
+[resource]
+script = ExtResource("1_book")
+foreword = ""
+cast_intro = ""
+conditions_intro = ""
+skills_intro = ""
+gates = "A powerful resource of casters that can decide the tides of combat. It allows the usage of the most powerful moves in the game.\n\nThey get recovered whenever a dungeon instance finishes, yet for the sake of this showcase, they reset every fight.\n\nThe skill's description mention what they cost. If you run out of gates to use a specific move, you can still use it, as long as you have a gate available from the higher level ones. However a skill cannot be used if you don't have any of its necessary gates or higher. The following shows the level of each gate.\n\nLevel 1: Gate of World: The weakest gate, allowing you to use cheap moves without completely committing.\nLevel 2: Gate of Hermes: A stronger gate, with a lot of powerful utility and debuffs.\nLevel 3: Gate of Yaldabaoth: The strongest and most potent gate, yet also the most limited one.\n\nThere will be more gates on later versions of the game."
+metadata/_custom_type_script = "res://combat/resources/GlossaryBook.gd"

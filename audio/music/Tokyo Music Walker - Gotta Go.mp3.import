@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://d1je6a3usbesf"
+path="res://.godot/imported/Tokyo Music Walker - Gotta Go.mp3-bdc221708c1e7c5023f95fac5d59adb6.mp3str"
+
+[deps]
+
+source_file="res://audio/music/Tokyo Music Walker - Gotta Go.mp3"
+dest_files=["res://.godot/imported/Tokyo Music Walker - Gotta Go.mp3-bdc221708c1e7c5023f95fac5d59adb6.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

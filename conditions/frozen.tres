@@ -1,12 +1,15 @@
-[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3 uid="uid://da6hi26lshoi3"]
 
-[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
 
 [resource]
 script = ExtResource("1_cond")
 display_name = "Frozen"
-description = "Locked in ice. Too stiff for a secondary action."
-duration = 3
-dot_min = 2
-dot_max = 4
+description = "Locked in ice. Too stiff for a secondary action and slowed."
+dot_type = 2
+dot_strength = 1
+dot_modifier = 1.0
+dot_min = 1
+dot_max = 2
+movement_change = -2
 prevents_secondary = true

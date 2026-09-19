@@ -32,6 +32,15 @@ var _aoe_preview_positions: Array = []
 var _aoe_preview_is_ally: bool = false
 var _range_preview_positions: Array = []
 
+## Every tile some living enemy can see, drawn while a hidden player is taking
+## their turn so they can plan a route that keeps them hidden.
+##
+## Worked out once when the turn starts rather than per frame: it is a line of
+## sight from every enemy to every tile in the region, which is far too much to
+## do sixty times a second, and it cannot change while the player is the one
+## moving - the watchers stay where they are.
+var _watched_tiles: Array = []
+
 var _skill_selected = false
 
 ## Whether a skill is currently being aimed (target selection in progress).
@@ -104,6 +113,7 @@ func _swap_deployed(comb: Dictionary, tile: Vector2i):
 	if occupant == null:
 		_occupied_spaces.erase(from)
 		_occupied_spaces.append(tile)
+		release_tile(from)
 	else:
 		# A straight swap: both tiles stay occupied, so the occupancy list
 		# doesn't change at all.
@@ -117,11 +127,37 @@ func _set_deployed_position(comb: Dictionary, tile: Vector2i):
 	comb.sprite.position = tile_map.map_to_local(tile)
 
 
+## Whether the character sheet is up. Reading somebody's sheet should not also
+## be ordering the party around behind it: a click meant for the sheet landed
+## on the map underneath and walked whoever was acting.
+func reading_a_character_sheet() -> bool:
+	var sheet = get_node_or_null("../CharacterSheet")
+	return sheet != null and sheet.has_method("is_open") and sheet.is_open()
+
+
+## Whether anything the player is reading or choosing from is over the map -
+## the character sheet, or the pause menu and its options. Neither the map nor
+## the End Turn key is theirs to drive while one of those is up.
+func a_menu_is_over_the_map() -> bool:
+	if reading_a_character_sheet():
+		return true
+	var pause = get_node_or_null("../PauseUI")
+	if pause == null:
+		return false
+	for panel in ["PausePanel", "OptionsPanel"]:
+		var node = pause.get_node_or_null(panel)
+		if node != null and node.visible:
+			return true
+	return false
+
+
 func _unhandled_input(event):
 	if _deployment_active:
 		_handle_deployment_input(event)
 		return
 	if player_turn == false or action_locked:
+		return
+	if a_menu_is_over_the_map():
 		return
 
 	if _skill_selected and event.is_action_pressed("ui_cancel"):
@@ -139,7 +175,13 @@ func _unhandled_input(event):
 					var mouse_position = get_global_mouse_position()
 					var mouse_position_i = tile_map.local_to_map(mouse_position)
 					var skill = SkillDatabase.skills[_selected_skill]
-					if skill.aoe_radius > 0:
+					if picking_a_landing_tile():
+						# Aiming at somewhere to stand, which has to be a tile the
+						# traveller fits on - a body standing there is not a target,
+						# it is the reason they cannot go.
+						if is_valid_landing_tile(mouse_position_i):
+							confirm_skill_target(mouse_position_i)
+					elif skill.aoe_radius > 0:
 						# Area skills can be aimed at any tile, occupied or not.
 						confirm_skill_target(mouse_position_i)
 					else:
@@ -158,10 +200,15 @@ func _unhandled_input(event):
 			var local_map = tile_map.map_to_local(mouse_position_i)
 			_attack_target_position = null
 			_ally_target_position = null
+			_blocked_target_position = null
 			_aoe_preview_positions = []
 			if _skill_selected:
 				var skill = SkillDatabase.skills[_selected_skill]
-				if skill.aoe_radius > 0:
+				if picking_a_landing_tile() and not is_valid_landing_tile(mouse_position_i):
+					# Nowhere to arrive, so show no swing either: this click will
+					# do nothing at all.
+					_blocked_target_position = local_map
+				elif skill.aoe_radius > 0:
 					var caster = combat.get_current_combatant()
 					_aoe_preview_positions = combat.get_impact_tiles(skill, caster.position, mouse_position_i, caster.movement_class)
 					_aoe_preview_is_ally = skill.targets_ally
@@ -176,7 +223,7 @@ func _unhandled_input(event):
 				_attack_target_position = local_map
 			elif comb != null:
 				_blocked_target_position = local_map
-			elif mouse_position_i in _blocking_spaces[combat.get_current_combatant().movement_class]:
+			elif is_tile_blocking(mouse_position_i, combat.get_current_combatant().movement_class):
 				_blocked_target_position = local_map
 			else:
 				_blocked_target_position = null
@@ -201,11 +248,24 @@ var _blocking_spaces = [
 ## Blocks = [0, 2]) only appears here a single time.
 var _all_blocking_spaces = []
 
+## The same tiles as _blocking_spaces, as a set, for asking whether one tile is
+## in there.
+##
+## "tile in array" walks the array. There are around fifteen hundred blocking
+## tiles on the lab map, and is_tile_blocking is asked on every step of every
+## line of sight - which the AI works out tens of thousands of times a turn, and
+## which now also draws the enemy's field of view for a hidden player. That made
+## the commonest question in the game a fifteen-hundred-element scan.
+##
+## Kept alongside the arrays rather than replacing them: other code walks them
+## in order, and nothing ever removes a blocking tile, so the two cannot drift.
+var _blocking_lookup: Array[Dictionary] = [{}, {}, {}]
+
 ## Whether `tile` blocks movement (and, when a skill opts in via
 ## SkillDefinition.respects_blocking, line of sight) for `movement_class`
 ## (0=Ground, 1=Flying, 2=Mounted). Same data movement already uses.
 func is_tile_blocking(tile: Vector2i, movement_class: int) -> bool:
-	return tile in _blocking_spaces[movement_class]
+	return _blocking_lookup[movement_class].has(tile)
 
 
 ## Whether `tile` is inside the playable grid at all, regardless of blocking.
@@ -220,7 +280,25 @@ func is_in_bounds(tile: Vector2i) -> bool:
 func reposition_combatant(old_position: Vector2i, new_position: Vector2i):
 	_occupied_spaces.erase(old_position)
 	_occupied_spaces.append(new_position)
+	release_tile(old_position)
 	update_points_weight()
+
+
+## Lets the pathfinding grid know nobody is standing on `tile` any more.
+##
+## update_points_weight() only ever visits tiles that are still occupied or are
+## blocking terrain, so it can mark a tile solid but never unmark one: the
+## releasing is done by whoever moved the body. Walking does it in
+## _handle_step_arrival and dying does it in combatant_died; without this, a
+## tile somebody was shoved, pulled, blown or teleported off stayed solid for
+## the rest of the battle and nobody could ever walk onto it again. A blink
+## still could, since teleporting asks Combat.can_land_on rather than this
+## grid - which is exactly how the bug showed itself.
+func release_tile(tile: Vector2i):
+	if not is_in_bounds(tile):
+		return
+	_astargrid.set_point_solid(tile, false)
+	_astargrid.set_point_weight_scale(tile, 1)
 
 
 ## The movement cost of entering `tile` for `movement_class` - the same
@@ -311,8 +389,8 @@ func _ready():
 		_astargrid.region = combat.encounter.resolve_playable_region(tile_map)
 	else:
 		_astargrid.region = tile_map.get_used_rect()
-	_astargrid.cell_size = Vector2i(32, 32)
-	_astargrid.offset = Vector2(16, 16)
+	_astargrid.cell_size = Grid.TILE_VECTOR
+	_astargrid.offset = Grid.HALF_TILE
 	_astargrid.default_compute_heuristic = AStarGrid2D.HEURISTIC_MANHATTAN
 	_astargrid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ALWAYS
 	_astargrid.update()
@@ -325,6 +403,7 @@ func _ready():
 			_all_blocking_spaces.append(tile)
 		for block in blocks:
 			_blocking_spaces[block].append(tile)
+			_blocking_lookup[block][tile] = true
 	_mark_unpainted_cells_as_blocking()
 
 
@@ -356,6 +435,7 @@ func _mark_unpainted_cells_as_blocking():
 			_all_blocking_spaces.append(tile)
 			for movement_class in _blocking_spaces.size():
 				_blocking_spaces[movement_class].append(tile)
+				_blocking_lookup[movement_class][tile] = true
 
 
 func combatant_added(combatant):
@@ -371,6 +451,10 @@ func combatant_died(combatant):
 
 
 func set_controlled_combatant(combatant: Dictionary):
+	# A walk still in the air belongs to a turn that is now over. Left running,
+	# _process drags whoever is controlled next along the abandoned path, since
+	# there is only one _next_position for everybody.
+	end_walk()
 	if combatant.side == 0:
 		player_turn = true
 	else:
@@ -385,7 +469,48 @@ func set_controlled_combatant(combatant: Dictionary):
 	_ally_target_position = null
 	_aoe_preview_positions = []
 	_range_preview_positions = []
+	# Whatever route was drawn under the cursor belonged to whoever was acting a
+	# moment ago: it starts on their tile and was checked against their movement
+	# class. Left lying around, the next click walks this combatant along it -
+	# from the wrong place, through whatever the previous one was allowed to
+	# cross. Aim again.
+	_path = PackedVector2Array()
+	_position_id = 0
+	# Their own tile, so a stray frame of _process has nowhere to drag them.
+	_next_position = tile_map.map_to_local(combatant.position)
+	_previous_position = combatant.position
 	update_points_weight()
+	refresh_watched_tiles(combatant)
+	queue_redraw()
+
+
+## Recomputes where the enemy can see, for a hidden player about to move.
+##
+## Only for them: it is expensive, and it is only worth drawing for somebody who
+## has something to lose by stepping into it. Anybody else gets an empty list
+## and nothing drawn.
+func refresh_watched_tiles(combatant: Dictionary):
+	_watched_tiles = []
+	if combatant.is_empty() or combatant.side != 0 or not combat.is_hidden(combatant):
+		return
+	var watchers := []
+	for other in combat.combatants:
+		if other.alive and other.side != combatant.side:
+			watchers.append(other)
+	if watchers.is_empty():
+		return
+	var region: Rect2i = _astargrid.region
+	for y in range(region.position.y, region.end.y):
+		for x in range(region.position.x, region.end.x):
+			var tile := Vector2i(x, y)
+			if is_tile_blocking(tile, combatant.movement_class):
+				# Nowhere they could stand anyway.
+				continue
+			for watcher in watchers:
+				if combat.has_line_of_sight(watcher.position, tile, watcher.movement_class):
+					_watched_tiles.append(tile)
+					break
+
 
 ## Tiles made unwalkable by Fear on the current combatant, so they can be
 ## released again once the fear passes or someone else's turn begins. Nothing
@@ -475,11 +600,29 @@ var _next_position
 
 var _position_id = 0
 
-var move_speed = 96
+var move_speed = Grid.tiles(3.0)
 
 var _previous_position : Vector2i
 
 var _processing_step := false
+
+## True while the game is legitimately parked waiting for a person to answer
+## something - the reaction prompt, currently. The movement safety timeouts
+## stop counting while it is set: they exist to catch a coroutine that has
+## genuinely hung, and someone taking thirty seconds over a decision is not
+## that. Without this a slow answer would trip the step-arrival timeout and
+## orphan the move that is waiting on it.
+## True while a reaction prompt is genuinely up and waiting for an answer. The
+## movement timeouts below stop counting while it is, since a person taking
+## twenty seconds to decide must not look like a hung coroutine.
+##
+## Asked of the prompt itself rather than kept as a flag Combat sets and clears
+## around its await. A flag left true - by an await that never returns, a
+## battle ending mid-question, anything - would switch off both safety nets for
+## good, turning a recoverable stall into exactly the permanent lockup they
+## exist to prevent. Derived state cannot be left behind.
+func waiting_on_player() -> bool:
+	return combat != null and combat.reaction_prompt != null and combat.reaction_prompt.is_asking()
 
 ## Timeout safety net for the _processing_step lock specifically: if
 ## _handle_step_arrival() (most likely something inside a reactive-skill
@@ -514,10 +657,45 @@ func _process(delta):
 		# mid-step and process the same arrival twice.
 		return
 	if _arrived == false:
-		controlled_node.position += controlled_node.position.direction_to(_next_position) * delta * move_speed
+		_face_along_the_walk()
+		controlled_node.position = advance_towards(controlled_node.position, _next_position, delta * move_speed)
 		if controlled_node.position.distance_to(_next_position) < 1:
 			_processing_step = true
 			_run_step_arrival_with_timeout()
+
+
+## One frame of walking along the line to the next waypoint, never overshooting
+## it: once the waypoint is within a single frame's travel, land exactly on it.
+##
+## The clamp is what makes arrival certain rather than lucky. Moving a fixed
+## step every frame and waiting to be within a pixel only terminates if the
+## distance happens to divide nearly evenly by the step - and it doesn't for a
+## diagonal. At 60fps a frame covers 9.6px; a straight tile is 192px, which is
+## exactly 20 frames, but a diagonal is 271.5px, which leaves 2.7px over. That
+## last frame jumps 2.7px past the waypoint, the next jumps 6.9px back, and it
+## bounces between the two forever without ever coming within a pixel. Movement
+## then hangs mid-step with the walk animation still playing, and because
+## _process() bails out while a step is in flight, nobody else can move either.
+## Turns the walker to face where they are going.
+##
+## Exploration has always done this; combat set a sprite's facing once when it
+## was built and never again, so a combatant crossing the map leftwards walked
+## there backwards. Only a sideways component turns anybody - walking straight
+## up or down leaves them facing as they were, rather than snapping to a side.
+func _face_along_the_walk():
+	if controlled_node == null or not controlled_node.has_method("set_facing"):
+		return
+	var sideways = _next_position.x - controlled_node.position.x
+	if absf(sideways) < 0.5:
+		return
+	controlled_node.set_facing(sideways < 0.0)
+
+
+static func advance_towards(from: Vector2, to: Vector2, step: float) -> Vector2:
+	var remaining := to - from
+	if remaining.length() <= step:
+		return to
+	return from + remaining.normalized() * step
 
 
 func _run_step_arrival_with_timeout():
@@ -525,8 +703,15 @@ func _run_step_arrival_with_timeout():
 	_run_step_arrival_and_flag()
 	var elapsed = 0.0
 	while not _step_arrival_finished and elapsed < STEP_ARRIVAL_TIMEOUT:
+		if not still_in_a_battle():
+			_processing_step = false
+			return
 		await get_tree().process_frame
-		elapsed += get_process_delta_time()
+		if not still_in_a_battle():
+			_processing_step = false
+			return
+		if not waiting_on_player():
+			elapsed += get_process_delta_time()
 	if not _step_arrival_finished:
 		push_warning("_handle_step_arrival didn't finish within %s seconds - force-unlocking movement processing anyway. This is a real bug worth reporting, ideally with repro steps." % STEP_ARRIVAL_TIMEOUT)
 	_processing_step = false
@@ -538,13 +723,19 @@ func _run_step_arrival_and_flag():
 
 
 func _handle_step_arrival():
+	if not _walking_combatant.is_empty() 			and not is_same(_walking_combatant, combat.get_current_combatant()):
+		# This step belongs to a turn that has already ended. Writing it now
+		# would move whoever is acting instead - they share one _next_position -
+		# and leave the original walker stranded between two tiles.
+		end_walk()
+		return
 	var old_position = _previous_position
 	_astargrid.set_point_solid(_previous_position, false)
 	_occupied_spaces.erase(_previous_position)
 	_astargrid.set_point_weight_scale(_previous_position, 1)
 	controlled_node.position = _next_position
 	var new_position: Vector2i = tile_map.local_to_map(_next_position)
-	var mover = combat.get_current_combatant()
+	var mover = _walking_combatant if not _walking_combatant.is_empty() 		else combat.get_current_combatant()
 	mover.position = new_position
 	_previous_position = new_position
 	_occupied_spaces.append(new_position)
@@ -560,6 +751,19 @@ func _handle_step_arrival():
 		finished_move.emit()
 		_arrived = true
 		combat.advance_turn.call_deferred()
+		return
+	# Somebody may have just walked into view, or walked into somebody's view.
+	# Stopping here is the point of it: the reveal is worth seeing rather than
+	# happening somewhere in the middle of a run, and whoever was walking gets
+	# to decide what to do now that there is somebody on the map who was not
+	# there a moment ago.
+	if not combat.reveal_anyone_now_seen().is_empty():
+		movement -= get_tile_cost(new_position)
+		_path = []
+		finished_move.emit()
+		_arrived = true
+		controlled_node.play_idle()
+		check_turn_completion.call_deferred()
 		return
 	# Pay for the tile just entered (not the one left behind), and only
 	# continue if the *next* waypoint - not this one again - is actually
@@ -656,8 +860,15 @@ func ai_move(target_position: Vector2i):
 	move_on_path(current_position)
 	var elapsed = 0.0
 	while not _arrived and elapsed < AI_MOVE_TIMEOUT:
+		if not still_in_a_battle():
+			return
 		await get_tree().process_frame
-		elapsed += get_process_delta_time()
+		if not still_in_a_battle():
+			# The battle was left while this enemy was still walking. There is no
+			# tree to wait on and nothing to walk to.
+			return
+		if not waiting_on_player():
+			elapsed += get_process_delta_time()
 	if not _arrived:
 		push_warning("ai_move to %s (from %s) didn't finish within %s seconds - continuing anyway. This is a real bug worth reporting, ideally with repro steps." % [target_position, current_position, AI_MOVE_TIMEOUT])
 		push_warning("  diagnostic: _path.size()=%s _path=%s _arrived=%s _position_id=%s _next_position=%s controlled_node.position=%s _processing_step=%s" % [_path.size(), _path, _arrived, _position_id, _next_position, controlled_node.position, _processing_step])
@@ -692,6 +903,15 @@ func find_path(tile_position: Vector2i):
 func move_player():
 	var current_position = tile_map.local_to_map(controlled_node.position)
 	var _path_size = _path.size()
+	if _path_size > 1 and tile_map.local_to_map(_path[0]) != current_position:
+		# A route that does not start where this combatant is standing was drawn
+		# for somebody else. Clearing it on every turn change should mean this
+		# never happens; it is checked here as well because the cost of being
+		# wrong is a combatant walking through walls, and the cost of the check
+		# is one comparison per click.
+		_path = PackedVector2Array()
+		queue_redraw()
+		return
 	if _path_size > 1 and movement > 0:
 		move_on_path(current_position)
 
@@ -712,6 +932,35 @@ func can_move_to(tile: Vector2i) -> bool:
 	return combat.get_position_distance(tile, nearest.position) >= combat.get_position_distance(comb.position, nearest.position)
 
 
+## Whoever is mid-walk, so a step that lands after their turn has passed is
+## not written onto whoever happens to be acting by then.
+var _walking_combatant: Dictionary = {}
+
+
+## Ends whatever walk is in flight and puts the walker down on the tile the
+## game says they are on.
+##
+## Movement slides a sprite between tile centres while position holds the last
+## tile actually reached, so a walk abandoned mid-stride leaves a body drawn
+## between two tiles. Targeting compares a click against position, never
+## against the sprite - so that body is visible, alive, and impossible to
+## click, which is exactly how this showed itself.
+func end_walk():
+	var walker = _walking_combatant
+	_walking_combatant = {}
+	_path = PackedVector2Array()
+	_position_id = 0
+	_arrived = true
+	if walker.is_empty() or not walker.get("alive", false):
+		return
+	var sprite = walker.get("sprite", null)
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	sprite.position = tile_map.map_to_local(walker.position)
+	if sprite.has_method("play_idle"):
+		sprite.play_idle()
+
+
 func move_on_path(current_position):
 	if _path.size() >= 2 and not can_move_to(tile_map.local_to_map(_path[_path.size() - 1])):
 		# Feared, and this move would close the distance. Enforced here rather
@@ -725,10 +974,20 @@ func move_on_path(current_position):
 		finished_move.emit()
 		_arrived = true
 		return
+	if movement <= 0 or get_tile_cost_at_point(_path[1]) > movement:
+		# There is no free first step. move_player() already refuses a click
+		# with nothing left to spend, but the AI walks by calling here directly
+		# and so skipped that check: a combatant held in place by Crystallised
+		# still shifted one tile every turn, and anybody out of movement got
+		# one more tile than they had paid for.
+		finished_move.emit()
+		_arrived = true
+		return
 	_previous_position = current_position
 	_position_id = 1
 	_next_position = _path[_position_id]
 	_arrived = false
+	_walking_combatant = combat.get_current_combatant()
 	controlled_node.play_walk()
 	# Grey the skills out for the duration of the walk - see is_idle().
 	game_ui_refresh()
@@ -751,6 +1010,10 @@ func begin_target_selection():
 	# Passing the caster lets the preview shrink to match anything blinding
 	# them, so they're never shown a reach they don't have.
 	_range_preview_positions = combat.get_range_tiles(skill, caster.position, caster.movement_class, caster)
+	if skill.teleports == SkillDefinition.TeleportWho.CASTER:
+		# A blink is aimed at somewhere to stand, so only offer the tiles it
+		# could actually stand on.
+		_range_preview_positions = landable_tiles(_range_preview_positions, caster)
 	target_selection_started.emit()
 	queue_redraw()
 
@@ -759,13 +1022,97 @@ func begin_target_selection():
 ## finished resolving - awaited rather than fired and forgotten - because the
 ## point of hiding it was to keep the map clear while the skill plays out, and
 ## putting the panels back the instant the click lands would defeat that.
+## Who a two-stage skill has picked up but not yet put down. A teleport that
+## moves somebody else needs two answers - who, and where to - and the first
+## click only gives the first.
+var _teleport_subject = Vector2i(-99999, -99999)
+
+
+func waiting_for_destination() -> bool:
+	return _teleport_subject != Vector2i(-99999, -99999)
+
+
+## Whether the aimed skill wants somewhere to put a body down rather than a
+## body to aim at. True for a blink from the moment it is chosen, and for a
+## skill that moves somebody else once it knows who is moving.
+func picking_a_landing_tile() -> bool:
+	if _selected_skill == "":
+		return false
+	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	if skill.teleports == SkillDefinition.TeleportWho.CASTER:
+		return true
+	return skill.teleports == SkillDefinition.TeleportWho.TARGET and waiting_for_destination()
+
+
+## Whoever the aimed teleport would move, so we can ask whether they fit.
+func travelling_combatant() -> Dictionary:
+	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	if skill.teleports == SkillDefinition.TeleportWho.TARGET:
+		return combat.get_combatant_at(_teleport_subject)
+	return combat.get_current_combatant()
+
+
+## Whether aiming the selected teleport at the traveller's own tile is worth
+## doing. A blink that bursts where it lands still bursts if it lands where it
+## started, so staying put is a real choice; a skill whose only point is the
+## journey would just be a cast thrown away, so it is refused.
+func standing_still_does_something() -> bool:
+	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	return not skill.all_effects().is_empty()
+
+
+## Whether a teleport aimed at `tile` would really arrive there - the same
+## questions teleport_to() asks before it moves anybody.
+##
+## A click on an occupied tile used to be accepted and then quietly refused by
+## the teleport itself, so the skill went off from where the caster was already
+## standing: the damage landed and the move never happened.
+func is_valid_landing_tile(tile: Vector2i) -> bool:
+	var traveller = travelling_combatant()
+	if traveller.is_empty():
+		return false
+	if traveller.position == tile:
+		return standing_still_does_something()
+	return combat.can_land_on(traveller, tile)
+
+
+## Of `tiles`, the ones `traveller` could really be put down on.
+func landable_tiles(tiles: Array, traveller: Dictionary) -> Array:
+	var landable: Array = []
+	for tile in tiles:
+		if tile == traveller.position:
+			if standing_still_does_something():
+				landable.append(tile)
+			continue
+		if combat.can_land_on(traveller, tile):
+			landable.append(tile)
+	return landable
+
+
 func confirm_skill_target(position: Vector2i):
+	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	if skill.teleports == SkillDefinition.TeleportWho.TARGET and not waiting_for_destination():
+		# First click chose who travels. Stay in aiming mode: the next one says
+		# where to, and until then nothing has been spent.
+		_teleport_subject = position
+		# Now that we know who is travelling, narrow the marked tiles to the
+		# ones they could be set down on.
+		var subject_comb = combat.get_combatant_at(position)
+		if not subject_comb.is_empty():
+			_range_preview_positions = landable_tiles(_range_preview_positions, subject_comb)
+		queue_redraw()
+		return
+	var subject = _teleport_subject
+	_teleport_subject = Vector2i(-99999, -99999)
 	# Leave aiming mode immediately so input state is correct, but hold the
 	# HUD back until the skill is done.
 	_skill_selected = false
 	_range_preview_positions = []
 	queue_redraw()
-	await combat.use_skill(_selected_skill, combat.get_current_combatant(), position, true, _selected_skill_is_secondary)
+	if skill.teleports == SkillDefinition.TeleportWho.TARGET:
+		await combat.use_skill(_selected_skill, combat.get_current_combatant(), subject, true, _selected_skill_is_secondary, position)
+	else:
+		await combat.use_skill(_selected_skill, combat.get_current_combatant(), position, true, _selected_skill_is_secondary)
 	target_selection_finished.emit()
 	queue_redraw()
 
@@ -774,6 +1121,7 @@ func confirm_skill_target(position: Vector2i):
 ## the skill, returning to normal move mode.
 func cancel_skill_selection():
 	_skill_selected = false
+	_teleport_subject = Vector2i(-99999, -99999)
 	_attack_target_position = null
 	_ally_target_position = null
 	_aoe_preview_positions = []
@@ -821,19 +1169,36 @@ func get_tile_cost(tile):
 func get_tile_cost_at_point(point):
 	return get_tile_cost(tile_map.local_to_map(point))
 
+## Draws the tile-highlight texture stretched to cover exactly one tile,
+## centred on `centre`.
+##
+## Stretched rather than drawn at the texture's own size, so the marker art
+## doesn't have to be redrawn every time the tile size changes - a 32px marker
+## and a 192px one both fill their tile, the smaller one just softer. Before
+## this it was drawn at native size from the tile's top-left corner, which at
+## 192-unit tiles would have covered a thirty-sixth of one.
+func _draw_tile_marker(centre: Vector2, colour: Color = Color.WHITE):
+	draw_texture_rect(grid_tex, Rect2(centre - Grid.HALF_TILE, Grid.HALF_TILE * 2.0), false, colour)
+
+
 func _draw():
 	if _deployment_active:
 		# Where the party may stand, and which of them is currently picked up.
 		for tile in _deployment_tiles:
-			draw_texture(grid_tex, tile_map.map_to_local(tile) - Vector2(16, 16), Color(Color.GOLD, 0.45))
+			_draw_tile_marker(tile_map.map_to_local(tile), Color(Color.GOLD, 0.45))
 		if _deployment_selection != null:
-			draw_texture(grid_tex, tile_map.map_to_local(_deployment_selection.position) - Vector2(16, 16), Color(Color.WHITE, 0.85))
+			_draw_tile_marker(tile_map.map_to_local(_deployment_selection.position), Color(Color.WHITE, 0.85))
 		return
 	if _arrived == true and player_turn == true:
+		# Where the enemy is looking, for somebody whose turn depends on not
+		# being looked at. Drawn under everything else, since it is the ground
+		# the rest of the turn is planned on rather than a choice being made.
+		for tile in _watched_tiles:
+			_draw_tile_marker(tile_map.map_to_local(tile), Color(Color.CRIMSON, 0.5))
 		if _skill_selected:
 			for pos in _range_preview_positions:
 				var local = tile_map.map_to_local(pos)
-				draw_texture(grid_tex, local - Vector2(16, 16), Color(Color.CRIMSON, 0.5))
+				_draw_tile_marker(local, Color(Color.CRIMSON, 0.5))
 		else:
 			var path_length = movement
 			for i in range(_path.size()):
@@ -843,14 +1208,25 @@ func _draw():
 				var draw_color = Color.WHITE
 				if path_length >= 0:
 					draw_color = Color.ROYAL_BLUE
-				draw_texture(grid_tex, point - Vector2(16, 16), draw_color)
+				_draw_tile_marker(point, draw_color)
 		if _attack_target_position != null:
-			draw_texture(grid_tex, _attack_target_position - Vector2(16, 16), Color.CRIMSON)
+			_draw_tile_marker(_attack_target_position, Color.CRIMSON)
 		if _ally_target_position != null:
-			draw_texture(grid_tex, _ally_target_position - Vector2(16, 16), Color.LIME_GREEN)
+			_draw_tile_marker(_ally_target_position, Color.LIME_GREEN)
 		for pos in _aoe_preview_positions:
 			var local = tile_map.map_to_local(pos)
 			var color = Color.LIME_GREEN if _aoe_preview_is_ally else Color.CRIMSON
-			draw_texture(grid_tex, local - Vector2(16, 16), Color(color, 0.6))
+			_draw_tile_marker(local, Color(color, 0.6))
 		if _blocked_target_position != null:
-			draw_texture(grid_tex, _blocked_target_position - Vector2(16, 16))
+			_draw_tile_marker(_blocked_target_position)
+
+
+## Whether this controller still belongs to a running battle.
+##
+## Every loop below parks itself on the next frame, and leaving a fight - to
+## Arena Mode, to the title screen - changes the scene out from under whichever
+## coroutine was mid-await. It resumes into a node that has been taken out of
+## the tree, and get_tree() is null by then. Checked on both sides of an await,
+## since the scene can change during it.
+func still_in_a_battle() -> bool:
+	return is_inside_tree() and get_tree() != null

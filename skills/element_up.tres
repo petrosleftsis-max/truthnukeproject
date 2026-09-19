@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://d2oqgavj2l0w6"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_aud5t"]
+[ext_resource type="Texture2D" uid="uid://c7ygk4gdgi0qo" path="res://imagese/skills/debuff_skill.png" id="2_igu16"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_v6ejl"]
+
+[sub_resource type="Resource" id="Resource_igu16"]
+script = ExtResource("1_aud5t")
+type = 13
+duration = 3
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_v6ejl")
+name = "Element Up"
+description = "Through the study of Idology, upgrade the element of the next spell you cast."
+icon = ExtResource("2_igu16")
+required_level = 2
+targets_ally = true
+is_secondary = true
+effects = Array[ExtResource("1_aud5t")]([SubResource("Resource_igu16")])
+deals_damage = false
+spell_slot_level = 1
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

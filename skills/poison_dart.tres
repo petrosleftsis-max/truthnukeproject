@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://cv4cf5r2pw5xt"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_mcofx"]
+[ext_resource type="Resource" uid="uid://ttc70ufjw2r2" path="res://conditions/poisoned.tres" id="2_mm41o"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_v0ngf"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_mm41o"]
+[ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Effect_poison_dot"]
+script = ExtResource("1_mcofx")
+type = 8
+condition = ExtResource("2_mm41o")
+condition_dot_modifier = 0.3
+
+[resource]
+script = ExtResource("3_mm41o")
+name = "Poison Dart"
+description = "A dart coated in a toxin that poisons the target."
+min_range = 1
+max_range = 15
+accuracy = 100
+icon = ExtResource("2_v0ngf")
+required_level = 2
+respects_blocking = true
+effects = Array[ExtResource("1_mcofx")]([SubResource("Effect_poison_dot")])
+scaling_stat = 3
+sound = ExtResource("90_sfx")

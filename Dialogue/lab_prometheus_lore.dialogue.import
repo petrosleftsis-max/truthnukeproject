@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://brxew8uxoemel"
+path="res://.godot/imported/lab_prometheus_lore.dialogue-95615f54a0cb0dee084a8a9efaa8a57f.tres"
+
+[deps]
+
+source_file="res://Dialogue/lab_prometheus_lore.dialogue"
+dest_files=["res://.godot/imported/lab_prometheus_lore.dialogue-95615f54a0cb0dee084a8a9efaa8a57f.tres"]
+
+[params]
+
+defaults=true

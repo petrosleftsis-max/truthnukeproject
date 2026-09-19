@@ -1,12 +1,14 @@
-[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3 uid="uid://ttc70ufjw2r2"]
 
-[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
 
 [resource]
 script = ExtResource("1_cond")
 display_name = "Poisoned"
 description = "Venom works through them. Too sick to react to anything."
-duration = 3
-dot_min = 2
-dot_max = 3
+dot_type = 5
+dot_strength = 3
+dot_modifier = 1.0
+dot_min = 4
+dot_max = 6
 prevents_reactions = true

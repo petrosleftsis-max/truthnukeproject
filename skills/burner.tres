@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bh7152ehf4coy"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_r1ihj"]
+[ext_resource type="Resource" uid="uid://1ld4g4lgfheh" path="res://conditions/burn.tres" id="2_cop3u"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_luh46"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_cop3u"]
+[ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Effect_curse"]
+script = ExtResource("1_r1ihj")
+type = 8
+condition = ExtResource("2_cop3u")
+condition_duration = 5
+condition_dot_modifier = 1.0
+
+[resource]
+script = ExtResource("3_cop3u")
+name = "Burner"
+description = "Burn the target."
+min_range = 1
+max_range = 15
+accuracy = 85
+icon = ExtResource("2_luh46")
+required_level = 2
+respects_blocking = true
+effects = Array[ExtResource("1_r1ihj")]([SubResource("Effect_curse")])
+deals_damage = false
+ability_modifier = 0.8
+scaling_stat = 2
+damage_type = 1
+uses_stat_contest = true
+contest_stat = 1
+sound = ExtResource("90_sfx")
+spell_slot_level = 2
+aoe_radius = 2

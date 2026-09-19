@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://dr7hde5x13hvf"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_468qc"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_jk1kw"]
+[ext_resource type="Resource" uid="uid://ckup4ja1ars1i" path="res://conditions/crystallised.tres" id="2_v3tq0"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_nxawm"]
+[ext_resource type="AudioStream" uid="uid://cqnubt85xto1y" path="res://audio/sfx/Debris_Scattering_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Resource_v3tq0"]
+script = ExtResource("1_468qc")
+type = 8
+condition = ExtResource("2_v3tq0")
+condition_duration = 4
+condition_dot_modifier = 0.3
+damage_type = 4
+damage_modifier = 0.2
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_jk1kw")
+name = "Crystalise"
+description = "Cover an enemy in hindering stones."
+max_range = 15
+accuracy = 100
+icon = ExtResource("3_nxawm")
+required_level = 2
+respects_blocking = true
+effects = Array[ExtResource("1_468qc")]([SubResource("Resource_v3tq0")])
+ability_modifier = 0.4
+scaling_stat = 2
+damage_type = 4
+uses_stat_contest = true
+contest_stat = 3
+sound = ExtResource("90_sfx")
+spell_slot_level = 2
+aoe_radius = 2
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

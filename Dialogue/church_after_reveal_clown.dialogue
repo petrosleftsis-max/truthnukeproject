@@ -1,0 +1,8 @@
+~ start
+The Clown: You do your best to bring peace and resolution into people’s hearts! I do my best to bring peace and resolution into people’s hearts!
+The Clown: In the end, what is it that makes us so different, Cleric?
+Alithia Undersen: ...
+Alithia Undersen: I wish I could properly express how much I despise you and your irritating high pitched voice.
+Alithia Undersen: ... Why are you the one who makes me realise what I must do next?!
+do Campaign.set_flag("after_reveal_reminisced_clown")
+=> END

@@ -1,26 +1,33 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://d0dthm61i0sxn"]
 
-[ext_resource type="Script" path="res://exploration/ExplorationScene.gd" id="1_explore"]
-[ext_resource type="Script" path="res://control/CameraController.gd" id="2_camera"]
+[ext_resource type="Script" uid="uid://cqnf5dr7csdpr" path="res://exploration/ExplorationScene.gd" id="1_explore"]
+[ext_resource type="Script" uid="uid://diuxqa3vvgwwt" path="res://control/CameraController.gd" id="2_camera"]
 [ext_resource type="PackedScene" uid="uid://ddgx1hll377nx" path="res://ui/ui.tscn" id="3_ui"]
 [ext_resource type="PackedScene" path="res://ui/pause_ui.tscn" id="4_pauseui"]
+[ext_resource type="Script" uid="uid://cpekxbgt3nmpg" path="res://ui/character_sheet.gd" id="5_sheet"]
+[ext_resource type="Script" path="res://ui/inventory_ui.gd" id="9_inventory"]
 
-[node name="Exploration" type="Node" node_paths=PackedStringArray("game_ui", "camera")]
+[node name="Exploration" type="Node" unique_id=2077045176 node_paths=PackedStringArray("game_ui", "camera")]
 script = ExtResource("1_explore")
 game_ui = NodePath("CanvasLayer/UI")
 camera = NodePath("Camera2D")
 
-[node name="Camera2D" type="Camera2D" parent="."]
-zoom = Vector2(2, 2)
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1668953122]
+zoom = Vector2(0.5, 0.5)
 script = ExtResource("2_camera")
 tile_map_path = NodePath("../Map/TileMap")
-min_zoom = 1.0
-max_zoom = 4.0
 free_look = false
+allow_zoom = false
 
-[node name="CanvasLayer" type="CanvasLayer" parent="."]
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=75846312]
 
-[node name="UI" parent="CanvasLayer" instance=ExtResource("3_ui")]
+[node name="UI" parent="CanvasLayer" unique_id=1752266717 instance=ExtResource("3_ui")]
 metadata/_edit_use_anchors_ = true
 
-[node name="PauseUI" parent="." instance=ExtResource("4_pauseui")]
+[node name="PauseUI" parent="." unique_id=1457848466 instance=ExtResource("4_pauseui")]
+
+[node name="CharacterSheet" type="CanvasLayer" parent="." unique_id=590313453]
+script = ExtResource("5_sheet")
+
+[node name="InventoryUI" type="CanvasLayer" parent="."]
+script = ExtResource("9_inventory")

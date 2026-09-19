@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://chb4r5lfxthm5"
+path="res://.godot/imported/Scott Buckley - Permafrost.mp3-904dc0e496669b18a146e6d14bb19bc2.mp3str"
+
+[deps]
+
+source_file="res://audio/music/Scott Buckley - Permafrost.mp3"
+dest_files=["res://.godot/imported/Scott Buckley - Permafrost.mp3-904dc0e496669b18a146e6d14bb19bc2.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

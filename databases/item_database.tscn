@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://jb5mkmv1vc36"]
+
+[ext_resource type="Script" uid="uid://dcvoes0worhjo" path="res://databases/item_database.gd" id="1_db"]
+[ext_resource type="Resource" uid="uid://lnqoss8cheye" path="res://items/blinding_bomb.tres" id="2_blinding_bomb"]
+[ext_resource type="Resource" uid="uid://mlbyhaxjeehd" path="res://items/bomb.tres" id="3_bomb"]
+[ext_resource type="Resource" uid="uid://ty0vgc1d68jl" path="res://items/burn_bottle.tres" id="4_burn_bottle"]
+[ext_resource type="Resource" uid="uid://bqstt7ftjixdv" path="res://items/crystal_bottle.tres" id="5_crystal_bottle"]
+[ext_resource type="Resource" uid="uid://qpcb3ix0elq1" path="res://items/cure_potion.tres" id="6_cure_potion"]
+[ext_resource type="Resource" uid="uid://da83k6ege2ql3" path="res://items/frost_bottle.tres" id="7_frost_bottle"]
+[ext_resource type="Resource" uid="uid://ddt4u2j354k03" path="res://items/gale_bottle.tres" id="8_gale_bottle"]
+[ext_resource type="Resource" uid="uid://dg15k3v55o5e1" path="res://items/medicine.tres" id="9_medicine"]
+[ext_resource type="Resource" uid="uid://diwtowtkoq045" path="res://items/poison_bottle.tres" id="10_poison_bottle"]
+[ext_resource type="Resource" uid="uid://3ssllqgasdd0" path="res://items/shock_bottle.tres" id="11_shock_bottle"]
+[ext_resource type="Resource" uid="uid://bxnwbktnovbp4" path="res://items/terror_bottle.tres" id="12_terror_bottle"]
+
+[node name="ItemDatabase" type="Node" unique_id=2096321018]
+script = ExtResource("1_db")
+items = {
+"blinding_bomb": ExtResource("2_blinding_bomb"),
+"bomb": ExtResource("3_bomb"),
+"burn_bottle": ExtResource("4_burn_bottle"),
+"crystal_bottle": ExtResource("5_crystal_bottle"),
+"cure_potion": ExtResource("6_cure_potion"),
+"frost_bottle": ExtResource("7_frost_bottle"),
+"gale_bottle": ExtResource("8_gale_bottle"),
+"medicine": ExtResource("9_medicine"),
+"poison_bottle": ExtResource("10_poison_bottle"),
+"shock_bottle": ExtResource("11_shock_bottle"),
+"terror_bottle": ExtResource("12_terror_bottle")
+}

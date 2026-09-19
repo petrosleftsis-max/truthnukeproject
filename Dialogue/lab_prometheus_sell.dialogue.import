@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://dtaw0p4yh35w1"
+path="res://.godot/imported/lab_prometheus_sell.dialogue-a0b0f1eb0e1f24ba3cb0dc19316ce6f2.tres"
+
+[deps]
+
+source_file="res://Dialogue/lab_prometheus_sell.dialogue"
+dest_files=["res://.godot/imported/lab_prometheus_sell.dialogue-a0b0f1eb0e1f24ba3cb0dc19316ce6f2.tres"]
+
+[params]
+
+defaults=true
