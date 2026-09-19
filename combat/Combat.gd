@@ -2429,6 +2429,12 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 	# Only blasts. A LINE or CONE is aimed as a direction from the caster, so
 	# its tiles do not sit around the aim and the shortcut does not hold.
 	var is_blast = skill.aoe_shape != SkillDefinition.AoEShape.LINE 		and skill.aoe_shape != SkillDefinition.AoEShape.CONE
+	#
+	# A skill that moves its caster aims at the tile they arrive on, and nobody
+	# arrives on a tile somebody is already standing on. Without this the best
+	# aim for Blink Strike is the target's own tile - the blast catches them
+	# from there, so it scores as a hit - and the blink quietly does nothing.
+	var must_land = skill.teleports == SkillDefinition.TeleportWho.CASTER and not caster.is_empty()
 	var catchable: Array[Vector2i] = []
 	if is_blast:
 		for index in groups[Group.PLAYERS]:
@@ -2446,6 +2452,8 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 			if d < skill.min_range:
 				continue
 			var aim = caster_position + Vector2i(dx, dy)
+			if must_land and not can_land_on(caster, aim):
+				continue
 			var count = 0
 			if is_blast:
 				for position in catchable:
@@ -3101,7 +3109,7 @@ func ai_copycat(comb: Dictionary):
 		await advance_turn()
 		return
 	if await move_into_range_of(comb, target.position, skill, movement_budget):
-		await use_skill(skill_key, comb, target.position, false)
+		await use_skill(skill_key, comb, aim_for_copied_skill(comb, skill, target), false)
 		await advance_turn()
 		return
 	if not comb.alive:
@@ -3112,6 +3120,27 @@ func ai_copycat(comb: Dictionary):
 	if comb.alive:
 		await use_skill("greatsword_attack", comb, target.position, false)
 	await advance_turn()
+
+
+## Where a copied skill should actually be pointed.
+##
+## Straight at whoever it is chasing, for everything that simply travels to its
+## target. A skill that moves its caster is the exception: what it aims at is
+## where the caster arrives, so aiming at somebody means trying to stand on
+## them. Blink Strike copied that way teleported nowhere and swung anyway - the
+## radius-1 burst still caught the target from their own tile, which is why it
+## read as an attack with the blink missing rather than as a broken skill.
+##
+## find_best_aim_and_count already refuses a tile the caster cannot land on, so
+## what comes back is open ground that still catches somebody. Falling back to
+## the target's tile when it finds nothing keeps a turn from being wasted.
+func aim_for_copied_skill(comb: Dictionary, skill: SkillDefinition, target: Dictionary) -> Vector2i:
+	if skill.teleports != SkillDefinition.TeleportWho.CASTER:
+		return target.position
+	var found = find_best_aim_and_count(skill, comb.position, comb.movement_class, comb)
+	if found.count > 0:
+		return found.position
+	return target.position
 
 
 func ai_pick_target(weights):
