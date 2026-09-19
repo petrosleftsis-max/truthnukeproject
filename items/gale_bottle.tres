@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_eff"]
 [ext_resource type="Script" uid="uid://cbf4gnjv5w62v" path="res://combat/resources/ItemDefinition.gd" id="2_item"]
-[ext_resource type="Resource" path="res://conditions/windswept.tres" id="3_cond"]
+[ext_resource type="Resource" uid="uid://dymj1wsivd678" path="res://conditions/windswept.tres" id="3_cond"]
 [ext_resource type="Texture2D" uid="uid://c7h6p5la4jtam" path="res://imagese/skills/consumable__skill.png" id="4_icon"]
 [ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
 

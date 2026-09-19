@@ -11,6 +11,7 @@ script = ExtResource("1_pf4ur")
 type = 8
 condition = ExtResource("2_ng6aw")
 condition_duration = 1
+condition_dot_modifier = 0.5
 damage_type = 1
 damage_modifier = 0.5
 metadata/_custom_type_script = "uid://dehsr7dduivu1"

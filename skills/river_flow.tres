@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://c8kblee6iok6u"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_vsgl5"]
-[ext_resource type="Resource" path="res://conditions/frozen.tres" id="2_2euv7"]
+[ext_resource type="Resource" uid="uid://da6hi26lshoi3" path="res://conditions/frozen.tres" id="2_2euv7"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_uvvmi"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_0pa21"]
 [ext_resource type="AudioStream" uid="uid://0xf5qiq405h8" path="res://audio/sfx/SciFi_Water_-_Free_Sound_Effect.wav" id="90_sfx"]
@@ -11,6 +11,7 @@ script = ExtResource("1_vsgl5")
 type = 8
 condition = ExtResource("2_2euv7")
 condition_duration = 5
+condition_dot_modifier = 0.3
 damage_type = 2
 damage_modifier = 0.2
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
