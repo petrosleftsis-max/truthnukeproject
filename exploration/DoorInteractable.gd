@@ -13,10 +13,6 @@ class_name DoorInteractable
 @export var target_entry: String = ""
 
 
-func _init():
-	prompt = "Enter"
-
-
 func interact(scene: Node):
 	if target_map == "":
 		push_warning("DoorInteractable '%s' has no target map." % name)

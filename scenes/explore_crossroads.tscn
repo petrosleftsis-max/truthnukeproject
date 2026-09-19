@@ -27,7 +27,6 @@ position = Vector2(1438, 668)
 script = ExtResource("3_examine")
 text = "Who even leaves so many barrels around?"
 speaker = "Signpost"
-prompt = "Read"
 interaction_radius = 240.0
 sprite_frames = ExtResource("4_go82g")
 
@@ -36,7 +35,6 @@ position = Vector2(2307, 2498)
 script = ExtResource("3_examine")
 text = "I still am surprised the city guards haven't taken these planks away. Is it mercy on the homeless of the sewers or just laziness?"
 repeatable = false
-prompt = "Examine"
 interaction_radius = 240.0
 sprite_frames = ExtResource("4_go82g")
 

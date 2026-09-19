@@ -28,8 +28,13 @@ class_name Interactable
 ## Scoped to this visit rather than the whole campaign - the node is rebuilt
 ## when the map loads, so coming back to the map later does play it again.
 @export var only_once: bool = false
-## Shown above the party when they're close enough, e.g. "Talk", "Enter",
-## "Examine". Keep it to a word or two. Ignored when Automatic is on.
+## Finishes the banner shown above the party when they're close enough: "Press
+## E to talk", "Press E to interact". One verb, lowercased when it is shown, so
+## it reads as a sentence whatever case it is written in here. Ignored when
+## Automatic is on.
+##
+## "Talk" belongs to a conversation and nothing else. Anything the party opens,
+## searches, fights or walks into is an interaction, and says so.
 @export var prompt: String = "Interact"
 ## How close the party leader has to be, in pixels. One tile is 32. Drawn as a
 ## ring in the editor so you can see the reach while placing it.

@@ -333,7 +333,7 @@ func _update_prompt():
 	if _current_target == null or _blocking_interaction:
 		game_ui.set_interaction_prompt("")
 	else:
-		game_ui.set_interaction_prompt("[E] %s" % _current_target.prompt)
+		game_ui.set_interaction_prompt("Press E to %s" % _current_target.prompt.to_lower())
 
 
 func _unhandled_input(event):

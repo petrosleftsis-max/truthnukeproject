@@ -18,10 +18,6 @@ class_name ExamineInteractable
 var _examined := false
 
 
-func _init():
-	prompt = "Examine"
-
-
 func is_available() -> bool:
 	return repeatable or not _examined
 
