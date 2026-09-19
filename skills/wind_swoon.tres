@@ -27,6 +27,7 @@ required_level = 2
 respects_blocking = true
 effects = Array[ExtResource("1_77oc1")]([SubResource("Resource_feskj")])
 deals_damage = false
+scaling_stat = 2
 uses_stat_contest = true
 contest_stat = 3
 sound = ExtResource("90_sfx")
