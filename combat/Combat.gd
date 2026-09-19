@@ -1086,7 +1086,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				target.status_effects.append({
 					"stat" = "condition",
 					"condition" = effect.condition,
-					"dot_base" = dot_base_damage(attacker, skill, effect.condition.dot_modifier),
+					"dot_base" = dot_base_damage(attacker, skill, effect.condition_dot_strength()),
 					"duration" = condition_turns(target, effect),
 					"source_name" = attacker.name
 				})

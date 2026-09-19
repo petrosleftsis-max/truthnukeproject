@@ -654,8 +654,16 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# this skill actually lands rather than what the condition says on
 			# its own - those are allowed to differ now.
 			var turns = effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration
+			# A condition describes itself in words - "a strong DOT" - which says
+			# how it compares to other conditions but not what it costs you here.
+			# The number belongs beside it, worked out from whoever is holding
+			# the skill, the same way the skill's own damage line is.
+			var says = effect.condition.describe()
+			var burning = _condition_tick(effect, skill)
+			if burning != "":
+				says += " (%s)" % burning
 			return "Inflicts %s for %d turn(s): %s" % [
-				effect.condition.display_name, turns, effect.condition.describe()
+				effect.condition.display_name, turns, says
 			]
 		EffectDefinition.EffectType.PUSH:
 			# Said as "on collision", because the push's own min/max is collision
@@ -807,6 +815,26 @@ func _dot_against_enemies(skill: SkillDefinition, damage_type: int, modifier: fl
 	if lowest < 0:
 		return ""
 	return "%d" % lowest if lowest == highest else "%d-%d" % [lowest, highest]
+
+
+## What one tick of `condition` would take off whoever is standing opposite,
+## inflicted by `skill` in the hands of whoever is acting. Empty for a condition
+## that does not burn at all.
+func _condition_tick(effect: EffectDefinition, skill: SkillDefinition) -> String:
+	var condition: ConditionDefinition = effect.condition
+	if condition == null:
+		return ""
+	var flavour = Damage.type_name(condition.dot_type).to_lower()
+	# The effect's own strength when it sets one, so the preview shows what THIS
+	# skill's version of the condition costs rather than the condition's.
+	var ticks = _dot_against_enemies(skill, condition.dot_type, effect.condition_dot_strength())
+	if ticks != "":
+		return "%s %s damage a turn" % [ticks, flavour]
+	# Nothing to scale off means an item inflicted it, which rolls the flat
+	# range written on the condition rather than anything of the thrower's.
+	if condition.dot_max > 0:
+		return "%d-%d %s damage a turn" % [condition.dot_min, condition.dot_max, flavour]
+	return ""
 
 
 ## What a heal from whoever is acting would restore, or -1 with nobody to ask.

@@ -73,6 +73,19 @@ enum DispelScope {
 ## shorter version of a condition another skill also inflicts, rather than
 ## writing a second near-identical ConditionDefinition just to hold one number.
 @export_range(0, 20) var condition_duration: int = 0
+## How hard the condition burns when THIS skill is what inflicted it, in place
+## of the condition's own dot_modifier.
+##
+## 0 means "however hard the condition itself says", the same way
+## condition_duration works just above. Set it when two skills should inflict
+## the same named condition at different strengths - a Burn from a searing bolt
+## and a Burn caught walking through a fire are one condition with one glossary
+## entry, and need not hurt the same.
+##
+## Only a skill's version scales. An item's condition rolls the flat dot_min to
+## dot_max range written on the condition whoever throws it, so this does
+## nothing on a consumable.
+@export_range(0.0, 5.0, 0.05, "or_greater") var condition_dot_modifier: float = 0.0
 
 @export_group("Damage / Heal / Damage over Time")
 ## What kind of damage this deals. Used by DAMAGE, DAMAGE_OVER_TIME and the
@@ -153,7 +166,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.PUSH: ["knockback_distance", "damage_type", "min_amount", "max_amount"],
 	EffectType.PULL: ["knockback_distance"],
 	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration"],
-	EffectType.CONDITION: ["condition", "condition_duration"],
+	EffectType.CONDITION: ["condition", "condition_duration", "condition_dot_modifier"],
 	# Nothing to configure: it either lays the target open or it does not.
 	EffectType.REVEAL: [],
 	EffectType.MOVEMENT_CLASS: ["display_name", "movement_class", "duration"],
@@ -162,6 +175,17 @@ const FIELDS_BY_TYPE := {
 	EffectType.HIDE: [],
 	EffectType.RESISTANCE: ["display_name", "damage_type", "modifier_amount", "duration"],
 }
+
+
+## How hard the condition this effect inflicts should burn: this effect's own
+## figure when it sets one, and the condition's otherwise.
+##
+## One place decides it, so what a battle does and what the preview promises
+## cannot drift apart.
+func condition_dot_strength() -> float:
+	if condition_dot_modifier > 0.0:
+		return condition_dot_modifier
+	return condition.dot_modifier if condition != null else 0.0
 
 
 func _set_damage_modifier(value: float):
