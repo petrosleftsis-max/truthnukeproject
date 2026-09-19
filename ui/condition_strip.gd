@@ -116,12 +116,21 @@ func _describe_condition(comb: Dictionary, effect: Dictionary) -> String:
 		lines.append(condition.description)
 	var doing := []
 	if condition.dot_modifier > 0.0 or condition.dot_max > 0:
-		var per_turn = _tick(comb, effect.get("dot_base", 0.0), condition.dot_type,
-			condition.dot_min, condition.dot_max)
 		var turns = effect.get("duration", 0)
-		doing.append("%d %s damage a turn (%d in all)" % [
-			per_turn, Damage.type_name(condition.dot_type).to_lower(), per_turn * turns
-		])
+		var dot_base = effect.get("dot_base", 0.0)
+		var flavour = Damage.type_name(condition.dot_type).to_lower()
+		if dot_base > 0.0:
+			var per_turn = _tick(comb, dot_base, condition.dot_type,
+				condition.dot_min, condition.dot_max)
+			doing.append("%d %s damage a turn (%d in all)" % [per_turn, flavour, per_turn * turns])
+		else:
+			# An item's version rolls fresh every turn, so what there is to show
+			# is the spread. Rolling one number here would name a figure the
+			# tooltip disagreed with the next time it was built.
+			var low = _tick(comb, 0.0, condition.dot_type, condition.dot_min, condition.dot_min)
+			var high = _tick(comb, 0.0, condition.dot_type, condition.dot_max, condition.dot_max)
+			doing.append("%d-%d %s damage a turn (%d-%d in all)" % [
+				low, high, flavour, low * turns, high * turns])
 	if condition.movement_change != 0:
 		doing.append("%+d movement" % condition.movement_change)
 	if condition.accuracy_change != 0:

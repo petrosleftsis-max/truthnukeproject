@@ -1575,8 +1575,9 @@ func process_status_effects(comb: Dictionary):
 ## it. Same shape as tick_damage_over_time, but named by the condition so the
 ## log says what is actually hurting them.
 ## One tick of a lingering effect, before resistance. Uses the snapshot taken
-## when it landed if there is one, and the flat range if there is not - which
-## is what a condition inflicted with no skill behind it falls back to.
+## when it landed if there is one, and the flat range if there is not - which is
+## how an item's version of a condition, and anything with no skill at all
+## behind it, does its damage.
 func dot_tick(target: Dictionary, dot_base: float, flat_min: int, flat_max: int) -> int:
 	if dot_base > 0.0:
 		return Stats.final_damage(dot_base, 1.0, stat_of(target, Stats.Type.DEFENSE))
@@ -2081,7 +2082,10 @@ func heal_amount(healer: Dictionary, skill: SkillDefinition) -> int:
 ## The target's side of it - defence and resistance - is still read live, so
 ## shoring yourself up mid-burn does help.
 func dot_base_damage(attacker: Dictionary, skill: SkillDefinition, modifier: float) -> float:
-	if skill == null or modifier <= 0.0:
+	# An item's condition does not scale off whoever threw it, the same rule
+	# skill_damage already applies to its direct damage: a bomb is a bomb. Zero
+	# here sends dot_tick to the condition's own flat range instead.
+	if skill == null or skill is ItemDefinition or modifier <= 0.0:
 		return 0.0
 	return Stats.base_damage(stat_of(attacker, skill.scaling_stat)) * skill.ability_modifier * modifier
 

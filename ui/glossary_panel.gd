@@ -186,10 +186,10 @@ func _page_for_condition(condition: ConditionDefinition):
 		lines.append("")
 	lines.append("[b]Defaults[/b]")
 	lines.append("Lasts %d of the afflicted's own turns." % condition.duration)
-	if condition.dot_min > 0 or condition.dot_max > 0:
-		lines.append("Takes %d-%d %s damage off them at the start of each one." % [
-			condition.dot_min, condition.dot_max,
-			Damage.type_name(condition.dot_type).to_lower()])
+	# Said in words rather than numbers: what a tick actually takes off depends
+	# on who inflicted it, and the book is read long before that is known.
+	if condition.describe_dot() != "":
+		lines.append("%s." % condition.describe_dot())
 	if condition.movement_change != 0:
 		lines.append("Movement %+d tile(s)." % condition.movement_change)
 	if condition.accuracy_change != 0:

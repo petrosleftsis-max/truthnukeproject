@@ -5,9 +5,11 @@
 [resource]
 script = ExtResource("1_cond")
 display_name = "Burn"
-description = "Alight, and running from it."
+description = "A strong DOT that would make anyone running."
+duration = 5
 dot_type = 1
-dot_modifier = 0.45
-dot_min = 3
-dot_max = 6
+dot_strength = 4
+dot_modifier = 1.0
+dot_min = 6
+dot_max = 8
 movement_change = 2

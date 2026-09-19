@@ -13,6 +13,21 @@ class_name ConditionDefinition
 ## ones the game ships with live in res://conditions/.
 
 
+## How hard the tick reads in the glossary. Kept as a word rather than a number
+## because a condition's real damage depends on who inflicted it - the book is
+## read long before any of that is known.
+##
+## Stored by number in every .tres, so a new strength goes on the END.
+enum DotStrength { NONE, WEAK, MEDIUM, STRONG, POWERFUL }
+
+const DOT_STRENGTH_NAMES := {
+	DotStrength.WEAK: "Weak",
+	DotStrength.MEDIUM: "Medium",
+	DotStrength.STRONG: "Strong",
+	DotStrength.POWERFUL: "Powerful",
+}
+
+
 @export var display_name: String = ""
 ## Freeform text for the tooltip. Optional - one is generated from the settings
 ## below when this is empty.
@@ -28,16 +43,21 @@ class_name ConditionDefinition
 ## What kind of damage the tick deals - Burn is fire, Poisoned is poison - so
 ## resistances apply to conditions the same as to a direct hit.
 @export var dot_type: Damage.Type = Damage.Type.PHYSICAL
-## How hard the tick is, as a fraction of a direct hit from whoever inflicted
-## the condition: the same WeaponBase + 0.7 x Stat, times this, times the
-## target's defence soak. So a Burn from a stronger caster genuinely burns
+## How hard this hits, in the one word the glossary prints. Purely descriptive -
+## nothing reads it but the book.
+@export var dot_strength: DotStrength = DotStrength.NONE
+## How hard the tick is when a SKILL inflicts this, as a fraction of a direct
+## hit from whoever cast it: the same WeaponBase + 0.7 x Stat, times this, times
+## the target's defence soak. So a Burn from a stronger caster genuinely burns
 ## harder, without a number here to maintain per level.
+@export_range(0.0, 5.0, 0.05, "or_greater") var dot_modifier: float = 0.0
+## What the tick is worth when an ITEM inflicts this instead, rolled fresh each
+## turn.
 ##
-## This is the dial to turn. Zero falls back to the flat dot_min-dot_max below,
-## which only a condition applied with no skill behind it ever needs - there is
-## no caster to scale off - and which stays hidden while this is set, so a
-## condition has one place its damage comes from rather than two.
-@export_range(0.0, 5.0, 0.05, "or_greater") var dot_modifier: float = 0.0 : set = _set_dot_modifier
+## A bomb is a bomb whoever throws it - the rule a consumable's direct damage
+## already follows - so an item's version of a condition is the number written
+## on the tin rather than a multiple of the thrower's attributes. A skill never
+## reads these.
 @export var dot_min: int = 0
 @export var dot_max: int = 0
 
@@ -79,8 +99,8 @@ func describe() -> String:
 	var parts: Array[String] = []
 	if skips_turn:
 		parts.append("loses their turn")
-	if dot_max > 0:
-		parts.append("takes %d-%d damage a turn" % [dot_min, dot_max])
+	if describe_dot() != "":
+		parts.append(describe_dot())
 	if max_range > 0:
 		parts.append("skill range capped at %d" % max_range)
 	if movement_change != 0:
@@ -102,15 +122,11 @@ func describe() -> String:
 	return ", ".join(parts).capitalize()
 
 
-func _set_dot_modifier(value: float):
-	dot_modifier = value
-	# Whether the flat fallback below is worth showing has just changed.
-	notify_property_list_changed()
-
-
-## Hides the flat tick range while the tick is scaling off its caster, which is
-## how every condition in the game works. Nothing is lost by hiding it - the
-## values are still stored, and come back if the modifier is set to zero.
-func _validate_property(property: Dictionary) -> void:
-	if dot_modifier > 0.0 and property.name in ["dot_min", "dot_max"]:
-		property.usage = PROPERTY_USAGE_STORAGE
+## "Powerful Fire Damage Over Time", or empty for a condition that does not
+## tick. Damage.type_name already comes capitalised, so the whole phrase reads
+## as a title without anything being recased here.
+func describe_dot() -> String:
+	if not DOT_STRENGTH_NAMES.has(dot_strength):
+		return ""
+	return "%s %s Damage Over Time" % [
+		DOT_STRENGTH_NAMES[dot_strength], Damage.type_name(dot_type)]
