@@ -2811,6 +2811,27 @@ func count_allies_within_heal_reach(comb: Dictionary, tile: Vector2i, heal_reach
 	return count
 
 
+## The ally standing nearest to any living enemy - the one a healer should be
+## keeping up with, because they are the one about to be hit. Empty when it is
+## on its own, or when there is nobody left to fight.
+func ally_nearest_the_enemy(comb: Dictionary) -> Dictionary:
+	var closest = {}
+	var best = 1 << 30
+	for index in groups[comb.side]:
+		var mate = combatants[index]
+		if not mate.alive or mate == comb:
+			continue
+		for other in groups[1 - comb.side]:
+			var foe = combatants[other]
+			if not foe.alive:
+				continue
+			var gap = get_position_distance(mate.position, foe.position)
+			if gap < best:
+				best = gap
+				closest = mate
+	return closest
+
+
 ## The Priest's equivalent of retreat_with_remaining_movement: spends whatever
 ## movement it has left on the safest tile that still keeps as many allies as
 ## possible inside heal reach. Coverage is weighted far above safety (see
@@ -2821,11 +2842,34 @@ func count_allies_within_heal_reach(comb: Dictionary, tile: Vector2i, heal_reach
 ## itself next to the players and never moving.
 const HEAL_COVERAGE_WEIGHT = 100.0
 
+## How hard it is pulled towards whoever is nearest the fighting, once coverage
+## is settled. It sits between the two terms either side of it: a step of
+## coverage is worth 100 and can never be traded away for this, while all the
+## safety in the world is worth about 16 and this outweighs it.
+##
+## Without it, a healer whose allies are all within reach from everywhere simply
+## took the best cover on the map - which on the laboratory is a corner behind a
+## wall, where one sat out an entire fight. Coverage ties nearly everywhere, so
+## something had to break the tie other than hiding.
+##
+## Deliberately not capped. A capped version was tried and did nothing: a healer
+## eighteen tiles from the fighting had every tile it could reach sitting past
+## the cap, so they all scored the same and hiding won the tie again - the cap
+## switched the rule off in exactly the case it was written for. Uncapped is
+## safe here because find_best_reachable_tile only offers tiles within one
+## turn's movement, so the spread across candidates is at most twice that - well
+## under the 100 a single ally of coverage is worth.
+const HEAL_ATTENDANCE_WEIGHT = 4.0
+
 func reposition_healer(comb: Dictionary, heal_reach: int):
 	if not comb.alive or controller.movement <= 0:
 		return
+	# Whoever is closest to the enemy is who is about to need mending.
+	var front = ally_nearest_the_enemy(comb)
+	var post = front.position if not front.is_empty() else comb.position
 	var tile = find_best_reachable_tile(comb, controller.movement, func(t):
-		return float(count_allies_within_heal_reach(comb, t, heal_reach)) * HEAL_COVERAGE_WEIGHT + score_tile_safety(t)
+		var attendance = -float(get_position_distance(t, post))
+		return float(count_allies_within_heal_reach(comb, t, heal_reach)) * HEAL_COVERAGE_WEIGHT 			+ attendance * HEAL_ATTENDANCE_WEIGHT 			+ score_tile_safety(t)
 	)
 	tile = avoid_needless_opportunity_attacks(comb, tile, {})
 	if tile != comb.position:
