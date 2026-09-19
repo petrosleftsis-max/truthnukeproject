@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Builds the web and Windows releases, and optionally publishes them to itch.
 #
-#   tools/release.sh              build both, and zip them
-#   tools/release.sh --publish    build both, zip them, and push to itch
+#   tools/release.sh                    build both, and zip them
+#   tools/release.sh --publish          build, zip, and push to itch (asks first)
+#   tools/release.sh --publish --yes    the same without being asked
 #
 # Run it from anywhere; it finds the project itself.
 #
@@ -23,7 +24,52 @@ GODOT="${GODOT:-/c/Users/ortin/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.
 ITCH="eplogos/messengersoftruth"
 
 publish=false
-[ "${1:-}" = "--publish" ] && publish=true
+assume_yes=false
+for arg in "$@"; do
+	case "$arg" in
+		--publish) publish=true ;;
+		--yes|-y) assume_yes=true ;;
+		*) echo "Unknown option: $arg"; echo "Usage: tools/release.sh [--publish] [--yes]"; exit 1 ;;
+	esac
+done
+
+# Everything that has to be true before a two minute build, checked first.
+#
+# butler is found here rather than at the point of pushing because a --publish
+# that discovers it is missing after building has wasted the build. And the yes
+# is asked for here for a better reason: --publish uploads to a public page,
+# and it should not be reachable by accident - it was, once, by a run that
+# expected this very check to stop it.
+if [ "$publish" = true ]; then
+	BUTLER="$(command -v butler 2>/dev/null || true)"
+	if [ -z "$BUTLER" ]; then
+		# The copy the itch app keeps for itself, under a version folder it
+		# changes whenever it updates - found by looking, newest last.
+		BUTLER="$(ls -1d "$APPDATA/itch/broth/butler/versions"/*/butler.exe 2>/dev/null | sort -V | tail -1 || true)"
+		[ -n "$BUTLER" ] && echo "Using the copy the itch app keeps: $BUTLER"
+	fi
+	if [ -z "$BUTLER" ]; then
+		echo "butler not found, either on PATH or inside the itch app."
+		echo "Get it from https://itch.io/docs/butler, or install the itch app,"
+		echo "which bundles it. Either way run 'butler login' once - it opens a"
+		echo "browser and caches a key, so this script never handles credentials."
+		exit 1
+	fi
+	if [ "$assume_yes" = false ]; then
+		if [ -t 0 ]; then
+			printf 'This will upload to https://%s.itch.io/%s - everyone sees it. Continue? [y/N] ' 				"${ITCH%%/*}" "${ITCH##*/}"
+			read -r answer </dev/tty || answer=""
+			case "$answer" in
+				[yY]*) ;;
+				*) echo "Not publishing. Built nothing."; exit 1 ;;
+			esac
+		else
+			echo "Refusing to publish without being asked to: this uploads to a public page."
+			echo "Run it in a terminal, or pass --yes if you really mean it."
+			exit 1
+		fi
+	fi
+fi
 
 if [ ! -x "$GODOT" ] && ! command -v "$GODOT" >/dev/null 2>&1; then
 	echo "Godot not found at: $GODOT"
@@ -73,20 +119,12 @@ if [ "$publish" = false ]; then
 	exit 0
 fi
 
-if ! command -v butler >/dev/null 2>&1; then
-	echo
-	echo "butler is not installed. Get it from https://itch.io/docs/butler,"
-	echo "put it on PATH, then run 'butler login' once - it opens a browser and"
-	echo "caches a key, so this script never handles your credentials."
-	exit 1
-fi
-
 # The build is tied to a commit, so a report of "the itch build is broken" can
 # be traced back to exactly what was in it.
 version="$(git -C "$ROOT" describe --always --dirty 2>/dev/null || echo unknown)"
 echo "===== Publishing $version to $ITCH ====="
 # The channel name is what tells itch the platform, so these two names matter.
-butler push "$ROOT/export/web" "$ITCH:web" --userversion "$version"
-butler push "$ROOT/export/windows" "$ITCH:windows" --userversion "$version"
+"$BUTLER" push "$ROOT/export/web" "$ITCH:web" --userversion "$version"
+"$BUTLER" push "$ROOT/export/windows" "$ITCH:windows" --userversion "$version"
 echo
-butler status "$ITCH"
+"$BUTLER" status "$ITCH"
