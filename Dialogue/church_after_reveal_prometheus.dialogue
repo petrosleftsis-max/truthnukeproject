@@ -1,7 +1,7 @@
 ~ start
-prometheus: Well, I can't exactly come up with a wise idiom that would pick you up from the slumps, but I definetely can share a drink with you. Haha, this is only half an excuse to drink.
-prometheus: No, there is no doubting it... This truly is the Divine. Their conclusions and reasonings... are so flawless.
-alithia: You damn alcoholic. You can't even move on from the past.
-alithia: And yet... you found beauty in remembering. You accepted the pain and allowed yourself to hold onto it.
+Prometheus Iliopoulos: Well, I can't exactly come up with a wise idiom that would pick you up from the slumps, but I definetely can share a drink with you. Haha, this is only half an excuse to drink.
+Prometheus Iliopoulos: No, there is no doubting it... This truly is the Divine. Their conclusions and reasonings... are so flawless.
+Alithia Undersen: You damn alcoholic. You can't even move on from the past.
+Alithia Undersen: And yet... you found beauty in remembering. You accepted the pain and allowed yourself to hold onto it.
 do Campaign.set_flag("after_reveal_reminisced_prometheus")
 => END

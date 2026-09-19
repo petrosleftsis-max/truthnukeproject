@@ -1,7 +1,7 @@
 ~ start
 enfina: I'm sorry for only listening. I do not know what to say. But I can stay here and listen. If that helps you.
 enfina: There is no use trying to count the value of anyone’s soul. And yet these hands have taken lives. In the end there are some situations that do not have an answer and still demand for one. I believe you can never be wrong no matter which answer you choose.
-alithia: It isn’t as simple as that... It is not enough to just not be in the wrong.
-alithia: Thank you though. Still, how do you manage to hang around Cyrus so much and still not pick up how to talk more?
+Alithia Undersen: It isn’t as simple as that... It is not enough to just not be in the wrong.
+Alithia Undersen: Thank you though. Still, how do you manage to hang around Cyrus so much and still not pick up how to talk more?
 do Campaign.set_flag("after_reveal_reminisced_enfina")
 => END

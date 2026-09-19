@@ -1,26 +1,26 @@
 ~ start
-Cyrus: Woah, that looks complicated. Hey, Prometheus, is there some part of it we can take and sell for a lot? 
+Cyrus Rowe: Woah, that looks complicated. Hey, Prometheus, is there some part of it we can take and sell for a lot? 
 
-Prometheus: Are you crazy? Now you’re just being ridiculous, Cyrus. 
-Alithia: Thank you! 
+Prometheus Iliopoulos: Are you crazy? Now you’re just being ridiculous, Cyrus. 
+Alithia Undersen: Thank you! 
 
-Prometheus: Almost half of those small parts over there would obviously sell for a fortune. 
+Prometheus Iliopoulos: Almost half of those small parts over there would obviously sell for a fortune. 
 
-Alithia: Wha- Are you both for real right now?! This isn’t the reason we are here! 
+Alithia Undersen: Wha- Are you both for real right now?! This isn’t the reason we are here! 
 
 Enfina: Yeah. 
 
 Enfina: We could come back later. 
 
-Alithia: Aren’t you a city guard?! 
+Alithia Undersen: Aren’t you a city guard?! 
 
 Enfina: Eh, no law really protects the unlawful. 
 
-Alithia: ... 
+Alithia Undersen: ... 
 
-Cyrus: As you guys were talking, I found supplies! Here, have some.
+Cyrus Rowe: As you guys were talking, I found supplies! Here, have some.
 
-Prometheus: Efficient as ever.
+Prometheus Iliopoulos: Efficient as ever.
 
 do Campaign.give_item("cyrus", "cure_potion")
 do Campaign.give_item("enfina", "cure_potion")
