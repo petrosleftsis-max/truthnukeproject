@@ -603,6 +603,14 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# used to be worked out against every enemy on the board and shown
 			# as the spread, which read as the skill rolling dice rather than
 			# as the targets differing.
+			# Turned on the caster, the target is settled - their defence and
+			# their resistance are both known - so the panel says what it will
+			# cost rather than what it is worth. "Base" is dropped, because it
+			# is the word that promises a figure still to be soaked.
+			if effect.applies_to_caster:
+				var on_self = _damage_to_self(skill, effect)
+				if on_self >= 0:
+					return "Damage: %d %s" % [on_self, Damage.type_name(effect.damage_type).to_lower()]
 			var swing = _base_damage(skill)
 			if swing >= 0:
 				return "Base Damage: %d %s" % [swing, Damage.type_name(effect.damage_type).to_lower()]
@@ -631,9 +639,11 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
 			# Per turn and in total, because a wound that ticks for 6 over 4 turns
 			# is a different decision from one that ticks for 20 once.
-			var ticks = _dot_against_enemies(skill, effect.damage_type, effect.damage_modifier)
-			if ticks != "":
-				return "Damage over time: %s %s a turn for %d turn(s)" % [
+			var ticks = _tick_figure(skill, effect.damage_type, effect.damage_modifier,
+				effect.applies_to_caster)
+			if ticks >= 0:
+				return "Damage over time: %s%d %s a turn for %d turn(s)" % [
+					"" if effect.applies_to_caster else "base ",
 					ticks, Damage.type_name(effect.damage_type).to_lower(), effect.duration
 				]
 			return "Damage over time: %d-%d %s for %d turn(s)" % [
@@ -775,17 +785,6 @@ func _caster() -> Dictionary:
 	return current if current != null else {}
 
 
-## Everyone this caster's attacks would land on.
-func _opposition(caster: Dictionary) -> Array:
-	var found: Array = []
-	if combat == null:
-		return found
-	for comb in combat.combatants:
-		if comb.get("alive", false) and comb.get("side", 1) != caster.get("side", 0):
-			found.append(comb)
-	return found
-
-
 ## What `skill` swings for in the hands of whoever is acting, before the target
 ## on the other end of it soaks any. -1 with nobody to ask.
 func _base_damage(skill: SkillDefinition) -> int:
@@ -795,26 +794,40 @@ func _base_damage(skill: SkillDefinition) -> int:
 	return combat.base_skill_damage(caster, skill)
 
 
-## The same for a lingering tick, which is worked out the same way and then
-## scaled by the effect's own fraction.
-func _dot_against_enemies(skill: SkillDefinition, damage_type: int, modifier: float) -> String:
+## What one tick of a lingering effect is worth, as a number. -1 when there is
+## nothing to scale off, which is an item's condition and says to fall back to
+## the flat range written on it.
+##
+## Aimed at somebody else this is the BASE figure, before their defence and
+## resistance take their share - the same promise the Base Damage line above it
+## makes, and the only honest one while who it lands on is still unsettled. It
+## used to be worked out against whichever enemies happened to be standing
+## about and shown as a spread, which read as the tick rolling dice rather than
+## as the targets differing.
+##
+## Turned on the caster the target IS settled - Trailblaze sets its own caster
+## alight - so there the real figure is known and is what gets shown.
+func _tick_figure(skill: SkillDefinition, damage_type: int, modifier: float, on_self: bool) -> int:
 	var caster = _caster()
 	if skill == null or caster.is_empty():
-		return ""
+		return -1
 	var base = combat.dot_base_damage(caster, skill, modifier)
 	if base <= 0.0:
-		return ""
-	var lowest = -1
-	var highest = -1
-	for target in _opposition(caster):
-		var tick = combat.resisted_damage(target, damage_type, combat.dot_tick(target, base, 0, 0))
-		if lowest < 0 or tick < lowest:
-			lowest = tick
-		if tick > highest:
-			highest = tick
-	if lowest < 0:
-		return ""
-	return "%d" % lowest if lowest == highest else "%d-%d" % [lowest, highest]
+		return -1
+	if on_self:
+		return combat.resisted_damage(caster, damage_type, combat.dot_tick(caster, base, 0, 0))
+	return maxi(roundi(base), 0)
+
+
+## What a hit this skill turns on its own caster would actually take off them,
+## defence and resistance and all. -1 with nobody to ask.
+func _damage_to_self(skill: SkillDefinition, effect: EffectDefinition) -> int:
+	var caster = _caster()
+	if skill == null or caster.is_empty() or not combat.has_method("skill_damage"):
+		return -1
+	# The same two steps do_damage takes, in the same order.
+	var raw = combat.skill_damage(caster, caster, skill)
+	return combat.resisted_damage(caster, effect.damage_type, raw)
 
 
 ## What one tick of `condition` would take off whoever is standing opposite,
@@ -827,9 +840,11 @@ func _condition_tick(effect: EffectDefinition, skill: SkillDefinition) -> String
 	var flavour = Damage.type_name(condition.dot_type).to_lower()
 	# The effect's own strength when it sets one, so the preview shows what THIS
 	# skill's version of the condition costs rather than the condition's.
-	var ticks = _dot_against_enemies(skill, condition.dot_type, effect.condition_dot_strength())
-	if ticks != "":
-		return "%s %s damage a turn" % [ticks, flavour]
+	var ticks = _tick_figure(skill, condition.dot_type, effect.condition_dot_strength(),
+		effect.applies_to_caster)
+	if ticks >= 0:
+		return "%s%d %s damage a turn" % [
+			"" if effect.applies_to_caster else "base ", ticks, flavour]
 	# Nothing to scale off means an item inflicted it, which rolls the flat
 	# range written on the condition rather than anything of the thrower's.
 	if condition.dot_max > 0:
