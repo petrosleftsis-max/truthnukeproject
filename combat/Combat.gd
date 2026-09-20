@@ -532,7 +532,7 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 		return
 	if valid and not can_afford_skill(attacker, skill):
 		update_information.emit("[color=yellow]%s[/color] has no %s left for %s.\n" % [
-			attacker.name, Stats.gate_name(skill.spell_slot_level), skill.name
+			attacker.name, Stats.short_gate_name(skill.spell_slot_level), skill.name
 		])
 		if attacker.side == 1 and end_turn_after:
 			await advance_turn()
@@ -561,57 +561,64 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			last_player_skill_used = skill_key
 		var spent = spend_slot_for(attacker, skill)
 		if spent > 0:
-			update_information.emit("[color=yellow]%s[/color] spends a %s.\n" % [attacker.name, Stats.gate_name(spent)])
+			update_information.emit("[color=yellow]%s[/color] spends %s.\n" % [attacker.name, Stats.short_gate_name(spent)])
 		# The heaviest thing a caster can do should land like it. Keyed off the
 		# skill's own level rather than the slot spent, so paying for a level 1
 		# spell with a level 3 slot doesn't shake the map.
 		if skill.spell_slot_level >= 3:
 			shake_camera(LEVEL_THREE_SHAKE)
-		# A contested skill never rolls: it lands on everyone, in full on those
-		# it beats and as a graze on those it doesn't. An accuracy skill rolls
-		# once for the whole use, hit or miss.
 		# Decided once for the whole cast rather than per target: a blast that
 		# catches three people is one spell, so it upgrades for all three and
 		# spends the one charge.
 		spend_element_upgrade(attacker, skill)
-		var connected = true
-		if not skill.uses_stat_contest:
-			# One roll for the whole use, before it knows who it caught - so the
-			# study bonus is judged on whoever is standing where it was aimed.
-			connected = (randi() % 100) < hit_chance(attacker, skill, get_combatant_at(impact_position))
+		var tiles = get_impact_tiles(skill, attacker.position, impact_position, attacker.movement_class)
+		var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally, skill.affects_both_sides)
+		# A roll each, rather than one for the whole use. A blast landing among
+		# two enemies is two chances to connect, and each is judged against that
+		# enemy - so a studied bonus counts against whoever was actually studied,
+		# rather than against whoever happened to be standing on the aimed tile,
+		# which for something aimed at open ground is nobody at all.
+		#
+		# A contested skill still does not roll: it lands on everyone, in full on
+		# those it beats and as a graze on those it does not.
+		var connected = false
+		for target in targets:
+			if not skill.uses_stat_contest and (randi() % 100) >= hit_chance(attacker, skill, target):
+				update_information.emit("[color=yellow]%s[/color] missed [color=red]%s[/color].\n" % [
+					attacker.name, target.name])
+				continue
+			connected = true
+			# Only the first effect on each target names the skill, so a
+			# multi-effect hit reads as one action rather than repeating
+			# "used Poison Dart" for every effect it carries.
+			var mention_skill = true
+			var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
+			if grazed:
+				update_information.emit("[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name])
+			for effect in skill.all_effects():
+				# Whatever the skill does to its own caster is done once,
+				# below, rather than once for every person it caught.
+				if effect.applies_to_caster:
+					continue
+				# A graze is damage only, at half strength - nothing that
+				# would stick, slow, poison or shove comes with it.
+				if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
+					continue
+				# An area skill shoves everyone caught outward from where it
+				# landed, so the shape of the blast reads off the recoil.
+				apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0, impact_position if skill.aoe_radius > 0 else attacker.position)
+				mention_skill = false
+		# And what the skill does to whoever used it - a swing that steadies the
+		# arm that swung it. Once, however many it caught, and only because the
+		# skill landed on somebody.
 		if connected:
-			var tiles = get_impact_tiles(skill, attacker.position, impact_position, attacker.movement_class)
-			var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally, skill.affects_both_sides)
-			for target in targets:
-				# Only the first effect on each target names the skill, so a
-				# multi-effect hit reads as one action rather than repeating
-				# "used Poison Dart" for every effect it carries.
-				var mention_skill = true
-				var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
-				if grazed:
-					update_information.emit("[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name])
-				for effect in skill.all_effects():
-					# Whatever the skill does to its own caster is done once,
-					# below, rather than once for every person it caught.
-					if effect.applies_to_caster:
-						continue
-					# A graze is damage only, at half strength - nothing that
-					# would stick, slow, poison or shove comes with it.
-					if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
-						continue
-					# An area skill shoves everyone caught outward from where it
-					# landed, so the shape of the blast reads off the recoil.
-					apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0, impact_position if skill.aoe_radius > 0 else attacker.position)
-					mention_skill = false
-			# And what the skill does to whoever used it - a swing that steadies
-			# the arm that swung it. Once, however many it caught, and only
-			# because the skill landed at all.
 			for effect in skill.all_effects():
 				if not effect.applies_to_caster or not attacker.alive:
 					continue
 				apply_effect(attacker, attacker, effect, skill, false)
-		else:
-			update_information.emit("{0} missed.\n".format([attacker.name]))
+		elif targets.is_empty():
+			# Nothing was standing there to roll against in the first place.
+			update_information.emit("{0} hit nothing.\n".format([attacker.name]))
 		if skill.kills_caster and attacker.alive:
 			update_information.emit("[color=red]{0}[/color] is consumed by its own {1}!\n".format([attacker.name, skill.name]))
 			combatant_die(attacker)
@@ -762,7 +769,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 		last_player_skill_used = skill_key
 	var spent = spend_slot_for(attacker, skill)
 	if spent > 0:
-		update_information.emit("[color=yellow]%s[/color] spends a %s.\n" % [attacker.name, Stats.gate_name(spent)])
+		update_information.emit("[color=yellow]%s[/color] spends %s.\n" % [attacker.name, Stats.short_gate_name(spent)])
 	update_information.emit("[color=yellow]{0}[/color] reacts as [color=red]{1}[/color] leaves range!\n".format([
 		attacker.name,
 		target.name

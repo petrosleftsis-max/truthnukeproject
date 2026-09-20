@@ -41,7 +41,22 @@ var _range_preview_positions: Array = []
 ## moving - the watchers stay where they are.
 var _watched_tiles: Array = []
 
+## True while a skill that would hide whoever casts it is being aimed. The enemy
+## lines of sight are worth seeing before committing to hiding, not only after -
+## choosing where to disappear is the whole decision.
+var _previewing_hide := false
+
 var _skill_selected = false
+
+## Whether `skill` would take whoever casts it out of sight.
+func hides_its_caster(skill: SkillDefinition) -> bool:
+	if skill == null:
+		return false
+	for effect in skill.all_effects():
+		if effect != null and effect.type == EffectDefinition.EffectType.HIDE:
+			return true
+	return false
+
 
 ## Whether a skill is currently being aimed (target selection in progress).
 ## Used by the pause menu to avoid stealing Escape away from cancelling
@@ -484,14 +499,17 @@ func set_controlled_combatant(combatant: Dictionary):
 	queue_redraw()
 
 
-## Recomputes where the enemy can see, for a hidden player about to move.
+## Recomputes where the enemy can see, for a hidden player about to move - or
+## for one deciding whether to hide in the first place.
 ##
-## Only for them: it is expensive, and it is only worth drawing for somebody who
-## has something to lose by stepping into it. Anybody else gets an empty list
-## and nothing drawn.
+## Only for those two: it is expensive, and it is only worth drawing for
+## somebody who has something to lose by stepping into it. Anybody else gets an
+## empty list and nothing drawn.
 func refresh_watched_tiles(combatant: Dictionary):
 	_watched_tiles = []
-	if combatant.is_empty() or combatant.side != 0 or not combat.is_hidden(combatant):
+	if combatant.is_empty() or combatant.side != 0:
+		return
+	if not combat.is_hidden(combatant) and not _previewing_hide:
 		return
 	var watchers := []
 	for other in combat.combatants:
@@ -1007,6 +1025,11 @@ func begin_target_selection():
 	_skill_selected = true
 	var skill = SkillDatabase.skills[_selected_skill]
 	var caster = combat.get_current_combatant()
+	# Aiming something that would hide them: show what the enemy can see, so
+	# the choice is made looking at the thing it is about.
+	_previewing_hide = hides_its_caster(skill)
+	if _previewing_hide:
+		refresh_watched_tiles(caster)
 	# Passing the caster lets the preview shrink to match anything blinding
 	# them, so they're never shown a reach they don't have.
 	_range_preview_positions = combat.get_range_tiles(skill, caster.position, caster.movement_class, caster)
@@ -1108,6 +1131,9 @@ func confirm_skill_target(position: Vector2i):
 	# HUD back until the skill is done.
 	_skill_selected = false
 	_range_preview_positions = []
+	# The preview belongs to the aiming, so it ends with it.
+	_previewing_hide = false
+	refresh_watched_tiles(combat.get_current_combatant())
 	queue_redraw()
 	if skill.teleports == SkillDefinition.TeleportWho.TARGET:
 		await combat.use_skill(_selected_skill, combat.get_current_combatant(), subject, true, _selected_skill_is_secondary, position)
@@ -1121,6 +1147,8 @@ func confirm_skill_target(position: Vector2i):
 ## the skill, returning to normal move mode.
 func cancel_skill_selection():
 	_skill_selected = false
+	_previewing_hide = false
+	refresh_watched_tiles(combat.get_current_combatant())
 	_teleport_subject = Vector2i(-99999, -99999)
 	_attack_target_position = null
 	_ally_target_position = null

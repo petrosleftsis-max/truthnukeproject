@@ -19,7 +19,11 @@ var _examined := false
 
 
 func is_available() -> bool:
-	return repeatable or not _examined
+	# super() first, the way EncounterInteractable does it: Only Once belongs to
+	# every interactable, and an override that forgot to ask the base class
+	# turned the box in the inspector into a decoration on everything you can
+	# examine. Repeatable is this one's own extra say on top.
+	return super() and (repeatable or not _examined)
 
 
 func interact(scene: Node):

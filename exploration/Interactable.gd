@@ -193,6 +193,13 @@ func use(scene: Node):
 			scene.log_message(locked_message)
 		return
 	interact(scene)
+	# Once means once however it was reached. Walking into an automatic one
+	# marks it before getting here, but pressing the key marked nothing at all -
+	# so Only Once did nothing whatever for everything that is not automatic,
+	# which is every signpost and every conversation on the map. Marked after
+	# interact() rather than before, so a locked one that did nothing is not
+	# spent by having been tried.
+	contact_spent = true
 	if sets_flag != "":
 		Campaign.set_flag(sets_flag, _flag_value_to_store())
 

@@ -152,6 +152,17 @@ static func gate_name(level: int) -> String:
 	return GATE_NAMES[level]
 
 
+## Just the name of it - "Hermes" rather than "Gates of Hermes".
+##
+## For the battle HUD, where the full name is said three times over in a row of
+## slots too narrow to hold it, and where anybody reading it already knows what
+## the gates are. Derived from the full name rather than written out a second
+## time, so renaming a gate renames it everywhere. The glossary keeps saying it
+## in full, because that is where the fiction is explained rather than counted.
+static func short_gate_name(level: int) -> String:
+	return gate_name(level).trim_prefix("Gates of ")
+
+
 ## How many castings through each gate a combatant has at each level, indexed
 ## [level][gate] with a nothing entry at 0 on both so a level and a gate number
 ## read straight in.

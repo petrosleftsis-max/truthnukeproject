@@ -168,6 +168,14 @@ func _show_skills_for(comb: Dictionary):
 			list = combat.main_skills_of(comb)
 			used = comb.get("skill_used_this_turn", false)
 	set_skill_list(list, used, showing_panel == SkillPanel.SECONDARY)
+	# Mid-walk, the turn is not theirs to end. The skills already grey out for
+	# the duration (see CController.is_idle, which calls this on both ends of a
+	# move) but End Turn did not, and a Button press goes through its own
+	# pressed signal rather than _unhandled_input - so the keyboard was refusing
+	# what the mouse was still allowed to do, and a turn could be ended with
+	# somebody halfway between two tiles.
+	if controller != null and controller.has_method("is_idle"):
+		$Actions/EndTurnButton.disabled = not controller.is_idle()
 
 
 ## Switches the HUD between battle and exploration. Exploration keeps the party
@@ -361,6 +369,11 @@ func _unhandled_input(event):
 
 
 func _on_end_turn_button_pressed():
+	# The same refusal the keyboard makes, in the one place every route to
+	# ending a turn passes through - greying the button out is what the player
+	# sees, and this is what makes it true.
+	if not _deployment_mode and controller != null and controller.has_method("is_idle") 		and not controller.is_idle():
+		return
 	if _deployment_mode:
 		deployment_finished.emit()
 	else:
@@ -486,10 +499,11 @@ func _update_spell_slots(comb):
 		bar.max_value = ceiling
 		bar.value = left
 		entry.get_node("Count").text = "%d/%d" % [left, ceiling]
-		# Named rather than numbered: a spell is cast through a gate, and the
-		# tooltip says which even where the row is too narrow to spell it out.
-		entry.get_node("Name").text = Stats.gate_name(level)
-		entry.tooltip_text = "%s: %d of %d left" % [Stats.gate_name(level), left, ceiling]
+		# Named rather than numbered: a spell is cast through a gate. The name
+		# alone, because "Gates of" three times down a narrow row is the same
+		# two words repeated at somebody who has already read them twice.
+		entry.get_node("Name").text = Stats.short_gate_name(level)
+		entry.tooltip_text = "%s: %d of %d left" % [Stats.short_gate_name(level), left, ceiling]
 	row.visible = any
 
 
@@ -523,7 +537,7 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		lines.append(skill.description)
 	lines.append("")
 	if skill.spell_slot_level > 0:
-		lines.append("Costs: %s, or any higher gate" % Stats.gate_name(skill.spell_slot_level))
+		lines.append("Costs: %s, or any higher gate" % Stats.short_gate_name(skill.spell_slot_level))
 	# Which of the two actions a turn gives you this spends. It decides
 	# whether a skill can be used alongside another one, which is worth
 	# knowing before choosing it rather than after.
