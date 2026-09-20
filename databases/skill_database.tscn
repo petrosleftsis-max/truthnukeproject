@@ -40,6 +40,7 @@
 [ext_resource type="Resource" uid="uid://d2oqgavj2l0w6" path="res://skills/element_up.tres" id="39_56xb4"]
 [ext_resource type="Resource" uid="uid://l70b3ivwekao" path="res://skills/careful_swing.tres" id="40_ggodk"]
 [ext_resource type="Resource" uid="uid://dvpag72x3gbew" path="res://skills/guard.tres" id="41_phcln"]
+[ext_resource type="Resource" uid="uid://bgvq7nbrpbgdg" path="res://skills/holy_lance.tres" id="42_aqnu0"]
 [ext_resource type="Resource" uid="uid://b03pv5bjmcr1" path="res://skills/study.tres" id="99_study"]
 
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
@@ -63,6 +64,7 @@ skills = {
 "gust_blast": ExtResource("13_tuk3s"),
 "heal": ExtResource("10_pp4aq"),
 "hermes_step": ExtResource("27_hermes"),
+"holy_lance": ExtResource("42_aqnu0"),
 "hover": ExtResource("36_hover"),
 "light_heal": ExtResource("17_mfut3"),
 "lightning_bolt": ExtResource("11_q8moi"),

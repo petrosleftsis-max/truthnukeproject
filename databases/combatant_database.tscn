@@ -42,7 +42,7 @@ secondary_stat = 3
 icon = ExtResource("95_alithiastill")
 map_sprite = ExtResource("95_alithiastill")
 sprite_frames = ExtResource("94_alithiaframes")
-skills = Array[String](["water_spike", "heal", "light_heal", "revitalizer", "cleanse", "flash", "river_flow", "slip_past", "run"])
+skills = Array[String](["water_spike", "heal", "light_heal", "holy_lance", "flash", "river_flow", "revitalizer", "cleanse", "slip_past", "run"])
 starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])
 
 [sub_resource type="Resource" id="Resource_s2oe2"]
@@ -106,7 +106,7 @@ icon = ExtResource("91_cyrusstill")
 map_sprite = ExtResource("91_cyrusstill")
 sprite_frames = ExtResource("6_ct236")
 skills = Array[String](["rapier", "gun", "poison_dart", "warning_shot", "burning_shot", "stealth", "slip_past", "run"])
-secondary_skills = Array[String](["run", "slip_past", "stealth"])
+secondary_skills = Array[String](["stealth", "slip_past", "run"])
 items_as_secondary = true
 starting_items = Array[String](["cure_potion", "bomb", "poison_bottle", "medicine"])
 

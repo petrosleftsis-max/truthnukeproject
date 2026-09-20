@@ -10,6 +10,7 @@ type = 7
 applies_to_caster = true
 stat = "defense"
 modifier_amount = 0
+duration = 1
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
@@ -19,7 +20,6 @@ description = "Stay on your guard."
 accuracy = 100
 icon = ExtResource("2_60int")
 required_level = 3
-targets_ally = true
 effects = Array[ExtResource("1_gli2n")]([SubResource("Resource_60int")])
 deals_damage = false
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

@@ -11,7 +11,7 @@ script = ExtResource("1_mcofx")
 type = 8
 condition = ExtResource("2_mm41o")
 condition_duration = 5
-condition_dot_modifier = 0.3
+condition_dot_modifier = 0.4
 
 [resource]
 script = ExtResource("3_mm41o")

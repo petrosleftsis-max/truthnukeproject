@@ -17,7 +17,6 @@ description = "Slip out of sight. Only possible while no enemy can see you, and 
 accuracy = 100
 icon = ExtResource("2_stealth")
 targets_ally = true
-is_secondary = true
 effects = Array[ExtResource("1_stealth")]([SubResource("Effect_stealth")])
 deals_damage = false
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

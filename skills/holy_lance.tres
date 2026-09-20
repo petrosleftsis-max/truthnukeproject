@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bgvq7nbrpbgdg"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_kw28e"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_cc4pe"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_fhap5"]
+
+[resource]
+script = ExtResource("2_fhap5")
+name = "Holy Lance"
+description = "Blast a line of pure Idol energy."
+min_range = 1
+max_range = 2
+accuracy = 100
+icon = ExtResource("2_cc4pe")
+required_level = 2
+ability_modifier = 1.2
+scaling_stat = 1
+damage_type = 12
+uses_stat_contest = true
+contest_stat = 3
+spell_slot_level = 2
+aoe_radius = 10
+aoe_shape = 1
+aoe_width = 5
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"
