@@ -387,6 +387,7 @@ func take_encounter_answer() -> EncounterAnswer:
 
 
 func reset():
+	_arena_return = {}
 	_encounter_answer = EncounterAnswer.UNANSWERED
 	party_state.clear()
 	cleared_triggers.clear()
@@ -540,7 +541,51 @@ func clear_story():
 ## Clears the run on the way out. Whatever the player picks next starts from
 ## the menu's own idea of a beginning, and a half-finished party left lying
 ## around would be inherited by it.
+## Where Arena Mode was opened from, so leaving it hands you back rather than
+## only ever offering the title screen.
+##
+## Arena Mode is reachable mid-run - from a fight, or from the middle of the
+## sewers - and it used to be a one-way door: the only way out was the main
+## menu, which threw the run away. It holds copies rather than relying on the
+## live fields, because opening a fight from the arena overwrites those.
+##
+## Empty when the arena was opened from the title screen, where going back to
+## the title screen is the right thing and there is nothing else to go back to.
+var _arena_return := {}
+
+
+func enter_arena_from(scene_path: String, standing_at = null):
+	_arena_return = {
+		"scene": scene_path,
+		"map": current_map,
+		"encounter": current_encounter,
+		"position": standing_at if standing_at != null else return_position,
+		# Only a map remembers where you were standing. A battle is re-entered
+		# from its encounter, and the title screen from nothing at all.
+		"to_position": standing_at != null,
+	}
+
+
+func can_leave_arena() -> bool:
+	return not _arena_return.is_empty()
+
+
+## Hands the player back wherever they opened the arena from.
+func leave_arena():
+	if _arena_return.is_empty():
+		to_main_menu()
+		return
+	var back = _arena_return
+	_arena_return = {}
+	current_map = back.map
+	current_encounter = back.encounter
+	return_position = back.position
+	return_to_position = back.to_position
+	SceneTransition.change_scene(back.scene)
+
+
 func to_main_menu():
+	_arena_return = {}
 	# The title screen plays nothing of its own, and a battle's music carrying
 	# on underneath it belongs to a fight that is over. Only here: Arena Mode and
 	# the maps set their own, so those keep playing until something says otherwise.

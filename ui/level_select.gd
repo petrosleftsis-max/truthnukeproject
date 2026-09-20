@@ -51,7 +51,14 @@ func _ready():
 	_style_reset_button()
 	_style_quiet_button(_main_menu_button)
 	_reset_button.pressed.connect(_on_reset_pressed)
-	_main_menu_button.pressed.connect(Campaign.to_main_menu)
+	# Opened mid-run, this hands you back where you were - the fight, or the
+	# map and the tile you were standing on. Opened from the title screen there
+	# is nothing to go back to, so it stays what it was.
+	if Campaign.can_leave_arena():
+		_main_menu_button.text = "Return"
+		_main_menu_button.pressed.connect(Campaign.leave_arena)
+	else:
+		_main_menu_button.pressed.connect(Campaign.to_main_menu)
 	_rebuild()
 
 

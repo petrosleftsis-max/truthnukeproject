@@ -178,6 +178,14 @@ func _on_glossary_pressed():
 func _on_level_select_pressed():
 	# Let go before leaving, or the battle list arrives frozen.
 	_close()
+	# Remembered before anything is cleared, so the arena can hand the player
+	# back to the fight or the map they left - including the tile they were
+	# standing on, which only a map has.
+	var scene = get_tree().current_scene
+	var standing_at = null
+	if scene != null and scene.has_method("party_position"):
+		standing_at = scene.party_position()
+	Campaign.enter_arena_from(scene.scene_file_path if scene != null else "", standing_at)
 	Campaign.return_to_position = false
 	SceneTransition.change_scene("res://scenes/level_select.tscn")
 
