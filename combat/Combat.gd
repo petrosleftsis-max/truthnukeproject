@@ -1711,7 +1711,16 @@ func clamp_hp_to_max(comb: Dictionary):
 ## so it can reduce a hit-chance roll; callers that need a stat clamped to a
 ## sane range (e.g. movement never going below 0) should clamp themselves.
 func get_effective_stat(comb: Dictionary, stat: String) -> int:
-	var value = comb.get(stat, 0)
+	return fold_stat_changes(comb, stat, comb.get(stat, 0))
+
+
+## `value` with everything currently raising or lowering `stat` folded into it.
+##
+## Split out because a combatant keeps its numbers in two places: hp, movement
+## and the like sit at the top level, while the five attributes live under
+## "stats" - and a buff applies to either in exactly the same way. Two callers
+## that know where a base value lives, one that knows what a buff does to it.
+func fold_stat_changes(comb: Dictionary, stat: String, value: int) -> int:
 	var additive = 0
 	var multiplier = 1.0
 	for eff in comb.status_effects:
@@ -2094,7 +2103,12 @@ func stat_of(comb: Dictionary, type: int) -> int:
 	var key = Stats.stat_key(type)
 	if key == "":
 		return 0
-	return comb.get("stats", {}).get(key, 10)
+	# Folded, not raw. Every damage figure in the game reads an attribute
+	# through here, and reading it raw meant nothing could ever buff or weaken
+	# one: a spell raising somebody's Defense changed what the sheet said and
+	# not what they took, and raising a caster's Intellect did nothing to their
+	# spells.
+	return fold_stat_changes(comb, key, comb.get("stats", {}).get(key, 10))
 
 
 ## Whether a contested skill lands in full on `target`. The caster's own
