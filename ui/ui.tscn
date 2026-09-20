@@ -8,6 +8,10 @@
 shader = ExtResource("3_pilcd")
 shader_parameter/color_factor = 0.0
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wl5ax"]
+resource_local_to_scene = true
+bg_color = Color(0.435294, 0.698039, 0.415686, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kj4jo"]
 bg_color = Color(0, 0, 0, 0.52549)
 
@@ -42,9 +46,9 @@ script = ExtResource("1_cy8ae")
 [node name="TurnQueue" type="PanelContainer" parent="." unique_id=853073484]
 texture_filter = 1
 layout_mode = 0
-offset_left = 400.0
+offset_left = 448.0
 offset_top = 16.0
-offset_right = 804.0
+offset_right = 852.0
 offset_bottom = 80.0
 
 [node name="Queue" type="HBoxContainer" parent="TurnQueue" unique_id=737569206]
@@ -66,20 +70,23 @@ offset_bottom = 631.0
 
 [node name="StatusIcon" parent="Actions" unique_id=1049873302 instance=ExtResource("4_mn0g0")]
 layout_mode = 0
-offset_left = -43.0
+offset_left = -108.0
 offset_top = 73.0
-offset_right = 69.0
+offset_right = 8.0
 offset_bottom = 185.0
 
 [node name="Icon" parent="Actions/StatusIcon" index="0"]
 material = SubResource("ShaderMaterial_1qt58")
 
+[node name="Health" parent="Actions/StatusIcon/Icon" index="1"]
+theme_override_styles/fill = SubResource("StyleBoxFlat_wl5ax")
+
 [node name="ActionsPanel" type="PanelContainer" parent="Actions" unique_id=332119452]
 layout_mode = 0
-offset_left = 120.0
-offset_top = 76.0
-offset_right = 443.0
-offset_bottom = 182.0
+offset_left = 82.0
+offset_top = 71.0
+offset_right = 422.0
+offset_bottom = 191.0
 
 [node name="ActionsGrid" type="GridContainer" parent="Actions/ActionsPanel" unique_id=1274228894]
 layout_mode = 2
@@ -169,70 +176,62 @@ focus_mode = 0
 icon_alignment = 1
 expand_icon = true
 
-[node name="SkillPanelLabel" type="Label" parent="Actions"]
+[node name="SkillPanelTabs" type="HBoxContainer" parent="Actions" unique_id=925972623]
 layout_mode = 0
-offset_left = 120.0
-offset_top = 50.0
-offset_right = 300.0
-offset_bottom = 74.0
-theme_override_colors/font_color = Color(0.960784, 0.898039, 0.231373, 1)
-text = "Main Skills"
-vertical_alignment = 1
-
-[node name="SkillPanelTabs" type="HBoxContainer" parent="Actions"]
-layout_mode = 0
-offset_left = 240.0
-offset_top = 48.0
-offset_right = 443.0
-offset_bottom = 74.0
-alignment = 2
+offset_left = 82.0
+offset_top = 43.0
+offset_right = 314.0
+offset_bottom = 76.0
 theme_override_constants/separation = 4
 
-[node name="MainTab" type="Button" parent="Actions/SkillPanelTabs"]
+[node name="MainTab" type="Button" parent="Actions/SkillPanelTabs" unique_id=976452886]
 layout_mode = 2
-toggle_mode = true
 focus_mode = 0
+toggle_mode = true
 text = "Main"
 
-[node name="SecondaryTab" type="Button" parent="Actions/SkillPanelTabs"]
+[node name="SecondaryTab" type="Button" parent="Actions/SkillPanelTabs" unique_id=2127497504]
 layout_mode = 2
-toggle_mode = true
 focus_mode = 0
+toggle_mode = true
 text = "Secondary"
 
-[node name="SpellsTab" type="Button" parent="Actions/SkillPanelTabs"]
+[node name="ItemsTab" type="Button" parent="Actions/SkillPanelTabs" unique_id=1921544897]
 layout_mode = 2
+focus_mode = 0
 toggle_mode = true
+text = "Items"
+
+[node name="SpellsToggle" type="Button" parent="Actions" unique_id=1182947189]
+layout_mode = 0
+offset_left = 332.0
+offset_top = 32.0
+offset_right = 423.0
+offset_bottom = 65.0
 focus_mode = 0
 text = "Spells"
 
-[node name="ItemsTab" type="Button" parent="Actions/SkillPanelTabs"]
-layout_mode = 2
-toggle_mode = true
-focus_mode = 0
-text = "Items"
-
-[node name="SpellSlots" type="HBoxContainer" parent="Actions"]
+[node name="SpellSlots" type="HBoxContainer" parent="Actions" unique_id=798568565]
 visible = false
 layout_mode = 0
-offset_left = 120.0
-offset_top = 22.0
-offset_right = 443.0
-offset_bottom = 46.0
+offset_left = 84.0
+offset_top = 8.0
+offset_right = 407.0
+offset_bottom = 32.0
 theme_override_constants/separation = 14
 
-[node name="Level1" type="HBoxContainer" parent="Actions/SpellSlots"]
+[node name="Level1" type="HBoxContainer" parent="Actions/SpellSlots" unique_id=1406065965]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Name" type="Label" parent="Actions/SpellSlots/Level1"]
+[node name="Name" type="Label" parent="Actions/SpellSlots/Level1" unique_id=1111624539]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
 theme_override_font_sizes/font_size = 12
 text = "I"
 vertical_alignment = 1
 
-[node name="Bar" type="ProgressBar" parent="Actions/SpellSlots/Level1"]
+[node name="Bar" type="ProgressBar" parent="Actions/SpellSlots/Level1" unique_id=1828756009]
 custom_minimum_size = Vector2(48, 8)
 layout_mode = 2
 size_flags_vertical = 4
@@ -240,25 +239,25 @@ max_value = 1.0
 value = 1.0
 show_percentage = false
 
-[node name="Count" type="Label" parent="Actions/SpellSlots/Level1"]
+[node name="Count" type="Label" parent="Actions/SpellSlots/Level1" unique_id=1792410173]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
 theme_override_font_sizes/font_size = 12
 text = "0/0"
 vertical_alignment = 1
 
-[node name="Level2" type="HBoxContainer" parent="Actions/SpellSlots"]
+[node name="Level2" type="HBoxContainer" parent="Actions/SpellSlots" unique_id=893672149]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Name" type="Label" parent="Actions/SpellSlots/Level2"]
+[node name="Name" type="Label" parent="Actions/SpellSlots/Level2" unique_id=1069159971]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
 theme_override_font_sizes/font_size = 12
 text = "II"
 vertical_alignment = 1
 
-[node name="Bar" type="ProgressBar" parent="Actions/SpellSlots/Level2"]
+[node name="Bar" type="ProgressBar" parent="Actions/SpellSlots/Level2" unique_id=2093435306]
 custom_minimum_size = Vector2(48, 8)
 layout_mode = 2
 size_flags_vertical = 4
@@ -266,25 +265,25 @@ max_value = 1.0
 value = 1.0
 show_percentage = false
 
-[node name="Count" type="Label" parent="Actions/SpellSlots/Level2"]
+[node name="Count" type="Label" parent="Actions/SpellSlots/Level2" unique_id=1431113279]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
 theme_override_font_sizes/font_size = 12
 text = "0/0"
 vertical_alignment = 1
 
-[node name="Level3" type="HBoxContainer" parent="Actions/SpellSlots"]
+[node name="Level3" type="HBoxContainer" parent="Actions/SpellSlots" unique_id=938279119]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Name" type="Label" parent="Actions/SpellSlots/Level3"]
+[node name="Name" type="Label" parent="Actions/SpellSlots/Level3" unique_id=252527171]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
 theme_override_font_sizes/font_size = 12
 text = "III"
 vertical_alignment = 1
 
-[node name="Bar" type="ProgressBar" parent="Actions/SpellSlots/Level3"]
+[node name="Bar" type="ProgressBar" parent="Actions/SpellSlots/Level3" unique_id=619270612]
 custom_minimum_size = Vector2(48, 8)
 layout_mode = 2
 size_flags_vertical = 4
@@ -292,7 +291,7 @@ max_value = 1.0
 value = 1.0
 show_percentage = false
 
-[node name="Count" type="Label" parent="Actions/SpellSlots/Level3"]
+[node name="Count" type="Label" parent="Actions/SpellSlots/Level3" unique_id=1963780432]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
 theme_override_font_sizes/font_size = 12
@@ -301,10 +300,10 @@ vertical_alignment = 1
 
 [node name="Movement" type="Label" parent="Actions" unique_id=571617693]
 layout_mode = 0
-offset_left = 75.0
-offset_top = 152.0
-offset_right = 115.0
-offset_bottom = 178.0
+offset_left = -69.0
+offset_top = 35.0
+offset_right = -29.0
+offset_bottom = 61.0
 tooltip_text = "Movement"
 mouse_filter = 1
 theme_override_colors/font_color = Color(0.960784, 0.898039, 0.231373, 1)
@@ -315,25 +314,25 @@ vertical_alignment = 1
 
 [node name="EndTurnButton" type="Button" parent="Actions" unique_id=1550796415]
 layout_mode = 0
-offset_left = 449.0
-offset_top = 141.0
-offset_right = 527.0
-offset_bottom = 172.0
+offset_left = 448.0
+offset_top = 156.0
+offset_right = 526.0
+offset_bottom = 187.0
+tooltip_text = "End this character's turn (Space)"
 focus_mode = 0
 theme_override_colors/font_disabled_color = Color(0.364706, 0.364706, 0.364706, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_pdlup")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_do5rw")
 theme_override_styles/hover = SubResource("StyleBoxFlat_3dsm8")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_um0nj")
-tooltip_text = "End this character's turn (Space)"
 text = "End Turn"
 
 [node name="Information" type="PanelContainer" parent="Actions" unique_id=180685541]
 layout_mode = 0
-offset_left = 541.0
-offset_top = 21.0
-offset_right = 929.0
-offset_bottom = 195.0
+offset_left = 553.0
+offset_top = 20.0
+offset_right = 941.0
+offset_bottom = 194.0
 
 [node name="Text" type="RichTextLabel" parent="Actions/Information" unique_id=572141551]
 layout_mode = 2
@@ -341,12 +340,12 @@ bbcode_enabled = true
 scroll_following = true
 shortcut_keys_enabled = false
 
-[node name="LogToggle" type="Button" parent="Actions"]
+[node name="LogToggle" type="Button" parent="Actions" unique_id=410508610]
 layout_mode = 0
-offset_left = 899.0
-offset_top = 24.0
-offset_right = 925.0
-offset_bottom = 50.0
+offset_left = 910.0
+offset_top = 25.0
+offset_right = 936.0
+offset_bottom = 58.0
 tooltip_text = "Hide the combat log"
 text = "-"
 

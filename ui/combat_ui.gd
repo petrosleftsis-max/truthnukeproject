@@ -17,11 +17,20 @@ var exploration_mode := false
 ## slots, plus everything that costs a spell slot. Spells are a panel of their
 ## own rather than part of the main list because they are read against a
 ## resource - you pick one knowing what it will cost, not just what it does.
-enum SkillPanel { MAIN, SECONDARY, SPELLS, ITEMS }
+enum SkillPanel { MAIN, SECONDARY, ITEMS }
 
 ## Reset to MAIN whenever the turn passes to someone new, so a turn always
 ## starts on the panel you'd expect.
 var showing_panel := SkillPanel.MAIN
+
+## Whether the panel is showing what the current tab casts rather than what it
+## swings. Orthogonal to the tab: Main and Spells together are the spells cast
+## from the main action, Secondary and Spells the ones cast from the secondary.
+##
+## It used to be a fourth tab, which meant a list mixing both action slots and
+## no way to ask "what can I cast with my secondary". Reset with the panel when
+## the turn passes on.
+var showing_spells := false
 
 ## Kept for anything still asking the old question. A spell is spent from the
 ## main slot unless it is also marked secondary, so "is this the secondary
@@ -29,18 +38,10 @@ var showing_panel := SkillPanel.MAIN
 var showing_secondary: bool:
 	get: return showing_panel == SkillPanel.SECONDARY
 
-const PANEL_NAMES := {
-	SkillPanel.MAIN: "Main Skills",
-	SkillPanel.SECONDARY: "Secondary Skills",
-	SkillPanel.SPELLS: "Spells",
-	SkillPanel.ITEMS: "Consumables",
-}
-
 ## The node name of each panel's button, in enum order.
 const PANEL_TABS := {
 	SkillPanel.MAIN: "MainTab",
 	SkillPanel.SECONDARY: "SecondaryTab",
-	SkillPanel.SPELLS: "SpellsTab",
 	SkillPanel.ITEMS: "ItemsTab",
 }
 
@@ -61,6 +62,9 @@ func _ready():
 		var tab := _tab(panel)
 		if tab != null:
 			tab.pressed.connect(set_skill_panel.bind(panel))
+	var spells := _spells_toggle()
+	if spells != null:
+		spells.pressed.connect(toggle_spells)
 	var toggle = $Actions.get_node_or_null("LogToggle")
 	if toggle != null:
 		toggle.pressed.connect(toggle_log)
@@ -95,6 +99,33 @@ func _apply_log_state():
 		toggle.tooltip_text = "Show the combat log" if _log_minimised else "Hide the combat log"
 
 
+func _spells_toggle() -> Button:
+	return $Actions.get_node_or_null("SpellsToggle") as Button
+
+
+## Swaps the panel between what this slot swings and what it casts.
+##
+## The button says where pressing it takes you rather than where you are, the
+## way a light switch does: it reads "Spells" while you are looking at skills,
+## and "Skills" while you are looking at spells.
+func toggle_spells():
+	showing_spells = not showing_spells
+	if combat != null and not exploration_mode:
+		_show_skills_for(combat.get_current_combatant())
+	_refresh_spells_toggle(combat.get_current_combatant() if combat != null else {})
+
+
+func _refresh_spells_toggle(comb):
+	var spells := _spells_toggle()
+	if spells == null:
+		return
+	# Nothing to swap to on the Items tab, which is neither skills nor spells,
+	# and nothing to swap to for somebody who casts nothing at all.
+	var castable = combat != null and comb != null and not comb.is_empty() 		and not combat.spell_skills_of(comb).is_empty()
+	spells.visible = castable and showing_panel != SkillPanel.ITEMS
+	spells.text = "Skills" if showing_spells else "Spells"
+
+
 func _tab(panel: int) -> Button:
 	return $Actions/SkillPanelTabs.get_node_or_null(PANEL_TABS[panel]) as Button
 
@@ -105,7 +136,7 @@ func _tab(panel: int) -> Button:
 ## there. Three buttons say where you can go and which one you are on.
 func set_skill_panel(panel: int):
 	showing_panel = panel
-	$Actions/SkillPanelLabel.text = PANEL_NAMES[showing_panel]
+	_refresh_spells_toggle(combat.get_current_combatant() if combat != null else {})
 	for other in PANEL_TABS:
 		var tab := _tab(other)
 		if tab == null:
@@ -124,12 +155,11 @@ func set_skill_panel(panel: int):
 ## seeing as empty.
 func _refresh_tabs(comb):
 	var known = combat != null and comb != null and not comb.is_empty()
-	var spells_tab := _tab(SkillPanel.SPELLS)
-	if spells_tab != null:
-		var has_spells = known and not combat.spell_skills_of(comb).is_empty()
-		spells_tab.visible = has_spells
-		if not has_spells and showing_panel == SkillPanel.SPELLS:
-			set_skill_panel(SkillPanel.MAIN)
+	# Somebody who casts nothing is shown no way to ask for spells, and a list
+	# they are looking at that empties under them drops back to their skills.
+	if known and combat.spell_skills_of(comb).is_empty():
+		showing_spells = false
+	_refresh_spells_toggle(comb)
 	var items_tab := _tab(SkillPanel.ITEMS)
 	if items_tab != null:
 		# Empty hands, no tab - the same rule the Spells tab follows.
@@ -152,20 +182,16 @@ func _show_skills_for(comb: Dictionary):
 	var used = false
 	match showing_panel:
 		SkillPanel.SECONDARY:
-			list = combat.secondary_skills_of(comb)
+			# The spells cast from this slot, or the skills swung from it.
+			list = combat.spells_in_slot(comb, true) if showing_spells else combat.secondary_skills_of(comb)
 			used = comb.get("secondary_used_this_turn", false)
-		SkillPanel.SPELLS:
-			list = combat.spell_skills_of(comb)
-			# A spell spends whichever slot its own is_secondary says, so the
-			# panel is only fully spent once both are gone.
-			used = comb.get("skill_used_this_turn", false) and comb.get("secondary_used_this_turn", false)
 		SkillPanel.ITEMS:
 			list = combat.items_of(comb)
 			# Same as the spells: which slot a consumable costs is the item's
 			# own business, so the panel dies only when both slots have gone.
 			used = comb.get("skill_used_this_turn", false) and comb.get("secondary_used_this_turn", false)
 		_:
-			list = combat.main_skills_of(comb)
+			list = combat.spells_in_slot(comb, false) if showing_spells else combat.main_skills_of(comb)
 			used = comb.get("skill_used_this_turn", false)
 	set_skill_list(list, used, showing_panel == SkillPanel.SECONDARY)
 	# Mid-walk, the turn is not theirs to end. The skills already grey out for
@@ -190,7 +216,6 @@ func set_exploration_mode(enabled: bool):
 	$TurnQueue.visible = not enabled
 	$Actions/Movement.visible = not enabled
 	$Actions/EndTurnButton.visible = not enabled
-	$Actions/SkillPanelLabel.visible = not enabled
 	$Actions/SkillPanelTabs.visible = not enabled
 	if enabled:
 		set_skill_list([], true)
@@ -286,7 +311,9 @@ func show_combatant_status_main(comb: Dictionary):
 	if comb.side == 0:
 		$Actions/StatusIcon.set_icon(comb.icon)
 		$Actions/StatusIcon.set_health(comb.hp, combat.get_effective_stat(comb, "max_hp"))
-	# A new turn always opens on the main panel.
+	# A new turn always opens on the main panel, showing skills rather than
+	# whatever the last turn happened to be looking at.
+	showing_spells = false
 	set_skill_panel(SkillPanel.MAIN)
 	_show_skills_for(comb)
 	# The queue has to be redrawn on every turn change, not only when someone
@@ -452,11 +479,9 @@ func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: b
 			# spell marked secondary is cast from the secondary action while
 			# the rest are cast from the main one.
 			var spends_secondary = as_secondary
-			if showing_panel == SkillPanel.SPELLS:
-				spends_secondary = skill.is_secondary
-			elif showing_panel == SkillPanel.ITEMS:
+			if showing_panel == SkillPanel.ITEMS:
 				spends_secondary = _consumable_spends_secondary(comb, skill)
-			if showing_panel in [SkillPanel.SPELLS, SkillPanel.ITEMS] and not comb.is_empty() and not action.disabled:
+			if (showing_spells or showing_panel == SkillPanel.ITEMS) and not comb.is_empty() and not action.disabled:
 				var slot_spent = comb.get("secondary_used_this_turn", false) if spends_secondary else comb.get("skill_used_this_turn", false)
 				# Greyed out for the two separate reasons a spell can be
 				# unavailable: the action is gone, or the slots are.
@@ -778,7 +803,6 @@ func _set_aiming(aiming: bool):
 		# blanket-showing things the mode had deliberately hidden.
 		$Actions/Movement.visible = not exploration_mode
 		$Actions/EndTurnButton.visible = not exploration_mode
-		$Actions/SkillPanelLabel.visible = not exploration_mode
 		$Actions/SkillPanelTabs.visible = not exploration_mode
 		$Actions/SelectTargetMessage.visible = false
 		# The slot row hides itself for anyone with no slots, so it can't just

@@ -3398,6 +3398,20 @@ func stop_watching():
 ## The items `comb` can reach this fight: whatever is in the first four slots of
 ## their own bag. Enemies carry nothing - they have no campaign inventory, and
 ## asking for one would make them a bag they never use.
+## The spells `comb` casts from one action slot or the other - the main ones
+## when `secondary` is false, the secondary ones when it is true.
+##
+## Which slot a spell spends is the spell's own business (see is_secondary), and
+## the panel now shows spells alongside the slot they are cast from rather than
+## in a list of their own, so the split has to be askable.
+func spells_in_slot(comb: Dictionary, secondary: bool) -> Array:
+	var found = []
+	for key in spell_skills_of(comb):
+		if SkillDatabase.skills[key].is_secondary == secondary:
+			found.append(key)
+	return found
+
+
 func items_of(comb: Dictionary) -> Array:
 	if comb.side != 0:
 		return []
