@@ -1,308 +1,84 @@
 [gd_scene format=3 uid="uid://csoe2cma4kbg6"]
 
 [ext_resource type="Script" uid="uid://chnw3bl0q0dbf" path="res://databases/skill_database.gd" id="1_bnr7k"]
-[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="2_effdef"]
-[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_twktv"]
-[ext_resource type="Texture2D" uid="uid://b5bhqfskef7lb" path="res://imagese/icon/melee_attack.png" id="2_wuynl"]
-[ext_resource type="Texture2D" uid="uid://bonh4ibo7lwda" path="res://imagese/icon/ranged_attack.png" id="4_gjsae"]
-[ext_resource type="Texture2D" uid="uid://wxkh5qyiy8c1" path="res://imagese/icon/basic_magic.png" id="5_vgs37"]
+[ext_resource type="Resource" uid="uid://1i3sgnx07fqe" path="res://skills/greatsword_attack.tres" id="2_g7odk"]
+[ext_resource type="Resource" uid="uid://bmuprut4xin6n" path="res://skills/gun.tres" id="3_t1ypb"]
+[ext_resource type="Resource" uid="uid://f8t2a23m804r" path="res://skills/fire_burst.tres" id="4_2m8rc"]
+[ext_resource type="Resource" uid="uid://wocacvg5a2vw" path="res://skills/cleanse.tres" id="5_r41b3"]
+[ext_resource type="Resource" uid="uid://bh7152ehf4coy" path="res://skills/burner.tres" id="6_lyvp1"]
+[ext_resource type="Resource" uid="uid://jn3607ob8bue" path="res://skills/fireball.tres" id="7_dbes0"]
+[ext_resource type="Resource" uid="uid://c360pknondsny" path="res://skills/sweep_strike.tres" id="8_8fqdd"]
+[ext_resource type="Resource" uid="uid://bm2l5pe0ktu2w" path="res://skills/wind_vacuum.tres" id="9_grav"]
+[ext_resource type="Resource" uid="uid://c1jab5it2hnwp" path="res://skills/heal.tres" id="10_pp4aq"]
+[ext_resource type="Resource" uid="uid://cn4eg34gtf5r" path="res://skills/lightning_bolt.tres" id="11_q8moi"]
+[ext_resource type="Resource" uid="uid://cv4cf5r2pw5xt" path="res://skills/poison_dart.tres" id="12_66cmj"]
+[ext_resource type="Resource" uid="uid://s63icuvd2y3c" path="res://skills/gust_blast.tres" id="13_tuk3s"]
+[ext_resource type="Resource" uid="uid://dr2jn7owcw7b2" path="res://skills/run.tres" id="14_oiqse"]
+[ext_resource type="Resource" uid="uid://da4yriqsacyd5" path="res://skills/self_destruct.tres" id="15_ncop4"]
+[ext_resource type="Resource" uid="uid://crho4pw88sgf2" path="res://skills/follow_up_attack.tres" id="16_ha562"]
+[ext_resource type="Resource" uid="uid://dhblpgxflcvi" path="res://skills/light_heal.tres" id="17_mfut3"]
+[ext_resource type="Resource" uid="uid://bod53nqr1b8u0" path="res://skills/flash.tres" id="18_r41b3"]
+[ext_resource type="Resource" uid="uid://tuhjhhdtktws" path="res://skills/rapier.tres" id="19_lyvp1"]
+[ext_resource type="Resource" uid="uid://c8kblee6iok6u" path="res://skills/river_flow.tres" id="20_dbes0"]
+[ext_resource type="Resource" uid="uid://e3oe70sg53ob" path="res://skills/shoving_strike.tres" id="21_dbes0"]
+[ext_resource type="Resource" uid="uid://ds6s1gs6bjrbc" path="res://skills/wind_swoon.tres" id="22_8fqdd"]
+[ext_resource type="Resource" uid="uid://csess3rt4dg6s" path="res://skills/water_spike.tres" id="23_8fqdd"]
+[ext_resource type="Resource" uid="uid://b0upcs6tuhnyk" path="res://skills/warning_shot.tres" id="24_pp4aq"]
+[ext_resource type="Resource" uid="uid://c2xk3fh5n0i1y" path="res://skills/burning_shot.tres" id="25_q8moi"]
+[ext_resource type="Resource" path="res://skills/slip_past.tres" id="26_slip"]
+[ext_resource type="Resource" uid="uid://dr7hde5x13hvf" path="res://skills/crystalise.tres" id="27_66cmj"]
+[ext_resource type="Resource" uid="uid://cvamxn5tduee0" path="res://skills/hermes_step.tres" id="27_hermes"]
+[ext_resource type="Resource" uid="uid://c2joaowui0c45" path="res://skills/revitalizer.tres" id="27_tuk3s"]
+[ext_resource type="Resource" uid="uid://nfvbeq0wc8fn" path="res://skills/blink_strike.tres" id="28_blink"]
+[ext_resource type="Resource" uid="uid://capj80o1w8kc7" path="res://skills/wind_shot.tres" id="32_chsfo"]
+[ext_resource type="Resource" uid="uid://bbnfuqi4laykv" path="res://skills/fire_blast.tres" id="33_o3emf"]
+[ext_resource type="Resource" uid="uid://mxqiapo23q11" path="res://skills/rock_throw.tres" id="34_5x0hn"]
+[ext_resource type="Resource" uid="uid://dxpv317v73o0p" path="res://skills/quicken.tres" id="35_o3emf"]
+[ext_resource type="Resource" uid="uid://cryo284fo8l4r" path="res://skills/hover.tres" id="36_hover"]
+[ext_resource type="Resource" uid="uid://byq7wlj15dbsw" path="res://skills/stealth.tres" id="37_stealth"]
+[ext_resource type="Resource" uid="uid://c3t33q31bj08p" path="res://skills/trailblaze.tres" id="38_m4jk1"]
+[ext_resource type="Resource" uid="uid://d2oqgavj2l0w6" path="res://skills/element_up.tres" id="39_56xb4"]
+[ext_resource type="Resource" uid="uid://b03pv5bjmcr1" path="res://skills/study.tres" id="99_study"]
 
-[sub_resource type="Resource" id="Effect_melee_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 6
-max_amount = 8
-
-[sub_resource type="Resource" id="Resource_lgmlb"]
-script = ExtResource("2_twktv")
-name = "Attack (Melee)"
-description = "A basic close-quarters strike."
-min_range = 1
-max_range = 1
-accuracy = 90
-icon = ExtResource("2_wuynl")
-is_reactive = true
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_melee_dmg")])
-
-[sub_resource type="Resource" id="Effect_ranged_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 5
-max_amount = 7
-
-[sub_resource type="Resource" id="Resource_4cuap"]
-script = ExtResource("2_twktv")
-name = "Attack (Ranged)"
-description = "A basic ranged shot. Needs a clear line of sight."
-min_range = 2
-max_range = 20
-accuracy = 75
-icon = ExtResource("4_gjsae")
-respects_blocking = true
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_ranged_dmg")])
-
-[sub_resource type="Resource" id="Effect_magic_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 3
-max_amount = 7
-
-[sub_resource type="Resource" id="Resource_xxs2r"]
-script = ExtResource("2_twktv")
-name = "Basic Magic"
-description = "A simple magical bolt."
-max_range = 20
-accuracy = 100
-icon = ExtResource("5_vgs37")
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_magic_dmg")])
-
-[sub_resource type="Resource" id="Effect_slow_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 4
-max_amount = 6
-
-[sub_resource type="Resource" id="Effect_slow_debuff"]
-script = ExtResource("2_effdef")
-display_name = "Slowed"
-type = 2
-modifier_amount = -2
-
-[sub_resource type="Resource" id="Resource_slowstrike"]
-script = ExtResource("2_twktv")
-name = "Slowing Strike"
-description = "A heavy blow that also slows the target down."
-min_range = 1
-max_range = 1
-accuracy = 90
-icon = ExtResource("2_wuynl")
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_slow_dmg"), SubResource("Effect_slow_debuff")])
-
-[sub_resource type="Resource" id="Effect_heal"]
-script = ExtResource("2_effdef")
-type = 1
-min_amount = 4
-max_amount = 8
-
-[sub_resource type="Resource" id="Resource_heal"]
-script = ExtResource("2_twktv")
-name = "Heal"
-description = "Mends an ally's wounds."
-max_range = 3
-accuracy = 100
-icon = ExtResource("5_vgs37")
-targets_ally = true
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_heal")])
-
-[sub_resource type="Resource" id="Effect_fireball_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 4
-max_amount = 7
-
-[sub_resource type="Resource" id="Resource_fireball"]
-script = ExtResource("2_twktv")
-name = "Fireball"
-description = "Explodes on impact, damaging everyone caught nearby."
-min_range = 1
-max_range = 6
-accuracy = 80
-icon = ExtResource("5_vgs37")
-aoe_radius = 3
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_fireball_dmg")])
-
-[sub_resource type="Resource" id="Effect_lightning_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 3
-max_amount = 5
-
-[sub_resource type="Resource" id="Resource_lightning"]
-script = ExtResource("2_twktv")
-name = "Lightning Bolt"
-description = "A crackling beam that can be aimed in any direction, including diagonally."
-min_range = 1
-max_range = 10
-accuracy = 80
-icon = ExtResource("4_gjsae")
-respects_blocking = true
-aoe_radius = 4
-aoe_shape = 1
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_lightning_dmg")])
-
-[sub_resource type="Resource" id="Effect_flamecone_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 3
-max_amount = 5
-
-[sub_resource type="Resource" id="Resource_flamecone"]
-script = ExtResource("2_twktv")
-name = "Flame Cone"
-description = "A wide gout of fire in front of the caster."
-min_range = 1
-max_range = 6
-accuracy = 80
-icon = ExtResource("5_vgs37")
-aoe_radius = 3
-aoe_shape = 2
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_flamecone_dmg")])
-
-[sub_resource type="Resource" id="Effect_poison_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 2
-max_amount = 3
-
-[sub_resource type="Resource" id="Effect_poison_dot"]
-script = ExtResource("2_effdef")
-display_name = "Poisoning"
-type = 3
-min_amount = 2
-max_amount = 4
-duration = 3
-
-[sub_resource type="Resource" id="Resource_poisondart"]
-script = ExtResource("2_twktv")
-name = "Poison Dart"
-description = "A dart coated in a toxin that keeps damaging the target over time."
-min_range = 2
-max_range = 8
-accuracy = 80
-icon = ExtResource("4_gjsae")
-respects_blocking = true
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_poison_dmg"), SubResource("Effect_poison_dot")])
-
-[sub_resource type="Resource" id="Effect_curse"]
-script = ExtResource("2_effdef")
-display_name = "Cursed"
-type = 2
-stat = "accuracy"
-modifier_amount = -20
-duration = 3
-
-[sub_resource type="Resource" id="Resource_curse"]
-script = ExtResource("2_twktv")
-name = "Curse"
-description = "Saps the target's accuracy, making them more likely to miss."
-min_range = 1
-max_range = 6
-accuracy = 85
-icon = ExtResource("5_vgs37")
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_curse")])
-
-[sub_resource type="Resource" id="Effect_vitality"]
-script = ExtResource("2_effdef")
-display_name = "Vitality"
-type = 2
-stat = "max_hp"
-modifier_amount = 5
-duration = 3
-
-[sub_resource type="Resource" id="Resource_vitality"]
-script = ExtResource("2_twktv")
-name = "Vitality"
-description = "Temporarily boosts an ally's maximum HP."
-max_range = 3
-accuracy = 100
-icon = ExtResource("5_vgs37")
-targets_ally = true
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_vitality")])
-
-[sub_resource type="Resource" id="Effect_cleanse"]
-script = ExtResource("2_effdef")
-type = 4
-dispel_scope = 2
-
-[sub_resource type="Resource" id="Resource_cleanse"]
-script = ExtResource("2_twktv")
-name = "Cleanse"
-is_secondary = true
-description = "Removes harmful effects from an ally."
-max_range = 3
-accuracy = 100
-icon = ExtResource("5_vgs37")
-targets_ally = true
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_cleanse")])
-
-[sub_resource type="Resource" id="Effect_repel_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 2
-max_amount = 4
-
-[sub_resource type="Resource" id="Effect_repel_push"]
-script = ExtResource("2_effdef")
-type = 5
-min_amount = 2
-max_amount = 4
-knockback_distance = 2
-
-[sub_resource type="Resource" id="Resource_repel"]
-script = ExtResource("2_twktv")
-name = "Repel"
-description = "A burst of force that knocks the target back."
-min_range = 1
-max_range = 3
-accuracy = 85
-icon = ExtResource("5_vgs37")
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_repel_dmg"), SubResource("Effect_repel_push")])
-
-[sub_resource type="Resource" id="Effect_gravitypull"]
-script = ExtResource("2_effdef")
-type = 6
-knockback_distance = 3
-
-[sub_resource type="Resource" id="Resource_gravitypull"]
-script = ExtResource("2_twktv")
-name = "Gravity Pull"
-description = "Drags the target towards the caster - no damage, just repositioning."
-min_range = 2
-max_range = 6
-accuracy = 95
-icon = ExtResource("5_vgs37")
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_gravitypull")])
-
-[sub_resource type="Resource" id="Effect_run"]
-script = ExtResource("2_effdef")
-display_name = "Haste"
-type = 7
-stat = "movement"
-stat_multiplier = 2.0
-duration = 1
-
-[sub_resource type="Resource" id="Resource_run"]
-script = ExtResource("2_twktv")
-name = "Run"
-description = "Doubles your movement for this turn only."
-accuracy = 100
-icon = ExtResource("5_vgs37")
-targets_ally = true
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_run")])
-
-[sub_resource type="Resource" id="Effect_selfdestruct_dmg"]
-script = ExtResource("2_effdef")
-min_amount = 20
-max_amount = 20
-
-[sub_resource type="Resource" id="Resource_selfdestruct"]
-script = ExtResource("2_twktv")
-name = "Self Destruct"
-description = "Detonates violently, damaging everyone nearby - and always kills the user."
-accuracy = 100
-icon = ExtResource("4_gjsae")
-aoe_radius = 3
-kills_caster = true
-effects = Array[ExtResource("2_effdef")]([SubResource("Effect_selfdestruct_dmg")])
-
-[node name="SkillDatabase" type="Node" unique_id=719554389]
+[node name="SkillDatabase" type="Node" unique_id=1976442440]
 script = ExtResource("1_bnr7k")
 skills = {
-"attack_melee": SubResource("Resource_lgmlb"),
-"attack_ranged": SubResource("Resource_4cuap"),
-"basic_magic": SubResource("Resource_xxs2r"),
-"cleanse": SubResource("Resource_cleanse"),
-"curse": SubResource("Resource_curse"),
-"fireball": SubResource("Resource_fireball"),
-"flame_cone": SubResource("Resource_flamecone"),
-"gravity_pull": SubResource("Resource_gravitypull"),
-"heal": SubResource("Resource_heal"),
-"lightning_bolt": SubResource("Resource_lightning"),
-"poison_dart": SubResource("Resource_poisondart"),
-"repel": SubResource("Resource_repel"),
-"run": SubResource("Resource_run"),
-"self_destruct": SubResource("Resource_selfdestruct"),
-"slowing_strike": SubResource("Resource_slowstrike"),
-"vitality": SubResource("Resource_vitality")
+"blink_strike": ExtResource("28_blink"),
+"burner": ExtResource("6_lyvp1"),
+"burning_shot": ExtResource("25_q8moi"),
+"cleanse": ExtResource("5_r41b3"),
+"crystalise": ExtResource("27_66cmj"),
+"element_up": ExtResource("39_56xb4"),
+"fire_blast": ExtResource("33_o3emf"),
+"fire_burst": ExtResource("4_2m8rc"),
+"fireball": ExtResource("7_dbes0"),
+"flash": ExtResource("18_r41b3"),
+"follow_up_attack": ExtResource("16_ha562"),
+"greatsword_attack": ExtResource("2_g7odk"),
+"gun": ExtResource("3_t1ypb"),
+"gust_blast": ExtResource("13_tuk3s"),
+"heal": ExtResource("10_pp4aq"),
+"hermes_step": ExtResource("27_hermes"),
+"hover": ExtResource("36_hover"),
+"light_heal": ExtResource("17_mfut3"),
+"lightning_bolt": ExtResource("11_q8moi"),
+"poison_dart": ExtResource("12_66cmj"),
+"quicken": ExtResource("35_o3emf"),
+"rapier": ExtResource("19_lyvp1"),
+"revitalizer": ExtResource("27_tuk3s"),
+"river_flow": ExtResource("20_dbes0"),
+"rock_throw": ExtResource("34_5x0hn"),
+"run": ExtResource("14_oiqse"),
+"self_destruct": ExtResource("15_ncop4"),
+"shoving_strike": ExtResource("21_dbes0"),
+"slip_past": ExtResource("26_slip"),
+"stealth": ExtResource("37_stealth"),
+"study": ExtResource("99_study"),
+"sweep_strike": ExtResource("8_8fqdd"),
+"trailblaze": ExtResource("38_m4jk1"),
+"warning_shot": ExtResource("24_pp4aq"),
+"water_spike": ExtResource("23_8fqdd"),
+"wind_shot": ExtResource("32_chsfo"),
+"wind_swoon": ExtResource("22_8fqdd"),
+"wind_vacuum": ExtResource("9_grav")
 }

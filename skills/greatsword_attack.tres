@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://1i3sgnx07fqe"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_4r8k0"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_54tgk"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_0scva"]
+[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("3_0scva")
+name = "Greatsword Attack"
+description = "A strike trained to perfection."
+min_range = 1
+max_range = 1
+icon = ExtResource("2_54tgk")
+is_reactive = true
+animation = "attack"
+ability_modifier = 1.5
+sound = ExtResource("90_sfx")

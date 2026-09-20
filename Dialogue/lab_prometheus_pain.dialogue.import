@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://ct32fg4sufmo8"
+path="res://.godot/imported/lab_prometheus_pain.dialogue-499e3e37219903ce8a3c5b7661615cf8.tres"
+
+[deps]
+
+source_file="res://Dialogue/lab_prometheus_pain.dialogue"
+dest_files=["res://.godot/imported/lab_prometheus_pain.dialogue-499e3e37219903ce8a3c5b7661615cf8.tres"]
+
+[params]
+
+defaults=true

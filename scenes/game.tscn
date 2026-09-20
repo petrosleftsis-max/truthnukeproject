@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://b4xca7lc8vsi8"]
 
-[ext_resource type="Texture2D" uid="uid://xkkeet22l731" path="res://imagese/grid.png" id="2_icbvx"]
 [ext_resource type="Script" uid="uid://c11l4cm22n2qk" path="res://control/CController.gd" id="3_dbxfm"]
 [ext_resource type="Script" uid="uid://da506va2ao1j4" path="res://combat/Combat.gd" id="4_cujqt"]
 [ext_resource type="PackedScene" uid="uid://ddgx1hll377nx" path="res://ui/ui.tscn" id="5_pc8ih"]
@@ -9,6 +8,9 @@
 [ext_resource type="Script" path="res://scenes/game.gd" id="8_game"]
 [ext_resource type="Resource" path="res://encounters/encounter_01_ambush.tres" id="9_enc1"]
 [ext_resource type="PackedScene" path="res://ui/result_ui.tscn" id="10_resultui"]
+[ext_resource type="PackedScene" path="res://ui/reaction_prompt.tscn" id="11_reaction"]
+[ext_resource type="Script" path="res://ui/hurt_vignette.gd" id="12_vignette"]
+[ext_resource type="Script" path="res://ui/character_sheet.gd" id="13_sheet"]
 
 [node name="Game" type="Node" unique_id=614169276 node_paths=PackedStringArray("combat")]
 script = ExtResource("8_game")
@@ -16,24 +18,23 @@ fallback_encounter = ExtResource("9_enc1")
 combat = NodePath("VisualCombat")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1946268559]
-position = Vector2(592, 352)
-zoom = Vector2(1, 1)
+position = Vector2(3552, 2112)
+zoom = Vector2(0.5, 0.5)
 script = ExtResource("7_camera")
 tile_map_path = NodePath("../Terrain/TileMap")
-
-[node name="Select" type="Sprite2D" parent="." unique_id=1956478372]
-position = Vector2(272, 208)
-texture = ExtResource("2_icbvx")
 
 [node name="Controller" type="Node2D" parent="." unique_id=1583794866 node_paths=PackedStringArray("combat")]
 texture_filter = 1
 script = ExtResource("3_dbxfm")
 combat = NodePath("../VisualCombat")
 
-[node name="VisualCombat" type="Node" parent="." unique_id=785847308 node_paths=PackedStringArray("game_ui", "controller")]
+[node name="VisualCombat" type="Node" parent="." unique_id=785847308 node_paths=PackedStringArray("game_ui", "controller", "reaction_prompt", "camera", "hurt_vignette")]
 script = ExtResource("4_cujqt")
 game_ui = NodePath("../CanvasLayer/UI")
 controller = NodePath("../Controller")
+reaction_prompt = NodePath("../ReactionPrompt")
+camera = NodePath("../Camera2D")
+hurt_vignette = NodePath("../HurtVignette")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=681935609]
 
@@ -47,6 +48,15 @@ controller = NodePath("../Controller")
 
 [node name="ResultUI" parent="." node_paths=PackedStringArray("combat") instance=ExtResource("10_resultui")]
 combat = NodePath("../VisualCombat")
+
+[node name="ReactionPrompt" parent="." instance=ExtResource("11_reaction")]
+
+[node name="CharacterSheet" type="CanvasLayer" parent="." node_paths=PackedStringArray("combat")]
+script = ExtResource("13_sheet")
+combat = NodePath("../VisualCombat")
+
+[node name="HurtVignette" type="CanvasLayer" parent="."]
+script = ExtResource("12_vignette")
 
 [connection signal="movement_changed" from="Controller" to="CanvasLayer/UI" method="set_movement"]
 [connection signal="target_selection_finished" from="Controller" to="CanvasLayer/UI" method="_target_selection_finished"]

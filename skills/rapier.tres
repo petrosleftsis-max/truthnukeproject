@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://tuhjhhdtktws"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_l27u8"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_3t3cr"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_bdlsq"]
+[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("2_bdlsq")
+name = "Rapier"
+description = "One feign, another feign, strike your enemy with swiftness and cunning."
+max_range = 1
+respects_blocking = true
+accuracy = 100
+icon = ExtResource("2_3t3cr")
+is_reactive = true
+ability_modifier = 1.5
+scaling_stat = 3
+sound = ExtResource("90_sfx")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

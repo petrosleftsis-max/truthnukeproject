@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://e3oe70sg53ob"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_gpgpy"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_olqgu"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_t55fu"]
+[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Resource_sdx31"]
+script = ExtResource("1_gpgpy")
+type = 5
+min_amount = 3
+max_amount = 6
+knockback_distance = 3
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_t55fu")
+name = "Shoving Strike"
+description = "Hit them with enough force to push them back."
+max_range = 1
+accuracy = 100
+icon = ExtResource("2_olqgu")
+effects = Array[ExtResource("1_gpgpy")]([SubResource("Resource_sdx31")])
+sound = ExtResource("90_sfx")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

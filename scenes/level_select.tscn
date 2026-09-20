@@ -16,6 +16,15 @@ grow_vertical = 2
 script = ExtResource("1_levelselect")
 encounters = Array[ExtResource("2_encdef")]([ExtResource("3_enc1"), ExtResource("4_enc2"), ExtResource("5_enc3")])
 
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.070588, 0.086275, 0.113725, 1)
+
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -25,21 +34,22 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="VBox" type="VBoxContainer" parent="Center"]
-custom_minimum_size = Vector2(360, 0)
+custom_minimum_size = Vector2(440, 0)
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Center/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
-text = "Choose a Battle"
+theme_override_font_sizes/font_size = 34
+text = "Arena Mode"
 horizontal_alignment = 1
 
-[node name="PartyStatus" type="Label" parent="Center/VBox"]
+[node name="PartyPanel" type="PanelContainer" parent="Center/VBox"]
 layout_mode = 2
-text = "Party at full strength."
-horizontal_alignment = 1
-autowrap_mode = 3
+
+[node name="PartyBox" type="VBoxContainer" parent="Center/VBox/PartyPanel"]
+layout_mode = 2
+theme_override_constants/separation = 5
 
 [node name="EncounterList" type="VBoxContainer" parent="Center/VBox"]
 layout_mode = 2
@@ -47,4 +57,8 @@ theme_override_constants/separation = 8
 
 [node name="ResetButton" type="Button" parent="Center/VBox"]
 layout_mode = 2
-text = "Reset Party"
+text = "Reset party"
+
+[node name="MainMenuButton" type="Button" parent="Center/VBox"]
+layout_mode = 2
+text = "Main Menu"

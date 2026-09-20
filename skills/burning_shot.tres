@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://c2xk3fh5n0i1y"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_pf4ur"]
+[ext_resource type="Resource" uid="uid://1ld4g4lgfheh" path="res://conditions/burn.tres" id="2_ng6aw"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_sasll"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="3_yibo3"]
+[ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Resource_ng6aw"]
+script = ExtResource("1_pf4ur")
+type = 8
+condition = ExtResource("2_ng6aw")
+condition_duration = 1
+condition_dot_modifier = 0.5
+damage_type = 1
+damage_modifier = 0.5
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_sasll")
+name = "Burning Shot"
+description = "Special ammunition that helps them feel the heat."
+min_range = 2
+max_range = 15
+accuracy = 100
+icon = ExtResource("3_yibo3")
+required_level = 3
+respects_blocking = true
+effects = Array[ExtResource("1_pf4ur")]([SubResource("Resource_ng6aw")])
+scaling_stat = 3
+sound = ExtResource("90_sfx")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

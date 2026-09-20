@@ -3,9 +3,6 @@
 [ext_resource type="Script" uid="uid://dbehxp66yjbcd" path="res://ui/combat_ui.gd" id="1_cy8ae"]
 [ext_resource type="Shader" uid="uid://r376hboealta" path="res://ui/GrayscaleIcon.gdshader" id="3_pilcd"]
 [ext_resource type="PackedScene" uid="uid://d0hcis8q3seqg" path="res://ui/status_icon.tscn" id="4_mn0g0"]
-[ext_resource type="Texture2D" uid="uid://b5bhqfskef7lb" path="res://imagese/icon/melee_attack.png" id="6_puss2"]
-[ext_resource type="Texture2D" uid="uid://bonh4ibo7lwda" path="res://imagese/icon/ranged_attack.png" id="7_i51fj"]
-[ext_resource type="Texture2D" uid="uid://wxkh5qyiy8c1" path="res://imagese/icon/basic_magic.png" id="8_do1mp"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1qt58"]
 shader = ExtResource("3_pilcd")
@@ -92,7 +89,6 @@ columns = 6
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 focus_mode = 0
-icon = ExtResource("6_puss2")
 icon_alignment = 1
 expand_icon = true
 
@@ -100,7 +96,6 @@ expand_icon = true
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 focus_mode = 0
-icon = ExtResource("7_i51fj")
 icon_alignment = 1
 expand_icon = true
 
@@ -108,7 +103,6 @@ expand_icon = true
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 focus_mode = 0
-icon = ExtResource("8_do1mp")
 icon_alignment = 1
 expand_icon = true
 
@@ -185,14 +179,125 @@ theme_override_colors/font_color = Color(0.960784, 0.898039, 0.231373, 1)
 text = "Main Skills"
 vertical_alignment = 1
 
-[node name="SkillPanelToggle" type="Button" parent="Actions"]
+[node name="SkillPanelTabs" type="HBoxContainer" parent="Actions"]
 layout_mode = 0
-offset_left = 340.0
+offset_left = 240.0
 offset_top = 48.0
 offset_right = 443.0
 offset_bottom = 74.0
+alignment = 2
+theme_override_constants/separation = 4
+
+[node name="MainTab" type="Button" parent="Actions/SkillPanelTabs"]
+layout_mode = 2
+toggle_mode = true
+focus_mode = 0
+text = "Main"
+
+[node name="SecondaryTab" type="Button" parent="Actions/SkillPanelTabs"]
+layout_mode = 2
+toggle_mode = true
 focus_mode = 0
 text = "Secondary"
+
+[node name="SpellsTab" type="Button" parent="Actions/SkillPanelTabs"]
+layout_mode = 2
+toggle_mode = true
+focus_mode = 0
+text = "Spells"
+
+[node name="ItemsTab" type="Button" parent="Actions/SkillPanelTabs"]
+layout_mode = 2
+toggle_mode = true
+focus_mode = 0
+text = "Items"
+
+[node name="SpellSlots" type="HBoxContainer" parent="Actions"]
+visible = false
+layout_mode = 0
+offset_left = 120.0
+offset_top = 22.0
+offset_right = 443.0
+offset_bottom = 46.0
+theme_override_constants/separation = 14
+
+[node name="Level1" type="HBoxContainer" parent="Actions/SpellSlots"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Name" type="Label" parent="Actions/SpellSlots/Level1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
+theme_override_font_sizes/font_size = 12
+text = "I"
+vertical_alignment = 1
+
+[node name="Bar" type="ProgressBar" parent="Actions/SpellSlots/Level1"]
+custom_minimum_size = Vector2(48, 8)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+value = 1.0
+show_percentage = false
+
+[node name="Count" type="Label" parent="Actions/SpellSlots/Level1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
+theme_override_font_sizes/font_size = 12
+text = "0/0"
+vertical_alignment = 1
+
+[node name="Level2" type="HBoxContainer" parent="Actions/SpellSlots"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Name" type="Label" parent="Actions/SpellSlots/Level2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
+theme_override_font_sizes/font_size = 12
+text = "II"
+vertical_alignment = 1
+
+[node name="Bar" type="ProgressBar" parent="Actions/SpellSlots/Level2"]
+custom_minimum_size = Vector2(48, 8)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+value = 1.0
+show_percentage = false
+
+[node name="Count" type="Label" parent="Actions/SpellSlots/Level2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
+theme_override_font_sizes/font_size = 12
+text = "0/0"
+vertical_alignment = 1
+
+[node name="Level3" type="HBoxContainer" parent="Actions/SpellSlots"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Name" type="Label" parent="Actions/SpellSlots/Level3"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
+theme_override_font_sizes/font_size = 12
+text = "III"
+vertical_alignment = 1
+
+[node name="Bar" type="ProgressBar" parent="Actions/SpellSlots/Level3"]
+custom_minimum_size = Vector2(48, 8)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+value = 1.0
+show_percentage = false
+
+[node name="Count" type="Label" parent="Actions/SpellSlots/Level3"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.607843, 0.729412, 0.882353, 1)
+theme_override_font_sizes/font_size = 12
+text = "0/0"
+vertical_alignment = 1
 
 [node name="Movement" type="Label" parent="Actions" unique_id=571617693]
 layout_mode = 0
@@ -220,20 +325,30 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_pdlup")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_do5rw")
 theme_override_styles/hover = SubResource("StyleBoxFlat_3dsm8")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_um0nj")
+tooltip_text = "End this character's turn (Space)"
 text = "End Turn"
 
 [node name="Information" type="PanelContainer" parent="Actions" unique_id=180685541]
 layout_mode = 0
 offset_left = 541.0
-offset_top = 84.0
-offset_right = 789.0
-offset_bottom = 169.0
+offset_top = 21.0
+offset_right = 929.0
+offset_bottom = 195.0
 
 [node name="Text" type="RichTextLabel" parent="Actions/Information" unique_id=572141551]
 layout_mode = 2
 bbcode_enabled = true
 scroll_following = true
 shortcut_keys_enabled = false
+
+[node name="LogToggle" type="Button" parent="Actions"]
+layout_mode = 0
+offset_left = 899.0
+offset_top = 24.0
+offset_right = 925.0
+offset_bottom = 50.0
+tooltip_text = "Hide the combat log"
+text = "-"
 
 [node name="SelectTargetMessage" type="PanelContainer" parent="Actions" unique_id=1651068056]
 visible = false

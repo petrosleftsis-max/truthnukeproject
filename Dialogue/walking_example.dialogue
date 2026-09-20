@@ -1,0 +1,36 @@
+~ start
+# Everything a conversation can do with the people standing in it.
+#
+# Point a DialogueInteractable at this title to watch it, or copy the lines you
+# want into your own scripts. Names are combatant keys ("cyrus", "alithia") or
+# the name of a node placed on the map. Places are either a Waypoint's name or
+# a tile - walk("cyrus", "gate") and walk("cyrus", 12, 7) both work.
+
+cyrus: Someone's coming up the road.
+
+# Walks in from off the map. The line after it waits until they arrive.
+do Actors.enter("barbarian", 14, 13)
+barbarian: Far enough. This road's closed.
+
+# Walking to meet them, then turning to look at each other.
+do Actors.walk("cyrus", 13, 13)
+do Actors.face("barbarian", "cyrus")
+do Actors.face("cyrus", "barbarian")
+cyrus: Closed by whom?
+
+# _behind starts the walk and lets the talking carry on over it, so someone can
+# cross the scene while a conversation continues.
+do Actors.walk_behind("alithia", 13, 15)
+barbarian: By me. Turn around.
+alithia: He's alone, Cyrus.
+
+# Waiting for a walk started earlier, when the next line needs them there.
+do Actors.finished("alithia")
+alithia: And he's bluffing.
+
+# Walks off the map. Anyone the conversation invented is gone with it; a party
+# member is only walked out of sight, since they are still the player's.
+do Actors.exit("barbarian")
+cyrus: ...he was, at that.
+
+=> END

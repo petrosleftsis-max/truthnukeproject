@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3 uid="uid://lnqoss8cheye"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_eff"]
+[ext_resource type="Script" uid="uid://cbf4gnjv5w62v" path="res://combat/resources/ItemDefinition.gd" id="2_item"]
+[ext_resource type="Resource" uid="uid://cd6p3k0plcjse" path="res://conditions/blind.tres" id="3_cond"]
+[ext_resource type="Texture2D" uid="uid://c7h6p5la4jtam" path="res://imagese/skills/consumable__skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_blinding_bomb"]
+script = ExtResource("1_eff")
+type = 8
+condition = ExtResource("3_cond")
+condition_duration = 3
+
+[resource]
+script = ExtResource("2_item")
+name = "Blinding Bomb"
+description = "Deliver to them an instant of intense light that blinds them temporarily."
+max_range = 5
+accuracy = 100
+icon = ExtResource("4_icon")
+effects = Array[ExtResource("1_eff")]([SubResource("Effect_blinding_bomb")])
+deals_damage = false
+uses_stat_contest = true
+contest_stat = 1

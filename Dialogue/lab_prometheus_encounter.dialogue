@@ -1,0 +1,16 @@
+~ start
+do Music.fade_out(5.0) 
+Alithia Undersen: ... Hold on.
+Cyrus Rowe: Something the matter?
+Alithia Undersen: I can hear creatures hiding ahead. If we are to proceed, we should proceed with caution.
+Alithia Undersen: Are we sure we should continue right now?
+- We're ready
+	Prometheus Iliopoulos: I'm personally ready.
+	Enfina Moonwish: Allow me to take the lead. If needed, I'll carve a path ahead.
+	do Campaign.accept_encounter()
+- Let's check the previous area a bit more first
+	Prometheus Iliopoulos: Let's make sure we didn't miss anything behind us first. If we alert the place, we cannot be sure we can head back.
+	Alithia Moonwish: Good thinking.
+	do Campaign.decline_encounter()
+	
+=> END

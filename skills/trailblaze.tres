@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://c3t33q31bj08p"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_ph3vn"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_6gyig"]
+[ext_resource type="Resource" uid="uid://1ld4g4lgfheh" path="res://conditions/burn.tres" id="2_18en4"]
+[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_d21eg"]
+[ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="5_d21eg"]
+
+[sub_resource type="Resource" id="Resource_hfa8a"]
+script = ExtResource("1_ph3vn")
+type = 8
+applies_to_caster = true
+condition = ExtResource("2_18en4")
+condition_duration = 5
+condition_dot_modifier = 0.2
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_6gyig")
+name = "Trailblaze"
+description = "Blaze your way through."
+accuracy = 100
+icon = ExtResource("3_d21eg")
+required_level = 2
+targets_ally = true
+is_secondary = true
+effects = Array[ExtResource("1_ph3vn")]([SubResource("Resource_hfa8a")])
+deals_damage = false
+sound = ExtResource("5_d21eg")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

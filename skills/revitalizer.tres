@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://c2joaowui0c45"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_6idw7"]
+[ext_resource type="Texture2D" uid="uid://ben5jlwrg6fhf" path="res://imagese/skills/heal_skill.png" id="2_2aapw"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_divce"]
+
+[sub_resource type="Resource" id="Resource_jl6nr"]
+script = ExtResource("1_6idw7")
+type = 1
+damage_modifier = 2.5
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_divce")
+name = "Revitalizer"
+description = "Heal everyone back to shape."
+max_range = 20
+accuracy = 100
+icon = ExtResource("2_2aapw")
+required_level = 2
+targets_ally = true
+effects = Array[ExtResource("1_6idw7")]([SubResource("Resource_jl6nr")])
+deals_damage = false
+ability_modifier = 2.0
+spell_slot_level = 3
+aoe_radius = 5
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

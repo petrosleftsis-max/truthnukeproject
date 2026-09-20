@@ -25,8 +25,19 @@ class_name SpawnMarker
 	set(value):
 		display_name = value
 		queue_redraw()
+## The level this combatant fights at here - 1 to 3. Decides every attribute
+## they have and which of their skills are unlocked. See SpawnDefinition.
+@export_range(1, 3) var level: int = 1:
+	set(value):
+		level = value
+		queue_redraw()
+## What their attacks start from before any stat, and how much damage they
+## soak. Per spawn so the same character can be armed and armoured differently
+## from one encounter to the next.
+@export_range(0, 100) var weapon_base: int = 6
+@export_range(1, 100) var defense: int = 10
 ## Set by EncounterEditor from the map being previewed.
-@export var tile_size := 32
+@export var tile_size := Grid.TILE_SIZE
 
 ## The database, read straight from its scene rather than through the
 ## CombatantDatabase autoload: autoloads aren't reliably available to @tool
@@ -65,17 +76,25 @@ func definition() -> CombatantDefinition:
 	return combatant_definitions().get(combatant_key)
 
 
-## The name this combatant will actually fight under.
+## The name this combatant will actually fight under. A marker with no
+## combatant chosen still says so on the map - a blank label on a blank square
+## is indistinguishable from nothing being there at all, which is exactly the
+## state a spawn added to the encounter by hand starts in.
 func effective_name() -> String:
 	if display_name != "":
 		return display_name
 	var found = definition()
-	return found.name if found != null else combatant_key
+	if found != null:
+		return found.name
+	return combatant_key if combatant_key != "" else "(pick a combatant)"
 
 
 func _refresh():
 	var found = definition()
-	texture = found.icon if found != null else null
+	# portrait() rather than icon: a combatant whose picture comes from their
+	# animation has no icon of their own, and a marker with no texture is an
+	# invisible marker - which is exactly what the enemies became.
+	texture = found.portrait() if found != null else null
 	# Blue for your party, red for the opposition - the same read as the rest
 	# of the game's UI, so a glance at the map tells you the shape of the fight.
 	modulate = Color(0.6, 0.8, 1.0) if side == 0 else Color(1.0, 0.6, 0.6)
@@ -91,6 +110,10 @@ func _draw():
 	draw_rect(box, outline, false, 2.0)
 	var font = ThemeDB.fallback_font
 	var label = effective_name()
+	if level > 1:
+		# The level is the one thing about a marker you cannot see from the
+		# portrait, and it changes every number the combatant has.
+		label += " Lv%d" % level
 	var width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 	draw_string(font, Vector2(-width * 0.5, half + 11), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.WHITE)
 

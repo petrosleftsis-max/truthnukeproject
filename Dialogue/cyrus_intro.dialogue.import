@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://bbtah6mig600m"
+path="res://.godot/imported/cyrus_intro.dialogue-08fb5f4387eee72d16e25978354e664a.tres"
+
+[deps]
+
+source_file="res://Dialogue/cyrus_intro.dialogue"
+dest_files=["res://.godot/imported/cyrus_intro.dialogue-08fb5f4387eee72d16e25978354e664a.tres"]
+
+[params]
+
+defaults=true

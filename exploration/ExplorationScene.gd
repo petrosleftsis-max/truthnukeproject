@@ -27,8 +27,6 @@ class_name ExplorationScene
 
 const MAP_NODE = "Map"
 const PARTY_NODE = "Party"
-## How close an automatic door or ambush has to be to fire on contact.
-const CONTACT_RADIUS = 18.0
 
 var party: ExplorationParty = null
 var _tile_map: TileMap = null
@@ -43,7 +41,30 @@ func _enter_tree():
 
 
 func _ready():
-	Campaign.seed_party(starting_party)
+	# The map's own cast wins where it has one: a map that names its party is
+	# stating who is there at that point in the story, while Starting Party is
+	# only a fallback for a map that says nothing (and for running one straight
+	# from the editor).
+	var setup = _map_setup()
+	if setup != null and setup.is_set():
+		Campaign.set_party(setup.members, setup.level)
+	else:
+		Campaign.seed_party(starting_party)
+	if setup != null and setup.empty_handed:
+		# Before the story has given anybody anything. Done after the party is
+		# set, so it empties the bags of whoever is actually here.
+		for key in Campaign.living_party():
+			Campaign.empty_inventory(key)
+	if setup != null and setup.hands_kit_out():
+		# After emptying, so a map that wants the party holding exactly this and
+		# nothing else can set both and get it.
+		for key in Campaign.living_party():
+			for item in setup.kit_for(key):
+				Campaign.give_item(key, item)
+	if setup != null and setup.music != "":
+		# Starting the track already playing does nothing, so stepping out to a
+		# fight and back does not restart the map's music from the top.
+		Music.play(setup.music)
 	# A conversation can recruit someone or send them away mid-map (see
 	# Campaign.add_member), so the line and the portraits rebuild themselves
 	# whenever the roster changes rather than only on arrival.
@@ -54,6 +75,14 @@ func _ready():
 		game_ui.set_exploration_mode(true)
 	_refresh_party_panel()
 	_update_prompt()
+	# Anything automatic the party has arrived standing on fires now rather than
+	# on their first step. "Activates when the player gets in range" has to
+	# include arriving already in range, which is exactly where you put the
+	# conversation that opens a map.
+	#
+	# Deferred so the map has finished coming up before a conversation starts
+	# over the top of it.
+	_check_contact_triggers.call_deferred(party_position())
 
 
 ## Someone joined or left. Rebuild the walking line where the party currently
@@ -105,9 +134,31 @@ func _build_map():
 			if found != null:
 				_tile_map = found
 				break
+	# Most terrain scenes save their grid overlay hidden and the encounter
+	# editor turns it on while placing units, but a couple of maps were authored
+	# without it switched off and carry a visible grid. Exploration is not
+	# played on tiles as far as the player is concerned - they walk about
+	# freely - so the mode settles it here rather than every map having to
+	# remember. The scene on disk is untouched, so the grid is still there to
+	# lay things out against in the editor.
+	_hide_grid(map)
 	_build_blocking()
 	_interactables = []
 	_collect_interactables(map)
+	# Dialogue can walk people about this map now, and anything it was walking
+	# on the last one is gone with it.
+	Actors.use_scene(self, _tile_map)
+
+
+## Switches off any grid overlay the map brought with it, wherever it sits -
+## a map may be a plain wrapper around a terrain scene, so the grid is not
+## always a direct child.
+func _hide_grid(node: Node):
+	for child in node.get_children():
+		if child is GridOverlay:
+			child.visible = false
+		else:
+			_hide_grid(child)
 
 
 ## Which tiles the party can't walk on. Built once from the same "Blocks"
@@ -154,19 +205,22 @@ func _spawn_party():
 	_follow_camera(party.position_of_leader())
 
 
-## Map sprites for everyone still standing, leader first - straight off the
-## campaign roster, so the line on the map is exactly the party you'd field.
+## What everyone still standing looks like, leader first - straight off the
+## campaign roster, so the line on the map is exactly the party you would
+## field. Each entry carries both the still and the animation set, because the
+## party walks with the same SpriteFrames it fights with.
 func _party_textures() -> Array:
-	var textures = []
+	var looks = []
 	for member in Campaign.party_members():
-		textures.append(member.map_sprite)
-	if textures.is_empty():
+		looks.append({"key": member.key, "map_sprite": member.map_sprite, "sprite_frames": member.sprite_frames})
+	if looks.is_empty():
 		# Everyone is down, but there still has to be something to walk with.
 		for key in Campaign.party_order:
 			if CombatantDatabase.combatants.has(key):
-				textures.append(CombatantDatabase.combatants[key].map_sprite)
+				var definition = CombatantDatabase.combatants[key]
+				looks.append({"key": key, "map_sprite": definition.map_sprite, "sprite_frames": definition.sprite_frames})
 				break
-	return textures
+	return looks
 
 
 ## Coming back from a battle puts the party exactly where they left; arriving
@@ -179,8 +233,9 @@ func _start_position() -> Vector2:
 	var entries = []
 	_collect_entries(get_node_or_null(MAP_NODE), entries)
 	if entries.is_empty():
-		push_warning("Exploration map '%s' has no EntryPoint - the party will start at the origin." % map_path())
-		return Vector2.ZERO
+		var ground = _first_standable_position()
+		push_warning("Exploration map '%s' has no EntryPoint - starting the party on the first ground found, at %s. Add one to say where they should arrive." % [map_path(), ground])
+		return ground
 	if Campaign.target_entry != "":
 		for entry in entries:
 			if entry.entry_name == Campaign.target_entry:
@@ -189,6 +244,39 @@ func _start_position() -> Vector2:
 		push_warning("Map '%s' has no entry point named '%s' - using its first one." % [map_path(), Campaign.target_entry])
 		Campaign.target_entry = ""
 	return entries[0].position
+
+
+## Somewhere on this map the party can actually stand, for a map with no
+## EntryPoint to fall back to.
+##
+## The origin used to be that fallback, which only ever worked by luck: it is
+## the corner of the coordinate system, not a promise of walkable ground. The
+## moment a map gains a border of solid rock, or simply does not start at tile
+## zero, the party arrives sealed inside a wall with every direction blocked -
+## which looks exactly like movement being broken.
+##
+## Checked at the same four corners the party itself uses, so a tile picked
+## here is one it can genuinely occupy rather than merely the centre of.
+func _first_standable_position() -> Vector2:
+	if _tile_map == null:
+		return Vector2.ZERO
+	var radius = ExplorationParty.new().body_radius
+	var used = _tile_map.get_used_rect()
+	for y in range(used.position.y, used.position.y + used.size.y):
+		for x in range(used.position.x, used.position.x + used.size.x):
+			var centre = _tile_map.map_to_local(Vector2i(x, y))
+			var clear = true
+			for offset in [
+				Vector2(-radius, -radius), Vector2(radius, -radius),
+				Vector2(-radius, radius), Vector2(radius, radius)
+			]:
+				if not is_walkable(centre + offset):
+					clear = false
+					break
+			if clear:
+				return centre
+	push_error("Exploration map '%s' has nowhere the party can stand at all." % map_path())
+	return Vector2.ZERO
 
 
 func _collect_entries(node: Node, into: Array):
@@ -225,9 +313,22 @@ func _check_contact_triggers(leader_position: Vector2):
 			continue
 		if not interactable.get("automatic"):
 			continue
-		if interactable.global_position.distance_to(leader_position) <= CONTACT_RADIUS:
-			interactable.interact(self)
-			return
+		# Its own reach, the same one the interact key measures against and the
+		# same ring drawn around it in the editor. It used to be a single
+		# scene-wide radius of barely half a tile, so an automatic trigger only
+		# fired if you walked almost exactly onto it - while pressing E worked
+		# from a tile and a quarter away. The ring is what it says it is now.
+		if interactable.global_position.distance_to(leader_position) > interactable.interaction_radius:
+			# Out of it again, so walking back in counts as walking in - unless it
+			# only ever fires once, in which case leaving changes nothing.
+			if not interactable.get("only_once"):
+				interactable.contact_spent = false
+			continue
+		if interactable.contact_spent:
+			continue
+		interactable.contact_spent = true
+		interactable.use(self)
+		return
 
 
 ## The nearest usable thing in range, or null.
@@ -237,6 +338,11 @@ func _nearest_interactable() -> Interactable:
 	var best_distance := INF
 	for interactable in _interactables:
 		if not is_instance_valid(interactable) or not interactable.is_available():
+			continue
+		if interactable.get("automatic"):
+			# Nothing to press: it goes off by being walked into, and it has no
+			# prompt to offer. Handing it to the interact key as well is how an
+			# arrival scene got replayed by standing on the spot and pressing E.
 			continue
 		var distance = interactable.global_position.distance_to(leader_position)
 		if distance <= interactable.interaction_radius and distance < best_distance:
@@ -252,7 +358,7 @@ func _update_prompt():
 	if _current_target == null or _blocking_interaction:
 		game_ui.set_interaction_prompt("")
 	else:
-		game_ui.set_interaction_prompt("[E] %s" % _current_target.prompt)
+		game_ui.set_interaction_prompt("Press E to %s" % _current_target.prompt.to_lower())
 
 
 func _unhandled_input(event):
@@ -269,7 +375,7 @@ func _unhandled_input(event):
 	if _current_target == null or not _current_target.is_available():
 		return
 	get_viewport().set_input_as_handled()
-	_current_target.interact(self)
+	_current_target.use(self)
 	_update_prompt()
 
 
@@ -309,7 +415,38 @@ func end_blocking_interaction(_arg = null):
 	_update_prompt()
 
 
+## Walks the party back out of `interactable`'s reach.
+##
+## For something they were asked about and turned down. An automatic trigger
+## fires again the moment it is in range, so leaving them standing on it would
+## either loop the conversation or let them stroll past it while it was still
+## deciding - they are walked clear instead, and walking back in asks again.
+##
+## Half a tile past the edge rather than exactly on it, so a single step in any
+## direction does not immediately re-offer what they just declined.
+func step_party_back_from(interactable: Node) -> void:
+	if party == null or interactable == null or not is_instance_valid(interactable):
+		return
+	await party.retreat_from(interactable.global_position,
+		interactable.interaction_radius + Grid.tiles(0.5))
+	if is_instance_valid(self):
+		_update_prompt()
+
+
 ## Rebuilds the whole scene for whatever map Campaign now points at - how a
 ## door moves the party between maps.
 func reload_map():
 	get_tree().reload_current_scene()
+
+
+## The loaded map's MapSetup, if it has one. Searched the whole way down
+## rather than only among the map's own children, because a map can be a
+## wrapper around an instanced terrain scene - the same reason finding the
+## TileMap looks in both places.
+func _map_setup() -> MapSetup:
+	var map = get_node_or_null(MAP_NODE)
+	if map == null:
+		return null
+	for node in map.find_children("*", "MapSetup", true, false):
+		return node
+	return null

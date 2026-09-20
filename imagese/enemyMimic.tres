@@ -1,0 +1,81 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://oj6iqwkm1foe"]
+
+[ext_resource type="Texture2D" uid="uid://7ekn4so0ldto" path="res://imagese/Enemies/dapper guy 1/dapper_guy_skill_10000.png" id="1_ou7pg"]
+[ext_resource type="Texture2D" uid="uid://3tlwdbohr006" path="res://imagese/Enemies/dapper guy 1/dapper_guy_skill_10001.png" id="2_ck3b6"]
+[ext_resource type="Texture2D" uid="uid://70b1tegwrxe6" path="res://imagese/Enemies/dapper guy 1/dapper_guy_skill_10002.png" id="3_dd2t2"]
+[ext_resource type="Texture2D" uid="uid://bdgjo0l7rjpdd" path="res://imagese/Enemies/dapper guy 1/dapper_guy_skill_10003.png" id="4_pidnv"]
+[ext_resource type="Texture2D" uid="uid://ypodb3vg3n5h" path="res://imagese/Enemies/dapper guy 1/dapper_guy_skill_10004.png" id="5_r4mxe"]
+[ext_resource type="Texture2D" uid="uid://sv70rfxg1amd" path="res://imagese/Enemies/dapper guy 1/dapper_guy_skill_10005.png" id="6_qnwra"]
+[ext_resource type="Texture2D" uid="uid://7gpbxgoijbj6" path="res://imagese/Enemies/dapper guy 1/dapper_guy_skill_10006.png" id="7_sh6av"]
+[ext_resource type="Texture2D" uid="uid://calkfde00u6u5" path="res://imagese/Enemies/dapper guy 1.png" id="8_ganus"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_ou7pg")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_ck3b6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_dd2t2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_pidnv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_r4mxe")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_qnwra")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_sh6av")
+}],
+"loop": 0,
+"name": &"attack",
+"speed": 25.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("8_ganus")
+}],
+"loop": 1,
+"name": &"idle",
+"speed": 25.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_ou7pg")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_ck3b6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_dd2t2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_pidnv")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_r4mxe")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_qnwra")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_sh6av")
+}],
+"loop": 0,
+"name": &"skill",
+"speed": 25.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("8_ganus")
+}],
+"loop": 1,
+"name": &"walk",
+"speed": 25.0
+}]

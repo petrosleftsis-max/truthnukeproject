@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://ui/pause_ui.gd" id="1_pauseui"]
 
 [node name="PauseUI" type="CanvasLayer"]
-layer = 10
+layer = 70
 script = ExtResource("1_pauseui")
 
 [node name="PausePanel" type="PanelContainer" parent="."]
@@ -13,9 +13,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -140.0
-offset_top = -110.0
+offset_top = -140.0
 offset_right = 140.0
-offset_bottom = 110.0
+offset_bottom = 140.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -30,17 +30,21 @@ theme_override_font_sizes/font_size = 28
 text = "Pause"
 horizontal_alignment = 1
 
+[node name="GlossaryButton" type="Button" parent="PausePanel/VBox"]
+layout_mode = 2
+text = "Glossary"
+
 [node name="OptionsButton" type="Button" parent="PausePanel/VBox"]
 layout_mode = 2
 text = "Options"
 
 [node name="LevelSelectButton" type="Button" parent="PausePanel/VBox"]
 layout_mode = 2
-text = "Battle Select"
+text = "Arena Mode"
 
-[node name="ExitButton" type="Button" parent="PausePanel/VBox"]
+[node name="MainMenuButton" type="Button" parent="PausePanel/VBox"]
 layout_mode = 2
-text = "Exit"
+text = "Main Menu"
 
 [node name="OptionsPanel" type="PanelContainer" parent="."]
 visible = false

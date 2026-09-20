@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://dvrlsm201sd6x"
+path="res://.godot/imported/church_after_reveal_enfina.dialogue-d23c30e30eb1fd33508dcdd54e6a410f.tres"
+
+[deps]
+
+source_file="res://Dialogue/church_after_reveal_enfina.dialogue"
+dest_files=["res://.godot/imported/church_after_reveal_enfina.dialogue-d23c30e30eb1fd33508dcdd54e6a410f.tres"]
+
+[params]
+
+defaults=true
