@@ -137,7 +137,7 @@ secondary_stat = 2
 icon = ExtResource("93_enfinastill")
 map_sprite = ExtResource("93_enfinastill")
 sprite_frames = ExtResource("92_enfinaframes")
-skills = Array[String](["study", "greatsword_attack", "fire_burst", "careful_swing", "shoving_strike", "sweep_strike", "blink_strike", "guard", "slip_past", "run", "trailblaze", "follow_up_attack"])
+skills = Array[String](["study", "greatsword_attack", "fire_burst", "light_swing", "shoving_strike", "sweep_strike", "blink_strike", "guard", "slip_past", "run", "trailblaze", "follow_up_attack"])
 starting_items = Array[String](["bomb", "bomb", "crystal_bottle"])
 
 [sub_resource type="Resource" id="Resource_mimic"]

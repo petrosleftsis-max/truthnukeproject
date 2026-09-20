@@ -38,7 +38,7 @@
 [ext_resource type="Resource" uid="uid://byq7wlj15dbsw" path="res://skills/stealth.tres" id="37_stealth"]
 [ext_resource type="Resource" uid="uid://c3t33q31bj08p" path="res://skills/trailblaze.tres" id="38_m4jk1"]
 [ext_resource type="Resource" uid="uid://d2oqgavj2l0w6" path="res://skills/element_up.tres" id="39_56xb4"]
-[ext_resource type="Resource" uid="uid://l70b3ivwekao" path="res://skills/careful_swing.tres" id="40_ggodk"]
+[ext_resource type="Resource" uid="uid://l70b3ivwekao" path="res://skills/light_swing.tres" id="40_ggodk"]
 [ext_resource type="Resource" uid="uid://dvpag72x3gbew" path="res://skills/guard.tres" id="41_phcln"]
 [ext_resource type="Resource" uid="uid://bgvq7nbrpbgdg" path="res://skills/holy_lance.tres" id="42_aqnu0"]
 [ext_resource type="Resource" uid="uid://bfh7kwnj6untt" path="res://skills/sass_club.tres" id="43_bw5lj"]
@@ -50,7 +50,6 @@ skills = {
 "blink_strike": ExtResource("28_blink"),
 "burner": ExtResource("6_lyvp1"),
 "burning_shot": ExtResource("25_q8moi"),
-"careful_swing": ExtResource("40_ggodk"),
 "cleanse": ExtResource("5_r41b3"),
 "crystalise": ExtResource("27_66cmj"),
 "element_up": ExtResource("39_56xb4"),
@@ -68,6 +67,7 @@ skills = {
 "holy_lance": ExtResource("42_aqnu0"),
 "hover": ExtResource("36_hover"),
 "light_heal": ExtResource("17_mfut3"),
+"light_swing": ExtResource("40_ggodk"),
 "lightning_bolt": ExtResource("11_q8moi"),
 "poison_dart": ExtResource("12_66cmj"),
 "quicken": ExtResource("35_o3emf"),

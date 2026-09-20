@@ -109,6 +109,13 @@ enum DispelScope {
 ## hit, since it lands once per turn for several turns. A direct hit has no use
 ## for it: a skill's own damage carries its strength on the skill itself.
 @export_range(0.0, 5.0, 0.05, "or_greater") var damage_modifier: float = 1.0 : set = _set_damage_modifier
+## How much this heal mends, in place of the skill's own AbilityModifier.
+##
+## 0 means "whatever the skill is worth", the same way condition_dot_modifier
+## works. Set it when one skill both hurts and mends and the two should not be
+## the same size - Light Swing cuts at full strength and gives a third of it
+## back, which with one dial for the lot was impossible to say.
+@export_range(0.0, 5.0, 0.05, "or_greater") var heal_modifier: float = 0.0
 ## Only consulted when there is no skill behind the damage at all - a shove
 ## into a wall, something applied by hand. A skill's damage comes from its
 ## caster's stat and the modifiers above.
@@ -160,7 +167,7 @@ enum DispelScope {
 ## type is hidden while that type is selected - see _validate_property.
 const FIELDS_BY_TYPE := {
 	EffectType.DAMAGE: ["damage_type", "min_amount", "max_amount"],
-	EffectType.HEAL: ["min_amount", "max_amount"],
+	EffectType.HEAL: ["heal_modifier", "min_amount", "max_amount"],
 	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration"],
 	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "damage_modifier", "min_amount", "max_amount", "duration"],
 	EffectType.DISPEL: ["dispel_stat", "dispel_scope", "dispel_count"],

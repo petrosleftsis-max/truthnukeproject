@@ -690,7 +690,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Base Damage: %s" % Damage.type_name(effect.damage_type).to_lower()
 		EffectDefinition.EffectType.HEAL:
 			# Reads like the damage line, because it is worked out the same way.
-			var mended = _heal_amount(skill)
+			var mended = _heal_amount(skill, effect)
 			if mended >= 0:
 				return "Heal: %d" % mended
 			return "Heal: %d-%d" % [effect.min_amount, effect.max_amount]
@@ -949,11 +949,14 @@ func _condition_tick(effect: EffectDefinition, skill: SkillDefinition) -> String
 
 
 ## What a heal from whoever is acting would restore, or -1 with nobody to ask.
-func _heal_amount(skill: SkillDefinition) -> int:
+func _heal_amount(skill: SkillDefinition, effect: EffectDefinition = null) -> int:
 	var caster = _caster()
 	if skill == null or caster.is_empty() or not combat.has_method("heal_amount"):
 		return -1
-	return combat.heal_amount(caster, skill)
+	# The effect goes with it, because a heal can carry its own dial - the
+	# panel showing the skill's instead would promise the wrong number on
+	# anything that both cuts and mends.
+	return combat.heal_amount(caster, skill, effect)
 
 
 ## --- What is currently on somebody ---

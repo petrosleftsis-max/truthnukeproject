@@ -7,20 +7,17 @@
 
 [sub_resource type="Resource" id="Resource_1jrtt"]
 script = ExtResource("1_fc1fx")
-type = 7
+type = 1
 applies_to_caster = true
-stat = "defense"
-modifier_amount = 0
-stat_multiplier = 1.5
+heal_modifier = 0.3
 duration = 1
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_d0yiq")
-name = "Careful Swing"
-description = "Swing in a way that protects the attacker."
+name = "Light Swing"
+description = "Preserve your energy to restore some vitality while still slashing at the enemy."
 max_range = 1
-accuracy = 100
 icon = ExtResource("2_1jrtt")
 effects = Array[ExtResource("1_fc1fx")]([SubResource("Resource_1jrtt")])
 sound = ExtResource("90_sfx")

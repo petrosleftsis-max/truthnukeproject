@@ -2163,13 +2163,25 @@ func base_skill_damage(attacker: Dictionary, skill: SkillDefinition) -> int:
 ## What `skill` mends when `healer` casts it. No defence on the other side of
 ## it - being tough does not make you harder to patch up - and no randomness,
 ## so a heal is something you can count on when deciding whether it is enough.
-func heal_amount(healer: Dictionary, skill: SkillDefinition) -> int:
+func heal_amount(healer: Dictionary, skill: SkillDefinition, effect: EffectDefinition = null) -> int:
 	if skill is ItemDefinition:
 		# What is written on the bottle, whoever uncorks it. Nothing contests a
 		# heal, so unlike damage it is simply the number.
 		return maxi(skill.flat_power, 0)
 	var base = Stats.base_damage(stat_of(healer, skill.scaling_stat), healer.get("weapon_base", Stats.WEAPON_BASE))
-	return maxi(roundi(base * skill.ability_modifier), 0)
+	return maxi(roundi(base * heal_strength(skill, effect)), 0)
+
+
+## The share of a caster's power a heal is worth: the effect's own dial when it
+## sets one, and the skill's otherwise.
+##
+## Without this a skill that both cuts and mends did both at the same size,
+## since ability_modifier was one dial for the lot - so Light Swing could not
+## swing in full and give back a third.
+func heal_strength(skill: SkillDefinition, effect: EffectDefinition) -> float:
+	if effect != null and effect.heal_modifier > 0.0:
+		return effect.heal_modifier
+	return skill.ability_modifier
 
 
 ## What a lingering tick from `skill` should be worth, before the target's own
@@ -2234,7 +2246,7 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	# The same shape as damage: the healer's stat and the skill's modifier. The
 	# effect's flat range only stands in when there is no skill behind the
 	# healing at all, the way it does for damage.
-	var amount = heal_amount(attacker, skill) if skill != null else randi_range(effect.min_amount, effect.max_amount)
+	var amount = heal_amount(attacker, skill, effect) if skill != null else randi_range(effect.min_amount, effect.max_amount)
 	target.hp = mini(target.hp + amount, get_effective_stat(target, "max_hp"))
 	float_number(target, "+" + str(amount), Color("7fe08a"))
 	update_combatants.emit(combatants)
