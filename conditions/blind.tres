@@ -5,5 +5,5 @@
 [resource]
 script = ExtResource("1_cond")
 display_name = "Blind"
-description = "Can barely see - every skill reaches only one tile."
+description = "Can barely see - every skill reaches only one tile away."
 max_range = 1

@@ -1,11 +1,10 @@
-[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3 uid="uid://b5ofo8i0bu3ep"]
 
-[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
 
 [resource]
 script = ExtResource("1_cond")
 display_name = "Fear"
-description = "Too afraid to advance, and badly shaken."
-duration = 3
+description = "Too afraid to advance and can barely aim."
 accuracy_change = -20
 prevents_approach = true

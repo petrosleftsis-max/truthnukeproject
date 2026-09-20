@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_cond")
 display_name = "Burn"
-description = "A strong DOT that would make anyone running."
+description = "A strong DOT that also increases the speed by 2."
 duration = 5
 dot_type = 1
 dot_strength = 4

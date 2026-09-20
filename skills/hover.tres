@@ -10,7 +10,7 @@ script = ExtResource("1_hover")
 type = 10
 display_name = "Hovering"
 movement_class = 1
-duration = 3
+duration = 5
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_cond")
 display_name = "Frozen"
-description = "Locked in ice. Too stiff for a secondary action and slowed."
+description = "Locked in ice. Too stiff for a secondary action and speed is slowed by 2."
 dot_type = 2
 dot_strength = 1
 dot_modifier = 1.0

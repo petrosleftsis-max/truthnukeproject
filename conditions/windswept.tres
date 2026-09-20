@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_cond")
 display_name = "Windswept"
-description = "Battered by wind - slowed, and blown about at the start of each turn."
+description = "Battered by wind - slowed by 3, and blown about 3 tiles away at the start of each turn."
 dot_type = 3
 dot_strength = 2
 dot_modifier = 1.0
