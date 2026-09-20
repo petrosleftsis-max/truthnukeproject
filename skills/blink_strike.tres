@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("1_skill")
 name = "Blink Strike"
-description = "Arrive on a tile within reach and cut down everything standing beside it, all at once. Aim at open ground, or stay where you are and cut anyway."
+description = "Arrive on a tile within reach and cut down everything standing beside it, all at once."
 max_range = 4
 icon = ExtResource("2_icon")
 teleports = 1

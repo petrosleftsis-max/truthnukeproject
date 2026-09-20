@@ -10,6 +10,7 @@
 script = ExtResource("1_mcofx")
 type = 8
 condition = ExtResource("2_mm41o")
+condition_duration = 1
 condition_dot_modifier = 0.3
 
 [resource]
@@ -23,5 +24,6 @@ icon = ExtResource("2_v0ngf")
 required_level = 2
 respects_blocking = true
 effects = Array[ExtResource("1_mcofx")]([SubResource("Effect_poison_dot")])
+ability_modifier = 0.8
 scaling_stat = 3
 sound = ExtResource("90_sfx")
