@@ -17,7 +17,7 @@ enum AoEShape {
 ## Chance to hit, as a percentage - the same no matter the distance, as long
 ## as the target is within range at all (being out of range is rejected
 ## before this ever matters). Ignored entirely when uses_stat_contest is on.
-@export_range(0, 100) var accuracy: int = 90
+@export_range(0, 100) var accuracy: int = 100
 @export var icon: Texture2D
 ## The level a combatant has to have reached before this appears in their
 ## skill panel at all. 1 means everybody has it from the start.

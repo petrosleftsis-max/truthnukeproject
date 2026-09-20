@@ -121,7 +121,8 @@ func _refresh_spells_toggle(comb):
 		return
 	# Nothing to swap to on the Items tab, which is neither skills nor spells,
 	# and nothing to swap to for somebody who casts nothing at all.
-	var castable = combat != null and comb != null and not comb.is_empty() 		and not combat.spell_skills_of(comb).is_empty()
+	var castable = combat != null and comb != null and not comb.is_empty() \
+			and not combat.spell_skills_of(comb).is_empty()
 	spells.visible = castable and showing_panel != SkillPanel.ITEMS
 	spells.text = "Skills" if showing_spells else "Spells"
 
@@ -399,7 +400,8 @@ func _on_end_turn_button_pressed():
 	# The same refusal the keyboard makes, in the one place every route to
 	# ending a turn passes through - greying the button out is what the player
 	# sees, and this is what makes it true.
-	if not _deployment_mode and controller != null and controller.has_method("is_idle") 		and not controller.is_idle():
+	if not _deployment_mode and controller != null and controller.has_method("is_idle") \
+			and not controller.is_idle():
 		return
 	if _deployment_mode:
 		deployment_finished.emit()
@@ -576,7 +578,8 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	# the turn; which one it actually takes is decided by
 	# _consumable_spends_secondary, and it reaches for the secondary first.
 	var action_slot = "Secondary" if skill.is_secondary else "Main"
-	if skill is ItemDefinition and not skill.is_secondary 		and _caster().get("items_as_secondary", false):
+	if skill is ItemDefinition and not skill.is_secondary \
+			and _caster().get("items_as_secondary", false):
 		action_slot = "Main or Secondary"
 	lines.append("Action: %s" % action_slot)
 	lines.append("Range: %d-%d" % [skill.min_range, skill.max_range])
@@ -596,11 +599,15 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		])
 	else:
 		lines.append("Hit chance: %d%%" % skill.accuracy)
-		if combat.STUDIED_ACCURACY_BONUS > 0 and _reveals(skill):
-			# Said once, on the action that earns it, rather than repeated on
-			# every move in the game - where it was a line of small print on
-			# thirty tooltips explaining a rule that belongs to one of them.
-			lines.append("This character has +%d%% accuracy on an enemy studied by them." % combat.STUDIED_ACCURACY_BONUS)
+	# Which attribute the numbers on this skill are worked out from, so the
+	# panel says why the same Fireball is worth more in one pair of hands than
+	# another - and which stat to raise if you want it to hurt more.
+	#
+	# Only when something on it actually scales: every skill carries a scaling
+	# stat whether it uses one or not, so Blind and Stealth would otherwise
+	# advertise a Mystic that does nothing for them.
+	if _scales_off_the_caster(skill):
+		lines.append("Scales with: %s" % Stats.stat_name(skill.scaling_stat))
 	lines.append("Targets: %s" % ("Everyone caught in it" if skill.affects_both_sides else ("Allies" if skill.targets_ally else "Enemies")))
 	if skill.aoe_radius > 0:
 		lines.append("Area: %s" % describe_aoe_shape(skill))
@@ -621,6 +628,34 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	return "\n".join(lines)
 
 
+## Whether any of `skill`'s numbers are worked out from the caster's scaling
+## stat - damage, a heal, a tick, or the slam at the end of a shove.
+##
+## An item never does: what is written on the bottle is what it is worth
+## whoever uncorks it, which is why ItemDefinition hides the field entirely.
+func _scales_off_the_caster(skill: SkillDefinition) -> bool:
+	if skill == null or skill is ItemDefinition:
+		return false
+	for effect in skill.all_effects():
+		if effect == null:
+			continue
+		match effect.type:
+			EffectDefinition.EffectType.DAMAGE, \
+					EffectDefinition.EffectType.HEAL, \
+					EffectDefinition.EffectType.DAMAGE_OVER_TIME:
+				return true
+			EffectDefinition.EffectType.PUSH:
+				# A shove that does not hurt is just a shove.
+				if effect.damage_modifier > 0.0:
+					return true
+			EffectDefinition.EffectType.CONDITION:
+				# Stunned and Blinded burn nobody; Burn and Poisoned do, and
+				# what they tick for comes off whoever inflicted them.
+				if effect.condition_dot_strength() > 0.0:
+					return true
+	return false
+
+
 func describe_aoe_shape(skill: SkillDefinition) -> String:
 	match skill.aoe_shape:
 		SkillDefinition.AoEShape.LINE:
@@ -629,17 +664,6 @@ func describe_aoe_shape(skill: SkillDefinition) -> String:
 			return "Cone, length %d" % skill.aoe_radius
 		_:
 			return "Radius %d" % skill.aoe_radius
-
-
-## Whether `skill` is the one that takes an enemy's measure - the action the
-## studied accuracy bonus belongs to.
-func _reveals(skill: SkillDefinition) -> bool:
-	if skill == null:
-		return false
-	for effect in skill.all_effects():
-		if effect.type == EffectDefinition.EffectType.REVEAL:
-			return true
-	return false
 
 
 func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) -> String:

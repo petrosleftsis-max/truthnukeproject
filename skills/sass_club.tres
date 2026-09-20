@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bfh7kwnj6untt"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_a5uyk"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_6mbtt"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_eclqa"]
+[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="4_qq6om"]
+
+[resource]
+script = ExtResource("2_6mbtt")
+name = "Sass Club"
+description = "What's worse than getting clobberred by a staff is also hearing a painful remark."
+max_range = 1
+icon = ExtResource("2_eclqa")
+is_reactive = true
+ability_modifier = 1.5
+scaling_stat = 3
+sound = ExtResource("4_qq6om")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

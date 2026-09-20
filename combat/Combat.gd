@@ -861,7 +861,8 @@ func get_impact_tiles(skill: SkillDefinition, caster_position: Vector2i, aim_pos
 		# caster's own line of sight decides what may be aimed at in the first
 		# place.
 		var seen_from = caster_position
-		if skill.aoe_shape != SkillDefinition.AoEShape.LINE 			and skill.aoe_shape != SkillDefinition.AoEShape.CONE:
+		if skill.aoe_shape != SkillDefinition.AoEShape.LINE \
+				and skill.aoe_shape != SkillDefinition.AoEShape.CONE:
 			seen_from = aim_position
 		tiles = filter_tiles_by_line_of_sight(tiles, seen_from, movement_class)
 	return tiles
@@ -910,7 +911,13 @@ func has_line_of_sight(from: Vector2i, to: Vector2i, movement_class: int) -> boo
 		if e2 <= dx:
 			err += dx
 			y += sy
-		if (x != to.x or y != to.y) and controller.is_tile_blocking(Vector2i(x, y), movement_class):
+		if x == to.x and y == to.y:
+			continue
+		var between := Vector2i(x, y)
+		# Terrain, and then bodies: standing in front of somebody is cover, so a
+		# shot has to have a clear line past everybody in the way, whichever
+		# side they are on.
+		if controller.is_tile_blocking(between, movement_class) or controller.blocks_sight(between):
 			return false
 	return true
 
@@ -1246,7 +1253,8 @@ func set_hidden(comb: Dictionary, hidden: bool):
 	# Slipping away is a secondary action, so it can happen in the middle of
 	# somebody's own turn - and the overlay showing where the enemy is looking
 	# has to arrive with it rather than next turn, when the walking is over.
-	if controller != null and is_instance_valid(controller) 		and controller.has_method("refresh_watched_tiles"):
+	if controller != null and is_instance_valid(controller) \
+			and controller.has_method("refresh_watched_tiles"):
 		controller.refresh_watched_tiles(get_current_combatant())
 		controller.queue_redraw()
 
@@ -2498,7 +2506,8 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 	#
 	# Only blasts. A LINE or CONE is aimed as a direction from the caster, so
 	# its tiles do not sit around the aim and the shortcut does not hold.
-	var is_blast = skill.aoe_shape != SkillDefinition.AoEShape.LINE 		and skill.aoe_shape != SkillDefinition.AoEShape.CONE
+	var is_blast = skill.aoe_shape != SkillDefinition.AoEShape.LINE \
+			and skill.aoe_shape != SkillDefinition.AoEShape.CONE
 	#
 	# A skill that moves its caster aims at the tile they arrive on, and nobody
 	# arrives on a tile somebody is already standing on. Without this the best
@@ -2802,7 +2811,9 @@ func elements_of(skill: SkillDefinition) -> Array:
 	for effect in skill.all_effects():
 		if effect == null:
 			continue
-		if effect.type == EffectDefinition.EffectType.DAMAGE 			or effect.type == EffectDefinition.EffectType.DAMAGE_OVER_TIME 			or effect.type == EffectDefinition.EffectType.PUSH:
+		if effect.type == EffectDefinition.EffectType.DAMAGE \
+				or effect.type == EffectDefinition.EffectType.DAMAGE_OVER_TIME \
+				or effect.type == EffectDefinition.EffectType.PUSH:
 			if not effect.damage_type in found:
 				found.append(effect.damage_type)
 	return found
@@ -3000,7 +3011,9 @@ func reposition_healer(comb: Dictionary, heal_reach: int):
 	var post = front.position if not front.is_empty() else comb.position
 	var tile = find_best_reachable_tile(comb, controller.movement, func(t):
 		var attendance = -float(get_position_distance(t, post))
-		return float(count_allies_within_heal_reach(comb, t, heal_reach)) * HEAL_COVERAGE_WEIGHT 			+ attendance * HEAL_ATTENDANCE_WEIGHT 			+ score_tile_safety(t)
+		return float(count_allies_within_heal_reach(comb, t, heal_reach)) * HEAL_COVERAGE_WEIGHT \
+				+ attendance * HEAL_ATTENDANCE_WEIGHT \
+				+ score_tile_safety(t)
 	)
 	tile = avoid_needless_opportunity_attacks(comb, tile, {})
 	if tile != comb.position:
@@ -3358,12 +3371,6 @@ func ai_pick_target(weights):
 ## --- Knowing your enemy ---
 
 
-## What studying someone is worth when you then take a swing at them. Ten points
-## of accuracy: enough to be worth the action against anything you were going to
-## struggle to hit, and not enough to make a bad shot a good one.
-const STUDIED_ACCURACY_BONUS := 10
-
-
 ## Whether `attacker` is the one who measured `target`.
 ##
 ## Per studier rather than per side: the sheet is the player's to read once
@@ -3374,17 +3381,17 @@ func _has_studied(attacker: Dictionary, target: Dictionary) -> bool:
 	return attacker.get("id", -1) in target.get("studied_by", [])
 
 
-## The chance `attacker` has of landing `skill` on `target`, all in: the skill's
-## own accuracy, whatever conditions are helping or hindering them, and the
-## bonus for having studied who they are aiming at.
+## The chance `attacker` has of landing `skill` on `target`: the skill's own
+## accuracy, and whatever conditions are helping or hindering them.
 ##
-## `target` may be empty - an area skill rolls once before it knows who it
-## caught, and rolls against whoever is standing where it was aimed.
-func hit_chance(attacker: Dictionary, skill: SkillDefinition, target: Dictionary = {}) -> int:
-	var chance = skill.accuracy + get_effective_stat(attacker, "accuracy")
-	if _has_studied(attacker, target):
-		chance += STUDIED_ACCURACY_BONUS
-	return clampi(chance, 0, 100)
+## Studying somebody used to add ten points here as well. What Study is worth is
+## the reading - the sheet, and knowing what you are walking into - rather than
+## a thumb on the scale afterwards.
+##
+## `target` is still taken, because a roll is made per target and a condition on
+## one of them is theirs rather than the whole cast's.
+func hit_chance(attacker: Dictionary, skill: SkillDefinition, _target: Dictionary = {}) -> int:
+	return clampi(skill.accuracy + get_effective_stat(attacker, "accuracy"), 0, 100)
 
 
 ## Locks the view onto whoever is acting for the length of an AI turn.

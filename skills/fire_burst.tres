@@ -11,7 +11,6 @@ name = "Fire Burst"
 description = "A weak outburst of flames."
 min_range = 1
 max_range = 20
-accuracy = 100
 icon = ExtResource("2_ak3j8")
 respects_blocking = true
 ability_modifier = 0.7

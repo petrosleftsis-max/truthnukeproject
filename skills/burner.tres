@@ -19,7 +19,6 @@ name = "Burner"
 description = "Burn the target."
 min_range = 1
 max_range = 15
-accuracy = 85
 icon = ExtResource("2_luh46")
 required_level = 2
 respects_blocking = true

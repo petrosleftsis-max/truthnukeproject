@@ -127,7 +127,7 @@ func _swap_deployed(comb: Dictionary, tile: Vector2i):
 	var from = comb.position
 	if occupant == null:
 		_occupied_spaces.erase(from)
-		_occupied_spaces.append(tile)
+		_occupied_spaces[tile] = true
 		release_tile(from)
 	else:
 		# A straight swap: both tiles stay occupied, so the occupancy list
@@ -250,7 +250,11 @@ func get_combatant_at_position(target_position: Vector2i):
 			return comb
 	return null
 
-var _occupied_spaces = []
+## Every tile somebody is standing on. A Dictionary because line of sight asks
+## it once per tile walked, and this is the most-called question in the game -
+## an Array answered it by scanning, which is the same trap _blocking_lookup
+## was built to get out of.
+var _occupied_spaces := {}
 
 var _blocking_spaces = [
 	[],#Ground
@@ -283,6 +287,23 @@ func is_tile_blocking(tile: Vector2i, movement_class: int) -> bool:
 	return _blocking_lookup[movement_class].has(tile)
 
 
+## Whether somebody is standing on `tile`, which breaks a line of sight the way
+## a wall does.
+##
+## For every movement class alike: a body is a body, and flying does not see
+## over one. Movement was already stopped by an occupied tile; this is what puts
+## a person in front of an ally and calls it cover.
+##
+## Somebody hidden is no cover, though. A line that stopped dead at an empty
+## stretch of floor would say exactly where they were standing - the shot that
+## mysteriously will not connect is a better tell than seeing them.
+func blocks_sight(tile: Vector2i) -> bool:
+	if not _occupied_spaces.has(tile) or combat == null:
+		return false
+	var standing = combat.get_combatant_at(tile)
+	return not standing.is_empty() and not combat.is_hidden(standing)
+
+
 ## Whether `tile` is inside the playable grid at all, regardless of blocking.
 func is_in_bounds(tile: Vector2i) -> bool:
 	return _astargrid.region.has_point(tile)
@@ -294,7 +315,7 @@ func is_in_bounds(tile: Vector2i) -> bool:
 ## immediately afterwards.
 func reposition_combatant(old_position: Vector2i, new_position: Vector2i):
 	_occupied_spaces.erase(old_position)
-	_occupied_spaces.append(new_position)
+	_occupied_spaces[new_position] = true
 	release_tile(old_position)
 	update_points_weight()
 
@@ -456,7 +477,7 @@ func _mark_unpainted_cells_as_blocking():
 func combatant_added(combatant):
 #	_astargrid.set_point_solid(combatant.position, true)
 #	_astargrid.set_point_weight_scale(combatant.position, INF)
-	_occupied_spaces.append(combatant.position)
+	_occupied_spaces[combatant.position] = true
 
 
 func combatant_died(combatant):
@@ -741,7 +762,8 @@ func _run_step_arrival_and_flag():
 
 
 func _handle_step_arrival():
-	if not _walking_combatant.is_empty() 			and not is_same(_walking_combatant, combat.get_current_combatant()):
+	if not _walking_combatant.is_empty() \
+			and not is_same(_walking_combatant, combat.get_current_combatant()):
 		# This step belongs to a turn that has already ended. Writing it now
 		# would move whoever is acting instead - they share one _next_position -
 		# and leave the original walker stranded between two tiles.
@@ -753,10 +775,11 @@ func _handle_step_arrival():
 	_astargrid.set_point_weight_scale(_previous_position, 1)
 	controlled_node.position = _next_position
 	var new_position: Vector2i = tile_map.local_to_map(_next_position)
-	var mover = _walking_combatant if not _walking_combatant.is_empty() 		else combat.get_current_combatant()
+	var mover = _walking_combatant if not _walking_combatant.is_empty() \
+			else combat.get_current_combatant()
 	mover.position = new_position
 	_previous_position = new_position
-	_occupied_spaces.append(new_position)
+	_occupied_spaces[new_position] = true
 	update_points_weight()
 	await combat.check_reactive_skills(mover, old_position, new_position)
 	if not mover.alive:

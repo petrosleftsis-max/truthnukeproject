@@ -41,6 +41,7 @@
 [ext_resource type="Resource" uid="uid://l70b3ivwekao" path="res://skills/careful_swing.tres" id="40_ggodk"]
 [ext_resource type="Resource" uid="uid://dvpag72x3gbew" path="res://skills/guard.tres" id="41_phcln"]
 [ext_resource type="Resource" uid="uid://bgvq7nbrpbgdg" path="res://skills/holy_lance.tres" id="42_aqnu0"]
+[ext_resource type="Resource" uid="uid://bfh7kwnj6untt" path="res://skills/sass_club.tres" id="43_bw5lj"]
 [ext_resource type="Resource" uid="uid://b03pv5bjmcr1" path="res://skills/study.tres" id="99_study"]
 
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
@@ -75,6 +76,7 @@ skills = {
 "river_flow": ExtResource("20_dbes0"),
 "rock_throw": ExtResource("34_5x0hn"),
 "run": ExtResource("14_oiqse"),
+"sass_club": ExtResource("43_bw5lj"),
 "self_destruct": ExtResource("15_ncop4"),
 "shoving_strike": ExtResource("21_dbes0"),
 "slip_past": ExtResource("26_slip"),
