@@ -38,6 +38,8 @@
 [ext_resource type="Resource" uid="uid://byq7wlj15dbsw" path="res://skills/stealth.tres" id="37_stealth"]
 [ext_resource type="Resource" uid="uid://c3t33q31bj08p" path="res://skills/trailblaze.tres" id="38_m4jk1"]
 [ext_resource type="Resource" uid="uid://d2oqgavj2l0w6" path="res://skills/element_up.tres" id="39_56xb4"]
+[ext_resource type="Resource" uid="uid://l70b3ivwekao" path="res://skills/careful_swing.tres" id="40_ggodk"]
+[ext_resource type="Resource" uid="uid://dvpag72x3gbew" path="res://skills/guard.tres" id="41_phcln"]
 [ext_resource type="Resource" uid="uid://b03pv5bjmcr1" path="res://skills/study.tres" id="99_study"]
 
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
@@ -46,6 +48,7 @@ skills = {
 "blink_strike": ExtResource("28_blink"),
 "burner": ExtResource("6_lyvp1"),
 "burning_shot": ExtResource("25_q8moi"),
+"careful_swing": ExtResource("40_ggodk"),
 "cleanse": ExtResource("5_r41b3"),
 "crystalise": ExtResource("27_66cmj"),
 "element_up": ExtResource("39_56xb4"),
@@ -55,6 +58,7 @@ skills = {
 "flash": ExtResource("18_r41b3"),
 "follow_up_attack": ExtResource("16_ha562"),
 "greatsword_attack": ExtResource("2_g7odk"),
+"guard": ExtResource("41_phcln"),
 "gun": ExtResource("3_t1ypb"),
 "gust_blast": ExtResource("13_tuk3s"),
 "heal": ExtResource("10_pp4aq"),

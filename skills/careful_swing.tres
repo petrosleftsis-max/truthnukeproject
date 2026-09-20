@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://l70b3ivwekao"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_fc1fx"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_1jrtt"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_d0yiq"]
+[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Resource_1jrtt"]
+script = ExtResource("1_fc1fx")
+type = 7
+applies_to_caster = true
+stat = "defense"
+modifier_amount = 0
+stat_multiplier = 1.5
+duration = 1
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_d0yiq")
+name = "Careful Swing"
+description = "Swing in a way that protects the attacker."
+max_range = 1
+accuracy = 100
+icon = ExtResource("2_1jrtt")
+effects = Array[ExtResource("1_fc1fx")]([SubResource("Resource_1jrtt")])
+sound = ExtResource("90_sfx")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"
