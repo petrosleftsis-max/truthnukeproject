@@ -25,7 +25,7 @@
 [ext_resource type="Resource" uid="uid://csess3rt4dg6s" path="res://skills/water_spike.tres" id="23_8fqdd"]
 [ext_resource type="Resource" uid="uid://b0upcs6tuhnyk" path="res://skills/warning_shot.tres" id="24_pp4aq"]
 [ext_resource type="Resource" uid="uid://c2xk3fh5n0i1y" path="res://skills/burning_shot.tres" id="25_q8moi"]
-[ext_resource type="Resource" path="res://skills/slip_past.tres" id="26_slip"]
+[ext_resource type="Resource" uid="uid://c5dgefmuahnpp" path="res://skills/slip_past.tres" id="26_slip"]
 [ext_resource type="Resource" uid="uid://dr7hde5x13hvf" path="res://skills/crystalise.tres" id="27_66cmj"]
 [ext_resource type="Resource" uid="uid://cvamxn5tduee0" path="res://skills/hermes_step.tres" id="27_hermes"]
 [ext_resource type="Resource" uid="uid://c2joaowui0c45" path="res://skills/revitalizer.tres" id="27_tuk3s"]
