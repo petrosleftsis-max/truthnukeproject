@@ -328,7 +328,7 @@ func add_combatant(combatant: Dictionary, side: int, position: Vector2i):
 	groups[side].append(combatants.size() - 1)
 
 	var new_combatant_sprite = CombatantSprite.new()
-	$"../Terrain/TileMap".add_child(new_combatant_sprite)
+	combatant_layer().add_child(new_combatant_sprite)
 	new_combatant_sprite.position = Grid.tile_to_world(position)
 	new_combatant_sprite.z_index = 1
 	var facing_flip = side == 0
@@ -2027,11 +2027,41 @@ func damage_colour(type: int) -> String:
 	return "#" + Damage.type_colour(type).to_html(false)
 
 
+## Where combatant sprites live: a y-sorted layer of the tile map.
+##
+## They used to be children of the TileMap itself, every one at z_index 1 - and
+## among equal z, Godot draws in tree order, which here was whatever order the
+## encounter happened to spawn them in. That never showed while a sprite was
+## exactly one tile and could not overlap a neighbour. One drawn taller than
+## its tile overlaps constantly, and whoever spawned later drew in front
+## whether they were standing in front or not.
+##
+## Made here rather than added to each of the seven terrain scenes by hand, and
+## y-sorted on a node of its own rather than on the TileMap, whose own y-sort
+## would change how the terrain layers themselves draw.
+##
+## It sorts by `position`, which stays the exact tile centre - the visual lift
+## lives on the sprite's own `offset` - so people are ordered by where their
+## feet are rather than by how tall they happen to be drawn.
+func combatant_layer() -> Node2D:
+	var map = $"../Terrain/TileMap"
+	var layer = map.get_node_or_null("Combatants")
+	if layer == null:
+		layer = Node2D.new()
+		layer.name = "Combatants"
+		layer.y_sort_enabled = true
+		map.add_child(layer)
+	return layer
+
+
 func float_number(target: Dictionary, text: String, colour: Color):
 	var sprite = target.get("sprite")
 	if sprite == null or not is_instance_valid(sprite) or sprite.get_parent() == null:
 		return
-	FloatingNumber.spawn(sprite.get_parent(), sprite.position, text, colour)
+	# Over their head rather than through their middle. A sprite no taller than
+	# its tile answers zero, so nothing moves for anybody drawn as they are now.
+	var above = Vector2(0.0, -sprite.head_height())
+	FloatingNumber.spawn(sprite.get_parent(), sprite.position + above, text, colour)
 
 
 ## Blooms the screen edges in `colour`. Silent when this battle has no vignette

@@ -26,15 +26,22 @@ class_name CombatantSprite
 ## sprite_frames empty to keep using the plain static map_sprite, exactly as
 ## every existing combatant does today.
 ##
-## Frames can be taller than one tile (32px) if you want more room for
-## animation detail than a 32x32 sprite allows - keep the width at 32px
-## (matching the tile, so units don't overlap their neighbors), and any
-## extra height automatically shifts the sprite up so its feet still stand
-## at the bottom of its own tile, instead of it centering on the tile and
-## sinking into the ground. This is computed from the actual "idle" frame
-## size, not a fixed assumption, so any height works with no extra setup -
-## just keep every animation for the same combatant (idle/walk/skill/dead)
-## the same frame size as each other, since the offset is only computed once.
+## Frames can be taller than one tile - see Grid.TILE_SIZE for what a tile
+## actually measures - and any extra height automatically shifts the sprite up
+## so its feet still stand at the bottom of its own tile, instead of it
+## centring on the tile and sinking into the ground. A frame twice the height
+## of a tile therefore stands a whole tile above it, which is the point.
+##
+## Width is a choice rather than a rule. At tile width nobody overlaps a
+## neighbour; wider than that, they overhang each other, which reads as a
+## crowd rather than a fault because the combatant layer is y-sorted (see
+## Combat.combatant_layer) and whoever is nearer the bottom of the screen
+## draws in front.
+##
+## Computed from the actual "idle" frame size rather than a fixed assumption,
+## so any height works with no extra setup - just keep every animation for the
+## same combatant (idle/walk/skill/dead) the same frame size as each other,
+## since the offset is only measured once.
 
 var _animated: AnimatedSprite2D = null
 var _static: Sprite2D = null
@@ -57,6 +64,11 @@ func set_hidden_alpha(alpha: float):
 			sprite.self_modulate.a = alpha
 
 
+## The height of this sprite's frames, measured once when it was set up. Zero
+## for a static sprite, which has no frames to measure.
+var _frame_height := 0.0
+
+
 func setup(combatant_sprite_frames: SpriteFrames, map_sprite: Texture2D, facing_flip: bool):
 	if combatant_sprite_frames != null:
 		_animated = AnimatedSprite2D.new()
@@ -77,13 +89,22 @@ func setup(combatant_sprite_frames: SpriteFrames, map_sprite: Texture2D, facing_
 ## Shifts the sprite's drawn position upward via `offset` - which only
 ## affects rendering, unlike `position`, which movement/knockback/etc. all
 ## depend on being the exact tile centre - by however much its frame height
-## exceeds one tile (32px), so the extra height grows upward from the tile's
-## floor instead of the sprite centring on the tile. A 32px-tall frame gets
-## an offset of 0, matching every existing static sprite exactly.
+## exceeds one tile, so the extra height grows upward from the tile's floor
+## instead of the sprite centring on the tile. A tile-sized frame gets an
+## offset of 0, matching every existing static sprite exactly.
 func _align_feet_to_tile():
-	var frame_height = _get_reference_frame_height()
-	if frame_height > 0:
-		_animated.offset.y = Grid.HALF_TILE.y - frame_height / 2.0
+	_frame_height = _get_reference_frame_height()
+	if _frame_height > 0:
+		_animated.offset.y = Grid.HALF_TILE.y - _frame_height / 2.0
+
+
+## How far above the tile centre this sprite reaches, for anything that should
+## appear over their head rather than through their middle.
+##
+## Zero for a sprite no taller than its tile, which is where a floating number
+## has always gone - so nothing moves until somebody is actually drawn taller.
+func head_height() -> float:
+	return maxf(_frame_height - Grid.TILE_SIZE, 0.0)
 
 
 ## The height of this sprite's first "idle" frame (falling back to whichever
