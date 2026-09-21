@@ -19,6 +19,7 @@ name = "Guard"
 description = "Stay on your guard."
 icon = ExtResource("2_60int")
 required_level = 3
+targets_ally = true
 effects = Array[ExtResource("1_gli2n")]([SubResource("Resource_60int")])
 deals_damage = false
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

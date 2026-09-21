@@ -1430,12 +1430,18 @@ func resync_live_movement(target: Dictionary, effective_before: int):
 ## effect to land on this target.
 func describe_condition(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition, mention_skill: bool, fallback: String) -> String:
 	var condition = effect.display_name if effect.display_name != "" else fallback
+	# Whoever it landed on, in their own colour. All of these read in the enemy
+	# red, so Guard steadying its own user and Quicken hurrying an ally both
+	# reported as something done TO them, in the same red a poisoning wears.
+	# Heals and cleanses already name an ally in green; this now matches them.
+	var whom = "[color=%s]%s[/color]" % [
+		"lightgreen" if target.side == attacker.side else "red", target.name]
 	if mention_skill and skill != null:
-		return "[color=yellow]%s[/color] used %s on [color=red]%s[/color], inflicting %s.\n" % [
-			attacker.name, skill.name, target.name, condition
+		return "[color=yellow]%s[/color] used %s on %s, inflicting %s.\n" % [
+			attacker.name, skill.name, whom, condition
 		]
-	return "[color=yellow]%s[/color] inflicted %s on [color=red]%s[/color].\n" % [
-		attacker.name, condition, target.name
+	return "[color=yellow]%s[/color] inflicted %s on %s.\n" % [
+		attacker.name, condition, whom
 	]
 
 
