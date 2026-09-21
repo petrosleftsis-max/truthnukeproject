@@ -17,6 +17,14 @@ const ROWS := [
 	{"label": "Sound effects", "bus": "sfx"},
 ]
 
+## How far one key press moves a slider, against the percent a drag moves it.
+##
+## Godot moves a focused slider by its own step, which is now a percent - right
+## for a mouse and a hundred presses end to end for a keyboard. The coarser
+## jump lives here rather than in the step itself, so precision is not the
+## price of being quick.
+const KEY_STEP := 0.05
+
 ## Matches the menus around it: body text and a dimmer readout beside it.
 const INK_DIM := Color("c2ceda")
 const MUTED := Color("8296a9")
@@ -61,8 +69,28 @@ func _row(label_text: String, which: String) -> Control:
 		Music.set_volume(which, level)
 		readout.text = "%d%%" % roundi(level * 100.0)
 	)
+	slider.gui_input.connect(func(event): _nudge(slider, event))
 	row.add_child(slider)
 	return row
+
+
+## Moves a focused slider by KEY_STEP instead of by its own step.
+##
+## Left and right only. Up and down are left alone because that is how both
+## menus move focus from one control to the next - taking them here would trap
+## the keyboard on whichever slider it reached first.
+func _nudge(slider: HSlider, event: InputEvent):
+	var direction := 0.0
+	if event.is_action_pressed("ui_right", true):
+		direction = 1.0
+	elif event.is_action_pressed("ui_left", true):
+		direction = -1.0
+	else:
+		return
+	slider.value = clampf(slider.value + direction * KEY_STEP,
+		slider.min_value, slider.max_value)
+	# Or Godot moves it again by its own step on the way past.
+	slider.accept_event()
 
 
 ## The sliders themselves, in order, for anything that needs to put keyboard
