@@ -267,6 +267,19 @@ var _blocking_spaces = [
 ## Blocks = [0, 2]) only appears here a single time.
 var _all_blocking_spaces = []
 
+## The value a tile's Blocks data carries to say "stop movement, but let sight
+## through" - a railing, a window, a chest-high wall.
+##
+## It sits alongside the movement classes rather than beside them because it is
+## painted in the same array: [0, 2] is a wall to walkers and riders, and
+## [0, 2, 3] is the same wall with a gap at eye height. A tile that does not
+## block a class in the first place is already transparent to it, so this only
+## ever softens what the other numbers said.
+const SEE_THROUGH := 3
+
+## Tiles that stop movement but not sight - the 3s above, as a set.
+var _see_through := {}
+
 ## The same tiles as _blocking_spaces, as a set, for asking whether one tile is
 ## in there.
 ##
@@ -280,11 +293,33 @@ var _all_blocking_spaces = []
 ## in order, and nothing ever removes a blocking tile, so the two cannot drift.
 var _blocking_lookup: Array[Dictionary] = [{}, {}, {}]
 
-## Whether `tile` blocks movement (and, when a skill opts in via
-## SkillDefinition.respects_blocking, line of sight) for `movement_class`
-## (0=Ground, 1=Flying, 2=Mounted). Same data movement already uses.
+## Whether `tile` blocks movement for `movement_class` (0=Ground, 1=Flying,
+## 2=Mounted).
+##
+## Movement only. Sight is a separate question since a tile can stop one and
+## not the other - see blocks_line_of_sight, which is what a shot asks.
 func is_tile_blocking(tile: Vector2i, movement_class: int) -> bool:
 	return _blocking_lookup[movement_class].has(tile)
+
+
+## Whether the ground itself stops a shot at `tile` - blocking for this
+## movement class, and not painted see-through.
+##
+## Separate from the body question below because the two are asked in
+## different places. A shot passing THROUGH a tile is stopped by either. A shot
+## aimed AT a tile is stopped only by the terrain: somebody standing there is
+## the reason to aim at it, not a reason to refuse.
+func terrain_blocks_sight(tile: Vector2i, movement_class: int) -> bool:
+	return _blocking_lookup[movement_class].has(tile) and not _see_through.has(tile)
+
+
+## Whether `tile` stops a shot from passing through it: the ground, or somebody
+## standing on it.
+##
+## The one place the whole rule lives, so a line of sight, the field of view
+## drawn for a hiding player and the AI all judge it the same way.
+func blocks_line_of_sight(tile: Vector2i, movement_class: int) -> bool:
+	return terrain_blocks_sight(tile, movement_class) or blocks_sight(tile)
 
 
 ## Whether somebody is standing on `tile`, which breaks a line of sight the way
@@ -435,11 +470,22 @@ func _ready():
 	for tile in tile_map.get_used_cells(0):
 		var tile_blocking = tile_map.get_cell_tile_data(0, tile)
 		var blocks = tile_blocking.get_custom_data("Blocks")
-		if blocks.size() > 0:
-			_all_blocking_spaces.append(tile)
+		# SEE_THROUGH rides in the same array as the movement classes but is
+		# not one, so it is taken out here rather than indexed with them - and
+		# a tile carrying nothing else is no obstacle at all, which is why
+		# _all_blocking_spaces waits to hear that a class was really listed.
+		var stops_somebody = false
 		for block in blocks:
+			if block == SEE_THROUGH:
+				_see_through[tile] = true
+				continue
+			if block < 0 or block >= _blocking_spaces.size():
+				continue
+			stops_somebody = true
 			_blocking_spaces[block].append(tile)
 			_blocking_lookup[block][tile] = true
+		if stops_somebody:
+			_all_blocking_spaces.append(tile)
 	_mark_unpainted_cells_as_blocking()
 
 

@@ -868,13 +868,18 @@ func get_impact_tiles(skill: SkillDefinition, caster_position: Vector2i, aim_pos
 	return tiles
 
 
-## Keeps only the tiles in `tiles` that (a) aren't themselves a blocking tile
+## Keeps only the tiles in `tiles` that (a) aren't themselves solid to look at
 ## and (b) have an unobstructed straight path from `from` - i.e. nothing
 ## behind a wall, and no shot that has to pass through one to get there.
+##
+## Solid to LOOK at, not to walk on. A railing painted see-through stops a
+## walker but not a shot, and a flier can be standing on it - so it stays in
+## range and is drawn in reach rather than being quietly dropped from the very
+## overlay that says what can be hit.
 func filter_tiles_by_line_of_sight(tiles: Array, from: Vector2i, movement_class: int) -> Array:
 	var result = []
 	for tile in tiles:
-		if controller.is_tile_blocking(tile, movement_class):
+		if controller.terrain_blocks_sight(tile, movement_class):
 			continue
 		if has_line_of_sight(from, tile, movement_class):
 			result.append(tile)
@@ -914,10 +919,11 @@ func has_line_of_sight(from: Vector2i, to: Vector2i, movement_class: int) -> boo
 		if x == to.x and y == to.y:
 			continue
 		var between := Vector2i(x, y)
-		# Terrain, and then bodies: standing in front of somebody is cover, so a
-		# shot has to have a clear line past everybody in the way, whichever
-		# side they are on.
-		if controller.is_tile_blocking(between, movement_class) or controller.blocks_sight(between):
+		# Terrain and bodies both, in the one place that knows the whole rule.
+		# Standing in front of somebody is cover, whichever side they are on -
+		# and a wall painted see-through stops the step without stopping the
+		# shot.
+		if controller.blocks_line_of_sight(between, movement_class):
 			return false
 	return true
 
@@ -2532,8 +2538,10 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 			var p = combatants[index]
 			if not p.alive or is_hidden(p):
 				continue
-			# Exactly what filter_tiles_by_line_of_sight would have dropped.
-			if skill.respects_blocking and controller.is_tile_blocking(p.position, movement_class):
+			# Exactly what filter_tiles_by_line_of_sight would have dropped, and
+			# it has to stay exactly that or the AI writes off a target the
+			# player is shown as reachable.
+			if skill.respects_blocking and controller.terrain_blocks_sight(p.position, movement_class):
 				continue
 			catchable.append(p.position)
 	for dx in range(-reach, reach + 1):
