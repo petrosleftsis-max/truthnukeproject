@@ -136,16 +136,16 @@ const TYPE_COLOURS := [
 	Color("e4e4e4"), # Physical
 	Color("ff6a30"), # Fire
 	Color("4aa8ff"), # Water
-	Color("9fe8cd"), # Wind
+	Color("46c4a0"), # Wind - a real teal, since a pale mint read as Ice
 	Color("c08a4a"), # Earth
-	Color("8fd14a"), # Poison
-	Color("cc72e0"), # Psychic
-	Color("ff9de6"), # Plasma - fire raised past burning
+	Color("5fbf2e"), # Poison - a true green, leaving the yellow-green to Acid
+	Color("ffb8f2"), # Psychic
+	Color("cc72e0"), # Plasma - fire raised past burning, so it takes the vivid one
 	Color("a8e6ff"), # Ice
-	Color("b39dff"), # Lightning
-	Color("b9c4cf"), # Metal
+	Color("7a5cff"), # Lightning - saturated rather than pale, to clear Psychic
+	Color("7d8d9c"), # Metal - steel rather than a grubby white, to clear Physical
 	Color("d4ff4a"), # Acid
-	Color("ffb35c"), # Idol
+	Color("ffd166"), # Idol - gold rather than clay, to clear Earth
 ]
 
 

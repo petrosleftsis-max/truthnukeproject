@@ -1633,10 +1633,11 @@ func _take_collision_damage(shover: Dictionary, who: Dictionary, effect: EffectD
 	who.hp -= collision_damage
 	show_damage(who, collision_damage, shove_element, true)
 	update_combatants.emit(combatants)
-	update_information.emit("[color=red]{0}[/color] {1}, taking [color=gray]{2} damage[/color]\n".format([
+	update_information.emit("[color=red]{0}[/color] {1}, taking [color={3}]{2} damage[/color]\n".format([
 		who.name,
 		what_happened,
-		collision_damage
+		collision_damage,
+		damage_colour(shove_element)
 	]))
 	if who.hp <= 0:
 		combatant_die(who)
@@ -1690,8 +1691,9 @@ func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition, dot
 	comb.hp -= amount
 	show_damage(comb, amount, condition.dot_type, true)
 	update_combatants.emit(combatants)
-	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from %s.\n" % [
-		comb.name, amount, Damage.type_name(condition.dot_type).to_lower(),
+	update_information.emit("[color=red]%s[/color] took [color=%s]%d %s damage%s[/color] from %s.\n" % [
+		comb.name, damage_colour(condition.dot_type), amount,
+		Damage.type_name(condition.dot_type).to_lower(),
 		Damage.describe_resistance(resistance), condition.display_name
 	])
 	if comb.hp <= 0:
@@ -1707,9 +1709,9 @@ func tick_damage_over_time(comb: Dictionary, eff: Dictionary):
 	comb.hp -= amount
 	show_damage(comb, amount, type, true)
 	update_combatants.emit(combatants)
-	update_information.emit("[color=red]%s[/color] took [color=gray]%d %s damage%s[/color] from a lingering effect (%s).\n" % [
-		comb.name, amount, Damage.type_name(type).to_lower(), Damage.describe_resistance(resistance),
-		eff.get("source_name", "unknown")
+	update_information.emit("[color=red]%s[/color] took [color=%s]%d %s damage%s[/color] from a lingering effect (%s).\n" % [
+		comb.name, damage_colour(type), amount, Damage.type_name(type).to_lower(),
+		Damage.describe_resistance(resistance), eff.get("source_name", "unknown")
 	])
 	if comb.hp <= 0:
 		combatant_die(comb)
@@ -2015,6 +2017,16 @@ func flash_target(attacker: Dictionary, target: Dictionary, damage_colour = null
 ## Floats a number off `target` - what they just lost, or gained. Parented to
 ## whatever holds the combatant sprites so it shares their coordinate space and
 ## scrolls with the map.
+## The colour a number of `type` damage is written in, as BBCode wants it.
+##
+## The same colour the floating number over their head uses, so the log and the
+## battlefield agree about what just landed. Every one of these was grey, which
+## meant the log threw away the one piece of information the number carries
+## besides its size.
+func damage_colour(type: int) -> String:
+	return "#" + Damage.type_colour(type).to_html(false)
+
+
 func float_number(target: Dictionary, text: String, colour: Color):
 	var sprite = target.get("sprite")
 	if sprite == null or not is_instance_valid(sprite) or sprite.get_parent() == null:
@@ -2243,12 +2255,12 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	show_damage(target, damage, element)
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
-		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=gray]%d %s[/color].\n" % [
-			attacker.name, skill.name, target.name, damage, flavour
+		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=%s]%d %s[/color].\n" % [
+			attacker.name, skill.name, target.name, damage_colour(element), damage, flavour
 		])
 	else:
-		update_information.emit("[color=yellow]%s[/color] dealt [color=gray]%d %s[/color] to [color=red]%s[/color].\n" % [
-			attacker.name, damage, flavour, target.name
+		update_information.emit("[color=yellow]%s[/color] dealt [color=%s]%d %s[/color] to [color=red]%s[/color].\n" % [
+			attacker.name, damage_colour(element), damage, flavour, target.name
 		])
 	if target.hp <= 0:
 		combatant_die(target)
@@ -2263,11 +2275,11 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	float_number(target, "+" + str(amount), Color("7fe08a"))
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
-		update_information.emit("[color=yellow]%s[/color] used %s on [color=lightgreen]%s[/color], healing [color=gray]%d[/color].\n" % [
+		update_information.emit("[color=yellow]%s[/color] used %s on [color=lightgreen]%s[/color], healing [color=lightgreen]%d[/color].\n" % [
 			attacker.name, skill.name, target.name, amount
 		])
 	else:
-		update_information.emit("[color=yellow]%s[/color] healed [color=lightgreen]%s[/color] for [color=gray]%d[/color].\n" % [
+		update_information.emit("[color=yellow]%s[/color] healed [color=lightgreen]%s[/color] for [color=lightgreen]%d[/color].\n" % [
 			attacker.name, target.name, amount
 		])
 
