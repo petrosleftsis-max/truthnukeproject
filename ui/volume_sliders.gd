@@ -50,7 +50,10 @@ func _row(label_text: String, which: String) -> Control:
 	slider.name = "%sSlider" % which.capitalize()
 	slider.min_value = 0.0
 	slider.max_value = 1.0
-	slider.step = 0.05
+	# One percent at a time. The readout is whole percentages, so a coarser step
+	# meant the number jumped in fives and the levels in between were simply not
+	# reachable - the slider could show 45 or 50 and nothing else.
+	slider.step = 0.01
 	slider.value = Music.volume(which)
 	slider.custom_minimum_size = Vector2(0, 20)
 	readout.text = "%d%%" % roundi(slider.value * 100.0)
