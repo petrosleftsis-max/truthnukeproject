@@ -16,7 +16,6 @@ script = ExtResource("2_item")
 name = "Blinding Bomb"
 description = "Deliver to them an instant of intense light that blinds them temporarily."
 max_range = 5
-accuracy = 100
 icon = ExtResource("4_icon")
 effects = Array[ExtResource("1_eff")]([SubResource("Effect_blinding_bomb")])
 deals_damage = false

@@ -21,4 +21,5 @@ max_range = 1
 icon = ExtResource("2_1jrtt")
 effects = Array[ExtResource("1_fc1fx")]([SubResource("Resource_1jrtt")])
 sound = ExtResource("90_sfx")
+sound_volume_db = -6.0
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

@@ -14,4 +14,5 @@ icon = ExtResource("2_icon")
 teleports = 1
 ability_modifier = 0.8
 sound = ExtResource("3_sfx")
+sound_volume_db = -6.0
 aoe_radius = 1

@@ -22,7 +22,6 @@ flat_power = 15
 name = "Medicine"
 description = "Restores 15 health and lifts whatever went wrong most recently."
 max_range = 2
-accuracy = 100
 icon = ExtResource("3_icon")
 targets_ally = true
 effects = Array[ExtResource("1_eff")]([SubResource("Effect_med_heal"), SubResource("Effect_med_cure")])

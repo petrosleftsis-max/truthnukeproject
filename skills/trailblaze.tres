@@ -19,7 +19,6 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 script = ExtResource("2_6gyig")
 name = "Trailblaze"
 description = "Blaze your way through."
-accuracy = 100
 icon = ExtResource("3_d21eg")
 required_level = 2
 targets_ally = true

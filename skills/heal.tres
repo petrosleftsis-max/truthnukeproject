@@ -15,7 +15,6 @@ script = ExtResource("3_5f2sg")
 name = "Heal"
 description = "Recover one's vitality."
 max_range = 5
-accuracy = 100
 icon = ExtResource("2_oejdn")
 targets_ally = true
 effects = Array[ExtResource("1_d34oe")]([SubResource("Effect_heal")])

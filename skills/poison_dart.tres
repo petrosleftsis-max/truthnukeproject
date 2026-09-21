@@ -19,7 +19,6 @@ name = "Poison Dart"
 description = "A dart coated in a toxin that poisons the target."
 min_range = 1
 max_range = 15
-accuracy = 100
 icon = ExtResource("2_v0ngf")
 required_level = 2
 respects_blocking = true

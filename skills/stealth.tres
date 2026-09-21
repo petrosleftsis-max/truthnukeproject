@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://byq7wlj15dbsw"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_stealth"]
-[ext_resource type="Texture2D" uid="uid://c7ygk4gdgi0qo" path="res://imagese/skills/debuff_skill.png" id="2_stealth"]
+[ext_resource type="Texture2D" uid="uid://dksecl8ou1gop" path="res://imagese/skills/stealth_skill.png" id="2_stealth"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_stealth"]
 
 [sub_resource type="Resource" id="Effect_stealth"]
@@ -14,7 +14,6 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 script = ExtResource("3_stealth")
 name = "Stealth"
 description = "Slip out of sight. Only possible while no enemy can see you, and it lasts until one of them can again - at which point whoever spotted you stops where they stand."
-accuracy = 100
 icon = ExtResource("2_stealth")
 targets_ally = true
 effects = Array[ExtResource("1_stealth")]([SubResource("Effect_stealth")])

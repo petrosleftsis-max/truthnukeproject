@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://dvpag72x3gbew"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_gli2n"]
-[ext_resource type="Texture2D" uid="uid://c7ygk4gdgi0qo" path="res://imagese/skills/debuff_skill.png" id="2_60int"]
+[ext_resource type="Texture2D" uid="uid://cxxnyh6u56wbl" path="res://imagese/skills/buff_skill.png" id="2_60int"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_80nlb"]
 
 [sub_resource type="Resource" id="Resource_60int"]
@@ -17,7 +17,6 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 script = ExtResource("2_80nlb")
 name = "Guard"
 description = "Stay on your guard."
-accuracy = 100
 icon = ExtResource("2_60int")
 required_level = 3
 effects = Array[ExtResource("1_gli2n")]([SubResource("Resource_60int")])

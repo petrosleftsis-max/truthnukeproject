@@ -16,7 +16,6 @@ name = "Wind Vacuum"
 description = "Suck a target closer to you."
 min_range = 2
 max_range = 15
-accuracy = 100
 icon = ExtResource("2_ahj24")
 required_level = 2
 affects_both_sides = true

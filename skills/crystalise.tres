@@ -21,7 +21,6 @@ script = ExtResource("2_jk1kw")
 name = "Crystalise"
 description = "Cover an enemy in hindering stones."
 max_range = 15
-accuracy = 100
 icon = ExtResource("3_nxawm")
 required_level = 2
 respects_blocking = true

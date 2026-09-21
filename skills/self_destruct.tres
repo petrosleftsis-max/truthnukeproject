@@ -9,8 +9,8 @@
 script = ExtResource("3_3tcsn")
 name = "Self Destruct"
 description = "Detonates violently, damaging everyone nearby - and always kills the user."
-accuracy = 100
 icon = ExtResource("2_rvp4t")
 kills_caster = true
 sound = ExtResource("90_sfx")
+sound_volume_db = -6.0
 aoe_radius = 3

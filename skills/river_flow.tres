@@ -22,7 +22,6 @@ name = "River Flow"
 description = "Control water to freeze the target."
 min_range = 1
 max_range = 15
-accuracy = 100
 icon = ExtResource("3_0pa21")
 required_level = 2
 respects_blocking = true

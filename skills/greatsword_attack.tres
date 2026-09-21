@@ -16,3 +16,4 @@ is_reactive = true
 animation = "attack"
 ability_modifier = 1.5
 sound = ExtResource("90_sfx")
+sound_volume_db = -6.0

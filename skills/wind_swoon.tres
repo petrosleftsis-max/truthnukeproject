@@ -21,7 +21,6 @@ script = ExtResource("2_ohx0v")
 name = "Wind Swoon"
 description = "Swoon them with the wind."
 max_range = 15
-accuracy = 100
 icon = ExtResource("3_75462")
 required_level = 2
 respects_blocking = true

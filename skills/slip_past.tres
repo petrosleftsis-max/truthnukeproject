@@ -1,14 +1,14 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://c5dgefmuahnpp"]
 
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="1_skill"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_8sjsj"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="1_skill"]
+[ext_resource type="Texture2D" uid="uid://4i0wkre3rafo" path="res://imagese/skills/slip_past_icon.png" id="2_icon"]
 
 [resource]
 script = ExtResource("1_skill")
 name = "Slip Past"
 description = "Move as though nobody were watching. Nothing can react to you for the rest of this turn."
-accuracy = 100
 icon = ExtResource("2_icon")
 targets_ally = true
-deals_damage = false
 suppresses_reactions = true
+deals_damage = false

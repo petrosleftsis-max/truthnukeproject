@@ -16,7 +16,6 @@ flat_power = 25
 name = "Cure Potion"
 description = "A measured draught. Restores 25 health to an ally within reach."
 max_range = 2
-accuracy = 100
 icon = ExtResource("3_icon")
 targets_ally = true
 effects = Array[ExtResource("1_eff")]([SubResource("Effect_cure")])

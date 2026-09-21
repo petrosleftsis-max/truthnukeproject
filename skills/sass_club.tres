@@ -15,4 +15,5 @@ is_reactive = true
 ability_modifier = 1.5
 scaling_stat = 3
 sound = ExtResource("4_qq6om")
+sound_volume_db = -6.0
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

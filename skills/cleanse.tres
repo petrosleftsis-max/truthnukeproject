@@ -14,7 +14,6 @@ script = ExtResource("3_bc5pw")
 name = "Cleanse"
 description = "Removes debuff effects from an ally."
 max_range = 10
-accuracy = 100
 icon = ExtResource("2_djbbj")
 targets_ally = true
 is_secondary = true
