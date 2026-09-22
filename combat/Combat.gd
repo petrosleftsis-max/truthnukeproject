@@ -898,9 +898,39 @@ func has_line_of_sight(from: Vector2i, to: Vector2i, movement_class: int) -> boo
 	# later. Allocating an array per call, tens of thousands of times a turn,
 	# cost more than the walk itself.
 	#
-	# Deliberately the same arithmetic, in the same order, so it cannot disagree
-	# with get_tiles_between about what lies between two tiles. The blindcast
-	# and stealth suites check the two against each other.
+	# Always walked from the same end of the pair, whichever end is asking.
+	#
+	# The walk is not symmetric on its own. Where a line clips the corner of a
+	# wall it steps one side of the corner going out and the other coming back,
+	# so the two people at its ends disagreed about whether they could see each
+	# other - on the laboratory map, one pair in twenty-eight. That let somebody
+	# shoot from a place nobody could shoot back at, which is the hole the
+	# reveal-on-acting check exists to close: a hidden archer could empty a
+	# quiver past a corner and never be seen.
+	#
+	# Ordering the pair fixes it for nothing. Asking both ways and taking either
+	# answer also works, but only 7% of lines on that map are clear, so the
+	# second walk ran on nearly every question: one sweep of the enemy field of
+	# view measured 421ms that way, 344ms demanding both, and 78ms like this -
+	# less than the 132ms the lopsided version cost, since starting from a fixed
+	# end tends to meet a wall sooner.
+	#
+	# What it does not do is decide corner-grazes on a principle. Whether a shot
+	# past a corner connects now depends on which of the two tiles sorts first,
+	# which is consistent and arbitrary. Both people get the same answer, which
+	# is the part that was actually broken.
+	if to.x < from.x or (to.x == from.x and to.y < from.y):
+		return _walk_is_clear(to, from, movement_class)
+	return _walk_is_clear(from, to, movement_class)
+
+
+## One direction of the walk. has_line_of_sight is the question to ask; this is
+## half of its answer, and on its own it is the asymmetry rather than the rule.
+##
+## Deliberately the same arithmetic, in the same order, so it cannot disagree
+## with get_tiles_between about what lies between two tiles. The blindcast
+## and stealth suites check the two against each other.
+func _walk_is_clear(from: Vector2i, to: Vector2i, movement_class: int) -> bool:
 	var dx = absi(to.x - from.x)
 	var dy = -absi(to.y - from.y)
 	var sx = 1 if from.x < to.x else -1
