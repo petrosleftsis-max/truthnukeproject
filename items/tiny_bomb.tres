@@ -7,7 +7,7 @@
 
 [resource]
 script = ExtResource("2_item")
-flat_power = 10
+item_power = 10
 name = "Tiny Bomb"
 description = "Hopefully they won't appear inside someone's dinner."
 max_range = 5

@@ -7,7 +7,7 @@
 
 [resource]
 script = ExtResource("2_4e0r7")
-flat_power = 47
+item_power = 47
 name = "Medium Bomb"
 description = "Sometimes used to demolish weak structures."
 max_range = 4

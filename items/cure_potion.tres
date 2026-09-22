@@ -13,7 +13,7 @@ max_amount = 25
 
 [resource]
 script = ExtResource("2_item")
-flat_power = 10
+item_power = 10
 name = "Cure Potion"
 description = "A quick drink to help you restore minor vitality."
 max_range = 2

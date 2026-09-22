@@ -19,7 +19,7 @@ dispel_count = 1
 
 [resource]
 script = ExtResource("2_item")
-flat_power = 47
+item_power = 47
 name = "Medicine"
 description = "Restores minor health and lifts whatever went wrong most recently."
 max_range = 2

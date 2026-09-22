@@ -15,7 +15,7 @@ condition_dot_modifier = 0.6
 
 [resource]
 script = ExtResource("2_item")
-flat_power = 47
+item_power = 47
 name = "Gale Bottle"
 description = "Bottled mini tornado to give as a gift. Without consent."
 max_range = 5

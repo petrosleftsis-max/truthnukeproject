@@ -12,7 +12,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_dblnd")
-flat_power = 47
+item_power = 47
 name = "Mediocre Cure Potion"
 description = "In the same ammount of sips, you restore more vitality."
 max_range = 2

@@ -14,7 +14,7 @@ condition_dot_modifier = 0.8
 
 [resource]
 script = ExtResource("2_item")
-flat_power = 47
+item_power = 47
 name = "Poison Bottle"
 description = "Dull their reactions with a well placed and subtle poison."
 max_range = 5

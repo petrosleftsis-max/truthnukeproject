@@ -13,7 +13,7 @@ condition_duration = 2
 
 [resource]
 script = ExtResource("2_item")
-flat_power = 47
+item_power = 47
 name = "Terror Bottle"
 description = "Some say that emotions are just chemical reactions."
 max_range = 5

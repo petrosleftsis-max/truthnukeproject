@@ -7,7 +7,7 @@
 
 [resource]
 script = ExtResource("2_o3et1")
-flat_power = 25
+item_power = 25
 name = "Small Bomb"
 description = "Rather more than a firecracker."
 max_range = 5
