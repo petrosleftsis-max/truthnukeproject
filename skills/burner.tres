@@ -24,7 +24,6 @@ required_level = 2
 respects_blocking = true
 effects = Array[ExtResource("1_r1ihj")]([SubResource("Effect_curse")])
 deals_damage = false
-ability_modifier = 0.8
 scaling_stat = 2
 damage_type = 1
 uses_stat_contest = true

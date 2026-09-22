@@ -76,6 +76,6 @@ music = "Tokyo Music Walker - Gotta Go"
 empty_handed = true
 everyone_carries = Array[String](["cure_potion"])
 also_carries = {
-"cyrus": ["bomb"]
+"cyrus": ["tiny_bomb"]
 }
 metadata/_custom_type_script = "uid://c58kyys4p7s13"

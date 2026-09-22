@@ -11,9 +11,11 @@ script = ExtResource("1_eff")
 type = 8
 condition = ExtResource("3_cond")
 condition_duration = 2
+condition_dot_modifier = 0.3
 
 [resource]
 script = ExtResource("2_item")
+flat_power = 47
 name = "Frost Bottle"
 description = "A volatile ice crystal that will expand on impact."
 max_range = 5

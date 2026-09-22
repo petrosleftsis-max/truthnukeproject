@@ -13,6 +13,7 @@ condition_duration = 3
 
 [resource]
 script = ExtResource("2_item")
+flat_power = 47
 name = "Blinding Bomb"
 description = "Deliver to them an instant of intense light that blinds them temporarily."
 max_range = 5

@@ -7,6 +7,7 @@
 [sub_resource type="Resource" id="Effect_med_heal"]
 script = ExtResource("1_eff")
 type = 1
+heal_modifier = 0.5
 min_amount = 15
 max_amount = 15
 
@@ -18,9 +19,9 @@ dispel_count = 1
 
 [resource]
 script = ExtResource("2_item")
-flat_power = 15
+flat_power = 47
 name = "Medicine"
-description = "Restores 15 health and lifts whatever went wrong most recently."
+description = "Restores minor health and lifts whatever went wrong most recently."
 max_range = 2
 icon = ExtResource("3_icon")
 targets_ally = true

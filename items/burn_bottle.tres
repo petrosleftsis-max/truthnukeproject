@@ -14,6 +14,7 @@ condition_duration = 3
 
 [resource]
 script = ExtResource("2_item")
+flat_power = 47
 name = "Burn Bottle"
 description = "Bring on the heat."
 max_range = 5

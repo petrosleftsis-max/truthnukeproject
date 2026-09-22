@@ -13,6 +13,7 @@ condition_duration = 1
 
 [resource]
 script = ExtResource("2_item")
+item_power = 47
 name = "Shock Bottle"
 description = "Glass, and something unpleasant inside. Thrown at one enemy."
 max_range = 5

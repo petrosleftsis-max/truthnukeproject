@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3 uid="uid://bjpybmg472d8c"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_drejt"]
+[ext_resource type="Texture2D" uid="uid://c7h6p5la4jtam" path="res://imagese/skills/consumable__skill.png" id="2_c21nn"]
+[ext_resource type="Script" uid="uid://cbf4gnjv5w62v" path="res://combat/resources/ItemDefinition.gd" id="2_j4mp2"]
+
+[sub_resource type="Resource" id="Resource_c21nn"]
+script = ExtResource("1_drejt")
+type = 1
+heal_modifier = 0.7
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_j4mp2")
+flat_power = 85
+name = "Potent Cure Potion"
+description = "Just a sip is enough to restore a lot of vitality."
+max_range = 3
+icon = ExtResource("2_c21nn")
+targets_ally = true
+effects = Array[ExtResource("1_drejt")]([SubResource("Resource_c21nn")])
+deals_damage = false
+metadata/_custom_type_script = "uid://cbf4gnjv5w62v"

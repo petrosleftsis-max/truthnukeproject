@@ -5,7 +5,5 @@ Cyrus Rowe: What kind of thug did they come across that was able to wound them? 
 Cyrus Rowe: ... Hm? These fools haven’t even used some of these! 
 Cyrus Rowe: Now, how could I ever leave something so useful just laying around like that? It would be such a huge waste~.
 do Campaign.give_item("cyrus", "cure_potion")
-do Campaign.give_item("cyrus", "medicine")
-do Campaign.give_item("cyrus", "bomb")
-do Campaign.give_item("cyrus", "poison_bottle")
+do Campaign.give_item("cyrus", "tiny_bomb")
 => END

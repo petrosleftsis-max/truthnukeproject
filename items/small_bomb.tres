@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3 uid="uid://b5gr7llrqnvap"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_onjyk"]
+[ext_resource type="Script" uid="uid://cbf4gnjv5w62v" path="res://combat/resources/ItemDefinition.gd" id="2_o3et1"]
+[ext_resource type="Texture2D" uid="uid://c7h6p5la4jtam" path="res://imagese/skills/consumable__skill.png" id="3_icon"]
+[ext_resource type="AudioStream" uid="uid://cqnubt85xto1y" path="res://audio/sfx/Debris_Scattering_-_Free_Sound_Effect.wav" id="9_sfx"]
+
+[resource]
+script = ExtResource("2_o3et1")
+flat_power = 25
+name = "Small Bomb"
+description = "Rather more than a firecracker."
+max_range = 5
+icon = ExtResource("3_icon")
+affects_both_sides = true
+ability_modifier = 2.0
+uses_stat_contest = true
+sound = ExtResource("9_sfx")
+aoe_radius = 1
+metadata/_custom_type_script = "uid://cbf4gnjv5w62v"
