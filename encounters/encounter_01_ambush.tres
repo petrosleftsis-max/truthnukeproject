@@ -9,13 +9,13 @@
 script = ExtResource("2_spawn")
 combatant_key = "cyrus"
 position = Vector2i(41, -14)
-starting_items = Array[String](["cure_potion", "bomb", "poison_bottle", "medicine"])
+starting_items = Array[String](["cure_potion", "tiny_bomb"])
 
 [sub_resource type="Resource" id="Resource_njrfk"]
 script = ExtResource("2_spawn")
 combatant_key = "enfina"
 position = Vector2i(45, -14)
-starting_items = Array[String](["bomb", "bomb", "crystal_bottle"])
+starting_items = Array[String](["cure_potion"])
 
 [sub_resource type="Resource" id="Resource_x3x4f"]
 script = ExtResource("2_spawn")

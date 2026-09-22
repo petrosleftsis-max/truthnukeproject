@@ -11,7 +11,7 @@ position = Vector2i(4, 2)
 level = 3
 weapon_base = 12
 defense = 8
-starting_items = Array[String](["burn_bottle", "frost_bottle", "gale_bottle", "cure_potion"])
+starting_items = Array[String](["potent_cure_potion", "medicine", "big_bomb", "frost_bottle"])
 
 [sub_resource type="Resource" id="Resource_4gfyf"]
 script = ExtResource("2_spawn")
@@ -20,7 +20,7 @@ position = Vector2i(1, 4)
 level = 3
 weapon_base = 12
 defense = 20
-starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])
+starting_items = Array[String](["potent_cure_potion", "medium_bomb", "gale_bottle", "terror_bottle"])
 
 [sub_resource type="Resource" id="Resource_guhuk"]
 script = ExtResource("2_spawn")
@@ -29,7 +29,7 @@ position = Vector2i(24, 14)
 level = 3
 weapon_base = 12
 defense = 32
-starting_items = Array[String](["bomb", "bomb", "crystal_bottle"])
+starting_items = Array[String](["potent_cure_potion", "big_bomb", "blinding_bomb", "burn_bottle"])
 
 [sub_resource type="Resource" id="Resource_sd4ao"]
 script = ExtResource("2_spawn")
@@ -38,7 +38,7 @@ position = Vector2i(21, 17)
 level = 3
 weapon_base = 12
 defense = 20
-starting_items = Array[String](["cure_potion", "bomb", "poison_bottle", "medicine"])
+starting_items = Array[String](["potent_cure_potion", "big_bomb", "poison_bottle", "crystal_bottle"])
 
 [sub_resource type="Resource" id="Resource_6rd2x"]
 script = ExtResource("2_spawn")
