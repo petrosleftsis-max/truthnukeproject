@@ -2208,6 +2208,11 @@ func stat_of(comb: Dictionary, type: int) -> int:
 ## Fireball that overwhelms a frail sorcerer only singes an armoured knight,
 ## with no dice involved either way.
 func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> bool:
+	if skill is ItemDefinition:
+		# Nothing of the thrower. The bottle's own power against them, the same
+		# way its damage is its own - see ItemDefinition.item_power for what the
+		# thrower's hidden scaling_stat used to do to this.
+		return stat_of(target, skill.contest_stat) < skill.item_power
 	return stat_of(target, skill.contest_stat) < stat_of(attacker, skill.scaling_stat)
 
 
@@ -2219,14 +2224,23 @@ func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 ## not consulted at all - a skill's damage is entirely the caster's stat and
 ## the skill's modifier, which is what makes the same spell scale with whoever
 ## casts it.
-func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefinition, power: float = 1.0) -> int:
+## What `skill` is worth before any of its own dials are applied: the caster's
+## arm and attribute for a skill, and the item's own power for an item.
+##
+## A bomb is a bomb whoever throws it, so nothing of the thrower goes into an
+## item's - but from here on the two are the same arithmetic, which is the point.
+## An item used to take a different path at every one of the three places below,
+## and each had its own idea of what an item was worth.
+func power_behind(attacker: Dictionary, skill: SkillDefinition) -> float:
 	if skill is ItemDefinition:
-		# A bomb is a bomb whoever throws it, so nothing of the thrower goes into
-		# this. The target still soaks it with their Defense exactly as they would
-		# a skill - an item does not scale, but it is still contested.
-		return Stats.final_damage(skill.flat_power, power, stat_of(target, Stats.Type.DEFENSE))
-	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat), attacker.get("weapon_base", Stats.WEAPON_BASE))
-	return Stats.final_damage(base, skill.ability_modifier * power, stat_of(target, Stats.Type.DEFENSE))
+		return float(skill.item_power)
+	return Stats.base_damage(stat_of(attacker, skill.scaling_stat),
+		attacker.get("weapon_base", Stats.WEAPON_BASE))
+
+
+func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefinition, power: float = 1.0) -> int:
+	return Stats.final_damage(power_behind(attacker, skill),
+		skill.ability_modifier * power, stat_of(target, Stats.Type.DEFENSE))
 
 
 
@@ -2237,23 +2251,14 @@ func skill_damage(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 ## mirror of heal_amount: a heal has never had a target's defence in it either,
 ## which is why the two now read the same way on the panel.
 func base_skill_damage(attacker: Dictionary, skill: SkillDefinition) -> int:
-	if skill is ItemDefinition:
-		# What is written on the bomb, whoever throws it.
-		return maxi(skill.flat_power, 0)
-	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat), attacker.get("weapon_base", Stats.WEAPON_BASE))
-	return maxi(roundi(base * skill.ability_modifier), 0)
+	return maxi(roundi(power_behind(attacker, skill) * skill.ability_modifier), 0)
 
 
 ## What `skill` mends when `healer` casts it. No defence on the other side of
 ## it - being tough does not make you harder to patch up - and no randomness,
 ## so a heal is something you can count on when deciding whether it is enough.
 func heal_amount(healer: Dictionary, skill: SkillDefinition, effect: EffectDefinition = null) -> int:
-	if skill is ItemDefinition:
-		# What is written on the bottle, whoever uncorks it. Nothing contests a
-		# heal, so unlike damage it is simply the number.
-		return maxi(skill.flat_power, 0)
-	var base = Stats.base_damage(stat_of(healer, skill.scaling_stat), healer.get("weapon_base", Stats.WEAPON_BASE))
-	return maxi(roundi(base * heal_strength(skill, effect)), 0)
+	return maxi(roundi(power_behind(healer, skill) * heal_strength(skill, effect)), 0)
 
 
 ## The share of a caster's power a heal is worth: the effect's own dial when it
@@ -2278,17 +2283,13 @@ func heal_strength(skill: SkillDefinition, effect: EffectDefinition) -> float:
 ## The target's side of it - defence and resistance - is still read live, so
 ## shoring yourself up mid-burn does help.
 func dot_base_damage(attacker: Dictionary, skill: SkillDefinition, modifier: float) -> float:
-	# An item's condition does not scale off whoever threw it, the same rule
-	# skill_damage already applies to its direct damage: a bomb is a bomb. Zero
-	# here sends dot_tick to the condition's own flat range instead.
-	if skill == null or skill is ItemDefinition or modifier <= 0.0:
+	if skill == null or modifier <= 0.0:
 		return 0.0
 	# The caster's own weapon base, the same as skill_damage, base_skill_damage
 	# and heal_amount all read. Left out, a tick was always worked out as though
 	# whoever inflicted it carried the default weapon - so a spawn given a
 	# heavier one hit harder with its attacks and burned exactly as before.
-	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat),
-		attacker.get("weapon_base", Stats.WEAPON_BASE))
+	var base = power_behind(attacker, skill)
 	# The skill's own ability_modifier is deliberately not in here. It sizes what
 	# the skill does on impact, and a tick has its own dial - so a burn that
 	# lingers too long can be turned down without weakening the blow that set it,

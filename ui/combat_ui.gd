@@ -592,8 +592,11 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		for contested in skill.all_effects():
 			if contested != null and contested.type == EffectDefinition.EffectType.DAMAGE:
 				hurts = true
-		lines.append("Lands on anyone with %s below the caster's %s. %s" % [
-			Stats.stat_name(skill.contest_stat), Stats.stat_name(skill.scaling_stat),
+		var beaten_by = "the caster's %s" % Stats.stat_name(skill.scaling_stat)
+		if skill is ItemDefinition:
+			beaten_by = "%d" % skill.item_power
+		lines.append("Lands on anyone with %s below %s. %s" % [
+			Stats.stat_name(skill.contest_stat), beaten_by,
 			"Everyone else takes half damage and none of the rest." if hurts
 				else "Everyone else shrugs it off entirely."
 		])
@@ -941,8 +944,8 @@ func _condition_tick(effect: EffectDefinition, skill: SkillDefinition) -> String
 	if ticks >= 0:
 		return "%s%d %s damage a turn" % [
 			"" if effect.applies_to_caster else "base ", ticks, flavour]
-	# Nothing to scale off means an item inflicted it, which rolls the flat
-	# range written on the condition rather than anything of the thrower's.
+	# Nothing to scale off at all - a condition applied by hand, with no skill
+	# and no item behind it - falls back to the range written on the condition.
 	if condition.dot_max > 0:
 		return "%d-%d %s damage a turn" % [condition.dot_min, condition.dot_max, flavour]
 	return ""
