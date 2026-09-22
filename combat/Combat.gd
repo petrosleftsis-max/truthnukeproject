@@ -2483,12 +2483,43 @@ func find_most_afflicted_ally(comb: Dictionary) -> Dictionary:
 
 ## The offensive, single-target (not AoE) skill in comb's skill_list with
 ## the largest max_range - used by AI archetypes that fight from range with
-## single-target skills specifically. Falls back to "greatsword_attack".
+## single-target skills specifically. Falls back to whatever melee they own.
 ## Picks by the range they can actually manage right now, not the range printed
 ## on the skill - a blinded combatant should reach for something usable at one
 ## tile rather than an archery skill it can no longer aim.
-func find_best_single_target_skill(comb: Dictionary) -> String:
+## What this combatant actually swings when the AI falls back to hitting
+## somebody standing next to them: the shortest-reaching thing they own that
+## hurts, and Enfina's greatsword only for somebody who owns nothing at all.
+##
+## It used to be greatsword_attack for everyone, whoever was swinging - so the
+## Priest, whose kit is water and mending, produced a two-handed sword the
+## moment the AI ran out of better ideas. Give somebody a melee skill of their
+## own and this finds it; give them none and the old behaviour is still there
+## rather than a turn spent doing nothing.
+##
+## Shortest reach first, so a dedicated melee is preferred to a gun that also
+## works point blank.
+func melee_fallback_for(comb: Dictionary) -> String:
 	var best_key = "greatsword_attack"
+	var best_reach = 99
+	for skill_key in comb.skill_list:
+		var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
+		if skill == null or not skill.deals_damage or skill.targets_ally:
+			continue
+		if not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
+			continue
+		# Usable on somebody standing next to them.
+		if skill.min_range > 1 or effective_max_range(comb, skill) < 1:
+			continue
+		var reach = effective_max_range(comb, skill)
+		if reach < best_reach:
+			best_reach = reach
+			best_key = skill_key
+	return best_key
+
+
+func find_best_single_target_skill(comb: Dictionary) -> String:
+	var best_key = melee_fallback_for(comb)
 	var best_range = -1
 	for skill_key in comb.skill_list:
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
@@ -3125,11 +3156,11 @@ func ai_melee_rush(comb: Dictionary):
 		await advance_turn()
 		return
 	if get_distance(comb, target) == 1:
-		await use_skill("greatsword_attack", comb, target.position)
+		await use_skill(melee_fallback_for(comb), comb, target.position)
 		return
 	await controller.ai_process(target.position)
 	if comb.alive:
-		await use_skill("greatsword_attack", comb, target.position)
+		await use_skill(melee_fallback_for(comb), comb, target.position)
 
 
 ## If it can already reach (get adjacent to, per Self Destruct's blast)
@@ -3272,7 +3303,7 @@ func ai_healer(comb: Dictionary):
 		return
 	var nearest_enemy = find_nearest_enemy_of(comb)
 	if not nearest_enemy.is_empty() and get_distance(comb, nearest_enemy) == 1:
-		await use_skill("greatsword_attack", comb, nearest_enemy.position, false)
+		await use_skill(melee_fallback_for(comb), comb, nearest_enemy.position, false)
 		await cleanse_as_secondary(comb)
 		await reposition_healer(comb, heal_reach)
 		await advance_turn()
@@ -3376,7 +3407,7 @@ func ai_caster(comb: Dictionary):
 	# normal approach-and-attack instead of wasting the turn.
 	await controller.ai_process(target.position)
 	if comb.alive:
-		await use_skill("greatsword_attack", comb, target.position, false)
+		await use_skill(melee_fallback_for(comb), comb, target.position, false)
 	await advance_turn()
 
 
@@ -3431,7 +3462,7 @@ func ai_copycat(comb: Dictionary):
 	# rush-and-melee approach so the turn isn't wasted.
 	await controller.ai_process(target.position)
 	if comb.alive:
-		await use_skill("greatsword_attack", comb, target.position, false)
+		await use_skill(melee_fallback_for(comb), comb, target.position, false)
 	await advance_turn()
 
 
