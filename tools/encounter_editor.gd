@@ -230,6 +230,7 @@ func _build_markers(tile_map: TileMap):
 		marker.level = spawn.level
 		marker.weapon_base = spawn.weapon_base
 		marker.defense = spawn.defense
+		marker.starting_items = spawn.starting_items.duplicate()
 		marker.position = Vector2(spawn.position * tile_size) + Vector2(tile_size, tile_size) * 0.5
 		container.add_child(marker)
 		_adopt(marker)
@@ -431,6 +432,7 @@ func save_to_encounter():
 		spawn.level = marker.level
 		spawn.weapon_base = marker.weapon_base
 		spawn.defense = marker.defense
+		spawn.starting_items = marker.starting_items.duplicate()
 		spawns.append(spawn)
 	encounter.spawns = spawns
 

@@ -36,6 +36,14 @@ class_name SpawnMarker
 ## from one encounter to the next.
 @export_range(0, 100) var weapon_base: int = 6
 @export_range(1, 100) var defense: int = 10
+## What this one brings to the fight, by item key - "cure_potion", "tiny_bomb"
+## and so on. Empty means they bring whatever their character normally carries.
+##
+## Here because the marker is what gets written back: saving builds a fresh
+## SpawnDefinition out of these fields, so a field the marker does not hold is
+## a field that saving erases. This one was not held, and one press of "Save
+## spawns to encounter" emptied every bag in the encounter without saying so.
+@export var starting_items: Array[String] = []
 ## Set by EncounterEditor from the map being previewed.
 @export var tile_size := Grid.TILE_SIZE
 
