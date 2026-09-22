@@ -2289,7 +2289,15 @@ func dot_base_damage(attacker: Dictionary, skill: SkillDefinition, modifier: flo
 	# heavier one hit harder with its attacks and burned exactly as before.
 	var base = Stats.base_damage(stat_of(attacker, skill.scaling_stat),
 		attacker.get("weapon_base", Stats.WEAPON_BASE))
-	return base * skill.ability_modifier * modifier
+	# The skill's own ability_modifier is deliberately not in here. It sizes what
+	# the skill does on impact, and a tick has its own dial - so a burn that
+	# lingers too long can be turned down without weakening the blow that set it,
+	# and a blow can be strengthened without the burn following it up.
+	#
+	# They used to multiply together, which meant every number was two numbers:
+	# Crystalise's 0.4 and 0.3 made a tick worth 0.12, and nothing on the skill
+	# said so.
+	return base * modifier
 
 
 func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):

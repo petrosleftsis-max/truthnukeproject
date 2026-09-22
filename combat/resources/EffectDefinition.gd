@@ -83,6 +83,10 @@ enum DispelScope {
 ## and a Burn caught walking through a fire are one condition with one glossary
 ## entry, and need not hurt the same.
 ##
+## The whole of what a tick is worth, against the caster's stat: the skill's own
+## ability_modifier sizes the blow and stays out of this, so turning one down
+## leaves the other where it was.
+##
 ## Only a skill's version scales. An item's condition rolls the flat dot_min to
 ## dot_max range written on the condition whoever throws it, so this does
 ## nothing on a consumable.

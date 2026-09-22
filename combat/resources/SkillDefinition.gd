@@ -108,12 +108,17 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 ## glancing one, 2.0 something that should hurt. This is the dial to turn when
 ## a skill feels weak or oppressive.
 ##
-## One dial for the lot: a hit, a heal and a poison tick all work out to
-## (WeaponBase + 0.7 x ScalingStat) x this, so a healer's mending grows with
-## her Mindfulness exactly as an attacker's damage grows with his Physical. A
-## damage-over-time tick takes a fraction of it on top - see the effect's own
-## DamageModifier. What the skill actually does is decided by DealsDamage and
-## by the effects it carries, not here.
+## What the skill is worth on impact: a hit or a heal works out to
+## (WeaponBase + 0.7 x ScalingStat) x this, so a healer's mending grows with her
+## Mindfulness exactly as an attacker's damage grows with his Physical.
+##
+## Not what anything it leaves behind is worth. A condition ticks for the same
+## base times its own dial and never this one, so the blow and the burn can be
+## tuned without either dragging the other - see EffectDefinition's
+## ConditionDotModifier. A heal may also carry its own; see HealModifier.
+##
+## What the skill actually does is decided by DealsDamage and by the effects it
+## carries, not here.
 @export_range(0.0, 5.0, 0.05, "or_greater") var ability_modifier: float = 1.0
 ## Which of the caster's attributes this scales from. The whole of a skill's
 ## strength comes from this one stat: Base = WeaponBase + 0.7 x Stat.
