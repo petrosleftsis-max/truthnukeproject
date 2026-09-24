@@ -1,0 +1,5 @@
+# Every text file is stored and checked out with LF, whatever the machine's
+# core.autocrlf says. Several test drivers split on a line break written
+# inside a string, and a CRLF checkout turns that into "\r\n" - which the
+# tooltips never contain, so stealth and mend fail on a fresh Windows clone.
+* text=auto eol=lf
