@@ -6,7 +6,7 @@ var LOG_PATH := HarnessLog.path_for("explore")
 # The multi-member exploration map. Followers, dimmed portraits and passing
 # the lead all need more than one person, and the crossroads is deliberately
 # Cyrus on his own (see its MapSetup).
-const MAP = "res://skills/laboratory_terrain_explore.tscn"
+const MAP = "res://scenes/laboratory_terrain_explore.tscn"
 
 var _log: FileAccess = null
 var _fail = 0
@@ -231,14 +231,20 @@ func run_test():
 	var corner = scene._tile_map.get_used_rect().position
 	scene.party.teleport(scene._tile_map.map_to_local(corner))
 	scene._follow_camera(scene.party_position())
-	var view = scene.camera.get_visible_world_size()
+	# The middle of the view stays on the map and nothing more, so the leader
+	# stays in the middle of the screen right up to the edge rather than being
+	# pushed out towards the HUD there.
+	ok(scene.camera.position == scene.party_position(),
+		"the leader stays in the middle of the view right up to the map's corner",
+		"camera %s, leader %s" % [scene.camera.position, scene.party_position()])
 	# Measured from the map's own top-left, which is not the origin: a map can be
-	# painted into negative coordinates, and half a viewport from (0,0) is then
-	# nowhere in particular.
-	var limit = scene.camera.get_map_rect().position + view * 0.5
-	ok(scene.camera.position.x >= limit.x - 0.01 and scene.camera.position.y >= limit.y - 0.01,
-		"camera stops at the map edge instead of following past it",
-		"camera %s, limit %s" % [scene.camera.position, limit])
+	# painted into negative coordinates.
+	var map_origin = scene.camera.get_map_rect().position
+	scene.camera.position = map_origin - Vector2(Grid.tiles(20), Grid.tiles(20))
+	scene.camera.clamp_to_map()
+	ok(scene.camera.position.x >= map_origin.x - 0.01 and scene.camera.position.y >= map_origin.y - 0.01,
+		"but the middle of the view never goes off the map",
+		"camera %s, map from %s" % [scene.camera.position, map_origin])
 	log_line("")
 
 	log_line("======== walking into a wall ========")
@@ -333,7 +339,7 @@ func run_test():
 	# of them went on saying Examine, Fight and Read after the change.
 	var overriding := []
 	for map_path in ["res://scenes/explore_crossroads.tscn", "res://church.tscn",
-		"res://skills/laboratory_terrain_explore.tscn"]:
+		"res://scenes/laboratory_terrain_explore.tscn"]:
 		var saved_text = FileAccess.get_file_as_string(map_path)
 		for word in ["Read", "Examine", "Enter"]:
 			if saved_text.contains('prompt = "%s"' % word):

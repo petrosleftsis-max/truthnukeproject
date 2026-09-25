@@ -383,7 +383,7 @@ func run_test():
 	var portrait = ui._icon_for(ui.get_node("Status"), victim)
 	ok(portrait != null, "they have a portrait in the party column")
 	if portrait != null:
-		var strip = portrait.get_node_or_null("Icon/Conditions")
+		var strip = portrait.get_node_or_null("Layout/Icon/Conditions")
 		ok(strip != null, "which now carries a strip of marks")
 		if strip != null:
 			ok(strip.get_child_count() == victim.status_effects.size(),

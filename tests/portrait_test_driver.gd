@@ -91,7 +91,7 @@ func run_test():
 	ui.show_combatant_status_main(acting)
 	await get_tree().process_frame
 
-	var big = ui.get_node("Actions/StatusIcon/Icon/HealthText")
+	var big = ui.get_node("Actions/StatusIcon/Layout/HealthText")
 	var max_hp = combat.get_effective_stat(acting, "max_hp")
 	ok(big.text == "%d/%d" % [acting.hp, max_hp],
 		"it opens the turn showing their health", big.text)
@@ -117,9 +117,9 @@ func run_test():
 		if child.get_meta("combatant_id", -2) == acting.get("id", 0):
 			column = child
 	if column != null:
-		ok(column.get_node("Icon/HealthText").text == big.text,
+		ok(column.get_node("Layout/HealthText").text == big.text,
 			"and agrees with the party portrait next to it",
-			"%s vs %s" % [column.get_node("Icon/HealthText").text, big.text])
+			"%s vs %s" % [column.get_node("Layout/HealthText").text, big.text])
 	log_line("")
 
 	log_line("======== an enemy's health does not steal the portrait ========")

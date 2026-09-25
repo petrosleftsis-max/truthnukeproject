@@ -1,6 +1,6 @@
 # The headless harness
 
-76 suites that boot the real game without a window, play something out and
+85 suites that boot the real game without a window, play something out and
 write down what happened.
 
 ```bash
@@ -10,7 +10,8 @@ tests/run.sh scale           # a probe, run the same way
 tests/run.sh --list          # what there is
 ```
 
-Godot is found on PATH or named in `$GODOT`; use the `_console` build on
+Godot is found by `tools/find_godot.sh`: `$GODOT`, then PATH, then the places
+it is unpacked on the machines this is worked on. Use the `_console` build on
 Windows. The working copy and the logs land in the system temp folder, or
 wherever `$MOT_TEST_WORK` points.
 
@@ -67,8 +68,10 @@ driver by hand with no runner around it and the results go to the copy's own
 `suites.txt` lists what a full run covers. One of them, `ai`, asserts nothing -
 it traces what each archetype did with its turn and is read by eye. It stays in
 the sweep because driving the AI through four turns catches a script error or a
-hang, but do not read a green `ai` as the archetypes behaving. Real assertions
-about them are a gap.
+hang, but do not read a green `ai` as the archetypes behaving. `archetypes` is
+the suite that asserts the behaviour: it puts a handful of people on open
+ground, runs exactly one enemy's turn - the turn order is set to player, that
+enemy, player - and checks what that enemy did with it.
 
 Everything in `probes/` is a driver
 written to answer one question - why can this combatant see that one, what does

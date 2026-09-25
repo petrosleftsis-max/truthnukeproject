@@ -37,7 +37,7 @@ func animated_of(sprite):
 func run_test():
 	Campaign.reset()
 	# The laboratory, which is where the four of them walk together.
-	Campaign.current_map = "res://skills/laboratory_terrain_explore.tscn"
+	Campaign.current_map = "res://scenes/laboratory_terrain_explore.tscn"
 	var scene = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(scene)
 	for frame in range(0, 8):

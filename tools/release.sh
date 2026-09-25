@@ -20,7 +20,7 @@
 set -eu
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GODOT="${GODOT:-/c/Users/ortin/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe}"
+. "$ROOT/tools/find_godot.sh"
 ITCH="eplogos/messengersoftruth"
 
 publish=false
@@ -71,14 +71,20 @@ if [ "$publish" = true ]; then
 	fi
 fi
 
-if [ ! -x "$GODOT" ] && ! command -v "$GODOT" >/dev/null 2>&1; then
-	echo "Godot not found at: $GODOT"
-	echo "Set GODOT to wherever it lives, e.g. GODOT=/path/to/godot tools/release.sh"
+if [ -z "$GODOT" ] || { [ ! -x "$GODOT" ] && ! command -v "$GODOT" >/dev/null 2>&1; }; then
+	echo "Godot not found${GODOT:+ at: $GODOT}"
+	echo "Set GODOT to wherever it lives, e.g. GODOT=/path/to/godot tools/release.sh,"
+	echo "or add where it is unpacked to tools/find_godot.sh"
 	exit 1
 fi
 
 rm -rf "$ROOT/export"
 mkdir -p "$ROOT/export/web" "$ROOT/export/windows"
+# The builds land inside the project, and Godot scans the project before every
+# export. Without this the Windows export found the web build's icons sitting
+# in export/web, imported them - leaving .import files in the folder that gets
+# zipped for itch - and packed them into the Windows game as resources.
+: > "$ROOT/export/.gdignore"
 "$GODOT" --headless --path "$ROOT" --import >/dev/null 2>&1 || true
 
 echo "===== Web ====="

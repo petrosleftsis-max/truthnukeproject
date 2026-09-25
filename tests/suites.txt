@@ -41,6 +41,7 @@ stats
 impact
 level
 sheet
+passive
 hud
 condur
 dot
@@ -74,3 +75,11 @@ tallsprite
 volume
 fallback
 ai
+archetypes
+tooltips
+portraits
+hitpreview
+undo
+danger
+hudextras
+speed

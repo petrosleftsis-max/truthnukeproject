@@ -57,7 +57,7 @@ func run_test():
 
 	log_line("======== what you carry in, you carry into the fight ========")
 	Campaign.reset()
-	Campaign.current_map = "res://skills/laboratory_terrain_explore.tscn"
+	Campaign.current_map = "res://scenes/laboratory_terrain_explore.tscn"
 	var lab = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(lab)
 	for i in 5:
@@ -69,7 +69,7 @@ func run_test():
 	# Walk into a fight the way an encounter trigger does.
 	Campaign.begin_battle_from_exploration(
 		load("res://encounters/encounter_02_sappers.tres"),
-		"res://skills/laboratory_terrain_explore.tscn", Vector2.ZERO, "test_trigger")
+		"res://scenes/laboratory_terrain_explore.tscn", Vector2.ZERO, "test_trigger")
 	lab.queue_free()
 	await get_tree().process_frame
 	var game = load("res://scenes/game.tscn").instantiate()

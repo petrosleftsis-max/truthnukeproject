@@ -49,6 +49,7 @@ func _ready():
 	add_theme_constant_override("separation", 14)
 
 	_title = Label.new()
+	_title.theme_type_variation = GameFonts.HEADER
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title.add_theme_font_size_override("font_size", 34)
 	_title.add_theme_color_override("font_color", INK)
@@ -116,6 +117,7 @@ func _view_contents():
 		["Conditions", _view_conditions],
 		["Gates", _view_gates],
 		["Skills", _view_skills],
+		["Passive Skills", _view_passives],
 	])
 
 
@@ -163,6 +165,17 @@ func _view_skills():
 	var entries := []
 	for pair in named:
 		entries.append([pair[0], _page_for_skill.bind(pair[1])])
+	_offer(entries)
+
+
+## Their own list rather than mixed into Skills: a passive is never pressed, so
+## filing it beside the things that are would suggest it could be.
+func _view_passives():
+	var book := _book()
+	_heading("Passive Skills", book.passives_intro if book != null else "")
+	var entries := []
+	for passive in passives():
+		entries.append([_passive_name(passive), _page_for_passive.bind(passive)])
 	_offer(entries)
 
 
@@ -241,10 +254,70 @@ func _page_for_skill(skill: SkillDefinition):
 		lines.append("Hits %d%% of the time." % skill.accuracy)
 	if skill.is_reactive:
 		lines.append("Goes off on its own when somebody leaves its reach.")
+	if not skill.can_be_copied:
+		lines.append("The Mimic cannot copy it.")
 	_read(skill.name, "\n".join(lines))
 
 
+func _page_for_passive(passive: PassiveDefinition):
+	var lines := []
+	if passive.description != "":
+		lines.append(passive.description)
+		lines.append("")
+	lines.append("[b]How it works[/b]")
+	lines.append("%s. Never chosen - it is simply part of who has it." % passive.describe_when())
+	lines.append_array(passive.describe_effects())
+	var holders := []
+	for key in CombatantDatabase.combatants:
+		var definition: CombatantDefinition = CombatantDatabase.combatants[key]
+		if definition != null and definition.passives.has(passive):
+			holders.append(definition.name)
+	if not holders.is_empty():
+		lines.append("")
+		lines.append("[b]Who has it[/b]")
+		lines.append(", ".join(holders))
+	_read(_passive_name(passive), "\n".join(lines))
+
+
 ## --- The furniture ---
+
+
+## Every passive in the game, in alphabetical order.
+##
+## Asked of the characters first, for the reason conditions() asks the skills:
+## an exported build has converted res://passives/ into something a scan for
+## "*.tres" does not find, while what a character points at comes through
+## intact. The folder is still scanned, so a passive written but not yet given
+## to anybody shows up while it is being worked on.
+static func passives() -> Array:
+	var found := {}
+	for key in CombatantDatabase.combatants:
+		var definition: CombatantDefinition = CombatantDatabase.combatants[key]
+		if definition == null:
+			continue
+		for passive in definition.passives:
+			if passive != null:
+				found[passive.resource_path] = passive
+	var dir = DirAccess.open("res://passives")
+	if dir != null:
+		for file in dir.get_files():
+			if file.ends_with(".remap"):
+				file = file.get_basename()
+			var path = "res://passives/".path_join(file)
+			if not ResourceLoader.exists(path):
+				continue
+			var loaded = load(path)
+			if loaded is PassiveDefinition and not found.has(loaded.resource_path):
+				found[loaded.resource_path] = loaded
+	var listed := found.values()
+	listed.sort_custom(func(a, b): return _passive_name(a).naturalnocasecmp_to(_passive_name(b)) < 0)
+	return listed
+
+
+static func _passive_name(passive: PassiveDefinition) -> String:
+	if passive.name != "":
+		return passive.name
+	return passive.resource_path.get_file().get_basename().capitalize()
 
 
 ## Every condition the game can inflict, in alphabetical order.

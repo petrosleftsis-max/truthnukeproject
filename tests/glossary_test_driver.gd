@@ -67,9 +67,9 @@ func run_test():
 	panel.show_contents()
 	await get_tree().process_frame
 
-	log_line("======== the four things it explains ========")
+	log_line("======== the five things it explains ========")
 	var contents = offered(panel)
-	for wanted in ["Character intros", "Conditions", "Gates", "Skills"]:
+	for wanted in ["Character intros", "Conditions", "Gates", "Skills", "Passive Skills"]:
 		ok(wanted in contents, "%s is offered" % wanted)
 	log_line("")
 
@@ -185,6 +185,39 @@ func run_test():
 		ok(Stats.gate_name(fireball.spell_slot_level) in text,
 			"a spell says which gate it costs", Stats.gate_name(fireball.spell_slot_level))
 		ok("Reaches" in text, "and how far it goes")
+		panel._go_back()
+		await get_tree().process_frame
+	ok(not "Mimicry" in skills, "a passive is not filed among the skills", "%s" % [skills])
+	panel._go_back()
+	await get_tree().process_frame
+	log_line("")
+
+	log_line("======== the passive skills ========")
+	press(panel, "Passive Skills")
+	await get_tree().process_frame
+	var passives_listed = offered(panel)
+	var every_passive = GlossaryPanel.passives()
+	ok(not every_passive.is_empty(), "there are passives to list", "%d" % every_passive.size())
+	ok(passives_listed.size() == every_passive.size(), "every passive has a button",
+		"%s" % [passives_listed])
+	# The same export trap as the conditions: reached through the characters
+	# holding them, not by listing a folder the build reshapes.
+	var held := 0
+	for passive in every_passive:
+		for key in CombatantDatabase.combatants:
+			if CombatantDatabase.combatants[key].passives.has(passive):
+				held += 1
+				break
+	ok(held == every_passive.size(), "every passive is reachable without listing the folder",
+		"%d of %d" % [held, every_passive.size()])
+	var mimicry: PassiveDefinition = CombatantDatabase.combatants["mimic"].passives[0]
+	ok(press(panel, mimicry.name), "Mimicry is one of them", "%s" % [passives_listed])
+	await get_tree().process_frame
+	var passive_page = panel._body.text
+	ok(passive_page.contains(mimicry.description), "its page says what it does, as written")
+	ok(passive_page.contains(mimicry.describe_when()), "when it works", mimicry.describe_when())
+	ok(passive_page.contains("without opening a gate"), "what its switches do, read off the passive itself")
+	ok(passive_page.contains(CombatantDatabase.combatants["mimic"].name), "and who has it")
 	log_line("")
 
 	log_line("======== Back all the way out hands the menu back ========")

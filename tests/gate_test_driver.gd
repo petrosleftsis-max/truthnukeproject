@@ -7,7 +7,7 @@ extends Node
 ## they cannot walk through it while it is still asking.
 
 var LOG_PATH := HarnessLog.path_for("gate")
-const MAP = "res://skills/laboratory_terrain_explore.tscn"
+const MAP = "res://scenes/laboratory_terrain_explore.tscn"
 
 var _log: FileAccess
 var _fail = 0

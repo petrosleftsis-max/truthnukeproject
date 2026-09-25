@@ -73,6 +73,10 @@ class_name CombatantDefinition
 ## A skill listed here doesn't have to leave the main panel; it can appear in
 ## both.
 @export var secondary_skills: Array[String]
+## What they do without being asked - working all the time, or once their
+## moment comes. Never on the action panel; the character sheet lists them
+## under Passive Skills. See PassiveDefinition.
+@export var passives: Array[PassiveDefinition] = []
 @export_group("Resistances")
 ## How this combatant stands up to each kind of damage, as a percentage.
 ## Positive resists - 20 means a fifth of that damage is shrugged off, 100
@@ -130,11 +134,6 @@ class_name CombatantDefinition
 @export var ai_function: String = "ai_melee_rush"
 
 
-## Casts without spending anything. What it knows it can use, however deep a
-## gate the spell is cast through and however many gates it has of its own -
-## which is none. For a Mimic, whose whole trick is doing what it just saw
-## done and which would otherwise copy a spell and then fail to pay for it.
-@export var casts_without_gates: bool = false
 ## Starting gates, indexed by level - [0] is unused so the level number
 ## reads straight into the array.
 ## Health at `level`, following the "same as the level below" rule: a level 3

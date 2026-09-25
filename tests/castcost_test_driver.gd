@@ -123,18 +123,11 @@ func measure(encounter_path: String, label: String):
 			"    the quick way agrees with the long way everywhere (%d checks)" % checked,
 			"%s" % [disagreements.slice(0, 3)])
 
-		# And what that actually costs, timed the way ai_caster does it.
+		# And what that actually costs, timed the way ai_caster does it: every
+		# spell and skill in its kit weighed from every tile it could stand on.
 		var started = Time.get_ticks_msec()
-		for skill_key in comb.skill_list:
-			var skill: SkillDefinition = SkillDatabase.skills[skill_key]
-			if skill.targets_ally or skill.aoe_radius <= 0:
-				continue
-			if not combat.can_afford_skill(comb, skill) or not combat.meets_level_for(comb, skill):
-				continue
-			combat.find_best_reachable_tile(comb, budget, func(t):
-				var hits = combat.find_best_aim_and_count(skill, t, comb.movement_class, comb).count
-				return float(hits) * 10.0 + float(combat.count_players_without_los(t)) * 3.0
-			)
+		combat.ai_plan_attack(comb, combat._ai_main_keys(comb), budget,
+			func(t): return float(combat.count_players_without_los(t)) * combat.CASTER_COVER)
 		var spent = Time.get_ticks_msec() - started
 		log_line("    -> %d ms to decide, on this machine, headless" % spent)
 		ok(spent < 1000, "%s decides inside a second" % comb.name, "%d ms" % spent)

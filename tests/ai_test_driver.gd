@@ -107,7 +107,7 @@ func run_test():
 	# did with its turn, read by eye. It stays in the sweep because driving the
 	# AI through four turns still catches a script error or a hang, which the
 	# runner does judge; the line is how the runner tells "ran to the end" from
-	# "died halfway". Real assertions about archetype behaviour are a gap.
+	# "died halfway". The archetypes suite is where their behaviour is asserted.
 	log_line("FAILURES: 0")
 	_done = true
 	get_tree().quit()

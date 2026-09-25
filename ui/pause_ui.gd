@@ -38,6 +38,8 @@ extends CanvasLayer
 ## Built rather than placed, so the sliders and what they do live in one place
 ## shared with the main menu (see ui/volume_sliders.gd).
 var _volume: VolumeSliders = null
+## How fast enemy turns play - the same picker as the main menu's Options.
+var _speed: BattleSpeedPicker = null
 
 ## The same book the main menu opens, built the same way and for the same
 ## reason: one glossary, read from wherever you happen to be. It wants far more
@@ -63,6 +65,11 @@ func _ready():
 	$OptionsPanel/VBox/Res1280Button.pressed.connect(func(): set_resolution(1280, 720))
 	$OptionsPanel/VBox/Res1920Button.pressed.connect(func(): set_resolution(1920, 1080))
 	$OptionsPanel/VBox/Res2560Button.pressed.connect(func(): set_resolution(2560, 1440))
+	# Its three buttons join the keyboard loop after the resolutions; the
+	# sliders below it are mouse-only, like the main menu's.
+	_speed = BattleSpeedPicker.new()
+	$OptionsPanel/VBox.add_child(_speed)
+	_options_buttons.append_array(_speed.buttons)
 	_volume = VolumeSliders.new()
 	$OptionsPanel/VBox.add_child(_volume)
 	_build_glossary()

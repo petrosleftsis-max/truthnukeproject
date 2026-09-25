@@ -11,4 +11,5 @@ description = "Move as though nobody were watching. Nothing can react to you for
 icon = ExtResource("2_icon")
 targets_ally = true
 suppresses_reactions = true
+can_be_copied = false
 deals_damage = false

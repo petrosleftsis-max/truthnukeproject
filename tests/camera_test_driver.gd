@@ -1,6 +1,7 @@
 extends Node
-## Headless harness for CameraController: checks the view rect never leaves the
-## map at any zoom, from any pan. Scratchpad-only.
+## Headless harness for CameraController: checks the middle of the view never
+## leaves the map at any zoom, from any pan - and that the rest of the view is
+## free to, so an edge of the map can be brought out from under the HUD.
 
 var LOG_PATH := HarnessLog.path_for("camera")
 
@@ -42,24 +43,18 @@ func view_rect(cam) -> Rect2:
 	return Rect2(cam.position - size * 0.5, size)
 
 
-## The view must stay inside the map, except on an axis where the map is
-## smaller than the view - there it must be centred instead.
+## The middle of the view must be on the map. The view's edges are allowed past
+## the map's - that is the point - so only the middle is measured.
 func check(cam, label: String):
 	var map = cam.get_map_rect()
 	var view = view_rect(cam)
 	var problems = []
 	for axis in 2:
 		var name = "x" if axis == 0 else "y"
-		if map.size[axis] <= view.size[axis]:
-			var map_centre = map.position[axis] + map.size[axis] * 0.5
-			var view_centre = view.position[axis] + view.size[axis] * 0.5
-			if absf(map_centre - view_centre) > 0.01:
-				problems.append("%s not centred (map %.1f vs view %.1f)" % [name, map_centre, view_centre])
-		else:
-			if view.position[axis] < map.position[axis] - 0.01:
-				problems.append("%s past left/top edge by %.2f" % [name, map.position[axis] - view.position[axis]])
-			if view.position[axis] + view.size[axis] > map.position[axis] + map.size[axis] + 0.01:
-				problems.append("%s past right/bottom edge by %.2f" % [name, view.position[axis] + view.size[axis] - (map.position[axis] + map.size[axis])])
+		if cam.position[axis] < map.position[axis] - 0.01:
+			problems.append("middle past the left/top edge by %.2f" % (map.position[axis] - cam.position[axis]))
+		if cam.position[axis] > map.end[axis] + 0.01:
+			problems.append("middle past the right/bottom edge by %.2f" % (cam.position[axis] - map.end[axis]))
 	if problems.is_empty():
 		log_line("  PASS  %-34s zoom=%.3f pos=(%.1f, %.1f) view=%s" % [label, cam.zoom.x, cam.position.x, cam.position.y, view])
 	else:
@@ -82,8 +77,28 @@ func run_test():
 	log_line("zoom range : %.2f .. %.2f" % [cam.min_zoom, cam.max_zoom])
 	log_line("")
 
-	log_line("initial state (should match the old fixed camera at 576, 336):")
+	log_line("initial state:")
 	check(cam, "as loaded")
+	log_line("")
+
+	# What the change was for: the HUD covers every side of the screen, and a
+	# view that stopped at the map's edge left whatever was painted there under
+	# it. Any tile, corners included, has to be able to reach the middle.
+	log_line("an edge of the map can be brought out from under the HUD:")
+	var map_rect = cam.get_map_rect()
+	for z in [cam.min_zoom, 0.5, cam.max_zoom]:
+		cam.zoom = Vector2.ONE * z
+		for corner in [map_rect.position, map_rect.end, Vector2(map_rect.position.x, map_rect.end.y)]:
+			cam.position = corner
+			cam.clamp_to_map()
+			var view = view_rect(cam)
+			var reached = cam.position.distance_to(corner) < 0.01
+			var past = not map_rect.encloses(view)
+			if reached and past:
+				log_line("  PASS  zoom %.2f: the corner %s sits in the middle, the view running past the map" % [z, corner])
+			else:
+				_failures += 1
+				log_line("  FAIL  zoom %.2f: corner %s -> camera %s, view %s" % [z, corner, cam.position, view])
 	log_line("")
 
 	# Shove the camera far outside the map at several zoom levels and confirm

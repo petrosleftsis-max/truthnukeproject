@@ -185,7 +185,7 @@ func _build_encounter_card(encounter: EncounterDefinition, wiped: bool) -> Butto
 	# so there would be nothing to play. Reset is the way out.
 	card.disabled = wiped
 	if encounter.description != "":
-		card.tooltip_text = encounter.description
+		card.tooltip_text = TooltipText.wrap(encounter.description)
 	card.pressed.connect(_on_encounter_pressed.bind(encounter))
 	_style_card(card)
 

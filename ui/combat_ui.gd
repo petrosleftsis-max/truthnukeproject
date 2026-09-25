@@ -56,6 +56,14 @@ const TAB_OFF := Color("8296a9")
 ## somebody else acted would be worse than not being able to hide it at all.
 var _log_minimised := false
 
+## The party member whose side of the HUD is on show instead of the one acting,
+## after their portrait was clicked. Empty when the HUD shows whoever is acting.
+## See view_combatant.
+var _viewing: Dictionary = {}
+
+## How the party portraits not being looked at are drawn while one is.
+const PORTRAIT_ASIDE := Color(0.62, 0.62, 0.62)
+
 
 func _ready():
 	for panel in PANEL_TABS:
@@ -69,11 +77,269 @@ func _ready():
 	if toggle != null:
 		toggle.pressed.connect(toggle_log)
 	_apply_log_state()
+	_build_undo_button()
+	_style_turn_buttons()
+	_pips = ActionPips.new()
+	$Actions.add_child(_pips)
+	_pips.position = PIPS_AT
+	_pips.visible = false
+	_build_hotkey_marks()
+	_unit_card = UnitCard.new()
+	add_child(_unit_card)
+	_turn_banner = TurnBanner.new()
+	add_child(_turn_banner)
+	_build_danger_legend()
+	# The label says what the number is, rather than leaving a lone "4" to
+	# be worked out.
+	$Actions/Movement.offset_left = MOVE_LABEL_LEFT
+	$Actions/EndTurnButton.tooltip_text = KEYS_HINT
 	# Things that happen to the party rather than in a fight - an item changing
 	# hands, somebody joining or leaving - are announced by Campaign, which is
 	# the one thing on screen in a battle and on a map alike.
 	if not Campaign.announced.is_connected(update_information):
 		Campaign.announced.connect(update_information)
+
+
+## --- Taking a walk back ---
+##
+## A button over End Turn, and Backspace, walk the player acting back to where
+## their turn began - see CController.can_undo_move for when that is allowed.
+## Only there once they have walked; greyed out, saying why, once something on
+## the way has made it too late.
+
+const UNDO_TIP := "Walk back to where this turn began - or to just after the last skill, item or reaction - with the movement you had there (Backspace)"
+const UNDO_TOO_LATE := "Too late to walk back: something happened on the way - a reaction, a skill or item, or somebody's state changed"
+
+var _undo_button: Button = null
+
+
+func _build_undo_button():
+	var end_turn = $Actions/EndTurnButton
+	# End Turn's own look, without its wiring: copied with no signals.
+	_undo_button = end_turn.duplicate(0)
+	_undo_button.name = "UndoMoveButton"
+	_undo_button.text = "Undo Move"
+	_undo_button.tooltip_text = UNDO_TIP
+	_undo_button.visible = false
+	$Actions.add_child(_undo_button)
+	_undo_button.position = end_turn.position - Vector2(0, end_turn.size.y + 5)
+	_undo_button.pressed.connect(_on_undo_pressed)
+
+
+## --- The HUD's furniture ---
+
+## Where the main/secondary marks sit: above the big portrait, left of the
+## skill tabs.
+const PIPS_AT := Vector2(-108, 10)
+const MOVE_LABEL_LEFT := -108.0
+## What every key does, on End Turn - the button every turn ends on, and so the
+## one most often hovered.
+const KEYS_HINT := "End this character's turn (Space)\n1-9: pick a skill    Tab: next tab\nBackspace: undo a walk    Shift: see where enemies could strike\nC: character sheet    Esc: menu"
+const HOTKEY_MARK := "Hotkey"
+
+var _pips: ActionPips = null
+var _unit_card: UnitCard = null
+var _turn_banner: TurnBanner = null
+var _danger_legend: PanelContainer = null
+
+
+## End Turn is what every turn ends on, so it is the one button in the accent;
+## Undo Move beside it takes the theme's ordinary look rather than the flat grey
+## it was copied with.
+func _style_turn_buttons():
+	var end_turn: Button = $Actions/EndTurnButton
+	end_turn.add_theme_stylebox_override("normal", _accent_box(Color("2d5a8c"), Color("7fb4ea")))
+	end_turn.add_theme_stylebox_override("hover", _accent_box(Color("3a6fa8"), Color("a5ccf2")))
+	end_turn.add_theme_stylebox_override("pressed", _accent_box(Color("24496f"), Color("7fb4ea")))
+	end_turn.add_theme_color_override("font_color", Color("eef4fb"))
+	end_turn.add_theme_color_override("font_hover_color", Color.WHITE)
+	end_turn.add_theme_color_override("font_pressed_color", Color.WHITE)
+	if _undo_button != null:
+		for style in ["normal", "hover", "pressed", "disabled", "focus"]:
+			_undo_button.remove_theme_stylebox_override(style)
+		for colour in ["font_color", "font_disabled_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+			_undo_button.remove_theme_color_override(colour)
+
+
+func _accent_box(fill: Color, edge: Color) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = fill
+	box.border_color = edge
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(4)
+	box.content_margin_left = 10
+	box.content_margin_right = 10
+	box.content_margin_top = 5
+	box.content_margin_bottom = 5
+	return box
+
+
+## A small number in the corner of each of the first nine action buttons - the
+## key that picks it.
+func _build_hotkey_marks():
+	var slots = $Actions/ActionsPanel/ActionsGrid.get_children()
+	for i in mini(slots.size(), 9):
+		var mark := Label.new()
+		mark.name = HOTKEY_MARK
+		mark.text = str(i + 1)
+		mark.add_theme_font_size_override("font_size", 11)
+		mark.add_theme_color_override("font_color", Color("c2ceda"))
+		mark.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		mark.add_theme_constant_override("outline_size", 3)
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mark.visible = false
+		slots[i].add_child(mark)
+		mark.position = Vector2(3, 0)
+
+
+## Says what the danger view's colours mean while Shift is held.
+func _build_danger_legend():
+	_danger_legend = PanelContainer.new()
+	_danger_legend.name = "DangerLegend"
+	_danger_legend.theme_type_variation = &"TooltipPanel"
+	_danger_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_danger_legend.visible = false
+	var text := Label.new()
+	text.text = "Red: an enemy could reach and hit here next turn - deeper red, more of them\nOrange edge: stepping out of here sets off an enemy's reaction"
+	text.add_theme_font_size_override("font_size", 14)
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_danger_legend.add_child(text)
+	add_child(_danger_legend)
+
+
+func set_danger_legend(on: bool):
+	if _danger_legend == null:
+		return
+	_danger_legend.visible = on and not exploration_mode
+	if _danger_legend.visible:
+		_danger_legend.reset_size()
+		var screen = get_viewport_rect().size
+		_danger_legend.global_position = Vector2((screen.x - _danger_legend.size.x) * 0.5, TurnBanner.TOP + 56.0)
+
+
+func show_unit_card(comb: Dictionary):
+	if _unit_card == null or combat == null:
+		return
+	if _unit_card.visible and _unit_card.shown_id == comb.get("id", -2):
+		_unit_card.place()
+	else:
+		_unit_card.show_for(comb, combat)
+
+
+func hide_unit_card():
+	if _unit_card != null:
+		_unit_card.hide_card()
+
+
+## What hovering a face in the turn queue says.
+func _queue_tip(comb: Dictionary) -> String:
+	if not comb.get("alive", false):
+		return comb.name
+	var most = combat.get_effective_stat(comb, "max_hp")
+	if comb.side != 0 and combat.is_hidden(comb):
+		return "%s\nHidden - somewhere you cannot see" % comb.name
+	return "%s\n%d / %d HP\nClick to find them on the map" % [comb.name, comb.hp, most]
+
+
+## Takes the view to whoever's face in the queue was clicked - unless they are
+## hidden, or the view is busy following somebody's turn.
+func _on_queue_input(event: InputEvent, comb: Dictionary):
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+	accept_event()
+	if combat == null or combat.camera == null or not comb.get("alive", false):
+		return
+	if comb.side != 0 and combat.is_hidden(comb):
+		return
+	if combat.camera.is_following():
+		return
+	combat.camera.position = Grid.tile_to_world(comb.position)
+	combat.camera.clamp_to_map()
+
+
+func _point_out(comb: Dictionary):
+	if controller != null and controller.has_method("highlight_unit"):
+		controller.highlight_unit(comb)
+
+
+func _stop_pointing():
+	if controller != null and controller.has_method("clear_highlight"):
+		controller.clear_highlight()
+
+
+## Picks the skill in slot `index` the way clicking it would. False, and
+## nothing done, when that could not be clicked right now either.
+func _press_hotkey(index: int) -> bool:
+	if controller == null or not controller.player_turn or controller.is_skill_selected():
+		return false
+	if controller.action_locked or not controller.is_idle() or is_viewing_other():
+		return false
+	var slots = $Actions/ActionsPanel/ActionsGrid.get_children()
+	if index >= slots.size():
+		return false
+	var slot: Button = slots[index]
+	if slot.disabled or slot.icon == null or not slot.is_visible_in_tree():
+		return false
+	slot.pressed.emit()
+	return true
+
+
+## Tab moves to the next tab there is - Main, Secondary, Items, and round.
+func _cycle_panel() -> bool:
+	if controller != null and controller.is_skill_selected():
+		return false
+	var order = [SkillPanel.MAIN, SkillPanel.SECONDARY, SkillPanel.ITEMS]
+	var at = order.find(showing_panel)
+	for step in range(1, order.size() + 1):
+		var next = order[(at + step) % order.size()]
+		var tab := _tab(next)
+		if tab == null or tab.visible:
+			set_skill_panel(next)
+			return true
+	return false
+
+
+## The damage an aimed skill would do, marked on the health bars of everybody it
+## would catch - in the turn queue and the party column both.
+func _show_ghost(target: Dictionary, change: int):
+	for holder in [$TurnQueue/Queue, $Status]:
+		var icon = _icon_for(holder, target)
+		if icon != null and icon.has_method("show_change"):
+			icon.show_change(change)
+
+
+func _clear_ghosts():
+	for holder in [$TurnQueue/Queue, $Status]:
+		for icon in holder.get_children():
+			if icon.has_method("clear_change"):
+				icon.clear_change()
+
+
+func _announce_turn(comb: Dictionary):
+	if _turn_banner == null or exploration_mode or _deployment_mode or comb.is_empty():
+		return
+	_turn_banner.announce("%s's Turn" % comb.name, Color("dce8f5") if comb.side == 0 else Color("e08a8a"))
+
+
+func _on_undo_pressed():
+	if controller != null and controller.has_method("undo_move"):
+		controller.undo_move()
+
+
+## Shown once the player acting has walked, pressable while the walk can still
+## be taken back.
+func _refresh_undo():
+	if _undo_button == null:
+		return
+	var can_show = controller != null and controller.has_method("has_walked") \
+			and not exploration_mode and not _deployment_mode and not is_viewing_other() \
+			and not controller.is_skill_selected() and controller.has_walked()
+	_undo_button.visible = can_show
+	if not can_show:
+		return
+	var allowed = controller.can_undo_move()
+	_undo_button.disabled = not allowed
+	_undo_button.tooltip_text = UNDO_TIP if allowed else UNDO_TOO_LATE
 
 
 ## Folds the combat log away, or brings it back. The button stays where the
@@ -111,8 +377,8 @@ func _spells_toggle() -> Button:
 func toggle_spells():
 	showing_spells = not showing_spells
 	if combat != null and not exploration_mode:
-		_show_skills_for(combat.get_current_combatant())
-	_refresh_spells_toggle(combat.get_current_combatant() if combat != null else {})
+		_show_skills_for(shown_combatant())
+	_refresh_spells_toggle(shown_combatant())
 
 
 func _refresh_spells_toggle(comb):
@@ -137,7 +403,7 @@ func _tab(panel: int) -> Button:
 ## there. Three buttons say where you can go and which one you are on.
 func set_skill_panel(panel: int):
 	showing_panel = panel
-	_refresh_spells_toggle(combat.get_current_combatant() if combat != null else {})
+	_refresh_spells_toggle(shown_combatant())
 	for other in PANEL_TABS:
 		var tab := _tab(other)
 		if tab == null:
@@ -147,7 +413,7 @@ func set_skill_panel(panel: int):
 		tab.add_theme_color_override("font_hover_color", TAB_ON)
 		tab.button_pressed = selected
 	if combat != null and not exploration_mode:
-		_show_skills_for(combat.get_current_combatant())
+		_show_skills_for(shown_combatant())
 
 
 ## Hides the Spells tab for anyone who casts nothing, so a swordsman is not
@@ -202,7 +468,10 @@ func _show_skills_for(comb: Dictionary):
 	# what the mouse was still allowed to do, and a turn could be ended with
 	# somebody halfway between two tiles.
 	if controller != null and controller.has_method("is_idle"):
-		$Actions/EndTurnButton.disabled = not controller.is_idle()
+		$Actions/EndTurnButton.disabled = not controller.is_idle() or is_viewing_other()
+	_refresh_undo()
+	if _pips != null:
+		_pips.show_for(comb, combat)
 
 
 ## Switches the HUD between battle and exploration. Exploration keeps the party
@@ -218,6 +487,8 @@ func set_exploration_mode(enabled: bool):
 	$Actions/Movement.visible = not enabled
 	$Actions/EndTurnButton.visible = not enabled
 	$Actions/SkillPanelTabs.visible = not enabled
+	if _pips != null:
+		_pips.visible = not enabled
 	if enabled:
 		set_skill_list([], true)
 		_update_spell_slots(null)
@@ -242,12 +513,14 @@ func show_exploration_party(members: Array):
 		var new_status = StatusIcon.instantiate()
 		$Status.add_child(new_status)
 		new_status.set_icon(member.icon)
+		new_status.set_name_text(member.name)
 		new_status.set_health(member.hp, member.max_hp)
 		new_status.name = member.name
 		new_status.modulate = Color.WHITE if member.is_leader else Color(0.62, 0.62, 0.62)
 	if members.is_empty():
 		return
 	$Actions/StatusIcon.set_icon(members[0].icon)
+	$Actions/StatusIcon.set_name_text(members[0].name)
 	$Actions/StatusIcon.set_health(members[0].hp, members[0].max_hp)
 
 
@@ -270,6 +543,13 @@ func add_turn_queue_icon(combatant: Dictionary):
 	new_icon.name = "TQ%d" % combatant.get("id", 0)
 	new_icon.set_meta("combatant_id", combatant.get("id", 0))
 	new_icon.set_side(combatant.side)
+	# Hovered: who it is, and a gold outline on them on the map. Clicked: the
+	# view goes to them.
+	new_icon.mouse_filter = Control.MOUSE_FILTER_STOP
+	new_icon.tooltip_text = _queue_tip(combatant)
+	new_icon.mouse_entered.connect(_point_out.bind(combatant))
+	new_icon.mouse_exited.connect(_stop_pointing)
+	new_icon.gui_input.connect(_on_queue_input.bind(combatant))
 
 
 func update_turn_queue(combatants: Array, turn_queue: Array):
@@ -279,6 +559,8 @@ func update_turn_queue(combatants: Array, turn_queue: Array):
 
 
 func combatant_died(combatant):
+	if combatant == _viewing:
+		stop_viewing()
 	var turn_queue_icon = _icon_for($TurnQueue/Queue, combatant)
 #	if combatant.side == 0:
 #		var status = $Status.find_child(combatant.name, false, false)
@@ -306,11 +588,129 @@ func add_combatant_status(comb: Dictionary):
 		new_status.set_health(comb.hp, combat.get_effective_stat(comb, "max_hp"))
 		new_status.name = "Status%d" % comb.get("id", 0)
 		new_status.set_meta("combatant_id", comb.get("id", 0))
+		# Clicked anywhere on it, the health bar included - which would otherwise
+		# take the click for itself.
+		for part in new_status.find_children("*", "Control", true, false):
+			part.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		new_status.mouse_filter = Control.MOUSE_FILTER_STOP
+		new_status.tooltip_text = "%s - click to see their side of the HUD" % comb.name
+		new_status.gui_input.connect(_on_portrait_input.bind(comb))
+		new_status.set_name_text(comb.name)
+		new_status.mouse_entered.connect(_point_out.bind(comb))
+		new_status.mouse_exited.connect(_stop_pointing)
+
+
+func _on_portrait_input(event: InputEvent, comb: Dictionary):
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		accept_event()
+		view_combatant(comb)
+
+
+## --- Looking at somebody else's turn ---
+##
+## Clicking a party portrait shows that character's side of the HUD as though it
+## were their turn - their face, health, movement and gates, and every tab of
+## their kit, previewed in their own hands - with each action greyed out, since
+## it is not. End Turn greys out with them: the turn it would end is not the one
+## on show.
+##
+## It lasts until the turn it is not moves on: the one acting walks or acts, the
+## turn passes, Escape is pressed, or the one acting (or the one being looked
+## at) has their portrait clicked.
+
+
+## Whoever the HUD is showing: the party member being looked at, or whoever is
+## acting.
+func shown_combatant() -> Dictionary:
+	if is_viewing_other():
+		return _viewing
+	if combat == null or exploration_mode:
+		return {}
+	return combat.get_current_combatant()
+
+
+## Whether the HUD is showing somebody other than whoever is acting.
+func is_viewing_other() -> bool:
+	return not _viewing.is_empty() and _viewing.get("alive", false) and combat != null \
+			and _viewing != combat.get_current_combatant()
+
+
+## Shows `comb`'s side of the HUD - or goes back to whoever is acting, when that
+## is who was clicked, or when `comb` is already on show.
+func view_combatant(comb: Dictionary):
+	if combat == null or exploration_mode or _deployment_mode:
+		return
+	if comb == combat.get_current_combatant() or comb == _viewing or not comb.get("alive", false):
+		stop_viewing()
+		return
+	_viewing = comb
+	_show_whoever_is_shown()
+
+
+## Back to whoever is acting.
+func stop_viewing():
+	if _viewing.is_empty():
+		return
+	_viewing = {}
+	_show_whoever_is_shown()
+
+
+## Redraws everything on the HUD that belongs to one person, for whoever is on
+## show now.
+func _show_whoever_is_shown():
+	var comb = shown_combatant()
+	if comb.is_empty():
+		return
+	if comb.side == 0:
+		$Actions/StatusIcon.set_icon(comb.icon)
+		$Actions/StatusIcon.set_name_text(comb.name)
+		$Actions/StatusIcon.set_health(comb.hp, combat.get_effective_stat(comb, "max_hp"))
+	# What they would have to walk with on their turn, or what the one acting
+	# has left of theirs.
+	if is_viewing_other():
+		$Actions/Movement.text = "Move %d" % combat.get_effective_stat(comb, "movement")
+	elif controller != null:
+		$Actions/Movement.text = "Move %d" % controller.movement
+	showing_spells = false
+	set_skill_panel(SkillPanel.MAIN)
+	_refresh_portraits()
+	var banner = $Actions/SelectTargetMessage
+	if is_viewing_other():
+		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Looking at %s - Esc to go back" % comb.name
+		banner.visible = true
+	else:
+		banner.visible = false
+
+
+## Dims every party portrait but the one being looked at, so the column says
+## whose side of the HUD is on show. All of them lit when it is the one acting.
+func _refresh_portraits():
+	for status in $Status.get_children():
+		var lit = not is_viewing_other() or status.get_meta("combatant_id", -1) == _viewing.get("id", -2)
+		status.modulate = Color.WHITE if lit else PORTRAIT_ASIDE
+
+
+## Escape goes back, taken before anything else hears it - the pause menu would
+## otherwise open over a HUD still showing somebody else.
+func _input(event):
+	if not is_viewing_other():
+		return
+	if event is InputEventKey and event.pressed and not event.is_echo() and event.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		stop_viewing()
 
 
 func show_combatant_status_main(comb: Dictionary):
+	# A new turn is always shown as the turn it is.
+	if is_viewing_other():
+		$Actions/SelectTargetMessage.visible = false
+	_viewing = {}
+	_refresh_portraits()
+	hide_unit_card()
+	_announce_turn(comb)
 	if comb.side == 0:
 		$Actions/StatusIcon.set_icon(comb.icon)
+		$Actions/StatusIcon.set_name_text(comb.name)
 		$Actions/StatusIcon.set_health(comb.hp, combat.get_effective_stat(comb, "max_hp"))
 	# A new turn always opens on the main panel, showing skills rather than
 	# whatever the last turn happened to be looking at.
@@ -358,6 +758,8 @@ func set_deployment_mode(active: bool):
 	$Actions/EndTurnButton.text = "Begin Battle" if active else _end_turn_default_text
 	$Actions/SelectTargetMessage.visible = active
 	if active:
+		if _turn_banner != null:
+			_turn_banner.dismiss()
 		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Click a hero, then a highlighted tile to move them there."
 		lock_action_buttons()
 		$Actions/EndTurnButton.disabled = false
@@ -367,6 +769,10 @@ func set_deployment_mode(active: bool):
 		# for whoever is acting decide what is actually pressable.
 		_set_aiming(false)
 		refresh_action_buttons()
+		# The first turn was handed out before the party was placed, when a
+		# banner would only have been in the way. Now it is the turn.
+		if combat != null and not combat.combatants.is_empty():
+			_announce_turn(combat.get_current_combatant())
 
 
 ## Space ends the turn, the same as pressing the button.
@@ -378,6 +784,28 @@ func set_deployment_mode(active: bool):
 ## it cannot end a turn the button would not.
 func _unhandled_input(event):
 	if not (event is InputEventKey and event.pressed and not event.is_echo()):
+		return
+	var code = event.physical_keycode
+	if (code >= KEY_1 and code <= KEY_9) or code == KEY_TAB:
+		# 1-9 pick the skill in that slot, Tab moves to the next tab - both
+		# refusing whatever a click would refuse.
+		if exploration_mode or _deployment_mode or combat == null or controller == null:
+			return
+		if controller.has_method("a_menu_is_over_the_map") and controller.a_menu_is_over_the_map():
+			return
+		var done = _cycle_panel() if code == KEY_TAB else _press_hotkey(code - KEY_1)
+		if done:
+			get_viewport().set_input_as_handled()
+		return
+	if event.physical_keycode == KEY_BACKSPACE:
+		# Backspace walks back, where the button would - and refuses whatever it
+		# would refuse, can_undo_move being the one judge of both.
+		if exploration_mode or _deployment_mode or combat == null or controller == null:
+			return
+		if controller.has_method("a_menu_is_over_the_map") and controller.a_menu_is_over_the_map():
+			return
+		if controller.has_method("undo_move") and controller.undo_move():
+			get_viewport().set_input_as_handled()
 		return
 	if event.physical_keycode != KEY_SPACE:
 		return
@@ -435,6 +863,11 @@ func refresh_action_buttons():
 		$Actions/EndTurnButton.disabled = false
 		_apply_deployment_visibility()
 		return
+	# Something happened on the turn being played - a step, a skill - so the HUD
+	# goes back to showing it rather than someone else's.
+	if is_viewing_other():
+		stop_viewing()
+		return
 	_show_skills_for(combat.get_current_combatant())
 
 
@@ -467,10 +900,13 @@ func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: b
 	# resolving: the turn's state is mid-change, and the skill would be aimed
 	# from wherever they happened to be standing at the time.
 	var busy = controller != null and (controller.action_locked or not controller.is_idle())
-	var comb = combat.get_current_combatant() if combat != null and not exploration_mode else {}
+	var comb = shown_combatant()
+	# Somebody else's kit, on a turn that is not theirs: all of it greyed out,
+	# and none of it wired to anything, so no route can pick one of it.
+	var looking = is_viewing_other()
 	for i in range(actions_grid_children.size()):
 		var action = actions_grid_children[i] as Button
-		if player_turn == false or skill_used or busy:
+		if player_turn == false or skill_used or busy or looking:
 			action.disabled = true
 		else:
 			action.disabled = false
@@ -489,17 +925,28 @@ func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: b
 				# unavailable: the action is gone, or the slots are.
 				action.disabled = slot_spent or not combat.can_afford_skill(comb, skill)
 			action.icon = skill.icon
-			action.tooltip_text = build_skill_tooltip(skill)
+			SkillLook.decorate(action, skill)
+			var key_mark = action.get_node_or_null(HOTKEY_MARK)
+			if key_mark != null:
+				key_mark.visible = not exploration_mode
+			# Worked out in the hands of whoever is on show, so looking at a
+			# teammate says what they would hit for rather than the one acting.
+			action.tooltip_text = TooltipText.wrap(build_skill_tooltip(skill, _viewing if looking else {}))
 			clear_action_button_connections(action)
-			action.pressed.connect(func():
-				controller.set_selected_skill(skill_key, spends_secondary)
-				controller.begin_target_selection()
-				)
+			if not looking:
+				action.pressed.connect(func():
+					controller.set_selected_skill(skill_key, spends_secondary)
+					controller.begin_target_selection()
+					)
 		else:
 			action.icon = null
 			action.tooltip_text = ""
+			SkillLook.decorate(action, null)
+			var key_mark = action.get_node_or_null(HOTKEY_MARK)
+			if key_mark != null:
+				key_mark.visible = false
 			clear_action_button_connections(action)
-	$Actions/EndTurnButton.disabled = !player_turn
+	$Actions/EndTurnButton.disabled = !player_turn or looking
 
 
 ## Spell slots for whoever's turn it is: one bar per level, each with the
@@ -779,6 +1226,17 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return push_str
 		EffectDefinition.EffectType.PULL:
 			return "Pulls target towards caster, up to %d tile(s)" % effect.knockback_distance
+		# These three had no words at all, so Run, Guard, Stealth and Study ended
+		# their previews on a bare "-".
+		EffectDefinition.EffectType.STAT_MULTIPLIER:
+			# "x2" rather than the "x2.0" a float prints as.
+			var times = effect.stat_multiplier
+			var shown = str(int(times)) if is_equal_approx(times, roundf(times)) else str(times)
+			return "x%s %s for %d turn(s)" % [shown, effect.stat, effect.duration]
+		EffectDefinition.EffectType.HIDE:
+			return "Slips out of sight, if no enemy can see them - until one can"
+		EffectDefinition.EffectType.REVEAL:
+			return "Lays their character sheet open to you for the rest of the battle"
 	return ""
 
 
@@ -790,7 +1248,7 @@ func update_combatants(combatants: Array):
 			if status != null:
 				status.set_health(comb.hp, effective_max_hp)
 				_refresh_conditions(status, comb)
-		if comb.side == 0 and not exploration_mode and combat.get_current_combatant() == comb:
+		if comb.side == 0 and not exploration_mode and shown_combatant() == comb:
 			# The big portrait beside the skill panel belongs to whoever is
 			# acting, and used to be written only on a turn change - so healing
 			# or being hurt during your own turn left it showing the health you
@@ -798,6 +1256,7 @@ func update_combatants(combatants: Array):
 			$Actions/StatusIcon.set_health(comb.hp, effective_max_hp)
 		var turn_queue_icon = _icon_for($TurnQueue/Queue, comb)
 		if turn_queue_icon != null:
+			turn_queue_icon.tooltip_text = _queue_tip(comb)
 			_refresh_conditions(turn_queue_icon, comb)
 			turn_queue_icon.set_max_hp(effective_max_hp)
 			turn_queue_icon.set_hp(comb.hp)
@@ -808,7 +1267,7 @@ func update_combatants(combatants: Array):
 
 
 func set_movement(movement):
-	$Actions/Movement.text = str(movement)
+	$Actions/Movement.text = "Move %d" % movement
 
 
 ## While a skill is being aimed, everything but the party portraits and the
@@ -837,17 +1296,165 @@ func _set_aiming(aiming: bool):
 		_update_spell_slots(combat.get_current_combatant() if combat != null and not exploration_mode else null)
 		# Nor can the log, if the player folded it away before aiming.
 		_apply_log_state()
+		# Nor Undo Move, which is only there once somebody has walked.
+		_refresh_undo()
+		# Nor Spells, which is only there for somebody who casts something -
+		# switched back on with the rest, it offered a swordsman a button that
+		# vanished the moment it was pressed.
+		_refresh_spells_toggle(shown_combatant())
+		if _pips != null and combat != null and not exploration_mode:
+			_pips.show_for(shown_combatant(), combat)
 		if _deployment_mode:
 			# Still placing the party - the cluster stays out of the way.
 			_apply_deployment_visibility()
 
 
 func _target_selection_finished():
+	hide_hit_preview()
 	_set_aiming(false)
 
 
 func _target_selection_started():
 	_set_aiming(true)
+
+
+## --- What a hit will do, while aiming ---
+##
+## Beside the cursor while a skill is being aimed: everyone the aim would catch,
+## what it would do to each of them if it connects - after their own defence and
+## resistance - and, for a contested skill, whose number wins, and so whether it
+## lands in full or is shrugged off to half its damage and nothing else. The
+## figures come from Combat.predict_hit, which takes the same steps the hit
+## itself will, so the prompt and the log afterwards agree.
+
+## Out of the cursor's way, below and to the right of it.
+const HIT_PREVIEW_OFFSET := Vector2(24, 24)
+const HIT_PREVIEW_ENEMY := Color("e08a8a")
+const HIT_PREVIEW_ALLY := Color("7fe08a")
+const HIT_PREVIEW_WINS := Color("dce8f5")
+const HIT_PREVIEW_LOSES := Color("c8913f")
+
+var _hit_preview: PanelContainer = null
+var _hit_rows: VBoxContainer = null
+
+
+func _build_hit_preview():
+	_hit_preview = PanelContainer.new()
+	_hit_preview.name = "HitPreview"
+	# Dressed as a tooltip, since it is one - it just cannot wait for a hover.
+	_hit_preview.theme_type_variation = &"TooltipPanel"
+	_hit_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hit_preview.visible = false
+	_hit_rows = VBoxContainer.new()
+	_hit_rows.add_theme_constant_override("separation", 6)
+	_hit_rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hit_preview.add_child(_hit_rows)
+	add_child(_hit_preview)
+
+
+## Shows what `skill_key`, aimed at `aim` by whoever is acting, would do to
+## everyone it would catch. Hidden when it would catch nobody.
+func show_hit_preview(skill_key: String, aim: Vector2i):
+	if combat == null or exploration_mode or not SkillDatabase.skills.has(skill_key):
+		hide_hit_preview()
+		return
+	if _hit_preview == null:
+		_build_hit_preview()
+	var caster = combat.get_current_combatant()
+	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
+	var targets = combat.targets_if_aimed(caster, skill, aim)
+	if targets.is_empty():
+		hide_hit_preview()
+		return
+	for row in _hit_rows.get_children():
+		_hit_rows.remove_child(row)
+		row.queue_free()
+	var heading := _hit_label(skill.name, 13, TAB_OFF)
+	_hit_rows.add_child(heading)
+	_clear_ghosts()
+	for target in targets:
+		var hit = combat.predict_hit(caster, target, skill)
+		_hit_rows.add_child(_hit_row(caster, target, skill, hit))
+		_show_ghost(target, int(hit.heal) - int(hit.damage))
+	_hit_preview.visible = true
+	_hit_preview.reset_size()
+	_place_hit_preview()
+
+
+func hide_hit_preview():
+	if _hit_preview != null:
+		_hit_preview.visible = false
+	_clear_ghosts()
+
+
+## Keeps the prompt beside the cursor, and on the screen: it flips to the other
+## side of the cursor rather than running off an edge.
+func _place_hit_preview():
+	var screen = get_viewport_rect().size
+	var mouse = get_viewport().get_mouse_position()
+	var size = _hit_preview.get_combined_minimum_size()
+	var at = mouse + HIT_PREVIEW_OFFSET
+	if at.x + size.x > screen.x:
+		at.x = mouse.x - HIT_PREVIEW_OFFSET.x - size.x
+	if at.y + size.y > screen.y:
+		at.y = mouse.y - HIT_PREVIEW_OFFSET.y - size.y
+	_hit_preview.global_position = at.clamp(Vector2.ZERO, (screen - size).max(Vector2.ZERO))
+
+
+## One target: who, what it does to them, and - for a contest - how it goes.
+func _hit_row(caster: Dictionary, target: Dictionary, skill: SkillDefinition, hit: Dictionary) -> Control:
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", 0)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var side_colour = HIT_PREVIEW_ALLY if target.side == caster.side else HIT_PREVIEW_ENEMY
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(_hit_label(target.name, 15, side_colour))
+	line.add_child(_hit_label(_what_it_does(hit), 15, HIT_PREVIEW_WINS))
+	row.add_child(line)
+	if hit.contested:
+		var verdict: String
+		if hit.wins:
+			verdict = "lands in full"
+		elif hit.deals_damage:
+			verdict = "shrugged off - half damage, nothing else"
+		else:
+			verdict = "shrugged off - nothing lands"
+		# Whose number is whose: the caster's own attribute, or the bottle's
+		# power for a thrown item, which owes nothing to the thrower.
+		var ours = hit.our_stat_name if skill is ItemDefinition else "your " + hit.our_stat_name
+		row.add_child(_hit_label("Their %s %d vs %s %d: %s" % [
+			hit.their_stat_name, hit.their_stat, ours, hit.our_stat, verdict],
+			12, HIT_PREVIEW_WINS if hit.wins else HIT_PREVIEW_LOSES))
+		if not hit.wins and not hit.dropped.is_empty():
+			row.add_child(_hit_label("Loses: %s" % ", ".join(hit.dropped), 12, HIT_PREVIEW_LOSES))
+	elif hit.hit_chance < 100:
+		row.add_child(_hit_label("%d%% to hit" % hit.hit_chance, 12, TAB_OFF))
+	return row
+
+
+## The headline for one target: damage, a heal, or what else lands.
+func _what_it_does(hit: Dictionary) -> String:
+	var parts := []
+	if hit.deals_damage:
+		parts.append("%d damage%s" % [hit.damage, " - lethal" if hit.lethal else ""])
+	if hit.heal > 0:
+		parts.append("heals %d" % hit.heal)
+	if not hit.also.is_empty():
+		parts.append("+ " + ", ".join(hit.also))
+	if parts.is_empty():
+		return "no damage"
+	return "  ".join(parts)
+
+
+func _hit_label(text: String, size: int, colour: Color) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_color", colour)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
 
 
 ## --- What a skill will actually do ---
@@ -971,27 +1578,69 @@ func _heal_amount(skill: SkillDefinition, effect: EffectDefinition = null) -> in
 ##
 ## `where` is a layout preset: the party portraits carry theirs beside the face,
 ## the turn queue underneath it, which is where there is room in each.
-func _refresh_conditions(holder: Control, comb: Dictionary, where: int = -1):
-	var anchor: Control = holder.get_node_or_null("Icon")
+## Marks under a face in the turn queue: small enough that three sit side by
+## side within the face's own width, then onto the next line.
+const QUEUE_MARK_SIZE := Vector2(14, 14)
+const QUEUE_MARK_COLUMNS := 3
+## Beside a party portrait there is room to the right, but not the whole map's
+## worth: four across, then down.
+const PORTRAIT_MARK_COLUMNS := 4
+
+
+func _refresh_conditions(holder: Control, comb: Dictionary):
+	# A party portrait keeps its face under Layout; a queue face is the face.
+	var anchor: Control = holder.get_node_or_null("Layout/Icon")
+	if anchor == null:
+		anchor = holder.get_node_or_null("Icon")
 	if anchor == null:
 		anchor = holder
 	var strip: ConditionStrip = anchor.get_node_or_null("Conditions")
 	if strip == null:
 		strip = ConditionStrip.new()
 		strip.name = "Conditions"
-		strip.add_theme_constant_override("separation", 2)
-		anchor.add_child(strip)
-		var preset = where
-		if preset < 0:
-			preset = Control.PRESET_CENTER_RIGHT if comb.get("side", 1) == 0 else Control.PRESET_CENTER_BOTTOM
-		strip.set_anchors_and_offsets_preset(preset, Control.PRESET_MODE_KEEP_SIZE)
-		# Clear of the portrait rather than over it: beside it for the party
-		# column, below it for the queue along the top.
-		if preset == Control.PRESET_CENTER_RIGHT:
-			strip.position.x += 8
-		else:
-			strip.position.y += 6
-		strip.grow_horizontal = Control.GROW_DIRECTION_END
-		strip.grow_vertical = Control.GROW_DIRECTION_END
 		strip.mouse_filter = Control.MOUSE_FILTER_PASS
+		# Where the face is decides where its marks go - not whose side they are
+		# on. A party member's face in the queue used to take the party column's
+		# placement, beside it, and so sat on top of the next face along.
+		var in_queue = holder.get_parent() == $TurnQueue/Queue
+		strip.set_meta("in_queue", in_queue)
+		if in_queue:
+			strip.mark_size = QUEUE_MARK_SIZE
+			strip.columns = QUEUE_MARK_COLUMNS
+		else:
+			strip.columns = PORTRAIT_MARK_COLUMNS
+		anchor.add_child(strip)
 	strip.show_for(comb, combat)
+	_place_strip(strip)
+
+
+## Pins the strip to its face at exactly the size its marks need, every time
+## they change. Left to grow on its own it never shrank back when a condition
+## wore off, and the marks left behind sat off to one side.
+func _place_strip(strip: ConditionStrip):
+	var need := strip.get_combined_minimum_size()
+	if strip.get_meta("in_queue", false):
+		# Under the face, centred on it, a line at a time downwards.
+		strip.anchor_left = 0.5
+		strip.anchor_right = 0.5
+		strip.anchor_top = 1.0
+		strip.anchor_bottom = 1.0
+		strip.offset_left = -need.x * 0.5
+		strip.offset_right = need.x * 0.5
+		strip.offset_top = 4.0
+		strip.offset_bottom = 4.0 + need.y
+		# The face acting now is drawn larger; its marks stay everybody else's
+		# size, or they grow out past it and under the next face.
+		strip.pivot_offset = Vector2(need.x * 0.5, 0.0)
+		var face_scale: Vector2 = strip.get_parent().scale
+		strip.scale = Vector2.ONE / face_scale if face_scale.x > 0.0 else Vector2.ONE
+	else:
+		# Beside the portrait, centred on it top to bottom.
+		strip.anchor_left = 1.0
+		strip.anchor_right = 1.0
+		strip.anchor_top = 0.5
+		strip.anchor_bottom = 0.5
+		strip.offset_left = 8.0
+		strip.offset_right = 8.0 + need.x
+		strip.offset_top = -need.y * 0.5
+		strip.offset_bottom = need.y * 0.5

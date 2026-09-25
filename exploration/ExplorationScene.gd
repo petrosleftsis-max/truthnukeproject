@@ -299,8 +299,9 @@ func _follow_camera(leader_position: Vector2):
 		return
 	camera.position = leader_position
 	if camera.has_method("clamp_to_map"):
-		# Reuses the battle camera's clamping, so exploration can't scroll off
-		# the edge of the map either.
+		# The battle camera's clamping: the middle of the view stays on the
+		# map, so the leader is kept in the middle of the screen right up to
+		# its edge rather than pushed out towards the HUD there.
 		camera.clamp_to_map()
 
 

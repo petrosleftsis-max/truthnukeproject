@@ -63,6 +63,11 @@ enum AoEShape {
 ## somebody's threatened space stops being an opening.
 @export var suppresses_reactions: bool = false
 
+## Whether the Mimic can copy this when a player uses it. Off for what copying
+## would make no sense of - getting about, and taking somebody's measure - and
+## the Mimic copies the last thing it can copy instead. See Combat.ai_copycat.
+@export var can_be_copied: bool = true
+
 @export_group("Teleport")
 ## Who this puts somewhere else, and whether it does at all.
 ##

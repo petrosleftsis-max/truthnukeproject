@@ -37,7 +37,7 @@ func icons_beside(ui, comb: Dictionary) -> int:
 	for child in ui.get_node("Status").get_children():
 		if child.get_meta("combatant_id", -2) != comb.get("id", 0):
 			continue
-		var strip = child.get_node_or_null("Icon/Conditions")
+		var strip = child.get_node_or_null("Layout/Icon/Conditions")
 		if strip == null:
 			return 0
 		return strip.get_child_count()

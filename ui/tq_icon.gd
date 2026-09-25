@@ -34,8 +34,19 @@ func set_max_hp(max_hp: int):
 
 
 func set_hp(hp: int):
+	if self.hp > hp:
+		HealthBarMarks.drain($Health, self.hp, hp, maxi(max_hp, 1))
 	self.hp = hp
 	_refresh_health()
+
+
+## What an aimed skill would do to them - see HealthBarMarks.
+func show_change(change: int):
+	HealthBarMarks.show_preview($Health, hp, change, maxi(max_hp, 1))
+
+
+func clear_change():
+	HealthBarMarks.clear_preview($Health)
 
 
 ## A bar along the bottom of the face rather than the red wash this used to
@@ -71,6 +82,11 @@ func set_turn_taken(taken: bool):
 func set_current(current: bool, side: int):
 	_is_current = current
 	scale = Vector2(1.15, 1.15) if current else Vector2.ONE
+	# The condition marks under the face keep their size either way - scaled up
+	# with it, they reached under the next face along.
+	var marks = get_node_or_null("Conditions")
+	if marks != null:
+		marks.scale = Vector2.ONE / scale
 	set_side(side)
 	if current:
 		modulate.a = 1.0

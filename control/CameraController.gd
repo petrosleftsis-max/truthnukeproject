@@ -1,8 +1,8 @@
 extends Camera2D
 class_name CameraController
 ## Free camera for the battle map: mouse-wheel zoom anchored on the cursor,
-## middle-mouse drag and WASD/arrow-key panning, clamped so the view never
-## leaves the map.
+## middle-mouse drag and WASD/arrow-key panning, clamped so the middle of the
+## view never leaves the map - see clamp_to_map.
 ##
 ## The clamp works off the TileMap's actually-used cells rather than a
 ## hard-coded size, so enlarging or shrinking the map in the editor needs no
@@ -19,11 +19,8 @@ class_name CameraController
 ## skill targeting (see CController._unhandled_input).
 
 ## How far out you can pull. Higher zoom = more magnified = less map visible,
-## so this is the "whole map" end. At 1.0 the whole painted map (37x22 cells =
-## 1184x704) fits inside the 1280x720 viewport with room to spare, so fully
-## zoomed out shows everything and there is nothing left to pan to. If you
-## enlarge the map past the viewport, lower this to still be able to take it
-## all in at once.
+## so this is the "whole map" end. If you enlarge the map past what fits at
+## this zoom, lower it to still be able to take it all in at once.
 @export var min_zoom := 0.17
 ## How far in you can push.
 @export var max_zoom := 1.0
@@ -80,30 +77,20 @@ func get_visible_world_size() -> Vector2:
 	return get_viewport_rect().size / zoom.x
 
 
-## Pulls the camera back inside the map. On an axis where the map is smaller
-## than the view there is nothing to pan to, so it centres instead - otherwise
-## the clamp would have contradictory bounds and pin the map to one edge with
-## all the empty space dumped on the other side. At min zoom that centring
-## applies on both axes, which is what locks the fully-zoomed-out view in
-## place. Note it centres the *painted* map, so it sits 16px right and down of
-## the hard-coded (576, 336) this camera previously used - that value centred a
-## 36x21 map, but the TileMap actually has 37x22 cells painted.
+## Keeps the middle of the view on the map, and nothing more: the rest of the
+## view is free to run past the map's edges.
+##
+## It used to keep the whole view inside, stopping the moment the map's edge
+## met the screen's. But the HUD sits over every side of the screen - the turn
+## queue, the action panel, the log, the portraits - so whatever was painted
+## along an edge stayed underneath it with no way to pan it into the open.
+## Holding only the middle lets any tile be brought to the centre of the
+## screen, while the view still can never be lost off the map altogether.
 func clamp_to_map():
 	var map_rect = get_map_rect()
 	if map_rect.size.x <= 0.0 or map_rect.size.y <= 0.0:
 		return
-	var half = get_visible_world_size() * 0.5
-	var clamped = position
-	for axis in 2:
-		if map_rect.size[axis] <= half[axis] * 2.0:
-			clamped[axis] = map_rect.position[axis] + map_rect.size[axis] * 0.5
-		else:
-			clamped[axis] = clampf(
-				clamped[axis],
-				map_rect.position[axis] + half[axis],
-				map_rect.position[axis] + map_rect.size[axis] - half[axis]
-			)
-	position = clamped
+	position = position.clamp(map_rect.position, map_rect.end)
 
 
 ## Zooms to `new_zoom_level` while keeping the world point currently under

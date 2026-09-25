@@ -75,10 +75,10 @@ offset_top = 73.0
 offset_right = 8.0
 offset_bottom = 185.0
 
-[node name="Icon" parent="Actions/StatusIcon" index="0"]
+[node name="Icon" parent="Actions/StatusIcon/Layout" index="0"]
 material = SubResource("ShaderMaterial_1qt58")
 
-[node name="Health" parent="Actions/StatusIcon/Icon" index="1"]
+[node name="Health" parent="Actions/StatusIcon/Layout" index="3"]
 theme_override_styles/fill = SubResource("StyleBoxFlat_wl5ax")
 
 [node name="ActionsPanel" type="PanelContainer" parent="Actions" unique_id=332119452]

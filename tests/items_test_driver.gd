@@ -208,7 +208,7 @@ func run_test():
 	game.queue_free()
 	await get_tree().process_frame
 	Campaign.reset()
-	Campaign.current_map = "res://skills/laboratory_terrain_explore.tscn"
+	Campaign.current_map = "res://scenes/laboratory_terrain_explore.tscn"
 	var scene = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(scene)
 	for i in 5:

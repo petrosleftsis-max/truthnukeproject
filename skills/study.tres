@@ -15,6 +15,7 @@ description = "Take the measure of an enemy: their health, attributes, movement,
 min_range = 1
 max_range = 40
 icon = ExtResource("2_icon")
+can_be_copied = false
 is_secondary = true
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_study_reveal")])
 deals_damage = false

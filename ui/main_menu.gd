@@ -39,7 +39,7 @@ const WAYS_IN := [
 		"name": "Prometheus",
 		"icon": "res://imagese/icon/prometheus colors.png",
 		"description": "Narrative and gameplay team dynamics with an intermediate stage.",
-		"map": "res://skills/laboratory_terrain_explore.tscn",
+		"map": "res://scenes/laboratory_terrain_explore.tscn",
 	},
 	{
 		"name": "Enfina",
@@ -94,6 +94,7 @@ func _panel(title_text: String) -> VBoxContainer:
 	holder.alignment = BoxContainer.ALIGNMENT_CENTER
 	holder.add_theme_constant_override("separation", 14)
 	var title := Label.new()
+	title.theme_type_variation = GameFonts.HEADER
 	title.text = title_text
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 34)
@@ -160,6 +161,12 @@ func _build_options() -> Control:
 	buttons.add_child(_menu_button("Resolution", func(): _show("resolution")))
 	buttons.add_child(_menu_button("Volume", func(): _show("volume")))
 	holder.add_child(buttons)
+	var speed := BattleSpeedPicker.new()
+	speed.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	for button in speed.buttons:
+		button.custom_minimum_size = Vector2(84, 0)
+		_dress(button)
+	holder.add_child(speed)
 	holder.add_child(_back_button())
 	return holder
 
@@ -193,7 +200,16 @@ func _build_volume() -> Control:
 func _menu_button(text: String, on_press: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
-	button.custom_minimum_size = Vector2(0, 42)
+	_dress(button)
+	button.pressed.connect(on_press)
+	return button
+
+
+## The menu's look on any button - a card that lights up, edged in the accent
+## when focused or pressed. A toggle that is on stays pressed, so the speed
+## picker's chosen setting keeps its edge.
+func _dress(button: Button):
+	button.custom_minimum_size.y = 42
 	button.add_theme_font_size_override("font_size", 17)
 	button.add_theme_color_override("font_color", INK)
 	button.add_theme_color_override("font_hover_color", INK)
@@ -202,8 +218,9 @@ func _menu_button(text: String, on_press: Callable) -> Button:
 	button.add_theme_stylebox_override("hover", _box(CARD_LIT))
 	button.add_theme_stylebox_override("focus", _box(CARD_LIT, ACCENT))
 	button.add_theme_stylebox_override("pressed", _box(CARD_LIT, ACCENT))
-	button.pressed.connect(on_press)
-	return button
+	button.add_theme_stylebox_override("hover_pressed", _box(CARD_LIT, ACCENT))
+	button.add_theme_color_override("font_pressed_color", INK)
+	button.add_theme_color_override("font_hover_pressed_color", INK)
 
 
 ## One of the four ways in: a portrait, a name, and what you are letting
@@ -215,7 +232,7 @@ func _way_in_card(way: Dictionary) -> Button:
 	card.add_theme_stylebox_override("hover", _box(CARD_LIT))
 	card.add_theme_stylebox_override("focus", _box(CARD_LIT, ACCENT))
 	card.add_theme_stylebox_override("pressed", _box(CARD_LIT, ACCENT))
-	card.tooltip_text = way.description
+	card.tooltip_text = TooltipText.wrap(way.description)
 	card.pressed.connect(_start.bind(way))
 
 	var column := VBoxContainer.new()

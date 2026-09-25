@@ -90,6 +90,10 @@ var _skipping := false
 func _ready() -> void:
 	balloon.hide()
 	Engine.get_singleton("DialogueManager").mutated.connect(_on_mutated)
+	# The speaker's name in the heading face, like every other name in the game.
+	var display := GameFonts.display_font()
+	if display != null:
+		character_label.add_theme_font_override("normal_font", display)
 
 	# If the responses menu doesn't have a next action set, use this one
 	if responses_menu.next_action.is_empty():

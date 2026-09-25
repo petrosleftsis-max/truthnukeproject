@@ -16,5 +16,6 @@ name = "Run"
 description = "Doubles your movement for this turn only."
 icon = ExtResource("2_fwp5i")
 targets_ally = true
+can_be_copied = false
 effects = Array[ExtResource("1_g061d")]([SubResource("Effect_run")])
 deals_damage = false

@@ -29,6 +29,44 @@ func _ready():
 	await run_test()
 
 
+## Every piece of text drawn under `node`, so a row can be read the way a player
+## would read it.
+func texts_under(node: Node) -> Array:
+	var found = []
+	if node is Label:
+		found.append(node.text)
+	for child in node.get_children():
+		found.append_array(texts_under(child))
+	return found
+
+
+## Every tooltip on something under `node`: what hovering it would say.
+func tooltips_under(node: Node) -> Array:
+	var found = []
+	if node is Control and node.tooltip_text != "":
+		found.append(node.tooltip_text)
+	for child in node.get_children():
+		found.append_array(tooltips_under(child))
+	return found
+
+
+## The sheet's row headed `heading`, or null when it has none.
+func row_headed(sheet: CharacterSheet, heading: String) -> Node:
+	for row in sheet._stat_rows.get_children():
+		if row.get_child_count() > 0 and row.get_child(0) is Label and row.get_child(0).text == heading:
+			return row
+	return null
+
+
+## The headings down the left of the sheet, top to bottom.
+func headings_of(sheet: CharacterSheet) -> Array:
+	var found = []
+	for row in sheet._stat_rows.get_children():
+		if row.get_child_count() > 0 and row.get_child(0) is Label:
+			found.append(row.get_child(0).text)
+	return found
+
+
 ## Sends a key the way the window would, so the toggle is exercised through
 ## the same path a player uses rather than by calling toggle() directly.
 func press(keycode: int):
@@ -194,6 +232,119 @@ func run_test():
 			"while %s, which does deal damage, still says so" % harmful.name)
 	log_line("")
 
+	log_line("======== what is on them, under State ========")
+	sheet.close()
+	MenuPause.clear(get_tree())
+	var subject = players[0]
+	var enemy = {}
+	for comb in combat.combatants:
+		if comb.side == 1 and comb.alive and enemy.is_empty():
+			enemy = comb
+	subject.status_effects.clear()
+	combat.set_hidden(subject, false)
+	sheet.open_on(subject.name)
+	await get_tree().process_frame
+	var state_row = row_headed(sheet, "State")
+	ok(state_row != null, "somebody in a fight has a State row", subject.name)
+	if state_row != null:
+		ok(texts_under(state_row).has("none"), "which says none while nothing is on them",
+			"%s" % [texts_under(state_row)])
+	sheet.close()
+
+	# Burn laid the way a fight lays it, by the skill that inflicts it.
+	var burn_effect: EffectDefinition = null
+	var burn_skill: SkillDefinition = null
+	for key in SkillDatabase.skills:
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		for effect in skill.all_effects():
+			if effect != null and effect.type == EffectDefinition.EffectType.CONDITION \
+					and effect.condition != null and effect.condition.display_name == "Burn" \
+					and burn_effect == null:
+				burn_effect = effect
+				burn_skill = skill
+	ok(burn_effect != null, "something in the game inflicts Burn", burn_skill.name if burn_skill else "nothing")
+	if burn_effect != null:
+		combat.apply_effect(enemy, subject, burn_effect, burn_skill)
+	combat.set_hidden(subject, true)
+	sheet.open_on(subject.name)
+	await get_tree().process_frame
+	state_row = row_headed(sheet, "State")
+	ok(state_row != null, "with something on them the row is still there")
+	if state_row != null:
+		var said = " / ".join(texts_under(state_row))
+		var hovered = " / ".join(tooltips_under(state_row)).replace("\n", " ")
+		ok(said.contains("Hidden"), "being hidden is listed", said)
+		ok(said.contains("Burn"), "Burn is listed")
+		ok(not said.contains("none"), "and it no longer says none")
+		# Named on the sheet, explained on hover: written out in full, every
+		# state added a paragraph, and they swamped the page.
+		ok(not said.contains("Out of sight") and not said.contains("Wears off"),
+			"what they mean is not written out on the sheet", said)
+		ok(hovered.contains(CharacterSheet.HIDDEN_TEXT), "hovering Hidden says what hiding means")
+		ok(hovered.contains("Wears off in"), "and hovering Burn says how long it has left")
+		# The same words the HUD mark shows when hovered, not a second telling.
+		var reader := ConditionStrip.new()
+		var hud = reader.states_of(subject, combat)
+		reader.free()
+		ok(hud.size() == 1 and tooltips_under(state_row).has(TooltipText.wrap(hud[0].text)),
+			"in exactly the words the HUD's mark uses", "%s" % [hud])
+	var order = headings_of(sheet)
+	ok(order.find("State") >= 0 and order.find("State") < order.find("Skills"),
+		"State sits above Skills", "%s" % [order])
+	sheet.close()
+
+	# Everything the game can inflict at once, and a passive on top: far taller
+	# than the screen. The sheet has to stay on it and scroll instead, or the
+	# buttons and the way out go off the bottom edge.
+	# Many times over, since each is only a tag now.
+	for i in 12:
+		for condition in GlossaryPanel.conditions():
+			subject.status_effects.append({"stat": "condition", "condition": condition,
+				"dot_base": 0.0, "duration": 3, "source_name": "the test"})
+	subject["passives"] = CombatantDatabase.combatants["mimic"].passives.duplicate()
+	sheet.open_on(subject.name)
+	for i in 3:
+		await get_tree().process_frame
+	var screen = sheet.get_viewport().get_visible_rect().size.y
+	var tall = sheet._stat_rows.get_combined_minimum_size().y
+	ok(tall > screen, "piled high, the numbers run taller than the screen",
+		"%d of %d" % [tall, screen])
+	ok(sheet._panel.get_combined_minimum_size().y <= screen, "and the sheet still fits on it",
+		"%d of %d" % [sheet._panel.get_combined_minimum_size().y, screen])
+	ok(sheet._stat_scroll.custom_minimum_size.y < tall, "by scrolling the numbers rather than cutting them off",
+		"%d shown of %d" % [sheet._stat_scroll.custom_minimum_size.y, tall])
+	sheet.close()
+	subject["passives"] = []
+	combat.set_hidden(subject, false)
+	subject.status_effects.clear()
+	MenuPause.clear(get_tree())
+	log_line("")
+
+	log_line("======== how they get about ========")
+	sheet.open_on(subject.name)
+	await get_tree().process_frame
+	var moves_row = row_headed(sheet, "Movement type")
+	var usual = Stats.movement_class_name(subject.movement_class)
+	ok(moves_row != null and texts_under(moves_row).has(usual), "the sheet says how they get about",
+		"%s" % [texts_under(moves_row) if moves_row != null else "no row"])
+	order = headings_of(sheet)
+	ok(order.find("Movement type") == order.find("Movement") + 1, "right under how far they go", "%s" % [order])
+	sheet.close()
+	# What Hover does: lifted off the ground for now, a walker underneath.
+	var was_class = subject.movement_class
+	subject.movement_class = 1 if was_class != 1 else 0
+	sheet.open_on(subject.name)
+	await get_tree().process_frame
+	moves_row = row_headed(sheet, "Movement type")
+	var expected = "%s (usually %s)" % [Stats.movement_class_name(subject.movement_class),
+		Stats.movement_class_name(subject.base_movement_class)]
+	ok(moves_row != null and texts_under(moves_row).has(expected), "changed for now, it says what they usually are",
+		"%s" % [texts_under(moves_row) if moves_row != null else "no row"])
+	sheet.close()
+	subject.movement_class = was_class
+	MenuPause.clear(get_tree())
+	log_line("")
+
 	log_line("======== exploration falls back to the roster ========")
 	sheet.close()
 	game.queue_free()
@@ -211,6 +362,13 @@ func run_test():
 			"'%s'" % loose._title.text)
 		ok(loose._entries[0].stats.size() == 5, "with a full set of attributes",
 			"%s" % [loose._entries[0].stats])
+		ok(row_headed(loose, "State") == null, "and no State, since nothing is on anybody off the battlefield",
+			"%s" % [headings_of(loose)])
+		var leader_def: CombatantDefinition = CombatantDatabase.combatants[Campaign.party_members()[0].key]
+		var walks = row_headed(loose, "Movement type")
+		ok(walks != null and texts_under(walks).has(Stats.movement_class_name(leader_def.class_m)),
+			"but how they get about is known off the battlefield too",
+			"%s" % [texts_under(walks) if walks != null else "no row"])
 	log_line("")
 
 	log_line("FAILURES: %d" % _fail)

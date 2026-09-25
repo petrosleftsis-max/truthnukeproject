@@ -17,16 +17,7 @@ set -u
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$(cd "$HERE/.." && pwd)"
 
-GODOT="${GODOT:-}"
-if [ -z "$GODOT" ]; then
-	if command -v godot >/dev/null 2>&1; then
-		GODOT="$(command -v godot)"
-	elif [ -x "/c/Users/ortin/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe" ]; then
-		# Where it sits on the machine this was written on. The ".exe" there is
-		# a folder, not the binary - the console build inside it is.
-		GODOT="/c/Users/ortin/Downloads/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
-	fi
-fi
+. "$SRC/tools/find_godot.sh"
 if [ ! -x "$GODOT" ]; then
 	echo "Godot not found. Put it on PATH, or say where it is:" >&2
 	echo "  GODOT=/path/to/godot tests/run.sh" >&2

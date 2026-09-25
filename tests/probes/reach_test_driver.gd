@@ -43,7 +43,7 @@ func run_test():
 	# how large a ring was drawn around it.
 	var old_contact_radius = Grid.TILE_SIZE * 0.5625
 	log_line("  (the old one-size radius was %.0f px; a tile is %d)" % [old_contact_radius, Grid.TILE_SIZE])
-	for map in ["res://church.tscn", "res://skills/laboratory_terrain_explore.tscn",
+	for map in ["res://church.tscn", "res://scenes/laboratory_terrain_explore.tscn",
 			"res://scenes/explore_crossroads.tscn"]:
 		Campaign.reset()
 		Campaign.current_map = map

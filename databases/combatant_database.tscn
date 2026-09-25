@@ -16,6 +16,8 @@
 [ext_resource type="SpriteFrames" path="res://combat/animations/alithia.tres" id="94_alithiaframes"]
 [ext_resource type="Texture2D" uid="uid://j18c0awsyfjm" path="res://imagese/alithia idle/alithia_idle_color0000.png" id="95_alithiastill"]
 [ext_resource type="Texture2D" uid="uid://bswamhyohs8qy" path="res://imagese/prometheus idle/prometheus_idle_0000.png" id="97_prometheusstill"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="98_passivedef"]
+[ext_resource type="Resource" path="res://passives/mimicry.tres" id="99_mimicry"]
 
 [sub_resource type="Resource" id="Resource_alithia"]
 script = ExtResource("2_rggep")
@@ -150,10 +152,10 @@ movement = 5
 initiative = 4
 main_stat = 3
 sprite_frames = ExtResource("11_o6bu1")
+passives = Array[ExtResource("98_passivedef")]([ExtResource("99_mimicry")])
 resist_water = -50
 resist_wind = 50
 ai_function = "ai_copycat"
-casts_without_gates = true
 
 [sub_resource type="Resource" id="Resource_priest"]
 script = ExtResource("2_rggep")
@@ -225,7 +227,7 @@ movement = 4
 initiative = 4
 main_stat = 2
 sprite_frames = ExtResource("16_r0t0t")
-skills = Array[String](["burner", "fireball", "crystalise", "gust_blast", "wind_swoon", "run", "fire_burst", "fire_blast", "rock_throw", "wind_shot", "wind_swoon"])
+skills = Array[String](["burner", "fireball", "crystalise", "gust_blast", "wind_swoon", "run", "fire_burst", "fire_blast", "rock_throw", "wind_shot"])
 resist_fire = 50
 resist_poison = -50
 ai_function = "ai_caster"

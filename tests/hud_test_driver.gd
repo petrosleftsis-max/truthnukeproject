@@ -91,15 +91,15 @@ func run_test():
 	var status = ui.get_node("Status")
 	ok(status.get_child_count() > 0, "the portrait column is populated", "%d" % status.get_child_count())
 	var portrait = status.get_child(0)
-	var portrait_bar = portrait.get_node_or_null("Icon/Health")
+	var portrait_bar = portrait.get_node_or_null("Layout/Health")
 	ok(portrait_bar != null, "a portrait carries a Health bar")
 	ok(portrait_bar is ProgressBar, "which is a real bar")
-	ok(portrait.get_node_or_null("Icon/HealthText") != null, "with the numbers still there")
+	ok(portrait.get_node_or_null("Layout/HealthText") != null, "with the numbers still there")
 	portrait.set_health(3, 20)
 	ok(portrait_bar.value == 3 and portrait_bar.max_value == 20, "and it tracks what it is told",
 		"%s / %s" % [portrait_bar.value, portrait_bar.max_value])
-	ok(portrait.get_node("Icon/HealthText").text == "3/20", "so does the label",
-		portrait.get_node("Icon/HealthText").text)
+	ok(portrait.get_node("Layout/HealthText").text == "3/20", "so does the label",
+		portrait.get_node("Layout/HealthText").text)
 	log_line("")
 
 	log_line("======== a tab per action slot, and a switch for spells ========")

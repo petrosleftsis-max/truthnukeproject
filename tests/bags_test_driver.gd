@@ -118,7 +118,7 @@ func run_test():
 
 	log_line("======== what you walk in with, you keep ========")
 	Campaign.reset()
-	Campaign.current_map = "res://skills/laboratory_terrain_explore.tscn"
+	Campaign.current_map = "res://scenes/laboratory_terrain_explore.tscn"
 	var walk = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(walk)
 	for i in 5:
@@ -128,7 +128,7 @@ func run_test():
 	var packed = carried(walker)
 	Campaign.begin_battle_from_exploration(
 		load("res://encounters/encounter_02_sappers.tres"),
-		"res://skills/laboratory_terrain_explore.tscn", Vector2.ZERO, "bags_trigger")
+		"res://scenes/laboratory_terrain_explore.tscn", Vector2.ZERO, "bags_trigger")
 	walk.queue_free()
 	await get_tree().process_frame
 	var third = load("res://scenes/game.tscn").instantiate()
@@ -151,7 +151,7 @@ func run_test():
 	# the story with a kit, so the rule to check is that the bags match the
 	# map's own MapSetup rather than that they are empty.
 	for map in ["res://scenes/explore_crossroads.tscn",
-			"res://skills/laboratory_terrain_explore.tscn", "res://church.tscn"]:
+			"res://scenes/laboratory_terrain_explore.tscn", "res://church.tscn"]:
 		Campaign.reset()
 		Campaign.current_map = map
 		var scene = load("res://scenes/exploration.tscn").instantiate()

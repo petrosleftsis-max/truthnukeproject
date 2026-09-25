@@ -203,9 +203,12 @@ func run_test():
 	camera._shake = 0.0
 	var settled = camera.position
 	camera.shake(20.0)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	# One ordinary frame's step, taken by hand: waiting on real frames failed
+	# now and then, when a slow one (over 1/SHAKE_DECAY of a second) decayed
+	# the whole shake away before it could be looked at.
+	camera._shake_step(1.0 / 60.0)
 	ok(camera.offset != Vector2.ZERO, "shaking moves the view", "%s" % camera.offset)
+	await get_tree().process_frame
 	ok(camera.position == settled, "without moving the camera itself", "%s" % camera.position)
 	for frame in range(0, 180):
 		await get_tree().process_frame

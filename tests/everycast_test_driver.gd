@@ -205,7 +205,10 @@ func run_test():
 			caster["stats"][stat_key] = 99
 		caster.skill_used_this_turn = false
 		caster.secondary_used_this_turn = false
-		caster["casts_without_gates"] = true
+		# Every gate open without holding one - the Mimic's passive, borrowed.
+		var gateless := PassiveDefinition.new()
+		gateless.casts_without_gates = true
+		caster["passives"] = [gateless]
 		combat.current_combatant = combat.combatants.find(caster)
 		if not key in caster.skill_list:
 			caster.skill_list.append(key)

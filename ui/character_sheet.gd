@@ -27,18 +27,38 @@ const INK := Color("dce8f5")
 const INK_DIM := Color("c2ceda")
 const MUTED := Color("8296a9")
 const ACCENT := Color("4a86c8")
+## The small boxes a state or a passive sits in, matching the menu's cards.
+const TAG_FILL := Color("1c2531")
+const TAG_EDGE := Color("2b3947")
 
 ## How large the idle animation is drawn. Frames are a tile across (192px) and
 ## the panel is not, so they come down to something that leaves room for the
 ## numbers beside them.
 const PORTRAIT_SCALE := 0.75
 const PORTRAIT_BOX := Vector2(190, 210)
+## Wide enough that a condition or a passive, written out in full, wraps into a
+## few lines rather than a column of them.
+const PANEL_WIDTH := 720
+## What is kept clear above and below the panel when it is as tall as it gets.
+const SCREEN_MARGIN := 16
+## How far one press of Up or Down moves the numbers when they run past the
+## screen, and how much of a page Page Up and Page Down keep in view.
+const SCROLL_STEP := 40
+const PAGE_OVERLAP := 60
+
+## What being hidden means, for the State section. Hiding is a flag on the
+## combatant rather than a status effect, so the HUD's marks never describe it
+## and it has to be said here.
+const HIDDEN_TEXT := "Out of sight: the other side treats them as not being there, and nothing can react to them. It lasts until an enemy has a clear line to them - being hit, or being the last of their side standing, gives them away too."
 
 var _open := false
 var _index := 0
 var _entries: Array = []
 
 var _root: Control = null
+var _panel: PanelContainer = null
+var _body: HBoxContainer = null
+var _stat_scroll: ScrollContainer = null
 var _title: Label = null
 var _subtitle: Label = null
 var _portrait: Control = null
@@ -107,16 +127,17 @@ func _build():
 	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(centre)
 
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(620, 0)
-	centre.add_child(panel)
+	_panel = PanelContainer.new()
+	_panel.custom_minimum_size = Vector2(PANEL_WIDTH, 0)
+	centre.add_child(_panel)
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
-	panel.add_child(column)
+	_panel.add_child(column)
 
 	# The name sits above the sprite, as its heading.
 	_title = Label.new()
+	_title.theme_type_variation = GameFonts.HEADER
 	_title.add_theme_font_size_override("font_size", 26)
 	_title.add_theme_color_override("font_color", INK)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -128,14 +149,14 @@ func _build():
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_subtitle)
 
-	var body := HBoxContainer.new()
-	body.add_theme_constant_override("separation", 18)
-	column.add_child(body)
+	_body = HBoxContainer.new()
+	_body.add_theme_constant_override("separation", 18)
+	column.add_child(_body)
 
 	_portrait = Control.new()
 	_portrait.custom_minimum_size = PORTRAIT_BOX
 	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.add_child(_portrait)
+	_body.add_child(_portrait)
 
 	# An animated combatant plays their idle here; one with no SpriteFrames
 	# falls back to the flat map sprite, so the sheet works either way.
@@ -151,11 +172,19 @@ func _build():
 	_still.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_portrait.add_child(_still)
 
+	# The numbers scroll, so a character with a lot on them never pushes the
+	# buttons and the way out off the bottom of the screen. See _fit_to_screen.
+	_stat_scroll = ScrollContainer.new()
+	_stat_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_stat_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_body.add_child(_stat_scroll)
+
 	_stat_rows = VBoxContainer.new()
 	_stat_rows.add_theme_constant_override("separation", 4)
 	_stat_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_stat_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_stat_rows.alignment = BoxContainer.ALIGNMENT_CENTER
-	body.add_child(_stat_rows)
+	_stat_scroll.add_child(_stat_rows)
 
 	_members = HBoxContainer.new()
 	_members.add_theme_constant_override("separation", 6)
@@ -227,6 +256,24 @@ func _unhandled_input(event):
 		# in front of you rather than opening something on top of it.
 		get_viewport().set_input_as_handled()
 		close()
+		return
+	# The same reading from the keyboard as the wheel gives the mouse, for when
+	# the numbers run longer than the screen.
+	if _open:
+		var page = maxi(int(_stat_scroll.size.y) - PAGE_OVERLAP, SCROLL_STEP)
+		var by := 0
+		match event.keycode:
+			KEY_UP:
+				by = -SCROLL_STEP
+			KEY_DOWN:
+				by = SCROLL_STEP
+			KEY_PAGEUP:
+				by = -page
+			KEY_PAGEDOWN:
+				by = page
+		if by != 0:
+			get_viewport().set_input_as_handled()
+			_stat_scroll.scroll_vertical += by
 
 
 ## --- Who there is to show ---
@@ -262,8 +309,11 @@ func _gather() -> Array:
 				"map_sprite": comb.get("map_sprite"),
 				"in_battle": true,
 				"movement": combat.get_effective_stat(comb, "movement"),
+				"movement_class": comb.get("movement_class", 0),
+				"base_movement_class": comb.get("base_movement_class", comb.get("movement_class", 0)),
 				"resistances": comb.get("resistances", {}),
 				"skills": _skills_they_actually_have(comb),
+				"passives": comb.get("passives", []),
 				"studied": comb.side != 0,
 				# Kept so a skill can be previewed in their hands rather than
 				# in whoever's happens to be acting - what an enemy hits for is
@@ -285,6 +335,9 @@ func _gather() -> Array:
 			"sprite_frames": definition.sprite_frames,
 			"map_sprite": definition.map_still(),
 			"in_battle": false,
+			"movement_class": definition.class_m,
+			"base_movement_class": definition.class_m,
+			"passives": definition.passives,
 		})
 	return found
 
@@ -315,6 +368,26 @@ func _show_entry():
 	_show_portrait(entry)
 	_show_stats(entry)
 	_show_members()
+	_fit_to_screen()
+
+
+## Gives the numbers all the height they want, up to what the screen has room
+## for, and lets them scroll past that. A long kit, a pile of states and a row
+## of passives can outgrow the screen between them, and a sheet whose buttons
+## and way out have gone off the bottom edge is one that cannot be finished.
+##
+## Measured a frame late, once the rows have been laid out at their real width:
+## how tall a wrapped description is depends on how wide it is allowed to be.
+func _fit_to_screen():
+	# The last character's height stays until this one's is known, rather than
+	# collapsing the sheet for a frame on every step between them.
+	_stat_scroll.scroll_vertical = 0
+	await get_tree().process_frame
+	if not _open:
+		return
+	var around = _panel.get_combined_minimum_size().y - _body.get_combined_minimum_size().y
+	var room = get_viewport().get_visible_rect().size.y - SCREEN_MARGIN * 2 - around
+	_stat_scroll.custom_minimum_size.y = minf(_stat_rows.get_combined_minimum_size().y, room)
 
 
 func _show_portrait(entry: Dictionary):
@@ -345,8 +418,24 @@ func _show_stats(entry: Dictionary):
 	_stat_rows.add_child(_stat_row("Weapon base", str(entry.get("weapon_base", Stats.WEAPON_BASE))))
 	if entry.has("movement"):
 		_stat_rows.add_child(_stat_row("Movement", str(entry.movement)))
+	if entry.has("movement_class"):
+		_stat_rows.add_child(_stat_row("Movement type", _movement_type_of(entry)))
 	_show_resistances(entry)
+	_show_state(entry)
 	_show_skills(entry)
+	_show_passives(entry)
+
+
+## How they get about - on foot, flying or mounted - which decides what they can
+## cross and what it costs them. When something has changed it for now, as a
+## Hover lifts a walker off the ground for a few turns, it says what they
+## usually are too, so the change reads as passing rather than as who they are.
+func _movement_type_of(entry: Dictionary) -> String:
+	var now = Stats.movement_class_name(entry.movement_class)
+	var usually = Stats.movement_class_name(entry.get("base_movement_class", entry.movement_class))
+	if now == usually:
+		return now
+	return "%s (usually %s)" % [now, usually]
 
 
 ## What they shrug off and what gets through them, listed only where it is not
@@ -412,8 +501,131 @@ func _skill_chip(skill: SkillDefinition, subject: Dictionary) -> Control:
 	chip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	chip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	chip.mouse_filter = Control.MOUSE_FILTER_STOP
-	chip.tooltip_text = _preview_of(skill, subject)
+	chip.tooltip_text = TooltipText.wrap(_preview_of(skill, subject))
+	SkillLook.decorate(chip, skill)
 	return chip
+
+
+## What they do without being asked, under a heading of its own - none of it is
+## on the action panel, so this is the one place it can be read. A tag each,
+## named and saying whether it is working, with what it does on hover: written
+## out in full they took over the sheet, and there will be more of them.
+func _show_passives(entry: Dictionary):
+	var passives: Array = entry.get("passives", [])
+	if passives.is_empty():
+		return
+	var subject: Dictionary = entry.get("combatant", {})
+	var tags := _labelled_tags("Passive Skills")
+	for passive in passives:
+		if passive == null:
+			continue
+		var reading := [passive.name, passive.describe_when()]
+		if passive.description != "":
+			reading.append_array(["", passive.description])
+		tags.add_child(_tag(passive.name, INK, _note_for(passive, subject), "\n".join(reading), passive.icon))
+
+
+## What is on them right now - hidden, burning, slowed, raised - apart from
+## what they are and what they can do. A tag each, tinted the way its mark on
+## the battle HUD is, green for what helps and red for what hurts; hovering one
+## says what it does in the very words the HUD's mark uses, so the two places
+## can never describe the same thing differently.
+##
+## Only in a battle. Nothing is on anybody while they walk the map, so the
+## section is left off there rather than saying so.
+func _show_state(entry: Dictionary):
+	var subject: Dictionary = entry.get("combatant", {})
+	if subject.is_empty() or combat == null or not is_instance_valid(combat):
+		return
+	var states := []
+	if combat.is_hidden(subject):
+		states.append({"text": "Hidden\n" + HIDDEN_TEXT, "helpful": true})
+	var reader := ConditionStrip.new()
+	states.append_array(reader.states_of(subject, combat))
+	reader.free()
+	if states.is_empty():
+		_stat_rows.add_child(_stat_row("State", "none"))
+		return
+	var tags := _labelled_tags("State")
+	for state in states:
+		var colour = ConditionStrip.HELPFUL if state.helpful else ConditionStrip.HARMFUL
+		tags.add_child(_tag(state.text.split("\n")[0], colour, "", state.text))
+
+
+## A row with `heading` on the left and room beside it for tags, which run on
+## to a second line when they run out of width. Returns where the tags go.
+func _labelled_tags(heading: String) -> HFlowContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	var label := Label.new()
+	label.text = heading
+	label.custom_minimum_size = Vector2(150, 0)
+	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_color_override("font_color", MUTED)
+	# Level with the first line of tags rather than centred on all of them.
+	label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	row.add_child(label)
+	var tags := HFlowContainer.new()
+	tags.add_theme_constant_override("h_separation", 6)
+	tags.add_theme_constant_override("v_separation", 6)
+	tags.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(tags)
+	_stat_rows.add_child(row)
+	return tags
+
+
+## One named thing as a small box to hover: its name, a short note beside it,
+## and `reading` - the whole of what it means - as its tooltip.
+func _tag(title_text: String, title_colour: Color, note: String, reading: String, icon: Texture2D = null) -> Control:
+	var tag := PanelContainer.new()
+	var box := StyleBoxFlat.new()
+	box.bg_color = TAG_FILL
+	box.border_color = TAG_EDGE
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(4)
+	box.content_margin_left = 8
+	box.content_margin_right = 8
+	box.content_margin_top = 3
+	box.content_margin_bottom = 3
+	tag.add_theme_stylebox_override("panel", box)
+	# The labels inside ignore the mouse, so the hover lands here.
+	tag.mouse_filter = Control.MOUSE_FILTER_STOP
+	tag.tooltip_text = TooltipText.wrap(reading)
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 6)
+	tag.add_child(line)
+	if icon != null:
+		var picture := TextureRect.new()
+		picture.texture = icon
+		picture.custom_minimum_size = Vector2(20, 20)
+		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		line.add_child(picture)
+	var title := Label.new()
+	title.text = title_text
+	title.add_theme_font_size_override("font_size", 15)
+	title.add_theme_color_override("font_color", title_colour)
+	line.add_child(title)
+	if note != "":
+		var aside := Label.new()
+		aside.text = note
+		aside.add_theme_font_size_override("font_size", 12)
+		aside.add_theme_color_override("font_color", MUTED)
+		aside.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		line.add_child(aside)
+	return tag
+
+
+## A word or two on a passive's tag: whether it is working. Always for one
+## that always is; for one waiting on something, whether it is on right now in
+## a battle, and only that it depends on something while walking the map. What
+## it depends on is in the tooltip.
+func _note_for(passive: PassiveDefinition, subject: Dictionary) -> String:
+	if passive.active_when == PassiveDefinition.ActiveWhen.ALWAYS:
+		return "Always active"
+	if subject.is_empty() or combat == null or not is_instance_valid(combat):
+		return "Conditional"
+	return "Active now" if combat.passive_is_active(subject, passive) else "Not active"
 
 
 ## The action panel's own words for a skill, in `subject`'s hands. Falls back to

@@ -86,6 +86,11 @@ func end_deployment():
 	_deployment_active = false
 	_deployment_tiles = []
 	_deployment_selection = null
+	# The first turn was handed out before the party was placed, so where it
+	# begins is only known now. Remembered from before, a walk back would put
+	# them on whichever tile they stood on before being moved.
+	if combat != null and not combat.combatants.is_empty():
+		_remember_turn_start(combat.get_current_combatant())
 	queue_redraw()
 
 
@@ -167,6 +172,10 @@ func a_menu_is_over_the_map() -> bool:
 
 
 func _unhandled_input(event):
+	# Held, not toggled: the danger view is a look taken while deciding, and it
+	# works while placing the party too, which is when it is most use.
+	if event is InputEventKey and event.physical_keycode == KEY_SHIFT and not event.is_echo():
+		set_danger_view(event.pressed)
 	if _deployment_active:
 		_handle_deployment_input(event)
 		return
@@ -213,6 +222,9 @@ func _unhandled_input(event):
 			find_path(mouse_position_i)
 			var comb = get_combatant_at_position(mouse_position_i)
 			var local_map = tile_map.map_to_local(mouse_position_i)
+			# Who is under the cursor - except while aiming, when the prompt of
+			# what the hit would do to them has the space.
+			_card_for(comb if not _skill_selected else null)
 			_attack_target_position = null
 			_ally_target_position = null
 			_blocked_target_position = null
@@ -234,6 +246,7 @@ func _unhandled_input(event):
 						_attack_target_position = local_map
 				elif comb != null:
 					_blocked_target_position = local_map
+				_preview_hits(mouse_position_i)
 			elif comb != null and comb.alive and comb.side == 1:
 				_attack_target_position = local_map
 			elif comb != null:
@@ -242,6 +255,23 @@ func _unhandled_input(event):
 				_blocked_target_position = local_map
 			else:
 				_blocked_target_position = null
+
+
+## Asks the HUD to say what the skill being aimed would do to whoever the tile
+## under the cursor would catch. A skill that picks somebody up and puts them
+## down elsewhere is left out - the first click is choosing who, not hitting.
+func _preview_hits(tile: Vector2i):
+	var hud = combat.game_ui if combat != null else null
+	if hud == null or not hud.has_method("show_hit_preview"):
+		return
+	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	if skill.teleports == SkillDefinition.TeleportWho.TARGET:
+		hud.hide_hit_preview()
+		return
+	if picking_a_landing_tile() and not is_valid_landing_tile(tile):
+		hud.hide_hit_preview()
+		return
+	hud.show_hit_preview(_selected_skill, tile)
 
 
 func get_combatant_at_position(target_position: Vector2i):
@@ -537,6 +567,7 @@ func set_controlled_combatant(combatant: Dictionary):
 	# _process drags whoever is controlled next along the abandoned path, since
 	# there is only one _next_position for everybody.
 	end_walk()
+	_card_for(null)
 	if combatant.side == 0:
 		player_turn = true
 	else:
@@ -563,7 +594,95 @@ func set_controlled_combatant(combatant: Dictionary):
 	_previous_position = combatant.position
 	update_points_weight()
 	refresh_watched_tiles(combatant)
+	_remember_turn_start(combatant)
 	queue_redraw()
+
+
+## --- Taking a walk back ---
+##
+## A player can walk back to where their turn began, for as long as the walking
+## has changed nothing but where they are standing: no reaction set off on the
+## way, no skill or item used, nobody's state touched, no passive switched on or
+## off. Combat.board_fingerprint is how "nothing" is measured - taken when the
+## turn begins, and compared again before any walk back.
+##
+## Once something like that has happened it stays happened, but the walking
+## after it is as free as the walking before it was. So the point a walk back
+## returns to moves up to just after it: walk two tiles, fire the Gun, walk
+## three more, and a walk back undoes the three - see settle_undo_point.
+
+var _turn_owner_id := -1
+var _turn_start_position := Vector2i.ZERO
+var _turn_start_movement := 0
+var _turn_start_board := ""
+
+
+func _remember_turn_start(combatant: Dictionary):
+	_turn_owner_id = combatant.get("id", -1)
+	_turn_start_position = combatant.position
+	_turn_start_movement = movement
+	_turn_start_board = combat.board_fingerprint(combatant) if combat != null else ""
+
+
+## Moves the point a walk back returns to up to here and now, if anything has
+## happened since it was set that a walk back cannot take back - a skill or an
+## item used, a reaction set off by the step just taken, somebody spotted.
+## Called after every step of a walk and after every skill, so it always lands
+## just after the thing that happened, with the movement left at that moment.
+func settle_undo_point():
+	if combat == null or not player_turn:
+		return
+	var comb = combat.get_current_combatant()
+	if comb.get("id", -2) != _turn_owner_id or not comb.get("alive", false):
+		return
+	var board = combat.board_fingerprint(comb)
+	if board == _turn_start_board:
+		return
+	_turn_start_position = comb.position
+	_turn_start_movement = movement
+	_turn_start_board = board
+
+
+## Whether the player acting has walked anywhere since the point a walk back
+## would return them to.
+func has_walked() -> bool:
+	if not player_turn or combat == null:
+		return false
+	var comb = combat.get_current_combatant()
+	return comb.get("id", -2) == _turn_owner_id and comb.position != _turn_start_position
+
+
+## Whether that walk can still be taken back: they are standing still, nothing
+## is being aimed or resolved, and the battle is otherwise exactly as it was at
+## the point they would go back to.
+func can_undo_move() -> bool:
+	if not has_walked() or not is_idle() or action_locked or _skill_selected:
+		return false
+	return combat.board_fingerprint(combat.get_current_combatant()) == _turn_start_board
+
+
+## Puts the player acting back where their turn began - or just after the last
+## thing that cannot be taken back - with the movement they had there. False,
+## and nothing done, when it cannot be taken back.
+func undo_move() -> bool:
+	if not can_undo_move():
+		return false
+	var comb = combat.get_current_combatant()
+	var from: Vector2i = comb.position
+	comb.position = _turn_start_position
+	comb.sprite.position = tile_map.map_to_local(_turn_start_position)
+	reposition_combatant(from, _turn_start_position)
+	# Nothing of the walk left to finish, and no route drawn from where they were.
+	_path = PackedVector2Array()
+	_position_id = 0
+	_previous_position = _turn_start_position
+	_next_position = tile_map.map_to_local(_turn_start_position)
+	set_movement(_turn_start_movement)
+	refresh_watched_tiles(comb)
+	combat.update_information.emit("[color=yellow]%s[/color] walks back.\n" % comb.name)
+	game_ui_refresh()
+	queue_redraw()
+	return true
 
 
 ## Recomputes where the enemy can see, for a hidden player about to move - or
@@ -846,6 +965,7 @@ func _handle_step_arrival():
 	# there a moment ago.
 	if not combat.reveal_anyone_now_seen().is_empty():
 		movement -= get_tile_cost(new_position)
+		settle_undo_point()
 		_path = []
 		finished_move.emit()
 		_arrived = true
@@ -856,6 +976,8 @@ func _handle_step_arrival():
 	# continue if the *next* waypoint - not this one again - is actually
 	# affordable.
 	movement -= get_tile_cost(new_position)
+	# A reaction this step set off is behind them now: a walk back stops here.
+	settle_undo_point()
 	if _position_id < _path.size() - 1 and movement > 0 and get_tile_cost_at_point(_path[_position_id + 1]) <= movement:
 		_position_id += 1
 		_next_position = _path[_position_id]
@@ -1092,6 +1214,7 @@ func set_selected_skill(skill: String, as_secondary: bool = false):
 
 func begin_target_selection():
 	_skill_selected = true
+	_card_for(null)
 	var skill = SkillDatabase.skills[_selected_skill]
 	var caster = combat.get_current_combatant()
 	# Aiming something that would hide them: show what the enemy can see, so
@@ -1200,6 +1323,9 @@ func confirm_skill_target(position: Vector2i):
 	# HUD back until the skill is done.
 	_skill_selected = false
 	_range_preview_positions = []
+	# What the hit would do stops being a question the moment it is thrown.
+	if combat.game_ui != null and combat.game_ui.has_method("hide_hit_preview"):
+		combat.game_ui.hide_hit_preview()
 	# The preview belongs to the aiming, so it ends with it.
 	_previewing_hide = false
 	refresh_watched_tiles(combat.get_current_combatant())
@@ -1278,7 +1404,137 @@ func _draw_tile_marker(centre: Vector2, colour: Color = Color.WHITE):
 	draw_texture_rect(grid_tex, Rect2(centre - Grid.HALF_TILE, Grid.HALF_TILE * 2.0), false, colour)
 
 
+## --- How the map is marked ---
+##
+## An area is a soft fill with its outline drawn, rather than a stack of solid
+## markers: the reach of a skill used to be a strong red wash over everything
+## it covered, and hid the very map it was being aimed across. Each thing has
+## its own colour, so none is mistaken for another - red is kept for danger.
+
+const RANGE_FILL := Color(0.45, 0.68, 1.0, 0.24)
+const RANGE_EDGE := Color(0.55, 0.78, 1.0, 0.85)
+const BLAST_FILL := Color(1.0, 0.45, 0.2, 0.42)
+const BLAST_EDGE := Color(1.0, 0.62, 0.3, 0.95)
+const HELP_FILL := Color(0.4, 0.9, 0.45, 0.35)
+const HELP_EDGE := Color(0.5, 1.0, 0.55, 0.9)
+const WATCHED_FILL := Color(0.62, 0.38, 0.9, 0.22)
+const WATCHED_EDGE := Color(0.72, 0.5, 1.0, 0.7)
+const DANGER_FILL := Color(0.9, 0.18, 0.15)
+const REACTION_EDGE := Color(1.0, 0.62, 0.2, 0.95)
+const HIGHLIGHT_EDGE := Color(1.0, 0.84, 0.35, 0.95)
+const EDGE_WIDTH := 6.0
+
+
+func _tile_rect(tile: Vector2i) -> Rect2:
+	return Rect2(tile_map.map_to_local(tile) - Grid.HALF_TILE, Grid.HALF_TILE * 2.0)
+
+
+## `tiles` as one area: each filled, and the outline drawn only where the area
+## ends, so it reads as a shape rather than a grid of squares.
+func _draw_area(tiles: Array, fill: Color, edge: Color):
+	var inside := {}
+	for tile in tiles:
+		inside[tile] = true
+	for tile in tiles:
+		var r = _tile_rect(tile)
+		draw_rect(r, fill)
+		if not inside.has(tile + Vector2i.UP):
+			draw_line(r.position, Vector2(r.end.x, r.position.y), edge, EDGE_WIDTH)
+		if not inside.has(tile + Vector2i.DOWN):
+			draw_line(Vector2(r.position.x, r.end.y), r.end, edge, EDGE_WIDTH)
+		if not inside.has(tile + Vector2i.LEFT):
+			draw_line(r.position, Vector2(r.position.x, r.end.y), edge, EDGE_WIDTH)
+		if not inside.has(tile + Vector2i.RIGHT):
+			draw_line(Vector2(r.end.x, r.position.y), r.end, edge, EDGE_WIDTH)
+
+
+## --- The danger view ---
+##
+## Held on Shift: every tile an enemy the player can see could reach and hit on
+## its next turn, redder where more of them could, and an orange edge on every
+## tile a player would set off somebody's reaction by stepping out of. Worked
+## out once, when the key goes down - see Combat.threat_map.
+
+var _showing_danger := false
+var _danger: Dictionary = {}
+
+
+func set_danger_view(on: bool):
+	if on == _showing_danger:
+		return
+	_showing_danger = on
+	_danger = combat.threat_map() if on and combat != null else {}
+	var hud = combat.game_ui if combat != null else null
+	if hud != null and hud.has_method("set_danger_legend"):
+		hud.set_danger_legend(on)
+	queue_redraw()
+
+
+func is_showing_danger() -> bool:
+	return _showing_danger
+
+
+## What the danger view is showing: {"threat": {tile: count}, "reaction": {tile: true}}.
+func danger() -> Dictionary:
+	return _danger
+
+
+func _notification(what):
+	# Let go of Shift in another window and the key-up never arrives here.
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		set_danger_view(false)
+
+
+func _draw_danger():
+	var threat: Dictionary = _danger.get("threat", {})
+	for tile in threat:
+		# The walls themselves say nothing - nobody stands in one.
+		if _blocking_lookup[0].has(tile):
+			continue
+		var many: int = threat[tile]
+		draw_rect(_tile_rect(tile), Color(DANGER_FILL, clampf(0.16 + 0.1 * float(many - 1), 0.16, 0.5)))
+	for tile in _danger.get("reaction", {}):
+		if _blocking_lookup[0].has(tile):
+			continue
+		draw_rect(_tile_rect(tile).grow(-12.0), REACTION_EDGE, false, 8.0)
+
+
+## --- Pointing somebody out ---
+##
+## A gold outline on whoever the cursor is over in the turn queue or the party
+## column, so a face on the HUD can be found on the map.
+
+var _highlight_tile = null
+
+
+func highlight_unit(comb: Dictionary):
+	var hidden = not comb.is_empty() and comb.get("side", 0) != 0 and combat.is_hidden(comb)
+	_highlight_tile = null if comb.is_empty() or not comb.get("alive", false) or hidden else comb.position
+	queue_redraw()
+
+
+func clear_highlight():
+	_highlight_tile = null
+	queue_redraw()
+
+
+## Asks the HUD to show the card for whoever `comb` is, or to put it away.
+## Nobody hidden from the player is ever shown - it would say where they are.
+func _card_for(comb):
+	var hud = combat.game_ui if combat != null else null
+	if hud == null or not hud.has_method("show_unit_card"):
+		return
+	if comb == null or comb.is_empty() or not comb.alive or (comb.side != 0 and combat.is_hidden(comb)):
+		hud.hide_unit_card()
+	else:
+		hud.show_unit_card(comb)
+
+
 func _draw():
+	if _showing_danger:
+		_draw_danger()
+	if _highlight_tile != null:
+		draw_rect(_tile_rect(_highlight_tile).grow(-6.0), HIGHLIGHT_EDGE, false, 10.0)
 	if _deployment_active:
 		# Where the party may stand, and which of them is currently picked up.
 		for tile in _deployment_tiles:
@@ -1290,12 +1546,10 @@ func _draw():
 		# Where the enemy is looking, for somebody whose turn depends on not
 		# being looked at. Drawn under everything else, since it is the ground
 		# the rest of the turn is planned on rather than a choice being made.
-		for tile in _watched_tiles:
-			_draw_tile_marker(tile_map.map_to_local(tile), Color(Color.CRIMSON, 0.5))
+		if not _watched_tiles.is_empty():
+			_draw_area(_watched_tiles, WATCHED_FILL, WATCHED_EDGE)
 		if _skill_selected:
-			for pos in _range_preview_positions:
-				var local = tile_map.map_to_local(pos)
-				_draw_tile_marker(local, Color(Color.CRIMSON, 0.5))
+			_draw_area(_range_preview_positions, RANGE_FILL, RANGE_EDGE)
 		else:
 			var path_length = movement
 			for i in range(_path.size()):
@@ -1310,10 +1564,11 @@ func _draw():
 			_draw_tile_marker(_attack_target_position, Color.CRIMSON)
 		if _ally_target_position != null:
 			_draw_tile_marker(_ally_target_position, Color.LIME_GREEN)
-		for pos in _aoe_preview_positions:
-			var local = tile_map.map_to_local(pos)
-			var color = Color.LIME_GREEN if _aoe_preview_is_ally else Color.CRIMSON
-			_draw_tile_marker(local, Color(color, 0.6))
+		if not _aoe_preview_positions.is_empty():
+			if _aoe_preview_is_ally:
+				_draw_area(_aoe_preview_positions, HELP_FILL, HELP_EDGE)
+			else:
+				_draw_area(_aoe_preview_positions, BLAST_FILL, BLAST_EDGE)
 		if _blocked_target_position != null:
 			_draw_tile_marker(_blocked_target_position)
 

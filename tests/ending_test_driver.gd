@@ -108,7 +108,7 @@ func run_test():
 	Campaign.reset()
 	Campaign.begin_battle_from_exploration(
 		load("res://encounters/encounter_03_watcher.tres"),
-		"res://skills/laboratory_terrain_explore.tscn", Vector2.ZERO, "ending_trigger")
+		"res://scenes/laboratory_terrain_explore.tscn", Vector2.ZERO, "ending_trigger")
 	var second = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(second)
 	for i in 6:
@@ -141,7 +141,7 @@ func run_test():
 		ok(lab.victory_ends_the_run, "the Lab Fight says so itself")
 		if entered_from_a_map:
 			Campaign.begin_battle_from_exploration(lab,
-				"res://skills/laboratory_terrain_explore.tscn", Vector2.ZERO, "lab_trigger")
+				"res://scenes/laboratory_terrain_explore.tscn", Vector2.ZERO, "lab_trigger")
 		else:
 			# Campaign.reset() does not forget the map, so the previous section's
 			# one is still there unless it is put down explicitly - and without

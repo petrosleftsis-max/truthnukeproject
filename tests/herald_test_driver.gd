@@ -85,7 +85,7 @@ func run_test():
 
 	log_line("======== it reaches the log on a map ========")
 	Campaign.reset()
-	Campaign.current_map = "res://skills/laboratory_terrain_explore.tscn"
+	Campaign.current_map = "res://scenes/laboratory_terrain_explore.tscn"
 	var walk = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(walk)
 	for i in 5:

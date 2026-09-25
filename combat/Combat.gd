@@ -199,6 +199,7 @@ func start_first_turn():
 ## advance_turn() does when it hands off to an enemy, including the same short
 ## pause first so the turn is readable rather than instant.
 func _start_opening_ai_turn():
+	_pace_turn(combatants[current_combatant])
 	watch_combatant(combatants[current_combatant])
 	await get_tree().create_timer(0.6).timeout
 	if not still_running():
@@ -256,11 +257,10 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# Spell slots remaining, indexed by level - [0] is unused so a skill's
 		# spell_slot_level reads straight into it. Battle-scoped: a fight starts
 		# with the full allowance and spends down from there.
-		# Casts through any gate without holding one. The Mimic's whole trick is
-		# doing what it just watched somebody else do, and it has no gates of its
-		# own to pay with - so without this it copies a spell and then cannot
-		# cast it, which is a turn spent doing nothing at all.
-		"casts_without_gates" = definition.casts_without_gates,
+		# What they do without being asked - see PassiveDefinition. Read through
+		# active_passives rather than straight off this list, since a passive
+		# whose moment has not come yet does nothing.
+		"passives" = definition.passives.duplicate(),
 		# Out of sight, and treated by the other side as not being there at
 		# all. See the hiding section further down.
 		"hidden" = false,
@@ -451,7 +451,7 @@ func slot_available_for(comb: Dictionary, level: int) -> int:
 func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
 	if skill.spell_slot_level <= 0:
 		return true
-	if comb.get("casts_without_gates", false):
+	if casts_without_gates(comb):
 		return true
 	return slot_available_for(comb, skill.spell_slot_level) > 0
 
@@ -460,13 +460,307 @@ func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
 ## on a level 1 spell while a level 1 is still going spare. Returns the level
 ## actually spent, or 0 if the skill was free.
 func spend_slot_for(comb: Dictionary, skill: SkillDefinition) -> int:
-	if comb.get("casts_without_gates", false):
+	if casts_without_gates(comb):
 		# Nothing to spend and nothing to say about it - no gate was opened.
 		return 0
 	var level = slot_available_for(comb, skill.spell_slot_level)
 	if level > 0:
 		comb.spell_slots[level] -= 1
 	return level
+
+
+## --- Passives ---
+##
+## What somebody does without being asked. None of it is ever offered on a
+## panel, and a passive is only consulted while its own moment holds - see
+## PassiveDefinition.ActiveWhen.
+
+
+## Whether `passive` is working for `comb` right now.
+func passive_is_active(comb: Dictionary, passive: PassiveDefinition) -> bool:
+	if passive == null:
+		return false
+	match passive.active_when:
+		PassiveDefinition.ActiveWhen.ALWAYS:
+			return true
+		PassiveDefinition.ActiveWhen.BELOW_HALF_HEALTH:
+			return comb.get("hp", 0) * 2 <= get_effective_stat(comb, "max_hp")
+	return false
+
+
+## The passives `comb` has that are working right now.
+func active_passives(comb: Dictionary) -> Array:
+	var found = []
+	for passive in comb.get("passives", []):
+		if passive_is_active(comb, passive):
+			found.append(passive)
+	return found
+
+
+## --- What the other side could do next turn ---
+##
+## The danger view: every tile an enemy could reach and hit on its next turn,
+## and every tile a player standing in would provoke a reaction by leaving.
+## Only enemies the player can see count - a hidden one is not there to them.
+
+
+## What `enemy` could turn on the other side next turn: every skill it can use
+## and afford that is not for its own side - or what the Mimic would copy, for
+## somebody whose kit is whatever was last done.
+func threat_skills(enemy: Dictionary) -> Array:
+	var keys: Array = enemy.skill_list.duplicate()
+	keys.append_array(enemy.get("secondary_skills", []))
+	if enemy.get("ai_function", "") == "ai_copycat" and last_player_skill_used != "":
+		keys = [last_player_skill_used]
+	var found := []
+	for key in keys:
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if skill == null or skill.targets_ally or found.has(skill):
+			continue
+		if not can_afford_skill(enemy, skill) or not meets_level_for(enemy, skill):
+			continue
+		found.append(skill)
+	return found
+
+
+## How far `enemy` could strike once it has walked, walls aside: the longest
+## reach among threat_skills, a blast's radius added on. -1 for nothing at all.
+func threat_reach(enemy: Dictionary) -> int:
+	var reach := -1
+	for skill in threat_skills(enemy):
+		var this = maxi(effective_max_range(enemy, skill), 0)
+		if skill.aoe_shape == SkillDefinition.AoEShape.DIAMOND:
+			this += skill.aoe_radius
+		else:
+			this = maxi(this, skill.aoe_radius)
+		reach = maxi(reach, this)
+	return reach
+
+
+## {"threat": {tile: how many enemies could hit it}, "reaction": {tile: true}}
+## for the side opposing `side`, as things stand.
+##
+## A skill that needs a clear line needs one here too, from somewhere the enemy
+## could walk to - walls and bodies in the way count, by the same rule a real
+## shot is judged by. Three of the sappers' enemies reach twenty tiles, and
+## ignoring walls painted nearly the whole map red; on the maps with walls, most
+## long lines are not clear.
+func threat_map(side: int = Group.PLAYERS) -> Dictionary:
+	var threat := {}
+	var reaction := {}
+	var sight := _SightGrid.new(controller, combatants)
+	for enemy in combatants:
+		if not enemy.alive or enemy.side == side or is_hidden(enemy):
+			continue
+		var skills := threat_skills(enemy)
+		if not skills.is_empty():
+			var standing: Array = controller.get_reachable_tiles(enemy.position, enemy.movement_class, movement_budget_of(enemy)).keys()
+			if not standing.has(enemy.position):
+				standing.append(enemy.position)
+			var theirs := {}
+			# Several skills often share a reach - the Sorcerer's three bolts all
+			# go twenty tiles - and the sight lines are the expensive part.
+			var aimed := {}
+			sight.stand_aside(enemy)
+			for skill in skills:
+				var far = maxi(effective_max_range(enemy, skill), 0)
+				var near = skill.min_range if skill.respects_blocking else 0
+				var key = Vector3i(far, near, int(skill.respects_blocking))
+				if not aimed.has(key):
+					aimed[key] = _aim_points(enemy, standing, far, near, skill.respects_blocking, sight)
+				var landing: Dictionary = aimed[key]
+				if skill.aoe_radius > 0:
+					if skill.aoe_shape == SkillDefinition.AoEShape.DIAMOND:
+						landing = _spread(landing.keys(), skill.aoe_radius)
+					else:
+						# A line or a cone starts at the caster and runs its length.
+						landing = landing.merged(_spread(standing, skill.aoe_radius))
+				theirs.merge(landing)
+			sight.stand_back(enemy)
+			for tile in theirs:
+				threat[tile] = threat.get(tile, 0) + 1
+		if enemy.get("reaction_used", false) or has_restriction(enemy, "prevents_reactions"):
+			continue
+		for key in enemy.skill_list:
+			var skill: SkillDefinition = SkillDatabase.skills.get(key)
+			if skill == null or not skill.is_reactive:
+				continue
+			if not can_afford_skill(enemy, skill) or not meets_level_for(enemy, skill):
+				continue
+			var far = effective_max_range(enemy, skill)
+			for tile in _spread([enemy.position], far):
+				if get_position_distance(enemy.position, tile) < skill.min_range:
+					continue
+				if skill.respects_blocking and not has_line_of_sight(enemy.position, tile, enemy.movement_class):
+					continue
+				reaction[tile] = true
+	return {"threat": threat, "reaction": reaction}
+
+
+## Every tile `enemy` could aim at from somewhere in `standing`, between `near`
+## and `far` steps away - with a clear line to it, when `needs_sight`.
+func _aim_points(enemy: Dictionary, standing: Array, far: int, near: int, needs_sight: bool, sight: _SightGrid) -> Dictionary:
+	var candidates := _spread(standing, far)
+	if not needs_sight:
+		return candidates
+	var aims := {}
+	for tile in candidates:
+		if controller.terrain_blocks_sight(tile, enemy.movement_class):
+			continue
+		for from in standing:
+			var gap = absi(from.x - tile.x) + absi(from.y - tile.y)
+			if gap > far or gap < near:
+				continue
+			if sight.clear(from, tile, enemy.movement_class):
+				aims[tile] = true
+				break
+	return aims
+
+
+## has_line_of_sight, for asking tens of thousands of times at once: the
+## same walk from the same end of the pair, stopped by the same things, read
+## off a flat grid built once instead of through three lookups a step.
+class _SightGrid:
+	var _origin: Vector2i
+	var _width := 0
+	var _height := 0
+	## Per movement class, built on first use: 1 where terrain stops a shot.
+	var _terrain := {}
+	## 1 where somebody the player can see is standing.
+	var _bodies := PackedByteArray()
+	var _controller
+
+	func _init(controller, combatants: Array):
+		_controller = controller
+		var region: Rect2i = controller._astargrid.region
+		_origin = region.position
+		_width = region.size.x
+		_height = region.size.y
+		_bodies.resize(_width * _height)
+		for comb in combatants:
+			if comb.alive and not comb.get("hidden", false):
+				_set_body(comb.position, 1)
+
+	## Somebody who has walked off takes their body with them, so their old
+	## tile stops being cover for the lines they would shoot along.
+	func stand_aside(comb: Dictionary):
+		_set_body(comb.position, 0)
+
+	func stand_back(comb: Dictionary):
+		_set_body(comb.position, 1)
+
+	func _set_body(tile: Vector2i, value: int):
+		var at = _index(tile)
+		if at >= 0:
+			_bodies[at] = value
+
+	func _index(tile: Vector2i) -> int:
+		var x = tile.x - _origin.x
+		var y = tile.y - _origin.y
+		if x < 0 or y < 0 or x >= _width or y >= _height:
+			return -1
+		return y * _width + x
+
+	func _terrain_for(movement_class: int) -> PackedByteArray:
+		if not _terrain.has(movement_class):
+			var grid := PackedByteArray()
+			grid.resize(_width * _height)
+			for y in _height:
+				for x in _width:
+					if _controller.terrain_blocks_sight(_origin + Vector2i(x, y), movement_class):
+						grid[y * _width + x] = 1
+			_terrain[movement_class] = grid
+		return _terrain[movement_class]
+
+	func clear(from: Vector2i, to: Vector2i, movement_class: int) -> bool:
+		# Walked from the lesser end, exactly as has_line_of_sight does.
+		if to.x < from.x or (to.x == from.x and to.y < from.y):
+			var swap = from
+			from = to
+			to = swap
+		var terrain := _terrain_for(movement_class)
+		var dx = absi(to.x - from.x)
+		var dy = -absi(to.y - from.y)
+		var sx = 1 if from.x < to.x else -1
+		var sy = 1 if from.y < to.y else -1
+		var err = dx + dy
+		var x = from.x
+		var y = from.y
+		while x != to.x or y != to.y:
+			var e2 = 2 * err
+			if e2 >= dy:
+				err += dy
+				x += sx
+			if e2 <= dx:
+				err += dx
+				y += sy
+			if x == to.x and y == to.y:
+				continue
+			var at = (y - _origin.y) * _width + (x - _origin.x)
+			if terrain[at] == 1 or _bodies[at] == 1:
+				return false
+		return true
+
+
+## Every tile on the map within `reach` steps of any of `from`. A straight
+## count of steps, walls and all, the way a skill's reach is measured.
+func _spread(from: Array, reach: int) -> Dictionary:
+	var seen := {}
+	var frontier: Array = []
+	for tile in from:
+		if not seen.has(tile):
+			seen[tile] = 0
+			frontier.append(tile)
+	var steps := 0
+	while steps < reach and not frontier.is_empty():
+		steps += 1
+		var next: Array = []
+		for tile in frontier:
+			for step in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]:
+				var there = tile + step
+				if seen.has(there) or not controller.is_in_bounds(there):
+					continue
+				seen[there] = steps
+				next.append(there)
+		frontier = next
+	return seen
+
+
+## Everything about the battle a walk could change, apart from where `walker`
+## is standing: everybody's health, conditions, hiding, reactions spent, actions
+## spent, gates, what has been studied, how they get about, which of their
+## passives are working, and where everybody else is.
+##
+## A walk can be taken back only while this reads the same as it did when the
+## turn began - see CController.can_undo_move. Measured rather than listed case
+## by case, so a reaction set off on the way, a hidden walker spotted, a skill or
+## an item used, or a passive switched on all rule it out without each having to
+## be remembered here.
+func board_fingerprint(walker: Dictionary) -> String:
+	var parts := []
+	for comb in combatants:
+		var working := []
+		for passive in active_passives(comb):
+			working.append(passive.resource_path)
+		parts.append([
+			comb.get("id", -1), comb.get("alive", false), comb.get("hp", 0), comb.get("hidden", false),
+			null if comb.get("id", -1) == walker.get("id", -2) else comb.get("position"),
+			comb.get("status_effects", []), comb.get("reaction_used", false),
+			comb.get("reactions_suppressed", false), comb.get("skill_used_this_turn", false),
+			comb.get("secondary_used_this_turn", false), comb.get("spell_slots", []),
+			comb.get("studied", false), comb.get("studied_by", []), comb.get("movement_class", 0),
+			working,
+		])
+	return str(parts)
+
+
+## Whether something `comb` has lets them cast through any gate without
+## holding one.
+func casts_without_gates(comb: Dictionary) -> bool:
+	for passive in active_passives(comb):
+		if passive.casts_without_gates:
+			return true
+	return false
 
 
 ## Whether `comb` still has either action available. Used to decide when a turn
@@ -557,7 +851,9 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			# Something else killed them while their own skill's animation
 			# was still playing - nothing left to resolve.
 			return
-		if attacker.side == 0:
+		if attacker.side == 0 and skill.can_be_copied:
+			# The Mimic copies the last thing it can: Run, Study and the like
+			# leave whatever it was going to copy as it was.
 			last_player_skill_used = skill_key
 		var spent = spend_slot_for(attacker, skill)
 		if spent > 0:
@@ -655,6 +951,10 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 		else:
 			# Something's still available - stay on this combatant's turn and
 			# rebuild the panel so the spent slot shows as unavailable.
+			# What was just done cannot be walked back, but whatever walking
+			# comes after it can: a walk back now returns to here.
+			if controller.has_method("settle_undo_point"):
+				controller.settle_undo_point()
 			game_ui.refresh_action_buttons()
 	else:
 		update_information.emit("Target too far to attack.\n")
@@ -765,7 +1065,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	if skill.respects_blocking and not has_line_of_sight(attacker.position, trigger_position, attacker.movement_class):
 		return
 	attacker.reaction_used = true
-	if attacker.side == 0:
+	if attacker.side == 0 and skill.can_be_copied:
 		last_player_skill_used = skill_key
 	var spent = spend_slot_for(attacker, skill)
 	if spent > 0:
@@ -926,6 +1226,8 @@ func has_line_of_sight(from: Vector2i, to: Vector2i, movement_class: int) -> boo
 
 ## One direction of the walk. has_line_of_sight is the question to ask; this is
 ## half of its answer, and on its own it is the asymmetry rather than the rule.
+## _SightGrid.clear walks the same line for the danger view - change one, change
+## both (the danger suite checks they agree).
 ##
 ## Deliberately the same arithmetic, in the same order, so it cannot disagree
 ## with get_tiles_between about what lies between two tiles. The blindcast
@@ -1860,6 +2162,7 @@ func advance_turn():
 			comb = combatants[current_combatant]
 			continue
 		break
+	_pace_turn(comb)
 	apply_drift(comb)
 	emit_signal("turn_advanced", comb)
 	emit_signal("update_combatants", combatants)
@@ -1934,7 +2237,22 @@ func apply_drift(comb: Dictionary):
 	])
 
 
+## Plays an enemy's turn at the speed the player asked for in Options, and a
+## player's own at normal speed. See GameSettings.ENEMY_SPEEDS.
+func _pace_turn(comb: Dictionary):
+	_turn_scale = GameSettings.enemy_time_scale() if comb.get("side", 0) == 1 else 1.0
+	if _hit_stop_depth == 0:
+		Engine.time_scale = _turn_scale
+
+## The time scale the current turn runs at, for a hit-stop to come back to.
+var _turn_scale := 1.0
+
+
 func combat_finish():
+	# Whatever comes after the fight - the log, the result, the map - at normal speed.
+	_turn_scale = 1.0
+	if _hit_stop_depth == 0:
+		Engine.time_scale = 1.0
 	if combat_over:
 		return
 	combat_over = true
@@ -2159,7 +2477,8 @@ func hit_stop(seconds: float):
 	await get_tree().create_timer(seconds, true, false, true).timeout
 	_hit_stop_depth = maxi(_hit_stop_depth - 1, 0)
 	if _hit_stop_depth == 0:
-		Engine.time_scale = 1.0
+		# Back to whatever this turn runs at - an enemy's may be sped up.
+		Engine.time_scale = _turn_scale
 
 
 ## The freeze for a hit that took `damage` off a target with `max_hp`, or 0 for
@@ -2179,9 +2498,11 @@ func _exit_tree():
 	# come off here rather than at the end of an await chain the scene change has
 	# already cut - a hit-stop left behind freezes the game everywhere, including
 	# the menu just opened.
-	if _hit_stop_depth > 0 or Engine.time_scale == 0.0:
-		_hit_stop_depth = 0
-		Engine.time_scale = 1.0
+	# An enemy's turn may have been sped up too, and a menu running at three
+	# times its speed is no menu at all.
+	_hit_stop_depth = 0
+	_turn_scale = 1.0
+	Engine.time_scale = 1.0
 	stop_watching()
 
 
@@ -2299,6 +2620,102 @@ func dot_base_damage(attacker: Dictionary, skill: SkillDefinition, modifier: flo
 	# Crystalise's 0.4 and 0.3 made a tick worth 0.12, and nothing on the skill
 	# said so.
 	return base * modifier
+
+
+## --- Seeing a hit coming ---
+##
+## What the prompt shown while aiming reads from. Worked out by the same steps
+## use_skill, do_damage and do_heal take, so what it promises is what the log
+## will report - but nothing is rolled, spent or changed.
+
+
+## Who `skill`, aimed at `aim` by `caster`, would catch - found the way
+## use_skill finds them. Empty when the aim is out of reach.
+##
+## Anybody hidden on the other side is left out: they would still be caught,
+## but naming them would say exactly where they are.
+func targets_if_aimed(caster: Dictionary, skill: SkillDefinition, aim: Vector2i) -> Array:
+	var distance = get_position_distance(caster.position, aim)
+	if distance > effective_max_range(caster, skill) or distance < skill.min_range:
+		return []
+	# A blink bursts from where it lands, which is the tile aimed at.
+	var from = aim if skill.teleports == SkillDefinition.TeleportWho.CASTER else caster.position
+	var tiles = get_impact_tiles(skill, from, aim, caster.movement_class)
+	var found := []
+	for target in get_targets_in_tiles(tiles, caster, skill.targets_ally, skill.affects_both_sides):
+		if target.side != caster.side and is_hidden(target):
+			continue
+		found.append(target)
+	return found
+
+
+## What `skill` would do to `target` if it connected:
+##
+##   hit_chance   the roll it has to make, or 100 for a contested skill, which
+##                never rolls
+##   contested    whether it is decided by a contest instead
+##   wins         whether the caster wins that contest - lands in full - or it
+##                is shrugged off, which leaves half the damage and nothing else
+##   their_stat / their_stat_name, our_stat / our_stat_name   the two numbers
+##                the contest weighs, and what they are called
+##   damage       after the target's defence and resistance, as do_damage does
+##   heal         what a heal on it would mend
+##   lethal       whether the damage alone would finish them
+##   also         the conditions that would land with it
+##   dropped      what a graze keeps from landing
+func predict_hit(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> Dictionary:
+	var result := {
+		"hit_chance": 100, "contested": skill.uses_stat_contest, "wins": true,
+		"their_stat": 0, "their_stat_name": "", "our_stat": 0, "our_stat_name": "",
+		"damage": 0, "heal": 0, "lethal": false, "deals_damage": false,
+		"also": [], "dropped": [],
+	}
+	var power := 1.0
+	if skill.uses_stat_contest:
+		result.wins = wins_contest(attacker, target, skill)
+		result.their_stat = stat_of(target, skill.contest_stat)
+		result.their_stat_name = Stats.stat_name(skill.contest_stat)
+		if skill is ItemDefinition:
+			result.our_stat = skill.item_power
+			result.our_stat_name = "its power"
+		else:
+			result.our_stat = stat_of(attacker, skill.scaling_stat)
+			result.our_stat_name = Stats.stat_name(skill.scaling_stat)
+		if not result.wins:
+			power = 0.5
+	else:
+		result.hit_chance = hit_chance(attacker, skill, target)
+	# The same test spend_element_upgrade makes, without spending anything.
+	var raising := false
+	if has_element_upgrade(attacker):
+		for type in elements_of(skill):
+			if Damage.can_upgrade(type):
+				raising = true
+	for effect in skill.all_effects():
+		if effect == null or effect.applies_to_caster:
+			continue
+		match effect.type:
+			EffectDefinition.EffectType.DAMAGE:
+				result.deals_damage = true
+				var element = Damage.upgraded_form(effect.damage_type) if raising else effect.damage_type
+				result.damage += resisted_damage(target, element, skill_damage(attacker, target, skill, power))
+			EffectDefinition.EffectType.HEAL:
+				if result.wins:
+					result.heal += heal_amount(attacker, skill, effect)
+				else:
+					result.dropped.append("the heal")
+			EffectDefinition.EffectType.CONDITION:
+				if effect.condition == null:
+					continue
+				if result.wins:
+					result.also.append(effect.condition.display_name)
+				else:
+					result.dropped.append(effect.condition.display_name)
+			_:
+				if not result.wins:
+					result.dropped.append(effect.display_name if effect.display_name != "" else "the rest")
+	result.lethal = result.damage >= target.hp
+	return result
 
 
 func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0):
@@ -2430,7 +2847,10 @@ func find_lowest_hp_enemy_of(comb: Dictionary) -> Dictionary:
 	var lowest_hp = INF
 	for index in groups[opposing_side]:
 		var candidate = combatants[index]
-		if not candidate.alive:
+		# Hidden is not being there - see find_nearest_enemy_of. This did not
+		# ask, and while the Ranger chose its mark here it would aim at, and walk
+		# towards, somebody it could not see.
+		if not candidate.alive or is_hidden(candidate):
 			continue
 		if candidate.hp < lowest_hp:
 			lowest_hp = candidate.hp
@@ -2702,7 +3122,9 @@ func count_players_in_blast(skill: SkillDefinition, position: Vector2i, movement
 	var count = 0
 	for index in groups[Group.PLAYERS]:
 		var p = combatants[index]
-		if p.alive and p.position in tiles:
+		# Nobody hidden: the Bomber would otherwise run at, and go off beside,
+		# somebody it has no way of knowing is there.
+		if p.alive and not is_hidden(p) and p.position in tiles:
 			count += 1
 	return count
 
@@ -2738,7 +3160,8 @@ func distance_to_nearest_player(tile: Vector2i) -> int:
 	var best = -1
 	for index in groups[Group.PLAYERS]:
 		var p = combatants[index]
-		if not p.alive:
+		# Keeping away from somebody hidden is knowing where they are.
+		if not p.alive or is_hidden(p):
 			continue
 		var d = get_position_distance(tile, p.position)
 		if best < 0 or d < best:
@@ -3103,7 +3526,8 @@ func ally_nearest_the_enemy(comb: Dictionary) -> Dictionary:
 			continue
 		for other in groups[1 - comb.side]:
 			var foe = combatants[other]
-			if not foe.alive:
+			# Nobody is about to be hit by somebody the healer cannot see.
+			if not foe.alive or is_hidden(foe):
 				continue
 			var gap = get_position_distance(mate.position, foe.position)
 			if gap < best:
@@ -3158,18 +3582,357 @@ func reposition_healer(comb: Dictionary, heal_reach: int):
 		await controller.ai_move(tile)
 
 
-## Default enemy behaviour: rush the nearest enemy and melee it.
+## --- Weighing what a turn could do ---
+##
+## The archetypes used to choose by counting: the caster took whichever spell
+## caught the most players, the ranger its longest reach, the rusher its
+## shortest - whatever any of them would actually do. These weigh the hit
+## instead, through predict_hit, the arithmetic the prompt shown to a player
+## while aiming uses: damage through the target's defence and resistances,
+## whether a contest would be won or shrugged off, whether it would finish
+## them. And they count the cost of catching their own side, which counting
+## players never did: a Sorcerer's Fireball burns everybody within five tiles,
+## and was aimed as though its own side were not standing there.
+
+## Finishing somebody, on top of the damage it takes.
+const AI_KILL_BONUS := 60.0
+## Each condition a hit leaves on somebody not already carrying it.
+const AI_CONDITION_VALUE := 15.0
+## A pull towards whoever is already hurt, scaled by how much of their health is
+## gone - so a fight is finished rather than spread thin.
+const AI_HURT_BONUS := 20.0
+## A pull towards whoever the last enemy to attack went for.
+const AI_FOCUS_BONUS := 25.0
+## How much each point of harm to its own side counts against a plan, on top of
+## AI_ALLY_CAUGHT for catching them at all. Heavy on purpose: an enemy burning
+## its own side reads to the player as the AI being foolish, whatever the sums
+## say, so it takes a much better blast than the one that spares them.
+const AI_ALLY_HARM := 3.0
+const AI_ALLY_CAUGHT := 40.0
+## Catching itself in its own blast: never worth it.
+const AI_SELF_HARM := 1000.0
+
+## Who the last enemy to attack went for. See AI_FOCUS_BONUS.
+var _ai_focus_id := -1
+
+
+## What landing `skill` on `target` would be worth to `attacker`, an opponent
+## of theirs, weighted by the chance of it landing. Nothing at all for a hit
+## that would do nothing: the pulls towards the hurt and the focused only ever
+## sweeten a hit that does something.
+func ai_target_value(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> float:
+	var hit = predict_hit(attacker, target, skill)
+	var worth := float(hit.damage)
+	if hit.wins:
+		for effect in skill.all_effects():
+			if effect == null or effect.applies_to_caster or effect.condition == null:
+				continue
+			if effect.type == EffectDefinition.EffectType.CONDITION and not _carries(target, effect.condition):
+				worth += AI_CONDITION_VALUE
+	if worth <= 0.0:
+		return 0.0
+	if hit.lethal:
+		worth += AI_KILL_BONUS
+	var most = maxf(float(get_effective_stat(target, "max_hp")), 1.0)
+	worth += AI_HURT_BONUS * clampf(1.0 - float(target.hp) / most, 0.0, 1.0)
+	if target.get("id", -2) == _ai_focus_id:
+		worth += AI_FOCUS_BONUS
+	return worth * float(hit.hit_chance) / 100.0
+
+
+func _carries(comb: Dictionary, condition: ConditionDefinition) -> bool:
+	for eff in comb.get("status_effects", []):
+		if eff.get("stat", "") == "condition" and eff.get("condition") == condition:
+			return true
+	return false
+
+
+## What catching each combatant with `skill` would be worth to `comb`: an
+## opponent's value, the harm to one of its own side as a cost - only for a
+## skill that catches both sides, since nothing else can - and itself as all but
+## ruled out. Anybody hidden from it is left off, as they are for aiming at.
+func ai_worth_table(comb: Dictionary, skill: SkillDefinition) -> Dictionary:
+	var table := {}
+	for other in combatants:
+		if not other.alive:
+			continue
+		var id = other.get("id", -1)
+		if id == comb.get("id", -2):
+			if skill.affects_both_sides:
+				table[id] = -AI_SELF_HARM
+		elif other.side == comb.side:
+			if skill.affects_both_sides:
+				var hit = predict_hit(comb, other, skill)
+				table[id] = -AI_ALLY_CAUGHT - AI_ALLY_HARM * (float(hit.damage) + (AI_KILL_BONUS if hit.lethal else 0.0))
+		elif not is_hidden(other):
+			var value = ai_target_value(comb, other, skill)
+			if value > 0.0:
+				table[id] = value
+	return table
+
+
+## Whether `comb` could use `skill` on the other side at all right now.
+func _ai_plannable(comb: Dictionary, skill: SkillDefinition) -> bool:
+	if skill == null or skill.targets_ally or skill.kills_caster:
+		return false
+	# A blink or a carry needs a landing tile worked out, which is the copycat's
+	# business rather than this.
+	if skill.teleports != SkillDefinition.TeleportWho.NOBODY:
+		return false
+	return can_afford_skill(comb, skill) and meets_level_for(comb, skill)
+
+
+## Everything `comb` could spend its main action on: its skills and its spells.
+func _ai_main_keys(comb: Dictionary) -> Array:
+	var keys = main_skills_of(comb).duplicate()
+	for key in spell_skills_of(comb):
+		if not SkillDatabase.skills[key].is_secondary and not keys.has(key):
+			keys.append(key)
+	return keys
+
+
+## Every tile worth aiming `skill` at, and what catching whoever stands around
+## it would be worth - `comb` itself left out, since whether it is caught depends
+## on where it stands. Only tiles near somebody worth hitting are asked about: a
+## blast that catches none of them is worth nothing wherever it lands, and asking
+## about every tile in reach is what once took a caster eleven seconds.
+##
+## A LINE or CONE is aimed as a direction, so its candidates are the people
+## worth hitting, scored per standing tile in _ai_best_aim_from.
+func _ai_aim_scores(comb: Dictionary, skill: SkillDefinition, worth: Dictionary) -> Dictionary:
+	var scores := {}
+	var others := []
+	for other in combatants:
+		var id = other.get("id", -1)
+		if worth.has(id) and id != comb.get("id", -2):
+			others.append(other)
+	var radius: int = skill.aoe_radius
+	var blast = skill.aoe_shape == SkillDefinition.AoEShape.DIAMOND
+	for other in others:
+		if worth[other.id] <= 0.0:
+			continue
+		if not blast:
+			scores[other.position] = 0.0
+			continue
+		for dx in range(-radius, radius + 1):
+			var span = radius - absi(dx)
+			for dy in range(-span, span + 1):
+				scores[other.position + Vector2i(dx, dy)] = 0.0
+	if not blast:
+		return scores
+	for aim in scores:
+		var total := 0.0
+		for other in others:
+			if get_position_distance(aim, other.position) > radius:
+				continue
+			# The same test find_best_aim_and_count makes, so a blast is judged
+			# to reach exactly who it does.
+			if skill.respects_blocking and radius > 0:
+				if controller.terrain_blocks_sight(other.position, comb.movement_class):
+					continue
+				if not has_line_of_sight(aim, other.position, comb.movement_class):
+					continue
+			total += worth[other.id]
+		scores[aim] = total
+	return scores
+
+
+## The best tile to aim `skill` at from `standing`, and what it is worth there.
+func _ai_best_aim_from(comb: Dictionary, skill: SkillDefinition, standing: Vector2i, worth: Dictionary, aims: Dictionary) -> Dictionary:
+	var best := {"aim": standing, "score": 0.0}
+	var reach = effective_max_range(comb, skill)
+	var radius: int = skill.aoe_radius
+	var blast = skill.aoe_shape == SkillDefinition.AoEShape.DIAMOND
+	var own: float = worth.get(comb.get("id", -1), 0.0)
+	for aim in aims:
+		var d = get_position_distance(standing, aim)
+		if d > reach or d < skill.min_range:
+			continue
+		var score := 0.0
+		if blast:
+			if radius == 0 and skill.respects_blocking \
+					and not has_line_of_sight(standing, aim, comb.movement_class):
+				continue
+			score = aims[aim]
+			# Itself, stood inside its own blast.
+			if own != 0.0 and d <= radius:
+				score += own
+		else:
+			var tiles = get_impact_tiles(skill, standing, aim, comb.movement_class)
+			for other in combatants:
+				var id = other.get("id", -1)
+				if not worth.has(id):
+					continue
+				var at = standing if id == comb.get("id", -2) else other.position
+				if at in tiles:
+					score += worth[id]
+		if score > best.score:
+			best = {"aim": aim, "score": score}
+	return best
+
+
+## The best of `skill_keys` for `comb` to use on the other side this turn, from
+## anywhere within `budget` tiles: which skill, where to stand, where to aim, and
+## what it is worth. `tile_bonus`, when given, has its say about each standing
+## tile - how safe it is, for anybody who would rather not be reached. An empty
+## skill when nothing is worth doing. Staying put wins a tie.
+func ai_plan_attack(comb: Dictionary, skill_keys: Array, budget: int, tile_bonus: Callable = Callable()) -> Dictionary:
+	var plan := {"skill": "", "tile": comb.position, "aim": comb.position, "score": 0.0}
+	var standing: Array = [comb.position]
+	if budget > 0:
+		for tile in controller.get_reachable_tiles(comb.position, comb.movement_class, budget):
+			if tile != comb.position:
+				standing.append(tile)
+	var bonus_of := {}
+	for key in skill_keys:
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if not _ai_plannable(comb, skill):
+			continue
+		var worth = ai_worth_table(comb, skill)
+		var aims = _ai_aim_scores(comb, skill, worth)
+		if aims.is_empty():
+			continue
+		for tile in standing:
+			var found = _ai_best_aim_from(comb, skill, tile, worth, aims)
+			if found.score <= 0.0:
+				continue
+			var total: float = found.score
+			if tile_bonus.is_valid():
+				if not bonus_of.has(tile):
+					bonus_of[tile] = tile_bonus.call(tile)
+				total += bonus_of[tile]
+			if total > plan.score:
+				plan = {"skill": key, "tile": tile, "aim": found.aim, "score": total}
+	return plan
+
+
+## Whoever a plan is mainly aimed at: the opponent it catches who is worth the
+## most. What avoiding a reaction on the way in, and focusing, are measured
+## against.
+func _ai_primary(comb: Dictionary, skill_key: String, standing: Vector2i, aim: Vector2i) -> Dictionary:
+	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
+	var tiles = []
+	if skill.aoe_shape != SkillDefinition.AoEShape.DIAMOND:
+		tiles = get_impact_tiles(skill, standing, aim, comb.movement_class)
+	var best := {}
+	var best_value := 0.0
+	for other in combatants:
+		if not other.alive or other.side == comb.side or is_hidden(other):
+			continue
+		var caught = other.position in tiles if not tiles.is_empty() \
+				else get_position_distance(aim, other.position) <= skill.aoe_radius
+		if not caught:
+			continue
+		var value = ai_target_value(comb, other, skill)
+		if value > best_value:
+			best_value = value
+			best = other
+	return best
+
+
+## Carries out a plan from ai_plan_attack: walks to its tile, unless the walk
+## would hand somebody a reaction that could kill it - then it acts from where
+## it stands, if there is still anything worth doing from there - and uses the
+## skill. Returns whether it acted.
+func _ai_carry_out(comb: Dictionary, plan: Dictionary, skill_keys: Array, tile_bonus: Callable = Callable()) -> bool:
+	if plan.skill == "":
+		return false
+	if plan.tile != comb.position:
+		var aimed_at = _ai_primary(comb, plan.skill, plan.tile, plan.aim)
+		if avoid_needless_opportunity_attacks(comb, plan.tile, aimed_at) != plan.tile:
+			plan = ai_plan_attack(comb, skill_keys, 0, tile_bonus)
+			if plan.skill == "":
+				return false
+	if plan.tile != comb.position:
+		await controller.ai_move(plan.tile)
+	if not comb.alive:
+		return false
+	var primary = _ai_primary(comb, plan.skill, comb.position, plan.aim)
+	if not primary.is_empty():
+		_ai_focus_id = primary.id
+	await use_skill(plan.skill, comb, plan.aim, false)
+	return true
+
+
+## Spends the secondary action on a hit, when one is in reach of where it now
+## stands - the Barbarian's Follow-up, once it has learned it. Only the Priest
+## ever used a secondary before this; everybody else left half of every turn.
+func ai_secondary_attack(comb: Dictionary) -> bool:
+	if not comb.alive or comb.get("secondary_used_this_turn", false):
+		return false
+	if has_restriction(comb, "prevents_secondary"):
+		return false
+	var keys = secondary_skills_of(comb).duplicate()
+	for key in spells_in_slot(comb, true):
+		if not keys.has(key):
+			keys.append(key)
+	var plan = ai_plan_attack(comb, keys, 0)
+	if plan.skill == "":
+		return false
+	var primary = _ai_primary(comb, plan.skill, comb.position, plan.aim)
+	if not primary.is_empty():
+		_ai_focus_id = primary.id
+	await use_skill(plan.skill, comb, plan.aim, false, true)
+	return true
+
+
+## Who is most worth going after with any of `skill_keys`, reachable or not -
+## where somebody with nothing in reach should be heading. The nearest opponent
+## when nobody is worth anything.
+func _ai_most_wanted(comb: Dictionary, skill_keys: Array) -> Dictionary:
+	var best := {}
+	var best_value := 0.0
+	for key in skill_keys:
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if not _ai_plannable(comb, skill):
+			continue
+		for other in combatants:
+			if not other.alive or other.side == comb.side or is_hidden(other):
+				continue
+			var value = ai_target_value(comb, other, skill)
+			if value > best_value:
+				best_value = value
+				best = other
+	return best if not best.is_empty() else find_nearest_enemy_of(comb)
+
+
+## Default enemy behaviour: get stuck in. Whatever in its kit is worth the most
+## from anywhere it can reach this turn - a Sweep Strike through two players
+## over a Greatsword into one - then its secondary, if it has one in reach.
+## With nothing in reach it spends the main action on Run, when it has it, and
+## closes on whoever is most worth reaching; the walk is kept clear of any
+## reaction that could finish it on the way in, either way.
 func ai_melee_rush(comb: Dictionary):
 	var target = find_nearest_enemy_of(comb)
 	if target.is_empty():
 		await advance_turn()
 		return
-	if get_distance(comb, target) == 1:
-		await use_skill(melee_fallback_for(comb), comb, target.position)
+	var keys = _ai_main_keys(comb)
+	# Borrowing a greatsword stays the last resort for somebody with nothing of
+	# their own that hurts - see melee_fallback_for.
+	var hurts := false
+	for key in keys:
+		if SkillDatabase.skills[key].deals_damage:
+			hurts = true
+	if not hurts:
+		keys.append(melee_fallback_for(comb))
+	var plan = ai_plan_attack(comb, keys, movement_budget_of(comb))
+	if await _ai_carry_out(comb, plan, keys):
+		await ai_secondary_attack(comb)
+		await advance_turn()
 		return
-	await controller.ai_process(target.position)
-	if comb.alive:
-		await use_skill(melee_fallback_for(comb), comb, target.position)
+	if not comb.alive:
+		return
+	var wanted = _ai_most_wanted(comb, keys)
+	var run: SkillDefinition = SkillDatabase.skills.get("run")
+	if "run" in comb.skill_list and run != null and can_afford_skill(comb, run) \
+			and meets_level_for(comb, run) and not comb.get("skill_used_this_turn", false):
+		# Nothing to swing at this turn anyway, so the main action is worth
+		# more as ground covered.
+		await use_skill("run", comb, comb.position, false)
+	await approach_with_remaining_movement(comb, wanted)
+	await ai_secondary_attack(comb)
+	await advance_turn()
 
 
 ## If it can already reach (get adjacent to, per Self Destruct's blast)
@@ -3238,15 +4001,22 @@ func ai_ranger(comb: Dictionary):
 				await use_skill(heal_skill_key, comb, comb.position, false)
 				await advance_turn()
 				return
-	var target = find_lowest_hp_enemy_of(comb)
+	# The shot worth the most - skill and target together, weighed by what it
+	# would actually do to them - among those it can take from somewhere it can
+	# reach. It used to be the lowest health on the board, with whichever skill
+	# reached furthest, whatever either would do to the other.
+	var choice = _ai_best_shot(comb, movement_budget)
+	var target: Dictionary = choice.target
 	if target.is_empty():
 		await advance_turn()
 		return
-	var skill_key = find_best_single_target_skill(comb)
+	var skill_key: String = choice.skill
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	var attacked = await move_into_range_of(comb, target.position, skill, movement_budget, true, target)
 	if attacked:
+		_ai_focus_id = target.id
 		await use_skill(skill_key, comb, target.position, false)
+		await ai_secondary_attack(comb)
 		await retreat_with_remaining_movement(comb, target, skill.max_range + movement_budget)
 	else:
 		# Nothing it could reach from anywhere it could get to. It used to spend
@@ -3257,6 +4027,36 @@ func ai_ranger(comb: Dictionary):
 		# cover among the tiles that close it.
 		await approach_with_remaining_movement(comb, target)
 	await advance_turn()
+
+
+## The single shot worth the most to `comb` this turn: {skill, target}. The
+## skill and target it can reach from somewhere within `budget` when there is
+## one; otherwise the one most worth closing on, with the skill it would use -
+## and an empty target when there is nobody at all.
+func _ai_best_shot(comb: Dictionary, budget: int) -> Dictionary:
+	var reachable := {"skill": "", "target": {}, "value": 0.0}
+	var wanted := {"skill": "", "target": {}, "value": 0.0}
+	for key in _ai_main_keys(comb):
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		if not _ai_plannable(comb, skill) or skill.aoe_radius > 0:
+			continue
+		for other in combatants:
+			if not other.alive or other.side == comb.side or is_hidden(other):
+				continue
+			var value = ai_target_value(comb, other, skill)
+			if value <= 0.0:
+				continue
+			if value > wanted.value:
+				wanted = {"skill": key, "target": other, "value": value}
+			if value > reachable.value and can_shoot_from_anywhere_reachable(comb, other.position, skill, budget):
+				reachable = {"skill": key, "target": other, "value": value}
+	if not reachable.target.is_empty():
+		return reachable
+	if not wanted.target.is_empty():
+		return wanted
+	# Nothing it has would do anything to anybody: its best reach, at whoever
+	# is nearest, so it still closes the distance.
+	return {"skill": find_best_single_target_skill(comb), "target": find_nearest_enemy_of(comb), "value": 0.0}
 
 
 ## Prioritises healing its most injured ally, then cleansing its most
@@ -3349,67 +4149,43 @@ func cleanse_as_secondary(comb: Dictionary) -> bool:
 	return true
 
 
-## Searches, for each area-effect offensive skill in its kit, every
-## reachable position and picks whichever combination of skill + position +
-## aim scores best on a blend of "how many living players would this hit"
-## and "how many players would NOT be able to see me here" (count_players_
-## without_los) - so a meaningfully safer casting spot can win out over a
-## marginally more damaging one, though hitting nobody never does. HIT_WEIGHT
-## and SAFETY_WEIGHT set that balance; tune them here if it feels off. Falls
-## back to approaching and plain-attacking the nearest enemy if no AoE skill
-## could hit anyone from anywhere reachable.
+## Weighs every spell and skill in its kit - blasts and single shots alike -
+## from every tile it could stand on, by what each would actually do (see
+## ai_plan_attack), with a little for standing where fewer players can see it:
+## a meaningfully safer casting spot can win over a marginally better one,
+## though hitting nobody never does. Its own side caught in a blast counts
+## against it, and itself caught all but rules a blast out - Fireball burns
+## everybody within five tiles of where it lands, and was aimed as though the
+## caster's own side were not standing there. Falls back to approaching and
+## plain-attacking the nearest enemy when nothing could reach anybody.
+##
+## CASTER_COVER is what one player unable to see the casting tile is worth, in
+## the same units as a hit - roughly a third of a middling one.
+const CASTER_COVER := 10.0
+
 func ai_caster(comb: Dictionary):
-	const HIT_WEIGHT = 10.0
-	const SAFETY_WEIGHT = 3.0
 	var target = find_nearest_enemy_of(comb)
 	if target.is_empty():
 		await advance_turn()
 		return
 	var movement_budget = movement_budget_of(comb)
-	var best_skill_key = ""
-	var best_tile = comb.position
-	var best_aim = comb.position
-	var best_score = -INF
-	for skill_key in comb.skill_list:
-		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
-		if skill.targets_ally or skill.aoe_radius <= 0:
-			continue
-		if not can_afford_skill(comb, skill) or not meets_level_for(comb, skill):
-			continue # out of slots for it, or not learned yet
-		var tile = find_best_reachable_tile(comb, movement_budget, func(t):
-			var hits = find_best_aim_and_count(skill, t, comb.movement_class, comb).count
-			return float(hits) * HIT_WEIGHT + float(count_players_without_los(t)) * SAFETY_WEIGHT
-		)
-		var result = find_best_aim_and_count(skill, tile, comb.movement_class, comb)
-		if result.count <= 0:
-			continue
-		var score = float(result.count) * HIT_WEIGHT + float(count_players_without_los(tile)) * SAFETY_WEIGHT
-		if score > best_score:
-			best_score = score
-			best_skill_key = skill_key
-			best_tile = tile
-			best_aim = result.position
-	if best_skill_key != "":
-		var safe_tile = avoid_needless_opportunity_attacks(comb, best_tile, target)
-		if safe_tile != best_tile:
-			# The original best position wasn't safe enough - recompute the
-			# aim (and check there's still something to hit) from wherever
-			# we're actually willing to end up instead.
-			var result = find_best_aim_and_count(SkillDatabase.skills[best_skill_key], safe_tile, comb.movement_class, comb)
-			if result.count <= 0:
-				await advance_turn()
-				return
-			best_aim = result.position
-			best_tile = safe_tile
-		if best_tile != comb.position:
-			await controller.ai_move(best_tile)
-		if comb.alive:
-			await use_skill(best_skill_key, comb, best_aim, false)
+	var keys = _ai_main_keys(comb)
+	var cover = func(t): return float(count_players_without_los(t)) * CASTER_COVER
+	var plan = ai_plan_attack(comb, keys, movement_budget, cover)
+	if await _ai_carry_out(comb, plan, keys, cover):
+		await ai_secondary_attack(comb)
 		# Back off with whatever movement is left rather than standing where it
-		# just fired from - an area skill's range is long enough that the
-		# casting tile is almost never the tile you want to be standing on when
-		# the players get their turn.
-		await retreat_with_remaining_movement(comb, target, SkillDatabase.skills[best_skill_key].max_range + movement_budget)
+		# just fired from - a spell's range is long enough that the casting
+		# tile is almost never the tile you want to be standing on when the
+		# players get their turn.
+		await retreat_with_remaining_movement(comb, target, SkillDatabase.skills[plan.skill].max_range + movement_budget)
+		await advance_turn()
+		return
+	if not comb.alive:
+		return
+	if plan.skill != "":
+		# Everything worth doing meant walking into a reaction that could kill
+		# it, and nothing was worth doing from where it stands.
 		await advance_turn()
 		return
 	# No AoE skill can hit anyone from anywhere reachable - fall back to a

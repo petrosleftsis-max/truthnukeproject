@@ -85,7 +85,7 @@ func audit_stale_properties():
 	log_line("======== what the files write down, and what the scripts still read ========")
 	var stranded := []
 	var checked := 0
-	for folder in ["res://items", "res://skills", "res://conditions"]:
+	for folder in ["res://items", "res://skills", "res://conditions", "res://passives"]:
 		var dir = DirAccess.open(folder)
 		if dir == null:
 			continue
@@ -311,10 +311,30 @@ func audit_combatants():
 			continue
 		flag(c.max_hp <= 0, "%s has no health" % key, "%d" % c.max_hp)
 		flag(c.movement <= 0, "%s cannot move at all" % key, "%d" % c.movement)
-		flag(c.skills.is_empty() and c.secondary_skills.is_empty(), "%s knows nothing" % key)
+		# A passive counts: the Mimic has nothing to press, and its passive is
+		# what gives it a turn at all.
+		flag(c.skills.is_empty() and c.secondary_skills.is_empty() and c.passives.is_empty(),
+			"%s knows nothing" % key)
+		for passive in c.passives:
+			flag(passive == null, "%s lists a passive that is not there" % key)
+			if passive == null:
+				continue
+			flag(passive.name == "", "%s has a passive with no name" % key)
+			# The sheet is the only place a passive can be read, so one that
+			# says nothing is one nobody can find out about.
+			flag(passive.description == "",
+				"%s has a passive that says nothing about itself" % key, passive.name)
 		for skill_key in c.skills + c.secondary_skills:
 			flag(not SkillDatabase.skills.has(skill_key),
 				"%s carries an unknown skill" % key, skill_key)
+		# Within one list, not across the two: a skill in both Skills and
+		# Secondary Skills is how Cyrus can Run from either slot. Twice in the
+		# same list is only ever a slip, and shows up as the same button twice.
+		for list in [c.skills, c.secondary_skills]:
+			var seen := {}
+			for skill_key in list:
+				flag(seen.has(skill_key), "%s lists a skill twice" % key, skill_key)
+				seen[skill_key] = true
 		for item_key in c.starting_items:
 			flag(not ItemDatabase.items.has(item_key),
 				"%s starts with an unknown item" % key, item_key)
@@ -329,7 +349,11 @@ func audit_combatants():
 			var s: SkillDefinition = SkillDatabase.skills.get(skill_key)
 			if s != null and s.spell_slot_level > 0:
 				needs_gates = true
-		if needs_gates and not c.casts_without_gates:
+		var gateless := false
+		for passive in c.passives:
+			if passive != null and passive.casts_without_gates:
+				gateless = true
+		if needs_gates and not gateless:
 			var gates = c.gates_at(1)
 			var total := 0
 			for g in gates:

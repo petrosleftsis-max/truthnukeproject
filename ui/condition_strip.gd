@@ -1,8 +1,11 @@
-extends HBoxContainer
+extends GridContainer
 class_name ConditionStrip
-## The row of little marks saying what is currently on a combatant - poisoned,
-## slowed, hasted, burning - hung beside a party portrait or under a turn-queue
-## icon.
+## The little marks saying what is currently on a combatant - poisoned, slowed,
+## hasted, burning - hung beside a party portrait or under a turn-queue icon.
+##
+## A grid rather than a row, so a lot of them wrap onto another line instead of
+## running on sideways: under a face in the turn queue a row that long ran
+## beneath the next face along, and nobody could tell whose marks they were.
 ##
 ## Everything a status effect does was previously only in the combat log, which
 ## scrolls away: two turns later there is nothing on screen saying why somebody
@@ -26,32 +29,74 @@ const HELPFUL := Color(0.55, 0.85, 0.55)
 
 var _combat: Combat = null
 
+## How big each mark is drawn. A face in the turn queue is small, so the marks
+## under it are too.
+var mark_size := MARK_SIZE
+
+
+func _init():
+	columns = 4
+	add_theme_constant_override("h_separation", 2)
+	add_theme_constant_override("v_separation", 2)
+
 
 ## Rebuilds the strip for `comb`. Safe to call every time anything changes;
 ## there are never more than a handful of marks.
 func show_for(comb: Dictionary, combat: Combat):
-	_combat = combat
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
+	for state in states_of(comb, combat):
+		add_child(_mark(state.text, state.helpful))
+
+
+## What is on `comb`, each as the words its mark's tooltip shows and whether it
+## helps them. The character sheet reads its State section from here too, so
+## the two places that say what is on somebody say it the same way.
+func states_of(comb: Dictionary, combat: Combat) -> Array:
+	_combat = combat
+	var found := []
 	for effect in comb.get("status_effects", []):
 		var described = describe(comb, effect)
 		if described == "":
 			continue
-		add_child(_mark(described, _is_helpful(effect)))
+		found.append({"text": described, "helpful": _is_helpful(effect)})
+	return found
 
 
 func _mark(tooltip: String, helpful: bool) -> TextureRect:
 	var icon = TextureRect.new()
 	icon.texture = MARK
-	icon.custom_minimum_size = MARK_SIZE
+	icon.custom_minimum_size = mark_size
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.modulate = HELPFUL if helpful else HARMFUL
+	# Only the mark itself takes the colour; the letter on it stays white.
+	icon.self_modulate = HELPFUL if helpful else HARMFUL
 	# Without this the mouse passes straight through and there is no tooltip.
 	icon.mouse_filter = Control.MOUSE_FILTER_STOP
-	icon.tooltip_text = tooltip
+	icon.tooltip_text = TooltipText.wrap(tooltip)
+	# Every mark is the same picture, so each carries the start of what it is
+	# - Bu, Bl, Po, Ph - to tell two of them apart unhovered.
+	var letter := tag_for(tooltip)
+	if letter != "":
+		var badge := SkillLook.letter_badge(icon, letter, maxi(8, int(mark_size.y * 0.5)))
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		badge.offset_right = 0
+		badge.offset_bottom = 0
+		if mark_size.y < MARK_SIZE.y:
+			badge.add_theme_constant_override("outline_size", 3)
 	return icon
+
+
+## The two letters a mark carries: the first two of what the effect is called.
+## One letter was not enough - Burn and Blind were both B, Fear and Frozen both
+## F - and two still fit on the small marks under the turn queue.
+static func tag_for(text: String) -> String:
+	var name := text.strip_edges()
+	if name == "":
+		return ""
+	return name.left(1).to_upper() + name.substr(1, 1).to_lower()
 
 
 ## Whether this is something the combatant wants. A buff is a raised stat; a

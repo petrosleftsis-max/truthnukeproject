@@ -174,7 +174,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== every exploration map comes up ========")
-	var maps := ["res://scenes/explore_crossroads.tscn", "res://skills/laboratory_terrain_explore.tscn",
+	var maps := ["res://scenes/explore_crossroads.tscn", "res://scenes/laboratory_terrain_explore.tscn",
 		"res://church.tscn"]
 	for path in maps:
 		Campaign.reset()

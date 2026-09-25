@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Mimicry"
+description = "Does whatever your party did last: the last skill any of you used, turned on you - or on its own side, if it was meant for allies. It cannot copy Run, Slip Past or Study, and copies whatever came before them instead. Until one of you has done something it can copy, it waits. It opens no gates and needs none, so a copied spell is cast however deep a gate it calls for."
+casts_without_gates = true

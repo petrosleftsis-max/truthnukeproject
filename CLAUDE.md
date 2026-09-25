@@ -15,16 +15,18 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 76 suites and takes a while. Each one boots the real game
+A full run is 85 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one.
 
-Godot is found on PATH or named in `$GODOT`. On Windows use the **`_console`**
-build - the plain `.exe` writes nothing to a terminal, so a headless run looks
-like it did nothing. On the machine this was written on the binary lives at
-`C:\Users\ortin\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe`,
-where that `.exe` on the end is a **folder**, not the executable.
+Godot is found by `tools/find_godot.sh`, which every script that runs it
+shares: `$GODOT` if set, then `godot` on PATH, then the places it has been
+unpacked on the machines this is worked on - `E:\Godot\` on one, and
+`C:\Users\ortin\Downloads\Godot_v4.7.2-stable_win64.exe\` on the other, where
+that `.exe` on the end is a **folder**, not the executable. A new machine is a
+line in that file. On Windows use the **`_console`** build - the plain `.exe`
+writes nothing to a terminal, so a headless run looks like it did nothing.
 
 ## What Godot will do to your .tres files
 
@@ -68,6 +70,14 @@ wrapped line written that way arrives mangled and still compiles, which is the
 worst of both - it runs, and it does not mean what you wrote. Write such files
 with a real file-writing tool, or keep the line unwrapped.
 
+**Never name an unimported file from `ui/blue_theme.tres`.** Godot loads the
+project theme before it imports anything, so on a fresh clone a theme naming
+the fonts failed to load, and importing them then crashed the editor outright.
+That is why the typefaces go onto the theme at runtime instead - `GameFonts.apply()`
+(`ui/game_fonts.gd`), called by the SceneTransition autoload. A heading takes
+`theme_type_variation = GameFonts.HEADER` to be set in Cinzel; everything else
+is Alegreya Sans.
+
 ## How a number becomes damage
 
 Everything routes through `power_behind(attacker, skill)` in `combat/Combat.gd`:
@@ -93,6 +103,32 @@ just answer `power_behind` with their own number. A contested item weighs the
 target's `contest_stat` against `item_power` rather than against a thrower's
 attribute.
 
+## How the enemy AI chooses
+
+The archetypes (`ai_melee_rush`, `ai_ranger`, `ai_caster`, ... in
+`combat/Combat.gd`) weigh their options with `predict_hit` - the same
+arithmetic as the damage prompt a player sees while aiming - rather than
+counting targets. `ai_plan_attack` tries every usable skill from every tile in
+reach and scores it: damage after defence and resistance times the chance to
+hit, plus a bonus for a kill, for a condition not already on the target, for a
+target already hurt and for the one the last enemy went for
+(`_ai_focus_id`). Its own side caught by a both-sides blast is a heavy cost and
+itself caught is ruled out. The `AI_*` constants beside it are the dials.
+
+It only scores aim points near somebody worth hitting, and each aim once per
+skill rather than once per standing tile - the caster once took eleven seconds
+a turn, and `castcost` times the planner to keep it under one. `archetypes`
+asserts what each enemy does with a turn; change a dial and run it.
+
+The danger view (hold Shift) asks `Combat.threat_map()` the same question
+from the player's side: every tile an enemy could reach and hit next turn.
+A skill that respects blocking needs a clear line there too, from anywhere
+the enemy could walk to - on this map three enemies reach twenty tiles, and
+ignoring walls painted it all red. That is tens of thousands of sight lines, so
+they are read off `_SightGrid`, a flat copy of the blocking; `danger` checks
+it agrees with `has_line_of_sight` line for line. Change the sight rule in one
+and the other has to follow.
+
 ## Shape of the data
 
 A combatant is a plain `Dictionary`, not a class. The five attributes -
@@ -104,7 +140,15 @@ ever buff or weaken anybody.
 
 Content is data-driven `.tres` throughout - `SkillDefinition`,
 `ItemDefinition`, `EffectDefinition`, `ConditionDefinition`,
-`CombatantDefinition`, `EncounterDefinition`, `SpawnDefinition`, `MapSetup`.
+`PassiveDefinition`, `CombatantDefinition`, `EncounterDefinition`,
+`SpawnDefinition`, `MapSetup`.
+
+**Passives are not skills.** A `PassiveDefinition` sits in a combatant's
+`passives` list, never in `skill_list`, so nothing that walks skills - the
+panels, reactions, the AI's hunt for something to use - can ever offer one.
+Ask what it grants through `Combat.active_passives(comb)` rather than reading
+the list directly: that is where a passive waiting on its condition is left
+out.
 
 ## Releasing
 
@@ -113,8 +157,11 @@ tools/release.sh                 # build both and zip them
 tools/release.sh --publish       # and push to itch, after asking
 ```
 
-`export_presets.cfg` is git-ignored, so a fresh clone has to open the project in
-Godot once and set its export presets up before either that or
-`tests/run_packed.sh` will work. The three `.wav` music tracks are ignored too -
+`export_presets.cfg` is git-ignored, so a fresh clone has to set its export
+presets up before either that or `tests/run_packed.sh` will work. The scripts
+ask for two by name - **Windows Desktop**, with the `.pck` beside the `.exe`
+rather than embedded, and **Web**, single-threaded for itch - and exporting
+needs the templates for exactly this Godot version, which are installed per
+machine. The three `.wav` music tracks are ignored too -
 126 MB, and `audio/Music.gd` warns and plays on in silence when one is missing,
 so a clone without them runs fine and fights quietly.

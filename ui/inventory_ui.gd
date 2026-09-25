@@ -59,6 +59,7 @@ func _build():
 	_root.add_child(column)
 
 	var title := Label.new()
+	title.theme_type_variation = GameFonts.HEADER
 	title.text = "Inventory"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 30)
@@ -126,7 +127,7 @@ func _slot_button(key: String, index: int, item_id: String) -> Button:
 
 	var item: ItemDefinition = ItemDatabase.item(item_id) if item_id != "" else null
 	if item != null:
-		button.tooltip_text = "%s\n%s" % [item.name, item.description]
+		button.tooltip_text = TooltipText.wrap("%s\n%s" % [item.name, item.description])
 		if item.icon != null:
 			var art := TextureRect.new()
 			art.texture = item.icon
@@ -135,6 +136,7 @@ func _slot_button(key: String, index: int, item_id: String) -> Button:
 			art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			button.add_child(art)
+			SkillLook.decorate(art, item)
 		else:
 			# No art yet: the name, shortened, is better than an empty square.
 			button.text = item.name.substr(0, 3)

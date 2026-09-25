@@ -22,6 +22,8 @@ class_name GlossaryBook
 @export_multiline var conditions_intro: String = ""
 ## Shown above the list of skills.
 @export_multiline var skills_intro: String = ""
+## Shown above the list of passive skills.
+@export_multiline var passives_intro: String = ""
 
 @export_group("The Gates")
 ## The whole Gates page, written as one piece. Shown as a page rather than a
