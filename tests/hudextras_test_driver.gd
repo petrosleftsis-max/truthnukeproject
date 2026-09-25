@@ -88,6 +88,12 @@ func run_test():
 	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
+	# What starting a battle does: the title screen goes. Run from an export,
+	# the game starts on it, and left behind its Play button kept the keyboard
+	# - Tab moved focus between menu buttons nobody could see.
+	var title_screen = get_tree().root.get_node_or_null("MainMenu")
+	if title_screen != null:
+		title_screen.queue_free()
 	for i in 4:
 		await get_tree().process_frame
 	var combat: Combat = game.get_node("VisualCombat")
@@ -364,9 +370,11 @@ func run_test():
 	var tagged := {}
 	var clashes := []
 	for file in DirAccess.get_files_at("res://conditions"):
-		if not file.ends_with(".tres"):
+		# An export renames every .tres to .tres.remap; load() takes the plain name.
+		var listed: String = file.trim_suffix(".remap")
+		if not listed.ends_with(".tres"):
 			continue
-		var condition = load("res://conditions/" + file)
+		var condition = load("res://conditions/" + listed)
 		if not condition is ConditionDefinition:
 			continue
 		var tag = ConditionStrip.tag_for(condition.display_name)
