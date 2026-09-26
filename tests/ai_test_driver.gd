@@ -72,7 +72,7 @@ func run_test():
 	# The scene's three enemies are ranger / copycat / healer; retarget the
 	# copycat so this run exercises ai_caster too.
 	for c in combat.combatants:
-		if c.name == "Goblin 2":
+		if c.name == "Caster":
 			c.ai_function = "ai_caster"
 
 	var players = []

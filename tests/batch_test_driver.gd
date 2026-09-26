@@ -341,10 +341,11 @@ func run_test():
 	if caster != null:
 		combat.current_combatant = combat.combatants.find(caster)
 		ui._update_spell_slots(caster)
-		var row = ui.get_node("Actions/SpellSlots/Level1")
-		ok(row.get_node("Name").text == "Gates of World",
-			"the HUD names the gate rather than numbering it", row.get_node("Name").text)
-		ok(row.tooltip_text.contains("Gates of World"), "and says how many are left on hover", row.tooltip_text)
+		var tag = ui.get_node_or_null("Actions/SpellSlots/Gate1")
+		ok(tag != null and tag.tooltip_text.contains("Gates of World"),
+			"the HUD names the gate rather than numbering it", tag.tooltip_text if tag != null else "no tag")
+		ok(tag != null and tag.uses() == Vector2i(caster.spell_slots[1], caster.max_spell_slots[1]),
+			"and shows how many are left", "%s" % (tag.uses() if tag != null else Vector2i(-1, -1)))
 	# A spell says what it costs in the same words.
 	var spell = null
 	for key in SkillDatabase.skills:

@@ -42,6 +42,9 @@
 [ext_resource type="Resource" uid="uid://dvpag72x3gbew" path="res://skills/guard.tres" id="41_phcln"]
 [ext_resource type="Resource" uid="uid://bgvq7nbrpbgdg" path="res://skills/holy_lance.tres" id="42_aqnu0"]
 [ext_resource type="Resource" uid="uid://bfh7kwnj6untt" path="res://skills/sass_club.tres" id="43_bw5lj"]
+[ext_resource type="Resource" uid="uid://bor6cmwh0hdgi" path="res://skills/nail_projectile.tres" id="44_oc7gx"]
+[ext_resource type="Resource" uid="uid://nd1pcbkcg15c" path="res://skills/flammable_limb.tres" id="45_u1h2n"]
+[ext_resource type="Resource" uid="uid://c70sh4fw467db" path="res://skills/venomous_shot.tres" id="46_not2e"]
 [ext_resource type="Resource" uid="uid://b03pv5bjmcr1" path="res://skills/study.tres" id="99_study"]
 
 [node name="SkillDatabase" type="Node" unique_id=1976442440]
@@ -56,6 +59,7 @@ skills = {
 "fire_blast": ExtResource("33_o3emf"),
 "fire_burst": ExtResource("4_2m8rc"),
 "fireball": ExtResource("7_dbes0"),
+"flammable_limb": ExtResource("45_u1h2n"),
 "flash": ExtResource("18_r41b3"),
 "follow_up_attack": ExtResource("16_ha562"),
 "greatsword_attack": ExtResource("2_g7odk"),
@@ -69,6 +73,7 @@ skills = {
 "light_heal": ExtResource("17_mfut3"),
 "light_swing": ExtResource("40_ggodk"),
 "lightning_bolt": ExtResource("11_q8moi"),
+"nail_projectile": ExtResource("44_oc7gx"),
 "poison_dart": ExtResource("12_66cmj"),
 "quicken": ExtResource("35_o3emf"),
 "rapier": ExtResource("19_lyvp1"),
@@ -84,6 +89,7 @@ skills = {
 "study": ExtResource("99_study"),
 "sweep_strike": ExtResource("8_8fqdd"),
 "trailblaze": ExtResource("38_m4jk1"),
+"venomous_shot": ExtResource("46_not2e"),
 "warning_shot": ExtResource("24_pp4aq"),
 "water_spike": ExtResource("23_8fqdd"),
 "wind_shot": ExtResource("32_chsfo"),

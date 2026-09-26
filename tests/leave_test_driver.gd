@@ -128,6 +128,43 @@ func run_test():
 	await get_tree().process_frame
 	log_line("")
 
+	log_line("======== a skill animation that outlives its battle ========")
+	Campaign.reset()
+	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	var game3 = load("res://scenes/game.tscn").instantiate()
+	get_tree().root.add_child(game3)
+	for i in 6:
+		await get_tree().process_frame
+	var combat3 = game3.get_node("VisualCombat")
+	if combat3.deployment_active:
+		combat3.finish_deployment()
+		await get_tree().process_frame
+	var runner = {}
+	for comb in combat3.combatants:
+		if comb.name == "Cyrus":
+			runner = comb
+	var animated = runner.sprite._animated if not runner.is_empty() else null
+	ok(animated != null and animated.sprite_frames.has_animation("skill"), "Cyrus has a skill animation to wait on")
+	# Awaited from a lambda so the test can see whether use_skill ever comes
+	# back: an array, because a lambda's captured locals are copies.
+	var came_back := [false]
+	var go = func():
+		await combat3.use_skill("run", runner, runner.position, true, true)
+		came_back[0] = true
+	go.call()
+	await get_tree().process_frame
+	ok(not came_back[0] and not runner.sprite._skill_animation_finished, "his Run is mid-animation")
+	# What quitting, restarting or the fight ending into the next scene does to
+	# an animation still playing.
+	get_tree().root.remove_child(game3)
+	for i in 4:
+		await get_tree().process_frame
+	ok(came_back[0], "the battle taken away, the skill gives up - no reaching for a tree it has left")
+	ok(not runner.get("secondary_used_this_turn", false), "and nothing is spent on a battle that is gone")
+	game3.queue_free()
+	await get_tree().process_frame
+	log_line("")
+
 	log_line("======== going to the title screen stops the music ========")
 	Music.play("Elegy_of_the_End")
 	ok(Music.current() != "", "something is playing", Music.current())

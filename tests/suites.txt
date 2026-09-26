@@ -83,3 +83,6 @@ undo
 danger
 hudextras
 speed
+shelves
+look
+faceaim

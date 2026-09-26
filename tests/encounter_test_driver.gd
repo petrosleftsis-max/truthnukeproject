@@ -73,6 +73,14 @@ func run_test():
 			ok(not seen.has(spawn.position),
 				"  tile %s used once" % spawn.position)
 			seen[spawn.position] = true
+			# A name of its own is fine - Striker, Caster - but never
+			# the name of a different character: a Priest called "Ranger".
+			if spawn.display_name != "":
+				var said := _without_number(spawn.display_name)
+				for other in CombatantDatabase.combatants:
+					var other_def: CombatantDefinition = CombatantDatabase.combatants[other]
+					if other != spawn.combatant_key and other_def != null and other_def.name == said:
+						ok(false, "  '%s' is a %s, not a %s" % [spawn.display_name, spawn.combatant_key, other])
 			if spawn.side == 0:
 				players += 1
 			else:
@@ -106,6 +114,25 @@ func run_test():
 		ok(combat != null and combat.combatants.size() == expected,
 			"  spawned everyone there was room and roster for",
 			"%d of %d (%d enemies + up to %d party)" % [combat.combatants.size() if combat else -1, expected, enemy_spawns, player_tiles])
+		# Names the player reads - the queue, the log, the hover card - so no
+		# two in one fight may be the same, and one name may not stand for two
+		# kinds of character: a Priest and a Barbarian both called Striker.
+		if combat != null:
+			var named := {}
+			var kinds := {}
+			for comb in combat.combatants:
+				named[comb.name] = named.get(comb.name, 0) + 1
+				var base := _without_number(comb.name)
+				if not kinds.has(base):
+					kinds[base] = {}
+				kinds[base][comb.get("combatant_key", "?")] = true
+			var twice := named.keys().filter(func(n): return named[n] > 1)
+			ok(twice.is_empty(), "  every name in the fight is its own", "%s" % [twice if not twice.is_empty() else named.keys()])
+			# Numbering a pair apart is not enough if they are different things:
+			# a Striker 1 that is a Barbarian and a Striker 2 that is a Priest.
+			var mixed := kinds.keys().filter(func(b): return kinds[b].size() > 1)
+			ok(mixed.is_empty(), "  and each name means one kind of character",
+				"%s" % [mixed.map(func(b): return "%s: %s" % [b, kinds[b].keys()])])
 		# The pathfinding grid must match the map, not a hard-coded size.
 		var used = tile_map.get_used_rect()
 		ok(controller._astargrid.region == used,
@@ -208,3 +235,12 @@ func run_test():
 
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
+
+
+## "Striker" from "Striker 2" - the name without the number that tells a pair
+## apart.
+func _without_number(text: String) -> String:
+	var words := text.split(" ")
+	if words.size() > 1 and words[-1].is_valid_int():
+		return " ".join(words.slice(0, words.size() - 1))
+	return text

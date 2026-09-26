@@ -20,7 +20,7 @@ class_name SpawnMarker
 	set(value):
 		side = value
 		_refresh()
-## Optional name overriding the combatant's own - "Goblin 1", "Sapper 2".
+## Optional name overriding the combatant's own - "Striker 1", "Caster 2".
 @export var display_name: String = "":
 	set(value):
 		display_name = value

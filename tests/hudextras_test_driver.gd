@@ -258,8 +258,29 @@ func run_test():
 		"hovering a face says who and how they are", face.tooltip_text.replace("\n", " | "))
 	face.mouse_entered.emit()
 	ok(controller._highlight_tile == mark.position, "and rings them on the map")
+	ok(face.is_hovered() and face.get_node("Border").modulate == face.HOVER_EDGE, "while the face itself lights up in the same gold")
 	face.mouse_exited.emit()
 	ok(controller._highlight_tile == null, "until the cursor leaves")
+	ok(not face.is_hovered() and face.get_node("Border").modulate != face.HOVER_EDGE, "and the face goes back to its side's colour")
+	face.set_turn_taken(true)
+	var faded = face.modulate.a
+	face.mouse_entered.emit()
+	ok(faded < 1.0 and face.modulate.a == 1.0, "one who has already acted is at full strength while pointed at",
+		"%.2f -> %.2f" % [faded, face.modulate.a])
+	face.mouse_exited.emit()
+	ok(face.modulate.a == faded, "and fades back after")
+	face.set_turn_taken(false)
+	var party_face = ui._icon_for(column, hero)
+	party_face.mouse_entered.emit()
+	var lit_box = party_face.get_theme_stylebox("panel") as StyleBoxFlat
+	ok(party_face.is_lit() and lit_box != null and lit_box.border_color == party_face.HOVER_EDGE,
+		"a party portrait lights up in gold when pointed at")
+	party_face.mouse_exited.emit()
+	ok(not party_face.is_lit(), "and goes back when the cursor leaves")
+	var acting_portrait = ui.get_node("Actions/StatusIcon")
+	acting_portrait.mouse_entered.emit()
+	ok(not acting_portrait.is_lit(), "the big portrait beside the skills does not - it is not a button")
+	acting_portrait.mouse_exited.emit()
 	var camera = combat.camera
 	ok(not camera.is_following(), "the view is the player's to move on their turn")
 	camera.position = Grid.tile_to_world(hero.position)

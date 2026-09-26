@@ -15,7 +15,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 85 suites and takes a while. Each one boots the real game
+A full run is 88 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one.
@@ -148,7 +148,15 @@ Content is data-driven `.tres` throughout - `SkillDefinition`,
 panels, reactions, the AI's hunt for something to use - can ever offer one.
 Ask what it grants through `Combat.active_passives(comb)` rather than reading
 the list directly: that is where a passive waiting on its condition is left
-out.
+out. The same goes for what Cyrus's Light Footed and Quick Hands grant - ask
+`secondary_grants` and `items_as_secondary`, which also read the older
+per-character fields of the same names that nothing uses any more.
+
+**Gates are not fixed at three.** Names, colours and counts all extend: add a
+name to `Stats.GATE_NAMES` (and a colour to `GATE_COLOURS`, or one is picked)
+and a column to `GATES_BY_LEVEL`. The Spells panel is a shelf per gate that
+scrolls within the action panel's size (`ui/spell_shelves.gd`), so more gates
+never make it bigger.
 
 ## Releasing
 

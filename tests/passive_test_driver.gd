@@ -98,7 +98,9 @@ func run_test():
 	for comb in combat.combatants:
 		if comb.get("combatant_key", "") == "mimic" and mimic.is_empty():
 			mimic = comb
-		elif comb.side == 0 and player.is_empty():
+		elif comb.side == 0 and player.is_empty() and comb.get("passives", []).is_empty():
+			# Somebody with none of their own - Cyrus has two - so what is handed
+			# out and taken back here is all they have.
 			player = comb
 	ok(not mimic.is_empty(), "the encounter fields a Mimic")
 	ok(not player.is_empty(), "and somebody on the player's side")
@@ -113,6 +115,63 @@ func run_test():
 	ok(player.get("passives", []).is_empty(), "%s has no passive" % player.name)
 	ok(not combat.can_afford_skill(player, spell), "so with no gates %s cannot" % player.name)
 	player.spell_slots = player_slots
+	log_line("")
+
+	log_line("======== whatever it copies comes out of its Self ========")
+	ok(mimicry.scales_every_skill_with == Stats.Type.SELF, "Mimicry puts every skill on Self")
+	var swing: SkillDefinition = SkillDatabase.skills["greatsword_attack"]
+	ok(swing.scaling_stat != Stats.Type.SELF, "a greatsword swing is usually worked out from something else",
+		Stats.stat_name(swing.scaling_stat))
+	# Its Self high and the swing's own stat low, and the same numbers on
+	# somebody without the passive, so the two can only differ by it.
+	var stats_were = [mimic.stats.duplicate(), player.stats.duplicate()]
+	for who in [mimic, player]:
+		who.stats[Stats.stat_key(Stats.Type.SELF)] = 85
+		who.stats[Stats.stat_key(swing.scaling_stat)] = 10
+	ok(combat.scaling_stat_of(mimic, swing) == Stats.Type.SELF, "in the Mimic's hands it is worked out from Self")
+	ok(combat.scaling_stat_of(player, swing) == swing.scaling_stat, "in %s's, from its own stat" % player.name)
+	var by_self = Stats.base_damage(85, mimic.get("weapon_base", Stats.WEAPON_BASE))
+	ok(is_equal_approx(combat.power_behind(mimic, swing), by_self), "so it swings with its Self behind it",
+		"%.1f, and %.1f from %s" % [combat.power_behind(mimic, swing), combat.power_behind(player, swing), player.name])
+	ok(combat.power_behind(mimic, swing) > combat.power_behind(player, swing), "harder than the same swing without Mimicry")
+	var mender: SkillDefinition = SkillDatabase.skills["heal"]
+	ok(mender.scaling_stat != Stats.Type.SELF, "Heal is usually worked out from something else too",
+		Stats.stat_name(mender.scaling_stat))
+	for who in [mimic, player]:
+		who.stats[Stats.stat_key(mender.scaling_stat)] = 10
+	ok(combat.heal_amount(mimic, mender) > combat.heal_amount(player, mender),
+		"its heals mend from Self too", "%d vs %d" % [combat.heal_amount(mimic, mender), combat.heal_amount(player, mender)])
+	var contested: SkillDefinition = null
+	for key in SkillDatabase.skills:
+		var candidate: SkillDefinition = SkillDatabase.skills[key]
+		if contested == null and candidate.uses_stat_contest and not (candidate is ItemDefinition) \
+				and candidate.scaling_stat != Stats.Type.SELF:
+			contested = candidate
+	ok(contested != null, "a contested skill to try", contested.name if contested else "none")
+	if contested != null:
+		for who in [mimic, player]:
+			who.stats[Stats.stat_key(contested.scaling_stat)] = 10
+		var victim := {}
+		for comb in combat.combatants:
+			if comb.side == 0 and comb != player and victim.is_empty():
+				victim = comb
+		var victim_stat = victim.stats.get(Stats.stat_key(contested.contest_stat), 10)
+		victim.stats[Stats.stat_key(contested.contest_stat)] = 50
+		ok(combat.wins_contest(mimic, victim, contested) and not combat.wins_contest(player, victim, contested),
+			"%s's contest is won with Self: 85 beats 50, where 10 would not" % contested.name)
+		var said = combat.predict_hit(mimic, victim, contested)
+		ok(said.our_stat_name == "Self" and said.our_stat == 85, "and the prompt says so",
+			"%s %d" % [said.our_stat_name, said.our_stat])
+		victim.stats[Stats.stat_key(contested.contest_stat)] = victim_stat
+	var hud = game.get_node("CanvasLayer/UI")
+	var tip: String = hud.build_skill_tooltip(swing, mimic)
+	ok(tip.contains("Scales with: Self, through Mimicry"), "its tooltip says what it scales with, and why",
+		tip.replace("\n", " / "))
+	ok(hud.build_skill_tooltip(swing, player).contains("Scales with: %s\n" % Stats.stat_name(swing.scaling_stat)),
+		"while %s's says the swing's own" % player.name)
+	ok(" ".join(mimicry.describe_effects()).contains("Every skill scales with Self"), "and the glossary line says it")
+	mimic.stats = stats_were[0]
+	player.stats = stats_were[1]
 	log_line("")
 
 	log_line("======== a passive is never something to press ========")
@@ -194,6 +253,53 @@ func run_test():
 	ok(row_headed(sheet, "Skills") == null, "and no Skills row, since it has nothing to press")
 	sheet.close()
 	MenuPause.clear(get_tree())
+	log_line("")
+
+	log_line("======== Cyrus's quick feet and quick hands are passives ========")
+	var cyrus_def: CombatantDefinition = CombatantDatabase.combatants["cyrus"]
+	var passive_names := cyrus_def.passives.map(func(p): return p.name)
+	ok(passive_names == ["Light Footed", "Quick Hands"], "Cyrus has Light Footed and Quick Hands", "%s" % [passive_names])
+	ok(cyrus_def.secondary_skills.is_empty() and not cyrus_def.items_as_secondary,
+		"and nothing unseen on his definition does the same")
+	var light_footed: PassiveDefinition = cyrus_def.passives[0]
+	ok(" ".join(light_footed.describe_effects()).contains("Stealth, Slip Past and Run"), "the glossary names the skills it frees",
+		" ".join(light_footed.describe_effects()))
+	var cyrus = {}
+	var other = {}
+	for comb in combat.combatants:
+		if comb.get("combatant_key", "") == "cyrus":
+			cyrus = comb
+		elif comb.side == 0 and other.is_empty():
+			other = comb
+	ok(not cyrus.is_empty(), "he is in this fight")
+	if not cyrus.is_empty():
+		var second = combat.secondary_skills_of(cyrus)
+		ok(second.has("run") and second.has("stealth") and second.has("slip_past"), "the Secondary tab still offers them", "%s" % [second])
+		ok(combat.items_as_secondary(cyrus), "and his items can still be secondary")
+		var ui = game.get_node("CanvasLayer/UI")
+		var run_tip: String = ui.build_skill_tooltip(SkillDatabase.skills["run"], cyrus)
+		ok(run_tip.contains("Action: Main, or Secondary through Light Footed"), "Run's preview says it can be secondary, and why",
+			run_tip.replace("\n", " | "))
+		var potion_tip: String = ui.build_skill_tooltip(SkillDatabase.skills["cure_potion"], cyrus)
+		ok(potion_tip.contains("Secondary through Quick Hands"), "an item's preview says the same of Quick Hands",
+			potion_tip.replace("\n", " | "))
+		if not other.is_empty():
+			var theirs: String = ui.build_skill_tooltip(SkillDatabase.skills["run"], other)
+			ok(theirs.contains("Action: Main") and not theirs.contains("Light Footed"), "while anybody else's Run is a main action and no more",
+				"%s" % other.name)
+		sheet.open_on(cyrus.name)
+		await get_tree().process_frame
+		var his = row_headed(sheet, "Passive Skills")
+		var listed = " / ".join(texts_under(his)) if his != null else ""
+		ok(listed.contains("Light Footed") and listed.contains("Quick Hands"), "his sheet lists both", listed)
+		sheet.close()
+		MenuPause.clear(get_tree())
+		# It is the passives doing it: without them, neither holds.
+		var kept = cyrus.passives
+		cyrus.passives = []
+		ok(not combat.secondary_skills_of(cyrus).has("run") and not combat.items_as_secondary(cyrus),
+			"take the passives away and neither trick is left")
+		cyrus.passives = kept
 	log_line("")
 
 	log_line("======== the map's sheet reads them off the database ========")

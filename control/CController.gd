@@ -186,6 +186,11 @@ func _unhandled_input(event):
 
 	if _skill_selected and event.is_action_pressed("ui_cancel"):
 		cancel_skill_selection()
+		# Spent here: one press puts the aim away and does nothing else. Left
+		# unclaimed, anything later in line that also answers Escape - a pause
+		# menu that stepped aside only because something was being aimed -
+		# acted on it too, now that nothing was.
+		get_viewport().set_input_as_handled()
 		return
 
 	if event is InputEventMouseButton:
@@ -195,23 +200,11 @@ func _unhandled_input(event):
 			return
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.is_released():
-				if _skill_selected == true:
-					var mouse_position = get_global_mouse_position()
-					var mouse_position_i = tile_map.local_to_map(mouse_position)
-					var skill = SkillDatabase.skills[_selected_skill]
-					if picking_a_landing_tile():
-						# Aiming at somewhere to stand, which has to be a tile the
-						# traveller fits on - a body standing there is not a target,
-						# it is the reason they cannot go.
-						if is_valid_landing_tile(mouse_position_i):
-							confirm_skill_target(mouse_position_i)
-					elif skill.aoe_radius > 0:
-						# Area skills can be aimed at any tile, occupied or not.
-						confirm_skill_target(mouse_position_i)
-					else:
-						var comb = get_combatant_at_position(mouse_position_i)
-						if comb != null and comb.alive and is_valid_skill_target(comb):
-							confirm_skill_target(comb.position)
+				if _skill_selected and _look_only:
+					# Only looking: a click chooses nothing and spends nothing.
+					pass
+				elif _skill_selected == true:
+					aim_click(tile_map.local_to_map(get_global_mouse_position()))
 				elif _arrived == true:
 					move_player()
 	
@@ -231,21 +224,22 @@ func _unhandled_input(event):
 			_aoe_preview_positions = []
 			if _skill_selected:
 				var skill = SkillDatabase.skills[_selected_skill]
-				if picking_a_landing_tile() and not is_valid_landing_tile(mouse_position_i):
-					# Nowhere to arrive, so show no swing either: this click will
-					# do nothing at all.
-					_blocked_target_position = local_map
+				if refusal_at(mouse_position_i, comb if comb != null else {}) != "":
+					# Out of reach, nowhere to arrive, nobody it is for: show no
+					# swing and no area either, since this click will do nothing
+					# at all. An empty tile stays unmarked, as it always was.
+					if comb != null or picking_a_landing_tile() or skill.aoe_radius > 0:
+						_blocked_target_position = local_map
 				elif skill.aoe_radius > 0:
-					var caster = combat.get_current_combatant()
+					var caster = aiming_caster()
 					_aoe_preview_positions = combat.get_impact_tiles(skill, caster.position, mouse_position_i, caster.movement_class)
 					_aoe_preview_is_ally = skill.targets_ally
-				elif comb != null and comb.alive and is_valid_skill_target(comb):
+				elif comb != null:
+					# In reach and the right person - refusal_at has said so.
 					if skill.targets_ally:
 						_ally_target_position = local_map
 					else:
 						_attack_target_position = local_map
-				elif comb != null:
-					_blocked_target_position = local_map
 				_preview_hits(mouse_position_i)
 			elif comb != null and comb.alive and comb.side == 1:
 				_attack_target_position = local_map
@@ -259,7 +253,8 @@ func _unhandled_input(event):
 
 ## Asks the HUD to say what the skill being aimed would do to whoever the tile
 ## under the cursor would catch. A skill that picks somebody up and puts them
-## down elsewhere is left out - the first click is choosing who, not hitting.
+## down elsewhere is left out - the first click is choosing who, not hitting -
+## and so is anywhere a click would be refused: it promises nothing there.
 func _preview_hits(tile: Vector2i):
 	var hud = combat.game_ui if combat != null else null
 	if hud == null or not hud.has_method("show_hit_preview"):
@@ -268,7 +263,8 @@ func _preview_hits(tile: Vector2i):
 	if skill.teleports == SkillDefinition.TeleportWho.TARGET:
 		hud.hide_hit_preview()
 		return
-	if picking_a_landing_tile() and not is_valid_landing_tile(tile):
+	var comb = get_combatant_at_position(tile)
+	if refusal_at(tile, comb if comb != null else {}) != "":
 		hud.hide_hit_preview()
 		return
 	hud.show_hit_preview(_selected_skill, tile)
@@ -1212,11 +1208,48 @@ func set_selected_skill(skill: String, as_secondary: bool = false):
 	_selected_skill_is_secondary = as_secondary
 
 
+## --- Only looking ---
+##
+## A skill that cannot be used right now - its action spent, its gate empty, or
+## a teammate's on a turn that is not theirs - can still be aimed, to see its
+## reach, where it would land and what it would do to whoever it caught. Nothing
+## happens on a click: it is a look, from wherever its owner is standing and
+## with their numbers, so the question "would Prometheus's Fireball finish him
+## off?" can be answered before Cyrus decides what to do.
+
+var _aim_caster: Dictionary = {}
+var _look_only := false
+
+
+## Aims `skill` from `caster` without being able to use it. See above.
+func begin_look(skill: String, caster: Dictionary):
+	if _skill_selected:
+		cancel_skill_selection()
+	_selected_skill = skill
+	_selected_skill_is_secondary = false
+	_aim_caster = caster
+	_look_only = true
+	begin_target_selection()
+
+
+## Whether what is being aimed is only being looked at.
+func is_look_only() -> bool:
+	return _skill_selected and _look_only
+
+
+## Who the skill being aimed would come from: the one acting, or whoever's
+## skill is only being looked at.
+func aiming_caster() -> Dictionary:
+	if not _aim_caster.is_empty():
+		return _aim_caster
+	return combat.get_current_combatant()
+
+
 func begin_target_selection():
 	_skill_selected = true
 	_card_for(null)
 	var skill = SkillDatabase.skills[_selected_skill]
-	var caster = combat.get_current_combatant()
+	var caster = aiming_caster()
 	# Aiming something that would hide them: show what the enemy can see, so
 	# the choice is made looking at the thing it is about.
 	_previewing_hide = hides_its_caster(skill)
@@ -1264,7 +1297,7 @@ func travelling_combatant() -> Dictionary:
 	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
 	if skill.teleports == SkillDefinition.TeleportWho.TARGET:
 		return combat.get_combatant_at(_teleport_subject)
-	return combat.get_current_combatant()
+	return aiming_caster()
 
 
 ## Whether aiming the selected teleport at the traveller's own tile is worth
@@ -1305,6 +1338,9 @@ func landable_tiles(tiles: Array, traveller: Dictionary) -> Array:
 
 
 func confirm_skill_target(position: Vector2i):
+	# Only looking: nothing is chosen and nothing is spent, whatever asks.
+	if _look_only:
+		return
 	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
 	if skill.teleports == SkillDefinition.TeleportWho.TARGET and not waiting_for_destination():
 		# First click chose who travels. Stay in aiming mode: the next one says
@@ -1338,16 +1374,146 @@ func confirm_skill_target(position: Vector2i):
 	queue_redraw()
 
 
+## --- What an aim may be let go at ---
+##
+## One set of rules for a click on the map and a click on a face: the right
+## side, a clear line, and the reach - the blue tiles on show. Anything outside
+## them is refused and aiming goes on, rather than the skill being thrown and
+## falling short, which spent nothing but put the aim away and left the player
+## to pick the skill again.
+
+
+## Why the aimed skill could not be let go at `tile` - at `comb`, whoever stands
+## there, or {} for nobody - or "" when it could.
+func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
+	if not _skill_selected:
+		return "Nothing is being aimed"
+	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	var caster = aiming_caster()
+	if picking_a_landing_tile():
+		if tile in _range_preview_positions and is_valid_landing_tile(tile):
+			return ""
+		return "%s needs an empty tile to land on" % skill.name
+	if skill.aoe_radius == 0:
+		# Aimed at somebody, so it is the somebody who has to be right.
+		if comb.is_empty():
+			return "Nobody there"
+		if skill.max_range == 0 and comb != caster:
+			return "%s can only be used on %s" % [skill.name, caster.name]
+		if not skill.affects_both_sides:
+			if skill.targets_ally and comb.side != caster.side:
+				return "%s is only for allies" % skill.name
+			if not skill.targets_ally and comb.side == caster.side:
+				return "%s is only for enemies" % skill.name
+	var there = comb.name if not comb.is_empty() else "there"
+	if tile not in _range_preview_positions:
+		var distance = combat.get_position_distance(caster.position, tile)
+		if distance >= skill.min_range and distance <= combat.effective_max_range(caster, skill):
+			return "No clear line to %s" % there
+		return "Out of reach"
+	if skill.aoe_radius == 0 and not is_valid_skill_target(comb):
+		return "No clear line to %s" % there
+	return ""
+
+
+## --- Aiming at a face ---
+##
+## A face in the party column or the turn queue can be clicked instead of the
+## body on the map, by the same rules - see refusal_at.
+
+
+## A click on `tile` of the map while aiming. Lets the skill go only where it
+## can go: somewhere to stand for a teleport, any tile in reach for an area,
+## somebody right for it for the rest. Anywhere else, aiming goes on. True when
+## it went.
+func aim_click(tile: Vector2i) -> bool:
+	var comb = get_combatant_at_position(tile)
+	if _look_only or refusal_at(tile, comb if comb != null else {}) != "":
+		return false
+	confirm_skill_target(tile)
+	return true
+
+
+## Why the aimed skill could not be used on `comb` from their face, or "" when
+## it could. Said on the face's tooltip.
+func aim_refusal(comb: Dictionary) -> String:
+	if not _skill_selected or comb.is_empty():
+		return "Nothing is being aimed"
+	if not comb.get("alive", false):
+		return "%s has fallen" % comb.get("name", "They")
+	# Their face stays in the queue, but aiming at it would say where they are.
+	if comb.side != 0 and combat.is_hidden(comb):
+		return "Hidden - somewhere you cannot see"
+	return refusal_at(comb.position, comb)
+
+
+## Uses the aimed skill on `comb`, as clicking them on the map would. False,
+## and still aiming, when it could not be used on them - or when it is only
+## being looked at.
+func aim_at_combatant(comb: Dictionary) -> bool:
+	if not player_turn or action_locked or a_menu_is_over_the_map():
+		return false
+	if _look_only or aim_refusal(comb) != "":
+		return false
+	confirm_skill_target(comb.position)
+	return true
+
+
+## Marks on the map what aiming at `comb` would do, and says what it would do to
+## whoever it caught - what hovering over them on the map shows.
+func preview_aim_at_combatant(comb: Dictionary):
+	if not _skill_selected:
+		return
+	_clear_aim_marks()
+	var hud = combat.game_ui
+	if comb.is_empty() or not comb.get("alive", false) or (comb.side != 0 and combat.is_hidden(comb)):
+		# Nobody to mark - or somebody whose tile must not be.
+		if hud != null and hud.has_method("hide_hit_preview"):
+			hud.hide_hit_preview()
+	elif aim_refusal(comb) != "":
+		_blocked_target_position = tile_map.map_to_local(comb.position)
+		if hud != null and hud.has_method("hide_hit_preview"):
+			hud.hide_hit_preview()
+	else:
+		var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+		var caster = aiming_caster()
+		if skill.aoe_radius > 0:
+			_aoe_preview_positions = combat.get_impact_tiles(skill, caster.position, comb.position, caster.movement_class)
+			_aoe_preview_is_ally = skill.targets_ally
+		elif skill.targets_ally:
+			_ally_target_position = tile_map.map_to_local(comb.position)
+		else:
+			_attack_target_position = tile_map.map_to_local(comb.position)
+		_preview_hits(comb.position)
+	queue_redraw()
+
+
+## Takes the marks away again, once the cursor has left the face.
+func clear_aim_preview():
+	_clear_aim_marks()
+	var hud = combat.game_ui if combat != null else null
+	if hud != null and hud.has_method("hide_hit_preview"):
+		hud.hide_hit_preview()
+	queue_redraw()
+
+
+func _clear_aim_marks():
+	_attack_target_position = null
+	_ally_target_position = null
+	_blocked_target_position = null
+	_aoe_preview_positions = []
+
+
 ## Backs out of target selection (right-click or Escape) without spending
 ## the skill, returning to normal move mode.
 func cancel_skill_selection():
 	_skill_selected = false
+	_look_only = false
+	_aim_caster = {}
 	_previewing_hide = false
 	refresh_watched_tiles(combat.get_current_combatant())
 	_teleport_subject = Vector2i(-99999, -99999)
-	_attack_target_position = null
-	_ally_target_position = null
-	_aoe_preview_positions = []
+	_clear_aim_marks()
 	_range_preview_positions = []
 	target_selection_finished.emit()
 	queue_redraw()
@@ -1361,7 +1527,7 @@ func cancel_skill_selection():
 ## _unhandled_input.
 func is_valid_skill_target(target: Dictionary) -> bool:
 	var skill = SkillDatabase.skills[_selected_skill]
-	var caster = combat.get_current_combatant()
+	var caster = aiming_caster()
 	if not skill.affects_both_sides:
 		# A skill that affects both sides can be aimed at anyone; otherwise
 		# targets_ally decides which side is legal.

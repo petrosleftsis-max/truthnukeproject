@@ -108,13 +108,16 @@ func _bag(key: String) -> Control:
 	grid.add_theme_constant_override("h_separation", 4)
 	grid.add_theme_constant_override("v_separation", 4)
 	var slots = Campaign.inventory_of(key)
+	# One bag's badges worked out together, so a Big Bomb and a Blinding Bomb
+	# carried side by side do not both say BB.
+	var tags := SkillLook.tags_for(slots.map(func(id): return ItemDatabase.item(id) if id != "" else null))
 	for i in slots.size():
-		grid.add_child(_slot_button(key, i, slots[i]))
+		grid.add_child(_slot_button(key, i, slots[i], tags[i]))
 	holder.add_child(grid)
 	return holder
 
 
-func _slot_button(key: String, index: int, item_id: String) -> Button:
+func _slot_button(key: String, index: int, item_id: String, tag: String = "") -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = SLOT
 	button.focus_mode = Control.FOCUS_NONE
@@ -136,7 +139,7 @@ func _slot_button(key: String, index: int, item_id: String) -> Button:
 			art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			button.add_child(art)
-			SkillLook.decorate(art, item)
+			SkillLook.decorate(art, item, tag)
 		else:
 			# No art yet: the name, shortened, is better than an empty square.
 			button.text = item.name.substr(0, 3)

@@ -72,6 +72,10 @@ class_name CombatantDefinition
 ## lets him also use it as a secondary - so he can Run twice in one turn.
 ## A skill listed here doesn't have to leave the main panel; it can appear in
 ## both.
+##
+## Prefer a passive for this (PassiveDefinition.secondary_skills): it does the
+## same and the character sheet shows it under Passive Skills, where this list
+## is shown nowhere. Cyrus's Light Footed is one.
 @export var secondary_skills: Array[String]
 ## What they do without being asked - working all the time, or once their
 ## moment comes. Never on the action panel; the character sheet lists them
@@ -113,6 +117,8 @@ class_name CombatantDefinition
 ## Whether consumables that would normally cost the main action can be used as
 ## a secondary one instead. Cyrus can: quick hands are his, and it is why he
 ## can drink a potion and still swing in the same turn.
+## Prefer a passive for this (PassiveDefinition.items_as_secondary), which the
+## sheet shows; Cyrus's Quick Hands is one.
 @export var items_as_secondary: bool = false
 
 ## The kit this character is written as carrying: what an encounter's spawn

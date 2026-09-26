@@ -169,7 +169,14 @@ func play_skill_and_wait(animation_name: String = "skill"):
 	_animated.play(animation_name)
 	var elapsed = 0.0
 	while not _skill_animation_finished and elapsed < SKILL_ANIMATION_TIMEOUT:
+		# Out of the tree - the battle was left, or ended into the next scene,
+		# while this was still playing - there is no next frame to wait on, and
+		# reaching for get_tree() here was an error in the editor every time.
+		if not is_inside_tree():
+			return
 		await get_tree().process_frame
+		if not is_inside_tree():
+			return
 		elapsed += get_process_delta_time()
 	if not _skill_animation_finished:
 		if _animated.animation_finished.is_connected(_on_skill_animation_finished):

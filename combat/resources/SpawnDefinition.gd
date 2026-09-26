@@ -12,7 +12,7 @@ class_name SpawnDefinition
 ## Starting tile, in grid coordinates (not pixels).
 @export var position: Vector2i = Vector2i.ZERO
 ## Optional name overriding the CombatantDefinition's own - this is what
-## "Goblin 1" / "Goblin 2" / "Goblin 3" are. Leave empty to use the
+## "Striker 1" / "Striker 2" / "Caster" are. Leave empty to use the
 ## definition's own name.
 @export var display_name: String = ""
 

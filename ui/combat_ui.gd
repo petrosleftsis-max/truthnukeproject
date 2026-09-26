@@ -83,6 +83,8 @@ func _ready():
 	$Actions.add_child(_pips)
 	_pips.position = PIPS_AT
 	_pips.visible = false
+	# Before the grid's buttons are hung with marks: the shelves copy a clean one.
+	_build_shelves()
 	_build_hotkey_marks()
 	_unit_card = UnitCard.new()
 	add_child(_unit_card)
@@ -179,17 +181,25 @@ func _accent_box(fill: Color, edge: Color) -> StyleBoxFlat:
 func _build_hotkey_marks():
 	var slots = $Actions/ActionsPanel/ActionsGrid.get_children()
 	for i in mini(slots.size(), 9):
-		var mark := Label.new()
+		_hotkey_mark(slots[i], i + 1).visible = false
+
+
+## The number `key` in the corner of `button`, made the first time it is asked
+## for. The grid's are made once; the shelves' each time they are built.
+func _hotkey_mark(button: Button, key: int) -> Label:
+	var mark: Label = button.get_node_or_null(HOTKEY_MARK)
+	if mark == null:
+		mark = Label.new()
 		mark.name = HOTKEY_MARK
-		mark.text = str(i + 1)
 		mark.add_theme_font_size_override("font_size", 11)
 		mark.add_theme_color_override("font_color", Color("c2ceda"))
 		mark.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 		mark.add_theme_constant_override("outline_size", 3)
 		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		mark.visible = false
-		slots[i].add_child(mark)
+		button.add_child(mark)
 		mark.position = Vector2(3, 0)
+	mark.text = str(key)
+	return mark
 
 
 ## Says what the danger view's colours mean while Shift is held.
@@ -244,6 +254,8 @@ func _queue_tip(comb: Dictionary) -> String:
 ## Takes the view to whoever's face in the queue was clicked - unless they are
 ## hidden, or the view is busy following somebody's turn.
 func _on_queue_input(event: InputEvent, comb: Dictionary):
+	if _aim_through_face(event, comb):
+		return
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
 	accept_event()
@@ -260,11 +272,64 @@ func _on_queue_input(event: InputEvent, comb: Dictionary):
 func _point_out(comb: Dictionary):
 	if controller != null and controller.has_method("highlight_unit"):
 		controller.highlight_unit(comb)
+	if _aiming_now():
+		controller.preview_aim_at_combatant(comb)
+		_face_preview = true
 
 
 func _stop_pointing():
 	if controller != null and controller.has_method("clear_highlight"):
 		controller.clear_highlight()
+	# Taken away even once the aim is over - clicked, the skill went off and
+	# left the mark on whoever it was used on.
+	if _face_preview:
+		_face_preview = false
+		if controller != null and controller.has_method("clear_aim_preview"):
+			controller.clear_aim_preview()
+
+
+## --- Aiming at a face ---
+##
+## While a skill is being aimed, the faces in the party column and the turn
+## queue stand in for the bodies on the map: hovered, they show what it would do
+## to them; clicked, it is used on them - by the same rules as a click on the
+## map, reach included. See CController.aim_refusal. Right-click puts the aim
+## away, as it does over the map.
+
+## Whether hovering a face has put marks on the map that leaving it should take
+## away.
+var _face_preview := false
+
+
+func _aiming_now() -> bool:
+	return controller != null and controller.has_method("aim_at_combatant") and controller.is_skill_selected() \
+			and not exploration_mode and not _deployment_mode
+
+
+## Takes a click on `comb`'s face for the aim, if there is one. True when it
+## was the aim's to take, whether it was used or refused: a face clicked while
+## aiming is never also a request to go to them or see their side of the HUD.
+func _aim_through_face(event: InputEvent, comb: Dictionary) -> bool:
+	if not _aiming_now() or not (event is InputEventMouseButton):
+		return false
+	accept_event()
+	if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		controller.aim_at_combatant(comb)
+	elif event.button_index == MOUSE_BUTTON_RIGHT and event.is_released():
+		controller.cancel_skill_selection()
+	return true
+
+
+## What hovering a face says: why the skill being aimed could not be used on
+## them - or nothing when it could, since the prompt beside the cursor says what
+## it would do. Its own tooltip the rest of the time.
+func _face_tip(face: Control, comb: Dictionary) -> String:
+	if not _aiming_now():
+		return face.tooltip_text
+	var refusal: String = controller.aim_refusal(comb)
+	if refusal == "":
+		return ""
+	return "%s\n%s" % [comb.name, refusal]
 
 
 ## Picks the skill in slot `index` the way clicking it would. False, and
@@ -272,16 +337,62 @@ func _stop_pointing():
 func _press_hotkey(index: int) -> bool:
 	if controller == null or not controller.player_turn or controller.is_skill_selected():
 		return false
-	if controller.action_locked or not controller.is_idle() or is_viewing_other():
+	if controller.action_locked or not controller.is_idle():
 		return false
-	var slots = $Actions/ActionsPanel/ActionsGrid.get_children()
+	var slots = action_buttons()
 	if index >= slots.size():
 		return false
 	var slot: Button = slots[index]
-	if slot.disabled or slot.icon == null or not slot.is_visible_in_tree():
+	if slot.icon == null or not slot.is_visible_in_tree():
 		return false
+	if slot.disabled:
+		# Greyed out - spent, unaffordable, or a teammate's - so only a look.
+		return _look_at(slot.get_meta(SKILL_META, ""))
 	slot.pressed.emit()
 	return true
+
+
+## --- Looking at what cannot be used ---
+##
+## A greyed-out skill can still be pressed, to aim it without using it: its
+## reach, where it would land and what it would do, from whoever it belongs to.
+## See CController.begin_look.
+
+const SKILL_META := "skill_key"
+
+## Which action buttons already turn a click on them, greyed out, into a look.
+var _look_wired := {}
+
+
+## Takes a look at `skill_key` in the hands of whoever's HUD is on show. False,
+## and nothing done, when no aiming could start right now either.
+func _look_at(skill_key: String) -> bool:
+	if skill_key == "" or combat == null or controller == null or exploration_mode or _deployment_mode:
+		return false
+	if not controller.has_method("begin_look") or not controller.player_turn:
+		return false
+	if controller.action_locked or not controller.is_idle() or controller.is_skill_selected():
+		return false
+	var owner := shown_combatant()
+	if owner.is_empty() or not owner.get("alive", false):
+		return false
+	controller.begin_look(skill_key, owner)
+	return true
+
+
+func _looking_only() -> bool:
+	return controller != null and controller.has_method("is_look_only") and controller.is_look_only()
+
+
+## A click on a greyed-out button: the button itself will not press, so the
+## look is started from here.
+func _on_action_gui_input(event: InputEvent, action: Button):
+	if not action.disabled or not (event is InputEventMouseButton):
+		return
+	if event.button_index != MOUSE_BUTTON_LEFT or event.pressed:
+		return
+	if _look_at(action.get_meta(SKILL_META, "")):
+		accept_event()
 
 
 ## Tab moves to the next tab there is - Main, Secondary, Items, and round.
@@ -440,11 +551,15 @@ func _refresh_tabs(comb):
 ## the spell slot readout in step with whoever's turn it is.
 func _show_skills_for(comb: Dictionary):
 	if combat == null:
+		_set_shelved(false)
 		set_skill_list([], true)
 		_update_spell_slots(null)
 		return
-	_update_spell_slots(comb)
 	_refresh_tabs(comb)
+	# Spells go on shelves, one per gate; skills and items stay on the grid.
+	var shelved = showing_spells and showing_panel != SkillPanel.ITEMS
+	_set_shelved(shelved)
+	_update_spell_slots(comb)
 	var list = []
 	var used = false
 	match showing_panel:
@@ -460,7 +575,10 @@ func _show_skills_for(comb: Dictionary):
 		_:
 			list = combat.spells_in_slot(comb, false) if showing_spells else combat.main_skills_of(comb)
 			used = comb.get("skill_used_this_turn", false)
-	set_skill_list(list, used, showing_panel == SkillPanel.SECONDARY)
+	if shelved:
+		_fill_shelves(comb, list, used, showing_panel == SkillPanel.SECONDARY)
+	else:
+		set_skill_list(list, used, showing_panel == SkillPanel.SECONDARY)
 	# Mid-walk, the turn is not theirs to end. The skills already grey out for
 	# the duration (see CController.is_idle, which calls this on both ends of a
 	# move) but End Turn did not, and a Button press goes through its own
@@ -490,6 +608,7 @@ func set_exploration_mode(enabled: bool):
 	if _pips != null:
 		_pips.visible = not enabled
 	if enabled:
+		_set_shelved(false)
 		set_skill_list([], true)
 		_update_spell_slots(null)
 		$Actions/SelectTargetMessage.visible = false
@@ -547,6 +666,7 @@ func add_turn_queue_icon(combatant: Dictionary):
 	# view goes to them.
 	new_icon.mouse_filter = Control.MOUSE_FILTER_STOP
 	new_icon.tooltip_text = _queue_tip(combatant)
+	new_icon.tip_source = _face_tip.bind(new_icon, combatant)
 	new_icon.mouse_entered.connect(_point_out.bind(combatant))
 	new_icon.mouse_exited.connect(_stop_pointing)
 	new_icon.gui_input.connect(_on_queue_input.bind(combatant))
@@ -594,13 +714,17 @@ func add_combatant_status(comb: Dictionary):
 			part.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		new_status.mouse_filter = Control.MOUSE_FILTER_STOP
 		new_status.tooltip_text = "%s - click to see their side of the HUD" % comb.name
+		new_status.tip_source = _face_tip.bind(new_status, comb)
 		new_status.gui_input.connect(_on_portrait_input.bind(comb))
 		new_status.set_name_text(comb.name)
 		new_status.mouse_entered.connect(_point_out.bind(comb))
+		new_status.lights_on_hover = true
 		new_status.mouse_exited.connect(_stop_pointing)
 
 
 func _on_portrait_input(event: InputEvent, comb: Dictionary):
+	if _aim_through_face(event, comb):
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()
 		view_combatant(comb)
@@ -694,6 +818,10 @@ func _refresh_portraits():
 ## otherwise open over a HUD still showing somebody else.
 func _input(event):
 	if not is_viewing_other():
+		return
+	# Mid-look at a teammate's skill, Escape ends the look first; the view of
+	# them stays until it is pressed again.
+	if controller != null and controller.is_skill_selected():
 		return
 	if event is InputEventKey and event.pressed and not event.is_echo() and event.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
@@ -848,6 +976,9 @@ func update_information(info: String):
 func lock_action_buttons():
 	for action in $Actions/ActionsPanel/ActionsGrid.get_children():
 		action.disabled = true
+	if _shelves != null:
+		for action in _shelves.buttons():
+			action.disabled = true
 	$Actions/EndTurnButton.disabled = true
 
 
@@ -880,7 +1011,7 @@ func _consumable_spends_secondary(comb: Dictionary, item: SkillDefinition) -> bo
 		return true
 	if comb.is_empty():
 		return false
-	if not comb.get("items_as_secondary", false):
+	if combat == null or not combat.items_as_secondary(comb):
 		return false
 	# The secondary first, and the main action only once the secondary is gone.
 	#
@@ -893,6 +1024,22 @@ func _consumable_spends_secondary(comb: Dictionary, item: SkillDefinition) -> bo
 
 func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: bool = false):
 	var actions_grid_children = $Actions/ActionsPanel/ActionsGrid.get_children()
+	var skills := skill_list.map(func(key): return SkillDatabase.skills[key])
+	var tags := SkillLook.tags_for(skills)
+	for i in range(actions_grid_children.size()):
+		var action = actions_grid_children[i] as Button
+		if skill_list.size() > i:
+			_fill_action(action, skill_list[i], skill_used, as_secondary, tags[i])
+		else:
+			_empty_action(action, skill_used)
+	_finish_action_panel()
+
+
+## One action button made to offer `skill_key`: its picture and badge, whether
+## it can be pressed right now, what hovering it says, and what pressing it does.
+## The grid and the spell shelves both fill their buttons through this, so the
+## two can never disagree about when a skill is available.
+func _fill_action(action: Button, skill_key: String, skill_used: bool, as_secondary: bool, tag: String = ""):
 	# There is no CController while exploring - no turn is in progress and
 	# nothing could resolve a skill - so every action button stays disabled.
 	var player_turn = controller.player_turn if controller != null else false
@@ -904,55 +1051,183 @@ func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: b
 	# Somebody else's kit, on a turn that is not theirs: all of it greyed out,
 	# and none of it wired to anything, so no route can pick one of it.
 	var looking = is_viewing_other()
-	for i in range(actions_grid_children.size()):
-		var action = actions_grid_children[i] as Button
-		if player_turn == false or skill_used or busy or looking:
-			action.disabled = true
-		else:
-			action.disabled = false
-		if skill_list.size() > i:
-			var skill_key = skill_list[i]
-			var skill = SkillDatabase.skills[skill_key]
-			# On the Spells panel each entry decides its own slot, since a
-			# spell marked secondary is cast from the secondary action while
-			# the rest are cast from the main one.
-			var spends_secondary = as_secondary
-			if showing_panel == SkillPanel.ITEMS:
-				spends_secondary = _consumable_spends_secondary(comb, skill)
-			if (showing_spells or showing_panel == SkillPanel.ITEMS) and not comb.is_empty() and not action.disabled:
-				var slot_spent = comb.get("secondary_used_this_turn", false) if spends_secondary else comb.get("skill_used_this_turn", false)
-				# Greyed out for the two separate reasons a spell can be
-				# unavailable: the action is gone, or the slots are.
-				action.disabled = slot_spent or not combat.can_afford_skill(comb, skill)
-			action.icon = skill.icon
-			SkillLook.decorate(action, skill)
-			var key_mark = action.get_node_or_null(HOTKEY_MARK)
-			if key_mark != null:
-				key_mark.visible = not exploration_mode
-			# Worked out in the hands of whoever is on show, so looking at a
-			# teammate says what they would hit for rather than the one acting.
-			action.tooltip_text = TooltipText.wrap(build_skill_tooltip(skill, _viewing if looking else {}))
-			clear_action_button_connections(action)
-			if not looking:
-				action.pressed.connect(func():
-					controller.set_selected_skill(skill_key, spends_secondary)
-					controller.begin_target_selection()
-					)
-		else:
-			action.icon = null
-			action.tooltip_text = ""
-			SkillLook.decorate(action, null)
-			var key_mark = action.get_node_or_null(HOTKEY_MARK)
-			if key_mark != null:
-				key_mark.visible = false
-			clear_action_button_connections(action)
-	$Actions/EndTurnButton.disabled = !player_turn or looking
+	action.disabled = player_turn == false or skill_used or busy or looking
+	var skill = SkillDatabase.skills[skill_key]
+	# On the Spells panel each entry decides its own slot, since a
+	# spell marked secondary is cast from the secondary action while
+	# the rest are cast from the main one.
+	var spends_secondary = as_secondary
+	if showing_panel == SkillPanel.ITEMS:
+		spends_secondary = _consumable_spends_secondary(comb, skill)
+	if (showing_spells or showing_panel == SkillPanel.ITEMS) and not comb.is_empty() and not action.disabled:
+		var slot_spent = comb.get("secondary_used_this_turn", false) if spends_secondary else comb.get("skill_used_this_turn", false)
+		# Greyed out for the two separate reasons a spell can be
+		# unavailable: the action is gone, or the slots are.
+		action.disabled = slot_spent or not combat.can_afford_skill(comb, skill)
+	action.icon = skill.icon
+	SkillLook.decorate(action, skill, tag)
+	var key_mark = action.get_node_or_null(HOTKEY_MARK)
+	if key_mark != null:
+		key_mark.visible = not exploration_mode
+	# Worked out in the hands of whoever is on show, so looking at a
+	# teammate says what they would hit for rather than the one acting.
+	var tip := build_skill_tooltip(skill, _viewing if looking else {})
+	var paying := _gate_up(action, comb, skill)
+	if paying > 0:
+		tip = "Your %s is spent - this will use %s.\n\n%s" % [
+			Stats.gate_name(skill.spell_slot_level), Stats.gate_name(paying), tip]
+	action.tooltip_text = TooltipText.wrap(tip)
+	clear_action_button_connections(action)
+	# Pressable or not, it can be looked at: a greyed-out button does not press,
+	# so its clicks are caught here and turned into a look. See _look_at.
+	action.set_meta(SKILL_META, skill_key)
+	# Wired once per button, remembered here by the button itself rather than
+	# by a mark on it - a copied button carries the mark but not the wire.
+	if not _look_wired.has(action.get_instance_id()):
+		action.gui_input.connect(_on_action_gui_input.bind(action))
+		_look_wired[action.get_instance_id()] = true
+	if not looking:
+		action.pressed.connect(func():
+			controller.set_selected_skill(skill_key, spends_secondary)
+			controller.begin_target_selection()
+			)
 
 
-## Spell slots for whoever's turn it is: one bar per level, each with the
-## number left over how many the battle started with. Hidden entirely for
-## anyone with no slots at all, so a swordsman's HUD isn't carrying three empty
-## gauges around.
+func _empty_action(action: Button, skill_used: bool = true):
+	# Pressable-looking or not by the same rule as a filled one, so an empty
+	# slot does not stand out from its row; with nothing wired, pressing it
+	# does nothing either way.
+	var player_turn = controller.player_turn if controller != null else false
+	var busy = controller != null and (controller.action_locked or not controller.is_idle())
+	action.disabled = player_turn == false or skill_used or busy or is_viewing_other()
+	action.icon = null
+	action.tooltip_text = ""
+	SkillLook.decorate(action, null)
+	_gate_up(action, {}, null)
+	var key_mark = action.get_node_or_null(HOTKEY_MARK)
+	if key_mark != null:
+		key_mark.visible = false
+	clear_action_button_connections(action)
+	action.set_meta(SKILL_META, "")
+
+
+func _finish_action_panel():
+	var player_turn = controller.player_turn if controller != null else false
+	$Actions/EndTurnButton.disabled = !player_turn or is_viewing_other()
+
+
+## --- Casting through a higher gate ---
+##
+## A spell can always be cast through a higher gate than its own once its own
+## has run dry - a World spell through Hermes - and that spends the rarer
+## casting. Worth knowing before pressing it rather than finding out from the
+## counters afterwards, so the button says so: a small arrow and the paying
+## gate's initial, in that gate's colour, in the corner.
+
+const GATE_UP := "GateUp"
+
+
+## Marks `action` if casting `skill` now would take a higher gate than its own,
+## and takes the mark off otherwise. Returns the gate it would take, or 0.
+func _gate_up(action: Button, comb: Dictionary, skill: SkillDefinition) -> int:
+	var paying := 0
+	if skill != null and not comb.is_empty() and combat != null and skill.spell_slot_level > 0 \
+			and not combat.casts_without_gates(comb):
+		var through = combat.slot_available_for(comb, skill.spell_slot_level)
+		if through > skill.spell_slot_level:
+			paying = through
+	var mark: Label = action.get_node_or_null(GATE_UP)
+	if paying == 0:
+		if mark != null:
+			mark.visible = false
+		return 0
+	if mark == null:
+		mark = Label.new()
+		mark.name = GATE_UP
+		mark.add_theme_font_size_override("font_size", 11)
+		mark.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+		mark.add_theme_constant_override("outline_size", 4)
+		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		action.add_child(mark)
+		mark.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		mark.offset_left = -30
+		mark.offset_right = -3
+		mark.offset_top = 0
+		mark.offset_bottom = 16
+	mark.text = "↑" + Stats.short_gate_name(paying).left(1)
+	mark.add_theme_color_override("font_color", Stats.gate_colour(paying))
+	mark.visible = true
+	return paying
+
+
+## --- The spell shelves ---
+
+## The Spells panel, one shelf per gate, in place of the grid. See SpellShelves.
+var _shelves: SpellShelves = null
+## A clean copy of an action button, taken before anything was hung on the
+## grid's, for the shelves to make theirs from.
+var _slot_template: Button = null
+
+
+func _build_shelves():
+	var grid: GridContainer = $Actions/ActionsPanel/ActionsGrid
+	_slot_template = grid.get_child(0).duplicate(0)
+	# The grid can already have been filled by the time this runs - the battle
+	# sets itself up around the HUD - and a copy carries whatever was on it:
+	# a badge, a number, markers saying it was wired. None of it belongs on a
+	# new button.
+	for child in _slot_template.get_children():
+		_slot_template.remove_child(child)
+		child.free()
+	for meta in _slot_template.get_meta_list():
+		_slot_template.remove_meta(meta)
+	SkillLook.decorate(_slot_template, null)
+	_slot_template.icon = null
+	_slot_template.tooltip_text = ""
+	_shelves = SpellShelves.new()
+	# Exactly the grid's size, so the panel does not change shape when the
+	# switch is pressed; what does not fit scrolls.
+	_shelves.custom_minimum_size = grid.get_combined_minimum_size()
+	$Actions/ActionsPanel.add_child(_shelves)
+
+
+## Whether the shelves are what the action panel is showing.
+func showing_shelves() -> bool:
+	return _shelves != null and _shelves.visible
+
+
+func _set_shelved(on: bool):
+	if _shelves == null:
+		return
+	_shelves.visible = on
+	$Actions/ActionsPanel/ActionsGrid.visible = not on
+
+
+func _fill_shelves(comb: Dictionary, spells: Array, used: bool, as_secondary: bool):
+	_shelves.build(spells, comb, _slot_template, "%s/%s" % [comb.get("id", -1), as_secondary])
+	var shown := _shelves.buttons()
+	var keys := _shelves.keys()
+	var tags := SkillLook.tags_for(keys.map(func(key): return SkillDatabase.skills[key]))
+	for i in shown.size():
+		if i < 9:
+			_hotkey_mark(shown[i], i + 1)
+		_fill_action(shown[i], keys[i], used, as_secondary, tags[i])
+	_finish_action_panel()
+
+
+## Every button the action panel is offering right now, in the order the keys
+## 1-9 count them: the grid's slots, or the shelves' spells.
+func action_buttons() -> Array:
+	if showing_shelves():
+		return _shelves.buttons()
+	return $Actions/ActionsPanel/ActionsGrid.get_children()
+
+
+## The gate counters beside the skill tabs: one tag per gate the one on show
+## can cast through, with the castings left as dots. Hidden for anyone with no
+## gates at all, so a swordsman's HUD isn't carrying empty gauges around - and
+## while the spell shelves are up, which carry the same tags at their starts.
 func _update_spell_slots(comb):
 	var row = $Actions/SpellSlots
 	if comb == null or comb.is_empty() or exploration_mode:
@@ -960,25 +1235,26 @@ func _update_spell_slots(comb):
 		return
 	var slots = comb.get("spell_slots", [])
 	var maximums = comb.get("max_spell_slots", [])
-	var any = false
-	for level in range(1, 4):
-		var ceiling = maximums[level] if level < maximums.size() else 0
-		var entry = row.get_node("Level%d" % level)
-		entry.visible = ceiling > 0
-		if ceiling <= 0:
-			continue
-		any = true
-		var left = slots[level] if level < slots.size() else 0
-		var bar: ProgressBar = entry.get_node("Bar")
-		bar.max_value = ceiling
-		bar.value = left
-		entry.get_node("Count").text = "%d/%d" % [left, ceiling]
-		# Named rather than numbered: a spell is cast through a gate. The name
-		# alone, because "Gates of" three times down a narrow row is the same
-		# two words repeated at somebody who has already read them twice.
-		entry.get_node("Name").text = Stats.short_gate_name(level)
-		entry.tooltip_text = "%s: %d of %d left" % [Stats.short_gate_name(level), left, ceiling]
-	row.visible = any
+	var wanted := []
+	for level in range(1, maximums.size()):
+		if maximums[level] > 0:
+			wanted.append(level)
+	# Rebuilt only when the gates themselves change; otherwise each tag is told
+	# its new count, so hovering one does not lose its tooltip every refresh.
+	var have := row.get_children().filter(func(child): return child is GateTag).map(func(tag): return tag.level)
+	if have != wanted:
+		for child in row.get_children():
+			row.remove_child(child)
+			child.queue_free()
+		for level in wanted:
+			var tag := GateTag.new()
+			tag.name = "Gate%d" % level
+			row.add_child(tag)
+	for tag in row.get_children():
+		if tag is GateTag:
+			var level: int = tag.level if tag.level > 0 else int(String(tag.name).trim_prefix("Gate"))
+			tag.show_gate(level, slots[level] if level < slots.size() else 0, maximums[level] if level < maximums.size() else 0)
+	row.visible = not wanted.is_empty() and not showing_shelves()
 
 
 func clear_action_button_connections(action: Button):
@@ -1025,9 +1301,20 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	# the turn; which one it actually takes is decided by
 	# _consumable_spends_secondary, and it reaches for the secondary first.
 	var action_slot = "Secondary" if skill.is_secondary else "Main"
-	if skill is ItemDefinition and not skill.is_secondary \
-			and _caster().get("items_as_secondary", false):
-		action_slot = "Main or Secondary"
+	# And whose passive says so, when one does - so "or Secondary" on Cyrus's
+	# Run is traced to Light Footed on his sheet rather than being a mystery.
+	var holder := _caster()
+	if not skill.is_secondary and combat != null and not holder.is_empty():
+		var granted_by: PassiveDefinition = null
+		if skill is ItemDefinition:
+			granted_by = combat.items_as_secondary_from(holder)
+			if granted_by == null and combat.items_as_secondary(holder):
+				action_slot = "Main or Secondary"
+		else:
+			var key = SkillDatabase.skills.find_key(skill)
+			granted_by = combat.secondary_grant_from(holder, key if key != null else "")
+		if granted_by != null:
+			action_slot = "Main, or Secondary through %s" % granted_by.name
 	lines.append("Action: %s" % action_slot)
 	lines.append("Range: %d-%d" % [skill.min_range, skill.max_range])
 	if skill.uses_stat_contest:
@@ -1039,7 +1326,7 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		for contested in skill.all_effects():
 			if contested != null and contested.type == EffectDefinition.EffectType.DAMAGE:
 				hurts = true
-		var beaten_by = "the caster's %s" % Stats.stat_name(skill.scaling_stat)
+		var beaten_by = "the caster's %s" % Stats.stat_name(_scaling_stat(skill))
 		if skill is ItemDefinition:
 			beaten_by = "%d" % skill.item_power
 		lines.append("Lands on anyone with %s below %s. %s" % [
@@ -1057,7 +1344,9 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	# stat whether it uses one or not, so Blind and Stealth would otherwise
 	# advertise a Mystic that does nothing for them.
 	if _scales_off_the_caster(skill):
-		lines.append("Scales with: %s" % Stats.stat_name(skill.scaling_stat))
+		var moved_by = _scaling_moved_by()
+		lines.append("Scales with: %s%s" % [Stats.stat_name(_scaling_stat(skill)),
+			", through %s" % moved_by.name if moved_by != null else ""])
 	lines.append("Targets: %s" % ("Everyone caught in it" if skill.affects_both_sides else ("Allies" if skill.targets_ally else "Enemies")))
 	if skill.aoe_radius > 0:
 		lines.append("Area: %s" % describe_aoe_shape(skill))
@@ -1284,16 +1573,29 @@ func _set_aiming(aiming: bool):
 	$Actions.visible = true
 	for child in $Actions.get_children():
 		child.visible = not aiming
+	if aiming and _looking_only():
+		# Only a look: say so, since nothing on the map does.
+		var caster: Dictionary = controller.aiming_caster()
+		var skill: SkillDefinition = SkillDatabase.skills.get(controller._selected_skill)
+		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Just looking at %s's %s - Esc or right-click to stop" % [
+			caster.get("name", "?"), skill.name if skill != null else "skill"]
+		$Actions/SelectTargetMessage.visible = true
 	if not aiming:
 		# Restore whatever the current mode says these should be, rather than
 		# blanket-showing things the mode had deliberately hidden.
 		$Actions/Movement.visible = not exploration_mode
 		$Actions/EndTurnButton.visible = not exploration_mode
 		$Actions/SkillPanelTabs.visible = not exploration_mode
-		$Actions/SelectTargetMessage.visible = false
+		# Back to saying whose HUD is on show, if it is somebody else's - a look
+		# can be taken at a teammate's skill while viewing them.
+		if is_viewing_other():
+			$Actions/SelectTargetMessage/MarginContainer/Label.text = "Looking at %s - Esc to go back" % _viewing.name
+			$Actions/SelectTargetMessage.visible = true
+		else:
+			$Actions/SelectTargetMessage.visible = false
 		# The slot row hides itself for anyone with no slots, so it can't just
 		# be switched back on with the rest.
-		_update_spell_slots(combat.get_current_combatant() if combat != null and not exploration_mode else null)
+		_update_spell_slots(shown_combatant() if combat != null and not exploration_mode else null)
 		# Nor can the log, if the player folded it away before aiming.
 		_apply_log_state()
 		# Nor Undo Move, which is only there once somebody has walked.
@@ -1360,7 +1662,10 @@ func show_hit_preview(skill_key: String, aim: Vector2i):
 		return
 	if _hit_preview == null:
 		_build_hit_preview()
-	var caster = combat.get_current_combatant()
+	# From whoever the aim is from: the one acting, or the teammate whose skill
+	# is only being looked at - it is their reach and their numbers.
+	var caster = controller.aiming_caster() if controller != null and controller.has_method("aiming_caster") \
+			else combat.get_current_combatant()
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	var targets = combat.targets_if_aimed(caster, skill, aim)
 	if targets.is_empty():
@@ -1371,6 +1676,8 @@ func show_hit_preview(skill_key: String, aim: Vector2i):
 		row.queue_free()
 	var heading := _hit_label(skill.name, 13, TAB_OFF)
 	_hit_rows.add_child(heading)
+	if _looking_only():
+		_hit_rows.add_child(_hit_label("%s's - just looking, can't be used now" % caster.name, 12, TAB_OFF))
 	_clear_ghosts()
 	for target in targets:
 		var hit = combat.predict_hit(caster, target, skill)
@@ -1479,6 +1786,23 @@ func _caster() -> Dictionary:
 		return {}
 	var current = combat.get_current_combatant()
 	return current if current != null else {}
+
+
+## The attribute `skill` is worked out from in the hands the tooltip is for -
+## its own, unless a passive of theirs says otherwise.
+func _scaling_stat(skill: SkillDefinition) -> int:
+	var caster = _caster()
+	if caster.is_empty() or combat == null or not combat.has_method("scaling_stat_of"):
+		return skill.scaling_stat
+	return combat.scaling_stat_of(caster, skill)
+
+
+## The passive putting every skill in those hands on one stat, or null.
+func _scaling_moved_by() -> PassiveDefinition:
+	var caster = _caster()
+	if caster.is_empty() or combat == null or not combat.has_method("scaling_stat_from"):
+		return null
+	return combat.scaling_stat_from(caster)
 
 
 ## What `skill` swings for in the hands of whoever is acting, before the target

@@ -192,6 +192,9 @@ func run_test():
 			continue
 		var chips := []
 		for row in sheet._stat_rows.get_children():
+			# The Skills row only: Passive Skills lays its tags out the same way.
+			if row.get_child_count() == 0 or not (row.get_child(0) is Label and row.get_child(0).text == "Skills"):
+				continue
 			for child in row.get_children():
 				if child is HFlowContainer:
 					for chip in child.get_children():

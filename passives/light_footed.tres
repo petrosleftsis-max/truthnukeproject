@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Light Footed"
+description = "Stealth, Slip Past and Run can be used as his secondary action as well as his main one - so he can Run twice in a turn, or slip away after striking."
+secondary_skills = Array[String](["stealth", "slip_past", "run"])

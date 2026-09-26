@@ -16,8 +16,10 @@
 [ext_resource type="SpriteFrames" path="res://combat/animations/alithia.tres" id="94_alithiaframes"]
 [ext_resource type="Texture2D" uid="uid://j18c0awsyfjm" path="res://imagese/alithia idle/alithia_idle_color0000.png" id="95_alithiastill"]
 [ext_resource type="Texture2D" uid="uid://bswamhyohs8qy" path="res://imagese/prometheus idle/prometheus_idle_0000.png" id="97_prometheusstill"]
-[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="98_passivedef"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="98_passivedef"]
 [ext_resource type="Resource" path="res://passives/mimicry.tres" id="99_mimicry"]
+[ext_resource type="Resource" path="res://passives/light_footed.tres" id="100_light_footed"]
+[ext_resource type="Resource" path="res://passives/quick_hands.tres" id="101_quick_hands"]
 
 [sub_resource type="Resource" id="Resource_alithia"]
 script = ExtResource("2_rggep")
@@ -108,8 +110,7 @@ icon = ExtResource("91_cyrusstill")
 map_sprite = ExtResource("91_cyrusstill")
 sprite_frames = ExtResource("6_ct236")
 skills = Array[String](["rapier", "blink_strike", "gun", "poison_dart", "warning_shot", "burning_shot", "stealth", "slip_past", "run"])
-secondary_skills = Array[String](["stealth", "slip_past", "run"])
-items_as_secondary = true
+passives = Array[ExtResource("98_passivedef")]([ExtResource("100_light_footed"), ExtResource("101_quick_hands")])
 starting_items = Array[String](["cure_potion", "tiny_bomb", "poison_bottle", "medicine"])
 
 [sub_resource type="Resource" id="Resource_tkpbb"]
@@ -211,7 +212,7 @@ max_hp_level_3 = 150
 movement = 5
 initiative = 4
 sprite_frames = ExtResource("15_eyeq6")
-skills = Array[String](["heal", "gun", "poison_dart", "burning_shot", "run"])
+skills = Array[String](["heal", "nail_projectile", "venomous_shot", "flammable_limb", "run"])
 resist_wind = -50
 resist_poison = 50
 ai_function = "ai_ranger"

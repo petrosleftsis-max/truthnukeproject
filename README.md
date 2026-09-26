@@ -25,7 +25,12 @@ next skill tab, **Backspace** takes a walk back, **C** opens the character
 sheet and **Esc** the menu. Hold **Shift** to see every tile an enemy could
 reach and hit next turn, and which tiles set off a reaction when you step out
 of them. Hover anyone on the map, or a face in the turn queue, to see who they
-are; click a face to find them.
+are; click a face to find them. A greyed-out skill can still be pressed to see
+its reach, its area and what it would do - including a teammate's, from their
+portrait - without using it. While a skill is aimed, a portrait or a face in
+the queue can be clicked in place of the person on the map; hovering one that
+it cannot be used on says why. A click outside the blue reach, on the map or a
+face, does nothing and aiming carries on.
 
 ## The shape of it
 
@@ -71,7 +76,10 @@ Skills** instead, name and description written out in full.
    `databases/combatant_database.tscn`.
 
 The Mimic's `passives/mimicry.tres` is the example: always active, and it is
-what lets the Mimic cast a copied spell without opening a gate.
+what lets the Mimic cast a copied spell without opening a gate. Cyrus has two
+more: `light_footed.tres` lets him use Stealth, Slip Past and Run as a secondary
+action too, and `quick_hands.tres` does the same for items. Those skills still
+show on his Secondary tab, and their previews say which passive allows it.
 
 ### Adding a fight
 

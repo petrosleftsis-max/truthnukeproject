@@ -21,10 +21,42 @@ const HEALTH_FULL := Color("6fb26a")
 const HEALTH_HURT := Color("c8913f")
 const HURT_BELOW := 0.34
 
+## The gold the map rings somebody in while their face is pointed at: the face
+## lights up in the same colour, so the two read as one.
+const HOVER_EDGE := Color(1.0, 0.84, 0.35, 1.0)
+
 var max_hp: int
 var hp: int
 
 var _is_current := false
+var _side := 0
+var _taken := false
+var _hovered := false
+
+## Asked for the tooltip each time one is about to show, so it can say what a
+## click on the face would do right now. Unset, it is tooltip_text.
+var tip_source: Callable
+
+
+func _ready():
+	mouse_entered.connect(set_hovered.bind(true))
+	mouse_exited.connect(set_hovered.bind(false))
+
+
+func _get_tooltip(_at_position: Vector2) -> String:
+	return tip_source.call() if tip_source.is_valid() else tooltip_text
+
+
+## Lit under the cursor: ringed in gold, and at full strength even if they
+## have already acted, so the face being pointed at is never the faded one.
+func set_hovered(on: bool):
+	_hovered = on
+	set_side(_side)
+	_apply_alpha()
+
+
+func is_hovered() -> bool:
+	return _hovered
 
 
 func set_max_hp(max_hp: int):
@@ -62,7 +94,11 @@ func _refresh_health():
 
 
 func set_side(side: int):
-	$Border.modulate = CURRENT_RING if _is_current else (SIDE_PLAYER if side == 0 else SIDE_ENEMY)
+	_side = side
+	if _hovered:
+		$Border.modulate = HOVER_EDGE
+	else:
+		$Border.modulate = CURRENT_RING if _is_current else (SIDE_PLAYER if side == 0 else SIDE_ENEMY)
 
 
 func set_turn_taken(taken: bool):
@@ -74,7 +110,12 @@ func set_turn_taken(taken: bool):
 		shader_material.set_shader_parameter("color_factor", int(taken))
 	# The greyscale shader already says "spent"; dropping the opacity as well
 	# makes the difference survive being glanced at rather than looked at.
-	modulate.a = SPENT_ALPHA if taken and not _is_current else 1.0
+	_taken = taken
+	_apply_alpha()
+
+
+func _apply_alpha():
+	modulate.a = SPENT_ALPHA if _taken and not _is_current and not _hovered else 1.0
 
 
 ## Marks this as the combatant currently acting. Scaled up as well as ringed,
@@ -88,5 +129,4 @@ func set_current(current: bool, side: int):
 	if marks != null:
 		marks.scale = Vector2.ONE / scale
 	set_side(side)
-	if current:
-		modulate.a = 1.0
+	_apply_alpha()

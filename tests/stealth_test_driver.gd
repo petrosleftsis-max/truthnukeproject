@@ -69,10 +69,12 @@ func run_test():
 		log_line("FAILURES: %d" % (_fail + 1))
 		get_tree().quit(1)
 		return
-	# Granted to Cyrus as a secondary through his own list rather than marked
+	# Granted to Cyrus as a secondary by his Light Footed passive rather than marked
 	# secondary on the skill, which is how Run and Slip Past already worked -
 	# the skill is a main action for anybody else who learns it.
-	var cyrus_grants: Array = CombatantDatabase.combatants["cyrus"].secondary_skills
+	var cyrus_grants := []
+	for passive in CombatantDatabase.combatants["cyrus"].passives:
+		cyrus_grants.append_array(passive.secondary_skills)
 	ok("stealth" in cyrus_grants, "Cyrus casts it from his secondary action",
 		"%s" % [cyrus_grants])
 	ok(not stealth.is_secondary,
@@ -108,7 +110,7 @@ func run_test():
 	log_line("======== Cyrus carries it, as a secondary ========")
 	var cyrus = CombatantDatabase.combatants.get("cyrus")
 	ok(cyrus != null and "stealth" in cyrus.skills, "it is in his kit")
-	ok(cyrus != null and "stealth" in cyrus.secondary_skills, "and offered as a secondary")
+	ok(cyrus != null and "stealth" in cyrus_grants, "and offered as a secondary")
 	log_line("")
 
 	log_line("======== you cannot slip away while you are watched ========")
@@ -443,13 +445,13 @@ func run_test():
 		var thief = {}
 		var ordinary = {}
 		for comb in combat.combatants:
-			if comb.get("items_as_secondary", false) and thief.is_empty():
+			if combat.items_as_secondary(comb) and thief.is_empty():
 				thief = comb
-			elif not comb.get("items_as_secondary", false) and ordinary.is_empty():
+			elif not combat.items_as_secondary(comb) and ordinary.is_empty():
 				ordinary = comb
 		if not thief.is_empty():
-			ok(action_line(ui.build_skill_tooltip(bottle, thief)) == "Action: Main or Secondary",
-				"%s can spend either on one" % thief.name,
+			ok(action_line(ui.build_skill_tooltip(bottle, thief)) == "Action: Main, or Secondary through Quick Hands",
+				"%s can spend either on one, and the preview says which passive allows it" % thief.name,
 				action_line(ui.build_skill_tooltip(bottle, thief)))
 			# And which one it actually takes: the secondary while it is there.
 			thief.skill_used_this_turn = false

@@ -40,7 +40,7 @@ enum DispelScope {
 @export var applies_to_caster: bool = false
 ## What this condition is called in the combat log - "Poisoning", "Slowed",
 ## "Blessed". Used for STAT_MODIFIER, STAT_MULTIPLIER and DAMAGE_OVER_TIME, so
-## a message can read "Cyrus inflicted Poisoning on Goblin 1" rather than
+## a message can read "Cyrus inflicted Poisoning on Ranger" rather than
 ## describing the raw stat change. Leave empty to fall back to a generated
 ## description of what the effect actually does.
 @export var display_name: String = ""

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://nd1pcbkcg15c"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_k76nq"]
+[ext_resource type="Resource" uid="uid://1ld4g4lgfheh" path="res://conditions/burn.tres" id="2_e7sel"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_umyqf"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="3_3g1yd"]
+[ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="4_sound"]
+
+[sub_resource type="Resource" id="Resource_e7sel"]
+script = ExtResource("1_k76nq")
+type = 8
+condition = ExtResource("2_e7sel")
+condition_duration = 5
+condition_dot_modifier = 0.5
+metadata/_custom_type_script = "uid://dehsr7dduivu1"
+
+[resource]
+script = ExtResource("2_umyqf")
+name = "Flammable Limb"
+description = "It throws an organ coated in flammable liquid that burns the target."
+min_range = 2
+max_range = 20
+icon = ExtResource("3_3g1yd")
+required_level = 3
+respects_blocking = true
+effects = Array[ExtResource("1_k76nq")]([SubResource("Resource_e7sel")])
+sound = ExtResource("4_sound")
+metadata/_custom_type_script = "uid://d4nqbxk7tswep"

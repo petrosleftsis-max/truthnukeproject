@@ -12,6 +12,51 @@ const HURT_BELOW := 0.34
 
 var _hp := -1
 
+## The gold the map rings somebody in while their portrait is pointed at: the
+## portrait lights up in the same colour, so the two read as one.
+const HOVER_EDGE := Color(1.0, 0.84, 0.35, 0.95)
+
+## Whether it lights up under the cursor. Only the party column's portraits
+## do - those are the ones a click does something with; the big one beside the
+## skills is the one acting, not a button.
+var lights_on_hover := false:
+	set(value):
+		lights_on_hover = value
+		if not value:
+			_light(false)
+
+
+## Asked for the tooltip each time one is about to show, so it can say what a
+## click on the portrait would do right now. Unset, it is tooltip_text.
+var tip_source: Callable
+
+
+func _ready():
+	mouse_entered.connect(func(): _light(lights_on_hover))
+	mouse_exited.connect(_light.bind(false))
+
+
+func _get_tooltip(_at_position: Vector2) -> String:
+	return tip_source.call() if tip_source.is_valid() else tooltip_text
+
+
+## Whether it is lit up under the cursor right now.
+func is_lit() -> bool:
+	return has_theme_stylebox_override("panel")
+
+
+func _light(on: bool):
+	remove_theme_stylebox_override("panel")
+	if not on:
+		return
+	var base := get_theme_stylebox("panel")
+	var lit: StyleBox = base.duplicate() if base != null else StyleBoxFlat.new()
+	if lit is StyleBoxFlat:
+		lit.border_color = HOVER_EDGE
+		lit.set_border_width_all(2)
+		lit.bg_color = lit.bg_color.lightened(0.08)
+	add_theme_stylebox_override("panel", lit)
+
 
 func set_icon(texture: Texture2D):
 	$Layout/Icon.texture = texture

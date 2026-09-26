@@ -83,7 +83,7 @@ func run_test():
 	var by_name = {}
 	for m in markers:
 		by_name[m.effective_name()] = m
-	ok(by_name.has("Goblin 1"), "display names carried onto markers", "%s" % [by_name.keys()])
+	ok(by_name.has("Ranger"), "display names carried onto markers", "%s" % [by_name.keys()])
 	ok(markers[0].texture != null, "markers show the combatant icon")
 	log_line("")
 
@@ -105,7 +105,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== drag, save, reload ========")
-	var mover = by_name["Goblin 1"]
+	var mover = by_name["Ranger"]
 	var moved_from = mover.grid_position()
 	# Drop it somewhere else legal, deliberately off-centre to prove snapping.
 	# A tile the map says is free, found rather than written in: where a given
@@ -127,7 +127,7 @@ func run_test():
 	ok(reloaded.display_name == original.display_name, "display_name preserved", "'%s'" % reloaded.display_name)
 	var saved_ranger = null
 	for spawn in reloaded.spawns:
-		if spawn.display_name == "Goblin 1":
+		if spawn.display_name == "Ranger":
 			saved_ranger = spawn
 	ok(saved_ranger != null and saved_ranger.position == drop_on,
 		"moved spawn saved at its new tile", "%s -> %s" % [moved_from, saved_ranger.position if saved_ranger else "?"])
@@ -166,7 +166,7 @@ func run_test():
 	ok(combat.combatants.size() == original_count, "edited encounter spawns everyone", "%d" % combat.combatants.size())
 	var ranger_in_game = null
 	for comb in combat.combatants:
-		if comb.name == "Goblin 1":
+		if comb.name == "Ranger":
 			ranger_in_game = comb
 	ok(ranger_in_game != null and ranger_in_game.position == drop_on,
 		"the dragged unit starts where it was dropped", "%s" % [ranger_in_game.position if ranger_in_game else "?"])

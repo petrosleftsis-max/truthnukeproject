@@ -483,18 +483,22 @@ func _show_skills(entry: Dictionary):
 	icons.add_theme_constant_override("h_separation", 6)
 	icons.add_theme_constant_override("v_separation", 6)
 	icons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var skills := []
 	for key in keys:
 		var skill: SkillDefinition = SkillDatabase.skills.get(key)
-		if skill == null:
-			continue
-		icons.add_child(_skill_chip(skill, subject))
+		if skill != null:
+			skills.append(skill)
+	# Worked out together, so two whose badges would match here grow a letter.
+	var tags := SkillLook.tags_for(skills)
+	for i in skills.size():
+		icons.add_child(_skill_chip(skills[i], subject, tags[i]))
 	row.add_child(icons)
 	_stat_rows.add_child(row)
 
 
 ## One skill, as its icon with its preview on it. A TextureRect rather than a
 ## button: there is nothing to press here, only something to read.
-func _skill_chip(skill: SkillDefinition, subject: Dictionary) -> Control:
+func _skill_chip(skill: SkillDefinition, subject: Dictionary, tag: String = "") -> Control:
 	var chip := TextureRect.new()
 	chip.texture = skill.icon
 	chip.custom_minimum_size = Vector2(40, 40)
@@ -502,7 +506,7 @@ func _skill_chip(skill: SkillDefinition, subject: Dictionary) -> Control:
 	chip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	chip.mouse_filter = Control.MOUSE_FILTER_STOP
 	chip.tooltip_text = TooltipText.wrap(_preview_of(skill, subject))
-	SkillLook.decorate(chip, skill)
+	SkillLook.decorate(chip, skill, tag)
 	return chip
 
 

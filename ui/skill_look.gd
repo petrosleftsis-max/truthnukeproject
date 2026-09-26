@@ -60,9 +60,82 @@ static func tint(skill: SkillDefinition) -> Color:
 	return Color.WHITE.lerp(Damage.type_colour(type), TINT_STRENGTH)
 
 
+## The badge each of `skills` wears when they are shown together - a panel, a
+## bag, a sheet - in the same order. Two letters where that tells them apart;
+## where two would match, those grow a third, whichever way separates them:
+## Wind Shot and Wind Swoon become WSh and WSw, Big Bomb and Blinding Bomb BiB
+## and BlB. Worked out per group rather than for the whole game, so a badge
+## only grows when there is something on screen to tell it from.
+static func tags_for(skills: Array) -> Array:
+	var tags := []
+	var by_tag := {}
+	for i in skills.size():
+		var skill: SkillDefinition = skills[i]
+		var tag := initials(skill.name) if skill != null and is_shared(skill) else ""
+		tags.append(tag)
+		if tag != "":
+			if not by_tag.has(tag):
+				by_tag[tag] = []
+			by_tag[tag].append(i)
+	for tag in by_tag:
+		# Two of the same thing - two Tiny Bombs in one bag - are no clash:
+		# only different names wearing the same letters are.
+		var names := {}
+		for i in by_tag[tag]:
+			names[skills[i].name] = true
+		if names.size() < 2:
+			continue
+		for way in 3:
+			var grown := {}
+			for skill_name in names:
+				grown[_grown(skill_name, way)] = true
+			if grown.size() == names.size():
+				for i in by_tag[tag]:
+					tags[i] = _grown(skills[i].name, way)
+				break
+	return tags
+
+
+## One way of growing a badge by a letter, tried in order until a clashing
+## group tells apart.
+static func _grown(skill_name: String, way: int) -> String:
+	match way:
+		0:
+			return _grow_second_word(skill_name)
+		1:
+			return _grow_first_word(skill_name)
+	return _grow_both(skill_name)
+
+
+## "WSh" from Wind Shot; "Gun" from a one-word Gun.
+static func _grow_second_word(skill_name: String) -> String:
+	var words = skill_name.split(" ", false)
+	if words.size() < 2:
+		return skill_name.left(3).capitalize()
+	return words[0].left(1).to_upper() + words[1].left(1).to_upper() + words[1].substr(1, 1).to_lower()
+
+
+## "BiB" from Big Bomb.
+static func _grow_first_word(skill_name: String) -> String:
+	var words = skill_name.split(" ", false)
+	if words.size() < 2:
+		return skill_name.left(3).capitalize()
+	return words[0].left(1).to_upper() + words[0].substr(1, 1).to_lower() + words[1].left(1).to_upper()
+
+
+## The last resort, four letters: two of each word.
+static func _grow_both(skill_name: String) -> String:
+	var words = skill_name.split(" ", false)
+	if words.size() < 2:
+		return skill_name.left(4).capitalize()
+	return words[0].left(2).capitalize() + words[1].left(2).capitalize()
+
+
 ## Badges and tints `holder` - an action button or an icon on the sheet - for
 ## `skill`, or takes both off again when `skill` has art of its own or is null.
-static func decorate(holder: Control, skill: SkillDefinition):
+## `tag` is the badge's text when it has been worked out alongside others (see
+## tags_for); left empty, the skill's own two letters.
+static func decorate(holder: Control, skill: SkillDefinition, tag: String = ""):
 	var badge: Label = holder.get_node_or_null(BADGE)
 	if not is_shared(skill):
 		if badge != null:
@@ -71,7 +144,7 @@ static func decorate(holder: Control, skill: SkillDefinition):
 		return
 	if badge == null:
 		badge = letter_badge(holder, "")
-	badge.text = initials(skill.name)
+	badge.text = tag if tag != "" else initials(skill.name)
 	badge.visible = true
 	_tint(holder, tint(skill))
 

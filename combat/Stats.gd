@@ -145,11 +145,28 @@ static func movement_class_name(movement_class: int) -> String:
 	return MOVEMENT_CLASS_NAMES[movement_class]
 
 
-## The gate at `level`, or "" for a skill that costs nothing.
+## Each gate's colour on the HUD - its shelf of spells and its counter - by
+## level, like GATE_NAMES. A gate added without one gets a colour of its own
+## from gate_colour rather than borrowing another's.
+const GATE_COLOURS := [Color.WHITE, Color("5ec8bd"), Color("a48cf0"), Color("f0a15a")]
+
+
+## The gate at `level`, or "" for a skill that costs nothing. A gate beyond the
+## names written so far is still called something.
 static func gate_name(level: int) -> String:
-	if level < 1 or level >= GATE_NAMES.size():
+	if level < 1:
 		return ""
+	if level >= GATE_NAMES.size():
+		return "Gate %d" % level
 	return GATE_NAMES[level]
+
+
+static func gate_colour(level: int) -> Color:
+	if level >= 1 and level < GATE_COLOURS.size():
+		return GATE_COLOURS[level]
+	# Round the colour wheel by the golden angle, so gates added later never
+	# land on top of each other's colour.
+	return Color.from_hsv(fmod(0.12 + 0.381966 * float(level), 1.0), 0.45, 0.95)
 
 
 ## Just the name of it - "Hermes" rather than "Gates of Hermes".

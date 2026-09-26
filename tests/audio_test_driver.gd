@@ -54,7 +54,7 @@ func run_test():
 	# The rule, as given: by element, by the condition it inflicts, and two
 	# named sets that sound like what they are rather than what they hit for -
 	# guns bang, and bombs scatter debris even though they hit as physical.
-	var GUNS := ["gun", "burning_shot", "poison_dart", "warning_shot"]
+	var GUNS := ["gun", "burning_shot", "poison_dart", "warning_shot", "nail_projectile", "venomous_shot"]
 	var BOMBS := ["tiny_bomb", "small_bomb", "medium_bomb", "big_bomb"]
 	var BY_ELEMENT := {
 		Damage.Type.EARTH: "Debris_Scattering",

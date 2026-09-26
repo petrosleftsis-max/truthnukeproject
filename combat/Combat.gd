@@ -292,7 +292,7 @@ var _next_combatant_id := 1
 ## The first Barbarian keeps the plain name; when a second arrives they become
 ## "Barbarian 1" and "Barbarian 2", and so on. Anyone given a display_name on
 ## their spawn is left alone - that is the author saying what to call them, and
-## "Goblin 3" should not become "Goblin 3 1".
+## "Striker 2" should not become "Striker 2 1".
 func _number_duplicates(arrival: Dictionary):
 	var base = arrival.get("base_name", arrival.name)
 	if arrival.get("named_by_author", false):
@@ -382,6 +382,59 @@ func main_skills_of(comb: Dictionary) -> Array:
 	return found
 
 
+## Skills `comb` can use as a secondary action on top of those that are one
+## already: what their passives grant (Cyrus's Light Footed), and anything written on
+## the combatant itself. A passive is the way to give one - the character sheet
+## lists it under Passive Skills, where the player can read it; the combatant's
+## own list says nothing anywhere.
+func secondary_grants(comb: Dictionary) -> Array:
+	var granted: Array = comb.get("secondary_skills", []).duplicate()
+	for passive in active_passives(comb):
+		for key in passive.secondary_skills:
+			if not granted.has(key):
+				granted.append(key)
+	return granted
+
+
+## The passive that lets `comb` use `key` as a secondary action, or null when
+## nothing does or it is already one.
+func secondary_grant_from(comb: Dictionary, key: String) -> PassiveDefinition:
+	for passive in active_passives(comb):
+		if passive.secondary_skills.has(key):
+			return passive
+	return null
+
+
+## Whether `comb` can spend a consumable from the secondary action: a passive
+## that allows it (Cyrus's Quick Hands), or the combatant's own flag.
+func items_as_secondary(comb: Dictionary) -> bool:
+	return items_as_secondary_from(comb) != null or comb.get("items_as_secondary", false)
+
+
+func items_as_secondary_from(comb: Dictionary) -> PassiveDefinition:
+	for passive in active_passives(comb):
+		if passive.items_as_secondary:
+			return passive
+	return null
+
+
+## The attribute `skill` is worked out from in `attacker`'s hands: the one the
+## skill names, unless a passive of theirs moves every skill onto one of its
+## own - the Mimic's Mimicry, which puts whatever it copies on its Self. Read it
+## here rather than off the skill, or the passive changes nothing.
+func scaling_stat_of(attacker: Dictionary, skill: SkillDefinition) -> int:
+	var passive = scaling_stat_from(attacker)
+	return passive.scales_every_skill_with if passive != null else skill.scaling_stat
+
+
+## The passive moving every one of `comb`'s skills onto one stat, or null.
+func scaling_stat_from(comb: Dictionary) -> PassiveDefinition:
+	for passive in active_passives(comb):
+		if passive.scales_every_skill_with >= 0:
+			return passive
+	return null
+
+
 func secondary_skills_of(comb: Dictionary) -> Array:
 	var found = []
 	if has_restriction(comb, "prevents_secondary"):
@@ -397,7 +450,7 @@ func secondary_skills_of(comb: Dictionary) -> Array:
 			found.append(key)
 	# A combatant's own secondary list can also grant a skill outright, so a
 	# character-specific secondary doesn't have to sit in their main list too.
-	for key in comb.get("secondary_skills", []):
+	for key in secondary_grants(comb):
 		if not SkillDatabase.skills.has(key) or found.has(key):
 			continue
 		if SkillDatabase.skills[key].spell_slot_level > 0:
@@ -414,7 +467,7 @@ func secondary_skills_of(comb: Dictionary) -> Array:
 func spell_skills_of(comb: Dictionary) -> Array:
 	var found = []
 	var offered = comb.skill_list.duplicate()
-	offered.append_array(comb.get("secondary_skills", []))
+	offered.append_array(secondary_grants(comb))
 	for key in offered:
 		if not SkillDatabase.skills.has(key) or found.has(key):
 			continue
@@ -441,7 +494,7 @@ func slot_available_for(comb: Dictionary, level: int) -> int:
 	if level <= 0:
 		return 0
 	var slots = comb.get("spell_slots", [])
-	for candidate in range(level, 4):
+	for candidate in range(level, slots.size()):
 		if candidate < slots.size() and slots[candidate] > 0:
 			return candidate
 	return 0
@@ -509,7 +562,7 @@ func active_passives(comb: Dictionary) -> Array:
 ## somebody whose kit is whatever was last done.
 func threat_skills(enemy: Dictionary) -> Array:
 	var keys: Array = enemy.skill_list.duplicate()
-	keys.append_array(enemy.get("secondary_skills", []))
+	keys.append_array(secondary_grants(enemy))
 	if enemy.get("ai_function", "") == "ai_copycat" and last_player_skill_used != "":
 		keys = [last_player_skill_used]
 	var found := []
@@ -844,6 +897,9 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 			if not travelling.is_empty():
 				teleport_to(travelling, destination)
 		await attacker.sprite.play_skill_and_wait(skill.animation)
+		# The battle was left while it played: nothing here to resolve it on.
+		if not still_running():
+			return
 		play_skill_sound(skill)
 		controller.action_locked = false
 		game_ui.refresh_action_buttons()
@@ -1077,6 +1133,8 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	controller.action_locked = true
 	game_ui.lock_action_buttons()
 	await attacker.sprite.play_skill_and_wait(skill.animation)
+	if not still_running():
+		return
 	play_skill_sound(skill)
 	controller.action_locked = false
 	game_ui.refresh_action_buttons()
@@ -1377,8 +1435,8 @@ func get_targets_in_tiles(tiles: Array, caster: Dictionary, targets_ally: bool, 
 ## place to extend if you add a new EffectType later.
 ## Applies one effect. `skill` is what's being used, and `mention_skill` is
 ## true for the first effect landing on a given target, so the log reads
-## "Cyrus used Poison Dart on Goblin 1, dealing 5 damage. Cyrus inflicted
-## Poisoning on Goblin 1." rather than repeating the skill's name per effect.
+## "Cyrus used Poison Dart on Ranger, dealing 5 damage. Cyrus inflicted
+## Poisoning on Ranger." rather than repeating the skill's name per effect.
 func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false, power: float = 1.0, blast_origin = null):
 	# Flagged by who sent it, not by what it does: a heal from an enemy is
 	# still something the other side did to you, and reading the colour as
@@ -2534,7 +2592,7 @@ func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 		# way its damage is its own - see ItemDefinition.item_power for what the
 		# thrower's hidden scaling_stat used to do to this.
 		return stat_of(target, skill.contest_stat) < skill.item_power
-	return stat_of(target, skill.contest_stat) < stat_of(attacker, skill.scaling_stat)
+	return stat_of(target, skill.contest_stat) < stat_of(attacker, scaling_stat_of(attacker, skill))
 
 
 ## What one DAMAGE effect of `skill` does to `target`, before resistances.
@@ -2555,7 +2613,7 @@ func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 func power_behind(attacker: Dictionary, skill: SkillDefinition) -> float:
 	if skill is ItemDefinition:
 		return float(skill.item_power)
-	return Stats.base_damage(stat_of(attacker, skill.scaling_stat),
+	return Stats.base_damage(stat_of(attacker, scaling_stat_of(attacker, skill)),
 		attacker.get("weapon_base", Stats.WEAPON_BASE))
 
 
@@ -2679,8 +2737,8 @@ func predict_hit(attacker: Dictionary, target: Dictionary, skill: SkillDefinitio
 			result.our_stat = skill.item_power
 			result.our_stat_name = "its power"
 		else:
-			result.our_stat = stat_of(attacker, skill.scaling_stat)
-			result.our_stat_name = Stats.stat_name(skill.scaling_stat)
+			result.our_stat = stat_of(attacker, scaling_stat_of(attacker, skill))
+			result.our_stat_name = Stats.stat_name(scaling_stat_of(attacker, skill))
 		if not result.wins:
 			power = 0.5
 	else:
