@@ -184,6 +184,32 @@ func run_test():
 	ok(visible_panel() == "resolution", "Resolution leads to the sizes", visible_panel())
 	for size in MainMenu.RESOLUTIONS:
 		ok(button("%d x %d" % [size.x, size.y]) != null, "%dx%d is offered" % [size.x, size.y])
+	var picker: WindowModePicker = menu._window_mode
+	ok(picker != null and picker.is_visible_in_tree(), "and above them, how the game sits on the screen")
+	if picker != null:
+		var names = picker.buttons.map(func(b): return b.text)
+		ok(names == ["Fullscreen", "Fake fullscreen", "Windowed"], "fullscreen, fake fullscreen and windowed", "%s" % [names])
+		var was := GameSettings.window_mode()
+		picker.buttons[GameSettings.WindowMode.FAKE_FULLSCREEN].pressed.emit()
+		ok(GameSettings.window_mode() == GameSettings.WindowMode.FAKE_FULLSCREEN and picker.buttons[GameSettings.WindowMode.FAKE_FULLSCREEN].button_pressed
+			and not picker.buttons[GameSettings.WindowMode.WINDOWED].button_pressed,
+			"picking fake fullscreen takes it, and lights it", picker.heading())
+		ok(picker.heading() == "Display: Fake fullscreen", "and the line above says so", picker.heading())
+		var config := ConfigFile.new()
+		config.load(GameSettings.PATH)
+		ok(config.get_value(GameSettings.DISPLAY_SECTION, GameSettings.WINDOW_MODE_KEY, "") == "fake_fullscreen",
+			"saved, as a word", "%s" % config.get_value(GameSettings.DISPLAY_SECTION, GameSettings.WINDOW_MODE_KEY, ""))
+		# Forgotten, and read back the way the next run will.
+		GameSettings._window_mode = -1
+		ok(GameSettings.window_mode() == GameSettings.WindowMode.FAKE_FULLSCREEN, "which the next run reads back")
+		picker.buttons[GameSettings.WindowMode.FULLSCREEN].pressed.emit()
+		ok(GameSettings.window_mode() == GameSettings.WindowMode.FULLSCREEN and picker.buttons[GameSettings.WindowMode.FULLSCREEN].button_pressed,
+			"fullscreen the same", picker.heading())
+		button("1280 x 720").pressed.emit()
+		await get_tree().process_frame
+		ok(GameSettings.window_mode() == GameSettings.WindowMode.WINDOWED and picker.buttons[GameSettings.WindowMode.WINDOWED].button_pressed,
+			"a size is a window's, so picking one goes back to a window", picker.heading())
+		GameSettings.set_window_mode(was)
 	button("Back").pressed.emit()
 	await get_tree().process_frame
 	ok(visible_panel() == "options", "Back returns to Options rather than the front", visible_panel())

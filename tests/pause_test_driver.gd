@@ -109,6 +109,19 @@ func run_test():
 		"%s" % [broken])
 	log_line("")
 
+	log_line("== fullscreen, fake fullscreen, windowed ==")
+	var picker: WindowModePicker = pause_ui._window_mode
+	var options_box = pause_ui.get_node("OptionsPanel/VBox")
+	ok(picker != null and picker.get_parent() == options_box
+		and picker.get_index() == options_box.get_node("Title").get_index() + 1,
+		"Options offers them, right under its title")
+	var first_in_loop = picker != null
+	if picker != null:
+		for i in picker.buttons.size():
+			first_in_loop = first_in_loop and pause_ui._options_buttons[i] == picker.buttons[i]
+	ok(first_in_loop, "and first in its keyboard loop")
+	log_line("")
+
 	log_line("== opening with Escape ==")
 	ok(not pause_ui.get_node("PausePanel").visible, "starts closed")
 	ok(get_viewport().gui_get_focus_owner() == null, "nothing focused while playing")

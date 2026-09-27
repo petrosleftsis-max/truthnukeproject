@@ -253,6 +253,9 @@ func check_stage(n: int, talk, script_text: String):
 			node.queue_free()
 	scene.end_blocking_interaction()
 	var tile_map: TileMap = scene._tile_map
+	# The map sits under Map/Terrain here, out of the camera's own path's reach.
+	ok(scene.camera.get_map_rect().size.x > 0.0, "the camera knows the map's size",
+		"%s" % scene.camera.get_map_rect())
 	var sight := StealthSight.new(tile_map)
 	var watch: StealthWatch = scene.stealth
 	ok(watch != null and watch.guards.size() >= 2, "a stealth map, watched", "%d guards" % (watch.guards.size() if watch else 0))

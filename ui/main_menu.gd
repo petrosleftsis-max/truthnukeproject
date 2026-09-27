@@ -95,9 +95,13 @@ var _stack: Array = []
 ## The stage last started from here, to name when it sends the player back.
 static var _last_stage := ""
 var _stealth_note: Label = null
+## Fullscreen, fake fullscreen or windowed, above the sizes.
+var _window_mode: WindowModePicker = null
 
 
 func _ready():
+	# Fullscreen if that is how the player left it.
+	GameSettings.restore_window_mode()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var background := ColorRect.new()
 	background.color = PANEL.darkened(0.35)
@@ -266,6 +270,12 @@ func _build_resolution() -> Control:
 	buttons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	for size in RESOLUTIONS:
 		buttons.add_child(_menu_button("%d x %d" % [size.x, size.y], _set_resolution.bind(size)))
+	_window_mode = WindowModePicker.new()
+	_window_mode.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	for button in _window_mode.buttons:
+		button.custom_minimum_size = Vector2(150, 0)
+		_dress(button)
+	holder.add_child(_window_mode)
 	holder.add_child(buttons)
 	holder.add_child(_back_button())
 	return holder
@@ -458,10 +468,10 @@ func _set_up_stage(stage: Dictionary):
 
 ## Resizing the window is all this has to do: the project stretches everything
 ## else to fit, which is why the pause menu's picker does the same and no more.
+## In fullscreen it goes back to a window, which the picker above then says.
 func _set_resolution(size: Vector2i):
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_RESIZE_DISABLED, false)
-	DisplayServer.window_set_size(size)
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_RESIZE_DISABLED, true)
+	GameSettings.set_window_size(size)
+	_window_mode.refresh()
 
 
 func _quit():

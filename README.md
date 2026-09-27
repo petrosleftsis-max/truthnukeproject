@@ -14,8 +14,10 @@ main menu.
   fight, a hard one, and a narrative scene from later in the story.
 * **Battle Select** — every encounter, playable directly, with the party you
   have left from the last one. *Reset party* puts everyone back on their feet.
-* **Options** — window size, separate volume for music and sound effects,
-  and how fast enemy turns play (also in the pause menu).
+* **Options** — fullscreen, fake fullscreen (a borderless window over the
+  whole screen) or windowed, remembered between runs; window size, which goes
+  back to a window; separate volume for music and sound effects; and how fast
+  enemy turns play (also in the pause menu).
 
 To work on one battle, open `scenes/game.tscn` and press F6; it plays whichever
 encounter its **Fallback Encounter** names.
@@ -167,7 +169,7 @@ only shows when there is something to do with it:
   who has no idea he is there; the click can land on him, or anywhere else if
   he is the only one. A guard's **Pockets** lists item keys to lift; **Picked Flag** is
   set when they are lifted, which a locked door's **Requires Flag** can wait on.
-  A takedown is heard: guards within 3 tiles come to see what it was.
+  A takedown is heard: guards within 5 tiles come to see what it was.
   Somebody knocked out is not in the fight, and stays where they fell - until
   another guard's view falls on them, which sends the map to Alarmed.
 - **Bodies.** A body's pockets can be picked too. Left click beside one to

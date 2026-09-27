@@ -141,6 +141,9 @@ func _build_map():
 			if found != null:
 				_tile_map = found
 				break
+	# The camera's own path only reaches a TileMap straight under the map.
+	if _tile_map != null and camera != null and camera.has_method("use_tile_map"):
+		camera.use_tile_map(_tile_map)
 	# Most terrain scenes save their grid overlay hidden and the encounter
 	# editor turns it on while placing units, but a couple of maps were authored
 	# without it switched off and carry a visible grid. Exploration is not

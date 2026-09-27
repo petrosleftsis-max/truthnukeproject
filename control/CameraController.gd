@@ -53,7 +53,8 @@ var _dragging := false
 
 
 func _ready():
-	_tile_map = get_node_or_null(tile_map_path)
+	if _tile_map == null:
+		_tile_map = get_node_or_null(tile_map_path)
 	if _tile_map == null:
 		push_warning("CameraController: no TileMap found at '%s' - the camera will not be clamped to the map." % tile_map_path)
 	zoom = Vector2.ONE * clampf(zoom.x, min_zoom, max_zoom)
@@ -61,6 +62,16 @@ func _ready():
 	# visible area changes with it, so a position that was legal may not be.
 	get_viewport().size_changed.connect(clamp_to_map)
 	clamp_to_map()
+
+
+## Measures the map by `tile_map` rather than whatever tile_map_path points
+## at. For a scene that loads its map itself and knows where the TileMap ended
+## up, which one fixed path can't: an exploration map keeps it either straight
+## under the map or under a terrain scene inside it (every stealth stage does).
+func use_tile_map(tile_map: TileMap):
+	_tile_map = tile_map
+	if is_inside_tree():
+		clamp_to_map()
 
 
 ## The map's extent in world units, taken from the cells the TileMap actually

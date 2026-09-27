@@ -130,7 +130,7 @@ const DISGUISE_EXPOSED := 2.0
 ## sees him at it knows him at once (see caught_red_handed).
 const DISGUISE_SECONDS := 3.0
 ## A takedown is heard this far off: guards within it come to see what it was.
-const TAKEDOWN_NOISE_TILES := 3.0
+const TAKEDOWN_NOISE_TILES := 5.0
 ## Dragging a body, he walks at this share of his usual pace - and a guard who
 ## sees him at it, or at changing clothes, knows him at once (see
 ## caught_red_handed).

@@ -2,8 +2,9 @@ extends CanvasLayer
 ## Simple pause/options overlay, independent of the combat HUD - works no
 ## matter whose turn it is or what's happening. Escape toggles the Pause
 ## panel (title "Pause", with "Glossary", "Options", "Arena Mode" and "Main
-## Menu"); Options swaps to a resolution picker with the volume sliders under
-## it, and Glossary swaps to the same book the main menu opens.
+## Menu"); Options swaps to fullscreen / fake fullscreen / windowed and a
+## resolution picker with the volume sliders under them, and Glossary swaps to
+## the same book the main menu opens.
 ## The sliders are the same ones the main menu shows (ui/volume_sliders.gd)
 ## and are driven with the mouse - the arrow keys belong to the button loop
 ## here. Picking a resolution just resizes the actual game window - the project's
@@ -40,6 +41,9 @@ extends CanvasLayer
 var _volume: VolumeSliders = null
 ## How fast enemy turns play - the same picker as the main menu's Options.
 var _speed: BattleSpeedPicker = null
+## How the game sits on the screen - the same picker as the main menu's
+## Resolution.
+var _window_mode: WindowModePicker = null
 
 ## The same book the main menu opens, built the same way and for the same
 ## reason: one glossary, read from wherever you happen to be. It wants far more
@@ -65,6 +69,12 @@ func _ready():
 	$OptionsPanel/VBox/Res1280Button.pressed.connect(func(): set_resolution(1280, 720))
 	$OptionsPanel/VBox/Res1920Button.pressed.connect(func(): set_resolution(1920, 1080))
 	$OptionsPanel/VBox/Res2560Button.pressed.connect(func(): set_resolution(2560, 1440))
+	# Fullscreen, fake fullscreen or windowed, above the sizes and first in the
+	# keyboard loop.
+	_window_mode = WindowModePicker.new()
+	$OptionsPanel/VBox.add_child(_window_mode)
+	$OptionsPanel/VBox.move_child(_window_mode, $OptionsPanel/VBox/Title.get_index() + 1)
+	_options_buttons = _window_mode.buttons + _options_buttons
 	# Its three buttons join the keyboard loop after the resolutions; the
 	# sliders below it are mouse-only, like the main menu's.
 	_speed = BattleSpeedPicker.new()
@@ -204,20 +214,10 @@ func _on_main_menu_pressed():
 	Campaign.to_main_menu()
 
 
+## A window of that size, going back to one from fullscreen - see
+## GameSettings.set_window_size.
 func set_resolution(width: int, height: int):
-	# Window.size can be unreliable here specifically because canvas_items
-	# stretch mode is active - it goes through Godot's content-scale
-	# bookkeeping rather than actually resizing the OS window. DisplayServer
-	# operates on the real window directly, bypassing that.
-	# The project has window/size/resizable=false, which on some platforms
-	# blocks *programmatic* resize requests too, not just user drag-resize -
-	# clear that flag right before resizing, then restore it, so dragging
-	# stays locked but this still works.
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_RESIZE_DISABLED, false)
-	DisplayServer.window_set_size(Vector2i(width, height))
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_RESIZE_DISABLED, true)
-	print("Requested resolution ", width, "x", height, " - actual window size is now ", DisplayServer.window_get_size())
-	get_window().move_to_center()
+	GameSettings.set_window_size(Vector2i(width, height))
 	# Applying a choice closes the whole overlay and returns to the game,
 	# rather than going back to the Pause panel.
 	_close()
