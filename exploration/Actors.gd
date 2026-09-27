@@ -368,6 +368,19 @@ func _tile(point: Vector2) -> Vector2i:
 	return _tile_map.local_to_map(point)
 
 
+## The route a scripted walk would take from one position to another. Guards on
+## a stealth map patrol by it, so they go exactly where a scripted character
+## could.
+func route(from: Vector2, to: Vector2) -> Array:
+	return _route(from, to)
+
+
+## Where the waypoint called `wanted` stands in this scene, or null.
+func waypoint_position(wanted: String):
+	var found = _waypoint(wanted)
+	return found.global_position if found != null else null
+
+
 ## The way there, as world positions. Straight there when there is no grid to
 ## think with, which is also what happens on a map with no tiles painted.
 func _route(from: Vector2, to: Vector2) -> Array:

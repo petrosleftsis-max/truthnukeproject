@@ -137,6 +137,43 @@ func run_test():
 	combat.process_status_effects(hero)
 	ok(hero.hp < hp_before, "and it burns them each turn", "%d -> %d" % [hp_before, hero.hp])
 	hero.status_effects.clear()
+	# Run on your own turn, rooted: doubled nothing is nothing. It used to work
+	# out "effective 5, none left, so 5 walked" and hand the 5 back.
+	var acting = combat.get_current_combatant()
+	afflict(acting, "crystallised")
+	controller.set_controlled_combatant(acting)
+	# So the panel greys it out, and says why, rather than taking an action for
+	# nothing.
+	var hud = game.get_node("CanvasLayer/UI")
+	# Buttons are reused from panel to panel, so stop on the panel it is found
+	# on - switch away and the same button is holding something else.
+	var run_button: Button = null
+	for panel in [hud.SkillPanel.MAIN, hud.SkillPanel.SECONDARY]:
+		if run_button != null:
+			break
+		hud.set_skill_panel(panel)
+		hud.refresh_action_buttons()
+		for button in hud.action_buttons():
+			if run_button == null and button.get_meta(hud.SKILL_META, "") == "run":
+				run_button = button
+	var said = run_button.tooltip_text.replace("\n", " ") if run_button != null else ""
+	ok(run_button != null and run_button.disabled, "rooted, Run is greyed out on the panel")
+	ok(said.contains("can't move while Crystallised"), "and its tooltip says why", said.left(90))
+	ok(combat.wasted_on(acting, SkillDatabase.skills["slip_past"]) != "",
+		"Slip Past too - all it does is make moving safe")
+	ok(combat.wasted_on(acting, SkillDatabase.skills["quicken"]) == "",
+		"but not Quicken, which can hurry somebody else along")
+	ok(combat.wasted_on(acting, SkillDatabase.skills["trailblaze"]) == "",
+		"nor Trailblaze, which sets you alight as well")
+	hud.set_skill_panel(hud.SkillPanel.MAIN)
+	await combat.use_skill("run", acting, acting.position, false, true)
+	ok(controller.movement == 0 and combat.get_effective_stat(acting, "movement") == 0,
+		"Run while Crystallised leaves %s nowhere to go" % acting.name,
+		"%d left, effective %d" % [controller.movement, combat.get_effective_stat(acting, "movement")])
+	acting.status_effects.clear()
+	acting.skill_used_this_turn = false
+	acting.secondary_used_this_turn = false
+	controller.set_controlled_combatant(acting)
 	log_line("")
 
 	log_line("======== Frozen: stiff, and slowed ========")

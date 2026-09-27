@@ -10,7 +10,7 @@
 [ext_resource type="SpriteFrames" uid="uid://c0sudq6qa2nsr" path="res://imagese/enemyPriest.tres" id="12_qkqyl"]
 [ext_resource type="SpriteFrames" uid="uid://cs4nt6q8p61i5" path="res://imagese/enemyRanger.tres" id="15_eyeq6"]
 [ext_resource type="SpriteFrames" uid="uid://nlca2j2ewp4s" path="res://imagese/enemyCaster.tres" id="16_r0t0t"]
-[ext_resource type="Texture2D" uid="uid://cr14x2kddoe53" path="res://imagese/cyrus idle/cyrus idle_color0000.png" id="91_cyrusstill"]
+[ext_resource type="Texture2D" uid="uid://2onmiskhubuo" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="91_cyrusstill"]
 [ext_resource type="SpriteFrames" path="res://combat/animations/enfina.tres" id="92_enfinaframes"]
 [ext_resource type="Texture2D" uid="uid://nx1negu4ijrl" path="res://imagese/enfina idle/enfina_idle_color0000.png" id="93_enfinastill"]
 [ext_resource type="SpriteFrames" path="res://combat/animations/alithia.tres" id="94_alithiaframes"]

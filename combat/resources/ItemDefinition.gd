@@ -40,6 +40,37 @@ class_name ItemDefinition
 ## in a bag rather than in a skill list.
 @export var consumed_on_use: bool = true
 
+@export_group("Disguise")
+## Makes this a disguise rather than something to use: on a stealth map, the
+## one sneaking can wear it and pass for this combatant (a key into
+## CombatantDatabase - "priest" to pass for a Priest). Guards who do not see
+## through it walk straight past; see Guard.recognises. Empty for every
+## ordinary item. A disguise is never offered in a fight.
+@export var disguise_as: String = ""
+
+@export_group("Distraction")
+## Makes this something to throw on a stealth map (T, then click where): it
+## lands with a noise, and every guard within this many tiles of it goes to see
+## what it was. Zero for every ordinary item. Like a disguise, never offered in
+## a fight.
+@export var distraction_radius: float = 0.0
+
+
+## Whether this is something worn rather than something used.
+func is_disguise() -> bool:
+	return disguise_as != ""
+
+
+## Whether this is something thrown on a stealth map to draw guards off.
+func is_distraction() -> bool:
+	return distraction_radius > 0.0
+
+
+## Whether this only has a use on a stealth map - worn or thrown there, and so
+## left out of every fight.
+func stealth_only() -> bool:
+	return is_disguise() or is_distraction()
+
 
 ## An item scales off itself, so the attribute a skill would read would only
 ## mislead. AbilityModifier is not hidden with it - it means the same thing here

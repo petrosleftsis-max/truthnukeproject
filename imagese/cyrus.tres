@@ -50,25 +50,23 @@
 [ext_resource type="Texture2D" uid="uid://r4d07oopcwn8" path="res://imagese/cyrus attack/cyrus_fight_color0047.png" id="48_spt3f"]
 [ext_resource type="Texture2D" uid="uid://boge6c2hiev57" path="res://imagese/cyrus attack/cyrus_fight_color0048.png" id="49_6r4gt"]
 [ext_resource type="Texture2D" uid="uid://d3wwv874jea2v" path="res://imagese/cyrus attack/cyrus_fight_color0049.png" id="50_rndw7"]
-[ext_resource type="Texture2D" uid="uid://cr14x2kddoe53" path="res://imagese/cyrus idle/cyrus idle_color0000.png" id="51_7temp"]
-[ext_resource type="Texture2D" uid="uid://de4j5tehtlp0c" path="res://imagese/cyrus idle/cyrus idle_color0001.png" id="52_1uvu1"]
-[ext_resource type="Texture2D" uid="uid://df1ukbjmqqv8n" path="res://imagese/cyrus idle/cyrus idle_color0002.png" id="53_sp0yh"]
-[ext_resource type="Texture2D" uid="uid://dnk1mc585cvhp" path="res://imagese/cyrus idle/cyrus idle_color0003.png" id="54_ca5ek"]
-[ext_resource type="Texture2D" uid="uid://cy2sh0nnktixr" path="res://imagese/cyrus idle/cyrus idle_color0004.png" id="55_p0qww"]
-[ext_resource type="Texture2D" uid="uid://lrbhkkorqia4" path="res://imagese/cyrus idle/cyrus idle_color0005.png" id="56_anuol"]
-[ext_resource type="Texture2D" uid="uid://ck6kf8yiav8qf" path="res://imagese/cyrus idle/cyrus idle_color0006.png" id="57_6jg4b"]
-[ext_resource type="Texture2D" uid="uid://rbbrh7otif6p" path="res://imagese/cyrus idle/cyrus idle_color0007.png" id="58_28k3c"]
-[ext_resource type="Texture2D" uid="uid://c463jdxi6agy6" path="res://imagese/cyrus idle/cyrus idle_color0008.png" id="59_gcyrw"]
-[ext_resource type="Texture2D" uid="uid://dto3shxk0ap7t" path="res://imagese/cyrus idle/cyrus idle_color0009.png" id="60_v3uy1"]
-[ext_resource type="Texture2D" uid="uid://cxq3qhscix0bx" path="res://imagese/cyrus idle/cyrus idle_color0010.png" id="61_qu0uh"]
-[ext_resource type="Texture2D" uid="uid://cg4ybg0ku4a8c" path="res://imagese/cyrus idle/cyrus idle_color0011.png" id="62_6mwgg"]
-[ext_resource type="Texture2D" uid="uid://dm17u4cpys2f0" path="res://imagese/cyrus idle/cyrus idle_color0012.png" id="63_lgc0f"]
-[ext_resource type="Texture2D" uid="uid://cwfnsfbw8j2d0" path="res://imagese/cyrus idle/cyrus idle_color0013.png" id="64_grmbg"]
-[ext_resource type="Texture2D" uid="uid://j627w5ytsxba" path="res://imagese/cyrus idle/cyrus idle_color0014.png" id="65_167bu"]
-[ext_resource type="Texture2D" uid="uid://0hlc0312eokv" path="res://imagese/cyrus idle/cyrus idle_color0015.png" id="66_uktp0"]
-[ext_resource type="Texture2D" uid="uid://lncj4gsfi7cr" path="res://imagese/cyrus idle/cyrus idle_color0016.png" id="67_fmyy7"]
-[ext_resource type="Texture2D" uid="uid://mrdfqln7bs4i" path="res://imagese/cyrus idle/cyrus idle_color0017.png" id="68_iwdja"]
-[ext_resource type="Texture2D" uid="uid://bqp8lsnkfto8" path="res://imagese/cyrus idle/cyrus idle_color0018.png" id="69_l1444"]
+[ext_resource type="Texture2D" uid="uid://2onmiskhubuo" path="res://imagese/cyrus idle/cyrus idle_loop0000.png" id="51_7temp"]
+[ext_resource type="Texture2D" uid="uid://dm8k5qvyjcyce" path="res://imagese/cyrus idle/cyrus idle_loop0001.png" id="52_1uvu1"]
+[ext_resource type="Texture2D" uid="uid://e8h6da0scsoq" path="res://imagese/cyrus idle/cyrus idle_loop0002.png" id="53_sp0yh"]
+[ext_resource type="Texture2D" uid="uid://bm35xm2q6jgko" path="res://imagese/cyrus idle/cyrus idle_loop0003.png" id="54_ca5ek"]
+[ext_resource type="Texture2D" uid="uid://ce3da7vlrsurt" path="res://imagese/cyrus idle/cyrus idle_loop0004.png" id="55_p0qww"]
+[ext_resource type="Texture2D" uid="uid://bv6qlopxegonj" path="res://imagese/cyrus idle/cyrus idle_loop0005.png" id="56_anuol"]
+[ext_resource type="Texture2D" uid="uid://mxxhkfttym4l" path="res://imagese/cyrus idle/cyrus idle_loop0006.png" id="57_6jg4b"]
+[ext_resource type="Texture2D" uid="uid://xtxb4ftnuam" path="res://imagese/cyrus idle/cyrus idle_loop0007.png" id="58_28k3c"]
+[ext_resource type="Texture2D" uid="uid://ckwuldivu6dq8" path="res://imagese/cyrus idle/cyrus idle_loop0008.png" id="59_gcyrw"]
+[ext_resource type="Texture2D" uid="uid://beadly71c42hu" path="res://imagese/cyrus idle/cyrus idle_loop0009.png" id="60_v3uy1"]
+[ext_resource type="Texture2D" uid="uid://7l8uhkh7yo3c" path="res://imagese/cyrus idle/cyrus idle_loop0010.png" id="61_qu0uh"]
+[ext_resource type="Texture2D" uid="uid://b0efqtefnfnhv" path="res://imagese/cyrus idle/cyrus idle_loop0011.png" id="62_6mwgg"]
+[ext_resource type="Texture2D" uid="uid://ddddty267j2yq" path="res://imagese/cyrus idle/cyrus idle_loop0012.png" id="63_lgc0f"]
+[ext_resource type="Texture2D" uid="uid://bt8a7ht513uue" path="res://imagese/cyrus idle/cyrus idle_loop0013.png" id="64_grmbg"]
+[ext_resource type="Texture2D" uid="uid://cqoirwqrd8br8" path="res://imagese/cyrus idle/cyrus idle_loop0014.png" id="65_167bu"]
+[ext_resource type="Texture2D" uid="uid://gjk4y5wbcqyx" path="res://imagese/cyrus idle/cyrus idle_loop0015.png" id="66_uktp0"]
+[ext_resource type="Texture2D" uid="uid://bmnif8beybv" path="res://imagese/cyrus idle/cyrus idle_loop0018.png" id="69_l1444"]
 [ext_resource type="Texture2D" uid="uid://t1100xukke8c" path="res://imagese/cyrus skill/cyrus_throw_action_colored0000(1).png" id="70_be6d3"]
 [ext_resource type="Texture2D" uid="uid://de7e8r075un7m" path="res://imagese/cyrus skill/cyrus_throw_action_colored0000.png" id="71_rqifs"]
 [ext_resource type="Texture2D" uid="uid://dshmw61x8uif5" path="res://imagese/cyrus skill/cyrus_throw_action_colored0001(1).png" id="72_wapst"]
@@ -322,12 +320,6 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": ExtResource("66_uktp0")
-}, {
-"duration": 1.0,
-"texture": ExtResource("67_fmyy7")
-}, {
-"duration": 1.0,
-"texture": ExtResource("68_iwdja")
 }, {
 "duration": 1.0,
 "texture": ExtResource("69_l1444")

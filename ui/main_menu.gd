@@ -2,8 +2,8 @@ extends Control
 class_name MainMenu
 ## The front door: what to play, what to fight, how it looks and sounds, and out.
 ##
-## Four panels, one at a time - the menu itself, the four ways into the game,
-## options, and the two settings under it. Built in code for the same reason the
+## Panels, one at a time - the menu itself, the four ways into the game, the
+## stealth stages, options, and the two settings under it. Built in code for the same reason the
 ## battle selector is: nearly all of it is repeated rows built from data, and a
 ## scene file would be a second place to keep the layout in step.
 ##
@@ -58,10 +58,43 @@ const WAYS_IN := [
 	},
 ]
 
+## The stealth stages, top to bottom: short stand-alone maps, each finished by
+## reaching its way out, which comes back here. Built by
+## tools/build_stealth_stages.gd.
+const STEALTH_STAGES := [
+	{
+		"name": "The Tools",
+		"map": "res://stages/stealth_1.tscn",
+		"description": "Get into the vault - the guard walking the corridor has the key. Throw pebbles to draw guards off, hide behind the crates, lift the key from his pocket, and listen for the guards you cannot see.",
+	},
+	{
+		"name": "The Watch",
+		"map": "res://stages/stealth_2.tscn",
+		"description": "A statue that never stops turning and sees through anything, a hound that smells you through walls, and a captain whose shout brings the whole barracks.",
+	},
+	{
+		"name": "Escort",
+		"map": "res://stages/stealth_3.tscn",
+		"description": "Get Enfina out. She can be seen as easily as you can, so every hiding place has to hold you both.",
+	},
+	{
+		"name": "Disguise",
+		"map": "res://stages/stealth_4.tscn",
+		"description": "Find a priest's robes. The priest at the checkpoint will want a word, the hall guard will not look twice - and the door guard sees through any disguise.",
+	},
+]
+## The panel a stage's way out comes back to - see StealthGoal.ends_at_menu.
+const STEALTH_PANEL := "stealth"
+## How to play, shown above the stages.
+const STEALTH_HELP := "Stay out of the guards' sight - what they can see is tinted on the ground. Move with WASD, dash with Shift. The bar along the top shows everything else you can do, and its key."
+
 const RESOLUTIONS := [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1440)]
 
 var _panels := {}
 var _stack: Array = []
+## The stage last started from here, to name when it sends the player back.
+static var _last_stage := ""
+var _stealth_note: Label = null
 
 
 func _ready():
@@ -74,6 +107,7 @@ func _ready():
 
 	_panels["root"] = _build_root()
 	_panels["play"] = _build_play()
+	_panels[STEALTH_PANEL] = _build_stealth()
 	_panels["options"] = _build_options()
 	_panels["resolution"] = _build_resolution()
 	_panels["volume"] = _build_volume()
@@ -82,6 +116,15 @@ func _ready():
 		add_child(_panels[key])
 	_keyboard = FocusOnDemand.attach(self, null)
 	_show("root")
+	# Sent back here to somewhere in particular - a stage's way out, back to the
+	# stages - with the front door still behind it for Back.
+	if _panels.has(Campaign.menu_opens_at):
+		_show(Campaign.menu_opens_at)
+		if Campaign.menu_opens_at == STEALTH_PANEL and Campaign.menu_note != "":
+			_stealth_note.text = "%s: %s" % [_last_stage, Campaign.menu_note] if _last_stage != "" else Campaign.menu_note
+			_stealth_note.visible = true
+	Campaign.menu_opens_at = ""
+	Campaign.menu_note = ""
 
 
 ## --- The panels ---
@@ -112,6 +155,7 @@ func _build_root() -> Control:
 	buttons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	buttons.add_child(_menu_button("Play", func(): _show("play")))
 	buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
+	buttons.add_child(_menu_button("Stealth Stages", func(): _show(STEALTH_PANEL)))
 	buttons.add_child(_menu_button("Options", func(): _show("options")))
 	buttons.add_child(_menu_button("Glossary", func(): _open_glossary()))
 	buttons.add_child(_menu_button("Exit", _quit))
@@ -130,6 +174,49 @@ func _build_play() -> Control:
 	for way in WAYS_IN:
 		row.add_child(_way_in_card(way))
 	holder.add_child(row)
+	holder.add_child(_back_button())
+	return holder
+
+
+## The stealth stages, one under another: a button to start each, with what it
+## is about beneath it. A list rather than cards because they are played in
+## order, each bringing in something new.
+func _build_stealth() -> Control:
+	var holder := _panel("Stealth Stages")
+	# How the last one went, when a stage's way out has just sent the player
+	# back here. Hidden otherwise.
+	_stealth_note = Label.new()
+	_stealth_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_stealth_note.add_theme_font_size_override("font_size", 16)
+	_stealth_note.add_theme_color_override("font_color", Color("9fc7a4"))
+	_stealth_note.visible = false
+	holder.add_child(_stealth_note)
+	var help := Label.new()
+	help.text = STEALTH_HELP
+	help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	help.custom_minimum_size = Vector2(620, 0)
+	help.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	help.add_theme_font_size_override("font_size", 14)
+	help.add_theme_color_override("font_color", INK_DIM)
+	holder.add_child(help)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	column.custom_minimum_size = Vector2(620, 0)
+	column.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	for i in STEALTH_STAGES.size():
+		var stage: Dictionary = STEALTH_STAGES[i]
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
+		row.add_child(_menu_button("%d   %s" % [i + 1, stage.name], _start_stage.bind(stage)))
+		var about := Label.new()
+		about.text = stage.description
+		about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		about.add_theme_font_size_override("font_size", 13)
+		about.add_theme_color_override("font_color", MUTED)
+		row.add_child(about)
+		column.add_child(row)
+	holder.add_child(column)
 	holder.add_child(_back_button())
 	return holder
 
@@ -353,6 +440,20 @@ func _start(way: Dictionary):
 	if way.has("encounter"):
 		Campaign.current_encounter = load(way.encounter)
 		SceneTransition.change_scene(BATTLE)
+
+
+## Drops Cyrus into a stealth stage, with whoever and whatever it gives him.
+func _start_stage(stage: Dictionary):
+	_set_up_stage(stage)
+	SceneTransition.change_scene(EXPLORATION)
+
+
+## Everything starting a stage does short of going there.
+func _set_up_stage(stage: Dictionary):
+	Campaign.reset()
+	_last_stage = stage.name
+	Campaign.current_map = stage.map
+	Campaign.target_entry = ""
 
 
 ## Resizing the window is all this has to do: the project stretches everything

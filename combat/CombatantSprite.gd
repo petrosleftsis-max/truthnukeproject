@@ -38,10 +38,12 @@ class_name CombatantSprite
 ## Combat.combatant_layer) and whoever is nearer the bottom of the screen
 ## draws in front.
 ##
-## Computed from the actual "idle" frame size rather than a fixed assumption,
-## so any height works with no extra setup - just keep every animation for the
-## same combatant (idle/walk/skill/dead) the same frame size as each other,
-## since the offset is only measured once.
+## Computed from the actual frame size rather than a fixed assumption, so any
+## height works with no extra setup - and measured afresh whenever the
+## animation changes, so one combatant's animations can be different sizes: a
+## set part-redrawn bigger (a 384-pixel idle beside 192-pixel walks) keeps its
+## feet on the ground in every one of them. How far above the head things go
+## (head_height) is still the idle's.
 
 var _animated: AnimatedSprite2D = null
 var _static: Sprite2D = null
@@ -86,6 +88,35 @@ func setup(combatant_sprite_frames: SpriteFrames, map_sprite: Texture2D, facing_
 	set_hidden_alpha(hidden_alpha)
 
 
+## Whoever this sprite was set up as, kept while it is showing somebody else.
+var _own_frames: SpriteFrames = null
+
+
+## Shows this sprite as somebody else - Cyrus in a Priest's robes on a stealth
+## map - or, given null, as whoever it was set up as again. Only an animated
+## sprite changes clothes; a still keeps its picture.
+func show_as(frames: SpriteFrames):
+	if _animated == null:
+		return
+	if _own_frames == null:
+		_own_frames = _animated.sprite_frames
+	var wanted: SpriteFrames = frames if frames != null else _own_frames
+	if wanted == null or _animated.sprite_frames == wanted:
+		return
+	var playing = _animated.animation
+	_animated.sprite_frames = wanted
+	_align_feet_to_tile()
+	if wanted.has_animation(playing):
+		_animated.play(playing)
+	else:
+		play_idle()
+
+
+## The animation set on show right now, or null for a still.
+func showing() -> SpriteFrames:
+	return _animated.sprite_frames if _animated != null else null
+
+
 ## Shifts the sprite's drawn position upward via `offset` - which only
 ## affects rendering, unlike `position`, which movement/knockback/etc. all
 ## depend on being the exact tile centre - by however much its frame height
@@ -94,8 +125,27 @@ func setup(combatant_sprite_frames: SpriteFrames, map_sprite: Texture2D, facing_
 ## offset of 0, matching every existing static sprite exactly.
 func _align_feet_to_tile():
 	_frame_height = _get_reference_frame_height()
-	if _frame_height > 0:
-		_animated.offset.y = Grid.HALF_TILE.y - _frame_height / 2.0
+	_fit_feet()
+	if not _animated.animation_changed.is_connected(_fit_feet):
+		_animated.animation_changed.connect(_fit_feet)
+
+
+## Stands whatever is playing on the tile's floor, by its own frame height.
+func _fit_feet():
+	var height = _height_of(_animated.animation)
+	if height <= 0.0:
+		height = _frame_height
+	if height > 0.0:
+		_animated.offset.y = Grid.HALF_TILE.y - height / 2.0
+
+
+## The height of `animation_name`'s first frame, or 0 when it has none.
+func _height_of(animation_name: StringName) -> float:
+	var frames = _animated.sprite_frames
+	if frames == null or not frames.has_animation(animation_name) or frames.get_frame_count(animation_name) == 0:
+		return 0.0
+	var texture = frames.get_frame_texture(animation_name, 0)
+	return texture.get_height() if texture != null else 0.0
 
 
 ## How far above the tile centre this sprite reaches, for anything that should
@@ -112,10 +162,9 @@ func head_height() -> float:
 ## reference size for _align_feet_to_tile. 0 if there's no usable frame.
 func _get_reference_frame_height() -> float:
 	for anim_name in ["idle", "walk", "skill", "dead"]:
-		if _animated.sprite_frames.has_animation(anim_name) and _animated.sprite_frames.get_frame_count(anim_name) > 0:
-			var frame_texture = _animated.sprite_frames.get_frame_texture(anim_name, 0)
-			if frame_texture != null:
-				return frame_texture.get_height()
+		var height = _height_of(anim_name)
+		if height > 0.0:
+			return height
 	return 0.0
 
 

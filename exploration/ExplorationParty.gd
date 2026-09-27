@@ -31,6 +31,12 @@ const PARTY_Z_TOP := 20
 var leader: CombatantSprite = null
 var followers: Array[CombatantSprite] = []
 var frozen := false
+## Held where they stand by something they are doing - changing into a
+## disguise - while the world goes on around them. `frozen` holds everything:
+## a conversation, a menu, a catch.
+var rooted := false
+## How fast they walk, as a share of move_speed - slower dragging a body.
+var pace := 1.0
 
 ## Positions the leader has occupied, newest last, with the distance walked to
 ## reach each. Followers index into this by distance behind the leader.
@@ -109,16 +115,109 @@ var _facing_left := false
 var _scripted := false
 
 
-func _process(delta):
-	if _scripted:
-		return
-	if leader == null or frozen:
-		_set_walking(false)
-		return
-	var direction = Vector2(
+## --- A dash ---
+##
+## A burst of speed over a set distance - the stealth map's Shift. Taken over
+## the frames it lasts rather than in one jump, and by the same stepping as
+## walking, so it slides along a wall and stops dead at one rather than
+## passing through it.
+
+## Whether a dash is under way. The keys wait until it is over.
+var dashing := false
+var _dash_direction := Vector2.ZERO
+var _dash_left := 0.0
+var _dash_speed := 0.0
+
+
+## Dashes `distance` along `direction` - or the way the line faces, given none -
+## over `seconds`. False, and nothing started, when the line cannot move now.
+func dash(direction: Vector2, distance: float, seconds: float) -> bool:
+	if leader == null or frozen or rooted or _scripted or dashing or vaulting or distance <= 0.0:
+		return false
+	if direction == Vector2.ZERO:
+		direction = Vector2.LEFT if _facing_left else Vector2.RIGHT
+	_dash_direction = direction.normalized()
+	_dash_left = distance
+	_dash_speed = distance / maxf(seconds, 0.01)
+	dashing = true
+	return true
+
+
+## --- A vault ---
+##
+## A hop over something waist-high to the far side of it - the stealth map's
+## V. Straight there along an arc, through what walking would stop at: whatever
+## is in the way is exactly what is being jumped. Followers hop after, since
+## they walk the same trail.
+
+## Whether a vault is under way. The keys wait until it is over.
+var vaulting := false
+## How high the hop goes, at its top.
+const VAULT_HEIGHT := 0.35
+var _vault_from := Vector2.ZERO
+var _vault_to := Vector2.ZERO
+var _vault_seconds := 0.0
+var _vault_elapsed := 0.0
+
+
+## Hops the leader to `to` (in the party's own space) over `seconds`. False, and
+## nothing started, when the line cannot move now.
+func vault(to: Vector2, seconds: float) -> bool:
+	if leader == null or frozen or rooted or _scripted or dashing or vaulting:
+		return false
+	_vault_from = leader.position
+	_vault_to = to
+	_vault_seconds = maxf(seconds, 0.01)
+	_vault_elapsed = 0.0
+	vaulting = true
+	if not is_equal_approx(to.x, _vault_from.x):
+		_set_facing(to.x < _vault_from.x)
+	return true
+
+
+func _vault_along(delta: float):
+	_vault_elapsed = minf(_vault_elapsed + delta, _vault_seconds)
+	var t = _vault_elapsed / _vault_seconds
+	var before = leader.position
+	leader.position = _vault_from.lerp(_vault_to, t) + Vector2(0.0, -sin(PI * t) * Grid.tiles(VAULT_HEIGHT))
+	_record_trail(before, leader.position)
+	_place_followers()
+	moved.emit(leader.position)
+	if t >= 1.0:
+		leader.position = _vault_to
+		vaulting = false
+
+
+## Which way the movement keys are held right now, or zero.
+func held_direction() -> Vector2:
+	return Vector2(
 		_axis(KEY_D, KEY_RIGHT) - _axis(KEY_A, KEY_LEFT),
 		_axis(KEY_S, KEY_DOWN) - _axis(KEY_W, KEY_UP)
 	)
+
+
+func _process(delta):
+	if _scripted:
+		return
+	if leader == null or frozen or rooted:
+		dashing = false
+		if vaulting:
+			# Not left hanging over the barrel: down on the far side.
+			leader.position = _vault_to
+			vaulting = false
+		_set_walking(false)
+		return
+	if vaulting:
+		_vault_along(delta)
+		return
+	if dashing:
+		var length = minf(_dash_speed * delta, _dash_left)
+		_dash_left -= length
+		# Stopped by a wall, or run its length: either way it is over.
+		if not _step(_dash_direction, delta, length / maxf(delta, 0.0001)) or _dash_left <= 0.0:
+			dashing = false
+		return
+	var direction = held_direction()
 	if direction == Vector2.ZERO:
 		_set_walking(false)
 		return
@@ -130,7 +229,7 @@ func _process(delta):
 ##
 ## Shared by the player's own walking and by a scripted retreat, so a retreat
 ## respects the map exactly as walking does rather than sliding through it.
-func _step(direction: Vector2, delta: float) -> bool:
+func _step(direction: Vector2, delta: float, speed: float = -1.0) -> bool:
 	if leader == null:
 		return false
 	if direction.x != 0.0:
@@ -138,7 +237,7 @@ func _step(direction: Vector2, delta: float) -> bool:
 		# leaves everyone facing the way they last went, rather than snapping
 		# back to the default every time the path turns a corner.
 		_set_facing(direction.x < 0.0)
-	var step = direction.normalized() * move_speed * delta
+	var step = direction.normalized() * (speed if speed >= 0.0 else move_speed * pace) * delta
 	var before = leader.position
 	# Each axis separately, so running into a wall at an angle slides along it
 	# instead of stopping dead.
@@ -272,6 +371,8 @@ func _trail_position(distance_back: float) -> Vector2:
 ## Drops the whole party onto one spot and forgets the trail - used when a map
 ## is entered, so nobody trails in from where they stood in the last one.
 func teleport(to: Vector2):
+	vaulting = false
+	dashing = false
 	_trail.clear()
 	_trail_length = 0.0
 	_trail.append({"position": to, "distance": 0.0})
@@ -283,3 +384,8 @@ func teleport(to: Vector2):
 
 func position_of_leader() -> Vector2:
 	return leader.position if leader != null else Vector2.ZERO
+
+
+## Whether the line faces left right now.
+func facing_left() -> bool:
+	return _facing_left

@@ -1,0 +1,111 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://stages/stealth_4_terrain.tscn" id="1_7woua"]
+[ext_resource type="Script" path="res://exploration/EntryPoint.gd" id="2_jxo1q"]
+[ext_resource type="Script" path="res://exploration/MapSetup.gd" id="3_wp54s"]
+[ext_resource type="Script" path="res://exploration/StealthSetup.gd" id="4_jp4jx"]
+[ext_resource type="Script" path="res://exploration/DialogueInteractable.gd" id="5_7lulo"]
+[ext_resource type="Resource" path="res://Dialogue/stealth_stages.dialogue" id="6_ga4y4"]
+[ext_resource type="SpriteFrames" path="res://imagese/icon/interactable_anim.tres" id="7_ild2s"]
+[ext_resource type="Script" path="res://exploration/HidingSpot.gd" id="8_lar0w"]
+[ext_resource type="Texture2D" path="res://imagese/terrain/tile map 1st area.png" id="9_q7cwc"]
+[ext_resource type="Script" path="res://exploration/Guard.gd" id="10_2ffuy"]
+[ext_resource type="Script" path="res://exploration/Waypoint.gd" id="11_j8ylm"]
+[ext_resource type="Script" path="res://exploration/StealthGoal.gd" id="12_n0kff"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q0m07"]
+atlas = ExtResource("9_q7cwc")
+region = Rect2(768, 0, 192, 192)
+
+[node name="Stage4Disguise" type="Node2D" unique_id=293435283]
+
+[node name="Terrain" type="Node2D" parent="." unique_id=691452218 instance=ExtResource("1_7woua")]
+
+[node name="EntryPoint" type="Marker2D" parent="." unique_id=310851702]
+position = Vector2(480, 2016)
+script = ExtResource("2_jxo1q")
+entry_name = "start"
+
+[node name="MapSetup" type="Node" parent="." unique_id=2004365304]
+script = ExtResource("3_wp54s")
+members = Array[String](["cyrus"])
+level = 2
+empty_handed = true
+
+[node name="StealthSetup" type="Node" parent="." unique_id=1997449084]
+script = ExtResource("4_jp4jx")
+battle_terrain = ExtResource("1_7woua")
+fight_name = "Caught in the chapter house"
+guards_seen_only_in_sight = true
+
+[node name="Locker" type="Node2D" parent="." unique_id=899229801]
+position = Vector2(480, 1248)
+script = ExtResource("5_7lulo")
+dialogue = ExtResource("6_ga4y4")
+dialogue_title = "s4_locker"
+only_once = true
+prompt = "Search the locker"
+interaction_radius = 240.0
+sprite_frames = ExtResource("7_ild2s")
+
+[node name="HidingSpot0" type="Node2D" parent="." unique_id=930644631]
+position = Vector2(5664, 2592)
+script = ExtResource("8_lar0w")
+look = SubResource("AtlasTexture_q0m07")
+look_scale = 0.8
+
+[node name="CheckpointPriest" type="Node2D" parent="." unique_id=2141111719]
+position = Vector2(2784, 1056)
+script = ExtResource("10_2ffuy")
+combatant_key = "priest"
+level = 2
+display_name = "Checkpoint Priest"
+facing_degrees = 90.0
+looks_around = false
+back_and_forth = true
+questions = ExtResource("6_ga4y4")
+questions_title = "s4_checkpoint"
+passed_flag = "stage4_passed"
+
+[node name="Waypoint_hall_west" type="Node2D" parent="." unique_id=1634314336]
+position = Vector2(3552, 1440)
+script = ExtResource("11_j8ylm")
+point_name = "hall_west"
+
+[node name="Waypoint_hall_east" type="Node2D" parent="." unique_id=1162364523]
+position = Vector2(5088, 1632)
+script = ExtResource("11_j8ylm")
+point_name = "hall_east"
+
+[node name="HallGuard" type="Node2D" parent="." unique_id=1382938743]
+position = Vector2(3552, 1440)
+script = ExtResource("10_2ffuy")
+level = 2
+display_name = "Hall Guard"
+recognises = 2
+patrol = Array[String](["hall_west", "hall_east"])
+back_and_forth = true
+
+[node name="DoorGuard" type="Node2D" parent="." unique_id=2063782290]
+position = Vector2(6048, 864)
+script = ExtResource("10_2ffuy")
+level = 2
+display_name = "Door Guard"
+facing_degrees = 90.0
+looks_around = false
+recognises = 1
+back_and_forth = true
+
+[node name="Goal" type="Node2D" parent="." unique_id=467834465]
+position = Vector2(7200, 2592)
+script = ExtResource("12_n0kff")
+completed_flag = "stage4_done"
+ghost_flag = "stage4_ghost"
+dialogue = ExtResource("6_ga4y4")
+dialogue_title = "s4_goal"
+ends_at_menu = true
+automatic = true
+only_once = true
+prompt = "Slip out"
+interaction_radius = 172.8
+sprite_frames = ExtResource("7_ild2s")

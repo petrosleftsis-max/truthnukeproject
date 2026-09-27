@@ -1,0 +1,104 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://dqucchdhp3fkm" path="res://laboratory_terrain_fight.tscn" id="1_terrain"]
+[ext_resource type="Script" uid="uid://cuc3ggd1v8ak1" path="res://exploration/EntryPoint.gd" id="2_entry"]
+[ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/MapSetup.gd" id="3_setup"]
+[ext_resource type="Script" path="res://exploration/StealthSetup.gd" id="4_stealth"]
+[ext_resource type="Script" path="res://exploration/Guard.gd" id="5_guard"]
+[ext_resource type="Script" uid="uid://tn5n7wtckj10" path="res://exploration/Waypoint.gd" id="6_waypoint"]
+[ext_resource type="Script" uid="uid://bx4mgbrftmp1c" path="res://exploration/DialogueInteractable.gd" id="7_talk"]
+[ext_resource type="Script" path="res://exploration/PictureInteractable.gd" id="8_picture"]
+[ext_resource type="Resource" path="res://Dialogue/demo_stealth.dialogue" id="9_dialogue"]
+[ext_resource type="SpriteFrames" uid="uid://dj4efx57eiy1p" path="res://imagese/icon/interactable_anim.tres" id="10_sparkle"]
+
+[node name="StealthDemo" instance=ExtResource("1_terrain")]
+
+[node name="EntryPoint" type="Marker2D" parent="."]
+position = Vector2(-1632, 3168)
+script = ExtResource("2_entry")
+entry_name = "start"
+
+[node name="MapSetup" type="Node" parent="."]
+script = ExtResource("3_setup")
+members = Array[String](["cyrus"])
+level = 2
+empty_handed = true
+
+[node name="StealthSetup" type="Node" parent="."]
+script = ExtResource("4_stealth")
+battle_terrain = ExtResource("1_terrain")
+fight_name = "Caught in the lab"
+
+[node name="Locker" type="Node2D" parent="."]
+position = Vector2(-672, 1824)
+script = ExtResource("7_talk")
+dialogue = ExtResource("9_dialogue")
+dialogue_title = "locker"
+only_once = true
+prompt = "Search the locker"
+interaction_radius = 240.0
+sprite_frames = ExtResource("10_sparkle")
+
+[node name="NoticeBoard" type="Node2D" parent="."]
+position = Vector2(-1632, 1824)
+script = ExtResource("8_picture")
+picture = "res://pictures/demo_notice_board.tscn"
+interaction_radius = 240.0
+sprite_frames = ExtResource("10_sparkle")
+
+[node name="Goal" type="Node2D" parent="."]
+position = Vector2(8544, 1440)
+script = ExtResource("7_talk")
+dialogue = ExtResource("9_dialogue")
+dialogue_title = "goal"
+prompt = "Slip out"
+interaction_radius = 240.0
+sprite_frames = ExtResource("10_sparkle")
+
+[node name="PriestNorth" type="Node2D" parent="."]
+position = Vector2(480, 672)
+script = ExtResource("6_waypoint")
+point_name = "priest_north"
+
+[node name="PriestSouth" type="Node2D" parent="."]
+position = Vector2(480, 3744)
+script = ExtResource("6_waypoint")
+point_name = "priest_south"
+
+[node name="HallWest" type="Node2D" parent="."]
+position = Vector2(1248, 4128)
+script = ExtResource("6_waypoint")
+point_name = "hall_west"
+
+[node name="HallEast" type="Node2D" parent="."]
+position = Vector2(5856, 4128)
+script = ExtResource("6_waypoint")
+point_name = "hall_east"
+
+[node name="CorridorPriest" type="Node2D" parent="."]
+position = Vector2(480, 672)
+script = ExtResource("5_guard")
+combatant_key = "priest"
+level = 2
+facing_degrees = 90.0
+patrol = Array[String](["priest_north", "priest_south"])
+back_and_forth = true
+pause_seconds = 2.0
+
+[node name="HallBarbarian" type="Node2D" parent="."]
+position = Vector2(1248, 4128)
+script = ExtResource("5_guard")
+combatant_key = "barbarian"
+level = 2
+recognises = 1
+patrol = Array[String](["hall_west", "hall_east"])
+back_and_forth = true
+pause_seconds = 2.5
+
+[node name="EastBarbarian" type="Node2D" parent="."]
+position = Vector2(7008, 2016)
+script = ExtResource("5_guard")
+combatant_key = "barbarian"
+level = 2
+facing_degrees = 180.0
+recognises = 2

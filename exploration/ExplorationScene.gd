@@ -34,6 +34,8 @@ var _blocking: Dictionary = {}
 var _interactables: Array = []
 var _current_target: Interactable = null
 var _blocking_interaction := false
+## The guards' side of a stealth map, or null on any other map.
+var stealth: StealthWatch = null
 
 
 func _enter_tree():
@@ -50,12 +52,16 @@ func _ready():
 		Campaign.set_party(setup.members, setup.level)
 	else:
 		Campaign.seed_party(starting_party)
-	if setup != null and setup.empty_handed:
+	# Back from a fight on this map, the party walks in with what it left with.
+	# Emptying the bags and handing the kit out again is for arriving: done on
+	# the way back, it took whatever had been picked up or lifted here since.
+	var coming_back = Campaign.return_to_position
+	if setup != null and setup.empty_handed and not coming_back:
 		# Before the story has given anybody anything. Done after the party is
 		# set, so it empties the bags of whoever is actually here.
 		for key in Campaign.living_party():
 			Campaign.empty_inventory(key)
-	if setup != null and setup.hands_kit_out():
+	if setup != null and setup.hands_kit_out() and not coming_back:
 		# After emptying, so a map that wants the party holding exactly this and
 		# nothing else can set both and get it.
 		for key in Campaign.living_party():
@@ -71,6 +77,7 @@ func _ready():
 	if not Campaign.party_changed.is_connected(_on_party_changed):
 		Campaign.party_changed.connect(_on_party_changed)
 	_spawn_party()
+	begin_stealth()
 	if game_ui != null and game_ui.has_method("set_exploration_mode"):
 		game_ui.set_exploration_mode(true)
 	_refresh_party_panel()
@@ -438,6 +445,31 @@ func step_party_back_from(interactable: Node) -> void:
 ## door moves the party between maps.
 func reload_map():
 	get_tree().reload_current_scene()
+
+
+## Sets the guards watching, on a map with a StealthSetup in it. Public so a
+## map can be made a stealth map after it has come up, which is how the tests
+## build one.
+func begin_stealth():
+	if stealth != null:
+		stealth.queue_free()
+		stealth = null
+	var map = get_node_or_null(MAP_NODE)
+	if map == null:
+		return
+	var setups = map.find_children("*", "StealthSetup", true, false)
+	if setups.is_empty():
+		return
+	stealth = StealthWatch.new()
+	stealth.name = "StealthWatch"
+	add_child(stealth)
+	stealth.begin(self, setups[0], _tile_map)
+
+
+## Whether something else has the party held right now - a conversation, a
+## menu. The guards stand still for it too: nobody is caught mid-sentence.
+func is_holding() -> bool:
+	return _blocking_interaction or (party != null and party.frozen)
 
 
 ## The loaded map's MapSetup, if it has one. Searched the whole way down

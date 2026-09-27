@@ -102,6 +102,10 @@ func _ready():
 			])
 			continue
 		claimed_tiles[spawn.position] = spawn.combatant_key
+		if spawn.side != 0 and spawn.arrives_on_round > 1:
+			# Not here yet - see _bring_in_arrivals.
+			_arriving.append(spawn)
+			continue
 		if spawn.side == 0:
 			player_tiles.append(spawn.position)
 			fallback_party.append(spawn.combatant_key)
@@ -129,7 +133,7 @@ func _ready():
 	centre_on_party()
 	# Let the player arrange the party across the starting tiles before anyone
 	# takes a turn. Pointless with only one tile to stand on.
-	if deployment_tiles.size() > 1 and groups[Group.PLAYERS].size() > 0:
+	if deployment_tiles.size() > 1 and groups[Group.PLAYERS].size() > 0 and not encounter.skip_deployment:
 		begin_deployment()
 	else:
 		start_first_turn()
@@ -146,6 +150,13 @@ func _deploy_party(tiles: Array, fallback_party: Array, loadouts: Array = []):
 	# and so no roster exists yet; the encounter's own player spawns stand in.
 	Campaign.seed_party(fallback_party)
 	var fighters = Campaign.battle_party()
+	if not encounter.fighters.is_empty():
+		# The encounter names who fights - a stealth map's fight, fielding
+		# whoever was caught and whoever came running. Still only the living.
+		fighters = []
+		for key in encounter.fighters:
+			if CombatantDatabase.combatants.has(key) and Campaign.is_alive(key):
+				fighters.append(key)
 	if fighters.size() > tiles.size():
 		push_warning("Encounter '%s' has %d starting tiles but %d fighters in the party - the last %d sit this one out." % [
 			encounter.display_name, tiles.size(), fighters.size(), fighters.size() - tiles.size()
@@ -2123,6 +2134,13 @@ func clamp_hp_to_max(comb: Dictionary):
 ## so it can reduce a hit-chance roll; callers that need a stat clamped to a
 ## sane range (e.g. movement never going below 0) should clamp themselves.
 func get_effective_stat(comb: Dictionary, stat: String) -> int:
+	# Rooted is rooted: anything raising movement - Run doubling it, Quicken
+	# adding to it - has nothing to work on. Here rather than only where a turn
+	# starts, because a buff landing mid-turn works out its share from this
+	# number: Run on a Crystallised Striker read "5 before, none left, so 5
+	# walked", doubled the 5 and handed the 5 "unwalked" back.
+	if stat == "movement" and has_restriction(comb, "prevents_movement"):
+		return 0
 	return fold_stat_changes(comb, stat, comb.get(stat, 0))
 
 
@@ -2163,7 +2181,70 @@ func set_next_combatant():
 		for comb in combatants:
 			comb.turn_taken = false
 		turn = 0
+		round_number += 1
+		# At the top of the round, before anybody moves, so newcomers take
+		# their place in the order rather than cutting into a round already
+		# under way.
+		_bring_in_arrivals()
 	current_combatant = turn_queue[turn]
+
+
+## --- Arriving late ---
+##
+## An enemy spawn with arrives_on_round above 1 is held back until the top of
+## that round, then put on its tile - or the nearest free one - and into the
+## turn order.
+
+## Which round the fight is in: 1 until everybody has had a turn.
+var round_number := 1
+## Spawns still to come, in the order the encounter lists them.
+var _arriving: Array = []
+
+
+## Whoever's round has come, brought in.
+func _bring_in_arrivals():
+	var still_coming: Array = []
+	var came := false
+	for spawn in _arriving:
+		if spawn.arrives_on_round > round_number:
+			still_coming.append(spawn)
+			continue
+		var definition: CombatantDefinition = CombatantDatabase.combatants[spawn.combatant_key]
+		var tile = _free_tile_for(definition.class_m, spawn.position)
+		if tile.x == -99999:
+			# Nowhere to put them this round; try again at the next.
+			still_coming.append(spawn)
+			continue
+		add_combatant(create_combatant(definition, spawn.combatant_key, spawn.display_name, spawn), 1, tile)
+		update_information.emit("[color=red]%s[/color] joins the fight.\n" % combatants.back().name)
+		came = true
+	_arriving = still_coming
+	if came:
+		emit_signal("update_turn_queue", combatants, turn_queue)
+		emit_signal("update_combatants", combatants)
+
+
+## Spawns still waiting to arrive, and the round each comes on.
+func arriving() -> Array:
+	return _arriving
+
+
+## The free tile nearest `wanted` that something moving by `movement_class`
+## can stand on, or (-99999, -99999) for none within a few steps.
+func _free_tile_for(movement_class: int, wanted: Vector2i) -> Vector2i:
+	var frontier := [wanted]
+	var visited := {wanted: true}
+	while not frontier.is_empty() and visited.size() < 200:
+		var tile: Vector2i = frontier.pop_front()
+		if controller.is_in_bounds(tile) and not controller.is_tile_blocking(tile, movement_class) \
+				and get_combatant_at(tile).is_empty():
+			return tile
+		for step in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+			var next: Vector2i = tile + step
+			if not visited.has(next):
+				visited[next] = true
+				frontier.append(next)
+	return Vector2i(-99999, -99999)
 
 
 ## Ends the current combatant's turn and hands off to whoever's next -
@@ -3021,6 +3102,46 @@ func find_best_single_target_skill(comb: Dictionary) -> String:
 			best_range = reach
 			best_key = skill_key
 	return best_key
+
+
+## Whether all `skill` does is get its own user moving - more movement, or
+## moving without being reacted to - and on nobody but them. Run and Slip Past.
+## Not Quicken or Hover, which can go on somebody else, nor Trailblaze, which
+## sets you alight as well.
+func only_gets_you_moving(skill: SkillDefinition) -> bool:
+	if skill.max_range > 0 or skill.aoe_radius > 0 or skill.deals_damage:
+		return false
+	if skill.teleports != SkillDefinition.TeleportWho.NOBODY:
+		return false
+	var effects = skill.all_effects()
+	if effects.is_empty():
+		return skill.suppresses_reactions
+	for effect in effects:
+		if effect == null or effect.stat != "movement":
+			return false
+		match effect.type:
+			EffectDefinition.EffectType.STAT_MODIFIER:
+				if effect.modifier_amount <= 0:
+					return false
+			EffectDefinition.EffectType.STAT_MULTIPLIER:
+				if effect.stat_multiplier <= 1.0:
+					return false
+			_:
+				return false
+	return true
+
+
+## Why `skill` would do nothing at all for `comb` right now, or "" when it
+## would do something. The action panel greys it out and says this; the AI
+## leaves it alone. Rooted, Run doubles a movement that is not there.
+func wasted_on(comb: Dictionary, skill: SkillDefinition) -> String:
+	if skill == null or not only_gets_you_moving(skill):
+		return ""
+	for condition in conditions_of(comb):
+		if condition.prevents_movement:
+			return "%s can't move while %s, so %s would do nothing." % [
+				comb.get("name", "They"), condition.display_name, skill.name]
+	return ""
 
 
 ## The movement an AI should plan around. Zero for anything rooting them, so a
@@ -3984,9 +4105,11 @@ func ai_melee_rush(comb: Dictionary):
 	var wanted = _ai_most_wanted(comb, keys)
 	var run: SkillDefinition = SkillDatabase.skills.get("run")
 	if "run" in comb.skill_list and run != null and can_afford_skill(comb, run) \
-			and meets_level_for(comb, run) and not comb.get("skill_used_this_turn", false):
+			and meets_level_for(comb, run) and not comb.get("skill_used_this_turn", false) \
+			and wasted_on(comb, run) == "":
 		# Nothing to swing at this turn anyway, so the main action is worth
-		# more as ground covered.
+		# more as ground covered - unless something roots them, when there
+		# is no ground to cover.
 		await use_skill("run", comb, comb.position, false)
 	await approach_with_remaining_movement(comb, wanted)
 	await ai_secondary_attack(comb)
@@ -4010,7 +4133,9 @@ func ai_hit_and_explode(comb: Dictionary):
 	var movement_budget = movement_budget_of(comb)
 	var can_reach_now = can_reach_blast(comb, self_destruct, movement_budget)
 	if not can_reach_now and "run" in comb.skill_list:
-		await use_skill("run", comb, comb.position, false)
+		# Rooted, a Run gets it nowhere: it waits for the root to go instead.
+		if wasted_on(comb, SkillDatabase.skills.get("run")) == "":
+			await use_skill("run", comb, comb.position, false)
 		if comb.alive and controller.movement > 0:
 			var approach_tile = find_best_reachable_tile(comb, controller.movement, func(tile):
 				return -float(get_position_distance(tile, target.position))

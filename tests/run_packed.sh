@@ -52,7 +52,9 @@ sed -i 's|run/main_scene="[^"]*"|run/main_scene="res://main_menu.tscn"|' "$DST/p
 # A user:// of its own, so a packed test run never touches the player's saves.
 awk '{print} /^config\/name=/{print "config/use_custom_user_dir=true"; print "config/custom_user_dir_name=\"Messengers of Truth test harness\""}' "$DST/project.godot" > "$DST/project.godot.new"
 mv "$DST/project.godot.new" "$DST/project.godot"
-awk -v drv="$SUITE" '{print} /^Actors="\*res:\/\/exploration\/Actors.gd"$/{printf "T=\"*res://%s_test_driver.gd\"\n", drv}' "$DST/project.godot" > "$DST/project.godot.new"
+# The driver after whichever autoload is last - see run.sh.
+awk -v drv="$SUITE" 'NR==FNR { l=$0; sub(/\r$/, "", l); if (l ~ /^\[/) sec=l; if (sec=="[autoload]" && l ~ /^[A-Za-z_][A-Za-z0-9_]*="/) last=FNR; next }
+	{print} FNR==last {printf "T=\"*res://%s_test_driver.gd\"\n", drv}' "$DST/project.godot" "$DST/project.godot" > "$DST/project.godot.new"
 mv "$DST/project.godot.new" "$DST/project.godot"
 
 "$GODOT" --headless --path "$DST" --import >/dev/null 2>&1

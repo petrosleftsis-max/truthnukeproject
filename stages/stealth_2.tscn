@@ -1,0 +1,119 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://stages/stealth_2_terrain.tscn" id="1_y7fcx"]
+[ext_resource type="Script" path="res://exploration/EntryPoint.gd" id="2_an475"]
+[ext_resource type="Script" path="res://exploration/MapSetup.gd" id="3_6q2d1"]
+[ext_resource type="Script" path="res://exploration/StealthSetup.gd" id="4_4c6yj"]
+[ext_resource type="Script" path="res://exploration/Guard.gd" id="5_rn87w"]
+[ext_resource type="Script" path="res://exploration/Waypoint.gd" id="6_n2eux"]
+[ext_resource type="Script" path="res://exploration/StealthGoal.gd" id="7_qpk7s"]
+[ext_resource type="Resource" path="res://Dialogue/stealth_stages.dialogue" id="8_o1w4w"]
+[ext_resource type="SpriteFrames" path="res://imagese/icon/interactable_anim.tres" id="9_pnf3m"]
+
+[node name="Stage2Watch" type="Node2D" unique_id=1514913347]
+
+[node name="Terrain" type="Node2D" parent="." unique_id=1067014884 instance=ExtResource("1_y7fcx")]
+
+[node name="EntryPoint" type="Marker2D" parent="." unique_id=844491039]
+position = Vector2(480, 1440)
+script = ExtResource("2_an475")
+entry_name = "start"
+
+[node name="MapSetup" type="Node" parent="." unique_id=498073781]
+script = ExtResource("3_6q2d1")
+members = Array[String](["cyrus"])
+level = 2
+empty_handed = true
+everyone_carries = Array[String](["pebble", "pebble"])
+
+[node name="StealthSetup" type="Node" parent="." unique_id=612270427]
+script = ExtResource("4_4c6yj")
+battle_terrain = ExtResource("1_y7fcx")
+fight_name = "Caught by the watch"
+guards_seen_only_in_sight = true
+joins_within_tiles = 7.0
+tiles_per_late_round = 5.0
+
+[node name="Statue" type="Node2D" parent="." unique_id=1924131457]
+position = Vector2(2784, 1824)
+script = ExtResource("5_rn87w")
+combatant_key = "mimic"
+level = 2
+display_name = "Watchful Statue"
+kind = 2
+ward_turn_degrees = 35.0
+back_and_forth = true
+can_be_taken_down = false
+
+[node name="Waypoint_hound_west" type="Node2D" parent="." unique_id=178178083]
+position = Vector2(4704, 1824)
+script = ExtResource("6_n2eux")
+point_name = "hound_west"
+
+[node name="Waypoint_hound_east" type="Node2D" parent="." unique_id=2046210298]
+position = Vector2(6240, 1824)
+script = ExtResource("6_n2eux")
+point_name = "hound_east"
+
+[node name="Hound" type="Node2D" parent="." unique_id=270049803]
+position = Vector2(4704, 1824)
+script = ExtResource("5_rn87w")
+combatant_key = "bomber"
+level = 2
+display_name = "Hound"
+kind = 1
+patrol = Array[String](["hound_west", "hound_east"])
+back_and_forth = true
+walk_speed_tiles = 1.8
+
+[node name="Sentry" type="Node2D" parent="." unique_id=493475769]
+position = Vector2(7200, 1056)
+script = ExtResource("5_rn87w")
+level = 2
+display_name = "Sentry"
+facing_degrees = -90.0
+looks_around = false
+back_and_forth = true
+
+[node name="Captain" type="Node2D" parent="." unique_id=288352867]
+position = Vector2(7776, 2016)
+script = ExtResource("5_rn87w")
+level = 2
+display_name = "Captain"
+kind = 3
+shout_tiles = 14.0
+facing_degrees = 180.0
+back_and_forth = true
+
+[node name="Waypoint_barracks_west" type="Node2D" parent="." unique_id=1572004210]
+position = Vector2(6816, 2976)
+script = ExtResource("6_n2eux")
+point_name = "barracks_west"
+
+[node name="Waypoint_barracks_east" type="Node2D" parent="." unique_id=1871037028]
+position = Vector2(7968, 2976)
+script = ExtResource("6_n2eux")
+point_name = "barracks_east"
+
+[node name="BarracksPatrol" type="Node2D" parent="." unique_id=2003226632]
+position = Vector2(6816, 2976)
+script = ExtResource("5_rn87w")
+combatant_key = "ranger"
+level = 2
+display_name = "Barracks Patrol"
+patrol = Array[String](["barracks_west", "barracks_east"])
+back_and_forth = true
+
+[node name="Goal" type="Node2D" parent="." unique_id=1436089630]
+position = Vector2(8160, 288)
+script = ExtResource("7_qpk7s")
+completed_flag = "stage2_done"
+ghost_flag = "stage2_ghost"
+dialogue = ExtResource("8_o1w4w")
+dialogue_title = "s2_goal"
+ends_at_menu = true
+automatic = true
+only_once = true
+prompt = "Slip out"
+interaction_radius = 172.8
+sprite_frames = ExtResource("9_pnf3m")

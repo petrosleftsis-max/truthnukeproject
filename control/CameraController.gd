@@ -44,7 +44,8 @@ class_name CameraController
 ## board or leaning in on one corner is part of playing it. Off in exploration,
 ## where the view is a composed shot: the map is drawn to be read at one
 ## distance, and a scene that walks someone in from off the edge only works if
-## the edge is where the framing says it is.
+## the edge is where the framing says it is. A stealth map turns it back on
+## (see StealthWatch) - seeing where the guards look is the point there.
 @export var allow_zoom := true
 
 var _tile_map: TileMap = null

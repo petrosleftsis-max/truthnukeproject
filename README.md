@@ -92,6 +92,191 @@ saved encounter always runs.
 Each spawn carries its own level, weapon base and defence, so the same character
 can be brought in weak early and dangerous later.
 
+### Making a stealth map
+
+A stealth map is an exploration map with guards on it, played in real time: the
+party has to stay out of their sight, and if a guard is sure of them, the fight
+starts right where everyone is standing.
+
+**To try one**, open `scenes/try_stealth_demo.tscn` and press **F6**: Cyrus in
+the lab, a locker with a disguise in it, a notice board to look at closely
+(the point-and-click example), and three guards between him and the far corner
+- a Priest who knows his own robes, a Barbarian no disguise fools, and one any
+disguise does. `scenes/stealth_demo.tscn` is how it is put together.
+
+1. Build the map as an **instance of a battle terrain** - the way
+   `explore_crossroads.tscn` is an instance of `crossroads_terrain.tscn` - so a
+   tile on the map is the same tile in the fight.
+2. Add a **StealthSetup** node. Point **Battle Terrain** at that terrain. Leave
+   **Backup** empty for a fight alone, or list who comes running (and at which
+   waypoint), since that depends on the story beat.
+3. Add a **Guard** node per guard: which combatant they are and at what level,
+   which way they face, and a **Patrol** of waypoint names to walk between.
+   They stop at each waypoint and look about, and see a 160-degree cone as far
+   as the walls let them - the same walls that block a shot in combat.
+   **Recognises** says which disguises fool them: their own role only (a Priest
+   knows every Priest), any disguise, or none.
+
+A guard's meter fills while anyone is in their view - fast up close, slower far
+off - and drains when they break the line. The screen feels it too: amber
+creeps in round the edges as the fullest meter fills (red once a guard is
+sure), and the camera leans in slightly while anyone is looking. A heartbeat
+quickens and the music muffles as a meter fills; off-screen guards growing
+sure get an arrow at the screen's edge; and Cyrus starts, a "!" over him, the
+moment a guard first sees him.
+
+Guards react. One who sees somebody stops and turns to them; lose them before
+the meter fills and the guard stares after them, then - once it drains - walks
+to where they were last seen and searches there with a 340-degree view instead
+of 160, before going back to their beat (**Search Seconds** on the Guard sets
+how long). Caught, time crawls for a moment, the screen shakes, the guard
+flashes and a sting plays before the fight. The heartbeat and sting are
+synthesised stand-ins until **Heartbeat Sound** and **Caught Sound** on the
+StealthSetup are given real ones. **Shift** dashes three tiles in a
+blink, then needs five seconds to recover; a guard who sees the dash grows sure
+three times as fast, so it is for crossing gaps nobody is watching. The
+numbers are the constants at the top of `exploration/StealthWatch.gd`. The
+mouse wheel zooms in and out on a stealth map - an ordinary map keeps one
+framing - and the view stays centred on the party either way. Everything a guard can see is tinted
+on the map. Win the fight and the guards are gone when the party walks back in.
+
+**Disguises** are items with **Disguise As** set to a combatant key (see
+`items/priest_robes.tres`), handed out like any item:
+`do Campaign.give_item("cyrus", "priest_robes")`. On a stealth map a bar along
+the top lists them: **1-9** puts one on - three seconds standing still,
+shuffling into it, and any guard who sees him at it knows him at once - and then he
+looks like that character. **H** takes it off again at once, out of every
+guard's sight only. A disguise never shows up in a fight's Items panel.
+
+**The rest of the kit.** Every key below has a button on the same bar, which
+only shows when there is something to do with it:
+
+- **T - throw.** An item with **Distraction Radius** set (`items/pebble.tres`)
+  can be thrown up to 7 tiles along a clear line: click where. Guards within
+  its radius of where it lands go and look. A **Shift** dash is a noise too -
+  guards within 4 tiles turn to it.
+- **V - vault.** Beside a barrel, with free floor straight across it, V hops
+  over. Anything a tile's **Blocks** stops walkers on (0) but not fliers on
+  (1) can be vaulted; a wall stops fliers too, and cannot.
+- **Hiding spots.** A **HidingSpot** node on a floor tile hides whoever stands
+  on it from any guard not right beside it - unless the guard saw somebody and
+  is going to look: then he sees into every spot within 3 tiles of where he
+  saw them, a body stuffed into one included. One person each, so a party of
+  two needs two spots together. **Look** is the picture drawn there.
+- **Left click - take down, right click - pick pockets.** Right behind a guard
+  who has no idea he is there; the click can land on him, or anywhere else if
+  he is the only one. A guard's **Pockets** lists item keys to lift; **Picked Flag** is
+  set when they are lifted, which a locked door's **Requires Flag** can wait on.
+  A takedown is heard: guards within 3 tiles come to see what it was.
+  Somebody knocked out is not in the fight, and stays where they fell - until
+  another guard's view falls on them, which sends the map to Alarmed.
+- **Bodies.** A body's pockets can be picked too. Left click beside one to
+  drag it after you at half pace - no dashing, no changing clothes, and any
+  guard who sees you at it knows you at once - and left click again to put it
+  down. Put down beside a free hiding spot, it goes in it: never found, and
+  that spot is no good for hiding in any more.
+- **Alert.** Every investigation puts the map more on edge (Calm, Wary,
+  Alarmed on the bar), a found body or a captain's shout all the way. The
+  effects grow smoothly with it rather than switching on at a level: at the
+  top, guards walk 40% quicker, see 20 degrees wider either side and grow sure
+  60% quicker. It fades by itself at the StealthSetup's **Alert Fades Per
+  Second** - 50 seconds from the top to calm, as the stages have it.
+- **Q - Cat's Ears.** With **Guards Seen Only In Sight** ticked on the
+  StealthSetup, a guard is only drawn while Cyrus has a line to them, is right
+  beside them, or they are growing sure of him. Q hears every guard through
+  the walls for 4 seconds, then needs 4 more to recover.
+- **Guard Kind.** A **Watchman** is everything above. A **Dog** has no cone -
+  it smells anybody within **Smell Tiles**, walls or not, hiding spot or not,
+  and no disguise fools it. A **Ward** (a statue, a charm) turns on the spot
+  at **Ward Turn Degrees** a second, sees through every disguise, never moves,
+  can't be taken down and never fights. A **Captain** is a watchman whose
+  shout, once he is sure, alarms the map and brings every guard within **Shout
+  Tiles** into the fight from the first round.
+- **Who fights.** **Joins Within Tiles** on the StealthSetup: only guards that
+  close to where he was caught (and whoever caught him) start the fight; the
+  rest arrive a round later for every **Tiles Per Late Round** further off they
+  were, or not at all if that is 0. 0 for Joins Within Tiles means everybody,
+  all at once. Any enemy spawn in any encounter can arrive late the same way -
+  **Arrives On Round** on the SpawnDefinition.
+- **Questions.** A guard with **Questions** set stops somebody in a disguise
+  they doubt at half sure and plays that conversation. If it sets **Passed
+  Flag** he waves them on for good; if not, he is sure.
+- **The ghost bonus.** A **StealthGoal** node is the way out: walking into it
+  sets **Completed Flag**, and **Ghost Flag** as well if no guard ever so much
+  as began to notice anybody. "Unseen" on the bar says it is still on.
+
+Whatever a click would do right now is shown in a small prompt right over
+whoever it would be done to, with a ring at their feet - and, behind somebody
+who can't be taken down, it says so. **Can Be Taken Down** on a Guard sets
+that; a ward never can be.
+
+**After a fight.** Caught, the map is written down before the fight starts,
+and walking back in carries on from there: the guards who fought and lost are
+gone, anybody who never reached the fight is still on watch, bodies lie where
+they were (or stay in their hiding spots), picked pockets stay picked, the
+disguise stays on and the map is as on edge as it was. Only the ghost bonus is
+gone - caught is noticed.
+
+Most of the numbers - reach, throw range, how long the ears last, how much
+each alert level adds - are constants at the top of
+`exploration/StealthWatch.gd`.
+
+**Stealth stages.** **Stealth Stages** on the title screen lists four short
+maps to play on their own: 1 has the tools (throwing, hiding, pockets, a
+takedown), 2 the ward, the hound and the captain, 3 getting Enfina out, and 4
+disguises and a checkpoint that asks questions. In all four, guards are seen
+only when Cyrus could see them, so Q is worth pressing.
+Reaching a stage's way out goes back to the list, which says how it went - a
+**StealthGoal** with **Ends At Menu** ticked does that. The list is
+`STEALTH_STAGES` in `ui/main_menu.gd`. From the editor,
+`scenes/try_stealth_stages.tscn` with **F6** opens the same stages without the
+title screen, and the lab demo too.
+
+**Laying out a stage.** Two tools paint a map in the lab's style from text,
+one character a tile: `#` wall, `T` wall with a torch, `b` and `o` barrels,
+anything else floor (letters make handy markers). The walls are worked out
+from where the floor is.
+
+- In the editor, add a **LayoutPainter** node beside a TileMap, type the
+  layout into **Layout** and tick **Paint Now**. Touch up by hand afterwards.
+- The test stages are built by `tools/build_stealth_stages.gd`, which carves
+  each layout out of rock a rectangle at a time and places the guards, spots
+  and conversations on it. Running it rebuilds `stages/` and overwrites any
+  hand edits there:
+
+  ```bash
+  godot --headless --path . res://tools/build_stealth_stages.tscn
+  ```
+
+  Each stage is two scenes: `stealth_N_terrain.tscn` is the map alone, which
+  the fight is played on, and `stealth_N.tscn` puts the guards on it. Once built
+  they are ordinary scenes to open and change.
+
+### Making a point-and-click picture
+
+A close look at something - a desk, a room, a mural - where the player hovers
+over things to see what they are and clicks them.
+
+1. New scene with a **Picture** node as its root, sized to your artwork, and a
+   **TextureRect** under it holding the image. Give the Picture a **Title** to
+   show above it.
+2. Add a **Hotspot** over each thing that can be clicked, sized to cover it.
+   Hovering names it (**Display Name**); clicking says its **Examine Text**,
+   plays its **Dialogue**, sets its flag, and then opens another picture or
+   goes to a map.
+3. For an item puzzle, set **Takes Item** to an item key. The player picks the
+   item from the bag along the bottom and clicks the hotspot; the right one
+   sets **Item Sets Flag** (used up, unless you untick that), anything else gets
+   the wrong-item line.
+4. To make the picture change, give an image (a **PictureLayer**) or a
+   hotspot **Shown While Flag** or **Hidden Once Flag** - the drawer drawn open
+   once the key is used, the letter gone once taken.
+
+Open it from a map with a **PictureInteractable** (walk up, press E), or from a
+conversation with `do Pictures.open("res://pictures/desk.tscn")`, which waits
+until the pictures are closed. **Esc** or right-click goes back a picture (or
+puts down a held item first).
+
 ### Writing a conversation
 
 Dialogue Manager scripts live in `Dialogue/`. Beyond its own syntax, this game

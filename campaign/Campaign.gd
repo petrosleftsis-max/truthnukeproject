@@ -280,10 +280,26 @@ func has_map_to_return_to() -> bool:
 
 ## Called when a battle launched from exploration ends. A win retires its
 ## trigger; a loss leaves it in place so the fight can be tried again.
-func finish_battle_from_exploration(won: bool):
+## `still_coming` is the enemy spawns that had not arrived when it ended (see
+## Combat.arriving): on a stealth map, a guard still on the way never fought,
+## and is still on watch when the party walks back in.
+func finish_battle_from_exploration(won: bool, still_coming: Array = []):
 	if won and _pending_trigger != "":
 		cleared_triggers[_pending_trigger] = true
 	_pending_trigger = ""
+	if won and stealth_state.has(current_map):
+		var state: Dictionary = stealth_state[current_map]
+		var late := still_coming.map(func(spawn): return spawn.get_meta("guard", ""))
+		for guard in state.get("fighting", []):
+			if not late.has(guard) and not state.defeated.has(guard):
+				state.defeated.append(guard)
+
+
+## Map path -> how its stealth watch stood the moment somebody was caught (see
+## StealthWatch.snapshot), so walking back in after the fight carries on from
+## there rather than from scratch: whoever was knocked out still down, pockets
+## still picked, and the guards who fought and lost gone.
+var stealth_state := {}
 
 
 func is_trigger_cleared(trigger_id: String) -> bool:
@@ -391,6 +407,7 @@ func reset():
 	_encounter_answer = EncounterAnswer.UNANSWERED
 	party_state.clear()
 	cleared_triggers.clear()
+	stealth_state.clear()
 	party_order.clear()
 	party_level = 1
 	inventories.clear()
@@ -584,7 +601,17 @@ func leave_arena():
 	SceneTransition.change_scene(back.scene)
 
 
-func to_main_menu():
+## What the title screen opens on, and a line for it to show there, when
+## whatever sent the player back has more to say than "the title screen": a
+## stealth stage's exit goes back to the list of stages, saying how it went.
+## MainMenu reads them once and clears them.
+var menu_opens_at := ""
+var menu_note := ""
+
+
+## Back to the title screen - opened at `opens_at` (one of MainMenu's panels)
+## with `note` shown on it, when given.
+func to_main_menu(opens_at: String = "", note: String = ""):
 	_arena_return = {}
 	# The title screen plays nothing of its own, and a battle's music carrying
 	# on underneath it belongs to a fight that is over. Only here: Arena Mode and
@@ -595,6 +622,8 @@ func to_main_menu():
 	current_map = ""
 	current_encounter = null
 	return_to_position = false
+	menu_opens_at = opens_at
+	menu_note = note
 	SceneTransition.change_scene(MAIN_MENU)
 
 
@@ -725,8 +754,34 @@ func combat_items_of(key: String) -> Array:
 	var found: Array = []
 	var slots = inventory_of(key)
 	for i in mini(COMBAT_SLOTS, slots.size()):
-		if slots[i] != "":
-			found.append(slots[i])
+		if slots[i] == "":
+			continue
+		# A disguise is worn on a stealth map, not thrown at anybody, and a
+		# pebble thrown there to draw a guard off does nothing in a fight.
+		var item: ItemDefinition = ItemDatabase.item(slots[i])
+		if item != null and item.stealth_only():
+			continue
+		found.append(slots[i])
+	return found
+
+
+## The disguises `key` is carrying, each once, in the order they sit in the bag.
+func disguises_of(key: String) -> Array:
+	var found: Array = []
+	for slot in inventory_of(key):
+		var item: ItemDefinition = ItemDatabase.item(slot) if slot != "" else null
+		if item != null and item.is_disguise() and not found.has(slot):
+			found.append(slot)
+	return found
+
+
+## The things to throw `key` is carrying, each once, in bag order.
+func distractions_of(key: String) -> Array:
+	var found: Array = []
+	for slot in inventory_of(key):
+		var item: ItemDefinition = ItemDatabase.item(slot) if slot != "" else null
+		if item != null and item.is_distraction() and not found.has(slot):
+			found.append(slot)
 	return found
 
 

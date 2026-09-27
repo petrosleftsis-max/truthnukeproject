@@ -86,3 +86,8 @@ speed
 shelves
 look
 faceaim
+sneak
+pictures
+demos
+stealthkit
+stages

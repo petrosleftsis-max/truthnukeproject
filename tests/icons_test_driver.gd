@@ -142,6 +142,10 @@ func run_test():
 	log_line("======== and the consumables ========")
 	var wrong := []
 	for key in ItemDatabase.items:
+		# A disguise is worn on a stealth map, not used up in a fight - it is
+		# not a consumable and does not wear the consumable icon.
+		if ItemDatabase.items[key].stealth_only():
+			continue
 		if icon_file(ItemDatabase.items[key]) != "consumable__skill.png":
 			wrong.append("%s: %s" % [key, icon_file(ItemDatabase.items[key])])
 	ok(wrong.is_empty(), "every consumable carries the consumable icon", "%s" % [wrong])

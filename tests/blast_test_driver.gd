@@ -46,11 +46,12 @@ func run_test():
 			and skill.aoe_shape == SkillDefinition.AoEShape.DIAMOND:
 			blasts.append("%s (radius %d)" % [skill.name, skill.aoe_radius])
 	log_line("  NOTE  blasts that respect cover: %s" % [blasts])
-	# Fireball is deliberately not one of them - it says so in its own
-	# description, "even behind cover" - so nothing here changes what it does.
+	# Fireball is one of them. It used to be the one that ignored cover, and
+	# said so - "even behind cover" - so its description has to have changed
+	# with it, or the tooltip promises what the blast no longer does.
 	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
-	ok(not fireball.respects_blocking,
-		"Fireball still ignores cover, as its description says")
+	ok(fireball.respects_blocking and not fireball.description.contains("behind cover"),
+		"Fireball respects cover, and its description no longer says otherwise", fireball.description)
 	log_line("")
 
 	log_line("======== a blast is measured from where it lands ========")

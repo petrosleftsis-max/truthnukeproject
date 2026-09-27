@@ -17,6 +17,8 @@
 [ext_resource type="Resource" uid="uid://2kjpu6k1nnvm" path="res://items/big_bomb.tres" id="15_qclub"]
 [ext_resource type="Resource" uid="uid://bcsnq0kqgtohn" path="res://items/mediocre_cure_potion.tres" id="16_7fsfb"]
 [ext_resource type="Resource" uid="uid://bjpybmg472d8c" path="res://items/potent_cure_potion.tres" id="17_qclub"]
+[ext_resource type="Resource" path="res://items/priest_robes.tres" id="18_priest_robes"]
+[ext_resource type="Resource" path="res://items/pebble.tres" id="19_pebble"]
 
 [node name="ItemDatabase" type="Node" unique_id=2096321018]
 script = ExtResource("1_db")
@@ -33,6 +35,8 @@ items = {
 "medium_bomb": ExtResource("14_7fsfb"),
 "poison_bottle": ExtResource("10_poison_bottle"),
 "potent_cure_potion": ExtResource("17_qclub"),
+"pebble": ExtResource("19_pebble"),
+"priest_robes": ExtResource("18_priest_robes"),
 "shock_bottle": ExtResource("11_shock_bottle"),
 "small_bomb": ExtResource("13_xhevo"),
 "terror_bottle": ExtResource("12_terror_bottle"),

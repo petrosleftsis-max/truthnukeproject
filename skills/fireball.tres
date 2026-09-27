@@ -8,7 +8,7 @@
 [resource]
 script = ExtResource("3_jae8u")
 name = "Fireball"
-description = "Fire engulf everyone, even behind cover."
+description = "Fire engulfs everyone around where it lands, unless a wall shelters them."
 min_range = 1
 max_range = 15
 icon = ExtResource("2_0ef30")

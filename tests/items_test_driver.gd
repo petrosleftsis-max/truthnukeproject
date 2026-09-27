@@ -33,7 +33,9 @@ func run_test():
 		ok(item.icon != null, "  and has an icon")
 		ok(String(key) == item.name.to_lower().replace(" ", "_"),
 			"  its key is its name", item.name.to_lower().replace(" ", "_"))
-		ok(item.consumed_on_use, "  and goes away when used")
+		# A disguise is taken off again rather than used up.
+		ok(item.consumed_on_use != item.is_disguise(),
+			"  and goes away when used" if not item.is_disguise() else "  and, being a disguise, is kept")
 		ok(SkillDatabase.skills.get(key) == item,
 			"  and resolves through the same lookup skills do")
 	log_line("")

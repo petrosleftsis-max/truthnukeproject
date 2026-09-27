@@ -260,6 +260,10 @@ func run_test():
 		# he killed himself, and every cast after that landed on nobody, which
 		# reads exactly like one roll for the pair.
 		coin.affects_both_sides = false
+		# Rolls are what is being measured, not cover. Borrowed from Fireball,
+		# it respects walls as Fireball does, and wherever this map puts a wall
+		# between the caster and the pair it never reached them at all.
+		coin.respects_blocking = false
 		# hit_chance is the skill's accuracy PLUS the caster's own, clamped to
 		# 100 - so a 50 on the skill alone was landing every time. Set so the
 		# pair of them comes to a coin toss.

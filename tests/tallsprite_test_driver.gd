@@ -38,7 +38,56 @@ func frames_of_height(height: int) -> SpriteFrames:
 	return frames
 
 
+## Where the bottom edge of what `sprite` is showing ends up, relative to the
+## tile centre it stands on. Half a tile down is the floor.
+func feet_of(sprite: CombatantSprite) -> float:
+	var drawn: AnimatedSprite2D = sprite._animated
+	var texture = drawn.sprite_frames.get_frame_texture(drawn.animation, drawn.frame)
+	return drawn.offset.y + texture.get_height() / 2.0
+
+
+func mixed_sizes():
+	log_line("======== a set part-redrawn bigger keeps its feet down ========")
+	# A big idle beside tile-sized walk and skill, the way a set looks while it
+	# is being redrawn at twice the size one animation at a time.
+	var frames = frames_of_height(Grid.TILE_SIZE * 2)
+	var small = Image.create(Grid.TILE_SIZE, Grid.TILE_SIZE, false, Image.FORMAT_RGBA8)
+	for animation in ["walk", "skill"]:
+		frames.add_animation(animation)
+		frames.add_frame(animation, ImageTexture.create_from_image(small))
+	frames.set_animation_loop("skill", false)
+	var sprite = CombatantSprite.new()
+	add_child(sprite)
+	sprite.setup(frames, null, false)
+	await get_tree().process_frame
+	ok(is_equal_approx(feet_of(sprite), Grid.HALF_TILE.y), "standing, the big idle is on the floor", "%.0f" % feet_of(sprite))
+	sprite.play_walk()
+	ok(is_equal_approx(feet_of(sprite), Grid.HALF_TILE.y), "walking, the smaller frames are too - not floating a tile up",
+		"%.0f" % feet_of(sprite))
+	sprite.play_idle()
+	ok(is_equal_approx(feet_of(sprite), Grid.HALF_TILE.y), "and back to idle, back on the floor")
+	ok(is_equal_approx(sprite.head_height(), float(Grid.TILE_SIZE)), "how tall it stands is the idle's", "%.0f" % sprite.head_height())
+	sprite.queue_free()
+	# The real ones: Cyrus's idle, and the Mimic's and Priest's skills.
+	for key in ["cyrus", "mimic", "priest"]:
+		var definition: CombatantDefinition = CombatantDatabase.combatants[key]
+		var real = CombatantSprite.new()
+		add_child(real)
+		real.setup(definition.sprite_frames, definition.map_sprite, false)
+		await get_tree().process_frame
+		var off_the_floor := []
+		for animation in definition.sprite_frames.get_animation_names():
+			real._animated.play(animation)
+			if not is_equal_approx(feet_of(real), Grid.HALF_TILE.y):
+				off_the_floor.append("%s at %.0f" % [animation, feet_of(real)])
+		ok(off_the_floor.is_empty(), "%s stands on the floor in every animation, whatever its size" % key, "%s" % [off_the_floor])
+		real.queue_free()
+	await get_tree().process_frame
+	log_line("")
+
+
 func run_test():
+	await mixed_sizes()
 	log_line("======== feet land on the tile, whatever the frame height ========")
 	# Worked out from Grid rather than from the numbers that happen to be right
 	# today, so changing the tile size cannot quietly break this.

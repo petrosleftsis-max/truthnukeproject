@@ -1,0 +1,206 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://exploration/Picture.gd" id="1_picture"]
+[ext_resource type="Script" path="res://exploration/Hotspot.gd" id="2_hotspot"]
+[ext_resource type="Script" path="res://exploration/PictureLayer.gd" id="3_layer"]
+[ext_resource type="Resource" path="res://Dialogue/demo_stealth.dialogue" id="4_dialogue"]
+
+[node name="NoticeBoard" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+script = ExtResource("1_picture")
+title = "The Guard Room"
+
+[node name="Wall" type="ColorRect" parent="."]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+color = Color(0.17, 0.15, 0.13, 1)
+
+[node name="Board" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 110.0
+offset_top = 70.0
+offset_right = 830.0
+offset_bottom = 620.0
+mouse_filter = 2
+color = Color(0.42, 0.29, 0.18, 1)
+
+[node name="Poster" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 115.0
+offset_right = 420.0
+offset_bottom = 450.0
+mouse_filter = 2
+color = Color(0.91, 0.86, 0.75, 1)
+
+[node name="PosterText" type="Label" parent="Poster"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 16.0
+offset_right = 260.0
+offset_bottom = 320.0
+theme_override_colors/font_color = Color(0.16, 0.12, 0.09, 1)
+theme_override_font_sizes/font_size = 24
+text = "WANTED
+
+A cat-eared thief
+in a red scarf.
+
+Reward:
+50 gold"
+horizontal_alignment = 1
+
+[node name="Roster" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 460.0
+offset_top = 110.0
+offset_right = 790.0
+offset_bottom = 330.0
+mouse_filter = 2
+color = Color(0.95, 0.92, 0.84, 1)
+
+[node name="RosterText" type="Label" parent="Roster"]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 14.0
+offset_right = 318.0
+offset_bottom = 210.0
+theme_override_colors/font_color = Color(0.16, 0.12, 0.09, 1)
+theme_override_font_sizes/font_size = 20
+text = "DUTY ROSTER
+
+North corridor - Priest
+Main hall - Barbarian
+East room - Barbarian"
+horizontal_alignment = 1
+
+[node name="Scrap" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 490.0
+offset_top = 380.0
+offset_right = 740.0
+offset_bottom = 560.0
+mouse_filter = 2
+color = Color(0.85, 0.79, 0.64, 1)
+
+[node name="ScrapText" type="Label" parent="Scrap"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 60.0
+offset_right = 240.0
+offset_bottom = 120.0
+theme_override_colors/font_color = Color(0.36, 0.28, 0.2, 1)
+theme_override_font_sizes/font_size = 20
+text = "(a scrap of map)"
+horizontal_alignment = 1
+
+[node name="Strongbox" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 910.0
+offset_top = 400.0
+offset_right = 1170.0
+offset_bottom = 590.0
+mouse_filter = 2
+color = Color(0.23, 0.24, 0.27, 1)
+
+[node name="StrongboxText" type="Label" parent="Strongbox"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 70.0
+offset_right = 250.0
+offset_bottom = 120.0
+theme_override_colors/font_color = Color(0.7, 0.72, 0.76, 1)
+theme_override_font_sizes/font_size = 24
+text = "STRONGBOX"
+horizontal_alignment = 1
+
+[node name="OpenBox" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 910.0
+offset_top = 400.0
+offset_right = 1170.0
+offset_bottom = 590.0
+script = ExtResource("3_layer")
+shown_while_flag = "demo_box_open"
+
+[node name="Blasted" type="ColorRect" parent="OpenBox"]
+layout_mode = 0
+offset_right = 260.0
+offset_bottom = 190.0
+mouse_filter = 2
+color = Color(0.12, 0.1, 0.09, 1)
+
+[node name="BlastedText" type="Label" parent="OpenBox"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 70.0
+offset_right = 250.0
+offset_bottom = 120.0
+theme_override_colors/font_color = Color(0.88, 0.66, 0.35, 1)
+theme_override_font_sizes/font_size = 22
+text = "(blown open)"
+horizontal_alignment = 1
+
+[node name="PosterSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 115.0
+offset_right = 420.0
+offset_bottom = 450.0
+script = ExtResource("2_hotspot")
+display_name = "Wanted poster"
+examine_text = "WANTED: a cat-eared thief in a red scarf. A good likeness, sadly."
+
+[node name="RosterSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 460.0
+offset_top = 110.0
+offset_right = 790.0
+offset_bottom = 330.0
+script = ExtResource("2_hotspot")
+display_name = "Duty roster"
+examine_text = "A Priest on the north corridor, a Barbarian in the main hall, another in the east room. Good to know."
+
+[node name="ScrapSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 490.0
+offset_top = 380.0
+offset_right = 740.0
+offset_bottom = 560.0
+script = ExtResource("2_hotspot")
+display_name = "Scrap of map"
+opens_picture = "res://pictures/demo_map_scrap.tscn"
+
+[node name="StrongboxSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 910.0
+offset_top = 400.0
+offset_right = 1170.0
+offset_bottom = 590.0
+script = ExtResource("2_hotspot")
+display_name = "Strongbox"
+examine_text = "Locked tight. It would take something with a bit of a bang."
+takes_item = "tiny_bomb"
+item_sets_flag = "demo_box_open"
+item_text = "The lock gives with a bang. Something rattles inside."
+wrong_item_text = "That won't open it."
+hidden_once_flag = "demo_box_open"
+
+[node name="PouchSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 960.0
+offset_top = 440.0
+offset_right = 1120.0
+offset_bottom = 560.0
+script = ExtResource("2_hotspot")
+display_name = "Coin pouch"
+dialogue = ExtResource("4_dialogue")
+dialogue_title = "pouch"
+sets_flag = "demo_took_pouch"
+shown_while_flag = "demo_box_open"
+hidden_once_flag = "demo_took_pouch"

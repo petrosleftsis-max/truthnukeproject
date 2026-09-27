@@ -673,8 +673,16 @@ func add_turn_queue_icon(combatant: Dictionary):
 
 
 func update_turn_queue(combatants: Array, turn_queue: Array):
+	# Built afresh: somebody arriving late mid-fight changes the order, and
+	# adding to the faces already there would put them in twice.
+	for face in $TurnQueue/Queue.get_children():
+		$TurnQueue/Queue.remove_child(face)
+		face.queue_free()
 	for c in turn_queue:
 		var comb = combatants[c]
+		# The dead stay in the order, skipped; their faces went when they fell.
+		if not comb.get("alive", true):
+			continue
 		add_turn_queue_icon(comb)
 
 
@@ -1064,6 +1072,11 @@ func _fill_action(action: Button, skill_key: String, skill_used: bool, as_second
 		# Greyed out for the two separate reasons a spell can be
 		# unavailable: the action is gone, or the slots are.
 		action.disabled = slot_spent or not combat.can_afford_skill(comb, skill)
+	# Pressable, but it would do nothing - Run while Crystallised - so it is
+	# greyed out too, and says why at the top of its tooltip.
+	var wasted: String = combat.wasted_on(comb, skill) if combat != null and not comb.is_empty() else ""
+	if wasted != "":
+		action.disabled = true
 	action.icon = skill.icon
 	SkillLook.decorate(action, skill, tag)
 	var key_mark = action.get_node_or_null(HOTKEY_MARK)
@@ -1076,6 +1089,8 @@ func _fill_action(action: Button, skill_key: String, skill_used: bool, as_second
 	if paying > 0:
 		tip = "Your %s is spent - this will use %s.\n\n%s" % [
 			Stats.gate_name(skill.spell_slot_level), Stats.gate_name(paying), tip]
+	if wasted != "":
+		tip = "%s\n\n%s" % [wasted, tip]
 	action.tooltip_text = TooltipText.wrap(tip)
 	clear_action_button_connections(action)
 	# Pressable or not, it can be looked at: a greyed-out button does not press,

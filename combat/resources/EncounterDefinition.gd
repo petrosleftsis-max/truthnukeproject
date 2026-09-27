@@ -51,6 +51,17 @@ class_name EncounterDefinition
 ## which is what you want unless you have a reason otherwise.
 @export var playable_region: Rect2i = Rect2i()
 
+@export_group("Who fights")
+## Who fills the player tiles, in order, instead of the travelling party. Empty
+## - which is every encounter written by hand - means the party. A stealth map
+## sets it for the fight it starts: whoever was sneaking, and whatever backup
+## that map says comes running (see StealthSetup).
+@export var fighters: Array[String] = []
+## Starts the fight straight away, everybody on the tile they spawn on, with no
+## arranging the party first. For a fight whose starting positions are the
+## point - somebody caught exactly where they stood.
+@export var skip_deployment: bool = false
+
 
 ## The tiles units are allowed to occupy on this encounter's map: the explicit
 ## playable_region if one is set, otherwise everything `tile_map` has painted.

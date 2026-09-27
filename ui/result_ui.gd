@@ -42,7 +42,7 @@ func _on_combat_finished():
 	# A battle started from an exploration map retires its trigger on a win, so
 	# the same fight isn't waiting there when the party walks back past it.
 	if Campaign.has_map_to_return_to():
-		Campaign.finish_battle_from_exploration(not enemies_left)
+		Campaign.finish_battle_from_exploration(not enemies_left, combat.arriving())
 		$Panel/VBox/BackButton.text = "Continue"
 	# A fight that finishes its story offers the title screen and nothing else.
 	# The encounter says so itself - see EncounterDefinition.victory_ends_the_run

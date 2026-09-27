@@ -266,8 +266,21 @@ func ranger():
 	var enfina = who(combat, "enfina", 0)
 	var archer = who(combat, "ranger", 1)
 	if standing_as_laid_out(combat, cast):
-		# Cyrus the weaker by a distance, and not the nearer, so the choice shows.
-		cyrus.hp = 40
+		# Cyrus the weaker by a distance, and not the nearer, so the choice shows -
+		# but able to take the Ranger's hardest hit and a tick of whatever it
+		# leaves on him. At a flat 40 he could not once its shots came off its
+		# main stat: one finished him, the turn ran on without him, and what was
+		# being measured was lost. Worked out from the Ranger's own numbers, so
+		# retuning them does not break this again.
+		var hardest = 0
+		for key in archer.skill_list:
+			var skill: SkillDefinition = SkillDatabase.skills.get(key)
+			if skill == null or skill.targets_ally or not combat.meets_level_for(archer, skill):
+				continue
+			hardest = maxi(hardest, int(combat.predict_hit(archer, cyrus, skill).damage))
+		cyrus.hp = mini(hardest * 3 / 2, combat.get_effective_stat(cyrus, "max_hp") - 1)
+		ok(cyrus.hp > hardest and cyrus.hp < enfina.hp, "Cyrus can take its hardest hit, and is still the weaker",
+			"%d HP against a hit of %d, Enfina %d" % [cyrus.hp, hardest, enfina.hp])
 		var cyrus_hp = cyrus.hp
 		var enfina_hp = enfina.hp
 		var before = combat.distance_to_nearest_player(archer.position)
@@ -444,6 +457,22 @@ func whole_kit():
 		await enemy_turn(combat, striker)
 		ok(before - distance(combat, striker, cyrus) > walk, "with nothing in reach it runs, covering more than it could walk",
 			"%d closer, walking alone would be %d" % [before - distance(combat, striker, cyrus), walk])
+	await end_fight()
+
+	# The same, Crystallised. Run doubles movement and doubling nothing is
+	# nothing - it used to hand a rooted Striker its whole walk back.
+	combat = await start_fight(cast)
+	cyrus = who(combat, "cyrus", 0)
+	striker = who(combat, "barbarian", 1)
+	if standing_as_laid_out(combat, cast):
+		var root: ConditionDefinition = load("res://conditions/crystallised.tres")
+		striker.status_effects.append({"stat": "condition", "condition": root,
+			"duration": root.duration, "source_name": "test"})
+		var stood = striker.position
+		await enemy_turn(combat, striker)
+		ok(striker.position == stood, "Crystallised, it stays where it is", "%s -> %s" % [stood, striker.position])
+		ok(not striker.get("skill_used_this_turn", false),
+			"and does not throw its main action away on a Run that gets it nowhere")
 	await end_fight()
 
 	# At level 3 it has learned Follow-up, a secondary: a swing and then another.

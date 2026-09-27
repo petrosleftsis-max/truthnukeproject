@@ -1,0 +1,38 @@
+~ s1_goal
+Cyrus Rowe: The vault. And not a soul the wiser.
+=> END
+
+~ s2_goal
+Cyrus Rowe: Past the statue, past the hound, past the captain himself. Not bad.
+=> END
+
+~ s3_start
+Enfina Moonwish: You came back for me.
+Cyrus Rowe: Stay close, and stay behind me. Where I hide, you hide.
+=> END
+
+~ s3_goal
+Enfina Moonwish: We're out. I owe you one.
+Cyrus Rowe: You owe me several. Let's go.
+=> END
+
+~ s4_locker
+Cyrus Rowe: A priest's spare robes. Nobody looks twice at a priest.
+do Campaign.give_item("cyrus", "priest_robes")
+Cyrus Rowe: Well - nobody but another priest.
+=> END
+
+~ s4_checkpoint
+Priest: Halt, brother. I don't know your face. Which chapel do you serve?
+- The chapel of the Morning Bell.
+	do Campaign.set_flag("stage4_passed")
+	Priest: ...The Morning Bell. Of course. Go on, then.
+- The big one. With the... roof.
+	Priest: The big one with the roof. Guards!
+- Does it matter?
+	Priest: It matters a great deal to me. Guards!
+=> END
+
+~ s4_goal
+Cyrus Rowe: Robes off, and out the back. Just another quiet night.
+=> END

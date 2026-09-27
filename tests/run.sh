@@ -106,8 +106,11 @@ overall=0
 echo "===== SUMMARY ====="
 for d in $DRIVERS; do
 	# The driver goes LAST in the autoload list, so every database and autoload
-	# it reads is already up before its _ready runs.
-	awk -v drv="$d" '{print} /^Actors="\*res:\/\/exploration\/Actors.gd"$/{printf "T=\"*res://%s_test_driver.gd\"\n", drv}' "$WORK/_project_base.godot" > "$DST/project.godot"
+	# it reads is already up before its _ready runs. After whichever autoload is
+	# last, found on a first pass - the editor keeps its own order, and a new
+	# autoload added after the one this used to look for left it mid-list.
+	awk -v drv="$d" 'NR==FNR { l=$0; sub(/\r$/, "", l); if (l ~ /^\[/) sec=l; if (sec=="[autoload]" && l ~ /^[A-Za-z_][A-Za-z0-9_]*="/) last=FNR; next }
+		{print} FNR==last {printf "T=\"*res://%s_test_driver.gd\"\n", drv}' "$WORK/_project_base.godot" "$WORK/_project_base.godot" > "$DST/project.godot"
 	LOG="$LOGS/${d}_test_result.txt"
 	rm -f "$LOG"
 	if [ "$d" = "halt" ]; then

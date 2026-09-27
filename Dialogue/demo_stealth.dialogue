@@ -1,0 +1,16 @@
+~ locker
+Cyrus Rowe: A guard's locker, left open. Careless of them.
+do Campaign.give_item("cyrus", "priest_robes")
+do Campaign.give_item("cyrus", "tiny_bomb")
+Cyrus Rowe: Priest robes... and something that goes bang. Both could come in handy.
+Cyrus Rowe: The Priest on the north corridor will know his own robes, though. Best keep these for the others.
+=> END
+
+~ goal
+Cyrus Rowe: The far end of the lab, and not a single alarm. That's how it's done.
+=> END
+
+~ pouch
+Cyrus Rowe: A few coins, and a cure potion. They won't miss it.
+do Campaign.give_item("cyrus", "cure_potion")
+=> END

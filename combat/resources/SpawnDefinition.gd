@@ -47,3 +47,11 @@ class_name SpawnDefinition
 ## story run, not a standing supply for every fight in the arena. A battle
 ## walked into from a map ignores this and keeps whatever the party carried in.
 @export var starting_items: Array[String] = []
+
+@export_group("Arriving late")
+## The round an enemy joins the fight on - 1, the default, is from the start.
+## A later round brings them in at the top of it, on this tile or the nearest
+## free one beside it: reinforcements, or a guard on a stealth map who was too
+## far off to be there when the shouting started. Enemies only; the party's
+## tiles are filled from the roster before the first turn.
+@export_range(1, 20) var arrives_on_round: int = 1

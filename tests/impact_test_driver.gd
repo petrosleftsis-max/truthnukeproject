@@ -90,7 +90,10 @@ func run_test():
 	var after = floaters(hero.sprite).size()
 	ok(after == before + 1, "a number appears", "%d -> %d" % [before, after])
 	var floater = floaters(hero.sprite)[0]
-	ok(floater.position == hero.sprite.position, "over the combatant it belongs to", "%s" % floater.position)
+	# Over their head: as high above their tile as they stand taller than it,
+	# which is nothing for somebody one tile tall (see tallsprite).
+	var over_head = hero.sprite.position + Vector2(0.0, -hero.sprite.head_height())
+	ok(floater.position == over_head, "over the combatant it belongs to", "%s, %.0f above their tile" % [floater.position, hero.sprite.head_height()])
 	ok(floater.z_index > 20 and not floater.z_as_relative, "and above every combatant", "z=%d" % floater.z_index)
 	var started_at = floater.position.y
 	for frame in range(0, 30):

@@ -144,6 +144,10 @@ func run_test():
 		var skill: SkillDefinition = SkillDatabase.skills[key]
 		if skill == null:
 			continue
+		# A disguise is never offered in a fight (Campaign.combat_items_of), so
+		# there is nothing to use it for here.
+		if skill is ItemDefinition and skill.stealth_only():
+			continue
 		# A bottle is spent when it is thrown, and the bag lives on the campaign
 		# rather than on the combatant - so it is topped up there, or the throw
 		# reports an empty hand and reads as a fault.

@@ -1,0 +1,149 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://stages/stealth_3_terrain.tscn" id="1_37eb1"]
+[ext_resource type="Script" path="res://exploration/EntryPoint.gd" id="2_2t6lp"]
+[ext_resource type="Script" path="res://exploration/MapSetup.gd" id="3_wbi7r"]
+[ext_resource type="Script" path="res://exploration/StealthSetup.gd" id="4_uc2jc"]
+[ext_resource type="Script" path="res://exploration/DialogueInteractable.gd" id="5_g7ku4"]
+[ext_resource type="Resource" path="res://Dialogue/stealth_stages.dialogue" id="6_ygkgc"]
+[ext_resource type="Script" path="res://exploration/HidingSpot.gd" id="7_mrkbl"]
+[ext_resource type="Texture2D" path="res://imagese/terrain/tile map 1st area.png" id="8_y1xot"]
+[ext_resource type="Script" path="res://exploration/Waypoint.gd" id="9_y3gua"]
+[ext_resource type="Script" path="res://exploration/Guard.gd" id="10_6863t"]
+[ext_resource type="Script" path="res://exploration/StealthGoal.gd" id="11_d0vj7"]
+[ext_resource type="SpriteFrames" path="res://imagese/icon/interactable_anim.tres" id="12_cy55a"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jypam"]
+atlas = ExtResource("8_y1xot")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yon5v"]
+atlas = ExtResource("8_y1xot")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x5end"]
+atlas = ExtResource("8_y1xot")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3sk7q"]
+atlas = ExtResource("8_y1xot")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_d6vin"]
+atlas = ExtResource("8_y1xot")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_87yp5"]
+atlas = ExtResource("8_y1xot")
+region = Rect2(768, 0, 192, 192)
+
+[node name="Stage3Escort" type="Node2D" unique_id=2031647055]
+
+[node name="Terrain" type="Node2D" parent="." unique_id=130060824 instance=ExtResource("1_37eb1")]
+
+[node name="EntryPoint" type="Marker2D" parent="." unique_id=1603164846]
+position = Vector2(672, 864)
+script = ExtResource("2_2t6lp")
+entry_name = "start"
+
+[node name="MapSetup" type="Node" parent="." unique_id=331995936]
+script = ExtResource("3_wbi7r")
+members = Array[String](["cyrus", "enfina"])
+level = 2
+empty_handed = true
+
+[node name="StealthSetup" type="Node" parent="." unique_id=755924707]
+script = ExtResource("4_uc2jc")
+battle_terrain = ExtResource("1_37eb1")
+fight_name = "Caught with the prisoner"
+guards_seen_only_in_sight = true
+
+[node name="Freed" type="Node2D" parent="." unique_id=329268888]
+position = Vector2(672, 864)
+script = ExtResource("5_g7ku4")
+dialogue = ExtResource("6_ygkgc")
+dialogue_title = "s3_start"
+automatic = true
+only_once = true
+prompt = "Talk"
+interaction_radius = 240.0
+
+[node name="HidingSpot0" type="Node2D" parent="." unique_id=543351864]
+position = Vector2(1824, 1056)
+script = ExtResource("7_mrkbl")
+look = SubResource("AtlasTexture_jypam")
+look_scale = 0.8
+
+[node name="HidingSpot1" type="Node2D" parent="." unique_id=1570707259]
+position = Vector2(1824, 1248)
+script = ExtResource("7_mrkbl")
+look = SubResource("AtlasTexture_yon5v")
+look_scale = 0.8
+
+[node name="HidingSpot2" type="Node2D" parent="." unique_id=1124599663]
+position = Vector2(3360, 1056)
+script = ExtResource("7_mrkbl")
+look = SubResource("AtlasTexture_x5end")
+look_scale = 0.8
+
+[node name="HidingSpot3" type="Node2D" parent="." unique_id=1773306282]
+position = Vector2(3360, 1248)
+script = ExtResource("7_mrkbl")
+look = SubResource("AtlasTexture_3sk7q")
+look_scale = 0.8
+
+[node name="HidingSpot4" type="Node2D" parent="." unique_id=412504093]
+position = Vector2(4896, 1056)
+script = ExtResource("7_mrkbl")
+look = SubResource("AtlasTexture_d6vin")
+look_scale = 0.8
+
+[node name="HidingSpot5" type="Node2D" parent="." unique_id=1468331147]
+position = Vector2(4896, 1248)
+script = ExtResource("7_mrkbl")
+look = SubResource("AtlasTexture_87yp5")
+look_scale = 0.8
+
+[node name="Waypoint_cells_west" type="Node2D" parent="." unique_id=1608113123]
+position = Vector2(1632, 1824)
+script = ExtResource("9_y3gua")
+point_name = "cells_west"
+
+[node name="Waypoint_cells_east" type="Node2D" parent="." unique_id=1086753020]
+position = Vector2(6432, 1632)
+script = ExtResource("9_y3gua")
+point_name = "cells_east"
+
+[node name="Warden" type="Node2D" parent="." unique_id=1854675466]
+position = Vector2(6432, 1632)
+script = ExtResource("10_6863t")
+level = 2
+display_name = "Warden"
+facing_degrees = 180.0
+patrol = Array[String](["cells_east", "cells_west"])
+back_and_forth = true
+walk_speed_tiles = 1.5
+
+[node name="DoorGuard" type="Node2D" parent="." unique_id=1893230823]
+position = Vector2(7392, 2400)
+script = ExtResource("10_6863t")
+combatant_key = "ranger"
+level = 2
+display_name = "Door Guard"
+facing_degrees = 135.0
+looks_around = false
+back_and_forth = true
+
+[node name="Goal" type="Node2D" parent="." unique_id=927973122]
+position = Vector2(7200, 1056)
+script = ExtResource("11_d0vj7")
+completed_flag = "stage3_done"
+ghost_flag = "stage3_ghost"
+dialogue = ExtResource("6_ygkgc")
+dialogue_title = "s3_goal"
+ends_at_menu = true
+automatic = true
+only_once = true
+prompt = "Slip out"
+interaction_radius = 172.8
+sprite_frames = ExtResource("12_cy55a")
