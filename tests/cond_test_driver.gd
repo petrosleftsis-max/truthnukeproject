@@ -262,15 +262,18 @@ func run_test():
 	log_line("")
 
 	log_line("======== durations tick down and clear ========")
-	afflict(hero, "poisoned")
+	# Stored the way the game stores it, rather than by afflict's raw count.
+	hero.status_effects.append({"stat": "condition", "condition": condition("poisoned"),
+		"duration": combat.stored_duration(hero, condition("poisoned")), "source_name": "test"})
 	var poison_turns = 0
 	for turn in range(0, 8):
-		combat.process_status_effects(hero)
+		combat.start_of_turn_effects(hero)
 		if hero.status_effects.is_empty():
 			break
 		poison_turns += 1
-	ok(poison_turns == condition("poisoned").duration,
-		"Poisoned lasts its configured duration", "%d of %d" % [poison_turns, condition("poisoned").duration])
+		combat.end_of_turn_effects(hero)
+	ok(poison_turns == condition("poisoned").duration + 1,
+		"Poisoned lasts its configured duration and the turn after", "%d for %d" % [poison_turns, condition("poisoned").duration])
 	log_line("")
 
 	log_line("======== skills that affect both sides ========")

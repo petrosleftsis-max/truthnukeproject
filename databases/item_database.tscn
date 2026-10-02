@@ -19,16 +19,38 @@
 [ext_resource type="Resource" uid="uid://bjpybmg472d8c" path="res://items/potent_cure_potion.tres" id="17_qclub"]
 [ext_resource type="Resource" path="res://items/priest_robes.tres" id="18_priest_robes"]
 [ext_resource type="Resource" path="res://items/pebble.tres" id="19_pebble"]
+[ext_resource type="Resource" path="res://items/emetic_powder.tres" id="20_emetic_powder"]
+[ext_resource type="Resource" path="res://items/sleeping_draught.tres" id="21_sleeping_draught"]
+[ext_resource type="Resource" path="res://items/fever_tincture.tres" id="22_fever_tincture"]
+[ext_resource type="Resource" path="res://items/sleep_dart.tres" id="23_sleep_dart"]
+[ext_resource type="Resource" path="res://items/retching_dart.tres" id="24_retching_dart"]
+[ext_resource type="Resource" path="res://items/fever_dart.tres" id="25_fever_dart"]
+[ext_resource type="Resource" path="res://items/knockout_drops.tres" id="26_knockout_drops"]
+[ext_resource type="Resource" path="res://items/forged_letter.tres" id="27_forged_letter"]
+[ext_resource type="Resource" path="res://items/archive_ledger.tres" id="28_archive_ledger"]
+[ext_resource type="Resource" path="res://items/magnifying_glass.tres" id="29_magnifying_glass"]
+[ext_resource type="Resource" path="res://items/seal_of_office.tres" id="30_seal_of_office"]
+[ext_resource type="Resource" path="res://items/blank_requisition.tres" id="31_blank_requisition"]
+[ext_resource type="Resource" path="res://items/sealed_requisition.tres" id="32_sealed_requisition"]
 
 [node name="ItemDatabase" type="Node" unique_id=2096321018]
 script = ExtResource("1_db")
 items = {
+"archive_ledger": ExtResource("28_archive_ledger"),
 "big_bomb": ExtResource("15_qclub"),
+"blank_requisition": ExtResource("31_blank_requisition"),
 "blinding_bomb": ExtResource("2_blinding_bomb"),
 "burn_bottle": ExtResource("4_burn_bottle"),
+"seal_of_office": ExtResource("30_seal_of_office"),
 "crystal_bottle": ExtResource("5_crystal_bottle"),
+"emetic_powder": ExtResource("20_emetic_powder"),
+"fever_dart": ExtResource("25_fever_dart"),
+"fever_tincture": ExtResource("22_fever_tincture"),
 "cure_potion": ExtResource("6_cure_potion"),
+"forged_letter": ExtResource("27_forged_letter"),
 "frost_bottle": ExtResource("7_frost_bottle"),
+"knockout_drops": ExtResource("26_knockout_drops"),
+"magnifying_glass": ExtResource("29_magnifying_glass"),
 "gale_bottle": ExtResource("8_gale_bottle"),
 "medicine": ExtResource("9_medicine"),
 "mediocre_cure_potion": ExtResource("16_7fsfb"),
@@ -37,7 +59,11 @@ items = {
 "potent_cure_potion": ExtResource("17_qclub"),
 "pebble": ExtResource("19_pebble"),
 "priest_robes": ExtResource("18_priest_robes"),
+"retching_dart": ExtResource("24_retching_dart"),
+"sealed_requisition": ExtResource("32_sealed_requisition"),
 "shock_bottle": ExtResource("11_shock_bottle"),
+"sleep_dart": ExtResource("23_sleep_dart"),
+"sleeping_draught": ExtResource("21_sleeping_draught"),
 "small_bomb": ExtResource("13_xhevo"),
 "terror_bottle": ExtResource("12_terror_bottle"),
 "tiny_bomb": ExtResource("3_bomb")

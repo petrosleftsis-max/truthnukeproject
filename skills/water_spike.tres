@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_kbf5o"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_i3j34"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_lo4se"]
+[ext_resource type="Texture2D" uid="uid://bjndcny1tuy5y" path="res://imagese/skills/waterspike_skill.png" id="2_lo4se"]
 [ext_resource type="AudioStream" uid="uid://0xf5qiq405h8" path="res://audio/sfx/SciFi_Water_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [resource]

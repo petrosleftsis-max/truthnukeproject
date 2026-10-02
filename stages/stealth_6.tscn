@@ -1,0 +1,273 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://stages/stealth_6_terrain.tscn" id="1_ne5tp"]
+[ext_resource type="Script" path="res://exploration/EntryPoint.gd" id="2_8j5ay"]
+[ext_resource type="Script" path="res://exploration/MapSetup.gd" id="3_ntu8y"]
+[ext_resource type="Script" path="res://exploration/StealthSetup.gd" id="4_wmobd"]
+[ext_resource type="Script" path="res://exploration/StealthDoor.gd" id="5_suhd6"]
+[ext_resource type="Script" path="res://exploration/HidingSpot.gd" id="6_cgfh0"]
+[ext_resource type="Texture2D" path="res://imagese/terrain/tile map 1st area.png" id="7_pey1m"]
+[ext_resource type="Script" path="res://exploration/Waypoint.gd" id="8_xthxr"]
+[ext_resource type="Script" path="res://exploration/Guard.gd" id="9_jb4b1"]
+[ext_resource type="Script" path="res://exploration/GuardChat.gd" id="10_q5x0g"]
+[ext_resource type="Script" path="res://exploration/Edible.gd" id="11_066us"]
+[ext_resource type="Script" path="res://exploration/RetchSpot.gd" id="12_5td12"]
+[ext_resource type="Script" path="res://exploration/PlantSpot.gd" id="13_sngfc"]
+[ext_resource type="Script" path="res://exploration/StealthObjective.gd" id="14_r2xkr"]
+[ext_resource type="Script" path="res://exploration/StealthGoal.gd" id="15_khneu"]
+[ext_resource type="Resource" path="res://Dialogue/stealth_stages.dialogue" id="16_30nxo"]
+[ext_resource type="SpriteFrames" path="res://imagese/icon/interactable_anim.tres" id="17_kgly3"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kviea"]
+atlas = ExtResource("7_pey1m")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oybl8"]
+atlas = ExtResource("7_pey1m")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b4w6u"]
+atlas = ExtResource("7_pey1m")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_80s7r"]
+atlas = ExtResource("7_pey1m")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k05jr"]
+atlas = ExtResource("7_pey1m")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2p3jl"]
+atlas = ExtResource("7_pey1m")
+region = Rect2(768, 0, 192, 192)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jut5t"]
+atlas = ExtResource("7_pey1m")
+region = Rect2(768, 0, 192, 192)
+
+[node name="Stage6Supper" type="Node2D" unique_id=1341509398]
+
+[node name="Terrain" type="Node2D" parent="." unique_id=993646568 instance=ExtResource("1_ne5tp")]
+
+[node name="EntryPoint" type="Marker2D" parent="." unique_id=1149474163]
+position = Vector2(288, 1056)
+script = ExtResource("2_8j5ay")
+entry_name = "start"
+
+[node name="MapSetup" type="Node" parent="." unique_id=1022921272]
+script = ExtResource("3_ntu8y")
+members = Array[String](["cyrus"])
+level = 2
+empty_handed = true
+everyone_carries = Array[String](["emetic_powder", "sleep_dart", "sleep_dart", "retching_dart", "forged_letter", "pebble", "pebble"])
+
+[node name="StealthSetup" type="Node" parent="." unique_id=965564841]
+script = ExtResource("4_wmobd")
+battle_terrain = ExtResource("1_ne5tp")
+fight_name = "Caught in the manor"
+guards_seen_only_in_sight = true
+joins_within_tiles = 8.0
+tiles_per_late_round = 5.0
+
+[node name="StudyDoor" type="Node2D" parent="." unique_id=260867488]
+position = Vector2(6048, 864)
+script = ExtResource("5_suhd6")
+prompt = "Open"
+interaction_radius = 249.60000000000002
+
+[node name="HidingSpot0" type="Node2D" parent="." unique_id=1132858408]
+position = Vector2(1248, 288)
+script = ExtResource("6_cgfh0")
+look = SubResource("AtlasTexture_kviea")
+look_scale = 0.8
+
+[node name="HidingSpot1" type="Node2D" parent="." unique_id=363439695]
+position = Vector2(2400, 480)
+script = ExtResource("6_cgfh0")
+look = SubResource("AtlasTexture_oybl8")
+look_scale = 0.8
+
+[node name="HidingSpot2" type="Node2D" parent="." unique_id=460907507]
+position = Vector2(2784, 1632)
+script = ExtResource("6_cgfh0")
+look = SubResource("AtlasTexture_b4w6u")
+look_scale = 0.8
+
+[node name="HidingSpot3" type="Node2D" parent="." unique_id=589371562]
+position = Vector2(5856, 288)
+script = ExtResource("6_cgfh0")
+look = SubResource("AtlasTexture_80s7r")
+look_scale = 0.8
+
+[node name="HidingSpot4" type="Node2D" parent="." unique_id=926514484]
+position = Vector2(6240, 1632)
+script = ExtResource("6_cgfh0")
+look = SubResource("AtlasTexture_k05jr")
+look_scale = 0.8
+
+[node name="HidingSpot5" type="Node2D" parent="." unique_id=1694626020]
+position = Vector2(3936, 3360)
+script = ExtResource("6_cgfh0")
+look = SubResource("AtlasTexture_2p3jl")
+look_scale = 0.8
+
+[node name="HidingSpot6" type="Node2D" parent="." unique_id=1992117526]
+position = Vector2(6816, 3360)
+script = ExtResource("6_cgfh0")
+look = SubResource("AtlasTexture_jut5t")
+look_scale = 0.8
+
+[node name="Waypoint_kitchen_w" type="Node2D" parent="." unique_id=818237040]
+position = Vector2(1440, 1440)
+script = ExtResource("8_xthxr")
+point_name = "kitchen_w"
+
+[node name="Waypoint_kitchen_e" type="Node2D" parent="." unique_id=83362254]
+position = Vector2(2400, 1440)
+script = ExtResource("8_xthxr")
+point_name = "kitchen_e"
+
+[node name="Waypoint_hall_nw" type="Node2D" parent="." unique_id=980856949]
+position = Vector2(2976, 480)
+script = ExtResource("8_xthxr")
+point_name = "hall_nw"
+
+[node name="Waypoint_hall_ne" type="Node2D" parent="." unique_id=1159616974]
+position = Vector2(5664, 480)
+script = ExtResource("8_xthxr")
+point_name = "hall_ne"
+
+[node name="Waypoint_hall_se" type="Node2D" parent="." unique_id=612979242]
+position = Vector2(5664, 1440)
+script = ExtResource("8_xthxr")
+point_name = "hall_se"
+
+[node name="Waypoint_hall_sw" type="Node2D" parent="." unique_id=197932068]
+position = Vector2(2976, 1440)
+script = ExtResource("8_xthxr")
+point_name = "hall_sw"
+
+[node name="Waypoint_chat_a" type="Node2D" parent="." unique_id=1577841498]
+position = Vector2(2976, 672)
+script = ExtResource("8_xthxr")
+point_name = "chat_a"
+
+[node name="Waypoint_chat_b" type="Node2D" parent="." unique_id=1322572400]
+position = Vector2(3168, 672)
+script = ExtResource("8_xthxr")
+point_name = "chat_b"
+
+[node name="Waypoint_yard_w" type="Node2D" parent="." unique_id=1178705961]
+position = Vector2(2976, 2400)
+script = ExtResource("8_xthxr")
+point_name = "yard_w"
+
+[node name="Waypoint_yard_e" type="Node2D" parent="." unique_id=816323075]
+position = Vector2(7776, 2400)
+script = ExtResource("8_xthxr")
+point_name = "yard_e"
+
+[node name="Cook" type="Node2D" parent="." unique_id=409903688]
+position = Vector2(1440, 1440)
+script = ExtResource("9_jb4b1")
+combatant_key = "priest"
+level = 2
+display_name = "Cook"
+kind = 4
+patrol = Array[String](["kitchen_w", "kitchen_e"])
+back_and_forth = true
+
+[node name="HallGuard" type="Node2D" parent="." unique_id=1360072619]
+position = Vector2(2976, 480)
+script = ExtResource("9_jb4b1")
+level = 2
+display_name = "Hall Guard"
+patrol = Array[String](["hall_nw", "hall_ne"])
+back_and_forth = true
+
+[node name="HallSergeant" type="Node2D" parent="." unique_id=708788587]
+position = Vector2(5664, 1440)
+script = ExtResource("9_jb4b1")
+level = 2
+display_name = "Hall Sergeant"
+facing_degrees = 180.0
+patrol = Array[String](["hall_se", "hall_sw"])
+back_and_forth = true
+
+[node name="HallChat" type="Node" parent="." unique_id=81700488]
+script = ExtResource("10_q5x0g")
+first_guard = "HallGuard"
+second_guard = "HallSergeant"
+first_stands_at = "chat_a"
+second_stands_at = "chat_b"
+first_after_seconds = 20.0
+every_seconds = 50.0
+lines = Array[String](["The captain's been writing letters again.", "To whom? He hasn't a friend in the world.", "To the Magistrate. About us - who takes what, and from where.", "Then somebody had better lose that letter before morning."])
+overheard_flag = "stage6_overheard"
+
+[node name="CaptainsAide" type="Node2D" parent="." unique_id=1941864340]
+position = Vector2(6816, 864)
+script = ExtResource("9_jb4b1")
+combatant_key = "ranger"
+level = 2
+display_name = "Captain's Aide"
+facing_degrees = 180.0
+looks_around = false
+back_and_forth = true
+
+[node name="Supper" type="Node2D" parent="." unique_id=1805330822]
+position = Vector2(1632, 864)
+script = ExtResource("11_066us")
+eater = "CaptainsAide"
+prompt = "Poison it"
+interaction_radius = 240.0
+
+[node name="Latrine" type="Node2D" parent="." unique_id=234636264]
+position = Vector2(7776, 3360)
+script = ExtResource("12_5td12")
+
+[node name="CaptainsDesk" type="Node2D" parent="." unique_id=1757385580]
+position = Vector2(7584, 288)
+script = ExtResource("13_sngfc")
+item_key = "forged_letter"
+planted_flag = "stage6_planted"
+prompt = "Leave it here"
+interaction_radius = 240.0
+
+[node name="YardGuard" type="Node2D" parent="." unique_id=389756517]
+position = Vector2(2976, 2400)
+script = ExtResource("9_jb4b1")
+level = 2
+display_name = "Yard Guard"
+patrol = Array[String](["yard_w", "yard_e"])
+back_and_forth = true
+
+[node name="Overhear" type="Node" parent="." unique_id=1740583833]
+script = ExtResource("14_r2xkr")
+description = "Overhear the guards in the hall"
+flag = "stage6_overheard"
+
+[node name="Plant" type="Node" parent="." unique_id=2063606889]
+script = ExtResource("14_r2xkr")
+description = "Leave the forged letter on the captain's desk"
+flag = "stage6_planted"
+
+[node name="NoTakedowns" type="Node" parent="." unique_id=23032192]
+script = ExtResource("14_r2xkr")
+kind = 2
+description = "Knock nobody out - a sick stomach is fine"
+
+[node name="Goal" type="Node2D" parent="." unique_id=13072297]
+position = Vector2(2784, 3552)
+script = ExtResource("15_khneu")
+completed_flag = "stage6_done"
+ghost_flag = "stage6_ghost"
+dialogue = ExtResource("16_30nxo")
+dialogue_title = "s6_goal"
+ends_at_menu = true
+automatic = true
+only_once = true
+prompt = "Slip out"
+interaction_radius = 172.8
+sprite_frames = ExtResource("17_kgly3")

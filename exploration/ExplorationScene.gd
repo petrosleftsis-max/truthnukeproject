@@ -78,6 +78,10 @@ func _ready():
 		Campaign.party_changed.connect(_on_party_changed)
 	_spawn_party()
 	begin_stealth()
+	# Walked onto a stealth map rather than back onto it from a fight: how
+	# things stand now is where Restart Stage goes back to.
+	if stealth != null and not coming_back:
+		Campaign.save_stealth_checkpoint(map_path(), party.position_of_leader())
 	if game_ui != null and game_ui.has_method("set_exploration_mode"):
 		game_ui.set_exploration_mode(true)
 	_refresh_party_panel()
@@ -196,7 +200,21 @@ func is_walkable(world_position: Vector2) -> bool:
 	var tile = _tile_map.local_to_map(world_position)
 	if not _tile_map.get_used_rect().has_point(tile):
 		return false
-	return not _blocking.has(tile)
+	return not _blocking.has(tile) and not _shut.has(tile)
+
+
+## Tiles shut for now - a closed door - on top of the painted walls. Not in
+## _blocking, so the routes worked out for guards and conversations still run
+## through them: a guard has the key to his own doors.
+var _shut := {}
+
+
+## Shuts `tile` to the party, or opens it again.
+func set_tile_shut(tile: Vector2i, shut: bool):
+	if shut:
+		_shut[tile] = true
+	else:
+		_shut.erase(tile)
 
 
 func _collect_interactables(node: Node):

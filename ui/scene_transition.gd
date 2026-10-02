@@ -70,6 +70,13 @@ func change_scene(path: String):
 	_run_change(path)
 
 
+## Whether a change is under way - between the fade starting out and the new
+## scene faded in. Anything that would set up a different scene has to wait:
+## this one is going ahead regardless.
+func is_changing() -> bool:
+	return _changing
+
+
 func _run_change(path: String):
 	await fade_out()
 	# Whoever was holding the game is about to stop existing and can no longer

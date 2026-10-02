@@ -91,3 +91,10 @@ pictures
 demos
 stealthkit
 stages
+alarm
+ambush
+stealthworld
+guardlife
+poisons
+stagecard
+clues

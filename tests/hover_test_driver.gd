@@ -169,15 +169,20 @@ func run_test():
 		"%d fewer tiles in the way, %d cheaper" % [blocks_walkers - blocks_flyers, costly_on_foot])
 
 	# Wearing off is the half that is easy to forget.
+	# Counted a turn at a time: aloft as it opens, and the effect's turn comes
+	# off as it closes.
 	var turns = 0
-	while walker.movement_class == FLYING and turns < 20:
-		combat.process_status_effects(walker)
+	while turns < 20:
+		combat.start_of_turn_effects(walker)
+		if walker.movement_class != FLYING:
+			break
 		turns += 1
+		combat.end_of_turn_effects(walker)
 	ok(walker.movement_class == GROUND, "it wears off and they come down",
 		Stats.movement_class_name(walker.movement_class))
 	ok(turns == effect.duration + 1,
-		"after the turns it said, not one more or less",
-		"%d turns of flight for a duration of %d" % [turns - 1, effect.duration])
+		"after the turns it said and the one after, not one more or less",
+		"%d turns of flight for a duration of %d" % [turns, effect.duration])
 	ok(combat.controller.get_reachable_tiles(walker.position, walker.movement_class, 6).size()
 		== reach_on_foot,
 		"and the map is exactly as it was before they took off")
@@ -219,7 +224,7 @@ func run_test():
 	log_line("======== and it reads properly in the panel ========")
 	var tip = combat.game_ui.build_skill_tooltip(SkillDatabase.skills["hover"], caster)
 	ok(tip.contains("flying"), "the preview says what it does")
-	ok(tip.contains("%d turn" % effect.duration), "and for how long")
+	ok(tip.contains("%d turn" % (effect.duration + 1)), "and for how long - its duration and the turn after", "written %d" % effect.duration)
 	# The HUD names the gate on its own - "Hermes" - while the glossary is where
 	# it is still called the Gates of Hermes in full.
 	ok(tip.contains(Stats.short_gate_name(2)), "and what it costs", Stats.short_gate_name(2))

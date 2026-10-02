@@ -162,6 +162,12 @@ func _draw():
 ## a wall, and the player needs to know there is something here to come back to.
 @export var locked_message: String = "It won't budge."
 
+@export_group("Stealth")
+## Using this settles a stealth map's alert a level, as far as a found body
+## lets it: an all-clear horn blown, a duty board marked "all quiet". A
+## conversation can do the same with `do Campaign.settle_alert()`.
+@export var settles_alert: bool = false
+
 
 ## Whether this can be used right now. An encounter trigger already beaten says
 ## no, and stops offering its prompt.
@@ -202,6 +208,8 @@ func use(scene: Node):
 	contact_spent = true
 	if sets_flag != "":
 		Campaign.set_flag(sets_flag, _flag_value_to_store())
+	if settles_alert:
+		Campaign.settle_alert()
 
 
 ## Do the thing. `scene` is the ExplorationScene, passed in so subclasses can

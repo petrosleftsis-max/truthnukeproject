@@ -158,8 +158,17 @@ func run_test():
 	for i in shelves.keys().size():
 		by_key[shelves.keys()[i]] = shelves.buttons()[i]
 	if by_key.has("wind_shot") and by_key.has("wind_swoon"):
-		ok(badge_on(by_key["wind_shot"]) == "WSh" and badge_on(by_key["wind_swoon"]) == "WSw",
-			"Wind Shot and Wind Swoon are told apart", "%s / %s" % [badge_on(by_key["wind_shot"]), badge_on(by_key["wind_swoon"])])
+		var shot: SkillDefinition = SkillDatabase.skills["wind_shot"]
+		var swoon: SkillDefinition = SkillDatabase.skills["wind_swoon"]
+		if SkillLook.is_shared(shot) or SkillLook.is_shared(swoon):
+			ok(badge_on(by_key["wind_shot"]) == "WSh" and badge_on(by_key["wind_swoon"]) == "WSw",
+				"Wind Shot and Wind Swoon are told apart", "%s / %s" % [badge_on(by_key["wind_shot"]), badge_on(by_key["wind_swoon"])])
+		else:
+			# Each has art of its own now, which tells them apart without a
+			# badge - and a badge is only for an icon two skills share.
+			ok(shot.icon != swoon.icon and badge_on(by_key["wind_shot"]) == "" and badge_on(by_key["wind_swoon"]) == "",
+				"Wind Shot and Wind Swoon are told apart by their own art, with no badge needed",
+				"%s / %s" % [badge_on(by_key["wind_shot"]), badge_on(by_key["wind_swoon"])])
 	await press(KEY_1)
 	ok(controller.is_skill_selected() and controller._selected_skill == shelves.keys()[0], "1 picks the first spell on the shelves",
 		"%s" % controller._selected_skill)

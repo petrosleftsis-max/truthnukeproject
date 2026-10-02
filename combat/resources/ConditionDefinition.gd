@@ -32,10 +32,18 @@ const DOT_STRENGTH_NAMES := {
 ## Freeform text for the tooltip. Optional - one is generated from the settings
 ## below when this is empty.
 @export_multiline var description: String = ""
-## How many of the afflicted's own turns it lasts. Counted the same way every
-## other duration is: landing on whoever is currently acting costs it the rest
-## of that turn (see Combat.stored_duration).
+## How many of the afflicted's own turns it lasts, counting the one it lands in
+## when it lands on whoever is acting. That picks the turn it goes in - the one
+## after the last - and Wears Off At Start below picks whether it goes as that
+## turn starts or as it ends (see Combat.turns_stored). Going at the end, 3 is
+## four turns and Stunned 2 is three lost.
 @export var duration: int = 3
+## Off: holds through the turn after its duration and wears off at that turn's
+## end, so whatever is on somebody is still on them when they next act.
+## On: wears off as that turn starts, the moment before they could act under
+## it - lasting through everybody else's turns in between. The danger view
+## knows these go before the enemy acts.
+@export var wears_off_at_start: bool = false
 
 @export_group("Damage over time")
 ## Rolled fresh at the start of each of the afflicted's turns. Leave at 0 for a

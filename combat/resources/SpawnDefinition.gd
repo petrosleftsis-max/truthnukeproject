@@ -46,6 +46,11 @@ class_name SpawnDefinition
 ## means empty-handed - a character's own starting_items are their kit for a
 ## story run, not a standing supply for every fight in the arena. A battle
 ## walked into from a map ignores this and keeps whatever the party carried in.
+##
+## On an enemy it is what they have to hand in this fight, and use: a potion
+## drunk when badly hurt, a bomb thrown like any skill. A guard caught on a
+## stealth map fights with whatever is still in his pockets - anything lifted
+## from them is not here.
 @export var starting_items: Array[String] = []
 
 @export_group("Arriving late")
@@ -55,3 +60,8 @@ class_name SpawnDefinition
 ## far off to be there when the shouting started. Enemies only; the party's
 ## tiles are filled from the roster before the first turn.
 @export_range(1, 20) var arrives_on_round: int = 1
+
+@export_group("Opening")
+## Caught off guard: loses their first turn. A guard ambushed on a stealth map
+## before he knew anybody was there.
+@export var surprised: bool = false

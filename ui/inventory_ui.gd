@@ -4,9 +4,10 @@ class_name InventoryUI
 ##
 ## Everyone's inventory is on screen at once, side by side, because the whole
 ## point of a bag per character is deciding who carries what - and that is a
-## comparison, not a list. Click a slot, then click another, and the two swap.
-## The second one can belong to somebody else, which is how the party hands
-## things round.
+## comparison, not a list. Click a slot, then click another, and the two swap -
+## or, for two things that go together (ItemDefinition.made_from), are put
+## together. The second one can belong to somebody else, which is how the party
+## hands things round.
 ##
 ## Only outside a fight. In a battle a character has what they packed, and
 ## shuffling the bags mid-turn would make the four combat slots meaningless.
@@ -164,7 +165,10 @@ func _on_slot_pressed(key: String, index: int):
 	if from_key == key and from_slot == index:
 		_rebuild()
 		return
-	Campaign.move_item(from_key, from_slot, key, index)
+	# Two things that go together are put together rather than swapped (see
+	# ItemDefinition.made_from).
+	if Campaign.combine_slots(from_key, from_slot, key, index) == "":
+		Campaign.move_item(from_key, from_slot, key, index)
 	_rebuild()
 
 

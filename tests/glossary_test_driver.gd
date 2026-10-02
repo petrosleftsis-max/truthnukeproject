@@ -115,7 +115,8 @@ func run_test():
 	# the assertion that the folder is no longer what holds it up.
 	var without_the_folder := []
 	for condition in GlossaryPanel.conditions():
-		var inflicted := false
+		# Caught off guard comes from an ambush, which Combat itself holds.
+		var inflicted: bool = condition == Combat.SURPRISED
 		for source in [SkillDatabase.skills, ItemDatabase.items]:
 			for key in source:
 				for effect in source[key].effects:
@@ -130,7 +131,7 @@ func run_test():
 	press(panel, windswept.display_name)
 	await get_tree().process_frame
 	var page = panel._body.text
-	ok("%d" % windswept.duration in page, "its duration is on the page", "%d turns" % windswept.duration)
+	ok("Lasts %d of" % (windswept.duration + 1) in page, "its duration is on the page, as the turns it really lasts", "%d turns written, %d lasted" % [windswept.duration, windswept.duration + 1])
 	ok("%+d" % windswept.movement_change in page, "and what it does to movement",
 		"%+d" % windswept.movement_change)
 	ok("%d" % windswept.drift_tiles in page, "and how far the wind takes them")

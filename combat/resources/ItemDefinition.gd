@@ -55,6 +55,53 @@ class_name ItemDefinition
 ## a fight.
 @export var distraction_radius: float = 0.0
 
+## What a poison does to whoever it gets into, on a stealth map. Stored by
+## number, so a new one goes on the end.
+enum Poison {
+	NONE,      ## Not a poison.
+	EMETIC,    ## Off to be sick - wherever the map says that is (a RetchSpot) - for five minutes, seeing nothing.
+	SEDATIVE,  ## Out cold where they stand: a body, to be found and brought round like any other.
+	DISEASE,   ## Too unwell to move, and whoever is nearest comes to see to them - both of them watching half as wide.
+}
+
+## How soon a poison takes hold once swallowed, or once a dart lands. Stored
+## by number, so a new one goes on the end.
+enum Onset {
+	SHORTLY,  ## A few seconds after.
+	DELAYED,  ## About a quarter of a minute after - long enough to be well away.
+	INSTANT,  ## The moment it is swallowed or lands.
+}
+
+@export_group("Poison")
+## Makes this a poison for a stealth map, and what it does. Like a disguise,
+## never offered in a fight.
+@export var poison: Poison = Poison.NONE
+## How soon it takes hold - see StealthWatch.POISON_SOON and POISON_DELAY.
+@export var poison_onset: Onset = Onset.SHORTLY
+## A dart (T, then click a guard): it takes hold where it lands. Otherwise it
+## only goes into something left out to eat or drink (see Edible).
+@export var poison_shootable: bool = false
+
+@export_group("Keepsake")
+## Only worth carrying: a letter, a ledger, a key - something to steal, plant
+## or hand over. Carried like anything else, and never offered in a fight.
+@export var keepsake: bool = false
+
+@export_group("Combining")
+## The two items, by key, this is made from by putting them together: in the
+## bag under a picture (pick one up, then click the other), or in the party's
+## bags (I: click one, then the other). Both are used up. Empty for anything
+## that is not made.
+@export var made_from: Array[String] = []
+## What putting them together says, under the picture.
+@export_multiline var combine_text: String = ""
+
+@export_group("Looking")
+## A lens - a magnifying glass, a lamp. Picked up from the bag under a picture,
+## it shows whatever there is marked Hidden Detail (a Hotspot, a PictureLayer)
+## wherever it is held over it. Never offered in a fight.
+@export var reveals_hidden_details: bool = false
+
 
 ## Whether this is something worn rather than something used.
 func is_disguise() -> bool:
@@ -66,10 +113,16 @@ func is_distraction() -> bool:
 	return distraction_radius > 0.0
 
 
-## Whether this only has a use on a stealth map - worn or thrown there, and so
-## left out of every fight.
+## Whether this is a poison for a stealth map.
+func is_poison() -> bool:
+	return poison != Poison.NONE
+
+
+## Whether this only has a use on a stealth map - worn, thrown or slipped into
+## somebody's supper there - or none in a fight at all, and so is left out of
+## every fight.
 func stealth_only() -> bool:
-	return is_disguise() or is_distraction()
+	return is_disguise() or is_distraction() or is_poison() or keepsake or reveals_hidden_details
 
 
 ## An item scales off itself, so the attribute a skill would read would only

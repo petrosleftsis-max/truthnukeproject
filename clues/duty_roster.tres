@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ClueDefinition" format=3]
+
+[ext_resource type="Script" path="res://exploration/ClueDefinition.gd" id="1_clue"]
+
+[resource]
+script = ExtResource("1_clue")
+title = "The duty roster"
+text = "The night roster on the office wall: Barbarians on the gate, a Ranger on the north wall, and nobody at all on the ditch. Scrawled beside the gate: 'keep them off the fire - they panic.'"
+reveals_combatants = Array[String](["barbarian"])

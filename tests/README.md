@@ -1,6 +1,6 @@
 # The headless harness
 
-93 suites that boot the real game without a window, play something out and
+100 suites that boot the real game without a window, play something out and
 write down what happened.
 
 ```bash
@@ -62,6 +62,16 @@ hangs until the runner's own budget kills it, and you lose the log.
 `HarnessLog.path_for()` reads `$MOT_TEST_LOG_DIR`, which the runner sets. Run a
 driver by hand with no runner around it and the results go to the copy's own
 `user://` instead - somewhere rather than nowhere.
+
+The newer stealth suites (`alarm`, `ambush`, `stealthworld`, `guardlife`,
+`poisons`, `stagecard`) share `StealthHarness.gd`, which the runner copies
+beside the drivers the way it does `HarnessLog.gd`: a driver
+`extends "res://StealthHarness.gd"`, returns its name from `suite()` and puts
+its sections in `run_sections()`, and gets the crossroads made a stealth map
+(`open_map`, `watch_it`), `ok`, `until` and the tile helpers for free. Time in
+a headless run passes faster than frames at 60 a second would suggest - walk
+the party by `get_process_delta_time()`, not by a fixed sixtieth, when what is
+being tested is timed.
 
 ## Suites and probes
 

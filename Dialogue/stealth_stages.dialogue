@@ -36,3 +36,20 @@ Priest: Halt, brother. I don't know your face. Which chapel do you serve?
 ~ s4_goal
 Cyrus Rowe: Robes off, and out the back. Just another quiet night.
 => END
+
+~ s5_goal
+Cyrus Rowe: Out the window, and into the dark. They can keep their lamps.
+=> END
+
+~ s6_goal
+Cyrus Rowe: One letter on the captain's desk, one sore stomach, and a supper he'll not forget.
+=> END
+
+~ s7_start
+Cyrus Rowe: The whole camp's jumpy tonight. Somebody in a priest's robes could calm them down - a word here, a word there.
+Cyrus Rowe: Not the chaplain, though. A priest knows a priest.
+=> END
+
+~ s7_goal
+Cyrus Rowe: Through the checkpoint, and the camp none the wiser. Or at least none the calmer.
+=> END

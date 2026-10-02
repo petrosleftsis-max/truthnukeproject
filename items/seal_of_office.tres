@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://cbf4gnjv5w62v" path="res://combat/resources/ItemDefinition.gd" id="2_item"]
+[ext_resource type="Texture2D" path="res://imagese/skills/consumable__skill.png" id="3_icon"]
+
+[resource]
+script = ExtResource("2_item")
+keepsake = true
+name = "Seal of Office"
+description = "Captain Vell's own seal, kept under lock. Whatever it is pressed into, he has signed."
+icon = ExtResource("3_icon")
+targets_ally = true
+deals_damage = false

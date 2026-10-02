@@ -8,8 +8,9 @@ class_name HidingSpot
 ##
 ## One spot hides one person: a party of two needs two spots side by side, or
 ## the one following behind is left standing in the open. A knocked-out guard
-## stuffed into it fills it for good - hidden from every guard, and nowhere to
-## hide any more.
+## stuffed into it fills it - nowhere to hide any more - and hides him from
+## everybody but a guard who comes within a couple of tiles of it with it in
+## view: a body never quite fits, and a boot sticking out gives it away.
 
 ## What it looks like - barrels, a crate. Empty: a patch of shadow only.
 @export var look: Texture2D : set = _set_look
@@ -20,6 +21,7 @@ const SHADOW := Color(0.0, 0.0, 0.0, 0.45)
 const EDITOR_EDGE := Color(0.45, 0.85, 1.0, 0.9)
 ## How a spot with a body in it is drawn: darker, so it reads as taken.
 const FULL_TINT := Color(0.5, 0.45, 0.45)
+const BOOT := Color(0.2, 0.14, 0.1)
 
 ## The guard stuffed in here, if any. Set by the StealthWatch.
 var holds_body: Node2D = null : set = _set_holds_body
@@ -61,6 +63,12 @@ func _draw():
 		draw_texture_rect(look, Rect2(-size / 2.0, size), false, Color.WHITE if is_free() else FULL_TINT)
 	elif not is_free():
 		draw_circle(Vector2(0, Grid.tiles(0.18)), Grid.tiles(0.3), SHADOW)
+	if not is_free():
+		# A boot sticking out: a body never quite fits, and a guard close by
+		# notices.
+		var heel = Vector2(Grid.tiles(0.28), Grid.tiles(0.3))
+		draw_rect(Rect2(heel, Vector2(Grid.tiles(0.18), Grid.tiles(0.09))), BOOT)
+		draw_rect(Rect2(heel + Vector2(0, -Grid.tiles(0.12)), Vector2(Grid.tiles(0.07), Grid.tiles(0.13))), BOOT)
 	if Engine.is_editor_hint():
 		draw_rect(Rect2(-tile / 2.0, tile), EDITOR_EDGE, false, 4.0)
 		draw_string(ThemeDB.fallback_font, Vector2(-tile.x / 2.0 + 8, -tile.y / 2.0 + 28), "Hide",

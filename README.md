@@ -148,7 +148,11 @@ on the map. Win the fight and the guards are gone when the party walks back in.
 the top lists them: **1-9** puts one on - three seconds standing still,
 shuffling into it, and any guard who sees him at it knows him at once - and then he
 looks like that character. **H** takes it off again at once, out of every
-guard's sight only. A disguise never shows up in a fight's Items panel.
+guard's sight only. A disguise never shows up in a fight's Items panel. In
+one, the view tinted on the ground says whose gaze matters: purple for a guard
+who sees through it, amber for one who would stop him with questions first,
+a faint grey for one it fools. Pointing at a disguise on the bar shows the
+same for it before it is on.
 
 **The rest of the kit.** Every key below has a button on the same bar, which
 only shows when there is something to do with it:
@@ -164,29 +168,88 @@ only shows when there is something to do with it:
   on it from any guard not right beside it - unless the guard saw somebody and
   is going to look: then he sees into every spot within 3 tiles of where he
   saw them, a body stuffed into one included. One person each, so a party of
-  two needs two spots together. **Look** is the picture drawn there.
+  two needs two spots together. **Look** is the picture drawn there. Throwing
+  from one gives him away: anybody with the spot in view knows him at once (a
+  red ring at his feet while aiming says somebody has). A ghost of
+  Cyrus stands where a guard out looking for him thinks he is, with a ring as
+  far as the spots he will look into.
 - **Left click - take down, right click - pick pockets.** Right behind a guard
   who has no idea he is there; the click can land on him, or anywhere else if
   he is the only one. A guard's **Pockets** lists item keys to lift; **Picked Flag** is
   set when they are lifted, which a locked door's **Requires Flag** can wait on.
   A takedown is heard: guards within 5 tiles come to see what it was.
   Somebody knocked out is not in the fight, and stays where they fell - until
-  another guard's view falls on them, which sends the map to Alarmed.
+  another guard finds them. Found, the map goes a level more on edge and can
+  never be settled below that level again, and the finder goes over and brings
+  them round (3 seconds); knock the finder out on his way and the body is there
+  to be found again, without putting the map up twice.
 - **Bodies.** A body's pockets can be picked too. Left click beside one to
   drag it after you at half pace - no dashing, no changing clothes, and any
   guard who sees you at it knows you at once - and left click again to put it
-  down. Put down beside a free hiding spot, it goes in it: never found, and
-  that spot is no good for hiding in any more.
+  down. Put down beside a free hiding spot, it goes in it, and that spot is no
+  good for hiding in any more - but a body never quite fits: a guard who comes
+  within 2 tiles of the spot with it in view notices the boot sticking out.
 - **Alert.** Every investigation puts the map more on edge (Calm, Wary,
-  Alarmed on the bar), a found body or a captain's shout all the way. The
+  Alarmed on the bar), a found body a level, a captain's shout all the way. The
   effects grow smoothly with it rather than switching on at a level: at the
   top, guards walk 40% quicker, see 20 degrees wider either side and grow sure
-  60% quicker. It fades by itself at the StealthSetup's **Alert Fades Per
-  Second** - 50 seconds from the top to calm, as the stages have it.
+  60% quicker. It never eases by itself. It settles a level - never below where
+  a found body pinned it - by a word with a guard (**E** beside one a disguise
+  fools, when E is not for something else in reach: a line each, 2 seconds
+  standing still, once a guard; a guard's **Small Talk** conversation plays
+  instead, if he has one), by a conversation (`do Campaign.settle_alert()`), or
+  by using anything with **Settles Alert** ticked (an all-clear horn, a duty
+  board). **Starting Alert** on
+  the StealthSetup has a map begin Wary or Alarmed.
 - **Q - Cat's Ears.** With **Guards Seen Only In Sight** ticked on the
   StealthSetup, a guard is only drawn while Cyrus has a line to them, is right
   beside them, or they are growing sure of him. Q hears every guard through
-  the walls for 4 seconds, then needs 4 more to recover.
+  the walls for 4 seconds, then needs 4 more to recover. A guard's round is
+  drawn while listening, or with the pointer on him - but only once it has been
+  found out: set his **Route Known Flag** from whatever tells it (a duty roster
+  to read, a pocket, a conversation).
+- **Ctrl - creep.** Held (or kept on with the bar's button), the party walks at
+  45% pace without a sound. A **NoisyFloor** patch - gravel, puddles, broken
+  glass - is heard at every step otherwise: guards turn to gravel and puddles,
+  and come to look at glass.
+- **P - Patience.** Held (the key, or the bar's button), time runs twice as
+  fast - everybody's, his too - for waiting out a patrol. Let go, or have a
+  conversation, a menu or a catch hold the game, and it is back to normal.
+- **F - ambush.** Within 2.5 tiles of a guard who has no idea he is there, F
+  starts the fight on his terms: everybody who had not noticed anything loses
+  their first turn (the Caught Off Guard condition).
+- **Poisons.** An item with **Poison** set: an **Emetic** sends a guard off to
+  be sick at the nearest **RetchSpot** for five minutes, seeing nothing; a
+  **Sedative** drops him where he stands, a body like any other; a **Disease**
+  leaves him too ill to move for five minutes and brings the nearest guard to
+  see to him, both watching half as wide. **Poison Onset** says when it takes
+  hold: **Instant**, **Shortly** (5 seconds) or **Delayed** (15). **Poison
+  Shootable** makes it a dart, thrown with T at a guard (T again while aiming
+  picks the next thing to throw); otherwise it goes into an **Edible** - a
+  supper left out for its **Eater**, who comes for it after **Eaten After
+  Seconds** - with E: three seconds standing still, stirring it in, and
+  anybody who sees him at it knows him at once. Nothing is used up if he is
+  stopped.
+- **Doors, lamps and things lying about.** A **StealthDoor** shut stops walking
+  and sight (E opens and shuts it; **Requires Flag** locks it); guards walk
+  through, holding it open as they pass. **Dark** on the StealthSetup makes a
+  map dark but for its **Lamp**s and the torches on its walls: a guard makes
+  somebody out in the dark only within **Dark Sight Tiles**. E puts a lamp out
+  quietly; a pebble landing beside it knocks it out. A **StealthPickup** is
+  something to take; a **PlantSpot** somewhere to leave something.
+- **Guards notice what has changed.** A door left open that should be shut, a
+  lamp out that should be lit, something gone that should be there, a hiding
+  spot with a boot sticking out: a guard who sees it goes to look - the map a
+  little more on edge - and puts it right.
+- **Guard life.** A **GuardChat** has two guards meet every so often to talk,
+  their view narrower for it; within **Earshot Tiles** (twice that listening)
+  the party overhears it a line at a time, and every line heard sets
+  **Overheard Flag**. When one of them is not there to meet - knocked out, sick
+  - the other goes looking. A guard with **Asleep** ticked sees nothing, can be
+  robbed and taken down from any side, and wakes to a noise near enough. A
+  **Civilian** never fights: sure of somebody - or seeing a takedown, a body, a
+  body dragged - they run to the nearest guard and tell him, and he goes
+  hunting. Stop them first and nobody is told.
 - **Guard Kind.** A **Watchman** is everything above. A **Dog** has no cone -
   it smells anybody within **Smell Tiles**, walls or not, hiding spot or not,
   and no disguise fools it. A **Ward** (a statue, a charm) turns on the spot
@@ -197,15 +260,34 @@ only shows when there is something to do with it:
 - **Who fights.** **Joins Within Tiles** on the StealthSetup: only guards that
   close to where he was caught (and whoever caught him) start the fight; the
   rest arrive a round later for every **Tiles Per Late Round** further off they
-  were, or not at all if that is 0. 0 for Joins Within Tiles means everybody,
-  all at once. Any enemy spawn in any encounter can arrive late the same way -
-  **Arrives On Round** on the SpawnDefinition.
+  were - up to twice as quick at the top of Alarmed - or not at all if that is
+  0. Whoever could hit somebody in the party on his first turn - walk his
+  Movement across the battle terrain, then a damaging skill (or a bomb in his
+  pockets) in range, with a clear line past arm's length - is there from the
+  start however far off he is. 0 for Joins Within Tiles means everybody, all
+  at once. Any enemy spawn in
+  any encounter can arrive late the same way - **Arrives On Round** on the
+  SpawnDefinition. **Reinforcements** are sent for when the map was already on
+  edge: half of them on round 3 of a Wary map, all of them on round 2 of an
+  Alarmed one. A guard fights with whatever is still in his pockets - a potion
+  drunk when badly hurt, a bomb thrown - and nothing that was lifted; any enemy
+  spawn's **Starting Items** work that way.
 - **Questions.** A guard with **Questions** set stops somebody in a disguise
   they doubt at half sure and plays that conversation. If it sets **Passed
   Flag** he waves them on for good; if not, he is sure.
 - **The ghost bonus.** A **StealthGoal** node is the way out: walking into it
   sets **Completed Flag**, and **Ghost Flag** as well if no guard ever so much
-  as began to notice anybody. "Unseen" on the bar says it is still on.
+  as began to notice anybody. "Unseen" on the bar says it is still on. Leaving
+  the map by it shows a card: a rank - **Ghost** (never noticed), **Shadow**
+  (noticed, never caught) or **Brawler** (it came to a fight) - the tally, and
+  the objectives.
+- **Objectives.** A **StealthObjective** node is something to do besides
+  getting out, listed under the bar: a flag to set, something to carry off, no
+  takedowns, never Alarmed, nobody harmed, or the map Calm on the way out.
+  None of them stops anybody leaving.
+- **Restart Stage.** In the pause menu on a stealth map - or in the fight a
+  catch started there - it puts everything back as it was when the party
+  walked onto the map and starts it over.
 
 Whatever a click would do right now is shown in a small prompt right over
 whoever it would be done to, with a ring at their feet - and, behind somebody
@@ -214,20 +296,24 @@ that; a ward never can be.
 
 **After a fight.** Caught, the map is written down before the fight starts,
 and walking back in carries on from there: the guards who fought and lost are
-gone, anybody who never reached the fight is still on watch, bodies lie where
-they were (or stay in their hiding spots), picked pockets stay picked, the
-disguise stays on and the map is as on edge as it was. Only the ghost bonus is
-gone - caught is noticed.
+gone, anybody who never reached the fight is still on watch, bodies nobody had
+found lie where they were (or stay in their hiding spots), found ones are up
+again, picked pockets stay picked, doors, lamps and suppers are as they were
+left, the disguise stays on and the map is as on edge as it was. Only the ghost
+bonus is gone - caught is noticed.
 
 Most of the numbers - reach, throw range, how long the ears last, how much
 each alert level adds - are constants at the top of
 `exploration/StealthWatch.gd`.
 
-**Stealth stages.** **Stealth Stages** on the title screen lists four short
+**Stealth stages.** **Stealth Stages** on the title screen lists seven short
 maps to play on their own: 1 has the tools (throwing, hiding, pockets, a
-takedown), 2 the ward, the hound and the captain, 3 getting Enfina out, and 4
-disguises and a checkpoint that asks questions. In all four, guards are seen
-only when Cyrus could see them, so Q is worth pressing.
+takedown), 2 the ward, the hound and the captain, 3 getting Enfina out, 4
+disguises and a checkpoint that asks questions, 5 a dark archive (lamps, doors,
+noisy floors, a sleeping porter and a duty roster), 6 poisons and two guards who
+meet to talk, and 7 a camp on edge to settle in disguise, with an ambush at
+the gate. In all of them, guards are seen only when Cyrus could see them, so Q
+is worth pressing.
 Reaching a stage's way out goes back to the list, which says how it went - a
 **StealthGoal** with **Ends At Menu** ticked does that. The list is
 `STEALTH_STAGES` in `ui/main_menu.gd`. From the editor,
@@ -264,8 +350,10 @@ over things to see what they are and clicks them.
    show above it.
 2. Add a **Hotspot** over each thing that can be clicked, sized to cover it.
    Hovering names it (**Display Name**); clicking says its **Examine Text**,
-   plays its **Dialogue**, sets its flag, and then opens another picture or
-   goes to a map.
+   hands over its **Gives Item** and **Gives Clue**, plays its **Dialogue**,
+   sets its flag, and then opens another picture or goes to a map. Something
+   to pick up: Gives Item, with **Sets Flag** and **Hidden Once Flag** both set
+   to the same flag so it is gone once taken.
 3. For an item puzzle, set **Takes Item** to an item key. The player picks the
    item from the bag along the bottom and clicks the hotspot; the right one
    sets **Item Sets Flag** (used up, unless you untick that), anything else gets
@@ -278,6 +366,83 @@ Open it from a map with a **PictureInteractable** (walk up, press E), or from a
 conversation with `do Pictures.open("res://pictures/desk.tscn")`, which waits
 until the pictures are closed. **Esc** or right-click goes back a picture (or
 puts down a held item first).
+
+**To try everything below**, press **Clues Demo** on the title screen (or open
+`scenes/try_pictures_demo.tscn` and press F6): Captain Vell's office, built in
+`pictures/clues_*.tscn`.
+
+**How much a picture gives away.** A Picture's **Hover Hints** is how much
+hovering shows: an outline and a name (the default), only the name, or nothing
+at all until clicked - for a picture meant to be searched. **Show Progress**
+puts "Noticed 3 of 7" under the title, and things already clicked get a tick
+and "(seen)". The cursor carries a sign saying what a click will do - look,
+take, talk, use, go, turn a dial, move a piece - worked out from what the
+hotspot does, or set by its **Verb**.
+
+**Clues and the journal.** A clue is a **ClueDefinition** saved in `clues/`,
+its file name its key: a **Title** and **Text** for the journal. A hotspot's
+**Gives Clue**, a solved puzzle, or `do Campaign.learn_clue("ledger_count")` in
+a conversation puts it in the journal (J, or the Journal button under a
+picture), with a note in the corner of the screen. When it is learned it can
+set a flag (**Sets Flag** - a guard's Route Known Flag, a door's Requires Flag)
+and open the sheets of combatants in every fight from then on (**Reveals
+Combatants** - the letter that says what the gate guard is weak to).
+Conversations ask `if Campaign.knows_clue("ledger_count")`.
+
+**Working things out.** A clue with two others under **From Clues** is a
+deduction: nothing hands it over - the player picks those two in the journal
+and presses Connect.
+
+**Showing something in a conversation.**
+
+```
+do Journal.present("What do you show the captain?")
+if Journal.presented == "skimming"
+	Captain: ...where did you get that?
+elif Journal.presented == ""
+	Captain: Well?
+else
+	Captain: And what is that supposed to prove?
+```
+
+The player picks a clue or an item from the bag; `Journal.presented` is its
+key, or "" if they backed out.
+
+**Locks and torn letters.** A **Puzzle** node holds the parts of something to
+work out by hand, and says what solving it does (**Solved Flag**, **Solved
+Text**, **Gives Clue**, **Gives Item**):
+
+- **PuzzleDial**: click (or roll the wheel) to turn it through its **Values**;
+  right when it shows its **Answer**. Drawn as a numbered tumbler until you give
+  it **Value Textures**.
+- **PuzzlePiece** and **PuzzleSlot**: drag the piece; let go near a free slot
+  and it snaps in. Right when it sits in its own **Slot**. The torn strip of a
+  letter, a jar for the shelf. Put its art under it; without any it is a plain
+  card with its **Placeholder Text** on.
+
+Solved, it holds still, and stays solved the next time the picture opens.
+
+**Putting things together.** An item with two others under **Made From** is
+made by putting them together - pick one up from the bag under a picture and
+click the other, or click one then the other in the party's bags (I). Both are
+used up; its **Combine Text** says what happened.
+
+**Hidden details.** Tick **Reveals Hidden Details** on an item (a magnifying
+glass, a lamp) and it becomes a lens: picked up from the bag under a picture,
+it is held round the pointer. A Hotspot or PictureLayer marked **Hidden
+Detail** can only be found, or seen, under it - writing pressed into a blotter,
+a mark under the dust. A hidden hotspot, once clicked, stays found.
+
+**Sounds, cursors and animation - yours, when you have them.** Everything the
+pictures and the journal play or draw comes from `pictures/feedback.tres`: a
+slot per sound (look, take, talk, a dial turning, a piece snapping in, a clue
+learned, a puzzle solved...) and per cursor sign. An empty slot plays a short
+generated blip or draws a simple glyph, so drop your own in as they are made.
+The same file turns animation off and sets how long a zoom or a fade takes. A
+Hotspot can also have its own **Click Sound**, and play your own animation on a
+click (**Animation Player** and **Click Animation**); a PictureLayer with an
+AnimationPlayer under it plays your **appear** and **disappear** in place of
+its fade.
 
 ### Writing a conversation
 

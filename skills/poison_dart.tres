@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_mcofx"]
 [ext_resource type="Resource" uid="uid://ttc70ufjw2r2" path="res://conditions/poisoned.tres" id="2_mm41o"]
-[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_v0ngf"]
+[ext_resource type="Texture2D" uid="uid://cl3p3g3vifvxn" path="res://imagese/skills/poisondart_skill.png" id="2_v0ngf"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_mm41o"]
 [ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
 

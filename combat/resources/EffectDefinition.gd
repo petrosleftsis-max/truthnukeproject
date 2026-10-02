@@ -66,7 +66,8 @@ enum DispelScope {
 ## ConditionDefinition, and res://conditions/ for the ones already written.
 @export var condition: ConditionDefinition
 ## How many of the target's own turns the condition lasts when THIS skill is
-## what inflicted it.
+## what inflicted it, counted as every duration is - which end of a turn it goes
+## at is the condition's own Wears Off At Start (see Combat.turns_stored).
 ##
 ## 0 means "however long the condition itself says", which is what every skill
 ## did before this existed - so Blind is its own 3 turns unless a skill
@@ -143,8 +144,19 @@ enum DispelScope {
 
 @export_group("Duration")
 ## Used when type is STAT_MODIFIER, STAT_MULTIPLIER, or DAMAGE_OVER_TIME.
-## How many of the affected combatant's own turns this lasts for.
+## How many of the affected combatant's own turns this lasts for, counting the
+## one it lands in when it lands on whoever is acting. That picks the turn it
+## goes in - the one after the last - and Wears Off At Start below picks
+## whether it goes as that turn starts or as it ends (see Combat.turns_stored).
+## Run at 1, going at the end: this turn and the next.
 @export var duration: int = 2
+## Off: holds through the turn after its duration and wears off at that turn's
+## end, so it is still on when its bearer next acts - Run, a Blind, anything
+## that should never look as if it holds when it is about to go.
+## On: wears off as that turn starts, the moment before its bearer could use it
+## - Guard, which is for the enemies' turns in between and has nothing to do on
+## its bearer's own. The danger view knows these go before the enemy acts.
+@export var wears_off_at_start: bool = false
 
 @export_group("Dispel")
 ## Used when type is DISPEL. Empty = matches any status effect regardless of
@@ -172,23 +184,23 @@ enum DispelScope {
 const FIELDS_BY_TYPE := {
 	EffectType.DAMAGE: ["damage_type", "min_amount", "max_amount"],
 	EffectType.HEAL: ["heal_modifier", "min_amount", "max_amount"],
-	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration"],
-	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "damage_modifier", "min_amount", "max_amount", "duration"],
+	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration", "wears_off_at_start"],
+	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "damage_modifier", "min_amount", "max_amount", "duration", "wears_off_at_start"],
 	EffectType.DISPEL: ["dispel_stat", "dispel_scope", "dispel_count"],
 	EffectType.PUSH: ["knockback_distance", "damage_type", "damage_modifier", "min_amount", "max_amount"],
 	EffectType.PULL: ["knockback_distance"],
-	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration"],
+	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration", "wears_off_at_start"],
 	EffectType.CONDITION: ["condition", "condition_duration", "condition_dot_modifier"],
 	# Nothing to configure but how long they have to use it - which element it
 	# becomes is the element's own business (see Damage.UPGRADES).
-	EffectType.UPGRADE_ELEMENT: ["duration"],
+	EffectType.UPGRADE_ELEMENT: ["duration", "wears_off_at_start"],
 	# Nothing to configure: it either lays the target open or it does not.
 	EffectType.REVEAL: [],
-	EffectType.MOVEMENT_CLASS: ["display_name", "movement_class", "duration"],
+	EffectType.MOVEMENT_CLASS: ["display_name", "movement_class", "duration", "wears_off_at_start"],
 	# Nothing to configure: hiding lasts until somebody sees you, not a number
 	# of turns, so there is no duration to set either.
 	EffectType.HIDE: [],
-	EffectType.RESISTANCE: ["display_name", "damage_type", "modifier_amount", "duration"],
+	EffectType.RESISTANCE: ["display_name", "damage_type", "modifier_amount", "duration", "wears_off_at_start"],
 }
 
 

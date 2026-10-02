@@ -8,7 +8,8 @@ var LOG_PATH := HarnessLog.path_for("stages")
 const MENU := "res://scenes/try_stealth_stages.tscn"
 const TALK := "res://Dialogue/stealth_stages.dialogue"
 const BALLOON := "res://ui/dialogue_balloon.tscn"
-const STAGES := ["res://stages/stealth_1.tscn", "res://stages/stealth_2.tscn", "res://stages/stealth_3.tscn", "res://stages/stealth_4.tscn"]
+const STAGES := ["res://stages/stealth_1.tscn", "res://stages/stealth_2.tscn", "res://stages/stealth_3.tscn", "res://stages/stealth_4.tscn",
+	"res://stages/stealth_5.tscn", "res://stages/stealth_6.tscn", "res://stages/stealth_7.tscn"]
 
 var _log: FileAccess = null
 var _fail = 0
@@ -30,7 +31,7 @@ func ok(condition: bool, label: String, detail: String = ""):
 
 func _ready():
 	_log = FileAccess.open(LOG_PATH, FileAccess.WRITE)
-	get_tree().create_timer(180.0, true, false, true).timeout.connect(func(): log_line("DID NOT FINISH"); get_tree().quit(2))
+	get_tree().create_timer(360.0, true, false, true).timeout.connect(func(): log_line("DID NOT FINISH"); get_tree().quit(2))
 	await get_tree().process_frame
 	await run_test()
 
@@ -43,7 +44,7 @@ func settle(frames: int = 3):
 func run_test():
 	log_line("======== the title screen lists every stage ========")
 	var on_title: Array = MainMenu.STEALTH_STAGES.map(func(s): return s.map)
-	ok(on_title == STAGES, "the four, in order", "%s" % [on_title])
+	ok(on_title == STAGES, "all seven, in order", "%s" % [on_title])
 	for stage in MainMenu.STEALTH_STAGES:
 		ok(ResourceLoader.exists(stage.map) and stage.name != "" and stage.description != "", "%s is there, and says what it is" % stage.name)
 	var listed: Array = load(MENU.replace(".tscn", ".gd")).stages().map(func(s): return s.map)
@@ -149,13 +150,19 @@ func back_to_the_list():
 	# Straight through, rather than waiting on somebody to read the last words.
 	goal.dialogue = null
 	goal.interact(scene)
+	await settle()
+	var card = scene.get_node_or_null("StealthScorecard")
+	ok(card != null and card.continue_button != null, "the card that says how it went comes up first")
+	ok(scene.is_holding(), "and holds everything while it is up")
+	if card != null:
+		card.continue_button.pressed.emit()
 	var back = await until(func(): return get_tree().current_scene is MainMenu, 4.0)
 	ok(back, "reaching it goes to the title screen")
 	if back:
 		var title: MainMenu = get_tree().current_scene
 		await settle()
 		ok(visible_panel(title) == MainMenu.STEALTH_PANEL, "open at the stages", visible_panel(title))
-		ok(title._stealth_note.visible and title._stealth_note.text == "The Tools: Made it out, and nobody so much as noticed - a ghost.",
+		ok(title._stealth_note.visible and title._stealth_note.text == "The Tools: Ghost - nobody so much as noticed.",
 			"saying which, and how it went", title._stealth_note.text)
 		ok(Campaign.menu_opens_at == "" and Campaign.menu_note == "", "said once - the next visit to the title screen is an ordinary one")
 		button_on(title._panels[MainMenu.STEALTH_PANEL], "Back").pressed.emit()
@@ -286,7 +293,9 @@ func check_stage(n: int, talk, script_text: String):
 	for x in range(region.position.x, region.end.x):
 		for y in range(region.position.y, region.end.y):
 			var at := Vector2i(x, y)
-			if on_floor.call(at) == blocked.has(at) and differ.size() < 5:
+			# A door is floor, open or shut - the fight has no doors.
+			var floor_there: bool = region.has_point(at) and not scene._blocking.has(at)
+			if floor_there == blocked.has(at) and differ.size() < 5:
 				differ.append(at)
 	ok(differ.is_empty(), "every tile walkable on the map is walkable in the fight, and no other", "%s" % [differ])
 
@@ -366,6 +375,47 @@ func check_stage(n: int, talk, script_text: String):
 					asks = guard
 			ok(asks != null and asks.passed_flag == "stage4_passed" and asks.questions.get_cues().has(asks.questions_title)
 				and script_text.contains('set_flag("stage4_passed")'), "one asks questions that can be answered right")
+		5:
+			ok(watch.is_dark() and watch._lamps.size() >= 2, "dark, and lit by lamps", "%d lamps" % watch._lamps.size())
+			ok(watch.lit_at(start) > 0.0, "the start lit by its torch, and shut away behind a door")
+			var locked = watch._doors.filter(func(d): return d.requires_flag == "stage5_key")
+			ok(watch._doors.size() >= 2 and locked.size() == 1, "doors, one locked")
+			var porter = watch.guards.filter(func(g): return g.asleep and g.picked_flag == "stage5_key")
+			ok(porter.size() == 1, "and the key on a guard asleep")
+			var grounds := {}
+			for patch in map.find_children("*", "NoisyFloor", true, false):
+				grounds[patch.kind] = true
+			ok(grounds.size() == 3, "gravel, puddles and glass underfoot")
+			var roster = map.find_children("*", "ExamineInteractable", true, false).filter(func(n): return n.sets_flag == "stage5_roster")
+			ok(roster.size() == 1 and watch.guards.filter(func(g): return g.route_known_flag == "stage5_roster").size() >= 2,
+				"a duty roster that tells two rounds")
+			ok(kinds.has(Guard.Kind.CIVILIAN), "somebody who is nobody's guard, to run and tell")
+			ok(watch._pickups.any(func(p): return p.item_key == "archive_ledger") and watch.objectives().size() == 2, "a ledger to steal, and two things to do")
+		6:
+			var chats = map.find_children("*", "GuardChat", true, false)
+			ok(chats.size() == 1 and chats[0].lines.size() >= 2 and chats[0].overheard_flag == "stage6_overheard" and chats[0].check_in,
+				"two guards who meet to talk, overheard - and missed")
+			ok(watch._chats.size() == 1, "(both of them there)")
+			var meals = watch._edibles
+			ok(meals.size() == 1 and watch._guard_named(meals[0].eater) != null, "somebody's supper, and him")
+			ok(map.find_children("*", "RetchSpot", true, false).size() == 1, "somewhere to be sick")
+			ok(map.find_children("*", "PlantSpot", true, false).any(func(p): return p.item_key == "forged_letter"), "a desk to leave the letter on")
+			var leader_key: String = Campaign.party_members()[0].key
+			ok(Campaign.food_poison_of(leader_key) != "" and not Campaign.darts_of(leader_key).is_empty() and Campaign.count_of(leader_key, "forged_letter") == 1,
+				"poison for supper, darts, and the letter")
+			ok(kinds.has(Guard.Kind.CIVILIAN), "a cook who runs for the guards")
+			ok(watch.objectives().size() == 3, "three things to do")
+		7:
+			ok(watch.alert_level() == "Wary", "the camp on edge from the start", watch.alert_level())
+			ok(not watch.setup.reinforcements.is_empty() and Actors.waypoint_position(watch.setup.reinforcements_arrive_at) != null,
+				"and the barracks to turn out")
+			ok(watch.guards.any(func(g): return g.pockets.has("small_bomb")), "bombs in somebody's pockets")
+			var robes = ItemDatabase.item("priest_robes")
+			ok(watch.guards.filter(func(g): return g.fights() and not g.sees_through(robes)).size() >= 2, "guards the robes fool, to have a word with")
+			ok(watch.guards.any(func(g): return g.fights() and g.sees_through(robes) and g.combatant_key == "priest"), "and a priest they do not")
+			ok(watch.guards.any(func(g): return not g.can_be_taken_down and g.fights()), "a gate guard who cannot be taken down")
+			ok(Campaign.count_of(Campaign.party_members()[0].key, "priest_robes") == 1, "the robes to wear")
+			ok(watch.objectives().size() == 2, "two things to do")
 	scene.queue_free()
 	await settle()
 	log_line("")

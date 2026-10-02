@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_otgyk"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_3xjpu"]
 [ext_resource type="Resource" uid="uid://cd6p3k0plcjse" path="res://conditions/blind.tres" id="2_hsx8o"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_7rtm3"]
+[ext_resource type="Texture2D" uid="uid://ep7w86ydb372" path="res://imagese/skills/flash_skill.png" id="3_7rtm3"]
 
 [sub_resource type="Resource" id="Resource_olqgu"]
 script = ExtResource("1_otgyk")

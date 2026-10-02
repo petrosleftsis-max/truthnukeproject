@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bgvq7nbrpbgdg"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_kw28e"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_cc4pe"]
+[ext_resource type="Texture2D" uid="uid://dqhk7gnsj2ec0" path="res://imagese/skills/holylance_skill.png" id="2_cc4pe"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_fhap5"]
 
 [resource]

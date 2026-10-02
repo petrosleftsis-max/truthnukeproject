@@ -114,7 +114,10 @@ func _ready():
 			# and whoever deploys onto it fights at that level with that gear.
 			player_loadouts.append(spawn)
 			continue
-		add_combatant(create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name, spawn), 1, spawn.position)
+		var enemy = create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name, spawn)
+		if spawn.surprised:
+			catch_off_guard(enemy)
+		add_combatant(enemy, 1, spawn.position)
 
 	_deploy_party(player_tiles, fallback_party, player_loadouts)
 
@@ -194,9 +197,34 @@ func finish_deployment():
 	start_first_turn()
 
 
+## Caught off guard - ambushed on a stealth map before they knew anybody was
+## there: they lose their first turn, the way a stun takes one.
+const SURPRISED := preload("res://conditions/surprised.tres")
+
+
+func catch_off_guard(comb: Dictionary):
+	comb.status_effects.append({
+		"stat" = "condition",
+		"condition" = SURPRISED,
+		"duration" = stored_duration(comb, SURPRISED),
+		"ends_at_start" = SURPRISED.wears_off_at_start,
+		"source_name" = "Ambush",
+	})
+
+
 ## Sets the battle actually running. Separate from _ready because deployment
 ## sits in between.
 func start_first_turn():
+	var first: Dictionary = combatants[current_combatant]
+	if has_restriction(first, "skips_turn"):
+		# Whoever would open the fight cannot - ambushed, most likely. Their
+		# turn opens as any other does; advance_turn closes it, which is where
+		# the condition comes off, so it wears off on schedule rather than
+		# costing them the next round's turn too.
+		start_of_turn_effects(first)
+		update_information.emit("[color=red]%s[/color] is %s and loses their turn.\n" % [first.name, _why_turn_lost(first)])
+		advance_turn.call_deferred()
+		return
 	if combatants[current_combatant].side == 1:
 		# An enemy rolled the highest initiative, so the battle opens on their
 		# turn - and nothing has run it. advance_turn() only drives the AI for
@@ -278,6 +306,9 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		"spell_slots" = definition.gates_at(level),
 		"max_spell_slots" = definition.gates_at(level),
 		"reaction_used" = false,
+		# What an enemy has to hand in this fight, by item key - see items_of.
+		# The party's own bags live on Campaign instead.
+		"pocket" = _pocket_from(spawn),
 		"ai_function" = definition.ai_function,
 		# Which CombatantDatabase entry this came from. Campaign keys the
 		# party's carried-over health off this, so it survives the combatant
@@ -334,6 +365,11 @@ func add_combatant(combatant: Dictionary, side: int, position: Vector2i):
 	# screen, or none of them.
 	combatant["id"] = _next_combatant_id
 	_next_combatant_id += 1
+	# Read up on beforehand - a clue that says what this one is weak to
+	# (ClueDefinition.reveals_combatants): the sheet open from the start, as
+	# Study would leave it, though nobody has the edge Study gives its user.
+	if side == 1 and Campaign.clue_reveals(combatant.get("combatant_key", "")):
+		combatant["studied"] = true
 	combatants.append(combatant)
 	_number_duplicates(combatant)
 	groups[side].append(combatants.size() - 1)
@@ -616,11 +652,32 @@ func threat_map(side: int = Group.PLAYERS) -> Dictionary:
 	for enemy in combatants:
 		if not enemy.alive or enemy.side == side or is_hidden(enemy):
 			continue
-		var skills := threat_skills(enemy)
+		# Their turn is judged as they will be when it comes: anything set to
+		# wear off as it starts, with nothing left, is left out - a Run still on
+		# them from their last turn does not double this one, and a Blind about
+		# to lift does not keep them close. Put back before their reactions,
+		# which happen now, while it all still holds.
+		var now: Array = enemy.status_effects
+		var then := now.filter(func(eff): return not gone_by_their_turn(eff))
+		var trimmed := then.size() != now.size()
+		if trimmed:
+			enemy.status_effects = then
+			resync_movement_class(enemy)
+		# Stunned, or caught off guard: whatever they could do, they lose the
+		# turn they would do it in. Anything else still on them is still on
+		# them when that turn comes round - a Blind included, which
+		# effective_max_range below holds them to.
+		var skills := [] if has_restriction(enemy, "skips_turn") else threat_skills(enemy)
 		if not skills.is_empty():
 			var standing: Array = controller.get_reachable_tiles(enemy.position, enemy.movement_class, movement_budget_of(enemy)).keys()
 			if not standing.has(enemy.position):
 				standing.append(enemy.position)
+			# Frightened, they may hold or back away but not close in, so they
+			# strike only from where Fear would let them stop. Movement lost or
+			# gained to a condition is already in movement_budget_of; the drift
+			# Windswept blows them is not, being anybody's guess.
+			if has_restriction(enemy, "prevents_approach"):
+				standing = standing.filter(func(tile): return fear_allows(enemy, tile))
 			var theirs := {}
 			# Several skills often share a reach - the Sorcerer's three bolts all
 			# go twenty tiles - and the sight lines are the expensive part.
@@ -643,6 +700,9 @@ func threat_map(side: int = Group.PLAYERS) -> Dictionary:
 			sight.stand_back(enemy)
 			for tile in theirs:
 				threat[tile] = threat.get(tile, 0) + 1
+		if trimmed:
+			enemy.status_effects = now
+			resync_movement_class(enemy)
 		if enemy.get("reaction_used", false) or has_restriction(enemy, "prevents_reactions"):
 			continue
 		for key in enemy.skill_list:
@@ -1470,6 +1530,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"op" = "add",
 				"amount" = effect.modifier_amount,
 				"duration" = stored_duration(target, effect),
+				"ends_at_start" = effect.wears_off_at_start,
 				"source_name" = attacker.name
 			})
 			if effect.stat == "movement":
@@ -1485,6 +1546,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"op" = "multiply",
 				"amount" = effect.stat_multiplier,
 				"duration" = stored_duration(target, effect),
+				"ends_at_start" = effect.wears_off_at_start,
 				"source_name" = attacker.name
 			})
 			if effect.stat == "movement":
@@ -1502,6 +1564,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"max_amount" = effect.max_amount,
 				"dot_base" = dot_base_damage(attacker, skill, effect.damage_modifier),
 				"duration" = stored_duration(target, effect),
+				"ends_at_start" = effect.wears_off_at_start,
 				"source_name" = attacker.name
 			})
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, "a lingering wound"))
@@ -1516,6 +1579,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 					"condition" = effect.condition,
 					"dot_base" = dot_base_damage(attacker, skill, effect.condition_dot_strength()),
 					"duration" = condition_turns(target, effect),
+					"ends_at_start" = effect.condition.wears_off_at_start,
 					"source_name" = attacker.name
 				})
 				if effect.condition.movement_change != 0:
@@ -1532,6 +1596,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 			target.status_effects.append({
 				"stat" = "element_up",
 				"duration" = stored_duration(target, effect),
+				"ends_at_start" = effect.wears_off_at_start,
 				"source_name" = attacker.name
 			})
 			update_combatants.emit(combatants)
@@ -1543,6 +1608,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"op" = "set",
 				"amount" = effect.movement_class,
 				"duration" = stored_duration(target, effect),
+				"ends_at_start" = effect.wears_off_at_start,
 				"source_name" = attacker.name
 			})
 			resync_movement_class(target)
@@ -1557,6 +1623,7 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 				"op" = "add",
 				"amount" = effect.modifier_amount,
 				"duration" = stored_duration(target, effect),
+				"ends_at_start" = effect.wears_off_at_start,
 				"source_name" = attacker.name
 			})
 			update_combatants.emit(combatants)
@@ -1749,6 +1816,15 @@ func has_restriction(comb: Dictionary, restriction: String) -> bool:
 	return false
 
 
+## What is costing `comb` their turn, as the log says it - "stunned", "caught
+## off guard".
+func _why_turn_lost(comb: Dictionary) -> String:
+	for condition in conditions_of(comb):
+		if condition.skips_turn:
+			return condition.display_name.to_lower()
+	return "stunned"
+
+
 ## The tightest skill-range cap any active condition imposes, or 0 for none.
 ## Blind caps at 1.
 func condition_range_cap(comb: Dictionary) -> int:
@@ -1770,25 +1846,49 @@ func effective_max_range(caster: Dictionary, skill: SkillDefinition) -> int:
 	return skill.max_range
 
 
-## How long a freshly applied status effect should be recorded as lasting.
+## How long a freshly applied status effect should be recorded as lasting (see
+## turns_stored).
 ##
-## Durations count down at the START of the affected combatant's turn, so an
-## effect placed on someone who hasn't acted yet gets its full count - their
-## next N turns. But one landing on whoever is acting right now is already
-## spending one of its turns, the rest of this one, so it's stored a turn
-## shorter. Otherwise a self-buff covers the turn it was cast AND the whole of
-## the next: Run at duration 1 left Cyrus still doubled at the start of his
-## following turn, so he began on 12 movement having used nothing.
-##
-## The upshot is that duration reads the same either way: 1 means "this turn"
-## for something you do to yourself, and "their next turn" for something you do
-## to someone else.
+## What is stored counts the afflicted's own turns, one coming off at the END of
+## each. One landing on whoever is acting right now counts the rest of this turn
+## as the first.
 ## `source` is whatever carries the duration - an EffectDefinition, or a
 ## ConditionDefinition, which keeps its own.
-func stored_duration(target: Dictionary, source) -> int:
-	if target == get_current_combatant():
-		return maxi(source.duration - 1, 0)
-	return source.duration
+func stored_duration(_target: Dictionary, source) -> int:
+	return turns_stored(source.duration, source.wears_off_at_start)
+
+
+## The turns an effect written as lasting `duration` is stored with - which is
+## how many of its bearer's turns it is on them for, the one it lands in counting
+## when it lands on whoever is acting.
+##
+## The duration picks the turn it goes in: the one after its last, the turn it
+## always used to come off at the start of. `at_start` picks which end of that
+## turn. Going as it starts, it hangs on through everybody else's turns after
+## its last and is gone the moment before its bearer could use it - right for
+## Guard, which is for the enemies' turns. Going as it ends, it holds through
+## that turn too, so whatever is on somebody is still on them when their turn
+## comes round - right for anything that should never look as if it holds and
+## then vanish: a Blind that seemed to keep an archer close, or a Run still
+## doubling somebody who would not get to use it. Blind 3 going at the end is
+## four blind turns; Stunned 2, three lost; Run 1, this turn and the next.
+##
+## An effect going at the start is stored with its duration and left on at
+## nothing until its bearer's next turn begins (end_of_turn_effects keeps it,
+## start_of_turn_effects clears it). One going at the end is stored with a turn
+## more, and comes off with the last.
+##
+## Everything that tells the player how long something lasts asks here, so the
+## numbers they read are the turns they get.
+static func turns_stored(duration: int, at_start: bool) -> int:
+	return duration if at_start else duration + 1
+
+
+## Whether `effect`, as stored on somebody, will be gone before their next turn
+## is under way: one going at the start of a turn with nothing left. The danger
+## view leaves these out - they are on them now, and gone by the time it counts.
+static func gone_by_their_turn(effect: Dictionary) -> bool:
+	return effect.get("ends_at_start", false) and effect.get("duration", 0) <= 0
 
 
 ## How long the condition `effect` inflicts should last on `target`.
@@ -1797,16 +1897,13 @@ func stored_duration(target: Dictionary, source) -> int:
 ## above zero - and the condition's own duration is used otherwise. That way a
 ## skill can land a brief Blind or a punishing one without a second Blind
 ## resource existing just to hold a different number, and every skill that
-## does not care keeps behaving as it always did.
+## does not care keeps behaving as it always did. Which end of a turn it goes
+## at is the condition's own.
 ##
-## Docked by one when it lands on whoever is currently acting, for the same
-## reason stored_duration docks it: they are part-way through the turn it would
-## otherwise get for free.
-func condition_turns(target: Dictionary, effect: EffectDefinition) -> int:
-	var turns = effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration
-	if target == get_current_combatant():
-		return maxi(turns - 1, 0)
-	return turns
+## Counted the way stored_duration counts (turns_stored).
+func condition_turns(_target: Dictionary, effect: EffectDefinition) -> int:
+	return turns_stored(effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration,
+		effect.condition.wears_off_at_start)
 
 
 ## Folds a movement buff or debuff that just landed into the live movement
@@ -2044,15 +2141,19 @@ func _take_collision_damage(shover: Dictionary, who: Dictionary, effect: EffectD
 		combatant_die(who)
 
 
-## Ticks any damage-over-time effects and removes one turn of duration from
-## every status effect on this combatant, dropping any that have expired.
-## Call once per combatant, at the start of their own turn.
-## Expiry is checked BEFORE the tick, not after it. Decrementing and then
-## dropping anything that reached zero in the same pass spent the effect's last
-## turn removing it, so a duration of N only ever lasted N-1 of the target's
-## turns - 1 did nothing at all. Now an effect ticks on each of N turns and is
-## cleared at the start of the turn after, so duration means what it says.
+## One whole turn of `comb`'s effects, start and end together: what their
+## effects do to them as the turn opens, and a turn off every one as it closes.
+## The battle itself calls the two halves at the two ends of a real turn; this
+## is for anything that wants a turn to pass without playing one.
 func process_status_effects(comb: Dictionary):
+	start_of_turn_effects(comb)
+	end_of_turn_effects(comb)
+
+
+## What `comb`'s effects do to them as their turn opens: anything set to wear
+## off at the start of a turn (turns_stored) and run down to nothing goes, and
+## then damage over time ticks.
+func start_of_turn_effects(comb: Dictionary):
 	var i = comb.status_effects.size() - 1
 	while i >= 0:
 		var eff = comb.status_effects[i]
@@ -2064,11 +2165,42 @@ func process_status_effects(comb: Dictionary):
 			tick_damage_over_time(comb, eff)
 		elif eff.get("stat", "") == "condition" and eff.condition != null and (eff.condition.dot_max > 0 or eff.condition.dot_modifier > 0.0):
 			tick_condition_damage(comb, eff.condition, eff.get("dot_base", 0.0))
+		i -= 1
+	resync_movement_class(comb)
+	clamp_hp_to_max(comb)
+
+
+## Takes a turn off every effect on `comb` as their turn closes, and drops any
+## that have run out - skipped turns included, since a turn lost is still a
+## turn spent.
+##
+## Something set to wear off at the start of a turn is kept at nothing instead,
+## on through everybody else's turns, for start_of_turn_effects to clear as
+## their next one opens. Everything else goes here, the moment its last turn
+## is over, so nothing lingers looking as though it will hold for a turn it
+## will not see.
+func end_of_turn_effects(comb: Dictionary):
+	var i = comb.status_effects.size() - 1
+	while i >= 0:
+		var eff = comb.status_effects[i]
 		eff.duration -= 1
+		if eff.duration <= 0 and not eff.get("ends_at_start", false):
+			comb.status_effects.remove_at(i)
 		i -= 1
 	# Anything that just expired may have been holding them in the air.
 	resync_movement_class(comb)
 	clamp_hp_to_max(comb)
+
+
+## How many more times a damage-over-time effect on `comb` will tick. Its
+## duration, less the turn they are in the middle of, if they are: that turn's
+## tick has already happened, or never will for something that landed after
+## it, but the turn still counts until it ends.
+func ticks_left(comb: Dictionary, effect: Dictionary) -> int:
+	var turns: int = effect.get("duration", 0)
+	if comb == get_current_combatant():
+		turns -= 1
+	return maxi(turns, 0)
 
 
 ## Burns a turn's worth of damage off someone suffering a condition that deals
@@ -2267,7 +2399,10 @@ func advance_turn():
 	# advance once the battle is gone.
 	if not still_running():
 		return
-	combatants[current_combatant].turn_taken = true
+	var ending: Dictionary = combatants[current_combatant]
+	ending.turn_taken = true
+	if ending.alive:
+		end_of_turn_effects(ending)
 	set_next_combatant()
 	var comb = combatants[current_combatant]
 	while true:
@@ -2286,7 +2421,7 @@ func advance_turn():
 		comb.secondary_used_this_turn = false
 		comb.reaction_used = false
 		comb.reactions_suppressed = false
-		process_status_effects(comb)
+		start_of_turn_effects(comb)
 		if not comb.alive:
 			# A damage-over-time tick (or similar) killed them just as their
 			# turn was starting - skip straight to whoever's next.
@@ -2294,9 +2429,10 @@ func advance_turn():
 			comb = combatants[current_combatant]
 			continue
 		if has_restriction(comb, "skips_turn"):
-			# Stunned. The condition has already ticked a turn off itself in
-			# process_status_effects above, so it still wears off on schedule.
-			update_information.emit("[color=red]%s[/color] is stunned and loses their turn.\n" % comb.name)
+			# Stunned. The turn is lost but still spent: it ends here, and the
+			# condition comes off with it, so it wears off on schedule.
+			update_information.emit("[color=red]%s[/color] is %s and loses their turn.\n" % [comb.name, _why_turn_lost(comb)])
+			end_of_turn_effects(comb)
 			set_next_combatant()
 			comb = combatants[current_combatant]
 			continue
@@ -2952,6 +3088,13 @@ func sort_weight_array(a, b):
 ## field - no dispatch table to edit. Falls back to ai_melee_rush if the
 ## named function doesn't exist (e.g. a typo).
 func ai_process(comb: Dictionary):
+	# Whatever sort of fighter they are, somebody half dead with a potion to hand
+	# drinks it first.
+	if await _ai_drink_from_pocket(comb):
+		if still_running() and comb.alive:
+			await ai_secondary_attack(comb)
+			await advance_turn()
+		return
 	var ai_function = comb.get("ai_function", "ai_melee_rush")
 	if ai_function != "" and has_method(ai_function):
 		await call(ai_function, comb)
@@ -2975,6 +3118,21 @@ func find_nearest_enemy_of(comb: Dictionary) -> Dictionary:
 			best_distance = distance
 			nearest = candidate
 	return nearest
+
+
+## Whether Fear lets `comb` end a move on `tile`: never closer to their nearest
+## enemy than they stand now. Anybody unafraid may end anywhere.
+##
+## Here rather than only on the controller, which enforces it for whoever is
+## acting, so the danger view can ask the same of an enemy whose turn is still
+## to come.
+func fear_allows(comb: Dictionary, tile: Vector2i) -> bool:
+	if not has_restriction(comb, "prevents_approach"):
+		return true
+	var nearest = find_nearest_enemy_of(comb)
+	if nearest.is_empty():
+		return true
+	return get_position_distance(tile, nearest.position) >= get_position_distance(comb.position, nearest.position)
 
 
 ## The living combatant on the opposite side to comb with the lowest current
@@ -3861,13 +4019,45 @@ func _ai_plannable(comb: Dictionary, skill: SkillDefinition) -> bool:
 	return can_afford_skill(comb, skill) and meets_level_for(comb, skill)
 
 
-## Everything `comb` could spend its main action on: its skills and its spells.
+## Everything `comb` could spend its main action on: its skills, its spells,
+## and anything in an enemy's pocket to throw at somebody.
 func _ai_main_keys(comb: Dictionary) -> Array:
 	var keys = main_skills_of(comb).duplicate()
 	for key in spell_skills_of(comb):
 		if not SkillDatabase.skills[key].is_secondary and not keys.has(key):
 			keys.append(key)
+	if comb.side != 0:
+		for key in items_of(comb):
+			var item: ItemDefinition = ItemDatabase.item(key)
+			if item != null and item.deals_damage and not item.targets_ally and not keys.has(key) \
+					and SkillDatabase.skills.has(key):
+				keys.append(key)
 	return keys
+
+
+## How badly hurt an enemy has to be before they drink what is in their pocket.
+const AI_DRINK_BELOW := 0.5
+
+
+## Badly hurt with something to mend it in their pocket: they drink it, and
+## that is their main action. True when they did.
+func _ai_drink_from_pocket(comb: Dictionary) -> bool:
+	if comb.side == 0 or comb.hp > comb.max_hp * AI_DRINK_BELOW or comb.get("skill_used_this_turn", false):
+		return false
+	for key in items_of(comb):
+		var item: ItemDefinition = ItemDatabase.item(key)
+		if item == null or not item.targets_ally or not SkillDatabase.skills.has(key):
+			continue
+		var mends := false
+		for effect in item.effects:
+			if effect != null and effect.type == EffectDefinition.EffectType.HEAL:
+				mends = true
+		if not mends:
+			continue
+		update_information.emit("[color=yellow]%s[/color] drinks a %s.\n" % [comb.name, item.name])
+		await use_skill(key, comb, comb.position, false)
+		return true
+	return false
 
 
 ## Every tile worth aiming `skill` at, and what catching whoever stands around
@@ -4530,13 +4720,33 @@ func spells_in_slot(comb: Dictionary, secondary: bool) -> Array:
 	return found
 
 
+## What `comb` can use in this fight, by item key: the party's first bag
+## slots, or what an enemy spawned with in their pocket (see
+## SpawnDefinition.starting_items).
 func items_of(comb: Dictionary) -> Array:
 	if comb.side != 0:
-		return []
+		return comb.get("pocket", [])
 	var key = comb.get("combatant_key", "")
 	if key == "":
 		return []
 	return Campaign.combat_items_of(key)
+
+
+## An enemy spawn's pocket: the first COMBAT_SLOTS of what it lists that are
+## real items and of any use in a fight. The party's spawns hand their items
+## to Campaign instead, so theirs stays empty.
+func _pocket_from(spawn: SpawnDefinition) -> Array:
+	var pocket: Array = []
+	if spawn == null or spawn.side == 0:
+		return pocket
+	for key in spawn.starting_items:
+		var item: ItemDefinition = ItemDatabase.item(key) if key != "" else null
+		if item == null or item.stealth_only():
+			continue
+		pocket.append(key)
+		if pocket.size() >= Campaign.COMBAT_SLOTS:
+			break
+	return pocket
 
 
 ## Whether a key names a consumable rather than a skill. Items are registered
@@ -4551,6 +4761,13 @@ func is_item(key: String) -> bool:
 func consume_item(comb: Dictionary, key: String):
 	var item: ItemDefinition = ItemDatabase.item(key)
 	if item == null or not item.consumed_on_use:
+		return
+	if comb.side != 0:
+		# Out of an enemy's own pocket, not anybody's bag.
+		var pocket: Array = comb.get("pocket", [])
+		var slot = pocket.find(key)
+		if slot >= 0:
+			pocket.remove_at(slot)
 		return
 	var owner_key = comb.get("combatant_key", "")
 	if owner_key == "" or not Campaign.take_item(owner_key, key):

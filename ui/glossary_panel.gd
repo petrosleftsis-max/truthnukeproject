@@ -198,7 +198,9 @@ func _page_for_condition(condition: ConditionDefinition):
 		lines.append(condition.description)
 		lines.append("")
 	lines.append("[b]Defaults[/b]")
-	lines.append("Lasts %d of the afflicted's own turns." % condition.duration)
+	lines.append("Lasts %d of the afflicted's own turns, and is gone as %s." % [
+		Combat.turns_stored(condition.duration, condition.wears_off_at_start),
+		"the next one starts" if condition.wears_off_at_start else "the last one ends"])
 	# Said in words rather than numbers: what a tick actually takes off depends
 	# on who inflicted it, and the book is read long before that is known.
 	if condition.describe_dot() != "":
@@ -342,6 +344,8 @@ static func conditions() -> Array:
 			for effect in skill.effects:
 				if effect != null and effect.condition != null:
 					found[effect.condition.resource_path] = effect.condition
+	# And the one nothing inflicts but an ambush on a stealth map.
+	found[Combat.SURPRISED.resource_path] = Combat.SURPRISED
 	var dir = DirAccess.open("res://conditions")
 	if dir != null:
 		for file in dir.get_files():

@@ -23,17 +23,35 @@ class_name StealthSetup
 @export var guards_seen_only_in_sight: bool = false
 
 @export_group("Alert")
-## How fast the map calms down again after an alarm, in alert per second - a
-## full alarm (1.0) takes 50 seconds to fade at the default.
-@export var alert_fades_per_second: float = 0.02
+## How on edge the map is when the party walks onto it: already Wary, say,
+## after something that happened before. See StealthWatch's alert.
+@export_enum("Calm", "Wary", "Alarmed") var starting_alert: int = 0
+
+@export_group("Darkness")
+## Dark but for its lamps (see Lamp) and the torches painted on its walls: a
+## guard makes somebody out in the dark only within Dark Sight Tiles of him,
+## but on a lit tile as far off as he sees anything.
+@export var dark: bool = false
+@export var dark_sight_tiles: float = 2.5
+## How far the torches painted on the walls light, in tiles. Zero: they give
+## no light.
+@export var torch_light_tiles: float = 3.0
 
 @export_group("Who fights")
 ## Only guards this many tiles or fewer from where he was caught start the fight
 ## with him. Zero: every guard on the map, all at once.
 @export var joins_within_tiles: float = 0.0
 ## Guards further off than that arrive late - a round later for every this many
-## tiles further they had to come. Zero: they never come.
+## tiles further they had to come. Zero: they never come. The more on edge the
+## map, the sooner they get there: up to twice as quick at the top of Alarmed.
 @export var tiles_per_late_round: float = 6.0
+## Who is sent for when the map was already on edge before the catch, by
+## combatant key - the barracks turning out. Nobody comes on a Calm map; the
+## first half of the list comes on round 3 of a Wary one, and all of it on
+## round 2 of an Alarmed one.
+@export var reinforcements: Array[String] = []
+## The waypoint they come in at. Empty, or not found: beside whoever was caught.
+@export var reinforcements_arrive_at: String = ""
 ## Who comes running when the one sneaking is caught, by combatant key, in the
 ## order they stand. Empty: they fight alone. Whether help arrives is the story
 ## beat's to say, so it is set per map.

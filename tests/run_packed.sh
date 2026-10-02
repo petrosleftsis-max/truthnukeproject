@@ -45,6 +45,8 @@ rm -rf "$DST"
 mkdir -p "$DST"
 tar -C "$SRC" --exclude="./.git" --exclude="./export" --exclude="./tests" -cf - . | tar -C "$DST" -xf -
 cp "$HERE/HarnessLog.gd" "$DST/HarnessLog.gd"
+# What the stealth suites share: a map to sneak about on, and the helpers.
+cp "$HERE/StealthHarness.gd" "$DST/StealthHarness.gd"
 cp "$DRIVER" "$DST/${SUITE}_test_driver.gd"
 
 sed -i 's|run/main_scene="[^"]*"|run/main_scene="res://main_menu.tscn"|' "$DST/project.godot"

@@ -1,0 +1,126 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://exploration/Picture.gd" id="1_picture"]
+[ext_resource type="Script" path="res://exploration/Puzzle.gd" id="2_puzzle"]
+[ext_resource type="Script" path="res://exploration/PuzzleSlot.gd" id="3_slot"]
+[ext_resource type="Script" path="res://exploration/PuzzlePiece.gd" id="4_piece"]
+
+[node name="Bin" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+script = ExtResource("1_picture")
+title = "The Waste Bin"
+
+[node name="Floor" type="ColorRect" parent="."]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+color = Color(0.12, 0.1, 0.09, 1)
+
+[node name="Backing" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 330.0
+offset_top = 100.0
+offset_right = 950.0
+offset_bottom = 540.0
+mouse_filter = 2
+color = Color(0.2, 0.17, 0.14, 1)
+
+[node name="Letter" type="Control" parent="."]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+script = ExtResource("2_puzzle")
+display_name = "Torn letter"
+solved_flag = "demo_letter_mended"
+solved_text = "The pieces fit together. A note - and it's signed with a V."
+gives_clue = "torn_letter"
+
+[node name="Slot1" type="Control" parent="Letter"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 110.0
+offset_right = 640.0
+offset_bottom = 320.0
+mouse_filter = 2
+script = ExtResource("3_slot")
+
+[node name="Slot2" type="Control" parent="Letter"]
+layout_mode = 0
+offset_left = 640.0
+offset_top = 110.0
+offset_right = 940.0
+offset_bottom = 320.0
+mouse_filter = 2
+script = ExtResource("3_slot")
+
+[node name="Slot3" type="Control" parent="Letter"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 320.0
+offset_right = 640.0
+offset_bottom = 530.0
+mouse_filter = 2
+script = ExtResource("3_slot")
+
+[node name="Slot4" type="Control" parent="Letter"]
+layout_mode = 0
+offset_left = 640.0
+offset_top = 320.0
+offset_right = 940.0
+offset_bottom = 530.0
+mouse_filter = 2
+script = ExtResource("3_slot")
+
+[node name="Piece1" type="Control" parent="Letter"]
+layout_mode = 0
+offset_left = 960.0
+offset_top = 30.0
+offset_right = 1260.0
+offset_bottom = 240.0
+script = ExtResource("4_piece")
+display_name = "Scrap of a letter"
+slot = NodePath("../Slot1")
+placeholder_text = "...thirty crates on
+the books,"
+
+[node name="Piece2" type="Control" parent="Letter"]
+layout_mode = 0
+offset_left = 960.0
+offset_top = 470.0
+offset_right = 1260.0
+offset_bottom = 680.0
+script = ExtResource("4_piece")
+display_name = "Scrap of a letter"
+slot = NodePath("../Slot2")
+placeholder_text = "whatever the ledger
+says. The rest goes"
+
+[node name="Piece3" type="Control" parent="Letter"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 40.0
+offset_right = 320.0
+offset_bottom = 250.0
+script = ExtResource("4_piece")
+display_name = "Scrap of a letter"
+slot = NodePath("../Slot3")
+placeholder_text = "out by the ditch
+after the bell."
+
+[node name="Piece4" type="Control" parent="Letter"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 470.0
+offset_right = 320.0
+offset_bottom = 680.0
+script = ExtResource("4_piece")
+display_name = "Scrap of a letter"
+slot = NodePath("../Slot4")
+placeholder_text = "Burn this.
+
+            - V."

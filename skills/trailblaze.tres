@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_ph3vn"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_6gyig"]
 [ext_resource type="Resource" uid="uid://1ld4g4lgfheh" path="res://conditions/burn.tres" id="2_18en4"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_d21eg"]
+[ext_resource type="Texture2D" uid="uid://cj1t2d476a3c1" path="res://imagese/skills/trailblaze_skill.png" id="3_d21eg"]
 [ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="5_d21eg"]
 
 [sub_resource type="Resource" id="Resource_hfa8a"]

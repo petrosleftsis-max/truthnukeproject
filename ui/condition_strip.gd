@@ -130,32 +130,32 @@ func _is_helpful(effect: Dictionary) -> bool:
 ## What one effect is doing, in the words the tooltip shows. Empty for anything
 ## with nothing worth saying.
 func describe(comb: Dictionary, effect: Dictionary) -> String:
-	var turns = effect.get("duration", 0)
 	match effect.get("stat", ""):
 		"dot":
 			var per_turn = _tick(comb, effect.get("dot_base", 0.0), effect.get("damage_type", 0),
 				effect.get("min_amount", 0), effect.get("max_amount", 0))
 			var name = effect.get("source_name", "")
 			var opening = "Lingering wound" if name == "" else "Lingering wound from %s" % name
-			return "%s\n%d %s damage a turn for %s (%d in all)" % [
+			var ticks = _ticks_left(comb, effect)
+			return "%s\n%d %s damage a turn for %s (%d in all)\n%s" % [
 				opening, per_turn, Damage.type_name(effect.get("damage_type", 0)).to_lower(),
-				_turns(turns), per_turn * turns
+				_turns(ticks), per_turn * ticks, _wears_off(comb, effect)
 			]
 		"condition":
 			return _describe_condition(comb, effect)
 		"element_up":
 			return "Element raised
 Their next damaging spell lands as the upgraded form of its element.
-Lasts %s." % _turns(turns)
+%s" % _wears_off(comb, effect)
 		"movement_class":
 			var moving_as = Stats.movement_class_name(effect.get("amount", 0))
 			var lines := ["Moving as %s" % moving_as.to_lower()]
 			if effect.get("amount", 0) == 1:
 				lines.append("Crosses what stops a walker, and ignores rough ground.")
-			lines.append("Lasts %s." % _turns(turns))
+			lines.append(_wears_off(comb, effect))
 			return "
 ".join(lines)
-	return _describe_stat_change(effect)
+	return _describe_stat_change(comb, effect)
 
 
 func _describe_condition(comb: Dictionary, effect: Dictionary) -> String:
@@ -167,7 +167,7 @@ func _describe_condition(comb: Dictionary, effect: Dictionary) -> String:
 		lines.append(condition.description)
 	var doing := []
 	if condition.dot_modifier > 0.0 or condition.dot_max > 0:
-		var turns = effect.get("duration", 0)
+		var turns = _ticks_left(comb, effect)
 		var dot_base = effect.get("dot_base", 0.0)
 		var flavour = Damage.type_name(condition.dot_type).to_lower()
 		if dot_base > 0.0:
@@ -198,11 +198,11 @@ func _describe_condition(comb: Dictionary, effect: Dictionary) -> String:
 		doing.append("no reactions")
 	if not doing.is_empty():
 		lines.append(", ".join(doing))
-	lines.append("Wears off in %s" % _turns(effect.get("duration", 0)))
+	lines.append(_wears_off(comb, effect))
 	return "\n".join(lines)
 
 
-func _describe_stat_change(effect: Dictionary) -> String:
+func _describe_stat_change(comb: Dictionary, effect: Dictionary) -> String:
 	var stat = effect.get("stat", "")
 	if stat == "":
 		return ""
@@ -215,7 +215,7 @@ func _describe_stat_change(effect: Dictionary) -> String:
 		lines.append("%s %+d" % [stat.capitalize(), effect.get("amount", 0)])
 	if named != "":
 		lines.append("From %s" % named)
-	lines.append("Wears off in %s" % _turns(effect.get("duration", 0)))
+	lines.append(_wears_off(comb, effect))
 	return "\n".join(lines)
 
 
@@ -229,3 +229,30 @@ func _tick(comb: Dictionary, dot_base: float, damage_type: int, flat_min: int, f
 
 func _turns(count: int) -> String:
 	return "1 turn" if count == 1 else "%d turns" % count
+
+
+## How many more ticks a lingering effect has in it - Combat.ticks_left, or its
+## duration when there is no battle to ask.
+func _ticks_left(comb: Dictionary, effect: Dictionary) -> int:
+	if _combat == null:
+		return effect.get("duration", 0)
+	return _combat.ticks_left(comb, effect)
+
+
+## When `effect` comes off `comb`, in the words a tooltip says it. Counted in
+## their own turns, the one they are in the middle of included; which end of a
+## turn it goes at is the effect's own (Combat.turns_stored) - and worth saying,
+## since it decides whether it is still there when they next act.
+func _wears_off(comb: Dictionary, effect: Dictionary) -> String:
+	var acting = _combat != null and comb == _combat.get_current_combatant()
+	# Their turns still to come that it covers whole.
+	var ahead: int = effect.get("duration", 0) - (1 if acting else 0)
+	if effect.get("ends_at_start", false):
+		if ahead <= 0:
+			return "Wears off as their next turn starts"
+		return "Holds through their next %s, and wears off as the one after starts" % _turns(ahead)
+	if ahead <= 0:
+		return "Wears off at the end of this turn"
+	if ahead == 1:
+		return "Wears off at the end of their next turn"
+	return "Holds through their next %s, and wears off as the last ends" % _turns(ahead)

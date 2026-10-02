@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bmuprut4xin6n"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_egj04"]
-[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://imagese/skills/greatsword_skill.png" id="2_2u77k"]
+[ext_resource type="Texture2D" uid="uid://c8qj50fi3qrso" path="res://imagese/skills/gun_skill.png" id="2_2u77k"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_hu7ck"]
 [ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
 

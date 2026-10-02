@@ -1420,6 +1420,19 @@ func describe_aoe_shape(skill: SkillDefinition) -> String:
 			return "Radius %d" % skill.aoe_radius
 
 
+## How long an effect lasts, as a preview says it: the turns it is on whoever it
+## lands on (Combat.turns_stored), and which end of a turn it goes at - as the
+## last of them ends, or as the one after starts, which is what decides whether
+## it is still there when they next act.
+func _how_long(duration: int, at_start: bool) -> String:
+	var turns = Combat.turns_stored(duration, at_start)
+	if at_start:
+		if turns <= 0:
+			return "until their next turn starts"
+		return "for %d turn(s), gone as the next starts" % turns
+	return "for %d turn(s), gone as the last ends" % turns
+
+
 func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) -> String:
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
@@ -1450,7 +1463,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Heal: %d-%d" % [effect.min_amount, effect.max_amount]
 		EffectDefinition.EffectType.STAT_MODIFIER:
 			var sign_str = "+" if effect.modifier_amount >= 0 else ""
-			return "%s%d %s for %d turn(s)" % [sign_str, effect.modifier_amount, effect.stat, effect.duration]
+			return "%s%d %s %s" % [sign_str, effect.modifier_amount, effect.stat, _how_long(effect.duration, effect.wears_off_at_start)]
 		EffectDefinition.EffectType.UPGRADE_ELEMENT:
 			# Named rather than described in the abstract, because "the upgraded
 			# form" means nothing until you know fire becomes plasma.
@@ -1458,32 +1471,32 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			for base in Damage.UPGRADES:
 				pairs.append("%s to %s" % [Damage.type_name(base),
 					Damage.type_name(Damage.UPGRADES[base])])
-			return "Raises the element of their next damaging spell (%s), for %d turn(s)" % [
-				", ".join(pairs), effect.duration]
+			return "Raises the element of their next damaging spell (%s), %s" % [
+				", ".join(pairs), _how_long(effect.duration, effect.wears_off_at_start)]
 		EffectDefinition.EffectType.RESISTANCE:
 			var harder = effect.modifier_amount > 0
-			return "%s %s resistance by %d%% for %d turn(s)" % [
+			return "%s %s resistance by %d%% %s" % [
 				"Raises" if harder else "Lowers",
 				Damage.type_name(effect.damage_type).to_lower(),
-				absi(effect.modifier_amount), effect.duration
+				absi(effect.modifier_amount), _how_long(effect.duration, effect.wears_off_at_start)
 			]
 		EffectDefinition.EffectType.MOVEMENT_CLASS:
 			var moving_as = Stats.movement_class_name(effect.movement_class).to_lower()
 			if effect.movement_class == 1:
-				return "Moves as flying for %d turn(s): over what blocks a walker, and across rough ground as though it were flat" % effect.duration
-			return "Moves as %s for %d turn(s)" % [moving_as, effect.duration]
+				return "Moves as flying %s: over what blocks a walker, and across rough ground as though it were flat" % _how_long(effect.duration, effect.wears_off_at_start)
+			return "Moves as %s %s" % [moving_as, _how_long(effect.duration, effect.wears_off_at_start)]
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
 			# Per turn and in total, because a wound that ticks for 6 over 4 turns
 			# is a different decision from one that ticks for 20 once.
 			var ticks = _tick_figure(skill, effect.damage_type, effect.damage_modifier,
 				effect.applies_to_caster)
 			if ticks >= 0:
-				return "Damage over time: %s%d %s a turn for %d turn(s)" % [
+				return "Damage over time: %s%d %s a turn %s" % [
 					"" if effect.applies_to_caster else "base ",
-					ticks, Damage.type_name(effect.damage_type).to_lower(), effect.duration
+					ticks, Damage.type_name(effect.damage_type).to_lower(), _how_long(effect.duration, effect.wears_off_at_start)
 				]
-			return "Damage over time: %d-%d %s for %d turn(s)" % [
-				effect.min_amount, effect.max_amount, Damage.type_name(effect.damage_type).to_lower(), effect.duration
+			return "Damage over time: %d-%d %s %s" % [
+				effect.min_amount, effect.max_amount, Damage.type_name(effect.damage_type).to_lower(), _how_long(effect.duration, effect.wears_off_at_start)
 			]
 		EffectDefinition.EffectType.DISPEL:
 			var scope_str = "all"
@@ -1499,7 +1512,8 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# The skill's own duration when it sets one, so the tooltip says what
 			# this skill actually lands rather than what the condition says on
 			# its own - those are allowed to differ now.
-			var turns = effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration
+			var how_long = _how_long(effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration,
+				effect.condition.wears_off_at_start)
 			# A condition describes itself in words - "a strong DOT" - which says
 			# how it compares to other conditions but not what it costs you here.
 			# The number belongs beside it, worked out from whoever is holding
@@ -1508,8 +1522,8 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			var burning = _condition_tick(effect, skill)
 			if burning != "":
 				says += " (%s)" % burning
-			return "Inflicts %s for %d turn(s): %s" % [
-				effect.condition.display_name, turns, says
+			return "Inflicts %s %s: %s" % [
+				effect.condition.display_name, how_long, says
 			]
 		EffectDefinition.EffectType.PUSH:
 			# A collision is worked out from the shover now, the same as any
@@ -1536,7 +1550,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# "x2" rather than the "x2.0" a float prints as.
 			var times = effect.stat_multiplier
 			var shown = str(int(times)) if is_equal_approx(times, roundf(times)) else str(times)
-			return "x%s %s for %d turn(s)" % [shown, effect.stat, effect.duration]
+			return "x%s %s %s" % [shown, effect.stat, _how_long(effect.duration, effect.wears_off_at_start)]
 		EffectDefinition.EffectType.HIDE:
 			return "Slips out of sight, if no enemy can see them - until one can"
 		EffectDefinition.EffectType.REVEAL:

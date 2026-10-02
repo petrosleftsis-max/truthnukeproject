@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Caught off guard"
+description = "Ambushed before they knew anybody was there: loses their first turn."
+duration = 1
+skips_turn = true

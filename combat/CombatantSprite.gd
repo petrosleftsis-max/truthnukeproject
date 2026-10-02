@@ -117,6 +117,24 @@ func showing() -> SpriteFrames:
 	return _animated.sprite_frames if _animated != null else null
 
 
+## What is on show this moment, for drawing a copy of it somewhere else - the
+## ghost a stealth map leaves where a guard last saw him: {texture, region,
+## offset, flip}, the region being the part of the texture that is the frame
+## and the offset where its centre is drawn from this sprite's position.
+## Empty when there is nothing to copy.
+func current_frame() -> Dictionary:
+	if _animated != null and _animated.sprite_frames != null and _animated.sprite_frames.has_animation(_animated.animation):
+		var texture = _animated.sprite_frames.get_frame_texture(_animated.animation, _animated.frame)
+		if texture != null:
+			return {"texture": texture, "region": Rect2(Vector2.ZERO, texture.get_size()),
+				"offset": _animated.offset, "flip": _animated.flip_h}
+	if _static != null and _static.texture != null:
+		var size = _static.texture.get_size()
+		return {"texture": _static.texture, "region": Rect2(0, 0, size.x / 2.0, size.y), "offset": Vector2.ZERO,
+			"flip": _static.flip_h}
+	return {}
+
+
 ## Shifts the sprite's drawn position upward via `offset` - which only
 ## affects rendering, unlike `position`, which movement/knockback/etc. all
 ## depend on being the exact tile centre - by however much its frame height
@@ -337,6 +355,22 @@ func set_facing(flip: bool):
 		_animated.flip_h = flip
 	elif _static != null:
 		_static.flip_h = flip
+
+
+## Stands somebody back up after set_dead - a guard on a stealth map, woken by
+## whoever found him lying there.
+func set_alive():
+	if _flash_tween != null and _flash_tween.is_valid():
+		_flash_tween.kill()
+	if _static != null:
+		_static.frame = 0
+	play_idle()
+	var drawn = _drawn()
+	var rise = create_tween()
+	rise.set_parallel(true)
+	rise.tween_property(self, "modulate", Color.WHITE, DEATH_SECONDS)
+	if drawn != null:
+		rise.tween_property(drawn, "position:y", 0.0, DEATH_SECONDS).set_ease(Tween.EASE_OUT)
 
 
 func set_dead():

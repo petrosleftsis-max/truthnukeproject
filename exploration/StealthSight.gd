@@ -53,8 +53,21 @@ func region() -> Rect2i:
 	return _region
 
 
+## Tiles shut off for now - a closed door - on top of the painted walls.
+var _shut := {}
+
+
+## Shuts `tile` off to sight, or opens it again: a door closed or opened. Only
+## ever adds to the painted walls; opening a door never sees through a wall.
+func set_shut(tile: Vector2i, shut: bool):
+	if shut:
+		_shut[tile] = true
+	else:
+		_shut.erase(tile)
+
+
 func stops_sight(tile: Vector2i) -> bool:
-	return _stops_sight.has(tile) or not _region.has_point(tile)
+	return _stops_sight.has(tile) or _shut.has(tile) or not _region.has_point(tile)
 
 
 ## Whether a look from `from` reaches `to`. Walked from the lesser end of the

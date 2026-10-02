@@ -147,11 +147,31 @@ func run_test():
 		victim.status_effects.append({"stat": "movement", "op": "add", "amount": -1, "duration": wanted, "source_name": "T"})
 		var active_turns = 0
 		for turn in range(0, 10):
-			combat.process_status_effects(victim)
+			combat.start_of_turn_effects(victim)
 			if victim.status_effects.is_empty():
 				break
 			active_turns += 1
+			combat.end_of_turn_effects(victim)
 		ok(active_turns == wanted, "duration %d lasts %d turn(s)" % [wanted, wanted], "measured %d" % active_turns)
+	# Set to go as a turn starts: the same turns, and then on through everybody
+	# else's after the last, until the bearer's next one opens.
+	for wanted in [1, 2, 3]:
+		var victim = {"status_effects": [], "hp": 20, "max_hp": 20, "alive": true, "name": "Dummy", "side": 0}
+		victim.status_effects.append({"stat": "movement", "op": "add", "amount": -1, "duration": wanted,
+			"ends_at_start": true, "source_name": "T"})
+		var active_turns = 0
+		var held_between = true
+		for turn in range(0, 10):
+			combat.start_of_turn_effects(victim)
+			if victim.status_effects.is_empty():
+				break
+			active_turns += 1
+			combat.end_of_turn_effects(victim)
+			if victim.status_effects.is_empty():
+				held_between = false
+		ok(active_turns == wanted and held_between,
+			"going at the start, %d lasts %d turn(s) and holds until the next starts" % [wanted, wanted],
+			"measured %d, held between: %s" % [active_turns, held_between])
 	log_line("")
 
 	log_line("======== log names the skill and the condition ========")

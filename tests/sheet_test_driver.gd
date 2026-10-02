@@ -281,7 +281,7 @@ func run_test():
 		ok(not said.contains("Out of sight") and not said.contains("Wears off"),
 			"what they mean is not written out on the sheet", said)
 		ok(hovered.contains(CharacterSheet.HIDDEN_TEXT), "hovering Hidden says what hiding means")
-		ok(hovered.contains("Wears off in"), "and hovering Burn says how long it has left")
+		ok(hovered.to_lower().contains("wears off"), "and hovering Burn says how long it has left")
 		# The same words the HUD mark shows when hovered, not a second telling.
 		var reader := ConditionStrip.new()
 		var hud = reader.states_of(subject, combat)

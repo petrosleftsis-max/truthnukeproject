@@ -11,6 +11,7 @@ applies_to_caster = true
 stat = "defense"
 modifier_amount = 0
 duration = 1
+wears_off_at_start = true
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ClueDefinition" format=3]
+
+[ext_resource type="Script" path="res://exploration/ClueDefinition.gd" id="1_clue"]
+
+[resource]
+script = ExtResource("1_clue")
+title = "The ditch after the bell"
+text = "The roster puts nobody on the ditch after dark - and that is just when the letter says the oil goes out. Someone made sure it would be unwatched."
+from_clues = Array[String](["torn_letter", "duty_roster"])
+sets_flag = "demo_ditch_unwatched"

@@ -2,6 +2,29 @@ extends Node
 ## The new skill icons, and the previews on a character sheet.
 
 var LOG_PATH := HarnessLog.path_for("icons")
+
+## Icons drawn for one skill each, named after it. The rest still share a face
+## by kind - heal, buff, debuff, the greatsword for gateless damage, fire for
+## the rest - until they get one of their own. Stealth's is Cyrus's, the one
+## character who has it; Wind Swoon's is named for what it does, Windswept.
+const OWN_ICONS := {
+	"run": "run_skill.png", "slip_past": "slip_past_icon.png", "study": "study_skill.png",
+	"stealth": "cyrusstealth_skill.png", "blink_strike": "blinkstrike_skill.png",
+	"burner": "burner_skill.png", "burning_shot": "burningshot_skill.png",
+	"crystalise": "crystallise_skill.png", "fire_blast": "fireblast_icon.png",
+	"flash": "flash_skill.png", "follow_up_attack": "followupattack_skill.png",
+	"gun": "gun_skill.png", "gust_blast": "gustblast_skill.png",
+	"hermes_step": "hermesstep_skill.png", "holy_lance": "holylance_skill.png",
+	"hover": "hover_skill.png", "light_heal": "lightheal_skill.png",
+	"light_swing": "lightswing_skill.png", "poison_dart": "poisondart_skill.png",
+	"quicken": "quicken_skill.png", "rapier": "rapier_skill.png",
+	"river_flow": "riverflow_skill.png", "rock_throw": "rockthrow_icon.png",
+	"sass_club": "sassclub_skill.png", "shoving_strike": "shovingstrike_skill.png",
+	"sweep_strike": "sweepstrike_skill.png", "trailblaze": "trailblaze_skill.png",
+	"warning_shot": "warningshot_skill.png", "water_spike": "waterspike_skill.png",
+	"wind_shot": "windshot_icon.png", "wind_swoon": "windswept_skill.png",
+	"wind_vacuum": "windvacuum_skill.png",
+}
 var _log: FileAccess
 var _fail = 0
 
@@ -76,8 +99,8 @@ func run_test():
 
 	log_line("======== heals and cleanses ========")
 	for key in ["heal", "light_heal", "revitalizer", "cleanse"]:
-		ok(icon_file(SkillDatabase.skills.get(key)) == "heal_skill.png",
-			"%s carries the heal icon" % key, icon_file(SkillDatabase.skills.get(key)))
+		ok(icon_file(SkillDatabase.skills.get(key)) == OWN_ICONS.get(key, "heal_skill.png"),
+			"%s carries the heal icon, or its own" % key, icon_file(SkillDatabase.skills.get(key)))
 	log_line("")
 
 	log_line("======== a buff and a debuff no longer look alike ========")
@@ -99,21 +122,31 @@ func run_test():
 		if lowers_something(skill) and not raises_something(skill):
 			if face == "buff_skill.png":
 				lying.append(key)
-			elif face != "debuff_skill.png":
+			elif face != "debuff_skill.png" and face != OWN_ICONS.get(key, ""):
 				unmarked.append("%s (%s)" % [key, face])
 	ok(lying.is_empty(), "everything wearing the buff icon raises something", "%s" % [lying])
-	ok(unmarked.is_empty(), "and everything that only takes away wears the debuff icon",
+	ok(unmarked.is_empty(), "and everything that only takes away wears the debuff icon, or its own",
 		"%s" % [unmarked])
 	log_line("")
 
 	log_line("======== an icon named after a skill sits on that skill ========")
-	# Four were drawn for one skill each. A rename or a copy-paste would put
-	# one on the wrong move and nothing else would notice.
-	for pair in [["run", "run_skill.png"], ["slip_past", "slip_past_icon.png"],
-			["stealth", "stealth_skill.png"], ["study", "study_skill.png"]]:
-		ok(icon_file(SkillDatabase.skills.get(pair[0])) == pair[1],
-			"%s carries %s" % [pair[0], pair[1]],
-			icon_file(SkillDatabase.skills.get(pair[0])))
+	# Each was drawn for one skill. A rename or a copy-paste would put one on
+	# the wrong move and nothing else would notice.
+	for key in OWN_ICONS:
+		ok(icon_file(SkillDatabase.skills.get(key)) == OWN_ICONS[key],
+			"%s carries %s" % [key, OWN_ICONS[key]], icon_file(SkillDatabase.skills.get(key)))
+	var worn_twice := {}
+	for key in OWN_ICONS:
+		worn_twice[OWN_ICONS[key]] = worn_twice.get(OWN_ICONS[key], 0) + 1
+	for key in SkillDatabase.skills:
+		var face = icon_file(SkillDatabase.skills[key])
+		if worn_twice.has(face) and OWN_ICONS.get(key, "") != face and not ItemDatabase.is_item(key):
+			worn_twice[face] += 1
+	var shared := []
+	for face in worn_twice:
+		if worn_twice[face] > 1:
+			shared.append(face)
+	ok(shared.is_empty(), "and none of them is on another skill", "%s" % [shared])
 	log_line("")
 
 	log_line("======== damage that costs no gate ========")
@@ -132,8 +165,8 @@ func run_test():
 			ok(icon_file(swing) != "greatsword_skill.png",
 				"%s costs a gate now, so it is not one of these" % key, icon_file(swing))
 			continue
-		ok(icon_file(swing) == "greatsword_skill.png",
-			"%s carries the greatsword icon" % key, icon_file(swing))
+		ok(icon_file(swing) == OWN_ICONS.get(key, "greatsword_skill.png"),
+			"%s carries the greatsword icon, or its own" % key, icon_file(swing))
 	for spared in ["water_spike", "fire_burst"]:
 		ok(icon_file(SkillDatabase.skills.get(spared)) != "greatsword_skill.png",
 			"%s was left as it was, as asked" % spared, icon_file(SkillDatabase.skills.get(spared)))

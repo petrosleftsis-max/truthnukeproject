@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ClueDefinition" format=3]
+
+[ext_resource type="Script" path="res://exploration/ClueDefinition.gd" id="1_clue"]
+
+[resource]
+script = ExtResource("1_clue")
+title = "The torn letter"
+text = "'...thirty crates on the books, whatever the ledger says. The rest goes out by the ditch after the bell. Burn this. - V.'"
+

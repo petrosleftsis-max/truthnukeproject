@@ -137,17 +137,26 @@ const TAKEDOWN_NOISE_TILES := 5.0
 const DRAG_PACE := 0.5
 
 ## --- The map's alert ---
-## Raised by every investigation a doubtful guard sets off; a found body or a
-## captain's shout sends it to the top. It fades back (StealthSetup's Alert
-## Fades Per Second), and while it is up every guard walks up to ALERT_PACE
+## Raised by every investigation a doubtful guard sets off, a level by a body
+## found - pinned there for good - and all the way by a captain's shout. It
+## never eases by itself: a word from somebody in a disguise a guard trusts
+## (R, see reassure) settles it a level at a time, and never below where a
+## found body pinned it. While it is up every guard walks up to ALERT_PACE
 ## quicker, looks ALERT_CONE degrees wider either side and grows sure up to
 ## ALERT_FILL quicker.
 const ALERT_PER_INVESTIGATION := 0.5
 const ALERT_WARY := 0.34
 const ALERT_ALARMED := 0.67
+## Where each level starts - Calm, Wary, Alarmed - and what each is called.
+const ALERT_LEVELS := [0.0, ALERT_WARY, ALERT_ALARMED]
+const ALERT_NAMES := ["Calm", "Wary", "Alarmed"]
 const ALERT_PACE := 0.4
 const ALERT_CONE := 20.0
 const ALERT_FILL := 0.6
+## How long a guard takes to bring round somebody knocked out, once beside them.
+const WAKE_SECONDS := 3.0
+## How long a word in a guard's ear takes, standing still.
+const REASSURE_SECONDS := 2.0
 ## How long a noise's ripple is drawn for.
 const RIPPLE_SECONDS := 0.7
 
@@ -197,12 +206,24 @@ var _arrows: Control = null
 var _prompt: PanelContainer = null
 ## How on edge the whole map is, 0 to 1. See the constants above.
 var alert := 0.0
+## How low it can ever be settled again: where a body found pinned it.
+var alert_floor := 0.0
+## Bodies whose finding has already put the map a level up, so one body found
+## twice - dragged off before the finder got to it, and found again - does not
+## put it up twice.
+var _alarmed_by := {}
+## Knocked-out guard -> whoever is on the way to bring them round.
+var _waking := {}
+## The guard a disguised party is having a word with, while they are at it.
+var _reassuring: Guard = null
 ## Whether any guard has ever so much as begun to notice anybody here.
 var _noticed_ever := false
 var _ears_left := 0.0
 var _ears_cooldown := 0.0
 ## The item being aimed to throw, or "".
 var _aiming := ""
+## The last thing thrown, which T picks up again while there is one to throw.
+var _last_thrown := ""
 var _hiding_spots: Array = []
 ## Knocked-out guard -> whether another guard has found them yet.
 var _bodies := {}
@@ -230,6 +251,7 @@ var _shuffle_left := false
 ## up; the guards are whatever Guard nodes the map holds.
 func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 	scene = the_scene
+	Campaign.stealth_watch = self
 	setup = the_setup
 	_tile_map = tile_map
 	sight = StealthSight.new(tile_map)
@@ -252,6 +274,12 @@ func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 		for node in _map.find_children("*", "Guard", true, false):
 			guards.append(node)
 		_hiding_spots = _map.find_children("*", "HidingSpot", true, false)
+	_collect_floors()
+	_collect_world()
+	# On edge from the start, if the map says so. A map walked back onto after
+	# a fight has the alert it was left with instead - see _restore.
+	if setup != null:
+		alert = ALERT_LEVELS[clampi(setup.starting_alert, 0, 2)]
 	# Back after a fight here: whoever fought and lost is gone, and the rest
 	# carry on from where things stood - see snapshot().
 	var before = Campaign.stealth_state.get(scene.map_path())
@@ -276,6 +304,9 @@ func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 				continue
 			points.append(at)
 		guard.start(points, Actors.route)
+	_collect_chats()
+	_collect_edibles()
+	_collect_objectives()
 	# The disguises and Hide, on their own strip of the screen.
 	var layer := CanvasLayer.new()
 	layer.name = "StealthHud"
@@ -295,6 +326,9 @@ func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 	_bar = StealthBar.new()
 	_bar.watch = self
 	layer.add_child(_bar)
+	var listed = _ObjectiveList.new()
+	listed.watch = self
+	layer.add_child(listed)
 	if before != null:
 		_restore(before)
 
@@ -324,8 +358,21 @@ func snapshot(fight: EncounterDefinition) -> Dictionary:
 		"talked_round": [],
 		"worn": _worn.duplicate(),
 		"alert": alert,
+		"alert_floor": alert_floor,
 		"noticed": _noticed_ever,
+		"reassured": [],
+		"lamps_out": _lamps.filter(func(lamp): return is_instance_valid(lamp) and not lamp.lit).map(_id_of),
+		"doors_open": _doors.filter(func(door): return is_instance_valid(door) and door.is_open).map(_id_of),
+		"taken": _pickups.filter(func(pickup): return is_instance_valid(pickup) and pickup.taken).map(_id_of),
+		"stats": stats.duplicate(),
+		"ever_alarmed": _ever_alarmed,
+		"carried": _carried.keys().filter(func(objective): return is_instance_valid(objective)).map(_id_of),
+		"eaten": _edibles.filter(func(edible): return is_instance_valid(edible) and edible.eaten).map(_id_of),
+		"laced": {},
 	}
+	for edible in _edibles:
+		if is_instance_valid(edible) and edible.poisoned_with != "" and not edible.eaten:
+			state.laced[_id_of(edible)] = edible.poisoned_with
 	for spawn in fight.spawns:
 		if spawn.side == 1 and spawn.has_meta("guard"):
 			state.fighting.append(spawn.get_meta("guard"))
@@ -337,17 +384,56 @@ func snapshot(fight: EncounterDefinition) -> Dictionary:
 			state.picked.append(id)
 		if guard.questioned:
 			state.talked_round.append([id, guard.fooled])
+		if guard.reassured:
+			state.reassured.append(id)
 		if guard.knocked_out:
 			state.down[id] = {
 				"at": guard.global_position,
-				"found": not body_unfound(guard) and not _stashed.has(guard),
+				# Found, somebody was on the way to bring him round - and by the
+				# time the fight is over, has.
+				"found": _bodies.get(guard, false) or _stashed_found.has(guard),
 				"stashed": _id_of(_stashed[guard]) if _stashed.has(guard) else "",
 			}
 	return state
 
 
+## The doors, lamps and things lying about as they were left - and anything
+## out of place still there to be noticed.
+func _restore_world(state: Dictionary):
+	for lamp in _lamps:
+		if state.get("lamps_out", []).has(_id_of(lamp)):
+			lamp.set_lit(false)
+			if lamp.starts_lit:
+				_add_oddity(lamp, "lamp", INF)
+	for door in _doors:
+		var open = state.get("doors_open", []).has(_id_of(door))
+		if open != door.is_open:
+			door.set_open(open)
+			_apply_door(door)
+		if open != door.starts_open:
+			_add_oddity(door, "door", INF)
+	for pickup in _pickups:
+		if state.get("taken", []).has(_id_of(pickup)):
+			pickup.taken = true
+			pickup.queue_redraw()
+			if pickup.missed_when_taken:
+				_add_oddity(pickup, "item", MISSED_TILES)
+	for edible in _edibles:
+		if state.get("eaten", []).has(_id_of(edible)):
+			edible.mark_eaten()
+		edible.poisoned_with = state.get("laced", {}).get(_id_of(edible), "")
+	_relight()
+
+
 func _restore(state: Dictionary):
 	alert = state.get("alert", 0.0)
+	_restore_world(state)
+	stats.merge(state.get("stats", {}), true)
+	_ever_alarmed = state.get("ever_alarmed", false)
+	for objective in _objectives:
+		if state.get("carried", []).has(_id_of(objective)):
+			_carried[objective] = true
+	alert_floor = state.get("alert_floor", 0.0)
 	_noticed_ever = state.get("noticed", false)
 	_worn = state.get("worn", {}).duplicate()
 	var talked := {}
@@ -356,16 +442,22 @@ func _restore(state: Dictionary):
 	for guard in guards:
 		var id = _id_of(guard)
 		guard.picked = state.get("picked", []).has(id)
+		guard.reassured = state.get("reassured", []).has(id)
 		if talked.has(id):
 			guard.questioned = true
 			guard.fooled = talked[id]
 		var down = state.get("down", {}).get(id)
 		if down == null:
 			continue
+		# Found before the fight: brought round while it was fought, and back on
+		# his beat - the alert already went up for him.
+		if down.found:
+			_alarmed_by[guard] = true
+			continue
 		guard.global_position = down.at
 		guard.knock_out()
 		guard.visible = true
-		_bodies[guard] = down.found
+		_bodies[guard] = false
 		var spot = _map.get_node_or_null(down.stashed) if down.stashed != "" else null
 		if spot is HidingSpot:
 			guard.global_position = spot.global_position
@@ -373,6 +465,7 @@ func _restore(state: Dictionary):
 			spot.holds_body = guard
 			_stashed[guard] = spot
 			_bodies.erase(guard)
+			_add_oddity(spot, "spot", DISTURBED_TILES)
 
 
 ## --- Disguises and hiding ---
@@ -427,14 +520,19 @@ func wear_refusal() -> String:
 		return "Already changing"
 	if _dragging != null:
 		return "Not while dragging a body"
+	if _reassuring != null:
+		return "Not while talking"
+	if _lacing != null:
+		return "Not while poisoning"
 	return ""
 
 
 ## Whether the leader is doing something nobody innocent does - dragging a
-## body, or changing into a disguise - so that any guard who sees him at it is
-## sure of him on the spot, rather than growing sure.
+## body, changing into a disguise, or stirring poison into somebody's supper -
+## so that any guard who sees him at it is sure of him on the spot, rather than
+## growing sure.
 func caught_red_handed() -> bool:
-	return _dragging != null or _changing_into != ""
+	return _dragging != null or _changing_into != "" or _lacing != null
 
 
 ## The disguise being put on right now, or "".
@@ -608,6 +706,8 @@ func vault_refusal() -> String:
 		return "Not while dragging a body"
 	if _changing_into != "":
 		return "Not while changing"
+	if _lacing != null:
+		return "Not while poisoning"
 	var party = scene.get("party") if scene != null else null
 	if party != null and (party.dashing or party.vaulting):
 		return "Already moving"
@@ -633,6 +733,8 @@ func dash_refusal() -> String:
 		return "Not while dragging a body"
 	if _changing_into != "":
 		return "Not while changing"
+	if _lacing != null:
+		return "Not while poisoning"
 	return ""
 
 
@@ -651,21 +753,45 @@ func raise_alert(amount: float):
 	alert = clampf(alert + amount, 0.0, 1.0)
 
 
+## Which level `value` is at: 0 Calm, 1 Wary, 2 Alarmed.
+static func level_of(value: float) -> int:
+	if value >= ALERT_ALARMED:
+		return 2
+	if value >= ALERT_WARY:
+		return 1
+	return 0
+
+
 ## "Calm", "Wary" or "Alarmed", for the bar.
 func alert_level() -> String:
-	if alert >= ALERT_ALARMED:
-		return "Alarmed"
-	if alert >= ALERT_WARY:
-		return "Wary"
-	return "Calm"
+	return ALERT_NAMES[level_of(alert)]
 
 
-## Lets the alert fade, and hands every guard what it adds to them right now.
-## The cone's share is rounded to whole steps, so a guard's view is not worked
-## out afresh every frame the alert eases down.
-func _calm_down(delta: float):
-	var fades = setup.alert_fades_per_second if setup != null else 0.02
-	alert = maxf(0.0, alert - fades * delta)
+## Puts the map a level more on edge - to the top of it, from Alarmed - and,
+## `pinned`, never lets it be settled below that level again.
+func raise_alert_level(pinned: bool = false):
+	var level = level_of(alert)
+	alert = 1.0 if level == 2 else maxf(alert, ALERT_LEVELS[level + 1])
+	if pinned:
+		alert_floor = maxf(alert_floor, ALERT_LEVELS[level_of(alert)])
+
+
+## Settles the map a level, as far as the floor allows. False, and nothing
+## changed, when it will not settle any further.
+func lower_alert_level() -> bool:
+	var level = level_of(alert)
+	if level <= level_of(alert_floor):
+		return false
+	alert = maxf(ALERT_LEVELS[level - 1], alert_floor)
+	return true
+
+
+## Hands every guard what the alert adds to them right now. The cone's share
+## is rounded to whole steps, so a guard's view is not worked out afresh for
+## every hair the alert moves.
+func _apply_alert():
+	if level_of(alert) == 2:
+		_ever_alarmed = true
 	for guard in guards:
 		if is_instance_valid(guard):
 			guard.alert_pace = ALERT_PACE * alert
@@ -687,22 +813,1065 @@ func make_noise(at: Vector2, tiles: float, go_look: bool):
 			guard.hear(at, go_look)
 
 
+## --- Doors, lamps, and things lying about ---
+##
+## A door (StealthDoor) shut stops walking and sight both; a guard walking
+## through holds it open as he goes. A dark map (StealthSetup's Dark) is lit
+## only by its lamps (Lamp) and wall torches, and a guard makes somebody out
+## in the dark only close up. Things lying about (StealthPickup) can be taken.
+##
+## And guards notice what has changed: a door left open that should be shut,
+## a lamp out that should be lit, something gone that should be there, a
+## hiding spot with a body stuffed in it. Seeing one, a guard goes to look -
+## the map a little more on edge for it - and puts it right if he can: shuts
+## the door, lights the lamp, pulls the body out.
+
+## How dark the dark is drawn, where no light reaches.
+const DARK_ALPHA := 0.62
+## The wall torch in the laboratory tileset - see StagePainter.
+const TORCH_TILE := Vector2i(2, 4)
+## How near a guard has to be to notice something gone from where it stood,
+## and to notice a hiding spot has somebody stuffed in it. A door left open
+## or a lamp gone dark is noticed from anywhere it can be seen.
+const MISSED_TILES := 5.0
+const DISTURBED_TILES := 2.0
+
+var _doors: Array = []
+var _lamps: Array = []
+var _pickups: Array = []
+## Map tile -> how brightly lit, 0 to 1, on a dark map.
+var _lit := {}
+## Bumped whenever a door or a lamp changes, so every guard's view is worked
+## out again.
+var _world_version := 0
+## Things out of place: [{node, what, near, by, alarmed}] - `by` the guard on
+## his way to look, `alarmed` once noticing it has put the map up.
+var _oddities: Array = []
+var _dark: Node2D = null
+
+
+func _collect_world():
+	_doors = []
+	_lamps = []
+	_pickups = []
+	if _map != null:
+		_doors = _map.find_children("*", "StealthDoor", true, false)
+		_lamps = _map.find_children("*", "Lamp", true, false)
+		_pickups = _map.find_children("*", "StealthPickup", true, false)
+	for door in _doors:
+		_apply_door(door)
+	_dark = _Dark.new()
+	_dark.watch = self
+	_dark.z_index = -1
+	add_child(_dark)
+	_relight()
+
+
+## Whether this map is dark but for its lights.
+func is_dark() -> bool:
+	return setup != null and setup.dark
+
+
+## How lit `tile` is, 0 to 1. Everywhere is lit on a map that is not dark.
+func lit_at(tile: Vector2i) -> float:
+	return _lit.get(tile, 0.0) if is_dark() else 1.0
+
+
+## Whether the leader is standing somewhere no light reaches.
+func leader_in_shadow() -> bool:
+	var party = scene.get("party") if scene != null else null
+	if not is_dark() or party == null or party.leader == null:
+		return false
+	return lit_at(tile_of(party.leader.global_position)) <= 0.0
+
+
+## Works out afresh what every lamp and torch lights.
+func _relight():
+	_lit = {}
+	_world_version += 1
+	if _dark != null:
+		_dark.queue_redraw()
+	if not is_dark() or sight == null:
+		return
+	for source in _light_sources():
+		var from: Vector2i = source[0]
+		var reach: float = source[1]
+		var r = ceili(reach)
+		for dx in range(-r, r + 1):
+			for dy in range(-r, r + 1):
+				var tile = from + Vector2i(dx, dy)
+				var d = Vector2(dx, dy).length()
+				if d > reach or not sight.region().has_point(tile):
+					continue
+				if tile != from and not sight.clear(from, tile):
+					continue
+				# Brightest at the flame, fading towards the edge.
+				var bright = 1.0 - 0.6 * pow(d / maxf(reach, 0.01), 2.0)
+				_lit[tile] = maxf(_lit.get(tile, 0.0), bright)
+
+
+## [tile, reach] for every lit lamp, and every torch on the walls.
+func _light_sources() -> Array:
+	var sources := []
+	for lamp in _lamps:
+		if is_instance_valid(lamp) and lamp.lit and lamp.light_tiles > 0.0:
+			sources.append([tile_of(lamp.global_position), lamp.light_tiles])
+	if setup != null and setup.torch_light_tiles > 0.0 and _tile_map != null:
+		var region = sight.region()
+		for x in range(region.position.x, region.end.x):
+			for y in range(region.position.y, region.end.y):
+				if _tile_map.get_cell_atlas_coords(0, Vector2i(x, y)) == TORCH_TILE:
+					sources.append([Vector2i(x, y), setup.torch_light_tiles])
+	return sources
+
+
+## Opens or shuts `door`. `by_hand`: the party did it - so a door meant to be
+## shut, left open, is something a guard will notice. False, and nothing
+## changed, when somebody is standing in it.
+func set_door(door: StealthDoor, open: bool, by_hand: bool = false, shut_by: Node = null) -> bool:
+	if not open and _someone_in(door, shut_by):
+		if by_hand and scene.has_method("log_message"):
+			scene.log_message("Somebody is in the way.\n")
+		return false
+	door.set_open(open)
+	_apply_door(door)
+	if by_hand:
+		if open != door.starts_open:
+			_add_oddity(door, "door", INF)
+		else:
+			_remove_oddity(door)
+	return true
+
+
+## Keeps the map's walls - for walking and for sight - in step with the door.
+func _apply_door(door: StealthDoor):
+	var tile = tile_of(door.global_position)
+	var shut = not door.passable()
+	sight.set_shut(tile, shut)
+	if scene.has_method("set_tile_shut"):
+		scene.set_tile_shut(tile, shut)
+	door.queue_redraw()
+	_relight()
+
+
+## Whether anybody but `but` is standing in the doorway.
+func _someone_in(door: StealthDoor, but: Node = null) -> bool:
+	var tile = tile_of(door.global_position)
+	for someone in _party_standing():
+		if someone.tile == tile:
+			return true
+	for guard in guards:
+		if is_instance_valid(guard) and guard != but and tile_of(guard.global_position) == tile:
+			return true
+	return false
+
+
+## A guard coming through a shut door opens it as he gets to it, and it
+## swings shut behind him.
+func _update_doors():
+	for door in _doors:
+		if not is_instance_valid(door):
+			continue
+		var held := false
+		for guard in guards:
+			if is_instance_valid(guard) and not guard.knocked_out \
+					and guard.global_position.distance_to(door.global_position) < Grid.tiles(0.8):
+				held = true
+				break
+		if held != door.held:
+			door.held = held
+			_apply_door(door)
+
+
+## Puts out `lamp` - `knocked`: by something thrown, which is not quiet about
+## it. False when it was not lit, or cannot be put out.
+func put_out(lamp: Lamp, knocked: bool = false) -> bool:
+	if not is_instance_valid(lamp) or not lamp.lit or not lamp.can_be_put_out:
+		return false
+	lamp.set_lit(false)
+	_relight()
+	if lamp.starts_lit:
+		_add_oddity(lamp, "lamp", INF)
+	if scene.has_method("log_message"):
+		scene.log_message("The lamp goes out.\n" if knocked else "You pinch out the lamp.\n")
+	return true
+
+
+## Takes `pickup` into the leader's bag. False when there is no room.
+func take_pickup(pickup: StealthPickup) -> bool:
+	if not is_instance_valid(pickup) or pickup.taken:
+		return false
+	if not Campaign.give_item(leader_key(), pickup.item_key):
+		if scene.has_method("log_message"):
+			scene.log_message("No room to carry it.\n")
+		return false
+	pickup.mark_taken()
+	if pickup.missed_when_taken:
+		_add_oddity(pickup, "item", MISSED_TILES)
+	return true
+
+
+func _add_oddity(node: Node2D, what: String, near: float):
+	for odd in _oddities:
+		if odd.node == node:
+			return
+	_oddities.append({"node": node, "what": what, "near": near, "by": null, "alarmed": false})
+
+
+func _remove_oddity(node: Node2D):
+	_oddities = _oddities.filter(func(odd): return odd.node != node)
+
+
+## Whether `node`'s tile is in `guard`'s view - light or no light, and a wall
+## lamp counting as seen from the floor in front of it.
+func _in_view_of(guard: Guard, node: Node2D, near: float) -> bool:
+	var from = tile_of(guard.global_position)
+	var tile = tile_of(node.global_position)
+	var towards = Vector2(tile - from)
+	if towards.length() > near:
+		return false
+	if from != tile and absf(rad_to_deg(guard.facing.angle_to(towards))) > guard.half_cone():
+		return false
+	return from == tile or sight.clear(from, tile)
+
+
+## A guard about his business notices what is out of place, and goes to look.
+func _notice_oddities(guard: Guard):
+	if guard.sees_nothing() or not guard.moves() or guard.kind == Guard.Kind.CIVILIAN:
+		return
+	if not guard.mood in [Guard.Mood.PATROLLING, Guard.Mood.RETURNING, Guard.Mood.LISTENING, Guard.Mood.SEARCHING]:
+		return
+	for odd in _oddities:
+		if odd.by != null or not is_instance_valid(odd.node) or not _in_view_of(guard, odd.node, odd.near):
+			continue
+		odd.by = guard
+		guard.investigate(odd.node.global_position)
+		if not odd.alarmed:
+			odd.alarmed = true
+			raise_alert(ALERT_PER_INVESTIGATION)
+		if scene.has_method("log_message"):
+			scene.log_message("[color=yellow]%s[/color] %s.\n" % [_name_of(guard), {
+				"door": "notices a door left open",
+				"lamp": "notices a lamp gone out",
+				"item": "notices something gone",
+				"spot": "notices something odd about a hiding spot",
+			}.get(odd.what, "notices something")])
+		return
+
+
+## Whoever went to look at something out of place, once there, puts it right.
+func _see_to_oddities():
+	for odd in _oddities.duplicate():
+		var guard = odd.by
+		if guard == null:
+			continue
+		if not is_instance_valid(guard) or guard.knocked_out or not (guard.mood == Guard.Mood.INVESTIGATING or guard.mood == Guard.Mood.SEARCHING):
+			# Drawn off it: there to be noticed again, without putting the map
+			# up a second time.
+			odd.by = null
+			continue
+		if guard.mood != Guard.Mood.SEARCHING or guard.global_position.distance_to(odd.node.global_position) > Grid.tiles(1.6):
+			continue
+		var node = odd.node
+		match odd.what:
+			"lamp":
+				node.set_lit(true)
+				_relight()
+				_remove_oddity(node)
+				if scene.has_method("log_message"):
+					scene.log_message("[color=yellow]%s[/color] lights the lamp again.\n" % _name_of(guard))
+			"door":
+				if set_door(node, node.starts_open, false, guard):
+					_remove_oddity(node)
+					if scene.has_method("log_message"):
+						scene.log_message("[color=yellow]%s[/color] shuts the door.\n" % _name_of(guard))
+			"item":
+				_remove_oddity(node)
+			"spot":
+				_remove_oddity(node)
+				var body = node.holds_body
+				if body is Guard and _stashed.has(body):
+					_found(body, guard)
+
+
+## --- Guards who meet to talk (see GuardChat) ---
+
+## [{node, a, b, clock, phase, line, line_left, heard, missing}] - phase one of
+## "waiting", "gathering" or "talking".
+var _chats: Array = []
+## Guard -> [what they are saying, whether the party can make it out].
+var saying := {}
+
+
+func _collect_chats():
+	_chats = []
+	if _map == null:
+		return
+	for chat in _map.find_children("*", "GuardChat", true, false):
+		var a = _guard_named(chat.first_guard)
+		var b = _guard_named(chat.second_guard)
+		if a == null or b == null:
+			push_warning("GuardChat '%s' names a guard this map does not have ('%s', '%s')." % [chat.name, chat.first_guard, chat.second_guard])
+			continue
+		_chats.append({"node": chat, "a": a, "b": b, "clock": chat.first_after_seconds, "phase": "waiting",
+			"line": 0, "line_left": 0.0, "heard": [], "missing": null})
+
+
+func _guard_named(called: String) -> Guard:
+	for guard in guards:
+		if is_instance_valid(guard) and String(guard.name) == called:
+			return guard
+	return null
+
+
+## Whether `guard` is in no state to keep an appointment: out cold, being
+## sick, too ill to stand.
+func _away(guard) -> bool:
+	return not is_instance_valid(guard) or guard.knocked_out or guard.mood == Guard.Mood.RETCHING or guard.mood == Guard.Mood.SICK
+
+
+func _run_chats(delta: float):
+	for chat in _chats:
+		var node: GuardChat = chat.node
+		match chat.phase:
+			"waiting":
+				chat.clock -= delta
+				if chat.clock > 0.0:
+					continue
+				var a_away = _away(chat.a)
+				var b_away = _away(chat.b)
+				if a_away or b_away:
+					chat.clock = node.every_seconds
+					if node.check_in and not (a_away and b_away):
+						var here: Guard = chat.b if a_away else chat.a
+						if here.is_free():
+							_missed(here, chat.a if a_away else chat.b, chat)
+						else:
+							chat.clock = 5.0
+					continue
+				if not chat.a.is_free() or not chat.b.is_free():
+					# Busy - on the way back from something. Soon, then.
+					chat.clock = 5.0
+					continue
+				_gather(chat)
+			"gathering":
+				if not _still_chatting(chat):
+					_break_up(chat)
+				elif chat.a.errand_arrived() and chat.b.errand_arrived():
+					chat.phase = "talking"
+					chat.line = 0
+					chat.line_left = node.seconds_per_line
+					chat.heard = []
+					_talk(chat, 0.0)
+			"talking":
+				if not _still_chatting(chat):
+					_break_up(chat)
+					continue
+				_talk(chat, delta)
+
+
+## The line being said, heard or not, and on to the next once its time is up.
+func _talk(chat: Dictionary, delta: float):
+	var node: GuardChat = chat.node
+	var lines: Array = node.lines
+	var speaker: Guard = chat.a if chat.line % 2 == 0 else chat.b
+	var other: Guard = chat.b if speaker == chat.a else chat.a
+	var said: String = lines[chat.line] if chat.line < lines.size() else "..."
+	var heard = chat.line < lines.size() and _overhears(speaker, node)
+	saying[speaker] = [said, heard]
+	saying.erase(other)
+	if heard and not chat.heard.has(chat.line):
+		chat.heard.append(chat.line)
+		if scene.has_method("log_message"):
+			scene.log_message("[color=yellow]%s[/color]: %s\n" % [_name_of(speaker), said])
+	chat.line_left -= delta
+	if chat.line_left > 0.0:
+		return
+	chat.line += 1
+	chat.line_left = node.seconds_per_line
+	if chat.line < maxi(lines.size(), 2):
+		return
+	if not lines.is_empty() and chat.heard.size() == lines.size() and node.overheard_flag != "" \
+			and not Campaign.flag(node.overheard_flag):
+		Campaign.set_flag(node.overheard_flag)
+		if scene.has_method("log_message"):
+			scene.log_message("[color=lightgreen]You heard every word of it.[/color]\n")
+	_break_up(chat)
+
+
+## Sends the two to their spots to talk.
+func _gather(chat: Dictionary):
+	var node: GuardChat = chat.node
+	var a_at: Vector2 = chat.a.global_position
+	if node.first_stands_at != "":
+		var at = Actors.waypoint_position(node.first_stands_at)
+		if at != null:
+			a_at = at
+	var b_at = null
+	if node.second_stands_at != "":
+		b_at = Actors.waypoint_position(node.second_stands_at)
+	if b_at == null:
+		# Beside the first, on the side he comes from.
+		var beside = _free_tile_near(tile_of(a_at) + Vector2i(signi(tile_of(chat.b.global_position).x - tile_of(a_at).x), 0),
+			{tile_of(a_at): true})
+		b_at = _tile_map.to_global(_tile_map.map_to_local(beside))
+	chat.a.send_on_errand(Guard.Mood.CHATTING, a_at, INF, Callable(), Callable(), 1.0, b_at)
+	chat.b.send_on_errand(Guard.Mood.CHATTING, b_at, INF, Callable(), Callable(), 1.0, a_at)
+	chat.phase = "gathering"
+
+
+## Whether both are still at it - a noise turning a head does not end it.
+func _still_chatting(chat: Dictionary) -> bool:
+	for guard in [chat.a, chat.b]:
+		if not is_instance_valid(guard) or guard.knocked_out:
+			return false
+		if guard.mood != Guard.Mood.CHATTING and not (guard.mood == Guard.Mood.LISTENING and guard._before_listening == Guard.Mood.CHATTING):
+			return false
+	return true
+
+
+func _break_up(chat: Dictionary):
+	for guard in [chat.a, chat.b]:
+		saying.erase(guard)
+		if is_instance_valid(guard) and guard.mood == Guard.Mood.CHATTING:
+			guard.end_errand()
+	chat.phase = "waiting"
+	chat.clock = chat.node.every_seconds
+
+
+## Whether the party can make out what `speaker` says: within earshot, or
+## twice that listening.
+func _overhears(speaker: Guard, chat: GuardChat) -> bool:
+	var party = scene.get("party")
+	if party == null or party.leader == null:
+		return false
+	var reach = chat.earshot_tiles * (2.0 if _ears_left > 0.0 else 1.0)
+	return party.leader.global_position.distance_to(speaker.global_position) <= Grid.tiles(reach)
+
+
+## Time to meet, and `missing` is not there: `here` puts the map on edge -
+## once for him - and goes to look where he should be.
+func _missed(here: Guard, missing, chat: Dictionary):
+	if chat.missing != missing:
+		chat.missing = missing
+		raise_alert(ALERT_PER_INVESTIGATION)
+	var where: Vector2 = here.global_position
+	if is_instance_valid(missing):
+		where = missing.post() if _stashed.has(missing) else missing.global_position
+	here.investigate(where)
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] waits for [color=yellow]%s[/color], who does not come - and goes looking.\n" % [
+			_name_of(here), _name_of(missing) if is_instance_valid(missing) else "somebody"])
+
+
+## --- Nobody's guards (Guard.Kind.CIVILIAN) ---
+##
+## Somebody who is nobody's guard never fights. Sure of somebody - or seeing
+## him at something no innocent does, or a takedown, or a body - they run to
+## the nearest guard and tell him where, and he goes to look, hunting. Stop
+## them before they get there, and nobody is told.
+
+## How much quicker than their walk somebody runs to tell a guard.
+const RUN_PACE := 1.8
+
+## Civilian -> [where, the guard they are running to].
+var _reporting := {}
+
+
+## Whether `civilian` is off to tell somebody what they saw.
+func is_reporting(civilian: Guard) -> bool:
+	return _reporting.has(civilian)
+
+
+func _run_to_tell(civilian: Guard, where: Vector2):
+	if _reporting.has(civilian) or civilian.knocked_out:
+		return
+	suspicion[civilian] = 0.0
+	var guard = _nearest_teller(civilian.global_position)
+	if guard == null:
+		return
+	_reporting[civilian] = [where, guard]
+	civilian.send_on_errand(Guard.Mood.REPORTING, guard.global_position, INF, Callable(), Callable(), RUN_PACE, guard.global_position)
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] runs to tell somebody!\n" % _name_of(civilian))
+
+
+## The nearest guard somebody could run and tell.
+func _nearest_teller(from: Vector2) -> Guard:
+	var best: Guard = null
+	var best_gap := INF
+	for guard in guards:
+		if not _can_wake(guard):
+			continue
+		var gap = guard.global_position.distance_to(from)
+		if gap < best_gap:
+			best = guard
+			best_gap = gap
+	return best
+
+
+func _check_on_reporters():
+	for civilian in _reporting.keys():
+		var where: Vector2 = _reporting[civilian][0]
+		var guard = _reporting[civilian][1]
+		if not is_instance_valid(civilian) or civilian.knocked_out or civilian.mood != Guard.Mood.REPORTING:
+			# Stopped on the way: nobody is told.
+			_reporting.erase(civilian)
+			continue
+		if not _can_wake(guard):
+			guard = _nearest_teller(civilian.global_position)
+			if guard == null:
+				_reporting.erase(civilian)
+				civilian.end_errand()
+				continue
+			_reporting[civilian][1] = guard
+		if civilian.global_position.distance_to(guard.global_position) <= Grid.tiles(1.6):
+			_reporting.erase(civilian)
+			civilian.end_errand()
+			raise_alert(ALERT_PER_INVESTIGATION)
+			guard.investigate(where)
+			guard.hunting = guard.mood == Guard.Mood.INVESTIGATING
+			if scene.has_method("log_message"):
+				scene.log_message("[color=yellow]%s[/color] tells [color=yellow]%s[/color] what they saw - he goes to look.\n" % [
+					_name_of(civilian), _name_of(guard)])
+			continue
+		# He has moved on since: after him.
+		if civilian.errand_arrived() or civilian.errand_at().distance_to(guard.global_position) > Grid.tiles(1.5):
+			civilian.send_on_errand(Guard.Mood.REPORTING, guard.global_position, INF, Callable(), Callable(), RUN_PACE, guard.global_position)
+
+
+## A takedown seen by somebody who is nobody's guard: they run to tell.
+func _witnesses(at: Vector2):
+	var tile = tile_of(at)
+	for guard in guards:
+		if is_instance_valid(guard) and guard.kind == Guard.Kind.CIVILIAN and not guard.knocked_out and sees(guard, tile):
+			_run_to_tell(guard, at)
+
+
+## --- How it is going: the tally, and what there is to do ---
+##
+## Counted as the map is played - and carried through a fight in the
+## snapshot - for the card at the way out (see scorecard) and the objectives
+## under the bar (StealthObjective).
+
+var stats := {"seconds": 0.0, "noticed": 0, "caught": 0, "ambushes": 0, "takedowns": 0,
+	"sedated": 0, "poisoned": 0, "bodies_found": 0, "pockets": 0}
+var _objectives: Array = []
+## Objective -> true once something carried has made it done for good.
+var _carried := {}
+var _ever_alarmed := false
+
+## What each rank means, for the card and the stage list.
+const RANK_SAYS := {
+	"Ghost": "Nobody so much as noticed.",
+	"Shadow": "Noticed, but never caught.",
+	"Brawler": "It came to blows.",
+}
+
+
+func _collect_objectives():
+	_objectives = _map.find_children("*", "StealthObjective", true, false) if _map != null else []
+
+
+## How an objective stands right now: "done", "lost" for good, or "open".
+func objective_state(objective: StealthObjective) -> String:
+	match objective.kind:
+		StealthObjective.Kind.FLAG:
+			return "done" if objective.flag != "" and Campaign.flag(objective.flag) else "open"
+		StealthObjective.Kind.CARRY_ITEM:
+			if not _carried.has(objective):
+				for member in Campaign.party_members():
+					if Campaign.count_of(member.key, objective.item_key) > 0:
+						_carried[objective] = true
+			return "done" if _carried.has(objective) else "open"
+		StealthObjective.Kind.NO_TAKEDOWNS:
+			return "lost" if stats.takedowns + stats.sedated > 0 else "open"
+		StealthObjective.Kind.NEVER_ALARMED:
+			return "lost" if _ever_alarmed else "open"
+		StealthObjective.Kind.NOBODY_HARMED:
+			return "lost" if stats.takedowns + stats.poisoned > 0 else "open"
+	return "open"
+
+
+## Every objective, as [what it says, how it stands] - at the way out, one
+## that holds for as long as nothing goes wrong is done if nothing did.
+func objectives(at_the_end: bool = false) -> Array:
+	var listed := []
+	for objective in _objectives:
+		if not is_instance_valid(objective):
+			continue
+		var state = objective_state(objective)
+		if at_the_end and state == "open":
+			match objective.kind:
+				StealthObjective.Kind.CALM_AT_THE_END:
+					state = "done" if level_of(alert) == 0 else "lost"
+				StealthObjective.Kind.NO_TAKEDOWNS, StealthObjective.Kind.NEVER_ALARMED, StealthObjective.Kind.NOBODY_HARMED:
+					state = "done"
+		listed.append([objective.description, state])
+	return listed
+
+
+## How it went: Ghost - nobody so much as noticed; Shadow - noticed, never
+## caught; Brawler - it came to a fight.
+func rank() -> String:
+	if never_noticed():
+		return "Ghost"
+	if stats.caught == 0 and stats.ambushes == 0:
+		return "Shadow"
+	return "Brawler"
+
+
+## Everything the card at the way out shows.
+func scorecard() -> Dictionary:
+	return {
+		"rank": rank(),
+		"says": RANK_SAYS[rank()],
+		"seconds": stats.seconds,
+		"noticed": stats.noticed,
+		"fights": stats.caught + stats.ambushes,
+		"takedowns": stats.takedowns,
+		"poisoned": stats.poisoned,
+		"bodies_found": stats.bodies_found,
+		"pockets": stats.pockets,
+		"objectives": objectives(true),
+	}
+
+
+## --- Poisons ---
+##
+## Three kinds (ItemDefinition.Poison): an emetic sends a guard off to be sick
+## at the nearest RetchSpot for EMETIC_SECONDS, seeing nothing; a sedative
+## drops him where he stands, a body like any other; a disease leaves him too
+## unwell to move for DISEASE_SECONDS, and whoever is nearest comes to see to
+## him - both of them watching half as wide. Each takes hold the moment it is
+## swallowed or lands (Instant), POISON_SOON seconds after (Shortly), or
+## POISON_DELAY seconds after (Delayed). Darts land where they are thrown; the
+## rest go into something left out for a guard to eat (Edible).
+
+const POISON_SOON := 5.0
+const POISON_DELAY := 15.0
+## Stirring a poison into somebody's supper takes this long, standing still -
+## and anybody who sees him at it knows him at once (see caught_red_handed).
+const LACE_SECONDS := 3.0
+const EMETIC_SECONDS := 300.0
+const DISEASE_SECONDS := 300.0
+## How long a guard spends over his supper.
+const EAT_SECONDS := 4.0
+## How much quicker than his walk somebody who is about to be sick hurries.
+const RETCH_PACE := 1.4
+
+var _edibles: Array = []
+## The supper being poisoned right now, with what, and how long it has left.
+var _lacing: Edible = null
+var _lacing_with := ""
+var _lace_left := 0.0
+var _fidget: Tween = null
+## Edible -> seconds until its eater comes for it.
+var _meal_clock := {}
+## Edible -> the guard on his way to eat it.
+var _eating := {}
+## Guard -> [poison, seconds until it takes hold].
+var _brewing := {}
+## Carer -> the sick guard they are seeing to.
+var _tending := {}
+
+
+func _collect_edibles():
+	_edibles = _map.find_children("*", "Edible", true, false) if _map != null else []
+	for edible in _edibles:
+		_meal_clock[edible] = edible.eaten_after_seconds
+
+
+## Stirs `item_key` into `edible` - with nobody looking, or they know him at
+## once, the way changing clothes in view does. False when it cannot be done.
+func lace(edible: Edible, item_key: String) -> bool:
+	var item: ItemDefinition = ItemDatabase.item(item_key) if item_key != "" else null
+	if item == null or not item.is_poison() or item.poison_shootable or edible.eaten or edible.poisoned_with != "":
+		return false
+	if lace_refusal() != "" or Campaign.count_of(leader_key(), item_key) == 0 or _eating.has(edible):
+		return false
+	var party = scene.get("party")
+	if party == null or party.leader == null:
+		return false
+	_lacing = edible
+	_lacing_with = item_key
+	_lace_left = LACE_SECONDS
+	party.rooted = true
+	_start_fidget(party.leader)
+	return true
+
+
+## Why he could not start stirring something into somebody's supper right
+## now, or "".
+func lace_refusal() -> String:
+	if spotted_by != null:
+		return "Too late for that"
+	if _lacing != null:
+		return "Already at it"
+	if _changing_into != "":
+		return "Not while changing"
+	if _dragging != null:
+		return "Not while dragging a body"
+	if _reassuring != null:
+		return "Not while talking"
+	return ""
+
+
+## The poison being stirred in right now, by item key, or "".
+func lacing() -> String:
+	return _lacing_with if _lacing != null else ""
+
+
+## Seconds until it is in.
+func lace_left() -> float:
+	return _lace_left
+
+
+## Time up: it is in, and out of the bag. Somebody got to it first - it was
+## eaten, or its eater has sat down to it - and nothing is used.
+func _finish_lacing():
+	var edible = _lacing
+	var item_key = _lacing_with
+	_stop_lacing()
+	if not is_instance_valid(edible) or edible.eaten or _eating.has(edible) or edible.poisoned_with != "":
+		return
+	if not Campaign.take_item(leader_key(), item_key):
+		return
+	edible.poisoned_with = item_key
+	if scene.has_method("log_message"):
+		var item: ItemDefinition = ItemDatabase.item(item_key)
+		scene.log_message("You stir the %s into the %s.\n" % [item.name, edible.called])
+
+
+## Stops, finished or not - caught at it, say. Nothing is used up.
+func _stop_lacing():
+	_lacing = null
+	_lacing_with = ""
+	_lace_left = 0.0
+	var party = scene.get("party") if scene != null else null
+	if party != null and is_instance_valid(party) and _changing_into == "" and _reassuring == null:
+		party.rooted = false
+	if _fidget != null and _fidget.is_valid():
+		_fidget.kill()
+	_fidget = null
+	if party != null and is_instance_valid(party) and party.leader != null:
+		party.leader.scale = Vector2.ONE
+
+
+## Crouched over it, working: a bob up and down - a stand-in until there is an
+## animation for it.
+func _start_fidget(leader: Node2D):
+	if _fidget != null and _fidget.is_valid():
+		_fidget.kill()
+	_fidget = leader.create_tween().set_loops()
+	_fidget.tween_property(leader, "scale", Vector2(1.05, 0.9), 0.18)
+	_fidget.tween_property(leader, "scale", Vector2(0.97, 1.02), 0.22)
+
+
+## Every guard whose supper time has come goes to eat it; whoever has eaten
+## it gets whatever was in it.
+func _run_meals(delta: float):
+	for edible in _edibles:
+		if not is_instance_valid(edible) or edible.eaten:
+			continue
+		if _eating.has(edible):
+			var eater = _eating[edible]
+			if not is_instance_valid(eater) or eater.mood != Guard.Mood.EATING:
+				# Called away from it: he comes back for it later.
+				_eating.erase(edible)
+				_meal_clock[edible] = 10.0
+			continue
+		_meal_clock[edible] = _meal_clock.get(edible, 0.0) - delta
+		if _meal_clock[edible] > 0.0:
+			continue
+		var eater = _guard_named(edible.eater)
+		if eater == null or eater.knocked_out:
+			continue
+		if not eater.is_free():
+			_meal_clock[edible] = 5.0
+			continue
+		_eating[edible] = eater
+		eater.send_on_errand(Guard.Mood.EATING, edible.global_position, EAT_SECONDS, Callable(), _ate.bind(edible, eater),
+			1.0, edible.global_position)
+
+
+func _ate(edible: Edible, eater: Guard):
+	_eating.erase(edible)
+	edible.mark_eaten()
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] has his %s.\n" % [_name_of(eater), edible.called])
+	if edible.poisoned_with != "":
+		dose(eater, ItemDatabase.item(edible.poisoned_with))
+
+
+## `guard` has had `item`: it takes hold now, or - delayed - in a while.
+func dose(guard: Guard, item: ItemDefinition):
+	if item == null or not item.is_poison() or not is_instance_valid(guard) or guard.knocked_out:
+		return
+	stats.poisoned += 1
+	match item.poison_onset:
+		ItemDefinition.Onset.INSTANT:
+			_poison_takes(guard, item.poison)
+		ItemDefinition.Onset.DELAYED:
+			_brewing[guard] = [item.poison, POISON_DELAY]
+		_:
+			_brewing[guard] = [item.poison, POISON_SOON]
+
+
+func _brew(delta: float):
+	for guard in _brewing.keys():
+		if not is_instance_valid(guard) or guard.knocked_out:
+			_brewing.erase(guard)
+			continue
+		_brewing[guard][1] -= delta
+		if _brewing[guard][1] <= 0.0:
+			var poison = _brewing[guard][0]
+			_brewing.erase(guard)
+			_poison_takes(guard, poison)
+
+
+## Seconds until a delayed poison in `guard` takes hold, or -1 for none.
+func brewing_in(guard: Guard) -> float:
+	return _brewing[guard][1] if _brewing.has(guard) else -1.0
+
+
+func _poison_takes(guard: Guard, poison: int):
+	var say := ""
+	match poison:
+		ItemDefinition.Poison.EMETIC:
+			guard.send_on_errand(Guard.Mood.RETCHING, _retch_spot_for(guard), EMETIC_SECONDS, Callable(), Callable(), RETCH_PACE)
+			say = "clutches his stomach and hurries off"
+		ItemDefinition.Poison.SEDATIVE:
+			stats.sedated += 1
+			guard.knock_out()
+			suspicion[guard] = 0.0
+			_bodies[guard] = false
+			say = "slumps where he stands, out cold"
+		ItemDefinition.Poison.DISEASE:
+			guard.send_on_errand(Guard.Mood.SICK, guard.global_position, DISEASE_SECONDS, Callable(), _recovered.bind(guard))
+			say = "sways, and sinks down, too ill to stand"
+			var carer = _nearest_carer(guard)
+			if carer != null:
+				_tending[carer] = guard
+				var beside = _tile_map.to_global(_tile_map.map_to_local(
+					_free_tile_near(tile_of(guard.global_position) + Vector2i.RIGHT, {tile_of(guard.global_position): true})))
+				carer.send_on_errand(Guard.Mood.TENDING, beside, INF, Callable(), Callable(), Guard.INVESTIGATE_PACE, guard.global_position)
+	if scene.has_method("log_message") and say != "":
+		scene.log_message("[color=yellow]%s[/color] %s.\n" % [_name_of(guard), say])
+
+
+## Where `guard` goes to be sick: the nearest RetchSpot, or where he stands.
+func _retch_spot_for(guard: Guard) -> Vector2:
+	var best := guard.global_position
+	var best_gap := INF
+	if _map != null:
+		for spot in _map.find_children("*", "RetchSpot", true, false):
+			var gap = spot.global_position.distance_to(guard.global_position)
+			if gap < best_gap:
+				best = spot.global_position
+				best_gap = gap
+	return best
+
+
+## Whoever is nearest `patient` and free to see to him.
+func _nearest_carer(patient: Guard) -> Guard:
+	var best: Guard = null
+	var best_gap := INF
+	for guard in guards:
+		if not is_instance_valid(guard) or guard == patient or not guard.is_free() or guard.kind == Guard.Kind.DOG:
+			continue
+		var gap = guard.global_position.distance_to(patient.global_position)
+		if gap < best_gap:
+			best = guard
+			best_gap = gap
+	return best
+
+
+## Better: and whoever was seeing to him goes back to his round too.
+func _recovered(patient: Guard):
+	for carer in _tending.keys():
+		if _tending[carer] == patient:
+			_tending.erase(carer)
+			if is_instance_valid(carer) and carer.mood == Guard.Mood.TENDING:
+				carer.end_errand()
+
+
+## Whoever is seeing to somebody no longer sick - knocked out, or better -
+## goes back to his round.
+func _check_on_carers():
+	for carer in _tending.keys():
+		var patient = _tending[carer]
+		if not is_instance_valid(carer) or carer.mood != Guard.Mood.TENDING:
+			_tending.erase(carer)
+		elif not is_instance_valid(patient) or patient.mood != Guard.Mood.SICK:
+			_tending.erase(carer)
+			carer.end_errand()
+
+
+## Who `guard` is seeing to, or null.
+func tending(guard: Guard) -> Guard:
+	return _tending.get(guard)
+
+
+## --- Patience (hold P) ---
+##
+## Held, time runs PATIENCE_SCALE times as fast - everybody's, his too - for
+## waiting out a patrol. Let go, or have anything hold the game (a
+## conversation, a menu, a catch), and it is back to normal.
+
+const PATIENCE_SCALE := 2.0
+
+## Whether the bar's Patience button is being held down.
+var patience_held := false
+## Whether time is running fast for it right now.
+var _hurried := false
+
+
+## Whether Patience is being held: the button, or P.
+func patient() -> bool:
+	return patience_held or Input.is_physical_key_pressed(KEY_P)
+
+
+## Whether time is running fast for Patience this moment.
+func hurried() -> bool:
+	return _hurried
+
+
+func _hurry(on: bool):
+	if on == _hurried:
+		return
+	_hurried = on
+	# The slow moment of a catch has the clock, and gives it back itself.
+	if not _slowed:
+		Engine.time_scale = PATIENCE_SCALE if on else 1.0
+
+
+func _notification(what: int):
+	# A menu paused everything: nothing is waited out behind it, and the menu
+	# is not to run at double speed either.
+	if what == NOTIFICATION_PAUSED:
+		_hurry(false)
+
+
+## --- Noisy ground, and creeping (hold Ctrl) ---
+##
+## Gravel, puddles and broken glass (see NoisyFloor) give away whoever walks
+## across them at an ordinary pace: a noise every STEP_SECONDS, heard as far as
+## the ground says. Creeping crosses them without a sound, at CREEP_PACE.
+
+const STEP_SECONDS := 0.5
+const CREEP_PACE := 0.45
+
+## Map tile -> the NoisyFloor covering it.
+var _noisy := {}
+## Party member key -> seconds to their next step being heard.
+var _step_in := {}
+## Where each of the party stood last frame, to tell walking from standing.
+var _stood := {}
+var _creep_kept := false
+
+
+func _collect_floors():
+	_noisy = {}
+	if _map == null:
+		return
+	for patch in _map.find_children("*", "NoisyFloor", true, false):
+		for tile in patch.covers(tile_of(patch.global_position)):
+			_noisy[tile] = patch
+
+
+## The noisy ground on `tile`, or null.
+func noisy_floor_at(tile: Vector2i) -> NoisyFloor:
+	return _noisy.get(tile)
+
+
+## Whether the party is creeping: Ctrl held, or the bar's Creep kept on.
+func creeping() -> bool:
+	return _creep_kept or Input.is_physical_key_pressed(KEY_CTRL)
+
+
+## Keeps creeping on, or lets it go - the bar's Creep, for playing with the mouse.
+func toggle_creep():
+	_creep_kept = not _creep_kept
+	_set_pace()
+
+
+## The party's pace for whatever they are doing: slower dragging a body,
+## slower still creeping.
+func _set_pace():
+	var party = scene.get("party") if scene != null else null
+	if party == null or not is_instance_valid(party):
+		return
+	party.pace = (DRAG_PACE if _dragging != null else 1.0) * (CREEP_PACE if creeping() else 1.0)
+
+
+## Every member of the party walking noisy ground at an ordinary pace is heard,
+## a step at a time.
+func _listen_to_feet(delta: float):
+	var party = scene.get("party")
+	var quiet = creeping()
+	for someone in _party_standing():
+		var at: Vector2 = someone.sprite.global_position
+		# Walking, not put somewhere: a teleport - arriving on the map - is no step.
+		var stride = _stood[someone.key].distance_to(at) if _stood.has(someone.key) else 0.0
+		var moved = stride > 0.5 and stride < Grid.tiles(1.0)
+		_stood[someone.key] = at
+		var ground = noisy_floor_at(someone.tile)
+		if ground == null or not moved or (quiet and not (party != null and party.dashing)):
+			_step_in[someone.key] = 0.0
+			continue
+		_step_in[someone.key] = _step_in.get(someone.key, 0.0) - delta
+		if _step_in[someone.key] > 0.0:
+			continue
+		_step_in[someone.key] = STEP_SECONDS
+		make_noise(at, ground.noise_tiles(), ground.brings_them())
+
+
 ## --- Throwing (T) ---
 
 
-## The first thing the leader carries to throw, or "".
+## Everything the leader carries to throw, each once: things to make a noise
+## with, then darts.
+func throwables() -> Array:
+	return Campaign.distractions_of(leader_key()) + Campaign.darts_of(leader_key())
+
+
+## What T would throw: the last thing thrown, while he still has one, or else
+## the first he carries - or "".
 func throwable() -> String:
-	var carried = Campaign.distractions_of(leader_key())
-	return carried[0] if not carried.is_empty() else ""
+	var carried = throwables()
+	if carried.is_empty():
+		return ""
+	return _last_thrown if carried.has(_last_thrown) else carried[0]
 
 
-## Starts aiming a throw - the next click on the map says where. False when
-## there is nothing to throw.
-func begin_throw() -> bool:
-	if spotted_by != null or throwable() == "":
+## Starts aiming a throw of `item_key` - or of what T would throw - and the next
+## click on the map says where. False when there is nothing to throw.
+func begin_throw(item_key: String = "") -> bool:
+	if spotted_by != null:
 		return false
-	_aiming = throwable()
+	if item_key == "":
+		item_key = throwable()
+	if item_key == "" or not throwables().has(item_key):
+		return false
+	_aiming = item_key
+	_last_thrown = item_key
 	return true
+
+
+## Aiming already: on to the next thing he carries to throw, round and round.
+func next_throwable():
+	var carried = throwables()
+	if _aiming == "" or carried.is_empty():
+		return
+	_aiming = carried[(carried.find(_aiming) + 1) % carried.size()]
+	_last_thrown = _aiming
+	queue_redraw()
+
+
+## The item being aimed, or "".
+func aiming() -> String:
+	return _aiming
 
 
 func cancel_throw():
@@ -724,9 +1893,19 @@ func can_throw_to(tile: Vector2i) -> bool:
 	return Vector2(tile - from).length() <= THROW_TILES and not sight.stops_sight(tile) and sight.clear(from, tile)
 
 
+## Whoever a dart landing on `tile` would find: somebody standing - or
+## sleeping - on it.
+func dart_target(tile: Vector2i) -> Guard:
+	for guard in guards:
+		if is_instance_valid(guard) and not guard.knocked_out and tile_of(guard.global_position) == tile:
+			return guard
+	return null
+
+
 ## Throws the item being aimed onto `tile`: gone from the bag, and a noise there
-## that the guards within its radius go to look at. False, and nothing thrown,
-## when it cannot land there.
+## that the guards within its radius go to look at - or, a dart, whatever its
+## poison does to whoever it finds there. False, and nothing thrown, when it
+## cannot land there.
 func throw_at(tile: Vector2i) -> bool:
 	var item_key = _aiming if _aiming != "" else throwable()
 	var item: ItemDefinition = ItemDatabase.item(item_key) if item_key != "" else null
@@ -734,15 +1913,68 @@ func throw_at(tile: Vector2i) -> bool:
 		return false
 	Campaign.take_item(leader_key(), item_key)
 	_aiming = ""
+	_last_thrown = item_key
+	if item.is_poison():
+		var target = dart_target(tile)
+		if scene.has_method("log_message"):
+			scene.log_message("The dart finds [color=yellow]%s[/color].\n" % _name_of(target) if target != null
+				else "The dart misses, and is lost.\n")
+		if target != null:
+			dose(target, item)
+		_given_away_by_throwing()
+		return true
 	make_noise(_tile_map.to_global(_tile_map.map_to_local(tile)), item.distraction_radius, true)
+	# Landing beside a lamp knocks it out.
+	for lamp in _lamps:
+		if is_instance_valid(lamp) and lamp.lit and Vector2(tile_of(lamp.global_position) - tile).length() <= 1.0:
+			put_out(lamp, true)
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color] lands with a clatter.\n" % item.name)
+	_given_away_by_throwing()
 	return true
+
+
+## Who a throw from where the leader is would give him away to: tucked into a
+## hiding spot, the arm going up over the barrels is the one thing about him
+## that is not hidden - anybody with the spot in view sees it. Nobody, out in
+## the open, where he is as seen as he is anyway.
+func throw_watchers() -> Array:
+	var watchers := []
+	var party = scene.get("party") if scene != null else null
+	if not leader_hiding() or party == null or party.leader == null:
+		return watchers
+	var tile = tile_of(party.leader.global_position)
+	for guard in guards:
+		if is_instance_valid(guard) and not guard.knocked_out and sees(guard, tile):
+			watchers.append(guard)
+	return watchers
+
+
+## Thrown from a hiding spot somebody has in view: he is known at once - or,
+## by somebody who is nobody's guard, off they run to tell.
+func _given_away_by_throwing():
+	if spotted_by != null:
+		return
+	var party = scene.get("party")
+	var at: Vector2 = party.leader.global_position
+	for guard in throw_watchers():
+		if guard.kind == Guard.Kind.CIVILIAN:
+			_run_to_tell(guard, at)
+			continue
+		if scene.has_method("log_message"):
+			scene.log_message("[color=yellow]%s[/color] saw that thrown.\n" % _name_of(guard))
+		suspicion[guard] = 1.0
+		guard.watching(at)
+		_caught_by(guard)
+		return
 
 
 func _unhandled_input(event):
 	if scene == null:
 		return
+	if event is InputEventMouseMotion:
+		# Whose round to show, if it is known.
+		_hovered = _guard_on(tile_of(_world_at(event.position)))
 	if _aiming == "":
 		_click_on_guard(event)
 		return
@@ -789,6 +2021,104 @@ func ears_left() -> float:
 
 func ears_cooldown() -> float:
 	return _ears_cooldown
+
+
+## --- Knowing where they walk ---
+##
+## A guard's round is never shown for free. Found out - a duty roster read, a
+## pocket picked, a conversation overheard, whatever sets his Route Known Flag
+## - it is drawn while listening (Q), and while the pointer is on him.
+
+## How a known round is drawn: a dotted line along it, a ring at each stop.
+const ROUTE_COLOUR := Color(0.55, 0.85, 1.0, 0.75)
+const ROUTE_DOT_TILES := 0.18
+
+## The guard the pointer is on, for showing his round.
+var _hovered: Guard = null
+
+
+## Whether the party has found out `guard`'s round.
+func route_known(guard: Guard) -> bool:
+	return is_instance_valid(guard) and guard.route_known_flag != "" and Campaign.flag(guard.route_known_flag)
+
+
+## Whether `guard`'s round is drawn right now: known, and listening or pointed at.
+func route_shown(guard: Guard) -> bool:
+	return route_known(guard) and not guard.knocked_out and (_ears_left > 0.0 or _hovered == guard)
+
+
+## Every round drawn right now, as [guard, [positions...], whether it loops].
+func shown_routes() -> Array:
+	var shown := []
+	for guard in guards:
+		if is_instance_valid(guard) and route_shown(guard):
+			var points: Array = guard.patrol_points()
+			shown.append([guard, points if not points.is_empty() else [guard.post()], not guard.back_and_forth])
+	return shown
+
+
+func _draw_routes():
+	for route in shown_routes():
+		var points: Array = route[1]
+		var stops := points.duplicate()
+		if route[2] and points.size() > 2:
+			stops.append(points[0])
+		for i in range(stops.size() - 1):
+			_dotted(to_local(stops[i]), to_local(stops[i + 1]))
+		for point in points:
+			draw_arc(to_local(point), Grid.tiles(0.28), 0.0, TAU, 24, ROUTE_COLOUR, 5.0)
+
+
+func _dotted(from: Vector2, to: Vector2):
+	var length := from.distance_to(to)
+	var step: float = Grid.tiles(ROUTE_DOT_TILES * 2.0)
+	var along: float = step * 0.5
+	while along < length:
+		draw_circle(from.lerp(to, along / length), Grid.tiles(0.05), ROUTE_COLOUR)
+		along += step
+
+
+## --- Where they think he is ---
+##
+## A guard out looking for somebody he saw is looking where he saw them: a
+## ghost of the leader stands there, with a ring as far about it as the hiding
+## spots he will look into (SEARCH_SPOTS_TILES) - so it is plain why a spot
+## close by stopped being safe.
+
+const GHOST_TINT := Color(0.8, 0.85, 1.0, 0.32)
+const GHOST_RING := Color(0.8, 0.85, 1.0, 0.45)
+
+
+## Where guards are looking for him right now, a tile apiece.
+func sought_at() -> Array:
+	var places := {}
+	for guard in guards:
+		if is_instance_valid(guard) and not guard.knocked_out and guard.is_hunting():
+			places[tile_of(guard.last_seen)] = guard.last_seen
+	return places.values()
+
+
+func _draw_ghosts():
+	var places := sought_at()
+	if places.is_empty():
+		return
+	var party = scene.get("party")
+	var leader = party.leader if party != null else null
+	var frame: Dictionary = leader.current_frame() if leader != null and leader.has_method("current_frame") else {}
+	for place in places:
+		var centre = to_local(place)
+		var segments := 20
+		for i in segments:
+			if i % 2 == 0:
+				var a = TAU * i / segments
+				draw_arc(centre, Grid.tiles(SEARCH_SPOTS_TILES), a, a + TAU / segments, 6, GHOST_RING, 5.0)
+		if frame.is_empty():
+			draw_circle(centre, Grid.tiles(0.3), GHOST_TINT)
+			continue
+		var size: Vector2 = frame.region.size
+		draw_set_transform(centre + frame.offset, 0.0, Vector2(-1.0 if frame.flip else 1.0, 1.0))
+		draw_texture_rect_region(frame.texture, Rect2(-size / 2.0, size), frame.region, GHOST_TINT)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## --- What the player sees ---
@@ -854,7 +2184,7 @@ func _click_on_guard(event):
 		return
 	if event.button_index != MOUSE_BUTTON_LEFT and event.button_index != MOUSE_BUTTON_RIGHT:
 		return
-	if spotted_by != null or (scene.has_method("is_holding") and scene.is_holding()):
+	if spotted_by != null or _lacing != null or (scene.has_method("is_holding") and scene.is_holding()):
 		return
 	var tile = tile_of(_world_at(event.position))
 	var clicked = _guard_on(tile)
@@ -902,6 +2232,8 @@ func _can_drag(guard) -> bool:
 ## Who a left click would knock out right now - `preferred`, if he can be -
 ## or null.
 func takedown_target(preferred = null) -> Guard:
+	if _lacing != null:
+		return null
 	if _can_take_down(preferred):
 		return preferred
 	for guard in guards:
@@ -921,10 +2253,15 @@ func take_down(preferred = null) -> bool:
 	suspicion[guard] = 0.0
 	_bodies[guard] = false
 	guard.visible = true
+	stats.takedowns += 1
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color] is out cold.\n" % _name_of(guard))
 	# Not quietly: anybody near enough comes to see what that was.
 	make_noise(guard.global_position, TAKEDOWN_NOISE_TILES, true)
+	# And seen by somebody who is nobody's guard, they run to tell.
+	var party = scene.get("party")
+	if party != null and party.leader != null:
+		_witnesses(party.leader.global_position)
 	return true
 
 
@@ -964,6 +2301,21 @@ func prompt() -> Array:
 		if over == null:
 			over = rob
 		lines.append(["Right click", "Pick pocket" if rob == over else "Pick %s's pocket" % _name_of(rob), true])
+	# Near enough to spring on somebody who has no idea he is there.
+	var spring = ambush_target(over)
+	if spring != null and ambush_refusal() == "":
+		if over == null:
+			over = spring
+		lines.append(["F", "Ambush" if spring == over else "Ambush %s" % _name_of(spring), true])
+	# In a disguise he takes at face value, beside a guard who could settle the
+	# map - or who would, if a body had not been found. E, when E is not for
+	# something else in reach.
+	var calm = reassure_target()
+	var no_word = reassure_refusal(calm)
+	if calm != null and no_word != "Nothing to settle" and no_word != "Already talking" and scene.get("_current_target") == null:
+		if over == null:
+			over = calm
+		lines.append(["E", "Have a word" if no_word == "" else no_word, no_word == ""])
 	if over == null:
 		# Nobody to deal with, but something to hop over.
 		var hop = vault_over()
@@ -995,7 +2347,7 @@ func _tough_one_behind() -> Guard:
 ## The body a left click would pick up right now - `preferred`, if it can be -
 ## or null.
 func drag_target(preferred = null) -> Guard:
-	if _dragging != null or _changing_into != "":
+	if _dragging != null or _changing_into != "" or _lacing != null:
 		return null
 	if _can_drag(preferred):
 		return preferred
@@ -1014,7 +2366,7 @@ func drag(preferred = null) -> bool:
 		return false
 	_dragging = body
 	_drag_path = [body.global_position, party.leader.global_position]
-	party.pace = DRAG_PACE
+	_set_pace()
 	return true
 
 
@@ -1048,8 +2400,8 @@ func stash_spot(tile: Vector2i = Vector2i(-99999, -99999)) -> HidingSpot:
 
 
 ## Puts down the body being dragged: into a free hiding spot within reach -
-## the one on `tile`, given one - where no guard will ever find it, or else
-## on the ground where it is.
+## the one on `tile`, given one - out of sight of any guard not close by it,
+## or else on the ground where it is.
 func put_down(tile: Vector2i = Vector2i(-99999, -99999)) -> bool:
 	if _dragging == null:
 		return false
@@ -1063,8 +2415,10 @@ func put_down(tile: Vector2i = Vector2i(-99999, -99999)) -> bool:
 	spot.holds_body = body
 	_stashed[body] = spot
 	_bodies.erase(body)
+	# A body stuffed in never quite fits: a guard close by notices.
+	_add_oddity(spot, "spot", DISTURBED_TILES)
 	if scene.has_method("log_message"):
-		scene.log_message("[color=yellow]%s[/color] is out of sight for good.\n" % _name_of(body))
+		scene.log_message("[color=yellow]%s[/color] is stuffed out of sight.\n" % _name_of(body))
 	return true
 
 
@@ -1078,7 +2432,7 @@ func _let_go():
 	_drag_path = []
 	var party = scene.get("party") if scene != null else null
 	if party != null and is_instance_valid(party):
-		party.pace = 1.0
+		_set_pace()
 
 
 ## Keeps the body being dragged a place behind the last of the party, along the
@@ -1113,6 +2467,8 @@ func _drag_along():
 ## Whose pockets a right click would pick right now - `preferred`'s, if his
 ## can be - or null.
 func pocket_target(preferred = null) -> Guard:
+	if _lacing != null:
+		return null
 	if _can_rob(preferred):
 		return preferred
 	for guard in guards:
@@ -1135,6 +2491,7 @@ func pick_pocket(preferred = null) -> bool:
 	if guard.picked_message != "":
 		names.append(guard.picked_message)
 	guard.picked = true
+	stats.pockets += 1
 	if guard.picked_flag != "":
 		Campaign.set_flag(guard.picked_flag)
 	if scene.has_method("log_message"):
@@ -1148,33 +2505,293 @@ func body_unfound(guard: Guard) -> bool:
 	return _bodies.has(guard) and not _bodies[guard]
 
 
-## A guard whose view falls on somebody knocked out raises the alarm, and goes
-## to see.
+## A guard whose view falls on somebody knocked out puts the map a level more
+## on edge for good, and goes to bring them round - see _found.
 func _look_for_bodies(finder: Guard):
-	if finder.kind == Guard.Kind.WARD:
+	if finder.kind == Guard.Kind.WARD or finder.sees_nothing():
 		return
-	for body in _bodies:
+	for body in _bodies.keys():
 		if _bodies[body] or not is_instance_valid(body):
 			continue
 		if _seen.get(finder, {}).has(tile_of(body.global_position)):
-			_bodies[body] = true
-			raise_alert(1.0)
-			finder.investigate(body.global_position)
-			if scene.has_method("log_message"):
-				scene.log_message("[color=red]%s has found %s - the alarm is up![/color]\n" % [_name_of(finder), _name_of(body)])
+			_found(body, finder)
 	# Hunting for somebody, he looks into the hiding spots about where he saw
 	# them - and a body stuffed into one is as good as found.
 	if not finder.is_hunting():
 		return
-	for body in _stashed:
+	for body in _stashed.keys():
 		if _stashed_found.has(body) or not is_instance_valid(body):
 			continue
 		var tile = tile_of(_stashed[body].global_position)
 		if _seen.get(finder, {}).has(tile) and looks_behind_cover(finder, tile):
-			_stashed_found[body] = true
-			raise_alert(1.0)
-			if scene.has_method("log_message"):
-				scene.log_message("[color=red]%s has found %s, hidden away - the alarm is up![/color]\n" % [_name_of(finder), _name_of(body)])
+			_found(body, finder)
+
+
+## `finder` has found `body`. A body is the one thing a watch cannot talk
+## itself out of: the map goes a level more on edge and stays at least there
+## (see raise_alert_level). Then somebody goes to bring him round - the finder,
+## or the nearest guard who can when the finder is a dog or nobody's guard -
+## and until then, and only then, a knocked-out guard stays down.
+func _found(body: Guard, finder: Guard):
+	var hidden_away = _stashed.has(body)
+	if hidden_away:
+		_stashed_found[body] = true
+	else:
+		_bodies[body] = true
+	if not _alarmed_by.has(body):
+		stats.bodies_found += 1
+		_alarmed_by[body] = true
+		raise_alert_level(true)
+	if scene.has_method("log_message"):
+		scene.log_message("[color=red]%s %s %s%s - the alert goes up, and will not come down below %s![/color]\n" % [
+			_name_of(finder), "screams: they have found" if finder.kind == Guard.Kind.CIVILIAN else "has found",
+			_name_of(body), ", hidden away" if hidden_away else "", ALERT_NAMES[level_of(alert_floor)]])
+	_send_to_wake(body, finder)
+
+
+## Whether `guard` could bring somebody round: a watchman or captain, on their
+## feet and with their wits about them.
+func _can_wake(guard) -> bool:
+	return is_instance_valid(guard) and (guard.kind == Guard.Kind.WATCHMAN or guard.kind == Guard.Kind.CAPTAIN) \
+		and not guard.knocked_out and not guard.mood in Guard.ABSORBED
+
+
+## The nearest guard who could bring somebody round, leaving out `but`.
+func _nearest_waker(to: Vector2, but: Array = []) -> Guard:
+	var best: Guard = null
+	var best_gap := INF
+	for guard in guards:
+		if but.has(guard) or not _can_wake(guard):
+			continue
+		var gap = guard.global_position.distance_to(to)
+		if gap < best_gap:
+			best = guard
+			best_gap = gap
+	return best
+
+
+func _send_to_wake(body: Guard, finder: Guard):
+	if _waking.has(body):
+		return
+	var waker = finder if _can_wake(finder) else _nearest_waker(body.global_position, [body])
+	if waker == null:
+		return
+	_waking[body] = waker
+	var at: Vector2 = body.global_position
+	waker.send_on_errand(Guard.Mood.WAKING, at, WAKE_SECONDS, Callable(), _woken.bind(body, waker),
+		Guard.INVESTIGATE_PACE, at)
+
+
+## `waker` has spent long enough over `body` to bring him round - if he is
+## still there to be brought round.
+func _woken(body: Guard, waker: Guard):
+	_waking.erase(body)
+	if not is_instance_valid(body) or not body.knocked_out:
+		return
+	if body == _dragging or body.global_position.distance_to(waker.global_position) > Grid.tiles(REACH_TILES):
+		# Dragged off while he was on his way: lying somewhere else now, to be
+		# found there all over again.
+		_bodies[body] = false
+		return
+	if _stashed.has(body):
+		_stashed[body].holds_body = null
+		_remove_oddity(_stashed[body])
+		_stashed.erase(body)
+		_stashed_found.erase(body)
+	_bodies.erase(body)
+	body.visible = true
+	body.wake_up()
+	suspicion[body] = 0.0
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] brings [color=yellow]%s[/color] round.\n" % [_name_of(waker), _name_of(body)])
+
+
+## Anybody on the way to wake a body who has been drawn off it - knocked out
+## themselves, or off after somebody they saw: the body is lying there to be
+## found again, without putting the map up a second time.
+func _check_on_wakers():
+	for body in _waking.keys():
+		var waker = _waking[body]
+		if is_instance_valid(waker) and waker.mood == Guard.Mood.WAKING and not waker.knocked_out:
+			continue
+		_waking.erase(body)
+		if not is_instance_valid(body) or not body.knocked_out:
+			continue
+		if _stashed.has(body):
+			_stashed_found.erase(body)
+		else:
+			_bodies[body] = false
+
+
+## --- A word in the right ear (E, beside a guard) ---
+##
+## In a disguise a guard takes at face value, a word with him - been round, it
+## is nothing - and he passes it on: the map settles a level. E beside him, when
+## there is nothing else there to use; once a guard, never below where a found
+## body pinned it, and standing still for it where anybody the disguise does
+## not fool might be looking. A guard with Small Talk set plays that
+## conversation instead, and it is the conversation that settles the map, if
+## anything does - `do Campaign.settle_alert()`, as any conversation can.
+
+## What gets said, a line each: his, then the guard's. Picked by the guard, so
+## the same guard always says the same thing.
+const WORD_SAID := ["All quiet out back.", "Been round the stores - nothing there.", "Rats, that's all it was.",
+	"Nothing to worry about out there."]
+const WORD_ANSWERED := ["Good. I'll pass it on.", "Thank the gods for that.", "Right. Back to it, then.",
+	"Glad to hear it."]
+
+## What the leader is saying this moment, over his head, or "".
+var leader_says := ""
+
+
+## Whether a word with `guard` could be had: beside him, in a disguise he takes
+## at face value, and him calm and about his business.
+func _can_reassure(guard) -> bool:
+	if not is_instance_valid(guard) or guard.reassured or not _in_reach(guard):
+		return false
+	if guard.kind != Guard.Kind.WATCHMAN and guard.kind != Guard.Kind.CAPTAIN:
+		return false
+	if guard.sees_nothing() or suspicion.get(guard, 0.0) > 0.0 or not guard.is_free():
+		return false
+	var worn = worn_by(leader_key())
+	return worn != "" and not guard.sees_through(ItemDatabase.item(worn))
+
+
+## Who a word would be had with right now - `preferred`, if it can be - or null.
+func reassure_target(preferred = null) -> Guard:
+	if _can_reassure(preferred):
+		return preferred
+	for guard in guards:
+		if _can_reassure(guard):
+			return guard
+	return null
+
+
+## Why a word would come to nothing right now, or "". A guard with something
+## of his own to say is always worth a word.
+func reassure_refusal(guard = null) -> String:
+	if spotted_by != null:
+		return "Too late for that"
+	if _reassuring != null:
+		return "Already talking"
+	if _dragging != null or _changing_into != "" or _lacing != null:
+		return "Not now"
+	if guard == null:
+		guard = reassure_target()
+	if is_instance_valid(guard) and guard.small_talk != null:
+		return ""
+	if level_of(alert) == 0:
+		return "Nothing to settle"
+	if level_of(alert) <= level_of(alert_floor):
+		return "They won't settle - a body was found"
+	return ""
+
+
+## E beside a guard the disguise fools, with nothing else there to use: a word
+## with him. True when it was had.
+func talk_on_interact() -> bool:
+	if scene.get("_current_target") != null:
+		return false
+	return reassure()
+
+
+## Has a word with whoever is beside the leader and fooled by his disguise -
+## `preferred`, if that is one: REASSURE_SECONDS standing still, a line each,
+## and then the map is a level calmer - or his own conversation, if he has
+## one. False, and nothing started, when there is nobody to have one with or
+## it would come to nothing.
+func reassure(preferred = null) -> bool:
+	var guard = reassure_target(preferred)
+	var party = scene.get("party")
+	if guard == null or reassure_refusal(guard) != "" or party == null or party.leader == null:
+		return false
+	if scene.has_method("is_holding") and scene.is_holding():
+		return false
+	guard.reassured = true
+	if guard.small_talk != null:
+		_small_talk(guard)
+		return true
+	_reassuring = guard
+	party.rooted = true
+	guard.send_on_errand(Guard.Mood.CHATTING, guard.global_position, REASSURE_SECONDS, Callable(),
+		_reassured.bind(guard), 1.0, party.leader.global_position)
+	return true
+
+
+## His own conversation, everything waiting on it.
+func _small_talk(guard: Guard):
+	var manager = get_node_or_null("/root/DialogueManager")
+	if manager == null:
+		return
+	guard.facing = (scene.party.leader.global_position - guard.global_position).normalized()
+	if scene.has_method("begin_blocking_interaction"):
+		scene.begin_blocking_interaction()
+	manager.dialogue_ended.connect(_after_small_talk, CONNECT_ONE_SHOT)
+	manager.show_dialogue_balloon_scene("res://ui/dialogue_balloon.tscn", guard.small_talk,
+		guard.small_talk_title if guard.small_talk_title != "" else "start")
+
+
+func _after_small_talk(_resource):
+	if scene != null and is_instance_valid(scene) and scene.has_method("end_blocking_interaction"):
+		scene.end_blocking_interaction()
+
+
+func _reassured(guard: Guard):
+	_stop_reassuring()
+	settle(1, "[color=yellow]%s[/color] passes it on" % _name_of(guard))
+
+
+## Settles the map `levels` levels, as far as the floor allows, and says so -
+## `who` passing it on, given. What a word with a guard does, and what a
+## conversation or anything used can do too (see Campaign.settle_alert and
+## Interactable's Settles Alert). True when it went down at all.
+func settle(levels: int = 1, who: String = "") -> bool:
+	var lowered := false
+	for i in levels:
+		if lower_alert_level():
+			lowered = true
+	if scene != null and scene.has_method("log_message"):
+		if lowered:
+			scene.log_message("%s - the guards settle. [color=lightgreen]%s[/color].\n" % [
+				who if who != "" else "Word goes round", alert_level()])
+		elif level_of(alert) > 0:
+			scene.log_message("The guards will not settle below %s - a body was found.\n" % ALERT_NAMES[level_of(alert_floor)])
+	return lowered
+
+
+## The line each while a word is being had: his first, then the guard's.
+func _say_the_word():
+	if _reassuring == null or not is_instance_valid(_reassuring):
+		return
+	var pick = absi(hash(String(_reassuring.name))) % WORD_SAID.size()
+	var said = REASSURE_SECONDS - _reassuring.errand_left() if _reassuring.errand_arrived() else 0.0
+	if said < REASSURE_SECONDS / 2.0:
+		leader_says = WORD_SAID[pick]
+		saying.erase(_reassuring)
+	else:
+		leader_says = ""
+		saying[_reassuring] = [WORD_ANSWERED[pick], true]
+
+
+## Lets go of whoever he was talking to, finished or not.
+func _stop_reassuring():
+	if _reassuring != null and is_instance_valid(_reassuring):
+		saying.erase(_reassuring)
+	leader_says = ""
+	_reassuring = null
+	var party = scene.get("party") if scene != null else null
+	if party != null and is_instance_valid(party) and _changing_into == "":
+		party.rooted = false
+
+
+## A word cut short - he was knocked out, or saw something - settles nothing.
+func _check_on_reassuring():
+	if _reassuring == null:
+		return
+	if not is_instance_valid(_reassuring) or _reassuring.mood != Guard.Mood.CHATTING or _reassuring.knocked_out:
+		_stop_reassuring()
+		return
+	_say_the_word()
 
 
 ## --- Questioning ---
@@ -1255,6 +2872,65 @@ func seen_tiles() -> Dictionary:
 	return all
 
 
+## --- Whose gaze matters, in a disguise ---
+##
+## Out of disguise every guard's view is danger. In one, some take it at face
+## value and some see straight through it, and the tint says which: purple for
+## a guard who sees through it, amber for one who sees through it but would
+## stop him with questions first, a faint grey for one it fools. Hovering a
+## disguise on the bar shows the same for that one, before he puts it on.
+
+enum Gaze { SEES, ASKS, FOOLED }
+const GAZE_FILL := [SEEN_FILL, Color(0.95, 0.66, 0.2, 0.2), Color(0.75, 0.78, 0.82, 0.1)]
+const GAZE_EDGE := [SEEN_EDGE, Color(1.0, 0.75, 0.3, 0.75), Color(0.8, 0.83, 0.88, 0.55)]
+
+## The disguise being looked at on the bar, by item key, or "" - drawn as if
+## the leader had it on.
+var preview_disguise := ""
+
+
+## What `guard`'s gaze means to the party as they are dressed - or with the
+## leader in `leader_in` instead, given one: SEES somebody for who they are
+## (anybody out of disguise, or in one this guard sees through), ASKS if he sees
+## through it but has questions to ask first, FOOLED if he takes everybody at
+## face value.
+func gaze_of(guard: Guard, leader_in: String = "") -> int:
+	var standing := _party_standing()
+	if standing.is_empty():
+		return Gaze.SEES
+	var asks := false
+	for someone in standing:
+		var worn: String = leader_in if leader_in != "" and someone.key == leader_key() else worn_by(someone.key)
+		if worn == "":
+			return Gaze.SEES
+		if guard.sees_through(ItemDatabase.item(worn)):
+			if guard.questions != null and not guard.questioned:
+				asks = true
+			else:
+				return Gaze.SEES
+	return Gaze.ASKS if asks else Gaze.FOOLED
+
+
+## Every tile watched right now, by what the gaze on it means - where two
+## overlap, the worse of the two: [SEES tiles, ASKS tiles, FOOLED tiles].
+func seen_by_gaze() -> Array:
+	var sorted := [{}, {}, {}]
+	for guard in guards:
+		if not is_instance_valid(guard) or guard.knocked_out or not guard.visible:
+			continue
+		var gaze: int = gaze_of(guard, preview_disguise)
+		for tile in _seen.get(guard, {}):
+			var worst: int = gaze
+			if sorted[Gaze.SEES].has(tile):
+				continue
+			if sorted[Gaze.ASKS].has(tile):
+				worst = mini(worst, Gaze.ASKS)
+				sorted[Gaze.ASKS].erase(tile)
+			sorted[Gaze.FOOLED].erase(tile)
+			sorted[worst][tile] = true
+	return sorted
+
+
 ## Whether `guard` can see `tile` right now - the same answer the map draws.
 func sees(guard: Guard, tile: Vector2i) -> bool:
 	_refresh_seen(guard)
@@ -1273,8 +2949,11 @@ func _process(delta):
 	for guard in guards:
 		if is_instance_valid(guard):
 			guard.holding = holding
+	# Waiting things out, while nothing else holds the game.
+	_hurry(patient() and not holding)
 	if holding:
 		return
+	stats.seconds += delta
 	_dash_cooldown = maxf(0.0, _dash_cooldown - delta)
 	_ears_cooldown = maxf(0.0, _ears_cooldown - delta)
 	_ears_left = maxf(0.0, _ears_left - delta)
@@ -1282,8 +2961,15 @@ func _process(delta):
 		_change_left -= delta
 		if _change_left <= 0.0:
 			_finish_change()
+	if _lacing != null:
+		_lace_left -= delta
+		if _lace_left <= 0.0:
+			_finish_lacing()
+	_update_doors()
 	_drag_along()
-	_calm_down(delta)
+	_set_pace()
+	_listen_to_feet(delta)
+	_apply_alert()
 	var party = scene.get("party")
 	var dashing: bool = party != null and party.dashing
 	var standing := _party_standing()
@@ -1292,6 +2978,9 @@ func _process(delta):
 		if not is_instance_valid(guard) or guard.knocked_out:
 			continue
 		_refresh_seen(guard)
+		if guard.mood == Guard.Mood.REPORTING:
+			# Running to tell somebody: no mind for anything else.
+			continue
 		var from = tile_of(guard.global_position)
 		# Whoever in view they are growing sure of fastest, and where they are.
 		var rate := 0.0
@@ -1301,8 +2990,8 @@ func _process(delta):
 		for someone in standing:
 			if not can_perceive(guard, someone):
 				continue
-			# Seen dragging a body or changing clothes, there is no doubt at
-			# all who he is - whatever he has on.
+			# Seen dragging a body, changing clothes or poisoning a supper, there
+			# is no doubt at all who he is - whatever he has on.
 			if someone.key == leader_key() and caught_red_handed():
 				caught_at_it = true
 				seen_at = someone.sprite.global_position
@@ -1319,12 +3008,17 @@ func _process(delta):
 				seen_at = someone.sprite.global_position
 				seen_disguised = worn != ""
 		if caught_at_it:
+			if guard.kind == Guard.Kind.CIVILIAN:
+				_run_to_tell(guard, seen_at)
+				continue
 			suspicion[guard] = 1.0
 			guard.watching(seen_at)
 			_caught_by(guard)
 			break
 		if rate > 0.0:
 			watched = true
+			if suspicion[guard] <= 0.0:
+				stats.noticed += 1
 			_noticed_ever = true
 			guard.watching(seen_at)
 			suspicion[guard] = minf(1.0, suspicion[guard] + delta * rate)
@@ -1335,6 +3029,9 @@ func _process(delta):
 				_question(guard)
 				return
 			if suspicion[guard] >= 1.0:
+				if guard.kind == Guard.Kind.CIVILIAN:
+					_run_to_tell(guard, seen_at)
+					continue
 				_caught_by(guard)
 				break
 		else:
@@ -1349,6 +3046,15 @@ func _process(delta):
 				if guard.mood == Guard.Mood.INVESTIGATING:
 					raise_alert(ALERT_PER_INVESTIGATION)
 		_look_for_bodies(guard)
+		_notice_oddities(guard)
+	_check_on_wakers()
+	_check_on_reassuring()
+	_see_to_oddities()
+	_run_chats(delta)
+	_check_on_reporters()
+	_run_meals(delta)
+	_brew(delta)
+	_check_on_carers()
 	_update_what_is_shown()
 	if spotted_by == null:
 		# The moment somebody first comes into view, rather than every frame
@@ -1434,13 +3140,21 @@ func music_cutoff() -> float:
 ## Anything this turned on for the whole game comes off with the map - slowed
 ## time most of all, which would otherwise carry into the fight and beyond.
 func _exit_tree():
-	if _slowed:
+	if Campaign.stealth_watch == self:
+		Campaign.stealth_watch = null
+	if _slowed or _hurried:
 		Engine.time_scale = 1.0
 		_slowed = false
+		_hurried = false
 	_remove_muffle()
 	# The party outlives a watch that is started again on the same map.
 	_stop_changing()
 	_let_go()
+	_stop_reassuring()
+	_stop_lacing()
+	var party = scene.get("party") if scene != null else null
+	if party != null and is_instance_valid(party):
+		party.pace = 1.0
 
 
 ## Stand-ins until there are real sounds: a heartbeat's two low thumps, and a
@@ -1614,12 +3328,18 @@ func _dress_the_party():
 
 
 func _refresh_seen(guard: Guard):
+	if guard.sees_nothing():
+		# Asleep, out cold or being sick: nothing at all.
+		if _seen_key.get(guard) != ["nothing"]:
+			_seen_key[guard] = ["nothing"]
+			_seen[guard] = {}
+		return
 	var from = tile_of(guard.global_position)
 	if guard.kind == Guard.Kind.DOG:
 		# A nose: every tile within smell, walls or no walls.
-		if _seen_key.get(guard) == [from]:
+		if _seen_key.get(guard) == [from, _world_version]:
 			return
-		_seen_key[guard] = [from]
+		_seen_key[guard] = [from, _world_version]
 		var smelt := {}
 		var reach = ceili(guard.smell_tiles)
 		for dx in range(-reach, reach + 1):
@@ -1630,24 +3350,42 @@ func _refresh_seen(guard: Guard):
 		_seen[guard] = smelt
 		return
 	var facing_step = roundi(rad_to_deg(guard.facing.angle()) / FACING_STEP_DEGREES)
-	# The width too: a guard investigating sees 340 degrees rather than 160.
-	var key = [from, facing_step, guard.half_cone()]
+	# The width too: a guard investigating sees 340 degrees rather than 160. And
+	# the doors and lamps as they stand: a door shut or a lamp out changes it.
+	var key = [from, facing_step, guard.half_cone(), _world_version]
 	if _seen_key.get(guard) == key:
 		return
 	_seen_key[guard] = key
 	var looking = Vector2.RIGHT.rotated(deg_to_rad(facing_step * FACING_STEP_DEGREES))
 	_seen[guard] = sight.seen_from(from, looking, guard.half_cone())
+	if is_dark():
+		# In the dark he makes somebody out only close up; on a lit tile, as far
+		# off as he sees anything.
+		var near = setup.dark_sight_tiles
+		var made_out := {}
+		for tile in _seen[guard]:
+			if _lit.has(tile) or Vector2(tile - from).length() <= near:
+				made_out[tile] = true
+		_seen[guard] = made_out
 
 
 ## Somebody is sure. Everyone stops, the "!" goes up, and the fight is handed to
-## Campaign to be fought where everybody stands.
-func _caught_by(guard: Guard):
+## Campaign to be fought where everybody stands. `ambushed`: nobody was sure
+## of anything - he sprang on `guard` (see ambush), and whoever had not noticed
+## him loses their first turn.
+func _caught_by(guard: Guard, ambushed: bool = false):
 	spotted_by = guard
+	if ambushed:
+		stats.ambushes += 1
+	else:
+		stats.caught += 1
 	# Caught is noticed, however it came about - talked into a corner included.
 	_noticed_ever = true
 	# Whatever he was in the middle of stops where it is.
 	_stop_changing()
 	_let_go()
+	_stop_reassuring()
+	_stop_lacing()
 	for other in guards:
 		if is_instance_valid(other):
 			other.holding = true
@@ -1661,6 +3399,7 @@ func _caught_by(guard: Guard):
 	# The moment lands: time crawls, the screen jolts, the "!" pops in big and
 	# the one who saw flashes, a sting plays, and the music is at its most
 	# muffled.
+	_hurried = false
 	Engine.time_scale = CAUGHT_TIME_SCALE
 	_slowed = true
 	get_tree().create_timer(CAUGHT_SLOW_SECONDS, true, false, true).timeout.connect(_end_slow)
@@ -1685,10 +3424,14 @@ func _caught_by(guard: Guard):
 	queue_redraw()
 	_meters.queue_redraw()
 	if scene.has_method("log_message"):
-		scene.log_message("[color=yellow]%s[/color] has spotted you!\n" % _name_of(guard))
-	if guard.kind == Guard.Kind.CAPTAIN:
+		if ambushed:
+			scene.log_message("You spring on [color=yellow]%s[/color]!\n" % _name_of(guard))
+		else:
+			scene.log_message("[color=yellow]%s[/color] has spotted you!\n" % _name_of(guard))
+	# Sprung on, a captain has no time to shout for anybody.
+	if guard.kind == Guard.Kind.CAPTAIN and not ambushed:
 		_shout(guard)
-	var fight = build_fight()
+	var fight = build_fight(ambushed)
 	# Written down before the scene goes, for walking back in after the fight.
 	Campaign.stealth_state[scene.map_path()] = snapshot(fight)
 	Campaign.begin_battle_from_exploration(fight, scene.map_path(), scene.party_position(), trigger())
@@ -1697,6 +3440,78 @@ func _caught_by(guard: Guard):
 	await get_tree().create_timer(CAUGHT_PAUSE, true, false, true).timeout
 	if is_inside_tree():
 		SceneTransition.change_scene(scene.battle_scene)
+
+
+## --- An ambush (F) ---
+##
+## Starting the fight on purpose, on his terms: beside a guard who has no idea
+## he is there, the fight begins where everybody stands - and every guard who
+## had not noticed anything loses their first turn (SpawnDefinition.surprised).
+
+
+## How near a guard who has not noticed him has to be to be sprung on.
+const AMBUSH_TILES := 2.5
+
+
+## Whether `guard` has no idea anybody is about: not growing sure, not
+## staring after anybody, not out looking for somebody he saw.
+func _unaware(guard: Guard) -> bool:
+	if suspicion.get(guard, 0.0) > 0.0 or guard.is_hunting():
+		return false
+	return guard.mood != Guard.Mood.WATCHING and guard.mood != Guard.Mood.SUSPICIOUS
+
+
+func _can_ambush(guard) -> bool:
+	if not is_instance_valid(guard) or guard.knocked_out or not guard.fights():
+		return false
+	if not CombatantDatabase.combatants.has(guard.combatant_key) or not _unaware(guard):
+		return false
+	var party = scene.get("party")
+	if party == null or party.leader == null:
+		return false
+	return Vector2(tile_of(party.leader.global_position) - tile_of(guard.global_position)).length() <= AMBUSH_TILES
+
+
+## Who F would spring on right now - `preferred`, if he can be - or null.
+func ambush_target(preferred = null) -> Guard:
+	if _can_ambush(preferred):
+		return preferred
+	var best: Guard = null
+	var best_gap := INF
+	var party = scene.get("party")
+	for guard in guards:
+		if not _can_ambush(guard):
+			continue
+		var gap = guard.global_position.distance_to(party.leader.global_position)
+		if gap < best_gap:
+			best = guard
+			best_gap = gap
+	return best
+
+
+## Why he could not spring an ambush right now, or "".
+func ambush_refusal() -> String:
+	if spotted_by != null:
+		return "Too late for that"
+	if _dragging != null:
+		return "Not while dragging a body"
+	if _changing_into != "":
+		return "Not while changing"
+	if _lacing != null:
+		return "Not while poisoning"
+	return ""
+
+
+## Springs on whoever is unaware nearby - `preferred`, if he is: the fight
+## starts here, and whoever had not noticed anything loses their first turn.
+func ambush(preferred = null) -> bool:
+	var guard = ambush_target(preferred)
+	if guard == null or ambush_refusal() != "":
+		return false
+	if scene.has_method("is_holding") and scene.is_holding():
+		return false
+	_caught_by(guard, true)
+	return true
 
 
 ## A captain, sure: the whole map on alarm, and every guard within earshot of
@@ -1725,8 +3540,10 @@ func pop_scale() -> float:
 
 ## The fight, as things stand: an encounter on the setup's battle terrain with
 ## the party and every guard on the tile they are standing on, and nobody
-## rearranged before it starts - where they were caught is the point.
-func build_fight() -> EncounterDefinition:
+## rearranged before it starts - where they were caught is the point. Each
+## guard fights with what is still in his pockets. `ambushed`: whoever had
+## not noticed anything is caught off guard.
+func build_fight(ambushed: bool = false) -> EncounterDefinition:
 	var fight := EncounterDefinition.new()
 	fight.display_name = setup.fight_name if setup != null else "Caught"
 	fight.terrain_scene = setup.battle_terrain if setup != null else null
@@ -1748,6 +3565,9 @@ func build_fight() -> EncounterDefinition:
 		taken[tile] = true
 		fighters.append(member.key)
 		spawns.append(_spawn(member.key, 0, tile, Campaign.party_level))
+	# Where those caught stand: whoever could hit one of them on his first turn
+	# is in the fight from the start.
+	var party_tiles: Array = spawns.map(func(spawn): return spawn.position)
 	# Whoever comes running, if this map says anybody does.
 	if setup != null and not setup.backup.is_empty():
 		var arrive = spawns[0].position if not spawns.is_empty() else Vector2i.ZERO
@@ -1770,15 +3590,21 @@ func build_fight() -> EncounterDefinition:
 	# nor does a ward.
 	var caught_at = spawns[0].position if not spawns.is_empty() else Vector2i.ZERO
 	var near = setup.joins_within_tiles if setup != null else 0.0
-	var per_round = setup.tiles_per_late_round if setup != null else 0.0
+	# The more on edge the map, the quicker the rest get there.
+	var per_round = (setup.tiles_per_late_round if setup != null else 0.0) * (1.0 + alert)
 	for guard in guards:
 		if not is_instance_valid(guard) or not CombatantDatabase.combatants.has(guard.combatant_key):
 			continue
-		if guard.knocked_out or guard.kind == Guard.Kind.WARD:
+		# Nobody knocked out fights, nor a ward, nor anybody who is nobody's
+		# guard - and somebody busy being sick is in no state to.
+		if guard.knocked_out or not guard.fights() or guard.mood == Guard.Mood.RETCHING:
 			continue
 		var arrives := 1
 		var gap = Vector2(tile_of(guard.global_position) - caught_at).length()
-		if near > 0.0 and gap > near and guard != spotted_by and not _called.has(guard):
+		# Near enough to hit somebody on his first turn, he is there from the
+		# start however far that is - nobody within a turn of the party waits.
+		if near > 0.0 and gap > near and guard != spotted_by and not _called.has(guard) \
+				and not threatens(guard, party_tiles):
 			if per_round <= 0.0:
 				continue
 			arrives = 1 + ceili((gap - near) / per_round)
@@ -1789,10 +3615,114 @@ func build_fight() -> EncounterDefinition:
 		# Who this is on the map, so the map knows who it lost - see snapshot().
 		spawn.set_meta("guard", _id_of(guard))
 		spawn.arrives_on_round = arrives
+		spawn.starting_items.assign(_pocket_for_fight(guard))
+		spawn.surprised = ambushed and arrives == 1 and _unaware(guard)
 		spawns.append(spawn)
+	_send_for_reinforcements(spawns, taken, caught_at)
 	fight.spawns = spawns
 	fight.fighters = fighters
 	return fight
+
+
+## Whether `guard` could hit somebody standing on one of `targets` on his first
+## turn of the fight: walk his Movement across the battle terrain - its walls in
+## the way, nobody else - and have something that reaches from there, a skill
+## he knows at his level or a bomb in his pockets, within its least and most
+## range and, past arm's length, with a clear line: the walls a shot in the
+## fight is stopped by.
+func threatens(guard: Guard, targets: Array) -> bool:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(guard.combatant_key)
+	if definition == null or targets.is_empty():
+		return false
+	var ranges = ranges_of(guard)
+	var from = tile_of(guard.global_position)
+	var steps_to := {from: 0}
+	var frontier := [from]
+	while not frontier.is_empty():
+		var tile: Vector2i = frontier.pop_front()
+		for target in targets:
+			var apart = absi(tile.x - target.x) + absi(tile.y - target.y)
+			for span in ranges:
+				if apart >= span[0] and apart <= span[1] and (apart <= 1 or sight.clear(tile, target)):
+					return true
+		if steps_to[tile] >= definition.movement:
+			continue
+		for step in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+			var next: Vector2i = tile + step
+			if steps_to.has(next) or not _standable(next):
+				continue
+			steps_to[next] = steps_to[tile] + 1
+			frontier.append(next)
+	return false
+
+
+## Every [least, most] range `guard` can hit somebody at in the fight: anything
+## that does damage he knows at his level, or has in his pockets - and a swing
+## at somebody beside him, whatever else.
+func ranges_of(guard: Guard) -> Array:
+	var ranges := [[1, 1]]
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(guard.combatant_key)
+	if definition == null:
+		return ranges
+	var keys: Array = []
+	keys.append_array(definition.skills)
+	keys.append_array(definition.secondary_skills)
+	keys.append_array(_pocket_for_fight(guard))
+	for key in keys:
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if skill == null or not skill.deals_damage or skill.targets_ally or skill.required_level > guard.level:
+			continue
+		ranges.append([maxi(skill.min_range, 1), maxi(skill.max_range, 1)])
+	return ranges
+
+
+## The furthest `guard` can hit somebody at in the fight.
+func reach_of(guard: Guard) -> int:
+	var reach := 1
+	for span in ranges_of(guard):
+		reach = maxi(reach, span[1])
+	return reach
+
+
+## What `guard` has to hand in the fight: whatever of his pockets is any use
+## in one - nothing, once they have been picked.
+func _pocket_for_fight(guard: Guard) -> Array:
+	var kept := []
+	if guard.picked:
+		return kept
+	for key in guard.pockets:
+		var item: ItemDefinition = ItemDatabase.item(key) if key != "" else null
+		if item != null and not item.stealth_only():
+			kept.append(key)
+	return kept
+
+
+## The barracks turning out, when the map was on edge before the catch: half
+## the setup's reinforcements on round 3 of a Wary map, all of them on round 2
+## of an Alarmed one, and nobody at all on a Calm one.
+func _send_for_reinforcements(spawns: Array, taken: Dictionary, caught_at: Vector2i):
+	if setup == null or setup.reinforcements.is_empty():
+		return
+	var level = level_of(alert)
+	if level == 0:
+		return
+	var coming: Array = setup.reinforcements if level == 2 \
+		else setup.reinforcements.slice(0, ceili(setup.reinforcements.size() / 2.0))
+	var arrive = caught_at
+	if setup.reinforcements_arrive_at != "":
+		var at = Actors.waypoint_position(setup.reinforcements_arrive_at)
+		if at != null:
+			arrive = tile_of(at)
+		else:
+			push_warning("Stealth reinforcements arrive at '%s', which this map has no waypoint called." % setup.reinforcements_arrive_at)
+	for key in coming:
+		if not CombatantDatabase.combatants.has(key):
+			continue
+		var tile = _free_tile_near(arrive, taken)
+		taken[tile] = true
+		var spawn = _spawn(key, 1, tile, Campaign.party_level)
+		spawn.arrives_on_round = 2 if level == 2 else 3
+		spawns.append(spawn)
 
 
 func _spawn(key: String, side: int, tile: Vector2i, level: int) -> SpawnDefinition:
@@ -1866,19 +3796,27 @@ func _battle_blocking():
 	return _battle_blocked
 
 
-## What the guards can see, as a tint over the ground.
+## What the guards can see, as a tint over the ground - coloured, while he is
+## in a disguise (or one is being looked at on the bar), by what it means to
+## him: see gaze_of.
 func _draw():
-	var seen := seen_tiles()
+	var by_gaze := seen_by_gaze()
 	var half := Vector2(Grid.HALF_TILE)
-	for tile in seen:
-		var centre = to_local(_tile_map.to_global(_tile_map.map_to_local(tile)))
-		draw_rect(Rect2(centre - half, half * 2.0), SEEN_FILL)
-		# An edge only where the watched ground stops, so the view reads as one
-		# shape rather than a grid of boxes.
-		for side in [[Vector2i.UP, Vector2(-1, -1), Vector2(1, -1)], [Vector2i.DOWN, Vector2(-1, 1), Vector2(1, 1)],
-				[Vector2i.LEFT, Vector2(-1, -1), Vector2(-1, 1)], [Vector2i.RIGHT, Vector2(1, -1), Vector2(1, 1)]]:
-			if not seen.has(tile + side[0]):
-				draw_line(centre + half * side[1], centre + half * side[2], SEEN_EDGE, 6.0)
+	for gaze in [Gaze.FOOLED, Gaze.ASKS, Gaze.SEES]:
+		var seen: Dictionary = by_gaze[gaze]
+		var fill: Color = GAZE_FILL[gaze]
+		var edge: Color = GAZE_EDGE[gaze]
+		for tile in seen:
+			var centre = to_local(_tile_map.to_global(_tile_map.map_to_local(tile)))
+			draw_rect(Rect2(centre - half, half * 2.0), fill)
+			# An edge only where this kind of watched ground stops, so each
+			# view reads as one shape rather than a grid of boxes.
+			for side in [[Vector2i.UP, Vector2(-1, -1), Vector2(1, -1)], [Vector2i.DOWN, Vector2(-1, 1), Vector2(1, 1)],
+					[Vector2i.LEFT, Vector2(-1, -1), Vector2(-1, 1)], [Vector2i.RIGHT, Vector2(1, -1), Vector2(1, 1)]]:
+				if not seen.has(tile + side[0]):
+					draw_line(centre + half * side[1], centre + half * side[2], edge, 6.0)
+	_draw_routes()
+	_draw_ghosts()
 	var now = Time.get_ticks_msec() / 1000.0
 	# Noises, as a ring spreading to how far they carry.
 	var fresh := []
@@ -1902,13 +3840,22 @@ func _draw():
 	if _aiming != "" and leader != null:
 		var target = tile_of(get_global_mouse_position())
 		var at = to_local(_tile_map.to_global(_tile_map.map_to_local(target)))
-		var ok = can_throw_to(target)
+		var thrown: ItemDefinition = ItemDatabase.item(_aiming)
+		# A dart is only any good with somebody there for it to find.
+		var ok = can_throw_to(target) and (thrown == null or not thrown.is_poison() or dart_target(target) != null)
 		var colour = Color(0.45, 0.95, 0.5, 0.9) if ok else Color(0.95, 0.35, 0.3, 0.9)
 		draw_line(to_local(leader.global_position), at, Color(colour, 0.5), 4.0)
 		draw_arc(at, Grid.tiles(0.3), 0.0, TAU, 24, colour, 8.0)
 		var item: ItemDefinition = ItemDatabase.item(_aiming)
 		if ok and item != null:
 			draw_arc(at, Grid.tiles(item.distraction_radius), 0.0, TAU, 64, Color(colour, 0.35), 4.0)
+		# Hidden, but where somebody has the spot in view: throw, and he is
+		# seen. A red ring at his feet says so before he does.
+		if not throw_watchers().is_empty():
+			var feet = to_local(leader.global_position) + Vector2(0.0, Grid.tiles(0.3))
+			draw_set_transform(feet, 0.0, Vector2(1.0, 0.45))
+			draw_arc(Vector2.ZERO, Grid.tiles(0.5 + 0.05 * sin(now * 8.0)), 0.0, TAU, 40, METER_SURE, 8.0)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# Whoever a click would be for: a ring pulsing at their feet.
 	var shown := prompt()
 	if not shown.is_empty() and (shown[0] is Vector2 or is_instance_valid(shown[0])) and shown[1].any(func(line): return line[2]):
@@ -1934,14 +3881,29 @@ class _Meters extends Node2D:
 		for guard in watch.guards:
 			if not is_instance_valid(guard):
 				continue
+			var head = to_local(guard.global_position) + Vector2(0, -Grid.tiles(1.05))
+			if guard.visible and watch.saying.has(guard):
+				var said: Array = watch.saying[guard]
+				_bubble(head + Vector2(0, -Grid.tiles(0.45)), said[0] if said[1] else "...")
+			if watch.is_reporting(guard):
+				# Off to tell somebody.
+				_mark(head, 1.0, "!", StealthWatch.METER_DOUBT, 1.0 + StealthWatch.PULSE_SIZE * sin(now * StealthWatch.PULSE_FAST))
+				continue
 			var sure: float = watch.suspicion.get(guard, 0.0)
 			var caught = watch.spotted_by == guard
 			if sure <= 0.0 and not caught:
+				if guard.visible and not guard.knocked_out:
+					_state(head, guard, now)
 				continue
 			var grow = watch.pop_scale() if caught \
 					else 1.0 + StealthWatch.PULSE_SIZE * sin(now * StealthWatch.pulse_rate(sure))
 			var colour = StealthWatch.METER_SURE if caught else StealthWatch.METER_DOUBT
 			_mark(to_local(guard.global_position) + Vector2(0, -Grid.tiles(1.05)), sure, "!" if caught else "?", colour, grow)
+		# What he is saying, when he is having a word with somebody.
+		if watch.leader_says != "":
+			var talker = watch.scene.get("party") if watch.scene != null else null
+			if talker != null and talker.leader != null:
+				_bubble(to_local(talker.leader.global_position) + Vector2(0, -Grid.tiles(1.5)), watch.leader_says)
 		# Cyrus, the moment a guard's view falls on him: a "!" on a dark disc,
 		# rising a little - solid for most of its moment, fading at the end.
 		if watch.startled():
@@ -1958,6 +3920,37 @@ class _Meters extends Node2D:
 				var width = font.get_string_size("!", HORIZONTAL_ALIGNMENT_CENTER, -1, size).x
 				draw_string(font, over + Vector2(-width / 2.0, size * 0.35), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, size,
 					Color(StealthWatch.METER_DOUBT, fade))
+
+	## What somebody not watching anybody is up to, when it shows: asleep,
+	## being sick, unwell.
+	func _state(over: Vector2, guard: Guard, now: float):
+		var font = ThemeDB.fallback_font
+		match guard.mood:
+			Guard.Mood.ASLEEP:
+				var rise = fmod(now * 0.6, 1.0)
+				draw_string(font, over + Vector2(10, -rise * 60.0), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, 52,
+					Color(0.8, 0.88, 1.0, 1.0 - rise))
+				draw_string(font, over + Vector2(40, -30 - rise * 60.0), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, 38,
+					Color(0.8, 0.88, 1.0, 0.8 - rise * 0.8))
+			Guard.Mood.RETCHING:
+				draw_string(font, over + Vector2(-16, 20), "~", HORIZONTAL_ALIGNMENT_LEFT, -1, 72, Color(0.55, 0.85, 0.35))
+			Guard.Mood.SICK:
+				draw_string(font, over + Vector2(-14, 20), "+", HORIZONTAL_ALIGNMENT_LEFT, -1, 64, Color(0.95, 0.6, 0.6))
+
+
+	## A speech bubble with `text` in it, its bottom at `over`.
+	func _bubble(over: Vector2, text: String):
+		var font = ThemeDB.fallback_font
+		var size := 40
+		var width := minf(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x, 1100.0)
+		var lines := ceili(font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x / 1100.0)
+		var box = Rect2(over - Vector2(width / 2.0 + 20.0, lines * size * 1.2 + 24.0), Vector2(width + 40.0, lines * size * 1.2 + 24.0))
+		draw_rect(box, Color(0.96, 0.94, 0.88, 0.92))
+		draw_colored_polygon(PackedVector2Array([over + Vector2(-14, 0), over + Vector2(14, 0), over + Vector2(0, 22)]),
+			Color(0.96, 0.94, 0.88, 0.92))
+		draw_multiline_string(font, box.position + Vector2(20.0, size + 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, width, size,
+			-1, Color(0.12, 0.1, 0.08))
+
 
 	## A meter: a ring filled to `sure` round a mark, `grow` times its size.
 	func _mark(over: Vector2, sure: float, mark: String, colour: Color, grow: float):
@@ -2084,3 +4077,72 @@ class _Prompt extends PanelContainer:
 		var world = anchor - Vector2(0.0, Grid.HALF_TILE.y + head + Grid.tiles(0.2))
 		var screen = get_viewport().get_canvas_transform() * world
 		position = (screen - Vector2(size.x / 2.0, size.y)).round()
+
+
+## The dark on a dark map: every tile no light reaches drawn over in shadow,
+## and the edges of the light fading into it. Under what the guards can see.
+class _Dark extends Node2D:
+	var watch: StealthWatch = null
+
+	func _draw():
+		if watch == null or not watch.is_dark() or watch.sight == null:
+			return
+		var region: Rect2i = watch.sight.region()
+		var half := Vector2(Grid.HALF_TILE)
+		for x in range(region.position.x, region.end.x):
+			for y in range(region.position.y, region.end.y):
+				var tile := Vector2i(x, y)
+				var shade = StealthWatch.DARK_ALPHA * (1.0 - watch.lit_at(tile))
+				if shade <= 0.01:
+					continue
+				var centre = to_local(watch._tile_map.to_global(watch._tile_map.map_to_local(tile)))
+				draw_rect(Rect2(centre - half, half * 2.0), Color(0.02, 0.03, 0.08, shade))
+
+
+## What there is to do besides getting out, under the bar - ticked off as it
+## is done, and struck when it can no longer be. Only on a map that has some.
+class _ObjectiveList extends PanelContainer:
+	var watch: StealthWatch = null
+	var _text: RichTextLabel = null
+	var _written := []
+
+	func _ready():
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var box := StyleBoxFlat.new()
+		box.bg_color = Color(0.06, 0.08, 0.11, 0.78)
+		box.set_corner_radius_all(6)
+		box.content_margin_left = 12
+		box.content_margin_right = 12
+		box.content_margin_top = 6
+		box.content_margin_bottom = 6
+		add_theme_stylebox_override("panel", box)
+		_text = RichTextLabel.new()
+		_text.bbcode_enabled = true
+		_text.fit_content = true
+		_text.scroll_active = false
+		_text.autowrap_mode = TextServer.AUTOWRAP_OFF
+		_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_text.add_theme_font_size_override("normal_font_size", 16)
+		add_child(_text)
+
+	func _process(_delta):
+		var listed: Array = watch.objectives() if watch != null else []
+		visible = not listed.is_empty()
+		if not visible:
+			return
+		if listed != _written:
+			_written = listed.duplicate(true)
+			var lines := PackedStringArray()
+			for objective in listed:
+				match objective[1]:
+					"done":
+						lines.append("[color=#9fc7a4]Done: %s[/color]" % objective[0])
+					"lost":
+						lines.append("[color=#8a919c][s]%s[/s][/color]" % objective[0])
+					_:
+						lines.append("[color=#e8e2d4]%s[/color]" % objective[0])
+			_text.text = "\n".join(lines)
+			reset_size()
+		var bar = watch._bar
+		if bar != null and is_instance_valid(bar):
+			position = Vector2(bar.position.x, bar.position.y + bar.size.y + 6.0)

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_qdw11"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_1tt36"]
-[ext_resource type="Texture2D" uid="uid://cxxnyh6u56wbl" path="res://imagese/skills/buff_skill.png" id="2_a82w3"]
+[ext_resource type="Texture2D" uid="uid://d16ftddn7kcd7" path="res://imagese/skills/quicken_skill.png" id="2_a82w3"]
 
 [sub_resource type="Resource" id="Resource_a82w3"]
 script = ExtResource("1_qdw11")

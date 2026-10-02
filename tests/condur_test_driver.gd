@@ -48,8 +48,8 @@ func run_test():
 	combat.finish_deployment()
 	await get_tree().process_frame
 
-	# Somebody who is NOT the one currently acting, so the "docked by one for
-	# whoever is mid-turn" rule doesn't muddy the numbers being read here.
+	# Somebody who is NOT the one currently acting, so the turn they are in the
+	# middle of doesn't muddy the numbers being read here.
 	var acting = combat.get_current_combatant()
 	var target = null
 	for comb in combat.combatants:
@@ -68,7 +68,7 @@ func run_test():
 
 	target.status_effects.clear()
 	combat.apply_effect(acting, target, plain, null, false)
-	ok(stored_turns(target) == 3, "so it lands the condition's own 3", "%d" % stored_turns(target))
+	ok(stored_turns(target) == 4, "so it lands the condition's own 3, and the turn after", "%d" % stored_turns(target))
 	log_line("")
 
 	log_line("======== a skill can say otherwise ========")
@@ -78,7 +78,7 @@ func run_test():
 	brief.condition_duration = 1
 	target.status_effects.clear()
 	combat.apply_effect(acting, target, brief, null, false)
-	ok(stored_turns(target) == 1, "a 1-turn Blind lands as 1", "%d" % stored_turns(target))
+	ok(stored_turns(target) == 2, "a 1-turn Blind lands as 1 and the turn after", "%d" % stored_turns(target))
 
 	var punishing := EffectDefinition.new()
 	punishing.type = EffectDefinition.EffectType.CONDITION
@@ -86,7 +86,7 @@ func run_test():
 	punishing.condition_duration = 8
 	target.status_effects.clear()
 	combat.apply_effect(acting, target, punishing, null, false)
-	ok(stored_turns(target) == 8, "an 8-turn Blind lands as 8", "%d" % stored_turns(target))
+	ok(stored_turns(target) == 9, "an 8-turn Blind lands as 8 and the turn after", "%d" % stored_turns(target))
 
 	ok(blind.duration == 3, "and the condition resource is untouched by either", "%d" % blind.duration)
 	log_line("")
@@ -100,25 +100,29 @@ func run_test():
 		effect.condition_duration = 5
 		target.status_effects.clear()
 		combat.apply_effect(acting, target, effect, null, false)
-		ok(stored_turns(target) == 5, "%s overridden to 5" % name, "own duration is %d" % definition.duration)
+		ok(stored_turns(target) == 6, "%s overridden to 5, and the turn after" % name, "own duration is %d" % definition.duration)
 	log_line("")
 
-	log_line("======== landing on whoever is acting still costs a turn ========")
-	# The existing rule: a condition put on the combatant part-way through their
-	# own turn shouldn't get that turn for free.
+	log_line("======== landing on whoever is acting, this turn is the first ========")
+	# Durations come off at the END of the bearer's own turns, so a condition
+	# put on the combatant part-way through their turn is stored whole, and the
+	# rest of that turn spends the first of it.
 	acting.status_effects.clear()
 	combat.apply_effect(acting, acting, plain, null, false)
-	ok(stored_turns(acting) == 2, "the condition's 3 becomes 2 on the acting combatant", "%d" % stored_turns(acting))
+	ok(stored_turns(acting) == 4, "the condition's 3 lands as 3 and the turn after on the acting combatant too", "%d" % stored_turns(acting))
+	combat.end_of_turn_effects(acting)
+	ok(stored_turns(acting) == 3, "and the end of this turn takes the first off", "%d" % stored_turns(acting))
 	acting.status_effects.clear()
 	combat.apply_effect(acting, acting, punishing, null, false)
-	ok(stored_turns(acting) == 7, "and an overridden 8 becomes 7", "%d" % stored_turns(acting))
+	ok(stored_turns(acting) == 9, "an overridden 8 lands as 9", "%d" % stored_turns(acting))
+	acting.status_effects.clear()
 	log_line("")
 
 	log_line("======== the tooltip says what the skill actually lands ========")
 	var ui = game.get_node("CanvasLayer/UI")
-	ok(ui.describe_effect(plain).contains("3 turn"), "no override reads as the condition's own",
+	ok(ui.describe_effect(plain).contains("4 turn"), "no override reads as the condition's own, in the turns it really lasts",
 		ui.describe_effect(plain))
-	ok(ui.describe_effect(brief).contains("1 turn"), "an override reads as the override",
+	ok(ui.describe_effect(brief).contains("2 turn"), "an override reads as the override, likewise",
 		ui.describe_effect(brief))
 	log_line("")
 

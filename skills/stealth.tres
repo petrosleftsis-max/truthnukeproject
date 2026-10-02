@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://byq7wlj15dbsw"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_stealth"]
-[ext_resource type="Texture2D" uid="uid://dksecl8ou1gop" path="res://imagese/skills/stealth_skill.png" id="2_stealth"]
+[ext_resource type="Texture2D" uid="uid://dxx5cdd44egi7" path="res://imagese/skills/cyrusstealth_skill.png" id="2_stealth"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_stealth"]
 
 [sub_resource type="Resource" id="Effect_stealth"]

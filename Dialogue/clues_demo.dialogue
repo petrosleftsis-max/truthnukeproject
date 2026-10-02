@@ -1,0 +1,27 @@
+~ captain
+if Campaign.flag("demo_vell_confessed")
+	Captain Vell: You have what you came for. Now get out of my office.
+	=> END
+Captain Vell: The quartermaster's office is closed. What do you want?
+- Ask about the lamp oil
+	Captain Vell: Thirty crates came in this month. Same as every month.
+	do Campaign.learn_clue("captain_claim")
+	=> captain
+- Show him something
+	do Journal.present("What do you show Captain Vell?")
+	if Journal.presented == "skimming" or Journal.presented == "torn_letter"
+		Captain Vell: ...Where did you get that?
+		Captain Vell: Fine. Ten crates. They go out by the ditch, and they buy a great deal of silence. Keep yours, and I'll keep mine.
+		do Campaign.set_flag("demo_vell_confessed")
+	elif Journal.presented == "sealed_requisition"
+		Captain Vell: That's my seal. That's - you can't prove I put it there.
+		Cyrus Rowe: I don't have to. Everyone in this camp knows your seal.
+		Captain Vell: ...Ten crates. By the ditch. Now put that away.
+		do Campaign.set_flag("demo_vell_confessed")
+	elif Journal.presented == ""
+		Captain Vell: Well? I haven't got all day.
+	else
+		Captain Vell: And what is that supposed to prove?
+	=> captain
+- Leave
+	=> END

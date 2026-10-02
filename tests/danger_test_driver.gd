@@ -235,6 +235,112 @@ func run_test():
 		combat.set_hidden(foe, false)
 	log_line("")
 
+	log_line("======== what they are suffering ========")
+	# One enemy in sight, so whatever is shown is theirs alone: the one with the
+	# longest reach, which is the one a Blind takes the most from.
+	var sufferer: Dictionary = foes[0]
+	for foe in foes:
+		if combat.threat_reach(foe) > combat.threat_reach(sufferer):
+			sufferer = foe
+		combat.set_hidden(foe, true)
+	combat.set_hidden(sufferer, false)
+	var reach_seeing = combat.threat_reach(sufferer)
+	var seeing: Dictionary = combat.threat_map().threat
+	log_line("  NOTE  %s strikes %d tiles and threatens %d seeing" % [sufferer.name, reach_seeing, seeing.size()])
+	sufferer.status_effects.append({"stat": "condition", "condition": load("res://conditions/blind.tres"),
+		"duration": 1, "source_name": "Test"})
+	var blinded: Dictionary = combat.threat_map().threat
+	var reach_blind = combat.threat_reach(sufferer)
+	ok(reach_blind < reach_seeing, "Blind shortens how far they could strike", "%d from %d" % [reach_blind, reach_seeing])
+	var past_blind := []
+	for tile in blinded:
+		if combat.get_position_distance(sufferer.position, tile) > 2 * combat.movement_budget_of(sufferer) + reach_blind:
+			past_blind.append(tile)
+	ok(blinded.size() < seeing.size() and past_blind.is_empty(), "so the danger drawn round them shrinks to a walk and a blind swing",
+		"%d tiles, %d past it" % [blinded.size(), past_blind.size()])
+	combat.start_of_turn_effects(sufferer)
+	ok(combat.threat_map().threat.size() == blinded.size(), "still blind through the turn it lasts - nothing wears off as a turn opens")
+	combat.end_of_turn_effects(sufferer)
+	ok(combat.conditions_of(sufferer).is_empty(), "and off them the moment that turn ends")
+	ok(combat.threat_map().threat.size() == seeing.size(), "so the danger is back as it was before their next turn comes",
+		"%d tiles" % combat.threat_map().threat.size())
+
+	sufferer.status_effects.append({"stat": "condition", "condition": load("res://conditions/stunned.tres"),
+		"duration": 1, "source_name": "Test"})
+	ok(combat.threat_map().threat.is_empty(), "a stunned enemy threatens nothing on the turn they will lose",
+		"%d tiles" % combat.threat_map().threat.size())
+	combat.start_of_turn_effects(sufferer)
+	combat.end_of_turn_effects(sufferer)
+	ok(combat.threat_map().threat.size() == seeing.size(), "and everything again once that turn is spent")
+
+	# Set to go as their turn starts, and run down to nothing: on them now, and
+	# gone before they act.
+	sufferer.status_effects.append({"stat": "condition", "condition": load("res://conditions/blind.tres"),
+		"duration": 0, "ends_at_start": true, "source_name": "Test"})
+	ok(combat.threat_map().threat.size() == seeing.size(), "a Blind that lifts as their turn starts does not keep them close",
+		"%d tiles" % combat.threat_map().threat.size())
+	ok(combat.conditions_of(sufferer).size() == 1 and combat.threat_reach(sufferer) < reach_seeing,
+		"though it is on them until then")
+	sufferer.status_effects.pop_back()
+	sufferer.status_effects.append({"stat": "condition", "condition": load("res://conditions/stunned.tres"),
+		"duration": 0, "ends_at_start": true, "source_name": "Test"})
+	ok(combat.threat_map().threat.size() == seeing.size(), "nor does a Stun that lifts as it starts cost them the turn")
+	sufferer.status_effects.pop_back()
+
+	# Fear, on whoever reaches least: a swing, not a spell that carries twenty
+	# tiles whichever way they step.
+	combat.set_hidden(sufferer, true)
+	var frightened: Dictionary = {}
+	for foe in foes:
+		var reach = combat.threat_reach(foe)
+		if reach >= 1 and (frightened.is_empty() or reach < combat.threat_reach(frightened)):
+			frightened = foe
+	combat.set_hidden(frightened, false)
+	var bold: Dictionary = combat.threat_map().threat
+	frightened.status_effects.append({"stat": "condition", "condition": load("res://conditions/fear.tres"),
+		"duration": 1, "source_name": "Test"})
+	var afraid: Dictionary = combat.threat_map().threat
+	var allowed := [frightened.position]
+	for tile in controller.get_reachable_tiles(frightened.position, frightened.movement_class, combat.movement_budget_of(frightened)):
+		if combat.fear_allows(frightened, tile):
+			allowed.append(tile)
+	var reach_afraid = combat.threat_reach(frightened)
+	var from_nowhere := []
+	var not_before := []
+	for tile in afraid:
+		if not bold.has(tile):
+			not_before.append(tile)
+		var closest = 1 << 30
+		for from in allowed:
+			closest = mini(closest, combat.get_position_distance(from, tile))
+		if closest > reach_afraid:
+			from_nowhere.append(tile)
+	log_line("  NOTE  %s frightened: reach %d, may stop on %d tiles" % [frightened.name, reach_afraid, allowed.size()])
+	ok(afraid.size() < bold.size() and not_before.is_empty(), "a frightened enemy threatens less - only what it could hit without closing in",
+		"%d tiles from %d" % [afraid.size(), bold.size()])
+	ok(from_nowhere.is_empty(), "every tile marked is in reach of somewhere Fear lets them stop", "%s" % [from_nowhere.slice(0, 5)])
+	frightened.status_effects.pop_back()
+
+	# A Run: doubling where they could walk while it holds into their turn, and
+	# nothing once it goes as that turn starts.
+	frightened.status_effects.append({"stat": "movement", "op": "multiply", "amount": 2.0,
+		"duration": 1, "source_name": "Test"})
+	var hasted: int = combat.threat_map().threat.size()
+	ok(hasted > bold.size(), "a Run still on them for their turn widens it", "%d tiles from %d" % [hasted, bold.size()])
+	frightened.status_effects[-1].duration = 0
+	frightened.status_effects[-1]["ends_at_start"] = true
+	var effects_before: int = frightened.status_effects.size()
+	var walks_before: int = combat.movement_budget_of(frightened)
+	var left_out: int = combat.threat_map().threat.size()
+	ok(left_out == bold.size(), "one that goes as their turn starts does not", "%d tiles" % left_out)
+	ok(frightened.status_effects.size() == effects_before and combat.movement_budget_of(frightened) == walks_before,
+		"and it is still on them afterwards - left out of the reckoning, not taken off",
+		"%d effects, walks %d" % [frightened.status_effects.size(), combat.movement_budget_of(frightened)])
+	frightened.status_effects.pop_back()
+	for foe in foes:
+		combat.set_hidden(foe, false)
+	log_line("")
+
 	log_line("======== reactions ========")
 	for foe in foes:
 		foe.reaction_used = true
@@ -247,6 +353,12 @@ func run_test():
 	var rapier: SkillDefinition = SkillDatabase.skills["rapier"]
 	var reaction: Dictionary = combat.threat_map().reaction
 	ok(not reaction.is_empty(), "one ready to react marks the tiles round them", "%d" % reaction.size())
+	# Reactions happen now, on the players' turn - so a Poisoned that lifts as
+	# the guard's own turn starts still stops them.
+	guard.status_effects.append({"stat": "condition", "condition": load("res://conditions/poisoned.tres"),
+		"duration": 0, "ends_at_start": true, "source_name": "Test"})
+	ok(combat.threat_map().reaction.is_empty(), "Poisoned until their turn starts still keeps them from reacting now")
+	guard.status_effects.pop_back()
 	var beside = guard.position + Vector2i.RIGHT
 	if not controller.is_in_bounds(beside):
 		beside = guard.position + Vector2i.LEFT

@@ -21,6 +21,8 @@ const CARD_LIT := Color("24344a")   ## Under the cursor or focus.
 const CARD_EDGE := Color("2b3947")
 
 const BATTLE_SELECT := "res://scenes/level_select.tscn"
+## The point-and-click demo: clues, the journal, locks, a torn letter.
+const CLUES_DEMO := "res://scenes/try_pictures_demo.tscn"
 const EXPLORATION := "res://scenes/exploration.tscn"
 const BATTLE := "res://scenes/game.tscn"
 const STORY := "res://scenes/story.tscn"
@@ -81,6 +83,21 @@ const STEALTH_STAGES := [
 		"name": "Disguise",
 		"map": "res://stages/stealth_4.tscn",
 		"description": "Find a priest's robes. The priest at the checkpoint will want a word, the hall guard will not look twice - and the door guard sees through any disguise.",
+	},
+	{
+		"name": "Lights Out",
+		"map": "res://stages/stealth_5.tscn",
+		"description": "A dark archive: put the lamps out, creep (Ctrl) over gravel and glass, lift the key from a sleeping porter and read who walks where - then steal the ledger. Guards notice a lamp gone out or a door left open.",
+	},
+	{
+		"name": "Supper Time",
+		"map": "res://stages/stealth_6.tscn",
+		"description": "Poison the aide's supper or dart him, plant a letter in the empty study, and overhear the guards in the hall - who check on each other. The cook runs for help if she sees you.",
+	},
+	{
+		"name": "The Checkpoint",
+		"map": "res://stages/stealth_7.tscn",
+		"description": "The camp is on edge. In priest's robes, a word (E beside one) calms the guards they fool - and the view on the ground shows who they fool. Lift the quartermaster's bombs, then ambush the gate (F) or slip round by the ditch.",
 	},
 ]
 ## The panel a stage's way out comes back to - see StealthGoal.ends_at_menu.
@@ -160,6 +177,7 @@ func _build_root() -> Control:
 	buttons.add_child(_menu_button("Play", func(): _show("play")))
 	buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
 	buttons.add_child(_menu_button("Stealth Stages", func(): _show(STEALTH_PANEL)))
+	buttons.add_child(_menu_button("Clues Demo", func(): SceneTransition.change_scene(CLUES_DEMO)))
 	buttons.add_child(_menu_button("Options", func(): _show("options")))
 	buttons.add_child(_menu_button("Glossary", func(): _open_glossary()))
 	buttons.add_child(_menu_button("Exit", _quit))
@@ -220,7 +238,15 @@ func _build_stealth() -> Control:
 		about.add_theme_color_override("font_color", MUTED)
 		row.add_child(about)
 		column.add_child(row)
-	holder.add_child(column)
+	# Scrolled rather than stretched, so the list can grow and Back stays on
+	# the screen. The keyboard's place is kept in view as it moves.
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(644, 430)
+	scroll.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	scroll.follow_focus = true
+	scroll.add_child(column)
+	holder.add_child(scroll)
 	holder.add_child(_back_button())
 	return holder
 

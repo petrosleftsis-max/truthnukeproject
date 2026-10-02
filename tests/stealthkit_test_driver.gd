@@ -331,7 +331,7 @@ func throwing():
 	press(bar, KEY_T)
 	ok(watch.is_aiming(), "T starts aiming")
 	await settle()
-	ok(bar._throw.text == "Aiming - click", "the bar says to click where", bar._throw.text)
+	ok(bar._throw.text == "Aiming Pebble - click", "the bar says to click where", bar._throw.text)
 	watch.cancel_throw()
 	ok(not watch.is_aiming(), "and it can be called off")
 	press(bar, KEY_T)
@@ -517,8 +517,8 @@ func takedowns():
 	ok(watch.takedown_target() == sentry and watch.pocket_target() == sentry, "so he can be taken down, or robbed")
 	ok(bar._takedown.visible and bar._pocket.visible, "and the bar offers both")
 	var shown = watch.prompt()
-	ok(not shown.is_empty() and shown[0] == sentry and shown[1] == [["Left click", "Take down", true], ["Right click", "Pick pocket", true]],
-		"a prompt over him says which click does which", "%s" % [shown[1] if not shown.is_empty() else "none"])
+	ok(not shown.is_empty() and shown[0] == sentry and shown[1] == [["Left click", "Take down", true], ["Right click", "Pick pocket", true], ["F", "Ambush", true]],
+		"a prompt over him says which click does which - and that F springs a fight on him", "%s" % [shown[1] if not shown.is_empty() else "none"])
 	await settle()
 	var prompt: Control = watch._prompt
 	var his_head = watch.get_viewport().get_canvas_transform() * sentry.global_position
@@ -533,9 +533,9 @@ func takedowns():
 	ok(not shown.is_empty() and shown[1][0] == ["Left click", "Can't be taken down", false],
 		"and the prompt says so, rather than saying nothing", "%s" % [shown[1] if not shown.is_empty() else "none"])
 	sentry.can_be_taken_down = true
-	press(bar, KEY_F)
 	press(bar, KEY_G)
-	ok(not sentry.knocked_out and not sentry.picked, "F and G are nothing now - it is the mouse")
+	ok(not sentry.knocked_out and not sentry.picked, "G is nothing now - it is the mouse")
+	ok(watch.ambush_target() == sentry, "(and F is an ambush now, not a takedown)")
 	var had = Campaign.count_of(m.leader, "pebble")
 	click(watch, sentry.global_position, MOUSE_BUTTON_RIGHT)
 	ok(Campaign.count_of(m.leader, "pebble") == had + 1 and not sentry.knocked_out, "a right click on him lifts what is in his pockets")
@@ -564,10 +564,17 @@ func takedowns():
 	finder.facing_degrees = rad_to_deg(Vector2(post - finder_tile).angle())
 	var found = await until(func(): return not watch.body_unfound(sentry), 1.0)
 	ok(found, "a guard whose view falls on him finds him")
-	ok(watch.alert > 0.95 and watch.alert_level() == "Alarmed", "and the alarm is up", "%.2f" % watch.alert)
-	ok(finder.mood == Guard.Mood.INVESTIGATING and finder.last_seen.distance_to(sentry.global_position) < 1.0, "and goes to see")
+	ok(watch.alert_level() == "Wary" and watch.alert_floor == StealthWatch.ALERT_WARY,
+		"and the alert goes a level up, pinned there", "%.2f, floor %.2f" % [watch.alert, watch.alert_floor])
+	ok(finder.mood == Guard.Mood.WAKING and finder.errand_at().distance_to(sentry.global_position) < 1.0, "and goes to bring him round")
 	await settle()
-	ok(bar._alert.text == "Alarmed", "the bar says so", bar._alert.text)
+	ok(bar._alert.text == "Wary", "the bar says so", bar._alert.text)
+	ok(sentry.knocked_out, "down until then")
+	var woken = await until(func(): return not sentry.knocked_out, 14.0)
+	ok(woken and watch.body_unfound(sentry) == false and not watch._bodies.has(sentry), "and brought round, he is up again")
+	ok(sentry.mood == Guard.Mood.RETURNING or sentry.mood == Guard.Mood.PATROLLING, "and back to his post",
+		"%s" % Guard.Mood.keys()[sentry.mood])
+	ok(watch.alert_level() == "Wary", "the alert where the find put it", "%.2f" % watch.alert)
 	await close_map(m)
 
 
@@ -700,7 +707,11 @@ func bodies():
 	hunter.mood = Guard.Mood.INVESTIGATING
 	watch._refresh_seen(hunter)
 	watch._look_for_bodies(hunter)
-	ok(watch.alert > 0.95, "one hunting for somebody seen near it looks in, finds him, and the alarm is up", "%.2f" % watch.alert)
+	ok(watch.alert_level() == "Wary" and watch.alert_floor == StealthWatch.ALERT_WARY,
+		"one hunting for somebody seen near it looks in and finds him: the alert a level up, and pinned there",
+		"%.2f, floor %.2f" % [watch.alert, watch.alert_floor])
+	ok(hunter.mood == Guard.Mood.WAKING and hunter.errand_at() == sentry.global_position,
+		"and he goes to bring him round", "%s" % Guard.Mood.keys()[hunter.mood])
 	await close_map(m)
 
 
@@ -774,7 +785,7 @@ func back_after_a_fight():
 	ok(sentry_back.knocked_out and sentry_back.picked and watch.is_stashed(sentry_back) and not back.map.get_node("Spot").is_free(),
 		"the one stuffed into the hiding spot is still in it, and still robbed")
 	ok(watch.worn_by(Campaign.party_members()[0].key) == "priest_robes", "still in the robes")
-	ok(absf(watch.alert - state.alert) < 0.01 and not watch.never_noticed(), "the map as on edge as it was (less a few frames of fading), and no ghost",
+	ok(absf(watch.alert - state.alert) < 0.01 and not watch.never_noticed(), "the map as on edge as it was, and no ghost",
 		"%.2f" % watch.alert)
 	ok(Campaign.count_of(Campaign.party_members()[0].key, "pebble") == pebbles, "and his bag as it was")
 	ok(watch._bar != null and watch._bar.is_inside_tree(), "a stealth map still, bar and all")
@@ -790,7 +801,7 @@ func stage_for_the_fight(m: Dictionary, post: Vector2i) -> Dictionary:
 	var tiles := {}
 	tiles.fighter = find_tile(m, func(t): return gap(t, post) >= StealthWatch.TAKEDOWN_NOISE_TILES + 1.0 and gap(t, post) <= 8.0 and standable(m, t + Vector2i.RIGHT))
 	tiles.caught = tiles.fighter + Vector2i.RIGHT
-	tiles.faraway = find_tile(m, func(t): return gap(t, tiles.caught) > 6.0 and gap(t, post) > StealthWatch.TAKEDOWN_NOISE_TILES + 1.0)
+	tiles.faraway = find_tile(m, func(t): return gap(t, tiles.caught) > 8.5 and gap(t, post) > StealthWatch.TAKEDOWN_NOISE_TILES + 1.0)
 	# Lying where neither of the two left standing could see him.
 	tiles.napper = find_tile(m, func(t): return gap(t, post) > StealthWatch.TAKEDOWN_NOISE_TILES + 1.0 and t != tiles.caught and not m.sight.clear(tiles.fighter, t) and not m.sight.clear(tiles.faraway, t))
 	tiles.spot = find_tile(m, func(t): return gap(t, post) >= 2.0 and gap(t, post) <= 5.0 and t.x < post.x)
@@ -906,7 +917,6 @@ func alert_effects():
 	var post: Vector2i = m.post
 	var guard = add_guard(m, "Edgy", post, 0.0)
 	var watch = await watch_it(m, out_of_sight_of(m, row(post)))
-	m.setup.alert_fades_per_second = 0.0
 
 	log_line("======== the map's alert ========")
 	ok(watch.alert_level() == "Calm" and guard.half_cone() == Guard.HALF_CONE and guard.alert_pace == 0.0, "calm, to begin with")
@@ -925,10 +935,9 @@ func alert_effects():
 	var alarmed = await fill_over(m, watch, guard, post + Vector2i.RIGHT * 3, 1.0)
 	ok(alarmed > calm * 1.3, "and grows sure quicker - up to %d%% at the top" % roundi(StealthWatch.ALERT_FILL * 100.0),
 		"%.2f alarmed, %.2f calm, in a fifth of a second" % [alarmed, calm])
-	m.setup.alert_fades_per_second = 1.0
 	watch.alert = 1.0
 	await wait(0.3)
-	ok(watch.alert < 1.0 and watch.alert > 0.3, "and it fades by itself", "%.2f" % watch.alert)
+	ok(watch.alert == 1.0, "and it never eases by itself", "%.2f" % watch.alert)
 	await close_map(m)
 
 
@@ -1056,7 +1065,8 @@ func who_joins():
 	rounds = arrivals(Campaign.current_encounter)
 	ok(watch.alert == 1.0, "a captain sure of him puts the whole map on alarm")
 	ok(rounds.get("Near") == 1, "everybody within his shout is in from the first round", "round %s" % rounds.get("Near"))
-	ok(rounds.get("Far") == 1 + ceili((far_gap - 3.0) / 4.0), "anybody beyond it no sooner than before", "round %s" % rounds.get("Far"))
+	ok(rounds.get("Far") == 1 + ceili((far_gap - 3.0) / (4.0 * 2.0)),
+		"anybody beyond it on his way as late arrivals come to an alarmed map - twice as quick", "round %s" % rounds.get("Far"))
 	await close_map(m)
 
 

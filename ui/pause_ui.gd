@@ -44,6 +44,22 @@ var _speed: BattleSpeedPicker = null
 ## How the game sits on the screen - the same picker as the main menu's
 ## Resolution.
 var _window_mode: WindowModePicker = null
+## Restart Stage, and every Pause button whether shown or not.
+var _restart: Button = null
+var _all_pause_buttons: Array = []
+
+
+## Restart Stage shown only while there is a stealth map to start over, and
+## the keyboard's loop round whatever is shown.
+func _offer_restart():
+	_restart.visible = Campaign.can_restart_stealth()
+	_pause_buttons = _all_pause_buttons.filter(func(button): return button.visible)
+	FocusLoop.link(_pause_buttons)
+
+
+func _on_restart_pressed():
+	_close()
+	Campaign.restart_stealth()
 
 ## The same book the main menu opens, built the same way and for the same
 ## reason: one glossary, read from wherever you happen to be. It wants far more
@@ -66,6 +82,17 @@ func _ready():
 	$PausePanel/VBox/OptionsButton.pressed.connect(_on_options_pressed)
 	$PausePanel/VBox/LevelSelectButton.pressed.connect(_on_level_select_pressed)
 	$PausePanel/VBox/MainMenuButton.pressed.connect(_on_main_menu_pressed)
+	# Start a stealth map over, from the map or the fight a catch started. Only
+	# shown while there is one to start over - see _offer_restart.
+	_restart = Button.new()
+	_restart.name = "RestartButton"
+	_restart.text = "Restart Stage"
+	_restart.pressed.connect(_on_restart_pressed)
+	$PausePanel/VBox.add_child(_restart)
+	$PausePanel/VBox.move_child(_restart, $PausePanel/VBox/OptionsButton.get_index() + 1)
+	_all_pause_buttons = _pause_buttons.duplicate()
+	_all_pause_buttons.insert(_all_pause_buttons.find($PausePanel/VBox/OptionsButton) + 1, _restart)
+	_offer_restart()
 	$OptionsPanel/VBox/Res1280Button.pressed.connect(func(): set_resolution(1280, 720))
 	$OptionsPanel/VBox/Res1920Button.pressed.connect(func(): set_resolution(1920, 1080))
 	$OptionsPanel/VBox/Res2560Button.pressed.connect(func(): set_resolution(2560, 1440))
@@ -98,6 +125,9 @@ var _keyboard: FocusOnDemand
 ## landed beside the panel rather than on it reached the map underneath and
 ## moved somebody, and whatever was already in flight carried on regardless.
 func _show_panel(panel: Control, buttons: Array):
+	if panel == $PausePanel:
+		_offer_restart()
+		buttons = _pause_buttons
 	if not $PausePanel.visible and not $OptionsPanel.visible and not _glossary_showing():
 		# Who had the keyboard before this opened. A dialogue balloon holds it
 		# while a conversation is on, and Enter stops advancing the conversation

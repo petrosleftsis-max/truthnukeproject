@@ -1128,13 +1128,7 @@ func move_player():
 ## every step of the route, so a path that curves in and back out is allowed;
 ## that's a deliberate simplification rather than an oversight.
 func can_move_to(tile: Vector2i) -> bool:
-	var comb = combat.get_current_combatant()
-	if not combat.has_restriction(comb, "prevents_approach"):
-		return true
-	var nearest = combat.find_nearest_enemy_of(comb)
-	if nearest.is_empty():
-		return true
-	return combat.get_position_distance(tile, nearest.position) >= combat.get_position_distance(comb.position, nearest.position)
+	return combat.fear_allows(combat.get_current_combatant(), tile)
 
 
 ## Whoever is mid-walk, so a step that lands after their turn has passed is

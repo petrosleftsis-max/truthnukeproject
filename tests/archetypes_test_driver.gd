@@ -552,7 +552,10 @@ func focus():
 	var strikers = all_of(combat, "barbarian", 1)
 	ok(strikers.size() == 2, "two Barbarians", "%d" % strikers.size())
 	if strikers.size() == 2:
+		# Max raised with it: the turn handed over in enemy_turn ends, and an
+		# ending turn holds health to its maximum.
 		for comb in [cyrus, enfina]:
+			comb.max_hp = 999
 			comb.hp = 999
 		await enemy_turn(combat, strikers[0])
 		var first = cyrus if cyrus.hp < 999 else (enfina if enfina.hp < 999 else {})

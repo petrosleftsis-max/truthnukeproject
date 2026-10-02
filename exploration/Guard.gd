@@ -21,6 +21,7 @@ enum Kind {
 	DOG,       ## No cone: smells anybody within Smell Tiles, walls or not, and no disguise fools a nose.
 	WARD,      ## A statue or a charm: turns in place for ever, sees through every disguise, never moves, never fights.
 	CAPTAIN,   ## A watchman whose shout, once sure, brings every guard within Shout Tiles into the fight.
+	CIVILIAN,  ## Nobody's guard, and never in a fight. Sure of somebody - or seeing a takedown, a body, a body dragged - they run to the nearest guard and tell them where.
 }
 @export var kind: Kind = Kind.WATCHMAN : set = _set_kind
 ## A dog's nose, in tiles.
@@ -36,6 +37,10 @@ enum Kind {
 @export_range(-180, 180) var facing_degrees: float = 0.0 : set = _set_facing_degrees
 ## Whether they sweep their gaze from side to side while standing still.
 @export var looks_around: bool = true
+## Asleep at their post: they see nothing, and wake to a noise near enough to
+## hear - and go to see what it was. Their pockets can be picked and they can
+## be taken down from any side.
+@export var asleep: bool = false
 
 ## Which disguises they see through. Stored by number, so a new one goes on
 ## the end.
@@ -60,6 +65,10 @@ enum Recognises {
 ## How fast they walk, in tiles a second. Slower than the party, so a patrol can
 ## be followed.
 @export var walk_speed_tiles: float = 1.6
+## Their round, found out: once this flag is set - a duty roster read, a
+## pocket picked, a conversation overheard - their patrol is drawn while
+## listening (Q), or with the pointer on them. Empty: nobody ever learns it.
+@export var route_known_flag: String = ""
 
 @export_group("Taken down, and robbed")
 ## Whether sneaking up behind them and left clicking knocks them out. Off for
@@ -83,6 +92,12 @@ enum Recognises {
 ## The flag the conversation sets when the answers were good enough. Set, they
 ## wave him on; not set when it ends, they are sure.
 @export var passed_flag: String = ""
+## A conversation E beside them plays, in a disguise they take at face value,
+## instead of the few words that settle the map a level - once. Whatever it
+## does is up to it: `do Campaign.settle_alert()` settles the map. Empty: the
+## few words.
+@export var small_talk: Resource
+@export var small_talk_title: String = "start"
 
 ## How quickly they turn to face where they are going, in radians a second.
 const TURN_SPEED := 4.0
@@ -107,6 +122,14 @@ enum Mood {
 	SEARCHING,      ## Looking about the spot.
 	RETURNING,      ## Back to their beat.
 	LISTENING,      ## Heard something nearby: stopped, turned to it, for a moment.
+	CHATTING,       ## Off to talk with somebody, or talking - their mind on it, and their view narrower.
+	EATING,         ## Off to eat or drink what was left out for them, or at it.
+	RETCHING,       ## Poisoned with an emetic: off to be sick, and being sick. Sees nothing.
+	SICK,           ## Poisoned with a disease: too unwell to move, seeing only a little.
+	TENDING,        ## Seeing to somebody sick, their view as narrow as the patient's.
+	REPORTING,      ## Nobody's guard, running to a guard with what they saw.
+	ASLEEP,         ## Asleep at their post. Sees nothing; a noise wakes them.
+	WAKING,         ## Off to bring round somebody knocked out, or bringing them round.
 }
 var mood: Mood = Mood.PATROLLING
 ## Knocked out: lying where they fell, watching nothing, fighting nobody -
@@ -118,6 +141,9 @@ var picked := false
 ## the answers fooled them for good.
 var questioned := false
 var fooled := false
+## Whether a disguised party has already had a word with them to settle the
+## map (see StealthWatch.reassure) - once each.
+var reassured := false
 ## Whether what they are going to look into is somebody they saw - rather
 ## than a noise or a body - so they look behind the barrels too (see
 ## StealthWatch.SEARCH_SPOTS_TILES).
@@ -145,6 +171,10 @@ func is_hunting() -> bool:
 ## watches their flanks too.
 const HALF_CONE := 80.0
 const HALF_CONE_ALERT := 170.0
+## How much of their usual view somebody sick, or seeing to them, still has.
+const UNWELL_CONE := 0.5
+## How much of it somebody deep in conversation has.
+const CHATTING_CONE := 0.6
 ## How much quicker than their patrol they walk to where somebody was seen.
 const INVESTIGATE_PACE := 1.3
 ## How quickly they turn to face somebody they have noticed.
@@ -218,6 +248,10 @@ func start(points: Array, router: Callable):
 	active = true
 	hunting = false
 	mood = Mood.PATROLLING
+	if asleep and moves():
+		mood = Mood.ASLEEP
+		_leg = []
+		return
 	if not _points.is_empty():
 		_next = 0
 		_leg = _router.call(global_position, _points[0])
@@ -226,7 +260,15 @@ func start(points: Array, router: Callable):
 ## Half of how wide they see right now, in degrees - wider still the more
 ## alert the map is, and never past all the way round.
 func half_cone() -> float:
-	var half = HALF_CONE_ALERT if mood == Mood.INVESTIGATING or mood == Mood.SEARCHING else HALF_CONE
+	var half := HALF_CONE
+	match mood:
+		Mood.INVESTIGATING, Mood.SEARCHING:
+			half = HALF_CONE_ALERT
+		Mood.SICK, Mood.TENDING:
+			half = HALF_CONE * UNWELL_CONE
+		Mood.CHATTING:
+			if _errand_there:
+				half = HALF_CONE * CHATTING_CONE
 	return minf(half + alert_cone, 180.0)
 
 
@@ -235,18 +277,137 @@ func is_awake() -> bool:
 	return not knocked_out
 
 
+## Whether they see nothing whatever right now: out cold, asleep, or being sick.
+func sees_nothing() -> bool:
+	return knocked_out or mood == Mood.ASLEEP or mood == Mood.RETCHING
+
+
 ## Whether they walk about and react - everything but a ward.
 func moves() -> bool:
 	return kind != Kind.WARD
 
 
+## Whether they would be in a fight here - not a ward, and not somebody who is
+## nobody's guard.
+func fights() -> bool:
+	return kind != Kind.WARD and kind != Kind.CIVILIAN
+
+
+## Where their patrol takes them, in order, as positions - empty for somebody
+## who stands at their post.
+func patrol_points() -> Array:
+	return _points
+
+
+## Where they stand when they have no patrol, and which way they look there.
+func post() -> Vector2:
+	return _post
+
+
+## Whether they are about their ordinary business and could be sent on an
+## errand: awake, walking their beat or back to it, with nothing else on.
+func is_free() -> bool:
+	return not knocked_out and moves() and (mood == Mood.PATROLLING or mood == Mood.RETURNING) and not holding
+
+
+## --- Errands ---
+##
+## Somewhere to go and something to do there - eat, talk, be sick, see to a
+## sick colleague, bring round a knocked-out one, tell a guard what they saw -
+## after which they go back to their beat. The StealthWatch sends them, and
+## says what the errand is for.
+
+## The moods that are errands: walked to, stayed at, then left for the beat.
+const ERRANDS := [Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING]
+## The moods nothing draws them out of: being sick, too unwell to stand, or
+## asleep. Somebody running to tell a guard what they saw has no mind for
+## anything else either.
+const ABSORBED := [Mood.RETCHING, Mood.SICK, Mood.ASLEEP, Mood.REPORTING]
+
+var _errand_at := Vector2.ZERO
+var _errand_face := Vector2.ZERO
+var _errand_left := 0.0
+var _errand_there := false
+var _errand_pace := 1.0
+var _on_arrival := Callable()
+var _on_done := Callable()
+## What they were at when a noise turned their head, to go back to after.
+var _before_listening: Mood = Mood.PATROLLING
+
+
+## Sends them off to `at`, to be `what` (one of ERRANDS) there for `seconds` -
+## INF for until end_errand(). `arrived` is called when they get there and
+## `done` when the time is up, after which they go back to their beat. While
+## there they look at `face`, if given, walking there at `pace` times their
+## usual speed.
+func send_on_errand(what: Mood, at: Vector2, seconds: float, arrived := Callable(), done := Callable(),
+		pace := 1.0, face := Vector2.ZERO):
+	mood = what
+	hunting = false
+	_errand_at = at
+	_errand_face = face
+	_errand_left = seconds
+	_errand_pace = pace
+	_errand_there = false
+	_on_arrival = arrived
+	_on_done = done
+	_leg = _route_to(at) if global_position.distance_to(at) > 1.0 else []
+
+
+## Whether they are on an errand - on the way, or there.
+func on_errand() -> bool:
+	return mood in ERRANDS
+
+
+## Whether they have got where their errand takes them.
+func errand_arrived() -> bool:
+	return on_errand() and _errand_there
+
+
+## Where their errand takes them.
+func errand_at() -> Vector2:
+	return _errand_at
+
+
+## Seconds left of the errand once there - INF for one that lasts until ended.
+func errand_left() -> float:
+	return _errand_left
+
+
+## Ends the errand here and now, without its `done`, and back to the beat.
+func end_errand():
+	if not on_errand():
+		return
+	_on_arrival = Callable()
+	_on_done = Callable()
+	back_to_beat()
+
+
+## Back to where their patrol was heading, or to their post.
+func back_to_beat():
+	mood = Mood.RETURNING
+	hunting = false
+	_errand_there = false
+	_leg = _route_to(_points[_next] if not _points.is_empty() else _post)
+
+
+## Forgets any errand's calls, so nothing is done on their behalf after
+## they were drawn off it.
+func _drop_errand():
+	_on_arrival = Callable()
+	_on_done = Callable()
+	_errand_there = false
+
+
 ## --- What the watch tells them ---
 
 
-## Somebody is in view at `at`: stop, and turn to them. A ward only notes it.
+## Somebody is in view at `at`: stop, and turn to them. A ward only notes it,
+## and so does anybody too taken up with something to do anything about it.
 func watching(at: Vector2):
 	last_seen = at
-	if moves():
+	if moves() and not mood in ABSORBED:
+		_drop_errand()
 		mood = Mood.WATCHING
 
 
@@ -268,8 +429,9 @@ func doubt_gone():
 
 ## Goes to look at `at` - where somebody was, a noise, a body.
 func investigate(at: Vector2):
-	if not moves() or knocked_out:
+	if not moves() or knocked_out or mood in ABSORBED:
 		return
+	_drop_errand()
 	hunting = false
 	last_seen = at
 	mood = Mood.INVESTIGATING
@@ -278,13 +440,24 @@ func investigate(at: Vector2):
 
 ## A noise at `at`. Close enough to matter, they turn to it for a moment - or,
 ## given `go_look`, go and see what it was. Somebody already watching somebody
-## has better things to look at.
+## has better things to look at, and somebody being sick or too ill to stand
+## has no mind for it. Asleep, it wakes them - and they go to see what it was.
 func hear(at: Vector2, go_look: bool):
 	if not moves() or knocked_out or mood == Mood.WATCHING:
 		return
-	if go_look:
+	if mood == Mood.ASLEEP:
+		mood = Mood.PATROLLING
 		investigate(at)
 		return
+	if mood in ABSORBED:
+		return
+	# Nobody's guard turns to a noise, but it is not their business to go and
+	# see what it was.
+	if go_look and kind != Kind.CIVILIAN:
+		investigate(at)
+		return
+	# Turned for a moment from whatever they were at, and back to it after.
+	_before_listening = mood if mood in ERRANDS else Mood.PATROLLING
 	last_seen = at
 	mood = Mood.LISTENING
 	_listen_left = LISTEN_SECONDS
@@ -293,10 +466,20 @@ func hear(at: Vector2, go_look: bool):
 ## Knocked out: down where they stand, and done watching.
 func knock_out():
 	knocked_out = true
+	_drop_errand()
 	mood = Mood.PATROLLING
 	_leg = []
 	if sprite != null and sprite.has_method("set_dead"):
 		sprite.set_dead()
+
+
+## Brought round by whoever found them: back on their feet, and back to their
+## beat.
+func wake_up():
+	knocked_out = false
+	if sprite != null and sprite.has_method("set_alive"):
+		sprite.set_alive()
+	back_to_beat()
 
 
 func _process(delta):
@@ -324,7 +507,15 @@ func _process(delta):
 			_listen_left -= delta
 			if _listen_left <= 0.0:
 				# Nothing more to it. On with whatever they were doing.
-				mood = Mood.PATROLLING
+				mood = _before_listening
+				_before_listening = Mood.PATROLLING
+			return
+		Mood.ASLEEP:
+			if sprite != null:
+				sprite.play_idle()
+			return
+		Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING:
+			_run_errand(delta)
 			return
 		Mood.WATCHING, Mood.SUSPICIOUS:
 			# Stopped dead, turned to face them.
@@ -375,6 +566,38 @@ func _process(delta):
 	_stand(delta)
 	if _pause_left <= 0.0:
 		_head_for_next()
+
+
+## On the way to their errand, or at it until its time is up.
+func _run_errand(delta: float):
+	if not _errand_there:
+		if not _walk(delta, _errand_pace):
+			return
+		_errand_there = true
+		var arrived = _on_arrival
+		_on_arrival = Callable()
+		if arrived.is_valid():
+			arrived.call()
+		# Arriving may have been the end of it.
+		if not on_errand():
+			return
+	if sprite != null:
+		sprite.play_idle()
+	if _errand_face != Vector2.ZERO:
+		var towards = _errand_face - global_position
+		if towards.length() > 1.0:
+			facing = _turned_toward(facing, towards, delta, WATCH_TURN_SPEED)
+		_face_sprite()
+	if _errand_left == INF:
+		return
+	_errand_left -= delta
+	if _errand_left <= 0.0:
+		var done = _on_done
+		_on_done = Callable()
+		back_to_beat()
+		# After going back, so what it calls can send them off again.
+		if done.is_valid():
+			done.call()
 
 
 func _route_to(where: Vector2) -> Array:
@@ -491,4 +714,7 @@ func _draw():
 			draw_arc(Vector2.ZERO, reach, facing.angle() - half, facing.angle() + half, 24, colour, 4.0)
 	if kind != Kind.WATCHMAN:
 		draw_string(ThemeDB.fallback_font, Vector2(-40, -Grid.tiles(0.4)), Kind.keys()[kind].capitalize(),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 28, colour)
+	if asleep:
+		draw_string(ThemeDB.fallback_font, Vector2(-40, -Grid.tiles(0.4) + 32), "Asleep",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 28, colour)

@@ -194,15 +194,24 @@ func run_test():
 	afflict(enemy, "stunned")
 	ok(combat.has_restriction(enemy, "skips_turn"), "the restriction is read off it")
 	var where = enemy.position
-	var health = enemy.hp
-	# Hand the turn to them and let the loop deal with it.
-	for i in combat.combatants.size():
-		if is_same(combat.combatants[i], enemy):
-			combat.current_combatant = i - 1 if i > 0 else combat.combatants.size() - 1
-	await combat.advance_turn()
-	ok(not is_same(combat.get_current_combatant(), enemy) or not enemy.alive,
+	# Hand the turn to them and let the loop deal with it. The order comes off
+	# the turn queue rather than the list of combatants, so the queue is what is
+	# set: the hero, then them, then the hero again to stop on.
+	await hand_turn_to(combat, hero, enemy)
+	ok(is_same(combat.get_current_combatant(), hero) or not enemy.alive,
 		"the turn passes them by", combat.get_current_combatant().name)
 	ok(enemy.position == where, "and they do not act", "%s" % enemy.position)
+	var stun_left = -1
+	for eff in enemy.status_effects:
+		if eff.get("stat", "") == "condition" and eff.condition.skips_turn:
+			stun_left = eff.duration
+	ok(stun_left == 2, "the turn lost is still a turn spent: one of the three comes off as it ends", "%d left" % stun_left)
+	cure(enemy)
+	afflict(enemy, "stunned", 1)
+	await hand_turn_to(combat, hero, enemy)
+	ok(enemy.position == where, "a Stun with one turn left loses them that turn", "%s" % enemy.position)
+	ok(not combat.has_restriction(enemy, "skips_turn") or not enemy.alive,
+		"and is gone the moment that turn is over, not at the start of their next")
 	cure(enemy)
 	log_line("")
 
@@ -278,3 +287,16 @@ func run_test():
 	await get_tree().process_frame
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
+
+
+## Plays `enemy`'s turn for real, through advance_turn: `player`'s turn ends,
+## theirs comes up, and the loop stops again on `player`. Everybody's reactions
+## are spent first, since one would stop and ask a player who is not there.
+func hand_turn_to(combat: Combat, player: Dictionary, enemy: Dictionary):
+	for comb in combat.combatants:
+		comb.reaction_used = true
+	var p = combat.combatants.find(player)
+	combat.turn_queue = [p, combat.combatants.find(enemy), p]
+	combat.turn = 0
+	combat.current_combatant = p
+	await combat.advance_turn()

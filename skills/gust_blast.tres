@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://s63icuvd2y3c"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_530t1"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="2_jhtu7"]
+[ext_resource type="Texture2D" uid="uid://ma50wkaamoql" path="res://imagese/skills/gustblast_skill.png" id="2_jhtu7"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_2orsb"]
 [ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
 

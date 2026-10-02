@@ -1,0 +1,153 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://exploration/Picture.gd" id="1_picture"]
+[ext_resource type="Script" path="res://exploration/Hotspot.gd" id="2_hotspot"]
+[ext_resource type="Script" path="res://exploration/PictureLayer.gd" id="3_layer"]
+
+[node name="Desk" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+script = ExtResource("1_picture")
+title = "The Desk"
+hover_hints = 1
+
+[node name="Top" type="ColorRect" parent="."]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+color = Color(0.33, 0.22, 0.13, 1)
+
+[node name="Ledger" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 100.0
+offset_right = 470.0
+offset_bottom = 580.0
+mouse_filter = 2
+color = Color(0.92, 0.88, 0.78, 1)
+
+[node name="LedgerText" type="Label" parent="Ledger"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 370.0
+offset_bottom = 460.0
+theme_override_colors/font_color = Color(0.2, 0.15, 0.1, 1)
+theme_override_font_sizes/font_size = 22
+text = "LEDGER - this month
+
+Lamp oil ....... 40 crates
+Rope ........... 12 coils
+Candles ......... 6 boxes
+Salt pork ...... 18 barrels"
+
+[node name="Blotter" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 540.0
+offset_top = 140.0
+offset_right = 1000.0
+offset_bottom = 580.0
+mouse_filter = 2
+color = Color(0.2, 0.32, 0.24, 1)
+
+[node name="PressedNumbers" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 650.0
+offset_top = 300.0
+offset_right = 900.0
+offset_bottom = 400.0
+script = ExtResource("3_layer")
+hidden_detail = true
+
+[node name="Digits" type="Label" parent="PressedNumbers"]
+layout_mode = 0
+offset_right = 250.0
+offset_bottom = 100.0
+theme_override_colors/font_color = Color(0.86, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 56
+text = "4 · 1 · 7"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Glass" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 1060.0
+offset_top = 430.0
+offset_right = 1200.0
+offset_bottom = 570.0
+script = ExtResource("3_layer")
+hidden_once_flag = "demo_took_glass"
+
+[node name="Rim" type="ColorRect" parent="Glass"]
+layout_mode = 0
+offset_right = 100.0
+offset_bottom = 100.0
+mouse_filter = 2
+color = Color(0.76, 0.6, 0.28, 1)
+
+[node name="Lens" type="ColorRect" parent="Glass"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 90.0
+offset_bottom = 90.0
+mouse_filter = 2
+color = Color(0.66, 0.84, 0.92, 1)
+
+[node name="Handle" type="ColorRect" parent="Glass"]
+layout_mode = 0
+offset_left = 85.0
+offset_top = 85.0
+offset_right = 135.0
+offset_bottom = 135.0
+mouse_filter = 2
+color = Color(0.35, 0.2, 0.1, 1)
+
+[node name="LedgerSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 80.0
+offset_top = 100.0
+offset_right = 470.0
+offset_bottom = 580.0
+script = ExtResource("2_hotspot")
+display_name = "Ledger"
+examine_text = "The month's ledger, in the quartermaster's neat hand. Lamp oil: forty crates in, signed for."
+gives_clue = "ledger_count"
+
+[node name="BlotterSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 540.0
+offset_top = 140.0
+offset_right = 1000.0
+offset_bottom = 580.0
+script = ExtResource("2_hotspot")
+display_name = "Blotter"
+examine_text = "A blotter, blotted half to death. Something was written hard on a page above it - but the marks are too faint to make out by eye."
+
+[node name="NumbersSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 650.0
+offset_top = 300.0
+offset_right = 900.0
+offset_bottom = 400.0
+script = ExtResource("2_hotspot")
+display_name = "Pressed numbers"
+examine_text = "Under the glass: 4 - 1 - 7, pressed through from a page above. A combination, if ever there was one."
+gives_clue = "pressed_numbers"
+hidden_detail = true
+
+[node name="GlassSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 1060.0
+offset_top = 430.0
+offset_right = 1200.0
+offset_bottom = 570.0
+script = ExtResource("2_hotspot")
+display_name = "Magnifying glass"
+examine_text = "A magnifying glass. That could come in useful."
+gives_item = "magnifying_glass"
+sets_flag = "demo_took_glass"
+hidden_once_flag = "demo_took_glass"

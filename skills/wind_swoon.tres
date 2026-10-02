@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_77oc1"]
 [ext_resource type="Resource" uid="uid://dymj1wsivd678" path="res://conditions/windswept.tres" id="2_ejn1x"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_ohx0v"]
-[ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://imagese/skills/fire_icon.png" id="3_75462"]
+[ext_resource type="Texture2D" uid="uid://devnmhr0k3wd4" path="res://imagese/skills/windswept_skill.png" id="3_75462"]
 [ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [sub_resource type="Resource" id="Resource_feskj"]

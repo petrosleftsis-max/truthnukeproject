@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://dhblpgxflcvi"]
 
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_gpjfk"]
-[ext_resource type="Texture2D" uid="uid://ben5jlwrg6fhf" path="res://imagese/skills/heal_skill.png" id="2_bg4m5"]
+[ext_resource type="Texture2D" uid="uid://wqttv3a4skua" path="res://imagese/skills/lightheal_skill.png" id="2_bg4m5"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_agv8j"]
 
 [sub_resource type="Resource" id="Effect_light_heal"]

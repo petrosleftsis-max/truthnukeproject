@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="ClueDefinition" format=3]
+
+[ext_resource type="Script" path="res://exploration/ClueDefinition.gd" id="1_clue"]
+
+[resource]
+script = ExtResource("1_clue")
+title = "Numbers in the blotter"
+text = "4 - 1 - 7, pressed through into the blotter from a page written on above it. Somebody wrote them down hard."
+

@@ -1,0 +1,235 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://exploration/Picture.gd" id="1_picture"]
+[ext_resource type="Script" path="res://exploration/Hotspot.gd" id="2_hotspot"]
+[ext_resource type="Script" path="res://exploration/PictureLayer.gd" id="3_layer"]
+[ext_resource type="Script" path="res://exploration/Puzzle.gd" id="4_puzzle"]
+[ext_resource type="Script" path="res://exploration/PuzzleDial.gd" id="5_dial"]
+
+[node name="Cabinet" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+script = ExtResource("1_picture")
+title = "The Cabinet"
+
+[node name="Wall" type="ColorRect" parent="."]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+color = Color(0.2, 0.17, 0.14, 1)
+
+[node name="Body" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 30.0
+offset_right = 940.0
+offset_bottom = 700.0
+mouse_filter = 2
+color = Color(0.27, 0.29, 0.32, 1)
+
+[node name="Inside" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 370.0
+offset_top = 60.0
+offset_right = 910.0
+offset_bottom = 670.0
+script = ExtResource("3_layer")
+shown_while_flag = "demo_cabinet_open"
+
+[node name="Dark" type="ColorRect" parent="Inside"]
+layout_mode = 0
+offset_right = 540.0
+offset_bottom = 610.0
+mouse_filter = 2
+color = Color(0.08, 0.08, 0.09, 1)
+
+[node name="ShelfTop" type="ColorRect" parent="Inside"]
+layout_mode = 0
+offset_top = 260.0
+offset_right = 540.0
+offset_bottom = 276.0
+mouse_filter = 2
+color = Color(0.36, 0.26, 0.16, 1)
+
+[node name="ShelfLow" type="ColorRect" parent="Inside"]
+layout_mode = 0
+offset_top = 560.0
+offset_right = 540.0
+offset_bottom = 576.0
+mouse_filter = 2
+color = Color(0.36, 0.26, 0.16, 1)
+
+[node name="Seal" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 450.0
+offset_top = 180.0
+offset_right = 570.0
+offset_bottom = 320.0
+script = ExtResource("3_layer")
+shown_while_flag = "demo_cabinet_open"
+hidden_once_flag = "demo_took_seal"
+
+[node name="Stamp" type="ColorRect" parent="Seal"]
+layout_mode = 0
+offset_left = 30.0
+offset_right = 90.0
+offset_bottom = 90.0
+mouse_filter = 2
+color = Color(0.3, 0.18, 0.1, 1)
+
+[node name="Wax" type="ColorRect" parent="Seal"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 90.0
+offset_right = 110.0
+offset_bottom = 140.0
+mouse_filter = 2
+color = Color(0.62, 0.1, 0.1, 1)
+
+[node name="Form" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 640.0
+offset_top = 400.0
+offset_right = 860.0
+offset_bottom = 620.0
+script = ExtResource("3_layer")
+shown_while_flag = "demo_cabinet_open"
+hidden_once_flag = "demo_took_form"
+
+[node name="Paper" type="ColorRect" parent="Form"]
+layout_mode = 0
+offset_right = 220.0
+offset_bottom = 220.0
+mouse_filter = 2
+color = Color(0.92, 0.89, 0.8, 1)
+
+[node name="Writing" type="Label" parent="Form/Paper"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 14.0
+offset_right = 210.0
+offset_bottom = 206.0
+theme_override_colors/font_color = Color(0.22, 0.17, 0.12, 1)
+theme_override_font_sizes/font_size = 18
+text = "REQUISITION
+
+Lamp oil - 10 crates
+
+Seal: ______"
+horizontal_alignment = 1
+
+[node name="Doors" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 370.0
+offset_top = 60.0
+offset_right = 910.0
+offset_bottom = 670.0
+script = ExtResource("3_layer")
+hidden_once_flag = "demo_cabinet_open"
+
+[node name="Left" type="ColorRect" parent="Doors"]
+layout_mode = 0
+offset_right = 266.0
+offset_bottom = 610.0
+mouse_filter = 2
+color = Color(0.34, 0.36, 0.4, 1)
+
+[node name="Right" type="ColorRect" parent="Doors"]
+layout_mode = 0
+offset_left = 274.0
+offset_right = 540.0
+offset_bottom = 610.0
+mouse_filter = 2
+color = Color(0.34, 0.36, 0.4, 1)
+
+[node name="Lock" type="Control" parent="."]
+layout_mode = 0
+offset_left = 490.0
+offset_top = 290.0
+offset_right = 790.0
+offset_bottom = 430.0
+mouse_filter = 2
+script = ExtResource("4_puzzle")
+display_name = "Combination lock"
+solved_flag = "demo_cabinet_open"
+solved_text = "The tumblers fall into place with a clunk, and the cabinet swings open."
+hidden_once_flag = "demo_cabinet_open"
+
+[node name="Plate" type="ColorRect" parent="Lock"]
+layout_mode = 0
+offset_right = 300.0
+offset_bottom = 140.0
+mouse_filter = 2
+color = Color(0.5, 0.42, 0.25, 1)
+
+[node name="First" type="Control" parent="Lock"]
+layout_mode = 0
+offset_left = 15.0
+offset_top = 10.0
+offset_right = 95.0
+offset_bottom = 130.0
+script = ExtResource("5_dial")
+display_name = "First dial"
+answer = "4"
+
+[node name="Second" type="Control" parent="Lock"]
+layout_mode = 0
+offset_left = 110.0
+offset_top = 10.0
+offset_right = 190.0
+offset_bottom = 130.0
+script = ExtResource("5_dial")
+display_name = "Second dial"
+answer = "1"
+
+[node name="Third" type="Control" parent="Lock"]
+layout_mode = 0
+offset_left = 205.0
+offset_top = 10.0
+offset_right = 285.0
+offset_bottom = 130.0
+script = ExtResource("5_dial")
+display_name = "Third dial"
+answer = "7"
+
+[node name="DoorsSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 370.0
+offset_top = 60.0
+offset_right = 910.0
+offset_bottom = 270.0
+script = ExtResource("2_hotspot")
+display_name = "Cabinet doors"
+examine_text = "Iron doors and a three-dial lock. Whatever's in here, the captain doesn't want it found."
+hidden_once_flag = "demo_cabinet_open"
+
+[node name="SealSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 450.0
+offset_top = 180.0
+offset_right = 570.0
+offset_bottom = 320.0
+script = ExtResource("2_hotspot")
+display_name = "Seal"
+examine_text = "The captain's own seal. He keeps it locked away - for a reason, it seems."
+gives_item = "seal_of_office"
+sets_flag = "demo_took_seal"
+shown_while_flag = "demo_cabinet_open"
+hidden_once_flag = "demo_took_seal"
+
+[node name="FormSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 640.0
+offset_top = 400.0
+offset_right = 860.0
+offset_bottom = 620.0
+script = ExtResource("2_hotspot")
+display_name = "Requisition"
+examine_text = "A requisition for ten crates of lamp oil, filled in but never sealed."
+gives_item = "blank_requisition"
+sets_flag = "demo_took_form"
+shown_while_flag = "demo_cabinet_open"
+hidden_once_flag = "demo_took_form"

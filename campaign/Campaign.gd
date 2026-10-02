@@ -302,6 +302,81 @@ func finish_battle_from_exploration(won: bool, still_coming: Array = []):
 var stealth_state := {}
 
 
+## The stealth map being played right now, if any - set and cleared by its
+## StealthWatch - so a conversation can reach it.
+var stealth_watch: Node = null
+
+
+## Settles the stealth map being played `levels` levels, as far as a found body
+## lets it - for a conversation, or anything used:
+##
+##     do Campaign.settle_alert()
+##
+## True when it went down at all. Nothing, off a stealth map.
+func settle_alert(levels: int = 1) -> bool:
+	if stealth_watch == null or not is_instance_valid(stealth_watch):
+		return false
+	return stealth_watch.settle(levels)
+
+
+## --- Starting a stealth map over ---
+##
+## Walking onto a stealth map - not back onto it from a fight - writes down how
+## things stood, so the pause menu's Restart Stage can put them back and start
+## the map again from where the party came in: another go at a clean run, from
+## the map or from the middle of the fight a catch started.
+
+var stealth_checkpoint := {}
+
+
+func save_stealth_checkpoint(map_path: String, arrived_at: Vector2):
+	stealth_checkpoint = {
+		"map": map_path,
+		"at": arrived_at,
+		"party_order": party_order.duplicate(),
+		"party_level": party_level,
+		"party_state": party_state.duplicate(true),
+		"inventories": inventories.duplicate(true),
+		"flags": flags.duplicate(true),
+		"cleared_triggers": cleared_triggers.duplicate(),
+	}
+
+
+## Whether Restart Stage has somewhere to go back to: a stealth map being
+## played, or the fight it started - and nothing else already on its way in.
+## Pressed while the screen faded into the fight a catch started, it used to
+## reset everything, have its own change of scene ignored, and let that fight
+## load with nothing to fight: the battle scene's fallback, the sewer ambush.
+func can_restart_stealth() -> bool:
+	if stealth_checkpoint.is_empty() or stealth_checkpoint.map != current_map:
+		return false
+	return not SceneTransition.is_changing()
+
+
+## Everything as it was when the party walked onto the map, and the map again.
+func restart_stealth():
+	if not can_restart_stealth():
+		return
+	var back: Dictionary = stealth_checkpoint
+	party_order.assign(back.party_order)
+	party_level = back.party_level
+	party_state = back.party_state.duplicate(true)
+	inventories = back.inventories.duplicate(true)
+	flags = back.flags.duplicate(true)
+	cleared_triggers = back.cleared_triggers.duplicate()
+	stealth_state.erase(back.map)
+	current_map = back.map
+	current_encounter = null
+	_pending_trigger = ""
+	target_entry = ""
+	# Put back where they came in, as if back from a fight: the bags are already
+	# as they were, so nothing is handed out again.
+	return_position = back.at
+	return_to_position = true
+	Engine.time_scale = 1.0
+	SceneTransition.change_scene("res://scenes/exploration.tscn")
+
+
 func is_trigger_cleared(trigger_id: String) -> bool:
 	return trigger_id != "" and cleared_triggers.has(trigger_id)
 
@@ -408,6 +483,7 @@ func reset():
 	party_state.clear()
 	cleared_triggers.clear()
 	stealth_state.clear()
+	stealth_checkpoint = {}
 	party_order.clear()
 	party_level = 1
 	inventories.clear()
@@ -785,6 +861,26 @@ func distractions_of(key: String) -> Array:
 	return found
 
 
+## The darts `key` is carrying - poisons to throw - each once, in bag order.
+func darts_of(key: String) -> Array:
+	var found: Array = []
+	for slot in inventory_of(key):
+		var item: ItemDefinition = ItemDatabase.item(slot) if slot != "" else null
+		if item != null and item.is_poison() and item.poison_shootable and not found.has(slot):
+			found.append(slot)
+	return found
+
+
+## The first poison `key` is carrying that goes into food rather than a dart,
+## or "".
+func food_poison_of(key: String) -> String:
+	for slot in inventory_of(key):
+		var item: ItemDefinition = ItemDatabase.item(slot) if slot != "" else null
+		if item != null and item.is_poison() and not item.poison_shootable:
+			return slot
+	return ""
+
+
 ## How many of `item_id` somebody is carrying, anywhere in their bag.
 func count_of(key: String, item_id: String) -> int:
 	var total = 0
@@ -807,3 +903,170 @@ func empty_inventory(key: String):
 	slots.fill("")
 	inventories[key] = slots
 	inventory_changed.emit(key)
+
+
+## --- Clues ---
+##
+## What the party has found out, kept in the journal (J). Stored as flags -
+## "clue:ledger_count", holding the order it was learned in - so they last
+## exactly as long as every other fact about the playthrough: across maps and
+## fights, back to where they were on Restart Stage, gone on a fresh start.
+## Dialogue can ask `if Campaign.knows_clue("ledger_count")`.
+
+## Learned a clue: `deduced` when it was worked out in the journal rather than
+## found.
+signal clue_learned(key: String, deduced: bool)
+
+const CLUE_PREFIX := "clue:"
+
+
+## Learns the clue `key` (see ClueDefinition), setting its flag. False if there
+## is no such clue or it was known already.
+func learn_clue(key: String) -> bool:
+	var clue: ClueDefinition = ClueBook.clue(key)
+	if clue == null:
+		push_warning("Campaign.learn_clue('%s'): there is no such clue in %s." % [key, ClueBook.FOLDER])
+		return false
+	if knows_clue(key):
+		return false
+	flags[CLUE_PREFIX + key] = known_clues().size() + 1
+	if clue.sets_flag != "":
+		set_flag(clue.sets_flag)
+	clue_learned.emit(key, clue.is_deduction())
+	return true
+
+
+func knows_clue(key: String) -> bool:
+	return flag(CLUE_PREFIX + key)
+
+
+## Every clue learned, in the order it was.
+func known_clues() -> Array:
+	var found: Array = []
+	for flag_name in flags:
+		if String(flag_name).begins_with(CLUE_PREFIX) and flag(flag_name):
+			found.append(String(flag_name).trim_prefix(CLUE_PREFIX))
+	found.sort_custom(func(a, b): return int(flags[CLUE_PREFIX + a]) < int(flags[CLUE_PREFIX + b]))
+	return found
+
+
+## Connects two clues the way the journal's Connect does: the deduction they
+## make, learned if it was not already, or "" for two that make nothing.
+func connect_clues(a: String, b: String) -> String:
+	if not knows_clue(a) or not knows_clue(b):
+		return ""
+	var deduced = ClueBook.deduced_from(a, b)
+	if deduced != "":
+		learn_clue(deduced)
+	return deduced
+
+
+## Whether something known opens `combatant_key`'s sheet from the start of a
+## fight (ClueDefinition.reveals_combatants).
+func clue_reveals(combatant_key: String) -> bool:
+	for key in known_clues():
+		var clue: ClueDefinition = ClueBook.clue(key)
+		if clue != null and clue.reveals_combatants.has(combatant_key):
+			return true
+	return false
+
+
+## --- What has been looked at ---
+##
+## Which hotspots in which pictures have been clicked, so a picture can say how
+## much of it has been gone over and mark what has. Flags again, for the same
+## reasons as clues: "seen:" and the hotspot's place.
+
+const SEEN_PREFIX := "seen:"
+
+
+func mark_examined(id: String):
+	if id != "":
+		flags[SEEN_PREFIX + id] = true
+
+
+func was_examined(id: String) -> bool:
+	return flag(SEEN_PREFIX + id)
+
+
+## --- Putting things together ---
+
+
+## The item `a` and `b` make together (ItemDefinition.made_from), either way
+## round, or "".
+func combination_of(a: String, b: String) -> String:
+	for key in ItemDatabase.items:
+		var item: ItemDefinition = ItemDatabase.items[key]
+		if item == null or item.made_from.size() != 2:
+			continue
+		var wanted: Array = item.made_from.duplicate()
+		if wanted.has(a):
+			wanted.erase(a)
+			if wanted.has(b):
+				return key
+	return ""
+
+
+## Who in the party is carrying `item_id`, or "".
+func carrier_of(item_id: String) -> String:
+	for key in living_party():
+		if count_of(key, item_id) > 0:
+			return key
+	return ""
+
+
+## Puts `a` and `b` together, wherever in the party they are: both used up and
+## what they make handed to whoever carried `b`. The item made, or "" if they
+## make nothing or the party does not have both.
+func combine_items(a: String, b: String) -> String:
+	var made = combination_of(a, b)
+	if made == "":
+		return ""
+	var has_a = carrier_of(a)
+	if has_a == "":
+		return ""
+	take_item(has_a, a)
+	var has_b = carrier_of(b)
+	if has_b == "":
+		give_item(has_a, a)
+		return ""
+	take_item(has_b, b)
+	give_item(has_b, made)
+	return made
+
+
+## The same from two bag slots (the inventory, I): both emptied, and what they
+## make put in the second. "" - and nothing moved - if they make nothing.
+func combine_slots(from_key: String, from_slot: int, to_key: String, to_slot: int) -> String:
+	var from_slots = inventory_of(from_key)
+	var to_slots = inventory_of(to_key)
+	if from_slot < 0 or from_slot >= from_slots.size() or to_slot < 0 or to_slot >= to_slots.size():
+		return ""
+	if from_key == to_key and from_slot == to_slot:
+		return ""
+	var made = combination_of(from_slots[from_slot], to_slots[to_slot])
+	if made == "":
+		return ""
+	from_slots[from_slot] = ""
+	to_slots[to_slot] = made
+	inventory_changed.emit(from_key)
+	if to_key != from_key:
+		inventory_changed.emit(to_key)
+	var item: ItemDefinition = ItemDatabase.item(made)
+	announce("[color=lightgreen]%s[/color] makes [color=yellow]%s[/color].\n" % [
+		display_name_of(to_key), item.name if item != null else made])
+	return made
+
+
+## Somebody in the party with room for one more, for something picked up: the
+## leader first. "" if every bag is full.
+func room_for_one() -> String:
+	var order: Array = living_party()
+	var first = leader()
+	if order.has(first):
+		order.erase(first)
+		order.push_front(first)
+	for key in order:
+		if inventory_of(key).has(""):
+			return key
+	return ""

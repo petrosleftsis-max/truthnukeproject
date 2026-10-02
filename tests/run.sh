@@ -71,6 +71,8 @@ tar -C "$SRC" --exclude="./.git" --exclude="./export" --exclude="./tests" -cf - 
 # them. In the real project they live under tests/, which carries a .gdignore
 # so the editor never parses them and no build ever carries them.
 cp "$HERE/HarnessLog.gd" "$DST/HarnessLog.gd"
+# What the stealth suites share: a map to sneak about on, and the helpers.
+cp "$HERE/StealthHarness.gd" "$DST/StealthHarness.gd"
 missing=""
 for d in $DRIVERS; do
 	if [ -f "$HERE/${d}_test_driver.gd" ]; then

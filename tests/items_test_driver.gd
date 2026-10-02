@@ -71,7 +71,11 @@ func run_test():
 		for e in item.all_effects():
 			if e.type == EffectDefinition.EffectType.CONDITION and e.condition != null:
 				bottled[e.condition.resource_path.get_file().get_basename()] = key
+	# Caught off guard comes from an ambush on a stealth map, not from a bottle.
+	var not_bottled := ["surprised"]
 	for condition in conditions:
+		if not_bottled.has(condition):
+			continue
 		ok(bottled.has(condition), "something inflicts %s" % condition, bottled.get(condition, "nothing"))
 	log_line("")
 
