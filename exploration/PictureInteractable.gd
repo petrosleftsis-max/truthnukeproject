@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/picture_spot.svg")
 extends Interactable
 class_name PictureInteractable
 ## Something on a map to take a closer look at: walk up, press E, and its

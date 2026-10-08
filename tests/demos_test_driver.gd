@@ -5,7 +5,7 @@ extends Node
 ## to things that exist.
 
 var LOG_PATH := HarnessLog.path_for("demos")
-const DEMO := "res://scenes/stealth_demo.tscn"
+const DEMO := "res://demos/stealth_demo.tscn"
 
 var _log: FileAccess = null
 var _fail = 0
@@ -39,7 +39,7 @@ func settle(frames: int = 3):
 
 func run_test():
 	log_line("======== the launcher points at the demo ========")
-	var launcher = load("res://scenes/try_stealth_demo.tscn").instantiate()
+	var launcher = load("res://demos/try_stealth_demo.tscn").instantiate()
 	ok(launcher.map == DEMO and ResourceLoader.exists(launcher.map), "F6 on try_stealth_demo opens the demo map", launcher.map)
 	launcher.free()
 

@@ -51,14 +51,14 @@ func run_test():
 		"frozen": Damage.Type.WATER,
 	}
 	for name in wanted:
-		var definition: ConditionDefinition = load("res://conditions/%s.tres" % name)
+		var definition: ConditionDefinition = load("res://data/conditions/%s.tres" % name)
 		ok(definition.dot_type == wanted[name], "%s ticks %s" % [name, Damage.type_name(wanted[name])],
 			"is %s" % Damage.type_name(definition.dot_type))
 		ok(definition.dot_modifier > 0.0, "  and scales off the caster", "x%s" % definition.dot_modifier)
 	log_line("")
 
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_01_ambush.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_01_ambush.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await get_tree().process_frame
@@ -158,7 +158,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== conditions tick the same way ========")
-	var burn: ConditionDefinition = load("res://conditions/burn.tres")
+	var burn: ConditionDefinition = load("res://data/conditions/burn.tres")
 	var burn_effect := EffectDefinition.new()
 	burn_effect.type = EffectDefinition.EffectType.CONDITION
 	burn_effect.condition = burn
@@ -252,25 +252,25 @@ func run_test():
 
 	log_line("======== the glossary says how hard it hits, in words ========")
 	for key in ["burn", "poisoned", "crystallised", "frozen", "windswept"]:
-		var cond: ConditionDefinition = load("res://conditions/%s.tres" % key)
+		var cond: ConditionDefinition = load("res://data/conditions/%s.tres" % key)
 		ok(cond.describe_dot() != "", "%s reads as damage over time" % key, cond.describe_dot())
 	for key in ["blind", "fear", "stunned"]:
-		var cond: ConditionDefinition = load("res://conditions/%s.tres" % key)
+		var cond: ConditionDefinition = load("res://data/conditions/%s.tres" % key)
 		ok(cond.describe_dot() == "", "%s says nothing about damage" % key, cond.describe_dot())
 	# The book must not print a number, because the number depends on who
 	# inflicted it - which was the bug this replaced.
-	var burn_strength = load("res://conditions/burn.tres").describe_dot()
+	var burn_strength = load("res://data/conditions/burn.tres").describe_dot()
 	ok(burn_strength == "Powerful Fire Damage Over Time", "Burn is powerful and burns", burn_strength)
 	for pair in [["poisoned", "Strong Poison Damage Over Time"],
 		["crystallised", "Weak Earth Damage Over Time"],
 		["frozen", "Weak Water Damage Over Time"],
 		["windswept", "Medium Wind Damage Over Time"]]:
-		var said = load("res://conditions/%s.tres" % pair[0]).describe_dot()
+		var said = load("res://data/conditions/%s.tres" % pair[0]).describe_dot()
 		ok(said == pair[1], "%s reads right" % pair[0], said)
 	# The element is named as the condition holds it rather than as a word
 	# written here, so retyping a condition changes the book with it.
 	for key in ["burn", "poisoned", "crystallised", "frozen", "windswept"]:
-		var cond: ConditionDefinition = load("res://conditions/%s.tres" % key)
+		var cond: ConditionDefinition = load("res://data/conditions/%s.tres" % key)
 		ok(cond.describe_dot().contains(Damage.type_name(cond.dot_type)),
 			"%s names its own element" % key, cond.describe_dot())
 	log_line("")
@@ -497,7 +497,7 @@ func run_test():
 	# Different afflictions are different things and both stay.
 	var poison_effect := EffectDefinition.new()
 	poison_effect.type = EffectDefinition.EffectType.CONDITION
-	poison_effect.condition = load("res://conditions/poisoned.tres")
+	poison_effect.condition = load("res://data/conditions/poisoned.tres")
 	combat.apply_effect(acting, target, poison_effect, fireball, false)
 	ok(burns_on_them.call() == 1 and combat.conditions_of(target).size() == 2,
 		"while a different one lands beside it rather than replacing it",
@@ -522,7 +522,7 @@ func run_test():
 		combat.apply_effect(acting, target, laid, fireball, false)
 	var frost := EffectDefinition.new()
 	frost.type = EffectDefinition.EffectType.CONDITION
-	frost.condition = load("res://conditions/frozen.tres")
+	frost.condition = load("res://data/conditions/frozen.tres")
 	combat.apply_effect(acting, target, frost, fireball, false)
 	ok(combat.conditions_of(target).size() == 3, "three different afflictions on them",
 		"%d" % combat.conditions_of(target).size())
@@ -586,7 +586,7 @@ func run_test():
 			if trail_effect.type == EffectDefinition.EffectType.CONDITION:
 				trail_strength = trail_effect.condition_dot_strength()
 		var trail_base = combat.dot_base_damage(acting, trail, trail_strength)
-		var trail_real = combat.resisted_damage(acting, load("res://conditions/burn.tres").dot_type,
+		var trail_real = combat.resisted_damage(acting, load("res://data/conditions/burn.tres").dot_type,
 			combat.dot_tick(acting, trail_base, 0, 0))
 		ok(on_self == trail_real, "on yourself, it is the figure after your own defence",
 			"panel said %d, you would take %d (base was %.0f)" % [on_self, trail_real, trail_base])

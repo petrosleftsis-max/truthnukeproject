@@ -39,7 +39,7 @@ func run_test():
 	log_line("")
 
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_01_ambush.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_01_ambush.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await get_tree().process_frame

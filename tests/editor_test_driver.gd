@@ -4,7 +4,7 @@ extends Node
 ## Runs against a throwaway copy of the project, never the real one.
 
 var LOG_PATH := HarnessLog.path_for("editor")
-const ENCOUNTER = "res://encounters/encounter_01_ambush.tres"
+const ENCOUNTER = "res://data/encounters/encounter_01_ambush.tres"
 
 var _log: FileAccess = null
 var _fail = 0
@@ -33,7 +33,7 @@ func _ready():
 
 
 func make_editor(encounter: EncounterDefinition) -> Node:
-	var editor = load("res://scenes/encounter_editor.tscn").instantiate()
+	var editor = load("res://tools/encounter_editor.tscn").instantiate()
 	get_tree().root.add_child(editor)
 	editor.encounter = encounter
 	editor.rebuild()
@@ -49,7 +49,7 @@ func run_test():
 	# does write "starting_items = null" for markers made before the field
 	# existed. So this asks what actually comes out of the scene, before
 	# anything rebuilds and hides it.
-	var as_saved = load("res://scenes/encounter_editor.tscn").instantiate()
+	var as_saved = load("res://tools/encounter_editor.tscn").instantiate()
 	get_tree().root.add_child(as_saved)
 	await get_tree().process_frame
 	var checked := 0

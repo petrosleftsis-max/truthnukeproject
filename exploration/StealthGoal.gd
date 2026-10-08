@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/goal.svg")
 extends Interactable
 class_name StealthGoal
 ## The end of a stealth map: walking into it (or pressing E, with Automatic

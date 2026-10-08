@@ -21,7 +21,7 @@ func _ready():
 
 func run_probe():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 6:
@@ -91,7 +91,7 @@ func run_probe():
 	for who in [soft, hard]:
 		var armour = combat.stat_of(who, Stats.Type.DEFENSE)
 		var hit = combat.skill_damage(throwers[0], who, bottle)
-		var burn = load("res://conditions/burn.tres")
+		var burn = load("res://data/conditions/burn.tres")
 		var tick_base = combat.dot_base_damage(throwers[0], bottle, burn.dot_modifier)
 		var tick = combat.dot_tick(who, tick_base, burn.dot_min, burn.dot_max)
 		log_line("  %-12s defence %-3d  damage %-4d  tick %d" % [who.name, armour, hit, tick])

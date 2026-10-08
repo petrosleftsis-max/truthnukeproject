@@ -52,7 +52,7 @@ func enemies(combat: Combat) -> Array:
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 4:
@@ -247,7 +247,7 @@ func run_test():
 	var reach_seeing = combat.threat_reach(sufferer)
 	var seeing: Dictionary = combat.threat_map().threat
 	log_line("  NOTE  %s strikes %d tiles and threatens %d seeing" % [sufferer.name, reach_seeing, seeing.size()])
-	sufferer.status_effects.append({"stat": "condition", "condition": load("res://conditions/blind.tres"),
+	sufferer.status_effects.append({"stat": "condition", "condition": load("res://data/conditions/blind.tres"),
 		"duration": 1, "source_name": "Test"})
 	var blinded: Dictionary = combat.threat_map().threat
 	var reach_blind = combat.threat_reach(sufferer)
@@ -265,7 +265,7 @@ func run_test():
 	ok(combat.threat_map().threat.size() == seeing.size(), "so the danger is back as it was before their next turn comes",
 		"%d tiles" % combat.threat_map().threat.size())
 
-	sufferer.status_effects.append({"stat": "condition", "condition": load("res://conditions/stunned.tres"),
+	sufferer.status_effects.append({"stat": "condition", "condition": load("res://data/conditions/stunned.tres"),
 		"duration": 1, "source_name": "Test"})
 	ok(combat.threat_map().threat.is_empty(), "a stunned enemy threatens nothing on the turn they will lose",
 		"%d tiles" % combat.threat_map().threat.size())
@@ -275,14 +275,14 @@ func run_test():
 
 	# Set to go as their turn starts, and run down to nothing: on them now, and
 	# gone before they act.
-	sufferer.status_effects.append({"stat": "condition", "condition": load("res://conditions/blind.tres"),
+	sufferer.status_effects.append({"stat": "condition", "condition": load("res://data/conditions/blind.tres"),
 		"duration": 0, "ends_at_start": true, "source_name": "Test"})
 	ok(combat.threat_map().threat.size() == seeing.size(), "a Blind that lifts as their turn starts does not keep them close",
 		"%d tiles" % combat.threat_map().threat.size())
 	ok(combat.conditions_of(sufferer).size() == 1 and combat.threat_reach(sufferer) < reach_seeing,
 		"though it is on them until then")
 	sufferer.status_effects.pop_back()
-	sufferer.status_effects.append({"stat": "condition", "condition": load("res://conditions/stunned.tres"),
+	sufferer.status_effects.append({"stat": "condition", "condition": load("res://data/conditions/stunned.tres"),
 		"duration": 0, "ends_at_start": true, "source_name": "Test"})
 	ok(combat.threat_map().threat.size() == seeing.size(), "nor does a Stun that lifts as it starts cost them the turn")
 	sufferer.status_effects.pop_back()
@@ -297,7 +297,7 @@ func run_test():
 			frightened = foe
 	combat.set_hidden(frightened, false)
 	var bold: Dictionary = combat.threat_map().threat
-	frightened.status_effects.append({"stat": "condition", "condition": load("res://conditions/fear.tres"),
+	frightened.status_effects.append({"stat": "condition", "condition": load("res://data/conditions/fear.tres"),
 		"duration": 1, "source_name": "Test"})
 	var afraid: Dictionary = combat.threat_map().threat
 	var allowed := [frightened.position]
@@ -355,7 +355,7 @@ func run_test():
 	ok(not reaction.is_empty(), "one ready to react marks the tiles round them", "%d" % reaction.size())
 	# Reactions happen now, on the players' turn - so a Poisoned that lifts as
 	# the guard's own turn starts still stops them.
-	guard.status_effects.append({"stat": "condition", "condition": load("res://conditions/poisoned.tres"),
+	guard.status_effects.append({"stat": "condition", "condition": load("res://data/conditions/poisoned.tres"),
 		"duration": 0, "ends_at_start": true, "source_name": "Test"})
 	ok(combat.threat_map().reaction.is_empty(), "Poisoned until their turn starts still keeps them from reacting now")
 	guard.status_effects.pop_back()

@@ -119,7 +119,7 @@ func the_card():
 ## Restart Stage: the stage as it was when he walked in - bag, flags and all.
 func starting_over():
 	log_line("======== starting over ========")
-	var menu: MainMenu = load("res://main_menu.tscn").instantiate()
+	var menu: MainMenu = load("res://scenes/main_menu.tscn").instantiate()
 	menu._set_up_stage(MainMenu.STEALTH_STAGES[0])
 	menu.free()
 	var scene: ExplorationScene = load("res://scenes/exploration.tscn").instantiate()

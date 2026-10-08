@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/waypoint.svg")
 extends Node2D
 class_name Waypoint
 ## A named spot on a map, for dialogue to send someone to.

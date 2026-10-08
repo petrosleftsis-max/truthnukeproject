@@ -1,0 +1,115 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_6418u"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_iaqug"]
+[ext_resource type="PackedScene" path="res://maps/crossroads_terrain.tscn" id="3_ge6on"]
+[ext_resource type="Resource" path="res://dialogue/intro_sewer_after_encounter.dialogue" id="4_1iwxu"]
+
+[sub_resource type="Resource" id="Resource_5yis8"]
+script = ExtResource("2_iaqug")
+combatant_key = "cyrus"
+position = Vector2i(41, -14)
+level = 3
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_87osr"]
+script = ExtResource("2_iaqug")
+combatant_key = "alithia"
+position = Vector2i(43, -14)
+level = 3
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_lvpvi"]
+script = ExtResource("2_iaqug")
+combatant_key = "prometheus"
+position = Vector2i(43, -13)
+level = 3
+weapon_base = 12
+defense = 8
+
+[sub_resource type="Resource" id="Resource_irf0o"]
+script = ExtResource("2_iaqug")
+combatant_key = "enfina"
+position = Vector2i(45, -14)
+level = 3
+weapon_base = 12
+defense = 32
+
+[sub_resource type="Resource" id="Resource_jg4ma"]
+script = ExtResource("2_iaqug")
+combatant_key = "priest"
+side = 1
+position = Vector2i(53, -17)
+display_name = "Priest"
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_v857l"]
+script = ExtResource("2_iaqug")
+combatant_key = "ranger"
+side = 1
+position = Vector2i(54, -15)
+display_name = "Ranger"
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_ilk6v"]
+script = ExtResource("2_iaqug")
+combatant_key = "mimic"
+side = 1
+position = Vector2i(36, -14)
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_ilh0v"]
+script = ExtResource("2_iaqug")
+combatant_key = "mimic"
+side = 1
+position = Vector2i(37, -14)
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_gx0as"]
+script = ExtResource("2_iaqug")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(54, -13)
+display_name = "Caster"
+level = 3
+weapon_base = 12
+defense = 25
+
+[sub_resource type="Resource" id="Resource_fmel8"]
+script = ExtResource("2_iaqug")
+combatant_key = "barbarian"
+side = 1
+position = Vector2i(34, -14)
+display_name = "Striker"
+level = 3
+weapon_base = 12
+defense = 60
+
+[sub_resource type="Resource" id="Resource_ssc2s"]
+script = ExtResource("2_iaqug")
+combatant_key = "bomber"
+side = 1
+position = Vector2i(55, -17)
+display_name = "Bomber"
+level = 3
+weapon_base = 12
+defense = 25
+
+[resource]
+script = ExtResource("1_6418u")
+display_name = "Dungeon: The Sewer"
+description = "The whole party, at level 3, ambushed in the sewer - with more of them than before."
+terrain_scene = ExtResource("3_ge6on")
+victory_dialogue = ExtResource("4_1iwxu")
+spawns = Array[ExtResource("2_iaqug")]([SubResource("Resource_5yis8"), SubResource("Resource_87osr"), SubResource("Resource_lvpvi"), SubResource("Resource_irf0o"), SubResource("Resource_jg4ma"), SubResource("Resource_v857l"), SubResource("Resource_ilk6v"), SubResource("Resource_ilh0v"), SubResource("Resource_gx0as"), SubResource("Resource_fmel8"), SubResource("Resource_ssc2s")])
+music = "My_Gospel_is_Gunpowder_feat_The_Epoch_House_Choir_Instrumental_Version"

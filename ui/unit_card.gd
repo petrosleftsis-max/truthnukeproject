@@ -87,7 +87,7 @@ func place():
 	if not visible or not is_inside_tree():
 		return
 	var screen = get_viewport_rect().size
-	var mouse = get_viewport().get_mouse_position()
+	var mouse = Pad.screen_point()
 	var size_now = get_combined_minimum_size()
 	var at = mouse + OFFSET
 	if at.x + size_now.x > screen.x:

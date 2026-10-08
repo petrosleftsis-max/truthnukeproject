@@ -7,7 +7,7 @@ extends Node
 ## what "the menu is open" now means.
 
 var LOG_PATH := HarnessLog.path_for("halt")
-const PROBE = "res://Dialogue/_skip_probe.dialogue"
+const PROBE = "res://dialogue/_skip_probe.dialogue"
 var _log: FileAccess
 var _fail = 0
 
@@ -61,7 +61,7 @@ func frames(n: int = 3):
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await frames(6)
@@ -265,7 +265,7 @@ func _open_probe() -> Node:
 func _escape_during_a_conversation():
 	log_line("======== Escape reaches the pause menu mid-conversation ========")
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await frames(6)

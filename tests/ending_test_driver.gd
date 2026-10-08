@@ -37,10 +37,10 @@ func run_test():
 	ok(encounter.victory_dialogue_title == "start", "starting at 'start' unless told otherwise",
 		encounter.victory_dialogue_title)
 	var authored := 0
-	for path in DirAccess.open("res://encounters").get_files():
+	for path in DirAccess.open("res://data/encounters").get_files():
 		if not path.ends_with(".tres"):
 			continue
-		var real: EncounterDefinition = load("res://encounters/".path_join(path))
+		var real: EncounterDefinition = load("res://data/encounters/".path_join(path))
 		if real.victory_dialogue != null or real.defeat_dialogue != null:
 			authored += 1
 	log_line("  (%d of the encounters have closing words written so far)" % authored)
@@ -48,10 +48,10 @@ func run_test():
 	# Closing words are said over the result panel, so a conversation that
 	# leaves the scene is a conversation that throws the panel away. The command
 	# exists and is worth having - just not on the last word of a battle.
-	for path in DirAccess.open("res://encounters").get_files():
+	for path in DirAccess.open("res://data/encounters").get_files():
 		if not path.ends_with(".tres"):
 			continue
-		var real: EncounterDefinition = load("res://encounters/".path_join(path))
+		var real: EncounterDefinition = load("res://data/encounters/".path_join(path))
 		for closing in [real.victory_dialogue, real.defeat_dialogue]:
 			if closing == null:
 				continue
@@ -67,7 +67,7 @@ func run_test():
 	# The Watcher rather than the Lab Fight: the Lab Fight finishes its story
 	# and has its own way out, tested further down.
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_03_watcher.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_03_watcher.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 6:
@@ -107,8 +107,8 @@ func run_test():
 	# Continue as the only button on the panel.
 	Campaign.reset()
 	Campaign.begin_battle_from_exploration(
-		load("res://encounters/encounter_03_watcher.tres"),
-		"res://scenes/laboratory_terrain_explore.tscn", Vector2.ZERO, "ending_trigger")
+		load("res://data/encounters/encounter_03_watcher.tres"),
+		"res://maps/laboratory_explore.tscn", Vector2.ZERO, "ending_trigger")
 	var second = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(second)
 	for i in 6:
@@ -137,11 +137,11 @@ func run_test():
 	# Continue on to the map. It used to go there on its own, without asking.
 	for entered_from_a_map in [false, true]:
 		Campaign.reset()
-		var lab: EncounterDefinition = load("res://encounters/encounter_02_sappers.tres")
+		var lab: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres")
 		ok(lab.victory_ends_the_run, "the Lab Fight says so itself")
 		if entered_from_a_map:
 			Campaign.begin_battle_from_exploration(lab,
-				"res://scenes/laboratory_terrain_explore.tscn", Vector2.ZERO, "lab_trigger")
+				"res://maps/laboratory_explore.tscn", Vector2.ZERO, "lab_trigger")
 		else:
 			# Campaign.reset() does not forget the map, so the previous section's
 			# one is still there unless it is put down explicitly - and without
@@ -179,7 +179,7 @@ func run_test():
 
 	log_line("======== but losing it still lets you try again ========")
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var lost = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(lost)
 	for i in 6:
@@ -202,8 +202,8 @@ func run_test():
 
 	log_line("======== closing words hold the panel back ========")
 	Campaign.reset()
-	var talkative: EncounterDefinition = load("res://encounters/encounter_02_sappers.tres").duplicate(true)
-	talkative.victory_dialogue = load("res://Dialogue/church_after_reveal_clown.dialogue")
+	var talkative: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
+	talkative.victory_dialogue = load("res://dialogue/church_after_reveal_clown.dialogue")
 	talkative.victory_dialogue_title = "start"
 	Campaign.current_encounter = talkative
 	var third = load("res://scenes/game.tscn").instantiate()

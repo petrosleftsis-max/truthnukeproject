@@ -1,7 +1,7 @@
 # Godot 4+ specific ignores
 .godot/
 
-# Editor backup files (e.g. imagese/chars.png~)
+# Editor backup files (e.g. art/chars.png~)
 *~
 
 # Godot-specific ignores

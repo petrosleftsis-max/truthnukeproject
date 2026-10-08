@@ -85,7 +85,7 @@ func run_test():
 
 	log_line("======== it reaches the log on a map ========")
 	Campaign.reset()
-	Campaign.current_map = "res://scenes/laboratory_terrain_explore.tscn"
+	Campaign.current_map = "res://maps/laboratory_explore.tscn"
 	var walk = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(walk)
 	for i in 5:
@@ -105,7 +105,7 @@ func run_test():
 
 	log_line("======== and in a battle ========")
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 6:
@@ -133,7 +133,7 @@ func run_test():
 	# spawn lists is what that character turns up carrying; a second copy of the
 	# list here only says whether somebody retuned the fight, and broke every
 	# time they did.
-	var fight: EncounterDefinition = load("res://encounters/encounter_02_sappers.tres")
+	var fight: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres")
 	var wanted := {}
 	for spawn in fight.spawns:
 		if spawn != null and spawn.side == 0 and not spawn.starting_items.is_empty():

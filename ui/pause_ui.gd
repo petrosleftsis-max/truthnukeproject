@@ -50,9 +50,11 @@ var _all_pause_buttons: Array = []
 
 
 ## Restart Stage shown only while there is a stealth map to start over, and
-## the keyboard's loop round whatever is shown.
+## the keyboard's loop round whatever is shown. Level Select not in a dungeon,
+## whose run a fight picked from the list would step outside of.
 func _offer_restart():
 	_restart.visible = Campaign.can_restart_stealth()
+	$PausePanel/VBox/LevelSelectButton.visible = not Campaign.in_dungeon()
 	_pause_buttons = _all_pause_buttons.filter(func(button): return button.visible)
 	FocusLoop.link(_pause_buttons)
 
@@ -102,13 +104,15 @@ func _ready():
 	$OptionsPanel/VBox.add_child(_window_mode)
 	$OptionsPanel/VBox.move_child(_window_mode, $OptionsPanel/VBox/Title.get_index() + 1)
 	_options_buttons = _window_mode.buttons + _options_buttons
-	# Its three buttons join the keyboard loop after the resolutions; the
-	# sliders below it are mouse-only, like the main menu's.
+	# Its three buttons join the keyboard loop after the resolutions, and the
+	# sliders below it last - left and right move a slider, so up and down are
+	# what reach them, and without them in the loop a pad could not.
 	_speed = BattleSpeedPicker.new()
 	$OptionsPanel/VBox.add_child(_speed)
 	_options_buttons.append_array(_speed.buttons)
 	_volume = VolumeSliders.new()
 	$OptionsPanel/VBox.add_child(_volume)
+	_options_buttons.append_array(_volume.sliders())
 	_build_glossary()
 	FocusLoop.link(_pause_buttons)
 	FocusLoop.link(_options_buttons)
@@ -162,8 +166,11 @@ func _close():
 	_focus_before = null
 
 
+## Escape opens it and closes it - on a pad, Menu opens it and B or Menu close
+## it, B alone being "back" and not "pause".
 func _unhandled_input(event):
-	if not event.is_action_pressed("ui_cancel"):
+	var pause: bool = event.is_action_pressed(&"pause")
+	if not pause and not event.is_action_pressed(&"ui_cancel"):
 		return
 	if controller != null and controller.is_skill_selected():
 		# Let CController's own Escape handling cancel the in-progress skill
@@ -176,8 +183,12 @@ func _unhandled_input(event):
 		_show_panel($PausePanel, _pause_buttons)
 	elif $PausePanel.visible:
 		_close()
-	else:
+	elif pause and not MenuPause.held_by_another(self):
+		# Not over another menu: Escape closes that one first, being "back"
+		# too, but a pad's Menu is only "pause" and would open on top of it.
 		_show_panel($PausePanel, _pause_buttons)
+	else:
+		return
 	get_viewport().set_input_as_handled()
 
 

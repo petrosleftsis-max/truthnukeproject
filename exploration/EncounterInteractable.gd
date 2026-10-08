@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/fight_spot.svg")
 extends Interactable
 class_name EncounterInteractable
 ## An enemy (or ambush point) on the map that starts a battle.

@@ -66,7 +66,7 @@ func _answer_with(use_it: bool):
 
 
 func _unhandled_input(event):
-	if not _waiting or not event is InputEventKey or not event.pressed or event.is_echo():
+	if not _waiting or not event.is_pressed() or event.is_echo():
 		return
 	# Escape passes, matching every other "get me out of here" in the game.
 	if event.is_action_pressed("ui_cancel"):

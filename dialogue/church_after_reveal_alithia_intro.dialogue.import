@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://c6igu63xdnrps"
+path="res://.godot/imported/church_after_reveal_alithia_intro.dialogue-0c3e47ef012bab127d43e68f59c838d7.tres"
+
+[deps]
+
+source_file="res://dialogue/church_after_reveal_alithia_intro.dialogue"
+dest_files=["res://.godot/imported/church_after_reveal_alithia_intro.dialogue-0c3e47ef012bab127d43e68f59c838d7.tres"]
+
+[params]
+
+defaults=true

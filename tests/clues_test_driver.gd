@@ -67,7 +67,7 @@ func clue_book():
 	log_line("======== the clue book ========")
 	var book = ClueBook.all()
 	for key in ["duty_roster", "ledger_count", "captain_claim", "pressed_numbers", "torn_letter", "skimming", "unwatched_ditch"]:
-		ok(book.has(key), "%s is read from res://clues/" % key)
+		ok(book.has(key), "%s is read from res://data/clues/" % key)
 	ok(ClueBook.deduced_from("ledger_count", "captain_claim") == "skimming", "two clues name the deduction they make")
 	ok(ClueBook.deduced_from("captain_claim", "ledger_count") == "skimming", "either way round")
 	ok(ClueBook.deduced_from("ledger_count", "duty_roster") == "", "and two that make nothing make nothing")
@@ -160,7 +160,7 @@ func _ask(talk: Resource, key: String, into: Dictionary):
 
 func in_conversation():
 	log_line("======== in a conversation ========")
-	var talk: Resource = load("res://Dialogue/clues_demo.dialogue")
+	var talk: Resource = load("res://dialogue/clues_demo.dialogue")
 	ok(talk != null, "the demo conversation loads")
 	if talk == null:
 		return
@@ -487,7 +487,7 @@ func sheets_opened():
 		Campaign.reset()
 		if knows:
 			Campaign.learn_clue("duty_roster")
-		Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+		Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 		var game = load("res://scenes/game.tscn").instantiate()
 		get_tree().root.add_child(game)
 		await settle(4)

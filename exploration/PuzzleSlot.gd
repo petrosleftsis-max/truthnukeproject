@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/puzzle_slot.svg")
 extends Control
 class_name PuzzleSlot
 ## Where a PuzzlePiece goes, under a Puzzle: a piece dropped near enough snaps

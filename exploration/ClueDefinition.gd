@@ -1,9 +1,10 @@
+@icon("res://art/editor_icons/clue.svg")
 extends Resource
 class_name ClueDefinition
 ## Something the party has learned, kept in the journal (J): a figure in a
 ## ledger, what somebody claimed, a letter pieced back together.
 ##
-## Save one in res://clues/ - its file name is its key, the way an item's is.
+## Save one in res://data/clues/ - its file name is its key, the way an item's is.
 ## It is learned by a hotspot (Gives Clue), a solved puzzle, or a conversation:
 ##
 ##     do Campaign.learn_clue("ledger_count")

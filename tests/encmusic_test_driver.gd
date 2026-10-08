@@ -75,17 +75,17 @@ func files_under(root: String, extensions: Array) -> Array:
 
 func run_test():
 	log_line("======== an encounter can name its own track ========")
-	var encounter: EncounterDefinition = load("res://encounters/encounter_01_ambush.tres")
+	var encounter: EncounterDefinition = load("res://data/encounters/encounter_01_ambush.tres")
 	ok("music" in encounter, "encounters have a music field")
 	# Whatever it is set to is content; that the field exists and is a track name
 	# is what matters here.
 	ok(encounter.music == "" or Music._load(encounter.music) != null,
 		"names a track that exists, or none at all", "'%s'" % encounter.music)
 	var shipped_with_music = []
-	for path in DirAccess.get_files_at("res://encounters"):
+	for path in DirAccess.get_files_at("res://data/encounters"):
 		if not path.ends_with(".tres"):
 			continue
-		var other: EncounterDefinition = load("res://encounters/%s" % path)
+		var other: EncounterDefinition = load("res://data/encounters/%s" % path)
 		if other.music != "":
 			shipped_with_music.append("%s -> %s" % [path, other.music])
 	log_line("  NOTE  encounters that set one: %s" % [shipped_with_music])
@@ -167,7 +167,7 @@ func run_test():
 	ok(Music._load("no_such_track") == null,
 		"and it agrees with Music about what is missing")
 	var complaint = ""
-	editor.encounter = load("res://encounters/encounter_01_ambush.tres")
+	editor.encounter = load("res://data/encounters/encounter_01_ambush.tres")
 	editor.encounter.music = "no_such_track"
 	for problem in editor._problems_with_layout():
 		if "Music" in problem:
@@ -197,18 +197,18 @@ func run_test():
 				if trimmed.begins_with("audio/music/"):
 					excluded.append(trimmed.get_file().get_basename())
 		var named := {}
-		var dir = DirAccess.open("res://Dialogue")
+		var dir = DirAccess.open("res://dialogue")
 		for file in dir.get_files():
 			if not file.ends_with(".dialogue"):
 				continue
-			var text = FileAccess.get_file_as_string("res://Dialogue/".path_join(file))
+			var text = FileAccess.get_file_as_string("res://dialogue/".path_join(file))
 			for piece in text.split("Music.play(\""):
 				if piece == text:
 					continue
 				var track = piece.split("\"")[0]
 				if track != "":
 					named[track] = file
-		for path in files_under("res://encounters", ["tres"]):
+		for path in files_under("res://data/encounters", ["tres"]):
 			var fight: EncounterDefinition = load(path)
 			if fight != null and fight.music != "":
 				named[fight.music] = path.get_file()

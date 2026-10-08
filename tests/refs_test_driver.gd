@@ -95,7 +95,7 @@ func run_test():
 
 	log_line("======== the HUD's own pieces, which a rename broke once ========")
 	for path in ["res://ui/tq_icon.tscn", "res://ui/status_icon.tscn", "res://ui/ui.tscn",
-			"res://ui/dialogue_balloon.tscn", "res://scenes/encounter_editor.tscn"]:
+			"res://ui/dialogue_balloon.tscn", "res://tools/encounter_editor.tscn"]:
 		var scene = load(path)
 		ok(scene != null, "%s loads" % path.get_file())
 		if scene != null:

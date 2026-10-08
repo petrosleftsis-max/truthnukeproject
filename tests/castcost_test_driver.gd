@@ -138,7 +138,7 @@ func measure(encounter_path: String, label: String):
 
 
 func run_test():
-	await measure("res://encounters/encounter_02_sappers.tres", "the Lab Fight")
-	await measure("res://encounters/encounter_03_watcher.tres", "the City Fight")
+	await measure("res://data/encounters/encounter_02_sappers.tres", "the Lab Fight")
+	await measure("res://data/encounters/encounter_03_watcher.tres", "the City Fight")
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)

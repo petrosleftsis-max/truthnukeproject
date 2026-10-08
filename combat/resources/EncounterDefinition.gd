@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/encounter.svg")
 extends Resource
 class_name EncounterDefinition
 ## One battle: which map it is fought on, and who starts where.
@@ -12,7 +13,7 @@ class_name EncounterDefinition
 ## Shown under the name on the level select button. Optional.
 @export_multiline var description: String = ""
 ## The map this is fought on. Its root must be a Node2D with a TileMap child
-## named "TileMap" - scenes/terrain.tscn is the template; duplicate it and
+## named "TileMap" - maps/terrain_template.tscn is the template; duplicate it and
 ## repaint to make a new map. Instantiated at runtime by GameScene, which is
 ## what lets every encounter have its own terrain without duplicating the rest
 ## of the scene.
@@ -21,7 +22,7 @@ class_name EncounterDefinition
 ## A conversation to play the moment this battle is won, before the result
 ## panel comes up. Leave it empty and the panel comes up straight away.
 ##
-## Written like any other: a .dialogue file in res://Dialogue. The result panel
+## Written like any other: a .dialogue file in res://dialogue. The result panel
 ## waits for it to finish, so it can be as long as it needs to be.
 @export var victory_dialogue: Resource
 ## Which title inside that file to start at. "start" unless you say otherwise.

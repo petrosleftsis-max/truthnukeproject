@@ -88,7 +88,7 @@ func robbed_before_the_fight():
 func caught_off_guard_in_the_fight():
 	log_line("======== in the fight ========")
 	Campaign.reset()
-	var encounter: EncounterDefinition = load("res://encounters/encounter_02_sappers.tres").duplicate(true)
+	var encounter: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
 	var marked: SpawnDefinition = null
 	for spawn in encounter.spawns:
 		if spawn.side == 1 and marked == null:

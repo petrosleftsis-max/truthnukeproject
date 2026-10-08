@@ -16,13 +16,40 @@ const INK_DIM := Color("c2ceda")    ## Body text.
 const MUTED := Color("8296a9")      ## Descriptions and labels.
 const ACCENT := Color("4a86c8")     ## Focus.
 const PANEL := Color("19212c")
+## Behind everything.
+const BACKDROP := Color("19212c") * Color(0.65, 0.65, 0.65, 1.0)
+
+## The picture behind the menu.
+const BACKGROUND_ART := "res://art/ui/main_menu_background.png"
+## The art is a pencil sketch on white, so it is drawn as chalk on the
+## menu's own dark blue: the paper becomes the backdrop, the pencil a pale
+## line - the menu stays as dark as it was and its light text still reads.
+## Set false for finished art, to show it in its own colours (dimmed).
+const BACKGROUND_AS_SKETCH := true
+## The colour the pencil lines come out in.
+const SKETCH_INK := Color(0.55, 0.66, 0.8, 0.55)
+## How much of the picture is left behind a panel other than the title screen.
+const BACKDROP_QUIET := 0.4
+const SKETCH_SHADER := """
+shader_type canvas_item;
+uniform vec4 paper : source_color;
+uniform vec4 ink : source_color;
+uniform float strength = 1.0;
+void fragment() {
+	vec3 drawn = texture(TEXTURE, UV).rgb;
+	float line = clamp((1.0 - dot(drawn, vec3(0.299, 0.587, 0.114))) * 1.6, 0.0, 1.0);
+	COLOR = vec4(mix(paper.rgb, ink.rgb, line * ink.a * strength), 1.0);
+}
+"""
 const CARD := Color("1c2531")       ## A card at rest.
 const CARD_LIT := Color("24344a")   ## Under the cursor or focus.
 const CARD_EDGE := Color("2b3947")
 
 const BATTLE_SELECT := "res://scenes/level_select.tscn"
 ## The point-and-click demo: clues, the journal, locks, a torn letter.
-const CLUES_DEMO := "res://scenes/try_pictures_demo.tscn"
+const CLUES_DEMO := "res://demos/try_pictures_demo.tscn"
+## The fights one after another, with rests between (see DungeonDefinition).
+const DUNGEON_DEMO := "res://data/dungeons/dungeon_demo.tres"
 const EXPLORATION := "res://scenes/exploration.tscn"
 const BATTLE := "res://scenes/game.tscn"
 const STORY := "res://scenes/story.tscn"
@@ -32,31 +59,31 @@ const STORY := "res://scenes/story.tscn"
 const WAYS_IN := [
 	{
 		"name": "Cyrus",
-		"icon": "res://imagese/icon/cyrus colors.png",
+		"icon": "res://art/characters/cyrus/cyrus_colors.png",
 		"description": "An introduction to the world and a tutorial stage.",
-		"dialogue": "res://Dialogue/cyrus_intro.dialogue",
+		"dialogue": "res://dialogue/cyrus_intro.dialogue",
 		"then": EXPLORATION,
 	},
 	{
 		"name": "Prometheus",
-		"icon": "res://imagese/icon/prometheus colors.png",
+		"icon": "res://art/characters/prometheus/prometheus_colors.png",
 		"description": "Narrative and gameplay team dynamics with an intermediate stage.",
-		"map": "res://scenes/laboratory_terrain_explore.tscn",
+		"map": "res://maps/laboratory_explore.tscn",
 	},
 	{
 		"name": "Enfina",
-		"icon": "res://imagese/icon/enfina colors.png",
+		"icon": "res://art/characters/enfina/enfina_colors.png",
 		"description": "A difficult stage.",
-		"encounter": "res://encounters/encounter_03_watcher.tres",
+		"encounter": "res://data/encounters/encounter_03_watcher.tres",
 	},
 	{
 		"name": "Alithia",
-		"icon": "res://imagese/icon/alithia colors.png",
+		"icon": "res://art/characters/alithia/alithia_colors.png",
 		"description": "Narrative snippet of mid to end game.",
 		# The conversation is in the map rather than named here: it is a scene
 		# that happens in the church, on arrival, and leaves her standing in it
-		# afterwards - see the ArrivalConversation node in church.tscn.
-		"map": "res://church.tscn",
+		# afterwards - see the ArrivalConversation node in maps/church.tscn.
+		"map": "res://maps/church.tscn",
 	},
 ]
 
@@ -66,37 +93,37 @@ const WAYS_IN := [
 const STEALTH_STAGES := [
 	{
 		"name": "The Tools",
-		"map": "res://stages/stealth_1.tscn",
+		"map": "res://maps/stealth_stages/stealth_1.tscn",
 		"description": "Get into the vault - the guard walking the corridor has the key. Throw pebbles to draw guards off, hide behind the crates, lift the key from his pocket, and listen for the guards you cannot see.",
 	},
 	{
 		"name": "The Watch",
-		"map": "res://stages/stealth_2.tscn",
+		"map": "res://maps/stealth_stages/stealth_2.tscn",
 		"description": "A statue that never stops turning and sees through anything, a hound that smells you through walls, and a captain whose shout brings the whole barracks.",
 	},
 	{
 		"name": "Escort",
-		"map": "res://stages/stealth_3.tscn",
+		"map": "res://maps/stealth_stages/stealth_3.tscn",
 		"description": "Get Enfina out. She can be seen as easily as you can, so every hiding place has to hold you both.",
 	},
 	{
 		"name": "Disguise",
-		"map": "res://stages/stealth_4.tscn",
+		"map": "res://maps/stealth_stages/stealth_4.tscn",
 		"description": "Find a priest's robes. The priest at the checkpoint will want a word, the hall guard will not look twice - and the door guard sees through any disguise.",
 	},
 	{
 		"name": "Lights Out",
-		"map": "res://stages/stealth_5.tscn",
+		"map": "res://maps/stealth_stages/stealth_5.tscn",
 		"description": "A dark archive: put the lamps out, creep (Ctrl) over gravel and glass, lift the key from a sleeping porter and read who walks where - then steal the ledger. Guards notice a lamp gone out or a door left open.",
 	},
 	{
 		"name": "Supper Time",
-		"map": "res://stages/stealth_6.tscn",
+		"map": "res://maps/stealth_stages/stealth_6.tscn",
 		"description": "Poison the aide's supper or dart him, plant a letter in the empty study, and overhear the guards in the hall - who check on each other. The cook runs for help if she sees you.",
 	},
 	{
 		"name": "The Checkpoint",
-		"map": "res://stages/stealth_7.tscn",
+		"map": "res://maps/stealth_stages/stealth_7.tscn",
 		"description": "The camp is on edge. In priest's robes, a word (E beside one) calms the guards they fool - and the view on the ground shows who they fool. Lift the quartermaster's bombs, then ambush the gate (F) or slip round by the ditch.",
 	},
 ]
@@ -108,10 +135,13 @@ const STEALTH_HELP := "Stay out of the guards' sight - what they can see is tint
 const RESOLUTIONS := [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1440)]
 
 var _panels := {}
+## The picture behind it all (see _backdrop_art).
+var _backdrop: TextureRect = null
 var _stack: Array = []
 ## The stage last started from here, to name when it sends the player back.
 static var _last_stage := ""
 var _stealth_note: Label = null
+var _note: Label = null
 ## Fullscreen, fake fullscreen or windowed, above the sizes.
 var _window_mode: WindowModePicker = null
 
@@ -121,10 +151,12 @@ func _ready():
 	GameSettings.restore_window_mode()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var background := ColorRect.new()
-	background.color = PANEL.darkened(0.35)
+	background.color = BACKDROP
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
+	_backdrop = _backdrop_art()
+	add_child(_backdrop)
 
 	_panels["root"] = _build_root()
 	_panels["play"] = _build_play()
@@ -144,8 +176,53 @@ func _ready():
 		if Campaign.menu_opens_at == STEALTH_PANEL and Campaign.menu_note != "":
 			_stealth_note.text = "%s: %s" % [_last_stage, Campaign.menu_note] if _last_stage != "" else Campaign.menu_note
 			_stealth_note.visible = true
+	elif Campaign.menu_note != "":
+		_note.text = Campaign.menu_note
+		_note.visible = true
 	Campaign.menu_opens_at = ""
 	Campaign.menu_note = ""
+
+
+## The picture behind the menu, filling the screen whatever its shape - cut at
+## the edges rather than squashed or letterboxed. Nothing at all when the file
+## is missing, which leaves the plain backdrop.
+func _backdrop_art() -> TextureRect:
+	var art := TextureRect.new()
+	art.name = "Backdrop"
+	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	if ResourceLoader.exists(BACKGROUND_ART):
+		art.texture = load(BACKGROUND_ART)
+	if BACKGROUND_AS_SKETCH:
+		var chalk := ShaderMaterial.new()
+		chalk.shader = Shader.new()
+		chalk.shader.code = SKETCH_SHADER
+		chalk.set_shader_parameter("paper", BACKDROP)
+		chalk.set_shader_parameter("ink", SKETCH_INK)
+		chalk.set_shader_parameter("strength", 1.0)
+		art.material = chalk
+	else:
+		# Finished art shown as painted, darkened enough that the menu's light
+		# text still reads over it.
+		art.modulate = Color(0.45, 0.48, 0.55)
+	return art
+
+
+## Fades the picture back behind a panel full of text - a list of stages, the
+## options - and brings it up again on the title screen, which has little over
+## it.
+func _quieten_backdrop(quiet: bool):
+	if _backdrop == null:
+		return
+	var fade := create_tween()
+	if _backdrop.material is ShaderMaterial:
+		var chalk: ShaderMaterial = _backdrop.material
+		fade.tween_method(func(value): chalk.set_shader_parameter("strength", value),
+			chalk.get_shader_parameter("strength"), BACKDROP_QUIET if quiet else 1.0, 0.25)
+	else:
+		fade.tween_property(_backdrop, "modulate:a", BACKDROP_QUIET if quiet else 1.0, 0.25)
 
 
 ## --- The panels ---
@@ -169,6 +246,15 @@ func _panel(title_text: String) -> VBoxContainer:
 
 func _build_root() -> Control:
 	var holder := _panel("Messengers of Truth")
+	# How a run that has just come back here went - a dungeon cleared. Hidden
+	# otherwise.
+	_note = Label.new()
+	_note.name = "Note"
+	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_note.add_theme_font_size_override("font_size", 16)
+	_note.add_theme_color_override("font_color", Color("9fc7a4"))
+	_note.visible = false
+	holder.add_child(_note)
 	var buttons := VBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 8)
@@ -178,6 +264,7 @@ func _build_root() -> Control:
 	buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
 	buttons.add_child(_menu_button("Stealth Stages", func(): _show(STEALTH_PANEL)))
 	buttons.add_child(_menu_button("Clues Demo", func(): SceneTransition.change_scene(CLUES_DEMO)))
+	buttons.add_child(_menu_button("Dungeon Demo", func(): Campaign.start_dungeon(load(DUNGEON_DEMO))))
 	buttons.add_child(_menu_button("Options", func(): _show("options")))
 	buttons.add_child(_menu_button("Glossary", func(): _open_glossary()))
 	buttons.add_child(_menu_button("Exit", _quit))
@@ -433,6 +520,7 @@ func _show(key: String, remember: bool = true):
 	for other in _panels:
 		_panels[other].visible = other == key
 	_focus_first(_panels[key])
+	_quieten_backdrop(key != "root")
 
 
 func _go_back():

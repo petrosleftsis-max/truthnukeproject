@@ -109,9 +109,10 @@ func _ready():
 		if spawn.side == 0:
 			player_tiles.append(spawn.position)
 			fallback_party.append(spawn.combatant_key)
-			# A player spawn is a place, not a person - who stands there comes
-			# from the roster. So the level and gear on it belong to the tile,
-			# and whoever deploys onto it fights at that level with that gear.
+			# Who fights comes from the roster, not from here. But a spawn
+			# written for somebody is theirs, level and gear and all, if they
+			# are fighting - see party_tiles_for - so nobody fights with
+			# somebody else's numbers.
 			player_loadouts.append(spawn)
 			continue
 		var enemy = create_combatant(CombatantDatabase.combatants[spawn.combatant_key], spawn.combatant_key, spawn.display_name, spawn)
@@ -161,7 +162,7 @@ func _deploy_party(tiles: Array, fallback_party: Array, loadouts: Array = []):
 			if CombatantDatabase.combatants.has(key) and Campaign.is_alive(key):
 				fighters.append(key)
 	if fighters.size() > tiles.size():
-		push_warning("Encounter '%s' has %d starting tiles but %d fighters in the party - the last %d sit this one out." % [
+		push_warning("Encounter '%s' has %d starting tiles but %d fighters in the party - %d sit this one out." % [
 			encounter.display_name, tiles.size(), fighters.size(), fighters.size() - tiles.size()
 		])
 	# A battle walked into from a map keeps whatever the party was carrying when
@@ -169,8 +170,15 @@ func _deploy_party(tiles: Array, fallback_party: Array, loadouts: Array = []):
 	# what each of them holds is the encounter's to say, spawn by spawn -
 	# nothing listed there means empty-handed.
 	var walked_in_from_a_map = Campaign.has_map_to_return_to()
-	for i in mini(fighters.size(), tiles.size()):
-		var key = fighters[i]
+	# A dungeon's fights keep what the party carried out of the last one, map
+	# or no map - its last stage is gone straight into.
+	if Campaign.in_dungeon():
+		walked_in_from_a_map = true
+	var tile_of_fighter := party_tiles_for(fighters, loadouts, tiles.size())
+	for key in fighters:
+		if not tile_of_fighter.has(key):
+			continue
+		var i: int = tile_of_fighter[key]
 		var loadout = loadouts[i] if i < loadouts.size() else null
 		if not walked_in_from_a_map:
 			Campaign.set_inventory(key, loadout.starting_items if loadout != null else [])
@@ -178,6 +186,31 @@ func _deploy_party(tiles: Array, fallback_party: Array, loadouts: Array = []):
 		Campaign.apply_carried_state(comb, key)
 		add_combatant(comb, 0, tiles[i])
 	deployment_tiles = tiles
+
+
+## Which of the player tiles each of `fighters` starts on, by index: fighter
+## key -> tile. A tile written for somebody - its spawn names them - is theirs,
+## with the level, weapon and defence on it, whatever order the party walks
+## in. Anyone without one of their own takes whichever are left, in marching
+## order; anyone left over when the tiles run out sits the fight out.
+##
+## It went by marching order alone, once: the first to walk took the first
+## tile's numbers, so the lab fight, written Alithia-Cyrus-Enfina-Prometheus
+## and walked into Cyrus-Enfina-Prometheus-Alithia, gave everybody somebody
+## else's defence.
+static func party_tiles_for(fighters: Array, loadouts: Array, tile_count: int) -> Dictionary:
+	var free: Array = range(tile_count)
+	var tile_of := {}
+	for key in fighters:
+		for i in free:
+			if i < loadouts.size() and loadouts[i] != null and loadouts[i].combatant_key == key:
+				tile_of[key] = i
+				free.erase(i)
+				break
+	for key in fighters:
+		if not tile_of.has(key) and not free.is_empty():
+			tile_of[key] = free.pop_front()
+	return tile_of
 
 
 ## Hands control to the player to arrange the party before the first turn.
@@ -199,7 +232,7 @@ func finish_deployment():
 
 ## Caught off guard - ambushed on a stealth map before they knew anybody was
 ## there: they lose their first turn, the way a stun takes one.
-const SURPRISED := preload("res://conditions/surprised.tres")
+const SURPRISED := preload("res://data/conditions/surprised.tres")
 
 
 func catch_off_guard(comb: Dictionary):
@@ -917,8 +950,8 @@ func get_distance(attacker: Dictionary, target: Dictionary):
 
 ## Generic entry point for using ANY skill, in place of the separate function
 ## per attack this used to have. A new skill needs no new code here at all:
-## just add it to skill_database.tscn and reference its key in a combatant's
-## skill list.
+## just save it in data/skills/ and put its key - the file name - in a
+## combatant's skill list.
 ## Targets a grid position, not a specific combatant - single-target skills
 ## are simply skills with aoe_radius = 0, so this one path handles both.
 ## Waits for attacker's skill animation (see CombatantSprite) to finish -
@@ -996,6 +1029,9 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 		spend_element_upgrade(attacker, skill)
 		var tiles = get_impact_tiles(skill, attacker.position, impact_position, attacker.movement_class)
 		var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally, skill.affects_both_sides)
+		if skill.targets_fallen:
+			# Aimed at the fallen, it lands on nobody standing.
+			targets = fallen_in_tiles(tiles, attacker)
 		# A roll each, rather than one for the whole use. A blast landing among
 		# two enemies is two chances to connect, and each is judged against that
 		# enemy - so a studied bonus counts against whoever was actually studied,
@@ -1517,7 +1553,10 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 	var damage_colour = null
 	if effect.type == EffectDefinition.EffectType.DAMAGE:
 		damage_colour = Damage.type_colour(effect.damage_type)
-	flash_target(attacker, target, damage_colour, blast_origin)
+	# Not on the fallen being stood back up: a flinch on a body, and the rise
+	# fighting the recoil for where it is drawn.
+	if effect.type != EffectDefinition.EffectType.REVIVE:
+		flash_target(attacker, target, damage_colour, blast_origin)
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
 			do_damage(attacker, target, effect, skill, mention_skill, power)
@@ -1643,6 +1682,10 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 " % target.name)
 		EffectDefinition.EffectType.DISPEL:
 			dispel_status_effects(attacker, target, effect)
+		EffectDefinition.EffectType.REVIVE:
+			revive(attacker, target, effect, skill)
+		EffectDefinition.EffectType.STEAL:
+			steal(attacker, target, effect, skill)
 		EffectDefinition.EffectType.REVEAL:
 			# Knowledge, not an injury: it lasts the battle, nothing cleanses it
 			# off, and studying the same enemy twice is the same knowledge again.
@@ -2009,7 +2052,7 @@ func should_dispel(status_effect: Dictionary, dispel_effect: EffectDefinition) -
 		return true
 	var is_multiply = status_effect.get("op", "add") == "multiply"
 	# A condition is always something done to you - there is no such thing as a
-	# helpful one in this game, and every entry in res://conditions is an
+	# helpful one in this game, and every entry in res://data/conditions is an
 	# affliction. It carries no `amount`, so the tests below could never see it
 	# as a debuff: Cleanse, which exists to lift debuffs, could not lift a
 	# single Poisoning, Burn or Crystallisation off anybody.
@@ -3072,6 +3115,221 @@ func combatant_die(combatant: Dictionary):
 
 
 
+
+## --- Coming back from the fallen ---
+##
+## A Resuscitate (SkillDefinition.targets_fallen, EffectType.REVIVE) stands an
+## ally back up where they fell. It costs them: everything they are made of but
+## how far they can walk comes back a little less, for the rest of the run, and
+## a second time takes as much again off what the first left.
+
+## The figures on a combatant that weakening takes from besides their five
+## attributes. Movement is the one thing it leaves alone.
+const WEAKENED_FIGURES := ["max_hp", "initiative", "weapon_base"]
+
+
+## Whoever of `side` lies fallen on `tile` - the last to fall there, if more
+## than one did - or {}.
+func fallen_at(tile: Vector2i, side: int) -> Dictionary:
+	var found := {}
+	for comb in combatants:
+		if not comb.alive and comb.side == side and comb.position == tile:
+			found = comb
+	return found
+
+
+## Everybody on `caster`'s side lying fallen in `tiles`.
+func fallen_in_tiles(tiles: Array, caster: Dictionary) -> Array:
+	var found := []
+	for tile in tiles:
+		var comb := fallen_at(tile, caster.side)
+		if not comb.is_empty() and not found.has(comb):
+			found.append(comb)
+	return found
+
+
+## Whether anybody on `side` has fallen in this fight.
+func anyone_fallen(side: int) -> bool:
+	for comb in combatants:
+		if not comb.alive and comb.side == side:
+			return true
+	return false
+
+
+## Stands `target` back up: weakened first, then on their feet with
+## effect.revive_health of what they can have now - where they fell, or on the
+## nearest free tile if somebody is standing there.
+func revive(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null):
+	if target.alive or not still_running():
+		return
+	var index := combatants.find(target)
+	if index == -1:
+		return
+	weaken(target, effect.revive_weakening)
+	var stand: Vector2i = target.position
+	if controller != null and controller.has_method("nearest_free_tile"):
+		stand = controller.nearest_free_tile(target.position, target.movement_class)
+	target.alive = true
+	target.hp = maxi(1, roundi(target.max_hp * effect.revive_health))
+	# Whatever was burning or holding them went down with them.
+	target.status_effects = []
+	target.hidden = false
+	target.position = stand
+	if not groups[target.side].has(index):
+		groups[target.side].append(index)
+	var sprite = target.get("sprite")
+	if sprite != null and is_instance_valid(sprite):
+		if controller != null:
+			sprite.position = controller.tile_map.map_to_local(stand)
+		sprite.set_alive()
+	if controller != null and controller.has_method("combatant_revived"):
+		controller.combatant_revived(target)
+	float_number(target, "+" + str(target.hp), Color("7fe08a"))
+	update_combatants.emit(combatants)
+	update_turn_queue.emit(combatants, turn_queue)
+	update_information.emit("[color=yellow]%s[/color] used %s: [color=lightgreen]%s[/color] is back on their feet with %d health - and %d%% weaker for good.\n" % [
+		attacker.name, skill.name if skill != null else "it", target.name, target.hp, roundi(effect.revive_weakening * 100.0)])
+
+
+## Takes `fraction` off everything `comb` is made of but their movement - for
+## good, and on top of whatever was taken before. See apply_frailty.
+static func weaken(comb: Dictionary, fraction: float):
+	if fraction <= 0.0:
+		return
+	comb["frailty"] = comb.get("frailty", 1.0) * (1.0 - fraction)
+	apply_frailty(comb)
+
+
+## Sets everything weakening touches to what it was before any, times
+## comb.frailty. Worked from the untouched figures, kept the first time, so
+## being weakened again compounds without rounding creeping in. Nothing goes
+## below 1 that was above it. Called for a fresh combatant too, by
+## Campaign.apply_carried_state, so the weakening outlasts the fight.
+static func apply_frailty(comb: Dictionary):
+	var frailty: float = comb.get("frailty", 1.0)
+	if frailty >= 1.0 and not comb.has("unweakened"):
+		return
+	if not comb.has("unweakened"):
+		var untouched := {"stats": comb.get("stats", {}).duplicate()}
+		for figure in WEAKENED_FIGURES:
+			untouched[figure] = comb.get(figure, 0)
+		comb["unweakened"] = untouched
+	var before: Dictionary = comb.unweakened
+	for key in before.stats:
+		comb.stats[key] = weakened_figure(before.stats[key], frailty)
+	for figure in WEAKENED_FIGURES:
+		comb[figure] = weakened_figure(before[figure], frailty)
+	comb.hp = mini(comb.get("hp", 0), comb.max_hp)
+
+
+## `figure` weakened to `frailty` of itself - not below 1 if it was above.
+static func weakened_figure(figure, frailty: float) -> int:
+	if figure <= 0:
+		return figure
+	return maxi(1, roundi(figure * frailty))
+
+
+## --- Stealing ---
+##
+## A Steal (EffectType.STEAL) lifts what somebody has to hand in this fight -
+## an enemy's pocket (SpawnDefinition.starting_items), or the front of a party
+## member's bag - and puts it where the thief keeps their own: the front of
+## their bag first, so it is to hand at once, or an enemy's pocket. What the
+## thief has no room for stays with whoever had it.
+
+## Whether `skill` takes things off whoever it lands on.
+static func steals(skill: SkillDefinition) -> bool:
+	if skill == null:
+		return false
+	for effect in skill.all_effects():
+		if effect != null and effect.type == EffectDefinition.EffectType.STEAL:
+			return true
+	return false
+
+
+## Whether anybody standing against `comb` has something on them to take.
+func anyone_carrying_against(comb: Dictionary) -> bool:
+	for other in combatants:
+		if other.alive and other.side != comb.get("side", 0) and not items_of(other).is_empty():
+			return true
+	return false
+
+
+## Takes what `target` has to hand - all of it, or effect.steal_count of it -
+## and gives it to `attacker`, as far as they have room.
+func steal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null):
+	var carried: Array = items_of(target).duplicate()
+	if effect.steal_count > 0 and carried.size() > effect.steal_count:
+		carried.resize(effect.steal_count)
+	if carried.is_empty():
+		update_information.emit("[color=red]%s[/color] has nothing on them to steal.\n" % target.name)
+		return
+	var taken := []
+	var for_later := []
+	var left := []
+	for key in carried:
+		var slot := _stow(attacker, key)
+		if slot < 0:
+			left.append(key)
+			continue
+		_give_up(target, key)
+		taken.append(key)
+		if slot >= Campaign.COMBAT_SLOTS:
+			for_later.append(key)
+	if taken.is_empty():
+		update_information.emit("[color=yellow]%s[/color] has no room for anything [color=red]%s[/color] is carrying.\n" % [
+			attacker.name, target.name])
+		return
+	float_number(target, "Stolen", Color("f2d36b"))
+	update_combatants.emit(combatants)
+	update_information.emit("[color=yellow]%s[/color] used %s: lifts %s from [color=red]%s[/color].\n" % [
+		attacker.name, skill.name if skill != null else "it", _item_names(taken), target.name])
+	if not for_later.is_empty():
+		update_information.emit("[color=yellow]%s[/color] has no free hand for %s - into the bag, for after the fight.\n" % [
+			attacker.name, _item_names(for_later)])
+	if not left.is_empty():
+		update_information.emit("[color=yellow]%s[/color] has no room for %s, so [color=red]%s[/color] keeps it.\n" % [
+			attacker.name, _item_names(left), target.name])
+
+
+## Puts `key` where `comb` keeps their things, and says which slot it went in:
+## the first free one of their bag for the party, the end of their pocket for
+## anybody else. -1 when there is no room.
+func _stow(comb: Dictionary, key: String) -> int:
+	if comb.side == 0:
+		var owner_key: String = comb.get("combatant_key", "")
+		return Campaign.stow_item(owner_key, key) if owner_key != "" else -1
+	if not comb.has("pocket"):
+		comb["pocket"] = []
+	var pocket: Array = comb.pocket
+	if pocket.size() >= Campaign.COMBAT_SLOTS:
+		return -1
+	pocket.append(key)
+	return pocket.size() - 1
+
+
+## Takes one `key` off `comb`, from what they have to hand.
+func _give_up(comb: Dictionary, key: String):
+	if comb.side == 0:
+		Campaign.take_item(comb.get("combatant_key", ""), key)
+		return
+	var pocket: Array = comb.get("pocket", [])
+	var slot := pocket.find(key)
+	if slot >= 0:
+		pocket.remove_at(slot)
+
+
+## "Cure Potion, Tiny Bomb and Medicine", from item keys.
+func _item_names(keys: Array) -> String:
+	var names := []
+	for key in keys:
+		var item: ItemDefinition = ItemDatabase.item(key)
+		names.append(item.name if item != null else key)
+	if names.size() == 1:
+		return names[0]
+	return "%s and %s" % [", ".join(names.slice(0, names.size() - 1)), names[-1]]
+
+
 ##AI
 
 func sort_weight_array(a, b):
@@ -3293,6 +3551,10 @@ func only_gets_you_moving(skill: SkillDefinition) -> bool:
 ## would do something. The action panel greys it out and says this; the AI
 ## leaves it alone. Rooted, Run doubles a movement that is not there.
 func wasted_on(comb: Dictionary, skill: SkillDefinition) -> String:
+	if skill != null and skill.targets_fallen and not anyone_fallen(comb.get("side", 0)):
+		return "Nobody on %s's side has fallen, so %s would do nothing." % [comb.get("name", "their"), skill.name]
+	if steals(skill) and not anyone_carrying_against(comb):
+		return "Nobody against %s is carrying anything, so %s would do nothing." % [comb.get("name", "them"), skill.name]
 	if skill == null or not only_gets_you_moving(skill):
 		return ""
 	for condition in conditions_of(comb):

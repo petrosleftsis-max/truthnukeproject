@@ -58,7 +58,7 @@ func run_test():
 func leave_during_an_enemy_turn(wait_before_leaving: float):
 	log_line("======== leaving %.2fs into an enemy's turn ========" % wait_before_leaving)
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	get_tree().change_scene_to_file("res://scenes/game.tscn")
 	await frames(8)
 	var game = get_tree().current_scene

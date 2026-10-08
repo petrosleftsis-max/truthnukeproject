@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://dian6e70shlvo"
+path="res://.godot/imported/intro_sewer_after_encounter.dialogue-660b4011e6462e452845c79248774835.tres"
+
+[deps]
+
+source_file="res://dialogue/intro_sewer_after_encounter.dialogue"
+dest_files=["res://.godot/imported/intro_sewer_after_encounter.dialogue-660b4011e6462e452845c79248774835.tres"]
+
+[params]
+
+defaults=true

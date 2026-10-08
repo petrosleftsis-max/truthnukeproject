@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/door.svg")
 extends Interactable
 class_name DoorInteractable
 ## A way through to another exploration map.

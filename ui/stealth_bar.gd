@@ -75,31 +75,36 @@ func _ready():
 	_dash = _button(_on_dash_pressed)
 	_creep = _button(_on_creep_pressed)
 	_creep.toggle_mode = true
-	_creep.text = "Creep (Ctrl)"
-	_creep.tooltip_text = "Walk slowly, without a sound - across gravel, puddles and broken glass too. Hold Ctrl, or click to keep creeping."
 	# Held, not clicked: time runs fast for as long as it is down.
 	_patience = Button.new()
 	_patience.focus_mode = Control.FOCUS_NONE
 	_patience.toggle_mode = true
-	_patience.text = "Patience (P)"
-	_patience.tooltip_text = "Hold it (or P) and time runs twice as fast - for waiting out a patrol. Let go and it is back to normal."
 	_patience.button_down.connect(_on_patience.bind(true))
 	_patience.button_up.connect(_on_patience.bind(false))
 	_row.add_child(_patience)
 	_vault = _button(_on_vault_pressed, _here)
-	_vault.text = "Vault (V)"
 	_vault.tooltip_text = "Hop over the barrel beside you to the other side."
 	_takedown = _button(_on_takedown_pressed, _here)
-	_takedown.text = "Take down (Left click)"
 	_drag = _button(_on_drag_pressed, _here)
 	_pocket = _button(_on_pocket_pressed, _here)
-	_pocket.text = "Pick pocket (Right click)"
 	_ambush = _button(_on_ambush_pressed, _here)
-	_ambush.text = "Ambush (F)"
 	_ambush.tooltip_text = "Start the fight here, on your terms: every guard who hadn't noticed you loses their first turn."
 	_hide = _button(_on_hide_pressed, _here)
-	_hide.text = "Hide (H)"
 	refresh()
+
+
+## The buttons that never change but for what to press: the keys, or a pad's.
+func _name_keys():
+	_creep.text = Pad.hint("Creep", &"creep")
+	_creep.tooltip_text = "Walk slowly, without a sound - across gravel, puddles and broken glass too. %s, or click to keep creeping." % (
+		"Push the stick only a little way" if Pad.using_pad else "Hold %s" % Pad.key(&"creep"))
+	_patience.text = Pad.hint("Patience", &"patience")
+	_patience.tooltip_text = "Hold it (or %s) and time runs twice as fast - for waiting out a patrol. Let go and it is back to normal." % Pad.key(&"patience")
+	_vault.text = Pad.hint("Vault", &"vault")
+	_takedown.text = Pad.hint("Take down", &"take_down", "Left click")
+	_pocket.text = Pad.hint("Pick pocket", &"pick_pocket", "Right click")
+	_ambush.text = Pad.hint("Ambush", &"ambush")
+	_hide.text = Pad.hint("Hide", &"take_off_disguise")
 
 
 func _label() -> Label:
@@ -160,13 +165,14 @@ func refresh():
 		if watch.leader_in_shadow():
 			_status.text += " in the dark"
 	_creep.set_pressed_no_signal(watch.creeping())
+	_name_keys()
 	# Lit while time is running fast, whichever way it is held.
 	_patience.set_pressed_no_signal(watch.hurried())
 	# How on edge the map is.
 	var level: String = watch.alert_level()
 	_alert.text = level
 	_alert.add_theme_color_override("font_color", {"Calm": CALM, "Wary": WARY, "Alarmed": ALARMED}[level])
-	_alert.tooltip_text = "How on edge the guards are. Wary and Alarmed guards walk quicker, look wider and grow sure quicker. It never settles by itself - a word with a guard your disguise fools (R) settles it a level."
+	_alert.tooltip_text = "How on edge the guards are. Wary and Alarmed guards walk quicker, look wider and grow sure quicker. It never settles by itself - a word with a guard your disguise fools (%s beside one) settles it a level." % Pad.key(&"interact")
 	if watch.alert_floor > 0.0:
 		_alert.tooltip_text += " A body was found: it will not settle below %s." % StealthWatch.ALERT_NAMES[StealthWatch.level_of(watch.alert_floor)]
 	_ghost.text = "Unseen"
@@ -180,16 +186,22 @@ func refresh():
 		var count = Campaign.count_of(watch.leader_key(), throwable)
 		var more: bool = watch.throwables().size() > 1
 		if watch.is_aiming():
-			_throw.text = "Aiming %s - click%s" % [item.name, " (T: next)" if more else ""]
+			if Pad.using_pad:
+				_throw.text = "Aiming %s - %s or %s%s" % [item.name, Pad.key(&"throw"), Pad.key(&"pointer_click"), " (D-pad: next)" if more else ""]
+			else:
+				_throw.text = "Aiming %s - click%s" % [item.name, " (%s: next)" % Pad.key(&"throw") if more else ""]
 		else:
-			_throw.text = "Throw %s x%d (T)" % [item.name, count]
+			_throw.text = "Throw %s x%d (%s)" % [item.name, count, Pad.key(&"throw")]
 		if item.is_poison():
 			_throw.tooltip_text = "Throw it at a guard within %d tiles you can see. %s" % [StealthWatch.THROW_TILES, item.description]
 		else:
 			_throw.tooltip_text = "Throw it somewhere within %d tiles you can see; guards within %d tiles of where it lands go to look." % [
 				StealthWatch.THROW_TILES, item.distraction_radius]
 		if more:
-			_throw.tooltip_text += " While aiming, T again picks the next thing to throw."
+			if Pad.using_pad:
+				_throw.tooltip_text += " While aiming, the D-pad's left and right pick the thing to throw."
+			else:
+				_throw.tooltip_text += " While aiming, %s again picks the next thing to throw." % Pad.key(&"throw")
 		_throw.tooltip_text += " Thrown from a hiding spot, anybody who can see the spot sees you do it."
 	# Everything else he could throw, a button each beside it - so a dart is not
 	# hidden behind the pebbles. A click aims that one instead.
@@ -220,14 +232,14 @@ func refresh():
 		_ears.text = "Ears %.1fs" % watch.ears_cooldown()
 		_ears.disabled = true
 	else:
-		_ears.text = "Ears (Q)"
+		_ears.text = Pad.hint("Ears", &"listen")
 		_ears.disabled = false
 	_ears.tooltip_text = "Hear every guard through the walls for %d seconds." % StealthWatch.EARS_SECONDS
 	# The dash, and how long until it is ready again.
 	var cooling: float = watch.dash_cooldown()
 	var no_dash: String = watch.dash_refusal()
 	_dash.disabled = cooling > 0.0 or no_dash != ""
-	_dash.text = "Dash %.1fs" % cooling if cooling > 0.0 else "Dash (Shift)"
+	_dash.text = "Dash %.1fs" % cooling if cooling > 0.0 else Pad.hint("Dash", &"dash")
 	_dash.tooltip_text = no_dash if no_dash != "" else "A burst of %d tiles, then %d seconds to recover. Anyone who sees it grows sure %d times as fast, and guards within %d tiles hear it." % [
 		StealthWatch.DASH_TILES, StealthWatch.DASH_COOLDOWN, StealthWatch.DASH_NOTICE, StealthWatch.DASH_NOISE_TILES]
 	# Beside something to hop over.
@@ -237,19 +249,20 @@ func refresh():
 	var down = watch.takedown_target() if dragging == null else null
 	_takedown.visible = down != null
 	if down != null:
-		_takedown.tooltip_text = "Left click to knock them out. It is heard: guards within %d tiles come to look, and one who sees them lying there raises the alarm." % StealthWatch.TAKEDOWN_NOISE_TILES
+		_takedown.tooltip_text = "%s to knock them out. It is heard: guards within %d tiles come to look, and one who sees them lying there raises the alarm." % [
+			Pad.key(&"take_down", "Left click"), StealthWatch.TAKEDOWN_NOISE_TILES]
 	if dragging != null:
 		var stash = watch.stash_spot()
 		_drag.visible = true
-		_drag.text = "Hide body (Left click)" if stash != null else "Drop body (Left click)"
+		_drag.text = Pad.hint("Hide body" if stash != null else "Drop body", &"take_down", "Left click")
 		_drag.tooltip_text = "Into the hiding spot beside you - out of sight, but a guard who comes within a couple of tiles of it will notice. Nobody can hide there any more." if stash != null \
 			else "Leave them here. Stand beside a free hiding spot to hide them in it instead."
 	else:
 		_drag.visible = watch.drag_target() != null
-		_drag.text = "Drag body (Left click)"
+		_drag.text = Pad.hint("Drag body", &"take_down", "Left click")
 		_drag.tooltip_text = "Pick them up and drag them after you, at half your pace. Any guard who sees you at it knows you at once."
 	_pocket.visible = watch.pocket_target() != null
-	_pocket.tooltip_text = "Right click to lift what they carry, without them noticing."
+	_pocket.tooltip_text = "%s to lift what they carry, without them noticing." % Pad.key(&"pick_pocket", "Right click")
 	_ambush.visible = watch.ambush_target() != null and watch.ambush_refusal() == ""
 	var refusal: String = watch.hide_refusal()
 	_hide.visible = watch.worn_by(watch.leader_key()) != ""
@@ -368,36 +381,83 @@ func _on_disguise_pressed(item_key: String):
 		watch.wear(item_key)
 
 
+## The keys, through _unhandled_key_input as they always were, so they come in
+## the same order against the map's own E as before.
 func _unhandled_key_input(event):
-	if watch == null or not event.pressed or event.is_echo():
+	_act(event)
+
+
+## A pad's buttons, which _unhandled_key_input never hears.
+func _unhandled_input(event):
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		_act(event)
+
+
+func _act(event: InputEvent):
+	if watch == null or not event.is_pressed() or event.is_echo():
 		return
 	if watch.scene != null and watch.scene.has_method("is_holding") and watch.scene.is_holding():
 		return
+	var from_pad := not event is InputEventKey
 	var acted := true
-	match event.physical_keycode:
-		KEY_H:
-			watch.hide_again()
-		KEY_SHIFT:
-			watch.dash()
-		KEY_T:
-			_on_throw_pressed()
-		KEY_Q:
-			watch.listen()
-		KEY_V:
-			watch.vault()
-		KEY_E, KEY_SPACE:
-			# A word with a guard the disguise fools - unless there is something
-			# else in reach for E, which the map sees to.
-			acted = watch.talk_on_interact()
-		KEY_F:
-			watch.ambush()
-		_:
-			acted = false
+	if watch.is_aiming() and from_pad and Pad.went_down(event, &"throw"):
+		# A pad lets go where its pointer is: RT is the mouse's click.
+		watch.throw_at_pointer()
+	elif Pad.went_down(event, &"throw"):
+		_on_throw_pressed()
+	elif watch.is_aiming() and from_pad and Pad.went_down(event, &"take_off_disguise"):
+		# Aiming, the D-pad's sides go through what there is to throw.
+		watch.next_throwable(-1)
+	elif watch.is_aiming() and from_pad and Pad.went_down(event, &"next_disguise"):
+		watch.next_throwable(1)
+	elif Pad.went_down(event, &"take_off_disguise"):
+		watch.hide_again()
+	elif Pad.went_down(event, &"next_disguise"):
+		_wear_next()
+	elif Pad.went_down(event, &"dash"):
+		watch.dash()
+	elif Pad.went_down(event, &"listen"):
+		watch.listen()
+	elif Pad.went_down(event, &"vault"):
+		watch.vault()
+	elif Pad.went_down(event, &"ambush"):
+		watch.ambush()
+	elif Pad.went_down(event, &"take_down"):
+		_on_takedown_or_drag()
+	elif Pad.went_down(event, &"pick_pocket"):
+		watch.pick_pocket()
+	elif Pad.went_down(event, &"interact"):
+		# A word with a guard the disguise fools - unless there is something
+		# else in reach for E, which the map sees to.
+		acted = watch.talk_on_interact()
+	else:
+		acted = false
 	if acted:
 		get_viewport().set_input_as_handled()
+		return
+	if not event is InputEventKey:
 		return
 	var index = event.physical_keycode - KEY_1
 	var carried: Array = watch.disguises()
 	if index >= 0 and index < mini(carried.size(), 9):
 		watch.wear(carried[index])
 		get_viewport().set_input_as_handled()
+
+
+## A pad's X: what a left click on the guard beside him does - knock him out,
+## or take up the body there, or put down the one being dragged. With no click
+## to say which guard, whoever it can be done to.
+func _on_takedown_or_drag():
+	if watch.dragging() != null:
+		watch.put_down()
+	elif not watch.take_down():
+		watch.drag()
+
+
+## A pad's D-pad right: into the next disguise he carries, round and round.
+func _wear_next():
+	var carried: Array = watch.disguises()
+	if carried.is_empty():
+		return
+	var worn: String = watch.worn_by(watch.leader_key())
+	watch.wear(carried[(carried.find(worn) + 1) % carried.size()])

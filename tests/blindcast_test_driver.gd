@@ -30,7 +30,7 @@ func _ready():
 func blind(combat, comb: Dictionary):
 	comb.status_effects.append({
 		"stat": "condition",
-		"condition": load("res://conditions/blind.tres"),
+		"condition": load("res://data/conditions/blind.tres"),
 		"dot_base": 0.0,
 		"duration": 5,
 		"source_name": "the test",
@@ -39,7 +39,7 @@ func blind(combat, comb: Dictionary):
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 8:

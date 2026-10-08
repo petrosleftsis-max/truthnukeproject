@@ -38,7 +38,7 @@ func real_wait(seconds: float):
 
 func start_fight() -> Array:
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 4:
@@ -118,7 +118,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== where it is set ========")
-	var menu = load("res://main_menu.tscn").instantiate()
+	var menu = load("res://scenes/main_menu.tscn").instantiate()
 	get_tree().root.add_child(menu)
 	await get_tree().process_frame
 	ok(not menu._panels["options"].find_children("*", "BattleSpeedPicker", true, false).is_empty(),

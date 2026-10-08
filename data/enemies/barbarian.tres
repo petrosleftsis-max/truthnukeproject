@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_pyftd"]
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="2_o4bgq"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/barbarian/barbarian_frames.tres" id="3_ic767"]
+
+[resource]
+script = ExtResource("2_o4bgq")
+name = "Barbarian"
+max_hp = 50
+max_hp_level_2 = 180
+max_hp_level_3 = 250
+movement = 5
+initiative = 3
+secondary_stat = 3
+sprite_frames = ExtResource("3_ic767")
+skills = Array[String](["greatsword_attack", "follow_up_attack", "sweep_strike", "run"])
+resist_fire = -50
+resist_earth = 50

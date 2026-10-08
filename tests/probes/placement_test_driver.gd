@@ -1,6 +1,6 @@
 extends Node
 ## Runs the encounter editor's own placement rules over the markers currently
-## sitting in scenes/encounter_editor.tscn, so the layout can be checked
+## sitting in tools/encounter_editor.tscn, so the layout can be checked
 ## without opening the editor.
 
 var LOG_PATH := HarnessLog.path_for("placement")
@@ -22,22 +22,21 @@ func _ready():
 
 
 func run_check():
-	var editor_scene = load("res://scenes/encounter_editor.tscn")
+	var editor_scene = load("res://tools/encounter_editor.tscn")
 	# Outside the editor, EncounterEditor._ready() leaves the saved preview
 	# alone, so instantiating gives back exactly the markers as they sit in
 	# the file.
 	var editor_root = editor_scene.instantiate()
 	add_child(editor_root)
 
-	var terrain = load("res://scenes/terrain.tscn").instantiate()
+	var terrain = load("res://maps/terrain_template.tscn").instantiate()
 	add_child(terrain)
 	var tile_map: TileMap = terrain.get_node("TileMap")
 	var rect = tile_map.get_used_rect()
 	var tile_size = tile_map.tile_set.tile_size.x
 	log_line("map: %s, %d px tiles" % [rect, tile_size])
 
-	var database = load("res://databases/combatant_database.tscn").instantiate()
-	var definitions: Dictionary = database.combatants
+	var definitions: Dictionary = DataFolder.combatants()
 
 	var spawns_container = editor_root.get_node_or_null("Spawns")
 	var container_offset = spawns_container.position if spawns_container != null else Vector2.ZERO

@@ -251,6 +251,8 @@ var _shuffle_left := false
 ## up; the guards are whatever Guard nodes the map holds.
 func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 	scene = the_scene
+	# Aiming a throw from a pad keeps its pointer up - see wants_pad_pointer.
+	add_to_group(&"pad_pointer")
 	Campaign.stealth_watch = self
 	setup = the_setup
 	_tile_map = tile_map
@@ -1727,9 +1729,9 @@ var patience_held := false
 var _hurried := false
 
 
-## Whether Patience is being held: the button, or P.
+## Whether Patience is being held: the button, or P (LT on a pad).
 func patient() -> bool:
-	return patience_held or Input.is_physical_key_pressed(KEY_P)
+	return patience_held or Input.is_action_pressed(&"patience")
 
 
 ## Whether time is running fast for Patience this moment.
@@ -1785,9 +1787,13 @@ func noisy_floor_at(tile: Vector2i) -> NoisyFloor:
 	return _noisy.get(tile)
 
 
-## Whether the party is creeping: Ctrl held, or the bar's Creep kept on.
+## Whether the party is creeping: Ctrl held, the bar's Creep kept on, or the
+## stick pushed only a little way.
 func creeping() -> bool:
-	return _creep_kept or Input.is_physical_key_pressed(KEY_CTRL)
+	if _creep_kept or Input.is_action_pressed(&"creep"):
+		return true
+	var party = scene.get("party") if scene != null else null
+	return party != null and is_instance_valid(party) and party.light_touch()
 
 
 ## Keeps creeping on, or lets it go - the bar's Creep, for playing with the mouse.
@@ -1856,15 +1862,20 @@ func begin_throw(item_key: String = "") -> bool:
 		return false
 	_aiming = item_key
 	_last_thrown = item_key
+	if Pad.using_pad:
+		# A pad's pointer starts on the likeliest target rather than wherever
+		# it was left, which could be across the screen.
+		Pad.point_at(get_canvas_transform() * _first_aim())
 	return true
 
 
-## Aiming already: on to the next thing he carries to throw, round and round.
-func next_throwable():
+## Aiming already: on to the next thing he carries to throw, round and round -
+## or, `by` -1, back to the one before.
+func next_throwable(by: int = 1):
 	var carried = throwables()
 	if _aiming == "" or carried.is_empty():
 		return
-	_aiming = carried[(carried.find(_aiming) + 1) % carried.size()]
+	_aiming = carried[posmod(carried.find(_aiming) + by, carried.size())]
 	_last_thrown = _aiming
 	queue_redraw()
 
@@ -1881,6 +1892,47 @@ func cancel_throw():
 
 func is_aiming() -> bool:
 	return _aiming != ""
+
+
+## For Pad: the pointer stays up while a throw is being aimed, and A throws.
+func wants_pad_pointer() -> bool:
+	return _aiming != ""
+
+
+## Throws what is being aimed where the pointer is - a pad's RT, which is the
+## mouse's click.
+func throw_at_pointer() -> bool:
+	return _aiming != "" and throw_at(tile_of(_pointer_world()))
+
+
+## Where the pointer is on the map: the pad's, while a pad is in use, which is
+## the mouse's too except where the real cursor is not to be moved.
+func _pointer_world() -> Vector2:
+	return _world_at(Pad.screen_point())
+
+
+## Where a throw begun from a pad starts out aimed: on the nearest guard on
+## screen it could land beside, or else a few tiles the way the party is going.
+func _first_aim() -> Vector2:
+	var party = scene.get("party")
+	var from: Vector2 = party.leader.global_position
+	var screen := get_viewport_rect()
+	var best: Guard = null
+	for guard in guards:
+		if not is_instance_valid(guard) or not guard.visible or guard.knocked_out:
+			continue
+		if not can_throw_to(tile_of(guard.global_position)):
+			continue
+		if not screen.has_point(get_canvas_transform() * guard.global_position):
+			continue
+		if best == null or from.distance_to(guard.global_position) < from.distance_to(best.global_position):
+			best = guard
+	if best != null:
+		return best.global_position
+	var ahead: Vector2 = party.held_direction()
+	if ahead == Vector2.ZERO:
+		ahead = Vector2.RIGHT
+	return from + ahead.normalized() * Grid.tiles(3.0)
 
 
 ## Whether a throw from the leader can land on `tile`: near enough, with a clear
@@ -2037,6 +2089,12 @@ const ROUTE_DOT_TILES := 0.18
 var _hovered: Guard = null
 
 
+## Whether the pointer is on the map to point at anybody: the mouse always is,
+## a pad's only while it is up.
+func _pointing() -> bool:
+	return not Pad.using_pad or Pad.pointer_showing()
+
+
 ## Whether the party has found out `guard`'s round.
 func route_known(guard: Guard) -> bool:
 	return is_instance_valid(guard) and guard.route_known_flag != "" and Campaign.flag(guard.route_known_flag)
@@ -2044,7 +2102,7 @@ func route_known(guard: Guard) -> bool:
 
 ## Whether `guard`'s round is drawn right now: known, and listening or pointed at.
 func route_shown(guard: Guard) -> bool:
-	return route_known(guard) and not guard.knocked_out and (_ears_left > 0.0 or _hovered == guard)
+	return route_known(guard) and not guard.knocked_out and (_ears_left > 0.0 or (_hovered == guard and _pointing()))
 
 
 ## Every round drawn right now, as [guard, [positions...], whether it loops].
@@ -2280,7 +2338,7 @@ func prompt() -> Array:
 	if _dragging != null:
 		var spot = stash_spot()
 		return [spot if spot != null else _dragging,
-			[["Left click", "Hide the body here" if spot != null else "Put the body down", true]]]
+			[[Pad.key(&"take_down", "Left click"), "Hide the body here" if spot != null else "Put the body down", true]]]
 	var over = null
 	var lines := []
 	var down = takedown_target()
@@ -2288,25 +2346,25 @@ func prompt() -> Array:
 	var rob = pocket_target()
 	if down != null:
 		over = down
-		lines.append(["Left click", "Take down", true])
+		lines.append([Pad.key(&"take_down", "Left click"), "Take down", true])
 	elif body != null:
 		over = body
-		lines.append(["Left click", "Drag the body", true])
+		lines.append([Pad.key(&"take_down", "Left click"), "Drag the body", true])
 	else:
 		var tough = _tough_one_behind()
 		if tough != null:
 			over = tough
-			lines.append(["Left click", "Can't be taken down", false])
+			lines.append([Pad.key(&"take_down", "Left click"), "Can't be taken down", false])
 	if rob != null:
 		if over == null:
 			over = rob
-		lines.append(["Right click", "Pick pocket" if rob == over else "Pick %s's pocket" % _name_of(rob), true])
+		lines.append([Pad.key(&"pick_pocket", "Right click"), "Pick pocket" if rob == over else "Pick %s's pocket" % _name_of(rob), true])
 	# Near enough to spring on somebody who has no idea he is there.
 	var spring = ambush_target(over)
 	if spring != null and ambush_refusal() == "":
 		if over == null:
 			over = spring
-		lines.append(["F", "Ambush" if spring == over else "Ambush %s" % _name_of(spring), true])
+		lines.append([Pad.key(&"ambush"), "Ambush" if spring == over else "Ambush %s" % _name_of(spring), true])
 	# In a disguise he takes at face value, beside a guard who could settle the
 	# map - or who would, if a body had not been found. E, when E is not for
 	# something else in reach.
@@ -2315,12 +2373,12 @@ func prompt() -> Array:
 	if calm != null and no_word != "Nothing to settle" and no_word != "Already talking" and scene.get("_current_target") == null:
 		if over == null:
 			over = calm
-		lines.append(["E", "Have a word" if no_word == "" else no_word, no_word == ""])
+		lines.append([Pad.key(&"interact"), "Have a word" if no_word == "" else no_word, no_word == ""])
 	if over == null:
 		# Nobody to deal with, but something to hop over.
 		var hop = vault_over()
 		if not hop.is_empty():
-			return [_tile_map.to_global(_tile_map.map_to_local(hop[0])), [["V", "Vault over", true]]]
+			return [_tile_map.to_global(_tile_map.map_to_local(hop[0])), [[Pad.key(&"vault"), "Vault over", true]]]
 	return [] if over == null else [over, lines]
 
 
@@ -3838,7 +3896,7 @@ func _draw():
 	# Aiming a throw: where it would land, and how far the noise would carry -
 	# green where it can land, red where it cannot.
 	if _aiming != "" and leader != null:
-		var target = tile_of(get_global_mouse_position())
+		var target = tile_of(_pointer_world())
 		var at = to_local(_tile_map.to_global(_tile_map.map_to_local(target)))
 		var thrown: ItemDefinition = ItemDatabase.item(_aiming)
 		# A dart is only any good with somebody there for it to find.

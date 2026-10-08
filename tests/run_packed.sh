@@ -49,7 +49,7 @@ cp "$HERE/HarnessLog.gd" "$DST/HarnessLog.gd"
 cp "$HERE/StealthHarness.gd" "$DST/StealthHarness.gd"
 cp "$DRIVER" "$DST/${SUITE}_test_driver.gd"
 
-sed -i 's|run/main_scene="[^"]*"|run/main_scene="res://main_menu.tscn"|' "$DST/project.godot"
+sed -i 's|run/main_scene="[^"]*"|run/main_scene="res://scenes/main_menu.tscn"|' "$DST/project.godot"
 
 # A user:// of its own, so a packed test run never touches the player's saves.
 awk '{print} /^config\/name=/{print "config/use_custom_user_dir=true"; print "config/custom_user_dir_name=\"Messengers of Truth test harness\""}' "$DST/project.godot" > "$DST/project.godot.new"

@@ -1,11 +1,12 @@
 @tool
+@icon("res://art/editor_icons/fight_spot.svg")
 extends Node2D
 class_name EncounterEditor
 ## Editor-only tool for placing an encounter's combatants on its actual map,
 ## instead of typing tile coordinates into a .tres by hand.
 ##
 ## How to use it:
-##   1. Open scenes/encounter_editor.tscn.
+##   1. Open tools/encounter_editor.tscn.
 ##   2. Select the root node and pick an Encounter in the inspector. The map
 ##      appears with a marker for every spawn already in it.
 ##   3. Drag the markers. They snap to tile centres.
@@ -231,6 +232,8 @@ func _build_markers(tile_map: TileMap):
 		marker.weapon_base = spawn.weapon_base
 		marker.defense = spawn.defense
 		marker.starting_items = spawn.starting_items.duplicate()
+		marker.arrives_on_round = spawn.arrives_on_round
+		marker.surprised = spawn.surprised
 		marker.position = Vector2(spawn.position * tile_size) + Vector2(tile_size, tile_size) * 0.5
 		container.add_child(marker)
 		_adopt(marker)
@@ -251,23 +254,43 @@ var _built_from := ""
 func _encounter_fingerprint() -> String:
 	if encounter == null:
 		return ""
-	var lines := PackedStringArray()
-	for spawn in encounter.spawns:
-		lines.append("%s|%d|%s|%s|%d|%d|%d" % [spawn.combatant_key, spawn.side, spawn.position,
-			spawn.display_name, spawn.level, spawn.weapon_base, spawn.defense])
-	return "
-".join(lines)
+	return _fingerprint(encounter.spawns)
 
 
 ## The same, read off the markers, so it can be told whether the markers or the
 ## encounter is the side that has moved on.
 func _marker_fingerprint() -> String:
+	return _fingerprint(markers().map(_spawn_from))
+
+
+## Every field Save writes, a spawn to a line. A field missing here is one that
+## can be edited on one side without the other noticing, and Save then writes
+## over it - which is how gear typed into the encounter used to be lost.
+static func _fingerprint(spawns: Array) -> String:
 	var lines := PackedStringArray()
-	for marker in markers():
-		lines.append("%s|%d|%s|%s|%d|%d|%d" % [marker.combatant_key, marker.side, marker.grid_position(),
-			marker.display_name, marker.level, marker.weapon_base, marker.defense])
-	return "
-".join(lines)
+	for spawn in spawns:
+		lines.append("%s|%d|%s|%s|%d|%d|%d|%s|%d|%s" % [spawn.combatant_key, spawn.side, spawn.position,
+			spawn.display_name, spawn.level, spawn.weapon_base, spawn.defense,
+			",".join(spawn.starting_items), spawn.arrives_on_round, spawn.surprised])
+	return "\n".join(lines)
+
+
+## The SpawnDefinition Save writes for `marker`. Every field a spawn has must be
+## carried here, and back in rebuild(): one that is not goes back to its default
+## on every Save. Late arrivals and the surprised flag once did.
+func _spawn_from(marker: SpawnMarker) -> SpawnDefinition:
+	var spawn = SpawnDefinition.new()
+	spawn.combatant_key = marker.combatant_key
+	spawn.side = marker.side
+	spawn.position = marker.grid_position()
+	spawn.display_name = marker.display_name
+	spawn.level = marker.level
+	spawn.weapon_base = marker.weapon_base
+	spawn.defense = marker.defense
+	spawn.starting_items = marker.starting_items.duplicate()
+	spawn.arrives_on_round = marker.arrives_on_round
+	spawn.surprised = marker.surprised
+	return spawn
 
 
 func _tile_size(tile_map: TileMap) -> int:
@@ -353,7 +376,7 @@ func _problems_with_layout() -> Array:
 		problems.append("No encounter assigned - there is nothing to save to.")
 		return problems
 	if encounter.resource_path == "":
-		problems.append("This encounter is built into the editor scene rather than being a file of its own, so there is nowhere to save it. Assign one of res://encounters/*.tres to Encounter and press Reload, or save this one to a file first (in the inspector, the dropdown next to the resource -> Save As).")
+		problems.append("This encounter is built into the editor scene rather than being a file of its own, so there is nowhere to save it. Assign one of res://data/encounters/*.tres to Encounter and press Reload, or save this one to a file first (in the inspector, the dropdown next to the resource -> Save As).")
 	if _encounter_fingerprint() != _built_from and _marker_fingerprint() != _built_from:
 		problems.append("The encounter has been edited since these markers were built, and the markers have been changed here too - saving would write the markers over those edits. Press 'Reload from encounter' to take the encounter's version instead, which discards the changes made here.")
 	if encounter.music != "" and not _music_exists(encounter.music):
@@ -375,6 +398,12 @@ func _problems_with_layout() -> Array:
 			problems.append("%s and %s are both on %s" % [marker.effective_name(), claimed[tile], tile])
 			continue
 		claimed[tile] = marker.effective_name()
+	# A key typed rather than picked from the dropdown: the fight would quietly
+	# hand them nothing in its place.
+	for marker in placed:
+		for key in marker.starting_items:
+			if key != "" and not SpawnDefinition.item_keys().has(key):
+				problems.append("%s carries '%s', which is not an item in %s" % [marker.effective_name(), key, DataFolder.ITEMS])
 	var players = 0
 	var enemies = 0
 	for marker in placed:
@@ -424,16 +453,7 @@ func save_to_encounter():
 
 	var spawns: Array[SpawnDefinition] = []
 	for marker in placed:
-		var spawn = SpawnDefinition.new()
-		spawn.combatant_key = marker.combatant_key
-		spawn.side = marker.side
-		spawn.position = marker.grid_position()
-		spawn.display_name = marker.display_name
-		spawn.level = marker.level
-		spawn.weapon_base = marker.weapon_base
-		spawn.defense = marker.defense
-		spawn.starting_items = marker.starting_items.duplicate()
-		spawns.append(spawn)
+		spawns.append(_spawn_from(marker))
 	encounter.spawns = spawns
 
 	var error = ResourceSaver.save(encounter, encounter.resource_path)

@@ -85,7 +85,7 @@ func audit_stale_properties():
 	log_line("======== what the files write down, and what the scripts still read ========")
 	var stranded := []
 	var checked := 0
-	for folder in ["res://items", "res://skills", "res://conditions", "res://passives"]:
+	for folder in ["res://data/items", "res://data/skills", "res://data/conditions", "res://data/passives"]:
 		var dir = DirAccess.open(folder)
 		if dir == null:
 			continue
@@ -269,7 +269,7 @@ func audit_items():
 
 func audit_conditions():
 	log_line("======== every condition ========")
-	var dir = DirAccess.open("res://conditions")
+	var dir = DirAccess.open("res://data/conditions")
 	if dir == null:
 		flag(true, "the conditions folder cannot be read")
 		return
@@ -277,7 +277,7 @@ func audit_conditions():
 	for file in dir.get_files():
 		if not file.ends_with(".tres") and not file.ends_with(".tres.remap"):
 			continue
-		var path = "res://conditions/" + file.replace(".remap", "")
+		var path = "res://data/conditions/" + file.replace(".remap", "")
 		audit_condition(file, load(path))
 		seen += 1
 	note("conditions checked", "%d" % seen)
@@ -386,12 +386,12 @@ func audit_orphans():
 	# And what the encounters hand out, which is where the kit actually comes
 	# from now: a spawn's starting_items overrides the character's own, so
 	# reading only the database called every tiered bottle unreachable.
-	var encounters = DirAccess.open("res://encounters")
+	var encounters = DirAccess.open("res://data/encounters")
 	if encounters != null:
 		for file in encounters.get_files():
 			if not file.ends_with(".tres") and not file.ends_with(".tres.remap"):
 				continue
-			var fight = load("res://encounters/" + file.replace(".remap", ""))
+			var fight = load("res://data/encounters/" + file.replace(".remap", ""))
 			if fight == null:
 				continue
 			for spawn in fight.spawns:
@@ -421,13 +421,13 @@ func audit_orphans():
 				if effect != null and effect.type == EffectDefinition.EffectType.CONDITION \
 						and effect.condition != null:
 					inflicted[effect.condition.display_name] = true
-	var dir = DirAccess.open("res://conditions")
+	var dir = DirAccess.open("res://data/conditions")
 	var never := []
 	if dir != null:
 		for file in dir.get_files():
 			if not file.ends_with(".tres") and not file.ends_with(".tres.remap"):
 				continue
-			var c = load("res://conditions/" + file.replace(".remap", ""))
+			var c = load("res://data/conditions/" + file.replace(".remap", ""))
 			if c != null and not inflicted.has(c.display_name):
 				never.append(c.display_name)
 	note("conditions nothing inflicts", "%s" % [never])

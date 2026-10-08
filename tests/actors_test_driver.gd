@@ -198,7 +198,7 @@ func run_test():
 	var talker = DialogueInteractable.new()
 	talker.name = "AutoTalker"
 	talker.automatic = true
-	talker.dialogue = load("res://Dialogue/flag_example.dialogue")
+	talker.dialogue = load("res://dialogue/flag_example.dialogue")
 	talker.position = scene.party_position()
 	scene.get_node("Map").add_child(talker) if scene.has_node("Map") else scene.add_child(talker)
 	scene._interactables.append(talker)
@@ -223,8 +223,8 @@ func run_test():
 	log_line("======== a conversation that leads into a fight ========")
 	var ambush = DialogueInteractable.new()
 	ambush.name = "SewerAmbush"
-	ambush.dialogue = load("res://Dialogue/flag_example.dialogue")
-	ambush.encounter_after = load("res://encounters/encounter_01_ambush.tres")
+	ambush.dialogue = load("res://dialogue/flag_example.dialogue")
+	ambush.encounter_after = load("res://data/encounters/encounter_01_ambush.tres")
 	scene.add_child(ambush)
 	await get_tree().process_frame
 	ok("encounter_after" in ambush, "a conversation can name the fight it leads to")

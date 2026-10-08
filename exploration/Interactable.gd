@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/interactable.svg")
 extends Node2D
 class_name Interactable
 ## Base for anything the party can walk up to and use in an exploration map.

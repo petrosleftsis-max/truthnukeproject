@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://b32xpmatgxcjy"
+path="res://.godot/imported/church_after_reveal_finale.dialogue-b05a2968a8bf5d04fbb9fd93b622a3e6.tres"
+
+[deps]
+
+source_file="res://dialogue/church_after_reveal_finale.dialogue"
+dest_files=["res://.godot/imported/church_after_reveal_finale.dialogue-b05a2968a8bf5d04fbb9fd93b622a3e6.tres"]
+
+[params]
+
+defaults=true

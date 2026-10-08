@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/characters/enfina/idle/enfina_idle_color0000.png" id="1_8oq43"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_1e8p3"]
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="3_efyvm"]
+[ext_resource type="SpriteFrames" path="res://art/characters/enfina/enfina_frames.tres" id="4_yrjjv"]
+
+[resource]
+script = ExtResource("3_efyvm")
+name = "Enfina"
+glossary_text = "A city guard who has trained and studied to perfectly respond to any combat situation.
+
+Narrative:
+Not born in favourable circumstances, she was faced with a lot of disadvantages. Unable to be trusted to become a knight of the Holy Order, too useful to just leave her out of the picture, yet still faced with uncertainty. An uncertainty that she also sees in herself and how cut out she truly is for the path she chose. 
+
+And yet, she still raises her sword. She still trains unrelentlessly, to perform as well as possible, even if no one has any intention of recognising and rewarding her for it with a higher rank.
+
+But Enfina's intentions are pure. For she does not raise her sword for herself. She raises it for everyone else.
+
+Gameplay:
+Capable of dealing the most damage and take the most hit, she is an invaluable piece that allows her to fend off the mightiest of foe. 
+
+Her foes fear her reactive skill, so staying close to one will either force them to stay in place, or move and be damaged.
+
+As a frontliner, she controls where the fight takes place. Make sure she is always in front of your allies and at the part of the map where you want the fight to take place."
+max_hp = 130
+max_hp_level_2 = 160
+max_hp_level_3 = 190
+movement = 4
+initiative = 6
+secondary_stat = 2
+icon = ExtResource("1_8oq43")
+map_sprite = ExtResource("1_8oq43")
+sprite_frames = ExtResource("4_yrjjv")
+skills = Array[String](["study", "greatsword_attack", "fire_burst", "light_swing", "shoving_strike", "sweep_strike", "blink_strike", "guard", "slip_past", "run", "trailblaze", "follow_up_attack"])
+starting_items = Array[String](["tiny_bomb", "tiny_bomb", "crystal_bottle"])

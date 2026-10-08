@@ -30,10 +30,13 @@ var _root: Control = null
 var _columns: HBoxContainer = null
 ## Which slot is waiting for a second click: {"key": combatant_key, "slot": int}.
 var _holding: Dictionary = {}
+var _hint: Label = null
 
 
 func _ready():
 	layer = 60
+	# One of the menus a pad's View opens - see Pad.
+	add_to_group(&"pad_menu")
 	_build()
 	visible = false
 	if not Campaign.inventory_changed.is_connected(_on_inventory_changed):
@@ -74,7 +77,10 @@ func _build():
 	column.add_child(_columns)
 
 	var hint := Label.new()
-	hint.text = "Click a slot, then another, to move or swap - including into somebody else's bag.\nThe four marked slots are what comes with you into a fight.    I or Esc to close."
+	_hint = hint
+	_name_keys()
+	if not Pad.changed.is_connected(_name_keys):
+		Pad.changed.connect(_name_keys)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", MUTED)
@@ -197,6 +203,41 @@ func close():
 	visible = false
 
 
+## The line along the bottom: how to use it, and what closes it - from the
+## keyboard or from a pad.
+func _name_keys():
+	if _hint == null or not is_instance_valid(_hint):
+		return
+	var pick := "Press %s on a slot" % Pad.key(&"pointer_click") if Pad.using_pad else "Click a slot"
+	_hint.text = ("%s, then another, to move or swap - including into somebody else's bag.\n"
+		+ "The four marked slots are what comes with you into a fight.    %s or %s to close.") % [
+		pick, Pad.key([&"inventory", &"menus"]), Pad.key(&"ui_cancel")]
+
+
+## --- For a pad's View (see Pad) ---
+
+
+func pad_menu_order() -> int:
+	return 2
+
+
+func pad_menu_available() -> bool:
+	var pictures = get_node_or_null("/root/Pictures")
+	return is_inside_tree() and not (pictures != null and pictures.is_open()) and not MenuPause.held_by_another(self)
+
+
+func pad_menu_is_open() -> bool:
+	return visible
+
+
+func pad_menu_open():
+	open()
+
+
+func pad_menu_close():
+	close()
+
+
 func toggle():
 	if visible:
 		close()
@@ -213,6 +254,6 @@ func _unhandled_input(event):
 		close()
 		get_viewport().set_input_as_handled()
 		return
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_I:
+	if event.is_action_pressed(&"inventory"):
 		toggle()
 		get_viewport().set_input_as_handled()

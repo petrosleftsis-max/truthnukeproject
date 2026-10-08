@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/puzzle_dial.svg")
 extends Control
 class_name PuzzleDial
 ## A dial on a lock, under a Puzzle: click it (or roll the wheel over it) to

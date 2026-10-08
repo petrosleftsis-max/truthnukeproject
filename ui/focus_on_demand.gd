@@ -31,6 +31,8 @@ static func attach(host: Node, first: Control) -> FocusOnDemand:
 		return null
 	var keeper := FocusOnDemand.new()
 	keeper.name = "FocusOnDemand"
+	# So Pad can tell a menu the D-pad drives from one only a pointer can.
+	keeper.add_to_group(&"focus_on_demand")
 	keeper._waiting = first
 	host.add_child(keeper)
 	return keeper
@@ -57,6 +59,9 @@ func _input(event):
 		return
 	if not event.is_pressed():
 		return
+	if event is InputEventJoypadButton and event.is_action(&"pointer_click") and Pad.pointer_showing():
+		# A pad's pointer is up, and A is its click on whatever it is over.
+		return
 	for action in NAVIGATION:
 		if event.is_action_pressed(action):
 			if _claim():
@@ -65,6 +70,12 @@ func _input(event):
 				# menu can never be reached with one tap.
 				get_viewport().set_input_as_handled()
 			return
+
+
+## Whether there is a button on screen waiting for the keyboard - which makes
+## this a menu the keyboard, and a pad's D-pad, can drive.
+func is_waiting() -> bool:
+	return _waiting != null and is_instance_valid(_waiting) and _waiting.is_visible_in_tree()
 
 
 ## Lights up the remembered button, if nothing else already has the keyboard.

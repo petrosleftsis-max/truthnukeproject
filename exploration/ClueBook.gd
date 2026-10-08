@@ -1,12 +1,12 @@
 extends RefCounted
 class_name ClueBook
-## Every clue in the game, keyed by file name: everything in res://clues/.
+## Every clue in the game, keyed by file name: everything in res://data/clues/.
 ##
 ## Read from the folder rather than listed anywhere, so a clue is added by
 ## saving a ClueDefinition there and nothing else. What the party has learned
 ## is Campaign's business (Campaign.learn_clue); this only says what exists.
 
-const FOLDER := "res://clues/"
+const FOLDER := "res://data/clues/"
 
 static var _clues: Dictionary = {}
 static var _loaded := false

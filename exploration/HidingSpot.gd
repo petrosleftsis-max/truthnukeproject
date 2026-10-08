@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/hiding.svg")
 extends Node2D
 class_name HidingSpot
 ## Somewhere to hide on a stealth map: behind barrels, in a locker, in a dark

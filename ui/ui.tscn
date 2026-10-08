@@ -43,13 +43,15 @@ grow_vertical = 2
 mouse_filter = 1
 script = ExtResource("1_cy8ae")
 
-[node name="TurnQueue" type="PanelContainer" parent="." unique_id=853073484]
+[node name="TurnQueue" type="ScrollContainer" parent="." unique_id=853073484]
 texture_filter = 1
 layout_mode = 0
 offset_left = 448.0
 offset_top = 16.0
 offset_right = 852.0
 offset_bottom = 80.0
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 0
 
 [node name="Queue" type="HBoxContainer" parent="TurnQueue" unique_id=737569206]
 layout_mode = 2

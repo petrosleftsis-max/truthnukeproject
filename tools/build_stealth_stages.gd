@@ -8,8 +8,8 @@ extends Node
 ## A scene rather than a --script, because the stages' nodes lean on the
 ## autoloads (Campaign and the databases), which --script does not load.
 ##
-## Each stage is two scenes: stages/stealth_N_terrain
-## is only the map, which the fight is played on; stages/stealth_N is that map
+## Each stage is two scenes: maps/stealth_stages/stealth_N_terrain
+## is only the map, which the fight is played on; maps/stealth_stages/stealth_N is that map
 ## with the guards, the hiding spots and the rest put on it, which is what the
 ## party walks. Once built they are ordinary scenes - open them and change
 ## anything - but running this again rebuilds them from what is written here,
@@ -18,12 +18,12 @@ extends Node
 ## Layouts are carved out of solid rock with room(), one rectangle at a time,
 ## and painted by StagePainter. Everything placed is placed on a tile.
 
-const TILESET := "res://tilesets/terrain_tileset.tres"
-const GRID := "res://scenes/grid_overlay.gd"
-const SPARKLE := "res://imagese/icon/interactable_anim.tres"
-const TALK := "res://Dialogue/stealth_stages.dialogue"
-const ATLAS := "res://imagese/terrain/tile map 1st area.png"
-const OUT := "res://stages/"
+const TILESET := "res://maps/tilesets/terrain_tileset.tres"
+const GRID := "res://maps/grid_overlay.gd"
+const SPARKLE := "res://art/interactables/sparkle/sparkle_frames.tres"
+const TALK := "res://dialogue/stealth_stages.dialogue"
+const ATLAS := "res://art/terrain/first_area_tiles.png"
+const OUT := "res://maps/stealth_stages/"
 
 
 func _ready():
@@ -189,7 +189,7 @@ func hiding_spot(root: Node, tile: Vector2i, index: int):
 	# A stack of planks from the tileset to crouch behind.
 	var crate := AtlasTexture.new()
 	crate.atlas = load(ATLAS)
-	crate.region = Rect2(768, 0, 192, 192)
+	crate.region = Rect2(4 * Grid.TILE_SIZE, 0, Grid.TILE_SIZE, Grid.TILE_SIZE)
 	spot.look = crate
 	spot.look_scale = 0.8
 	place(root, spot, "HidingSpot%d" % index, tile)

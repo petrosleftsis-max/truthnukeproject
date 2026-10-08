@@ -38,7 +38,7 @@ func start() -> Array:
 		_game.queue_free()
 		await get_tree().process_frame
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	_game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(_game)
 	for i in 4:

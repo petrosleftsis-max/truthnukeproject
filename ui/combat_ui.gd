@@ -91,10 +91,12 @@ func _ready():
 	_turn_banner = TurnBanner.new()
 	add_child(_turn_banner)
 	_build_danger_legend()
+	_set_up_turn_queue()
 	# The label says what the number is, rather than leaving a lone "4" to
 	# be worked out.
 	$Actions/Movement.offset_left = MOVE_LABEL_LEFT
-	$Actions/EndTurnButton.tooltip_text = KEYS_HINT
+	$Actions/EndTurnButton.tooltip_text = keys_hint()
+	Pad.changed.connect(_on_device_changed)
 	# Things that happen to the party rather than in a fight - an item changing
 	# hands, somebody joining or leaving - are announced by Campaign, which is
 	# the one thing on screen in a battle and on a map alike.
@@ -109,7 +111,7 @@ func _ready():
 ## Only there once they have walked; greyed out, saying why, once something on
 ## the way has made it too late.
 
-const UNDO_TIP := "Walk back to where this turn began - or to just after the last skill, item or reaction - with the movement you had there (Backspace)"
+const UNDO_TIP := "Walk back to where this turn began - or to just after the last skill, item or reaction - with the movement you had there"
 const UNDO_TOO_LATE := "Too late to walk back: something happened on the way - a reaction, a skill or item, or somebody's state changed"
 
 var _undo_button: Button = null
@@ -121,7 +123,7 @@ func _build_undo_button():
 	_undo_button = end_turn.duplicate(0)
 	_undo_button.name = "UndoMoveButton"
 	_undo_button.text = "Undo Move"
-	_undo_button.tooltip_text = UNDO_TIP
+	_undo_button.tooltip_text = Pad.hint(UNDO_TIP, &"undo_move")
 	_undo_button.visible = false
 	$Actions.add_child(_undo_button)
 	_undo_button.position = end_turn.position - Vector2(0, end_turn.size.y + 5)
@@ -134,15 +136,55 @@ func _build_undo_button():
 ## skill tabs.
 const PIPS_AT := Vector2(-108, 10)
 const MOVE_LABEL_LEFT := -108.0
-## What every key does, on End Turn - the button every turn ends on, and so the
-## one most often hovered.
-const KEYS_HINT := "End this character's turn (Space)\n1-9: pick a skill    Tab: next tab\nBackspace: undo a walk    Shift: see where enemies could strike\nC: character sheet    Esc: menu"
 const HOTKEY_MARK := "Hotkey"
 
 var _pips: ActionPips = null
 var _unit_card: UnitCard = null
 var _turn_banner: TurnBanner = null
 var _danger_legend: PanelContainer = null
+
+
+## What every key does, on End Turn - the button every turn ends on, and so the
+## one most often hovered. For whichever of keyboard or pad is in use.
+func keys_hint() -> String:
+	if Pad.using_pad:
+		return ("End this character's turn (%s)\n%s: the skills, Undo Move and End Turn    %s: next tab\n"
+			+ "%s / %s: the skill before / after - aiming, the next target\n"
+			+ "%s (hold): see where enemies could strike\n%s: character sheet    %s: menu\n"
+			+ "Left stick or D-pad: tile to tile    %s: choose    %s: back") % [
+			Pad.key(&"end_turn"), Pad.key(&"skill_panel"), Pad.key(&"skill_tab"),
+			Pad.key(&"skill_previous"), Pad.key(&"skill_next"),
+			Pad.key(&"danger_view"), Pad.key(&"menus"), Pad.key(&"pause"),
+			Pad.key(&"pointer_click"), Pad.key(&"ui_cancel")]
+	return ("End this character's turn (%s)\n1-9: pick a skill    %s: next tab\n"
+		+ "%s: undo a walk    %s: see where enemies could strike\n%s: character sheet    %s: menu") % [
+		Pad.key(&"end_turn"), Pad.key(&"skill_tab"), Pad.key(&"undo_move"), Pad.key(&"danger_view"),
+		Pad.key(&"character_sheet"), Pad.key(&"pause")]
+
+
+## What to do while placing the party - with the mouse, or with a pad.
+func placing_hint() -> String:
+	if Pad.using_pad:
+		return "%s on a hero, then on a highlighted tile to move them there. %s, then %s on Begin Battle, to start." % [
+			Pad.key(&"pointer_click"), Pad.key(&"skill_panel"), Pad.key(&"pointer_click")]
+	return "Click a hero, then a highlighted tile to move them there."
+
+
+## Keyboard to pad or back: everything on the HUD that names a key says the
+## other one now.
+func _on_device_changed():
+	$Actions/EndTurnButton.tooltip_text = keys_hint()
+	if _deployment_mode:
+		$Actions/SelectTargetMessage/MarginContainer/Label.text = placing_hint()
+	if _undo_button != null and controller != null:
+		_refresh_undo()
+	# The numbers in the corners are keys; a pad picks skills with LB and RB.
+	for action in action_buttons():
+		var mark = action.get_node_or_null(HOTKEY_MARK)
+		if mark != null:
+			mark.visible = not exploration_mode and not Pad.using_pad and action.icon != null
+	if not Pad.using_pad:
+		close_pad_panel()
 
 
 ## End Turn is what every turn ends on, so it is the one button in the accent;
@@ -251,14 +293,127 @@ func _queue_tip(comb: Dictionary) -> String:
 	return "%s\n%d / %d HP\nClick to find them on the map" % [comb.name, comb.hp, most]
 
 
-## Takes the view to whoever's face in the queue was clicked - unless they are
-## hidden, or the view is busy following somebody's turn.
+## --- The turn queue's place on the screen ---
+##
+## Centred across the top, whatever is in it, and never wider than the screen:
+## a queue with more faces than fit stops at the edges and is dragged (or the
+## wheel rolled over it) to see the rest. It used to be pinned 448 pixels from
+## the left and grow rightwards from there, so it sat off-centre for every
+## fight but one, and ran off the screen in a big one.
+
+## Kept clear between the queue and either side of the screen.
+const QUEUE_EDGE := 16.0
+const QUEUE_TOP := 16.0
+## How tall the queue is, its frame included.
+const QUEUE_HEIGHT := 64.0
+## How far a press on the queue has to move before it is a drag rather than a
+## click - a click that drifted a few pixels is still a click.
+const QUEUE_DRAG_START := 6.0
+## How far one notch of the wheel moves it.
+const QUEUE_WHEEL_STEP := 60
+
+## A left press on the queue not yet let go of: where it went down, and
+## whether it has moved far enough to be a drag. Empty when there is none.
+var _queue_press := {}
+
+
+func _set_up_turn_queue():
+	var box: ScrollContainer = $TurnQueue
+	# The look the queue had as a plain panel.
+	var panel := get_theme_stylebox("panel", "PanelContainer")
+	box.add_theme_stylebox_override("panel", panel)
+	# A face is as wide as it is tall, and takes its height from the row - which
+	# the panel used to hand it, and a scroll container does not. The height
+	# the panel gave, so the faces stay the size they were.
+	var frame: Vector2 = panel.get_minimum_size() if panel != null else Vector2.ZERO
+	$TurnQueue/Queue.custom_minimum_size.y = QUEUE_HEIGHT - frame.y
+	box.gui_input.connect(_on_queue_input.bind({}))
+	$TurnQueue/Queue.minimum_size_changed.connect(_fit_turn_queue)
+	get_viewport().size_changed.connect(_fit_turn_queue)
+	_fit_turn_queue.call_deferred()
+
+
+## Sizes the queue to its faces - no wider than the screen - and centres it.
+func _fit_turn_queue():
+	if not is_inside_tree():
+		return
+	var box: ScrollContainer = $TurnQueue
+	var faces: Vector2 = $TurnQueue/Queue.get_combined_minimum_size()
+	var panel := box.get_theme_stylebox("panel")
+	var frame: Vector2 = panel.get_minimum_size() if panel != null else Vector2.ZERO
+	var screen := get_viewport_rect().size
+	var width := minf(faces.x + frame.x, screen.x - QUEUE_EDGE * 2.0)
+	box.size = Vector2(width, faces.y + frame.y)
+	box.position = Vector2(roundf((screen.x - width) / 2.0), QUEUE_TOP)
+
+
+## Whether there are more faces than fit, so it scrolls.
+func turn_queue_overflows() -> bool:
+	var box: ScrollContainer = $TurnQueue
+	var panel := box.get_theme_stylebox("panel")
+	var frame: float = panel.get_minimum_size().x if panel != null else 0.0
+	return $TurnQueue/Queue.get_combined_minimum_size().x + frame > box.size.x + 0.5
+
+
+## Scrolls the queue so whoever is acting is in view - a long queue would
+## otherwise leave the current face off the edge with nothing to say so.
+func _show_current_face(face: Control):
+	if face != null and is_instance_valid(face) and turn_queue_overflows():
+		$TurnQueue.ensure_control_visible(face)
+
+
+## Dragging the queue sideways, and rolling the wheel over it. True when the
+## event was one of those and is dealt with.
+func _drag_turn_queue(event: InputEvent) -> bool:
+	var box: ScrollContainer = $TurnQueue
+	if event is InputEventMouseButton and event.pressed and event.button_index in \
+			[MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]:
+		if not turn_queue_overflows():
+			return false
+		var back: bool = event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_LEFT]
+		box.scroll_horizontal += -QUEUE_WHEEL_STEP if back else QUEUE_WHEEL_STEP
+		accept_event()
+		return true
+	if event is InputEventMouseMotion and not _queue_press.is_empty():
+		if not _queue_press.dragged:
+			if event.global_position.distance_to(_queue_press.at) < QUEUE_DRAG_START:
+				return true
+			_queue_press.dragged = true
+		box.scroll_horizontal -= roundi(event.relative.x)
+		accept_event()
+		return true
+	return false
+
+
+## A press on a face, or on the queue between faces (`comb` empty): a click
+## when it comes up again without having moved - which takes the view to them,
+## or, while a skill is being aimed, uses it on them - and a drag of the queue
+## when it has. Acting on the press, as it once did, would have aimed a skill
+## at whichever face a drag began on.
 func _on_queue_input(event: InputEvent, comb: Dictionary):
-	if _aim_through_face(event, comb):
+	if _drag_turn_queue(event):
 		return
-	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		accept_event()
+		if event.pressed:
+			_queue_press = {"at": event.global_position, "dragged": false}
+			return
+		var press := _queue_press
+		_queue_press = {}
+		if comb.is_empty() or press.get("dragged", false):
+			return
+		if _aiming_now():
+			controller.aim_at_combatant(comb)
+			return
+		_find_on_map(comb)
 		return
-	accept_event()
+	if not comb.is_empty():
+		_aim_through_face(event, comb)
+
+
+## Takes the view to `comb` - unless they are hidden, or the view is busy
+## following somebody's turn.
+func _find_on_map(comb: Dictionary):
 	if combat == null or combat.camera == null or not comb.get("alive", false):
 		return
 	if comb.side != 0 and combat.is_hidden(comb):
@@ -396,6 +551,27 @@ func _on_action_gui_input(event: InputEvent, action: Button):
 
 
 ## Tab moves to the next tab there is - Main, Secondary, Items, and round.
+## A pad's LB and RB: the skill before or after the one being aimed, in the
+## panel on show - or, aiming nothing, the first or the last. Round and round,
+## and through the greyed-out ones too, which are a look, as a click on them
+## is. False when a click would be refused.
+func cycle_skill(step: int) -> bool:
+	if controller == null or not controller.player_turn or controller.action_locked or not controller.is_idle():
+		return false
+	var slots: Array = action_buttons().filter(func(slot): return slot.icon != null and slot.is_visible_in_tree())
+	if slots.is_empty():
+		return false
+	var at := -1
+	if controller.is_skill_selected():
+		var aimed: String = controller._selected_skill
+		for i in slots.size():
+			if slots[i].get_meta(SKILL_META, "") == aimed:
+				at = i
+		controller.cancel_skill_selection()
+	var next := posmod(at + step, slots.size()) if at >= 0 else (0 if step > 0 else slots.size() - 1)
+	return _press_hotkey(action_buttons().find(slots[next]))
+
+
 func _cycle_panel() -> bool:
 	if controller != null and controller.is_skill_selected():
 		return false
@@ -433,6 +609,7 @@ func _announce_turn(comb: Dictionary):
 
 
 func _on_undo_pressed():
+	close_pad_panel()
 	if controller != null and controller.has_method("undo_move"):
 		controller.undo_move()
 
@@ -450,7 +627,7 @@ func _refresh_undo():
 		return
 	var allowed = controller.can_undo_move()
 	_undo_button.disabled = not allowed
-	_undo_button.tooltip_text = UNDO_TIP if allowed else UNDO_TOO_LATE
+	_undo_button.tooltip_text = Pad.hint(UNDO_TIP, &"undo_move") if allowed else UNDO_TOO_LATE
 
 
 ## Folds the combat log away, or brings it back. The button stays where the
@@ -489,6 +666,7 @@ func toggle_spells():
 	showing_spells = not showing_spells
 	if combat != null and not exploration_mode:
 		_show_skills_for(shown_combatant())
+	_refocus_pad_panel.call_deferred()
 	_refresh_spells_toggle(shown_combatant())
 
 
@@ -514,6 +692,7 @@ func _tab(panel: int) -> Button:
 ## there. Three buttons say where you can go and which one you are on.
 func set_skill_panel(panel: int):
 	showing_panel = panel
+	_refocus_pad_panel.call_deferred()
 	_refresh_spells_toggle(shown_combatant())
 	for other in PANEL_TABS:
 		var tab := _tab(other)
@@ -808,7 +987,7 @@ func _show_whoever_is_shown():
 	_refresh_portraits()
 	var banner = $Actions/SelectTargetMessage
 	if is_viewing_other():
-		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Looking at %s - Esc to go back" % comb.name
+		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Looking at %s - %s to go back" % [comb.name, Pad.key(&"ui_cancel")]
 		banner.visible = true
 	else:
 		banner.visible = false
@@ -831,12 +1010,16 @@ func _input(event):
 	# them stays until it is pressed again.
 	if controller != null and controller.is_skill_selected():
 		return
-	if event is InputEventKey and event.pressed and not event.is_echo() and event.keycode == KEY_ESCAPE:
+	if event.is_action_pressed(&"ui_cancel"):
 		get_viewport().set_input_as_handled()
 		stop_viewing()
 
 
 func show_combatant_status_main(comb: Dictionary):
+	# Whatever a pad had open along the bottom belonged to the turn before, and
+	# so did the skill it was last on.
+	close_pad_panel()
+	_pad_panel_last = null
 	# A new turn is always shown as the turn it is.
 	if is_viewing_other():
 		$Actions/SelectTargetMessage.visible = false
@@ -896,7 +1079,7 @@ func set_deployment_mode(active: bool):
 	if active:
 		if _turn_banner != null:
 			_turn_banner.dismiss()
-		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Click a hero, then a highlighted tile to move them there."
+		$Actions/SelectTargetMessage/MarginContainer/Label.text = placing_hint()
 		lock_action_buttons()
 		$Actions/EndTurnButton.disabled = false
 		_apply_deployment_visibility()
@@ -911,29 +1094,45 @@ func set_deployment_mode(active: bool):
 			_announce_turn(combat.get_current_combatant())
 
 
-## Space ends the turn, the same as pressing the button.
+## Space (Y on a pad) ends the turn, the same as pressing the button.
 ##
-## The key itself rather than ui_accept, which is also Enter and the gamepad's
-## A: those advance dialogue and press whatever button has focus, and a turn
+## Its own action rather than ui_accept, which is also Enter and the pad's A:
+## those advance dialogue and press whatever button has focus, and a turn
 ## ending because somebody dismissed a line would be a nasty surprise.
 ## Everything the button refuses, this refuses too - it is the same press, so
 ## it cannot end a turn the button would not.
 func _unhandled_input(event):
-	if not (event is InputEventKey and event.pressed and not event.is_echo()):
+	if not event.is_pressed() or event.is_echo():
 		return
-	var code = event.physical_keycode
-	if (code >= KEY_1 and code <= KEY_9) or code == KEY_TAB:
-		# 1-9 pick the skill in that slot, Tab moves to the next tab - both
-		# refusing whatever a click would refuse.
+	if not exploration_mode and combat != null and controller != null and _pad_input(event):
+		get_viewport().set_input_as_handled()
+		return
+	var hotkey := -1
+	if event is InputEventKey and event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_9:
+		hotkey = event.physical_keycode - KEY_1
+	var step := 0
+	if Pad.went_down(event, &"skill_next"):
+		step = 1
+	elif Pad.went_down(event, &"skill_previous"):
+		step = -1
+	if hotkey >= 0 or step != 0 or Pad.went_down(event, &"skill_tab"):
+		# 1-9 pick the skill in that slot, LB and RB the one before or after,
+		# Tab moves to the next tab - all refusing whatever a click would refuse.
 		if exploration_mode or _deployment_mode or combat == null or controller == null:
 			return
 		if controller.has_method("a_menu_is_over_the_map") and controller.a_menu_is_over_the_map():
 			return
-		var done = _cycle_panel() if code == KEY_TAB else _press_hotkey(code - KEY_1)
+		var done: bool
+		if hotkey >= 0:
+			done = _press_hotkey(hotkey)
+		elif step != 0:
+			done = cycle_skill(step)
+		else:
+			done = _cycle_panel()
 		if done:
 			get_viewport().set_input_as_handled()
 		return
-	if event.physical_keycode == KEY_BACKSPACE:
+	if Pad.went_down(event, &"undo_move"):
 		# Backspace walks back, where the button would - and refuses whatever it
 		# would refuse, can_undo_move being the one judge of both.
 		if exploration_mode or _deployment_mode or combat == null or controller == null:
@@ -943,7 +1142,7 @@ func _unhandled_input(event):
 		if controller.has_method("undo_move") and controller.undo_move():
 			get_viewport().set_input_as_handled()
 		return
-	if event.physical_keycode != KEY_SPACE:
+	if not Pad.went_down(event, &"end_turn"):
 		return
 	if exploration_mode or _deployment_mode or combat == null:
 		return
@@ -960,7 +1159,40 @@ func _unhandled_input(event):
 	_on_end_turn_button_pressed()
 
 
+## A pad's own: Square for the panel, B out of it, A on a greyed-out skill
+## for a look at it, and LB and RB through the tiles that would do anything
+## while aiming or placing the party. True when it was one of those.
+func _pad_input(event: InputEvent) -> bool:
+	if Pad.went_down(event, &"skill_panel"):
+		if not controller.a_menu_is_over_the_map():
+			_toggle_pad_panel()
+		return true
+	if _pad_panel:
+		if event.is_action_pressed(&"ui_cancel"):
+			close_pad_panel()
+			return true
+		if event.is_action_pressed(&"ui_accept"):
+			# A greyed-out button does not press, but its skill can still be
+			# looked at, as a click on it does.
+			var focused = get_viewport().gui_get_focus_owner()
+			if focused is BaseButton and focused.disabled and focused.get_meta(SKILL_META, "") != "":
+				return _look_at(focused.get_meta(SKILL_META))
+		# The panel has the D-pad; LB and RB have nothing to say in it.
+		return event.is_action(&"skill_previous") or event.is_action(&"skill_next")
+	if not (event is InputEventJoypadButton or event is InputEventJoypadMotion):
+		return false
+	var step := 0
+	if Pad.went_down(event, &"skill_next"):
+		step = 1
+	elif Pad.went_down(event, &"skill_previous"):
+		step = -1
+	if step != 0 and (controller.is_skill_selected() or _deployment_mode):
+		return controller.pad_cycle(step)
+	return false
+
+
 func _on_end_turn_button_pressed():
+	close_pad_panel()
 	# The same refusal the keyboard makes, in the one place every route to
 	# ending a turn passes through - greying the button out is what the player
 	# sees, and this is what makes it true.
@@ -1081,7 +1313,7 @@ func _fill_action(action: Button, skill_key: String, skill_used: bool, as_second
 	SkillLook.decorate(action, skill, tag)
 	var key_mark = action.get_node_or_null(HOTKEY_MARK)
 	if key_mark != null:
-		key_mark.visible = not exploration_mode
+		key_mark.visible = not exploration_mode and not Pad.using_pad
 	# Worked out in the hands of whoever is on show, so looking at a
 	# teammate says what they would hit for rather than the one acting.
 	var tip := build_skill_tooltip(skill, _viewing if looking else {})
@@ -1555,6 +1787,13 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Slips out of sight, if no enemy can see them - until one can"
 		EffectDefinition.EffectType.REVEAL:
 			return "Lays their character sheet open to you for the rest of the battle"
+		EffectDefinition.EffectType.REVIVE:
+			return "Brings back a fallen ally with %d%% of their health - everything about them but their movement %d%% lower, for good, and lower again each time" % [
+				roundi(effect.revive_health * 100.0), roundi(effect.revive_weakening * 100.0)]
+		EffectDefinition.EffectType.STEAL:
+			if effect.steal_count > 0:
+				return "Takes up to %d of the items the target has to hand, to use yourself" % effect.steal_count
+			return "Takes every item the target has to hand, to use yourself"
 	return ""
 
 
@@ -1582,6 +1821,8 @@ func update_combatants(combatants: Array):
 			# to run before anything reads it.
 			turn_queue_icon.set_current(combat.get_current_combatant() == comb, comb.side)
 			turn_queue_icon.set_turn_taken(comb.turn_taken)
+			if combat.get_current_combatant() == comb:
+				_show_current_face.call_deferred(turn_queue_icon)
 
 
 func set_movement(movement):
@@ -1606,8 +1847,9 @@ func _set_aiming(aiming: bool):
 		# Only a look: say so, since nothing on the map does.
 		var caster: Dictionary = controller.aiming_caster()
 		var skill: SkillDefinition = SkillDatabase.skills.get(controller._selected_skill)
-		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Just looking at %s's %s - Esc or right-click to stop" % [
-			caster.get("name", "?"), skill.name if skill != null else "skill"]
+		$Actions/SelectTargetMessage/MarginContainer/Label.text = "Just looking at %s's %s - %s to stop" % [
+			caster.get("name", "?"), skill.name if skill != null else "skill",
+			Pad.key(&"ui_cancel") if Pad.using_pad else "%s or right-click" % Pad.key(&"ui_cancel")]
 		$Actions/SelectTargetMessage.visible = true
 	if not aiming:
 		# Restore whatever the current mode says these should be, rather than
@@ -1618,7 +1860,7 @@ func _set_aiming(aiming: bool):
 		# Back to saying whose HUD is on show, if it is somebody else's - a look
 		# can be taken at a teammate's skill while viewing them.
 		if is_viewing_other():
-			$Actions/SelectTargetMessage/MarginContainer/Label.text = "Looking at %s - Esc to go back" % _viewing.name
+			$Actions/SelectTargetMessage/MarginContainer/Label.text = "Looking at %s - %s to go back" % [_viewing.name, Pad.key(&"ui_cancel")]
 			$Actions/SelectTargetMessage.visible = true
 		else:
 			$Actions/SelectTargetMessage.visible = false
@@ -1643,10 +1885,184 @@ func _set_aiming(aiming: bool):
 func _target_selection_finished():
 	hide_hit_preview()
 	_set_aiming(false)
+	if _pad_aimed_from_panel:
+		_pad_aimed_from_panel = false
+		# Put away, rather than let go: back to the panel it was picked from.
+		if controller.aim_was_called_off and Pad.using_pad:
+			open_pad_panel(_pad_panel_last)
 
 
 func _target_selection_started():
+	if _pad_panel:
+		_pad_aimed_from_panel = true
+		close_pad_panel()
 	_set_aiming(true)
+
+
+## --- A pad's skill panel ---
+##
+## On a pad, Square goes between the map and the panel along the bottom - the
+## skills and their tabs, Undo Move and End Turn - which the D-pad then goes
+## round and A presses. Those buttons never take the keyboard otherwise (a
+## click on one would leave it lit), so they are made to while the panel is
+## open and put back after. A skill picked from it is aimed on the map; put
+## away again, with B or Square, and it is the panel that comes back.
+
+## Room left round a pad's cursor inside the part of the screen the HUD leaves
+## the map (see map_view_rect).
+const PAD_MARGIN := 24.0
+
+var _pad_panel := false
+## The button the panel was last on, to come back to.
+var _pad_panel_last: Control = null
+## Whether what is being aimed was picked from the panel.
+var _pad_aimed_from_panel := false
+
+
+func pad_panel_open() -> bool:
+	return _pad_panel
+
+
+## Opens the panel - on `on`, or wherever it was last, or the first skill.
+## False when there is nothing in it to press, or it is not the moment.
+func open_pad_panel(on: Control = null) -> bool:
+	if combat == null or controller == null or exploration_mode:
+		return false
+	if not _deployment_mode and (not controller.player_turn or controller.action_locked or not controller.is_idle()):
+		return false
+	if controller.a_menu_is_over_the_map() or controller.is_skill_selected():
+		return false
+	var buttons := _pad_panel_buttons()
+	if buttons.is_empty():
+		return false
+	_pad_panel = true
+	for button in buttons:
+		button.focus_mode = Control.FOCUS_ALL
+	_link_pad_panel(buttons)
+	var first: Control = buttons[0]
+	for button in buttons:
+		if button.has_meta(SKILL_META) and button.get_meta(SKILL_META) != "":
+			first = button
+			break
+	if _pad_panel_last != null and is_instance_valid(_pad_panel_last) and buttons.has(_pad_panel_last):
+		first = _pad_panel_last
+	if on != null and is_instance_valid(on) and buttons.has(on):
+		first = on
+	first.grab_focus()
+	return true
+
+
+## Back to the map: the buttons let go of the keyboard again.
+func close_pad_panel():
+	if not _pad_panel:
+		return
+	_pad_panel = false
+	var focused = get_viewport().gui_get_focus_owner()
+	if focused != null and $Actions.is_ancestor_of(focused):
+		# A skill or a tab is worth coming back to; End Turn and Undo Move,
+		# pressed, are done with.
+		if focused.get_meta(SKILL_META, "") != "" or $Actions/SkillPanelTabs.is_ancestor_of(focused):
+			_pad_panel_last = focused
+		focused.release_focus()
+	for button in $Actions.find_children("*", "BaseButton", true, false):
+		button.focus_mode = Control.FOCUS_NONE
+		for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+			button.set_focus_neighbor(side, NodePath())
+
+
+## Everything along the bottom the panel goes round: whatever a click there
+## would do something with. Placing the party, only what starts the fight.
+func _pad_panel_buttons() -> Array:
+	var found: Array = []
+	if not _deployment_mode:
+		for tab in $Actions/SkillPanelTabs.get_children():
+			if tab is Button and tab.is_visible_in_tree():
+				found.append(tab)
+		var spells := _spells_toggle()
+		if spells != null and spells.is_visible_in_tree():
+			found.append(spells)
+		for slot in action_buttons():
+			if slot.icon != null and slot.is_visible_in_tree():
+				found.append(slot)
+		if _undo_button != null and _undo_button.is_visible_in_tree() and not _undo_button.disabled:
+			found.append(_undo_button)
+	var end_turn: Button = $Actions/EndTurnButton
+	if end_turn.is_visible_in_tree() and not end_turn.disabled:
+		found.append(end_turn)
+	return found
+
+
+## Which button each way of the D-pad goes to from each: the nearest that
+## way, straight on counting for more than off to one side - so it goes along
+## a row of skills rather than up to the tab that happens to be nearer, and
+## off the end of the row to Undo Move and End Turn beside it. Godot works it
+## out for itself otherwise, and from the first skill took right to be the
+## Secondary tab. Nowhere that way, it stays put.
+func _link_pad_panel(buttons: Array):
+	var ways := {SIDE_LEFT: Vector2.LEFT, SIDE_TOP: Vector2.UP, SIDE_RIGHT: Vector2.RIGHT, SIDE_BOTTOM: Vector2.DOWN}
+	for button in buttons:
+		var here: Vector2 = button.get_global_rect().get_center()
+		for side in ways:
+			var best: Control = button
+			var best_score := INF
+			for other in buttons:
+				if other == button:
+					continue
+				var gap: Vector2 = other.get_global_rect().get_center() - here
+				var ahead: float = gap.dot(ways[side])
+				if ahead <= 1.0:
+					continue
+				var score: float = ahead + absf(gap.cross(ways[side])) * 2.0
+				if score < best_score:
+					best_score = score
+					best = other
+			button.set_focus_neighbor(side, button.get_path_to(best))
+
+
+## A tab or Spells pressed: other buttons along the bottom now, which take the
+## keyboard in their turn - and if the one it was on has gone, the first skill.
+func _refocus_pad_panel():
+	if not _pad_panel:
+		return
+	var buttons := _pad_panel_buttons()
+	for button in buttons:
+		button.focus_mode = Control.FOCUS_ALL
+	_link_pad_panel(buttons)
+	var focused = get_viewport().gui_get_focus_owner()
+	if focused == null or not buttons.has(focused):
+		_pad_panel = false
+		open_pad_panel()
+
+
+## Square: the panel, or back to the map. Aiming, it puts the aim away - which
+## brings the panel back too.
+func _toggle_pad_panel():
+	if _pad_panel:
+		close_pad_panel()
+	elif controller.is_skill_selected():
+		controller.cancel_skill_selection()
+		if not _pad_panel:
+			open_pad_panel()
+	else:
+		open_pad_panel()
+
+
+## The part of the screen the HUD leaves the map, a little in from its edges:
+## below the turn queue, right of the party column, above everything along the
+## bottom. A pad's cursor is kept in it, or its click would land on a button.
+func map_view_rect() -> Rect2:
+	var view := get_viewport().get_visible_rect()
+	var top := view.position.y
+	var bottom := view.end.y
+	var left := view.position.x
+	if $TurnQueue.visible:
+		top = maxf(top, $TurnQueue.get_global_rect().end.y)
+	if $Status.visible and $Status.get_child_count() > 0:
+		left = maxf(left, $Status.get_global_rect().end.x)
+	for child in $Actions.get_children():
+		if child is Control and child.visible and child.get_global_rect().position.y > view.get_center().y:
+			bottom = minf(bottom, child.get_global_rect().position.y)
+	return Rect2(left, top, view.end.x - left, bottom - top).grow(-PAD_MARGIN)
 
 
 ## --- What a hit will do, while aiming ---
@@ -1727,7 +2143,7 @@ func hide_hit_preview():
 ## side of the cursor rather than running off an edge.
 func _place_hit_preview():
 	var screen = get_viewport_rect().size
-	var mouse = get_viewport().get_mouse_position()
+	var mouse = Pad.screen_point()
 	var size = _hit_preview.get_combined_minimum_size()
 	var at = mouse + HIT_PREVIEW_OFFSET
 	if at.x + size.x > screen.x:

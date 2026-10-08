@@ -51,6 +51,24 @@ func click() -> InputEventMouseButton:
 	return event
 
 
+## A left click on a face in the turn queue: down, then up - it acts on the way
+## up, so that a drag of the queue is never also a click.
+func queue_click(ui, comb: Dictionary):
+	ui._on_queue_input(click(), comb)
+	var up := click()
+	up.pressed = false
+	ui._on_queue_input(up, comb)
+	await get_tree().process_frame
+
+
+func motion(by: Vector2, at: Vector2) -> InputEventMouseMotion:
+	var event := InputEventMouseMotion.new()
+	event.relative = by
+	event.global_position = at
+	event.position = at
+	return event
+
+
 ## The first damaging skill on `comb`'s main panel, or "".
 func a_strike(combat: Combat, comb: Dictionary) -> String:
 	for key in combat.main_skills_of(comb):
@@ -85,7 +103,7 @@ func run_test():
 	log_line("")
 
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	# What starting a battle does: the title screen goes. Run from an export,
@@ -284,7 +302,7 @@ func run_test():
 	var camera = combat.camera
 	ok(not camera.is_following(), "the view is the player's to move on their turn")
 	camera.position = Grid.tile_to_world(hero.position)
-	ui._on_queue_input(click(), mark)
+	await queue_click(ui, mark)
 	ok(camera.position.distance_to(Grid.tile_to_world(mark.position)) < 1.0, "clicking a face takes the view to them",
 		"%s vs %s" % [camera.position, Grid.tile_to_world(mark.position)])
 	controller._card_for(mark)
@@ -300,6 +318,53 @@ func run_test():
 	ok(not ui._unit_card.visible, "and off it with nobody under the cursor")
 	log_line("")
 
+	log_line("======== the turn queue sits in the middle ========")
+	var queue_box: ScrollContainer = ui.get_node("TurnQueue")
+	var screen_size = ui.get_viewport_rect().size
+	await get_tree().process_frame
+	var middle = queue_box.position.x + queue_box.size.x / 2.0
+	ok(absf(middle - screen_size.x / 2.0) <= 1.0, "centred across the top", "%.1f of %.1f" % [middle, screen_size.x])
+	ok(not ui.turn_queue_overflows(), "and wide enough for every face when they fit")
+	# A crowd: every combatant a dozen times over.
+	var crowd: Array = []
+	for i in 12:
+		crowd.append_array(combat.turn_queue)
+	ui.update_turn_queue(combat.combatants, crowd)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	middle = queue_box.position.x + queue_box.size.x / 2.0
+	ok(queue_box.size.x <= screen_size.x - 2.0 * ui.QUEUE_EDGE + 0.5 and queue_box.position.x >= ui.QUEUE_EDGE - 0.5,
+		"too many to fit, it stops at the edges of the screen", "%.0f wide on %.0f" % [queue_box.size.x, screen_size.x])
+	ok(absf(middle - screen_size.x / 2.0) <= 1.0 and ui.turn_queue_overflows(), "still centred, and scrolling")
+	var parked_view = camera.position
+	queue_box.scroll_horizontal = 0
+	var down := click()
+	down.global_position = Vector2(400, 40)
+	ui._on_queue_input(down, mark)
+	ui._on_queue_input(motion(Vector2(-3, 0), Vector2(397, 40)), mark)
+	ok(queue_box.scroll_horizontal == 0, "a press that drifts a few pixels has not started dragging")
+	ui._on_queue_input(motion(Vector2(-150, 0), Vector2(247, 40)), mark)
+	ok(queue_box.scroll_horizontal == 150, "dragged left, the queue slides along to show the faces further on",
+		"%d" % queue_box.scroll_horizontal)
+	var up := click()
+	up.pressed = false
+	ui._on_queue_input(up, mark)
+	ok(camera.position == parked_view, "and letting go after a drag is not a click on the face it began on")
+	var wheel := click()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	ui._on_queue_input(wheel, {})
+	ok(queue_box.scroll_horizontal > 150, "the wheel over it moves it along too", "%d" % queue_box.scroll_horizontal)
+	queue_box.scroll_horizontal = 0
+	ui._show_current_face(queue.get_child(queue.get_child_count() - 1))
+	await get_tree().process_frame
+	ok(queue_box.scroll_horizontal > 0, "and whoever is acting is scrolled into view")
+	ui.update_turn_queue(combat.combatants, combat.turn_queue)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	ok(not ui.turn_queue_overflows() and absf(queue_box.position.x + queue_box.size.x / 2.0 - screen_size.x / 2.0) <= 1.0,
+		"back to a short queue, it shrinks back to the middle")
+	log_line("")
+
 	log_line("======== somebody hidden stays hidden ========")
 	combat.set_hidden(mark, true)
 	await get_tree().process_frame
@@ -312,7 +377,7 @@ func run_test():
 		face.mouse_exited.emit()
 	camera.position = Grid.tile_to_world(hero.position)
 	var parked = camera.position
-	ui._on_queue_input(click(), mark)
+	await queue_click(ui, mark)
 	ok(camera.position == parked, "clicking them takes the view nowhere")
 	controller._card_for(mark)
 	ok(not ui._unit_card.visible, "and no card is shown for the tile they stand on")
@@ -374,7 +439,7 @@ func run_test():
 	log_line("======== letters on condition marks ========")
 	var strip := ConditionStrip.new()
 	add_child(strip)
-	var burn: ConditionDefinition = load("res://conditions/burn.tres")
+	var burn: ConditionDefinition = load("res://data/conditions/burn.tres")
 	hero.status_effects.append({"stat": "condition", "condition": burn, "duration": 2, "dot_base": 3.0})
 	strip.show_for(hero, combat)
 	var letters := []
@@ -390,12 +455,12 @@ func run_test():
 	# one is noticed when it is added rather than on the battlefield.
 	var tagged := {}
 	var clashes := []
-	for file in DirAccess.get_files_at("res://conditions"):
+	for file in DirAccess.get_files_at("res://data/conditions"):
 		# An export renames every .tres to .tres.remap; load() takes the plain name.
 		var listed: String = file.trim_suffix(".remap")
 		if not listed.ends_with(".tres"):
 			continue
-		var condition = load("res://conditions/" + listed)
+		var condition = load("res://data/conditions/" + listed)
 		if not condition is ConditionDefinition:
 			continue
 		var tag = ConditionStrip.tag_for(condition.display_name)

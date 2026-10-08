@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/effect.svg")
 extends Resource
 class_name EffectDefinition
 ## One effect a skill applies to its target on a successful hit.
@@ -18,7 +19,9 @@ enum EffectType {
 	MOVEMENT_CLASS,    ## Changes how the target gets about - on foot, flying, mounted - for a duration.
 	HIDE,              ## Takes the target out of sight, until somebody sees them again.
 	RESISTANCE,        ## Raises or lowers how much of one damage type gets through, for a duration.
-	UPGRADE_ELEMENT    ## The target's next damaging skill is cast with the upgraded form of its element.
+	UPGRADE_ELEMENT,   ## The target's next damaging skill is cast with the upgraded form of its element.
+	REVIVE,            ## Brings back an ally who has fallen - and they come back weaker, for good.
+	STEAL              ## Takes what the target has to hand in this fight and gives it to the thief.
 }
 
 enum DispelScope {
@@ -63,7 +66,7 @@ enum DispelScope {
 
 @export_group("Condition")
 ## Used when type is CONDITION. The condition to inflict - see
-## ConditionDefinition, and res://conditions/ for the ones already written.
+## ConditionDefinition, and res://data/conditions/ for the ones already written.
 @export var condition: ConditionDefinition
 ## How many of the target's own turns the condition lasts when THIS skill is
 ## what inflicted it, counted as every duration is - which end of a turn it goes
@@ -178,6 +181,23 @@ enum DispelScope {
 ## the caster's own tile.
 @export var knockback_distance: int = 1
 
+@export_group("Revive")
+## Used when type is REVIVE: how much of their full health somebody brought
+## back stands up with - 0.5 is half.
+@export_range(0.0, 1.0, 0.05) var revive_health: float = 0.0
+## Used when type is REVIVE: how much less of everything they are made of -
+## their attributes, their health, their weapon, how quick they are - they are
+## left with, for good: 0.1 takes a tenth off. Everything but how far they can
+## walk. It compounds, a second time taking a tenth off what the first left, and
+## it goes with them out of the fight (see Combat.weaken).
+@export_range(0.0, 1.0, 0.01) var revive_weakening: float = 0.0
+
+@export_group("Steal")
+## Used when type is STEAL: how many of the target's items it takes, from the
+## front of what they have to hand. Zero means all of them - everything they
+## brought to the fight. What the thief has no room for stays where it was.
+@export_range(0, 4, 1, "or_greater") var steal_count: int = 0
+
 
 ## Which fields each effect type actually reads. Everything not listed for a
 ## type is hidden while that type is selected - see _validate_property.
@@ -201,6 +221,8 @@ const FIELDS_BY_TYPE := {
 	# of turns, so there is no duration to set either.
 	EffectType.HIDE: [],
 	EffectType.RESISTANCE: ["display_name", "damage_type", "modifier_amount", "duration", "wears_off_at_start"],
+	EffectType.REVIVE: ["revive_health", "revive_weakening"],
+	EffectType.STEAL: ["steal_count"],
 }
 
 

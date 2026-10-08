@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/puzzle_piece.svg")
 extends Control
 class_name PuzzlePiece
 ## Something to pick up and put in its place, under a Puzzle: a strip of a torn
@@ -137,7 +138,7 @@ func _gui_input(event):
 		accept_event()
 		if event.pressed:
 			_dragging = true
-			_grab = get_parent().get_local_mouse_position() - position
+			_grab = _mouse_in_parent() - position
 			sits_in = null
 			move_to_front()
 			var viewer = _viewer()
@@ -145,11 +146,22 @@ func _gui_input(event):
 				viewer.play("pick_up")
 		elif _dragging:
 			_dragging = false
-			drop_at(get_parent().get_local_mouse_position() - _grab + size / 2.0)
+			drop_at(_mouse_in_parent() - _grab + size / 2.0)
 	elif event is InputEventMouseMotion and _dragging:
 		accept_event()
-		position = get_parent().get_local_mouse_position() - _grab
+		position = _mouse_in_parent() - _grab
 		_keep_inside()
+
+
+## Where the mouse is, in the parent's own terms - a pad's pointer, while a
+## pad is in use (see Pad.screen_point).
+func _mouse_in_parent() -> Vector2:
+	var parent := get_parent() as CanvasItem
+	# Looked up rather than named, as the Pictures autoload is: this is a tool
+	# script, and in the editor there is no Pad.
+	var pad = get_node_or_null("/root/Pad")
+	var screen: Vector2 = pad.screen_point() if pad != null else get_viewport().get_mouse_position()
+	return parent.get_global_transform_with_canvas().affine_inverse() * screen
 
 
 func _viewer() -> Node:

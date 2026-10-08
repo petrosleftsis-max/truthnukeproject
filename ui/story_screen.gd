@@ -17,7 +17,7 @@ const PAUSE_UI = "res://ui/pause_ui.tscn"
 
 ## Where to go when the conversation ends and Campaign names nothing - the menu,
 ## so a story that has nowhere to be yet still leads somewhere.
-const FALLBACK_SCENE = "res://main_menu.tscn"
+const FALLBACK_SCENE = "res://scenes/main_menu.tscn"
 
 
 func _ready():

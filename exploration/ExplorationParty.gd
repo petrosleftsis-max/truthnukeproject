@@ -27,6 +27,9 @@ signal moved(position: Vector2)
 ## Draw layer for the leader; each follower sits one below, so a party of any
 ## realistic size still clears the map underneath.
 const PARTY_Z_TOP := 20
+## How far the stick can be pushed and still count as a light touch - see
+## light_touch(). Past the stick's dead zone, so a little over half its travel.
+const LIGHT_TOUCH := 0.45
 
 var leader: CombatantSprite = null
 var followers: Array[CombatantSprite] = []
@@ -188,12 +191,19 @@ func _vault_along(delta: float):
 		vaulting = false
 
 
-## Which way the movement keys are held right now, or zero.
+## Which way the movement keys or the left stick are held right now, or zero.
+## As long as the stick is pushed - shorter for a light touch - and always a
+## full length from the keys.
 func held_direction() -> Vector2:
-	return Vector2(
-		_axis(KEY_D, KEY_RIGHT) - _axis(KEY_A, KEY_LEFT),
-		_axis(KEY_S, KEY_DOWN) - _axis(KEY_W, KEY_UP)
-	)
+	return Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
+
+
+## Whether the stick is pushed only a little way, which is creeping on a
+## stealth map (see StealthWatch.creeping). Never from the keys, which are all
+## or nothing.
+func light_touch() -> bool:
+	var held := held_direction()
+	return held != Vector2.ZERO and held.length() < LIGHT_TOUCH
 
 
 func _process(delta):
@@ -314,10 +324,6 @@ func _set_facing(left: bool):
 	_facing_left = left
 	for sprite in _members():
 		sprite.set_facing(left)
-
-
-func _axis(key_a: Key, key_b: Key) -> float:
-	return 1.0 if Input.is_physical_key_pressed(key_a) or Input.is_physical_key_pressed(key_b) else 0.0
 
 
 ## Whether the party's body fits at `centre`. Tests the corners of a box rather

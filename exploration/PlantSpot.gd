@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/plant.svg")
 extends Interactable
 class_name PlantSpot
 ## Somewhere on a stealth map to leave something that should be found there:

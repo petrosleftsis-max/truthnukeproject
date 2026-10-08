@@ -1,9 +1,9 @@
 extends Node
 ## Gear typed into an encounter, and gear typed onto a marker, both surviving
-## the encounter editor's Save.
+## the encounter editor's Save - and every other field a spawn has with them.
 
 var LOG_PATH := HarnessLog.path_for("gear")
-const ENCOUNTER = "res://encounters/encounter_01_ambush.tres"
+const ENCOUNTER = "res://data/encounters/encounter_01_ambush.tres"
 
 var _log: FileAccess = null
 var _fail = 0
@@ -60,6 +60,10 @@ func spawn_named(encounter: EncounterDefinition, key: String) -> SpawnDefinition
 
 
 func run_test():
+	# The suites in a run share one copy of the project, and everything here is
+	# saved into a real encounter - put back at the end, so a late arrival
+	# written here is not still arriving late in whichever suite comes next.
+	var original := FileAccess.get_file_as_string(ENCOUNTER)
 	log_line("======== gear typed onto a marker survives Save ========")
 	var editor = await open_editor(load(ENCOUNTER))
 	var marker = editor.markers()[0]
@@ -148,5 +152,100 @@ func run_test():
 			"%s" % fighter["stats"]["defense"])
 	log_line("")
 
+	game.queue_free()
+	await get_tree().process_frame
+	await every_field_survives_save()
+	await encounter_edits_are_noticed()
+
+	var put_back := FileAccess.open(ENCOUNTER, FileAccess.WRITE)
+	put_back.store_string(original)
+	put_back.close()
+	ok(FileAccess.get_file_as_string(ENCOUNTER) == original, "(the encounter put back as it was)")
+
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
+
+
+## The spawn in `encounter` called `called`, or null.
+func spawn_called(encounter: EncounterDefinition, called: String) -> SpawnDefinition:
+	for spawn in encounter.spawns:
+		if spawn.display_name == called:
+			return spawn
+	return null
+
+
+func marker_called(editor: EncounterEditor, called: String) -> SpawnMarker:
+	for marker in editor.markers():
+		if marker.display_name == called:
+			return marker
+	return null
+
+
+## Every field a spawn stores, by name.
+func spawn_fields() -> Array:
+	var fields := []
+	for property in SpawnDefinition.new().get_property_list():
+		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE and property.usage & PROPERTY_USAGE_STORAGE:
+			fields.append(property.name)
+	return fields
+
+
+func every_field_survives_save():
+	log_line("======== every field a spawn has survives Save ========")
+	# Each one set away from its default, so a field Save drops comes back
+	# different. The editor once rebuilt every spawn without its arrival round
+	# or whether it was caught off guard, and a Save put both back.
+	var encounter: EncounterDefinition = load(ENCOUNTER)
+	var late: SpawnDefinition = null
+	for spawn in encounter.spawns:
+		if spawn.side == 1:
+			late = spawn
+	late.display_name = "Late One"
+	late.level = 2
+	late.weapon_base = 33
+	late.defense = 44
+	late.starting_items.assign(["medicine", "tiny_bomb"])
+	late.arrives_on_round = 3
+	late.surprised = true
+	var fresh := SpawnDefinition.new()
+	var unset := spawn_fields().filter(func(field): return "%s" % [late.get(field)] == "%s" % [fresh.get(field)])
+	ok(unset.is_empty(), "(this test sets every field a spawn has - a new one needs setting here too)", "%s" % [unset])
+	var wanted := {}
+	for field in spawn_fields():
+		wanted[field] = "%s" % [late.get(field)]
+
+	var editor = await open_editor(encounter)
+	var marker := marker_called(editor, "Late One")
+	ok(marker != null and marker.arrives_on_round == 3 and marker.surprised,
+		"the marker holds when they arrive and whether they are caught off guard")
+	editor.save_to_encounter()
+	var back := spawn_called(from_disk(), "Late One")
+	var lost := []
+	for field in spawn_fields():
+		var now = "%s" % [back.get(field)] if back != null else "gone"
+		if now != wanted[field]:
+			lost.append("%s %s -> %s" % [field, wanted[field], now])
+	ok(back != null and lost.is_empty(), "every one of them is still there after Save", "%s" % [lost])
+	editor.free()
+	log_line("")
+
+
+func encounter_edits_are_noticed():
+	log_line("======== an arrival or a bag changed in the encounter is noticed ========")
+	var encounter: EncounterDefinition = load(ENCOUNTER)
+	var editor = await open_editor(encounter)
+	spawn_called(encounter, "Late One").arrives_on_round = 5
+	tick(editor)
+	var marker := marker_called(editor, "Late One")
+	ok(marker != null and marker.arrives_on_round == 5, "a new arrival round is picked up rather than saved over",
+		"%s" % [marker.arrives_on_round if marker != null else "no marker"])
+	spawn_called(encounter, "Late One").starting_items.assign(["big_bomb"])
+	tick(editor)
+	marker = marker_called(editor, "Late One")
+	ok(marker != null and marker.starting_items == ["big_bomb"], "and so is a new bag",
+		"%s" % [marker.starting_items if marker != null else "no marker"])
+	editor.save_to_encounter()
+	var back := spawn_called(from_disk(), "Late One")
+	ok(back != null and back.arrives_on_round == 5 and back.starting_items == ["big_bomb"], "which Save then keeps")
+	editor.free()
+	log_line("")

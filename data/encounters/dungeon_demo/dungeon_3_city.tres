@@ -1,0 +1,112 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_3t4tl"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_4615b"]
+[ext_resource type="PackedScene" path="res://maps/city_fight.tscn" id="3_e2lbh"]
+
+[sub_resource type="Resource" id="Resource_dbfw2"]
+script = ExtResource("2_4615b")
+combatant_key = "cyrus"
+position = Vector2i(4, 2)
+level = 3
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_c6n1n"]
+script = ExtResource("2_4615b")
+combatant_key = "alithia"
+position = Vector2i(1, 4)
+level = 3
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_7dkvg"]
+script = ExtResource("2_4615b")
+combatant_key = "prometheus"
+position = Vector2i(24, 14)
+level = 3
+weapon_base = 12
+defense = 8
+
+[sub_resource type="Resource" id="Resource_6a76x"]
+script = ExtResource("2_4615b")
+combatant_key = "enfina"
+position = Vector2i(21, 17)
+level = 3
+weapon_base = 12
+defense = 32
+
+[sub_resource type="Resource" id="Resource_3u6l7"]
+script = ExtResource("2_4615b")
+combatant_key = "ranger"
+side = 1
+position = Vector2i(20, 2)
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_6fnq1"]
+script = ExtResource("2_4615b")
+combatant_key = "bomber"
+side = 1
+position = Vector2i(13, 4)
+level = 3
+weapon_base = 12
+defense = 25
+
+[sub_resource type="Resource" id="Resource_tojav"]
+script = ExtResource("2_4615b")
+combatant_key = "barbarian"
+side = 1
+position = Vector2i(5, 7)
+display_name = "Striker"
+level = 3
+weapon_base = 12
+defense = 60
+
+[sub_resource type="Resource" id="Resource_g0qb7"]
+script = ExtResource("2_4615b")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(7, 8)
+display_name = "Caster 1"
+level = 3
+weapon_base = 12
+defense = 25
+
+[sub_resource type="Resource" id="Resource_6ld0n"]
+script = ExtResource("2_4615b")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(22, 8)
+display_name = "Caster 2"
+level = 3
+weapon_base = 12
+defense = 25
+
+[sub_resource type="Resource" id="Resource_2kuni"]
+script = ExtResource("2_4615b")
+combatant_key = "priest"
+side = 1
+position = Vector2i(4, 9)
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_kk0vo"]
+script = ExtResource("2_4615b")
+combatant_key = "mimic"
+side = 1
+position = Vector2i(17, 10)
+display_name = "Mimic"
+level = 3
+weapon_base = 12
+defense = 55
+
+[resource]
+script = ExtResource("1_3t4tl")
+display_name = "Dungeon: The City"
+description = "The city fight, with fewer of them than before."
+terrain_scene = ExtResource("3_e2lbh")
+spawns = Array[ExtResource("2_4615b")]([SubResource("Resource_dbfw2"), SubResource("Resource_c6n1n"), SubResource("Resource_7dkvg"), SubResource("Resource_6a76x"), SubResource("Resource_3u6l7"), SubResource("Resource_6fnq1"), SubResource("Resource_tojav"), SubResource("Resource_g0qb7"), SubResource("Resource_6ld0n"), SubResource("Resource_2kuni"), SubResource("Resource_kk0vo")])
+music = "Luce_del_Desiderio"

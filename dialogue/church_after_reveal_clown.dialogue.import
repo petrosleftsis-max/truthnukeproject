@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://b5kob84malboq"
+path="res://.godot/imported/church_after_reveal_clown.dialogue-12eb0f7671d7770c9b9a6581edee2cef.tres"
+
+[deps]
+
+source_file="res://dialogue/church_after_reveal_clown.dialogue"
+dest_files=["res://.godot/imported/church_after_reveal_clown.dialogue-12eb0f7671d7770c9b9a6581edee2cef.tres"]
+
+[params]
+
+defaults=true

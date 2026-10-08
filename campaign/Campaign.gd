@@ -10,7 +10,7 @@ extends Node
 
 ## The title screen, which is where the game starts and where to_main_menu()
 ## sends it back to.
-const MAIN_MENU := "res://main_menu.tscn"
+const MAIN_MENU := "res://scenes/main_menu.tscn"
 
 ## Set by the level select immediately before it loads scenes/game.tscn.
 ## GameScene reads it on entering the tree; if it is null (running game.tscn
@@ -265,7 +265,9 @@ var cleared_triggers := {}
 ## instead of setting current_encounter directly when a battle is launched from
 ## exploration, so the trigger can be retired and the map restored afterwards.
 func begin_battle_from_exploration(encounter: EncounterDefinition, map_path: String, party_position: Vector2, trigger_id: String):
-	current_encounter = encounter
+	# In a dungeon the map is the story's own, but the fight at the end of it
+	# is the dungeon's.
+	current_encounter = dungeon_fight_for(encounter, map_path)
 	current_map = map_path
 	return_position = party_position
 	return_to_position = true
@@ -398,11 +400,23 @@ func apply_carried_state(comb: Dictionary, key: String):
 	if not party_state.has(key):
 		return
 	var stored = party_state[key]
+	# Brought back from falling, and weaker for it for good (Combat.weaken) -
+	# before their health is set, so it is set against what they can have now.
+	if stored.get("frailty", 1.0) < 1.0:
+		comb["frailty"] = stored.frailty
+		Combat.apply_frailty(comb)
 	# Clamped, because the health carried out of one fight can exceed what this
 	# one allows: walking a level 3 survivor into a battle that fields them at
 	# level 1 should not start them above full.
 	comb.hp = mini(stored.hp, comb.max_hp)
 	comb.alive = stored.alive
+	# In a dungeon the gates spent stay spent, fight to fight - only the rest's
+	# Recover Gates brings them back. Elsewhere every fight opens them all.
+	if in_dungeon() and stored.has("spell_slots"):
+		var slots: Array = comb.get("spell_slots", []).duplicate()
+		for gate in mini(slots.size(), stored.spell_slots.size()):
+			slots[gate] = mini(stored.spell_slots[gate], slots[gate])
+		comb.spell_slots = slots
 
 
 ## Whether `key` is still standing - false only once they have actually died
@@ -431,6 +445,11 @@ func record_party(combatants: Array):
 			"max_hp": comb.max_hp,
 			"alive": comb.alive,
 		}
+		if comb.get("frailty", 1.0) < 1.0:
+			party_state[key]["frailty"] = comb.frailty
+		if in_dungeon():
+			party_state[key]["spell_slots"] = comb.get("spell_slots", []).duplicate()
+			party_state[key]["max_spell_slots"] = comb.get("max_spell_slots", []).duplicate()
 
 
 ## Back to full strength: everyone alive, everyone at full health, every
@@ -479,6 +498,9 @@ func take_encounter_answer() -> EncounterAnswer:
 
 func reset():
 	_arena_return = {}
+	dungeon = null
+	dungeon_stage = 0
+	gate_recoveries_left = 0
 	_encounter_answer = EncounterAnswer.UNANSWERED
 	party_state.clear()
 	cleared_triggers.clear()
@@ -703,6 +725,170 @@ func to_main_menu(opens_at: String = "", note: String = ""):
 	SceneTransition.change_scene(MAIN_MENU)
 
 
+## --- A dungeon (see DungeonDefinition) ---
+##
+## A run of fights with rests between: start_dungeon puts the party together
+## and sends them to the first stage; the result screen rests them after each
+## win and calls next_dungeon_stage, until the last is won.
+
+const EXPLORATION_SCENE := "res://scenes/exploration.tscn"
+const BATTLE_SCENE := "res://scenes/game.tscn"
+
+## The dungeon being played, or null.
+var dungeon: DungeonDefinition = null
+## Which of its stages the party is on.
+var dungeon_stage := 0
+## How many more rests may still bring gates back.
+var gate_recoveries_left := 0
+
+
+## Starts `which` from the top: its party at its level, carrying nothing, on
+## its first stage.
+func start_dungeon(which: DungeonDefinition):
+	reset()
+	clear_story()
+	dungeon = which
+	dungeon_stage = 0
+	gate_recoveries_left = which.gate_recoveries
+	set_party(which.party, which.level)
+	for key in party_order:
+		empty_inventory(key)
+	_go_to_dungeon_stage()
+
+
+func in_dungeon() -> bool:
+	return dungeon != null
+
+
+## The stage the party is on, or null.
+func current_dungeon_stage() -> DungeonStage:
+	if dungeon == null or dungeon_stage < 0 or dungeon_stage >= dungeon.stages.size():
+		return null
+	return dungeon.stages[dungeon_stage]
+
+
+## Whether the stage the party is on is the dungeon's last.
+func on_last_dungeon_stage() -> bool:
+	return dungeon != null and dungeon_stage >= dungeon.stages.size() - 1
+
+
+## The fight to have when `map` starts `encounter`: in a dungeon, the stage's
+## own fight in its place; anywhere else, `encounter`.
+func dungeon_fight_for(encounter: EncounterDefinition, map: String) -> EncounterDefinition:
+	if dungeon == null or encounter == null:
+		return encounter
+	var stage := dungeon.stage_for(map, encounter)
+	return stage.encounter if stage != null and stage.encounter != null else encounter
+
+
+## On to the next stage - or, after the last, back to the title screen with
+## the dungeon done.
+func next_dungeon_stage():
+	if dungeon == null:
+		return
+	dungeon_stage += 1
+	if dungeon_stage >= dungeon.stages.size():
+		to_main_menu("", "%s cleared." % dungeon.display_name)
+		return
+	_go_to_dungeon_stage()
+
+
+func _go_to_dungeon_stage():
+	var stage := current_dungeon_stage()
+	if stage == null:
+		return
+	current_encounter = null
+	var scene := EXPLORATION_SCENE
+	if stage.map != "":
+		travel_to_map(stage.map, "")
+	else:
+		current_map = ""
+		return_to_position = false
+		current_encounter = stage.encounter
+		scene = BATTLE_SCENE
+	# A change still fading in drops any other asked for meanwhile, and the
+	# stage would be counted gone to without being gone to.
+	while SceneTransition.is_changing():
+		await get_tree().process_frame
+	SceneTransition.change_scene(scene)
+
+
+## --- Resting, between a dungeon's fights ---
+
+
+## Everyone back to full health - and, if the dungeon says so, back on their
+## feet. What they carry is left as it is.
+func rest_party():
+	for key in party_order:
+		if not party_state.has(key):
+			continue
+		var state: Dictionary = party_state[key]
+		if not state.alive and (dungeon == null or not dungeon.rest_revives):
+			continue
+		state.hp = state.get("max_hp", state.hp)
+		state.alive = true
+
+
+## Whether a rest can bring `key`'s gates back now: the dungeon offers it for
+## them, there is a recovery left to use, and something has been spent.
+func can_recover_gates(key: String) -> bool:
+	if dungeon == null or gate_recoveries_left <= 0 or not dungeon.gate_recovery_for.has(key):
+		return false
+	if not party_order.has(key) or not party_state.has(key) or not party_state[key].has("spell_slots"):
+		return false
+	var left := gates_left(key)
+	var most := gates_most(key)
+	for gate in range(1, most.size()):
+		if dungeon.gate_cost(gate) > 0 and left[gate] < most[gate]:
+			return true
+	return false
+
+
+## How many castings `key` has left through each gate, indexed by gate.
+func gates_left(key: String) -> Array:
+	var state: Dictionary = party_state.get(key, {})
+	return state.get("spell_slots", gates_most(key)).duplicate()
+
+
+## How many `key` has through each gate when none are spent.
+func gates_most(key: String) -> Array:
+	var state: Dictionary = party_state.get(key, {})
+	if state.has("max_spell_slots"):
+		return state.max_spell_slots.duplicate()
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	return definition.gates_at(party_level) if definition != null else [0, 0, 0, 0]
+
+
+## What bringing back `counts` castings - one count per gate - costs.
+func gate_recovery_cost(counts: Array) -> int:
+	var cost := 0
+	for gate in counts.size():
+		cost += maxi(counts[gate], 0) * (dungeon.gate_cost(gate) if dungeon != null else 0)
+	return cost
+
+
+## Brings back `counts` of `key`'s castings, one count per gate, spending one
+## of the run's recoveries. Refused, and nothing changed, if it costs more than
+## a recovery has to spend, brings back more than was spent, or none is left.
+func recover_gates(key: String, counts: Array) -> bool:
+	if not can_recover_gates(key):
+		return false
+	var cost := gate_recovery_cost(counts)
+	if cost <= 0 or cost > dungeon.gate_recovery_points:
+		return false
+	var left := gates_left(key)
+	var most := gates_most(key)
+	for gate in counts.size():
+		if counts[gate] < 0 or (counts[gate] > 0 and (gate >= left.size() or left[gate] + counts[gate] > most[gate])):
+			return false
+	for gate in counts.size():
+		if counts[gate] > 0:
+			left[gate] += counts[gate]
+	party_state[key]["spell_slots"] = left
+	gate_recoveries_left -= 1
+	return true
+
+
 ## --- Inventories ---
 ##
 ## A bag per character rather than one shared pool, so who is carrying the last
@@ -777,18 +963,28 @@ func give_item(key: String, item_id: String) -> bool:
 	if not CombatantDatabase.combatants.has(key):
 		push_warning("Campaign.give_item('%s', '%s'): no such character." % [key, item_id])
 		return false
+	if stow_item(key, item_id) < 0:
+		push_warning("Campaign.give_item('%s', '%s'): their bag is full." % [key, item_id])
+		return false
+	var item: ItemDefinition = ItemDatabase.item(item_id)
+	announce("[color=lightgreen]%s[/color] receives [color=yellow]%s[/color].
+" % [
+		display_name_of(key), item.name if item != null else item_id])
+	return true
+
+
+## Puts `item_id` in `key`'s first free slot without a word said, and answers
+## which slot - -1 when the bag is full. The front slots come first, so
+## something put away in a fight is to hand at once if there is room: a Steal
+## (Combat.steal) does its own telling.
+func stow_item(key: String, item_id: String) -> int:
 	var slots = inventory_of(key)
 	for i in slots.size():
 		if slots[i] == "":
 			slots[i] = item_id
 			inventory_changed.emit(key)
-			var item: ItemDefinition = ItemDatabase.item(item_id)
-			announce("[color=lightgreen]%s[/color] receives [color=yellow]%s[/color].
-" % [
-				display_name_of(key), item.name if item != null else item_id])
-			return true
-	push_warning("Campaign.give_item('%s', '%s'): their bag is full." % [key, item_id])
-	return false
+			return i
+	return -1
 
 
 ## Takes one `item_id` off `key`, preferring the combat slots so that using one

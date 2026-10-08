@@ -60,11 +60,11 @@ func run_test():
 	Campaign.set_flag("read_the_notice")
 	# Off to a battle and back, which is the longest gap anything has to survive.
 	Campaign.begin_battle_from_exploration(
-		load("res://encounters/encounter_01_ambush.tres"),
-		"res://scenes/explore_crossroads.tscn", Vector2(100, 100), "some_trigger")
+		load("res://data/encounters/encounter_01_ambush.tres"),
+		"res://maps/crossroads_explore.tscn", Vector2(100, 100), "some_trigger")
 	Campaign.finish_battle_from_exploration(true)
 	ok(Campaign.flag("read_the_notice"), "a flag survives a battle")
-	Campaign.travel_to_map("res://scenes/explore_crossroads.tscn", "east")
+	Campaign.travel_to_map("res://maps/crossroads_explore.tscn", "east")
 	ok(Campaign.flag("read_the_notice"), "and walking to another map")
 	Campaign.reset()
 	ok(not Campaign.flag("read_the_notice"), "starting the campaign over forgets it")
@@ -134,7 +134,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== a lingering wound is scaled, not a flat range ========")
-	var burn: ConditionDefinition = load("res://conditions/burn.tres")
+	var burn: ConditionDefinition = load("res://data/conditions/burn.tres")
 	ok(burn.dot_modifier > 0.0, "Burn scales off whoever inflicted it", "x%s" % burn.dot_modifier)
 	var weak = combat_for_dot()
 	# Cyrus, because Poison Dart scales from Physical and Physical is a stat he
@@ -181,7 +181,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== dialogue branches on a flag ========")
-	var script: Resource = load("res://Dialogue/flag_example.dialogue")
+	var script: Resource = load("res://dialogue/flag_example.dialogue")
 	ok(script != null, "the example script loads")
 	if script != null:
 		Campaign.reset()
@@ -214,7 +214,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== the church door, as written ========")
-	var church: Resource = load("res://Dialogue/church_after_reveal_door_blocked.dialogue")
+	var church: Resource = load("res://dialogue/church_after_reveal_door_blocked.dialogue")
 	ok(church != null, "the script loads")
 	if church != null:
 		Campaign.reset()

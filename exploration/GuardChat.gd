@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/guard_chat.svg")
 extends Node
 class_name GuardChat
 ## Two guards on a stealth map who meet every so often to talk: they leave

@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/map_setup.svg")
 extends Node
 class_name MapSetup
 ## How an exploration map starts: who is walking it, how far along they are,

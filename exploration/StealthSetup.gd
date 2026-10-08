@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/stealth_setup.svg")
 extends Node
 class_name StealthSetup
 ## Makes the map it is dropped into a stealth map: the guards on it (see Guard)
@@ -6,7 +7,7 @@ class_name StealthSetup
 ## and the party on the tiles they were standing on.
 ##
 ## The map has to be built on the battle terrain named below - an instance of
-## it, the way explore_crossroads is an instance of crossroads_terrain - so a
+## it, the way crossroads_explore is an instance of crossroads_terrain - so a
 ## tile on the map is the same tile in the fight.
 
 ## The terrain the fight is played on when somebody is caught. The map this

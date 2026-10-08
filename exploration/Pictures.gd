@@ -51,6 +51,7 @@ var _badge: _Badge = null
 var _lens_ring: _LensRing = null
 var _bag: HBoxContainer = null
 var _back: Button = null
+var _journal_button: Button = null
 var _stack: Array = []
 var _hovered: Control = null
 ## The item picked from the bag to use on the next thing clicked, or "".
@@ -444,17 +445,18 @@ func _build():
 	_bag.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_bag.add_theme_constant_override("separation", 6)
 	row.add_child(_bag)
-	var journal := Button.new()
-	journal.name = "Journal"
-	journal.text = "Journal (J)"
-	journal.focus_mode = Control.FOCUS_NONE
-	journal.pressed.connect(_open_journal)
-	row.add_child(journal)
+	_journal_button = Button.new()
+	_journal_button.name = "Journal"
+	_journal_button.focus_mode = Control.FOCUS_NONE
+	_journal_button.pressed.connect(_open_journal)
+	row.add_child(_journal_button)
 	_back = Button.new()
-	_back.text = "Back (Esc)"
 	_back.focus_mode = Control.FOCUS_NONE
 	_back.pressed.connect(back)
 	row.add_child(_back)
+	_name_keys()
+	if not Pad.changed.is_connected(_name_keys):
+		Pad.changed.connect(_name_keys)
 	_lens_ring = _LensRing.new()
 	_lens_ring.name = "Lens"
 	_lens_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -475,6 +477,15 @@ func _build():
 	_hover_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hover_panel.add_child(_hover_label)
 	_layer.add_child(hover_panel)
+
+
+## What to press for the journal and for Back, on their buttons - the keys, or
+## a pad's buttons.
+func _name_keys():
+	if _journal_button == null or not is_instance_valid(_journal_button):
+		return
+	_journal_button.text = Pad.hint("Journal", [&"journal", &"menus"])
+	_back.text = Pad.hint("Back", &"ui_cancel")
 
 
 func _open_journal():
@@ -534,7 +545,7 @@ func _process(delta):
 		if _intro >= 1.0:
 			_intro_from = Rect2()
 	_fit()
-	var mouse = _holder.get_viewport().get_mouse_position()
+	var mouse := Pad.screen_point()
 	var screen = _holder.get_viewport_rect().size
 	_update_lens(mouse)
 	_badge.position = mouse + Vector2(14, 14)
@@ -556,7 +567,7 @@ func _update_lens(mouse: Vector2):
 		_lens_ring.size = Vector2(LENS_RADIUS, LENS_RADIUS) * 2.0
 	if picture == null:
 		return
-	var at: Vector2 = lens_point if lens_point != null else _holder.get_global_mouse_position()
+	var at: Vector2 = lens_point if lens_point != null else Pad.screen_point()
 	for spot in picture.hotspots():
 		if spot.hidden_detail:
 			spot.lens_lit = on and _rect_within(spot.get_global_rect(), at, LENS_RADIUS * 0.8)

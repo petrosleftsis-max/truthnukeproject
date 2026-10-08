@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/edible.svg")
 extends Interactable
 class_name Edible
 ## Something left out on a stealth map for a guard to eat or drink: a supper

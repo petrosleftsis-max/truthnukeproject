@@ -61,7 +61,7 @@ func run_test():
 
 	log_line("======== a bottle for every condition ========")
 	var conditions := []
-	var dir = DirAccess.open("res://conditions")
+	var dir = DirAccess.open("res://data/conditions")
 	for file in dir.get_files():
 		if file.ends_with(".tres"):
 			conditions.append(file.get_basename())
@@ -110,7 +110,7 @@ func run_test():
 	# A battle opened from the menu hands out exactly what its spawns list and
 	# nothing otherwise, so stock them the way a designer would before asking
 	# what the fight offers.
-	var stocked: EncounterDefinition = load("res://encounters/encounter_02_sappers.tres").duplicate(true)
+	var stocked: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
 	for spawn_definition in stocked.spawns:
 		if spawn_definition.side == 0:
 			spawn_definition.starting_items = ["cure_potion", "bomb", "poison_bottle", "medicine"]
@@ -214,7 +214,7 @@ func run_test():
 	game.queue_free()
 	await get_tree().process_frame
 	Campaign.reset()
-	Campaign.current_map = "res://scenes/laboratory_terrain_explore.tscn"
+	Campaign.current_map = "res://maps/laboratory_explore.tscn"
 	var scene = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(scene)
 	for i in 5:

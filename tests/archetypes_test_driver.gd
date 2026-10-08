@@ -20,7 +20,7 @@ var _game: Node = null
 
 ## Encounters whose maps might hold a stretch of open ground big enough, tried
 ## in order. Both field every archetype.
-const SOURCES := ["res://encounters/encounter_02_sappers.tres", "res://encounters/encounter_03_watcher.tres"]
+const SOURCES := ["res://data/encounters/encounter_02_sappers.tres", "res://data/encounters/encounter_03_watcher.tres"]
 ## The open ground every scenario is laid out on, in tiles. The laboratory has
 ## one this size; the maps are rooms and corridors, and nothing larger fits.
 const FIELD := Vector2i(12, 7)
@@ -465,7 +465,7 @@ func whole_kit():
 	cyrus = who(combat, "cyrus", 0)
 	striker = who(combat, "barbarian", 1)
 	if standing_as_laid_out(combat, cast):
-		var root: ConditionDefinition = load("res://conditions/crystallised.tres")
+		var root: ConditionDefinition = load("res://data/conditions/crystallised.tres")
 		striker.status_effects.append({"stat": "condition", "condition": root,
 			"duration": root.duration, "source_name": "test"})
 		var stood = striker.position

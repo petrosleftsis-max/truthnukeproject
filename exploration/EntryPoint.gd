@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/entry.svg")
 extends Marker2D
 class_name EntryPoint
 ## Where the party appears when they arrive in an exploration map.

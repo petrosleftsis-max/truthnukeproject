@@ -14,14 +14,19 @@ class_name CameraController
 ##                      pinned under the cursor
 ##   Middle-mouse drag  pan
 ##   WASD / arrow keys  pan
+##   Right stick        pan, on a pad; and the view goes along with a pad's
+##                      cursor wherever it is stepped to (see CController)
+##   Right stick click  out to the whole map, and back
 ##
 ## Left and right mouse stay untouched - they still belong to movement and
 ## skill targeting (see CController._unhandled_input).
 
 ## How far out you can pull. Higher zoom = more magnified = less map visible,
 ## so this is the "whole map" end. If you enlarge the map past what fits at
-## this zoom, lower it to still be able to take it all in at once.
-@export var min_zoom := 0.17
+## this zoom, lower it to still be able to take it all in at once. Scales
+## inversely with Grid.TILE_SIZE: 0.17 took in the crossroads at 192-unit
+## tiles, and tiles a third bigger need three-quarters of that.
+@export var min_zoom := 0.1275
 ## How far in you can push.
 @export var max_zoom := 1.0
 ## What one mouse-wheel notch multiplies the zoom by.
@@ -50,6 +55,8 @@ class_name CameraController
 
 var _tile_map: TileMap = null
 var _dragging := false
+## The zoom to go back to after a pad's look at the whole map.
+var _zoom_before := 0.0
 
 
 func _ready():
@@ -135,6 +142,10 @@ func _unhandled_input(event):
 	if is_following():
 		# Locked on somebody: their turn is the thing to be looking at.
 		return
+	if free_look and allow_zoom and event.is_action_pressed(&"zoom_toggle"):
+		toggle_whole_map()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed and allow_zoom:
 			zoom_at_screen_point(zoom.x * zoom_step, event.position)
@@ -207,22 +218,24 @@ func _process(delta):
 		# take it. Leave the arrow keys to walk that menu's buttons instead of
 		# dragging the map around underneath it.
 		return
-	var pan = Vector2(
-		_axis(KEY_D, KEY_RIGHT) - _axis(KEY_A, KEY_LEFT),
-		_axis(KEY_S, KEY_DOWN) - _axis(KEY_W, KEY_UP)
-	)
+	var pan := Input.get_vector(&"pan_left", &"pan_right", &"pan_up", &"pan_down")
 	if pan == Vector2.ZERO:
 		return
-	position += pan.normalized() * keyboard_pan_speed * delta / zoom.x
+	# As far as the stick is pushed - all the way, from the keys.
+	position += pan.limit_length(1.0) * keyboard_pan_speed * delta / zoom.x
 	clamp_to_map()
 
 
-## 1.0 if either key is held, 0.0 otherwise. Read straight off the keyboard
-## rather than through input actions so panning needs no additions to the
-## project's input map, and so it keeps working while a UI button happens to
-## hold focus (the arrow keys would otherwise be spent navigating it).
-func _axis(key_a: Key, key_b: Key) -> float:
-	return 1.0 if Input.is_physical_key_pressed(key_a) or Input.is_physical_key_pressed(key_b) else 0.0
+## Out to the whole map - as far out as the zoom goes - or, out there already,
+## back to where it was. A pad's way to take the board in at a glance, having
+## no wheel.
+func toggle_whole_map():
+	var middle := get_viewport_rect().size * 0.5
+	if zoom.x > min_zoom * 1.01:
+		_zoom_before = zoom.x
+		zoom_at_screen_point(min_zoom, middle)
+	else:
+		zoom_at_screen_point(_zoom_before if _zoom_before > 0.0 else max_zoom * 0.5, middle)
 
 
 ## --- Watching somebody act ---

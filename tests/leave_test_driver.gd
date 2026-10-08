@@ -36,7 +36,7 @@ func run_test():
 
 	log_line("======== the crossroads starts Cyrus empty-handed ========")
 	Campaign.reset()
-	Campaign.current_map = "res://scenes/explore_crossroads.tscn"
+	Campaign.current_map = "res://maps/crossroads_explore.tscn"
 	var walk = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(walk)
 	for i in 5:
@@ -57,7 +57,7 @@ func run_test():
 
 	log_line("======== what you carry in, you carry into the fight ========")
 	Campaign.reset()
-	Campaign.current_map = "res://scenes/laboratory_terrain_explore.tscn"
+	Campaign.current_map = "res://maps/laboratory_explore.tscn"
 	var lab = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(lab)
 	for i in 5:
@@ -68,8 +68,8 @@ func run_test():
 	ok(not to_hand.is_empty(), "he has something packed", "%s" % [to_hand])
 	# Walk into a fight the way an encounter trigger does.
 	Campaign.begin_battle_from_exploration(
-		load("res://encounters/encounter_02_sappers.tres"),
-		"res://scenes/laboratory_terrain_explore.tscn", Vector2.ZERO, "test_trigger")
+		load("res://data/encounters/encounter_02_sappers.tres"),
+		"res://maps/laboratory_explore.tscn", Vector2.ZERO, "test_trigger")
 	lab.queue_free()
 	await get_tree().process_frame
 	var game = load("res://scenes/game.tscn").instantiate()
@@ -105,7 +105,7 @@ func run_test():
 
 	log_line("======== an AI walk that outlives its battle ========")
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game2 = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game2)
 	for i in 6:
@@ -130,7 +130,7 @@ func run_test():
 
 	log_line("======== a skill animation that outlives its battle ========")
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game3 = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game3)
 	for i in 6:

@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/puzzle.svg")
 extends Control
 class_name Puzzle
 ## Something in a Picture to work out by hand: a lock's dials to turn to the

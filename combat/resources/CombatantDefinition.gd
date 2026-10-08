@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/character.svg")
 ## Marked @tool so the encounter editor can ask a definition what it looks
 ## like. A resource whose script is not a tool script is a placeholder in the
 ## editor: its properties can be read but none of its methods exist, which is

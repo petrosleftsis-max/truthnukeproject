@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/picture_layer.svg")
 extends TextureRect
 class_name PictureLayer
 ## An image in a Picture that comes and goes with the story - the drawer drawn

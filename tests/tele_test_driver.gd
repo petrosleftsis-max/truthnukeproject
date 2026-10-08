@@ -55,7 +55,7 @@ func run_test():
 	log_line("")
 
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 6:
@@ -260,7 +260,7 @@ func run_test():
 	await get_tree().process_frame
 
 	log_line("======== the church ========")
-	var church = load("res://church.tscn").instantiate()
+	var church = load("res://maps/church.tscn").instantiate()
 	add_child(church)
 	await get_tree().process_frame
 	var dialogues := {}
@@ -287,7 +287,7 @@ func run_test():
 
 	# The door's first branch, which needs all four flags.
 	Campaign.reset()
-	var door = load("res://Dialogue/church_after_reveal_door_blocked.dialogue")
+	var door = load("res://dialogue/church_after_reveal_door_blocked.dialogue")
 	for flag in ["after_reveal_reminisced_enfina", "after_reveal_reminisced_cyrus",
 			"after_reveal_reminisced_prometheus", "after_reveal_reminisced_clown"]:
 		Campaign.set_flag(flag)

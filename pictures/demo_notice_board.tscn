@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://exploration/Picture.gd" id="1_picture"]
 [ext_resource type="Script" path="res://exploration/Hotspot.gd" id="2_hotspot"]
 [ext_resource type="Script" path="res://exploration/PictureLayer.gd" id="3_layer"]
-[ext_resource type="Resource" path="res://Dialogue/demo_stealth.dialogue" id="4_dialogue"]
+[ext_resource type="Resource" path="res://dialogue/demo_stealth.dialogue" id="4_dialogue"]
 
 [node name="NoticeBoard" type="Control"]
 layout_mode = 3

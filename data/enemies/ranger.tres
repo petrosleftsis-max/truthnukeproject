@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_53qdy"]
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="2_g0obl"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/ranger/ranger_frames.tres" id="3_ymnqq"]
+
+[resource]
+script = ExtResource("2_g0obl")
+name = "Ranger"
+class_t = 1
+max_hp = 32
+max_hp_level_2 = 110
+max_hp_level_3 = 150
+movement = 5
+initiative = 4
+sprite_frames = ExtResource("3_ymnqq")
+skills = Array[String](["heal", "nail_projectile", "venomous_shot", "flammable_limb", "run"])
+resist_wind = -50
+resist_poison = 50
+ai_function = "ai_ranger"

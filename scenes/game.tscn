@@ -6,7 +6,7 @@
 [ext_resource type="PackedScene" path="res://ui/pause_ui.tscn" id="6_pauseui"]
 [ext_resource type="Script" path="res://control/CameraController.gd" id="7_camera"]
 [ext_resource type="Script" path="res://scenes/game.gd" id="8_game"]
-[ext_resource type="Resource" path="res://encounters/encounter_01_ambush.tres" id="9_enc1"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_01_ambush.tres" id="9_enc1"]
 [ext_resource type="PackedScene" path="res://ui/result_ui.tscn" id="10_resultui"]
 [ext_resource type="PackedScene" path="res://ui/reaction_prompt.tscn" id="11_reaction"]
 [ext_resource type="Script" path="res://ui/hurt_vignette.gd" id="12_vignette"]
@@ -18,7 +18,7 @@ fallback_encounter = ExtResource("9_enc1")
 combat = NodePath("VisualCombat")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1946268559]
-position = Vector2(3552, 2112)
+position = Vector2(4736, 2816)
 zoom = Vector2(0.5, 0.5)
 script = ExtResource("7_camera")
 tile_map_path = NodePath("../Terrain/TileMap")

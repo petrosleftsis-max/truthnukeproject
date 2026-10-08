@@ -116,7 +116,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== every encounter is playable ========")
-	for path in files_under("res://encounters", ["tres"]):
+	for path in files_under("res://data/encounters", ["tres"]):
 		var encounter: EncounterDefinition = load(path)
 		var problems := []
 		if encounter.terrain_scene == null:
@@ -141,7 +141,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== every encounter plays out ========")
-	for path in files_under("res://encounters", ["tres"]):
+	for path in files_under("res://data/encounters", ["tres"]):
 		Campaign.reset()
 		Campaign.current_encounter = load(path)
 		var game = load("res://scenes/game.tscn").instantiate()
@@ -174,8 +174,8 @@ func run_test():
 	log_line("")
 
 	log_line("======== every exploration map comes up ========")
-	var maps := ["res://scenes/explore_crossroads.tscn", "res://scenes/laboratory_terrain_explore.tscn",
-		"res://church.tscn"]
+	var maps := ["res://maps/crossroads_explore.tscn", "res://maps/laboratory_explore.tscn",
+		"res://maps/church.tscn"]
 	for path in maps:
 		Campaign.reset()
 		Campaign.current_map = path
@@ -200,7 +200,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== the menus come up ========")
-	for path in ["res://main_menu.tscn", "res://scenes/level_select.tscn", "res://scenes/story.tscn"]:
+	for path in ["res://scenes/main_menu.tscn", "res://scenes/level_select.tscn", "res://scenes/story.tscn"]:
 		var scene = load(path).instantiate()
 		add_child(scene)
 		await get_tree().process_frame
@@ -212,14 +212,14 @@ func run_test():
 
 	log_line("======== every dialogue compiles ========")
 	var bad_dialogue := []
-	for path in files_under("res://Dialogue", ["dialogue"]):
+	for path in files_under("res://dialogue", ["dialogue"]):
 		var resource = load(path)
 		if resource == null:
 			bad_dialogue.append(path)
 			continue
 		if resource.get("errors") != null and not resource.errors.is_empty():
 			bad_dialogue.append("%s: %d errors" % [path, resource.errors.size()])
-	ok(bad_dialogue.is_empty(), "%d dialogues compile" % files_under("res://Dialogue", ["dialogue"]).size(),
+	ok(bad_dialogue.is_empty(), "%d dialogues compile" % files_under("res://dialogue", ["dialogue"]).size(),
 		"%s" % [bad_dialogue])
 	log_line("")
 

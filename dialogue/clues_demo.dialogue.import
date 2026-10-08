@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://cctr4bdhfekwa"
+path="res://.godot/imported/clues_demo.dialogue-9768e07e0c866ed38dc55ccb4c6632c9.tres"
+
+[deps]
+
+source_file="res://dialogue/clues_demo.dialogue"
+dest_files=["res://.godot/imported/clues_demo.dialogue-9768e07e0c866ed38dc55ccb4c6632c9.tres"]
+
+[params]
+
+defaults=true

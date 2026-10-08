@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://wpjsghmfjxss"
+path="res://.godot/imported/flag_example.dialogue-e64ffbf849c56256293472ffcd109464.tres"
+
+[deps]
+
+source_file="res://dialogue/flag_example.dialogue"
+dest_files=["res://.godot/imported/flag_example.dialogue-e64ffbf849c56256293472ffcd109464.tres"]
+
+[params]
+
+defaults=true

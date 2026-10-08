@@ -44,6 +44,7 @@ func snapshot(comb: Dictionary) -> Dictionary:
 		"studied_by": "%s" % [comb.get("studied_by", [])],
 		"reactions_suppressed": comb.get("reactions_suppressed", false),
 		"restrictions": "%s" % [comb.get("restrictions", {})],
+		"pocket": "%s" % [comb.get("pocket", [])],
 	}
 
 
@@ -83,7 +84,7 @@ func differences(before: Dictionary, after: Dictionary) -> Array:
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 6:
@@ -228,6 +229,16 @@ func run_test():
 			if contested_key != "" and mark["stats"].has(contested_key):
 				contested_was = mark["stats"][contested_key]
 				mark["stats"][contested_key] = 0
+		if skill.targets_fallen:
+			# Aimed at somebody fallen - Resuscitate - so the ally goes down
+			# first, where they stand. Standing, there is nobody for it.
+			mark.hp = 0
+			combat.combatant_die(mark)
+		if Combat.steals(skill):
+			# Something on the enemy to take, and room in the caster's bag to
+			# take it to. Empty-handed, there is nothing for it.
+			mark["pocket"] = ["cure_potion"]
+			Campaign.empty_inventory(caster.get("combatant_key", ""))
 		var aim = mark.position if gap > 0 else caster.position
 		var destination = Vector2i(-99999, -99999)
 		if skill.teleports == SkillDefinition.TeleportWho.TARGET:

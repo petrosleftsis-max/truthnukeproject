@@ -4,8 +4,8 @@ extends Node
 ## guard is sure.
 
 var LOG_PATH := HarnessLog.path_for("sneak")
-const MAP := "res://scenes/explore_crossroads.tscn"
-const TERRAIN := "res://scenes/crossroads_terrain.tscn"
+const MAP := "res://maps/crossroads_explore.tscn"
+const TERRAIN := "res://maps/crossroads_terrain.tscn"
 
 var _log: FileAccess = null
 var _fail = 0
@@ -55,7 +55,7 @@ func run_test():
 func sight_agrees_with_combat():
 	log_line("======== a guard sees by combat's rule ========")
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await settle(4)

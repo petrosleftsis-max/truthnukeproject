@@ -1,7 +1,12 @@
+@tool
+@icon("res://art/editor_icons/spawn.svg")
 extends Resource
 class_name SpawnDefinition
 ## One combatant placed on the map at the start of an encounter. A list of
 ## these is what an EncounterDefinition is mostly made of.
+##
+## Marked @tool only so the inspector can offer Starting Items as a dropdown of
+## the items there are (see _validate_property).
 
 
 ## Key into CombatantDatabase.combatants - "enfina", "ranger", "priest" and so
@@ -48,9 +53,10 @@ class_name SpawnDefinition
 ## walked into from a map ignores this and keeps whatever the party carried in.
 ##
 ## On an enemy it is what they have to hand in this fight, and use: a potion
-## drunk when badly hurt, a bomb thrown like any skill. A guard caught on a
-## stealth map fights with whatever is still in his pockets - anything lifted
-## from them is not here.
+## drunk when badly hurt, a bomb thrown like any skill. Only the first four
+## they could use in a fight count; it is also what a Steal takes off them. A
+## guard caught on a stealth map fights with whatever is still in his pockets -
+## anything lifted from them is not here.
 @export var starting_items: Array[String] = []
 
 @export_group("Arriving late")
@@ -65,3 +71,27 @@ class_name SpawnDefinition
 ## Caught off guard: loses their first turn. A guard ambushed on a stealth map
 ## before he knew anybody was there.
 @export var surprised: bool = false
+
+
+## Every item there is, by key, read straight from data/items rather than
+## through the ItemDatabase autoload, which an editor inspector cannot count on.
+## Read once per editor session: an item added since shows after a reload.
+static var _item_keys: Array = []
+
+static func item_keys() -> Array:
+	if _item_keys.is_empty():
+		_item_keys = DataFolder.items().keys()
+	return _item_keys
+
+
+## The hint that makes an Array[String] of item keys a dropdown per entry.
+static func item_list_hint() -> String:
+	return "%d/%d:%s" % [TYPE_STRING, PROPERTY_HINT_ENUM, ",".join(item_keys())]
+
+
+## Starting Items as a dropdown of the items there are, so an encounter cannot
+## hand anybody an item that does not exist.
+func _validate_property(property: Dictionary):
+	if property.name == "starting_items" and Engine.is_editor_hint():
+		property.hint = PROPERTY_HINT_TYPE_STRING
+		property.hint_string = item_list_hint()

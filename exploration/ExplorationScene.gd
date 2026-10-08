@@ -14,7 +14,7 @@ class_name ExplorationScene
 
 ## Loaded when Campaign has no map set - running this scene straight from the
 ## editor, for instance.
-@export_file("*.tscn") var default_map: String = "res://scenes/explore_crossroads.tscn"
+@export_file("*.tscn") var default_map: String = "res://maps/crossroads_explore.tscn"
 ## Who is in the party at the start of a run, in marching order - the first one
 ## leads. Edit this to add or remove teammates; they need to exist in
 ## CombatantDatabase first. Only used to seed Campaign.party_order the first
@@ -43,12 +43,20 @@ func _enter_tree():
 
 
 func _ready():
+	# Walking about, as far as a pad's pointer is concerned - see Pad.
+	add_to_group(&"pad_walk")
+	Pad.changed.connect(_update_prompt)
 	# The map's own cast wins where it has one: a map that names its party is
 	# stating who is there at that point in the story, while Starting Party is
 	# only a fallback for a map that says nothing (and for running one straight
 	# from the editor).
 	var setup = _map_setup()
-	if setup != null and setup.is_set():
+	# In a dungeon the party and what it carries are the dungeon's, from one
+	# map to the next: a map's own cast and kit are where its story has them.
+	var in_dungeon := Campaign.in_dungeon()
+	if in_dungeon:
+		pass
+	elif setup != null and setup.is_set():
 		Campaign.set_party(setup.members, setup.level)
 	else:
 		Campaign.seed_party(starting_party)
@@ -56,12 +64,13 @@ func _ready():
 	# Emptying the bags and handing the kit out again is for arriving: done on
 	# the way back, it took whatever had been picked up or lifted here since.
 	var coming_back = Campaign.return_to_position
-	if setup != null and setup.empty_handed and not coming_back:
+	var keep_bags = coming_back or in_dungeon
+	if setup != null and setup.empty_handed and not keep_bags:
 		# Before the story has given anybody anything. Done after the party is
 		# set, so it empties the bags of whoever is actually here.
 		for key in Campaign.living_party():
 			Campaign.empty_inventory(key)
-	if setup != null and setup.hands_kit_out() and not coming_back:
+	if setup != null and setup.hands_kit_out() and not keep_bags:
 		# After emptying, so a map that wants the party holding exactly this and
 		# nothing else can set both and get it.
 		for key in Campaign.living_party():
@@ -387,19 +396,19 @@ func _update_prompt():
 	if _current_target == null or _blocking_interaction:
 		game_ui.set_interaction_prompt("")
 	else:
-		game_ui.set_interaction_prompt("Press E to %s" % _current_target.prompt.to_lower())
+		game_ui.set_interaction_prompt("Press %s to %s" % [Pad.key(&"interact"), _current_target.prompt.to_lower()])
 
 
 func _unhandled_input(event):
 	if _blocking_interaction:
 		return
-	if not event is InputEventKey or not event.pressed or event.is_echo():
+	if not event.is_pressed() or event.is_echo():
 		return
-	if event.physical_keycode == KEY_TAB:
+	if event.is_action_pressed(&"swap_leader"):
 		get_viewport().set_input_as_handled()
 		swap_leader()
 		return
-	if event.physical_keycode != KEY_E and event.physical_keycode != KEY_SPACE:
+	if not event.is_action_pressed(&"interact"):
 		return
 	if _current_target == null or not _current_target.is_available():
 		return

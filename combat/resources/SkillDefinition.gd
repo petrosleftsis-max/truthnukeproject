@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/skill.svg")
 extends Resource
 class_name SkillDefinition
 
@@ -28,6 +29,10 @@ enum AoEShape {
 ## If true, valid targets are the caster's own side (heals/buffs).
 ## If false (default), valid targets are the opposing side (attacks/debuffs).
 @export var targets_ally: bool = false
+## Aimed at one of the caster's side who has fallen, where they lie - and only
+## at somebody fallen: Resuscitate. With this on, nobody standing can be aimed
+## at, and the skill's effects land on the fallen (see EffectType.REVIVE).
+@export var targets_fallen: bool = false
 ## If true, this skill doesn't care whose side anyone is on: an area hits every
 ## living combatant inside it, friend and foe alike, and a single-target one can
 ## be aimed at either side. Use it for a shockwave that knocks back whoever it

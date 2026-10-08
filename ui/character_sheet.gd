@@ -45,6 +45,8 @@ const SCREEN_MARGIN := 16
 ## screen, and how much of a page Page Up and Page Down keep in view.
 const SCROLL_STEP := 40
 const PAGE_OVERLAP := 60
+## How fast a pad scrolls the numbers, in pixels a second at full tilt.
+const PAD_SCROLL_SPEED := 600.0
 
 ## What being hidden means, for the State section. Hiding is a flag on the
 ## combatant rather than a status effect, so the HUD's marks never describe it
@@ -66,10 +68,13 @@ var _animated: AnimatedSprite2D = null
 var _still: TextureRect = null
 var _stat_rows: VBoxContainer = null
 var _members: HBoxContainer = null
+var _hint: Label = null
 
 
 func _ready():
 	layer = 8
+	# One of the menus a pad's View opens - see Pad.
+	add_to_group(&"pad_menu")
 	# Still runs while the game is held, since it is one of the two things that
 	# can be doing the holding. See MenuPause.
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -192,11 +197,39 @@ func _build():
 	column.add_child(_members)
 
 	var hint := Label.new()
-	hint.text = "C or Escape to close"
+	_hint = hint
+	_name_keys()
+	if not Pad.changed.is_connected(_name_keys):
+		Pad.changed.connect(_name_keys)
 	hint.add_theme_font_size_override("font_size", 11)
 	hint.add_theme_color_override("font_color", MUTED)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(hint)
+
+
+## --- For a pad's View (see Pad) ---
+
+
+## First in a fight, where it is the one most wanted; last out of one.
+func pad_menu_order() -> int:
+	return 0 if combat != null else 3
+
+
+func pad_menu_available() -> bool:
+	var pictures = get_node_or_null("/root/Pictures")
+	return not MenuPause.held_by_another(self) and not (pictures != null and pictures.is_open())
+
+
+func pad_menu_is_open() -> bool:
+	return _open
+
+
+func pad_menu_open():
+	open()
+
+
+func pad_menu_close():
+	close()
 
 
 ## --- Opening and closing ---
@@ -240,10 +273,34 @@ func close():
 		focused.release_focus()
 
 
-func _unhandled_input(event):
-	if not event is InputEventKey or not event.pressed or event.is_echo():
+## What closes it, under the panel - from the keyboard or from a pad.
+func _name_keys():
+	if _hint != null and is_instance_valid(_hint):
+		_hint.text = "%s or %s to close" % [Pad.key([&"character_sheet", &"menus"]), Pad.key(&"ui_cancel")]
+
+
+## A pad reads down the numbers with the D-pad or the left stick, held, where
+## the keyboard has Up and Down; left and right go from one of the party to
+## the next, as the buttons along the bottom do.
+func _input(event):
+	if not _open or not (event is InputEventJoypadButton or event is InputEventJoypadMotion):
 		return
-	if event.keycode == KEY_C:
+	if event.is_action(&"ui_up") or event.is_action(&"ui_down"):
+		get_viewport().set_input_as_handled()
+
+
+func _process(delta):
+	if not _open or not Pad.using_pad:
+		return
+	var way := Input.get_axis(&"ui_up", &"ui_down")
+	if way != 0.0:
+		_stat_scroll.scroll_vertical += int(way * PAD_SCROLL_SPEED * delta)
+
+
+func _unhandled_input(event):
+	if not event.is_pressed() or event.is_echo():
+		return
+	if event.is_action_pressed(&"character_sheet"):
 		# Not while the pause menu has the game held - one menu at a time, and
 		# the sheet opening behind the pause panel is nobody's intention.
 		if MenuPause.held_by_another(self):
@@ -259,6 +316,8 @@ func _unhandled_input(event):
 		return
 	# The same reading from the keyboard as the wheel gives the mouse, for when
 	# the numbers run longer than the screen.
+	if not event is InputEventKey:
+		return
 	if _open:
 		var page = maxi(int(_stat_scroll.size.y) - PAGE_OVERLAP, SCROLL_STEP)
 		var by := 0
@@ -325,13 +384,23 @@ func _gather() -> Array:
 		var definition: CombatantDefinition = CombatantDatabase.combatants.get(member.key)
 		if definition == null:
 			continue
+		var stats := Stats.stats_for_level(Campaign.party_level, definition.main_stat, definition.secondary_stat)
+		var weapon_base := Stats.WEAPON_BASE
+		# Brought back from falling in a fight, and weaker for it for good (see
+		# Combat.weaken). Their health already is: it is what they were last
+		# fielded with.
+		var frailty: float = Campaign.party_state.get(member.key, {}).get("frailty", 1.0)
+		if frailty < 1.0:
+			for key in stats:
+				stats[key] = Combat.weakened_figure(stats[key], frailty)
+			weapon_base = Combat.weakened_figure(weapon_base, frailty)
 		found.append({
 			"name": member.name,
 			"level": Campaign.party_level,
 			"hp": member.hp,
 			"max_hp": member.max_hp,
-			"stats": Stats.stats_for_level(Campaign.party_level, definition.main_stat, definition.secondary_stat),
-			"weapon_base": Stats.WEAPON_BASE,
+			"stats": stats,
+			"weapon_base": weapon_base,
 			"sprite_frames": definition.sprite_frames,
 			"map_sprite": definition.map_still(),
 			"in_battle": false,

@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/picture.svg")
 extends Control
 class_name Picture
 ## The root of a point-and-click picture: a close look at a desk, a room, a

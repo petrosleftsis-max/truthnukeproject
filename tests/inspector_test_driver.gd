@@ -132,12 +132,12 @@ func run_test():
 
 	log_line("======== every skill is its own file ========")
 	# Items are registered in the same lookup so every path that resolves a key
-	# handles them too, but they live in res://items - one folder per kind of
+	# handles them too, but they live in res://data/items - one folder per kind of
 	# thing, so the editor's file list is readable.
 	var missing = []
 	for key in SkillDatabase.skills.keys():
 		var folder = "items" if ItemDatabase.is_item(key) else "skills"
-		if not ResourceLoader.exists("res://%s/%s.tres" % [folder, key]):
+		if not ResourceLoader.exists("res://data/%s/%s.tres" % [folder, key]):
 			missing.append(key)
 	ok(missing.is_empty(), "all %d skills and items have a file of their own" % SkillDatabase.skills.size(), str(missing))
 	for key in SkillDatabase.skills.keys():

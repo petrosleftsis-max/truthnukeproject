@@ -5,11 +5,11 @@ extends Node
 ## each stage is there to show is actually on it.
 
 var LOG_PATH := HarnessLog.path_for("stages")
-const MENU := "res://scenes/try_stealth_stages.tscn"
-const TALK := "res://Dialogue/stealth_stages.dialogue"
+const MENU := "res://demos/try_stealth_stages.tscn"
+const TALK := "res://dialogue/stealth_stages.dialogue"
 const BALLOON := "res://ui/dialogue_balloon.tscn"
-const STAGES := ["res://stages/stealth_1.tscn", "res://stages/stealth_2.tscn", "res://stages/stealth_3.tscn", "res://stages/stealth_4.tscn",
-	"res://stages/stealth_5.tscn", "res://stages/stealth_6.tscn", "res://stages/stealth_7.tscn"]
+const STAGES := ["res://maps/stealth_stages/stealth_1.tscn", "res://maps/stealth_stages/stealth_2.tscn", "res://maps/stealth_stages/stealth_3.tscn", "res://maps/stealth_stages/stealth_4.tscn",
+	"res://maps/stealth_stages/stealth_5.tscn", "res://maps/stealth_stages/stealth_6.tscn", "res://maps/stealth_stages/stealth_7.tscn"]
 
 var _log: FileAccess = null
 var _fail = 0
@@ -48,7 +48,7 @@ func run_test():
 	for stage in MainMenu.STEALTH_STAGES:
 		ok(ResourceLoader.exists(stage.map) and stage.name != "" and stage.description != "", "%s is there, and says what it is" % stage.name)
 	var listed: Array = load(MENU.replace(".tscn", ".gd")).stages().map(func(s): return s.map)
-	ok(listed == STAGES + ["res://scenes/stealth_demo.tscn"], "and the editor's own list has them, and the lab demo", "%s" % [listed])
+	ok(listed == STAGES + ["res://demos/stealth_demo.tscn"], "and the editor's own list has them, and the lab demo", "%s" % [listed])
 	await from_the_title_screen()
 	var talk = load(TALK)
 	var script_text = FileAccess.get_file_as_string(TALK)
@@ -77,7 +77,7 @@ func button_on(panel: Control, text: String) -> Button:
 ## Stealth Stages on the front door, a button a stage, and Back.
 func from_the_title_screen():
 	log_line("======== Stealth Stages, from the title screen ========")
-	var menu: MainMenu = load("res://main_menu.tscn").instantiate()
+	var menu: MainMenu = load("res://scenes/main_menu.tscn").instantiate()
 	get_tree().root.add_child(menu)
 	await settle()
 	var door = button_on(menu._panels["root"], "Stealth Stages")
@@ -139,7 +139,7 @@ func bag_kept_after_a_fight():
 ## because it changes the scene for real.
 func back_to_the_list():
 	log_line("======== the way out goes back to the list ========")
-	var menu: MainMenu = load("res://main_menu.tscn").instantiate()
+	var menu: MainMenu = load("res://scenes/main_menu.tscn").instantiate()
 	menu._set_up_stage(MainMenu.STEALTH_STAGES[0])
 	menu.free()
 	var scene: ExplorationScene = load("res://scenes/exploration.tscn").instantiate()

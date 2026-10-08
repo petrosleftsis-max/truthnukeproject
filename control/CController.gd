@@ -99,7 +99,7 @@ func _handle_deployment_input(event):
 		return
 	if event.button_index != MOUSE_BUTTON_LEFT or not event.is_released():
 		return
-	var tile = tile_map.local_to_map(get_global_mouse_position())
+	var tile = tile_map.local_to_map(_pointed_at())
 	var comb = get_combatant_at_position(tile)
 	if _deployment_selection == null:
 		if comb != null and comb.side == 0:
@@ -147,6 +147,254 @@ func _set_deployed_position(comb: Dictionary, tile: Vector2i):
 	comb.sprite.position = tile_map.map_to_local(tile)
 
 
+## --- A pad's cursor on the board (see Pad) ---
+##
+## A pad does not point freely here: its cursor sits on a tile, and goes a tile
+## at a time - or, where only some tiles would do anything, from one of those
+## to the next:
+##   placing the party      the tiles they can be placed on
+##   aiming at somebody     whoever it can hit - or, with nobody, every tile
+##                          in its reach, to see what it covers
+##   aiming at an area, or
+##   somewhere to land      every tile it could go
+##   otherwise              every tile on the map, walkable or not, since a
+##                          click further off than a walk reaches still works
+## Pressed a way, it goes to the nearest of them that way, jumping whatever is
+## in between - tiles cover keeps a skill from, a wall - so one out on its own
+## is still reached; LB and RB go through all of them in turn besides.
+##
+## The tile is the cursor; the pointer (which is the mouse - see Pad) is put on
+## it every frame. Whenever the cursor goes somewhere, the view goes along to
+## keep it clear of the HUD, where a click would land on a button instead; when
+## the view is moved away from it, it comes along onto a tile still in view.
+
+const NO_TILE := Vector2i(-99999, -99999)
+
+var _pad_cursor := NO_TILE
+var _pad_set: Array = []
+var _pad_set_key := ""
+## Goes up whenever the tiles change - what was under the cursor may mean
+## something else now, and Pad tells the board so.
+var pad_version := 0
+
+
+## Whether a pad's pointer is pointing at this board: for as long as there is
+## one to point at, and the battle is not over - the result panel is a menu,
+## its buttons the D-pad's.
+func pad_board_active() -> bool:
+	if not still_in_a_battle() or not is_visible_in_tree():
+		return false
+	var result = get_node_or_null("../ResultUI/Panel")
+	return result == null or not result.visible
+
+
+## The tiles the cursor goes between right now - see above - or [] for every
+## tile on the map.
+func pad_tiles() -> Array:
+	var caster = aiming_caster() if _skill_selected else {}
+	var key := "%s|%s|%s|%s|%s|%s|%s" % [_deployment_active, _skill_selected, _selected_skill, _teleport_subject,
+		_range_preview_positions.size(), caster.get("position", NO_TILE), _deployment_tiles.size()]
+	if key != _pad_set_key:
+		_pad_set_key = key
+		pad_version += 1
+		_pad_set = _work_out_pad_tiles()
+		_pad_set_changed()
+	return _pad_set
+
+
+func _work_out_pad_tiles() -> Array:
+	if _deployment_active:
+		var tiles: Array = _deployment_tiles.duplicate()
+		for comb in combat.combatants if combat != null else []:
+			if comb.side == 0 and comb.alive and not tiles.has(comb.position):
+				tiles.append(comb.position)
+		return tiles
+	if not _skill_selected:
+		return []
+	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	var reach: Array = _range_preview_positions.duplicate()
+	var will_do: Array = reach.filter(func(tile): return refusal_at(tile, aim_subject_at(tile)) == "")
+	if skill.aoe_radius == 0 and not picking_a_landing_tile():
+		# Aimed at somebody: whoever it can hit. Nobody, and the reach is
+		# still worth going over, to see who is just out of it.
+		return will_do if not will_do.is_empty() else reach
+	return will_do if not will_do.is_empty() else reach
+
+
+## A different set of tiles: the cursor goes onto the one that makes most
+## sense, unless it is on one of them already.
+func _pad_set_changed():
+	if _pad_set.is_empty() or _pad_set.has(_pad_cursor):
+		return
+	var near := _pad_cursor
+	if _skill_selected:
+		near = aiming_caster().get("position", near)
+	elif _deployment_active:
+		for comb in combat.combatants:
+			if comb.side == 0 and comb.alive:
+				near = comb.position
+				break
+	_pad_move_cursor(nearest_tile(_pad_set, near))
+
+
+## Where the cursor is on the screen, for Pad to put the pointer on - or null
+## with no cursor yet. Puts it on the board first if it has never been.
+func pad_cursor_screen():
+	_fresh_view()
+	var tiles := pad_tiles()
+	if _pad_cursor == NO_TILE:
+		var current = combat.get_current_combatant() if combat != null and not combat.combatants.is_empty() else {}
+		var start: Vector2i = current.get("position", tile_map.local_to_map(_pointed_at()))
+		_pad_move_cursor(start if tiles.is_empty() else nearest_tile(tiles, start))
+		if _pad_cursor == NO_TILE:
+			return null
+	var screen := _screen_of_tile(_pad_cursor)
+	var room := _pad_room()
+	var camera = combat.camera if combat != null else null
+	if not _in_room(screen, room) and camera != null and not camera.is_following():
+		# The view was moved off it: it comes along, onto whatever is nearest
+		# the edge it went past.
+		var inside := screen.clamp(room.position, room.end)
+		var under := tile_map.local_to_map(get_canvas_transform().affine_inverse() * inside)
+		var candidates: Array = tiles.filter(func(tile): return _in_room(_screen_of_tile(tile), room))
+		if tiles.is_empty():
+			if is_in_bounds(under):
+				_pad_cursor = under
+		elif not candidates.is_empty():
+			_pad_cursor = nearest_tile(candidates, under)
+		screen = _screen_of_tile(_pad_cursor)
+	return screen
+
+
+## The D-pad, or the left stick: the cursor `way` - to the next tile that way,
+## or to the nearest of the tiles that would do anything that way.
+func pad_tile_step(way: Vector2i):
+	if _pad_cursor == NO_TILE:
+		pad_cursor_screen()
+		return
+	var tiles := pad_tiles()
+	var to := _pad_cursor + way if tiles.is_empty() else next_tile(tiles, _pad_cursor, way)
+	if is_in_bounds(to):
+		_pad_move_cursor(to)
+
+
+## LB and RB, aiming or placing the party: the cursor through every tile that
+## would do anything, one after another, so none of them is out of reach.
+## False with no such tiles to go through.
+func pad_cycle(step: int) -> bool:
+	var tiles := pad_tiles()
+	if tiles.is_empty():
+		return false
+	var order := tiles.duplicate()
+	order.sort_custom(func(a, b): return a.y < b.y or (a.y == b.y and a.x < b.x))
+	var at := order.find(_pad_cursor)
+	var next := posmod(at + step, order.size()) if at >= 0 else 0
+	_pad_move_cursor(order[next])
+	return true
+
+
+## The cursor onto `tile`, the view going along so it is clear of the HUD.
+func _pad_move_cursor(tile: Vector2i):
+	if tile == NO_TILE:
+		return
+	_pad_cursor = tile
+	_fresh_view()
+	var room := _pad_room()
+	var screen := _screen_of_tile(tile)
+	var over := screen - screen.clamp(room.position, room.end)
+	var camera = combat.camera if combat != null else null
+	if over != Vector2.ZERO and camera != null and not camera.is_following():
+		camera.position += over / get_canvas_transform().get_scale().x
+		camera.clamp_to_map()
+		# Now, not at the end of the frame: where the cursor is on the screen is
+		# asked straight after, and must be asked of the view as it now is.
+		camera.force_update_scroll()
+
+
+## The view as the camera has it now. The camera only hands its position on to
+## the screen at the end of the frame, and anything can have moved it since -
+## the turn starting, the right stick - so where a tile is on the screen is
+## asked of the view brought up to date first, or it is asked of the old one.
+func _fresh_view():
+	var camera = combat.camera if combat != null else null
+	if camera != null and camera.is_inside_tree():
+		camera.force_update_scroll()
+
+
+## The tile a pad's cursor is on, or NO_TILE.
+func pad_cursor() -> Vector2i:
+	return _pad_cursor
+
+
+## Whether `screen` is in `room` - its edges counting, and a pixel either side
+## of them, since the view is moved to put the cursor exactly on one.
+func _in_room(screen: Vector2, room: Rect2) -> bool:
+	return room.grow(2.0).has_point(screen)
+
+
+## Where the cursor's tile is kept on the screen: the part the HUD leaves the
+## map, in from its edges by half a tile as the view has them - so the whole
+## tile shows, not just its middle - or as near that as there is room for.
+func _pad_room() -> Rect2:
+	var hud = combat.game_ui if combat != null else null
+	var room: Rect2 = hud.map_view_rect() if hud != null and hud.has_method("map_view_rect") else get_viewport_rect().grow(-24.0)
+	var half_tile := Grid.TILE_SIZE * 0.5 * get_canvas_transform().get_scale().x
+	return room.grow(-minf(half_tile, minf(room.size.x, room.size.y) * 0.3))
+
+
+func _screen_of_tile(tile: Vector2i) -> Vector2:
+	return get_canvas_transform() * tile_map.map_to_local(tile)
+
+
+## The tile of `tiles` to go to from `from`, pressing `way`: the nearest one
+## that way, those straight on counting as nearer than those off to one side -
+## or `from`, with nothing that way at all. Anything level with `from` or
+## behind it is for another way to reach; anything ahead is fair game however
+## far it is off to the side, so a tile on its own beyond a gap is reached as
+## readily as the next one along. (LB and RB go through every one regardless.)
+static func next_tile(tiles: Array, from: Vector2i, way: Vector2i) -> Vector2i:
+	var heading := Vector2(way).normalized()
+	var best := from
+	var best_score := INF
+	for tile in tiles:
+		if tile == from:
+			continue
+		var gap := Vector2(tile - from)
+		var ahead := gap.dot(heading)
+		if ahead <= 0.01:
+			continue
+		var score := ahead + absf(gap.cross(heading)) * 2.0
+		if score < best_score:
+			best_score = score
+			best = tile
+	return best
+
+
+## Whichever of `tiles` is nearest `to` - the first in reading order of any
+## that are as near as each other. NO_TILE when there are none.
+static func nearest_tile(tiles: Array, to: Vector2i) -> Vector2i:
+	var best := NO_TILE
+	var best_gap := INF
+	for tile in tiles:
+		var gap := Vector2(tile - to).length()
+		if gap < best_gap - 0.001 or (absf(gap - best_gap) <= 0.001 and (tile.y < best.y or (tile.y == best.y and tile.x < best.x))):
+			best_gap = gap
+			best = tile
+	return best
+
+
+## Where the mouse is on the map - a pad's pointer, while a pad is in use.
+func _pointed_at() -> Vector2:
+	return get_canvas_transform().affine_inverse() * Pad.screen_point()
+
+
+## The cursor onto `comb` - the one whose turn it now is.
+func _point_pad_at(comb: Dictionary):
+	if not Pad.using_pad or not comb.has("position") or not still_in_a_battle():
+		return
+	_pad_move_cursor(comb.position)
+
+
 ## Whether the character sheet is up. Reading somebody's sheet should not also
 ## be ordering the party around behind it: a click meant for the sheet landed
 ## on the map underneath and walked whoever was acting.
@@ -174,8 +422,8 @@ func a_menu_is_over_the_map() -> bool:
 func _unhandled_input(event):
 	# Held, not toggled: the danger view is a look taken while deciding, and it
 	# works while placing the party too, which is when it is most use.
-	if event is InputEventKey and event.physical_keycode == KEY_SHIFT and not event.is_echo():
-		set_danger_view(event.pressed)
+	if event.is_action(&"danger_view") and not event.is_echo():
+		set_danger_view(event.is_action_pressed(&"danger_view"))
 	if _deployment_active:
 		_handle_deployment_input(event)
 		return
@@ -204,16 +452,20 @@ func _unhandled_input(event):
 					# Only looking: a click chooses nothing and spends nothing.
 					pass
 				elif _skill_selected == true:
-					aim_click(tile_map.local_to_map(get_global_mouse_position()))
+					aim_click(tile_map.local_to_map(_pointed_at()))
 				elif _arrived == true:
 					move_player()
 	
 	if event is InputEventMouseMotion:
 		if _arrived == true:
-			var mouse_position = get_global_mouse_position()
+			var mouse_position = _pointed_at()
 			var mouse_position_i = tile_map.local_to_map(mouse_position)
 			find_path(mouse_position_i)
 			var comb = get_combatant_at_position(mouse_position_i)
+			if _skill_selected:
+				# Aimed at the fallen, the tile means the body lying on it.
+				var subject := aim_subject_at(mouse_position_i)
+				comb = subject if not subject.is_empty() else null
 			var local_map = tile_map.map_to_local(mouse_position_i)
 			# Who is under the cursor - except while aiming, when the prompt of
 			# what the hit would do to them has the space.
@@ -476,6 +728,8 @@ func get_grid_path(from: Vector2i, to: Vector2i) -> Array:
 
 func _ready():
 	tile_map = get_node("../Terrain/TileMap")
+	# The board a pad's pointer moves over - see Pad.
+	add_to_group(&"pad_board")
 #	controlled_node = tile_map.get_node("Steve")
 	# Sized from the map itself (see EncounterDefinition.resolve_playable_region)
 	# rather than hard-coded. It used to be a literal Rect2i(0, 0, 36, 21),
@@ -552,6 +806,36 @@ func combatant_added(combatant):
 	_occupied_spaces[combatant.position] = true
 
 
+## Back on their feet (Combat.revive): their tile is taken again.
+func combatant_revived(combatant):
+	_occupied_spaces[combatant.position] = true
+
+
+## `from` if somebody of `movement_class` could stand there now, or else the
+## nearest tile they could - ring by ring outward. For somebody brought back
+## where they fell, with somebody else since standing on the spot.
+func nearest_free_tile(from: Vector2i, movement_class: int) -> Vector2i:
+	for reach in range(0, 12):
+		for dx in range(-reach, reach + 1):
+			for dy in range(-reach, reach + 1):
+				if maxi(absi(dx), absi(dy)) != reach:
+					continue
+				var tile := from + Vector2i(dx, dy)
+				if is_in_bounds(tile) and not _occupied_spaces.has(tile) and not is_tile_blocking(tile, movement_class):
+					return tile
+	return from
+
+
+## Whoever a click on `tile` is aimed at while aiming: somebody fallen there,
+## for a skill that is aimed at the fallen, or else whoever is standing there.
+## {} for nobody.
+func aim_subject_at(tile: Vector2i) -> Dictionary:
+	if _skill_selected and SkillDatabase.skills[_selected_skill].targets_fallen:
+		return combat.fallen_at(tile, aiming_caster().side)
+	var comb = get_combatant_at_position(tile)
+	return comb if comb != null else {}
+
+
 func combatant_died(combatant):
 	_astargrid.set_point_solid(combatant.position, false)
 	_astargrid.set_point_weight_scale(combatant.position, 1)
@@ -566,6 +850,7 @@ func set_controlled_combatant(combatant: Dictionary):
 	_card_for(null)
 	if combatant.side == 0:
 		player_turn = true
+		_point_pad_at.call_deferred(combatant)
 	else:
 		player_turn = false
 	controlled_node = combatant.sprite
@@ -1335,6 +1620,7 @@ func confirm_skill_target(position: Vector2i):
 	# Only looking: nothing is chosen and nothing is spent, whatever asks.
 	if _look_only:
 		return
+	aim_was_called_off = false
 	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
 	if skill.teleports == SkillDefinition.TeleportWho.TARGET and not waiting_for_destination():
 		# First click chose who travels. Stay in aiming mode: the next one says
@@ -1388,6 +1674,14 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 		if tile in _range_preview_positions and is_valid_landing_tile(tile):
 			return ""
 		return "%s needs an empty tile to land on" % skill.name
+	if skill.targets_fallen:
+		# Aimed at somebody fallen, of their own side, and nobody else.
+		if comb.is_empty():
+			return "Nobody fallen there"
+		if comb.alive:
+			return "%s is still standing" % comb.name
+		if comb.side != caster.side:
+			return "%s is only for allies" % skill.name
 	if skill.aoe_radius == 0:
 		# Aimed at somebody, so it is the somebody who has to be right.
 		if comb.is_empty():
@@ -1399,6 +1693,8 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 				return "%s is only for allies" % skill.name
 			if not skill.targets_ally and comb.side == caster.side:
 				return "%s is only for enemies" % skill.name
+		if Combat.steals(skill) and combat.items_of(comb).is_empty():
+			return "%s has nothing on them to steal" % comb.name
 	var there = comb.name if not comb.is_empty() else "there"
 	if tile not in _range_preview_positions:
 		var distance = combat.get_position_distance(caster.position, tile)
@@ -1421,8 +1717,8 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 ## somebody right for it for the rest. Anywhere else, aiming goes on. True when
 ## it went.
 func aim_click(tile: Vector2i) -> bool:
-	var comb = get_combatant_at_position(tile)
-	if _look_only or refusal_at(tile, comb if comb != null else {}) != "":
+	var comb = aim_subject_at(tile)
+	if _look_only or refusal_at(tile, comb) != "":
 		return false
 	confirm_skill_target(tile)
 	return true
@@ -1500,7 +1796,13 @@ func _clear_aim_marks():
 
 ## Backs out of target selection (right-click or Escape) without spending
 ## the skill, returning to normal move mode.
+## Whether the last aim ended by being put away rather than let go - so a pad's
+## skill panel, which the aim was begun from, can be gone back to.
+var aim_was_called_off := false
+
+
 func cancel_skill_selection():
+	aim_was_called_off = true
 	_skill_selected = false
 	_look_only = false
 	_aim_caster = {}
@@ -1533,7 +1835,7 @@ func is_valid_skill_target(target: Dictionary) -> bool:
 	return true
 
 
-const grid_tex = preload("res://imagese/grid_marker.png")
+const grid_tex = preload("res://art/ui/grid_marker.png")
 
 ## The movement cost of `tile` for whoever's turn it is. Unpainted tiles - the
 ## holes in a non-rectangular map - report a nominal 1: movement can't reach

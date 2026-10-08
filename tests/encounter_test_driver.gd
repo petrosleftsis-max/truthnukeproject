@@ -4,9 +4,9 @@ extends Node
 
 var LOG_PATH := HarnessLog.path_for("encounter")
 const ENCOUNTERS = [
-	"res://encounters/encounter_01_ambush.tres",
-	"res://encounters/encounter_02_sappers.tres",
-	"res://encounters/encounter_03_watcher.tres",
+	"res://data/encounters/encounter_01_ambush.tres",
+	"res://data/encounters/encounter_02_sappers.tres",
+	"res://data/encounters/encounter_03_watcher.tres",
 ]
 
 var _log: FileAccess = null
@@ -217,8 +217,11 @@ func run_test():
 	var reset_button = menu.get_node("Center/VBox/ResetButton")
 	ok(list.get_child(0).get_node(list.get_child(0).focus_neighbor_bottom) == list.get_child(1),
 		"focus cycles between encounter buttons")
-	ok(reset_button.get_node(reset_button.focus_neighbor_bottom) == list.get_child(0),
-		"focus wraps from Reset back to the first encounter")
+	var way_out = menu.get_node("Center/VBox/MainMenuButton")
+	ok(reset_button.get_node(reset_button.focus_neighbor_bottom) == way_out,
+		"focus goes on from Reset to the way back to the menu")
+	ok(way_out.get_node(way_out.focus_neighbor_bottom) == list.get_child(0),
+		"and wraps from there to the first encounter")
 	# A wiped party leaves nothing playable, so entries must be disabled.
 	Campaign.party_state = {"steve": {"hp": 0, "alive": false}}
 	menu._rebuild()

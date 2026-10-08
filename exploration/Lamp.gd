@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/lamp.svg")
 extends Interactable
 class_name Lamp
 ## A lamp on a stealth map made dark (StealthSetup's Dark): everything within

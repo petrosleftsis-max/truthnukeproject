@@ -41,7 +41,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== Arena Mode hands out what the encounter says ========")
-	var encounter: EncounterDefinition = load("res://encounters/encounter_02_sappers.tres").duplicate(true)
+	var encounter: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
 	# Give the first player spawn a bag, and empty every other one - the shipped
 	# encounters arm their whole party, and this is about a spawn that does not.
 	var filled_key = ""
@@ -94,7 +94,7 @@ func run_test():
 			stocked.append(key)
 	ok(not stocked.is_empty(), "somebody has a kit in the database", "%s" % [stocked])
 	Campaign.reset()
-	var bare: EncounterDefinition = load("res://encounters/encounter_02_sappers.tres").duplicate(true)
+	var bare: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
 	for spawn_definition in bare.spawns:
 		spawn_definition.starting_items = []
 	Campaign.current_encounter = bare
@@ -118,7 +118,7 @@ func run_test():
 
 	log_line("======== what you walk in with, you keep ========")
 	Campaign.reset()
-	Campaign.current_map = "res://scenes/laboratory_terrain_explore.tscn"
+	Campaign.current_map = "res://maps/laboratory_explore.tscn"
 	var walk = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(walk)
 	for i in 5:
@@ -127,8 +127,8 @@ func run_test():
 	Campaign.set_inventory(walker, ["shock_bottle", "cure_potion"])
 	var packed = carried(walker)
 	Campaign.begin_battle_from_exploration(
-		load("res://encounters/encounter_02_sappers.tres"),
-		"res://scenes/laboratory_terrain_explore.tscn", Vector2.ZERO, "bags_trigger")
+		load("res://data/encounters/encounter_02_sappers.tres"),
+		"res://maps/laboratory_explore.tscn", Vector2.ZERO, "bags_trigger")
 	walk.queue_free()
 	await get_tree().process_frame
 	var third = load("res://scenes/game.tscn").instantiate()
@@ -150,8 +150,8 @@ func run_test():
 	# Maps used to hand out nothing at all. One of them now opens a stretch of
 	# the story with a kit, so the rule to check is that the bags match the
 	# map's own MapSetup rather than that they are empty.
-	for map in ["res://scenes/explore_crossroads.tscn",
-			"res://scenes/laboratory_terrain_explore.tscn", "res://church.tscn"]:
+	for map in ["res://maps/crossroads_explore.tscn",
+			"res://maps/laboratory_explore.tscn", "res://maps/church.tscn"]:
 		Campaign.reset()
 		Campaign.current_map = map
 		var scene = load("res://scenes/exploration.tscn").instantiate()
@@ -190,11 +190,11 @@ func run_test():
 	log_line("")
 
 	log_line("======== but the arena kits them out ========")
-	for path in DirAccess.open("res://encounters").get_files():
+	for path in DirAccess.open("res://data/encounters").get_files():
 		if not path.ends_with(".tres"):
 			continue
 		Campaign.reset()
-		var fight: EncounterDefinition = load("res://encounters/".path_join(path))
+		var fight: EncounterDefinition = load("res://data/encounters/".path_join(path))
 		Campaign.current_encounter = fight
 		var arena = load("res://scenes/game.tscn").instantiate()
 		get_tree().root.add_child(arena)

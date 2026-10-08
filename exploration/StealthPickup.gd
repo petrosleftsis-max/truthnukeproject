@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/pickup.svg")
 extends Interactable
 class_name StealthPickup
 ## Something lying about on a stealth map to be taken: a ledger on a desk, a
@@ -41,7 +42,7 @@ func _item() -> ItemDefinition:
 		return null
 	var database = get_node_or_null("/root/ItemDatabase")
 	if database == null:
-		return load("res://items/%s.tres" % item_key) if ResourceLoader.exists("res://items/%s.tres" % item_key) else null
+		return load("res://data/items/%s.tres" % item_key) if ResourceLoader.exists("res://data/items/%s.tres" % item_key) else null
 	return database.item(item_key)
 
 

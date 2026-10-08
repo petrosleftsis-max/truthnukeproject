@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://dfniosfadhmcn"
+path="res://.godot/imported/demo_stealth.dialogue-13eea8cdb84d6846844d71886cad25ed.tres"
+
+[deps]
+
+source_file="res://dialogue/demo_stealth.dialogue"
+dest_files=["res://.godot/imported/demo_stealth.dialogue-13eea8cdb84d6846844d71886cad25ed.tres"]
+
+[params]
+
+defaults=true

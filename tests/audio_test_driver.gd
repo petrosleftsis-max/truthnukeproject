@@ -109,7 +109,7 @@ func run_test():
 	log_line("")
 
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_01_ambush.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_01_ambush.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await get_tree().process_frame
@@ -209,9 +209,9 @@ func run_test():
 	# WAV set to loop with loop_end at or before loop_begin has a loop region of
 	# no length, and plays silence. Every encounter track is a WAV, and all
 	# three were silent until this was fixed.
-	for path in ["res://encounters/encounter_01_ambush.tres",
-			"res://encounters/encounter_02_sappers.tres",
-			"res://encounters/encounter_03_watcher.tres"]:
+	for path in ["res://data/encounters/encounter_01_ambush.tres",
+			"res://data/encounters/encounter_02_sappers.tres",
+			"res://data/encounters/encounter_03_watcher.tres"]:
 		var encounter: EncounterDefinition = load(path)
 		if encounter.music == "":
 			continue

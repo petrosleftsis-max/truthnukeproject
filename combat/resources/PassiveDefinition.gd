@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/passive.svg")
 extends Resource
 class_name PassiveDefinition
 ## A skill nobody presses. It is part of who somebody is: working all the time,

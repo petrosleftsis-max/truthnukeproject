@@ -71,7 +71,7 @@ func click_at(at: Vector2, pressed: bool):
 
 func run_test():
 	log_line("======== the title screen opens with nothing lit ========")
-	var menu = load("res://main_menu.tscn").instantiate()
+	var menu = load("res://scenes/main_menu.tscn").instantiate()
 	get_tree().root.add_child(menu)
 	for i in 3:
 		await get_tree().process_frame
@@ -136,7 +136,7 @@ func run_test():
 
 	log_line("======== the pause menu ========")
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 6:
@@ -182,7 +182,7 @@ func _a_click_with_a_wobble_in_it():
 	var top := CanvasLayer.new()
 	top.layer = 200
 	get_tree().root.add_child(top)
-	var menu = load("res://main_menu.tscn").instantiate()
+	var menu = load("res://scenes/main_menu.tscn").instantiate()
 	top.add_child(menu)
 	for i in 3:
 		await get_tree().process_frame

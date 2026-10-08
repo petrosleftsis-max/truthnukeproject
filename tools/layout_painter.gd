@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/painter.svg")
 extends Node
 class_name LayoutPainter
 ## A quick way to rough out a map in the editor: add one of these beside a

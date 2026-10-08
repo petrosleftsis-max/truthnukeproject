@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/hotspot.svg")
 extends Control
 class_name Hotspot
 ## Something in a Picture that can be clicked. Size and place it over the part
@@ -31,7 +32,7 @@ enum Verb {
 ## Pair it with Sets Flag and Hidden Once Flag set to the same flag so the
 ## thing is gone once taken.
 @export var gives_item: String = ""
-## A clue, by key (a file in res://clues/), put in the journal.
+## A clue, by key (a file in res://data/clues/), put in the journal.
 @export var gives_clue: String = ""
 ## A conversation to play. It can hand out items and set flags like any other:
 ## `do Campaign.give_item("cyrus", "tiny_bomb")`.

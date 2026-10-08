@@ -39,7 +39,7 @@ func stored_turns(comb: Dictionary) -> int:
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_01_ambush.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_01_ambush.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await get_tree().process_frame
@@ -57,7 +57,7 @@ func run_test():
 			target = comb
 			break
 
-	var blind: ConditionDefinition = load("res://conditions/blind.tres")
+	var blind: ConditionDefinition = load("res://data/conditions/blind.tres")
 	log_line("======== the condition's own duration is the default ========")
 	ok(blind.duration == 3, "Blind is written as 3 turns", "%d" % blind.duration)
 
@@ -93,7 +93,7 @@ func run_test():
 
 	log_line("======== it works for every condition, not just Blind ========")
 	for name in ["stunned", "fear", "crystallised", "windswept", "poisoned", "burn", "frozen"]:
-		var definition: ConditionDefinition = load("res://conditions/%s.tres" % name)
+		var definition: ConditionDefinition = load("res://data/conditions/%s.tres" % name)
 		var effect := EffectDefinition.new()
 		effect.type = EffectDefinition.EffectType.CONDITION
 		effect.condition = definition

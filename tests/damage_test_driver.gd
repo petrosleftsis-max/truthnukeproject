@@ -65,7 +65,7 @@ func run_test():
 
 	log_line("======== resistance changes what actually lands ========")
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_03_watcher.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_03_watcher.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await get_tree().process_frame
@@ -135,13 +135,13 @@ func run_test():
 	log_line("")
 
 	log_line("======== conditions burn with their own element ========")
-	var burn: ConditionDefinition = load("res://conditions/burn.tres")
-	var poisoned: ConditionDefinition = load("res://conditions/poisoned.tres")
+	var burn: ConditionDefinition = load("res://data/conditions/burn.tres")
+	var poisoned: ConditionDefinition = load("res://data/conditions/poisoned.tres")
 	ok(burn.dot_type == Damage.Type.FIRE, "Burn is fire", "%s" % Damage.type_name(burn.dot_type))
 	ok(poisoned.dot_type == Damage.Type.POISON, "Poisoned is poison", "%s" % Damage.type_name(poisoned.dot_type))
-	ok(load("res://conditions/windswept.tres").dot_type == Damage.Type.WIND, "Windswept is wind")
-	ok(load("res://conditions/crystallised.tres").dot_type == Damage.Type.EARTH, "Crystallised is earth")
-	ok(load("res://conditions/frozen.tres").dot_type == Damage.Type.WATER, "Frozen is water")
+	ok(load("res://data/conditions/windswept.tres").dot_type == Damage.Type.WIND, "Windswept is wind")
+	ok(load("res://data/conditions/crystallised.tres").dot_type == Damage.Type.EARTH, "Crystallised is earth")
+	ok(load("res://data/conditions/frozen.tres").dot_type == Damage.Type.WATER, "Frozen is water")
 
 	# Burning the fire-resistant sorcerer should hurt less than burning someone neutral.
 	# Enough to survive forty of the worst rolls Burn has in it, worked out from

@@ -7,7 +7,7 @@ extends Node
 ## screen up, and no balloon left talking over it.
 
 var LOG_PATH := HarnessLog.path_for("bailout")
-const WRITTEN = "res://Dialogue/_bailout_probe.dialogue"
+const WRITTEN = "res://dialogue/_bailout_probe.dialogue"
 var _log: FileAccess
 var _fail = 0
 
@@ -44,8 +44,8 @@ func run_test():
 	log_line("======== and it takes the game home ========")
 	# A run in progress, with something playing over it.
 	Campaign.reset()
-	Campaign.current_map = "res://church.tscn"
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_map = "res://maps/church.tscn"
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	Campaign.set_flag("bailout_probe_flag")
 	Music.play("Elegy_of_the_End")
 	ok(Campaign.flag("bailout_probe_flag"), "a run is under way")

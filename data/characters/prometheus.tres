@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/characters/prometheus/idle/prometheus_idle_0000.png" id="1_miqts"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_7nvba"]
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="3_genhd"]
+[ext_resource type="SpriteFrames" path="res://art/characters/prometheus/prometheus_frames.tres" id="4_emjge"]
+
+[resource]
+script = ExtResource("3_genhd")
+name = "Prometheus"
+glossary_text = "A messy pragmatic scholar who can never be seen without a book and a drink.
+
+Narrative:
+He was an up and rising star in Idology from his late teen years. This lead him to quickly get into high and important research. However... It is now a painful memory that only destroys him further and further as time passes.
+
+Despite it all, or perhaps because of it all, he is now a really warm and caring person that, despite not saying it out loud, would always be there for you.
+
+Gameplay:
+The hardest unit to use well, he has the most potent capabilities in the party. Yet they are limited by resource and his frail frame makes him easy to be killed in but an instant. It is more important for him to stay alive, rather than cast spells earlier! Make sure to properly utilise cover!
+
+He also can provide with utility, such as weakening enemies or teleporting allies. To make the most of him is to make the most of all!"
+class_t = 2
+max_hp = 30
+max_hp_level_2 = 40
+max_hp_level_3 = 58
+movement = 4
+initiative = 5
+main_stat = 2
+icon = ExtResource("1_miqts")
+map_sprite = ExtResource("1_miqts")
+sprite_frames = ExtResource("4_emjge")
+skills = Array[String](["fire_burst", "water_spike", "study", "fire_blast", "wind_shot", "rock_throw", "quicken", "burner", "fireball", "wind_vacuum", "gust_blast", "crystalise", "wind_swoon", "hermes_step", "hover", "slip_past", "run"])
+starting_items = Array[String](["burn_bottle", "frost_bottle", "gale_bottle", "cure_potion"])

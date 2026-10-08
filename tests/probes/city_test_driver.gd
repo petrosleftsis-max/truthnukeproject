@@ -31,10 +31,10 @@ func _ready():
 
 func run_test():
 	var encounter: EncounterDefinition = null
-	for file in DirAccess.open("res://encounters").get_files():
+	for file in DirAccess.open("res://data/encounters").get_files():
 		if not file.ends_with(".tres"):
 			continue
-		var candidate: EncounterDefinition = load("res://encounters/".path_join(file))
+		var candidate: EncounterDefinition = load("res://data/encounters/".path_join(file))
 		if candidate.display_name.to_lower().contains("city"):
 			encounter = candidate
 	ok(encounter != null, "the City Fight is there")

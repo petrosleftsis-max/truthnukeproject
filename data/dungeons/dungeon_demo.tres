@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="DungeonDefinition" format=3]
+
+[ext_resource type="Script" path="res://campaign/DungeonDefinition.gd" id="1_0j4ho"]
+[ext_resource type="Script" path="res://campaign/DungeonStage.gd" id="2_0kadc"]
+[ext_resource type="Resource" path="res://data/encounters/dungeon_demo/dungeon_1_sewer.tres" id="3_ka1it"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_01_ambush.tres" id="4_tx6wk"]
+[ext_resource type="Resource" path="res://data/encounters/dungeon_demo/dungeon_2_lab.tres" id="5_ttsaa"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_02_sappers.tres" id="6_tqa1u"]
+[ext_resource type="Resource" path="res://data/encounters/dungeon_demo/dungeon_3_city.tres" id="7_8bjtx"]
+
+[sub_resource type="Resource" id="Resource_ojrih"]
+script = ExtResource("2_0kadc")
+map = "res://maps/crossroads_explore.tscn"
+encounter = ExtResource("3_ka1it")
+replaces = ExtResource("4_tx6wk")
+
+[sub_resource type="Resource" id="Resource_3ppxl"]
+script = ExtResource("2_0kadc")
+map = "res://maps/laboratory_explore.tscn"
+encounter = ExtResource("5_ttsaa")
+replaces = ExtResource("6_tqa1u")
+
+[sub_resource type="Resource" id="Resource_0yr4t"]
+script = ExtResource("2_0kadc")
+encounter = ExtResource("7_8bjtx")
+
+[resource]
+script = ExtResource("1_0j4ho")
+display_name = "The Dungeon Demo"
+description = "The three fights one after another, the whole party at level 3, with a rest between each."
+party = Array[String](["cyrus", "alithia", "prometheus"])
+level = 3
+stages = Array[ExtResource("2_0kadc")]([SubResource("Resource_ojrih"), SubResource("Resource_3ppxl"), SubResource("Resource_0yr4t")])
+rest_revives = true
+gate_recovery_for = Array[String](["prometheus"])
+gate_recoveries = 1
+gate_recovery_points = 3
+gate_costs = Array[int]([0, 1, 2, 3])

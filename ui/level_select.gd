@@ -86,10 +86,21 @@ func _rebuild():
 			buttons.append(card)
 
 	buttons.append(_reset_button)
+	# The way out too, or the D-pad goes round the cards and Reset and never
+	# reaches it - the mouse was the only way back to the menu.
+	buttons.append(_main_menu_button)
 	FocusLoop.link(buttons)
 	# Held back rather than taken: a first card lit up under a mouse that is
 	# elsewhere reads as already chosen. See FocusOnDemand.
 	FocusOnDemand.attach(self, buttons[0])
+
+
+## Escape, or a pad's B, goes back the way the bottom button does: to the menu,
+## or to wherever the run was.
+func _unhandled_input(event):
+	if event.is_action_pressed(&"ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_main_menu_button.pressed.emit()
 
 
 ## --- The party panel ---

@@ -33,7 +33,7 @@ func open_menu() -> Control:
 	if menu != null and is_instance_valid(menu):
 		menu.queue_free()
 		await get_tree().process_frame
-	menu = load("res://main_menu.tscn").instantiate()
+	menu = load("res://scenes/main_menu.tscn").instantiate()
 	get_tree().root.add_child(menu)
 	await get_tree().process_frame
 	return menu
@@ -129,7 +129,7 @@ func run_test():
 	Campaign.clear_story()
 	Campaign.current_map = ""
 	menu._start(MainMenu.WAYS_IN[1])
-	ok(Campaign.current_map.contains("laboratory_terrain_explore"),
+	ok(Campaign.current_map.contains("laboratory_explore"),
 		"Prometheus walks the laboratory", Campaign.current_map)
 	menu._start(MainMenu.WAYS_IN[2])
 	ok(Campaign.current_encounter != null and Campaign.current_encounter.resource_path.contains("watcher"),
@@ -154,7 +154,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== a story plays over black and then moves on ========")
-	Campaign.begin_story("res://Dialogue/cyrus_intro.dialogue", "start", MainMenu.EXPLORATION)
+	Campaign.begin_story("res://dialogue/cyrus_intro.dialogue", "start", MainMenu.EXPLORATION)
 	var story = load("res://scenes/story.tscn").instantiate()
 	get_tree().root.add_child(story)
 	await get_tree().process_frame
@@ -276,7 +276,7 @@ func run_test():
 	Campaign.reset()
 	ok(not Campaign.can_leave_arena(), "opened from the title screen there is nowhere to go back to")
 
-	var sewer = "res://scenes/explore_crossroads.tscn"
+	var sewer = "res://maps/crossroads_explore.tscn"
 	var stood_at = Vector2(1234, 567)
 	Campaign.current_map = sewer
 	Campaign.enter_arena_from("res://scenes/exploration.tscn", stood_at)
@@ -285,7 +285,7 @@ func run_test():
 	# An arena fight overwrites the live fields, which is why the way back is
 	# held as a copy rather than read off them when the button is pressed.
 	Campaign.current_map = ""
-	Campaign.current_encounter = load("res://encounters/encounter_01_ambush.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_01_ambush.tres")
 	Campaign.return_to_position = false
 	Campaign.leave_arena()
 	await get_tree().process_frame
@@ -297,7 +297,7 @@ func run_test():
 
 	# From a battle there is no tile, only the fight to go back to.
 	Campaign.reset()
-	var fight = load("res://encounters/encounter_01_ambush.tres")
+	var fight = load("res://data/encounters/encounter_01_ambush.tres")
 	Campaign.current_encounter = fight
 	Campaign.enter_arena_from("res://scenes/game.tscn")
 	Campaign.current_encounter = null

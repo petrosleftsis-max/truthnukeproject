@@ -206,7 +206,7 @@ func settled_by_other_means():
 	var post: Vector2i = m.post
 	var talker = add_guard(m, "Talker", post, 180.0)
 	talker.recognises = Guard.Recognises.NO_DISGUISE
-	talker.small_talk = load("res://Dialogue/stealth_stages.dialogue")
+	talker.small_talk = load("res://dialogue/stealth_stages.dialogue")
 	talker.small_talk_title = "s5_goal"
 	var horn := ExamineInteractable.new()
 	horn.text = "You sound the all-clear."
@@ -251,7 +251,7 @@ func whose_gaze_matters():
 	sharp.recognises = Guard.Recognises.ANY_DISGUISE
 	var asker_tile = find_tile(m, func(t): return gap(t, post) >= 14.0 and gap(t, sharp_tile) >= 8.0)
 	var asker = add_guard(m, "Asker", asker_tile, 0.0, "priest")
-	asker.questions = load("res://Dialogue/stealth_stages.dialogue")
+	asker.questions = load("res://dialogue/stealth_stages.dialogue")
 	Campaign.give_item(m.leader, "priest_robes")
 	var watch = await watch_it(m, out_of_sight_of(m, row(post) + [sharp_tile, asker_tile]))
 	log_line("======== whose gaze matters ========")

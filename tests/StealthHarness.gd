@@ -13,8 +13,8 @@ extends Node
 ##
 ## Copied beside the drivers by the runner, the way HarnessLog is.
 
-const MAP := "res://scenes/explore_crossroads.tscn"
-const TERRAIN := "res://scenes/crossroads_terrain.tscn"
+const MAP := "res://maps/crossroads_explore.tscn"
+const TERRAIN := "res://maps/crossroads_terrain.tscn"
 const BALLOON := "res://ui/dialogue_balloon.tscn"
 const NOWHERE := Vector2i(-99999, -99999)
 

@@ -98,3 +98,7 @@ guardlife
 poisons
 stagecard
 clues
+pad
+dungeon
+resuscitate
+steal

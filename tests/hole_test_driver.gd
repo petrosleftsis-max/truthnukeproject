@@ -116,8 +116,8 @@ func check_map(encounter_path: String):
 
 func run_test():
 	log_line("======== non-rectangular map (Sappers) ========")
-	await check_map("res://encounters/encounter_02_sappers.tres")
+	await check_map("res://data/encounters/encounter_02_sappers.tres")
 	log_line("======== rectangular map, unchanged (Ambush) ========")
-	await check_map("res://encounters/encounter_01_ambush.tres")
+	await check_map("res://data/encounters/encounter_01_ambush.tres")
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)

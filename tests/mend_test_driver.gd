@@ -49,11 +49,11 @@ func run_test():
 	# [/shake] before [shake] is the pair inside out: the closing tag is
 	# ignored and the opening one never closes, so nothing ever shook.
 	var backwards := []
-	var dir = DirAccess.open("res://Dialogue")
+	var dir = DirAccess.open("res://dialogue")
 	for file in dir.get_files():
 		if not file.ends_with(".dialogue"):
 			continue
-		var text = FileAccess.get_file_as_string("res://Dialogue/".path_join(file))
+		var text = FileAccess.get_file_as_string("res://dialogue/".path_join(file))
 		for line in text.split("\n"):
 			var closes = line.find("[/shake]")
 			var opens = line.find("[shake")
@@ -63,7 +63,7 @@ func run_test():
 	log_line("")
 
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 6:
@@ -90,7 +90,7 @@ func run_test():
 	ok(bare == 0, "no icons to start with", "%d" % bare)
 	var poison := EffectDefinition.new()
 	poison.type = EffectDefinition.EffectType.CONDITION
-	poison.condition = load("res://conditions/poisoned.tres")
+	poison.condition = load("res://data/conditions/poisoned.tres")
 	combat.apply_effect(hero, hero, poison, SkillDatabase.skills["cleanse"], false)
 	await get_tree().process_frame
 	ok(icons_beside(ui, hero) == 1, "the icon appears as the condition lands, not next turn",

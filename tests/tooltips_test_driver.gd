@@ -66,7 +66,7 @@ func check(what: String, text: String, screen: Vector2, oversize: Array) -> floa
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 4:
@@ -141,8 +141,8 @@ func run_test():
 	for key in ItemDatabase.items:
 		var item: ItemDefinition = ItemDatabase.items[key]
 		check("bag: " + item.name, "%s\n%s" % [item.name, item.description], screen, oversize)
-	for path in ["res://encounters/encounter_01_ambush.tres", "res://encounters/encounter_02_sappers.tres",
-			"res://encounters/encounter_03_watcher.tres"]:
+	for path in ["res://data/encounters/encounter_01_ambush.tres", "res://data/encounters/encounter_02_sappers.tres",
+			"res://data/encounters/encounter_03_watcher.tres"]:
 		var encounter: EncounterDefinition = load(path)
 		check("battle: " + encounter.display_name, encounter.description, screen, oversize)
 	for way in load("res://ui/main_menu.gd").WAYS_IN:

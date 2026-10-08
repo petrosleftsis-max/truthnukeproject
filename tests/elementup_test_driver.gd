@@ -36,7 +36,7 @@ func run_test():
 		"DAMAGE": 0, "HEAL": 1, "STAT_MODIFIER": 2, "DAMAGE_OVER_TIME": 3,
 		"DISPEL": 4, "PUSH": 5, "PULL": 6, "STAT_MULTIPLIER": 7,
 		"CONDITION": 8, "REVEAL": 9, "MOVEMENT_CLASS": 10, "HIDE": 11,
-		"RESISTANCE": 12, "UPGRADE_ELEMENT": 13,
+		"RESISTANCE": 12, "UPGRADE_ELEMENT": 13, "REVIVE": 14, "STEAL": 15,
 	}
 	var moved := []
 	for name in frozen:
@@ -72,7 +72,7 @@ func run_test():
 	log_line("")
 
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 8:

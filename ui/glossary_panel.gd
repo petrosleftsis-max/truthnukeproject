@@ -3,7 +3,7 @@ class_name GlossaryPanel
 ## The glossary: what the game's own words mean.
 ##
 ## Half of every page is written and half is read off the game itself. The
-## prose lives in res://glossary/glossary_book.tres and, for the characters, on
+## prose lives in res://data/glossary/glossary_book.tres and, for the characters, on
 ## each CombatantDefinition; the numbers - a condition's duration, a gate's
 ## allowance per level, a skill's reach and cost - are taken from the same data
 ## the battle uses, so a page here cannot quietly disagree with the game it
@@ -18,7 +18,7 @@ class_name GlossaryPanel
 ## screen back from there.
 signal closed()
 
-const GLOSSARY_BOOK := "res://glossary/glossary_book.tres"
+const GLOSSARY_BOOK := "res://data/glossary/glossary_book.tres"
 ## Who the glossary introduces, in the order they turn up in the story.
 const CAST := ["cyrus", "enfina", "prometheus", "alithia"]
 ## Said on every condition page, because the numbers on it are only the default
@@ -148,7 +148,7 @@ func _view_conditions():
 func _view_gates():
 	var book := _book()
 	var written = book.gates if book != null else ""
-	_read("The Gates", written if written != "" else _unwritten("glossary/glossary_book.tres"))
+	_read("The Gates", written if written != "" else _unwritten("data/glossary/glossary_book.tres"))
 
 
 func _view_skills():
@@ -188,7 +188,7 @@ func _page_for_character(key: String):
 		return
 	var written = definition.glossary_text
 	if written == "":
-		written = _unwritten("their entry in databases/combatant_database.tscn, under Glossary Text")
+		written = _unwritten("their file in data/characters/ or data/enemies/, under Glossary Text")
 	_read(definition.name, written)
 
 
@@ -287,7 +287,7 @@ func _page_for_passive(passive: PassiveDefinition):
 ## Every passive in the game, in alphabetical order.
 ##
 ## Asked of the characters first, for the reason conditions() asks the skills:
-## an exported build has converted res://passives/ into something a scan for
+## an exported build has converted res://data/passives/ into something a scan for
 ## "*.tres" does not find, while what a character points at comes through
 ## intact. The folder is still scanned, so a passive written but not yet given
 ## to anybody shows up while it is being worked on.
@@ -300,12 +300,12 @@ static func passives() -> Array:
 		for passive in definition.passives:
 			if passive != null:
 				found[passive.resource_path] = passive
-	var dir = DirAccess.open("res://passives")
+	var dir = DirAccess.open("res://data/passives")
 	if dir != null:
 		for file in dir.get_files():
 			if file.ends_with(".remap"):
 				file = file.get_basename()
-			var path = "res://passives/".path_join(file)
+			var path = "res://data/passives/".path_join(file)
 			if not ResourceLoader.exists(path):
 				continue
 			var loaded = load(path)
@@ -325,7 +325,7 @@ static func _passive_name(passive: PassiveDefinition) -> String:
 ## Every condition the game can inflict, in alphabetical order.
 ##
 ## Read from the skills and items that inflict them rather than by listing
-## res://conditions/, because an exported build does not have that folder in
+## res://data/conditions/, because an exported build does not have that folder in
 ## the shape the editor does: the .tres files are converted to binary and
 ## renamed on the way into the pack, so a scan for "*.tres" came back empty and
 ## the Conditions page was blank in the export while working perfectly in the
@@ -346,7 +346,7 @@ static func conditions() -> Array:
 					found[effect.condition.resource_path] = effect.condition
 	# And the one nothing inflicts but an ambush on a stealth map.
 	found[Combat.SURPRISED.resource_path] = Combat.SURPRISED
-	var dir = DirAccess.open("res://conditions")
+	var dir = DirAccess.open("res://data/conditions")
 	if dir != null:
 		for file in dir.get_files():
 			# What the export leaves in this folder is "blind.tres.remap" and
@@ -354,7 +354,7 @@ static func conditions() -> Array:
 			# and moved. The name it is still known by is underneath.
 			if file.ends_with(".remap"):
 				file = file.get_basename()
-			var path = "res://conditions/".path_join(file)
+			var path = "res://data/conditions/".path_join(file)
 			if not ResourceLoader.exists(path):
 				continue
 			var loaded = load(path)

@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/retch.svg")
 extends Node2D
 class_name RetchSpot
 ## Where a guard given an emetic goes to be sick: a latrine, a bucket, an open

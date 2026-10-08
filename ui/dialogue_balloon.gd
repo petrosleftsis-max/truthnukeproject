@@ -85,6 +85,11 @@ var skip_button: Button
 ## True while the rest of the conversation is being walked through without
 ## being shown. See skip_conversation().
 var _skipping := false
+## The "are you sure?" a skip asks first, and its two answers. Built the first
+## time it is wanted.
+var _skip_ask: Control = null
+var _skip_yes: Button = null
+var _skip_no: Button = null
 
 
 func _ready() -> void:
@@ -116,11 +121,21 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Escape is not ours. Everything else that happens on screen stops while a
-	# conversation is up, but the pause menu has to be reachable from inside one
-	# - a conversation is exactly where somebody wants to turn the music down or
-	# leave - so this is the one key that goes past.
 	if event.is_action_pressed("ui_cancel"):
+		# Asked whether to skip: "back" is "no".
+		if is_asking_to_skip():
+			get_viewport().set_input_as_handled()
+			_answer_skip(false)
+			return
+		# A pad's B, which is only "back": skip - once it is sure.
+		if not event.is_action_pressed(&"pause") and can_skip():
+			get_viewport().set_input_as_handled()
+			ask_to_skip(true)
+			return
+		# Escape is not ours. Everything else that happens on screen stops
+		# while a conversation is up, but the pause menu has to be reachable
+		# from inside one - a conversation is exactly where somebody wants to
+		# turn the music down or leave - so this is the one key that goes past.
 		return
 	# Only the balloon is allowed to handle input while it's showing
 	if will_block_other_input:
@@ -163,7 +178,8 @@ func apply_dialogue_line() -> void:
 		skip_button.visible = true
 	is_waiting_for_input = false
 	balloon.focus_mode = Control.FOCUS_ALL
-	balloon.grab_focus()
+	if not is_asking_to_skip():
+		balloon.grab_focus()
 
 	character_label.visible = not dialogue_line.character.is_empty()
 	character_label.text = tr(dialogue_line.character, "dialogue")
@@ -210,7 +226,8 @@ func apply_dialogue_line() -> void:
 	else:
 		is_waiting_for_input = true
 		balloon.focus_mode = Control.FOCUS_ALL
-		balloon.grab_focus()
+		if not is_asking_to_skip():
+			balloon.grab_focus()
 
 
 ## Go to the next line
@@ -245,6 +262,9 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 	# and a conversation advancing behind the pause menu is not what pressing
 	# Escape asked for.
 	if get_tree().paused:
+		return
+	# Asked whether to skip: the line waits for the answer.
+	if is_asking_to_skip():
 		return
 
 	# See if we need to skip typing of the dialogue
@@ -308,7 +328,7 @@ func _build_skip_button() -> void:
 	skip_button.offset_right = -18
 	skip_button.offset_top = 18
 	skip_button.offset_bottom = 54
-	skip_button.pressed.connect(skip_conversation)
+	skip_button.pressed.connect(ask_to_skip)
 	_dress(skip_button)
 	# Last, so it is over the response menu's full-rect container rather than
 	# under it, and gets the click.
@@ -340,6 +360,92 @@ func _plate(fill: Color, edge: Color) -> StyleBoxFlat:
 	box.set_border_width_all(1)
 	box.set_corner_radius_all(6)
 	return box
+
+
+## Whether the rest of the conversation could be skipped right now: the
+## button is up, and there is no question waiting to be answered.
+func can_skip() -> bool:
+	return not _skipping and is_inside_tree() and not get_tree().paused and is_instance_valid(dialogue_line) \
+		and dialogue_line.responses.is_empty() and skip_button != null and skip_button.visible and not skip_button.disabled
+
+
+## Asks before skipping - the button in the corner, or a pad's B - since a
+## conversation skipped by mistake is gone. A pad has the answer under its
+## D-pad and A straight away, on Skip; a mouse just clicks one, and the keys
+## can take it up as they do any menu's (FocusOnDemand).
+func ask_to_skip(from_pad: bool = false) -> void:
+	if not can_skip() or is_asking_to_skip():
+		return
+	if _skip_ask == null:
+		_build_skip_ask()
+	_skip_ask.visible = true
+	if from_pad:
+		_skip_yes.grab_focus()
+	else:
+		var focused = get_viewport().gui_get_focus_owner()
+		if focused != null:
+			focused.release_focus()
+
+
+func is_asking_to_skip() -> bool:
+	return _skip_ask != null and _skip_ask.visible
+
+
+func _answer_skip(skip: bool) -> void:
+	if not is_asking_to_skip():
+		return
+	_skip_ask.visible = false
+	var focused = get_viewport().gui_get_focus_owner()
+	if focused != null and _skip_ask.is_ancestor_of(focused):
+		focused.release_focus()
+	if skip:
+		skip_conversation()
+	elif balloon.visible and balloon.focus_mode != Control.FOCUS_NONE:
+		balloon.grab_focus()
+
+
+func _build_skip_ask() -> void:
+	var middle := CenterContainer.new()
+	middle.name = "SkipAsk"
+	middle.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	middle.mouse_filter = Control.MOUSE_FILTER_STOP
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _plate(Color("19212c"), Color("4a86c8")))
+	middle.add_child(panel)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 14)
+	panel.add_child(column)
+	var question := Label.new()
+	question.text = "Skip the rest of this conversation?\nEverything it does still happens."
+	question.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	question.add_theme_font_size_override("font_size", 17)
+	question.add_theme_color_override("font_color", Color("dce8f5"))
+	column.add_child(question)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	column.add_child(row)
+	_skip_yes = Button.new()
+	_skip_yes.name = "SkipYes"
+	_skip_yes.text = "Skip"
+	_skip_yes.custom_minimum_size = Vector2(130, 36)
+	_skip_yes.pressed.connect(_answer_skip.bind(true))
+	_dress(_skip_yes)
+	row.add_child(_skip_yes)
+	_skip_no = Button.new()
+	_skip_no.name = "SkipNo"
+	_skip_no.text = "Keep reading"
+	_skip_no.custom_minimum_size = Vector2(130, 36)
+	_skip_no.pressed.connect(_answer_skip.bind(false))
+	_dress(_skip_no)
+	row.add_child(_skip_no)
+	for button in [_skip_yes, _skip_no]:
+		button.add_theme_stylebox_override("focus", _plate(Color("24344a"), Color("4a86c8")))
+	middle.visible = false
+	# Over everything else in the balloon, the button in the corner included.
+	add_child(middle)
+	_skip_ask = middle
+	FocusOnDemand.attach(middle, _skip_yes)
 
 
 ## Walks the rest of the conversation without showing any of it.
@@ -387,9 +493,9 @@ func skip_conversation() -> void:
 ##
 ## Which face shows is written in the dialogue itself, as a tag on the line:
 ##
-##   Cyrus: I don't like this.              -> imagese/portraits/cyrus.png
-##   Cyrus: [#worried] I really don't.      -> imagese/portraits/cyrus_worried.png
-##   Cyrus: [#portrait=armoured] Ready.     -> imagese/portraits/cyrus_armoured.png
+##   Cyrus: I don't like this.              -> art/portraits/cyrus.png
+##   Cyrus: [#worried] I really don't.      -> art/portraits/cyrus_worried.png
+##   Cyrus: [#portrait=armoured] Ready.     -> art/portraits/cyrus_armoured.png
 ##   Cyrus: [#noportrait] ...               -> no face at all
 ##   Narrator: The door creaks open.        -> none, unless narrator.png exists
 ##
@@ -400,7 +506,7 @@ func skip_conversation() -> void:
 ## feature degrades to exactly the old balloon while the art is still being
 ## drawn, instead of erroring or showing a blank box.
 
-const PORTRAIT_DIR = "res://imagese/portraits"
+const PORTRAIT_DIR = "res://art/portraits"
 
 ## Tags that mean something other than "this is the expression". #noportrait
 ## suppresses the face for a line; #portrait=x names one explicitly, for an

@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/objective.svg")
 extends Node
 class_name StealthObjective
 ## Something to do on a stealth map besides getting out: listed under the

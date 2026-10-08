@@ -134,18 +134,18 @@ Cyrus: Well?
 - No
 	do Campaign.set_flag("skip_probe_answered")
 => END
-' > "$DST/Dialogue/_skip_probe.dialogue"
+' > "$DST/dialogue/_skip_probe.dialogue"
 		"$GODOT" --headless --path "$DST" --import >/dev/null 2>&1
 	fi
 	if [ "$d" = "bailout" ]; then
 		printf '~ start
 Somebody: That is enough of that.
 do Campaign.to_main_menu()
-' > "$DST/Dialogue/_bailout_probe.dialogue"
+' > "$DST/dialogue/_bailout_probe.dialogue"
 		"$GODOT" --headless --path "$DST" --import >/dev/null 2>&1
 	fi
 	if [ "$d" = "glossary" ] || [ "$d" = "bailout" ]; then
-		sed -i 's|run/main_scene="[^"]*"|run/main_scene="res://main_menu.tscn"|' "$DST/project.godot"
+		sed -i 's|run/main_scene="[^"]*"|run/main_scene="res://scenes/main_menu.tscn"|' "$DST/project.godot"
 	fi
 	# The sweep plays every encounter out; the rest are quick by comparison.
 	budget=300

@@ -50,7 +50,7 @@ var _combat: Combat = null
 
 func run_test():
 	log_line("======== there is a way in from the title screen ========")
-	var menu = load("res://main_menu.tscn").instantiate()
+	var menu = load("res://scenes/main_menu.tscn").instantiate()
 	get_tree().root.add_child(menu)
 	await get_tree().process_frame
 	var on_the_menu := []
@@ -107,7 +107,7 @@ func run_test():
 		"%d of %d" % [listed.size(), every.size()])
 	ok(not listed.is_empty(), "and there is a list at all", "%d" % listed.size())
 
-	# The list used to be read by scanning res://conditions/ for *.tres, which
+	# The list used to be read by scanning res://data/conditions/ for *.tres, which
 	# is a folder that does not survive an export in that shape: the files are
 	# converted to binary and renamed on the way into the pack, so the page was
 	# blank in the build and perfect in the editor. What a skill points at comes
@@ -127,7 +127,7 @@ func run_test():
 	ok(without_the_folder.size() == every.size(),
 		"every condition is reachable without listing the folder",
 		"%d of %d" % [without_the_folder.size(), every.size()])
-	var windswept: ConditionDefinition = load("res://conditions/windswept.tres")
+	var windswept: ConditionDefinition = load("res://data/conditions/windswept.tres")
 	press(panel, windswept.display_name)
 	await get_tree().process_frame
 	var page = panel._body.text
@@ -152,7 +152,7 @@ func run_test():
 		ok(Stats.gate_name(level).replace("Gates", "Gate") in gates_page
 			or Stats.gate_name(level) in gates_page,
 			"%s is named on it" % Stats.gate_name(level))
-	var book = load("res://glossary/glossary_book.tres")
+	var book = load("res://data/glossary/glossary_book.tres")
 	ok(book.gates != "", "the text comes out of the book, where you can edit it")
 	ok(gates_page == book.gates, "and is exactly what the book says")
 	# The page claims a higher gate can pay for a lower skill. The game had

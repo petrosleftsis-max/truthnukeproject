@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/noisy_floor.svg")
 extends Node2D
 class_name NoisyFloor
 ## Ground that gives somebody away on a stealth map: gravel that crunches,

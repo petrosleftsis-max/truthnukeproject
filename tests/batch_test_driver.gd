@@ -44,7 +44,7 @@ func _ready():
 
 func start_battle() -> Node:
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_01_ambush.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_01_ambush.tres")
 	game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await get_tree().process_frame
@@ -368,7 +368,7 @@ func run_test():
 	for comb in combat.combatants:
 		if comb.side == 0 and comb.alive:
 			victim = comb
-	var burn: ConditionDefinition = load("res://conditions/burn.tres")
+	var burn: ConditionDefinition = load("res://data/conditions/burn.tres")
 	var condition_effect := EffectDefinition.new()
 	condition_effect.type = EffectDefinition.EffectType.CONDITION
 	condition_effect.condition = burn

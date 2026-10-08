@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/spawn_marker.svg")
 extends Sprite2D
 class_name SpawnMarker
 ## Editor-only. One combatant placed on the map in the encounter editor - drag
@@ -6,7 +7,7 @@ class_name SpawnMarker
 ##
 ## Snaps itself to tile centres while the editor has it, so a marker is always
 ## on exactly one tile. Nothing in the running game uses this; markers only
-## exist inside scenes/encounter_editor.tscn, and EncounterEditor turns them
+## exist inside tools/encounter_editor.tscn, and EncounterEditor turns them
 ## into SpawnDefinitions when you save.
 
 
@@ -36,27 +37,36 @@ class_name SpawnMarker
 ## from one encounter to the next.
 @export_range(0, 100) var weapon_base: int = 6
 @export_range(1, 100) var defense: int = 10
-## What this one brings to the fight, by item key - "cure_potion", "tiny_bomb"
-## and so on. Empty means they bring whatever their character normally carries.
+## What this one brings to the fight, picked from the items there are. Empty
+## means empty-handed. An enemy uses what they bring - a potion drunk when
+## badly hurt, a bomb thrown - and it is what a Steal takes off them. See
+## SpawnDefinition.starting_items.
 ##
 ## Here because the marker is what gets written back: saving builds a fresh
 ## SpawnDefinition out of these fields, so a field the marker does not hold is
 ## a field that saving erases. This one was not held, and one press of "Save
 ## spawns to encounter" emptied every bag in the encounter without saying so.
 @export var starting_items: Array[String] = []
+## The round an enemy joins on - 1 is from the start. See
+## SpawnDefinition.arrives_on_round. Held here for the same reason as
+## starting_items: without it, Save put every late arrival back to round 1.
+@export_range(1, 20) var arrives_on_round: int = 1:
+	set(value):
+		arrives_on_round = value
+		queue_redraw()
+## Caught off guard: loses their first turn. See SpawnDefinition.surprised.
+@export var surprised: bool = false
 ## Set by EncounterEditor from the map being previewed.
 @export var tile_size := Grid.TILE_SIZE
 
-## The database, read straight from its scene rather than through the
+## Everybody, read straight from their folders rather than through the
 ## CombatantDatabase autoload: autoloads aren't reliably available to @tool
 ## scripts in the editor, and this needs no scene tree.
 static var _definitions: Dictionary = {}
 
 static func combatant_definitions() -> Dictionary:
 	if _definitions.is_empty():
-		var database = load("res://databases/combatant_database.tscn").instantiate()
-		_definitions = database.combatants.duplicate()
-		database.free()
+		_definitions = DataFolder.combatants()
 	return _definitions
 
 
@@ -122,13 +132,20 @@ func _draw():
 		# The level is the one thing about a marker you cannot see from the
 		# portrait, and it changes every number the combatant has.
 		label += " Lv%d" % level
+	if arrives_on_round > 1:
+		# Otherwise a reinforcement looks like somebody there from the start.
+		label += " R%d" % arrives_on_round
 	var width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 	draw_string(font, Vector2(-width * 0.5, half + 11), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.WHITE)
 
 
-## Turns combatant_key into a dropdown of the actual database keys, so the
-## editor can't produce an encounter referring to a combatant that isn't there.
+## Turns combatant_key into a dropdown of the actual database keys, and each of
+## starting_items into one of the items, so the editor can't produce an
+## encounter referring to a combatant or an item that isn't there.
 func _validate_property(property: Dictionary):
 	if property.name == "combatant_key":
 		property.hint = PROPERTY_HINT_ENUM
 		property.hint_string = ",".join(combatant_definitions().keys())
+	elif property.name == "starting_items":
+		property.hint = PROPERTY_HINT_TYPE_STRING
+		property.hint_string = SpawnDefinition.item_list_hint()

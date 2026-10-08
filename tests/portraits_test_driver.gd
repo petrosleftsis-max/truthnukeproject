@@ -52,7 +52,10 @@ func shown_names(ui) -> Array:
 	var names = []
 	for button in buttons(ui):
 		if button.tooltip_text != "":
-			names.append(button.tooltip_text.split("\n")[0])
+			# By the key the button carries rather than its tooltip's first line,
+			# which is the reason instead when a skill would do nothing right now
+			# - Steal, with nobody carrying anything.
+			names.append(SkillDatabase.skills[button.get_meta(ui.SKILL_META)].name)
 	return names
 
 
@@ -65,7 +68,7 @@ func names_of(keys: Array) -> Array:
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 4:

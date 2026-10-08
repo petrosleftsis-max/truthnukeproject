@@ -18,7 +18,7 @@ class_name ConditionStrip
 
 ## Everything uses the same mark for now. When conditions get art of their own
 ## this is where it comes from, and nothing else changes.
-const MARK := preload("res://imagese/skills/fire_icon.png")
+const MARK := preload("res://art/icons/fire_icon.png")
 
 const MARK_SIZE := Vector2(22, 22)
 ## Tinted by what the effect does to you rather than by what kind it is: red

@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/stealth_door.svg")
 extends Interactable
 class_name StealthDoor
 ## A door on a stealth map, on the floor tile it fills. Shut, nobody walks

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://exploration/Picture.gd" id="1_picture"]
 [ext_resource type="Script" path="res://exploration/Hotspot.gd" id="2_hotspot"]
-[ext_resource type="Resource" path="res://Dialogue/clues_demo.dialogue" id="3_dialogue"]
+[ext_resource type="Resource" path="res://dialogue/clues_demo.dialogue" id="3_dialogue"]
 
 [node name="Office" type="Control"]
 layout_mode = 3

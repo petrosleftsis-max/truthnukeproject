@@ -36,7 +36,7 @@ extends Node
 ## How fast a scripted walk moves, in world units per second. The party's own
 ## walking speed, so someone crossing a scene moves like a character rather
 ## than like a cursor.
-const WALK_SPEED := 660.0
+const WALK_SPEED := Grid.TILE_SIZE * 3.4375
 
 ## How far outside the map someone entering starts, and someone leaving ends.
 const OFF_MAP_TILES := 2

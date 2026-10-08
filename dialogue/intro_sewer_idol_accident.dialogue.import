@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://dka00tl1kncn0"
+path="res://.godot/imported/intro_sewer_idol_accident.dialogue-dccf73a5854e5c0b3e8903bb9a37990d.tres"
+
+[deps]
+
+source_file="res://dialogue/intro_sewer_idol_accident.dialogue"
+dest_files=["res://.godot/imported/intro_sewer_idol_accident.dialogue-dccf73a5854e5c0b3e8903bb9a37990d.tres"]
+
+[params]
+
+defaults=true

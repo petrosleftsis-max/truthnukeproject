@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://ycckibomvsxm"
+path="res://.godot/imported/church_after_reveal_door_blocked.dialogue-518b1d5830aac09ddc874cbac86808e7.tres"
+
+[deps]
+
+source_file="res://dialogue/church_after_reveal_door_blocked.dialogue"
+dest_files=["res://.godot/imported/church_after_reveal_door_blocked.dialogue-518b1d5830aac09ddc874cbac86808e7.tres"]
+
+[params]
+
+defaults=true

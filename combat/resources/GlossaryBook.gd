@@ -1,7 +1,8 @@
+@icon("res://art/editor_icons/glossary.svg")
 extends Resource
 class_name GlossaryBook
 ## The written half of the glossary: everything the game cannot work out for
-## itself. Open res://glossary/glossary_book.tres and type into it.
+## itself. Open res://data/glossary/glossary_book.tres and type into it.
 ##
 ## The other half is generated - a condition's numbers, a gate's allowance per
 ## level, a skill's range and cost all come from the game's own data, so they

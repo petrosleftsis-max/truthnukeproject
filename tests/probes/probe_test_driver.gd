@@ -28,7 +28,7 @@ func _ready():
 	var top := CanvasLayer.new()
 	top.layer = 200
 	get_tree().root.add_child(top)
-	var menu = load("res://main_menu.tscn").instantiate()
+	var menu = load("res://scenes/main_menu.tscn").instantiate()
 	top.add_child(menu)
 	for i in 3:
 		await get_tree().process_frame
@@ -54,7 +54,7 @@ func _ready():
 	log_line("after up: focus=%s hovered=%s presses=%d" % [who(get_viewport().gui_get_focus_owner()), who(get_viewport().gui_get_hovered_control()), presses[0]])
 
 	# And with no motion at all, for comparison.
-	var menu2 = load("res://main_menu.tscn").instantiate()
+	var menu2 = load("res://scenes/main_menu.tscn").instantiate()
 	top.add_child(menu2)
 	for i in 3:
 		await get_tree().process_frame

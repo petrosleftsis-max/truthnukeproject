@@ -5,9 +5,9 @@ extends Node
 ## bonus - and combat bringing late arrivals in at the top of their round.
 
 var LOG_PATH := HarnessLog.path_for("stealthkit")
-const MAP := "res://scenes/explore_crossroads.tscn"
-const TERRAIN := "res://scenes/crossroads_terrain.tscn"
-const TALK := "res://Dialogue/stealth_stages.dialogue"
+const MAP := "res://maps/crossroads_explore.tscn"
+const TERRAIN := "res://maps/crossroads_terrain.tscn"
+const TALK := "res://dialogue/stealth_stages.dialogue"
 const BALLOON := "res://ui/dialogue_balloon.tscn"
 const NOWHERE := Vector2i(-99999, -99999)
 
@@ -868,7 +868,7 @@ func caught_red_handed():
 ## something in the way. On stage 1, where there are barrels to try.
 func vaulting():
 	Campaign.reset()
-	Campaign.current_map = "res://stages/stealth_1.tscn"
+	Campaign.current_map = "res://maps/stealth_stages/stealth_1.tscn"
 	var scene: ExplorationScene = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(scene)
 	await settle(4)
@@ -1169,7 +1169,7 @@ func named(combat: Combat, called: String) -> Dictionary:
 func arriving_late():
 	log_line("======== combat: arriving late ========")
 	Campaign.reset()
-	var encounter: EncounterDefinition = load("res://encounters/encounter_02_sappers.tres").duplicate(true)
+	var encounter: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
 	var late: SpawnDefinition = null
 	var later: SpawnDefinition = null
 	for spawn in encounter.spawns:

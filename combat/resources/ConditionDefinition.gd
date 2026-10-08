@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/condition.svg")
 extends Resource
 class_name ConditionDefinition
 ## A named condition a combatant can be suffering from - Poisoned, Stunned,
@@ -10,7 +11,7 @@ class_name ConditionDefinition
 ## handful of separate effects that happen to arrive together.
 ##
 ## Apply one with an EffectDefinition of type CONDITION pointing at it. The
-## ones the game ships with live in res://conditions/.
+## ones the game ships with live in res://data/conditions/.
 
 
 ## How hard the tick reads in the glossary. Kept as a word rather than a number

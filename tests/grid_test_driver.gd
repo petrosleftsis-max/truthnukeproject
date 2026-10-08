@@ -29,7 +29,7 @@ func _ready():
 
 
 func run_test():
-	for path in ["res://scenes/terrain.tscn", "res://scenes/sapperTerrain.tscn", "res://scenes/explore_crossroads.tscn"]:
+	for path in ["res://maps/terrain_template.tscn", "res://maps/sapper_terrain.tscn", "res://maps/crossroads_explore.tscn"]:
 		log_line("======== %s ========" % path)
 		var scene = load(path).instantiate()
 		get_tree().root.add_child(scene)
@@ -81,12 +81,12 @@ func run_test():
 	# coin toss rather than a decision, and crossroads_terrain is the same scene
 	# used for walking about AND for the ambush fought on it, so no setting in
 	# a scene file could tell the two apart. The mode settles it at load.
-	var ambush: EncounterDefinition = load("res://encounters/encounter_01_ambush.tres")
+	var ambush: EncounterDefinition = load("res://data/encounters/encounter_01_ambush.tres")
 	var fight_terrain = ambush.terrain_scene.resource_path
 	log_line("  NOTE  the ambush is fought on %s" % fight_terrain)
 
 	Campaign.reset()
-	Campaign.current_map = "res://scenes/explore_crossroads.tscn"
+	Campaign.current_map = "res://maps/crossroads_explore.tscn"
 	var walking = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(walking)
 	for i in 6:
@@ -108,7 +108,7 @@ func run_test():
 	ok(fight_grid != null, "the battle has one too", "%s" % fight_grid)
 	ok(fight_grid != null and fight_grid.visible, "and a battle is played on it")
 	# The whole point: one scene on disk, two answers, decided by the mode.
-	ok(fight_terrain == "res://scenes/crossroads_terrain.tscn",
+	ok(fight_terrain == "res://maps/crossroads_terrain.tscn",
 		"and both were the same terrain scene, so only the mode could have decided",
 		fight_terrain)
 	game.queue_free()

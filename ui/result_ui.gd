@@ -18,6 +18,11 @@ const BALLOON_SCENE = "res://ui/dialogue_balloon.tscn"
 
 @export var combat: Combat
 
+## Whether the battle just over was won.
+var _won := false
+## The rest between a dungeon's fights, once it is up.
+var rest: RestPanel = null
+
 
 func _ready():
 	$Panel.visible = false
@@ -48,6 +53,14 @@ func _on_combat_finished():
 	# The encounter says so itself - see EncounterDefinition.victory_ends_the_run
 	# - rather than this knowing which fights are last.
 	$Panel/VBox/BackButton.visible = not (won and _ends_the_run())
+	_won = won
+	if Campaign.in_dungeon():
+		# A dungeon goes on to its next fight, not back to the map - or, lost,
+		# starts again from the top.
+		$Panel/VBox/BackButton.visible = not won or Campaign.on_last_dungeon_stage()
+		$Panel/VBox/BackButton.text = "Finish" if won else "Start the dungeon again"
+		if won and Campaign.on_last_dungeon_stage():
+			$Panel/VBox/Title.text = "%s cleared" % Campaign.dungeon.display_name
 	$Panel/VBox/Summary.text = _describe_party()
 	# Whatever this encounter has to say about how it went, before the panel.
 	if _speak_for(won):
@@ -91,6 +104,9 @@ func _on_closing_words_ended(_resource = null):
 
 
 func _show_panel():
+	if Campaign.in_dungeon() and _won and not Campaign.on_last_dungeon_stage():
+		_rest()
+		return
 	$Panel.visible = true
 	# Offered to the keyboard, not pressed into its hand - see FocusOnDemand.
 	# Whichever button is actually on the panel is where the keyboard starts.
@@ -98,6 +114,25 @@ func _show_panel():
 	if not first.visible:
 		first = $Panel/VBox/MainMenuButton
 	FocusOnDemand.attach(self, first)
+
+
+## Between a dungeon's fights: everyone rested, and the rest's own panel - with
+## its offer of gates back - in place of this one. Continue goes on to the next
+## stage.
+func _rest():
+	Campaign.rest_party()
+	# The battle stays where it was behind, dimmed: it is over, and the rest is
+	# what is being read.
+	var dim := ColorRect.new()
+	dim.name = "RestDim"
+	dim.color = Color(0, 0, 0, 0.55)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(dim)
+	rest = RestPanel.new()
+	rest.name = "Rest"
+	rest.continued.connect(Campaign.next_dungeon_stage)
+	add_child(rest)
 
 
 ## What the party is walking away with - the same information the level select
@@ -110,6 +145,12 @@ func _describe_party() -> String:
 ## Back to wherever the battle came from: the exploration map the party was
 ## standing in, or the level select if the fight was picked from the menu.
 func _on_back_pressed():
+	if Campaign.in_dungeon():
+		if _won:
+			Campaign.next_dungeon_stage()
+		else:
+			Campaign.start_dungeon(Campaign.dungeon)
+		return
 	if Campaign.has_map_to_return_to():
 		SceneTransition.change_scene("res://scenes/exploration.tscn")
 	else:

@@ -1,0 +1,117 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_edcco"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_c72ca"]
+[ext_resource type="PackedScene" path="res://maps/laboratory_fight.tscn" id="3_5dlq4"]
+[ext_resource type="Resource" path="res://dialogue/lab_prometheus_end.dialogue" id="4_q2ht3"]
+
+[sub_resource type="Resource" id="Resource_vfttt"]
+script = ExtResource("2_c72ca")
+combatant_key = "cyrus"
+position = Vector2i(25, 19)
+level = 3
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_oaq50"]
+script = ExtResource("2_c72ca")
+combatant_key = "alithia"
+position = Vector2i(24, 21)
+level = 3
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_kghme"]
+script = ExtResource("2_c72ca")
+combatant_key = "prometheus"
+position = Vector2i(26, 22)
+level = 3
+weapon_base = 12
+defense = 8
+
+[sub_resource type="Resource" id="Resource_cc7y0"]
+script = ExtResource("2_c72ca")
+combatant_key = "enfina"
+position = Vector2i(25, 23)
+level = 3
+weapon_base = 12
+defense = 32
+
+[sub_resource type="Resource" id="Resource_kvnbw"]
+script = ExtResource("2_c72ca")
+combatant_key = "priest"
+side = 1
+position = Vector2i(36, 10)
+display_name = "Priest"
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_na2k4"]
+script = ExtResource("2_c72ca")
+combatant_key = "bomber"
+side = 1
+position = Vector2i(51, 11)
+display_name = "Bomber"
+level = 3
+weapon_base = 12
+defense = 25
+
+[sub_resource type="Resource" id="Resource_t6r7r"]
+script = ExtResource("2_c72ca")
+combatant_key = "barbarian"
+side = 1
+position = Vector2i(45, 12)
+display_name = "Striker 1"
+level = 3
+weapon_base = 12
+defense = 60
+
+[sub_resource type="Resource" id="Resource_r3oer"]
+script = ExtResource("2_c72ca")
+combatant_key = "ranger"
+side = 1
+position = Vector2i(29, 15)
+display_name = "Ranger"
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_ak06g"]
+script = ExtResource("2_c72ca")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(50, 16)
+display_name = "Sorcerer"
+level = 3
+weapon_base = 12
+defense = 25
+
+[sub_resource type="Resource" id="Resource_ytjji"]
+script = ExtResource("2_c72ca")
+combatant_key = "mimic"
+side = 1
+position = Vector2i(34, 21)
+display_name = "Mimic"
+level = 3
+weapon_base = 12
+defense = 55
+
+[sub_resource type="Resource" id="Resource_vc142"]
+script = ExtResource("2_c72ca")
+combatant_key = "barbarian"
+side = 1
+position = Vector2i(32, 22)
+display_name = "Striker 2"
+level = 3
+weapon_base = 12
+defense = 60
+
+[resource]
+script = ExtResource("1_edcco")
+display_name = "Dungeon: The Lab"
+description = "The lab fight, with everybody at level 3."
+terrain_scene = ExtResource("3_5dlq4")
+victory_dialogue = ExtResource("4_q2ht3")
+spawns = Array[ExtResource("2_c72ca")]([SubResource("Resource_vfttt"), SubResource("Resource_oaq50"), SubResource("Resource_kghme"), SubResource("Resource_cc7y0"), SubResource("Resource_kvnbw"), SubResource("Resource_na2k4"), SubResource("Resource_t6r7r"), SubResource("Resource_r3oer"), SubResource("Resource_ak06g"), SubResource("Resource_ytjji"), SubResource("Resource_vc142")])
+music = "Elegy_of_the_End"

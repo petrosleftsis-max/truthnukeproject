@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/item.svg")
 extends SkillDefinition
 class_name ItemDefinition
 ## A consumable: something carried, used once, and gone.

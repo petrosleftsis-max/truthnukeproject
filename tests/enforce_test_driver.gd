@@ -28,7 +28,7 @@ func _ready():
 
 ## Puts `condition` on `comb` the way apply_effect does.
 func afflict(comb: Dictionary, name: String, turns: int = 3) -> ConditionDefinition:
-	var condition: ConditionDefinition = load("res://conditions/%s.tres" % name)
+	var condition: ConditionDefinition = load("res://data/conditions/%s.tres" % name)
 	comb.status_effects.append({
 		"stat": "condition",
 		"condition": condition,
@@ -77,7 +77,7 @@ func free_tile_near(combat, comb, from: Vector2i, reach: int) -> Vector2i:
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 6:
@@ -114,7 +114,7 @@ func run_test():
 	# Which restrictions Crystallised carries is a design dial, and it has been
 	# turned - it rooted you AND cost you the secondary action, now only the
 	# first. Read off the resource so retuning it again does not read as a bug.
-	var rooted: ConditionDefinition = load("res://conditions/crystallised.tres")
+	var rooted: ConditionDefinition = load("res://data/conditions/crystallised.tres")
 	ok(combat.has_restriction(hero, "prevents_secondary") == rooted.prevents_secondary,
 		"and the secondary action agrees with what the condition claims",
 		"prevents_secondary is %s" % rooted.prevents_secondary)

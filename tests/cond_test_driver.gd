@@ -32,7 +32,7 @@ func _ready():
 
 
 func condition(name: String) -> ConditionDefinition:
-	return load("res://conditions/%s.tres" % name)
+	return load("res://data/conditions/%s.tres" % name)
 
 
 ## Puts `name` on `comb` directly, as a skill would.
@@ -46,7 +46,7 @@ func afflict(comb: Dictionary, name: String):
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_01_ambush.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_01_ambush.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await get_tree().process_frame
@@ -125,7 +125,7 @@ func run_test():
 	var free_movement = controller.movement
 
 	log_line("======== Crystallised: rooted ========")
-	var crystallised: ConditionDefinition = load("res://conditions/crystallised.tres")
+	var crystallised: ConditionDefinition = load("res://data/conditions/crystallised.tres")
 	afflict(hero, "crystallised")
 	controller.set_controlled_combatant(hero)
 	ok(controller.movement == 0, "movement is zero", "%d" % controller.movement)
@@ -177,7 +177,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== Frozen: stiff, and slowed ========")
-	var frozen: ConditionDefinition = load("res://conditions/frozen.tres")
+	var frozen: ConditionDefinition = load("res://data/conditions/frozen.tres")
 	afflict(hero, "frozen")
 	controller.set_controlled_combatant(hero)
 	ok(controller.movement == maxi(free_movement + frozen.movement_change, 0),

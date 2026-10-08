@@ -61,6 +61,8 @@ var _toast_layer: CanvasLayer = null
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# One of the menus a pad's View opens - see Pad.
+	add_to_group(&"pad_menu")
 	if not Campaign.clue_learned.is_connected(_on_clue_learned):
 		Campaign.clue_learned.connect(_on_clue_learned)
 
@@ -282,12 +284,12 @@ func _build():
 	if _mode == Mode.PRESENT:
 		_present = _button("Show it", present_picked)
 		buttons.add_child(_present)
-		buttons.add_child(_button("Show nothing (Esc)", cancel))
+		buttons.add_child(_button(Pad.hint("Show nothing", &"ui_cancel"), cancel))
 		_connect = null
 	else:
 		_connect = _button("Connect", func(): connect_picked())
 		buttons.add_child(_connect)
-		buttons.add_child(_button("Close (J)", close))
+		buttons.add_child(_button(Pad.hint("Close", [&"journal", &"menus"]), close))
 		_present = null
 
 
@@ -445,7 +447,7 @@ func toast(text: String):
 	note.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	note.add_theme_stylebox_override("panel", _box(PANEL, GOLD, 12))
 	var label := Label.new()
-	label.text = text + "   (J)"
+	label.text = "%s   (%s)" % [text, Pad.key([&"journal", &"menus"])]
 	label.add_theme_color_override("font_color", GOLD)
 	label.add_theme_font_size_override("font_size", 22)
 	note.add_child(label)
@@ -494,18 +496,41 @@ func _input(event):
 		else:
 			close()
 		return
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_J and _mode == Mode.BROWSE:
+	if event.is_action_pressed(&"journal") and _mode == Mode.BROWSE:
 		get_viewport().set_input_as_handled()
 		close()
 
 
 func _unhandled_input(event):
-	if is_open() or not (event is InputEventKey) or not event.pressed or event.echo:
+	if is_open() or not event.is_action_pressed(&"journal"):
 		return
-	if event.physical_keycode != KEY_J or not _can_open_here() or MenuPause.held_by_another(self):
+	if not _can_open_here() or MenuPause.held_by_another(self):
 		return
 	get_viewport().set_input_as_handled()
 	open()
+
+
+## --- For a pad's View (see Pad) ---
+
+
+func pad_menu_order() -> int:
+	return 1
+
+
+func pad_menu_available() -> bool:
+	return _can_open_here() and not MenuPause.held_by_another(self)
+
+
+func pad_menu_is_open() -> bool:
+	return is_open() and _mode == Mode.BROWSE
+
+
+func pad_menu_open():
+	open()
+
+
+func pad_menu_close():
+	close()
 
 
 func _can_open_here() -> bool:

@@ -6,7 +6,7 @@ var LOG_PATH := HarnessLog.path_for("explore")
 # The multi-member exploration map. Followers, dimmed portraits and passing
 # the lead all need more than one person, and the crossroads is deliberately
 # Cyrus on his own (see its MapSetup).
-const MAP = "res://scenes/laboratory_terrain_explore.tscn"
+const MAP = "res://maps/laboratory_explore.tscn"
 
 var _log: FileAccess = null
 var _fail = 0
@@ -283,7 +283,7 @@ func run_test():
 		# the rules it is here to check.
 		ambush = EncounterInteractable.new()
 		ambush.name = "TestAmbush"
-		ambush.encounter = load("res://encounters/encounter_01_ambush.tres")
+		ambush.encounter = load("res://data/encounters/encounter_01_ambush.tres")
 		ambush.position = scene.party_position()
 		scene.add_child(ambush)
 		scene._interactables.append(ambush)
@@ -338,8 +338,8 @@ func run_test():
 	# A word saved on a placed node beats the class default, which is how three
 	# of them went on saying Examine, Fight and Read after the change.
 	var overriding := []
-	for map_path in ["res://scenes/explore_crossroads.tscn", "res://church.tscn",
-		"res://scenes/laboratory_terrain_explore.tscn"]:
+	for map_path in ["res://maps/crossroads_explore.tscn", "res://maps/church.tscn",
+		"res://maps/laboratory_explore.tscn"]:
 		var saved_text = FileAccess.get_file_as_string(map_path)
 		for word in ["Read", "Examine", "Enter"]:
 			if saved_text.contains('prompt = "%s"' % word):
@@ -384,7 +384,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== doors ========")
-	Campaign.travel_to_map("res://scenes/explore_crossroads.tscn", "start")
+	Campaign.travel_to_map("res://maps/crossroads_explore.tscn", "start")
 	ok(Campaign.target_entry == "start" and not Campaign.return_to_position,
 		"a door targets an entry point rather than remembered coordinates")
 	var arrived = await load_exploration()
@@ -499,7 +499,7 @@ func run_test():
 	locked.queue_free()
 
 	# The crossroads node that was reported, as it is written on the map.
-	var crossroads = FileAccess.get_file_as_string("res://scenes/explore_crossroads.tscn")
+	var crossroads = FileAccess.get_file_as_string("res://maps/crossroads_explore.tscn")
 	var block = crossroads.get_slice('[node name="DialogueInteractable2"', 1).get_slice("[node ", 0)
 	ok(block.contains("only_once = true"), "the reported node still asks for once")
 	ok(not block.contains("automatic = true"),

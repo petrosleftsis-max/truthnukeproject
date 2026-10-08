@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/void_filler.svg")
 extends Node
 class_name VoidFiller
 ## Editor-only. Paints a chosen tile into every unpainted cell of a map, so the

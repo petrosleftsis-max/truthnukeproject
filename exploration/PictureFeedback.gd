@@ -1,3 +1,4 @@
+@icon("res://art/editor_icons/feedback.svg")
 extends Resource
 class_name PictureFeedback
 ## How the pictures and the journal sound, what the cursor shows over things,

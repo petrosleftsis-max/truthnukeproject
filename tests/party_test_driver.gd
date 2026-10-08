@@ -5,9 +5,9 @@ var LOG_PATH := HarnessLog.path_for("party")
 
 ## map -> who should be on it, in order, and how far along they are.
 const EXPECTED := {
-	"res://scenes/explore_crossroads.tscn": [["cyrus"], 1, "Vadim Krakhmal - Mountain Spirit"],
-	"res://scenes/laboratory_terrain_explore.tscn": [["cyrus", "enfina", "prometheus", "alithia"], 2, "Tokyo Music Walker - Gotta Go"],
-	"res://church.tscn": [["alithia"], 3, "Scott Buckley - Filaments"],
+	"res://maps/crossroads_explore.tscn": [["cyrus"], 1, "Vadim Krakhmal - Mountain Spirit"],
+	"res://maps/laboratory_explore.tscn": [["cyrus", "enfina", "prometheus", "alithia"], 2, "Tokyo Music Walker - Gotta Go"],
+	"res://maps/church.tscn": [["alithia"], 3, "Scott Buckley - Filaments"],
 }
 
 var _log: FileAccess
@@ -97,7 +97,7 @@ func run_test():
 
 	log_line("======== a scene that opens a map starts on arrival ========")
 	Campaign.reset()
-	Campaign.current_map = "res://church.tscn"
+	Campaign.current_map = "res://maps/church.tscn"
 	var arrived = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(arrived)
 	for i in 4:
@@ -119,7 +119,7 @@ func run_test():
 
 	log_line("======== a map that says nothing still works ========")
 	Campaign.reset()
-	Campaign.current_map = "res://scenes/terrain.tscn"
+	Campaign.current_map = "res://maps/terrain_template.tscn"
 	var plain = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(plain)
 	await get_tree().process_frame

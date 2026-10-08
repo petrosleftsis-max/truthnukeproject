@@ -1,4 +1,5 @@
 @tool
+@icon("res://art/editor_icons/guard.svg")
 extends Node2D
 class_name Guard
 ## Somebody on watch on a stealth map (see StealthSetup). Walks a patrol of

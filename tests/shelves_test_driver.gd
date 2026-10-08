@@ -57,7 +57,7 @@ func run_test():
 	var named := func(text: String) -> SkillDefinition:
 		var skill := SkillDefinition.new()
 		skill.name = text
-		skill.icon = load("res://imagese/skills/fire_icon.png")
+		skill.icon = load("res://art/icons/fire_icon.png")
 		return skill
 	var tags = SkillLook.tags_for([named.call("Wind Shot"), named.call("Wind Swoon"), named.call("Rapier")])
 	ok(tags == ["WSh", "WSw", "Ra"], "two that would both be WS grow a letter each, and nothing else does", "%s" % [tags])
@@ -78,7 +78,7 @@ func run_test():
 	log_line("")
 
 	Campaign.reset()
-	Campaign.current_encounter = load("res://encounters/encounter_02_sappers.tres")
+	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 4:

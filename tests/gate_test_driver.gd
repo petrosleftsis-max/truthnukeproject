@@ -7,7 +7,7 @@ extends Node
 ## they cannot walk through it while it is still asking.
 
 var LOG_PATH := HarnessLog.path_for("gate")
-const MAP = "res://scenes/laboratory_terrain_explore.tscn"
+const MAP = "res://maps/laboratory_explore.tscn"
 
 var _log: FileAccess
 var _fail = 0
@@ -56,7 +56,7 @@ func run_test():
 	log_line("======== the lab's trigger asks first ========")
 	# Both halves: the map has to point at the conversation, and the
 	# conversation has to answer. Either one missing and the gate does nothing.
-	var written = FileAccess.get_file_as_string("res://Dialogue/lab_prometheus_encounter.dialogue")
+	var written = FileAccess.get_file_as_string("res://dialogue/lab_prometheus_encounter.dialogue")
 	ok(written.contains("do Campaign.accept_encounter()"),
 		"one branch of the conversation walks into the fight")
 	ok(written.contains("do Campaign.decline_encounter()"),

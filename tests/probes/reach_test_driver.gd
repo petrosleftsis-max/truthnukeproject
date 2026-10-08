@@ -43,8 +43,8 @@ func run_test():
 	# how large a ring was drawn around it.
 	var old_contact_radius = Grid.TILE_SIZE * 0.5625
 	log_line("  (the old one-size radius was %.0f px; a tile is %d)" % [old_contact_radius, Grid.TILE_SIZE])
-	for map in ["res://church.tscn", "res://scenes/laboratory_terrain_explore.tscn",
-			"res://scenes/explore_crossroads.tscn"]:
+	for map in ["res://maps/church.tscn", "res://maps/laboratory_explore.tscn",
+			"res://maps/crossroads_explore.tscn"]:
 		Campaign.reset()
 		Campaign.current_map = map
 		var scene = load("res://scenes/exploration.tscn").instantiate()
@@ -76,7 +76,7 @@ func run_test():
 
 	log_line("======== once means once ========")
 	Campaign.reset()
-	Campaign.current_map = "res://church.tscn"
+	Campaign.current_map = "res://maps/church.tscn"
 	var church = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(church)
 	for i in 5:
@@ -130,7 +130,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== the glossary's Back button ========")
-	var menu = load("res://main_menu.tscn").instantiate()
+	var menu = load("res://scenes/main_menu.tscn").instantiate()
 	get_tree().root.add_child(menu)
 	await get_tree().process_frame
 	var panel = menu._panels["glossary"]

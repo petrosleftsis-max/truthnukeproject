@@ -4,7 +4,7 @@ extends Node
 ## recruiting.
 
 var LOG_PATH := HarnessLog.path_for("roster")
-const ENCOUNTER = "res://encounters/encounter_01_ambush.tres"
+const ENCOUNTER = "res://data/encounters/encounter_01_ambush.tres"
 
 var _log: FileAccess = null
 var _fail = 0

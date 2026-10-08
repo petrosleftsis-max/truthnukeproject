@@ -6,7 +6,7 @@ extends Node
 
 var LOG_PATH := HarnessLog.path_for("pictures")
 const INNER := "user://pictures_test_drawer.tscn"
-const ART := "res://imagese/skills/stealth_skill.png"
+const ART := "res://art/icons/stealth_skill.png"
 
 var _log: FileAccess = null
 var _fail = 0
@@ -79,7 +79,7 @@ func desk() -> Picture:
 	drawer.opens_picture = INNER
 	picture.add_child(drawer)
 	var door = hotspot("Door", Vector2(1000, 100), Vector2(200, 500))
-	door.goes_to_map = "res://scenes/explore_crossroads.tscn"
+	door.goes_to_map = "res://maps/crossroads_explore.tscn"
 	door.arrives_at = "Nowhere"
 	picture.add_child(door)
 	return picture
@@ -187,14 +187,14 @@ func run_test():
 	Pictures.click(shown.get_node("Door"))
 	await settle()
 	ok(not Pictures.is_open(), "the door closes the pictures")
-	ok(Campaign.current_map == "res://scenes/explore_crossroads.tscn" and Campaign.target_entry == "Nowhere",
+	ok(Campaign.current_map == "res://maps/crossroads_explore.tscn" and Campaign.target_entry == "Nowhere",
 		"and sends the party to its map", "%s at '%s'" % [Campaign.current_map, Campaign.target_entry])
 	ok(came_back[0], "and whoever opened them carries on")
 	log_line("")
 
 	log_line("======== from an interactable on a map ========")
 	Campaign.reset()
-	Campaign.current_map = "res://scenes/explore_crossroads.tscn"
+	Campaign.current_map = "res://maps/crossroads_explore.tscn"
 	var scene: ExplorationScene = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(scene)
 	await settle(4)

@@ -84,7 +84,7 @@ func run_test():
 	# The battle map is not an exploration map and has no EntryPoint. It used to
 	# put the party at the origin, which on a map whose painted area does not
 	# reach the origin means sealed in the void with nowhere to step.
-	var battle_map = await open_exploration("res://scenes/terrain.tscn")
+	var battle_map = await open_exploration("res://maps/terrain_template.tscn")
 	var stranded = party_of(battle_map)
 	ok(stranded != null and stranded.leader != null, "a party is still built")
 	if stranded != null and stranded.leader != null:

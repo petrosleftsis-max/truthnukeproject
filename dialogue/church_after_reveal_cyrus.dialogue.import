@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://d1unk0ca3527a"
+path="res://.godot/imported/church_after_reveal_cyrus.dialogue-0988fa2d72ed9a40b5e0445e90431cf0.tres"
+
+[deps]
+
+source_file="res://dialogue/church_after_reveal_cyrus.dialogue"
+dest_files=["res://.godot/imported/church_after_reveal_cyrus.dialogue-0988fa2d72ed9a40b5e0445e90431cf0.tres"]
+
+[params]
+
+defaults=true

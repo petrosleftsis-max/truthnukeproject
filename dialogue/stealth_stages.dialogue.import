@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://ctv5fhbtnsaqj"
+path="res://.godot/imported/stealth_stages.dialogue-348f781dc10f2e84c3883ce638e883fd.tres"
+
+[deps]
+
+source_file="res://dialogue/stealth_stages.dialogue"
+dest_files=["res://.godot/imported/stealth_stages.dialogue-348f781dc10f2e84c3883ce638e883fd.tres"]
+
+[params]
+
+defaults=true

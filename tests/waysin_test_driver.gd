@@ -20,7 +20,7 @@ func _ready():
 	await run_test()
 
 func run_test():
-	var menu = load("res://main_menu.tscn").instantiate()
+	var menu = load("res://scenes/main_menu.tscn").instantiate()
 	add_child(menu)
 	await get_tree().process_frame
 
@@ -54,7 +54,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== the church opens on Alithia's conversation ========")
-	var church = load("res://church.tscn").instantiate()
+	var church = load("res://maps/church.tscn").instantiate()
 	add_child(church)
 	await get_tree().process_frame
 	var entry: Node = null

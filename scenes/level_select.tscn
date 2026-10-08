@@ -2,9 +2,9 @@
 
 [ext_resource type="Script" path="res://ui/level_select.gd" id="1_levelselect"]
 [ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="2_encdef"]
-[ext_resource type="Resource" path="res://encounters/encounter_01_ambush.tres" id="3_enc1"]
-[ext_resource type="Resource" path="res://encounters/encounter_02_sappers.tres" id="4_enc2"]
-[ext_resource type="Resource" path="res://encounters/encounter_03_watcher.tres" id="5_enc3"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_01_ambush.tres" id="3_enc1"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_02_sappers.tres" id="4_enc2"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_03_watcher.tres" id="5_enc3"]
 
 [node name="LevelSelect" type="Control"]
 layout_mode = 3

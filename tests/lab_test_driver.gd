@@ -55,7 +55,7 @@ func survey(combat, controller) -> Array:
 
 
 func run_test():
-	var encounter: EncounterDefinition = load("res://encounters/encounter_02_sappers.tres")
+	var encounter: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres")
 	log_line("======== %s, on %s ========" % [
 		encounter.display_name, encounter.terrain_scene.resource_path.get_file()])
 
