@@ -1,0 +1,69 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackLine.gd" id="1_o4ywc"]
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="2_j25vt"]
+
+[sub_resource type="Resource" id="Resource_2vv68"]
+script = ExtResource("1_o4ywc")
+label = "Pitch"
+value = 7
+maximum = 9
+pushes = Dictionary[String, int]({
+"Echo": -1
+})
+goal = 3
+goal_value = 4
+
+[sub_resource type="Resource" id="Resource_bw32e"]
+script = ExtResource("1_o4ywc")
+label = "Tempo"
+value = 7
+maximum = 9
+pushes = Dictionary[String, int]({
+"Pitch": -2
+})
+goal = 1
+goal_value = 4
+
+[sub_resource type="Resource" id="Resource_hxr4p"]
+script = ExtResource("1_o4ywc")
+label = "Volume"
+value = 6
+maximum = 9
+pushes = Dictionary[String, int]({
+"Echo": -2,
+"Pitch": -1
+})
+
+[sub_resource type="Resource" id="Resource_yhx6x"]
+script = ExtResource("1_o4ywc")
+label = "Echo"
+value = 2
+maximum = 9
+pushes = Dictionary[String, int]({
+"Pitch": -1,
+"Tempo": -1
+})
+goal = 1
+
+[sub_resource type="Resource" id="Resource_o68f3"]
+script = ExtResource("1_o4ywc")
+label = "Sounds"
+options = Array[String](["Silence", "Chant", "Hymn"])
+cost = 3
+locked_until = "Tempo"
+pushes = Dictionary[String, int]({
+"Pitch": 1
+})
+goal = 3
+goal_value = 2
+
+[resource]
+script = ExtResource("2_j25vt")
+title = "The Choir Lock"
+description = "A door that opens for a hymn sung right. Every voice you change pulls the others with it."
+sets_off = true
+failure_line = "The Choir Lock snaps back - it has his measure now."
+lines = Array[ExtResource("1_o4ywc")]([SubResource("Resource_2vv68"), SubResource("Resource_bw32e"), SubResource("Resource_hxr4p"), SubResource("Resource_yhx6x"), SubResource("Resource_o68f3")])
+edits = 14
+every_step_costs = true

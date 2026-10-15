@@ -1,0 +1,79 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackLine.gd" id="1_3w15i"]
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="2_gppe0"]
+
+[sub_resource type="Resource" id="Resource_2f3yl"]
+script = ExtResource("1_3w15i")
+label = "Glare"
+value = 2
+maximum = 9
+pushes = Dictionary[String, int]({
+"Haze": 2
+})
+goal = 1
+
+[sub_resource type="Resource" id="Resource_4fq0n"]
+script = ExtResource("1_3w15i")
+label = "Angle"
+value = 3
+maximum = 9
+pushes = Dictionary[String, int]({
+"Depth": 1,
+"Glare": 1
+})
+goal = 3
+
+[sub_resource type="Resource" id="Resource_g8xye"]
+script = ExtResource("1_3w15i")
+label = "Depth"
+value = 6
+maximum = 9
+pushes = Dictionary[String, int]({
+"Glare": -1
+})
+
+[sub_resource type="Resource" id="Resource_curb2"]
+script = ExtResource("1_3w15i")
+label = "Reflection"
+value = 2
+maximum = 9
+pushes = Dictionary[String, int]({
+"Angle": 1,
+"Glare": -1
+})
+goal = 3
+goal_value = 5
+
+[sub_resource type="Resource" id="Resource_fxbdq"]
+script = ExtResource("1_3w15i")
+label = "Haze"
+value = 3
+maximum = 9
+pushes = Dictionary[String, int]({
+"Reflection": -1
+})
+goal = 2
+goal_value = 5
+
+[sub_resource type="Resource" id="Resource_yiyks"]
+script = ExtResource("1_3w15i")
+label = "Holds"
+options = Array[String](["Watching you", "Watching them", "Blind"])
+cost = 3
+locked_until = "Haze"
+pushes = Dictionary[String, int]({
+"Glare": 2
+})
+goal = 3
+goal_value = 2
+
+[resource]
+script = ExtResource("2_gppe0")
+title = "The Mirror Ward"
+description = "A ward of mirrors that turns every glance back on whoever looks. Angle it away from yourself - each mirror tilts the next."
+sets_off = true
+failure_line = "The Mirror Ward snaps back - it has his measure now."
+lines = Array[ExtResource("1_3w15i")]([SubResource("Resource_2f3yl"), SubResource("Resource_4fq0n"), SubResource("Resource_g8xye"), SubResource("Resource_curb2"), SubResource("Resource_fxbdq"), SubResource("Resource_yiyks")])
+edits = 17
+every_step_costs = true

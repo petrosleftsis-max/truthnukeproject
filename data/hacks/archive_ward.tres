@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="1_hack"]
+[ext_resource type="Script" path="res://hacking/HackLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="Line_targets"]
+script = ExtResource("2_line")
+label = "Targets"
+options = Array[String](["Intruders", "Owners", "Nobody"])
+cost = 3
+goal = 3
+goal_value = 1
+
+[sub_resource type="Resource" id="Line_wakes"]
+script = ExtResource("2_line")
+label = "Wakes"
+options = Array[String](["The Captain", "Nobody"])
+cost = 2
+goal = 3
+goal_value = 1
+
+[sub_resource type="Resource" id="Line_strength"]
+script = ExtResource("2_line")
+label = "Strength"
+value = 6
+watched = true
+goal = 2
+goal_value = 8
+
+[sub_resource type="Resource" id="Line_reach"]
+script = ExtResource("2_line")
+label = "Reach"
+value = 4
+maximum = 8
+watched = true
+goal = 2
+goal_value = 6
+
+[sub_resource type="Resource" id="Line_stability"]
+script = ExtResource("2_line")
+label = "Stability"
+value = 5
+locked_until = "Wakes"
+watched = true
+
+[resource]
+script = ExtResource("1_hack")
+title = "The Archive Ward"
+description = "It stuns whoever it calls an intruder, and wakes the captain. Turn it on its owners - stronger, and reaching further - without moving its sum, or the Demiurge notices."
+tries = 3
+retry_cost_amount = 8
+hint_gate = 1
+simplify_gate = 2
+sets_off = true
+failure_line = "The ward flares - it knows his hand now."
+lines = Array[ExtResource("2_line")]([SubResource("Line_targets"), SubResource("Line_wakes"), SubResource("Line_strength"), SubResource("Line_reach"), SubResource("Line_stability")])
+edits = 14
+balanced = true

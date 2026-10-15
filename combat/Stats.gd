@@ -38,39 +38,49 @@ const DEFENSE_PIVOT := 40.0
 
 ## --- Levels ---
 ##
-## Three of them, and a level is the whole of a combatant's growth: it decides
-## every attribute they have. There is no experience and nothing is earned -
-## a level is set per spawn in the encounter editor, so the same character can
-## be brought into one fight at level 1 and the next at level 3.
+## Twenty of them, reached at milestones in the story (Campaign.reach_level)
+## rather than through experience. A level decides every attribute someone has,
+## their health (CombatantDefinition.hp_at), their gates and which of their
+## skills they know (SkillDefinition.required_level). Battle Select and the
+## like still set it per spawn, so a fight can be opened at any level.
 
-const MAX_LEVEL := 3
+const MAX_LEVEL := 20
+
+## The level a character chooses their path at - see SubclassDefinition.
+const SUBCLASS_LEVEL := 5
 
 ## What a combatant is at before their level does anything. Every attribute
 ## sits here except the two their character is built around.
 const BASE_STAT := 10
 
-## The main stat at each level, indexed by level - [0] is unused so the level
-## number reads straight into it. The secondary stat is half of these, so a
+## The main stat at MAX_LEVEL. It starts at BASE_STAT on level 1 and climbs the
+## same step every level to here. The secondary stat is half of it, so a
 ## character is unmistakably better at the one thing they are for, without the
 ## other being an afterthought.
-const MAIN_STAT_BY_LEVEL := [BASE_STAT, BASE_STAT, 47, 85]
+const MAIN_STAT_AT_MAX_LEVEL := 85
+
+
+## How far from level 1 to MAX_LEVEL `level` is, 0 to 1.
+static func level_progress(level: int) -> float:
+	return float(clampi(level, 1, MAX_LEVEL) - 1) / float(MAX_LEVEL - 1)
 
 
 ## The value of a combatant's main stat at `level`.
 static func main_stat_at(level: int) -> int:
-	return MAIN_STAT_BY_LEVEL[clampi(level, 1, MAX_LEVEL)]
+	return roundi(lerpf(BASE_STAT, MAIN_STAT_AT_MAX_LEVEL, level_progress(level)))
 
 
-## The value of their secondary stat: half the main one, rounded up so a level
-## 2 secondary is 24 rather than 23.
+## The value of their secondary stat: half the main one, rounded up - and never
+## below BASE_STAT, which half of an early main stat would be. An attribute the
+## character is built around is never worse than one they have nothing to do
+## with, so level 1 is flat 10s whoever they are.
 static func secondary_stat_at(level: int) -> int:
-	return int(ceil(main_stat_at(level) / 2.0))
+	return maxi(BASE_STAT, int(ceil(main_stat_at(level) / 2.0)))
 
 
 ## Every attribute for a combatant of `level` whose character is built around
 ## `main` and `secondary` (Stats.Type values). Everything else stays at
-## BASE_STAT, and level 1 leaves even those two there - a level 1 combatant is
-## flat 10s whoever they are.
+## BASE_STAT.
 ##
 ## Defense is deliberately absent: it comes from the spawn rather than the
 ## level, so the same character can be made tougher or more fragile for one
@@ -79,12 +89,6 @@ static func stats_for_level(level: int, main: int, secondary: int) -> Dictionary
 	var table := {}
 	for key in KEYS:
 		table[key] = BASE_STAT
-	if level <= 1:
-		# Level 1 is flat 10s for everyone. Half of BASE_STAT would otherwise
-		# leave the secondary attribute at 5 - worse than an attribute the
-		# character has nothing to do with, which is not what being level 1
-		# should mean.
-		return table
 	var main_key = stat_key(main)
 	var secondary_key = stat_key(secondary)
 	if main_key != "":
@@ -185,14 +189,34 @@ static func short_gate_name(level: int) -> String:
 ## read straight in.
 ##
 ## A rule of how far along someone is rather than a number set per character:
-## reaching level 2 is what opens Hermes and Yaldabaoth to you, and nobody is a
+## level 5 is what opens Hermes to you and level 9 Yaldabaoth, and nobody is a
 ## special case. Only combatants who actually carry a spell get any of it - a
 ## swordsman is not walking around with unused castings.
+##
+## Laid out so the fights written for the old three levels play as they did:
+## level 10 is what level 2 was, and level 20 what level 3 was.
 const GATES_BY_LEVEL := [
 	[0, 0, 0, 0],
 	[0, 2, 0, 0], ## Level 1: two castings through the Gates of World.
-	[0, 3, 2, 1], ## Level 2: three World, Hermes twice, and Yaldabaoth once.
-	[0, 3, 3, 2], ## Level 3: three World, three Hermes, and Yaldabaoth twice.
+	[0, 2, 0, 0],
+	[0, 2, 0, 0],
+	[0, 3, 0, 0], ## Level 4: a third World.
+	[0, 3, 1, 0], ## Level 5: Hermes opens, once.
+	[0, 3, 1, 0],
+	[0, 3, 2, 0], ## Level 7: Hermes twice.
+	[0, 3, 2, 0],
+	[0, 3, 2, 1], ## Level 9: Yaldabaoth opens, once.
+	[0, 3, 2, 1],
+	[0, 3, 2, 1],
+	[0, 3, 2, 1],
+	[0, 3, 2, 1],
+	[0, 3, 2, 1],
+	[0, 3, 3, 1], ## Level 15: Hermes three times.
+	[0, 3, 3, 1],
+	[0, 3, 3, 2], ## Level 17: Yaldabaoth twice.
+	[0, 3, 3, 2],
+	[0, 3, 3, 2],
+	[0, 3, 3, 2],
 ]
 
 

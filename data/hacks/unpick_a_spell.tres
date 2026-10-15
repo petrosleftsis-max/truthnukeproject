@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="1_hack"]
+
+[resource]
+script = ExtResource("1_hack")
+title = "Unpick the Spell"
+description = "Match the spell's hum before it lands, and it comes apart in their hands."
+kind = 2
+tries = 2
+retry_cost_amount = 6
+time_limit = 20
+hint_gate = 1
+simplify_gate = 2
+sets_off = true
+failure_line = "The spell slips out of his grip - and goes off early."
+stagger_on_success = 30.0
+dials = 2
+tolerance = 8

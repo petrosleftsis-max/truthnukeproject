@@ -8,12 +8,11 @@
 script = ExtResource("2_o4bgq")
 name = "Barbarian"
 max_hp = 50
-max_hp_level_2 = 180
-max_hp_level_3 = 250
+max_hp_level_20 = 250
 movement = 5
 initiative = 3
 secondary_stat = 3
 sprite_frames = ExtResource("3_ic767")
-skills = Array[String](["greatsword_attack", "follow_up_attack", "sweep_strike", "run"])
+skills = Array[String](["greatsword_attack", "follow_up_attack", "sweep_strike", "hurl", "grab", "run"])
 resist_fire = -50
 resist_earth = 50

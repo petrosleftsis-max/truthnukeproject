@@ -8,7 +8,7 @@
 script = ExtResource("2_4615b")
 combatant_key = "cyrus"
 position = Vector2i(4, 2)
-level = 3
+level = 20
 weapon_base = 12
 defense = 20
 
@@ -16,7 +16,7 @@ defense = 20
 script = ExtResource("2_4615b")
 combatant_key = "alithia"
 position = Vector2i(1, 4)
-level = 3
+level = 20
 weapon_base = 12
 defense = 20
 
@@ -24,7 +24,7 @@ defense = 20
 script = ExtResource("2_4615b")
 combatant_key = "prometheus"
 position = Vector2i(24, 14)
-level = 3
+level = 20
 weapon_base = 12
 defense = 8
 
@@ -32,7 +32,7 @@ defense = 8
 script = ExtResource("2_4615b")
 combatant_key = "enfina"
 position = Vector2i(21, 17)
-level = 3
+level = 20
 weapon_base = 12
 defense = 32
 
@@ -41,7 +41,7 @@ script = ExtResource("2_4615b")
 combatant_key = "ranger"
 side = 1
 position = Vector2i(20, 2)
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
@@ -50,7 +50,7 @@ script = ExtResource("2_4615b")
 combatant_key = "bomber"
 side = 1
 position = Vector2i(13, 4)
-level = 3
+level = 20
 weapon_base = 12
 defense = 25
 
@@ -60,7 +60,7 @@ combatant_key = "barbarian"
 side = 1
 position = Vector2i(5, 7)
 display_name = "Striker"
-level = 3
+level = 20
 weapon_base = 12
 defense = 60
 
@@ -70,7 +70,7 @@ combatant_key = "sorcerer"
 side = 1
 position = Vector2i(7, 8)
 display_name = "Caster 1"
-level = 3
+level = 20
 weapon_base = 12
 defense = 25
 
@@ -80,7 +80,7 @@ combatant_key = "sorcerer"
 side = 1
 position = Vector2i(22, 8)
 display_name = "Caster 2"
-level = 3
+level = 20
 weapon_base = 12
 defense = 25
 
@@ -89,7 +89,7 @@ script = ExtResource("2_4615b")
 combatant_key = "priest"
 side = 1
 position = Vector2i(4, 9)
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
@@ -99,12 +99,13 @@ combatant_key = "mimic"
 side = 1
 position = Vector2i(17, 10)
 display_name = "Mimic"
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
 [resource]
 script = ExtResource("1_3t4tl")
+gold_reward = 120
 display_name = "Dungeon: The City"
 description = "The city fight, with fewer of them than before."
 terrain_scene = ExtResource("3_e2lbh")

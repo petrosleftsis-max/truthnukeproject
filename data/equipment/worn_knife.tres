@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Worn Knife"
+description = "Anybody's, and it has been everybody's."
+price = 40
+weapon_base = 7

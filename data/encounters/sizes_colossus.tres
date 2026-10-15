@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_dkh7f"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_jhbty"]
+[ext_resource type="PackedScene" path="res://maps/city_fight.tscn" id="3_m4354"]
+
+[sub_resource type="Resource" id="Resource_1uva8"]
+script = ExtResource("2_jhbty")
+combatant_key = "prometheus"
+side = 0
+position = Vector2i(4, 2)
+display_name = ""
+level = 20
+subclass = ""
+weapon_base = 12
+defense = 8
+starting_items = Array[String](["potent_cure_potion", "medicine", "big_bomb", "frost_bottle"])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_3p2e7"]
+script = ExtResource("2_jhbty")
+combatant_key = "alithia"
+side = 0
+position = Vector2i(1, 4)
+display_name = ""
+level = 20
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String](["potent_cure_potion", "medium_bomb", "gale_bottle", "terror_bottle"])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_qbmct"]
+script = ExtResource("2_jhbty")
+combatant_key = "enfina"
+side = 0
+position = Vector2i(24, 14)
+display_name = ""
+level = 20
+subclass = ""
+weapon_base = 12
+defense = 32
+starting_items = Array[String](["potent_cure_potion", "big_bomb", "blinding_bomb", "burn_bottle"])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_t2obj"]
+script = ExtResource("2_jhbty")
+combatant_key = "cyrus"
+side = 0
+position = Vector2i(21, 17)
+display_name = ""
+level = 20
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String](["potent_cure_potion", "big_bomb", "poison_bottle", "crystal_bottle"])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_cr420"]
+script = ExtResource("2_jhbty")
+combatant_key = "colossus"
+side = 1
+position = Vector2i(6, 0)
+display_name = ""
+level = 20
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[resource]
+script = ExtResource("1_dkh7f")
+display_name = "The Colossus"
+description = "Something sixteen tiles across. It takes a turn to bring anything down - get out from under it."
+terrain_scene = ExtResource("3_m4354")
+spawns = Array[ExtResource("2_jhbty")]([SubResource("Resource_1uva8"), SubResource("Resource_3p2e7"), SubResource("Resource_qbmct"), SubResource("Resource_t2obj"), SubResource("Resource_cr420")])
+music = "Luce_del_Desiderio"

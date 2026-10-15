@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="ClueDefinition" format=3]
+
+[ext_resource type="Script" path="res://exploration/ClueDefinition.gd" id="1_clue"]
+
+[resource]
+script = ExtResource("1_clue")
+title = "The sellswords' contract"
+text = "A contract for the sellswords guarding the lab, paid in advance - and a note in another hand telling the paymaster not to expect any of them back. Whoever hired them means them to die here. Their captain would not like to hear it."

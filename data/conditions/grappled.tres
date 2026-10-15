@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Grappled"
+tag = "Gp"
+description = "Held fast by whoever grabbed them: no moving until they break free, which takes their main action. Teleported, shoved or thrown - either of them - and the grip is gone; so it is if whoever holds them is not beside them any more."
+duration = 999
+prevents_movement = true
+holds = true

@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackLine.gd" id="1_bqg75"]
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="2_vn4ij"]
+
+[sub_resource type="Resource" id="Resource_1ve7u"]
+script = ExtResource("1_bqg75")
+label = "Gear"
+value = 6
+maximum = 9
+pushes = Dictionary[String, int]({
+"Spring": -2
+})
+goal = 1
+goal_value = 2
+
+[sub_resource type="Resource" id="Resource_7ee6d"]
+script = ExtResource("1_bqg75")
+label = "Spring"
+value = 2
+maximum = 9
+pushes = Dictionary[String, int]({
+"Gear": 1,
+"Tension": 2
+})
+
+[sub_resource type="Resource" id="Resource_ipfqs"]
+script = ExtResource("1_bqg75")
+label = "Pin"
+value = 4
+maximum = 9
+pushes = Dictionary[String, int]({
+"Spring": 2,
+"Tension": -1
+})
+goal = 2
+goal_value = 6
+
+[sub_resource type="Resource" id="Resource_nx406"]
+script = ExtResource("1_bqg75")
+label = "Tension"
+value = 4
+maximum = 9
+pushes = Dictionary[String, int]({
+"Gear": -1
+})
+goal = 1
+
+[sub_resource type="Resource" id="Resource_3j5ib"]
+script = ExtResource("1_bqg75")
+label = "Ratchet"
+value = 5
+maximum = 9
+pushes = Dictionary[String, int]({
+"Gear": -2,
+"Pin": -1
+})
+goal = 2
+goal_value = 8
+
+[sub_resource type="Resource" id="Resource_sq4lt"]
+script = ExtResource("1_bqg75")
+label = "Wakes"
+options = Array[String](["Bolted", "Loose", "Open"])
+cost = 2
+locked_until = "Spring"
+pushes = Dictionary[String, int]({
+"Tension": 1
+})
+goal = 3
+goal_value = 2
+
+[resource]
+script = ExtResource("2_vn4ij")
+title = "The Clockwork Door"
+description = "A vault door of gears and springs. Wind it open in the right order: every part turns others with it."
+look = 1
+sets_off = true
+failure_line = "The Clockwork Door snaps back - it has his measure now."
+lines = Array[ExtResource("1_bqg75")]([SubResource("Resource_1ve7u"), SubResource("Resource_7ee6d"), SubResource("Resource_ipfqs"), SubResource("Resource_nx406"), SubResource("Resource_3j5ib"), SubResource("Resource_sq4lt")])
+edits = 16
+every_step_costs = true

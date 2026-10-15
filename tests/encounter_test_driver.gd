@@ -208,8 +208,8 @@ func run_test():
 	var menu = load("res://scenes/level_select.tscn").instantiate()
 	get_tree().root.add_child(menu)
 	await get_tree().process_frame
-	var list = menu.get_node("Center/VBox/EncounterList")
-	ok(list.get_child_count() == 3, "one button per encounter", "%d" % list.get_child_count())
+	var list = menu.get_node("Center/VBox/EncounterScroll/EncounterList")
+	ok(list.get_child_count() == 9, "one button per encounter", "%d" % list.get_child_count())
 	var first_encounter: EncounterDefinition = menu.encounters[0]
 	ok(list.get_child(0).text == first_encounter.display_name,
 		"first button carries the encounter's own name",
@@ -227,12 +227,12 @@ func run_test():
 	menu._rebuild()
 	await get_tree().process_frame
 	ok(Campaign.is_party_wiped(), "wiped party detected")
-	ok(menu.get_node("Center/VBox/EncounterList").get_child(0).disabled,
+	ok(menu.get_node("Center/VBox/EncounterScroll/EncounterList").get_child(0).disabled,
 		"encounters disabled while the party is wiped")
 	Campaign.reset()
 	menu._rebuild()
 	await get_tree().process_frame
-	ok(not menu.get_node("Center/VBox/EncounterList").get_child(0).disabled,
+	ok(not menu.get_node("Center/VBox/EncounterScroll/EncounterList").get_child(0).disabled,
 		"reset re-enables them")
 	log_line("")
 

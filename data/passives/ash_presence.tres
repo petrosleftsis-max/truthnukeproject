@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Resource" path="res://data/conditions/choking_ash.tres" id="1_xcmjg"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_n3h7e"]
+
+[resource]
+script = ExtResource("2_n3h7e")
+name = "Ash Presence"
+description = "Ash pours off it. Anybody of the other side who starts a turn within two tiles of it chokes on it."
+aura_radius = 2
+aura_on_foes = ExtResource("1_xcmjg")

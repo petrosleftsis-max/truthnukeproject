@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackLine.gd" id="1_infe3"]
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="2_ilxt6"]
+
+[sub_resource type="Resource" id="Resource_7i56u"]
+script = ExtResource("1_infe3")
+label = "Will"
+value = 3
+maximum = 9
+pushes = Dictionary[String, int]({
+"Memory": 1
+})
+goal = 3
+
+[sub_resource type="Resource" id="Resource_diusd"]
+script = ExtResource("1_infe3")
+label = "Obedience"
+value = 2
+maximum = 9
+pushes = Dictionary[String, int]({
+"Clay": -1,
+"Memory": 1
+})
+goal = 3
+goal_value = 6
+
+[sub_resource type="Resource" id="Resource_m8tpd"]
+script = ExtResource("1_infe3")
+label = "Memory"
+value = 5
+maximum = 9
+pushes = Dictionary[String, int]({
+"Obedience": -1,
+"Will": -1
+})
+goal = 2
+goal_value = 9
+
+[sub_resource type="Resource" id="Resource_fkrfd"]
+script = ExtResource("1_infe3")
+label = "Clay"
+value = 3
+maximum = 9
+pushes = Dictionary[String, int]({
+"Memory": 1
+})
+
+[sub_resource type="Resource" id="Resource_2w104"]
+script = ExtResource("1_infe3")
+label = "Answers to"
+options = Array[String](["Its master", "Nobody", "Prometheus"])
+cost = 3
+locked_until = "Clay"
+pushes = Dictionary[String, int]({
+"Will": -1
+})
+goal = 3
+goal_value = 2
+
+[resource]
+script = ExtResource("2_ilxt6")
+title = "The Golem's Binding"
+description = "The words cut into its clay that say whose it is. Change who it answers to without leaving it unwilling to move or out of the habit of obeying - every line drags another, and every step costs."
+tries = 2
+locks_for_good = true
+failure_line = "The binding seals itself against him."
+lines = Array[ExtResource("1_infe3")]([SubResource("Resource_7i56u"), SubResource("Resource_diusd"), SubResource("Resource_m8tpd"), SubResource("Resource_fkrfd"), SubResource("Resource_2w104")])
+edits = 12
+every_step_costs = true

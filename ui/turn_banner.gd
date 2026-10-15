@@ -7,9 +7,11 @@ class_name TurnBanner
 const FADE_IN := 0.15
 const HOLD := 0.9
 const FADE_OUT := 0.35
-## How far below the top of the screen it sits - under the turn queue.
+## How far below the top of the screen it sits, at least - under the bosses'
+## bars when there are any (CombatUI.banner_top sets `top`).
 const TOP := 92.0
 
+var top := TOP
 var _label: Label = null
 var _tween: Tween = null
 
@@ -45,7 +47,7 @@ func announce(text: String, colour: Color):
 	visible = true
 	reset_size()
 	var screen = get_viewport_rect().size
-	global_position = Vector2((screen.x - size.x) * 0.5, TOP)
+	global_position = Vector2((screen.x - size.x) * 0.5, top)
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
 	modulate.a = 0.0

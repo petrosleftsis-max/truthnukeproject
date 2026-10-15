@@ -40,6 +40,9 @@ class_name ItemDefinition
 ## is what "consumable" means; off for anything reusable that should still live
 ## in a bag rather than in a skill list.
 @export var consumed_on_use: bool = true
+## What it costs in a store (StoreDefinition); selling one gets half back. 0
+## for something no store deals in - a keepsake, a letter, a disguise.
+@export_range(0, 9999) var price: int = 0
 
 @export_group("Disguise")
 ## Makes this a disguise rather than something to use: on a stealth map, the
@@ -87,6 +90,11 @@ enum Onset {
 ## Only worth carrying: a letter, a ledger, a key - something to steal, plant
 ## or hand over. Carried like anything else, and never offered in a fight.
 @export var keepsake: bool = false
+## Evidence: slipped into the pockets of a guard who has not noticed the party
+## (the pick-pocket key, with nothing left to lift), it frames him - the next
+## guard to get a good look at him finds it and marches him off the map
+## (StealthWatch "Planted evidence").
+@export var frames: bool = false
 
 @export_group("Combining")
 ## The two items, by key, this is made from by putting them together: in the
@@ -123,7 +131,7 @@ func is_poison() -> bool:
 ## somebody's supper there - or none in a fight at all, and so is left out of
 ## every fight.
 func stealth_only() -> bool:
-	return is_disguise() or is_distraction() or is_poison() or keepsake or reveals_hidden_details
+	return is_disguise() or is_distraction() or is_poison() or keepsake or frames or reveals_hidden_details
 
 
 ## An item scales off itself, so the attribute a skill would read would only

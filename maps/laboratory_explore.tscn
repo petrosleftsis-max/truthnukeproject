@@ -12,6 +12,20 @@
 [ext_resource type="Resource" uid="uid://c3j4v4tmtl7gw" path="res://data/encounters/encounter_02_sappers.tres" id="10_lh2ad"]
 [ext_resource type="Resource" uid="uid://jmcow0oiohwc" path="res://dialogue/lab_prometheus_encounter.dialogue" id="11_labenc"]
 [ext_resource type="Script" uid="uid://c58kyys4p7s13" path="res://exploration/MapSetup.gd" id="90_party"]
+[ext_resource type="Script" path="res://exploration/ExamineInteractable.gd" id="91_examine"]
+[ext_resource type="Resource" path="res://data/hacks/archive_ward.tres" id="92_ward"]
+[ext_resource type="Resource" path="res://data/hacks/vault_terminal.tres" id="93_terminal"]
+[ext_resource type="Resource" path="res://data/hacks/sealed_resonance.tres" id="94_seal"]
+[ext_resource type="Script" path="res://exploration/PictureInteractable.gd" id="95_picture"]
+[ext_resource type="Resource" path="res://data/hacks/binding_circle.tres" id="96_circle"]
+[ext_resource type="Resource" path="res://data/hacks/furnace_seal.tres" id="97_furnace"]
+[ext_resource type="Resource" path="res://data/hacks/choir_lock.tres" id="98_choir"]
+[ext_resource type="Resource" path="res://data/hacks/sluice_engine.tres" id="99_sluice"]
+[ext_resource type="Resource" path="res://data/hacks/mirror_ward.tres" id="100_mirror"]
+[ext_resource type="Resource" path="res://data/hacks/clockwork_door.tres" id="101_clockwork"]
+[ext_resource type="Resource" path="res://dialogue/lab_sellsword_contract.dialogue" id="102_contract"]
+[ext_resource type="Resource" path="res://dialogue/lab_hired_blades_parley.dialogue" id="103_parley"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_hired_blades.tres" id="104_blades"]
 
 [node name="Node2D" type="Node2D" unique_id=557726441]
 
@@ -71,7 +85,7 @@ metadata/_custom_type_script = "uid://cq2s71a1q831b"
 [node name="MapSetup" type="Node" parent="." unique_id=460549672]
 script = ExtResource("90_party")
 members = Array[String](["cyrus", "enfina", "prometheus", "alithia"])
-level = 2
+level = 10
 music = "Tokyo Music Walker - Gotta Go"
 empty_handed = true
 everyone_carries = Array[String](["cure_potion"])
@@ -79,3 +93,126 @@ also_carries = {
 "cyrus": ["tiny_bomb"]
 }
 metadata/_custom_type_script = "uid://c58kyys4p7s13"
+
+[node name="WardedArchive" type="Node2D" parent="."]
+position = Vector2(1100, 418)
+script = ExtResource("91_examine")
+text = "The ward turns on its makers and lets him by. The archive is open."
+speaker = "Prometheus"
+prompt = "Hack the ward"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+sets_flag = "archive_open"
+hack = ExtResource("92_ward")
+
+[node name="VaultTerminal" type="Node2D" parent="."]
+position = Vector2(300, 1442)
+script = ExtResource("91_examine")
+text = "ACCESS GRANTED. The vault's lock clicks open."
+speaker = "Prometheus"
+prompt = "Hack the terminal"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+sets_flag = "vault_open"
+hack = ExtResource("93_terminal")
+
+[node name="HummingSeal" type="Node2D" parent="."]
+position = Vector2(809, 930)
+script = ExtResource("91_examine")
+text = "The seal hums along with him, and falls silent. Behind it, a cupboard of notes."
+speaker = "Prometheus"
+prompt = "Tune the seal"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+sets_flag = "seal_open"
+hack = ExtResource("94_seal")
+
+[node name="Workbench" type="Node2D" parent="."]
+position = Vector2(1100, 930)
+script = ExtResource("95_picture")
+picture = "res://pictures/lab_workbench.tscn"
+prompt = "Look at the workbench"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+
+[node name="BindingCircle" type="Node2D" parent="."]
+position = Vector2(300, 418)
+script = ExtResource("91_examine")
+text = "The circle's light turns inward on its own glyphs. It will not bind anybody of his again."
+speaker = "Prometheus"
+prompt = "Hack the circle"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+sets_flag = "circle_turned"
+hack = ExtResource("96_circle")
+
+[node name="FurnaceSeal" type="Node2D" parent="."]
+position = Vector2(896, 1408)
+script = ExtResource("91_examine")
+text = "The forge-spirit settles into a sullen glow. Asleep, for now."
+speaker = "Prometheus"
+prompt = "Hack the furnace seal (8 steps)"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+sets_flag = "furnace_sealed"
+hack = ExtResource("97_furnace")
+
+[node name="ChoirLock" type="Node2D" parent="."]
+position = Vector2(384, 1920)
+script = ExtResource("91_examine")
+text = "The hymn comes out right, and the door sighs open."
+speaker = "Prometheus"
+prompt = "Hack the choir lock (10 steps)"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+sets_flag = "choir_open"
+hack = ExtResource("98_choir")
+
+[node name="SluiceEngine" type="Node2D" parent="."]
+position = Vector2(896, 1920)
+script = ExtResource("91_examine")
+text = "The engine shudders and drains. The lower vault is dry."
+speaker = "Prometheus"
+prompt = "Hack the sluice engine (11 steps)"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+sets_flag = "sluice_drained"
+hack = ExtResource("99_sluice")
+
+[node name="MirrorWard" type="Node2D" parent="."]
+position = Vector2(384, 2432)
+script = ExtResource("91_examine")
+text = "Every mirror turns its face to the wall."
+speaker = "Prometheus"
+prompt = "Hack the mirror ward (13 steps)"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+sets_flag = "mirrors_turned"
+hack = ExtResource("100_mirror")
+
+[node name="ClockworkDoor" type="Node2D" parent="."]
+position = Vector2(896, 2432)
+script = ExtResource("91_examine")
+text = "The last gear catches, and the door swings open on its own weight."
+speaker = "Prometheus"
+prompt = "Hack the clockwork door (14 steps)"
+interaction_radius = 320
+sprite_frames = ExtResource("6_hlptl")
+sets_flag = "clockwork_open"
+hack = ExtResource("101_clockwork")
+
+[node name="SellswordContract" type="Node2D" parent="."]
+position = Vector2(640, 1920)
+script = ExtResource("4_hi68x")
+dialogue = ExtResource("102_contract")
+only_once = true
+interaction_radius = 200
+sprite_frames = ExtResource("6_hlptl")
+
+[node name="HiredBlades" type="Node2D" parent="."]
+position = Vector2(640, 2432)
+script = ExtResource("9_hlptl")
+encounter = ExtResource("104_blades")
+dialogue = ExtResource("103_parley")
+prompt = "Talk"
+interaction_radius = 200

@@ -22,6 +22,9 @@ const BALLOON_SCENE = "res://ui/dialogue_balloon.tscn"
 var _won := false
 ## The rest between a dungeon's fights, once it is up.
 var rest: RestPanel = null
+## The prisoners being questioned, while they are (InterrogationPanel).
+var prisoners_panel: InterrogationPanel = null
+var _questioned := false
 
 
 func _ready():
@@ -37,8 +40,12 @@ func _ready():
 func _on_combat_finished():
 	var players_left = combat.groups[Combat.Group.PLAYERS].size() > 0
 	var enemies_left = combat.groups[Combat.Group.ENEMIES].size() > 0
-	var won = not enemies_left and players_left
-	if not players_left and not enemies_left:
+	# Somebody who must not get away got away: lost, whoever is left standing.
+	var lost_anyway: bool = combat.lost_because != ""
+	var won = not enemies_left and players_left and not lost_anyway
+	if lost_anyway:
+		$Panel/VBox/Title.text = "Defeat"
+	elif not players_left and not enemies_left:
 		$Panel/VBox/Title.text = "Draw"
 	elif not enemies_left:
 		$Panel/VBox/Title.text = "Victory"
@@ -47,8 +54,14 @@ func _on_combat_finished():
 	# A battle started from an exploration map retires its trigger on a win, so
 	# the same fight isn't waiting there when the party walks back past it.
 	if Campaign.has_map_to_return_to():
-		Campaign.finish_battle_from_exploration(not enemies_left, combat.arriving())
+		Campaign.finish_battle_from_exploration(not enemies_left and not lost_anyway, combat.arriving())
 		$Panel/VBox/BackButton.text = "Continue"
+		# A milestone fight, won in the story: the party goes up a level.
+		if won and not Campaign.in_dungeon() and combat.encounter != null and combat.encounter.party_reaches_level > 0:
+			Campaign.reach_level(combat.encounter.party_reaches_level)
+	# Paid for winning, wherever the party has a purse: the story and dungeons.
+	if won and (Campaign.has_map_to_return_to() or Campaign.in_dungeon()) and combat.encounter != null:
+		Campaign.give_gold(combat.encounter.gold_reward)
 	# A fight that finishes its story offers the title screen and nothing else.
 	# The encounter says so itself - see EncounterDefinition.victory_ends_the_run
 	# - rather than this knowing which fights are last.
@@ -104,7 +117,15 @@ func _on_closing_words_ended(_resource = null):
 
 
 func _show_panel():
-	if Campaign.in_dungeon() and _won and not Campaign.on_last_dungeon_stage():
+	var dungeon_rest: bool = Campaign.in_dungeon() and _won and not Campaign.on_last_dungeon_stage()
+	# Between a dungeon's fights the rest takes the panel's place, so anybody
+	# worth questioning is questioned first; anywhere else it is a button on
+	# the panel, for the player to take up or not.
+	if dungeon_rest and not _questioned and not prisoners_to_question().is_empty():
+		question_prisoners(_show_panel)
+		return
+	_refresh_prisoners_button()
+	if dungeon_rest:
 		_rest()
 		return
 	$Panel.visible = true
@@ -162,3 +183,72 @@ func _on_back_pressed():
 ## before this the only way out of a map's battle was to carry on with the map.
 func _on_main_menu_pressed():
 	Campaign.to_main_menu()
+
+
+## --- Prisoners ---
+##
+## Whoever of the other side was taken alive (Combat.prisoners) - one of each
+## kind that still has something to tell (Campaign.has_something_to_tell) - is
+## for the player to question (InterrogationPanel): from a button on the panel,
+## or before the rest between a dungeon's fights.
+
+var _prisoners_button: Button = null
+
+
+## Whether the encounter's own Victory Dialogue decides what becomes of the
+## prisoners (EncounterDefinition.dialogue_decides_prisoners) - then there is
+## nobody here to question.
+func _dialogue_decides() -> bool:
+	return combat != null and combat.encounter != null and combat.encounter.dialogue_decides_prisoners
+
+
+## One taken prisoner of each kind with something left to tell, and how many of
+## each kind were taken: [prisoners, counts]. None when the encounter's own
+## conversation deals with them.
+func prisoners_to_question() -> Array:
+	if _dialogue_decides():
+		_prisoner_counts = {}
+		return []
+	var firsts := []
+	var counts := {}
+	if combat == null or not _won:
+		return firsts
+	for prisoner in combat.prisoners():
+		var key: String = prisoner.get("combatant_key", "")
+		counts[key] = counts.get(key, 0) + 1
+		if counts[key] == 1 and Campaign.has_something_to_tell(key):
+			firsts.append(prisoner)
+	_prisoner_counts = counts
+	return firsts
+
+var _prisoner_counts: Dictionary = {}
+
+
+## Puts the prisoners up to question, and `after` once they are done with.
+func question_prisoners(after: Callable = Callable()):
+	_questioned = true
+	var prisoners := prisoners_to_question()
+	prisoners_panel = InterrogationPanel.new()
+	prisoners_panel.name = "Prisoners"
+	add_child(prisoners_panel)
+	prisoners_panel.show_prisoners(prisoners, _prisoner_counts)
+	prisoners_panel.done.connect(func():
+		prisoners_panel.queue_free()
+		prisoners_panel = null
+		_refresh_prisoners_button()
+		if after.is_valid():
+			after.call()
+		elif $Panel.visible:
+			FocusOnDemand.attach(self, $Panel/VBox/BackButton if $Panel/VBox/BackButton.visible else $Panel/VBox/MainMenuButton))
+
+
+func _refresh_prisoners_button():
+	if _prisoners_button == null:
+		_prisoners_button = Button.new()
+		_prisoners_button.name = "PrisonersButton"
+		_prisoners_button.pressed.connect(func(): question_prisoners())
+		$Panel/VBox.add_child(_prisoners_button)
+		$Panel/VBox.move_child(_prisoners_button, $Panel/VBox/BackButton.get_index())
+	var waiting := prisoners_to_question() if not _questioned else []
+	_prisoners_button.visible = not waiting.is_empty()
+	_prisoners_button.text = "Question the prisoners (%d)" % waiting.size()

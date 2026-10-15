@@ -40,7 +40,9 @@ const ICON_SIZE := 18
 @onready var _title: Label = $Center/VBox/Title
 @onready var _party_panel: PanelContainer = $Center/VBox/PartyPanel
 @onready var _party_box: VBoxContainer = $Center/VBox/PartyPanel/PartyBox
-@onready var _list: VBoxContainer = $Center/VBox/EncounterList
+# Scrolled rather than stretched, so the list can grow past the screen and the
+# buttons under it stay in view. The pad's place is kept in view as it moves.
+@onready var _list: VBoxContainer = $Center/VBox/EncounterScroll/EncounterList
 @onready var _reset_button: Button = $Center/VBox/ResetButton
 @onready var _main_menu_button: Button = $Center/VBox/MainMenuButton
 

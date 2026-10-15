@@ -146,7 +146,8 @@ func map_setup(root: Node, members: Array[String], carries: Array[String] = []):
 	setup.name = "MapSetup"
 	setup.set_script(load("res://exploration/MapSetup.gd"))
 	setup.set("members", members)
-	setup.set("level", 2)
+	setup.set("level", 10)
+	setup.set("asks_for_paths", false)
 	setup.set("empty_handed", true)
 	if not carries.is_empty():
 		setup.set("everyone_carries", carries)
@@ -176,7 +177,7 @@ func waypoint(root: Node, called: String, tile: Vector2i):
 func guard(root: Node, called: String, key: String, tile: Vector2i, facing: float = 0.0, patrol: Array[String] = []) -> Guard:
 	var watcher := Guard.new()
 	watcher.combatant_key = key
-	watcher.level = 2
+	watcher.level = 10
 	watcher.facing_degrees = facing
 	watcher.patrol = patrol
 	watcher.back_and_forth = true

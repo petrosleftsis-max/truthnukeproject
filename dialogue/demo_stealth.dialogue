@@ -2,8 +2,10 @@
 Cyrus Rowe: A guard's locker, left open. Careless of them.
 do Campaign.give_item("cyrus", "priest_robes")
 do Campaign.give_item("cyrus", "tiny_bomb")
+do Campaign.give_item("cyrus", "stolen_signet")
 Cyrus Rowe: Priest robes... and something that goes bang. Both could come in handy.
 Cyrus Rowe: The Priest on the north corridor will know his own robes, though. Best keep these for the others.
+Cyrus Rowe: And the captain's missing signet, tucked under a boot. Somebody is in trouble... or could be.
 => END
 
 ~ goal
@@ -13,4 +15,19 @@ Cyrus Rowe: The far end of the lab, and not a single alarm. That's how it's done
 ~ pouch
 Cyrus Rowe: A few coins, and a cure potion. They won't miss it.
 do Campaign.give_item("cyrus", "cure_potion")
+=> END
+
+~ east_talk
+Barbarian: Father. Bit late for a blessing, isn't it?
+- "The captain wants you on the north corridor. Now."
+	Barbarian: Again? Fine. Keep an eye on things here, would you?
+	do Campaign.stealth_watch.send_away(30)
+- "Remind me - who walks the long hall tonight?"
+	Barbarian: Same as always. West end to the east end and back, slow as you like.
+	do Campaign.stealth_watch.tell_patrol("HallBarbarian")
+- "I was sent for your keys."
+	Barbarian: Again? Bring them back this time.
+	do Campaign.stealth_watch.hand_over()
+- "Carry on, my son."
+	do Campaign.settle_alert()
 => END

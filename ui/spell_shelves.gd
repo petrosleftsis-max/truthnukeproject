@@ -35,7 +35,10 @@ func _init():
 ## Builds a shelf for each gate `spells` are cast through, lowest gate first,
 ## from copies of `template`. What each button does is the caller's business:
 ## buttons() and keys() hand them back in the order they are shown.
-func build(spells: Array, comb: Dictionary, template: Button, showing: String):
+##
+## `flat` puts them all on one shelf with no gate tag - for skills, more of them
+## than the action grid has buttons for (CombatUI._show_skills_for).
+func build(spells: Array, comb: Dictionary, template: Button, showing: String, flat: bool = false):
 	var keep_place := showing == _showing
 	var place := scroll_vertical
 	_showing = showing
@@ -47,7 +50,7 @@ func build(spells: Array, comb: Dictionary, template: Button, showing: String):
 	var by_gate := {}
 	for key in spells:
 		var skill: SkillDefinition = SkillDatabase.skills[key]
-		var gate := maxi(skill.spell_slot_level, 1)
+		var gate := 0 if flat else maxi(skill.spell_slot_level, 1)
 		if not by_gate.has(gate):
 			by_gate[gate] = []
 		by_gate[gate].append(key)
@@ -60,14 +63,15 @@ func build(spells: Array, comb: Dictionary, template: Button, showing: String):
 		shelf.name = "Gate%d" % gate
 		shelf.add_theme_constant_override("separation", SEPARATION)
 		_rows.add_child(shelf)
-		var tag := GateTag.new(true)
-		tag.name = "Tag"
-		tag.custom_minimum_size = Vector2(TAG_WIDTH, template.custom_minimum_size.y)
-		# At the top of its shelf, beside the first line of spells, however many
-		# lines the shelf runs to.
-		tag.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		tag.show_gate(gate, left[gate] if gate < left.size() else 0, most[gate] if gate < most.size() else 0)
-		shelf.add_child(tag)
+		if gate > 0:
+			var tag := GateTag.new(true)
+			tag.name = "Tag"
+			tag.custom_minimum_size = Vector2(TAG_WIDTH, template.custom_minimum_size.y)
+			# At the top of its shelf, beside the first line of spells, however
+			# many lines the shelf runs to.
+			tag.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			tag.show_gate(gate, left[gate] if gate < left.size() else 0, most[gate] if gate < most.size() else 0)
+			shelf.add_child(tag)
 		var spread := HFlowContainer.new()
 		spread.name = "Spells"
 		spread.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -21,7 +21,8 @@ entry_name = "start"
 [node name="MapSetup" type="Node" parent="."]
 script = ExtResource("3_setup")
 members = Array[String](["cyrus"])
-level = 2
+level = 10
+asks_for_paths = false
 empty_handed = true
 
 [node name="StealthSetup" type="Node" parent="."]
@@ -79,7 +80,7 @@ point_name = "hall_east"
 position = Vector2(640, 896)
 script = ExtResource("5_guard")
 combatant_key = "priest"
-level = 2
+level = 10
 facing_degrees = 90.0
 patrol = Array[String](["priest_north", "priest_south"])
 back_and_forth = true
@@ -89,7 +90,7 @@ pause_seconds = 2.0
 position = Vector2(1664, 5504)
 script = ExtResource("5_guard")
 combatant_key = "barbarian"
-level = 2
+level = 10
 recognises = 1
 patrol = Array[String](["hall_west", "hall_east"])
 back_and_forth = true
@@ -99,6 +100,24 @@ pause_seconds = 2.5
 position = Vector2(9344, 2688)
 script = ExtResource("5_guard")
 combatant_key = "barbarian"
-level = 2
+level = 10
 facing_degrees = 180.0
 recognises = 2
+glance_every = 5.0
+glance_degrees = 150.0
+pockets = Array[String](["cure_potion"])
+picked_flag = "east_keys"
+picked_message = "a ring of keys"
+small_talk = ExtResource("9_dialogue")
+small_talk_title = "east_talk"
+
+[node name="HallSentry" type="Node2D" parent="."]
+position = Vector2(4736, 5504)
+script = ExtResource("5_guard")
+combatant_key = "barbarian"
+level = 10
+display_name = "Hall Sentry"
+facing_degrees = -90.0
+glance_every = 4.0
+glance_degrees = 120.0
+recognises = 1

@@ -95,9 +95,19 @@ func _dialogue_available(scene: Node) -> bool:
 func _after_the_talking(_resource, scene: Node):
 	if not is_instance_valid(scene):
 		return
+	# Talked out of it (Campaign.parley_call_off): there is no fight here any
+	# more, as if it had been won.
+	if Campaign.parley.get("called_off", false):
+		Campaign.take_parley()
+		Campaign.take_encounter_answer()
+		Campaign.cleared_triggers[trigger_id] = true
+		visible = false
+		return
 	if Campaign.take_encounter_answer() == Campaign.EncounterAnswer.ACCEPTED:
 		_begin_the_fight(scene)
 		return
+	# Backing away drops whatever was agreed for it.
+	Campaign.take_parley()
 	# Turned it down, or closed without answering. Either way they do not walk
 	# through: they are walked back out of reach, and walking in again asks
 	# again. An automatic trigger would otherwise fire on the spot they are

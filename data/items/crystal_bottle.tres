@@ -25,3 +25,4 @@ deals_damage = false
 uses_stat_contest = true
 contest_stat = 3
 sound = ExtResource("90_sfx")
+price = 40

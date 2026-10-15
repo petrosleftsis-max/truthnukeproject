@@ -9,7 +9,7 @@
 script = ExtResource("2_iaqug")
 combatant_key = "cyrus"
 position = Vector2i(41, -14)
-level = 3
+level = 20
 weapon_base = 12
 defense = 20
 
@@ -17,7 +17,7 @@ defense = 20
 script = ExtResource("2_iaqug")
 combatant_key = "alithia"
 position = Vector2i(43, -14)
-level = 3
+level = 20
 weapon_base = 12
 defense = 20
 
@@ -25,7 +25,7 @@ defense = 20
 script = ExtResource("2_iaqug")
 combatant_key = "prometheus"
 position = Vector2i(43, -13)
-level = 3
+level = 20
 weapon_base = 12
 defense = 8
 
@@ -33,7 +33,7 @@ defense = 8
 script = ExtResource("2_iaqug")
 combatant_key = "enfina"
 position = Vector2i(45, -14)
-level = 3
+level = 20
 weapon_base = 12
 defense = 32
 
@@ -43,7 +43,7 @@ combatant_key = "priest"
 side = 1
 position = Vector2i(53, -17)
 display_name = "Priest"
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
@@ -53,7 +53,7 @@ combatant_key = "ranger"
 side = 1
 position = Vector2i(54, -15)
 display_name = "Ranger"
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
@@ -62,7 +62,7 @@ script = ExtResource("2_iaqug")
 combatant_key = "mimic"
 side = 1
 position = Vector2i(36, -14)
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
@@ -71,7 +71,7 @@ script = ExtResource("2_iaqug")
 combatant_key = "mimic"
 side = 1
 position = Vector2i(37, -14)
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
@@ -81,7 +81,7 @@ combatant_key = "sorcerer"
 side = 1
 position = Vector2i(54, -13)
 display_name = "Caster"
-level = 3
+level = 20
 weapon_base = 12
 defense = 25
 
@@ -91,7 +91,7 @@ combatant_key = "barbarian"
 side = 1
 position = Vector2i(34, -14)
 display_name = "Striker"
-level = 3
+level = 20
 weapon_base = 12
 defense = 60
 
@@ -101,12 +101,13 @@ combatant_key = "bomber"
 side = 1
 position = Vector2i(55, -17)
 display_name = "Bomber"
-level = 3
+level = 20
 weapon_base = 12
 defense = 25
 
 [resource]
 script = ExtResource("1_6418u")
+gold_reward = 60
 display_name = "Dungeon: The Sewer"
 description = "The whole party, at level 3, ambushed in the sewer - with more of them than before."
 terrain_scene = ExtResource("3_ge6on")

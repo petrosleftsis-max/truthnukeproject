@@ -29,7 +29,8 @@ entry_name = "start"
 [node name="MapSetup" type="Node" parent="." unique_id=2004365304]
 script = ExtResource("3_wp54s")
 members = Array[String](["cyrus"])
-level = 2
+level = 10
+asks_for_paths = false
 empty_handed = true
 
 [node name="StealthSetup" type="Node" parent="." unique_id=1997449084]
@@ -58,7 +59,7 @@ look_scale = 0.8
 position = Vector2(3712, 1408)
 script = ExtResource("10_2ffuy")
 combatant_key = "priest"
-level = 2
+level = 10
 display_name = "Checkpoint Priest"
 facing_degrees = 90.0
 looks_around = false
@@ -80,7 +81,7 @@ point_name = "hall_east"
 [node name="HallGuard" type="Node2D" parent="." unique_id=1382938743]
 position = Vector2(4736, 1920)
 script = ExtResource("10_2ffuy")
-level = 2
+level = 10
 display_name = "Hall Guard"
 recognises = 2
 patrol = Array[String](["hall_west", "hall_east"])
@@ -89,7 +90,7 @@ back_and_forth = true
 [node name="DoorGuard" type="Node2D" parent="." unique_id=2063782290]
 position = Vector2(8064, 1152)
 script = ExtResource("10_2ffuy")
-level = 2
+level = 10
 display_name = "Door Guard"
 facing_degrees = 90.0
 looks_around = false

@@ -71,9 +71,10 @@ func set_name_text(text: String):
 ## The numbers and a bar underneath them. The numbers alone were exact but
 ## needed reading; the bar is the one that survives being glanced at while
 ## something else has your attention.
-func set_health(hp: int, hp_max: int):
+func set_health(hp: int, hp_max: int, overheal: int = 0):
 	var bar: ProgressBar = $Layout/Health
-	$Layout/HealthText.text = "{0}/{1}".format([hp, hp_max])
+	# Overheal (Combat.overheal) after it, as what is taken first.
+	$Layout/HealthText.text = "{0}/{1}".format([hp, hp_max]) + (" +%d" % overheal if overheal > 0 else "")
 	if _hp > hp:
 		HealthBarMarks.drain(bar, _hp, hp, maxi(hp_max, 1))
 	_hp = hp

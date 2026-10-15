@@ -25,7 +25,7 @@ enum AoEShape {
 ##
 ## Filtered out rather than shown greyed out: a level 1 character's panel is
 ## what they can do, not a preview of what they will be able to do later.
-@export_range(1, 3) var required_level: int = 1
+@export_range(1, 20) var required_level: int = 1
 ## If true, valid targets are the caster's own side (heals/buffs).
 ## If false (default), valid targets are the opposing side (attacks/debuffs).
 @export var targets_ally: bool = false
@@ -81,6 +81,20 @@ enum AoEShape {
 ## TARGET moves whoever is aimed at to a second tile, picked afterwards.
 enum TeleportWho { NOBODY, CASTER, TARGET }
 @export var teleports: TeleportWho = TeleportWho.NOBODY
+## A TARGET teleport that is a throw (Hurl): the landing tile may have somebody
+## on it - both are hurt by the skill's damage, and the thrown one lands beside
+## it. Immune to being thrown (Immunity) is never picked up.
+@export var throws: bool = false
+## A throw's reach: how far from its user the thrown one can be sent - one tile
+## further for every THROW_RANGE_PER_PHYSICAL of the thrower's Physical (Combat).
+## Min Range and Max Range are how far away they can be grabbed.
+@export_range(0, 20, 1) var throw_range: int = 0
+## How many sizes bigger than its user the one it moves may be: 1 is up to one
+## size bigger (Enfina lifting somebody Large). -1 for any size.
+@export_range(-1, 6, 1) var lifts_sizes_above: int = -1
+## How big the one it is used on has to be, at least (Sizes.Size): Climb is for
+## the Monstrous and up. -1 for any size.
+@export_range(-1, 6, 1) var needs_size_at_least: int = -1
 ## Which of a combatant's two action slots this uses. Main and secondary are
 ## spent separately, so a turn can use one of each.
 ##
@@ -94,6 +108,33 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 ## with no animations at all just resolves the skill instantly - so naming an
 ## animation here is never a requirement, only an option.
 @export var animation: String = "skill"
+## A load of ammunition: a shot that a Combined Load (combines_ammo) can fire
+## together with another - Burning Shot, Poison Dart.
+@export var is_ammo: bool = false
+## Picking this asks which two of the caster's ammunition to fire at once, and
+## aims the two as one shot (combined) - the Gunner's Combined Load. Used
+## without picking, it is the shot it is written as.
+@export var combines_ammo: bool = false
+## Declared: using it only announces it - free, the turn goes on - and marks
+## where it will land on the board for everybody to see. It lands at the start
+## of its user's next turn, at the same place, and spends that turn's action
+## (Combat.declare). Lost if they lose that turn - stunned, confused, fallen.
+@export var declared: bool = false
+## Works on somebody only if the party has something on them - their faction
+## known, one of their kind questioned, a clue that bears on them
+## (Combat.has_leverage). Intimidate, Persuade and Deceive.
+@export var needs_leverage: bool = false
+## A quick time event (QuickTimeDefinition) that pops up as it is used. For the
+## Attacker, when the party uses it: done in time, it lands Quick Time Bonus
+## harder. For the Defender, when it is used on the party: done in time, it
+## lands Quick Time Bonus softer on them.
+@export var quick_time: QuickTimeDefinition
+@export_enum("Attacker", "Defender") var quick_time_for: int = 0
+@export_range(0.0, 1.0, 0.05) var quick_time_bonus: float = 0.5
+## A hack (HackDefinition). On a declared skill, what unpicking it takes while
+## it is being wound up - Prometheus's Hack. On a skill with a Hack effect, the
+## one it uses on anything declared without a hack of its own.
+@export var hack: HackDefinition
 
 ## Everything this skill does on a successful hit. Add as many as you like -
 ## e.g. one DAMAGE effect plus one STAT_MODIFIER effect for a slowing attack.
@@ -137,6 +178,11 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 @export var scaling_stat: Stats.Type = Stats.Type.PHYSICAL
 ## What kind of damage this deals, weighed against the target's resistances.
 @export var damage_type: Damage.Type = Damage.Type.PHYSICAL : set = _set_damage_type
+## How much of the target's Defense its hits go straight through, in percent:
+## 0 meets all of it, 100 none. Worth more the tougher the target - Defense
+## does least to a lightly armoured one to begin with. Its hits only; anything
+## it leaves burning meets their Defense whole.
+@export_range(0, 100, 1, "suffix:%") var ignores_defense: int = 0
 
 @export_group("Hitting")
 ## Off: the skill rolls against accuracy, and a miss does nothing at all.
@@ -271,3 +317,36 @@ func all_effects() -> Array[EffectDefinition]:
 	var everything: Array[EffectDefinition] = [damage_effect()]
 	everything.append_array(effects)
 	return everything
+
+
+## Two loads fired as one shot (combines_ammo): `first`'s hit, with everything
+## `second` does besides hitting added to it - its condition, its shove - and
+## the reach both of them have. Made once a pair and kept in SkillDatabase under
+## "combined:first+second", so aiming, the prompt and the log all treat it as
+## the one skill it is. "" if either is not ammunition.
+static func combined(first: String, second: String) -> String:
+	var key := "combined:%s+%s" % [first, second]
+	var skills: Dictionary = SkillDatabase.skills
+	if skills.has(key):
+		return key
+	var a: SkillDefinition = skills.get(first)
+	var b: SkillDefinition = skills.get(second)
+	if a == null or b == null or first == second or not a.is_ammo or not b.is_ammo:
+		return ""
+	var both: SkillDefinition = a.duplicate()
+	both.set_meta("key", key)
+	both.name = "%s + %s" % [a.name, b.name]
+	both.description = "%s and %s in one shot: %s's hit, and what %s does with it." % [a.name, b.name, a.name, b.name]
+	both.min_range = maxi(a.min_range, b.min_range)
+	both.max_range = mini(a.max_range, b.max_range)
+	both.required_level = maxi(a.required_level, b.required_level)
+	both.spell_slot_level = maxi(a.spell_slot_level, b.spell_slot_level)
+	both.respects_blocking = a.respects_blocking or b.respects_blocking
+	both.is_ammo = false
+	both.combines_ammo = false
+	both.can_be_copied = false
+	var effects_of_both: Array[EffectDefinition] = a.effects.duplicate()
+	effects_of_both.append_array(b.effects)
+	both.effects = effects_of_both
+	skills[key] = both
+	return key

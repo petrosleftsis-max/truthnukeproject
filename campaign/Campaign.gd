@@ -54,8 +54,100 @@ func set_party(keys: Array, level: int = 1):
 			continue
 		if not party_order.has(key):
 			party_order.append(key)
-	party_level = clampi(level, 1, 3)
+	# The map's level is the least the party is by now, never a step back: the
+	# levels are earned at milestones (reach_level), and walking onto a map
+	# written for an earlier point must not take them away again. Raised, it is
+	# a milestone like any other - health grows, a subclass may be due - only
+	# not said in the log: arriving somewhere is not news.
+	if not reach_level(level, true):
+		party_changed.emit()
+
+
+## --- Milestones ---
+##
+## The party levels up at points in the story rather than through experience:
+## a conversation saying so (`do Campaign.reach_level(5)`), or a fight whose
+## EncounterDefinition.party_reaches_level is set being won.
+
+## The party's level went up. Carries the new one.
+signal party_leveled(level: int)
+
+## Takes the party to `level`, if they are not there already - a milestone
+## reached a second time, or one behind them, does nothing. Everyone's health
+## grows by as much as their new level adds, so a wounded party stays as
+## wounded as it was rather than healing or falling further behind.
+func reach_level(level: int, quietly: bool = false) -> bool:
+	level = clampi(level, 1, Stats.MAX_LEVEL)
+	if level <= party_level:
+		return false
+	var before := party_level
+	party_level = level
+	for key in party_state:
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+		if definition == null:
+			continue
+		var stored: Dictionary = party_state[key]
+		var frailty: float = stored.get("frailty", 1.0)
+		var gained := Combat.weakened_figure(definition.hp_at(level), frailty) \
+			- Combat.weakened_figure(definition.hp_at(before), frailty)
+		stored["max_hp"] = stored.get("max_hp", definition.hp_at(before)) + gained
+		if stored.get("alive", true):
+			stored["hp"] = stored.get("hp", 0) + gained
+	if not quietly:
+		announce("[color=lightgreen]The party reaches level %d.[/color]\n" % level)
+	party_leveled.emit(level)
 	party_changed.emit()
+	return true
+
+
+## --- Paths ---
+##
+## At level 5 (Stats.SUBCLASS_LEVEL) each of the party chooses one of their
+## paths - SubclassDefinition, three each - once and for good. Combat puts them
+## on it (Combat.take_path); the map asks for the choice (SubclassPicker).
+
+## combatant key -> the key of the path they chose.
+var subclasses: Dictionary = {}
+
+## Whether a party at level 5 or past it is asked on the map to choose paths at
+## all. On in the game. The test harness turns it off (game/asks_for_paths in
+## its copy's project settings) so suites about other things are not stopped by
+## the choice; the suites about paths turn it back on.
+var asks_for_paths: bool = ProjectSettings.get_setting("game/asks_for_paths", true)
+
+## Somebody chose their path.
+signal subclass_chosen(key: String, subclass: String)
+
+
+## The path `key` is on, or "".
+func subclass_of(key: String) -> String:
+	return subclasses.get(key, "")
+
+
+## Whether `key` has a path to choose now: the party has reached the level for
+## one, they have not chosen, and there are paths for them to choose from.
+func needs_path(key: String) -> bool:
+	return party_level >= Stats.SUBCLASS_LEVEL and subclass_of(key) == "" \
+		and not SubclassDefinition.for_character(key).is_empty()
+
+
+## Everybody in the party with a path still to choose, leader first.
+func choosing_paths() -> Array:
+	return living_party().filter(needs_path)
+
+
+## Puts `key` on `subclass` for good. False - and nothing changes - if it is
+## not one of theirs, they have one already, or the party is not far enough
+## along yet.
+func choose_subclass(key: String, subclass: String) -> bool:
+	var path := SubclassDefinition.named(subclass)
+	if path == null or not SubclassDefinition.for_character(key).has(subclass) or not needs_path(key):
+		return false
+	subclasses[key] = subclass
+	announce("[color=lightgreen]%s[/color] takes the path of the [color=yellow]%s[/color].\n" % [
+		display_name_of(key), path.name])
+	subclass_chosen.emit(key, subclass)
+	return true
 
 
 ## Fills the roster if it hasn't been set yet. Anything already in it wins, so
@@ -265,6 +357,8 @@ var cleared_triggers := {}
 ## instead of setting current_encounter directly when a battle is launched from
 ## exploration, so the trigger can be retired and the map restored afterwards.
 func begin_battle_from_exploration(encounter: EncounterDefinition, map_path: String, party_position: Vector2, trigger_id: String):
+	# The moment before the fight, for an automatic save to go back to.
+	SaveGame.autosave_before_fight(snapshot(map_path, party_position))
 	# In a dungeon the map is the story's own, but the fight at the end of it
 	# is the dungeon's.
 	current_encounter = dungeon_fight_for(encounter, map_path)
@@ -379,6 +473,66 @@ func restart_stealth():
 	SceneTransition.change_scene("res://scenes/exploration.tscn")
 
 
+## --- Saving ---
+##
+## What SaveGame writes to disk and reads back: everything a run has come to,
+## and where the party stood. Anything kept on this autoload that lasts beyond
+## the moment belongs in here - the `saves` suite fails on one that does not.
+
+## The keys of everything the run is made of, copied as they are.
+const SAVED := ["party_level", "party_state", "subclasses", "inventories", "gear", "equipped",
+	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside",
+	"parley"]
+
+
+## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with
+## no map before it). On a stealth map, how things stood on walking onto it
+## (stealth_checkpoint) - a stealth map is never saved partway through.
+func snapshot(map: String, at: Vector2) -> Dictionary:
+	var state := {"map": map, "at": at, "party_order": Array(party_order),
+		"dungeon": dungeon.resource_path if dungeon != null else ""}
+	for key in SAVED:
+		var value = get(key)
+		state[key] = value.duplicate(true) if value is Dictionary or value is Array else value
+	if not stealth_checkpoint.is_empty() and stealth_checkpoint.map == map:
+		var back: Dictionary = stealth_checkpoint
+		state.at = back.at
+		state.party_order = Array(back.party_order)
+		for key in ["party_level", "party_state", "inventories", "flags", "cleared_triggers"]:
+			state[key] = back[key].duplicate(true) if back[key] is Dictionary else back[key]
+		state.stealth_state.erase(map)
+	return state
+
+
+## Puts a saved run back (snapshot) and goes to where it was saved.
+func restore(state: Dictionary):
+	reset()
+	clear_story()
+	party_order.assign(state.get("party_order", []))
+	for key in SAVED:
+		if state.has(key):
+			var value = state[key]
+			set(key, value.duplicate(true) if value is Dictionary or value is Array else value)
+	var dungeon_path: String = state.get("dungeon", "")
+	dungeon = load(dungeon_path) if dungeon_path != "" else null
+	current_encounter = null
+	_pending_trigger = ""
+	target_entry = ""
+	Engine.time_scale = 1.0
+	party_changed.emit()
+	if state.get("map", "") == "":
+		# A dungeon's fight with no map before it: straight back into it.
+		if dungeon != null:
+			_go_to_dungeon_stage(false)
+		else:
+			to_main_menu()
+		return
+	current_map = state.map
+	return_position = state.get("at", Vector2.ZERO)
+	return_to_position = true
+	SceneTransition.change_scene(EXPLORATION_SCENE)
+
+
 func is_trigger_cleared(trigger_id: String) -> bool:
 	return trigger_id != "" and cleared_triggers.has(trigger_id)
 
@@ -419,6 +573,79 @@ func apply_carried_state(comb: Dictionary, key: String):
 		comb.spell_slots = slots
 
 
+## Gates `key` opened outside a fight - for a hack's hint (Hacking) - stay
+## spent into the next fight, and are cleared once it has them.
+func take_gates_spent_outside(comb: Dictionary, key: String):
+	if not gates_spent_outside.has(key):
+		return
+	var spent: Array = gates_spent_outside[key]
+	var slots: Array = comb.get("spell_slots", []).duplicate()
+	for gate in mini(slots.size(), spent.size()):
+		slots[gate] = maxi(slots[gate] - spent[gate], 0)
+	comb.spell_slots = slots
+	gates_spent_outside.erase(key)
+
+
+## --- Gates outside a fight ---
+##
+## A fight opens every gate afresh (bar a dungeon's, which stay spent fight to
+## fight). Something spending one outside a fight - a hack's hint - would cost
+## nothing that way, so what is spent is written here and taken off the next
+## fight's gates (take_gates_spent_outside). In a dungeon it comes straight off
+## the gates carried between its fights.
+
+## combatant key -> castings spent through each gate, indexed by gate.
+var gates_spent_outside := {}
+
+
+## How many castings `key` has through each gate right now, outside a fight.
+func gates_left_outside(key: String) -> Array:
+	if in_dungeon():
+		return gates_left(key)
+	var left := gates_most(key)
+	var spent: Array = gates_spent_outside.get(key, [])
+	for gate in mini(left.size(), spent.size()):
+		left[gate] = maxi(left[gate] - spent[gate], 0)
+	return left
+
+
+## Spends one of `key`'s castings through `gate`, outside a fight. False, and
+## nothing spent, with none left.
+func spend_gate_outside(key: String, gate: int) -> bool:
+	var left := gates_left_outside(key)
+	if gate <= 0 or gate >= left.size() or left[gate] <= 0:
+		return false
+	if in_dungeon():
+		if not party_state.has(key):
+			party_state[key] = {"hp": _full_health(key), "max_hp": _full_health(key), "alive": true}
+		left[gate] -= 1
+		party_state[key]["spell_slots"] = left
+		party_state[key]["max_spell_slots"] = gates_most(key)
+		return true
+	var spent: Array = gates_spent_outside.get(key, [0, 0, 0, 0]).duplicate()
+	while spent.size() <= gate:
+		spent.append(0)
+	spent[gate] += 1
+	gates_spent_outside[key] = spent
+	return true
+
+
+## Takes `amount` of `key`'s health outside a fight - the strain of a hack -
+## never the last point of it.
+func strain(key: String, amount: int):
+	if amount <= 0:
+		return
+	if not party_state.has(key):
+		party_state[key] = {"hp": _full_health(key), "max_hp": _full_health(key), "alive": true}
+	party_state[key].hp = maxi(party_state[key].hp - amount, 1)
+
+
+## Health of `key` at full, at the party's level.
+func _full_health(key: String) -> int:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	return definition.hp_at(party_level) if definition != null else 1
+
+
 ## Whether `key` is still standing - false only once they have actually died
 ## in an earlier encounter. The level select uses this to warn about a wiped
 ## party, and the spawner uses it to leave the dead out of later battles.
@@ -432,7 +659,8 @@ func is_alive(key: String) -> bool:
 ## ends, for every player-side combatant, win or lose.
 func record_party(combatants: Array):
 	for comb in combatants:
-		if comb.side != 0:
+		# Somebody bought or rebound fought beside them, but is not one of them.
+		if comb.side != 0 or comb.has("turncoat"):
 			continue
 		var key = comb.get("combatant_key", "")
 		if key == "":
@@ -501,6 +729,8 @@ func reset():
 	dungeon = null
 	dungeon_stage = 0
 	gate_recoveries_left = 0
+	gates_spent_outside.clear()
+	parley = {}
 	_encounter_answer = EncounterAnswer.UNANSWERED
 	party_state.clear()
 	cleared_triggers.clear()
@@ -508,6 +738,10 @@ func reset():
 	stealth_checkpoint = {}
 	party_order.clear()
 	party_level = 1
+	subclasses.clear()
+	gear.clear()
+	gold = 0
+	equipped.clear()
 	inventories.clear()
 	# Starting over starts over: what the last playthrough had read, pulled and
 	# opened is not true of this one.
@@ -793,7 +1027,7 @@ func next_dungeon_stage():
 	_go_to_dungeon_stage()
 
 
-func _go_to_dungeon_stage():
+func _go_to_dungeon_stage(autosave: bool = true):
 	var stage := current_dungeon_stage()
 	if stage == null:
 		return
@@ -802,6 +1036,10 @@ func _go_to_dungeon_stage():
 	if stage.map != "":
 		travel_to_map(stage.map, "")
 	else:
+		# Straight into a fight: the moment before it, for an automatic save -
+		# unless this is a save being loaded, which is that moment already.
+		if autosave:
+			SaveGame.autosave_before_fight(snapshot("", Vector2.ZERO))
 		current_map = ""
 		return_to_position = false
 		current_encounter = stage.encounter
@@ -1101,6 +1339,210 @@ func empty_inventory(key: String):
 	inventory_changed.emit(key)
 
 
+## --- Gear ---
+##
+## Weapons, armour and charms (EquipmentDefinition): one of each per character,
+## worn, and the rest kept in a stash the whole party shares. Spent on nothing
+## and never used up, unlike what is in the bags.
+
+## Pieces owned and not being worn, by key - the same key twice for two of them.
+var gear: Array = []
+## combatant key -> {"weapon": key, "armour": key, "charm": key}, "" for empty.
+var equipped: Dictionary = {}
+
+## Somebody's gear, or the stash, changed.
+signal gear_changed
+
+
+## Puts `key` in the stash. Written to be called from a dialogue:
+##
+##     do Campaign.give_gear("fencers_rapier")
+func give_gear(key: String) -> bool:
+	var piece := EquipmentDefinition.named(key)
+	if piece == null:
+		push_warning("Campaign.give_gear('%s'): no such piece." % key)
+		return false
+	gear.append(key)
+	announce("The party receives [color=yellow]%s[/color].\n" % piece.name)
+	gear_changed.emit()
+	return true
+
+
+## What `character` has in `slot` ("weapon", "armour", "charm"), or "".
+func equipped_in(character: String, slot: String) -> String:
+	return equipped.get(character, {}).get(slot, "")
+
+
+## Puts `key`, from the stash, on `character` - whatever was in that slot goes
+## back to the stash. False if it is not in the stash or not theirs to use.
+func equip(character: String, key: String) -> bool:
+	var piece := EquipmentDefinition.named(key)
+	if piece == null or not gear.has(key) or not piece.fits(character):
+		return false
+	if not equipped.has(character):
+		equipped[character] = {}
+	var slot := piece.slot_key()
+	var was: String = equipped[character].get(slot, "")
+	gear.erase(key)
+	if was != "":
+		gear.append(was)
+	equipped[character][slot] = key
+	gear_changed.emit()
+	return true
+
+
+## Takes off whatever `character` has in `slot`, back to the stash.
+func unequip(character: String, slot: String) -> bool:
+	var was := equipped_in(character, slot)
+	if was == "":
+		return false
+	equipped[character][slot] = ""
+	gear.append(was)
+	gear_changed.emit()
+	return true
+
+
+## What in the stash `character` could put in `slot`, each once, in stash order.
+func gear_for(character: String, slot: String) -> Array:
+	var found := []
+	for key in gear:
+		var piece := EquipmentDefinition.named(key)
+		if piece != null and piece.slot_key() == slot and piece.fits(character) and not found.has(key):
+			found.append(key)
+	return found
+
+
+## --- Gold ---
+##
+## What the party has to spend, all of it in one purse. Earned from fights won
+## in the story (EncounterDefinition.gold_reward) and from whatever hands it
+## out (`do Campaign.give_gold(30)`), and spent in stores (StoreDefinition).
+
+var gold: int = 0
+
+## The purse changed. Carries how much is in it now.
+signal gold_changed(gold: int)
+
+## A store was asked for (open_store) - the map puts it up once nothing else is
+## going on.
+signal store_requested(store: String)
+
+
+## Adds `amount` to the purse, and says so.
+func give_gold(amount: int):
+	if amount <= 0:
+		return
+	gold += amount
+	announce("The party receives [color=gold]%d gold[/color].\n" % amount)
+	gold_changed.emit(gold)
+
+
+## Takes `amount` out of the purse. False, and nothing taken, if there is not
+## that much in it.
+func spend_gold(amount: int) -> bool:
+	if amount < 0 or amount > gold:
+		return false
+	gold -= amount
+	gold_changed.emit(gold)
+	return true
+
+
+## Asks for `store` to be opened. Written to be called from a conversation:
+##
+##     do Campaign.open_store("travelling_merchant")
+func open_store(store: String):
+	if StoreDefinition.named(store) == null:
+		push_warning("Campaign.open_store('%s'): no such store." % store)
+		return
+	store_requested.emit(store)
+
+
+## What `key` costs - an item or a piece of gear - or 0 for something no store
+## deals in.
+func price_of(key: String) -> int:
+	var item: ItemDefinition = ItemDatabase.item(key) if ItemDatabase.is_item(key) else null
+	if item != null:
+		return item.price
+	var piece := EquipmentDefinition.named(key)
+	return piece.price if piece != null else 0
+
+
+## What selling `key` to `store` gets: its price at the store's rate, rounded
+## down. 0 when the store does not buy, or the thing is worth nothing.
+func sell_price(store: StoreDefinition, key: String) -> int:
+	if store == null or not store.buys_back:
+		return 0
+	return int(floor(price_of(key) * store.sell_rate))
+
+
+## Why `key` cannot be bought from `store` right now, or "" when it can. An item
+## needs somebody in the party with room in their bag.
+func cannot_buy(store: StoreDefinition, key: String) -> String:
+	if store == null or not store.stock.has(key):
+		return "Not sold here"
+	var price := price_of(key)
+	if price <= 0:
+		return "Not for sale"
+	if price > gold:
+		return "Not enough gold"
+	if ItemDatabase.is_item(key) and _who_has_room() == "":
+		return "Nobody has room for it"
+	return ""
+
+
+## Buys `key` from `store`: gold out, and the thing into the bag of the first
+## of the party with room (leader first) - or the gear stash. "" when it went
+## through, or why not.
+func buy(store: StoreDefinition, key: String) -> String:
+	var refusal := cannot_buy(store, key)
+	if refusal != "":
+		return refusal
+	spend_gold(price_of(key))
+	if ItemDatabase.is_item(key):
+		var who := _who_has_room()
+		stow_item(who, key)
+		var item: ItemDefinition = ItemDatabase.item(key)
+		announce("[color=lightgreen]%s[/color] buys [color=yellow]%s[/color].\n" % [display_name_of(who), item.name])
+	else:
+		gear.append(key)
+		gear_changed.emit()
+		announce("The party buys [color=yellow]%s[/color].\n" % EquipmentDefinition.named(key).name)
+	return ""
+
+
+## Sells one `key` out of `character`'s bag to `store`. False if they have none,
+## or the store will not have it.
+func sell_item(store: StoreDefinition, character: String, key: String) -> bool:
+	var paid := sell_price(store, key)
+	if paid <= 0 or count_of(character, key) == 0:
+		return false
+	take_item(character, key)
+	gold += paid
+	gold_changed.emit(gold)
+	return true
+
+
+## Sells one `key` out of the gear stash to `store`. What is being worn is not in
+## the stash, so it cannot be sold from under somebody.
+func sell_gear(store: StoreDefinition, key: String) -> bool:
+	var paid := sell_price(store, key)
+	if paid <= 0 or not gear.has(key):
+		return false
+	gear.erase(key)
+	gold += paid
+	gear_changed.emit()
+	gold_changed.emit(gold)
+	return true
+
+
+## The first of the living party, leader first, with a free slot - or "".
+func _who_has_room() -> String:
+	for key in living_party():
+		if inventory_of(key).has(""):
+			return key
+	return ""
+
+
 ## --- Clues ---
 ##
 ## What the party has found out, kept in the journal (J). Stored as flags -
@@ -1163,6 +1605,21 @@ func clue_reveals(combatant_key: String) -> bool:
 	for key in known_clues():
 		var clue: ClueDefinition = ClueBook.clue(key)
 		if clue != null and clue.reveals_combatants.has(combatant_key):
+			return true
+	return false
+
+
+## Whether something known tells the party about `faction` (FactionDefinition,
+## ClueDefinition.reveals_factions) - or one of them told them, questioned
+## (learn_faction).
+func knows_faction(faction: String) -> bool:
+	if faction == "":
+		return false
+	if flag(FACTION_PREFIX + faction):
+		return true
+	for key in known_clues():
+		var clue: ClueDefinition = ClueBook.clue(key)
+		if clue != null and clue.reveals_factions.has(faction):
 			return true
 	return false
 
@@ -1266,3 +1723,317 @@ func room_for_one() -> String:
 		if inventory_of(key).has(""):
 			return key
 	return ""
+
+
+## --- Dealing with enemies ---
+##
+## What a conversation in front of a fight agreed (parley), and what the party
+## has learned that can be used against them.
+##
+## A parley is a dialogue on an EncounterInteractable whose branches say what
+## was agreed before accepting the fight - or calling it off:
+##
+##     - "We know who pays you." [if Campaign.knows_clue("ledger") /]
+##         do Campaign.parley_remove("barbarian", 2)
+##         do Campaign.accept_encounter()
+##     - Pay the archers off [if Campaign.can_afford_bribe("ranger") /]
+##         do Campaign.bribe("ranger")
+##         do Campaign.accept_encounter()
+##     - "Walk away. Nobody needs to die."
+##         do Campaign.parley_call_off()
+##
+## The agreement is applied as the next fight is laid out (Combat._ready takes
+## it), and dropped if the party backs away from the fight instead.
+
+## What was agreed for the next fight: "removed" (key -> how many stay out of
+## it), "switched" (key -> how many fight for the party), "surprised", and
+## "called_off".
+var parley: Dictionary = {}
+
+## Paying somebody to change sides costs this many times their price.
+const SWITCH_PRICE := 2
+## Flags: a faction learned by questioning, and leverage on a kind of enemy.
+const FACTION_PREFIX := "faction_known:"
+const LEVERAGE_PREFIX := "leverage:"
+
+
+## The fight is called off: the trigger is cleared as if it had been won.
+func parley_call_off():
+	parley["called_off"] = true
+
+
+## `count` of the `key` enemies stay out of the next fight.
+func parley_remove(key: String, count: int = 1):
+	var removed: Dictionary = parley.get("removed", {})
+	removed[key] = removed.get(key, 0) + count
+	parley["removed"] = removed
+
+
+## The next fight starts with every enemy caught off guard.
+func parley_surprise():
+	parley["surprised"] = true
+
+
+## What buying one `key` enemy costs: out of the fight, or onto the party's side.
+## 0 for somebody who cannot be bought.
+func bribe_price_of(key: String, switching: bool = false) -> int:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null or definition.bribe_price <= 0:
+		return 0
+	return definition.bribe_price * (SWITCH_PRICE if switching else 1)
+
+
+func can_afford_bribe(key: String, switching: bool = false) -> bool:
+	var price := bribe_price_of(key, switching)
+	return price > 0 and gold >= price
+
+
+## Buys one `key` enemy out of the next fight - or, `switching`, onto the
+## party's side for it. False, and nothing paid, without the gold.
+func bribe(key: String, switching: bool = false) -> bool:
+	var price := bribe_price_of(key, switching)
+	if price <= 0 or not spend_gold(price):
+		return false
+	if switching:
+		var switched: Dictionary = parley.get("switched", {})
+		switched[key] = switched.get(key, 0) + 1
+		parley["switched"] = switched
+	else:
+		parley_remove(key)
+	announce("The party pays [color=gold]%d gold[/color].\n" % price)
+	return true
+
+
+## What was agreed, cleared as it is read so it is only ever applied once.
+func take_parley() -> Dictionary:
+	var agreed := parley
+	parley = {}
+	return agreed
+
+
+## Whether the party has something on `key` enemies to use against them: their
+## faction known, one of them questioned, or one of `clues` learned.
+func has_leverage_on(key: String, faction: String = "", clues: Array = []) -> bool:
+	if knows_faction(faction) or flag(LEVERAGE_PREFIX + key):
+		return true
+	for clue in clues:
+		if knows_clue(clue):
+			return true
+	return false
+
+
+## The party knows who `faction` are, having been told.
+func learn_faction(faction: String):
+	if faction != "":
+		set_flag(FACTION_PREFIX + faction)
+
+
+## Questions a prisoner of kind `key`: whatever clues and gold they give up,
+## who they answer to, and enough about their kind to use against the next of
+## them. What was learned, a line each.
+func interrogate(key: String) -> Array:
+	var learned := []
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null:
+		return learned
+	for clue_key in definition.interrogation_clues:
+		if learn_clue(clue_key):
+			var clue: ClueDefinition = ClueBook.clue(clue_key)
+			learned.append("A clue: %s" % (clue.title if clue != null else clue_key))
+	if definition.faction != "" and not knows_faction(definition.faction):
+		learn_faction(definition.faction)
+		var faction: FactionDefinition = FactionDefinition.named(definition.faction)
+		learned.append("Who they answer to: %s" % (faction.name if faction != null else definition.faction.capitalize()))
+	if definition.interrogation_gold > 0 and not flag("stash_told:" + key):
+		set_flag("stash_told:" + key)
+		give_gold(definition.interrogation_gold)
+		learned.append("Where they stashed their pay: %d gold" % definition.interrogation_gold)
+	if not flag(LEVERAGE_PREFIX + key):
+		set_flag(LEVERAGE_PREFIX + key)
+		learned.append("Enough about their kind to use against the next of them")
+	return learned
+
+
+## What becomes of a questioned prisoner: let go, or handed over to the watch.
+## Counted, for conversations to read: prisoners_released, prisoners_handed_over.
+func release_prisoner(key: String, handed_over: bool = false, how_many: int = 1):
+	var counter := "prisoners_handed_over" if handed_over else "prisoners_released"
+	flags[counter] = int(flags.get(counter, 0)) + how_many
+	set_flag(("handed_over:" if handed_over else "released:") + key)
+
+
+## --- The last fight ---
+##
+## How the fight just over went, for the conversation after it (an encounter's
+## Victory Dialogue - with Dialogue Decides Prisoners ticked, it is that
+## conversation that decides what becomes of them). Written by Combat as the
+## fight ends; never saved, since nothing can come between the two.
+##
+##     if Campaign.taken_alive("sellsword") > 0
+##     - Ask who paid them [if not Campaign.questioned("sellsword") /]
+##         do Campaign.question("sellsword")
+##     - Let them go
+##         do Campaign.let_go()
+##     - Hand them to the watch
+##         do Campaign.hand_over()
+##
+## Every key is a combatant key; "" means everybody.
+
+## {"taken": {key: count}, "got_away": {...}, "fell": {...}, "questioned": {key: true}}.
+var last_fight: Dictionary = {}
+
+
+## Writes down how the fight went from everybody who was in it (Combat).
+func record_last_fight(fighters: Array):
+	var taken := {}
+	var got_away := {}
+	var fell := {}
+	for comb in fighters:
+		if comb.has("object") or comb.get("illusion", false) or comb.has("turncoat"):
+			continue
+		var key: String = comb.get("combatant_key", "")
+		var how: String = comb.get("taken", "")
+		if how in ["surrendered", "knocked_out"]:
+			taken[key] = taken.get(key, 0) + 1
+		elif how == "fled":
+			got_away[key] = got_away.get(key, 0) + 1
+		elif not comb.get("alive", true) and how == "":
+			fell[key] = fell.get(key, 0) + 1
+	last_fight = {"taken": taken, "got_away": got_away, "fell": fell, "questioned": {}}
+
+
+static func _count(table: Dictionary, key: String) -> int:
+	if key != "":
+		return int(table.get(key, 0))
+	var total := 0
+	for each in table:
+		total += int(table[each])
+	return total
+
+
+## How many of `key` were taken alive in the last fight - surrendered or
+## knocked out - and are still the party's to deal with.
+func taken_alive(key: String = "") -> int:
+	return _count(last_fight.get("taken", {}), key)
+
+
+## How many of `key` got away from the last fight.
+func got_away(key: String = "") -> int:
+	return _count(last_fight.get("got_away", {}), key)
+
+
+## How many of `key` fell in the last fight and were not taken alive - the
+## party's own included.
+func fell(key: String = "") -> int:
+	return _count(last_fight.get("fell", {}), key)
+
+
+## Whether one of `key` has been questioned since the last fight.
+func questioned(key: String) -> bool:
+	return last_fight.get("questioned", {}).has(key)
+
+
+## Questions one of `key` taken in the last fight (interrogate): whatever they
+## give up is said in the corner, as the questioning panel would show it. True
+## when there was one to question and they gave something up.
+func question(key: String) -> bool:
+	if taken_alive(key) <= 0:
+		return false
+	last_fight.get("questioned", {})[key] = true
+	var learned := interrogate(key)
+	for line in learned:
+		announce("[color=yellow]%s[/color]\n" % line)
+	return not learned.is_empty()
+
+
+## Lets `how_many` of `key` taken in the last fight go (-1: all of them; "":
+## every kind), as release_prisoner counts it.
+func let_go(key: String = "", how_many: int = -1):
+	_deal_with(key, how_many, false)
+
+
+## Hands `how_many` of `key` taken in the last fight to the watch (-1: all of
+## them; "": every kind), as release_prisoner counts it.
+func hand_over(key: String = "", how_many: int = -1):
+	_deal_with(key, how_many, true)
+
+
+func _deal_with(key: String, how_many: int, handed_over: bool):
+	var taken: Dictionary = last_fight.get("taken", {})
+	# How many are still to be dealt with, all kinds together: -1 for no limit.
+	var left := how_many
+	for each in (taken.keys() if key == "" else [key]):
+		var there: int = int(taken.get(each, 0))
+		var dealt: int = there if left < 0 else mini(left, there)
+		if dealt <= 0:
+			continue
+		release_prisoner(each, handed_over, dealt)
+		taken[each] = there - dealt
+		if left > 0:
+			left -= dealt
+			if left == 0:
+				break
+
+
+## --- The enemy codex ---
+##
+## A page for every enemy (res://data/enemies/), written when somebody who keeps
+## it (CombatantDefinition.keeps_codex - Enfina and Prometheus) studies one;
+## a boss has a second page, written when one of them studies it again once it
+## is past its first phase (or, with no phases, while it is staggered). How many
+## pages are written is a flag, codex:<key>, so the codex rides along with every
+## save. The Journal shows it (its Codex tab), the pages worked out by CodexPage.
+
+const CODEX_PREFIX := "codex:"
+
+## A page of the codex was written.
+signal codex_written(key: String, page: int)
+
+var _codex_enemies: Array = []
+
+
+## Every enemy the codex has a page for, by key, in the order of their names.
+func codex_enemies() -> Array:
+	if _codex_enemies.is_empty():
+		var found := DataFolder.read(DataFolder.ENEMIES, CombatantDefinition)
+		_codex_enemies = found.keys()
+		_codex_enemies.sort_custom(func(a, b): return String(found[a].name).naturalnocasecmp_to(found[b].name) < 0)
+	return _codex_enemies
+
+
+## How many of `key`'s pages are written: 0, 1 or 2.
+func codex_pages(key: String) -> int:
+	return int(flags.get(CODEX_PREFIX + key, 0))
+
+
+## Writes `key`'s page `page` - the first, or a boss's second once the first is
+## written. False when it already was, or cannot be yet.
+func write_codex(key: String, page: int) -> bool:
+	if not codex_enemies().has(key) or page != codex_pages(key) + 1:
+		return false
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null or page > CodexPage.pages_of(definition):
+		return false
+	flags[CODEX_PREFIX + key] = page
+	codex_written.emit(key, page)
+	announce("[color=yellow]The codex: %s%s.[/color]\n" % [definition.name, ", a second page" if page == 2 else " written up"])
+	return true
+
+
+## Whether questioning one of `key`'s kind would give anything up now: a
+## conversation of their own, a clue or a stash not yet had, who they answer to
+## not yet known, or leverage on their kind not yet gained.
+func has_something_to_tell(key: String) -> bool:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null:
+		return false
+	if definition.interrogation_dialogue != null or not flag(LEVERAGE_PREFIX + key):
+		return true
+	if definition.interrogation_gold > 0 and not flag("stash_told:" + key):
+		return true
+	if definition.faction != "" and not knows_faction(definition.faction):
+		return true
+	for clue_key in definition.interrogation_clues:
+		if not knows_clue(clue_key):
+			return true
+	return false

@@ -230,11 +230,11 @@ func run_test():
 
 	var veteran_spawn = SpawnDefinition.new()
 	veteran_spawn.combatant_key = "alithia"
-	veteran_spawn.level = 3
+	veteran_spawn.level = 20
 	var veteran = combat.create_combatant(CombatantDatabase.combatants["alithia"], "alithia", "", veteran_spawn)
 	var level_3_heal = combat.heal_amount(veteran, mender)
 	ok(level_3_heal > level_1_heal * 2,
-		"and a level 3 healer mends far more, rather than the same flat number",
+		"and a level 20 healer mends far more, rather than the same flat number",
 		"%d -> %d" % [level_1_heal, level_3_heal])
 	ok(level_3_heal == roundi((Stats.WEAPON_BASE + 0.7 * combat.stat_of(veteran, mender.scaling_stat)) * mender.ability_modifier),
 		"which is the formula, off her Mindfulness", "%d from %d Mindfulness" % [

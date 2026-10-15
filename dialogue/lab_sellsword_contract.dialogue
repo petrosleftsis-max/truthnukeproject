@@ -1,0 +1,15 @@
+~ start
+Cyrus Rowe: Papers on a crate. A contract... for hired swords. Paid in advance.
+Cyrus Rowe: Hang on - there's a wire on the lid-
+do QuickTime.start("dodge_the_bolt")
+if QuickTime.passed
+	Cyrus Rowe: Ha! Missed me. Whoever set that was expecting company.
+else
+	Cyrus Rowe: Ow. That one found me.
+	do Campaign.strain("cyrus", 12)
+Prometheus Iliopoulos: Read the note in the margin. "Do not expect any of them back."
+Cyrus Rowe: Whoever paid them means them to die here. I wonder if they know.
+do Campaign.learn_clue("sellsword_contract")
+Cyrus Rowe: And a purse beside it - their advance, not collected yet. They will not be needing it.
+do Campaign.give_gold(200)
+=> END

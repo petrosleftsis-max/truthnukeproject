@@ -45,6 +45,9 @@ func snapshot(comb: Dictionary) -> Dictionary:
 		"reactions_suppressed": comb.get("reactions_suppressed", false),
 		"restrictions": "%s" % [comb.get("restrictions", {})],
 		"pocket": "%s" % [comb.get("pocket", [])],
+		# Intuition leaves nothing on them but what they mean to do next.
+		"intent": "%s" % [comb.get("intent", {})],
+		"shaken": comb.get("shaken", 0),
 	}
 
 
@@ -149,6 +152,20 @@ func run_test():
 		# there is nothing to use it for here.
 		if skill is ItemDefinition and skill.stealth_only():
 			continue
+		# Use works on things on the map, of which this fight has none - the
+		# bosses suite rings bells and lights kegs with it.
+		if Combat._interacts(skill):
+			continue
+		# Hack plays a minigame on a foe winding something up - the hacking suite
+		# plays it.
+		if Combat._hacks(skill):
+			continue
+		# Bribe wants somebody with a price, Climb something Monstrous, Climb
+		# Down somebody up on it, and Break Free somebody held - none of them
+		# here; the enemies suite plays them.
+		if Combat._bribes(skill) or Combat._climbs(skill) or key == Combat.CLIMB_DOWN_SKILL \
+				or key == Combat.BREAK_FREE_SKILL:
+			continue
 		# A bottle is spent when it is thrown, and the bag lives on the campaign
 		# rather than on the combatant - so it is topped up there, or the throw
 		# reports an empty hand and reads as a fault.
@@ -205,7 +222,7 @@ func run_test():
 			combat.teleport_to(other, lane + Vector2i(4, 0))
 		await get_tree().process_frame
 
-		caster["level"] = 3
+		caster["level"] = Stats.MAX_LEVEL
 		for stat_key in Stats.KEYS:
 			caster["stats"][stat_key] = 99
 		caster.skill_used_this_turn = false
@@ -239,19 +256,31 @@ func run_test():
 			# take it to. Empty-handed, there is nothing for it.
 			mark["pocket"] = ["cure_potion"]
 			Campaign.empty_inventory(caster.get("combatant_key", ""))
+		if skill.needs_leverage:
+			# Intimidate, Persuade, Deceive: something on them to work with.
+			Campaign.set_flag(Campaign.LEVERAGE_PREFIX + mark.get("combatant_key", ""))
 		var aim = mark.position if gap > 0 else caster.position
 		var destination = Vector2i(-99999, -99999)
 		if skill.teleports == SkillDefinition.TeleportWho.TARGET:
 			destination = lane + Vector2i(3, 0)
 		var before_caster = snapshot(caster)
 		var before_mark = snapshot(mark)
+		# Somebody new on the board - an image put up - is something done too.
+		var standing_before: int = combat.combatants.size()
 		var heard: Array = []
 		var listening = func(text): heard.append(text.strip_edges())
 		combat.update_information.connect(listening)
 		await combat.use_skill(key, caster, aim, false, false, destination)
+		if skill.declared and caster.has("declared"):
+			# Called now, landing next turn: what it does is what lands.
+			await combat.land_declared(caster)
 		for i in 3:
 			await get_tree().process_frame
 		combat.update_information.disconnect(listening)
+		# An image put up would be standing on the lane for the next one.
+		for stray in combat.combatants.duplicate():
+			if stray.get("illusion", false) and stray.alive:
+				combat._shatter(stray)
 
 		if contested_key != "" and mark["stats"].has(contested_key):
 			mark["stats"][contested_key] = contested_was
@@ -261,6 +290,8 @@ func run_test():
 		for line in heard:
 			if line != "":
 				said.append(line)
+		if combat.combatants.size() != standing_before:
+			landed.append("somebody new on the board")
 		if moved.is_empty() and landed.is_empty():
 			dead.append(key)
 			log_line("  DEAD  %-20s nothing changed. caster %s, %s %s, aim %s, reach %d-%d. log: %s"

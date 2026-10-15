@@ -11,7 +11,7 @@ class_name Guard
 ## set here.
 
 @export var combatant_key: String = "barbarian"
-@export_range(1, 3) var level: int = 1
+@export_range(1, 20) var level: int = 1
 ## What the fight calls them. Empty: the combatant's own name, numbered when
 ## there are several.
 @export var display_name: String = ""
@@ -38,6 +38,15 @@ enum Kind {
 @export_range(-180, 180) var facing_degrees: float = 0.0 : set = _set_facing_degrees
 ## Whether they sweep their gaze from side to side while standing still.
 @export var looks_around: bool = true
+## Standing still (a guard with no patrol, or stopped at a waypoint): 0 sweeps
+## their gaze from side to side all the time, as Looks Around says. More, and
+## they hold it still the way they face, and every so often - this many seconds,
+## give or take a third - glance somewhere else for Glance Seconds, then back.
+## A guard at a post who only sometimes looks round is one you can time.
+@export_range(0.0, 60.0, 0.5) var glance_every: float = 0.0
+## How far a glance turns them, either way: 180 is right behind them.
+@export_range(10.0, 180.0, 5.0) var glance_degrees: float = 120.0
+@export_range(0.3, 10.0, 0.1) var glance_seconds: float = 1.5
 ## Asleep at their post: they see nothing, and wake to a noise near enough to
 ## hear - and go to see what it was. Their pockets can be picked and they can
 ## be taken down from any side.
@@ -138,6 +147,9 @@ var mood: Mood = Mood.PATROLLING
 var knocked_out := false
 ## Whether their pockets have been picked already.
 var picked := false
+## Whether evidence has been planted on them (StealthWatch.plant) - the next
+## guard to have a good look finds it.
+var framed := false
 ## Whether they have already stopped the party to ask questions, and whether
 ## the answers fooled them for good.
 var questioned := false
@@ -203,6 +215,12 @@ var _look_clock := 0.0
 var _post := Vector2.ZERO
 var _post_facing := Vector2.RIGHT
 var _search_left := 0.0
+## Glances (glance_every): how long until the next, how long the one under way
+## has left, and where it looks.
+var _glance_clock := 0.0
+var _glance_left := 0.0
+var _glance_at := Vector2.RIGHT
+var _glance_rng := RandomNumberGenerator.new()
 
 
 func _set_facing_degrees(value: float):
@@ -246,6 +264,9 @@ func start(points: Array, router: Callable):
 	_rest_facing = facing
 	_post = global_position
 	_post_facing = facing
+	_glance_rng.randomize()
+	_glance_left = 0.0
+	_glance_clock = glance_every * _glance_rng.randf_range(0.67, 1.33)
 	active = true
 	hunting = false
 	mood = Mood.PATROLLING
@@ -631,6 +652,9 @@ func _walk(delta: float, pace: float = 1.0) -> bool:
 
 
 func _stand(delta: float):
+	if looks_around and glance_every > 0.0:
+		_glance(delta)
+		return
 	if looks_around:
 		_look_about(delta)
 		return
@@ -647,6 +671,31 @@ func _look_about(delta: float):
 	var sweep = deg_to_rad(LOOK_AROUND_DEGREES) * sin(_look_clock / LOOK_AROUND_SECONDS * TAU)
 	facing = _rest_facing.rotated(sweep)
 	_face_sprite()
+
+
+## Holding their gaze the way they rest facing, and now and again glancing
+## somewhere else (glance_every).
+func _glance(delta: float):
+	if sprite != null:
+		sprite.play_idle()
+	if _glance_left > 0.0:
+		_glance_left -= delta
+		facing = _turned_toward(facing, _glance_at, delta)
+		if _glance_left <= 0.0:
+			_glance_clock = glance_every * _glance_rng.randf_range(0.67, 1.33)
+	else:
+		facing = _turned_toward(facing, _rest_facing, delta)
+		_glance_clock -= delta
+		if _glance_clock <= 0.0:
+			var side := 1.0 if _glance_rng.randf() < 0.5 else -1.0
+			_glance_at = _rest_facing.rotated(deg_to_rad(glance_degrees * side * _glance_rng.randf_range(0.6, 1.0)))
+			_glance_left = glance_seconds
+	_face_sprite()
+
+
+## Whether they are glancing away from where they rest facing, right now.
+func glancing() -> bool:
+	return _glance_left > 0.0
 
 
 func _head_for_next():

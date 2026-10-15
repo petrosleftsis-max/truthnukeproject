@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_1e8p3"]
 [ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="3_efyvm"]
 [ext_resource type="SpriteFrames" path="res://art/characters/enfina/enfina_frames.tres" id="4_yrjjv"]
+[ext_resource type="Resource" path="res://data/passives/measured_eye.tres" id="5_eye"]
 
 [resource]
 script = ExtResource("3_efyvm")
@@ -24,13 +25,15 @@ Her foes fear her reactive skill, so staying close to one will either force them
 
 As a frontliner, she controls where the fight takes place. Make sure she is always in front of your allies and at the part of the map where you want the fight to take place."
 max_hp = 130
-max_hp_level_2 = 160
-max_hp_level_3 = 190
+max_hp_level_20 = 190
 movement = 4
 initiative = 6
 secondary_stat = 2
 icon = ExtResource("1_8oq43")
 map_sprite = ExtResource("1_8oq43")
 sprite_frames = ExtResource("4_yrjjv")
-skills = Array[String](["study", "greatsword_attack", "fire_burst", "light_swing", "shoving_strike", "sweep_strike", "blink_strike", "guard", "slip_past", "run", "trailblaze", "follow_up_attack"])
+skills = Array[String](["study", "greatsword_attack", "fire_burst", "light_swing", "shoving_strike", "sweep_strike", "blink_strike", "guard", "slip_past", "run", "trailblaze", "follow_up_attack", "earthsplitter", "intimidate", "hurl", "grab", "climb"])
+passives = Array[ExtResource("2_1e8p3")]([ExtResource("5_eye")])
+keeps_codex = true
+subclasses = Array[String](["berserker", "guardian", "controller"])
 starting_items = Array[String](["tiny_bomb", "tiny_bomb", "crystal_bottle"])

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Votive Mace"
+description = "Heavy at the head, light in the hand of the faithful."
+for_characters = Array[String](["alithia"])
+price = 150
+weapon_base = 10

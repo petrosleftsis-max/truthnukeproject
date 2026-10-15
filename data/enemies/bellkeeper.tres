@@ -1,0 +1,69 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/BossPhase.gd" id="1_ir0ey"]
+[ext_resource type="Script" path="res://combat/resources/HazardDefinition.gd" id="2_omeb0"]
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="3_plvun"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="4_1decp"]
+[ext_resource type="Script" path="res://combat/resources/StaggerDefinition.gd" id="5_4eeyp"]
+[ext_resource type="Script" path="res://combat/resources/BossDefinition.gd" id="6_6ji7l"]
+[ext_resource type="Resource" path="res://data/conditions/stunned.tres" id="7_fvpxl"]
+[ext_resource type="Resource" path="res://data/conditions/confused.tres" id="8_yevj8"]
+[ext_resource type="Resource" path="res://data/conditions/frozen.tres" id="9_s5puv"]
+[ext_resource type="Resource" path="res://data/conditions/crystallised.tres" id="10_1fuxf"]
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="11_ymf1h"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/caster/caster_frames.tres" id="12_u63wg"]
+
+[sub_resource type="Resource" id="Resource_ir0ey"]
+script = ExtResource("2_omeb0")
+display_name = "The stones ring"
+description = "The floor where the party stands rings like a struck bell - whoever starts a turn there is shaken by it."
+kind = 1
+every_rounds = 2
+count = 2
+hits = 1
+damage = 12
+damage_type = 9
+
+[sub_resource type="Resource" id="Resource_omeb0"]
+script = ExtResource("5_4eeyp")
+hint = "The bells are spent. Strike it hard, all at once."
+max_value = 80.0
+drain_per_round = 40.0
+
+[sub_resource type="Resource" id="Resource_plvun"]
+script = ExtResource("1_ir0ey")
+name = "The Last Toll"
+message = "It tears the clapper from its own throat, and the floor itself begins to ring."
+stagger = SubResource("Resource_omeb0")
+summons = Array[String](["rat", "rat", "rat"])
+hazards = Array[ExtResource("2_omeb0")]([SubResource("Resource_ir0ey")])
+
+[sub_resource type="Resource" id="Resource_1decp"]
+script = ExtResource("5_4eeyp")
+hint = "Nothing you do to it fills this. Ring the bells."
+per_damage = 0.0
+turns_lost = 2
+
+[sub_resource type="Resource" id="Resource_4eeyp"]
+script = ExtResource("6_6ji7l")
+title = "Keeper of the Silent Bells"
+stagger = SubResource("Resource_1decp")
+phases = Array[ExtResource("1_ir0ey")]([SubResource("Resource_plvun")])
+
+[resource]
+script = ExtResource("11_ymf1h")
+name = "The Bellkeeper"
+glossary_text = "Small, quick, and deaf to everything you throw at it. Nothing stuns, confuses, freezes or moves it. Only its own bells reach it."
+max_hp = 160
+max_hp_level_20 = 900
+size = 1
+movement = 5
+initiative = 5
+main_stat = 2
+sprite_frames = ExtResource("12_u63wg")
+skills = Array[String](["fire_burst", "sass_club", "rockfall"])
+immune_to_conditions = Array[ExtResource("3_plvun")]([ExtResource("7_fvpxl"), ExtResource("8_yevj8"), ExtResource("9_s5puv"), ExtResource("10_1fuxf")])
+immune_to = Array[int]([0, 1, 2, 9])
+turns_per_round = 2
+boss = SubResource("Resource_4eeyp")
+ai_function = "ai_caster"

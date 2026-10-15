@@ -30,6 +30,10 @@ const DOT_STRENGTH_NAMES := {
 
 
 @export var display_name: String = ""
+## The two letters on its mark beside a portrait. Empty, the first two of its
+## name - set it only when those are some other condition's already (Staggered
+## and Stunned).
+@export var tag: String = ""
 ## Freeform text for the tooltip. Optional - one is generated from the settings
 ## below when this is empty.
 @export_multiline var description: String = ""
@@ -91,6 +95,25 @@ const DOT_STRENGTH_NAMES := {
 @export var prevents_secondary: bool = false
 ## They can't use reactive skills while this lasts.
 @export var prevents_reactions: bool = false
+## Confused: their turn is not theirs to take. They go for whoever is nearest -
+## friend or foe - with whatever they have that hurts, and nothing else
+## (Combat.ai_confused). The party's too, played for them.
+@export var confuses: bool = false
+## Taunted: whatever they use to hurt has to be aimed at whoever put this on
+## them - a champion's challenge, an idol's pull. Anything else is refused, and
+## the AI goes for them. Put on by nobody in particular, it does nothing.
+@export var taunts: bool = false
+## Deceived: their turn goes on their own side - the nearest of them, with
+## whatever hurts (Combat.ai_deceived). The party's too, played for them.
+@export var turns_on_own_side: bool = false
+## It comes off the moment they are hurt - talked into standing down, and
+## then hit.
+@export var ends_when_hit: bool = false
+## Grappled: held by whoever put it on, for as long as that one keeps hold.
+## It lasts until they break free (Break Free, their main action), whoever
+## holds them is not beside them or is down, or either of them is teleported,
+## shoved or thrown (Combat "Holding on"). One held at a time each.
+@export var holds: bool = false
 
 @export_group("Forced movement")
 ## At the start of their turn they are blown this many tiles in a random

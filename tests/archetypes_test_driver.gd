@@ -78,7 +78,7 @@ func start_fight(cast: Array) -> Combat:
 			if wanted.size() > 2:
 				standing.position = _origin + wanted[2]
 			# A fourth entry brings them in at another level - what a Follow-up
-			# needs, which is not learned until level 3.
+			# needs, which is not learned until level 12.
 			if wanted.size() > 3:
 				standing.level = wanted[3]
 			spawns.append(standing)
@@ -475,14 +475,14 @@ func whole_kit():
 			"and does not throw its main action away on a Run that gets it nowhere")
 	await end_fight()
 
-	# At level 3 it has learned Follow-up, a secondary: a swing and then another.
-	cast = [["cyrus", 0, Vector2i(4, 3)], ["enfina", 0, Vector2i(11, 6)], ["barbarian", 1, Vector2i(0, 3), 3]]
+	# At level 20 it has learned Follow-up, a secondary: a swing and then another.
+	cast = [["cyrus", 0, Vector2i(4, 3)], ["enfina", 0, Vector2i(11, 6)], ["barbarian", 1, Vector2i(0, 3), 20]]
 	combat = await start_fight(cast)
 	cyrus = who(combat, "cyrus", 0)
 	striker = who(combat, "barbarian", 1)
 	if standing_as_laid_out(combat, cast):
-		ok(striker.level == 3 and combat.meets_level_for(striker, SkillDatabase.skills["follow_up_attack"]),
-			"a level 3 Barbarian knows Follow-up", "level %d" % striker.level)
+		ok(striker.level == 20 and combat.meets_level_for(striker, SkillDatabase.skills["follow_up_attack"]),
+			"a level 20 Barbarian knows Follow-up", "level %d" % striker.level)
 		cyrus.hp = 999
 		var one_swing = combat.predict_hit(striker, cyrus, SkillDatabase.skills["greatsword_attack"]).damage
 		await enemy_turn(combat, striker)

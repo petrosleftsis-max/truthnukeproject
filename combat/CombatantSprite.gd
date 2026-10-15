@@ -325,13 +325,13 @@ func recoil(direction: Vector2):
 		return
 	if _recoil_tween != null and _recoil_tween.is_valid():
 		_recoil_tween.kill()
-		drawn.position = Vector2.ZERO
+		drawn.position = size_offset
 	var away = direction.normalized() * RECOIL_DISTANCE
 	_recoil_tween = create_tween()
-	_recoil_tween.tween_property(drawn, "position", away, RECOIL_SECONDS * 0.3).set_ease(Tween.EASE_OUT)
+	_recoil_tween.tween_property(drawn, "position", size_offset + away, RECOIL_SECONDS * 0.3).set_ease(Tween.EASE_OUT)
 	# Springs back rather than easing, so it reads as a body absorbing a blow
 	# instead of sliding.
-	_recoil_tween.tween_property(drawn, "position", Vector2.ZERO, RECOIL_SECONDS * 0.7).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	_recoil_tween.tween_property(drawn, "position", size_offset, RECOIL_SECONDS * 0.7).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 
 ## How far a corpse sinks, and how much of it is left showing.
@@ -370,7 +370,7 @@ func set_alive():
 	rise.set_parallel(true)
 	rise.tween_property(self, "modulate", Color.WHITE, DEATH_SECONDS)
 	if drawn != null:
-		rise.tween_property(drawn, "position:y", 0.0, DEATH_SECONDS).set_ease(Tween.EASE_OUT)
+		rise.tween_property(drawn, "position:y", size_offset.y, DEATH_SECONDS).set_ease(Tween.EASE_OUT)
 
 
 func set_dead():
@@ -393,3 +393,23 @@ func set_dead():
 	fade.tween_property(self, "modulate", Color(0.6, 0.6, 0.6, DEATH_ALPHA), DEATH_SECONDS)
 	if drawn != null:
 		fade.tween_property(drawn, "position:y", drawn.position.y + DEATH_SINK, DEATH_SECONDS).set_ease(Tween.EASE_OUT)
+
+
+## --- Size ---
+##
+## Something bigger or smaller than a tile (Sizes) is drawn bigger or smaller
+## - the node's scale - and off where the node is: the middle of the square a
+## big one covers, or a small one's own corner of a tile it shares. The node
+## stays on the tile they are on, since movement and sight read it; only what
+## is drawn moves (Combat.place_drawing).
+
+## Where the drawing sits off the node, in the node's own units.
+var size_offset := Vector2.ZERO
+
+
+## Puts the drawing `offset` away from the node, as measured on the map.
+func set_size_offset(offset: Vector2):
+	size_offset = offset / scale.x if scale.x != 0.0 else offset
+	var drawn = _drawn()
+	if drawn != null:
+		drawn.position = size_offset

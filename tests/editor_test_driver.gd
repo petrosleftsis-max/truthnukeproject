@@ -174,8 +174,45 @@ func run_test():
 	game.free()
 	log_line("")
 
-	log_line("======== save refuses bad placements ========")
+	log_line("======== ways out ========")
 	var tile_map = editor.get_node("TerrainPreview/TileMap")
+	ok(editor.escape_markers().size() == reloaded.escape_points.size(), "a marker for each way out the encounter has",
+		"%d" % editor.escape_markers().size())
+	ok(editor.runner_note() != "", "no ways out, and the editor says who could never get away", editor.runner_note())
+	ok(not reloaded.runners_with_nowhere_to_run().is_empty(), "and so does the encounter, for the fight to warn about",
+		"%s" % [reloaded.runners_with_nowhere_to_run()])
+	editor.add_escape_point()
+	await get_tree().process_frame
+	ok(editor.runner_note() == "", "a way out, and the note goes")
+	var way_out = editor.escape_markers()[-1]
+	var door := _free_tile(editor)
+	way_out.position = Vector2(door.x * Grid.TILE_SIZE + 7, door.y * Grid.TILE_SIZE + 30)
+	ok(way_out.grid_position() == door, "Add a way out gives a marker to drag, and it lands on one tile")
+	var wall := Vector2i(-99999, -99999)
+	for cell in tile_map.get_used_cells(0):
+		var data = tile_map.get_cell_tile_data(0, cell)
+		if data != null and 0 in data.get_custom_data("Blocks"):
+			wall = cell
+			break
+	if wall.x != -99999:
+		way_out.position = Vector2(wall * Grid.TILE_SIZE) + Vector2.ONE * Grid.TILE_SIZE * 0.5
+		ok(editor._problems_with_layout().any(func(problem): return "on a wall" in problem), "a way out in a wall is refused")
+		way_out.position = Vector2(door * Grid.TILE_SIZE) + Vector2.ONE * Grid.TILE_SIZE * 0.5
+	editor.save_to_encounter()
+	await get_tree().process_frame
+	var with_door: EncounterDefinition = ResourceLoader.load(ENCOUNTER, "", ResourceLoader.CACHE_MODE_IGNORE)
+	ok(with_door.escape_points.has(door), "saved with the encounter", "%s" % [with_door.escape_points])
+	ok(with_door.spawns.size() == original_count, "and the spawns as they were")
+	editor.encounter = with_door
+	editor.rebuild()
+	await get_tree().process_frame
+	ok(editor.escape_markers().size() == with_door.escape_points.size() and editor.escape_markers()[0].grid_position() == door,
+		"and built back from it")
+	# Rebuilt, the map is a new one.
+	tile_map = editor.get_node("TerrainPreview/TileMap")
+	log_line("")
+
+	log_line("======== save refuses bad placements ========")
 
 	var off_map = editor.markers()[0]
 	var safe_spot = off_map.position

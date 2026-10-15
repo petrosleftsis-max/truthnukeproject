@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackLine.gd" id="1_752m1"]
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="2_5tn4h"]
+
+[sub_resource type="Resource" id="Resource_imjjw"]
+script = ExtResource("1_752m1")
+label = "Valve A"
+value = 3
+maximum = 9
+pushes = Dictionary[String, int]({
+"Overflow": 2,
+"Valve B": -2
+})
+
+[sub_resource type="Resource" id="Resource_v20pu"]
+script = ExtResource("1_752m1")
+label = "Valve B"
+value = 4
+maximum = 9
+pushes = Dictionary[String, int]({
+"Overflow": 2,
+"Pressure": 2
+})
+goal = 3
+goal_value = 1
+
+[sub_resource type="Resource" id="Resource_ucyqa"]
+script = ExtResource("1_752m1")
+label = "Pressure"
+value = 3
+maximum = 9
+pushes = Dictionary[String, int]({
+"Valve A": -1,
+"Valve B": -1
+})
+goal = 2
+goal_value = 5
+
+[sub_resource type="Resource" id="Resource_7nmq0"]
+script = ExtResource("1_752m1")
+label = "Overflow"
+value = 3
+maximum = 9
+pushes = Dictionary[String, int]({
+"Valve B": 2
+})
+goal = 1
+
+[sub_resource type="Resource" id="Resource_6a5er"]
+script = ExtResource("1_752m1")
+label = "Answers to"
+options = Array[String](["Klaxon on", "Klaxon off"])
+cost = 3
+locked_until = "Overflow"
+pushes = Dictionary[String, int]({
+"Overflow": 2
+})
+goal = 3
+goal_value = 1
+
+[resource]
+script = ExtResource("2_5tn4h")
+title = "The Sluice Engine"
+description = "The engine that floods the lower vault. Drain it without blowing a valve - the pipes share their pressure."
+look = 1
+sets_off = true
+failure_line = "The Sluice Engine snaps back - it has his measure now."
+lines = Array[ExtResource("1_752m1")]([SubResource("Resource_imjjw"), SubResource("Resource_v20pu"), SubResource("Resource_ucyqa"), SubResource("Resource_7nmq0"), SubResource("Resource_6a5er")])
+edits = 13
+every_step_costs = true

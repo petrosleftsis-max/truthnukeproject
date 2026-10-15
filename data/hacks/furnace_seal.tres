@@ -1,0 +1,69 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackLine.gd" id="1_vywvp"]
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="2_obiwa"]
+
+[sub_resource type="Resource" id="Resource_v8aa2"]
+script = ExtResource("1_vywvp")
+label = "Heat"
+value = 2
+maximum = 9
+pushes = Dictionary[String, int]({
+"Flow": -2
+})
+
+[sub_resource type="Resource" id="Resource_801ch"]
+script = ExtResource("1_vywvp")
+label = "Pressure"
+value = 3
+maximum = 9
+pushes = Dictionary[String, int]({
+"Draught": 1,
+"Flow": 2
+})
+goal = 3
+goal_value = 7
+
+[sub_resource type="Resource" id="Resource_7avgt"]
+script = ExtResource("1_vywvp")
+label = "Flow"
+value = 2
+maximum = 9
+pushes = Dictionary[String, int]({
+"Draught": -1,
+"Heat": 1
+})
+goal = 1
+
+[sub_resource type="Resource" id="Resource_xvtiv"]
+script = ExtResource("1_vywvp")
+label = "Draught"
+value = 7
+maximum = 9
+pushes = Dictionary[String, int]({
+"Flow": -2
+})
+goal = 3
+goal_value = 4
+
+[sub_resource type="Resource" id="Resource_1m50m"]
+script = ExtResource("1_vywvp")
+label = "Answers to"
+options = Array[String](["Roaring", "Banked", "Asleep"])
+cost = 2
+locked_until = "Flow"
+pushes = Dictionary[String, int]({
+"Pressure": 2
+})
+goal = 3
+goal_value = 2
+
+[resource]
+script = ExtResource("2_obiwa")
+title = "The Furnace Seal"
+description = "A seal that keeps the forge-spirit in. Cool it without choking it: the lines feed each other, and every step costs."
+sets_off = true
+failure_line = "The Furnace Seal snaps back - it has his measure now."
+lines = Array[ExtResource("1_vywvp")]([SubResource("Resource_v8aa2"), SubResource("Resource_801ch"), SubResource("Resource_7avgt"), SubResource("Resource_xvtiv"), SubResource("Resource_1m50m")])
+edits = 10
+every_step_costs = true

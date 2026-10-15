@@ -102,14 +102,14 @@ func _handle_deployment_input(event):
 	var tile = tile_map.local_to_map(_pointed_at())
 	var comb = get_combatant_at_position(tile)
 	if _deployment_selection == null:
-		if comb != null and comb.side == 0:
+		if comb != null and comb.side == 0 and not comb.get("ai_controlled", false):
 			_deployment_selection = comb
 			queue_redraw()
 		return
 	if tile in _deployment_tiles:
 		_swap_deployed(_deployment_selection, tile)
 		_deployment_selection = null
-	elif comb != null and comb.side == 0:
+	elif comb != null and comb.side == 0 and not comb.get("ai_controlled", false):
 		# Clicked a different hero instead - switch who's being moved.
 		_deployment_selection = comb
 	queue_redraw()
@@ -119,7 +119,7 @@ func _handle_deployment_input(event):
 ## there. Enemies are never displaced - their positions are the encounter's
 ## design, not the player's to rearrange.
 func _swap_deployed(comb: Dictionary, tile: Vector2i):
-	if comb.side != 0:
+	if comb.side != 0 or comb.get("ai_controlled", false):
 		# Only the party is the player's to arrange. Input can't select an
 		# enemy in the first place, but this is the function that actually
 		# moves people, so it enforces it rather than trusting the caller.
@@ -130,13 +130,8 @@ func _swap_deployed(comb: Dictionary, tile: Vector2i):
 	if occupant != null and occupant.side != 0:
 		return
 	var from = comb.position
-	if occupant == null:
-		_occupied_spaces.erase(from)
-		_occupied_spaces[tile] = true
-		release_tile(from)
-	else:
-		# A straight swap: both tiles stay occupied, so the occupancy list
-		# doesn't change at all.
+	# A straight swap with whoever is there, if anybody: both tiles stay taken.
+	if occupant != null:
 		_set_deployed_position(occupant, from)
 	_set_deployed_position(comb, tile)
 	update_points_weight()
@@ -145,6 +140,7 @@ func _swap_deployed(comb: Dictionary, tile: Vector2i):
 func _set_deployed_position(comb: Dictionary, tile: Vector2i):
 	comb.position = tile
 	comb.sprite.position = tile_map.map_to_local(tile)
+	refresh_occupancy()
 
 
 ## --- A pad's cursor on the board (see Pad) ---
@@ -192,8 +188,8 @@ func pad_board_active() -> bool:
 ## tile on the map.
 func pad_tiles() -> Array:
 	var caster = aiming_caster() if _skill_selected else {}
-	var key := "%s|%s|%s|%s|%s|%s|%s" % [_deployment_active, _skill_selected, _selected_skill, _teleport_subject,
-		_range_preview_positions.size(), caster.get("position", NO_TILE), _deployment_tiles.size()]
+	var key := "%s|%s|%s|%s|%s|%s|%s|%s" % [_deployment_active, _skill_selected, _selected_skill, _teleport_subject,
+		_range_preview_positions.size(), caster.get("position", NO_TILE), _deployment_tiles.size(), _step_tiles.size()]
 	if key != _pad_set_key:
 		_pad_set_key = key
 		pad_version += 1
@@ -203,6 +199,9 @@ func pad_tiles() -> Array:
 
 
 func _work_out_pad_tiles() -> Array:
+	if _stepping:
+		# Where a step could go, and staying put.
+		return _step_tiles + [_step_choice]
 	if _deployment_active:
 		var tiles: Array = _deployment_tiles.duplicate()
 		for comb in combat.combatants if combat != null else []:
@@ -427,6 +426,9 @@ func _unhandled_input(event):
 	if _deployment_active:
 		_handle_deployment_input(event)
 		return
+	if _stepping:
+		_handle_step_input(event)
+		return
 	if player_turn == false or action_locked:
 		return
 	if a_menu_is_over_the_map():
@@ -516,15 +518,24 @@ func _preview_hits(tile: Vector2i):
 		hud.hide_hit_preview()
 		return
 	var comb = get_combatant_at_position(tile)
-	if refusal_at(tile, comb if comb != null else {}) != "":
-		hud.hide_hit_preview()
+	var refusal := refusal_at(tile, comb if comb != null else {})
+	if refusal != "":
+		# Aiming a Steal, anybody on the other side can be looked over for what
+		# they carry - out of reach or empty-handed too, saying why it cannot
+		# go. Not somebody hidden: that would say where they are.
+		if Combat.steals(skill) and comb != null and comb.side != aiming_caster().side \
+				and not combat.is_hidden(comb) and hud.has_method("show_carried"):
+			hud.show_carried(_selected_skill, comb, refusal)
+		else:
+			hud.hide_hit_preview()
 		return
 	hud.show_hit_preview(_selected_skill, tile)
 
 
 func get_combatant_at_position(target_position: Vector2i):
+	# Whoever covers the tile - somebody bigger than a tile covers several.
 	for comb in combat.combatants:
-		if comb.position == target_position and comb.alive:
+		if comb.alive and combat.covers(comb, target_position):
 			return comb
 	return null
 
@@ -596,8 +607,8 @@ func terrain_blocks_sight(tile: Vector2i, movement_class: int) -> bool:
 ##
 ## The one place the whole rule lives, so a line of sight, the field of view
 ## drawn for a hiding player and the AI all judge it the same way.
-func blocks_line_of_sight(tile: Vector2i, movement_class: int) -> bool:
-	return terrain_blocks_sight(tile, movement_class) or blocks_sight(tile)
+func blocks_line_of_sight(tile: Vector2i, movement_class: int, viewer_size: int = Sizes.Size.HUMAN) -> bool:
+	return terrain_blocks_sight(tile, movement_class) or blocks_sight(tile, viewer_size)
 
 
 ## Whether somebody is standing on `tile`, which breaks a line of sight the way
@@ -610,11 +621,17 @@ func blocks_line_of_sight(tile: Vector2i, movement_class: int) -> bool:
 ## Somebody hidden is no cover, though. A line that stopped dead at an empty
 ## stretch of floor would say exactly where they were standing - the shot that
 ## mysteriously will not connect is a better tell than seeing them.
-func blocks_sight(tile: Vector2i) -> bool:
+##
+## By size, too (Sizes): a body is cover only to somebody no more than one size
+## bigger than it. A Human sees over a Tiny one, a Large one over the Small - and
+## nobody sees past something their own size or bigger.
+func blocks_sight(tile: Vector2i, viewer_size: int = Sizes.Size.HUMAN) -> bool:
 	if not _occupied_spaces.has(tile) or combat == null:
 		return false
-	var standing = combat.get_combatant_at(tile)
-	return not standing.is_empty() and not combat.is_hidden(standing)
+	for standing in combat.combatants_at(tile):
+		if not combat.is_hidden(standing) and standing.get("size", Sizes.Size.HUMAN) > viewer_size - 2:
+			return true
+	return false
 
 
 ## Whether `tile` is inside the playable grid at all, regardless of blocking.
@@ -622,15 +639,41 @@ func is_in_bounds(tile: Vector2i) -> bool:
 	return _astargrid.region.has_point(tile)
 
 
+## Whether there is any ground at `tile` at all: inside the map, and not one of
+## the holes in it.
+func is_on_map(tile: Vector2i) -> bool:
+	return is_in_bounds(tile) and tile_map.get_cell_tile_data(0, tile) != null
+
+
 ## Instantly moves a combatant to a new tile outside the normal turn-based
 ## movement flow (used by PUSH/PULL skill effects), keeping the pathfinding
 ## grid's occupancy tracking in sync so other units' movement/LOS is correct
-## immediately afterwards.
-func reposition_combatant(old_position: Vector2i, new_position: Vector2i):
-	_occupied_spaces.erase(old_position)
-	_occupied_spaces[new_position] = true
-	release_tile(old_position)
+## immediately afterwards. Call it after `comb.position` has changed: the
+## occupancy is worked out afresh from where everybody now is.
+func reposition_combatant(_old_position: Vector2i, _new_position: Vector2i):
+	refresh_occupancy()
 	update_points_weight()
+
+
+## Every tile anybody stands on, worked out afresh from where they all are:
+## several for somebody bigger than a tile (Combat.tiles_of), one shared by
+## several small ones. A tile nobody is on any more is let go on the
+## pathfinding grid, and the small and the big are drawn where they now belong
+## (Combat.place_sprites). Whoever moves somebody calls this, then
+## update_points_weight if it is somebody's turn.
+func refresh_occupancy():
+	if combat == null:
+		return
+	var now := {}
+	for comb in combat.combatants:
+		if comb.alive:
+			for tile in combat.tiles_of(comb):
+				now[tile] = true
+	for tile in _occupied_spaces:
+		if not now.has(tile):
+			release_tile(tile)
+	_occupied_spaces = now
+	combat.place_sprites()
 
 
 ## Lets the pathfinding grid know nobody is standing on `tile` any more.
@@ -670,7 +713,11 @@ func get_tile_cost_for_class(tile: Vector2i, movement_class: int) -> int:
 ## other combatants in the way - not a straight-line guess). This is what
 ## the AI's positioning searches use to know where it can genuinely end up,
 ## the same way get_tile_cost()-based player movement already works.
-func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: int) -> Dictionary:
+func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: int, mover: Dictionary = {}) -> Dictionary:
+	# Somebody bigger or smaller than a tile: where they fit, not where one
+	# tile's worth of floor is free.
+	if not mover.is_empty() and (mover.get("span", 1) > 1 or Sizes.shares(mover.get("size", Sizes.Size.HUMAN))):
+		return _reachable_by_size(mover, start, movement_budget)
 	const NEIGHBOR_OFFSETS = [
 		Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN,
 		Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)
@@ -800,15 +847,13 @@ func _mark_unpainted_cells_as_blocking():
 				_blocking_lookup[movement_class][tile] = true
 
 
-func combatant_added(combatant):
-#	_astargrid.set_point_solid(combatant.position, true)
-#	_astargrid.set_point_weight_scale(combatant.position, INF)
-	_occupied_spaces[combatant.position] = true
+func combatant_added(_combatant):
+	refresh_occupancy()
 
 
 ## Back on their feet (Combat.revive): their tile is taken again.
-func combatant_revived(combatant):
-	_occupied_spaces[combatant.position] = true
+func combatant_revived(_combatant):
+	refresh_occupancy()
 
 
 ## `from` if somebody of `movement_class` could stand there now, or else the
@@ -832,14 +877,15 @@ func nearest_free_tile(from: Vector2i, movement_class: int) -> Vector2i:
 func aim_subject_at(tile: Vector2i) -> Dictionary:
 	if _skill_selected and SkillDatabase.skills[_selected_skill].targets_fallen:
 		return combat.fallen_at(tile, aiming_caster().side)
+	# Several small ones sharing the tile: whichever the pointer is nearest.
+	if combat.combatants_at(tile).size() > 1:
+		return combat.nearest_on(tile, _pointed_at())
 	var comb = get_combatant_at_position(tile)
 	return comb if comb != null else {}
 
 
-func combatant_died(combatant):
-	_astargrid.set_point_solid(combatant.position, false)
-	_astargrid.set_point_weight_scale(combatant.position, 1)
-	_occupied_spaces.erase(combatant.position)
+func combatant_died(_combatant):
+	refresh_occupancy()
 
 
 func set_controlled_combatant(combatant: Dictionary):
@@ -848,7 +894,9 @@ func set_controlled_combatant(combatant: Dictionary):
 	# there is only one _next_position for everybody.
 	end_walk()
 	_card_for(null)
-	if combatant.side == 0:
+	# Somebody fighting for the party but not the player's to command (bought,
+	# rebound) is played by the AI, like the other side.
+	if combatant.side == 0 and not combatant.get("ai_controlled", false):
 		player_turn = true
 		_point_pad_at.call_deferred(combatant)
 	else:
@@ -1002,6 +1050,9 @@ func refresh_watched_tiles(combatant: Dictionary):
 ## else in update_points_weight would clear them, since they're neither
 ## occupied nor blocking terrain.
 var _fear_blocked: Array = []
+## Whether the grid was last fitted to somebody bigger than a tile, whose
+## closing of open ground the next update has to undo first.
+var _big_fitted := false
 
 
 func update_points_weight():
@@ -1011,6 +1062,18 @@ func update_points_weight():
 		_astargrid.set_point_weight_scale(tile, 1)
 		_astargrid.set_point_solid(tile, false)
 	_fear_blocked.clear()
+	# Somebody bigger than a tile closed every point their square did not fit
+	# (_fit_points_to_big) - open ground included, which nothing below revisits.
+	# Left closed, whoever came after them could not walk anywhere at all: the
+	# party after a golem's turn could only step onto a tile somebody had just
+	# left. Opened again here, for the rest of this to re-decide.
+	if _big_fitted:
+		var region: Rect2i = _astargrid.region
+		for y in range(region.position.y, region.end.y):
+			for x in range(region.position.x, region.end.x):
+				_astargrid.set_point_solid(Vector2i(x, y), false)
+				_astargrid.set_point_weight_scale(Vector2i(x, y), 1)
+		_big_fitted = false
 	#Update occupied spaces for flying units
 	for point in _occupied_spaces:
 		if point == current_comb.position:
@@ -1035,6 +1098,12 @@ func update_points_weight():
 		else:
 			_astargrid.set_point_weight_scale(space, 1)
 			_astargrid.set_point_solid(space, false)
+	# Somebody bigger or smaller than a tile goes only where they fit.
+	if current_comb.get("span", 1) > 1:
+		_fit_points_to_big(current_comb)
+		_big_fitted = true
+	elif Sizes.shares(current_comb.get("size", Sizes.Size.HUMAN)):
+		_fit_points_to_small(current_comb)
 	_apply_fear_restrictions(current_comb)
 
 
@@ -1216,18 +1285,32 @@ func _handle_step_arrival():
 		end_walk()
 		return
 	var old_position = _previous_position
-	_astargrid.set_point_solid(_previous_position, false)
-	_occupied_spaces.erase(_previous_position)
-	_astargrid.set_point_weight_scale(_previous_position, 1)
 	controlled_node.position = _next_position
 	var new_position: Vector2i = tile_map.local_to_map(_next_position)
 	var mover = _walking_combatant if not _walking_combatant.is_empty() \
 			else combat.get_current_combatant()
 	mover.position = new_position
 	_previous_position = new_position
-	_occupied_spaces[new_position] = true
+	refresh_occupancy()
 	update_points_weight()
+	# Walked away from somebody they had hold of, they let go (Grab).
+	combat.check_holds()
 	await combat.check_reactive_skills(mover, old_position, new_position)
+	if combat.is_held(mover):
+		# Grabbed on the way out (Grab): dragged back, and the walk is over.
+		# What was left of it comes back if they break free this turn.
+		mover["movement_left_when_grabbed"] = maxi(movement - get_tile_cost(new_position), 0)
+		movement = 0
+		refresh_occupancy()
+		update_points_weight()
+		settle_undo_point()
+		_path = []
+		finished_move.emit()
+		_arrived = true
+		controlled_node.position = combat.sprite_point(mover)
+		controlled_node.play_idle()
+		check_turn_completion.call_deferred()
+		return
 	if not mover.alive:
 		# A reactive skill killed them mid-move - something that couldn't
 		# happen before reactive skills existed, since nothing else could
@@ -1413,7 +1496,13 @@ func move_player():
 ## every step of the route, so a path that curves in and back out is allowed;
 ## that's a deliberate simplification rather than an oversight.
 func can_move_to(tile: Vector2i) -> bool:
-	return combat.fear_allows(combat.get_current_combatant(), tile)
+	var mover = combat.get_current_combatant()
+	# Somebody bigger or smaller than a tile ends a move only where they fit -
+	# a flier passes over others, and must still come down somewhere clear.
+	if (mover.get("span", 1) > 1 or Sizes.shares(mover.get("size", Sizes.Size.HUMAN))) \
+			and tile != mover.position and not combat.room_for(mover, tile):
+		return false
+	return combat.fear_allows(mover, tile)
 
 
 ## Whoever is mid-walk, so a step that lands after their turn has passed is
@@ -1600,6 +1689,10 @@ func is_valid_landing_tile(tile: Vector2i) -> bool:
 		return false
 	if traveller.position == tile:
 		return standing_still_does_something()
+	# A throw may land on somebody (Hurl - see Combat "Grappling").
+	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	if skill.throws:
+		return combat.throw_destinations(aiming_caster(), skill, traveller).has(tile)
 	return combat.can_land_on(traveller, tile)
 
 
@@ -1629,10 +1722,16 @@ func confirm_skill_target(position: Vector2i):
 		# Now that we know who is travelling, narrow the marked tiles to the
 		# ones they could be set down on.
 		var subject_comb = combat.get_combatant_at(position)
-		if not subject_comb.is_empty():
+		if not subject_comb.is_empty() and skill.throws:
+			# Thrown: anywhere in the throw's reach, somebody to throw them at
+			# included - not the reach they were grabbed from.
+			_range_preview_positions = combat.throw_destinations(aiming_caster(), skill, subject_comb)
+		elif not subject_comb.is_empty():
 			_range_preview_positions = landable_tiles(_range_preview_positions, subject_comb)
 		queue_redraw()
 		return
+	# Among several small ones sharing the tile, the one pointed at.
+	combat.aim_choice = aim_subject_at(position).get("id", -1)
 	var subject = _teleport_subject
 	_teleport_subject = Vector2i(-99999, -99999)
 	# Leave aiming mode immediately so input state is correct, but hold the
@@ -1673,6 +1772,8 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 	if picking_a_landing_tile():
 		if tile in _range_preview_positions and is_valid_landing_tile(tile):
 			return ""
+		if skill.throws:
+			return "Too far to throw them"
 		return "%s needs an empty tile to land on" % skill.name
 	if skill.targets_fallen:
 		# Aimed at somebody fallen, of their own side, and nobody else.
@@ -1695,9 +1796,14 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 				return "%s is only for enemies" % skill.name
 		if Combat.steals(skill) and combat.items_of(comb).is_empty():
 			return "%s has nothing on them to steal" % comb.name
+	# Taunted, out of leverage, too heavy to lift - Combat's rules, asked the
+	# same way use_skill asks them.
+	var ruled_out: String = combat.refusal_for(caster, skill, tile)
+	if ruled_out != "":
+		return ruled_out
 	var there = comb.name if not comb.is_empty() else "there"
 	if tile not in _range_preview_positions:
-		var distance = combat.get_position_distance(caster.position, tile)
+		var distance = combat.distance_to(caster, tile)
 		if distance >= skill.min_range and distance <= combat.effective_max_range(caster, skill):
 			return "No clear line to %s" % there
 		return "Out of reach"
@@ -1875,6 +1981,33 @@ func _draw_tile_marker(centre: Vector2, colour: Color = Color.WHITE):
 
 const RANGE_FILL := Color(0.45, 0.68, 1.0, 0.24)
 const RANGE_EDGE := Color(0.55, 0.78, 1.0, 0.85)
+const DECLARED_ENEMY_FILL := Color(1.0, 0.42, 0.1, 0.26)
+const DECLARED_ENEMY_EDGE := Color(1.0, 0.5, 0.15, 0.9)
+const DECLARED_ALLY_FILL := Color(1.0, 0.84, 0.3, 0.2)
+const DECLARED_ALLY_EDGE := Color(1.0, 0.84, 0.3, 0.8)
+## What Intuition read (Combat "Reading intent"): where the blow will land, and
+## where they will stand to throw it.
+const INTENT_FILL := Color(0.2, 0.9, 0.8, 0.22)
+const INTENT_EDGE := Color(0.3, 1.0, 0.9, 0.9)
+## The ways out a broken enemy runs for (Combat "Getting away"): faint all
+## fight, bright while somebody is running for one.
+const ESCAPE_FILL := Color(0.95, 0.85, 0.3, 0.12)
+const ESCAPE_EDGE := Color(0.95, 0.85, 0.3, 0.45)
+const ESCAPE_FILL_RUNNING := Color(1.0, 0.85, 0.25, 0.3)
+const ESCAPE_EDGE_RUNNING := Color(1.0, 0.85, 0.25, 0.95)
+## The parts of somebody big, while aiming (Combat "Body parts").
+const PART_EDGE := Color(1.0, 0.7, 0.35, 0.85)
+const PART_BROKEN_EDGE := Color(0.55, 0.5, 0.45, 0.6)
+## The arena's (Combat "The arena"): what comes down next round, and bad ground.
+const HAZARD_WARNING_FILL := Color(0.85, 0.25, 0.85, 0.22)
+const HAZARD_WARNING_EDGE := Color(0.95, 0.4, 0.95, 0.9)
+const BAD_GROUND_FILL := Color(0.75, 0.15, 0.3, 0.32)
+const BAD_GROUND_EDGE := Color(0.9, 0.25, 0.35, 0.8)
+## An aura's reach: faint, since it is on the map for the whole fight.
+const AURA_FOE_FILL := Color(0.6, 0.3, 0.9, 0.1)
+const AURA_FOE_EDGE := Color(0.7, 0.45, 1.0, 0.45)
+const AURA_ALLY_FILL := Color(0.35, 0.75, 1.0, 0.08)
+const AURA_ALLY_EDGE := Color(0.45, 0.8, 1.0, 0.4)
 const BLAST_FILL := Color(1.0, 0.45, 0.2, 0.42)
 const BLAST_EDGE := Color(1.0, 0.62, 0.3, 0.95)
 const HELP_FILL := Color(0.4, 0.9, 0.45, 0.35)
@@ -1993,6 +2126,46 @@ func _card_for(comb):
 
 
 func _draw():
+	# Auras, faintest and underneath everything: violet where the other side's
+	# reaches, blue for the party's own.
+	if combat != null:
+		for aura in combat.aura_tiles():
+			_draw_area(aura.tiles, AURA_FOE_FILL if aura.hostile else AURA_ALLY_FILL,
+				AURA_FOE_EDGE if aura.hostile else AURA_ALLY_EDGE)
+		# The arena: bad ground in red, and what is about to happen in magenta.
+		_draw_area(combat.bad_ground_tiles(), BAD_GROUND_FILL, BAD_GROUND_EDGE)
+		_draw_area(combat.hazard_warning_tiles(), HAZARD_WARNING_FILL, HAZARD_WARNING_EDGE)
+	# Where declared moves will come down (Combat.declare): the other side's in
+	# warning orange, the party's own in gold.
+	if combat != null:
+		for comb in combat.combatants:
+			if comb.alive and comb.has("declared"):
+				var hostile: bool = comb.side != 0
+				_draw_area(comb.declared.tiles, DECLARED_ENEMY_FILL if hostile else DECLARED_ALLY_FILL,
+					DECLARED_ENEMY_EDGE if hostile else DECLARED_ALLY_EDGE)
+		# What Intuition read: the blow's tiles filled, the tile they will stand
+		# on outlined, and a line from where they are to it.
+		for mark in combat.intent_marks():
+			_draw_area(mark.tiles, INTENT_FILL, INTENT_EDGE)
+			var square := []
+			for dx in mark.span:
+				for dy in mark.span:
+					square.append(mark.stand + Vector2i(dx, dy))
+			if mark.stand != mark.from:
+				var half: Vector2 = Vector2.ONE * (mark.span - 1) * Grid.HALF_TILE
+				draw_line(tile_map.map_to_local(mark.from) + half, tile_map.map_to_local(mark.stand) + half, INTENT_EDGE, EDGE_WIDTH * 1.5)
+			_draw_area(square, Color(INTENT_FILL, 0.0), INTENT_EDGE)
+		# The ways out, each its own square: brighter while somebody runs for one.
+		if not combat.escape_points.is_empty():
+			var running: bool = combat.combatants.any(func(comb): return comb.alive and comb.get("fleeing", 0) > 0)
+			for tile in combat.escape_points:
+				_draw_area([tile], ESCAPE_FILL_RUNNING if running else ESCAPE_FILL,
+					ESCAPE_EDGE_RUNNING if running else ESCAPE_EDGE)
+	# While aiming, the parts of anybody big that can be aimed at and broken
+	# (Combat "Body parts"): outlined, and greyed once broken.
+	if combat != null and _skill_selected:
+		for mark in combat.part_marks():
+			_draw_area(mark.tiles, Color(0, 0, 0, 0), PART_BROKEN_EDGE if mark.broken else PART_EDGE)
 	if _showing_danger:
 		_draw_danger()
 	if _highlight_tile != null:
@@ -2003,6 +2176,10 @@ func _draw():
 			_draw_tile_marker(tile_map.map_to_local(tile), Color(Color.GOLD, 0.45))
 		if _deployment_selection != null:
 			_draw_tile_marker(tile_map.map_to_local(_deployment_selection.position), Color(Color.WHITE, 0.85))
+		return
+	if _stepping:
+		# Where a step after striking could go (choose_step).
+		_draw_area(_step_tiles, RANGE_FILL, RANGE_EDGE)
 		return
 	if _arrived == true and player_turn == true:
 		# Where the enemy is looking, for somebody whose turn depends on not
@@ -2044,3 +2221,155 @@ func _draw():
 ## since the scene can change during it.
 func still_in_a_battle() -> bool:
 	return is_inside_tree() and get_tree() != null
+
+
+## --- A step after striking ---
+##
+## A path that steps away after a strike (PassiveDefinition.step_after, the
+## Swashbuckler's) asks here, once the strike has landed: the tiles it could
+## step to are marked, a click on one steps there - nothing provoked, since
+## Combat.teleport_to provokes nothing - and Escape, a right click, or a click
+## on their own tile stays put.
+
+var _stepping := false
+var _step_tiles: Array = []
+var _step_choice = NO_TILE
+
+
+## Marks `tiles` for `comb` to step to and waits for the choice. Answers the
+## tile chosen, or their own to stay.
+func choose_step(comb: Dictionary, tiles: Array) -> Vector2i:
+	_step_tiles = tiles.duplicate()
+	_step_choice = comb.position
+	_stepping = true
+	combat.update_information.emit("[color=yellow]%s[/color] can step away: pick a marked tile, or press %s to stay.\n" % [
+		comb.name, Pad.key(&"ui_cancel", "Escape")])
+	queue_redraw()
+	while _stepping and is_inside_tree() and combat.still_running():
+		await get_tree().process_frame
+	_stepping = false
+	_step_tiles = []
+	queue_redraw()
+	return _step_choice
+
+
+func is_stepping() -> bool:
+	return _stepping
+
+
+## Steps to `tile`, if it is one of those marked; anything else stays put.
+func step_to(tile: Vector2i):
+	if not _stepping:
+		return
+	if _step_tiles.has(tile):
+		_step_choice = tile
+	_stepping = false
+
+
+## Stays where they are.
+func stay_put():
+	_stepping = false
+
+
+func _handle_step_input(event):
+	if event.is_action_pressed(&"ui_cancel"):
+		stay_put()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventMouseButton and event.is_released():
+		if event.button_index == MOUSE_BUTTON_RIGHT:
+			stay_put()
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			var tile := tile_map.local_to_map(_pointed_at())
+			if _step_tiles.has(tile) or tile == _step_choice:
+				step_to(tile)
+
+
+## --- Room to move, by size ---
+##
+## The pathfinding grid is decided per tile for whoever is acting. Somebody
+## bigger than a tile is walked by their anchor - the top left of the square
+## they cover - so a tile is open to them only where the whole square would fit:
+## nothing in the way under any of it, and nobody but them. Worked out with a
+## summed-area table so a Gigantic one does not cost a check per tile of its
+## square per tile of the map. Somebody smaller than a tile may step onto a
+## tile their own side's small ones share, while there is room.
+
+## Opens and closes every point for `comb`, bigger than a tile, by whether the
+## square anchored there fits.
+func _fit_points_to_big(comb: Dictionary):
+	var region: Rect2i = _astargrid.region
+	var width := region.size.x
+	var height := region.size.y
+	# A flier passes over others; something only too big for the walls does not.
+	var flier: bool = comb.movement_class == 1
+	var ground: int = Combat.terrain_class(comb)
+	# blocked[y][x] in a flat array, then summed so any square's count is four
+	# reads.
+	var sums := PackedInt32Array()
+	sums.resize((width + 1) * (height + 1))
+	for y in height:
+		var row := 0
+		for x in width:
+			var tile := region.position + Vector2i(x, y)
+			var blocked := is_tile_blocking(tile, ground)
+			if not blocked and not flier and _occupied_spaces.has(tile) and not combat.covers(comb, tile):
+				blocked = true
+			row += 1 if blocked else 0
+			sums[(y + 1) * (width + 1) + x + 1] = sums[y * (width + 1) + x + 1] + row
+	var span: int = comb.span
+	for y in height:
+		for x in width:
+			var tile := region.position + Vector2i(x, y)
+			var fits := x + span <= width and y + span <= height
+			if fits:
+				var bottom := (y + span) * (width + 1)
+				var top := y * (width + 1)
+				var count := sums[bottom + x + span] - sums[bottom + x] - sums[top + x + span] + sums[top + x]
+				fits = count == 0
+			if tile == comb.position:
+				fits = true
+			_astargrid.set_point_solid(tile, not fits)
+			_astargrid.set_point_weight_scale(tile, 1 if fits else INF)
+
+
+## Opens the tiles `comb`, smaller than a tile, could share.
+func _fit_points_to_small(comb: Dictionary):
+	if comb.movement_class == 1:
+		return
+	for tile in _occupied_spaces:
+		if tile == comb.position or is_tile_blocking(tile, comb.movement_class):
+			continue
+		var fits := combat.room_for(comb, tile)
+		_astargrid.set_point_solid(tile, not fits)
+		_astargrid.set_point_weight_scale(tile, 1 if fits else INF)
+
+
+## get_reachable_tiles for somebody bigger or smaller than a tile: every anchor
+## they could walk to within `budget`, each step one they fit (Combat.room_for),
+## costing what the tile they step onto costs.
+func _reachable_by_size(mover: Dictionary, start: Vector2i, budget: int) -> Dictionary:
+	const NEIGHBOR_OFFSETS = [
+		Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN,
+		Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)
+	]
+	var costs := {start: 0}
+	var frontier := [start]
+	while not frontier.is_empty():
+		var best := 0
+		for i in range(1, frontier.size()):
+			if costs[frontier[i]] < costs[frontier[best]]:
+				best = i
+		var current: Vector2i = frontier[best]
+		frontier.remove_at(best)
+		for offset in NEIGHBOR_OFFSETS:
+			var neighbor: Vector2i = current + offset
+			if not combat.room_for(mover, neighbor):
+				continue
+			var cost: int = costs[current] + get_tile_cost_for_class(neighbor, Combat.terrain_class(mover))
+			if cost > budget:
+				continue
+			if not costs.has(neighbor) or cost < costs[neighbor]:
+				costs[neighbor] = cost
+				frontier.append(neighbor)
+	return costs

@@ -235,6 +235,13 @@ func walking_and_sneaking():
 	ok(not watch.creeping(), "and not creeping")
 	await settle(10)
 	ok(m.party.position_of_leader().x > from.x, "he walks", "%s -> %s" % [from, m.party.position_of_leader()])
+	# A stick pushed right is never quite level: a little down in it walked the
+	# party slowly downhill along every left or right.
+	stick(JOY_AXIS_LEFT_Y, 0.15)
+	await settle(3)
+	ok(m.party.held_direction().y == 0.0 and m.party.held_direction().x > 0.9 and not m.party.light_touch(), "pushed right and a little down, it is right and nothing else",
+		"%s" % m.party.held_direction())
+	stick(JOY_AXIS_LEFT_Y, 0.0)
 	stick(JOY_AXIS_LEFT_X, 0.4)
 	await settle(3)
 	ok(m.party.light_touch() and watch.creeping(), "only a little way, and he creeps",

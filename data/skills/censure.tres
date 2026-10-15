@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/censure_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[resource]
+script = ExtResource("3_skill")
+name = "Censure"
+description = "A wide sweep of judgement, spreading from her hands."
+icon = ExtResource("2_icon")
+min_range = 1
+max_range = 4
+required_level = 7
+ability_modifier = 1.0
+scaling_stat = 1
+damage_type = 12
+spell_slot_level = 2
+aoe_radius = 3
+aoe_shape = 2

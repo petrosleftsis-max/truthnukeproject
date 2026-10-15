@@ -195,7 +195,9 @@ func _vault_along(delta: float):
 ## As long as the stick is pushed - shorter for a light touch - and always a
 ## full length from the keys.
 func held_direction() -> Vector2:
-	return Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
+	# Keys or stick, never the two added together (Pad.direction): a pad's
+	# stick resting a little off centre walked a party on the keys slowly down.
+	return Pad.direction(&"move_left", &"move_right", &"move_up", &"move_down")
 
 
 ## Whether the stick is pushed only a little way, which is creeping on a

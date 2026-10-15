@@ -75,9 +75,10 @@ func give_turn(combat, who: Dictionary):
 
 ## Moves `who` to `tile` on the board.
 func put(combat, who: Dictionary, tile: Vector2i):
-	combat.controller.reposition_combatant(who.position, tile)
+	var from: Vector2i = who.position
 	who.position = tile
 	who.sprite.position = combat.controller.tile_map.map_to_local(tile)
+	combat.controller.reposition_combatant(from, tile)
 
 
 ## A free tile beside `tile` that anybody can stand on.
@@ -151,6 +152,21 @@ func in_a_fight():
 	ok(controller.pad_tiles() == [mark.position], "a pad goes straight to the one worth robbing", "%s" % [controller.pad_tiles()])
 	ok(ui.describe_effect(skill.effects[0]).contains("every item"), "its tooltip says it takes everything",
 		ui.describe_effect(skill.effects[0]))
+	controller._preview_hits(mark.position)
+	var said_over := texts_in(ui._hit_preview)
+	ok(ui._hit_preview.visible and said_over.contains("Medium Bomb") and said_over.contains("Medicine"),
+		"hovering the enemy with something on them shows what they carry", said_over)
+	controller._preview_hits(empty_handed.position)
+	said_over = texts_in(ui._hit_preview)
+	ok(ui._hit_preview.visible and said_over.contains("Carries nothing") and said_over.contains("nothing on them to steal"),
+		"and the empty-handed one says so, and why it cannot go", said_over)
+	var far_foe: Dictionary = enemies[2] if enemies.size() > 2 else {}
+	if not far_foe.is_empty():
+		far_foe["pocket"] = ["frost_bottle"]
+		controller._preview_hits(far_foe.position)
+		said_over = texts_in(ui._hit_preview)
+		ok(ui._hit_preview.visible and said_over.contains("Frost Bottle"), "somebody out of reach can still be looked over", said_over)
+		far_foe["pocket"] = []
 	controller.cancel_skill_selection()
 
 	log_line("")
@@ -297,3 +313,13 @@ func the_editor():
 	ok(not problems.contains("not an item"), "a real one does not")
 	editor.free()
 	log_line("")
+
+
+## Every label's text under `node`, joined - what a prompt is saying.
+func texts_in(node: Node) -> String:
+	if node == null:
+		return ""
+	var found := []
+	for label in node.find_children("*", "Label", true, false):
+		found.append(label.text)
+	return " | ".join(found)

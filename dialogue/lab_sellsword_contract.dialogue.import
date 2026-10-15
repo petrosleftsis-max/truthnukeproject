@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://c38mhsba4w718"
+path="res://.godot/imported/lab_sellsword_contract.dialogue-64ac26252d35e2ce903cb05ba557a0c0.tres"
+
+[deps]
+
+source_file="res://dialogue/lab_sellsword_contract.dialogue"
+dest_files=["res://.godot/imported/lab_sellsword_contract.dialogue-64ac26252d35e2ce903cb05ba557a0c0.tres"]
+
+[params]
+
+defaults=true

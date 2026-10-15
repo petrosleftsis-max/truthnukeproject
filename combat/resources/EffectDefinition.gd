@@ -21,7 +21,15 @@ enum EffectType {
 	RESISTANCE,        ## Raises or lowers how much of one damage type gets through, for a duration.
 	UPGRADE_ELEMENT,   ## The target's next damaging skill is cast with the upgraded form of its element.
 	REVIVE,            ## Brings back an ally who has fallen - and they come back weaker, for good.
-	STEAL              ## Takes what the target has to hand in this fight and gives it to the thief.
+	STEAL,             ## Takes what the target has to hand in this fight and gives it to the thief.
+	SUMMON_DECOY,      ## An image of the ally it lands on, beside them: no turns, gone at the first touch.
+	INTERACT,          ## Uses the thing on the battlefield it lands on (BattleObjectDefinition) - rings the bell.
+	HACK,              ## Hacks apart the declared skill the one it lands on is winding up - Prometheus's Hack.
+	READ_INTENT,       ## Reads what the one it lands on means to do next turn, and holds them to it - Alithia's Intuition.
+	SHAKE,             ## Shakes their nerve by Min Amount to Max Amount, toward breaking (fleeing or surrendering).
+	CLIMB,             ## Climbs onto the one it lands on, to fight from on top of them - Enfina's Climb.
+	BRIBE,             ## Pays the one it lands on their price (CombatantDefinition.bribe_price) to leave the fight.
+	BREAK_FREE,        ## Tries to break the grip of the one it lands on, who is holding the user (Grappled) - Break Free.
 }
 
 enum DispelScope {
@@ -223,6 +231,12 @@ const FIELDS_BY_TYPE := {
 	EffectType.RESISTANCE: ["display_name", "damage_type", "modifier_amount", "duration", "wears_off_at_start"],
 	EffectType.REVIVE: ["revive_health", "revive_weakening"],
 	EffectType.STEAL: ["steal_count"],
+	# Nothing to configure: an image is one point of health and no turns.
+	EffectType.SUMMON_DECOY: [],
+	# Nothing to configure: what happens is the object's own business.
+	EffectType.INTERACT: [],
+	# Nothing to configure: the hack is the skill's own (SkillDefinition.hack).
+	EffectType.HACK: [],
 }
 
 

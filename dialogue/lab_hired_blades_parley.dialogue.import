@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://dhq35nimdtcv"
+path="res://.godot/imported/lab_hired_blades_parley.dialogue-e8accbc6fe4308c107360bf160e1675d.tres"
+
+[deps]
+
+source_file="res://dialogue/lab_hired_blades_parley.dialogue"
+dest_files=["res://.godot/imported/lab_hired_blades_parley.dialogue-e8accbc6fe4308c107360bf160e1675d.tres"]
+
+[params]
+
+defaults=true

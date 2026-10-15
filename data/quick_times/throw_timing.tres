@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="QuickTimeDefinition" format=3]
+
+[ext_resource type="Script" path="res://quicktime/QuickTimeDefinition.gd" id="1_qt"]
+
+[resource]
+script = ExtResource("1_qt")
+kind = 3
+prompt = "Throw!"
+time = 3.0
+zone = 0.2

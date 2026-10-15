@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_who")
+name = "Sellsword"
+glossary_text = "A blade for hire. Loyal to the purse - anybody's purse."
+max_hp = 45
+max_hp_level_20 = 220
+movement = 5
+initiative = 3
+secondary_stat = 3
+sprite_frames = ExtResource("2_frames")
+skills = Array[String](["greatsword_attack", "hurl", "run"])
+nerve = 50
+when_broken = 1
+bribe_price = 50
+leverage_clues = Array[String](["sellsword_contract"])
+interrogation_clues = Array[String](["sellsword_contract"])
+interrogation_gold = 30

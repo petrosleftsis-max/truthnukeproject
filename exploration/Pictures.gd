@@ -248,6 +248,12 @@ func click(hotspot: Hotspot):
 		_say("There's no room left to carry that.")
 		play("use_wrong")
 		return
+	# Hack-locked: hacked first, and nothing more unless it went through.
+	if hotspot.hack != null and not Hacking.succeeded(hotspot.examined_id()):
+		var outcome: Dictionary = await Hacking.run(hotspot.hack, hotspot.examined_id())
+		if outcome.get("result", "") != "success":
+			_refresh_current()
+			return
 	Campaign.mark_examined(hotspot.examined_id())
 	play(hotspot.verb_name(), hotspot.click_sound)
 	hotspot.play_click_animation()
@@ -709,6 +715,9 @@ func _input(event):
 		return
 	var journal = get_node_or_null("/root/Journal")
 	if journal != null and journal.is_open():
+		return
+	# A hack over the picture takes its own Escape (walking away from it).
+	if Hacking.running():
 		return
 	var cancel = event.is_action_pressed("ui_cancel") \
 			or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT)

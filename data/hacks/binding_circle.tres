@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="1_hack"]
+[ext_resource type="Script" path="res://hacking/HackLine.gd" id="2_line"]
+
+[sub_resource type="Resource" id="Line_targets"]
+script = ExtResource("2_line")
+label = "Targets"
+options = Array[String](["Intruders", "Everyone", "Owners"])
+cost = 2
+pushes = Dictionary[String, int]({
+"Stability": -2
+})
+goal = 3
+goal_value = 2
+
+[sub_resource type="Resource" id="Line_strength"]
+script = ExtResource("2_line")
+label = "Strength"
+value = 4
+maximum = 9
+pushes = Dictionary[String, int]({
+"Reach": -1,
+"Stability": -1
+})
+goal = 2
+goal_value = 7
+
+[sub_resource type="Resource" id="Line_reach"]
+script = ExtResource("2_line")
+label = "Reach"
+value = 5
+maximum = 9
+pushes = Dictionary[String, int]({
+"Strength": -1
+})
+goal = 2
+goal_value = 7
+
+[sub_resource type="Resource" id="Line_stability"]
+script = ExtResource("2_line")
+label = "Stability"
+value = 6
+maximum = 9
+pushes = Dictionary[String, int]({
+"Reach": 1
+})
+goal = 2
+goal_value = 3
+
+[sub_resource type="Resource" id="Line_wakes"]
+script = ExtResource("2_line")
+label = "Wakes"
+options = Array[String](["The Captain", "Nobody"])
+cost = 3
+locked_until = "Targets"
+goal = 3
+goal_value = 1
+
+[resource]
+script = ExtResource("1_hack")
+title = "The Binding Circle"
+description = "A circle cut into the floor, binding whoever it calls an intruder. Its lines pull on each other: every step drags others with it, every number stays between 0 and 9, and every step costs - even a step back. Turn it on its owners, stronger and further-reaching, without letting it come apart."
+tries = 3
+retry_cost_amount = 8
+hint_gate = 1
+simplify_gate = 2
+sets_off = true
+failure_line = "The circle snaps shut - it has his measure now."
+lines = Array[ExtResource("2_line")]([SubResource("Line_targets"), SubResource("Line_strength"), SubResource("Line_reach"), SubResource("Line_stability"), SubResource("Line_wakes")])
+edits = 15

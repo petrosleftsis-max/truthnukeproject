@@ -101,4 +101,17 @@ clues
 pad
 dungeon
 resuscitate
+progression
+paths
+sizes
+declared
+bosses
+nades
+hacking
+factions
+gear_wear
+store
+saves
 steal
+enemies
+sentries

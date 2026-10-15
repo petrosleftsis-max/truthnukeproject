@@ -117,6 +117,10 @@ func run_test():
 	for condition in GlossaryPanel.conditions():
 		# Caught off guard comes from an ambush, which Combat itself holds.
 		var inflicted: bool = condition == Combat.SURPRISED
+		# Or brought by somebody: a stagger, an aura, a boss's hazard, a bell.
+		for brought in GlossaryPanel.conditions_from_combatants():
+			if brought == condition:
+				inflicted = true
 		for source in [SkillDatabase.skills, ItemDatabase.items]:
 			for key in source:
 				for effect in source[key].effects:

@@ -20,25 +20,29 @@ class_name CombatantDefinition
 @export_enum("Melee", "Ranged", "Magic") var class_t = 0
 @export_enum("Ground", "Flying", "Mounted") var class_m = 0
 @export_group("Stats")
-## Health at level 1, and what every level inherits unless it says otherwise.
+## Health at level 1.
 @export_range(1, 2, 1, "or_greater") var max_hp = 1
-## Health at levels 2 and 3. Zero means "same as the level below", so a
-## character who is only ever fought at one strength needs nothing here, and
-## setting only level 3 gives a jump at 3 with level 2 still matching level 1.
+## Health at level 20. Every level between climbs the same step from Max Hp to
+## this (see hp_at). Zero means the same as level 1 all the way up, so a
+## character only ever fought at one strength needs nothing here.
 ##
 ## Separate from the attribute curve on purpose: attributes are worked out from
 ## the level by formula, because they are how developed someone is. How much
 ## punishment a character can take is a design decision per character - a mage
 ## who never gets sturdier and a knight who doubles are both reasonable, and
 ## neither falls out of a formula.
-@export_range(0, 2, 1, "or_greater") var max_hp_level_2 = 0
-@export_range(0, 2, 1, "or_greater") var max_hp_level_3 = 0
+@export_range(0, 2, 1, "or_greater") var max_hp_level_20 = 0
+## How big they are - see Sizes. A Human is one tile; Tiny and Small share a
+## tile with their own side; Large and up cover 2 x 2 tiles and more.
+@export var size: Sizes.Size = Sizes.Size.HUMAN
+## For a Gigantic one: how many tiles a side it covers, 16 or more.
+@export_range(16, 64) var gigantic_span: int = 16
 @export_range(1, 3, 1, "or_greater") var movement = 3
 @export_range(1, 2, 1, "or_greater") var initiative = 1
 
 @export_subgroup("Attributes")
 ## The two attributes this character is built around. A combatant's level
-## decides the numbers - main stat 47 at level 2 and 85 at level 3, secondary
+## decides the numbers - main stat 10 at level 1 climbing to 85 at level 20, secondary
 ## half that, everything else a flat 10 - so all that is set here is which two
 ## they are. See Stats.stats_for_level.
 ##
@@ -82,6 +86,9 @@ class_name CombatantDefinition
 ## moment comes. Never on the action panel; the character sheet lists them
 ## under Passive Skills. See PassiveDefinition.
 @export var passives: Array[PassiveDefinition] = []
+## The paths they can choose between at level 5, by key, in the order the
+## choice offers them. See SubclassDefinition.
+@export var subclasses: Array[String] = []
 @export_group("Resistances")
 ## How this combatant stands up to each kind of damage, as a percentage.
 ## Positive resists - 20 means a fifth of that damage is shrugged off, 100
@@ -108,12 +115,89 @@ class_name CombatantDefinition
 @export_range(-100, 100, 1, "or_greater", "or_less") var resist_acid: int = 0
 @export_range(-100, 100, 1, "or_greater", "or_less") var resist_idol: int = 0
 
+@export_group("Immunities")
+## Conditions that never take hold on them - a golem that cannot be poisoned, a
+## boss nobody can stun. Drag the condition's file in from data/conditions/. (To
+## be immune to a kind of damage, set its resistance above to 100.)
+@export var immune_to_conditions: Array[ConditionDefinition] = []
+## The other things that cannot be done to them (Immunity).
+@export var immune_to: Array[Immunity.Kind] = []
+
+@export_group("Turns")
+## Turns they get each round, spread through it. A boss facing a whole party
+## usually wants more than one.
+@export_range(1, 4, 1, "or_greater") var turns_per_round: int = 1
+
+@export_group("Boss")
+## Makes them a boss, whatever their size: their name across the screen as they
+## appear, their own health bar along the top, phases and a stagger bar.
+@export var boss: BossDefinition
+
+@export_group("Nerve")
+## How much it takes to break them (Combat "Nerve"): what shakes them - their
+## leader falling, half their side down, being badly hurt, being alone, being
+## afraid, being intimidated - is added up at the start of their turns, and at
+## this much or more they break. Immune to Breaking (above) never breaks.
+@export_range(0, 300, 1) var nerve: int = 60
+## Broken, they run for it - and are gone after a couple of turns - or throw
+## down their weapons and are taken.
+@export_enum("Flees", "Surrenders") var when_broken: int = 0
+## Their side's leader: when they fall, the rest of their side lose heart.
+@export var leads: bool = false
+## Fled and got away (Combat "Getting away"), what comes of it: nothing more,
+## they are gone; they come back (with whoever Brings Back names) Back After
+## Rounds later, where they left; or the fight is lost - the messenger who must
+## not reach the gate.
+@export_enum("Gone", "Comes back", "Fight lost") var when_fled: int = 0
+@export_range(1, 10, 1) var back_after_rounds: int = 2
+## Coming back: who comes with them, by combatant key.
+@export var brings_back: Array[String] = []
+## Set when they get away, for a conversation afterwards to know.
+@export var fled_flag: String = ""
+
+@export_group("Dealing with them")
+## Gold that buys them out of a fight (Bribe, or a parley before it): a
+## mercenary's price. 0 for somebody who cannot be bought.
+@export_range(0, 9999, 1) var bribe_price: int = 0
+## Clues (by key) that give the party something on them - what Intimidate,
+## Persuade and Deceive need. Knowing their faction (FactionDefinition, through a
+## clue) does as well.
+@export var leverage_clues: Array[String] = []
+## Taken alive (surrendered or knocked out), what questioning them gives up:
+## clues by key...
+@export var interrogation_clues: Array[String] = []
+## ...gold, from where they stashed their pay...
+@export_range(0, 9999, 1) var interrogation_gold: int = 0
+## ...and, optionally, a conversation of their own, played instead of the
+## plain questioning.
+@export var interrogation_dialogue: Resource
+@export var interrogation_title: String = "start"
+
+@export_group("Bound")
+## Who they are bound to - "the sorcerer", "its master" - for a creature held
+## by a binding. Prometheus can hack a bound creature's binding with Rebind
+## Hack below, and it fights for the party. Empty: not bound.
+@export var bound_to: String = ""
+## The binding's sheet: a Rewrite the Rule whose last line is who it answers to.
+@export var rebind_hack: HackDefinition
+## Turns of its own it fights for the party, rebound. 0 for the rest of the fight.
+@export_range(0, 20, 1) var rebind_turns: int = 0
+
+@export_group("Body parts")
+## Places on them that can be aimed at and broken (BodyPartDefinition) - legs,
+## arms, an armour plate. For somebody bigger than a tile.
+@export var parts: Array[BodyPartDefinition] = []
+
 @export_group("Party")
 ## Whether this one actually fights. Turn it off for someone who travels with
 ## the party but takes no part in battles - a guide, a prisoner, a child - and
 ## they'll walk in the line on the map and appear in the portrait column, but
 ## be left out when an encounter deploys the party.
 @export var can_fight: bool = true
+## Whether they keep the enemy codex: every enemy they study - with Study, or
+## any other way - gets its page written (Campaign "The enemy codex"). Enfina
+## and Prometheus do.
+@export var keeps_codex: bool = false
 
 ## Whether consumables that would normally cost the main action can be used as
 ## a secondary one instead. Cyrus can: quick hands are his, and it is why he
@@ -130,6 +214,12 @@ class_name CombatantDefinition
 ## brings, or a dialogue giving somebody something - so walking onto a map
 ## starts everyone empty-handed.
 @export var starting_items: Array[String] = []
+@export_group("Faction")
+## The side they belong to, by key (FactionDefinition) - empty for nobody's.
+## Learning about it (ClueDefinition.reveals_factions) opens their sheet in every
+## fight and has the party hit them harder.
+@export var faction: String = ""
+
 @export_group("AI (enemies only - ignored for player-controlled units)")
 ## Which Combat.gd function drives this enemy's turn. Built-in options:
 ## "ai_melee_rush" (default - rushes the nearest enemy and melees it),
@@ -141,17 +231,12 @@ class_name CombatantDefinition
 @export var ai_function: String = "ai_melee_rush"
 
 
-## Starting gates, indexed by level - [0] is unused so the level number
-## reads straight into the array.
-## Health at `level`, following the "same as the level below" rule: a level 3
-## with nothing set of its own takes level 2's, which takes level 1's.
+## Health at `level`: Max Hp at level 1, Max Hp Level 20 at level 20, and the
+## same step every level between, rounded.
 func hp_at(level: int) -> int:
-	var health = max_hp
-	if level >= 2 and max_hp_level_2 > 0:
-		health = max_hp_level_2
-	if level >= 3 and max_hp_level_3 > 0:
-		health = max_hp_level_3
-	return health
+	if max_hp_level_20 <= 0:
+		return max_hp
+	return roundi(lerpf(max_hp, max_hp_level_20, Stats.level_progress(level)))
 
 
 ## What this combatant may cast at `level`: their level's allowance if they have
@@ -227,3 +312,10 @@ func first_frame() -> Texture2D:
 	if wanted == "" or sprite_frames.get_frame_count(wanted) == 0:
 		return null
 	return sprite_frames.get_frame_texture(wanted, 0)
+
+
+## Faction as a dropdown of the factions there are, blank first for none.
+func _validate_property(property: Dictionary):
+	if property.name == "faction" and Engine.is_editor_hint():
+		property.hint = PROPERTY_HINT_ENUM
+		property.hint_string = "," + ",".join(FactionDefinition.all().keys())

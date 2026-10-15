@@ -1,10 +1,16 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://ui/level_select.gd" id="1_levelselect"]
 [ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="2_encdef"]
 [ext_resource type="Resource" path="res://data/encounters/encounter_01_ambush.tres" id="3_enc1"]
 [ext_resource type="Resource" path="res://data/encounters/encounter_02_sappers.tres" id="4_enc2"]
 [ext_resource type="Resource" path="res://data/encounters/encounter_03_watcher.tres" id="5_enc3"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_hired_blades.tres" id="6_enc4"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_bound_golem.tres" id="7_enc5"]
+[ext_resource type="Resource" path="res://data/encounters/sizes_big_and_small.tres" id="8_enc6"]
+[ext_resource type="Resource" path="res://data/encounters/sizes_colossus.tres" id="9_enc7"]
+[ext_resource type="Resource" path="res://data/encounters/boss_ash_warden.tres" id="10_enc8"]
+[ext_resource type="Resource" path="res://data/encounters/boss_bellkeeper.tres" id="11_enc9"]
 
 [node name="LevelSelect" type="Control"]
 layout_mode = 3
@@ -14,7 +20,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_levelselect")
-encounters = Array[ExtResource("2_encdef")]([ExtResource("3_enc1"), ExtResource("4_enc2"), ExtResource("5_enc3")])
+encounters = Array[ExtResource("2_encdef")]([ExtResource("3_enc1"), ExtResource("4_enc2"), ExtResource("5_enc3"), ExtResource("6_enc4"), ExtResource("7_enc5"), ExtResource("8_enc6"), ExtResource("9_enc7"), ExtResource("10_enc8"), ExtResource("11_enc9")])
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
@@ -52,8 +58,15 @@ layout_mode = 2
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="EncounterList" type="VBoxContainer" parent="Center/VBox"]
+[node name="EncounterScroll" type="ScrollContainer" parent="Center/VBox"]
+custom_minimum_size = Vector2(440, 376)
 layout_mode = 2
+follow_focus = true
+horizontal_scroll_mode = 0
+
+[node name="EncounterList" type="VBoxContainer" parent="Center/VBox/EncounterScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="ResetButton" type="Button" parent="Center/VBox"]

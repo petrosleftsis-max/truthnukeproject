@@ -63,6 +63,9 @@ var _body: HBoxContainer = null
 var _stat_scroll: ScrollContainer = null
 var _title: Label = null
 var _subtitle: Label = null
+var _path_button: Button = null
+## The path choice opened from here, or null.
+var path_picker: SubclassPicker = null
 var _portrait: Control = null
 var _animated: AnimatedSprite2D = null
 var _still: TextureRect = null
@@ -153,6 +156,16 @@ func _build():
 	_subtitle.add_theme_color_override("font_color", MUTED)
 	_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_subtitle)
+
+	# Somebody with a path still to choose can choose it from here, as well as
+	# when the map asks - put away there, it is not lost.
+	_path_button = Button.new()
+	_path_button.name = "ChoosePath"
+	_path_button.text = "Choose a path"
+	_path_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_path_button.visible = false
+	_path_button.pressed.connect(_choose_path)
+	column.add_child(_path_button)
 
 	_body = HBoxContainer.new()
 	_body.add_theme_constant_override("separation", 18)
@@ -262,6 +275,9 @@ func open(hold_the_game: bool = true):
 
 
 func close():
+	if path_picker != null:
+		path_picker.queue_free()
+		path_picker = null
 	_open = false
 	_root.visible = false
 	MenuPause.release(self)
@@ -367,6 +383,11 @@ func _gather() -> Array:
 				"sprite_frames": comb.get("sprite_frames"),
 				"map_sprite": comb.get("map_sprite"),
 				"in_battle": true,
+				"key": comb.get("combatant_key", ""),
+				"subclass": comb.get("subclass", ""),
+				"gear": comb.get("gear", []),
+				"faction": comb.get("faction", ""),
+				"known_faction": comb.get("known_faction", "") != "",
 				"movement": combat.get_effective_stat(comb, "movement"),
 				"movement_class": comb.get("movement_class", 0),
 				"base_movement_class": comb.get("base_movement_class", comb.get("movement_class", 0)),
@@ -386,6 +407,13 @@ func _gather() -> Array:
 			continue
 		var stats := Stats.stats_for_level(Campaign.party_level, definition.main_stat, definition.secondary_stat)
 		var weapon_base := Stats.WEAPON_BASE
+		# What they are wearing is what they will fight with (Combat.wear_gear).
+		var weapon := EquipmentDefinition.named(Campaign.equipped_in(member.key, "weapon"))
+		if weapon != null:
+			weapon_base = weapon.weapon_base
+		var armour := EquipmentDefinition.named(Campaign.equipped_in(member.key, "armour"))
+		if armour != null:
+			stats["defense"] = armour.defense
 		# Brought back from falling in a fight, and weaker for it for good (see
 		# Combat.weaken). Their health already is: it is what they were last
 		# fielded with.
@@ -406,7 +434,9 @@ func _gather() -> Array:
 			"in_battle": false,
 			"movement_class": definition.class_m,
 			"base_movement_class": definition.class_m,
-			"passives": definition.passives,
+			"passives": _passives_on_the_map(member.key, definition),
+			"key": member.key,
+			"subclass": Campaign.subclass_of(member.key),
 		})
 	return found
 
@@ -432,7 +462,17 @@ func _show_entry():
 		return
 	var entry = _entries[_index]
 	_title.text = entry.name
-	_subtitle.text = "Level %d    %d / %d HP" % [entry.level, entry.hp, entry.max_hp]
+	# What they are besides their level: the path they took, or the side they
+	# are on - and whether the party knows that side well enough to hit harder.
+	var path := SubclassDefinition.named(entry.get("subclass", ""))
+	var faction := FactionDefinition.named(entry.get("faction", ""))
+	var also := ""
+	if path != null:
+		also = path.name + "    "
+	elif faction != null:
+		also = faction.name + (" (known)" if entry.get("known_faction", false) else "") + "    "
+	_subtitle.text = "Level %d    %s%d / %d HP" % [entry.level, also, entry.hp, entry.max_hp]
+	_path_button.visible = not entry.get("in_battle", false) and Campaign.needs_path(entry.get("key", ""))
 
 	_show_portrait(entry)
 	_show_stats(entry)
@@ -489,6 +529,7 @@ func _show_stats(entry: Dictionary):
 		_stat_rows.add_child(_stat_row("Movement", str(entry.movement)))
 	if entry.has("movement_class"):
 		_stat_rows.add_child(_stat_row("Movement type", _movement_type_of(entry)))
+	_show_gear(entry)
 	_show_resistances(entry)
 	_show_state(entry)
 	_show_skills(entry)
@@ -785,3 +826,135 @@ func _skills_they_actually_have(comb: Dictionary) -> Array:
 		if skill != null and combat.meets_level_for(comb, skill):
 			found.append(key)
 	return found
+
+
+## What `key` does without being asked at the party's level, away from a fight:
+## their own passives and their path's that have come in by now.
+func _passives_on_the_map(key: String, definition: CombatantDefinition) -> Array:
+	var found: Array = definition.passives.duplicate()
+	var charm := EquipmentDefinition.named(Campaign.equipped_in(key, "charm"))
+	if charm != null and charm.passive != null:
+		found.append(charm.passive)
+	var path := SubclassDefinition.named(Campaign.subclass_of(key))
+	if path != null and Campaign.party_level >= Stats.SUBCLASS_LEVEL:
+		for passive in path.passives:
+			if passive != null and Campaign.party_level >= passive.required_level:
+				found.append(passive)
+	return found
+
+
+## --- Choosing a path from here ---
+
+
+## Puts the path choice over the sheet for whoever is on show.
+func _choose_path():
+	if path_picker != null or _index < 0 or _index >= _entries.size():
+		return
+	path_picker = SubclassPicker.new()
+	path_picker.process_mode = Node.PROCESS_MODE_ALWAYS
+	_root.add_child(path_picker)
+	path_picker.offer(_entries[_index].get("key", ""), true)
+	path_picker.chosen.connect(func(_key, _subclass): _close_path_picker())
+	path_picker.put_away.connect(_close_path_picker)
+
+
+func _close_path_picker():
+	if path_picker == null:
+		return
+	path_picker.queue_free()
+	path_picker = null
+	_regather()
+
+
+## --- Gear ---
+##
+## What they are wearing (EquipmentDefinition). In a fight, read only. On the
+## map, a button a slot: pressed, the pieces in the stash that fit it come up
+## underneath to put on, with Take Off if something is on already.
+
+## The slot whose choices are showing, or "".
+var _gear_slot_open := ""
+
+
+func _show_gear(entry: Dictionary):
+	if entry.get("in_battle", false):
+		var worn: Array = entry.get("gear", [])
+		if worn.is_empty():
+			return
+		var worn_tags := _labelled_tags("Gear")
+		for piece_name in worn:
+			worn_tags.add_child(_tag(piece_name, INK, "", piece_name))
+		return
+	var key: String = entry.get("key", "")
+	if key == "":
+		return
+	var tags := _labelled_tags("Gear")
+	for i in EquipmentDefinition.SLOT_KEYS.size():
+		var slot: String = EquipmentDefinition.SLOT_KEYS[i]
+		var piece := EquipmentDefinition.named(Campaign.equipped_in(key, slot))
+		var button := Button.new()
+		button.name = "Gear_" + slot
+		button.text = "%s: %s" % [EquipmentDefinition.SLOT_NAMES[i], piece.name if piece != null else "-"]
+		button.tooltip_text = TooltipText.wrap(_gear_reading(piece) if piece != null else "Nothing worn. Press to choose from the stash.")
+		button.pressed.connect(_choose_gear_slot.bind(slot))
+		tags.add_child(button)
+	if _gear_slot_open != "":
+		_show_gear_choices(key, _gear_slot_open)
+
+
+## What a piece is and does, for its tooltip.
+func _gear_reading(piece: EquipmentDefinition) -> String:
+	var lines := [piece.name, piece.summary()]
+	if piece.description != "":
+		lines.append_array(["", piece.description])
+	return "\n".join(lines)
+
+
+func _choose_gear_slot(slot: String):
+	_gear_slot_open = "" if _gear_slot_open == slot else slot
+	_show_entry()
+
+
+## The pieces in the stash that fit `slot` for `key`, a button each.
+func _show_gear_choices(key: String, slot: String):
+	var tags := _labelled_tags("")
+	var fitting := Campaign.gear_for(key, slot)
+	for piece_key in fitting:
+		var piece := EquipmentDefinition.named(piece_key)
+		var button := Button.new()
+		button.name = "Wear_" + piece_key
+		button.text = "Wear %s" % piece.name
+		button.tooltip_text = TooltipText.wrap(_gear_reading(piece))
+		button.pressed.connect(func(): _wear(key, piece_key))
+		tags.add_child(button)
+	if Campaign.equipped_in(key, slot) != "":
+		var off := Button.new()
+		off.name = "TakeOff"
+		off.text = "Take off"
+		off.pressed.connect(func(): _take_off(key, slot))
+		tags.add_child(off)
+	if fitting.is_empty() and Campaign.equipped_in(key, slot) == "":
+		var none := Label.new()
+		none.text = "Nothing in the stash fits."
+		none.add_theme_color_override("font_color", MUTED)
+		tags.add_child(none)
+
+
+func _wear(key: String, piece_key: String):
+	Campaign.equip(key, piece_key)
+	_gear_slot_open = ""
+	_regather()
+
+
+func _take_off(key: String, slot: String):
+	Campaign.unequip(key, slot)
+	_gear_slot_open = ""
+	_regather()
+
+
+## Everybody worked out again, staying on whoever is showing.
+func _regather():
+	var showing := _index
+	_entries = _gather()
+	_index = clampi(showing, 0, maxi(_entries.size() - 1, 0))
+	_show_entry()

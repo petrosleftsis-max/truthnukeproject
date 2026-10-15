@@ -13,7 +13,10 @@ class_name EncounterEditor
 ##      - To add a combatant: duplicate a marker (Ctrl+D) and change its
 ##        Combatant Key / Side in the inspector.
 ##      - To remove one: delete the marker.
-##   4. Press "Save spawns to encounter".
+##   4. Ways out - the tiles a broken enemy runs for (escape_points): press
+##      "Add a way out" for a marker, drag it where the way out is, Ctrl+D for
+##      another, delete to take one away.
+##   5. Press "Save spawns to encounter". It saves the ways out too.
 ##
 ## Save refuses to write anything invalid - off the map, on a hole in a
 ## non-rectangular map, on terrain that blocks that unit's movement class, on
@@ -33,6 +36,7 @@ class_name EncounterEditor
 
 @export_tool_button("Reload from encounter") var reload_action = rebuild
 @export_tool_button("Save spawns to encounter") var save_action = save_to_encounter
+@export_tool_button("Add a way out") var escape_action = add_escape_point
 
 ## What the editor makes of the markers right now, and what happened the last
 ## time Save was pressed. Shown here rather than only pushed to the Output
@@ -45,6 +49,7 @@ var _status_countdown := 0.0
 
 const TERRAIN_NODE = "TerrainPreview"
 const SPAWNS_NODE = "Spawns"
+const ESCAPES_NODE = "WaysOut"
 
 
 ## Set in _ready, acted on in _process. Rebuilding cannot happen during _ready
@@ -116,9 +121,12 @@ func _refresh_status():
 	var problems = _problems_with_layout()
 	var summary = _map_extent_note() + "\n"
 	if problems.is_empty():
-		summary += "Ready: %d spawns to save." % markers().size()
+		summary += "Ready: %d spawns and %d ways out to save." % [markers().size(), escape_markers().size()]
 	else:
 		summary += "Cannot save yet:\n  - %s" % "\n  - ".join(problems)
+	var stuck = runner_note()
+	if stuck != "":
+		summary += "\n" + stuck
 	if summary == status:
 		return
 	status = summary
@@ -234,10 +242,57 @@ func _build_markers(tile_map: TileMap):
 		marker.starting_items = spawn.starting_items.duplicate()
 		marker.arrives_on_round = spawn.arrives_on_round
 		marker.surprised = spawn.surprised
+		marker.subclass = spawn.subclass
 		marker.position = Vector2(spawn.position * tile_size) + Vector2(tile_size, tile_size) * 0.5
 		container.add_child(marker)
 		_adopt(marker)
+	var ways_out = _escape_container()
+	for tile in encounter.escape_points:
+		_put_escape_marker(ways_out, tile, tile_size)
 	_built_from = _encounter_fingerprint()
+
+
+## Where the ways out go, made if it is not there yet.
+func _escape_container() -> Node2D:
+	var container = get_node_or_null(ESCAPES_NODE)
+	if container == null:
+		container = Node2D.new()
+		container.name = ESCAPES_NODE
+		add_child(container)
+		_adopt(container)
+	return container
+
+
+func _put_escape_marker(container: Node2D, tile: Vector2i, tile_size: int) -> EscapeMarker:
+	var marker = EscapeMarker.new()
+	marker.name = "WayOut"
+	marker.tile_size = tile_size
+	marker.position = Vector2(tile * tile_size) + Vector2(tile_size, tile_size) * 0.5
+	container.add_child(marker, true)
+	_adopt(marker)
+	return marker
+
+
+## A way out, put in the middle of the map to be dragged where it belongs -
+## or beside the last one, so a second does not land on the first.
+func add_escape_point():
+	if encounter == null:
+		status = "Pick an encounter first."
+		_announce()
+		return
+	var terrain = get_node_or_null(TERRAIN_NODE)
+	var tile_map: TileMap = terrain.get_node_or_null("TileMap") if terrain != null else null
+	var tile_size = _tile_size(tile_map)
+	var existing = escape_markers()
+	var tile := Vector2i.ZERO
+	if not existing.is_empty():
+		tile = existing[-1].grid_position() + Vector2i.RIGHT
+	elif tile_map != null:
+		var rect = tile_map.get_used_rect()
+		tile = rect.position + rect.size / 2
+	_put_escape_marker(_escape_container(), tile, tile_size)
+	status = "A way out added at %s - find it under %s in the Scene dock, drag it where it belongs, then Save." % [tile, ESCAPES_NODE]
+	_announce()
 
 
 ## What the encounter said when these markers were made from it. The markers
@@ -254,13 +309,27 @@ var _built_from := ""
 func _encounter_fingerprint() -> String:
 	if encounter == null:
 		return ""
-	return _fingerprint(encounter.spawns)
+	return _fingerprint(encounter.spawns) + _escape_fingerprint(encounter.escape_points)
 
 
 ## The same, read off the markers, so it can be told whether the markers or the
 ## encounter is the side that has moved on.
 func _marker_fingerprint() -> String:
-	return _fingerprint(markers().map(_spawn_from))
+	return _fingerprint(markers().map(_spawn_from)) + _escape_fingerprint(_escape_tiles())
+
+
+## The ways out, in a set order, as a line.
+static func _escape_fingerprint(tiles: Array) -> String:
+	var sorted := tiles.duplicate()
+	sorted.sort()
+	return "\nways out: %s" % [sorted]
+
+
+## The tiles the way-out markers are on, in reading order.
+func _escape_tiles() -> Array:
+	var tiles := escape_markers().map(func(marker): return marker.grid_position())
+	tiles.sort_custom(func(a, b): return a.y < b.y or (a.y == b.y and a.x < b.x))
+	return tiles
 
 
 ## Every field Save writes, a spawn to a line. A field missing here is one that
@@ -269,8 +338,8 @@ func _marker_fingerprint() -> String:
 static func _fingerprint(spawns: Array) -> String:
 	var lines := PackedStringArray()
 	for spawn in spawns:
-		lines.append("%s|%d|%s|%s|%d|%d|%d|%s|%d|%s" % [spawn.combatant_key, spawn.side, spawn.position,
-			spawn.display_name, spawn.level, spawn.weapon_base, spawn.defense,
+		lines.append("%s|%d|%s|%s|%d|%s|%d|%d|%s|%d|%s" % [spawn.combatant_key, spawn.side, spawn.position,
+			spawn.display_name, spawn.level, spawn.subclass, spawn.weapon_base, spawn.defense,
 			",".join(spawn.starting_items), spawn.arrives_on_round, spawn.surprised])
 	return "\n".join(lines)
 
@@ -290,6 +359,7 @@ func _spawn_from(marker: SpawnMarker) -> SpawnDefinition:
 	spawn.starting_items = marker.starting_items.duplicate()
 	spawn.arrives_on_round = marker.arrives_on_round
 	spawn.surprised = marker.surprised
+	spawn.subclass = marker.subclass
 	return spawn
 
 
@@ -306,13 +376,15 @@ func _tile_size(tile_map: TileMap) -> int:
 ## to save, push the offset down into the markers: they stay exactly where they
 ## appear on the map, and now agree about which tile that is.
 func _reanchor_spawn_container():
-	var container = get_node_or_null(SPAWNS_NODE)
-	if container == null or container.position == Vector2.ZERO:
-		return
-	var offset = container.position
-	for marker in markers():
-		marker.position += offset
-	container.position = Vector2.ZERO
+	for node_name in [SPAWNS_NODE, ESCAPES_NODE]:
+		var container = get_node_or_null(node_name)
+		if container == null or container.position == Vector2.ZERO:
+			continue
+		var offset = container.position
+		for marker in container.get_children():
+			if marker is Node2D:
+				marker.position += offset
+		container.position = Vector2.ZERO
 
 
 ## Whether the encounter's named track resolves to a file, so a typo shows up
@@ -340,6 +412,30 @@ func markers() -> Array:
 	return found
 
 
+## A word about enemies placed here who run when they break, on a map with no
+## ways out for them - they could never get away. "" when there is nothing to
+## say. Only a note: such a fight still saves and plays.
+func runner_note() -> String:
+	if not escape_markers().is_empty():
+		return ""
+	var names := []
+	for marker in markers():
+		var found = marker.definition()
+		if marker.side == 1 and EncounterDefinition.runs_when_broken(found) and not names.has(found.name):
+			names.append(found.name)
+	if names.is_empty():
+		return ""
+	return "Note: no ways out, so %s - who run when broken - can never get away. Add a way out, or set their When Broken to Surrender." % ", ".join(names)
+
+
+## The way-out markers (EscapeMarker).
+func escape_markers() -> Array:
+	var container = get_node_or_null(ESCAPES_NODE)
+	if container == null:
+		return []
+	return container.get_children().filter(func(child): return child is EscapeMarker)
+
+
 ## Why `marker` can't be placed where it is, or "" if it's fine. Mirrors the
 ## rules the game itself enforces, so anything this accepts is genuinely
 ## playable: on the map, on a real tile, and on terrain its movement class can
@@ -352,14 +448,17 @@ func placement_problem(marker: SpawnMarker, tile_map: TileMap) -> String:
 		return "uses unknown combatant key '%s'" % marker.combatant_key
 	if tile_map == null:
 		return "has no map to stand on"
-	var tile = marker.grid_position()
-	if not tile_map.get_used_rect().has_point(tile):
-		return "is at %s, off the edge of the map" % tile
-	var data = tile_map.get_cell_tile_data(0, tile)
-	if data == null:
-		return "is at %s, on an unpainted hole in the map" % tile
-	if definition.class_m in data.get_custom_data("Blocks"):
-		return "is at %s, on terrain its movement class can't enter" % tile
+	# Every tile of theirs, for somebody bigger than one - and for anything
+	# Monstrous or bigger, only what stops a flier stops it (Combat.terrain_class).
+	var ground: int = 1 if definition.size >= Sizes.Size.MONSTROUS else definition.class_m
+	for tile in marker.footprint():
+		if not tile_map.get_used_rect().has_point(tile):
+			return "is at %s, off the edge of the map" % tile
+		var data = tile_map.get_cell_tile_data(0, tile)
+		if data == null:
+			return "is at %s, on an unpainted hole in the map" % tile
+		if ground in data.get_custom_data("Blocks"):
+			return "is at %s, on terrain its movement class can't enter" % tile
 	return ""
 
 
@@ -393,11 +492,26 @@ func _problems_with_layout() -> Array:
 		if problem != "":
 			problems.append("%s %s" % [marker.effective_name(), problem])
 			continue
-		var tile = marker.grid_position()
-		if claimed.has(tile):
-			problems.append("%s and %s are both on %s" % [marker.effective_name(), claimed[tile], tile])
+		# Tile by tile of what they cover. Things smaller than a tile share one
+		# with their own side, as long as it is not over-full (Sizes).
+		var size: int = marker.definition().size
+		var clash := ""
+		for tile in marker.footprint():
+			var there: Dictionary = claimed.get(tile, {"names": [], "side": marker.side, "space": 0, "shared": true})
+			var fits: bool = there.names.is_empty() or (Sizes.shares(size) and there.shared and there.side == marker.side \
+				and there.space + Sizes.share(size) <= Sizes.SPACE_IN_A_TILE)
+			if not fits:
+				clash = "%s and %s are both on %s" % [marker.effective_name(), there.names[0], tile]
+				break
+		if clash != "":
+			problems.append(clash)
 			continue
-		claimed[tile] = marker.effective_name()
+		for tile in marker.footprint():
+			var there: Dictionary = claimed.get(tile, {"names": [], "side": marker.side, "space": 0, "shared": true})
+			there.names.append(marker.effective_name())
+			there.space += Sizes.share(size)
+			there.shared = there.shared and Sizes.shares(size)
+			claimed[tile] = there
 	# A key typed rather than picked from the dropdown: the fight would quietly
 	# hand them nothing in its place.
 	for marker in placed:
@@ -415,6 +529,23 @@ func _problems_with_layout() -> Array:
 		problems.append("There are no player-side combatants - the encounter would be unplayable. Set a marker's Side to Players.")
 	if enemies == 0:
 		problems.append("There are no enemies - the encounter would be over immediately. Set a marker's Side to Enemies.")
+	# Ways out: on the floor, somewhere a walker can stand, one to a tile.
+	var ways_out := {}
+	for marker in escape_markers():
+		var tile: Vector2i = marker.grid_position()
+		if ways_out.has(tile):
+			problems.append("Two ways out are both on %s" % tile)
+			continue
+		ways_out[tile] = true
+		if tile_map == null:
+			continue
+		var data = tile_map.get_cell_tile_data(0, tile)
+		if not tile_map.get_used_rect().has_point(tile):
+			problems.append("A way out at %s is off the edge of the map" % tile)
+		elif data == null:
+			problems.append("A way out at %s is on an unpainted hole in the map" % tile)
+		elif 0 in data.get_custom_data("Blocks"):
+			problems.append("A way out at %s is on a wall - nobody on foot could reach it" % tile)
 	return problems
 
 
@@ -455,6 +586,10 @@ func save_to_encounter():
 	for marker in placed:
 		spawns.append(_spawn_from(marker))
 	encounter.spawns = spawns
+	var ways_out: Array[Vector2i] = []
+	for tile in _escape_tiles():
+		ways_out.append(tile)
+	encounter.escape_points = ways_out
 
 	var error = ResourceSaver.save(encounter, encounter.resource_path)
 	if error != OK:
@@ -466,9 +601,13 @@ func save_to_encounter():
 	# The markers and the encounter now say the same thing, so neither counts as
 	# having moved on until one of them is edited again.
 	_built_from = _encounter_fingerprint()
-	var done = "Saved %d spawns (%d players, %d enemies) to %s" % [
-		spawns.size(), players, enemies, encounter.resource_path
+	var done = "Saved %d spawns (%d players, %d enemies) and %d ways out to %s" % [
+		spawns.size(), players, enemies, ways_out.size(), encounter.resource_path
 	]
+	var stuck = runner_note()
+	if stuck != "":
+		done += "\n" + stuck
+		push_warning(stuck)
 	status = done
 	notify_property_list_changed()
 	print(done)

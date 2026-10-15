@@ -25,6 +25,13 @@ func _ready():
 		if SkillDatabase.skills.has(key):
 			push_error("Item '%s' has the same key as a skill. Keys are shared, so one would shadow the other." % key)
 			continue
+		# A Gate Nade takes on its spell's shape before anything uses it.
+		if item is GateNadeDefinition:
+			var spell: SkillDefinition = SkillDatabase.skills.get(item.spell)
+			if spell == null or spell is ItemDefinition:
+				push_error("Gate Nade '%s' carries the spell '%s', which is not a skill in the skill database." % [key, item.spell])
+			else:
+				item.take_on(spell)
 		SkillDatabase.skills[key] = item
 
 

@@ -21,3 +21,4 @@ targets_ally = true
 effects = Array[ExtResource("1_e072t")]([SubResource("Resource_w7hvu")])
 deals_damage = false
 metadata/_custom_type_script = "uid://cbf4gnjv5w62v"
+price = 35

@@ -18,3 +18,4 @@ uses_stat_contest = true
 sound = ExtResource("9_sfx")
 aoe_radius = 3
 metadata/_custom_type_script = "uid://cbf4gnjv5w62v"
+price = 70

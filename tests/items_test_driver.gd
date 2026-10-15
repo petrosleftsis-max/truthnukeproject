@@ -72,7 +72,13 @@ func run_test():
 			if e.type == EffectDefinition.EffectType.CONDITION and e.condition != null:
 				bottled[e.condition.resource_path.get_file().get_basename()] = key
 	# Caught off guard comes from an ambush on a stealth map, not from a bottle.
-	var not_bottled := ["surprised"]
+	# Confused comes from a spell, the Illusionist's Bewilder, not a bottle.
+	# Staggered, Choking Ash and Deafened come from bosses and their arenas.
+	# Hesitating and Deceived from talking somebody round (Persuade, Deceive),
+	# Taunted from a champion's challenge, Riding from Climb, Crippled from legs
+	# broken (a body part), Grappled from Grab - a hold needs somebody holding.
+	var not_bottled := ["surprised", "confused", "staggered", "choking_ash", "deafened",
+		"hesitating", "deceived", "taunted", "riding", "crippled", "grappled"]
 	for condition in conditions:
 		if not_bottled.has(condition):
 			continue

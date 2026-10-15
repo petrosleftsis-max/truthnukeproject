@@ -85,11 +85,18 @@ func _ready():
 	# whenever the roster changes rather than only on arrival.
 	if not Campaign.party_changed.is_connected(_on_party_changed):
 		Campaign.party_changed.connect(_on_party_changed)
+	# A level reached, or somebody joining at one, can mean a path to choose.
+	if not Campaign.party_leveled.is_connected(_on_party_leveled):
+		Campaign.party_leveled.connect(_on_party_leveled)
+	_paths_due = true
+	if not Campaign.store_requested.is_connected(_on_store_requested):
+		Campaign.store_requested.connect(_on_store_requested)
 	_spawn_party()
 	begin_stealth()
 	# Walked onto a stealth map rather than back onto it from a fight: how
-	# things stand now is where Restart Stage goes back to.
-	if stealth != null and not coming_back:
+	# things stand now is where Restart Stage goes back to. So too arriving by
+	# a load, which comes back with no checkpoint at all.
+	if stealth != null and (not coming_back or Campaign.stealth_checkpoint.get("map", "") != map_path()):
 		Campaign.save_stealth_checkpoint(map_path(), party.position_of_leader())
 	if game_ui != null and game_ui.has_method("set_exploration_mode"):
 		game_ui.set_exploration_mode(true)
@@ -109,6 +116,7 @@ func _ready():
 ## stands, so a new recruit falls in behind rather than the party jumping back
 ## to the map's entry point.
 func _on_party_changed():
+	_paths_due = true
 	if party == null or not is_inside_tree():
 		return
 	party.setup(_party_textures(), party_position(), is_walkable)
@@ -500,6 +508,110 @@ func begin_stealth():
 ## menu. The guards stand still for it too: nobody is caught mid-sentence.
 func is_holding() -> bool:
 	return _blocking_interaction or (party != null and party.frozen)
+
+
+## --- Choosing paths ---
+##
+## At level 5 each of the party chooses a path (SubclassDefinition). The choice
+## is put up here, on the map, for one of them at a time - once nothing else is
+## going on, so it never lands in the middle of a conversation that reached the
+## level.
+
+## Something happened that could mean a path to choose: arriving, a level, a
+## new face in the party.
+var _paths_due := false
+var _path_layer: CanvasLayer = null
+## The choice on screen, or null.
+var picker: SubclassPicker = null
+
+
+func _on_party_leveled(_level: int):
+	_paths_due = true
+
+
+func _process(_delta):
+	if picker != null or store_screen != null or is_holding() or get_tree().paused or SceneTransition.is_changing():
+		return
+	if _paths_due:
+		_offer_paths()
+	elif _store_due != "":
+		_open_store()
+
+
+## Puts the choice up for the first of the party with a path still to choose.
+func _offer_paths():
+	_paths_due = false
+	var setup := _map_setup()
+	if not Campaign.asks_for_paths or (setup != null and not setup.asks_for_paths):
+		return
+	var due := Campaign.choosing_paths()
+	if due.is_empty():
+		return
+	_path_layer = _overlay("PathChoice")
+	picker = SubclassPicker.new()
+	picker.process_mode = Node.PROCESS_MODE_ALWAYS
+	_path_layer.add_child(picker)
+	picker.offer(due[0])
+	picker.chosen.connect(_on_path_chosen)
+	MenuPause.hold(picker)
+
+
+func _on_path_chosen(_key: String, _subclass: String):
+	MenuPause.release(picker)
+	_path_layer.queue_free()
+	_path_layer = null
+	picker = null
+	# Whoever else is still to choose goes next.
+	_paths_due = true
+
+
+## A layer over the map, dimmed, for a choice or a store to sit on.
+func _overlay(layer_name: String) -> CanvasLayer:
+	var layer := CanvasLayer.new()
+	layer.name = layer_name
+	layer.layer = 60
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(layer)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	return layer
+
+
+## --- Stores ---
+##
+## A store asked for (Campaign.open_store - a StoreInteractable, a conversation)
+## goes up once nothing else is going on: a conversation that sends the party
+## shopping finishes first.
+
+## The store waiting to be opened, or "".
+var _store_due := ""
+var _store_layer: CanvasLayer = null
+## The store on screen, or null.
+var store_screen: StoreScreen = null
+
+
+func _on_store_requested(store: String):
+	_store_due = store
+
+
+func _open_store():
+	_store_layer = _overlay("Store")
+	store_screen = StoreScreen.new()
+	store_screen.process_mode = Node.PROCESS_MODE_ALWAYS
+	_store_layer.add_child(store_screen)
+	store_screen.open_on(_store_due)
+	_store_due = ""
+	store_screen.closed.connect(_close_store)
+	MenuPause.hold(store_screen)
+
+
+func _close_store():
+	MenuPause.release(store_screen)
+	_store_layer.queue_free()
+	_store_layer = null
+	store_screen = null
 
 
 ## The loaded map's MapSetup, if it has one. Searched the whole way down

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Plate Harness"
+description = "Full plate, made for her."
+slot = 1
+for_characters = Array[String](["enfina"])
+price = 320
+defense = 28
+armour_category = 1

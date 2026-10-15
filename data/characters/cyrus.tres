@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_icggr"]
 [ext_resource type="Resource" path="res://data/passives/light_footed.tres" id="3_c5lo7"]
 [ext_resource type="Resource" path="res://data/passives/quick_hands.tres" id="4_bdido"]
+[ext_resource type="Resource" path="res://data/passives/nade_juggler.tres" id="9_nades"]
 [ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="5_l5ron"]
 [ext_resource type="SpriteFrames" path="res://art/characters/cyrus/cyrus_frames.tres" id="6_3bhox"]
 
@@ -25,8 +26,7 @@ By having high initiative and movement, he gets to decide how a combat begins an
 He also has the special capability of using consumables as a secondary action, making him the most adaptable member in the team."
 class_t = 1
 max_hp = 75
-max_hp_level_2 = 90
-max_hp_level_3 = 115
+max_hp_level_20 = 115
 movement = 6
 initiative = 8
 main_stat = 3
@@ -34,6 +34,7 @@ secondary_stat = 0
 icon = ExtResource("1_xppq2")
 map_sprite = ExtResource("1_xppq2")
 sprite_frames = ExtResource("6_3bhox")
-skills = Array[String](["rapier", "blink_strike", "gun", "poison_dart", "warning_shot", "burning_shot", "steal", "stealth", "slip_past", "run"])
-passives = Array[ExtResource("2_icggr")]([ExtResource("3_c5lo7"), ExtResource("4_bdido")])
+skills = Array[String](["rapier", "blink_strike", "gun", "poison_dart", "warning_shot", "burning_shot", "steal", "deceive", "stealth", "slip_past", "run"])
+passives = Array[ExtResource("2_icggr")]([ExtResource("3_c5lo7"), ExtResource("4_bdido"), ExtResource("9_nades")])
+subclasses = Array[String](["swashbuckler", "gunner", "bombardier"])
 starting_items = Array[String](["cure_potion", "tiny_bomb", "poison_bottle", "medicine"])

@@ -1,0 +1,91 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/BossPhase.gd" id="1_2gfb1"]
+[ext_resource type="Script" path="res://combat/resources/HazardDefinition.gd" id="2_48cf8"]
+[ext_resource type="Resource" path="res://data/conditions/choking_ash.tres" id="3_r4fvk"]
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="4_nrkbm"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="5_lxa4g"]
+[ext_resource type="Resource" path="res://data/passives/ash_presence.tres" id="12_presence"]
+[ext_resource type="Resource" path="res://data/conditions/stunned.tres" id="6_ofos0"]
+[ext_resource type="Script" path="res://combat/resources/StaggerDefinition.gd" id="7_75tdb"]
+[ext_resource type="Script" path="res://combat/resources/BossDefinition.gd" id="8_vbww8"]
+[ext_resource type="Resource" path="res://data/conditions/confused.tres" id="9_xxdr5"]
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="10_2qv81"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/barbarian/barbarian_frames.tres" id="11_e0yk6"]
+[ext_resource type="Script" path="res://combat/resources/BodyPartDefinition.gd" id="13_part"]
+
+[sub_resource type="Resource" id="Part_vents"]
+script = ExtResource("13_part")
+name = "Ash Vents"
+tiles = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0)])
+health_share = 0.15
+when_broken = 3
+stagger = 60.0
+
+[sub_resource type="Resource" id="Resource_2gfb1"]
+script = ExtResource("2_48cf8")
+display_name = "Burning ash falls"
+description = "Every other round, burning ash comes down where the party stands - marked a round ahead."
+every_rounds = 2
+count = 2
+damage = 20
+damage_type = 1
+condition = ExtResource("3_r4fvk")
+stagger = 30.0
+
+[sub_resource type="Resource" id="Resource_48cf8"]
+script = ExtResource("1_2gfb1")
+name = "The Ash Rises"
+at_health = 0.66
+message = "Its armour splits, and burning ash pours out of it."
+skills_added = Array[String](["rockfall"])
+hazards = Array[ExtResource("2_48cf8")]([SubResource("Resource_2gfb1")])
+
+[sub_resource type="Resource" id="Resource_r4fvk"]
+script = ExtResource("7_75tdb")
+hint = "It drains fast now: only a burst of damage in one round will stagger it."
+max_value = 90.0
+per_damage = 1.2
+drain_per_round = 45.0
+
+[sub_resource type="Resource" id="Resource_nrkbm"]
+script = ExtResource("1_2gfb1")
+name = "Cinders and Fury"
+at_health = 0.33
+message = "It burns brighter as it breaks - and its cracked armour can no longer keep a stun out."
+stagger = SubResource("Resource_r4fvk")
+clears_conditions = true
+immunities_lost = Array[ExtResource("4_nrkbm")]([ExtResource("6_ofos0")])
+summons = Array[String](["imp", "imp"])
+
+[sub_resource type="Resource" id="Resource_lxa4g"]
+script = ExtResource("7_75tdb")
+hint = "Hit it hard - twice as hard while it winds up a Ground Pound. Stuns it shrugs off still count. So do the powder kegs, and its own ash."
+max_value = 120.0
+per_blocked_condition = 20.0
+while_readying = 2.0
+
+[sub_resource type="Resource" id="Resource_ofos0"]
+script = ExtResource("8_vbww8")
+title = "Warden of the Ash Gate"
+stagger = SubResource("Resource_lxa4g")
+phases = Array[ExtResource("1_2gfb1")]([SubResource("Resource_48cf8"), SubResource("Resource_nrkbm")])
+
+[resource]
+script = ExtResource("10_2qv81")
+name = "Ash Warden"
+glossary_text = "A giant in black iron, full of fire. It cannot be stunned, confused, shoved or moved - until its armour cracks."
+max_hp = 300
+max_hp_level_20 = 1500
+size = 3
+movement = 4
+initiative = 4
+sprite_frames = ExtResource("11_e0yk6")
+skills = Array[String](["greatsword_attack", "ground_pound"])
+passives = Array[ExtResource("5_lxa4g")]([ExtResource("12_presence")])
+resist_fire = 50
+immune_to_conditions = Array[ExtResource("4_nrkbm")]([ExtResource("6_ofos0"), ExtResource("9_xxdr5")])
+immune_to = Array[int]([0, 1, 9])
+turns_per_round = 2
+boss = SubResource("Resource_ofos0")
+parts = Array[ExtResource("13_part")]([SubResource("Part_vents")])

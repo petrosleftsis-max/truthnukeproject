@@ -22,14 +22,18 @@ class_name SpawnDefinition
 @export var display_name: String = ""
 
 @export_group("Level and gear")
-## 1 to 3. A combatant's level decides every attribute they have (see
+## 1 to 20. A combatant's level decides every attribute they have (see
 ## Stats.stats_for_level) and which of their skills are unlocked, so this is
 ## the one dial that says how developed they are in this particular fight.
 ##
 ## Set per spawn rather than per character on purpose: the same Cyrus can be
-## brought into an early encounter at level 1 and a later one at level 3, and
+## brought into an early encounter at level 1 and a later one at level 15, and
 ## an enemy can be scaled up without a second database entry.
-@export_range(1, 3) var level: int = 1
+@export_range(1, 20) var level: int = 1
+## The path they are on, by key (SubclassDefinition) - from level 5, and only
+## one of their own. Empty for none. In the story the party's own choices are
+## used instead; this is for a fight opened from Battle Select.
+@export var subclass: String = ""
 ## What this combatant's attacks start from before any stat is added - the
 ## weapon in their hands, until equipment exists to put one there. Per spawn so
 ## the same character can be better armed in one encounter than another.
@@ -89,9 +93,20 @@ static func item_list_hint() -> String:
 	return "%d/%d:%s" % [TYPE_STRING, PROPERTY_HINT_ENUM, ",".join(item_keys())]
 
 
-## Starting Items as a dropdown of the items there are, so an encounter cannot
-## hand anybody an item that does not exist.
+## Starting Items as a dropdown of the items there are, and Subclass of the
+## paths there are (a blank first, for none), so an encounter cannot hand
+## anybody an item or a path that does not exist.
 func _validate_property(property: Dictionary):
-	if property.name == "starting_items" and Engine.is_editor_hint():
+	if not Engine.is_editor_hint():
+		return
+	if property.name == "starting_items":
 		property.hint = PROPERTY_HINT_TYPE_STRING
 		property.hint_string = item_list_hint()
+	elif property.name == "subclass":
+		property.hint = PROPERTY_HINT_ENUM
+		property.hint_string = subclass_hint()
+
+
+## The hint that makes a String a dropdown of every path, blank first.
+static func subclass_hint() -> String:
+	return "," + ",".join(SubclassDefinition.all().keys())

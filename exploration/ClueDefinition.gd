@@ -35,6 +35,10 @@ class_name ClueDefinition
 ## fight once this is known - the letter that says what the gate guard is
 ## weak to. The same reading Study gives, without the action spent on it.
 @export var reveals_combatants: Array[String] = []
+## Factions, by key (FactionDefinition), the party knows once this is: every
+## one of them has their sheet open from the start of a fight, and is hit
+## harder for it (FactionDefinition.known_damage_bonus).
+@export var reveals_factions: Array[String] = []
 
 
 ## Whether it is worked out rather than found.

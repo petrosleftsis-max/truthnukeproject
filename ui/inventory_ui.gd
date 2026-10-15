@@ -31,6 +31,7 @@ var _columns: HBoxContainer = null
 ## Which slot is waiting for a second click: {"key": combatant_key, "slot": int}.
 var _holding: Dictionary = {}
 var _hint: Label = null
+var _gold: Label = null
 
 
 func _ready():
@@ -70,6 +71,13 @@ func _build():
 	title.add_theme_color_override("font_color", INK)
 	column.add_child(title)
 
+	# The purse, which every bag shares (Campaign.gold).
+	_gold = Label.new()
+	_gold.name = "Gold"
+	_gold.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_gold.add_theme_color_override("font_color", Color(1.0, 0.84, 0.35))
+	column.add_child(_gold)
+
 	_columns = HBoxContainer.new()
 	_columns.alignment = BoxContainer.ALIGNMENT_CENTER
 	_columns.add_theme_constant_override("separation", 16)
@@ -91,6 +99,8 @@ func _build():
 func _rebuild():
 	if _columns == null:
 		return
+	if _gold != null:
+		_gold.text = "%d gold" % Campaign.gold
 	for child in _columns.get_children():
 		_columns.remove_child(child)
 		child.queue_free()

@@ -263,7 +263,8 @@ func run_test():
 	var signpost = null
 	var ambush = null
 	for item in scene._interactables:
-		if signpost == null and item is ExamineInteractable:
+		# A plain one - something hack-locked asks to be hacked, not interacted with.
+		if signpost == null and item is ExamineInteractable and item.hack == null:
 			signpost = item
 		if ambush == null and item is EncounterInteractable:
 			ambush = item

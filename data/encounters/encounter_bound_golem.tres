@@ -1,0 +1,74 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="2_fhab5"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="3_ex5ow"]
+[ext_resource type="PackedScene" path="res://maps/laboratory_fight.tscn" id="4_x4df1"]
+
+[sub_resource type="Resource" id="Resource_x6mhy"]
+script = ExtResource("3_ex5ow")
+combatant_key = "alithia"
+position = Vector2i(25, 19)
+level = 10
+weapon_base = 9
+defense = 12
+starting_items = Array[String](["mediocre_cure_potion", "poison_bottle"])
+
+[sub_resource type="Resource" id="Resource_j1f8v"]
+script = ExtResource("3_ex5ow")
+combatant_key = "cyrus"
+position = Vector2i(24, 21)
+level = 10
+weapon_base = 9
+defense = 12
+starting_items = Array[String](["mediocre_cure_potion", "medium_bomb", "medicine", "crystal_bottle"])
+
+[sub_resource type="Resource" id="Resource_l7x2j"]
+script = ExtResource("3_ex5ow")
+combatant_key = "enfina"
+position = Vector2i(26, 22)
+level = 10
+weapon_base = 9
+defense = 20
+starting_items = Array[String](["mediocre_cure_potion", "burn_bottle"])
+
+[sub_resource type="Resource" id="Resource_j5gq1"]
+script = ExtResource("3_ex5ow")
+combatant_key = "prometheus"
+position = Vector2i(25, 23)
+level = 10
+weapon_base = 9
+defense = 5
+starting_items = Array[String](["mediocre_cure_potion", "gale_bottle", "medicine"])
+[sub_resource type="Resource" id="Foe_1"]
+script = ExtResource("3_ex5ow")
+combatant_key = "golem"
+side = 1
+position = Vector2i(25, 8)
+level = 10
+weapon_base = 9
+defense = 12
+
+[sub_resource type="Resource" id="Foe_2"]
+script = ExtResource("3_ex5ow")
+combatant_key = "behemoth"
+side = 1
+position = Vector2i(35, 9)
+level = 10
+weapon_base = 9
+defense = 12
+
+[sub_resource type="Resource" id="Foe_3"]
+script = ExtResource("3_ex5ow")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(25, 14)
+level = 10
+weapon_base = 9
+defense = 12
+
+[resource]
+script = ExtResource("2_fhab5")
+display_name = "The Bound Golem"
+description = "A sorcerer's golem, bound to answer to its master - Prometheus can rewrite who that is. A behemoth beside it, big enough to climb and with parts to break."
+terrain_scene = ExtResource("4_x4df1")
+spawns = Array[ExtResource("3_ex5ow")]([SubResource("Resource_x6mhy"), SubResource("Resource_j1f8v"), SubResource("Resource_l7x2j"), SubResource("Resource_j5gq1"), SubResource("Foe_1"), SubResource("Foe_2"), SubResource("Foe_3")])

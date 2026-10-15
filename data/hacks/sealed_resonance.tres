@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="1_hack"]
+
+[resource]
+script = ExtResource("1_hack")
+title = "The Humming Seal"
+description = "A seal that opens for whoever hums at its pitch. Find it - amplitude, frequency, phase - and lock it in."
+kind = 2
+tries = 3
+retry_cost_amount = 8
+time_limit = 45
+hint_gate = 1
+simplify_gate = 2
+raises_alert = true
+locks_for_good = true
+failure_line = "The seal screams, and goes dead for good."
+dials = 3
+tolerance = 6

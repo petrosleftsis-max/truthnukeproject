@@ -71,6 +71,12 @@ enum Verb {
 ## Gone for good once this flag is set - the letter, once taken.
 @export var hidden_once_flag: String = ""
 
+@export_group("Hack")
+## Has to be hacked (Hacking) before clicking it does anything else here.
+## Hacked once, it stays hacked. Failing leaves hack_set_off:<id> and
+## hack_locked:<id> as the hack says (examined_id is the id).
+@export var hack: HackDefinition
+
 @export_group("Looking")
 ## Only to be found through a lens - a magnifying glass, a lamp (an item with
 ## Reveals Hidden Details): nothing here answers the mouse, lights up or says

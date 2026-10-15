@@ -24,6 +24,19 @@ const OWN_ICONS := {
 	"warning_shot": "warningshot_skill.png", "water_spike": "waterspike_skill.png",
 	"wind_shot": "windshot_icon.png", "wind_swoon": "windswept_skill.png",
 	"wind_vacuum": "windvacuum_skill.png",
+	# The paths' skills - placeholders, each its own until real art goes in.
+	"frost_round": "frost_round_skill.png", "shock_round": "shock_round_skill.png",
+	"combined_load": "combined_load_skill.png", "flame_edge": "flame_edge_skill.png",
+	"frost_edge": "frost_edge_skill.png", "storm_edge": "storm_edge_skill.png",
+	"stone_edge": "stone_edge_skill.png", "holy_spear": "holy_spear_skill.png",
+	"censure": "censure_skill.png", "judgement_hammer": "judgement_hammer_skill.png",
+	"mirror_image": "mirror_image_skill.png", "dread_visage": "dread_visage_skill.png",
+	"bewilder": "bewilder_skill.png", "daunting_roar": "daunting_roar_skill.png",
+	"shield_bash": "shield_bash_skill.png", "chain_hook": "chain_hook_skill.png",
+	"pin_down": "pin_down_skill.png", "hamstring": "hamstring_skill.png",
+	# Declared moves - placeholders too.
+	"ground_pound": "ground_pound_skill.png", "rockfall": "rockfall_skill.png",
+	"meteor": "meteor_skill.png", "earthsplitter": "earthsplitter_skill.png",
 }
 var _log: FileAccess
 var _fail = 0

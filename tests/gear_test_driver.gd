@@ -207,6 +207,7 @@ func every_field_survives_save():
 	late.starting_items.assign(["medicine", "tiny_bomb"])
 	late.arrives_on_round = 3
 	late.surprised = true
+	late.subclass = "gunner"
 	var fresh := SpawnDefinition.new()
 	var unset := spawn_fields().filter(func(field): return "%s" % [late.get(field)] == "%s" % [fresh.get(field)])
 	ok(unset.is_empty(), "(this test sets every field a spawn has - a new one needs setting here too)", "%s" % [unset])

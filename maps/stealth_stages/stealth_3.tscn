@@ -49,7 +49,8 @@ entry_name = "start"
 [node name="MapSetup" type="Node" parent="." unique_id=331995936]
 script = ExtResource("3_wbi7r")
 members = Array[String](["cyrus", "enfina"])
-level = 2
+level = 10
+asks_for_paths = false
 empty_handed = true
 
 [node name="StealthSetup" type="Node" parent="." unique_id=755924707]
@@ -117,7 +118,7 @@ point_name = "cells_east"
 [node name="Warden" type="Node2D" parent="." unique_id=1854675466]
 position = Vector2(8576, 2176)
 script = ExtResource("10_6863t")
-level = 2
+level = 10
 display_name = "Warden"
 facing_degrees = 180.0
 patrol = Array[String](["cells_east", "cells_west"])
@@ -128,7 +129,7 @@ walk_speed_tiles = 1.5
 position = Vector2(9856, 3200)
 script = ExtResource("10_6863t")
 combatant_key = "ranger"
-level = 2
+level = 10
 display_name = "Door Guard"
 facing_degrees = 135.0
 looks_around = false

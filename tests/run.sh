@@ -102,7 +102,21 @@ mv "$DST/project.godot.new" "$DST/project.godot"
 # a script that has since been renamed. One scan puts it right.
 "$GODOT" --headless --path "$DST" --import >/dev/null 2>&1
 
+# Nothing stops to ask for a path at level 5 (Campaign.asks_for_paths): most
+# suites walk maps the party reaches past it, and a choice on screen would hold
+# every one of them. The suites about paths turn it back on.
+printf '\n[game]\n\nasks_for_paths=false\n' >> "$DST/project.godot"
+
 cp "$DST/project.godot" "$WORK/_project_base.godot"
+
+# Saved games live in the harness's own user:// (see the custom_user_dir
+# above), which outlasts a run. Cleared before every suite, so autosaves left
+# by one - every fight begun from a map writes one - never put a Continue on
+# the title screen of the next.
+SAVES_DIRS=("$HOME/.local/share/Messengers of Truth test harness/saves")
+if command -v cygpath >/dev/null 2>&1 && [ -n "${APPDATA:-}" ]; then
+	SAVES_DIRS+=("$(cygpath -u "$APPDATA")/Messengers of Truth test harness/saves")
+fi
 
 overall=0
 echo "===== SUMMARY ====="
@@ -113,6 +127,7 @@ for d in $DRIVERS; do
 	# autoload added after the one this used to look for left it mid-list.
 	awk -v drv="$d" 'NR==FNR { l=$0; sub(/\r$/, "", l); if (l ~ /^\[/) sec=l; if (sec=="[autoload]" && l ~ /^[A-Za-z_][A-Za-z0-9_]*="/) last=FNR; next }
 		{print} FNR==last {printf "T=\"*res://%s_test_driver.gd\"\n", drv}' "$WORK/_project_base.godot" "$WORK/_project_base.godot" > "$DST/project.godot"
+	for saves in "${SAVES_DIRS[@]}"; do rm -rf "$saves"; done
 	LOG="$LOGS/${d}_test_result.txt"
 	rm -f "$LOG"
 	if [ "$d" = "halt" ]; then

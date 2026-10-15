@@ -9,7 +9,7 @@
 script = ExtResource("2_c72ca")
 combatant_key = "cyrus"
 position = Vector2i(25, 19)
-level = 3
+level = 20
 weapon_base = 12
 defense = 20
 
@@ -17,7 +17,7 @@ defense = 20
 script = ExtResource("2_c72ca")
 combatant_key = "alithia"
 position = Vector2i(24, 21)
-level = 3
+level = 20
 weapon_base = 12
 defense = 20
 
@@ -25,7 +25,7 @@ defense = 20
 script = ExtResource("2_c72ca")
 combatant_key = "prometheus"
 position = Vector2i(26, 22)
-level = 3
+level = 20
 weapon_base = 12
 defense = 8
 
@@ -33,7 +33,7 @@ defense = 8
 script = ExtResource("2_c72ca")
 combatant_key = "enfina"
 position = Vector2i(25, 23)
-level = 3
+level = 20
 weapon_base = 12
 defense = 32
 
@@ -43,7 +43,7 @@ combatant_key = "priest"
 side = 1
 position = Vector2i(36, 10)
 display_name = "Priest"
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
@@ -53,7 +53,7 @@ combatant_key = "bomber"
 side = 1
 position = Vector2i(51, 11)
 display_name = "Bomber"
-level = 3
+level = 20
 weapon_base = 12
 defense = 25
 
@@ -63,7 +63,7 @@ combatant_key = "barbarian"
 side = 1
 position = Vector2i(45, 12)
 display_name = "Striker 1"
-level = 3
+level = 20
 weapon_base = 12
 defense = 60
 
@@ -73,7 +73,7 @@ combatant_key = "ranger"
 side = 1
 position = Vector2i(29, 15)
 display_name = "Ranger"
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
@@ -83,7 +83,7 @@ combatant_key = "sorcerer"
 side = 1
 position = Vector2i(50, 16)
 display_name = "Sorcerer"
-level = 3
+level = 20
 weapon_base = 12
 defense = 25
 
@@ -93,7 +93,7 @@ combatant_key = "mimic"
 side = 1
 position = Vector2i(34, 21)
 display_name = "Mimic"
-level = 3
+level = 20
 weapon_base = 12
 defense = 55
 
@@ -103,12 +103,13 @@ combatant_key = "barbarian"
 side = 1
 position = Vector2i(32, 22)
 display_name = "Striker 2"
-level = 3
+level = 20
 weapon_base = 12
 defense = 60
 
 [resource]
 script = ExtResource("1_edcco")
+gold_reward = 80
 display_name = "Dungeon: The Lab"
 description = "The lab fight, with everybody at level 3."
 terrain_scene = ExtResource("3_5dlq4")

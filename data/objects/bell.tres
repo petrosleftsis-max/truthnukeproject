@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BattleObjectDefinition" format=3]
+
+[ext_resource type="Resource" path="res://data/conditions/deafened.tres" id="1_t7vs1"]
+[ext_resource type="Texture2D" path="res://art/objects/bell_icon.png" id="2_tjlf7"]
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="3_84u44"]
+[ext_resource type="Texture2D" path="res://art/objects/bell_sheet.png" id="4_giu5f"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="5_cdwmf"]
+[ext_resource type="Script" path="res://combat/resources/BattleObjectDefinition.gd" id="6_g3kl1"]
+
+[resource]
+script = ExtResource("6_g3kl1")
+set_off_line = "The bell tolls!"
+stagger = 40.0
+blast_radius = 2
+blast_condition = ExtResource("1_t7vs1")
+blast_hits = 2
+name = "Bell"
+glossary_text = "An old iron bell. Use it from beside it: its toll staggers the Bellkeeper, and leaves its own side deafened. It rings once."
+max_hp = 10
+max_hp_level_20 = 10
+movement = 1
+icon = ExtResource("2_tjlf7")
+map_sprite = ExtResource("4_giu5f")

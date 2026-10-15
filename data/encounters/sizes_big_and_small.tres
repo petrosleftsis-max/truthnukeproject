@@ -1,0 +1,195 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_ws8nx"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_aqfqe"]
+[ext_resource type="PackedScene" path="res://maps/laboratory_fight.tscn" id="3_h6chg"]
+
+[sub_resource type="Resource" id="Resource_b1ab7"]
+script = ExtResource("2_aqfqe")
+combatant_key = "alithia"
+side = 0
+position = Vector2i(25, 19)
+display_name = ""
+level = 10
+subclass = ""
+weapon_base = 9
+defense = 12
+starting_items = Array[String](["mediocre_cure_potion", "poison_bottle"])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_kvhqu"]
+script = ExtResource("2_aqfqe")
+combatant_key = "cyrus"
+side = 0
+position = Vector2i(24, 21)
+display_name = ""
+level = 10
+subclass = ""
+weapon_base = 9
+defense = 12
+starting_items = Array[String](["mediocre_cure_potion", "medium_bomb", "medicine", "crystal_bottle"])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_7ubw0"]
+script = ExtResource("2_aqfqe")
+combatant_key = "enfina"
+side = 0
+position = Vector2i(26, 22)
+display_name = ""
+level = 10
+subclass = ""
+weapon_base = 9
+defense = 20
+starting_items = Array[String](["mediocre_cure_potion", "burn_bottle"])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_br7ad"]
+script = ExtResource("2_aqfqe")
+combatant_key = "prometheus"
+side = 0
+position = Vector2i(25, 23)
+display_name = ""
+level = 10
+subclass = ""
+weapon_base = 9
+defense = 5
+starting_items = Array[String](["mediocre_cure_potion", "gale_bottle", "medicine"])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_j6qf0"]
+script = ExtResource("2_aqfqe")
+combatant_key = "rat"
+side = 1
+position = Vector2i(25, 14)
+display_name = "Rat 1"
+level = 10
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_t7n2v"]
+script = ExtResource("2_aqfqe")
+combatant_key = "rat"
+side = 1
+position = Vector2i(25, 14)
+display_name = "Rat 2"
+level = 10
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_ojqu0"]
+script = ExtResource("2_aqfqe")
+combatant_key = "rat"
+side = 1
+position = Vector2i(25, 14)
+display_name = "Rat 3"
+level = 10
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_1643t"]
+script = ExtResource("2_aqfqe")
+combatant_key = "rat"
+side = 1
+position = Vector2i(25, 14)
+display_name = "Rat 4"
+level = 10
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_ghyt2"]
+script = ExtResource("2_aqfqe")
+combatant_key = "imp"
+side = 1
+position = Vector2i(25, 12)
+display_name = "Imp 1"
+level = 10
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_u7fcb"]
+script = ExtResource("2_aqfqe")
+combatant_key = "imp"
+side = 1
+position = Vector2i(25, 12)
+display_name = "Imp 2"
+level = 10
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_afnfi"]
+script = ExtResource("2_aqfqe")
+combatant_key = "ogre"
+side = 1
+position = Vector2i(26, 13)
+display_name = ""
+level = 10
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_02pa1"]
+script = ExtResource("2_aqfqe")
+combatant_key = "golem"
+side = 1
+position = Vector2i(25, 8)
+display_name = ""
+level = 10
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[sub_resource type="Resource" id="Resource_84342"]
+script = ExtResource("2_aqfqe")
+combatant_key = "behemoth"
+side = 1
+position = Vector2i(35, 9)
+display_name = ""
+level = 10
+subclass = ""
+weapon_base = 12
+defense = 20
+starting_items = Array[String]([])
+arrives_on_round = 1
+surprised = false
+
+[resource]
+script = ExtResource("1_ws8nx")
+display_name = "Big and Small"
+description = "Every size but the biggest: rats sharing a tile, imps sharing another, an ogre, a stone golem and a behemoth that walks over the walls."
+terrain_scene = ExtResource("3_h6chg")
+spawns = Array[ExtResource("2_aqfqe")]([SubResource("Resource_b1ab7"), SubResource("Resource_kvhqu"), SubResource("Resource_7ubw0"), SubResource("Resource_br7ad"), SubResource("Resource_j6qf0"), SubResource("Resource_t7n2v"), SubResource("Resource_ojqu0"), SubResource("Resource_1643t"), SubResource("Resource_ghyt2"), SubResource("Resource_u7fcb"), SubResource("Resource_afnfi"), SubResource("Resource_02pa1"), SubResource("Resource_84342")])
+music = "Elegy_of_the_End"

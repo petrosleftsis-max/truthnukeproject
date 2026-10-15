@@ -27,3 +27,4 @@ icon = ExtResource("3_icon")
 targets_ally = true
 effects = Array[ExtResource("1_eff")]([SubResource("Effect_med_heal"), SubResource("Effect_med_cure")])
 deals_damage = false
+price = 25

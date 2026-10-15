@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="1_hack"]
+
+[resource]
+script = ExtResource("1_hack")
+title = "The Strongbox"
+description = "His own strongbox, keyed to a hum he set years ago and has half forgotten. Nobody is coming - take your time."
+kind = 2
+tries = 2
+retry_cost_amount = 4
+hint_gate = 1
+simplify_gate = 2
+sets_off = true
+failure_line = "The lid snaps shut on his fingers. It will let him try again later."
+dials = 2
+tolerance = 8

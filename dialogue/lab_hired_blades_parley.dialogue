@@ -1,0 +1,35 @@
+~ start
+Pit Champion: That's far enough. Nobody walks past me.
+Enfina Moonwish: We have no quarrel with sellswords.
+Pit Champion: You do now. We've been paid.
+- "Paid to die. Read your own contract." [if Campaign.knows_clue("sellsword_contract") /]
+	Cyrus Rowe: Your paymaster wrote in the margin that he isn't expecting any of you back.
+	Pit Champion: ... Show me.
+	Pit Champion: Fine. Anyone who wants to live, go. I'm staying. It's the principle of it.
+	do Campaign.parley_remove("sellsword", 1)
+	do Campaign.parley_remove("hired_bow", 1)
+	do Campaign.accept_encounter()
+- "Here is more than he would ever pay you. Go home." [if Campaign.knows_clue("sellsword_contract") && Campaign.gold >= 150 /]
+	Pit Champion: More than he'd pay, and nobody dies for it. That's the first sensible thing anyone's said all week.
+	do Campaign.spend_gold(150)
+	do Campaign.parley_call_off()
+- Pay the archers to look the other way [if Campaign.can_afford_bribe("hired_bow") /]
+	Cyrus Rowe: You, with the bow. How much for you to be somewhere else?
+	do Campaign.bribe("hired_bow")
+	Pit Champion: Cowards. Fine - there's more for the rest of us.
+	do Campaign.accept_encounter()
+- Pay a sellsword to change sides [if Campaign.can_afford_bribe("sellsword", true) /]
+	Cyrus Rowe: Double what you're getting, for the one who swings at him instead.
+	do Campaign.bribe("sellsword", true)
+	Pit Champion: Traitor! You'll go first.
+	do Campaign.accept_encounter()
+- Keep him talking while Cyrus circles round [if Campaign.knows_clue("sellsword_contract") /]
+	Enfina Moonwish: Tell me about this contract of yours, then.
+	Pit Champion: What's to tell? We were - wait, where's the other one-
+	do Campaign.parley_surprise()
+	do Campaign.accept_encounter()
+- "Then we fight."
+	do Campaign.accept_encounter()
+- Back away for now
+	do Campaign.decline_encounter()
+=> END

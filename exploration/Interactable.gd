@@ -169,6 +169,13 @@ func _draw():
 ## conversation can do the same with `do Campaign.settle_alert()`.
 @export var settles_alert: bool = false
 
+@export_group("Hack")
+## Has to be hacked before it does anything (Hacking) - by Prometheus, or
+## whoever in the party can hack. Hacked once, it stays hacked: after that it
+## is used like anything else. Failing leaves hack_set_off:<id> and
+## hack_locked:<id> as the hack says (hack_id), for a conversation to act on.
+@export var hack: HackDefinition
+
 
 ## Whether this can be used right now. An encounter trigger already beaten says
 ## no, and stops offering its prompt.
@@ -199,6 +206,13 @@ func use(scene: Node):
 		if locked_message != "" and scene != null and scene.has_method("log_message"):
 			scene.log_message(locked_message)
 		return
+	# Hack-locked: it does nothing until it has been hacked. The autoload by its
+	# path, this being a tool script the editor runs before it knows of it.
+	var hacking = get_node_or_null("/root/Hacking")
+	if hack != null and hacking != null and not hacking.succeeded(hack_id()):
+		var outcome: Dictionary = await hacking.run(hack, hack_id())
+		if outcome.get("result", "") != "success":
+			return
 	interact(scene)
 	# Once means once however it was reached. Walking into an automatic one
 	# marks it before getting here, but pressing the key marked nothing at all -
@@ -211,6 +225,13 @@ func use(scene: Node):
 		Campaign.set_flag(sets_flag, _flag_value_to_store())
 	if settles_alert:
 		Campaign.settle_alert()
+
+
+## What its hack is known by on Campaign: its map and its place in it.
+func hack_id() -> String:
+	var map: Node = owner if owner != null else get_parent()
+	var where: String = String(map.get_path_to(self)) if map != null else String(name)
+	return "%s::%s" % [map.scene_file_path if map != null else "", where]
 
 
 ## Do the thing. `scene` is the ExplorationScene, passed in so subclasses can

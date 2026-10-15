@@ -57,6 +57,15 @@ var _present: Button = null
 ## What is picked, oldest first: [{"kind": "clue"/"item", "key": ...}].
 var _picked: Array = []
 var _toast_layer: CanvasLayer = null
+var _heading: Label = null
+var _hint: Label = null
+## The enemy codex (Campaign "The enemy codex"): whether it is the page on show
+## rather than the clues, whose page is open, and which of a boss's two.
+var _codex := false
+var _codex_key := ""
+var _codex_page := 1
+var _tab_button: Button = null
+var _page_button: Button = null
 
 
 func _ready():
@@ -104,6 +113,8 @@ func close():
 	_layer.queue_free()
 	_layer = null
 	_picked.clear()
+	_codex = false
+	_codex_key = ""
 	MenuPause.release(self)
 	if _mode == Mode.PRESENT:
 		_mode = Mode.BROWSE
@@ -230,11 +241,13 @@ func _build():
 	column.add_theme_constant_override("separation", 10)
 	panel.add_child(column)
 	var heading := Label.new()
+	_heading = heading
 	heading.theme_type_variation = GameFonts.HEADER
 	heading.add_theme_font_size_override("font_size", 30)
 	heading.text = "Show something" if _mode == Mode.PRESENT else "Journal"
 	column.add_child(heading)
 	var hint := Label.new()
+	_hint = hint
 	hint.add_theme_color_override("font_color", GOLD if _mode == Mode.PRESENT else MUTED)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.text = _prompt if _mode == Mode.PRESENT and _prompt != "" else \
@@ -259,7 +272,11 @@ func _build():
 	middle.add_child(detail_panel)
 	var detail := VBoxContainer.new()
 	detail.add_theme_constant_override("separation", 8)
-	detail_panel.add_child(detail)
+	var detail_scroll := ScrollContainer.new()
+	detail_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	detail_panel.add_child(detail_scroll)
+	detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_scroll.add_child(detail)
 	_detail_title = Label.new()
 	_detail_title.theme_type_variation = GameFonts.HEADER
 	_detail_title.add_theme_font_size_override("font_size", 24)
@@ -287,6 +304,11 @@ func _build():
 		buttons.add_child(_button(Pad.hint("Show nothing", &"ui_cancel"), cancel))
 		_connect = null
 	else:
+		_tab_button = _button("Enemy Codex", toggle_codex)
+		buttons.add_child(_tab_button)
+		_page_button = _button("Next page", turn_page)
+		_page_button.visible = false
+		buttons.add_child(_page_button)
 		_connect = _button("Connect", func(): connect_picked())
 		buttons.add_child(_connect)
 		buttons.add_child(_button(Pad.hint("Close", [&"journal", &"menus"]), close))
@@ -299,6 +321,11 @@ func _rebuild():
 	for child in _list.get_children():
 		_list.remove_child(child)
 		child.queue_free()
+	if _codex:
+		_rebuild_codex()
+		return
+	if _page_button != null:
+		_page_button.visible = false
 	var clues: Array = Campaign.known_clues()
 	if clues.is_empty() and (_mode == Mode.BROWSE or _bag_items().is_empty()):
 		var none := Label.new()
@@ -539,3 +566,107 @@ func _can_open_here() -> bool:
 		return true
 	var scene = get_tree().current_scene
 	return scene != null and OPENS_IN.has(scene.scene_file_path)
+
+
+## --- The enemy codex ---
+##
+## The Enemy Codex button swaps the clues for a page per enemy - written when
+## Enfina or Prometheus study them, a second for a boss (Campaign "The enemy
+## codex"; what each says is CodexPage's).
+
+
+## Swaps between the clues and the codex.
+func toggle_codex():
+	_codex = not _codex
+	_picked.clear()
+	_codex_key = ""
+	_codex_page = 1
+	if _heading != null:
+		_heading.text = "Enemy Codex" if _codex else "Journal"
+	if _hint != null:
+		_hint.text = "A page for every enemy - written when Enfina or Prometheus study one. A boss has a second page, once it is studied past its first phase." \
+			if _codex else "Pick two clues and Connect them to work something out."
+	if _tab_button != null:
+		_tab_button.text = "Clues" if _codex else "Enemy Codex"
+	if _connect != null:
+		_connect.visible = not _codex
+	_say("")
+	_rebuild()
+
+
+## Opens `key`'s page, if it is written.
+func show_codex(key: String):
+	if Campaign.codex_pages(key) <= 0:
+		return
+	_codex_key = key
+	_codex_page = 1
+	_rebuild()
+
+
+## A boss's other page.
+func turn_page():
+	if _codex_key == "" or Campaign.codex_pages(_codex_key) < 2:
+		return
+	_codex_page = 2 if _codex_page == 1 else 1
+	_show_codex()
+
+
+func _rebuild_codex():
+	var written := 0
+	for key in Campaign.codex_enemies():
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+		if definition == null:
+			continue
+		var pages := Campaign.codex_pages(key)
+		var button := Button.new()
+		button.name = key
+		button.toggle_mode = true
+		button.focus_mode = Control.FOCUS_NONE
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.expand_icon = false
+		button.add_theme_constant_override("icon_max_width", 28)
+		if pages > 0:
+			written += 1
+			button.text = definition.name
+			var all: int = CodexPage.pages_of(definition)
+			if all > 1:
+				button.text += "   (%d of %d pages)" % [pages, all]
+			button.icon = definition.portrait()
+			button.button_pressed = key == _codex_key
+			button.pressed.connect(show_codex.bind(key))
+		else:
+			button.text = "Not yet studied"
+			button.disabled = true
+		_list.add_child(button)
+	_say("%d of %d written up." % [written, Campaign.codex_enemies().size()])
+	_show_codex()
+
+
+func _show_codex():
+	if _codex_key == "":
+		_detail_title.text = ""
+		_detail_text.text = "Pick an enemy to read their page."
+		_detail_from.text = ""
+		if _page_button != null:
+			_page_button.visible = false
+		return
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(_codex_key)
+	var pages := Campaign.codex_pages(_codex_key)
+	var all: int = CodexPage.pages_of(definition)
+	_detail_title.text = definition.name
+	_detail_text.text = CodexPage.second_page(definition) if _codex_page == 2 else CodexPage.first_page(definition)
+	_detail_from.text = "Page %d of %d" % [_codex_page, all] if all > 1 else ""
+	if all > pages:
+		_detail_from.text += " - the next is written once they are studied past their first phase"
+	if _page_button != null:
+		_page_button.visible = pages >= 2
+		_page_button.text = "First page" if _codex_page == 2 else "Next page"
+
+
+## For a test: whether the codex is the page on show, and what the page says.
+func codex_showing() -> bool:
+	return is_open() and _codex
+
+
+func codex_text() -> String:
+	return _detail_text.text if _detail_text != null else ""

@@ -74,9 +74,10 @@ func give_turn(combat, who: Dictionary):
 
 ## Moves `who` to `tile` on the board.
 func put(combat, who: Dictionary, tile: Vector2i):
-	combat.controller.reposition_combatant(who.position, tile)
+	var from: Vector2i = who.position
 	who.position = tile
 	who.sprite.position = combat.controller.tile_map.map_to_local(tile)
+	combat.controller.reposition_combatant(from, tile)
 
 
 ## A free tile beside `tile` that anybody can stand on.

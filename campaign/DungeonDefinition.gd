@@ -24,10 +24,9 @@ class_name DungeonDefinition
 @export_group("Party")
 ## Who goes in, leader first. The maps' own parties are not used.
 @export var party: Array[String] = []
-## What level they are on the maps. In a fight, their level is the fight's
-## player tiles' (SpawnDefinition.level), as everywhere else - so set those to
-## match.
-@export_range(1, 3) var level: int = 1
+## What level they are, on the maps and in every fight - the fights' own
+## player tiles' levels are not used, as in the story.
+@export_range(1, 20) var level: int = 1
 
 @export_group("Stages")
 ## In order. Winning the last one finishes the dungeon.
@@ -46,6 +45,9 @@ class_name DungeonDefinition
 ## What bringing back one casting through each gate costs, by gate - nothing at
 ## 0, then World, Hermes, Yaldabaoth (see Stats.GATE_NAMES).
 @export var gate_costs: Array[int] = []
+## A store the rest offers a visit to, by key (StoreDefinition) - empty for
+## none. Gold comes from the fights' Gold Reward.
+@export var store: String = ""
 
 
 ## What one casting through gate `gate` costs to bring back - or nothing for a

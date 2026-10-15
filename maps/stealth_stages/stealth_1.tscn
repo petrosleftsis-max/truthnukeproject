@@ -44,7 +44,8 @@ entry_name = "start"
 [node name="MapSetup" type="Node" parent="." unique_id=616119058]
 script = ExtResource("3_b5kde")
 members = Array[String](["cyrus"])
-level = 2
+level = 10
+asks_for_paths = false
 empty_handed = true
 everyone_carries = Array[String](["pebble", "pebble", "pebble"])
 
@@ -97,7 +98,7 @@ point_name = "keys_east"
 [node name="KeyHolder" type="Node2D" parent="." unique_id=281749827]
 position = Vector2(2944, 896)
 script = ExtResource("8_rp8i1")
-level = 2
+level = 10
 display_name = "Key Holder"
 patrol = Array[String](["keys_west", "keys_east"])
 back_and_forth = true
@@ -109,7 +110,7 @@ picked_message = "a ring of keys"
 position = Vector2(7040, 640)
 script = ExtResource("8_rp8i1")
 combatant_key = "ranger"
-level = 2
+level = 10
 display_name = "Sentry"
 facing_degrees = 90.0
 back_and_forth = true
@@ -132,7 +133,7 @@ point_name = "hall_north"
 [node name="HallPatrol" type="Node2D" parent="." unique_id=201278835]
 position = Vector2(6016, 2944)
 script = ExtResource("8_rp8i1")
-level = 2
+level = 10
 display_name = "Hall Patrol"
 patrol = Array[String](["hall_west", "hall_east", "hall_north"])
 back_and_forth = true

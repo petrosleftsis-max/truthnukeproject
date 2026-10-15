@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="StoreDefinition" format=3]
+
+[ext_resource type="Script" path="res://campaign/StoreDefinition.gd" id="1_store"]
+
+[resource]
+script = ExtResource("1_store")
+name = "The Travelling Merchant"
+greeting = "Everything a body needs to keep its insides inside. Prices are as they are."
+stock = Array[String](["cure_potion", "mediocre_cure_potion", "potent_cure_potion", "medicine", "tiny_bomb", "small_bomb", "medium_bomb", "big_bomb", "burn_bottle", "frost_bottle", "heal_gate_nade", "crystalise_gate_nade", "fireball_gate_nade", "revitalizer_gate_nade", "worn_knife", "fencers_rapier", "rowan_staff", "votive_mace", "ember_greatsword", "padded_jacket", "brigandine", "plate_harness", "feather_charm", "iron_charm"])

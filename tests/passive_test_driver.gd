@@ -98,10 +98,12 @@ func run_test():
 	for comb in combat.combatants:
 		if comb.get("combatant_key", "") == "mimic" and mimic.is_empty():
 			mimic = comb
-		elif comb.side == 0 and player.is_empty() and comb.get("passives", []).is_empty():
-			# Somebody with none of their own - Cyrus has two - so what is handed
-			# out and taken back here is all they have.
+		elif comb.side == 0 and player.is_empty() and comb.get("combatant_key", "") != "cyrus":
 			player = comb
+	# Their own passives taken off for the fight - most of the party have one - so
+	# what is handed out and taken back here is all they have.
+	if not player.is_empty():
+		player["passives"] = []
 	ok(not mimic.is_empty(), "the encounter fields a Mimic")
 	ok(not player.is_empty(), "and somebody on the player's side")
 	var spell: SkillDefinition = SkillDatabase.skills["fireball"]
@@ -258,7 +260,7 @@ func run_test():
 	log_line("======== Cyrus's quick feet and quick hands are passives ========")
 	var cyrus_def: CombatantDefinition = CombatantDatabase.combatants["cyrus"]
 	var passive_names := cyrus_def.passives.map(func(p): return p.name)
-	ok(passive_names == ["Light Footed", "Quick Hands"], "Cyrus has Light Footed and Quick Hands", "%s" % [passive_names])
+	ok(passive_names == ["Light Footed", "Quick Hands", "Nade Juggler"], "Cyrus has Light Footed, Quick Hands and Nade Juggler", "%s" % [passive_names])
 	ok(cyrus_def.secondary_skills.is_empty() and not cyrus_def.items_as_secondary,
 		"and nothing unseen on his definition does the same")
 	var light_footed: PassiveDefinition = cyrus_def.passives[0]

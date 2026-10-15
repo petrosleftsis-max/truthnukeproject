@@ -1,0 +1,104 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/HazardDefinition.gd" id="1_mqa0w"]
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="2_jtxsr"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="3_qu133"]
+[ext_resource type="PackedScene" path="res://maps/city_fight.tscn" id="4_disig"]
+
+[sub_resource type="Resource" id="Resource_ufiay"]
+script = ExtResource("3_qu133")
+combatant_key = "prometheus"
+position = Vector2i(4, 2)
+level = 10
+weapon_base = 12
+defense = 8
+starting_items = Array[String](["potent_cure_potion", "medicine", "big_bomb", "frost_bottle"])
+
+[sub_resource type="Resource" id="Resource_1bxac"]
+script = ExtResource("3_qu133")
+combatant_key = "alithia"
+position = Vector2i(1, 4)
+level = 10
+weapon_base = 12
+defense = 20
+starting_items = Array[String](["potent_cure_potion", "medium_bomb", "gale_bottle", "terror_bottle"])
+
+[sub_resource type="Resource" id="Resource_u1x17"]
+script = ExtResource("3_qu133")
+combatant_key = "enfina"
+position = Vector2i(24, 14)
+level = 10
+weapon_base = 12
+defense = 32
+starting_items = Array[String](["potent_cure_potion", "big_bomb", "blinding_bomb", "burn_bottle"])
+
+[sub_resource type="Resource" id="Resource_rwu6g"]
+script = ExtResource("3_qu133")
+combatant_key = "cyrus"
+position = Vector2i(21, 17)
+level = 10
+weapon_base = 12
+defense = 20
+starting_items = Array[String](["potent_cure_potion", "big_bomb", "poison_bottle", "crystal_bottle"])
+
+[sub_resource type="Resource" id="Resource_2bs1f"]
+script = ExtResource("3_qu133")
+combatant_key = "bellkeeper"
+side = 1
+position = Vector2i(9, 0)
+level = 10
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_4ewfj"]
+script = ExtResource("3_qu133")
+combatant_key = "bell"
+side = 1
+position = Vector2i(7, 0)
+level = 10
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_m1dgi"]
+script = ExtResource("3_qu133")
+combatant_key = "bell"
+side = 1
+position = Vector2i(3, 0)
+level = 10
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_tfktv"]
+script = ExtResource("3_qu133")
+combatant_key = "bell"
+side = 1
+position = Vector2i(5, 0)
+level = 10
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_y0doh"]
+script = ExtResource("3_qu133")
+combatant_key = "rat"
+side = 1
+position = Vector2i(8, 0)
+level = 10
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Resource_3tcve"]
+script = ExtResource("3_qu133")
+combatant_key = "rat"
+side = 1
+position = Vector2i(9, 1)
+level = 10
+weapon_base = 12
+defense = 20
+
+[resource]
+script = ExtResource("2_jtxsr")
+display_name = "The Bellkeeper"
+description = "A small boss nothing can stun or move. Ring its bells to stagger it - then strike while it reels."
+terrain_scene = ExtResource("4_disig")
+spawns = Array[ExtResource("3_qu133")]([SubResource("Resource_ufiay"), SubResource("Resource_1bxac"), SubResource("Resource_u1x17"), SubResource("Resource_rwu6g"), SubResource("Resource_2bs1f"), SubResource("Resource_4ewfj"), SubResource("Resource_m1dgi"), SubResource("Resource_tfktv"), SubResource("Resource_y0doh"), SubResource("Resource_3tcve")])
+music = "Luce_del_Desiderio"

@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_jrtbx"]
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
+[ext_resource type="Resource" path="res://data/conditions/poisoned.tres" id="2_vw7xq"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="3_tdf4j"]
+[ext_resource type="Script" path="res://combat/resources/BodyPartDefinition.gd" id="4_part"]
+[ext_resource type="Resource" path="res://data/hacks/golem_binding.tres" id="5_binding"]
+
+[sub_resource type="Resource" id="Part_legs"]
+script = ExtResource("4_part")
+name = "Legs"
+tiles = Array[Vector2i]([Vector2i(0, 3), Vector2i(1, 3), Vector2i(2, 3), Vector2i(3, 3)])
+health_share = 0.25
+
+[sub_resource type="Resource" id="Part_arms"]
+script = ExtResource("4_part")
+name = "Arms"
+tiles = Array[Vector2i]([Vector2i(0, 1), Vector2i(0, 2), Vector2i(3, 1), Vector2i(3, 2)])
+health_share = 0.25
+when_broken = 1
+
+[sub_resource type="Resource" id="Part_core"]
+script = ExtResource("4_part")
+name = "Core Plate"
+tiles = Array[Vector2i]([Vector2i(1, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 2)])
+when_broken = 2
+
+[resource]
+script = ExtResource("1_who")
+name = "Stone Golem"
+glossary_text = "Clay and stone with words cut into it, made to answer to whoever cut them. It feels nothing and fears nothing - but the words can be rewritten."
+max_hp = 70
+max_hp_level_20 = 400
+size = 4
+initiative = 3
+sprite_frames = ExtResource("2_frames")
+skills = Array[String](["greatsword_attack", "rockfall"])
+resist_earth = 50
+immune_to_conditions = Array[ExtResource("1_jrtbx")]([ExtResource("2_vw7xq")])
+immune_to = Array[int]([0, 9, 10, 11])
+bound_to = "its master"
+rebind_hack = ExtResource("5_binding")
+rebind_turns = 3
+parts = Array[ExtResource("4_part")]([SubResource("Part_legs"), SubResource("Part_arms"), SubResource("Part_core")])

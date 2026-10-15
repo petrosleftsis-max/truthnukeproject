@@ -57,6 +57,7 @@ defense = 5
 
 [resource]
 script = ExtResource("1_enc")
+gold_reward = 50
 display_name = "Sewer Intro Fight"
 description = "Cyrus and Enfina find themselves surrounded."
 terrain_scene = ExtResource("3_86m2p")

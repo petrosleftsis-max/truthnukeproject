@@ -694,3 +694,45 @@ func _to_window(at: Vector2) -> Vector2:
 
 func _screen_size() -> Vector2:
 	return get_viewport().get_visible_rect().size
+
+
+## --- Walking and panning: keys, or the stick ---
+##
+## Which way `left`/`right`/`up`/`down` are held, keys and stick both - but
+## never mixed. Input.get_vector adds every source of an action together, so
+## with a pad plugged in whose stick rests a little off centre (one here rests
+## a fifth of the way down), holding A on the keyboard walked the party left
+## and slowly down. Any of the keys held, the keys alone say which way, all or
+## nothing; none, the stick does - snapped straight along an axis when it is
+## nearly so, since a stick pushed left is never quite level either.
+
+## Along one axis less than this share of the other, the stick is taken as
+## pushed straight along the other: about 17 degrees either side.
+const AXIS_SNAP := 0.3
+
+
+func direction(left: StringName, right: StringName, up: StringName, down: StringName) -> Vector2:
+	var keys := Vector2(_key_held(right) - _key_held(left), _key_held(down) - _key_held(up))
+	if keys != Vector2.ZERO:
+		return keys.limit_length(1.0)
+	var held := Input.get_vector(left, right, up, down)
+	var most := maxf(absf(held.x), absf(held.y))
+	if absf(held.x) < AXIS_SNAP * most:
+		held.x = 0.0
+	if absf(held.y) < AXIS_SNAP * most:
+		held.y = 0.0
+	return held
+
+
+## 1.0 when a key bound to `action` is down, 0.0 otherwise.
+func _key_held(action: StringName) -> float:
+	if not InputMap.has_action(action):
+		return 0.0
+	for event in InputMap.action_get_events(action):
+		if not event is InputEventKey:
+			continue
+		if event.physical_keycode != KEY_NONE and Input.is_physical_key_pressed(event.physical_keycode):
+			return 1.0
+		if event.keycode != KEY_NONE and Input.is_key_pressed(event.keycode):
+			return 1.0
+	return 0.0

@@ -47,7 +47,7 @@ func show_for(comb: Dictionary, combat: Combat):
 		remove_child(child)
 		child.queue_free()
 	for state in states_of(comb, combat):
-		add_child(_mark(state.text, state.helpful))
+		add_child(_mark(state.text, state.helpful, state.get("tag", "")))
 
 
 ## What is on `comb`, each as the words its mark's tooltip shows and whether it
@@ -60,11 +60,15 @@ func states_of(comb: Dictionary, combat: Combat) -> Array:
 		var described = describe(comb, effect)
 		if described == "":
 			continue
-		found.append({"text": described, "helpful": _is_helpful(effect)})
+		var state := {"text": described, "helpful": _is_helpful(effect)}
+		var condition = effect.get("condition") if effect.get("stat", "") == "condition" else null
+		if condition is ConditionDefinition:
+			state["tag"] = tag_of(condition)
+		found.append(state)
 	return found
 
 
-func _mark(tooltip: String, helpful: bool) -> TextureRect:
+func _mark(tooltip: String, helpful: bool, tag: String = "") -> TextureRect:
 	var icon = TextureRect.new()
 	icon.texture = MARK
 	icon.custom_minimum_size = mark_size
@@ -77,7 +81,7 @@ func _mark(tooltip: String, helpful: bool) -> TextureRect:
 	icon.tooltip_text = TooltipText.wrap(tooltip)
 	# Every mark is the same picture, so each carries the start of what it is
 	# - Bu, Bl, Po, Ph - to tell two of them apart unhovered.
-	var letter := tag_for(tooltip)
+	var letter := tag if tag != "" else tag_for(tooltip)
 	if letter != "":
 		var badge := SkillLook.letter_badge(icon, letter, maxi(8, int(mark_size.y * 0.5)))
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -97,6 +101,12 @@ static func tag_for(text: String) -> String:
 	if name == "":
 		return ""
 	return name.left(1).to_upper() + name.substr(1, 1).to_lower()
+
+
+## The two letters `condition`'s mark carries: its own Tag, or else the first
+## two of its name.
+static func tag_of(condition: ConditionDefinition) -> String:
+	return condition.tag if condition.tag != "" else tag_for(condition.display_name)
 
 
 ## Whether this is something the combatant wants. A buff is a raised stat; a
@@ -198,6 +208,15 @@ func _describe_condition(comb: Dictionary, effect: Dictionary) -> String:
 		doing.append("no reactions")
 	if not doing.is_empty():
 		lines.append(", ".join(doing))
+	if condition.holds:
+		# Held (Grab): it lasts as long as the grip, not a number of turns.
+		var holder: Dictionary = _combat.holder_of(comb) if _combat != null else {}
+		if holder.is_empty():
+			lines.append("Until they break free - their main action - or are let go")
+		else:
+			lines.append("Held by %s until they break free - their main action, %d%% a try - or are let go" % [
+				holder.name, _combat.break_free_chance(comb, holder)])
+		return "\n".join(lines)
 	lines.append(_wears_off(comb, effect))
 	return "\n".join(lines)
 

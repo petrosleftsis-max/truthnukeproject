@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="HackDefinition" format=3]
+
+[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="1_hack"]
+
+[resource]
+script = ExtResource("1_hack")
+title = "Vault Terminal"
+description = "Get from the login node to the core without a sentinel tracing him."
+kind = 1
+look = 1
+tries = 3
+retry_cost = 1
+retry_cost_amount = 10
+hint_gate = 1
+simplify_gate = 2
+raises_alert = true
+sets_off = true
+failure_line = "TRACE COMPLETE. Somewhere, a bell rings."
+width = 6
+height = 4
+sentinels = 2
+spare_moves = 3

@@ -54,6 +54,8 @@ var _all_pause_buttons: Array = []
 ## whose run a fight picked from the list would step outside of.
 func _offer_restart():
 	_restart.visible = Campaign.can_restart_stealth()
+	_save_button.visible = SaveGame.why_not(get_tree()) == ""
+	_load_button.visible = SaveGame.latest() != ""
 	$PausePanel/VBox/LevelSelectButton.visible = not Campaign.in_dungeon()
 	_pause_buttons = _all_pause_buttons.filter(func(button): return button.visible)
 	FocusLoop.link(_pause_buttons)
@@ -92,8 +94,25 @@ func _ready():
 	_restart.pressed.connect(_on_restart_pressed)
 	$PausePanel/VBox.add_child(_restart)
 	$PausePanel/VBox.move_child(_restart, $PausePanel/VBox/OptionsButton.get_index() + 1)
+	# Save and Load, after Restart Stage. Save only shown where the game can be
+	# saved - a map, not a fight or a stealth map (SaveGame.why_not) - and Load
+	# only once there is something to load.
+	_save_button = Button.new()
+	_save_button.name = "SaveButton"
+	_save_button.text = "Save Game"
+	_save_button.pressed.connect(_open_saves.bind(true))
+	$PausePanel/VBox.add_child(_save_button)
+	$PausePanel/VBox.move_child(_save_button, _restart.get_index() + 1)
+	_load_button = Button.new()
+	_load_button.name = "LoadButton"
+	_load_button.text = "Load Game"
+	_load_button.pressed.connect(_open_saves.bind(false))
+	$PausePanel/VBox.add_child(_load_button)
+	$PausePanel/VBox.move_child(_load_button, _save_button.get_index() + 1)
 	_all_pause_buttons = _pause_buttons.duplicate()
 	_all_pause_buttons.insert(_all_pause_buttons.find($PausePanel/VBox/OptionsButton) + 1, _restart)
+	_all_pause_buttons.insert(_all_pause_buttons.find(_restart) + 1, _save_button)
+	_all_pause_buttons.insert(_all_pause_buttons.find(_save_button) + 1, _load_button)
 	_offer_restart()
 	$OptionsPanel/VBox/Res1280Button.pressed.connect(func(): set_resolution(1280, 720))
 	$OptionsPanel/VBox/Res1920Button.pressed.connect(func(): set_resolution(1920, 1080))
@@ -153,6 +172,7 @@ func _show_panel(panel: Control, buttons: Array):
 ## the explicit release, the last button keeps focus while invisible and the
 ## camera stays frozen.
 func _close():
+	_close_saves()
 	$PausePanel.visible = false
 	$OptionsPanel.visible = false
 	if _glossary_panel != null:
@@ -176,7 +196,11 @@ func _unhandled_input(event):
 		# Let CController's own Escape handling cancel the in-progress skill
 		# targeting instead - that takes priority over opening this.
 		return
-	if $OptionsPanel.visible or _glossary_showing():
+	if saves_panel != null:
+		# The same as Options: back to Pause.
+		_close_saves()
+		_show_panel($PausePanel, _pause_buttons)
+	elif $OptionsPanel.visible or _glossary_showing():
 		# Escape from a sub-panel goes back to Pause rather than closing
 		# everything, so one key does not drop you out of the game from three
 		# screens deep.
@@ -262,3 +286,35 @@ func set_resolution(width: int, height: int):
 	# Applying a choice closes the whole overlay and returns to the game,
 	# rather than going back to the Pause panel.
 	_close()
+
+
+## --- Saving and loading ---
+
+var _save_button: Button = null
+var _load_button: Button = null
+## The list of saves, open in place of the Pause panel, or null.
+var saves_panel: PanelContainer = null
+
+
+## Opens the list of saves to save into, or to load from.
+func _open_saves(saving: bool):
+	_close_saves()
+	saves_panel = PanelContainer.new()
+	saves_panel.name = "SavesPanel"
+	saves_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	saves_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	saves_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var list := SaveLoadPanel.new()
+	saves_panel.add_child(list)
+	add_child(saves_panel)
+	list.open_as(saving)
+	list.closed.connect(func():
+		_close_saves()
+		_show_panel($PausePanel, _pause_buttons))
+	$PausePanel.visible = false
+
+
+func _close_saves():
+	if saves_panel != null:
+		saves_panel.queue_free()
+		saves_panel = null

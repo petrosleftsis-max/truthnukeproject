@@ -46,14 +46,14 @@ script = ExtResource("1_cy8ae")
 [node name="TurnQueue" type="ScrollContainer" parent="." unique_id=853073484]
 texture_filter = 1
 layout_mode = 0
-offset_left = 448.0
+offset_left = 1200.0
 offset_top = 16.0
-offset_right = 852.0
-offset_bottom = 80.0
-horizontal_scroll_mode = 3
-vertical_scroll_mode = 0
+offset_right = 1264.0
+offset_bottom = 520.0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
 
-[node name="Queue" type="HBoxContainer" parent="TurnQueue" unique_id=737569206]
+[node name="Queue" type="VBoxContainer" parent="TurnQueue" unique_id=737569206]
 layout_mode = 2
 
 [node name="Status" type="VBoxContainer" parent="." unique_id=856553554]

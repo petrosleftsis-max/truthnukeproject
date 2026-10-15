@@ -143,7 +143,7 @@ func run_test():
 	var novice = weak.create_combatant(CombatantDatabase.combatants["cyrus"], "cyrus")
 	var veteran_spawn = SpawnDefinition.new()
 	veteran_spawn.combatant_key = "cyrus"
-	veteran_spawn.level = 3
+	veteran_spawn.level = 20
 	var veteran = weak.create_combatant(CombatantDatabase.combatants["cyrus"], "cyrus", "", veteran_spawn)
 	var poison: SkillDefinition = SkillDatabase.skills["poison_dart"]
 	var small = weak.dot_base_damage(novice, poison, burn.dot_modifier)

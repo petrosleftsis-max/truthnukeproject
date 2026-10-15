@@ -17,7 +17,7 @@ var exploration_mode := false
 ## slots, plus everything that costs a spell slot. Spells are a panel of their
 ## own rather than part of the main list because they are read against a
 ## resource - you pick one knowing what it will cost, not just what it does.
-enum SkillPanel { MAIN, SECONDARY, ITEMS }
+enum SkillPanel { MAIN, SECONDARY, ITEMS, TALK }
 
 ## Reset to MAIN whenever the turn passes to someone new, so a turn always
 ## starts on the panel you'd expect.
@@ -43,6 +43,9 @@ const PANEL_TABS := {
 	SkillPanel.MAIN: "MainTab",
 	SkillPanel.SECONDARY: "SecondaryTab",
 	SkillPanel.ITEMS: "ItemsTab",
+	# Intimidate, Persuade, Deceive - made at runtime from the Items tab
+	# (_build_talk_tab), and shown only when one of them can be used.
+	SkillPanel.TALK: "TalkTab",
 }
 
 ## The tab you are on, so it reads as selected rather than as another thing to
@@ -66,6 +69,7 @@ const PORTRAIT_ASIDE := Color(0.62, 0.62, 0.62)
 
 
 func _ready():
+	_build_talk_tab()
 	for panel in PANEL_TABS:
 		var tab := _tab(panel)
 		if tab != null:
@@ -73,6 +77,14 @@ func _ready():
 	var spells := _spells_toggle()
 	if spells != null:
 		spells.pressed.connect(toggle_spells)
+		# Amplify, beside it: the Demolitionist's (Combat.settle_amplify).
+		amplify_toggle = Button.new()
+		amplify_toggle.name = "AmplifyToggle"
+		amplify_toggle.visible = false
+		amplify_toggle.focus_mode = Control.FOCUS_NONE
+		amplify_toggle.pressed.connect(cycle_amplify)
+		spells.get_parent().add_child(amplify_toggle)
+		amplify_toggle.position = spells.position + Vector2(spells.size.x + 8, 0)
 	var toggle = $Actions.get_node_or_null("LogToggle")
 	if toggle != null:
 		toggle.pressed.connect(toggle_log)
@@ -90,6 +102,11 @@ func _ready():
 	add_child(_unit_card)
 	_turn_banner = TurnBanner.new()
 	add_child(_turn_banner)
+	_boss_bars = BossBars.new()
+	add_child(_boss_bars)
+	# Last, so it is over everything else.
+	_boss_banner = BossBanner.new()
+	add_child(_boss_banner)
 	_build_danger_legend()
 	_set_up_turn_queue()
 	# The label says what the number is, rather than leaving a lone "4" to
@@ -141,6 +158,9 @@ const HOTKEY_MARK := "Hotkey"
 var _pips: ActionPips = null
 var _unit_card: UnitCard = null
 var _turn_banner: TurnBanner = null
+## The bosses' bars along the top, and their names across the middle.
+var _boss_bars: BossBars = null
+var _boss_banner: BossBanner = null
 var _danger_legend: PanelContainer = null
 
 
@@ -198,11 +218,13 @@ func _style_turn_buttons():
 	end_turn.add_theme_color_override("font_color", Color("eef4fb"))
 	end_turn.add_theme_color_override("font_hover_color", Color.WHITE)
 	end_turn.add_theme_color_override("font_pressed_color", Color.WHITE)
-	if _undo_button != null:
+	for button in [_undo_button]:
+		if button == null:
+			continue
 		for style in ["normal", "hover", "pressed", "disabled", "focus"]:
-			_undo_button.remove_theme_stylebox_override(style)
+			button.remove_theme_stylebox_override(style)
 		for colour in ["font_color", "font_disabled_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-			_undo_button.remove_theme_color_override(colour)
+			button.remove_theme_color_override(colour)
 
 
 func _accent_box(fill: Color, edge: Color) -> StyleBoxFlat:
@@ -266,7 +288,7 @@ func set_danger_legend(on: bool):
 	if _danger_legend.visible:
 		_danger_legend.reset_size()
 		var screen = get_viewport_rect().size
-		_danger_legend.global_position = Vector2((screen.x - _danger_legend.size.x) * 0.5, TurnBanner.TOP + 56.0)
+		_danger_legend.global_position = Vector2((screen.x - _danger_legend.size.x) * 0.5, banner_top() + 56.0)
 
 
 func show_unit_card(comb: Dictionary):
@@ -290,22 +312,47 @@ func _queue_tip(comb: Dictionary) -> String:
 	var most = combat.get_effective_stat(comb, "max_hp")
 	if comb.side != 0 and combat.is_hidden(comb):
 		return "%s\nHidden - somewhere you cannot see" % comb.name
-	return "%s\n%d / %d HP\nClick to find them on the map" % [comb.name, comb.hp, most]
+	# Something declared, coming down at the start of their next turn.
+	var readying := ""
+	if comb.has("declared") and SkillDatabase.skills.has(comb.declared.skill):
+		readying = "\nReadying %s - it lands on their next turn" % SkillDatabase.skills[comb.declared.skill].name
+	# What Intuition read of their next turn.
+	if comb.has("intent"):
+		readying += "\nRead: %s" % combat.intent_text(comb)
+	# Fighting for the party for now (bought, rebound), or broken.
+	readying += _standing_note(comb)
+	return "%s\n%d / %d HP%s\nClick to find them on the map" % [comb.name, comb.hp, most, readying]
+
+
+## A line for somebody who has changed sides, broken or been taken.
+func _standing_note(comb: Dictionary) -> String:
+	if comb.has("turncoat"):
+		var left: int = comb.turncoat.turns
+		return "\nFighting for the other side%s" % ((" - %d more turn%s" % [left, "" if left == 1 else "s"]) if left > 0 else " this fight")
+	var notes := ""
+	if comb.get("fleeing", 0) > 0:
+		notes += "\nBroken - running for a way out" if combat != null and not combat.escape_points.is_empty() else "\nBroken - fleeing"
+	if comb.has("riding"):
+		notes += "\nUp on %s" % combat.mount_of(comb).get("name", "somebody")
+	if comb.has("bound_to") and comb.side == 1:
+		notes += "\nBound to %s - a hack could rebind it" % comb.bound_to
+	if comb.get("bribe_price", 0) > 0 and comb.side == 1:
+		notes += "\nWould walk away for %d gold" % comb.bribe_price
+	return notes
 
 
 ## --- The turn queue's place on the screen ---
 ##
-## Centred across the top, whatever is in it, and never wider than the screen:
-## a queue with more faces than fit stops at the edges and is dragged (or the
-## wheel rolled over it) to see the rest. It used to be pinned 448 pixels from
-## the left and grow rightwards from there, so it sat off-centre for every
-## fight but one, and ran off the screen in a big one.
+## Down the right-hand side, top to bottom in the order turns come, and never
+## taller than the room above the combat log: a queue with more faces than fit
+## stops there and is dragged (or the wheel rolled over it) to see the rest. The
+## top of the screen is the bosses' (BossBars).
 
-## Kept clear between the queue and either side of the screen.
+## Kept clear between the queue and the edges of the screen, and the log.
 const QUEUE_EDGE := 16.0
 const QUEUE_TOP := 16.0
-## How tall the queue is, its frame included.
-const QUEUE_HEIGHT := 64.0
+## How wide the queue is, its frame included.
+const QUEUE_WIDTH := 68.0
 ## How far a press on the queue has to move before it is a drag rather than a
 ## click - a click that drifted a few pixels is still a click.
 const QUEUE_DRAG_START := 6.0
@@ -322,18 +369,19 @@ func _set_up_turn_queue():
 	# The look the queue had as a plain panel.
 	var panel := get_theme_stylebox("panel", "PanelContainer")
 	box.add_theme_stylebox_override("panel", panel)
-	# A face is as wide as it is tall, and takes its height from the row - which
-	# the panel used to hand it, and a scroll container does not. The height
-	# the panel gave, so the faces stay the size they were.
+	# A face is as tall as it is wide, and takes its width from the column.
 	var frame: Vector2 = panel.get_minimum_size() if panel != null else Vector2.ZERO
-	$TurnQueue/Queue.custom_minimum_size.y = QUEUE_HEIGHT - frame.y
+	$TurnQueue/Queue.custom_minimum_size.x = QUEUE_WIDTH - frame.x
+	box.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	box.gui_input.connect(_on_queue_input.bind({}))
 	$TurnQueue/Queue.minimum_size_changed.connect(_fit_turn_queue)
 	get_viewport().size_changed.connect(_fit_turn_queue)
 	_fit_turn_queue.call_deferred()
 
 
-## Sizes the queue to its faces - no wider than the screen - and centres it.
+## Sizes the queue to its faces - no taller than the room above the log - and
+## puts it against the right-hand edge.
 func _fit_turn_queue():
 	if not is_inside_tree():
 		return
@@ -342,17 +390,29 @@ func _fit_turn_queue():
 	var panel := box.get_theme_stylebox("panel")
 	var frame: Vector2 = panel.get_minimum_size() if panel != null else Vector2.ZERO
 	var screen := get_viewport_rect().size
-	var width := minf(faces.x + frame.x, screen.x - QUEUE_EDGE * 2.0)
-	box.size = Vector2(width, faces.y + frame.y)
-	box.position = Vector2(roundf((screen.x - width) / 2.0), QUEUE_TOP)
+	var height := minf(faces.y + frame.y, maxf(queue_floor() - QUEUE_TOP, QUEUE_WIDTH))
+	box.size = Vector2(faces.x + frame.x, height)
+	box.position = Vector2(screen.x - box.size.x - QUEUE_EDGE, QUEUE_TOP)
+
+
+## How far down the queue may reach: to just above where the combat log goes -
+## kept clear whether the log is showing or not, so the queue does not grow and
+## shrink as it is put away, or as everything steps aside for aiming.
+func queue_floor() -> float:
+	var floor_at := get_viewport_rect().size.y - QUEUE_EDGE
+	for name in ["Information", "LogToggle"]:
+		var part = $Actions.get_node_or_null(name)
+		if part != null:
+			floor_at = minf(floor_at, part.get_global_rect().position.y - QUEUE_EDGE)
+	return floor_at
 
 
 ## Whether there are more faces than fit, so it scrolls.
 func turn_queue_overflows() -> bool:
 	var box: ScrollContainer = $TurnQueue
 	var panel := box.get_theme_stylebox("panel")
-	var frame: float = panel.get_minimum_size().x if panel != null else 0.0
-	return $TurnQueue/Queue.get_combined_minimum_size().x + frame > box.size.x + 0.5
+	var frame: float = panel.get_minimum_size().y if panel != null else 0.0
+	return $TurnQueue/Queue.get_combined_minimum_size().y + frame > box.size.y + 0.5
 
 
 ## Scrolls the queue so whoever is acting is in view - a long queue would
@@ -362,7 +422,7 @@ func _show_current_face(face: Control):
 		$TurnQueue.ensure_control_visible(face)
 
 
-## Dragging the queue sideways, and rolling the wheel over it. True when the
+## Dragging the queue up and down, and rolling the wheel over it. True when the
 ## event was one of those and is dealt with.
 func _drag_turn_queue(event: InputEvent) -> bool:
 	var box: ScrollContainer = $TurnQueue
@@ -371,7 +431,7 @@ func _drag_turn_queue(event: InputEvent) -> bool:
 		if not turn_queue_overflows():
 			return false
 		var back: bool = event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_LEFT]
-		box.scroll_horizontal += -QUEUE_WHEEL_STEP if back else QUEUE_WHEEL_STEP
+		box.scroll_vertical += -QUEUE_WHEEL_STEP if back else QUEUE_WHEEL_STEP
 		accept_event()
 		return true
 	if event is InputEventMouseMotion and not _queue_press.is_empty():
@@ -379,7 +439,7 @@ func _drag_turn_queue(event: InputEvent) -> bool:
 			if event.global_position.distance_to(_queue_press.at) < QUEUE_DRAG_START:
 				return true
 			_queue_press.dragged = true
-		box.scroll_horizontal -= roundi(event.relative.x)
+		box.scroll_vertical -= roundi(event.relative.y)
 		accept_event()
 		return true
 	return false
@@ -575,7 +635,7 @@ func cycle_skill(step: int) -> bool:
 func _cycle_panel() -> bool:
 	if controller != null and controller.is_skill_selected():
 		return false
-	var order = [SkillPanel.MAIN, SkillPanel.SECONDARY, SkillPanel.ITEMS]
+	var order = [SkillPanel.MAIN, SkillPanel.SECONDARY, SkillPanel.ITEMS, SkillPanel.TALK]
 	var at = order.find(showing_panel)
 	for step in range(1, order.size() + 1):
 		var next = order[(at + step) % order.size()]
@@ -605,7 +665,43 @@ func _clear_ghosts():
 func _announce_turn(comb: Dictionary):
 	if _turn_banner == null or exploration_mode or _deployment_mode or comb.is_empty():
 		return
-	_turn_banner.announce("%s's Turn" % comb.name, Color("dce8f5") if comb.side == 0 else Color("e08a8a"))
+	_turn_banner.top = banner_top()
+	var colour := Color("e08a8a")
+	if comb.side == 0:
+		# Fighting for the party without being the player's (bought, rebound).
+		colour = Color("a8e0a0") if comb.get("ai_controlled", false) else Color("dce8f5")
+	_turn_banner.announce("%s's Turn" % comb.name, colour)
+
+
+## Where the turn banner goes: under the bosses' bars, when there are any.
+func banner_top() -> float:
+	if _boss_bars != null and _boss_bars.visible:
+		return maxf(TurnBanner.TOP, _boss_bars.get_global_rect().end.y + 8.0)
+	return TurnBanner.TOP
+
+
+## A boss's name across the middle of the screen, with `subtitle` under it -
+## as it appears, as a phase begins, as it is staggered (Combat._banner).
+func announce_boss(title: String, subtitle: String, colour: Color):
+	if exploration_mode or _boss_banner == null:
+		return
+	_boss_banner.announce(title, subtitle, colour)
+	_refresh_boss_bars()
+
+
+## What the boss banner says now, "" when it is not up - for the tests.
+func boss_banner_showing() -> String:
+	return _boss_banner.showing() if _boss_banner != null else ""
+
+
+func _refresh_boss_bars():
+	if _boss_bars == null or combat == null:
+		return
+	_boss_bars.show_for([] if exploration_mode else combat.combatants, combat)
+	# A turn banner already up when a boss's bar came is moved down under it.
+	if _turn_banner != null and _turn_banner.visible:
+		_turn_banner.top = banner_top()
+		_turn_banner.global_position.y = _turn_banner.top
 
 
 func _on_undo_pressed():
@@ -680,6 +776,51 @@ func _refresh_spells_toggle(comb):
 			and not combat.spell_skills_of(comb).is_empty()
 	spells.visible = castable and showing_panel != SkillPanel.ITEMS
 	spells.text = "Skills" if showing_spells else "Spells"
+	_refresh_amplify(comb)
+
+
+## --- Amplify ---
+
+## The Amplify button, or null before the HUD is built.
+var amplify_toggle: Button = null
+
+
+## Shown with the spells of somebody who can amplify, saying how far the next
+## spell will be.
+func _refresh_amplify(comb):
+	if amplify_toggle == null:
+		return
+	var can = combat != null and comb != null and not comb.is_empty() and not is_viewing_other() \
+		and showing_spells and showing_panel != SkillPanel.ITEMS and combat.amplifies(comb)
+	amplify_toggle.visible = can
+	if not can:
+		return
+	var steps: int = comb.get("amplify", 0)
+	amplify_toggle.text = "Amplify: off" if steps == 0 else "Amplify: +%d gate%s" % [steps, "" if steps == 1 else "s"]
+	var free_left: int = combat.free_amplifies(comb) - comb.get("free_amplifies_used", 0)
+	amplify_toggle.tooltip_text = "Cast the next spell through a deeper gate for more damage.\n%d free this fight." % maxi(free_left, 0)
+
+
+## Off, one gate deeper, two, and off again.
+func cycle_amplify():
+	var comb = shown_combatant()
+	if comb == null or comb.is_empty():
+		return
+	comb["amplify"] = (comb.get("amplify", 0) + 1) % 3
+	_refresh_amplify(comb)
+
+
+## The Skills tab (SkillPanel.TALK), copied from the Items tab's look.
+func _build_talk_tab():
+	var items_tab := _tab(SkillPanel.ITEMS)
+	if items_tab == null or _tab(SkillPanel.TALK) != null:
+		return
+	var talk_tab: Button = items_tab.duplicate(0)
+	talk_tab.name = "TalkTab"
+	talk_tab.text = "Skills"
+	talk_tab.tooltip_text = "Intimidate, Persuade and Deceive - for somebody the party has something on."
+	talk_tab.visible = false
+	$Actions/SkillPanelTabs.add_child(talk_tab)
 
 
 func _tab(panel: int) -> Button:
@@ -724,6 +865,14 @@ func _refresh_tabs(comb):
 		items_tab.visible = carrying
 		if not carrying and showing_panel == SkillPanel.ITEMS:
 			set_skill_panel(SkillPanel.MAIN)
+	var talk_tab := _tab(SkillPanel.TALK)
+	if talk_tab != null:
+		# Intimidate, Persuade, Deceive: only when the party has something on
+		# somebody in this fight they could be used on.
+		var talking = known and not combat.usable_talk_skills(comb).is_empty()
+		talk_tab.visible = talking
+		if not talking and showing_panel == SkillPanel.TALK:
+			set_skill_panel(SkillPanel.MAIN)
 
 
 ## Fills the action panel from whichever list is currently on show, and keeps
@@ -735,10 +884,6 @@ func _show_skills_for(comb: Dictionary):
 		_update_spell_slots(null)
 		return
 	_refresh_tabs(comb)
-	# Spells go on shelves, one per gate; skills and items stay on the grid.
-	var shelved = showing_spells and showing_panel != SkillPanel.ITEMS
-	_set_shelved(shelved)
-	_update_spell_slots(comb)
 	var list = []
 	var used = false
 	match showing_panel:
@@ -751,11 +896,27 @@ func _show_skills_for(comb: Dictionary):
 			# Same as the spells: which slot a consumable costs is the item's
 			# own business, so the panel dies only when both slots have gone.
 			used = comb.get("skill_used_this_turn", false) and comb.get("secondary_used_this_turn", false)
+		SkillPanel.TALK:
+			# Talking somebody round is a main action.
+			list = combat.talk_skills_of(comb)
+			used = comb.get("skill_used_this_turn", false)
 		_:
 			list = combat.spells_in_slot(comb, false) if showing_spells else combat.main_skills_of(comb)
 			used = comb.get("skill_used_this_turn", false)
-	if shelved:
-		_fill_shelves(comb, list, used, showing_panel == SkillPanel.SECONDARY)
+	# Spells go on shelves, one per gate; skills and items stay on the grid -
+	# unless there are more than it has buttons, when they go on one shelf of
+	# their own, which scrolls, rather than the last few going missing.
+	var shelved = showing_spells and showing_panel != SkillPanel.ITEMS
+	var overflowing = not shelved and list.size() > $Actions/ActionsPanel/ActionsGrid.get_child_count()
+	if (shelved or overflowing) and _shelves == null:
+		# Asked for before this HUD's own _ready - the battle shows whoever
+		# opens it as it sets itself up.
+		_build_shelves()
+	_set_shelved(shelved or overflowing)
+	_shelved_flat = overflowing
+	_update_spell_slots(comb)
+	if shelved or overflowing:
+		_fill_shelves(comb, list, used, showing_panel == SkillPanel.SECONDARY, overflowing)
 	else:
 		set_skill_list(list, used, showing_panel == SkillPanel.SECONDARY)
 	# Mid-walk, the turn is not theirs to end. The skills already grey out for
@@ -830,8 +991,16 @@ func set_interaction_prompt(text: String):
 		$Actions/SelectTargetMessage/MarginContainer/Label.text = text
 
 
-func add_turn_queue_icon(combatant: Dictionary):
+func add_turn_queue_icon(combatant: Dictionary, slot: int = -1):
 	var new_icon = TQIcon.instantiate()
+	# Its height from the column's width, the column being as wide as a face.
+	new_icon.expand_mode = TextureRect.EXPAND_FIT_HEIGHT
+	# Which turn of the round it stands for: somebody with several turns a round
+	# has a face for each.
+	new_icon.set_meta("queue_slot", slot)
+	# The face acting now is drawn larger - from its middle, so it does not
+	# spill onto the face below.
+	new_icon.resized.connect(func(): new_icon.pivot_offset = new_icon.size * 0.5)
 	$TurnQueue/Queue.add_child(new_icon)
 	new_icon.set_max_hp(combat.get_effective_stat(combatant, "max_hp"))
 	new_icon.set_hp(combatant.hp)
@@ -857,24 +1026,28 @@ func update_turn_queue(combatants: Array, turn_queue: Array):
 	for face in $TurnQueue/Queue.get_children():
 		$TurnQueue/Queue.remove_child(face)
 		face.queue_free()
-	for c in turn_queue:
-		var comb = combatants[c]
+	for slot in turn_queue.size():
+		var comb = combatants[turn_queue[slot]]
 		# The dead stay in the order, skipped; their faces went when they fell.
 		if not comb.get("alive", true):
 			continue
-		add_turn_queue_icon(comb)
+		add_turn_queue_icon(comb, slot)
 
 
 func combatant_died(combatant):
 	if combatant == _viewing:
 		stop_viewing()
-	var turn_queue_icon = _icon_for($TurnQueue/Queue, combatant)
-#	if combatant.side == 0:
-#		var status = $Status.find_child(combatant.name, false, false)
-#		if status != null:
-#			status.queue_free()
-	if turn_queue_icon != null:
+	# Every face of theirs, for somebody with more than one turn a round.
+	for turn_queue_icon in _queue_faces_for(combatant):
 		turn_queue_icon.queue_free()
+	# A boss falling takes its bars with it.
+	_refresh_boss_bars()
+
+
+## Every face `comb` has in the turn queue - one per turn they get a round.
+func _queue_faces_for(comb: Dictionary) -> Array:
+	var wanted = comb.get("id", -1)
+	return $TurnQueue/Queue.get_children().filter(func(face): return face.get_meta("combatant_id", -2) == wanted)
 
 
 ## The icon standing for `comb`, or null. By id rather than by name, so a fight
@@ -888,7 +1061,8 @@ func _icon_for(container: Node, comb: Dictionary) -> Node:
 
 
 func add_combatant_status(comb: Dictionary):
-	if comb.side == 0:
+	# An image of somebody (Combat.summon_decoy) is not one of the party.
+	if comb.side == 0 and not comb.get("illusion", false):
 		var new_status = StatusIcon.instantiate()
 		$Status.add_child(new_status)
 		new_status.set_icon(comb.icon)
@@ -1017,8 +1191,9 @@ func _input(event):
 
 func show_combatant_status_main(comb: Dictionary):
 	# Whatever a pad had open along the bottom belonged to the turn before, and
-	# so did the skill it was last on.
+	# so did the skill it was last on - and any choice of action left up.
 	close_pad_panel()
+	close_slot_picker()
 	_pad_panel_last = null
 	# A new turn is always shown as the turn it is.
 	if is_viewing_other():
@@ -1251,7 +1426,12 @@ func _consumable_spends_secondary(comb: Dictionary, item: SkillDefinition) -> bo
 		return true
 	if comb.is_empty():
 		return false
-	if combat == null or not combat.items_as_secondary(comb):
+	if combat == null:
+		return false
+	# Any item from the secondary (Quick Hands), or a Gate Nade (Nade Juggler).
+	var either_slot: bool = combat.items_as_secondary(comb) \
+		or (combat.is_gate_nade(item) and combat.gate_nades_as_secondary(comb))
+	if not either_slot:
 		return false
 	# The secondary first, and the main action only once the secondary is gone.
 	#
@@ -1335,6 +1515,15 @@ func _fill_action(action: Button, skill_key: String, skill_used: bool, as_second
 		_look_wired[action.get_instance_id()] = true
 	if not looking:
 		action.pressed.connect(func():
+			# A Combined Load asks which two loads first (open_ammo_picker).
+			if skill.combines_ammo and ammo_of(comb).size() >= 2:
+				open_ammo_picker(comb, spends_secondary)
+				return
+			# An item either action could pay for, with both still there:
+			# which one is the player's to say (open_slot_picker).
+			if showing_panel == SkillPanel.ITEMS and item_slot_is_a_choice(comb, skill):
+				open_slot_picker(comb, skill_key)
+				return
 			controller.set_selected_skill(skill_key, spends_secondary)
 			controller.begin_target_selection()
 			)
@@ -1415,9 +1604,14 @@ var _shelves: SpellShelves = null
 ## A clean copy of an action button, taken before anything was hung on the
 ## grid's, for the shelves to make theirs from.
 var _slot_template: Button = null
+## Whether the shelves are up for skills too many for the grid, all on one
+## untagged shelf, rather than for spells.
+var _shelved_flat := false
 
 
 func _build_shelves():
+	if _shelves != null:
+		return
 	var grid: GridContainer = $Actions/ActionsPanel/ActionsGrid
 	_slot_template = grid.get_child(0).duplicate(0)
 	# The grid can already have been filled by the time this runs - the battle
@@ -1445,14 +1639,16 @@ func showing_shelves() -> bool:
 
 
 func _set_shelved(on: bool):
+	if not on:
+		_shelved_flat = false
 	if _shelves == null:
 		return
 	_shelves.visible = on
 	$Actions/ActionsPanel/ActionsGrid.visible = not on
 
 
-func _fill_shelves(comb: Dictionary, spells: Array, used: bool, as_secondary: bool):
-	_shelves.build(spells, comb, _slot_template, "%s/%s" % [comb.get("id", -1), as_secondary])
+func _fill_shelves(comb: Dictionary, spells: Array, used: bool, as_secondary: bool, flat: bool = false):
+	_shelves.build(spells, comb, _slot_template, "%s/%s/%s" % [comb.get("id", -1), as_secondary, flat], flat)
 	var shown := _shelves.buttons()
 	var keys := _shelves.keys()
 	var tags := SkillLook.tags_for(keys.map(func(key): return SkillDatabase.skills[key]))
@@ -1501,7 +1697,9 @@ func _update_spell_slots(comb):
 		if tag is GateTag:
 			var level: int = tag.level if tag.level > 0 else int(String(tag.name).trim_prefix("Gate"))
 			tag.show_gate(level, slots[level] if level < slots.size() else 0, maximums[level] if level < maximums.size() else 0)
-	row.visible = not wanted.is_empty() and not showing_shelves()
+	# A shelf of skills too many for the grid carries no gate tags, so the
+	# counters stay.
+	row.visible = not wanted.is_empty() and not (showing_shelves() and not _shelved_flat)
 
 
 func clear_action_button_connections(action: Button):
@@ -1533,6 +1731,10 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	if skill.description != "":
 		lines.append(skill.description)
 	lines.append("")
+	if skill.declared:
+		lines.append("Declared: announcing it is free; it lands where it was aimed at the start of your next turn once the other side have all had one, and spends that turn's action")
+	if skill is GateNadeDefinition and skill.cast != null:
+		lines.append("Gate Nade: casts %s with no gate opened - for anybody who knows it or could learn it" % skill.cast.name)
 	if skill.spell_slot_level > 0:
 		lines.append("Costs: %s, or any higher gate" % Stats.short_gate_name(skill.spell_slot_level))
 	# Which of the two actions a turn gives you this spends. It decides
@@ -1555,6 +1757,8 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		var granted_by: PassiveDefinition = null
 		if skill is ItemDefinition:
 			granted_by = combat.items_as_secondary_from(holder)
+			if granted_by == null and combat.is_gate_nade(skill):
+				granted_by = combat.gate_nades_as_secondary_from(holder)
 			if granted_by == null and combat.items_as_secondary(holder):
 				action_slot = "Main or Secondary"
 		else:
@@ -1581,6 +1785,10 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 			"Everyone else takes half damage and none of the rest." if hurts
 				else "Everyone else shrugs it off entirely."
 		])
+	elif Combat.holding_condition(skill) != null:
+		# A grab is Physical against Physical (Combat.grip_chance).
+		lines.append("Hit chance: your Physical against theirs - %d%% between equals, a point more for every point stronger (%d-%d%%)" % [
+			Combat.GRIP_CHANCE, Combat.GRIP_MIN, Combat.GRIP_MAX])
 	else:
 		lines.append("Hit chance: %d%%" % skill.accuracy)
 	# Which attribute the numbers on this skill are worked out from, so the
@@ -1594,6 +1802,8 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		var moved_by = _scaling_moved_by()
 		lines.append("Scales with: %s%s" % [Stats.stat_name(_scaling_stat(skill)),
 			", through %s" % moved_by.name if moved_by != null else ""])
+	if skill.deals_damage and skill.ignores_defense > 0:
+		lines.append("Ignores %d%% of the target's Defense" % mini(skill.ignores_defense, 100))
 	lines.append("Targets: %s" % ("Everyone caught in it" if skill.affects_both_sides else ("Allies" if skill.targets_ally else "Enemies")))
 	if skill.aoe_radius > 0:
 		lines.append("Area: %s" % describe_aoe_shape(skill))
@@ -1790,6 +2000,22 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.REVIVE:
 			return "Brings back a fallen ally with %d%% of their health - everything about them but their movement %d%% lower, for good, and lower again each time" % [
 				roundi(effect.revive_health * 100.0), roundi(effect.revive_weakening * 100.0)]
+		EffectDefinition.EffectType.SUMMON_DECOY:
+			return "Puts an image of them beside them: one point of health, no turns - the enemy goes for it as it would for them"
+		EffectDefinition.EffectType.INTERACT:
+			return "Uses the thing beside you - rings the bell, pulls the lever, drops the chandelier"
+		EffectDefinition.EffectType.HACK:
+			return "Hacks apart the spell they are winding up, before it lands - or the binding on a bound creature"
+		EffectDefinition.EffectType.READ_INTENT:
+			return "Marks what they will do on their next turn - and they are held to it"
+		EffectDefinition.EffectType.SHAKE:
+			return "Shakes their nerve (%d-%d), toward fleeing or surrendering" % [effect.min_amount, effect.max_amount]
+		EffectDefinition.EffectType.CLIMB:
+			return "Climbs onto them, to fight from on top: every blow on them lands, and harder, until they shake you off"
+		EffectDefinition.EffectType.BRIBE:
+			return "Pays their price to leave the fight"
+		EffectDefinition.EffectType.BREAK_FREE:
+			return "Tries to break the grip of whoever is holding you"
 		EffectDefinition.EffectType.STEAL:
 			if effect.steal_count > 0:
 				return "Takes up to %d of the items the target has to hand, to use yourself" % effect.steal_count
@@ -1798,30 +2024,39 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 
 
 func update_combatants(combatants: Array):
+	_refresh_boss_bars()
 	for comb in combatants:
 		var effective_max_hp = combat.get_effective_stat(comb, "max_hp")
 		if comb.side == 0:
 			var status = _icon_for($Status, comb)
 			if status != null:
-				status.set_health(comb.hp, effective_max_hp)
+				status.set_health(comb.hp, effective_max_hp, comb.get("temp_hp", 0))
 				_refresh_conditions(status, comb)
 		if comb.side == 0 and not exploration_mode and shown_combatant() == comb:
 			# The big portrait beside the skill panel belongs to whoever is
 			# acting, and used to be written only on a turn change - so healing
 			# or being hurt during your own turn left it showing the health you
 			# started with, while the party portraits beside it told the truth.
-			$Actions/StatusIcon.set_health(comb.hp, effective_max_hp)
-		var turn_queue_icon = _icon_for($TurnQueue/Queue, comb)
-		if turn_queue_icon != null:
+			$Actions/StatusIcon.set_health(comb.hp, effective_max_hp, comb.get("temp_hp", 0))
+		var faces := _queue_faces_for(comb)
+		for turn_queue_icon in faces:
 			turn_queue_icon.tooltip_text = _queue_tip(comb)
 			_refresh_conditions(turn_queue_icon, comb)
 			turn_queue_icon.set_max_hp(effective_max_hp)
 			turn_queue_icon.set_hp(comb.hp)
+			var acting: bool = combat.get_current_combatant() == comb
+			var taken: bool = comb.turn_taken
+			if faces.size() > 1:
+				# Several turns a round: the face for the turn being taken is the
+				# one lit, and those the round has gone past are spent.
+				var slot: int = turn_queue_icon.get_meta("queue_slot", -1)
+				acting = acting and slot == combat.turn
+				taken = slot < combat.turn
 			# Order matters: set_current works out the border colour, so it has
 			# to run before anything reads it.
-			turn_queue_icon.set_current(combat.get_current_combatant() == comb, comb.side)
-			turn_queue_icon.set_turn_taken(comb.turn_taken)
-			if combat.get_current_combatant() == comb:
+			turn_queue_icon.set_current(acting, comb.side)
+			turn_queue_icon.set_turn_taken(taken)
+			if acting:
 				_show_current_face.call_deferred(turn_queue_icon)
 
 
@@ -2048,21 +2283,25 @@ func _toggle_pad_panel():
 
 
 ## The part of the screen the HUD leaves the map, a little in from its edges:
-## below the turn queue, right of the party column, above everything along the
-## bottom. A pad's cursor is kept in it, or its click would land on a button.
+## below the bosses' bars, left of the turn queue, right of the party column,
+## above everything along the bottom. A pad's cursor is kept in it, or its
+## click would land on a button.
 func map_view_rect() -> Rect2:
 	var view := get_viewport().get_visible_rect()
 	var top := view.position.y
 	var bottom := view.end.y
 	var left := view.position.x
+	var right := view.end.x
 	if $TurnQueue.visible:
-		top = maxf(top, $TurnQueue.get_global_rect().end.y)
+		right = minf(right, $TurnQueue.get_global_rect().position.x)
+	if _boss_bars != null and _boss_bars.visible:
+		top = maxf(top, _boss_bars.get_global_rect().end.y)
 	if $Status.visible and $Status.get_child_count() > 0:
 		left = maxf(left, $Status.get_global_rect().end.x)
 	for child in $Actions.get_children():
 		if child is Control and child.visible and child.get_global_rect().position.y > view.get_center().y:
 			bottom = minf(bottom, child.get_global_rect().position.y)
-	return Rect2(left, top, view.end.x - left, bottom - top).grow(-PAD_MARGIN)
+	return Rect2(left, top, right - left, bottom - top).grow(-PAD_MARGIN)
 
 
 ## --- What a hit will do, while aiming ---
@@ -2128,6 +2367,10 @@ func show_hit_preview(skill_key: String, aim: Vector2i):
 		var hit = combat.predict_hit(caster, target, skill)
 		_hit_rows.add_child(_hit_row(caster, target, skill, hit))
 		_show_ghost(target, int(hit.heal) - int(hit.damage))
+		# Aimed at a part of somebody big: which, and what breaking it does.
+		var part: String = combat.part_note(target, aim)
+		if part != "" and hit.deals_damage:
+			_hit_rows.add_child(_hit_label("Aimed at the %s" % part, 12, HIT_PREVIEW_WINS))
 	_hit_preview.visible = true
 	_hit_preview.reset_size()
 	_place_hit_preview()
@@ -2183,7 +2426,45 @@ func _hit_row(caster: Dictionary, target: Dictionary, skill: SkillDefinition, hi
 			row.add_child(_hit_label("Loses: %s" % ", ".join(hit.dropped), 12, HIT_PREVIEW_LOSES))
 	elif hit.hit_chance < 100:
 		row.add_child(_hit_label("%d%% to hit" % hit.hit_chance, 12, TAB_OFF))
+	# Aiming a Steal: what there is to take.
+	if Combat.steals(skill) and target.side != caster.side:
+		row.add_child(_carried_line(target))
 	return row
+
+
+## What `target` has to hand, as a Steal would find it.
+func _carried_line(target: Dictionary) -> Label:
+	var names := []
+	for key in combat.items_of(target):
+		var item: ItemDefinition = ItemDatabase.item(key)
+		names.append(item.name if item != null else key)
+	var text := "Carries: " + ", ".join(names) if not names.is_empty() else "Carries nothing"
+	return _hit_label(text, 12, HIT_PREVIEW_WINS if not names.is_empty() else TAB_OFF)
+
+
+## The prompt for somebody a Steal cannot be let go at right now - out of reach,
+## or with nothing on them - still saying what they carry, and why not.
+func show_carried(skill_key: String, target: Dictionary, why_not: String):
+	if combat == null or exploration_mode or not SkillDatabase.skills.has(skill_key):
+		hide_hit_preview()
+		return
+	if _hit_preview == null:
+		_build_hit_preview()
+	for row in _hit_rows.get_children():
+		_hit_rows.remove_child(row)
+		row.queue_free()
+	_clear_ghosts()
+	_hit_rows.add_child(_hit_label(SkillDatabase.skills[skill_key].name, 13, TAB_OFF))
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(_hit_label(target.name, 15, HIT_PREVIEW_ENEMY))
+	line.add_child(_hit_label(why_not, 13, HIT_PREVIEW_LOSES))
+	_hit_rows.add_child(line)
+	_hit_rows.add_child(_carried_line(target))
+	_hit_preview.visible = true
+	_hit_preview.reset_size()
+	_place_hit_preview()
 
 
 ## The headline for one target: damage, a heal, or what else lands.
@@ -2389,18 +2670,20 @@ func _refresh_conditions(holder: Control, comb: Dictionary):
 func _place_strip(strip: ConditionStrip):
 	var need := strip.get_combined_minimum_size()
 	if strip.get_meta("in_queue", false):
-		# Under the face, centred on it, a line at a time downwards.
-		strip.anchor_left = 0.5
-		strip.anchor_right = 0.5
-		strip.anchor_top = 1.0
-		strip.anchor_bottom = 1.0
-		strip.offset_left = -need.x * 0.5
-		strip.offset_right = need.x * 0.5
-		strip.offset_top = 4.0
-		strip.offset_bottom = 4.0 + need.y
+		# On the face, from its top-left corner: the queue runs down the
+		# screen, so under the face is the next face. Three to a line, three
+		# lines, fit the face exactly.
+		strip.anchor_left = 0.0
+		strip.anchor_right = 0.0
+		strip.anchor_top = 0.0
+		strip.anchor_bottom = 0.0
+		strip.offset_left = 1.0
+		strip.offset_right = 1.0 + need.x
+		strip.offset_top = 1.0
+		strip.offset_bottom = 1.0 + need.y
 		# The face acting now is drawn larger; its marks stay everybody else's
-		# size, or they grow out past it and under the next face.
-		strip.pivot_offset = Vector2(need.x * 0.5, 0.0)
+		# size, or they grow out past it.
+		strip.pivot_offset = Vector2.ZERO
 		var face_scale: Vector2 = strip.get_parent().scale
 		strip.scale = Vector2.ONE / face_scale if face_scale.x > 0.0 else Vector2.ONE
 	else:
@@ -2413,3 +2696,179 @@ func _place_strip(strip: ConditionStrip):
 		strip.offset_right = 8.0 + need.x
 		strip.offset_top = -need.y * 0.5
 		strip.offset_bottom = need.y * 0.5
+
+
+## --- Combined Load ---
+##
+## The Gunner's Combined Load (SkillDefinition.combines_ammo): two of the
+## caster's loads picked here, then aimed as the one shot they make together
+## (SkillDefinition.combined).
+
+## The picker on screen, or null.
+var ammo_picker: PanelContainer = null
+var _ammo_chosen: Array = []
+
+
+## The loads `comb` can fire now, by key.
+func ammo_of(comb: Dictionary) -> Array:
+	var found := []
+	if combat == null or comb.is_empty():
+		return found
+	for key in comb.get("skill_list", []):
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if skill != null and skill.is_ammo and combat.meets_level_for(comb, skill) and combat.can_afford_skill(comb, skill):
+			found.append(key)
+	return found
+
+
+## Puts up the choice of two loads over the action panel.
+func open_ammo_picker(comb: Dictionary, as_secondary: bool):
+	close_ammo_picker()
+	_ammo_chosen = []
+	ammo_picker = PanelContainer.new()
+	ammo_picker.name = "AmmoPicker"
+	ammo_picker.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	ammo_picker.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	ammo_picker.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	ammo_picker.add_child(column)
+	var title := Label.new()
+	title.text = "Combined Load - pick two"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(title)
+	var load_button := Button.new()
+	for key in ammo_of(comb):
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		var toggle := Button.new()
+		toggle.name = "Ammo_" + key
+		toggle.toggle_mode = true
+		toggle.text = skill.name
+		toggle.icon = skill.icon
+		toggle.expand_icon = true
+		toggle.custom_minimum_size = Vector2(240, 40)
+		toggle.toggled.connect(func(on: bool):
+			if on and not _ammo_chosen.has(key):
+				_ammo_chosen.append(key)
+			elif not on:
+				_ammo_chosen.erase(key)
+			# Two at most: picking a third lets go of the first.
+			while _ammo_chosen.size() > 2:
+				var dropped = _ammo_chosen.pop_front()
+				var other = ammo_picker.find_child("Ammo_" + dropped, true, false)
+				if other != null:
+					other.set_pressed_no_signal(false)
+			load_button.disabled = _ammo_chosen.size() != 2)
+		column.add_child(toggle)
+	load_button.name = "Load"
+	load_button.text = "Load both"
+	load_button.disabled = true
+	load_button.pressed.connect(func(): _fire_combined(as_secondary))
+	column.add_child(load_button)
+	var cancel := Button.new()
+	cancel.name = "Cancel"
+	cancel.text = "Cancel"
+	cancel.pressed.connect(close_ammo_picker)
+	column.add_child(cancel)
+	add_child(ammo_picker)
+	FocusOnDemand.attach(ammo_picker, column.get_child(1))
+
+
+func close_ammo_picker():
+	if ammo_picker != null:
+		ammo_picker.queue_free()
+		ammo_picker = null
+
+
+## --- Which action an item spends ---
+##
+## Somebody who can use an item with either action (Cyrus's Quick Hands, or a
+## Gate Nade through Nade Juggler) is asked which, when both are still there -
+## the main action to keep the secondary for something else, or the other way
+## round. With only one left, that one is spent without asking.
+
+## The choice on screen, or null.
+var slot_picker: PanelContainer = null
+
+
+## Whether using `item` is a choice of actions for `comb` right now.
+func item_slot_is_a_choice(comb: Dictionary, item: SkillDefinition) -> bool:
+	if combat == null or comb.is_empty() or item.is_secondary:
+		return false
+	var either_slot: bool = combat.items_as_secondary(comb) \
+		or (combat.is_gate_nade(item) and combat.gate_nades_as_secondary(comb))
+	return either_slot and not comb.get("skill_used_this_turn", false) and not comb.get("secondary_used_this_turn", false)
+
+
+## Asks which action `comb` spends on the item `key`.
+func open_slot_picker(comb: Dictionary, key: String):
+	close_slot_picker()
+	var item: SkillDefinition = SkillDatabase.skills[key]
+	slot_picker = _SlotPicker.new()
+	slot_picker.name = "SlotPicker"
+	slot_picker.hud = self
+	slot_picker.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	slot_picker.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	slot_picker.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	slot_picker.add_child(column)
+	var title := Label.new()
+	title.text = "%s - with which action?" % item.name
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(title)
+	var granted_by: PassiveDefinition = combat.gate_nades_as_secondary_from(comb) if combat.is_gate_nade(item) and not combat.items_as_secondary(comb) \
+		else combat.items_as_secondary_from(comb)
+	for secondary in [false, true]:
+		var button := Button.new()
+		button.name = "Secondary" if secondary else "Main"
+		button.text = "Secondary action" if secondary else "Main action"
+		if secondary and granted_by != null:
+			button.text += " (%s)" % granted_by.name
+		button.custom_minimum_size = Vector2(260, 40)
+		button.pressed.connect(choose_item_slot.bind(key, secondary))
+		column.add_child(button)
+	var cancel := Button.new()
+	cancel.name = "Cancel"
+	cancel.text = Pad.hint("Cancel", &"ui_cancel")
+	cancel.pressed.connect(close_slot_picker)
+	column.add_child(cancel)
+	add_child(slot_picker)
+	FocusOnDemand.attach(slot_picker, column.get_child(1))
+
+
+## Uses the item `key` with the secondary action, or the main.
+func choose_item_slot(key: String, secondary: bool):
+	close_slot_picker()
+	controller.set_selected_skill(key, secondary)
+	controller.begin_target_selection()
+
+
+func close_slot_picker():
+	if slot_picker != null:
+		slot_picker.queue_free()
+		slot_picker = null
+
+
+## The picker itself: Escape, the pad's back button or a right click put it away.
+class _SlotPicker extends PanelContainer:
+	var hud = null
+
+	func _input(event: InputEvent):
+		if event.is_action_pressed(&"ui_cancel") \
+				or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT):
+			get_viewport().set_input_as_handled()
+			if hud != null:
+				hud.close_slot_picker()
+
+
+## The two loads picked, aimed as one.
+func _fire_combined(as_secondary: bool):
+	if _ammo_chosen.size() != 2:
+		return
+	var key := SkillDefinition.combined(_ammo_chosen[0], _ammo_chosen[1])
+	close_ammo_picker()
+	if key == "":
+		return
+	controller.set_selected_skill(key, as_secondary)
+	controller.begin_target_selection()

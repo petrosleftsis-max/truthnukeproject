@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Measured Eye"
+description = "Every blow she lands teaches her something. Whoever she hits is studied, just as Study would - their sheet open to the party, and her next blows landing with a studier's edge."
+studies_on_hit = true

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/hack_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/hacks/unpick_a_spell.tres" id="4_hack"]
+
+[sub_resource type="Resource" id="Effect_hack"]
+script = ExtResource("1_effect")
+type = 18
+
+[resource]
+script = ExtResource("3_skill")
+name = "Hack"
+description = "Reach into the spell a foe is winding up and pick it apart before it lands. A minigame: win it and the spell comes to nothing - and a boss reels; lose it and the spell may go off early."
+min_range = 1
+max_range = 6
+icon = ExtResource("2_icon")
+can_be_copied = false
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_hack")])
+hack = ExtResource("4_hack")
+deals_damage = false

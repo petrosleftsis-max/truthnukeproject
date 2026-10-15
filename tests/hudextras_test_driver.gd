@@ -318,13 +318,17 @@ func run_test():
 	ok(not ui._unit_card.visible, "and off it with nobody under the cursor")
 	log_line("")
 
-	log_line("======== the turn queue sits in the middle ========")
+	log_line("======== the turn queue runs down the right ========")
 	var queue_box: ScrollContainer = ui.get_node("TurnQueue")
 	var screen_size = ui.get_viewport_rect().size
 	await get_tree().process_frame
-	var middle = queue_box.position.x + queue_box.size.x / 2.0
-	ok(absf(middle - screen_size.x / 2.0) <= 1.0, "centred across the top", "%.1f of %.1f" % [middle, screen_size.x])
-	ok(not ui.turn_queue_overflows(), "and wide enough for every face when they fit")
+	ok(absf(queue_box.position.x + queue_box.size.x - (screen_size.x - ui.QUEUE_EDGE)) <= 1.0, "against the right-hand edge",
+		"%.1f of %.1f" % [queue_box.position.x + queue_box.size.x, screen_size.x])
+	# Room for every face when the column above the log has room for them.
+	var frame_y: float = queue_box.get_theme_stylebox("panel").get_minimum_size().y
+	var fits: bool = queue.get_combined_minimum_size().y + frame_y <= ui.queue_floor() - ui.QUEUE_TOP
+	ok(ui.turn_queue_overflows() != fits, "tall enough for every face when they fit, and scrolling when they do not",
+		"%d faces, %s" % [queue.get_child_count(), "fit" if fits else "too many"])
 	# A crowd: every combatant a dozen times over.
 	var crowd: Array = []
 	for i in 12:
@@ -332,20 +336,19 @@ func run_test():
 	ui.update_turn_queue(combat.combatants, crowd)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	middle = queue_box.position.x + queue_box.size.x / 2.0
-	ok(queue_box.size.x <= screen_size.x - 2.0 * ui.QUEUE_EDGE + 0.5 and queue_box.position.x >= ui.QUEUE_EDGE - 0.5,
-		"too many to fit, it stops at the edges of the screen", "%.0f wide on %.0f" % [queue_box.size.x, screen_size.x])
-	ok(absf(middle - screen_size.x / 2.0) <= 1.0 and ui.turn_queue_overflows(), "still centred, and scrolling")
+	ok(queue_box.position.y + queue_box.size.y <= ui.queue_floor() + 0.5 and queue_box.position.y >= ui.QUEUE_TOP - 0.5,
+		"too many to fit, it stops above the log", "%.0f tall, down to %.0f" % [queue_box.size.y, ui.queue_floor()])
+	ok(ui.turn_queue_overflows(), "and scrolls")
 	var parked_view = camera.position
-	queue_box.scroll_horizontal = 0
+	queue_box.scroll_vertical = 0
 	var down := click()
-	down.global_position = Vector2(400, 40)
+	down.global_position = Vector2(1230, 300)
 	ui._on_queue_input(down, mark)
-	ui._on_queue_input(motion(Vector2(-3, 0), Vector2(397, 40)), mark)
-	ok(queue_box.scroll_horizontal == 0, "a press that drifts a few pixels has not started dragging")
-	ui._on_queue_input(motion(Vector2(-150, 0), Vector2(247, 40)), mark)
-	ok(queue_box.scroll_horizontal == 150, "dragged left, the queue slides along to show the faces further on",
-		"%d" % queue_box.scroll_horizontal)
+	ui._on_queue_input(motion(Vector2(0, -3), Vector2(1230, 297)), mark)
+	ok(queue_box.scroll_vertical == 0, "a press that drifts a few pixels has not started dragging")
+	ui._on_queue_input(motion(Vector2(0, -150), Vector2(1230, 147)), mark)
+	ok(queue_box.scroll_vertical == 150, "dragged up, the queue slides along to show the faces further on",
+		"%d" % queue_box.scroll_vertical)
 	var up := click()
 	up.pressed = false
 	ui._on_queue_input(up, mark)
@@ -353,16 +356,16 @@ func run_test():
 	var wheel := click()
 	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
 	ui._on_queue_input(wheel, {})
-	ok(queue_box.scroll_horizontal > 150, "the wheel over it moves it along too", "%d" % queue_box.scroll_horizontal)
-	queue_box.scroll_horizontal = 0
+	ok(queue_box.scroll_vertical > 150, "the wheel over it moves it along too", "%d" % queue_box.scroll_vertical)
+	queue_box.scroll_vertical = 0
 	ui._show_current_face(queue.get_child(queue.get_child_count() - 1))
 	await get_tree().process_frame
-	ok(queue_box.scroll_horizontal > 0, "and whoever is acting is scrolled into view")
+	ok(queue_box.scroll_vertical > 0, "and whoever is acting is scrolled into view")
 	ui.update_turn_queue(combat.combatants, combat.turn_queue)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	ok(not ui.turn_queue_overflows() and absf(queue_box.position.x + queue_box.size.x / 2.0 - screen_size.x / 2.0) <= 1.0,
-		"back to a short queue, it shrinks back to the middle")
+	ok(ui.turn_queue_overflows() != fits and absf(queue_box.position.x + queue_box.size.x - (screen_size.x - ui.QUEUE_EDGE)) <= 1.0,
+		"back to the fight's own queue, it shrinks back")
 	log_line("")
 
 	log_line("======== somebody hidden stays hidden ========")
@@ -463,7 +466,7 @@ func run_test():
 		var condition = load("res://data/conditions/" + listed)
 		if not condition is ConditionDefinition:
 			continue
-		var tag = ConditionStrip.tag_for(condition.display_name)
+		var tag = ConditionStrip.tag_of(condition)
 		if tagged.has(tag):
 			clashes.append("%s and %s are both %s" % [tagged[tag], condition.display_name, tag])
 		tagged[tag] = condition.display_name
@@ -493,27 +496,23 @@ func run_test():
 			continue
 		var face_box: Rect2 = their_face.get_global_rect()
 		var inside = true
-		var below = true
 		var rows := {}
 		for child in marks_strip.get_children():
 			var mark_box: Rect2 = child.get_global_rect()
-			if mark_box.position.x < face_box.position.x - 0.5 or mark_box.end.x > face_box.end.x + 0.5:
+			if not face_box.grow(0.5).encloses(mark_box):
 				inside = false
-			if mark_box.position.y < face_box.end.y:
-				below = false
 			rows[roundi(mark_box.position.y)] = true
-		ok(inside, "every one of %s's marks is within their own face's width" % who.name,
+		ok(inside, "every one of %s's marks is on their own face" % who.name,
 			"face %s, marks from %s to %s" % [face_box, marks_strip.get_child(0).get_global_rect(), marks_strip.get_child(piled - 1).get_global_rect()])
-		ok(below, "and under it rather than beside it")
 		ok(rows.size() == ceili(float(piled) / ui.QUEUE_MARK_COLUMNS), "wrapping onto more lines instead of running on", "%d lines" % rows.size())
 		var index = queue.get_children().find(their_face)
 		if index + 1 < queue.get_child_count():
 			var next_face: Rect2 = queue.get_child(index + 1).get_global_rect()
 			var clear = true
 			for child in marks_strip.get_children():
-				if child.get_global_rect().end.x > next_face.position.x:
+				if child.get_global_rect().end.y > next_face.position.y:
 					clear = false
-			ok(clear, "so none of them reach under the next face along")
+			ok(clear, "so none of them reach onto the next face down")
 	var side_strip = ui._icon_for(column, hero).get_node("Layout/Icon/Conditions")
 	var portrait_box: Rect2 = ui._icon_for(column, hero).get_node("Layout/Icon").get_global_rect()
 	var beside = true
@@ -532,8 +531,8 @@ func run_test():
 	await get_tree().process_frame
 	var lone_face: Control = ui._icon_for(queue, mark)
 	var lone = lone_face.get_node("Conditions")
-	var centre_gap = absf(lone.get_child(0).get_global_rect().get_center().x - lone_face.get_global_rect().get_center().x)
-	ok(lone.get_child_count() == 1 and centre_gap < 1.5, "down to one again, it sits centred under the face", "%.1f off" % centre_gap)
+	var corner_gap = lone.get_child(0).get_global_rect().position.distance_to(lone_face.get_global_rect().position)
+	ok(lone.get_child_count() == 1 and corner_gap < 3.0, "down to one again, it sits in the face's top corner", "%.1f off" % corner_gap)
 	for who in [hero, mark]:
 		who.status_effects.pop_back()
 	combat.update_combatants.emit(combat.combatants)

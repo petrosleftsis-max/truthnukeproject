@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/daunting_roar_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/fear.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("4_cond")
+condition_duration = 1
+
+[resource]
+script = ExtResource("3_skill")
+name = "Daunting Roar"
+description = "A roar that stops those in front of her from coming any closer."
+icon = ExtResource("2_icon")
+min_range = 1
+max_range = 2
+required_level = 5
+deals_damage = false
+aoe_radius = 2
+aoe_shape = 2
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])

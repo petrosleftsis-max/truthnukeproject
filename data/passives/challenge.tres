@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Resource" path="res://data/conditions/taunted.tres" id="1_taunt"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_passive"]
+
+[resource]
+script = ExtResource("2_passive")
+name = "Challenge"
+description = "A champion of the pits who will not be ignored. Anybody of the other side who starts a turn within two tiles of them is taunted: every blow they throw has to be at the champion."
+aura_radius = 2
+aura_on_foes = ExtResource("1_taunt")

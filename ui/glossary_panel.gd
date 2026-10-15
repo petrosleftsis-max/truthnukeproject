@@ -157,8 +157,10 @@ func _view_skills():
 	var named := []
 	for key in SkillDatabase.skills:
 		var skill: SkillDefinition = SkillDatabase.skills[key]
-		# Consumables are things you carry, not things you know how to do.
-		if skill == null or skill is ItemDefinition:
+		# Consumables are things you carry, not things you know how to do - and
+		# two loads fired as one (SkillDefinition.combined) are not a skill of
+		# their own.
+		if skill == null or skill is ItemDefinition or String(key).begins_with("combined:"):
 			continue
 		named.append([skill.name if skill.name != "" else String(key), skill])
 	named.sort_custom(func(a, b): return a[0].naturalnocasecmp_to(b[0]) < 0)
@@ -226,6 +228,8 @@ func _page_for_condition(condition: ConditionDefinition):
 		stops.append("closing on their nearest enemy")
 	if not stops.is_empty():
 		lines.append("Stops them " + ", ".join(stops) + ".")
+	if condition.holds:
+		lines.append("Lasts as long as the grip: until they break free with their main action, or whoever holds them lets go, is not beside them, or either of them is teleported, shoved or thrown.")
 	lines.append("")
 	lines.append("[i]%s[/i]" % DEFAULTS_NOTE)
 	_read(_condition_name(condition), "\n".join(lines))
@@ -252,8 +256,13 @@ func _page_for_skill(skill: SkillDefinition):
 		lines.append("Learned at level %d." % skill.required_level)
 	if skill.uses_stat_contest:
 		lines.append("Never misses: it lands in full on anyone whose %s it beats, and as a graze on anyone it does not." % Stats.stat_name(skill.contest_stat))
+	elif Combat.holding_condition(skill) != null:
+		lines.append("Physical against Physical: %d%% of the time against somebody as strong, a point more for every point stronger than them (%d-%d%%)." % [
+			Combat.GRIP_CHANCE, Combat.GRIP_MIN, Combat.GRIP_MAX])
 	else:
 		lines.append("Hits %d%% of the time." % skill.accuracy)
+	if skill.deals_damage and skill.ignores_defense > 0:
+		lines.append("Goes straight through %d%% of the target's Defense." % mini(skill.ignores_defense, 100))
 	if skill.is_reactive:
 		lines.append("Goes off on its own when somebody leaves its reach.")
 	if not skill.can_be_copied:
@@ -334,6 +343,31 @@ static func _passive_name(passive: PassiveDefinition) -> String:
 ##
 ## It still scans the folder as well, so a condition written but not yet given
 ## to anybody shows up while it is being worked on.
+## The conditions combatants bring rather than skills: a full stagger bar, the
+## auras on their passives, the hazards their phases start, the blasts of the
+## things on the map. Reached through them, so they survive an export too.
+static func conditions_from_combatants() -> Array:
+	# What Combat puts on itself: a stagger, riding something (Climb), legs broken.
+	var found: Array = [Combat.STAGGERED, Combat.RIDING, Combat.CRIPPLED]
+	for key in CombatantDatabase.combatants:
+		var definition: CombatantDefinition = CombatantDatabase.combatants[key]
+		if definition == null:
+			continue
+		for passive in definition.passives:
+			if passive != null:
+				found.append_array([passive.aura_on_foes, passive.aura_on_allies])
+		if definition.boss != null:
+			for phase in definition.boss.phases:
+				if phase == null:
+					continue
+				for hazard in phase.hazards:
+					if hazard != null:
+						found.append(hazard.condition)
+		if definition is BattleObjectDefinition:
+			found.append(definition.blast_condition)
+	return found.filter(func(condition): return condition != null)
+
+
 static func conditions() -> Array:
 	var found := {}
 	for source in [SkillDatabase.skills, ItemDatabase.items]:
@@ -346,6 +380,8 @@ static func conditions() -> Array:
 					found[effect.condition.resource_path] = effect.condition
 	# And the one nothing inflicts but an ambush on a stealth map.
 	found[Combat.SURPRISED.resource_path] = Combat.SURPRISED
+	for condition in conditions_from_combatants():
+		found[condition.resource_path] = condition
 	var dir = DirAccess.open("res://data/conditions")
 	if dir != null:
 		for file in dir.get_files():

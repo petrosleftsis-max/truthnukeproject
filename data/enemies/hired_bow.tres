@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/ranger/ranger_frames.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_who")
+name = "Hired Bow"
+glossary_text = "An archer who fights for whoever pays, and runs the moment the pay stops being worth it."
+class_t = 1
+max_hp = 30
+max_hp_level_20 = 140
+movement = 5
+initiative = 4
+sprite_frames = ExtResource("2_frames")
+skills = Array[String](["nail_projectile", "venomous_shot", "run"])
+nerve = 40
+when_fled = 1
+brings_back = Array[String](["sellsword"])
+fled_flag = "hired_bow_got_away"
+bribe_price = 40
+leverage_clues = Array[String](["sellsword_contract"])
+interrogation_gold = 20
+ai_function = "ai_ranger"

@@ -30,6 +30,11 @@ class_name EncounterDefinition
 ## The same, for losing it. A defeat is worth a word as much as a win is.
 @export var defeat_dialogue: Resource
 @export var defeat_dialogue_title: String = "start"
+## The Victory Dialogue decides what becomes of whoever was taken alive, and the
+## results offer no Question the Prisoners. It can ask how the fight went and
+## act on it - Campaign.taken_alive("sellsword"), got_away, fell, question,
+## let_go, hand_over (Campaign "The last fight").
+@export var dialogue_decides_prisoners: bool = false
 ## Winning this one is the end of the story it belongs to, so the result panel
 ## offers the title screen and nothing else - no Back to the battle list, no
 ## Continue on to the map. For a fight that finishes a demo, or a chapter.
@@ -37,6 +42,14 @@ class_name EncounterDefinition
 ## Only on a win. Losing the last fight of a chapter still wants the way back,
 ## because the player is going to want another go at it.
 @export var victory_ends_the_run: bool = false
+## A milestone: winning this fight in the story takes the party to this level
+## (Campaign.reach_level). 0 for none. Only when the fight was walked into from
+## a map - a fight opened from Battle Select is played at its spawns' levels and
+## changes nobody.
+@export_range(0, 20) var party_reaches_level: int = 0
+## Gold the party is given for winning it, in the story or a dungeon
+## (Campaign.give_gold). Not from Battle Select, which has no purse to fill.
+@export_range(0, 9999) var gold_reward: int = 0
 @export var spawns: Array[SpawnDefinition]
 ## The track this fight opens on, by name - "battle" finds audio/music/battle
 ## with any supported extension, the same names dialogue uses.
@@ -62,6 +75,42 @@ class_name EncounterDefinition
 ## arranging the party first. For a fight whose starting positions are the
 ## point - somebody caught exactly where they stood.
 @export var skip_deployment: bool = false
+
+@export_group("The arena")
+## What the arena does by itself from the start - rocks falling, the floor
+## burning (HazardDefinition). A boss's phase can start more.
+@export var hazards: Array[HazardDefinition] = []
+## The ways out, as tiles: somebody broken and running gets away once they stand
+## on one, and does all they can to reach one - walking, and their skills for
+## getting about (Combat "Getting away"). Place them in the encounter editor.
+## Empty, there is no getting away: whoever breaks and runs only keeps their
+## distance (runners_with_nowhere_to_run says who that would be).
+@export var escape_points: Array[Vector2i] = []
+
+
+## The enemies here who run when they break (When Broken: Flee), by name, if
+## this map has no ways out for them to run to - for the encounter editor and
+## the fight to warn about. Empty when there are ways out. `definitions` is
+## key -> CombatantDefinition; left out, they are read from their folders.
+func runners_with_nowhere_to_run(definitions: Dictionary = {}) -> Array[String]:
+	var names: Array[String] = []
+	if not escape_points.is_empty():
+		return names
+	var everybody: Dictionary = definitions if not definitions.is_empty() else DataFolder.combatants()
+	for spawn in spawns:
+		if spawn == null or spawn.side != 1:
+			continue
+		var definition: CombatantDefinition = everybody.get(spawn.combatant_key)
+		if runs_when_broken(definition) and not names.has(definition.name):
+			names.append(definition.name)
+	return names
+
+
+## Whether `definition` is somebody who breaks and runs - not a thing on the
+## map, not immune to breaking, and not one to surrender instead.
+static func runs_when_broken(definition: CombatantDefinition) -> bool:
+	return definition != null and not definition is BattleObjectDefinition and definition.when_broken == 0 \
+		and not definition.immune_to.has(Immunity.Kind.BREAKING)
 
 
 ## The tiles units are allowed to occupy on this encounter's map: the explicit

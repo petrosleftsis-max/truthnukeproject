@@ -165,6 +165,7 @@ func _ready():
 	_panels["resolution"] = _build_resolution()
 	_panels["volume"] = _build_volume()
 	_panels["glossary"] = _build_glossary()
+	_panels["load"] = _build_load()
 	for key in _panels:
 		add_child(_panels[key])
 	_keyboard = FocusOnDemand.attach(self, null)
@@ -260,6 +261,16 @@ func _build_root() -> Control:
 	buttons.add_theme_constant_override("separation", 8)
 	buttons.custom_minimum_size = Vector2(280, 0)
 	buttons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# The run left off, and every save to choose from - once there is one.
+	var has_saves := SaveGame.latest() != ""
+	var resume := _menu_button("Continue", func(): SaveGame.load_slot(SaveGame.latest()))
+	resume.name = "Continue"
+	resume.visible = has_saves
+	buttons.add_child(resume)
+	var load_game := _menu_button("Load Game", func(): _show("load"))
+	load_game.name = "LoadGame"
+	load_game.visible = has_saves
+	buttons.add_child(load_game)
 	buttons.add_child(_menu_button("Play", func(): _show("play")))
 	buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
 	buttons.add_child(_menu_button("Stealth Stages", func(): _show(STEALTH_PANEL)))
@@ -341,6 +352,16 @@ func _build_stealth() -> Control:
 ## The glossary keeps its own little stack of screens, so it arrives as one
 ## panel rather than six. Back inside it walks its own trail; Back on its first
 ## screen hands the menu back.
+## Every save, to pick one to carry on from. Nothing is asked first: from here
+## there is no run under way to lose.
+func _build_load() -> Control:
+	var list := SaveLoadPanel.new()
+	list.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	list.open_as(false, false)
+	list.closed.connect(_go_back)
+	return list
+
+
 func _build_glossary() -> Control:
 	var panel := GlossaryPanel.new()
 	panel.closed.connect(_go_back)

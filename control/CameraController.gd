@@ -218,7 +218,8 @@ func _process(delta):
 		# take it. Leave the arrow keys to walk that menu's buttons instead of
 		# dragging the map around underneath it.
 		return
-	var pan := Input.get_vector(&"pan_left", &"pan_right", &"pan_up", &"pan_down")
+	# Keys or stick, never the two added together (Pad.direction).
+	var pan := Pad.direction(&"pan_left", &"pan_right", &"pan_up", &"pan_down")
 	if pan == Vector2.ZERO:
 		return
 	# As far as the stick is pushed - all the way, from the keys.

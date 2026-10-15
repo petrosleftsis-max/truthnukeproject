@@ -58,7 +58,8 @@ entry_name = "start"
 [node name="MapSetup" type="Node" parent="." unique_id=1022921272]
 script = ExtResource("3_ntu8y")
 members = Array[String](["cyrus"])
-level = 2
+level = 10
+asks_for_paths = false
 empty_handed = true
 everyone_carries = Array[String](["emetic_powder", "sleep_dart", "sleep_dart", "retching_dart", "forged_letter", "pebble", "pebble"])
 
@@ -172,7 +173,7 @@ point_name = "yard_e"
 position = Vector2(1920, 1920)
 script = ExtResource("9_jb4b1")
 combatant_key = "priest"
-level = 2
+level = 10
 display_name = "Cook"
 kind = 4
 patrol = Array[String](["kitchen_w", "kitchen_e"])
@@ -181,7 +182,7 @@ back_and_forth = true
 [node name="HallGuard" type="Node2D" parent="." unique_id=1360072619]
 position = Vector2(3968, 640)
 script = ExtResource("9_jb4b1")
-level = 2
+level = 10
 display_name = "Hall Guard"
 patrol = Array[String](["hall_nw", "hall_ne"])
 back_and_forth = true
@@ -189,7 +190,7 @@ back_and_forth = true
 [node name="HallSergeant" type="Node2D" parent="." unique_id=708788587]
 position = Vector2(7552, 1920)
 script = ExtResource("9_jb4b1")
-level = 2
+level = 10
 display_name = "Hall Sergeant"
 facing_degrees = 180.0
 patrol = Array[String](["hall_se", "hall_sw"])
@@ -210,7 +211,7 @@ overheard_flag = "stage6_overheard"
 position = Vector2(9088, 1152)
 script = ExtResource("9_jb4b1")
 combatant_key = "ranger"
-level = 2
+level = 10
 display_name = "Captain's Aide"
 facing_degrees = 180.0
 looks_around = false
@@ -238,7 +239,7 @@ interaction_radius = 320
 [node name="YardGuard" type="Node2D" parent="." unique_id=389756517]
 position = Vector2(3968, 3200)
 script = ExtResource("9_jb4b1")
-level = 2
+level = 10
 display_name = "Yard Guard"
 patrol = Array[String](["yard_w", "yard_e"])
 back_and_forth = true

@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
+[ext_resource type="Script" path="res://combat/resources/BodyPartDefinition.gd" id="3_part"]
+
+[sub_resource type="Resource" id="Part_legs"]
+script = ExtResource("3_part")
+name = "Legs"
+tiles = Array[Vector2i]([Vector2i(0, 7), Vector2i(1, 7), Vector2i(2, 7), Vector2i(3, 7), Vector2i(4, 7), Vector2i(5, 7), Vector2i(6, 7), Vector2i(7, 7)])
+health_share = 0.2
+
+[sub_resource type="Resource" id="Part_tusks"]
+script = ExtResource("3_part")
+name = "Tusks"
+tiles = Array[Vector2i]([Vector2i(3, 0), Vector2i(4, 0)])
+health_share = 0.15
+when_broken = 4
+disarms = Array[String](["ground_pound"])
+
+[sub_resource type="Resource" id="Part_hide"]
+script = ExtResource("3_part")
+name = "Soft Hide"
+tiles = Array[Vector2i]([Vector2i(3, 3), Vector2i(4, 3), Vector2i(3, 4), Vector2i(4, 4)])
+health_share = 0.25
+when_broken = 2
+
+[resource]
+script = ExtResource("1_who")
+name = "Behemoth"
+max_hp = 120
+max_hp_level_20 = 700
+size = 5
+movement = 4
+initiative = 3
+main_stat = 0
+sprite_frames = ExtResource("2_frames")
+skills = Array[String](["greatsword_attack", "ground_pound", "rockfall"])
+parts = Array[ExtResource("3_part")]([SubResource("Part_legs"), SubResource("Part_tusks"), SubResource("Part_hide")])

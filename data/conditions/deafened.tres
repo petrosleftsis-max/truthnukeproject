@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Deafened"
+description = "The bells still ringing in their ears: less likely to land anything, and too slow to react to anybody."
+duration = 1
+accuracy_change = -10
+prevents_reactions = true

@@ -23,13 +23,17 @@ class_name MapSetup
 ## map straight from the editor needs.
 @export var members: Array[String] = []
 
-## How far along they are here, 1 to 3. Decides the health they walk around
-## with, and the attributes, gates and level the character sheet shows.
-##
-## Battles are not covered by this: an encounter's spawns carry their own
-## levels, so a fight started from this map fields whatever that encounter
-## says. This is who the party is on the map itself.
-@export_range(1, 3) var level: int = 1
+## How far along the party is by here, 1 to 20 - at least: a party that has
+## already reached a higher level keeps it (see Campaign.reach_level). Decides
+## the health they walk around with, the attributes, gates and level the
+## character sheet shows, and the level they fight at in a battle started from
+## this map.
+@export_range(1, 20) var level: int = 1
+## Whether a party at level 5 or past it is asked here to choose their paths
+## (SubclassDefinition). Off for a map played on its own rather than as part of
+## the story - a stealth stage - where a path chosen would be forgotten by the
+## next one.
+@export var asks_for_paths: bool = true
 
 @export_group("Sound")
 ## What plays while the party is here. Named rather than a path - the file's own

@@ -64,6 +64,13 @@ func _ready():
 	_gate_box.name = "Gates"
 	_gate_box.add_theme_constant_override("separation", 8)
 	column.add_child(_gate_box)
+	# A store to visit between fights, when the dungeon has one.
+	if Campaign.dungeon != null and StoreDefinition.named(Campaign.dungeon.store) != null:
+		var visit := Button.new()
+		visit.name = "Store"
+		visit.text = "Visit %s" % StoreDefinition.named(Campaign.dungeon.store).name
+		visit.pressed.connect(visit_store)
+		column.add_child(visit)
 	_continue = Button.new()
 	_continue.name = "Continue"
 	_continue.text = "Continue"
@@ -252,3 +259,27 @@ func _first_button() -> Control:
 		if not row.more.disabled:
 			return row.more
 	return _continue
+
+
+## --- The store ---
+
+## The dungeon's store, open over the rest, or null.
+var store_screen: StoreScreen = null
+
+
+## Opens the dungeon's store in place of the rest; leaving it comes back here.
+func visit_store():
+	if store_screen != null:
+		return
+	store_screen = StoreScreen.new()
+	store_screen.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_parent().add_child(store_screen)
+	store_screen.open_on(Campaign.dungeon.store)
+	store_screen.closed.connect(_leave_store)
+	visible = false
+
+
+func _leave_store():
+	store_screen.queue_free()
+	store_screen = null
+	visible = true

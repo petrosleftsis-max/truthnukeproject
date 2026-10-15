@@ -1,0 +1,98 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://exploration/Picture.gd" id="1_picture"]
+[ext_resource type="Script" path="res://exploration/Hotspot.gd" id="2_hotspot"]
+[ext_resource type="Script" path="res://exploration/PictureLayer.gd" id="3_layer"]
+[ext_resource type="Resource" path="res://data/hacks/strongbox_hum.tres" id="4_hack"]
+
+[node name="Workbench" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+script = ExtResource("1_picture")
+title = "Prometheus's Workbench"
+hover_hints = 1
+
+[node name="Wall" type="ColorRect" parent="."]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+color = Color(0.16, 0.15, 0.19, 1)
+
+[node name="Bench" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 470.0
+offset_right = 1220.0
+offset_bottom = 720.0
+mouse_filter = 2
+color = Color(0.33, 0.23, 0.15, 1)
+
+[node name="Box" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 700.0
+offset_top = 270.0
+offset_right = 1060.0
+offset_bottom = 470.0
+mouse_filter = 2
+color = Color(0.24, 0.26, 0.3, 1)
+
+[node name="Glyph" type="ColorRect" parent="Box"]
+layout_mode = 0
+offset_left = 150.0
+offset_top = 70.0
+offset_right = 210.0
+offset_bottom = 130.0
+mouse_filter = 2
+color = Color(0.37, 0.78, 0.74, 1)
+
+[node name="Open" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 700.0
+offset_top = 190.0
+offset_right = 1060.0
+offset_bottom = 280.0
+script = ExtResource("3_layer")
+shown_while_flag = "strongbox_open"
+
+[node name="Lid" type="ColorRect" parent="Open"]
+layout_mode = 0
+offset_right = 360.0
+offset_bottom = 80.0
+mouse_filter = 2
+color = Color(0.3, 0.32, 0.36, 1)
+
+[node name="Notes" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 160.0
+offset_top = 380.0
+offset_right = 480.0
+offset_bottom = 470.0
+mouse_filter = 2
+color = Color(0.86, 0.82, 0.7, 1)
+
+[node name="NotesSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 160.0
+offset_top = 380.0
+offset_right = 480.0
+offset_bottom = 470.0
+script = ExtResource("2_hotspot")
+display_name = "Notes"
+examine_text = "Pages of his own handwriting, most of it crossed out. One line underlined three times: 'The seal remembers how you hum, not who you are.'"
+
+[node name="StrongboxSpot" type="Control" parent="."]
+layout_mode = 0
+offset_left = 700.0
+offset_top = 270.0
+offset_right = 1060.0
+offset_bottom = 470.0
+script = ExtResource("2_hotspot")
+display_name = "Strongbox"
+examine_text = "It opens with a sigh. Inside, wrapped in cloth: a Fireball Gate Nade he made and forgot."
+gives_item = "fireball_gate_nade"
+sets_flag = "strongbox_open"
+hidden_once_flag = "strongbox_open"
+hack = ExtResource("4_hack")

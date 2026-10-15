@@ -287,7 +287,11 @@ func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 	var before = Campaign.stealth_state.get(scene.map_path())
 	if before != null:
 		for guard in guards.duplicate():
-			if before.defeated.has(_id_of(guard)):
+			# Beaten in a fight, or marched off framed (see "Planted evidence").
+			var marched: bool = before.get("framed_away", []).has(_id_of(guard))
+			if before.defeated.has(_id_of(guard)) or marched:
+				if marched:
+					_framed_away.append(_id_of(guard))
 				guards.erase(guard)
 				guard.queue_free()
 	elif Campaign.is_trigger_cleared(trigger()):
@@ -355,6 +359,7 @@ func snapshot(fight: EncounterDefinition) -> Dictionary:
 	var state := {
 		"fighting": [],
 		"defeated": before.get("defeated", []).duplicate(),
+		"framed_away": _framed_away.duplicate(),
 		"down": {},
 		"picked": [],
 		"talked_round": [],
@@ -2097,7 +2102,10 @@ func _pointing() -> bool:
 
 ## Whether the party has found out `guard`'s round.
 func route_known(guard: Guard) -> bool:
-	return is_instance_valid(guard) and guard.route_known_flag != "" and Campaign.flag(guard.route_known_flag)
+	if not is_instance_valid(guard):
+		return false
+	# Or he told them himself, in a disguise he took at face value (tell_patrol).
+	return (guard.route_known_flag != "" and Campaign.flag(guard.route_known_flag)) or Campaign.flag(ROUTE_TOLD + _id_of(guard))
 
 
 ## Whether `guard`'s round is drawn right now: known, and listening or pointed at.
@@ -2359,6 +2367,13 @@ func prompt() -> Array:
 		if over == null:
 			over = rob
 		lines.append([Pad.key(&"pick_pocket", "Right click"), "Pick pocket" if rob == over else "Pick %s's pocket" % _name_of(rob), true])
+	else:
+		# Nothing to lift, and evidence in the bag: the same key plants it.
+		var framing = plant_target(over)
+		if framing != null:
+			if over == null:
+				over = framing
+			lines.append([Pad.key(&"pick_pocket", "Right click"), "Plant evidence" if framing == over else "Plant evidence on %s" % _name_of(framing), true])
 	# Near enough to spring on somebody who has no idea he is there.
 	var spring = ambush_target(over)
 	if spring != null and ambush_refusal() == "":
@@ -2539,6 +2554,9 @@ func pocket_target(preferred = null) -> Guard:
 ## `preferred`, if he is.
 func pick_pocket(preferred = null) -> bool:
 	var guard = pocket_target(preferred)
+	# Nothing to lift: the same key slips evidence in instead (plant).
+	if guard == null and spotted_by == null:
+		return plant(preferred)
 	if guard == null or spotted_by != null:
 		return false
 	var names := []
@@ -2782,6 +2800,8 @@ func _small_talk(guard: Guard):
 	if manager == null:
 		return
 	guard.facing = (scene.party.leader.global_position - guard.global_position).normalized()
+	# Who it is with, for whatever the conversation asks of him ("Talking in disguise").
+	_talking_to = guard
 	if scene.has_method("begin_blocking_interaction"):
 		scene.begin_blocking_interaction()
 	manager.dialogue_ended.connect(_after_small_talk, CONNECT_ONE_SHOT)
@@ -2790,6 +2810,7 @@ func _small_talk(guard: Guard):
 
 
 func _after_small_talk(_resource):
+	_talking_to = null
 	if scene != null and is_instance_valid(scene) and scene.has_method("end_blocking_interaction"):
 		scene.end_blocking_interaction()
 
@@ -3025,6 +3046,7 @@ func _process(delta):
 			_finish_lacing()
 	_update_doors()
 	_drag_along()
+	_check_framed(delta)
 	_set_pace()
 	_listen_to_feet(delta)
 	_apply_alert()
@@ -3788,7 +3810,7 @@ func _spawn(key: String, side: int, tile: Vector2i, level: int) -> SpawnDefiniti
 	spawn.combatant_key = key
 	spawn.side = side
 	spawn.position = tile
-	spawn.level = clampi(level, 1, 3)
+	spawn.level = clampi(level, 1, Stats.MAX_LEVEL)
 	return spawn
 
 
@@ -4204,3 +4226,224 @@ class _ObjectiveList extends PanelContainer:
 		var bar = watch._bar
 		if bar != null and is_instance_valid(bar):
 			position = Vector2(bar.position.x, bar.position.y + bar.size.y + 6.0)
+
+
+## --- Planted evidence ---
+##
+## Something that frames whoever has it (ItemDefinition.frames - the Stolen
+## Signet) can be slipped into the pockets of a guard who has not noticed the
+## party: the pick-pocket key, once there is nothing left to lift (plant). The
+## next watchman or captain to get a good look at him - FRAME_NOTICE_SECONDS
+## with him in view, within FRAME_NOTICE_TILES - finds it, and marches him off to
+## answer for it (_frame_found): both walk off on an errand nothing draws them
+## from, to the far end of the watch's beats (_march_point). The framed one is
+## gone for good - counted in the snapshot with whoever fought and lost, so he
+## is not there when the party walks back in - and the other goes back to his
+## beat after FRAME_ESCORT_SECONDS.
+
+const FRAME_NOTICE_SECONDS := 2.0
+const FRAME_NOTICE_TILES := 4.0
+const FRAME_ESCORT_SECONDS := 12.0
+## The flag a guard telling his own round sets (tell_patrol), with his id.
+const ROUTE_TOLD := "route_told:"
+
+## Framed guard -> how long somebody has had a good look at him.
+var _framed: Dictionary = {}
+## Ids of guards marched off for good.
+var _framed_away: Array = []
+
+
+## The first thing in the leader's bag that frames whoever has it, or "".
+func evidence_key() -> String:
+	for item_key in Campaign.inventory_of(leader_key()):
+		var item: ItemDefinition = ItemDatabase.item(item_key) if item_key != "" else null
+		if item != null and item.frames:
+			return item_key
+	return ""
+
+
+## Whose pockets evidence could be slipped into right now - `preferred`, if
+## his - or null.
+func plant_target(preferred = null) -> Guard:
+	if _lacing != null or evidence_key() == "":
+		return null
+	if _can_plant(preferred):
+		return preferred
+	for guard in guards:
+		if _can_plant(guard):
+			return guard
+	return null
+
+
+func _can_plant(guard) -> bool:
+	return is_instance_valid(guard) and not guard.framed and not guard.knocked_out \
+		and (guard.kind == Guard.Kind.WATCHMAN or guard.kind == Guard.Kind.CAPTAIN) and unaware_beside(guard)
+
+
+## Slips the leader's evidence into the pockets of whoever is unaware beside
+## him - `preferred`, if he is.
+func plant(preferred = null) -> bool:
+	var guard = plant_target(preferred)
+	var item_key := evidence_key()
+	if guard == null or item_key == "" or spotted_by != null:
+		return false
+	Campaign.take_item(leader_key(), item_key)
+	guard.framed = true
+	_framed[guard] = 0.0
+	var item: ItemDefinition = ItemDatabase.item(item_key)
+	if scene.has_method("log_message"):
+		scene.log_message("Slipped the [color=yellow]%s[/color] into [color=yellow]%s[/color]'s pocket. Now somebody only has to find it.\n" % [
+			item.name if item != null else item_key, _name_of(guard)])
+	return true
+
+
+## Whoever has a good look at somebody framed finds what is on him.
+func _check_framed(delta: float):
+	for framed in _framed.keys():
+		if not is_instance_valid(framed) or framed.knocked_out or framed.on_errand():
+			continue
+		var finder := _framed_seen_by(framed)
+		if finder == null:
+			continue
+		_framed[framed] += delta
+		if _framed[framed] >= FRAME_NOTICE_SECONDS:
+			_frame_found(framed, finder)
+			return
+
+
+## A watchman or captain near enough to `framed`, with him in view, and free to
+## do something about it - or null.
+func _framed_seen_by(framed: Guard) -> Guard:
+	for other in guards:
+		if other == framed or not is_instance_valid(other) or other.knocked_out or other.framed:
+			continue
+		if other.kind != Guard.Kind.WATCHMAN and other.kind != Guard.Kind.CAPTAIN:
+			continue
+		if other.mood in Guard.ABSORBED or other.global_position.distance_to(framed.global_position) > Grid.tiles(FRAME_NOTICE_TILES):
+			continue
+		if _seen.get(other, {}).has(tile_of(framed.global_position)):
+			return other
+	return null
+
+
+## `finder` has found the evidence on `framed`: both walk off, `framed` for good.
+func _frame_found(framed: Guard, finder: Guard):
+	_framed.erase(framed)
+	var away := _march_point([framed, finder])
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s finds the evidence on %s - and marches him off to answer for it![/color]\n" % [
+			_name_of(finder), _name_of(framed)])
+	framed.send_on_errand(Guard.Mood.REPORTING, away, 0.5, Callable(), _marched_off.bind(framed))
+	finder.send_on_errand(Guard.Mood.REPORTING, away, FRAME_ESCORT_SECONDS)
+
+
+## Somewhere far off: of every guard's beat, the waypoint furthest from the
+## leader - or, with no beats on the map, the post of the guard furthest from
+## him. `leaving_out` are not asked about their posts.
+func _march_point(leaving_out: Array = []) -> Vector2:
+	var party = scene.get("party")
+	var from: Vector2 = party.leader.global_position if party != null and party.leader != null else Vector2.ZERO
+	var best := from
+	var best_gap := -1.0
+	for guard in guards:
+		if not is_instance_valid(guard):
+			continue
+		var places: Array = guard.patrol_points()
+		if places.is_empty() and not leaving_out.has(guard):
+			places = [guard.post()]
+		for at in places:
+			var gap: float = from.distance_to(at)
+			if gap > best_gap:
+				best_gap = gap
+				best = at
+	return best
+
+
+## `framed` is gone, marched off: off the watch, and out of the map.
+func _marched_off(framed: Guard):
+	if not is_instance_valid(framed):
+		return
+	_framed_away.append(_id_of(framed))
+	guards.erase(framed)
+	suspicion.erase(framed)
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] is gone - marched off, and not coming back.\n" % _name_of(framed))
+	framed.queue_free()
+
+
+## Whether `guard` has been marched off (for a test, and the snapshot).
+func marched_off(id: String) -> bool:
+	return _framed_away.has(id)
+
+
+## --- Talking in disguise ---
+##
+## A guard's own small talk (Guard.small_talk) - a conversation E beside him
+## plays, in a disguise he takes at face value - can do more than settle the
+## map. While it is on, the watch knows who it is with (_talking_to), and a
+## conversation can call:
+##
+##     do Campaign.stealth_watch.send_away(30)   # off to the far end of the beats for 30 s
+##     do Campaign.stealth_watch.tell_patrol()   # his round, drawn from now on
+##     do Campaign.stealth_watch.hand_over()     # whatever is in his pockets - a key
+##
+## Each does nothing outside such a conversation.
+
+var _talking_to: Guard = null
+
+
+## The guard being talked to, sent off on an errand nothing draws him from for
+## `seconds`, and back to his beat after.
+func send_away(seconds: float = 30.0) -> bool:
+	if not is_instance_valid(_talking_to):
+		return false
+	var guard := _talking_to
+	var away := _march_point([guard])
+	guard.send_on_errand(Guard.Mood.REPORTING, away, seconds)
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] goes off where he was sent.\n" % _name_of(guard))
+	return true
+
+
+## The guard being talked to tells his round - or, naming another guard (by
+## his node's name), that one's: drawn from now on, as if a roster had been
+## read.
+func tell_patrol(whose: String = "") -> bool:
+	if not is_instance_valid(_talking_to):
+		return false
+	var told: Guard = _talking_to
+	if whose != "":
+		told = null
+		for guard in guards:
+			if is_instance_valid(guard) and String(guard.name) == whose:
+				told = guard
+		if told == null:
+			push_warning("StealthWatch.tell_patrol('%s'): there is no guard of that name on this map." % whose)
+			return false
+	Campaign.set_flag(ROUTE_TOLD + _id_of(told))
+	if told.route_known_flag != "":
+		Campaign.set_flag(told.route_known_flag)
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] tells you %s round.\n" % [_name_of(_talking_to), "his" if told == _talking_to else "%s's" % _name_of(told)])
+	return true
+
+
+## The guard being talked to hands over what is in his pockets - the key he
+## was asked for - as if they had been picked.
+func hand_over() -> bool:
+	if not is_instance_valid(_talking_to) or _talking_to.picked:
+		return false
+	var guard := _talking_to
+	var names := []
+	for item_key in guard.pockets:
+		if Campaign.give_item(leader_key(), item_key):
+			var item = ItemDatabase.item(item_key)
+			names.append(item.name if item != null else item_key)
+	if guard.picked_message != "":
+		names.append(guard.picked_message)
+	guard.picked = true
+	if guard.picked_flag != "":
+		Campaign.set_flag(guard.picked_flag)
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] hands over %s.\n" % [_name_of(guard), ", ".join(names) if not names.is_empty() else "nothing at all"])
+	return true

@@ -9,7 +9,7 @@
 script = ExtResource("2_spawn")
 combatant_key = "alithia"
 position = Vector2i(25, 19)
-level = 2
+level = 10
 weapon_base = 9
 defense = 12
 starting_items = Array[String](["mediocre_cure_potion", "poison_bottle"])
@@ -18,7 +18,7 @@ starting_items = Array[String](["mediocre_cure_potion", "poison_bottle"])
 script = ExtResource("2_spawn")
 combatant_key = "cyrus"
 position = Vector2i(24, 21)
-level = 2
+level = 10
 weapon_base = 9
 defense = 12
 starting_items = Array[String](["mediocre_cure_potion", "medium_bomb", "medicine", "crystal_bottle"])
@@ -27,7 +27,7 @@ starting_items = Array[String](["mediocre_cure_potion", "medium_bomb", "medicine
 script = ExtResource("2_spawn")
 combatant_key = "enfina"
 position = Vector2i(26, 22)
-level = 2
+level = 10
 weapon_base = 9
 defense = 20
 starting_items = Array[String](["mediocre_cure_potion", "burn_bottle"])
@@ -36,7 +36,7 @@ starting_items = Array[String](["mediocre_cure_potion", "burn_bottle"])
 script = ExtResource("2_spawn")
 combatant_key = "prometheus"
 position = Vector2i(25, 23)
-level = 2
+level = 10
 weapon_base = 9
 defense = 5
 starting_items = Array[String](["mediocre_cure_potion", "gale_bottle", "medicine"])
@@ -47,7 +47,7 @@ combatant_key = "priest"
 side = 1
 position = Vector2i(36, 10)
 display_name = "Priest"
-level = 2
+level = 10
 weapon_base = 9
 defense = 30
 
@@ -57,7 +57,7 @@ combatant_key = "bomber"
 side = 1
 position = Vector2i(51, 11)
 display_name = "Bomber"
-level = 2
+level = 10
 weapon_base = 9
 
 [sub_resource type="Resource" id="Resource_a5v1p"]
@@ -66,7 +66,7 @@ combatant_key = "barbarian"
 side = 1
 position = Vector2i(45, 12)
 display_name = "Striker 1"
-level = 2
+level = 10
 weapon_base = 9
 defense = 45
 
@@ -76,7 +76,7 @@ combatant_key = "ranger"
 side = 1
 position = Vector2i(29, 15)
 display_name = "Ranger"
-level = 2
+level = 10
 weapon_base = 9
 defense = 30
 
@@ -86,7 +86,7 @@ combatant_key = "sorcerer"
 side = 1
 position = Vector2i(50, 16)
 display_name = "Sorcerer"
-level = 2
+level = 10
 weapon_base = 9
 defense = 30
 
@@ -96,7 +96,7 @@ combatant_key = "mimic"
 side = 1
 position = Vector2i(34, 21)
 display_name = "Mimic"
-level = 2
+level = 10
 weapon_base = 9
 defense = 45
 
@@ -106,12 +106,13 @@ combatant_key = "barbarian"
 side = 1
 position = Vector2i(32, 22)
 display_name = "Striker 2"
-level = 2
+level = 10
 weapon_base = 9
 defense = 45
 
 [resource]
 script = ExtResource("1_enc")
+gold_reward = 80
 display_name = "Lab Fight"
 description = "Intermediate fight with full party."
 terrain_scene = ExtResource("3_y7mw8")

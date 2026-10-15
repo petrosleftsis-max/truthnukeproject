@@ -15,6 +15,12 @@ const ITEMS := "res://data/items/"
 const CHARACTERS := "res://data/characters/"
 ## Everybody they fight.
 const ENEMIES := "res://data/enemies/"
+## Bells, pillars and the like to place in a fight (BattleObjectDefinition).
+const OBJECTS := "res://data/objects/"
+const SUBCLASSES := "res://data/subclasses/"
+const FACTIONS := "res://data/factions/"
+const EQUIPMENT := "res://data/equipment/"
+const STORES := "res://data/stores/"
 
 
 ## Every resource in `folder` that is a `kind` (a class: SkillDefinition, ...),
@@ -48,6 +54,11 @@ static func items() -> Dictionary:
 	return read(ITEMS, ItemDefinition)
 
 
+## The paths a character can take at level 5 - see SubclassDefinition.
+static func subclasses() -> Dictionary:
+	return read(SUBCLASSES, SubclassDefinition)
+
+
 ## The party and everybody they fight, in one: a fight does not care which is
 ## which.
 static func combatants() -> Dictionary:
@@ -58,4 +69,26 @@ static func combatants() -> Dictionary:
 			push_warning("DataFolder: '%s' is both a character and an enemy; the character is kept." % key)
 			continue
 		everybody[key] = enemies[key]
+	# Things on the battlefield (BattleObjectDefinition), placed the same way.
+	var objects := read(OBJECTS, CombatantDefinition)
+	for key in objects:
+		if everybody.has(key):
+			push_warning("DataFolder: '%s' is both a combatant and an object; the combatant is kept." % key)
+			continue
+		everybody[key] = objects[key]
 	return everybody
+
+
+## The sides enemies belong to - see FactionDefinition.
+static func factions() -> Dictionary:
+	return read(FACTIONS, FactionDefinition)
+
+
+## Weapons, armour and charms - see EquipmentDefinition.
+static func equipment() -> Dictionary:
+	return read(EQUIPMENT, EquipmentDefinition)
+
+
+## Places that sell things - see StoreDefinition.
+static func stores() -> Dictionary:
+	return read(STORES, StoreDefinition)

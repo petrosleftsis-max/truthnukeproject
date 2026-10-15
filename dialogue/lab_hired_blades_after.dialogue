@@ -1,0 +1,37 @@
+~ start
+if Campaign.taken_alive() == 0
+	if Campaign.got_away() > 0
+		Cyrus Rowe: Nobody left to ask, and somebody ran to tell their friends. Let's not be here when they come.
+	else
+		Enfina Moonwish: Nobody left to ask. Let's keep moving.
+	=> END
+Enfina Moonwish: {{Campaign.taken_alive()}} of them still breathing. Well?
+if Campaign.got_away("hired_bow") > 0
+	Cyrus Rowe: And one of the archers got clean away. They'll be back, and not alone.
+=> decide
+
+~ decide
+- Ask a sellsword who paid them [if Campaign.taken_alive("sellsword") > 0 and not Campaign.questioned("sellsword") /]
+	Sellsword: All right, all right! It's all in the contract. Paid in advance.
+	do Campaign.question("sellsword")
+	=> decide
+- Ask an archer where they stashed their pay [if Campaign.taken_alive("hired_bow") > 0 and not Campaign.questioned("hired_bow") /]
+	Hired Bow: Under the loose stone by the stair. Take it - it's no good to me now.
+	do Campaign.question("hired_bow")
+	=> decide
+- Ask the champion what it was fighting for [if Campaign.taken_alive("pit_champion") > 0 and not Campaign.questioned("pit_champion") /]
+	Pit Champion: The principle of it. I told you.
+	do Campaign.question("pit_champion")
+	=> decide
+- Let them all go
+	Alithia Undersen: Go home. Find honest work.
+	do Campaign.let_go()
+- Hand them all to the watch
+	Prometheus Iliopoulos: The watch can have them.
+	do Campaign.hand_over()
+- Let the sellswords go, and hand the rest over [if Campaign.taken_alive("sellsword") > 0 and Campaign.taken_alive() > Campaign.taken_alive("sellsword") /]
+	Alithia Undersen: You were only paid. Go.
+	do Campaign.let_go("sellsword")
+	Prometheus Iliopoulos: The rest of you, with us.
+	do Campaign.hand_over()
+=> END

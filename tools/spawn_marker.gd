@@ -26,12 +26,15 @@ class_name SpawnMarker
 	set(value):
 		display_name = value
 		queue_redraw()
-## The level this combatant fights at here - 1 to 3. Decides every attribute
+## The level this combatant fights at here - 1 to 20. Decides every attribute
 ## they have and which of their skills are unlocked. See SpawnDefinition.
-@export_range(1, 3) var level: int = 1:
+@export_range(1, 20) var level: int = 1:
 	set(value):
 		level = value
 		queue_redraw()
+## The path they are on from level 5, picked from the paths there are. See
+## SpawnDefinition.subclass.
+@export var subclass: String = ""
 ## What their attacks start from before any stat, and how much damage they
 ## soak. Per spawn so the same character can be armed and armoured differently
 ## from one encounter to the next.
@@ -94,6 +97,21 @@ func definition() -> CombatantDefinition:
 	return combatant_definitions().get(combatant_key)
 
 
+## How many tiles a side this one covers (Sizes) - 1 for anybody a tile or smaller.
+func span() -> int:
+	var found := definition()
+	return Sizes.span(found.size, found.gigantic_span) if found != null else 1
+
+
+## The tiles this one covers, from the tile it is on.
+func footprint() -> Array:
+	var tiles := []
+	for y in span():
+		for x in span():
+			tiles.append(grid_position() + Vector2i(x, y))
+	return tiles
+
+
 ## The name this combatant will actually fight under. A marker with no
 ## combatant chosen still says so on the map - a blank label on a blank square
 ## is indistinguishable from nothing being there at all, which is exactly the
@@ -123,7 +141,9 @@ func _draw():
 	if not Engine.is_editor_hint():
 		return
 	var half = tile_size * 0.5
-	var box = Rect2(-half, -half, tile_size, tile_size)
+	# The whole square somebody bigger than a tile covers, from this tile -
+	# their anchor - down and right.
+	var box = Rect2(-half, -half, tile_size * span(), tile_size * span())
 	var outline = Color(0.35, 0.65, 1.0) if side == 0 else Color(1.0, 0.4, 0.4)
 	draw_rect(box, outline, false, 2.0)
 	var font = ThemeDB.fallback_font
@@ -149,3 +169,6 @@ func _validate_property(property: Dictionary):
 	elif property.name == "starting_items":
 		property.hint = PROPERTY_HINT_TYPE_STRING
 		property.hint_string = SpawnDefinition.item_list_hint()
+	elif property.name == "subclass":
+		property.hint = PROPERTY_HINT_ENUM
+		property.hint_string = SpawnDefinition.subclass_hint()

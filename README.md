@@ -12,11 +12,12 @@ main menu.
 
 * **Play** — four ways in: an introduction and tutorial, an intermediate
   fight, a hard one, and a narrative scene from later in the story.
-* **Battle Select** — every encounter, playable directly, with the party you
+* **Arena Mode** — every encounter, playable directly, with the party you
   have left from the last one. *Reset party* puts everyone back on their feet.
 * **Dungeon Demo** — the sewer, the lab and the city fight one after another,
-  everyone at level 3 (Enfina joins in the sewer, as in the story), resting
-  between each (see Making a dungeon).
+  everyone at level 20 (Enfina joins in the sewer, as in the story), resting
+  between each, with a store at the rests (see Making a dungeon).
+* **Continue** and **Load Game** — once there is a save (see Saving).
 * **Options** — fullscreen, fake fullscreen (a borderless window over the
   whole screen) or windowed, remembered between runs; window size, which goes
   back to a window; separate volume for music and sound effects; and how fast
@@ -29,8 +30,9 @@ In a battle: **Space** ends the turn, **1-9** pick a skill, **Tab** moves to the
 next skill tab, **Backspace** takes a walk back, **C** opens the character
 sheet and **Esc** the menu. Hold **Shift** to see every tile an enemy could
 reach and hit next turn, and which tiles set off a reaction when you step out
-of them. Hover anyone on the map, or a face in the turn queue, to see who they
-are; click a face to find them. A greyed-out skill can still be pressed to see
+of them. Hover anyone on the map, or a face in the turn queue (down the right of
+the screen, in the order turns come), to see who they are; click a face to find
+them. A greyed-out skill can still be pressed to see
 its reach, its area and what it would do - including a teammate's, from their
 portrait - without using it. While a skill is aimed, a portrait or a face in
 the queue can be clicked in place of the person on the map; hovering one that
@@ -98,7 +100,7 @@ character, a skill, a fight or a conversation needs no scripting.
 | --- | --- | --- |
 | Characters | `data/characters/*.tres`, `data/enemies/*.tres` | a CombatantDefinition each: the party, and everybody they fight |
 | Skills | `data/skills/*.tres` | a SkillDefinition each |
-| Items | `data/items/*.tres` | an ItemDefinition each |
+| Items | `data/items/*.tres` | an ItemDefinition each (a GateNadeDefinition for a Gate Nade) |
 | Passive skills | `data/passives/*.tres` | a PassiveDefinition, listed under a character's **Passives** |
 | Fights | `data/encounters/*.tres` | an EncounterDefinition: a map, who starts where, and the music |
 | Maps | `maps/*_terrain.tscn` | a TileMap; tile data says what blocks whom and what it costs to cross |
@@ -115,15 +117,15 @@ and `CombatantDatabase.combatants["cyrus"]` work from anywhere.
 
 | Folder | What is in it |
 | --- | --- |
-| `art/` | Every image. `characters/<name>/` holds a character's animations (`idle/`, `walk/`, `attack/`, `skill/`), their frame set (`<name>_frames.tres`) and their menu picture; `enemies/<kind>/` the same for each enemy; `icons/` skill and item icons; `portraits/` faces for conversations; `terrain/` tile sheets; `ui/` menu and HUD pieces; `app_icon/` the game's icon; `editor_icons/` the icons the editor shows for the game's own node and resource types |
+| `art/` | Every image. `characters/<name>/` holds a character's animations (`idle/`, `walk/`, `attack/`, `skill/`), their frame set (`<name>_frames.tres`) and their menu picture; `enemies/<kind>/` the same for each enemy; `icons/` skill and item icons; `objects/` things on the battlefield; `portraits/` faces for conversations; `terrain/` tile sheets; `ui/` menu and HUD pieces; `app_icon/` the game's icon; `editor_icons/` the icons the editor shows for the game's own node and resource types |
 | `audio/` | Music and sound effects |
-| `data/` | What the game is made of, as resources: `characters/` (the party), `enemies/`, `skills/`, `items/`, `conditions/`, `passives/`, `encounters/`, `clues/`, the `glossary/`, and the `databases/` scripts that read them |
+| `data/` | What the game is made of, as resources: `characters/` (the party), `enemies/`, `objects/` (things on the battlefield), `hacks/` (Prometheus's hacks), `skills/`, `items/`, `conditions/`, `passives/`, `subclasses/` (the paths), `factions/`, `equipment/`, `stores/`, `encounters/`, `dungeons/`, `clues/`, the `glossary/`, and the `databases/` scripts that read them |
 | `dialogue/` | Conversations |
 | `maps/` | Battle maps (`*_terrain`, `*_fight`), maps to walk around (`*_explore`, `church`), the stealth stages (`stealth_stages/`) and the tile set |
 | `pictures/` | Point-and-click pictures, and `feedback.tres` for their sounds and cursors |
 | `scenes/` | The game's own screens: the title screen, the battle, walking around, story screens |
 | `demos/` | Scenes to open and press F6 on to try something: the stealth demo, the stealth stages, the clues demo |
-| `campaign/`, `combat/`, `control/`, `exploration/`, `ui/` | The code: the playthrough's state, the fights, the grid and camera, walking around (stealth and pictures too), and the screens |
+| `campaign/`, `combat/`, `control/`, `exploration/`, `hacking/`, `ui/` | The code: the playthrough's state, the fights, the grid and camera, walking around (stealth and pictures too), the hacking minigames, and the screens |
 | `tools/` | Editor tools and build scripts: the encounter editor (`encounter_editor.tscn`), the stage builder, the layout painter and void filler, `release.sh` |
 | `tests/` | The test suites (see `tests/README.md`) |
 | `docs/` | Notes and the store image - not part of the game |
@@ -146,7 +148,36 @@ at the top of its script.
 2. Add that key to whichever characters know it, in their **Skills** list
    (`data/characters/` or `data/enemies/` - double-click one to edit it).
 
-A combatant knows exactly what their file lists, and nothing else.
+A combatant knows exactly what their file lists, and nothing else. The action
+panel has twelve buttons; somebody with more skills than that on one tab gets
+them on a shelf that scrolls, the way spells are shown.
+
+**Ignores Defense** (under Power) is how much of the target's Defense the
+skill's hits go straight through, in percent. A hit works out to
+`(WeaponBase + 0.7 x Stat) x Power x 40 / (40 + Defense)`, and the Defense in
+that is lowered by the share ignored. It's worth more the tougher the target,
+so it suits a caster who does less than the others to most enemies but more
+to the well armoured. It applies to the hit only; a burn it leaves still meets
+all of their Defense.
+
+A skill with **Is Reactive** ticked is a reaction too: offered when somebody
+leaves its user's reach on their own turn. With more than one (Enfina's
+Greatsword and Grab), the player picks which; the AI takes the one it rates
+highest.
+
+**Declared** makes a skill one that is called on one turn and lands on the
+next. Calling it costs nothing - the turn goes on, action and all - and marks
+the tiles it will come down on: orange for the other side's, gold for the
+party's. It lands at the start of its user's next turn once everybody on the
+other side has had a turn since. For anybody with one turn a round that is
+simply their next turn; a boss with two waits a turn longer, so the party always
+gets its chance. It lands on exactly the marked tiles, wherever its user has
+gone since, and that spends the turn's action (and any gate it costs). Anybody
+who has moved off the marked tiles by then is missed. A stunned, staggered or
+confused turn loses it. Only one can be waiting at a time; the turn
+queue says who is readying what. Enemies call theirs before the rest of their
+turn. Examples: **Ground Pound**, **Rockfall**, Prometheus's **Meteor** (level 15)
+and Enfina's **Earthsplitter** (level 14).
 
 A skill aimed at the fallen - Alithia's **Resuscitate** - has **Targets Fallen**
 ticked and a **Revive** effect: how much of their health they come back with,
@@ -159,7 +190,9 @@ hand and puts it in the thief's bag, into the four front slots first so it can b
 used straight away. Anything that doesn't fit there goes further back in the bag,
 for after the fight. If the bag is full, the enemy keeps it. **Steal Count**
 limits how many items it takes; 0 means all of them. Stolen items stay in the
-bag after the fight, the same as anything else the party carries.
+bag after the fight, the same as anything else the party carries. While a Steal
+is aimed, hovering anybody on the other side shows what they carry - in reach
+or not, saying why not when it cannot be used on them.
 
 ### Adding a passive skill
 
@@ -178,7 +211,114 @@ The Mimic's `data/passives/mimicry.tres` is the example: always active, and it i
 what lets the Mimic cast a copied spell without opening a gate. Cyrus has two
 more: `light_footed.tres` lets him use Stealth, Slip Past and Run as a secondary
 action too, and `quick_hands.tres` does the same for items. Those skills still
-show on his Secondary tab, and their previews say which passive allows it.
+show on his Secondary tab, and their previews say which passive allows it. With
+both of his actions still there, using an item asks which one to spend.
+`nade_juggler.tres` lets him throw any Gate Nade, and as a secondary action (below).
+
+### Gate Nades
+
+A Gate Nade is a spell sealed in a shell, the way a scroll is in other games.
+Throw one and the spell goes off with no gate opened and no level needed; then
+it's gone. Only somebody who knows the spell, or could learn it, can throw it:
+the spell is in their skills (at any level) or on any of their paths. A
+Revitalizer Gate Nade is Alithia's to throw, not Prometheus's or Enfina's. On
+anybody else's panel it is greyed out, saying why.
+
+To add one, right-click `data/items/` → **New Resource** → `GateNadeDefinition`
+and name its **Spell** by key (`fireball`). When the game starts the nade takes
+on that spell's whole shape: its reach, area, effects, damage type, the action
+it costs, and its sound. It keeps its own:
+- **name** and **description**, made up from the spell if left empty
+- **icon**
+- **Item Power**: a nade is as strong as itself, whoever throws it, like a bomb
+- **Price**
+
+A change to the spell changes every nade of it, and a spell key that doesn't
+exist is reported at startup.
+
+Two passive switches change that:
+- **Any Gate Nade** throws any of them, whatever spell is inside.
+- **Gate Nades As Secondary** throws them with the secondary action where the
+  spell would take the main one.
+
+Cyrus's **Nade Juggler** has both.
+
+The examples are the Fireball, Heal, Crystalise and Revitalizer Gate Nades,
+which the travelling merchant sells. Their power and prices are placeholders. Like every
+consumable they wear the consumable icon, told apart by their letter badges.
+
+### Hacking
+
+Prometheus hacks: wards, seals and machines, on maps and in pictures, from
+conversations, and in fights. Anybody with a passive's **Can Hack** can; his
+is **Prying Mind**. A hack is a `HackDefinition`, saved in `data/hacks/` or set
+straight onto what is being hacked, and it is one of three minigames:
+
+- **Rewrite the Rule.** The spell's sheet, line by line ("Targets: Intruders",
+  "Reach: 4"), each with what it has to end up as. Change them within a budget
+  of **Edits** and commit. A line can be **Locked Until** another changes, and a
+  **Balanced** sheet's watched lines have to keep their sum. For a real puzzle,
+  give lines **Pushes**: each step of one drags others with it, every number
+  stays between its ends, and every step costs edits, a step back included,
+  with **Start Over** giving them back. Then the order of the steps is the
+  puzzle.
+- **Node Infiltration.** Cross a grid of nodes to the core before the moves run
+  out, without a sentinel catching him. Every layout is made fresh and checked
+  to have a way through.
+- **Tuning the Resonance.** Turn up to three dials until his wave matches the
+  thing's, then lock it.
+
+How it plays out:
+- **Tries** are written for an Intellect of 30. He gets more with more Intellect
+  and fewer with less, never under one. Each retry's cost (**Strain** to his
+  health, **Alert** on a stealth map, or nothing) shrinks the same way: twice
+  the tries is half the cost a try.
+- **Time Limit** gives each try a clock; 0 means none. On a stealth map, **World
+  Keeps Moving** lets the guards carry on while he works; otherwise everything
+  waits.
+- **Gates** buy a **hint** (a line's answer, the way through, where a dial has
+  to be) or **simplify** it once (no locks or balance, a sentinel gone, twice
+  the tolerance). In a fight they come out of his gates there and then;
+  elsewhere, out of the next fight's. The screen shows how many he has left
+  through each gate. A hint is only paid for when it shows something new: on a
+  step-by-step sheet, the next step is shown once for where the sheet stands,
+  and the button waits for a move before it sells another. With no way through
+  left this try, it says so, for nothing.
+- **Failing** (out of tries, or walking away after a try has failed) can do any
+  of these:
+  - **Raises Alert** puts the stealth map up a level.
+  - **Sets Off** makes the thing go off on him.
+  - **Locks For Good** means it can never be tried again.
+
+  Walking away (the button, Escape, the pad's back button or a right click)
+  before a try has failed costs nothing.
+
+Where a hack goes:
+- **Any interactable** and **any picture hotspot** has a **Hack**: it does
+  nothing until hacked, then works as usual and stays hacked.
+- **A conversation:** `do Hacking.start("archive_ward")`, then
+  `if Hacking.succeeded("archive_ward")`. A failure leaves flags to branch on:
+  `Hacking.set_off_by(...)` and `Hacking.locked(...)`.
+- **In a fight**, his **Hack** skill on a foe winding up a declared move:
+  - won, the move comes to nothing and a boss is staggered
+  - lost, it may go off early
+
+  A declared skill can carry its own **Hack**; otherwise the Hack skill's is
+  used (**Unpick the Spell**).
+- **A thing on the map** (`BattleObjectDefinition`) with a **Hack** has to be
+  hacked before it can be Used. Failing can set it off on the party.
+
+Five examples stand near where the party arrives on the laboratory map
+(Prometheus on the title screen): the Archive Ward, the Vault Terminal, the
+Humming Seal, the Binding Circle (a hard Rewrite: its lines drag each other,
+and the cheapest way through spends every edit), and the workbench's
+strongbox, a hack-locked spot in a picture. Further down the room, five more
+Rewrite sheets in rising order - the Furnace Seal, the Choir Lock, the Sluice
+Engine, the Mirror Ward and the Clockwork Door - each with its fewest steps in
+its prompt. The `hacking` suite checks every Rewrite sheet in `data/hacks/` can
+be done within its edits, and that a step-by-step one cannot with any fewer.
+Their numbers, and the Intellect the tries are written for, are
+placeholders.
 
 ### Adding a fight
 
@@ -186,10 +326,20 @@ Right-click `data/encounters/` → **New Resource** → `EncounterDefinition`, g
 terrain scene, then lay the combatants out in `tools/encounter_editor.tscn`:
 select the encounter, drag the markers onto the map, press **Save spawns to
 encounter**. It refuses to save anything unplayable and says what is wrong, so a
-saved encounter always runs.
+saved encounter always runs. **Add a way out** puts down a marker for a tile a
+broken enemy runs for (see Getting away below); drag it into place, and Save
+keeps those too.
 
 Each spawn carries its own level, weapon base and defence, so the same character
-can be brought in weak early and dangerous later.
+can be brought in weak early and dangerous later. Those are what a fight from
+Arena Mode uses. In the story, the party fights at the level it has reached
+and with the gear it is wearing (see Levels and Equipment); a slot with nothing
+in it keeps the spawn's own weapon or defence. A party spawn can also name the
+**Subclass** (path) it fights on, from level 5.
+
+**Party Reaches Level** makes the fight a milestone: won in the story, the
+party goes up to that level. **Gold Reward** is what winning it pays, in the
+story or a dungeon.
 
 **Starting Items** on a spawn is what that fighter brings, picked from a dropdown
 of the items there are. An enemy uses theirs: a potion is drunk when they are
@@ -198,13 +348,374 @@ use in a fight come with them (a pebble or a disguise is no use there). Look at
 an enemy in a fight and their Items tab shows what they carry, which is what
 Cyrus's **Steal** takes.
 
+### Sizes
+
+A combatant's **Size** is Tiny, Small, Human (the default), Large, Enormous,
+Monstrous or Gigantic. A Human fills one tile. Each step down is half as wide,
+so a Small one is half a tile and a Tiny one a quarter. Each step up is twice as
+wide: Large 2 × 2 tiles, Enormous 4 × 4, Monstrous 8 × 8. Gigantic is 16 × 16 or
+bigger: **Gigantic Span** says how many tiles a side.
+
+- **Small and Tiny share.** Up to four Small or sixteen Tiny fit on a tile,
+  mixed as they like, but only with their own side. An area catches all of them.
+  A single-target skill hits whichever one the pointer was nearest.
+- **Big ones cover a square.** A spawn's position is the top-left tile of its
+  square. Every tile of the square is it: hitting any of them hits it, once. It
+  is measured from, and reaches from, every edge. It walks only where the whole
+  square fits.
+- **Monstrous and up ignore the map.** Walls, holes and cover don't stop them.
+  They move and see as a flier would, so only what stops a flier stops them.
+  They still can't walk through anybody.
+- **Bodies are cover by size.** Somebody blocks the view of anybody up to one
+  size bigger than they are. A Human sees over rats, but an imp doesn't. Nobody
+  Human sees past an ogre, but a behemoth does.
+
+There's no shoving by size yet; a push moves a big one like anybody else, if
+its square fits where it lands. The encounter editor draws each marker's
+square and refuses a spawn that doesn't fit. **Big and Small** (lab map: rats, imps, an ogre,
+a stone golem and a behemoth) and **The Colossus** (sixteen tiles across) in
+Arena Mode show them all.
+
+### Immunities, turns and auras
+
+These belong to any combatant, boss or not, in their file:
+
+- **Immunities.** **Immune To Conditions** lists conditions that never take
+  hold; drag them in from `data/conditions/`. **Immune To** covers the rest:
+  - being shoved or teleported
+  - being stolen from
+  - being weakened (a lowered stat or resistance)
+  - lingering wounds
+  - being studied
+  - having their movement changed
+  - having their boons dispelled
+
+  A damage type is a resistance of 100. Whatever they shrug off shows "Immune"
+  over them and says so in the log. The stone golem, an ordinary enemy, can't be
+  poisoned or shoved.
+- **Turns Per Round.** More than one puts them in the order again, spread
+  through the round, with a face in the turn queue for each.
+- **Auras** are on passives (**Aura Radius**, **Aura On Foes**, **Aura On
+  Allies**). Whoever starts a turn within reach has that condition for the turn.
+  The reach is tinted on the board: violet for the other side's, blue for the
+  party's.
+
+### Bosses
+
+A combatant with a **Boss** (`BossDefinition`, in their file) is a boss,
+whatever their size:
+
+- **Its entrance.** When the fight starts, or when it arrives, its name and
+  **Title** come up across the middle of the screen and its **Music** starts.
+- **Its bar.** A bar of its own sits along the top: its health, with a mark
+  where each phase begins, and its stagger bar underneath.
+- **Phases** (`BossPhase`) begin as its health falls past each one's **At
+  Health**, each announced across the screen. A phase can:
+  - add or take away skills and passives
+  - change how it fights (**AI Function**) or its **Turns Per Round**
+  - swap its stagger bar
+  - clear what's on it
+  - gain or lose immunities
+  - call help to its side (**Summons**)
+  - start or stop arena hazards
+  - change the music
+- **The stagger bar** (`StaggerDefinition`) fills from whatever the fight wants:
+  - **Per Damage**, optionally only for some **Damage Types**
+  - **Per Hit**
+  - **Per Blocked Condition**: the stuns it shrugs off
+  - particular skills (**From Skills**)
+  - more **While Readying** a declared move, which rewards interrupting it
+  - a hazard catching it, or a thing on the map going off
+
+  **Drain Per Round** turns it into a burst check. Full, the boss is staggered:
+  - it loses its next turn (**Turns Lost**), whatever it's immune to
+  - its declared move is cancelled
+  - it's hit harder (**Damage Taken**) until that lost turn ends
+
+  Then the bar starts again, bigger by **Grows By**. The **Hint** under the bar
+  tells the player what to do.
+
+Two examples in Arena Mode:
+- **The Ash Warden** is Large, with two turns a round and an aura of choking
+  ash. It has three phases: ash falling on the party, then imps arriving and a
+  burst-only bar, and its armour cracks so it can be stunned at last. Powder
+  kegs stand nearby.
+- **The Bellkeeper** is half a tile wide and shrugs off every kind of control.
+  Only its three bells fill its bar. In its second phase the floor rings and the
+  bar switches to a burst bar.
+
+All of their numbers are placeholders.
+
+### The arena
+
+An encounter's **Hazards** (`HazardDefinition`) run from the first round; a
+boss's phase can start more. There are two kinds:
+- **Falling** marks its tiles in magenta at the top of a round and comes down on
+  them at the top of the next, so everybody has a turn to get clear.
+- **Ground** is marked a round ahead too, then turns red and hurts whoever starts
+  a turn on it until its time is up.
+
+A hazard aims at open tiles anywhere, at the party, at anybody, or at fixed
+tiles, every so many rounds. It deals damage of a type, can put on a condition,
+and can **Stagger** a boss caught in it, so luring the boss under the rocks is
+a tactic.
+
+### Things on the map
+
+A `BattleObjectDefinition` in `data/objects/` is a bell, a pillar, a keg:
+something placed in a fight like a combatant, on the enemy side. It takes no
+turns, belongs to nobody, never keeps a fight going, and blocks movement and
+sight like a body its size.
+
+- While anything usable is on the map, the party gets **Use** (the `use`
+  skill): from beside it, the main action. Used on nothing, Use is refused and
+  costs nothing.
+- **Breakable** ones can also be hit until they go.
+- Either way it **sets off**:
+  - every boss on the field gains its **Stagger**
+  - its blast (**Blast Radius**, **Damage**, **Condition**) catches whoever it
+    should
+  - once its **Uses** are spent, it's gone.
+
+Hover one for its description. The bell and the powder keg are the examples,
+with placeholder pictures in `art/objects/`.
+
+### Dealing with enemies
+
+There is more to a fight than hitting people. Everything below is a switch on
+the creature (`CombatantDefinition`), a skill, or an encounter, so any of it can
+be given to anybody. To try most of it, pick **Hired Blades** or **The Bound
+Golem** from Arena Mode.
+
+**Studying.** Enfina's **Measured Eye** (`studies_on_hit` on a passive) studies
+whoever her blows land on, the way Study does. Only the Study skill opens the
+character sheet; a blow just says so in the log.
+
+**Intuition** is Alithia's secondary action. It reads an enemy's next turn
+from the planner its turn would use - where it will stand, what it will use,
+where it lands - and marks it on the map in teal. The enemy is then **held to
+it**: step off the marked tiles and the blow lands on nothing; take the tile it
+meant to stand on and it has to think again.
+
+**Nerve.** Each enemy has a **Nerve** (Nerve group). What shakes it is added up
+at the start of its turns:
+
+| What | How much |
+| --- | --- |
+| its leader (**Leads**) down | 40 |
+| half its side down | 25 |
+| hurt / badly hurt | 15 / 30 |
+| the last of its side | 30 |
+| afraid (Fear) | 20 |
+| Intimidated | what Intimidate shook |
+
+At its Nerve or more it breaks: it **flees**, or **surrenders** where it stands
+(**When Broken**). Immune to **Breaking** never breaks. The bosses are, and so
+is the golem. The numbers are the `NERVE_*` constants in `combat/Combat.gd`.
+
+**Ways out.** An encounter's **Escape Points** (The Arena group, placed with
+**Add a way out** in the encounter editor) are the tiles a fleeing enemy runs
+for. It gets away the moment it stands on one, however many turns that takes.
+
+- It heads for the nearest by the ground it can cross.
+- It spends its actions on getting there sooner: Run or anything else that adds
+  to its walk, a blink that puts it nearer, and Slip Past when it is leaving
+  somebody's reach.
+- Somebody standing on a way out shuts it.
+- Held (Grab), it has to break free first.
+
+They are drawn on the map, brighter while somebody is running. Hired Blades has
+two.
+
+With no ways out, nobody gets away. A broken enemy says it looks for a way out
+and finds none, then just keeps away from the party. Anybody placed in such an
+encounter who would run when broken (When Broken: Flee, not immune to
+Breaking) is named twice:
+
+- in the encounter editor's status: a note, not a block on saving
+- in Godot's Output when the fight starts
+
+Fix it with a way out, or with When Broken: Surrender.
+
+**Getting away.** What comes of one that flees is the creature's own **When
+Fled**:
+
+- **Gone**: nothing more.
+- **Comes back**: back where it left, **Back After Rounds** later, its nerve
+  steadied, with whoever **Brings Back** names. The Hired Bow comes back with a
+  sellsword.
+- **Fight lost**: the messenger who must not reach the gate. The fight ends in
+  defeat, whoever is left standing.
+
+**Fled Flag** is set either way, for a conversation afterwards. If the last
+enemy runs, the fight is won before any of them come back.
+
+**Taken alive.** Every enemy who falls is knocked out and taken alive. The
+exceptions are anybody immune to **Being Taken Alive** (the golem) and anybody
+who blew themselves up. After a won fight, the results offer **Question the
+prisoners**, one row per kind that still has something to tell:
+
+- whatever clues and gold they give up (Dealing With Them group)
+- who they answer to
+- leverage on their kind
+
+Then **let go** or **hand over**, counted in the flags `prisoners_released` /
+`prisoners_handed_over`. Between a dungeon's fights they are questioned before
+the rest instead. A creature can have an **Interrogation Dialogue** of its own
+in place of the plain questioning.
+
+**Deciding in a conversation instead.** Tick **Dialogue Decides Prisoners** on
+the encounter (When It Ends group). Its **Victory Dialogue** then decides, and
+the results offer no questioning. The conversation can read how the fight went
+and act on it. A key is a combatant key; leave it out for everybody:
+
+| In the dialogue | What it does |
+| --- | --- |
+| `Campaign.taken_alive("sellsword")` | how many were taken alive and not yet dealt with |
+| `Campaign.got_away("hired_bow")` | how many got away |
+| `Campaign.fell("sellsword")` | how many fell for good (the party's own too) |
+| `Campaign.questioned("sellsword")` | whether one has been questioned already |
+| `do Campaign.question("sellsword")` | questions one, like the panel does |
+| `do Campaign.let_go("sellsword")` | lets them go (a number after the key: only that many) |
+| `do Campaign.hand_over()` | hands them all to the watch |
+
+`dialogue/lab_hired_blades_after.dialogue` is the example, on Hired Blades.
+
+**Intimidate, Persuade, Deceive** (Enfina, Alithia, Cyrus) are contested, and
+only work on somebody the party has **leverage** on: their faction known, one of
+their kind questioned, or a clue in their **Leverage Clues**. They live on a
+**Skills** tab that only appears when one of them can be used on somebody in the
+fight.
+
+- Intimidate frightens and shakes their nerve.
+- Persuade makes them lose a turn, unless they are hurt first.
+- Deceive turns their next turn on the nearest of their own side.
+
+**Bribes and parleys.** Somebody with a **Bribe Price** can be paid out of a
+fight with **Bribe**, offered as a secondary action while one is fighting. A
+conversation on an `EncounterInteractable` can settle things before the fight
+with `do` lines, then `do Campaign.accept_encounter()`:
+
+- `Campaign.parley_remove("sellsword", 2)`: two of them stay out of it
+- `Campaign.bribe("hired_bow")`: one bought out
+- `Campaign.bribe("sellsword", true)`: one bought onto the party's side, at
+  twice the price
+- `Campaign.parley_surprise()`: they start caught off guard
+- `Campaign.parley_call_off()`: no fight at all, the trigger cleared as if won
+
+Backing away drops what was agreed. `dialogue/lab_hired_blades_parley.dialogue`
+is the example, on the lab map beside the sellswords' contract.
+
+**Changing sides.** Somebody bought or rebound fights for the party, played by
+the AI (`switch_sides`). They turn back when their turns run out, or when the
+party falls.
+
+**Rebinding.** A creature with **Bound To** and a **Rebind Hack** (the golem)
+can have its binding hacked by Prometheus: Hack aimed at it plays the Rewrite
+sheet, and if he wins it fights for the party for **Rebind Turns** of its turns
+(0: the rest of the fight).
+
+**Body parts.** Somebody big can have **Parts** (`BodyPartDefinition`): tiles
+that can be aimed at, each with a share of their health. Broken, a part:
+
+- **Rooted**: the legs go, and they never move again
+- **Weakened**: the arms go, and every hit of theirs lands for less
+- **Exposed**: an armour plate goes, and every hit on them lands for more
+- **Staggered**: a boss's weak point, added to its stagger bar
+- **Disarmed**: the skills in **Disarms** are gone
+
+Parts are outlined while aiming, and the hit preview names the one aimed at. The
+golem, the behemoth and the Ash Warden have them.
+
+**Hurl** (Enfina and the Barbarian) grabs somebody beside you, up to one size
+bigger (**Lifts Sizes Above**), and throws them **Throw Range** tiles, one more
+for every 30 Physical. Thrown into somebody, both are hurt. Immune to being
+thrown or shoved, nobody is picked up. The AI throws when it can hit two.
+
+**Climb** (Enfina) climbs onto something Monstrous or bigger. Up there:
+
+- nobody can reach her
+- she is carried wherever it goes
+- every blow on it lands, and 25% harder
+
+It spends its main action trying to shake her off, which hurts whether it
+works or not. **Climb Down** jumps off.
+
+**Grab** (Enfina and the Barbarian) takes hold of somebody beside you, up to
+one size bigger, as a main action or as a reaction. As a reaction it's offered
+beside the swing when somebody leaves your reach, and the one grabbed is dragged
+back and their walk ends. Grabbed, they're **Grappled** (a condition with
+**Holds** ticked): they can't move, but can still act. **Break Free** is their
+main action.
+
+Getting hold and breaking free are the same contest, Physical against
+Physical: 50% against somebody as strong, a point more for every point of
+Physical more than the other (20-80%, the `GRIP_*` constants). Grab rolls it in
+place of its accuracy, and the hover shows it. The grip also ends if:
+
+- the holder is not beside them, is down, or climbs onto something
+- either of them is teleported, shoved, thrown or blown along
+- the holder grabs somebody else (one at a time)
+
+Grab then Hurl is the throw that can't be walked away from. A held enemy fights
+from where it stands if it can hit anybody from there; otherwise, or when it's
+running, it spends its main action breaking free. Immune to the Grappled
+condition, nobody is held.
+
+**Taunts** are not a skill but something an encounter does: the **Taunted**
+condition ties whoever has it to whoever put it on them, and anything of theirs
+that hurts has to catch the taunter. The **Pit Champion**'s **Challenge** aura
+is the example; a skill or an object's aura can put it on too.
+
+### Quick time events
+
+A `QuickTimeDefinition` (`data/quick_times/`) is a press against the clock.
+There are four kinds:
+
+- **Press**: one button
+- **Sequence**: several in order
+- **Mash**: one button, many times
+- **Timing**: stop a sweeping marker in the zone
+
+The four buttons are WASD, the arrow keys, or the pad's face buttons.
+
+In a fight one hangs off a skill (**Quick Time**):
+
+- **For the Attacker**, done in time, the party's use lands harder: Hurl's
+  throw.
+- **For the Defender**, done in time, it lands softer on the party: bracing
+  against Ground Pound.
+
+In a conversation:
+
+```
+do QuickTime.start("dodge_the_bolt")
+if QuickTime.passed
+```
+
+It also sets the flag `qte:<key>`. The sellswords' contract on the lab map is
+the example. Headless (the tests), nobody can press anything, so it counts as
+missed: the game as it was before.
+
+### The enemy codex
+
+The Journal's **Enemy Codex** has a page for every enemy in `data/enemies/`,
+written when somebody with **Keeps Codex** (Enfina and Prometheus) studies one,
+by Study or by Enfina's blows. A boss has a second page, written when one of
+them studies it again past its first phase (or, with no phases, while it is
+staggered). It shows the boss's **Codex Second Page** text, its phases and its
+stagger bar. The pages are worked out from the creature itself (`CodexPage`), so
+they never disagree with it. They are stored as flags (`codex:<key>`), so they
+are saved.
+
 ### Making a dungeon
 
 A dungeon is fights one after another with a rest between each - the **Dungeon
 Demo** on the title screen is `data/dungeons/dungeon_demo.tres`, a
 `DungeonDefinition`. Open it in the inspector:
 
-* **Party** - who goes in, leader first, and their level on the maps. The maps'
+* **Party** - who goes in, leader first, and their **Level** - on the maps and in
+  every fight; the fights' own tiles' levels are not used. The maps'
   own parties and handed-out kit are not used: the party starts carrying
   nothing, and keeps whatever it picks up and does not use.
 * **Stages** - in order, each a `DungeonStage`: a **Map** to walk until its
@@ -212,19 +723,100 @@ Demo** on the title screen is `data/dungeons/dungeon_demo.tres`, a
   on a map it is fought instead of the one the map starts by itself, named in
   **Replaces** - so the map keeps its conversations and loot, and only the fight
   at the end is the dungeon's. The demo's three are copies of the story's fights
-  in `data/encounters/dungeon_demo/`, every player tile and enemy at level 3
-  (with the City Fight's level 3 weapon base and defences), two more enemies in
+  in `data/encounters/dungeon_demo/`, every player tile and enemy at level 20
+  (with the City Fight's weapon base and defences), two more enemies in
   the sewer and three fewer in the city.
 * **Resting** - after every fight but the last, everyone is back to full health
   (and back on their feet, with **Rest Revives**). Gates spent stay spent from
   one fight to the next; the rest offers to bring some back for whoever is in
   **Gate Recovery For**, at **Gate Recoveries** rests in the run, with **Gate
   Recovery Points** to spend at **Gate Costs** each (0, then World, Hermes,
-  Yaldabaoth).
+  Yaldabaoth). With a **Store**, the rest offers a visit to it, to spend what
+  the fights' **Gold Reward** paid.
 
 Winning a stage's fight plays its own closing conversation first, then the rest,
 then the next stage. Winning the last ends the dungeon and goes back to the
 title screen; losing any of them offers to start the dungeon again.
+
+### Levels
+
+There are 20 levels. A level decides a character's attributes (the main one
+climbs from 10 at level 1 to 85 at level 20, the secondary half that), their
+health (**Max Hp** at level 1 to **Max Hp Level 20**, the same step each level),
+their gates (`Stats.GATES_BY_LEVEL`: Hermes opens at 5, Yaldabaoth at 9) and
+which of their skills they know (each skill's **Required Level**). The old three
+levels map onto it: level 2 is now 10, level 3 is 20.
+
+The party levels up at milestones in the story, not by experience: a
+conversation saying `do Campaign.reach_level(5)`, a fight whose **Party Reaches
+Level** is set being won, or walking onto a map whose MapSetup **Level** is
+higher than theirs (a map's level is the least the party is by then). Health
+grows by what the level adds, so a wounded party stays as wounded.
+
+### Paths (subclasses)
+
+At level 5 each of the party chooses one of three paths, for good - Cyrus's
+Swashbuckler, Gunner and Bombardier; Prometheus's Spellsword, Demolitionist and
+Abjurer; Alithia's Punisher, Carer and Illusionist; Enfina's Berserker, Guardian
+and Controller. The map asks once nothing else is going on, one of the party at
+a time; the character sheet has a **Choose a path** button too. A MapSetup with
+**Asks For Paths** off (the stealth stages) never asks.
+
+A path is a `SubclassDefinition` in `data/subclasses/`: a description, the
+**Skills** it teaches (each at its own Required Level) and its **Passives** (each
+from its own **Required Level**). Which paths are whose is the character's
+**Subclasses** list, in the order the choice shows them. Most of what a path does
+is a switch on a PassiveDefinition - more movement or defence, a skill reaching
+further, a free item every fight, a step after a skill, amplified spells, a ward
+reaction, overheal, stronger heals, being empowered by a condition, guarding
+allies - so a new path is mostly ticking boxes. New ones need no code.
+
+Overheal is health on top of health: taken first, never stacking, gone by the
+end of the fight. An image (**Mirror Image**) is one point of health and no
+turns; enemies go for it as they would for whoever it is of. **Confused**
+(`data/conditions/confused.tres`) plays its victim's turn for them, at whoever is
+nearest, friend or foe.
+
+### Factions
+
+An enemy's **Faction** names a `FactionDefinition` in `data/factions/`. A clue
+with the faction under **Reveals Factions** makes the party know it: from then
+on every member has their sheet open from the start of a fight, and the party
+hits them harder by **Known Damage Bonus** (0.15 to start). No enemy has a
+faction yet - which sides there are is the story's to say.
+
+### Equipment
+
+A weapon, armour and a charm for each of the party: `EquipmentDefinition`s in
+`data/equipment/`. A weapon's **Weapon Base** and armour's **Defense** stand in
+for a story fight's own numbers; a charm adds its **Passive**. Armour is **Light**
+or **Heavy** - a label for now, both wear the same. **For Characters** limits who
+can use it. Gear the party owns and is not wearing waits in a shared stash; put it
+on from the character sheet (C), a button a slot. Give gear with
+`do Campaign.give_gear("fencers_rapier")`.
+
+### Gold and stores
+
+One purse for the party (`Campaign.gold`, shown on the inventory screen). Fights
+pay their **Gold Reward**; a conversation can `do Campaign.give_gold(30)`. A
+`StoreDefinition` in `data/stores/` lists its **Stock** (items and gear alike)
+and buys back at its **Sell Rate** of the price. Prices are the goods' own -
+**Price** on an ItemDefinition or EquipmentDefinition - so a thing costs the same
+everywhere; 0 means no store deals in it. Open one with a **StoreInteractable**
+on a map, `do Campaign.open_store("travelling_merchant")`, or a dungeon's
+**Store**. Bought items go into the bag of the first of the party with room;
+bought gear into the stash.
+
+### Saving
+
+Escape → **Save Game** on any map that is not a stealth map, never in a fight:
+three slots. Before every fight begun from a map - or a dungeon's fight with no
+map - the game saves on its own, into the oldest of three automatic slots; a
+fight begun on a stealth map saves the moment the party walked onto it. **Load
+Game** in the pause menu and on the title screen loads any of the six, and
+**Continue** the latest. Saves are in `user://saves/`. Everything the run has come
+to is in one - `Campaign.snapshot` - and loading puts the party back where it
+stood (`Campaign.restore`).
 
 ### Making a stealth map
 
@@ -234,8 +826,8 @@ starts right where everyone is standing.
 
 **To try one**, open `demos/try_stealth_demo.tscn` and press **F6**: Cyrus in
 the lab, a locker with a disguise in it, a notice board to look at closely
-(the point-and-click example), and three guards between him and the far corner
-- a Priest who knows his own robes, a Barbarian no disguise fools, and one any
+(the point-and-click example), and four guards between him and the far corner
+- a Priest who knows his own robes, a Barbarian no disguise fools, a hall sentry who stands his post, and one any
 disguise does. `demos/stealth_demo.tscn` is how it is put together.
 
 1. Build the map as an **instance of a battle terrain** - the way
@@ -315,6 +907,26 @@ only shows when there is something to do with it:
   never be settled below that level again, and the finder goes over and brings
   them round (3 seconds); knock the finder out on his way and the body is there
   to be found again, without putting the map up twice.
+- **Planting evidence.** Something with **Frames** ticked (the Stolen
+  Signet) can be slipped into the pockets of a guard who hasn't noticed you.
+  It's the pick-pocket key, once there's nothing left to lift.
+  - The next watchman or captain to get a good look at him (2 seconds in view,
+    within 4 tiles) finds it and marches him off.
+  - Neither can be drawn aside on the way. The framed one is gone for good, and
+    the other is back on his beat after 12 seconds.
+- **Guards at a post.** A guard with no **Patrol** stands where he is put.
+  **Glance Every** above 0 holds his gaze still instead of sweeping it, and now
+  and then (that many seconds, give or take a third) he glances **Glance
+  Degrees** aside for **Glance Seconds**. A post you can time. The demo's east
+  Barbarian and hall sentry stand like this.
+- **What small talk can ask.** A guard's **Small Talk** conversation can call
+  `Campaign.stealth_watch`:
+  - `.send_away(30)`: off to the far end of the beats for 30 seconds
+  - `.tell_patrol()`, or `.tell_patrol("OtherGuard")`: his round, or another's,
+    drawn from now on
+  - `.hand_over()`: what's in his pockets, as if picked
+
+  The demo's east Barbarian offers all three.
 - **Bodies.** A body's pockets can be picked too. Left click beside one to
   drag it after you at half pace - no dashing, no changing clothes, and any
   guard who sees you at it knows you at once - and left click again to put it

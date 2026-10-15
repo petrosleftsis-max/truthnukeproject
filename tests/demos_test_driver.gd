@@ -52,7 +52,7 @@ func run_test():
 	var tile_map: TileMap = scene._tile_map
 	var watch: StealthWatch = scene.stealth
 	ok(watch != null, "it is a stealth map")
-	ok(watch != null and watch.guards.size() == 3, "with three guards", "%d" % (watch.guards.size() if watch else 0))
+	ok(watch != null and watch.guards.size() == 4, "with four guards", "%d" % (watch.guards.size() if watch else 0))
 	ok(Campaign.party_members().size() == 1 and Campaign.party_members()[0].key == "cyrus", "Cyrus alone")
 	var tile = func(node: Node2D) -> Vector2i: return tile_map.local_to_map(tile_map.to_local(node.global_position))
 	var on_floor = func(at: Vector2i) -> bool: return scene.is_walkable(tile_map.to_global(tile_map.map_to_local(at)))
@@ -122,7 +122,7 @@ func run_test():
 	var fight = watch.build_fight()
 	var fighters = fight.spawns.filter(func(s): return s.side == 0)
 	var guards = fight.spawns.filter(func(s): return s.side == 1)
-	ok(fighters.size() == 1 and guards.size() == 3, "Cyrus and the three guards", "%d and %d" % [fighters.size(), guards.size()])
+	ok(fighters.size() == 1 and guards.size() == 4, "Cyrus and the four guards", "%d and %d" % [fighters.size(), guards.size()])
 	var bad := []
 	for spawn in fight.spawns:
 		if blocked.has(spawn.position):

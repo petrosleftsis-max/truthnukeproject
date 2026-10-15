@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Nade Juggler"
+description = "Throws any Gate Nade, whatever spell is in it - everybody else only those whose spell they know or could learn - and throws them with his secondary action, where the spell would take the main one."
+gate_nades_as_secondary = true
+any_gate_nade = true

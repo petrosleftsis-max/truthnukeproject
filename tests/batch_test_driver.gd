@@ -293,15 +293,15 @@ func run_test():
 	log_line("")
 
 	log_line("======== how many castings a level buys ========")
-	var ladder = {1: [0, 2, 0, 0], 2: [0, 3, 2, 1], 3: [0, 3, 3, 2]}
+	var ladder = {1: [0, 2, 0, 0], 10: [0, 3, 2, 1], 20: [0, 3, 3, 2]}
 	for level in ladder:
 		ok(Stats.gates_for_level(level) == ladder[level],
 			"a level %d caster has %s" % [level, ladder[level].slice(1)],
 			"%s" % [Stats.gates_for_level(level).slice(1)])
-	var first = Stats.gates_for_level(2)
+	var first = Stats.gates_for_level(10)
 	first[1] = 99
-	ok(Stats.gates_for_level(2)[1] == 3,
-		"and spending one caster's allowance does not spend everyone's", "%d" % Stats.gates_for_level(2)[1])
+	ok(Stats.gates_for_level(10)[1] == 3,
+		"and spending one caster's allowance does not spend everyone's", "%d" % Stats.gates_for_level(10)[1])
 
 	# On real characters, through the path the game actually takes.
 	var mage: CombatantDefinition = null
@@ -314,7 +314,7 @@ func run_test():
 			fighter = definition
 	ok(mage != null, "somebody in the game casts", mage.name if mage else "nobody")
 	if mage != null:
-		for level in [1, 2, 3]:
+		for level in [1, 10, 20]:
 			var spawn = SpawnDefinition.new()
 			spawn.level = level
 			var cast = combat.create_combatant(mage, "", "", spawn)

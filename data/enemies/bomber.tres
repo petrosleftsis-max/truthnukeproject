@@ -8,8 +8,7 @@
 script = ExtResource("2_exju2")
 name = "Bomber"
 max_hp = 8
-max_hp_level_2 = 35
-max_hp_level_3 = 70
+max_hp_level_20 = 70
 movement = 4
 initiative = 3
 main_stat = 1

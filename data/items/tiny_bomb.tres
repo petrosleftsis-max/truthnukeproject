@@ -17,3 +17,4 @@ ability_modifier = 2.0
 uses_stat_contest = true
 sound = ExtResource("4_sfx")
 aoe_radius = 1
+price = 15

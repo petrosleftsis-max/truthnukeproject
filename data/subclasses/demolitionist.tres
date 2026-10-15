@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SubclassDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Script" path="res://combat/resources/SubclassDefinition.gd" id="2_path"]
+
+[sub_resource type="Resource" id="Passive_0"]
+script = ExtResource("1_passive")
+name = "Overcharge"
+description = "Amplify a spell by casting it through a deeper gate - half as much damage again for each gate deeper. Once a fight he can do it without spending the deeper gate; twice from level 11, three times from 17."
+required_level = 5
+amplifies_spells = true
+amplify_bonus_per_gate = 0.5
+free_amplifies_at = Array[int]([5, 11, 17])
+
+[resource]
+script = ExtResource("2_path")
+name = "Demolitionist"
+description = "An aggressive choice, Prometheus becomes capable of amplifying his spells' powers further."
+passives = Array[ExtResource("1_passive")]([SubResource("Passive_0")])

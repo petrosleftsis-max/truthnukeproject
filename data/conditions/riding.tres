@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Riding"
+description = "Up on somebody enormous: carried wherever they go, out of everybody's reach, and every blow on them lands - and harder. No walking until they climb down or are thrown off."
+duration = 999
+prevents_movement = true
