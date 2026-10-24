@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/icons/rib_maws_skill.png" id="1_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("2_skill")
+name = "Rib Maws"
+description = "Its ribs have split into mouths along its flanks: whoever steps up beside it is bitten."
+min_range = 1
+max_range = 1
+icon = ExtResource("1_icon")
+is_reactive = true
+reacts_when = 2
+reaction_only = true
+animation = "attack"
+ability_modifier = 0.7
+sound = ExtResource("90_sfx")
+sound_volume_db = -8.0
+can_be_copied = false
+melee = true

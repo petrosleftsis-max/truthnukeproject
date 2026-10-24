@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BattleObjectDefinition" format=3]
+
+[ext_resource type="Resource" path="res://data/conditions/poisoned.tres" id="1_poison"]
+[ext_resource type="Texture2D" path="res://art/objects/tainted_carrion_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://art/objects/tainted_carrion_sheet.png" id="3_sheet"]
+[ext_resource type="Script" path="res://combat/resources/BattleObjectDefinition.gd" id="4_object"]
+
+[resource]
+script = ExtResource("4_object")
+interactable = false
+edible = true
+nourishing = false
+eaten_damage = 90
+eaten_damage_type = 5
+eaten_condition = ExtResource("1_poison")
+eaten_stagger = 30.0
+name = "Tainted Carrion"
+glossary_text = "A heap of carrion, gone bad on purpose. Whatever eats it is poisoned, and reels - and is fed nothing by it."
+max_hp = 20
+max_hp_level_20 = 20
+movement = 1
+icon = ExtResource("2_icon")
+map_sprite = ExtResource("3_sheet")

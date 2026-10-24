@@ -57,13 +57,29 @@ var _static: Sprite2D = null
 ## the parent's, so a hidden combatant can still flash when hit without either
 ## effect undoing the other.
 var hidden_alpha := 1.0
+## Their colour on the map (CombatantDefinition.tint) - on self_modulate too,
+## under the hiding alpha, so neither undoes the other.
+var tint := Color.WHITE
 
 
 func set_hidden_alpha(alpha: float):
 	hidden_alpha = alpha
 	for sprite in [_animated, _static]:
 		if sprite != null and is_instance_valid(sprite):
-			sprite.self_modulate.a = alpha
+			sprite.self_modulate = Color(tint, alpha)
+
+
+## Tints them `colour` - white for as drawn.
+func set_tint(colour: Color):
+	tint = colour
+	set_hidden_alpha(hidden_alpha)
+
+
+## A still sprite shown as `texture` instead - something on the map that has
+## turned into something else. An animated one keeps its frames (show_as).
+func set_still(texture: Texture2D):
+	if _static != null and texture != null:
+		_static.texture = texture
 
 
 ## The height of this sprite's frames, measured once when it was set up. Zero
@@ -323,6 +339,8 @@ func recoil(direction: Vector2):
 	var drawn = _drawn()
 	if drawn == null or direction == Vector2.ZERO:
 		return
+	if _hop_tween != null and _hop_tween.is_valid():
+		end_hop()
 	if _recoil_tween != null and _recoil_tween.is_valid():
 		_recoil_tween.kill()
 		drawn.position = size_offset
@@ -387,12 +405,84 @@ func set_dead():
 		_recoil_tween.kill()
 	if _flash_tween != null and _flash_tween.is_valid():
 		_flash_tween.kill()
+	if _hop_tween != null and _hop_tween.is_valid():
+		end_hop()
 	var drawn = _drawn()
 	var fade = create_tween()
 	fade.set_parallel(true)
 	fade.tween_property(self, "modulate", Color(0.6, 0.6, 0.6, DEATH_ALPHA), DEATH_SECONDS)
 	if drawn != null:
 		fade.tween_property(drawn, "position:y", drawn.position.y + DEATH_SINK, DEATH_SECONDS).set_ease(Tween.EASE_OUT)
+
+
+## --- Hops ---
+##
+## Up onto high ground or down off it, up a floor or down one, a walker hops
+## (CController._begin_step): the drawing leaves the node in an arc and comes
+## back to it. Only what is drawn moves, as with a recoil. Onto high ground the
+## arc peaks late, a jump up landing on something; off it, early, a jump down. A
+## floor is gone between at once (the walk snaps), so there the drawing rises
+## into place from below, or drops into it from above.
+
+enum Hop { NONE, UP, DOWN, FLOOR_UP, FLOOR_DOWN }
+
+## How high a hop goes, as a share of a tile.
+const HOP_HEIGHT := 0.35
+## How far below or above a hop between floors starts, as a share of a tile.
+const FLOOR_HOP_FROM := 0.55
+
+var _hop_tween: Tween = null
+
+
+## Hops, `kind` (Hop), over `seconds`.
+func hop(kind: int, seconds: float):
+	var drawn = _drawn()
+	if drawn == null or kind == Hop.NONE:
+		return
+	end_hop()
+	_hop_tween = create_tween()
+	_hop_tween.tween_method(_hop_at.bind(kind), 0.0, 1.0, maxf(seconds, 0.05))
+	_hop_tween.finished.connect(end_hop)
+
+
+## Stops a hop where it is and puts the drawing home.
+func end_hop():
+	if _hop_tween != null and _hop_tween.is_valid():
+		_hop_tween.kill()
+	_hop_tween = null
+	var drawn = _drawn()
+	if drawn != null:
+		drawn.position = size_offset
+
+
+## The drawing `t` (0 to 1) of the way through a hop of `kind`.
+func _hop_at(t: float, kind: int):
+	var drawn = _drawn()
+	if drawn == null:
+		return
+	var tile := float(Grid.TILE_SIZE)
+	var lift := 0.0
+	match kind:
+		Hop.UP:
+			lift = _arc(t, 0.6) * HOP_HEIGHT
+		Hop.DOWN:
+			lift = _arc(t, 0.3) * HOP_HEIGHT * 0.7
+		Hop.FLOOR_UP:
+			lift = _arc(t, 0.6) * HOP_HEIGHT - FLOOR_HOP_FROM * (1.0 - t)
+		Hop.FLOOR_DOWN:
+			lift = _arc(t, 0.25) * HOP_HEIGHT * 0.5 + FLOOR_HOP_FROM * (1.0 - t * t)
+	# Up the screen is down the y axis; and in the node's own units, like
+	# size_offset.
+	drawn.position = size_offset + Vector2(0.0, -lift * tile / (scale.y if scale.y != 0.0 else 1.0))
+
+
+## 0 at both ends and 1 at `peak` (0 to 1), a parabola either side of it.
+static func _arc(t: float, peak: float) -> float:
+	if t < peak:
+		var before := (peak - t) / peak
+		return 1.0 - before * before
+	var after := (t - peak) / (1.0 - peak)
+	return 1.0 - after * after
 
 
 ## --- Size ---
@@ -409,7 +499,8 @@ var size_offset := Vector2.ZERO
 
 ## Puts the drawing `offset` away from the node, as measured on the map.
 func set_size_offset(offset: Vector2):
-	size_offset = offset / scale.x if scale.x != 0.0 else offset
+	# Per side: somebody folded (Combat "Squeezing") is squashed one way only.
+	size_offset = Vector2(offset.x / scale.x if scale.x != 0.0 else offset.x, offset.y / scale.y if scale.y != 0.0 else offset.y)
 	var drawn = _drawn()
 	if drawn != null:
 		drawn.position = size_offset

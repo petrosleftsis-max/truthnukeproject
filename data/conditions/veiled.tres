@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Veiled"
+tag = "Ve"
+description = "A veil of mercy over them: the next blow lands a little softer (15% less), and the veil goes with it."
+duration = 2
+damage_taken_change = -0.15
+ends_when_hit = true

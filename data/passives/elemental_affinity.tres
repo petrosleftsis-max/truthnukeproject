@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Elemental Affinity I"
+description = "He knows what each element undoes: a tenth more damage on anybody weak to the element."
+required_level = 8
+bonus_vs_weak = 0.1

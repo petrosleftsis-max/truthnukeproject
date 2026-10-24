@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Bandolier"
+description = "Everything it carries is to hand: an item can be its secondary action as well as its main one, and it throws any Gate Nade, whatever spell is sealed in it."
+items_as_secondary = true
+gate_nades_as_secondary = true
+any_gate_nade = true

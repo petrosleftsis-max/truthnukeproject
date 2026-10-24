@@ -112,15 +112,14 @@ func caught_off_guard_in_the_fight():
 		return
 	ok(combat.has_restriction(enemy, "skips_turn") and combat._why_turn_lost(enemy) == "caught off guard",
 		"caught off guard, he will lose his turn", combat._why_turn_lost(enemy))
-	# Caught off guard is a 1-turn condition, and every duration runs to the end
-	# of the turn after its number (Combat.turns_stored): two turns lost.
+	# Caught off guard is a 1-turn condition, and a duration is N of its
+	# bearer's turns (Combat.turns_stored): his first turn, and only that.
 	combat.start_of_turn_effects(enemy)
 	ok(combat.has_restriction(enemy, "skips_turn"), "the turn it is taken from")
 	combat.end_of_turn_effects(enemy)
 	combat.start_of_turn_effects(enemy)
-	ok(combat.has_restriction(enemy, "skips_turn"), "and the one after")
+	ok(not combat.has_restriction(enemy, "skips_turn"), "and only that one - gone as it ends")
 	combat.end_of_turn_effects(enemy)
-	ok(not combat.has_restriction(enemy, "skips_turn"), "and only those - gone as the second ends")
 	ok(combat.items_of(enemy) == ["cure_potion", "tiny_bomb"], "his pocket: the potion and the bomb - nothing only for sneaking",
 		"%s" % [combat.items_of(enemy)])
 	ok(combat._ai_main_keys(enemy).has("tiny_bomb"), "the bomb is one more thing he could throw")

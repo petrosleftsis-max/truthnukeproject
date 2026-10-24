@@ -43,6 +43,13 @@ class_name ItemDefinition
 ## What it costs in a store (StoreDefinition); selling one gets half back. 0
 ## for something no store deals in - a keepsake, a letter, a disguise.
 @export_range(0, 9999) var price: int = 0
+## A spellbook: the spell, by key, it teaches whoever learns their spells and may
+## learn this one (Campaign "Spellbooks") - used up as it does. Learned from the
+## character sheet's Moves page, between fights; nothing in one.
+@export var teaches: String = ""
+## A bomb - which a container with Bombs Per Slot above one holds that many of
+## to a slot (Campaign "Containers").
+@export var bomb: bool = false
 
 @export_group("Disguise")
 ## Makes this a disguise rather than something to use: on a stealth map, the
@@ -131,7 +138,8 @@ func is_poison() -> bool:
 ## somebody's supper there - or none in a fight at all, and so is left out of
 ## every fight.
 func stealth_only() -> bool:
-	return is_disguise() or is_distraction() or is_poison() or keepsake or frames or reveals_hidden_details
+	return is_disguise() or is_distraction() or is_poison() or keepsake or frames or reveals_hidden_details \
+		or teaches != ""
 
 
 ## An item scales off itself, so the attribute a skill would read would only

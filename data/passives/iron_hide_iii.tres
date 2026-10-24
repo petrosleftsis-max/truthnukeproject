@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Iron Hide III"
+description = "She steps into blows meant for others: half of any hit on an ally beside her is hers instead."
+required_level = 41
+guards_within = 1
+guard_share = 0.5

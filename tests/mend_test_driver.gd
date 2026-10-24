@@ -201,7 +201,9 @@ func run_test():
 		var skill: SkillDefinition = SkillDatabase.skills[key]
 		if skill == null:
 			continue
-		var says = "Scales with: %s" % Stats.stat_name(skill.scaling_stat) in ui.build_skill_tooltip(skill)
+		# The stat it is worked out from in the hands the tooltip is for - a
+		# spell's is its caster's spellcasting stat.
+		var says = "Scales with: %s" % Stats.stat_name(ui._scaling_stat(skill)) in ui.build_skill_tooltip(skill)
 		if ui._scales_off_the_caster(skill):
 			if not says:
 				silent.append(skill.name)

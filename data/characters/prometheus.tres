@@ -1,10 +1,20 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://c3c55l0fwjx86"]
 
-[ext_resource type="Texture2D" path="res://art/characters/prometheus/idle/prometheus_idle_0000.png" id="1_miqts"]
-[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_7nvba"]
-[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="3_genhd"]
+[ext_resource type="Texture2D" uid="uid://bswamhyohs8qy" path="res://art/characters/prometheus/idle/prometheus_idle_0000.png" id="1_miqts"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="2_7nvba"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="2_emjge"]
+[ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="3_71nuo"]
+[ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="3_genhd"]
+[ext_resource type="SpriteFrames" uid="uid://xijinqpsikft" path="res://art/characters/prometheus/prometheus_frames.tres" id="4_emjge"]
 [ext_resource type="Resource" path="res://data/passives/prying_mind.tres" id="9_prying"]
-[ext_resource type="SpriteFrames" path="res://art/characters/prometheus/prometheus_frames.tres" id="4_emjge"]
+[ext_resource type="Resource" path="res://data/passives/elemental_affinity.tres" id="p_elemental_affinity"]
+[ext_resource type="Resource" path="res://data/passives/contest_insight.tres" id="p_contest_insight"]
+[ext_resource type="Resource" path="res://data/passives/elemental_affinity_ii.tres" id="p_elemental_affinity_ii"]
+[ext_resource type="Resource" path="res://data/passives/contest_insight_ii.tres" id="p_contest_insight_ii"]
+[ext_resource type="Resource" path="res://data/passives/elemental_mastery.tres" id="p_elemental_mastery"]
+[ext_resource type="Resource" path="res://data/passives/kindling.tres" id="p_kindling"]
+[ext_resource type="Resource" path="res://data/passives/kindling_ii.tres" id="p_kindling_ii"]
+[ext_resource type="Resource" path="res://data/passives/kindling_iii.tres" id="p_kindling_iii"]
 
 [resource]
 script = ExtResource("3_genhd")
@@ -23,14 +33,22 @@ He also can provide with utility, such as weakening enemies or teleporting allie
 class_t = 2
 max_hp = 30
 max_hp_level_20 = 58
-movement = 4
+defense_by_level = {
+1: 12,
+8: 20,
+17: 28
+}
+movement = 6
 initiative = 5
 main_stat = 2
 icon = ExtResource("1_miqts")
 map_sprite = ExtResource("1_miqts")
 sprite_frames = ExtResource("4_emjge")
-skills = Array[String](["fire_burst", "water_spike", "study", "hack", "fire_blast", "wind_shot", "rock_throw", "quicken", "burner", "fireball", "meteor", "wind_vacuum", "gust_blast", "crystalise", "wind_swoon", "hermes_step", "hover", "slip_past", "run"])
-passives = Array[ExtResource("2_7nvba")]([ExtResource("9_prying")])
+skills = Array[String](["fire_burst", "zephyr_dart", "caucasus_shard", "study", "hack", "instahack", "dispel_magic", "fire_blast", "wind_shot", "rock_throw", "quicken", "burner", "wildfire", "fireball", "wind_vacuum", "gust_blast", "crystalise", "wind_swoon", "hermes_step", "hover", "slip_past", "invisibility", "growth", "mist_step", "kindled_hound", "illusory_dragon", "run", "tartarus_flame", "ire_of_sophia", "gnostic_tempest", "stolen_sun"])
+passives = Array[ExtResource("2_7nvba")]([ExtResource("9_prying"), ExtResource("p_elemental_affinity"), ExtResource("p_contest_insight"), ExtResource("p_elemental_affinity_ii"), ExtResource("p_contest_insight_ii"), ExtResource("p_elemental_mastery"), ExtResource("p_kindling"), ExtResource("p_kindling_ii"), ExtResource("p_kindling_iii")])
+subclasses = Array[String](["elemental_vanguard", "elemental_tactician", "elemental_conductor"])
+learns_spells = true
+starting_spells = Array[String](["fire_blast", "wind_shot", "rock_throw", "quicken"])
 keeps_codex = true
-subclasses = Array[String](["spellsword", "demolitionist", "abjurer"])
+future_changed_lines = null
 starting_items = Array[String](["burn_bottle", "frost_bottle", "gale_bottle", "cure_potion"])

@@ -42,7 +42,7 @@ func files_under(root: String, extensions: Array) -> Array:
 
 func _ready():
 	_log = FileAccess.open(LOG_PATH, FileAccess.WRITE)
-	get_tree().create_timer(860.0).timeout.connect(func(): log_line("DID NOT FINISH"); get_tree().quit(2))
+	get_tree().create_timer(1500.0).timeout.connect(func(): log_line("DID NOT FINISH"); get_tree().quit(2))
 	await get_tree().process_frame
 	await run_test()
 

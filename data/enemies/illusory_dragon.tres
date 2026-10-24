@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_comb"]
+[ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="3_passive"]
+[ext_resource type="Resource" path="res://data/passives/dread_presence.tres" id="4_dread"]
+
+[resource]
+script = ExtResource("1_comb")
+name = "Illusory Dragon"
+glossary_text = "A dragon of shadow, called out of the Ogdoad by its caster's mind and held there on a tether to them. It stands where it stands like a living thing, but every blow misses it and nothing harms it - and it is as strong as whoever called it."
+class_t = 2
+class_m = 1
+max_hp = 100
+max_hp_level_20 = 400
+size = 3
+movement = 18
+initiative = 1
+main_stat = 2
+secondary_stat = 3
+sprite_frames = ExtResource("2_frames")
+tint = Color(0.35, 0.25, 0.55, 0.8)
+skills = Array[String](["fire_breath", "frost_breath", "lightning_breath", "venom_breath", "acid_breath", "dread_breath"])
+passives = Array[ExtResource("3_passive")]([ExtResource("4_dread")])
+untouchable = true

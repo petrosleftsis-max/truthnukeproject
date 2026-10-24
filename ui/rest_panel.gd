@@ -6,7 +6,7 @@ class_name RestPanel
 ##
 ## And, while the dungeon still has one to give, the offer to bring back gates
 ## spent - Prometheus's, in the demo - with a few points to spend: each casting
-## costs its gate's price (World 1, Hermes 2, Yaldabaoth 3), and nothing can be
+## costs its gate's price (World 1, Hermes 2, Pandora 3), and nothing can be
 ## brought back that was not spent. Only so many rests in a run may do it, and
 ## the offer says so, so the player knows it is now or a later rest - not both.
 ##
@@ -15,6 +15,8 @@ class_name RestPanel
 
 ## Continue was pressed: on to the next stage.
 signal continued
+## Main Menu was pressed: out of the dungeon, to the title screen.
+signal left_for_menu
 
 const INK := Color("dce8f5")
 const MUTED := Color("8296a9")
@@ -22,6 +24,8 @@ const GOLD := Color(1.0, 0.84, 0.35)
 
 ## Per gate, of whoever is being offered: how many castings to bring back.
 var chosen: Array = []
+## The same through the gates opened only outside a fight (Iris), by gate.
+var chosen_outside: Array = []
 ## Whose gates are offered, or "".
 var offered_to := ""
 
@@ -76,6 +80,13 @@ func _ready():
 	_continue.text = "Continue"
 	_continue.pressed.connect(func(): continued.emit())
 	column.add_child(_continue)
+	# Out of the run - the victory screen's Main Menu, which the rest stands in
+	# for between a dungeon's fights.
+	var leave := Button.new()
+	leave.name = "MainMenu"
+	leave.text = "Main menu"
+	leave.pressed.connect(func(): left_for_menu.emit())
+	column.add_child(leave)
 	_offer_gates()
 	FocusOnDemand.attach(self, _first_button())
 
@@ -115,37 +126,17 @@ func _offer_gates():
 	for gate in range(1, most.size()):
 		if dungeon.gate_cost(gate) <= 0 or most[gate] <= 0:
 			continue
-		var row := HBoxContainer.new()
-		row.name = "Gate%d" % gate
-		row.add_theme_constant_override("separation", 10)
-		var label := Label.new()
-		label.custom_minimum_size = Vector2(230, 0)
-		label.add_theme_color_override("font_color", Stats.gate_colour(gate))
-		row.add_child(label)
-		var price := Label.new()
-		price.custom_minimum_size = Vector2(110, 0)
-		price.add_theme_color_override("font_color", MUTED)
-		var cost := dungeon.gate_cost(gate)
-		price.text = "%d point%s each" % [cost, "" if cost == 1 else "s"]
-		row.add_child(price)
-		var less := Button.new()
-		less.name = "Less"
-		less.text = "-"
-		less.custom_minimum_size = Vector2(36, 0)
-		less.pressed.connect(change.bind(gate, -1))
-		row.add_child(less)
-		var count := Label.new()
-		count.custom_minimum_size = Vector2(28, 0)
-		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		row.add_child(count)
-		var more := Button.new()
-		more.name = "More"
-		more.text = "+"
-		more.custom_minimum_size = Vector2(36, 0)
-		more.pressed.connect(change.bind(gate, 1))
-		row.add_child(more)
-		_gate_box.add_child(row)
-		_rows.append({"gate": gate, "label": label, "count": count, "less": less, "more": more, "left": left[gate], "most": most[gate]})
+		_add_row(gate, false, dungeon.gate_cost(gate), left[gate], most[gate])
+	# Iris and the like, at the price of the gate each matches.
+	var outside_left := Campaign.outside_gates_left(offered_to)
+	var outside_most := Campaign.outside_gates_most(offered_to)
+	chosen_outside = []
+	chosen_outside.resize(outside_most.size())
+	chosen_outside.fill(0)
+	for gate in range(1, outside_most.size()):
+		if Campaign.outside_gate_cost(gate) <= 0 or outside_most[gate] <= 0:
+			continue
+		_add_row(gate, true, Campaign.outside_gate_cost(gate), outside_left[gate], outside_most[gate])
 	_points = Label.new()
 	_points.name = "Points"
 	_points.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -158,13 +149,53 @@ func _offer_gates():
 	_refresh()
 
 
-## "World 1, Hermes 2, Yaldabaoth 3" - what each gate's casting costs.
+## A row of - and + for one gate: a ladder gate, or one opened only outside a
+## fight (`outside`).
+func _add_row(gate: int, outside: bool, cost: int, left: int, most: int):
+	var row := HBoxContainer.new()
+	row.name = ("Outside%d" if outside else "Gate%d") % gate
+	row.add_theme_constant_override("separation", 10)
+	var label := Label.new()
+	label.custom_minimum_size = Vector2(230, 0)
+	label.add_theme_color_override("font_color", Stats.outside_gate_colour(gate) if outside else Stats.gate_colour(gate))
+	row.add_child(label)
+	var price := Label.new()
+	price.custom_minimum_size = Vector2(110, 0)
+	price.add_theme_color_override("font_color", MUTED)
+	price.text = "%d point%s each" % [cost, "" if cost == 1 else "s"]
+	row.add_child(price)
+	var less := Button.new()
+	less.name = "Less"
+	less.text = "-"
+	less.custom_minimum_size = Vector2(36, 0)
+	less.pressed.connect(change.bind(gate, -1, outside))
+	row.add_child(less)
+	var count := Label.new()
+	count.custom_minimum_size = Vector2(28, 0)
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	row.add_child(count)
+	var more := Button.new()
+	more.name = "More"
+	more.text = "+"
+	more.custom_minimum_size = Vector2(36, 0)
+	more.pressed.connect(change.bind(gate, 1, outside))
+	row.add_child(more)
+	_gate_box.add_child(row)
+	_rows.append({"gate": gate, "outside": outside, "cost": cost, "label": label, "count": count,
+		"less": less, "more": more, "left": left, "most": most})
+
+
+## "World 1, Hermes 2, Pandora 3" - what each gate's casting costs.
 func _prices() -> String:
 	var dungeon: DungeonDefinition = Campaign.dungeon
 	var each: Array = []
 	for gate in range(1, dungeon.gate_costs.size()):
 		if dungeon.gate_cost(gate) > 0:
 			each.append("%s costs %d" % [Stats.short_gate_name(gate), dungeon.gate_cost(gate)])
+	var outside_most := Campaign.outside_gates_most(offered_to) if offered_to != "" else []
+	for gate in range(1, outside_most.size()):
+		if outside_most[gate] > 0 and Campaign.outside_gate_cost(gate) > 0:
+			each.append("%s costs %d" % [Stats.short_outside_gate_name(gate), Campaign.outside_gate_cost(gate)])
 	return ", ".join(each)
 
 
@@ -179,29 +210,30 @@ func _how_often() -> String:
 
 ## What is chosen costs, against what there is to spend.
 func points_left() -> int:
-	return Campaign.dungeon.gate_recovery_points - Campaign.gate_recovery_cost(chosen)
+	return Campaign.dungeon.gate_recovery_points - Campaign.gate_recovery_cost(chosen, chosen_outside)
 
 
-## One more - or one less - casting through `gate`, if it is affordable and
-## was spent in the first place.
-func change(gate: int, by: int):
-	if offered_to == "" or gate >= chosen.size():
+## One more - or one less - casting through `gate` (one opened only outside a
+## fight, if `outside`), if it is affordable and was spent in the first place.
+func change(gate: int, by: int, outside: bool = false):
+	var counts: Array = chosen_outside if outside else chosen
+	if offered_to == "" or gate >= counts.size():
 		return
-	var row = _row_for(gate)
+	var row = _row_for(gate, outside)
 	if row == null:
 		return
-	var wanted: int = chosen[gate] + by
+	var wanted: int = counts[gate] + by
 	if wanted < 0 or row.left + wanted > row.most:
 		return
-	if by > 0 and Campaign.dungeon.gate_cost(gate) * by > points_left():
+	if by > 0 and row.cost * by > points_left():
 		return
-	chosen[gate] = wanted
+	counts[gate] = wanted
 	_refresh()
 
 
 ## Brings back what is chosen, if anything is.
 func recover() -> bool:
-	if offered_to == "" or not Campaign.recover_gates(offered_to, chosen):
+	if offered_to == "" or not Campaign.recover_gates(offered_to, chosen, chosen_outside):
 		return false
 	var who := Campaign.display_name_of(offered_to)
 	for child in _gate_box.get_children():
@@ -229,6 +261,11 @@ func _gates_now(key: String) -> String:
 	for gate in range(1, most.size()):
 		if most[gate] > 0:
 			each.append("%s %d/%d" % [Stats.short_gate_name(gate), left[gate], most[gate]])
+	var outside_left := Campaign.outside_gates_left(key)
+	var outside_most := Campaign.outside_gates_most(key)
+	for gate in range(1, outside_most.size()):
+		if outside_most[gate] > 0:
+			each.append("%s %d/%d" % [Stats.short_outside_gate_name(gate), outside_left[gate], outside_most[gate]])
 	return ", ".join(each)
 
 
@@ -236,20 +273,21 @@ func _refresh():
 	var spare := points_left()
 	for row in _rows:
 		var gate: int = row.gate
-		var cost: int = Campaign.dungeon.gate_cost(gate)
-		row.label.text = "%s   %d / %d" % [Stats.gate_name(gate), row.left + chosen[gate], row.most]
-		row.count.text = str(chosen[gate])
-		row.less.disabled = chosen[gate] <= 0
-		row.more.disabled = cost > spare or row.left + chosen[gate] >= row.most
+		var counts: Array = chosen_outside if row.outside else chosen
+		var called := Stats.outside_gate_name(gate) if row.outside else Stats.gate_name(gate)
+		row.label.text = "%s   %d / %d" % [called, row.left + counts[gate], row.most]
+		row.count.text = str(counts[gate])
+		row.less.disabled = counts[gate] <= 0
+		row.more.disabled = row.cost > spare or row.left + counts[gate] >= row.most
 	if _points != null:
 		_points.text = "Points left: %d of %d" % [spare, Campaign.dungeon.gate_recovery_points]
 	if _recover != null:
-		_recover.disabled = Campaign.gate_recovery_cost(chosen) <= 0
+		_recover.disabled = Campaign.gate_recovery_cost(chosen, chosen_outside) <= 0
 
 
-func _row_for(gate: int):
+func _row_for(gate: int, outside: bool = false):
 	for row in _rows:
-		if row.gate == gate:
+		if row.gate == gate and row.outside == outside:
 			return row
 	return null
 

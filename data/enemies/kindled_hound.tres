@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_comb"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/bomber/bomber_frames.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_comb")
+name = "Kindled Hound"
+glossary_text = "A hound of embers that Prometheus calls up and holds on a tether. It bites with fire, and goes out when the tether snaps."
+max_hp = 18
+max_hp_level_20 = 110
+movement = 9
+initiative = 1
+sprite_frames = ExtResource("2_frames")
+tint = Color(1, 0.55, 0.25, 1)
+skills = Array[String](["kindled_bite", "run"])
+resist_fire = 100
+resist_water = -50

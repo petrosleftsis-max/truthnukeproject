@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/recant_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/recanted.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_1"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("4_cond")
+
+[resource]
+script = ExtResource("3_skill")
+name = "Recant"
+description = "Once a short rest, as a secondary action, on somebody whose next turn she has read: it does not happen. They lose it."
+max_range = 15
+required_level = 54
+can_be_copied = false
+deals_damage = false
+is_secondary = true
+needs_read = true
+uses_per_short_rest = 1
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_1")])

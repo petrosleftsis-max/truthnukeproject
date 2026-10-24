@@ -8,12 +8,13 @@
 script = ExtResource("1_eff")
 type = 1
 heal_modifier = 0.7
+heal_share_of_health = 0.25
 min_amount = 25
 max_amount = 25
 
 [resource]
 script = ExtResource("2_item")
-item_power = 10
+item_power = 0
 name = "Cure Potion"
 description = "A quick drink to help you restore minor vitality."
 max_range = 2
@@ -21,4 +22,4 @@ icon = ExtResource("3_icon")
 targets_ally = true
 effects = Array[ExtResource("1_eff")]([SubResource("Effect_cure")])
 deals_damage = false
-price = 20
+price = 50

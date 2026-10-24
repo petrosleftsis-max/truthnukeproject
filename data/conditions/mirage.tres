@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Mirage"
+tag = "Mi"
+description = "Cloaked in illusions: a quarter less from every blow, and one in four misses outright, while they stand in the mirage."
+duration = 1
+wears_off_at_start = true
+damage_taken_change = -0.25
+miss_chance = 25

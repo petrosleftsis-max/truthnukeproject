@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="EncounterDefinition" format=3 uid="uid://b24liue2xhn55"]
 
+[ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="1_85hwt"]
 [ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
 [ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
 [ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://maps/crossroads_terrain.tscn" id="3_86m2p"]
@@ -23,7 +24,6 @@ combatant_key = "priest"
 side = 1
 position = Vector2i(53, -17)
 display_name = "Priest"
-defense = 18
 
 [sub_resource type="Resource" id="Resource_6a1lt"]
 script = ExtResource("2_spawn")
@@ -31,21 +31,18 @@ combatant_key = "ranger"
 side = 1
 position = Vector2i(54, -15)
 display_name = "Ranger"
-defense = 18
 
 [sub_resource type="Resource" id="Resource_5depv"]
 script = ExtResource("2_spawn")
 combatant_key = "mimic"
 side = 1
 position = Vector2i(36, -14)
-defense = 18
 
 [sub_resource type="Resource" id="Resource_nl4kq"]
 script = ExtResource("2_spawn")
 combatant_key = "mimic"
 side = 1
 position = Vector2i(37, -14)
-defense = 18
 
 [sub_resource type="Resource" id="Resource_kpvjc"]
 script = ExtResource("2_spawn")
@@ -53,15 +50,14 @@ combatant_key = "sorcerer"
 side = 1
 position = Vector2i(54, -13)
 display_name = "Caster"
-defense = 5
 
 [resource]
 script = ExtResource("1_enc")
-gold_reward = 50
 display_name = "Sewer Intro Fight"
 description = "Cyrus and Enfina find themselves surrounded."
 terrain_scene = ExtResource("3_86m2p")
 victory_dialogue = ExtResource("4_njrfk")
 victory_ends_the_run = true
+gold_reward = 30
 spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_86m2p"), SubResource("Resource_njrfk"), SubResource("Resource_x3x4f"), SubResource("Resource_6a1lt"), SubResource("Resource_5depv"), SubResource("Resource_nl4kq"), SubResource("Resource_kpvjc")])
 music = "My_Gospel_is_Gunpowder_feat_The_Epoch_House_Choir_Instrumental_Version"

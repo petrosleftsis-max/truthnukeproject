@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/invisibility_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[sub_resource type="Resource" id="Effect_invisible"]
+script = ExtResource("1_effect")
+type = 24
+display_name = "Invisible"
+
+[resource]
+script = ExtResource("3_skill")
+name = "Invisibility"
+description = "Turn yourself or an ally invisible - even while the enemy is watching. It lasts until they do anything to an enemy. On a stealth map it hides whoever you choose for ten minutes, through the Gates of Iris, at one casting each."
+max_range = 10
+icon = ExtResource("2_icon")
+targets_ally = true
+respects_blocking = true
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_invisible")])
+deals_damage = false
+spell_slot_level = 2
+outside_gate = 1
+outside_seconds = 600

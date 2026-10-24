@@ -28,7 +28,7 @@ class_name MapSetup
 ## the health they walk around with, the attributes, gates and level the
 ## character sheet shows, and the level they fight at in a battle started from
 ## this map.
-@export_range(1, 20) var level: int = 1
+@export_range(1, 64) var level: int = 1
 ## Whether a party at level 5 or past it is asked here to choose their paths
 ## (SubclassDefinition). Off for a map played on its own rather than as part of
 ## the story - a stealth stage - where a path chosen would be forgotten by the

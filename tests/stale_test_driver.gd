@@ -56,7 +56,8 @@ func run_test():
 
 	# And if one ever survived, moving on it is refused rather than walked.
 	controller._path = PackedVector2Array()
-	controller.find_path(first.position)          # a route starting at FIRST
+	controller.controlled_node = first.sprite
+	controller.find_path(target)                  # a route starting at FIRST
 	controller.controlled_node = other.sprite     # while OTHER is the one acting
 	var stood = other.position
 	var before = other.sprite.position

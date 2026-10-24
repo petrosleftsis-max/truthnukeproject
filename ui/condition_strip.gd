@@ -196,6 +196,8 @@ func _describe_condition(comb: Dictionary, effect: Dictionary) -> String:
 		doing.append("%+d movement" % condition.movement_change)
 	if condition.accuracy_change != 0:
 		doing.append("%+d%% to hit" % condition.accuracy_change)
+	if condition.defense_change != 0.0:
+		doing.append("%+d%% defense" % roundi(condition.defense_change * 100))
 	if condition.max_range > 0:
 		doing.append("cannot reach past %d tile(s)" % condition.max_range)
 	if condition.skips_turn:

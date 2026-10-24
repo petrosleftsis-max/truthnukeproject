@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="QuickTimeDefinition" format=3]
+[gd_resource type="Resource" script_class="QuickTimeDefinition" format=3 uid="uid://din2tviphumy3"]
 
-[ext_resource type="Script" path="res://quicktime/QuickTimeDefinition.gd" id="1_qt"]
+[ext_resource type="Script" uid="uid://c5ys0g86utxam" path="res://quicktime/QuickTimeDefinition.gd" id="1_qt"]
 
 [resource]
 script = ExtResource("1_qt")

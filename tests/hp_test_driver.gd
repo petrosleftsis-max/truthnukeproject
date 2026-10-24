@@ -46,15 +46,15 @@ func run_test():
 	definition.name = "Test Subject"
 	definition.max_hp = 10
 	ok(definition.hp_at(1) == 10, "level 1 is the health written on the character", "%d" % definition.hp_at(1))
-	ok(definition.hp_at(10) == 10 and definition.hp_at(20) == 10,
+	ok(definition.hp_at(32) == 10 and definition.hp_at(64) == 10,
 		"with nothing else set, every level matches it",
-		"%d, %d" % [definition.hp_at(10), definition.hp_at(20)])
-	definition.max_hp_level_20 = 48
-	ok(definition.hp_at(20) == 48, "a level 20 figure is used at level 20", "%d" % definition.hp_at(20))
+		"%d, %d" % [definition.hp_at(32), definition.hp_at(64)])
+	definition.max_hp_level_20 = 73
+	ok(definition.hp_at(64) == 73, "a top figure is used at level 64", "%d" % definition.hp_at(64))
 	ok(definition.hp_at(1) == 10, "level 1 is unmoved", "%d" % definition.hp_at(1))
-	ok(definition.hp_at(10) == 28, "and level 10 is as far along between them as it is between the levels", "%d" % definition.hp_at(10))
+	ok(definition.hp_at(32) == 41, "and level 32 is as far along between them as it is between the levels", "%d" % definition.hp_at(32))
 	var climbs := true
-	for level in range(1, 20):
+	for level in range(1, Stats.MAX_LEVEL):
 		climbs = climbs and definition.hp_at(level + 1) > definition.hp_at(level)
 	ok(climbs, "every level a step up")
 	log_line("")
@@ -64,13 +64,13 @@ func run_test():
 	var alithia: CombatantDefinition = CombatantDatabase.combatants["alithia"]
 	var written = alithia.max_hp
 	var written_top = alithia.max_hp_level_20
-	alithia.max_hp_level_20 = written + 38
+	alithia.max_hp_level_20 = written + 63
 	var novice = combat.create_combatant(alithia, "alithia", "", spawn_at("alithia", 1))
-	var seasoned = combat.create_combatant(alithia, "alithia", "", spawn_at("alithia", 10))
-	var veteran = combat.create_combatant(alithia, "alithia", "", spawn_at("alithia", 20))
+	var seasoned = combat.create_combatant(alithia, "alithia", "", spawn_at("alithia", 32))
+	var veteran = combat.create_combatant(alithia, "alithia", "", spawn_at("alithia", 64))
 	ok(novice.max_hp == written, "level 1 fights with the level 1 figure", "%d" % novice.max_hp)
-	ok(seasoned.max_hp == written + 18, "level 10 with its step of the way", "%d" % seasoned.max_hp)
-	ok(veteran.max_hp == written + 38, "level 20 with the top figure", "%d" % veteran.max_hp)
+	ok(seasoned.max_hp == written + 31, "level 32 with its step of the way", "%d" % seasoned.max_hp)
+	ok(veteran.max_hp == written + 63, "level 64 with the top figure", "%d" % veteran.max_hp)
 	ok(veteran.hp == veteran.max_hp, "and they start a fight full up", "%d/%d" % [veteran.hp, veteran.max_hp])
 	var no_spawn = combat.create_combatant(alithia, "alithia")
 	ok(no_spawn.max_hp == written, "no spawn means level 1, as it does for everything else",
@@ -84,7 +84,7 @@ func run_test():
 	veteran.hp = veteran.max_hp - 5
 	veteran["side"] = 0
 	Campaign.record_party([veteran])
-	ok(Campaign.party_state["alithia"].max_hp == written + 38,
+	ok(Campaign.party_state["alithia"].max_hp == written + 63,
 		"is remembered against the health she actually had",
 		"%d" % Campaign.party_state["alithia"].max_hp)
 	var listed = Campaign.party_members()
@@ -94,7 +94,7 @@ func run_test():
 			entry = member
 	ok(not entry.is_empty(), "she is in the party list")
 	if not entry.is_empty():
-		ok(entry.max_hp == written + 38, "which reads her bar against that, not against level 1",
+		ok(entry.max_hp == written + 63, "which reads her bar against that, not against level 1",
 			"%d/%d" % [entry.hp, entry.max_hp])
 		ok(entry.hp <= entry.max_hp, "so the bar never shows more than full",
 			"%d/%d" % [entry.hp, entry.max_hp])
@@ -110,7 +110,7 @@ func run_test():
 	ok(next_fight.hp <= next_fight.max_hp, "and cannot start above full",
 		"%d/%d" % [next_fight.hp, next_fight.max_hp])
 	# A wound that does fit is carried untouched.
-	Campaign.party_state["alithia"] = {"hp": 3, "max_hp": written + 38, "alive": true}
+	Campaign.party_state["alithia"] = {"hp": 3, "max_hp": written + 63, "alive": true}
 	var wounded = combat.create_combatant(alithia, "alithia", "", spawn_at("alithia", 1))
 	Campaign.apply_carried_state(wounded, "alithia")
 	ok(wounded.hp == 3, "a wound that fits is carried as it was", "%d" % wounded.hp)
@@ -121,10 +121,10 @@ func run_test():
 	unchanging.name = "Unchanging"
 	unchanging.max_hp = 12
 	var young = combat.create_combatant(unchanging, "", "", spawn_at("", 1))
-	var old = combat.create_combatant(unchanging, "", "", spawn_at("", 20))
+	var old = combat.create_combatant(unchanging, "", "", spawn_at("", 64))
 	ok(young.max_hp == 12 and old.max_hp == 12,
-		"somebody with no level 20 figure has the same health at every level",
-		"%d at 1, %d at 20" % [young.max_hp, old.max_hp])
+		"somebody with no top figure has the same health at every level",
+		"%d at 1, %d at 64" % [young.max_hp, old.max_hp])
 	log_line("")
 
 	alithia.max_hp_level_20 = written_top

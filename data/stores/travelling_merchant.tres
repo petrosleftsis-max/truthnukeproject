@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="StoreDefinition" format=3]
+[gd_resource type="Resource" script_class="StoreDefinition" format=3 uid="uid://b2h6soghhynj6"]
 
-[ext_resource type="Script" path="res://campaign/StoreDefinition.gd" id="1_store"]
+[ext_resource type="Script" uid="uid://dfy568w4in2lx" path="res://campaign/StoreDefinition.gd" id="1_store"]
 
 [resource]
 script = ExtResource("1_store")
 name = "The Travelling Merchant"
 greeting = "Everything a body needs to keep its insides inside. Prices are as they are."
-stock = Array[String](["cure_potion", "mediocre_cure_potion", "potent_cure_potion", "medicine", "tiny_bomb", "small_bomb", "medium_bomb", "big_bomb", "burn_bottle", "frost_bottle", "heal_gate_nade", "crystalise_gate_nade", "fireball_gate_nade", "revitalizer_gate_nade", "worn_knife", "fencers_rapier", "rowan_staff", "votive_mace", "ember_greatsword", "padded_jacket", "brigandine", "plate_harness", "feather_charm", "iron_charm"])
+stock = Array[String](["cure_potion", "mediocre_cure_potion", "potent_cure_potion", "medicine", "tiny_bomb", "small_bomb", "medium_bomb", "big_bomb", "burn_bottle", "frost_bottle", "heal_gate_nade", "crystalise_gate_nade", "fireball_gate_nade", "communion_gate_nade", "burner_spellbook", "wildfire_spellbook", "dispel_magic_spellbook", "wind_vacuum_spellbook", "gust_blast_spellbook", "wind_swoon_spellbook", "crystalise_spellbook", "hermes_step_spellbook", "hover_spellbook", "invisibility_spellbook", "growth_spellbook", "mist_step_spellbook", "fireball_spellbook", "worn_knife", "fencers_rapier", "rowan_staff", "votive_mace", "ember_greatsword", "padded_jacket", "brigandine", "plate_harness", "feather_charm", "iron_charm", "simple_belt", "utility_belt", "coin_pouch", "belt_pouch", "hunters_pouch", "satchel", "large_pack", "grenadiers_pack"])

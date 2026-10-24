@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Resource" path="res://data/conditions/bulwarked.tres" id="2_cond"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Bulwark I"
+description = "Allies beside her are bulwarked: a tenth less damage."
+required_level = 8
+aura_radius = 1
+aura_on_allies = ExtResource("2_cond")

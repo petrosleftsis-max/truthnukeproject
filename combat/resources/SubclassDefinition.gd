@@ -1,18 +1,18 @@
 @icon("res://art/editor_icons/subclass.svg")
 extends Resource
 class_name SubclassDefinition
-## A path a character takes once they reach level 5 (Stats.SUBCLASS_LEVEL):
-## one of their three, chosen once, for good. Cyrus's Swashbuckler, Gunner and
-## Bombardier are three of these. Whose paths are whose is the character's to
+## A path a character takes once they reach level 24 (Stats.SUBCLASS_LEVEL):
+## one of their three, chosen once, for good. Cyrus's Skirmisher, Saboteur and
+## Trapper are three of these. Whose paths are whose is the character's to
 ## say - their Subclasses list (CombatantDefinition.subclasses), in order.
 ##
 ## A path teaches skills and gives passives on top of the character's own. Each
 ## skill is learned at its own Required Level and each passive works from its
-## own, so a path can hand one thing out at 5 and another at 12 without anything
+## own, so a path can hand one thing out at 24 and another at 32 without anything
 ## here saying when.
 ##
 ## Saved in res://data/subclasses/, keyed by file name like everything else
-## there (see DataFolder): swashbuckler.tres is "swashbuckler".
+## there (see DataFolder): skirmisher.tres is "skirmisher".
 
 @export var name: String = ""
 ## What the path is, in the words the choice shows.

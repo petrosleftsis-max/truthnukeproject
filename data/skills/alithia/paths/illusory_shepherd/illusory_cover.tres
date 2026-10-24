@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/illusory_cover_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[sub_resource type="Resource" id="Effect_1"]
+script = ExtResource("1_effect")
+type = 28
+summons = "illusory_cover"
+
+[resource]
+script = ExtResource("3_skill")
+name = "Illusory Cover"
+description = "Cover that is not there, on a bare tile within six, for three of her turns. The other side takes it for a real barricade - it blocks their sight, whoever stands beside it is in cover to them, and they plan around it - but shots and blasts go straight through it, and they never learn it."
+min_range = 1
+max_range = 6
+required_level = 24
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 3
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_1")])

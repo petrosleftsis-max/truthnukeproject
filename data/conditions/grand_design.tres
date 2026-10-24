@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Grand Design"
+tag = "Gd"
+description = "Every gate open at once: this turn his spells cost no gate, and casting one leaves his action for another."
+duration = 1
+wears_off_at_start = true
+casts_freely = true

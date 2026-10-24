@@ -1,8 +1,8 @@
 extends Node
 ## The dungeon demo: three fights one after another with the whole party at
-## level 20, a rest after each with everybody back to full health and their
+## level 14, a rest after each with everybody back to full health and their
 ## unused items kept, and - at one rest only - some of Prometheus's gates back,
-## three points' worth at World 1, Hermes 2, Yaldabaoth 3.
+## three points' worth at World 1, Hermes 2, Pandora 3.
 
 const DUNGEON := "res://data/dungeons/dungeon_demo.tres"
 const SEWER_MAP := "res://maps/crossroads_explore.tscn"
@@ -98,12 +98,12 @@ func the_data():
 	log_line("======== the dungeon, and its fights ========")
 	var dungeon: DungeonDefinition = load(DUNGEON)
 	ok(dungeon != null and dungeon.stages.size() == 3, "three stages")
-	ok(dungeon.party == ["cyrus", "alithia", "prometheus"] and dungeon.level == 20, "the party at level 20 - without Enfina, whom the sewer brings in")
+	ok(dungeon.party == ["cyrus", "alithia", "prometheus"] and dungeon.level == 14, "the party at level 14 - without Enfina, whom the sewer brings in")
 	ok(dungeon.stages[0].map == SEWER_MAP and dungeon.stages[1].map == LAB_MAP and dungeon.stages[2].map == "",
 		"the sewer to walk, then the lab, then the city fight gone straight into")
 	ok(dungeon.gate_recovery_for == ["prometheus"] and dungeon.gate_recoveries == 1 and dungeon.gate_recovery_points == 3,
 		"Prometheus's gates, at one rest, with three points")
-	ok(dungeon.gate_cost(1) == 1 and dungeon.gate_cost(2) == 2 and dungeon.gate_cost(3) == 3, "World 1, Hermes 2, Yaldabaoth 3")
+	ok(dungeon.gate_cost(1) == 1 and dungeon.gate_cost(2) == 2 and dungeon.gate_cost(3) == 3, "World 1, Hermes 2, Pandora 3")
 	var sewer: EncounterDefinition = dungeon.stages[0].encounter
 	var lab: EncounterDefinition = dungeon.stages[1].encounter
 	var city: EncounterDefinition = dungeon.stages[2].encounter
@@ -116,10 +116,10 @@ func the_data():
 	ok(enemies_of(story_sewer).size() == 5 and enemies_of(story_city).size() == 10 and story_sewer.victory_ends_the_run,
 		"(and the story's own fights are as they were)")
 	for fight in [sewer, lab, city]:
-		ok(enemies_of(fight).all(func(spawn): return spawn.level == 20), "%s: every enemy at level 20" % fight.display_name)
+		ok(enemies_of(fight).all(func(spawn): return spawn.level == 14), "%s: every enemy at level 14" % fight.display_name)
 		var tiles := party_tiles_of(fight)
-		ok(tiles.size() == 4 and tiles.all(func(spawn): return spawn.level == 20 and spawn.starting_items.is_empty()),
-			"%s: a tile for each of the four, at level 20, with nothing handed out" % fight.display_name)
+		ok(tiles.size() == 4 and tiles.all(func(spawn): return spawn.level == 14 and spawn.starting_items.is_empty()),
+			"%s: a tile for each of the four, at level 14, with nothing handed out" % fight.display_name)
 		ok(not fight.victory_ends_the_run, "%s: winning it is not the end of the run" % fight.display_name)
 	ok(sewer.victory_dialogue == story_sewer.victory_dialogue, "the sewer still ends on its own conversation")
 	log_line("")
@@ -151,14 +151,14 @@ func going_in():
 	Campaign.give_item("cyrus", "cure_potion")
 	Campaign.start_dungeon(load(DUNGEON))
 	ok(Campaign.in_dungeon() and Campaign.dungeon_stage == 0, "the dungeon is on, at its first stage")
-	ok(Campaign.party_order == ["cyrus", "alithia", "prometheus"] and Campaign.party_level == 20,
-		"Cyrus, Alithia and Prometheus, at level 20", "%s at %d" % [Campaign.party_order, Campaign.party_level])
+	ok(Campaign.party_order == ["cyrus", "alithia", "prometheus"] and Campaign.party_level == 14,
+		"Cyrus, Alithia and Prometheus, at level 14", "%s at %d" % [Campaign.party_order, Campaign.party_level])
 	ok(Campaign.party_order.all(func(key): return Campaign.inventory_of(key).all(func(item): return item == "")),
 		"carrying nothing")
 	ok(Campaign.current_map == SEWER_MAP, "off to the sewer")
 	ok(await arrived_at("res://scenes/exploration.tscn"), "walking it")
 	var scene = get_tree().current_scene
-	ok(Campaign.party_order.size() == 3 and Campaign.party_level == 20,
+	ok(Campaign.party_order.size() == 3 and Campaign.party_level == 14,
 		"the sewer's own party - Cyrus alone, at level 1 - is not who walks it", "%s" % [Campaign.party_order])
 	ok(Campaign.party_order.all(func(key): return Campaign.inventory_of(key).all(func(item): return item == "")),
 		"and nobody has been handed anything")
@@ -166,8 +166,8 @@ func going_in():
 	var before_the_fight: String = FileAccess.get_file_as_string("res://dialogue/intro_sewer_before_encounter.dialogue")
 	ok(before_the_fight.contains("do Campaign.add_member(\"enfina\")"), "Enfina joins in the conversation right before the fight")
 	Campaign.add_member("enfina")
-	ok(Campaign.party_order == ["cyrus", "alithia", "prometheus", "enfina"] and Campaign.party_level == 20,
-		"walking fourth, at the party's level 20", "%s" % [Campaign.party_order])
+	ok(Campaign.party_order == ["cyrus", "alithia", "prometheus", "enfina"] and Campaign.party_level == 14,
+		"walking fourth, at the party's level 14", "%s" % [Campaign.party_order])
 	ok(Campaign.inventory_of("enfina").all(func(item): return item == ""), "carrying nothing either")
 	scene.queue_free()
 	await settle()
@@ -179,23 +179,35 @@ func in_a_fight():
 	var dungeon: DungeonDefinition = load(DUNGEON)
 	Campaign.reset()
 	Campaign.dungeon = dungeon
-	Campaign.set_party(dungeon.party + ["enfina"], 20)
+	Campaign.set_party(dungeon.party + ["enfina"], 14)
 	Campaign.give_item("cyrus", "cure_potion")
-	var game = await open_fight(dungeon.stages[0].encounter)
+	# A defence of their own on each of their tiles - the sewer's early numbers
+	# are all the same - so whose tile each stood on shows.
+	var sewer: EncounterDefinition = dungeon.stages[0].encounter.duplicate(true)
+	var own := {"enfina": 32, "prometheus": 8, "cyrus": 21, "alithia": 19}
+	for spawn in sewer.spawns:
+		if spawn.side == 0 and own.has(spawn.combatant_key):
+			spawn.defense = own[spawn.combatant_key]
+	var game = await open_fight(sewer)
 	var combat = game.get_node("VisualCombat")
 	var heroes: Array = combat.combatants.filter(func(c): return c.side == 0)
 	var foes: Array = combat.combatants.filter(func(c): return c.side == 1)
-	ok(heroes.size() == 4 and heroes.all(func(c): return c.level == 20), "all four fight, at level 20", "%d" % heroes.size())
+	ok(heroes.size() == 4 and heroes.all(func(c): return c.level == 14), "all four fight, at level 14", "%d" % heroes.size())
 	var defences := {}
 	for comb in heroes:
 		defences[comb.combatant_key] = comb.stats.get("defense", -1)
-	ok(defences.get("enfina") == 32 and defences.get("prometheus") == 8 and defences.get("cyrus") == 20 and defences.get("alithia") == 20,
-		"each standing on the tile with their own numbers", "%s" % [defences])
-	ok(foes.size() == 7 and foes.all(func(c): return c.level == 20), "against seven, at level 20", "%d" % foes.size())
+	ok(defences == own, "each standing on the tile with their own numbers", "%s" % [defences])
+	ok(foes.size() == 7 and foes.all(func(c): return c.level == 14), "against seven, at level 14", "%d" % foes.size())
 	ok(Campaign.inventory_of("cyrus").has("cure_potion"), "with what they carried in")
 	var prometheus := fighter(game, "prometheus")
-	ok(not prometheus.is_empty() and prometheus.spell_slots == [0, 3, 3, 2], "Prometheus with every gate to start",
+	ok(not prometheus.is_empty() and prometheus.spell_slots.slice(0, 4) == [0, 4, 3, 2], "Prometheus with every gate to start",
 		"%s" % [prometheus.get("spell_slots")])
+	# The demo hands him every spell of his (Knows Every Spell), where the story
+	# has him learn them from books.
+	ok(dungeon.knows_every_spell and not prometheus.is_empty() and prometheus.skill_list.has("fireball")
+		and prometheus.skill_list.has("kindled_hound") and prometheus.skill_list.has("illusory_dragon"),
+		"and every spell of his, none of them learned from a book", "%s" % [prometheus.get("skill_list")])
+	ok(Campaign.learned_spells.is_empty(), "knowing them without having learned them")
 	prometheus.spell_slots = [0, 1, 0, 2]
 	Campaign.record_party(combat.combatants)
 	ok(Campaign.party_state.prometheus.spell_slots == [0, 1, 0, 2], "the gates he spent are remembered")
@@ -203,7 +215,7 @@ func in_a_fight():
 	await settle(3)
 	game = await open_fight(dungeon.stages[2].encounter)
 	prometheus = fighter(game, "prometheus")
-	ok(prometheus.get("spell_slots") == [0, 1, 0, 2], "and stay spent in the next fight",
+	ok(prometheus.get("spell_slots", []).slice(0, 4) == [0, 1, 0, 2], "and stay spent in the next fight",
 		"%s" % [prometheus.get("spell_slots")])
 	ok(Campaign.inventory_of("cyrus").has("cure_potion"), "the last fight, gone straight into, keeps their bags too")
 	game.queue_free()
@@ -211,7 +223,7 @@ func in_a_fight():
 	Campaign.dungeon = null
 	game = await open_fight(load("res://data/encounters/encounter_03_watcher.tres"))
 	prometheus = fighter(game, "prometheus")
-	ok(prometheus.get("spell_slots") == [0, 3, 3, 2], "outside a dungeon, every fight opens them all as ever",
+	ok(prometheus.get("spell_slots", []).slice(0, 4) == [0, 4, 3, 2], "outside a dungeon, every fight opens them all as ever",
 		"%s" % [prometheus.get("spell_slots")])
 	game.queue_free()
 	await settle(3)
@@ -224,7 +236,7 @@ func dungeon_with_spent(gates: Array) -> DungeonDefinition:
 	Campaign.reset()
 	Campaign.dungeon = dungeon
 	Campaign.gate_recoveries_left = dungeon.gate_recoveries
-	Campaign.set_party(dungeon.party + ["enfina"], 20)
+	Campaign.set_party(dungeon.party + ["enfina"], 14)
 	for key in Campaign.party_order:
 		Campaign.party_state[key] = {"hp": 10, "max_hp": 80, "alive": true}
 	Campaign.party_state.prometheus["spell_slots"] = gates.duplicate()
@@ -252,7 +264,7 @@ func recovering_gates():
 	ok(Campaign.can_recover_gates("prometheus"), "spent, his can be brought back")
 	ok(not Campaign.can_recover_gates("alithia"), "nobody else's")
 	ok(Campaign.gate_recovery_cost([0, 1, 1, 0]) == 3 and Campaign.gate_recovery_cost([0, 3, 0, 0]) == 3
-		and Campaign.gate_recovery_cost([0, 0, 0, 1]) == 3, "a World and a Hermes, three Worlds, or a Yaldabaoth: three points each")
+		and Campaign.gate_recovery_cost([0, 0, 0, 1]) == 3, "a World and a Hermes, three Worlds, or a Pandora: three points each")
 	ok(not Campaign.recover_gates("prometheus", [0, 2, 1, 0]), "four points' worth is too much")
 	ok(not Campaign.recover_gates("prometheus", [0, 0, 0, 0]), "nothing is not a recovery")
 	ok(Campaign.recover_gates("prometheus", [0, 1, 1, 0]), "a World and a Hermes")
@@ -279,7 +291,7 @@ func the_rest_panel():
 	var terms = panel.find_child("Terms", true, false)
 	ok(question != null and question.text == "Recover Prometheus's gates?", "asking", question.text if question != null else "")
 	ok(terms != null and terms.text.contains("3 points") and terms.text.contains("World costs 1")
-		and terms.text.contains("Hermes costs 2") and terms.text.contains("Yaldabaoth costs 3"),
+		and terms.text.contains("Hermes costs 2") and terms.text.contains("Pandora costs 3"),
 		"what it has to spend and what each costs", terms.text if terms != null else "")
 	ok(terms != null and terms.text.contains("only one rest"), "and that it is one rest in the whole dungeon")
 	panel.change(1, 1)
@@ -287,7 +299,7 @@ func the_rest_panel():
 	panel.change(1, 1)
 	ok(panel.chosen[1] == 2, "only as many Worlds as were spent", "%d" % panel.chosen[1])
 	panel.change(3, 1)
-	ok(panel.chosen[3] == 0, "no Yaldabaoth he did not spend")
+	ok(panel.chosen[3] == 0, "no Pandora he did not spend")
 	panel.change(1, -1)
 	panel.change(2, 1)
 	ok(panel.chosen == [0, 1, 1, 0] and panel.points_left() == 0, "a World and a Hermes: all three points")
@@ -301,6 +313,12 @@ func the_rest_panel():
 	panel.continued.connect(func(): went[0] = true)
 	(panel.find_child("Continue", true, false) as Button).pressed.emit()
 	ok(went[0], "Continue goes on")
+	var left := [false]
+	panel.left_for_menu.connect(func(): left[0] = true)
+	var menu := panel.find_child("MainMenu", true, false) as Button
+	if menu != null:
+		menu.pressed.emit()
+	ok(menu != null and left[0], "and Main Menu leaves for the title screen")
 	panel.queue_free()
 	await settle()
 	var later := RestPanel.new()
@@ -318,7 +336,7 @@ func after_a_fight():
 	var dungeon: DungeonDefinition = load(DUNGEON)
 	Campaign.reset()
 	Campaign.dungeon = dungeon
-	Campaign.set_party(dungeon.party + ["enfina"], 20)
+	Campaign.set_party(dungeon.party + ["enfina"], 14)
 	var game = await open_fight(dungeon.stages[0].encounter)
 	var result = game.get_node("ResultUI")
 	result._won = true
@@ -362,7 +380,7 @@ func stage_to_stage():
 	var dungeon: DungeonDefinition = load(DUNGEON)
 	Campaign.reset()
 	Campaign.dungeon = dungeon
-	Campaign.set_party(dungeon.party + ["enfina"], 20)
+	Campaign.set_party(dungeon.party + ["enfina"], 14)
 	Campaign.give_item("enfina", "medicine")
 	Campaign.next_dungeon_stage()
 	ok(Campaign.dungeon_stage == 1 and Campaign.current_map == LAB_MAP and not Campaign.return_to_position,

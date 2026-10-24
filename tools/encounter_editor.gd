@@ -16,7 +16,9 @@ class_name EncounterEditor
 ##   4. Ways out - the tiles a broken enemy runs for (escape_points): press
 ##      "Add a way out" for a marker, drag it where the way out is, Ctrl+D for
 ##      another, delete to take one away.
-##   5. Press "Save spawns to encounter". It saves the ways out too.
+##   5. Climb tiles - where a walker climbs up onto high ground or a floor
+##      above (climb_points): "Add a climb tile", the same way.
+##   6. Press "Save spawns to encounter". It saves the ways out and climb tiles too.
 ##
 ## Save refuses to write anything invalid - off the map, on a hole in a
 ## non-rectangular map, on terrain that blocks that unit's movement class, on
@@ -37,6 +39,7 @@ class_name EncounterEditor
 @export_tool_button("Reload from encounter") var reload_action = rebuild
 @export_tool_button("Save spawns to encounter") var save_action = save_to_encounter
 @export_tool_button("Add a way out") var escape_action = add_escape_point
+@export_tool_button("Add a climb tile") var climb_action = add_climb_point
 
 ## What the editor makes of the markers right now, and what happened the last
 ## time Save was pressed. Shown here rather than only pushed to the Output
@@ -50,6 +53,7 @@ var _status_countdown := 0.0
 const TERRAIN_NODE = "TerrainPreview"
 const SPAWNS_NODE = "Spawns"
 const ESCAPES_NODE = "WaysOut"
+const CLIMBS_NODE = "ClimbPoints"
 
 
 ## Set in _ready, acted on in _process. Rebuilding cannot happen during _ready
@@ -121,7 +125,7 @@ func _refresh_status():
 	var problems = _problems_with_layout()
 	var summary = _map_extent_note() + "\n"
 	if problems.is_empty():
-		summary += "Ready: %d spawns and %d ways out to save." % [markers().size(), escape_markers().size()]
+		summary += "Ready: %d spawns, %d ways out and %d climb tiles to save." % [markers().size(), escape_markers().size(), climb_markers().size()]
 	else:
 		summary += "Cannot save yet:\n  - %s" % "\n  - ".join(problems)
 	var stuck = runner_note()
@@ -240,8 +244,12 @@ func _build_markers(tile_map: TileMap):
 		marker.weapon_base = spawn.weapon_base
 		marker.defense = spawn.defense
 		marker.starting_items = spawn.starting_items.duplicate()
+		marker.equipment = spawn.equipment.duplicate()
 		marker.arrives_on_round = spawn.arrives_on_round
+		marker.arrives_after_deaths = spawn.arrives_after_deaths
+		marker.arrives_on_cue = spawn.arrives_on_cue
 		marker.surprised = spawn.surprised
+		marker.invisible = spawn.invisible
 		marker.subclass = spawn.subclass
 		marker.position = Vector2(spawn.position * tile_size) + Vector2(tile_size, tile_size) * 0.5
 		container.add_child(marker)
@@ -249,7 +257,69 @@ func _build_markers(tile_map: TileMap):
 	var ways_out = _escape_container()
 	for tile in encounter.escape_points:
 		_put_escape_marker(ways_out, tile, tile_size)
+	var climbs = _climb_container()
+	for tile in encounter.climb_points:
+		_put_climb_marker(climbs, tile, tile_size)
 	_built_from = _encounter_fingerprint()
+
+
+## Where the climb tiles go, made if it is not there yet.
+func _climb_container() -> Node2D:
+	var container = get_node_or_null(CLIMBS_NODE)
+	if container == null:
+		container = Node2D.new()
+		container.name = CLIMBS_NODE
+		add_child(container)
+		_adopt(container)
+	return container
+
+
+func _put_climb_marker(container: Node2D, tile: Vector2i, tile_size: int) -> ClimbMarker:
+	var marker = ClimbMarker.new()
+	marker.name = "Climb"
+	marker.tile_size = tile_size
+	marker.position = Vector2(tile * tile_size) + Vector2(tile_size, tile_size) * 0.5
+	container.add_child(marker, true)
+	_adopt(marker)
+	return marker
+
+
+## A climb tile (Combat "Heights"), put in the middle of the map to be dragged
+## beside the high ground or under the floor above it climbs to - or beside the
+## last one.
+func add_climb_point():
+	if encounter == null:
+		status = "Pick an encounter first."
+		_announce()
+		return
+	var terrain = get_node_or_null(TERRAIN_NODE)
+	var tile_map: TileMap = terrain.get_node_or_null("TileMap") if terrain != null else null
+	var tile_size = _tile_size(tile_map)
+	var existing = climb_markers()
+	var tile := Vector2i.ZERO
+	if not existing.is_empty():
+		tile = existing[-1].grid_position() + Vector2i.RIGHT
+	elif tile_map != null:
+		var rect = tile_map.get_used_rect()
+		tile = rect.position + rect.size / 2
+	_put_climb_marker(_climb_container(), tile, tile_size)
+	status = "A climb tile added at %s - find it under %s in the Scene dock, drag it where it belongs, then Save." % [tile, CLIMBS_NODE]
+	_announce()
+
+
+## The climb-tile markers (ClimbMarker).
+func climb_markers() -> Array:
+	var container = get_node_or_null(CLIMBS_NODE)
+	if container == null:
+		return []
+	return container.get_children().filter(func(child): return child is ClimbMarker)
+
+
+## The tiles the climb markers are on, in reading order.
+func _climb_tiles() -> Array:
+	var tiles := climb_markers().map(func(marker): return marker.grid_position())
+	tiles.sort_custom(func(a, b): return a.y < b.y or (a.y == b.y and a.x < b.x))
+	return tiles
 
 
 ## Where the ways out go, made if it is not there yet.
@@ -309,13 +379,22 @@ var _built_from := ""
 func _encounter_fingerprint() -> String:
 	if encounter == null:
 		return ""
-	return _fingerprint(encounter.spawns) + _escape_fingerprint(encounter.escape_points)
+	return _fingerprint(encounter.spawns) + _escape_fingerprint(encounter.escape_points) \
+		+ "\nclimbs: %s" % [_sorted(encounter.climb_points)]
 
 
 ## The same, read off the markers, so it can be told whether the markers or the
 ## encounter is the side that has moved on.
 func _marker_fingerprint() -> String:
-	return _fingerprint(markers().map(_spawn_from)) + _escape_fingerprint(_escape_tiles())
+	return _fingerprint(markers().map(_spawn_from)) + _escape_fingerprint(_escape_tiles()) \
+		+ "\nclimbs: %s" % [_sorted(_climb_tiles())]
+
+
+## `tiles` in a set order.
+static func _sorted(tiles: Array) -> Array:
+	var sorted := tiles.duplicate()
+	sorted.sort()
+	return sorted
 
 
 ## The ways out, in a set order, as a line.
@@ -338,9 +417,10 @@ func _escape_tiles() -> Array:
 static func _fingerprint(spawns: Array) -> String:
 	var lines := PackedStringArray()
 	for spawn in spawns:
-		lines.append("%s|%d|%s|%s|%d|%s|%d|%d|%s|%d|%s" % [spawn.combatant_key, spawn.side, spawn.position,
+		lines.append("%s|%d|%s|%s|%d|%s|%d|%d|%s|%s|%d|%d|%s|%s|%s" % [spawn.combatant_key, spawn.side, spawn.position,
 			spawn.display_name, spawn.level, spawn.subclass, spawn.weapon_base, spawn.defense,
-			",".join(spawn.starting_items), spawn.arrives_on_round, spawn.surprised])
+			",".join(spawn.starting_items), ",".join(spawn.equipment), spawn.arrives_on_round, spawn.arrives_after_deaths, spawn.arrives_on_cue,
+			spawn.surprised, spawn.invisible])
 	return "\n".join(lines)
 
 
@@ -357,8 +437,12 @@ func _spawn_from(marker: SpawnMarker) -> SpawnDefinition:
 	spawn.weapon_base = marker.weapon_base
 	spawn.defense = marker.defense
 	spawn.starting_items = marker.starting_items.duplicate()
+	spawn.equipment = marker.equipment.duplicate()
 	spawn.arrives_on_round = marker.arrives_on_round
+	spawn.arrives_after_deaths = marker.arrives_after_deaths
+	spawn.arrives_on_cue = marker.arrives_on_cue
 	spawn.surprised = marker.surprised
+	spawn.invisible = marker.invisible
 	spawn.subclass = marker.subclass
 	return spawn
 
@@ -376,7 +460,7 @@ func _tile_size(tile_map: TileMap) -> int:
 ## to save, push the offset down into the markers: they stay exactly where they
 ## appear on the map, and now agree about which tile that is.
 func _reanchor_spawn_container():
-	for node_name in [SPAWNS_NODE, ESCAPES_NODE]:
+	for node_name in [SPAWNS_NODE, ESCAPES_NODE, CLIMBS_NODE]:
 		var container = get_node_or_null(node_name)
 		if container == null or container.position == Vector2.ZERO:
 			continue
@@ -457,7 +541,12 @@ func placement_problem(marker: SpawnMarker, tile_map: TileMap) -> String:
 		var data = tile_map.get_cell_tile_data(0, tile)
 		if data == null:
 			return "is at %s, on an unpainted hole in the map" % tile
-		if ground in data.get_custom_data("Blocks"):
+		var blocks: Array = data.get_custom_data("Blocks")
+		# Up on high ground is somewhere to start, on a map with heights (Combat
+		# "Heights"): what stops a walker and not a flier, and is not see-through.
+		var high: bool = blocks.has(0) and not blocks.has(1) and not blocks.has(3) \
+			and (not climb_markers().is_empty() or encounter.floors.size() > 1)
+		if ground in blocks and not (high and marker.footprint().size() == 1):
 			return "is at %s, on terrain its movement class can't enter" % tile
 	return ""
 
@@ -546,6 +635,21 @@ func _problems_with_layout() -> Array:
 			problems.append("A way out at %s is on an unpainted hole in the map" % tile)
 		elif 0 in data.get_custom_data("Blocks"):
 			problems.append("A way out at %s is on a wall - nobody on foot could reach it" % tile)
+	# Climb tiles: on the floor, where a walker can stand to climb from.
+	var climbs := {}
+	for marker in climb_markers():
+		var tile: Vector2i = marker.grid_position()
+		if climbs.has(tile):
+			problems.append("Two climb tiles are both on %s" % tile)
+			continue
+		climbs[tile] = true
+		if tile_map == null:
+			continue
+		var data = tile_map.get_cell_tile_data(0, tile)
+		if data == null:
+			problems.append("A climb tile at %s is off the map or on a hole in it" % tile)
+		elif 0 in data.get_custom_data("Blocks"):
+			problems.append("A climb tile at %s is on a wall - nobody could stand there to climb" % tile)
 	return problems
 
 
@@ -590,6 +694,10 @@ func save_to_encounter():
 	for tile in _escape_tiles():
 		ways_out.append(tile)
 	encounter.escape_points = ways_out
+	var climbs: Array[Vector2i] = []
+	for tile in _climb_tiles():
+		climbs.append(tile)
+	encounter.climb_points = climbs
 
 	var error = ResourceSaver.save(encounter, encounter.resource_path)
 	if error != OK:

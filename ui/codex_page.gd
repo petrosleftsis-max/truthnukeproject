@@ -22,7 +22,7 @@ static func first_page(definition: CombatantDefinition) -> String:
 		lines.append("")
 	var health := "%d" % definition.max_hp
 	if definition.max_hp_level_20 > 0:
-		health = "%d at level 1, %d at level 20" % [definition.max_hp, definition.max_hp_level_20]
+		health = "%d at level 1, %d at level %d" % [definition.max_hp, definition.max_hp_level_20, Stats.MAX_LEVEL]
 	lines.append("%s. Health %s. Movement %d, initiative %d." % [Sizes.name_of(definition.size), health, definition.movement, definition.initiative])
 	lines.append("Built around %s, then %s." % [Stats.stat_name(definition.main_stat), Stats.stat_name(definition.secondary_stat)])
 	var resists: Array[String] = []

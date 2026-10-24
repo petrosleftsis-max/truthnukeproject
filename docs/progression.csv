@@ -1,0 +1,135 @@
+Character,Subclass,Level,MilestoneTier,UnlockType,FeatureName,Role,SkillMod_Hit,SkillMod_Dot,Duration,DefenseChange,SpeedChange,Notes
+Enfina,Base,1,0,Active,Basic Strike,DPS,1.0,,,,,Core melee attack
+Enfina,Base,1,0,Active,Guard,Defense,,,,,,Small damage reduction ability
+Enfina,Base,1,0,Passive,Iron Hide I,Defense,,,,+Defense,,+10% DR
+Enfina,Base,8,1,Active,Heavy Swing,DPS,1.5,,,,,High-damage melee attack
+Enfina,Base,8,1,Passive,Bulwark I,Defense,,,,+DR near allies,,DR aura while adjacent
+Enfina,Base,16,2,Active,Taunting Shout,CC,0.6,,,,,Taunts enemies
+Enfina,Base,16,2,Passive,Iron Hide II,Defense,,,,+Defense scaling,,Improved DR
+Enfina,Base,24,3,Active,Armor Shred,Debuff,0.9,,2,-20% Defense,,Short defense debuff
+Enfina,Base,32,4,Active,Double Strike,DPS,1.5,,,,,Two melee attacks per action
+Enfina,Base,32,4,Passive,Momentum I,DPS,,,,,,+10% dmg if stationary
+Enfina,Base,41,5,Active,Short Stun,CC,0.8,,1,,,Brief melee stun
+Enfina,Base,41,5,Passive,Iron Hide III,Defense,,,,+Reaction intercept,,Can intercept attacks
+Enfina,Base,54,6,Active,Finisher,DPS,2.2,,,,,"Big single-hit attack, long CD"
+Enfina,Base,54,6,Active,AOE Sweep,DPS/CC,1.4,,,,,Cleave with light CC
+Enfina,Base,54,6,Passive,Bulwark III,Defense,,,,+DR aura,,DR aura to allies
+Enfina,Base,64,7,Active,Ultimate Smash,DPS,2.5,,,,,Encounter-defining melee ultimate
+Enfina,Base,64,7,Passive,Momentum II,DPS,,,,,,Extra crit-like bonus when stationary
+Enfina,Vanguard,24,3,Passive,Vanguard Tier 1,Subclass,,,,,,First Vanguard feature at L24
+Enfina,Vanguard,32,4,Passive,Vanguard Tier 2,Subclass,,,,,,Core Vanguard loop online at L32
+Enfina,Vanguard,41,5,Passive,Vanguard Tier 3,Subclass,,,,,,Stronger CC/DR or DPS
+Enfina,Vanguard,54,6,Passive,Vanguard Tier 4,Subclass,,,,,,Late-tier specialization
+Enfina,Vanguard,64,7,Passive,Vanguard Capstone,Subclass,,,,,,Final evolution
+Enfina,Juggernaut,24,3,Passive,Juggernaut Tier 1,Subclass,,,,,,First Juggernaut feature at L24
+Enfina,Juggernaut,32,4,Passive,Juggernaut Tier 2,Subclass,,,,,,Core Juggernaut loop online at L32
+Enfina,Juggernaut,41,5,Passive,Juggernaut Tier 3,Subclass,,,,,,Stronger CC/DR or DPS
+Enfina,Juggernaut,54,6,Passive,Juggernaut Tier 4,Subclass,,,,,,Late-tier specialization
+Enfina,Juggernaut,64,7,Passive,Juggernaut Capstone,Subclass,,,,,,Final evolution
+Enfina,Warden of Cover,24,3,Passive,Warden of Cover Tier 1,Subclass,,,,,,First Warden of Cover feature at L24
+Enfina,Warden of Cover,32,4,Passive,Warden of Cover Tier 2,Subclass,,,,,,Core Warden of Cover loop online at L32
+Enfina,Warden of Cover,41,5,Passive,Warden of Cover Tier 3,Subclass,,,,,,Stronger CC/DR or DPS
+Enfina,Warden of Cover,54,6,Passive,Warden of Cover Tier 4,Subclass,,,,,,Late-tier specialization
+Enfina,Warden of Cover,64,7,Passive,Warden of Cover Capstone,Subclass,,,,,,Final evolution
+Cyrus,Base,1,0,Active,Basic Shot,DPS,1.0,,,,,Ranged attack
+Cyrus,Base,1,0,Active,Light Cover Leap,Mobility,,,,,+Speed when using cover,Moves between covers
+Cyrus,Base,1,0,Passive,Cover Runner I,Mobility,,,,,+2 Speed in cover,Bonus speed in cover
+Cyrus,Base,8,1,Active,Poison Strike,DoT/Debuff,1.0,0.2,3,,,"Poison DoT, disables reactions"
+Cyrus,Base,8,1,Passive,Agile I,Defense,,,,,,+5% DR/dodge in cover
+Cyrus,Base,16,2,Active,Burn Bomb,DoT,0.9,0.35,3,,+2 Speed to target,Burn DoT with speed buff
+Cyrus,Base,16,2,Passive,DoT Master I,DPS,,,,,,+10% DoT damage
+Cyrus,Base,24,3,Active,Wide Poison,DoT,0.8,0.2,3,,,Cone poison
+Cyrus,Base,24,3,Passive,Cover Runner II,Mobility,,,,,"+Speed, can climb walls",Improved cover movement
+Cyrus,Base,32,4,Active,Strong Burn,DoT,1.1,0.45,3,,+2 Speed to target,High-intensity Burn
+Cyrus,Base,32,4,Active,Minor Slow Shot,Debuff,0.9,,2,,-1 Speed,Slow effect
+Cyrus,Base,32,4,Passive,Agile II,Defense,,,,,,Reactions entering cover
+Cyrus,Base,41,5,Active,Armor Weakness,Debuff,0.7,,2,-25% Defense,,Defense shred
+Cyrus,Base,41,5,Passive,DoT Master II,DPS,,,,,,"+20% DoT, +1 turn"
+Cyrus,Base,54,6,Passive,Synergy I,Support,,,,,,+10% party dmg vs debuffed targets
+Cyrus,Base,64,7,Passive,Synergy II,Support,,,,,,+5–10% party dmg vs Cyrus-debuffed targets
+Cyrus,Skirmisher,24,3,Passive,Skirmisher Tier 1,Subclass,,,,,,Skirmisher feature at L24
+Cyrus,Skirmisher,32,4,Passive,Skirmisher Tier 2,Subclass,,,,,,Skirmisher feature at L32
+Cyrus,Skirmisher,41,5,Passive,Skirmisher Tier 3,Subclass,,,,,,Skirmisher feature at L41
+Cyrus,Skirmisher,54,6,Passive,Skirmisher Tier 4,Subclass,,,,,,Skirmisher feature at L54
+Cyrus,Skirmisher,64,7,Passive,Skirmisher Tier 5,Subclass,,,,,,Skirmisher feature at L64
+Cyrus,Saboteur,24,3,Passive,Saboteur Tier 1,Subclass,,,,,,Saboteur feature at L24
+Cyrus,Saboteur,32,4,Passive,Saboteur Tier 2,Subclass,,,,,,Saboteur feature at L32
+Cyrus,Saboteur,41,5,Passive,Saboteur Tier 3,Subclass,,,,,,Saboteur feature at L41
+Cyrus,Saboteur,54,6,Passive,Saboteur Tier 4,Subclass,,,,,,Saboteur feature at L54
+Cyrus,Saboteur,64,7,Passive,Saboteur Tier 5,Subclass,,,,,,Saboteur feature at L64
+Cyrus,Trapper,24,3,Passive,Trapper Tier 1,Subclass,,,,,,Trapper feature at L24
+Cyrus,Trapper,32,4,Passive,Trapper Tier 2,Subclass,,,,,,Trapper feature at L32
+Cyrus,Trapper,41,5,Passive,Trapper Tier 3,Subclass,,,,,,Trapper feature at L41
+Cyrus,Trapper,54,6,Passive,Trapper Tier 4,Subclass,,,,,,Trapper feature at L54
+Cyrus,Trapper,64,7,Passive,Trapper Tier 5,Subclass,,,,,,Trapper feature at L64
+Prometheus,Base,1,0,Active,Cantrip,DPS,0.7,,,,,Weak free spell
+Prometheus,Base,1,0,Active,Small Firebolt,DPS,1.2,,,,,Level-1 fire spell
+Prometheus,Base,1,0,Passive,Glass Cannon I,DPS,,,,,,"+10% dmg, -5% HP"
+Prometheus,Base,8,1,Active,Early Windswept,CC/DoT,0.8,0.1,2,,Random 3-tile move,Light knock + DoT
+Prometheus,Base,8,1,Active,Small Burn,DoT,1.4,0.2,3,,+2 Speed to target,Weak Burn
+Prometheus,Base,8,1,Passive,Elemental Affinity I,DPS,,,,,,+10% dmg vs elemental targets
+Prometheus,Base,16,2,Active,Strong Burn,DoT,2.1,0.4,3,,+2 Speed,Level-3 Burn
+Prometheus,Base,16,2,Active,Crystallize I,CC/DoT,0.8,0.1,3,,Speed=0 (normals),1-turn root
+Prometheus,Base,16,2,Passive,Glass Cannon II,DPS,,,,,,"+20% dmg, -10% HP"
+Prometheus,Base,24,3,Active,Mid Windswept,CC,1.2,0.15,2,,Directed push,Improved control
+Prometheus,Base,24,3,Passive,Contest Insight I,Utility,,,,,,+10% success in stat contests
+Prometheus,Base,32,4,Active,Big Nuke (Lvl-5),DPS,3.1,,,,,First major single-target nuke
+Prometheus,Base,32,4,Passive,Elemental Affinity II,DPS,,,,,,Extra dmg vs any DoT target
+Prometheus,Base,41,5,Active,High-tier Nukes (Lvl-7),DPS,4.2,,,,,Large burst spells
+Prometheus,Base,41,5,Passive,Contest Insight II,Utility,,,,,,Contest advantage vs debuffed foes
+Prometheus,Base,54,6,Active,Level-9 Spell,DPS,5.4,,,,,Top-tier nuke
+Prometheus,Base,54,6,Passive,Glass Cannon III,DPS,,,,,,"Max offensive, HP tradeoff"
+Prometheus,Base,64,7,Active,Level-10 Spell,DPS,6.0,,,,,Encounter-defining nuke
+Prometheus,Base,64,7,Passive,Elemental Mastery,Utility,,,,,,Extra slot or reduced cooldown
+Prometheus,Elemental Vanguard,24,3,Passive,Elemental Vanguard Tier 1,Subclass,,,,,,Elemental Vanguard feature at L24
+Prometheus,Elemental Vanguard,32,4,Passive,Elemental Vanguard Tier 2,Subclass,,,,,,Elemental Vanguard feature at L32
+Prometheus,Elemental Vanguard,41,5,Passive,Elemental Vanguard Tier 3,Subclass,,,,,,Elemental Vanguard feature at L41
+Prometheus,Elemental Vanguard,54,6,Passive,Elemental Vanguard Tier 4,Subclass,,,,,,Elemental Vanguard feature at L54
+Prometheus,Elemental Vanguard,64,7,Passive,Elemental Vanguard Tier 5,Subclass,,,,,,Elemental Vanguard feature at L64
+Prometheus,Elemental Tactician,24,3,Passive,Elemental Tactician Tier 1,Subclass,,,,,,Elemental Tactician feature at L24
+Prometheus,Elemental Tactician,32,4,Passive,Elemental Tactician Tier 2,Subclass,,,,,,Elemental Tactician feature at L32
+Prometheus,Elemental Tactician,41,5,Passive,Elemental Tactician Tier 3,Subclass,,,,,,Elemental Tactician feature at L41
+Prometheus,Elemental Tactician,54,6,Passive,Elemental Tactician Tier 4,Subclass,,,,,,Elemental Tactician feature at L54
+Prometheus,Elemental Tactician,64,7,Passive,Elemental Tactician Tier 5,Subclass,,,,,,Elemental Tactician feature at L64
+Prometheus,Elemental Conductor,24,3,Passive,Elemental Conductor Tier 1,Subclass,,,,,,Elemental Conductor feature at L24
+Prometheus,Elemental Conductor,32,4,Passive,Elemental Conductor Tier 2,Subclass,,,,,,Elemental Conductor feature at L32
+Prometheus,Elemental Conductor,41,5,Passive,Elemental Conductor Tier 3,Subclass,,,,,,Elemental Conductor feature at L41
+Prometheus,Elemental Conductor,54,6,Passive,Elemental Conductor Tier 4,Subclass,,,,,,Elemental Conductor feature at L54
+Prometheus,Elemental Conductor,64,7,Passive,Elemental Conductor Tier 5,Subclass,,,,,,Elemental Conductor feature at L64
+Alithia,Base,1,0,Active,Cantrip,DPS,0.7,,,,,Weak attack
+Alithia,Base,1,0,Active,Small Heal,Heal,,,,,,Basic single-target heal
+Alithia,Base,1,0,Passive,Mercy I,Heal,,,,,,+10% healing
+Alithia,Base,8,1,Active,Holy Splash,DPS,1.1,,,,,Low-level damage spell
+Alithia,Base,8,1,Active,Frozen I,CC/DoT,1.3,0.2,2,,"-2 Speed, no secondary actions",Early Frozen
+Alithia,Base,8,1,Passive,Aura I,Support,,,,+Defense to allies,,Small DR aura
+Alithia,Base,16,2,Active,Group Heal,Heal,,,,,,Party heal
+Alithia,Base,16,2,Active,Frozen II,CC/DoT,1.8,0.25,3,,"-2 Speed, no secondary actions",Mid Frozen
+Alithia,Base,16,2,Passive,Mercy II,Heal,,,,,,Heals dispel 1 debuff
+Alithia,Base,24,3,Active,Holy Lance (Pen 25%),DPS,2.2,,,Pen 25%,,First penetration spell
+Alithia,Base,24,3,Passive,Aura II,Support,,,,+Regen or +Speed,,Improved aura
+Alithia,Base,32,4,Active,Judgment (Pen 50%),DPS,3.4,,,Pen 50%,,High-tier penetration spell
+Alithia,Base,32,4,Passive,Reserved Power I,Utility,,,,,,+1 high-level slot
+Alithia,Base,41,5,Active,Frozen AOE,CC,2.2,0.25,2,,"-2 Speed, no secondary actions",Area Frozen
+Alithia,Base,41,5,Active,Advanced Cleanse,Heal/Support,,,,,,Heal + cleanse conditions
+Alithia,Base,41,5,Passive,Mercy III,Heal,,,,,,Healing gives brief DR
+Alithia,Base,54,6,Active,Level-9 Penetration Spell,DPS,4.2,,,Pen 50%,,Top-tier penetration
+Alithia,Base,54,6,Active,Elite Heal,Heal,,,,,,Big %HP restore
+Alithia,Base,54,6,Passive,Reserved Power II,Utility,,,,,,Extra high-tier slot or CD reduction
+Alithia,Base,64,7,Active,Level-10 Penetration Spell,DPS,5.0,,,Pen 75%,,Encounter-defining penetration
+Alithia,Base,64,7,Active,Capstone Heal,Heal,,,,,,Ultimate heal
+Alithia,Base,64,7,Passive,Radiant Guardian,Support,,,,,,Party DR while alive
+Alithia,Battle Chaplain,24,3,Passive,Battle Chaplain Tier 1,Subclass,,,,,,Battle Chaplain feature at L24
+Alithia,Battle Chaplain,32,4,Passive,Battle Chaplain Tier 2,Subclass,,,,,,Battle Chaplain feature at L32
+Alithia,Battle Chaplain,41,5,Passive,Battle Chaplain Tier 3,Subclass,,,,,,Battle Chaplain feature at L41
+Alithia,Battle Chaplain,54,6,Passive,Battle Chaplain Tier 4,Subclass,,,,,,Battle Chaplain feature at L54
+Alithia,Battle Chaplain,64,7,Passive,Battle Chaplain Tier 5,Subclass,,,,,,Battle Chaplain feature at L64
+Alithia,Oracle of Mercy,24,3,Passive,Oracle of Mercy Tier 1,Subclass,,,,,,Oracle of Mercy feature at L24
+Alithia,Oracle of Mercy,32,4,Passive,Oracle of Mercy Tier 2,Subclass,,,,,,Oracle of Mercy feature at L32
+Alithia,Oracle of Mercy,41,5,Passive,Oracle of Mercy Tier 3,Subclass,,,,,,Oracle of Mercy feature at L41
+Alithia,Oracle of Mercy,54,6,Passive,Oracle of Mercy Tier 4,Subclass,,,,,,Oracle of Mercy feature at L54
+Alithia,Oracle of Mercy,64,7,Passive,Oracle of Mercy Tier 5,Subclass,,,,,,Oracle of Mercy feature at L64
+Alithia,Inquisitor,24,3,Passive,Inquisitor Tier 1,Subclass,,,,,,Inquisitor feature at L24
+Alithia,Inquisitor,32,4,Passive,Inquisitor Tier 2,Subclass,,,,,,Inquisitor feature at L32
+Alithia,Inquisitor,41,5,Passive,Inquisitor Tier 3,Subclass,,,,,,Inquisitor feature at L41
+Alithia,Inquisitor,54,6,Passive,Inquisitor Tier 4,Subclass,,,,,,Inquisitor feature at L54
+Alithia,Inquisitor,64,7,Passive,Inquisitor Tier 5,Subclass,,,,,,Inquisitor feature at L64

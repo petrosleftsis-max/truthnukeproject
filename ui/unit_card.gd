@@ -61,7 +61,7 @@ func show_for(comb: Dictionary, combat: Combat):
 	on_them.add_theme_constant_override("h_separation", 8)
 	on_them.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if combat.is_hidden(comb):
-		on_them.add_child(_label("Hidden", 13, ConditionStrip.HELPFUL))
+		on_them.add_child(_label("Invisible" if combat.is_invisible(comb) else "Hidden", 13, ConditionStrip.HELPFUL))
 	var reader := ConditionStrip.new()
 	for state in reader.states_of(comb, combat):
 		on_them.add_child(_label(state.text.split("\n")[0], 13,

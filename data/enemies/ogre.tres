@@ -6,10 +6,12 @@
 [resource]
 script = ExtResource("1_who")
 name = "Ogre"
-max_hp = 40
-max_hp_level_20 = 220
+max_hp = 100
+max_hp_level_20 = 262
+defense = 18
+defense_level_64 = 65
 size = 3
-movement = 4
+movement = 6
 initiative = 3
 main_stat = 0
 sprite_frames = ExtResource("2_frames")

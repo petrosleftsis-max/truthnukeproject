@@ -22,7 +22,8 @@ class_name CombatantDefinition
 @export_group("Stats")
 ## Health at level 1.
 @export_range(1, 2, 1, "or_greater") var max_hp = 1
-## Health at level 20. Every level between climbs the same step from Max Hp to
+## Health at the top level, 64 (Stats.MAX_LEVEL) - the name is from when that
+## was 20. Every level between climbs the same step from Max Hp to
 ## this (see hp_at). Zero means the same as level 1 all the way up, so a
 ## character only ever fought at one strength needs nothing here.
 ##
@@ -32,6 +33,19 @@ class_name CombatantDefinition
 ## who never gets sturdier and a knight who doubles are both reasonable, and
 ## neither falls out of a formula.
 @export_range(0, 2, 1, "or_greater") var max_hp_level_20 = 0
+## How much incoming damage they soak at level 1: damage is multiplied by
+## 40/(40 + this). Used wherever nobody has said otherwise - a spawn whose own
+## Defense is left at 0, a guard caught on a stealth map, a summon, somebody
+## coming back. docs/enemy_progression.csv gives the ranges by tier: frail, average
+## and tanky enemies.
+@export_range(0, 100) var defense: int = 10
+## The same at level 64, climbing evenly from Defense the way health climbs
+## (see defense_at). Zero means the same as level 1 all the way up.
+@export_range(0, 100) var defense_level_64: int = 0
+## Defense in steps instead, level -> Defense from that level on: the party's
+## armour bands from docs/player_hp_defense_progression.csv ({1: 12, 8: 20,
+## 17: 28}). Filled in, it stands in for the two above.
+@export var defense_by_level: Dictionary = {}
 ## How big they are - see Sizes. A Human is one tile; Tiny and Small share a
 ## tile with their own side; Large and up cover 2 x 2 tiles and more.
 @export var size: Sizes.Size = Sizes.Size.HUMAN
@@ -42,7 +56,7 @@ class_name CombatantDefinition
 
 @export_subgroup("Attributes")
 ## The two attributes this character is built around. A combatant's level
-## decides the numbers - main stat 10 at level 1 climbing to 85 at level 20, secondary
+## decides the numbers - main stat 10 at level 1 climbing to 85 at level 64, secondary
 ## half that, everything else a flat 10 - so all that is set here is which two
 ## they are. See Stats.stats_for_level.
 ##
@@ -54,6 +68,11 @@ class_name CombatantDefinition
 ## in one fight than another.
 @export var main_stat: Stats.Type = Stats.Type.PHYSICAL
 @export var secondary_stat: Stats.Type = Stats.Type.MINDFULNESS
+## What every spell of theirs is worked out from - its damage, its heals, its
+## side of a contest - whichever spell it is (Combat.scaling_stat_of). A spell
+## names no stat of its own; a skill that costs no gate still does. Prometheus's
+## is Intellect, Alithia's Mindfulness.
+@export var spellcasting_stat: Stats.Type = Stats.Type.INTELLECT
 
 ## Gates are not set here. How many castings someone has is decided by how far
 ## along they are - see Stats.GATES_BY_LEVEL - and they only have any at all if
@@ -69,6 +88,9 @@ class_name CombatantDefinition
 ## for ("idle", "walk", "skill", "dead") and how to build one. Leave empty
 ## to keep using map_sprite as a plain static sprite.
 @export var sprite_frames: SpriteFrames
+## Tints their sprite on the map - white is as drawn. For a creature borrowing
+## somebody else's art until it has its own.
+@export var tint: Color = Color.WHITE
 @export_group("Skills")
 @export var skills: Array[String]
 ## Skills this combatant can additionally use in their secondary slot, on top
@@ -82,6 +104,10 @@ class_name CombatantDefinition
 ## same and the character sheet shows it under Passive Skills, where this list
 ## is shown nowhere. Cyrus's Light Footed is one.
 @export var secondary_skills: Array[String]
+## Skill key -> the level this one uses it from, in place of the skill's own
+## Required Level - an enemy with one of the party's moves, which the party
+## grows into later (Sweep Strike, from 54) but this one has from 3.
+@export var skill_levels: Dictionary = {}
 ## What they do without being asked - working all the time, or once their
 ## moment comes. Never on the action panel; the character sheet lists them
 ## under Passive Skills. See PassiveDefinition.
@@ -89,6 +115,15 @@ class_name CombatantDefinition
 ## The paths they can choose between at level 5, by key, in the order the
 ## choice offers them. See SubclassDefinition.
 @export var subclasses: Array[String] = []
+## Learns their spells rather than growing into them (Campaign "Spellbooks"):
+## of the spells in Skills and their path's, they know only Starting Spells and
+## those learned since - from a spellbook, or a Gate Nade taken apart. Prometheus.
+@export var learns_spells: bool = false
+## The spells they know from the start, by key, when they learn their spells.
+@export var starting_spells: Array[String] = []
+## How many things they can carry into a fight to use: an enemy's pocket. The
+## party's is their bag's first slots (Campaign.COMBAT_SLOTS) whatever this says.
+@export_range(1, 24, 1) var pocket_size: int = 4
 @export_group("Resistances")
 ## How this combatant stands up to each kind of damage, as a percentage.
 ## Positive resists - 20 means a fifth of that damage is shrugged off, 100
@@ -122,6 +157,16 @@ class_name CombatantDefinition
 @export var immune_to_conditions: Array[ConditionDefinition] = []
 ## The other things that cannot be done to them (Immunity).
 @export var immune_to: Array[Immunity.Kind] = []
+## Nothing touches them: every attack misses, nothing hurts them, nothing takes
+## hold of them - though they stand where they stand like anybody, and the
+## other side soon stops wasting blows on them. Prometheus's Illusory Dragon.
+@export var untouchable: bool = false
+
+@export_group("Summons")
+## Who they bring into every fight with them, by key: a summon of theirs, beside
+## them from the start, on their turn rather than its own (Combat "Summons").
+## The Summoner's Bound Beast.
+@export var summon_at_start: String = ""
 
 @export_group("Turns")
 ## Turns they get each round, spread through it. A boss facing a whole party
@@ -188,6 +233,27 @@ class_name CombatantDefinition
 ## arms, an armour plate. For somebody bigger than a tile.
 @export var parts: Array[BodyPartDefinition] = []
 
+@export_group("Holding and eating")
+## How many they can keep hold of at once (Grab): a second one grabbed past
+## this, the first held is let go. A creature with two heads holds two.
+@export_range(1, 4, 1) var holds_at_once: int = 1
+## What they eat (Combat "Gluttony"), free, as their turn begins and once they
+## have moved: food on the map (BattleObjectDefinition's Edible), the bodies of
+## their own side, the bodies of the other side. A body eaten is gone - nobody
+## stands it back up.
+@export_flags("Food On The Map", "Its Own Fallen", "The Other Side's Fallen") var eats: int = 0
+## How near something has to be for them to eat it: tiles between them.
+@export_range(1, 4, 1) var eat_reach: int = 1
+## What a meal heals them by, as a share of their health - nourishing food or a
+## body. Bait (food that is not Nourishing) heals nothing.
+@export_range(0.0, 1.0, 0.01) var meal_heals: float = 0.0
+## What every meal does to them besides - a hunger fed: stronger, quicker.
+## Effects on themselves, as a skill's are.
+@export var fed_effects: Array[EffectDefinition] = []
+## What being spat out alive leaves on whoever they swallowed (EffectType.SWALLOW):
+## covered in bile, say. Empty: nothing.
+@export var spat_out_with: ConditionDefinition
+
 @export_group("Party")
 ## Whether this one actually fights. Turn it off for someone who travels with
 ## the party but takes no part in battles - a guide, a prisoner, a child - and
@@ -198,6 +264,9 @@ class_name CombatantDefinition
 ## any other way - gets its page written (Campaign "The enemy codex"). Enfina
 ## and Prometheus do.
 @export var keeps_codex: bool = false
+## What they say when the party changes a turn they foresaw (Intuition) - one
+## of these, at random, over their head and in the log. Empty says nothing.
+@export var future_changed_lines: Array[String] = []
 
 ## Whether consumables that would normally cost the main action can be used as
 ## a secondary one instead. Cyrus can: quick hands are his, and it is why he
@@ -229,9 +298,20 @@ class_name CombatantDefinition
 ## it ends by either using a skill or calling advance_turn() itself) and
 ## type its name here. An unrecognised name falls back to ai_melee_rush.
 @export var ai_function: String = "ai_melee_rush"
+## When the AI readies a move ("Ready" - Combat "Readying, for the AI"), if at
+## all: only with nothing it could hit this turn, and never with its last
+## casting of a gate.
+##   Covers The Approach - something ranged watching an area on the way the
+##     party comes, so walking up to it costs them.
+##   Guards Its Post - stays put rather than chase: an area over the thing on
+##     the map beside it (a bell) or the tile it started on, or its own reach.
+##   Counters Casters - with somebody who casts in sight: ready for when they do.
+##   Waits For The Hidden - with somebody of the party out of sight: ready for
+##     whoever steps into its reach.
+@export_flags("Covers The Approach", "Guards Its Post", "Counters Casters", "Waits For The Hidden") var ai_readies: int = 0
 
 
-## Health at `level`: Max Hp at level 1, Max Hp Level 20 at level 20, and the
+## Health at `level`: Max Hp at level 1, Max Hp Level 20 at the top level, and the
 ## same step every level between, rounded.
 func hp_at(level: int) -> int:
 	if max_hp_level_20 <= 0:
@@ -239,12 +319,28 @@ func hp_at(level: int) -> int:
 	return roundi(lerpf(max_hp, max_hp_level_20, Stats.level_progress(level)))
 
 
+## Their own Defense at `level`: the step it has reached (Defense By Level), or
+## Defense at 1 climbing to Defense Level 64 at the top.
+func defense_at(level: int) -> int:
+	if not defense_by_level.is_empty():
+		var reached := -1
+		var value := defense
+		for from in defense_by_level:
+			if int(from) <= level and int(from) > reached:
+				reached = int(from)
+				value = int(defense_by_level[from])
+		return value
+	if defense_level_64 <= 0:
+		return defense
+	return roundi(lerpf(defense, defense_level_64, Stats.level_progress(level)))
+
+
 ## What this combatant may cast at `level`: their level's allowance if they have
 ## a spell at all, and nothing if they have not. A swordsman does not walk
 ## around with two unused castings of a gate he cannot open.
 func gates_at(level: int) -> Array:
 	if not casts_spells():
-		return [0, 0, 0, 0]
+		return Stats.no_gates()
 	return Stats.gates_for_level(level)
 
 

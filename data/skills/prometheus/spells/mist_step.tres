@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="1_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/stealth_skill.png" id="2_icon"]
+[ext_resource type="AudioStream" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="3_sfx"]
+
+[resource]
+script = ExtResource("1_skill")
+name = "Mist Step"
+description = "Gone in a breath of silver mist, and there again on any free tile within six - walls, cover and all between are nothing to it. A secondary action, so the main one is still yours."
+max_range = 6
+icon = ExtResource("2_icon")
+required_level = 8
+teleports = 1
+is_secondary = true
+deals_damage = false
+sound = ExtResource("3_sfx")
+spell_slot_level = 2

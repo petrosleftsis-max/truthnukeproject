@@ -52,6 +52,14 @@ func run_test():
 	if combat.deployment_active:
 		combat.finish_deployment()
 		await get_tree().process_frame
+	# What is being watched is where the ranger and the healer go, not whether
+	# the party lives through being shot six times - and nobody is here to answer
+	# a reaction a walk past one of them would ask about.
+	combat.reaction_prompt = null
+	for comb in combat.combatants:
+		if comb.side == 0:
+			comb.max_hp = 999
+			comb.hp = 999
 
 	var ranger = {}
 	var healer = {}
@@ -129,7 +137,12 @@ func run_test():
 		var stubby: SkillDefinition = gun.duplicate(true)
 		stubby.max_range = 2
 		SkillDatabase.skills["_stubby_gun"] = stubby
-		var mark = combat.find_lowest_hp_enemy_of(ranger)
+		# Whoever of the party is furthest off - genuinely out of a short reach.
+		var mark := {}
+		for comb in combat.combatants:
+			if comb.alive and comb.side == 0 and (mark.is_empty() \
+					or combat.get_position_distance(ranger.position, comb.position) > combat.get_position_distance(ranger.position, mark.position)):
+				mark = comb
 		var walk := []
 		var stood_still = 0
 		for turn in 5:
@@ -177,16 +190,28 @@ func run_test():
 			front.get("name", "nobody"))
 		var was = combat.get_position_distance(hid_at, front.position)
 		log_line("  NOTE  the old rule would park it on %s, %d tiles from the front" % [hid_at, was])
+		# Whether anywhere it can reach is nearer the front and still keeps every
+		# ally it covers from here in heal reach. Coverage comes first, by design
+		# (HEAL_COVERAGE_WEIGHT): with nowhere like that, staying put is right. On
+		# this map since speeds went up by half (Speeds, in the README) the ranger
+		# runs off far enough that every step towards it drops somebody.
+		var covered_before = combat.count_allies_within_heal_reach(healer, hid_at, reach)
+		var nearer: Array = controller.get_reachable_tiles(hid_at, healer.movement_class, controller.movement, healer).keys().filter(func(tile):
+			return combat.get_position_distance(tile, front.position) < was and combat.count_allies_within_heal_reach(healer, tile, reach) >= covered_before)
+		log_line("  NOTE  %d tiles it could reach are nearer the front and cover as many" % nearer.size())
 		await combat.reposition_healer(healer, reach)
 		for i in 4:
 			await get_tree().process_frame
 		var now = combat.get_position_distance(healer.position, front.position)
-		ok(healer.position != hid_at, "it leaves the corner",
-			"%s -> %s" % [hid_at, healer.position])
-		ok(now < was, "and ends up nearer whoever is about to need mending",
-			"%d tiles from %s, was %d" % [now, front.get("name", "them"), was])
+		if nearer.is_empty():
+			ok(healer.position == hid_at or now <= was, "with nowhere nearer that keeps them all covered, it keeps them covered",
+				"%s -> %s" % [hid_at, healer.position])
+		else:
+			ok(healer.position != hid_at, "it leaves the corner",
+				"%s -> %s" % [hid_at, healer.position])
+			ok(now < was, "and ends up nearer whoever is about to need mending",
+				"%d tiles from %s, was %d" % [now, front.get("name", "them"), was])
 		# The thing it must never trade away is still not traded away.
-		var covered_before = combat.count_allies_within_heal_reach(healer, hid_at, reach)
 		var covered_after = combat.count_allies_within_heal_reach(healer, healer.position, reach)
 		ok(covered_after >= covered_before,
 			"without covering fewer of them than it did from cover",

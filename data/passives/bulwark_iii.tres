@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Resource" path="res://data/conditions/fortified.tres" id="2_cond"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Bulwark III"
+description = "Her guard reaches two tiles: allies within them are fortified - a tenth less damage, on top of Bulwark beside her."
+required_level = 54
+aura_radius = 2
+aura_on_allies = ExtResource("2_cond")

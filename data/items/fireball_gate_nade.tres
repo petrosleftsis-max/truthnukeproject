@@ -7,5 +7,5 @@
 script = ExtResource("1_nade")
 spell = "fireball"
 item_power = 50
-price = 90
+price = 150
 icon = ExtResource("2_icon")

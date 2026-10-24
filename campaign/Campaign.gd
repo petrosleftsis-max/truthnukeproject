@@ -100,16 +100,197 @@ func reach_level(level: int, quietly: bool = false) -> bool:
 	return true
 
 
+## --- Chapters ---
+##
+## The story is five chapters, each leveling slower than the one before: the
+## party reaches level 18 by the end of Chapter I, 33 by II, 45 by III, 55 -
+## ΛΗΘΗ, the forgetting - by IV, and 64 - ΑΛΗΘΕΙΑ, the truth - by the end of V
+## (CHAPTER_LEVELS). A dialogue starts the next (`do Campaign.begin_chapter(2)`).
+## The character sheet's Levels page shows nothing past 55 until Chapter V has
+## begun, and the first time it is opened after, it lifts the veil from the rest
+## (levels_unveiled).
+
+## The level each chapter ends at, I to V. The first starts at 1, each other one
+## where the last ended.
+const CHAPTER_LEVELS := [18, 33, 45, 55, 64]
+const CHAPTER_NAMES := ["I", "II", "III", "IV", "V"]
+## The levels named on the Levels page, in Greek by the sum of their letters:
+## 55 is ΛΗΘΗ (forgetting), 64 ΑΛΗΘΕΙΑ (truth, unforgetting).
+const LETHE_LEVEL := 55
+const ALETHEIA_LEVEL := 64
+
+## A chapter began. Carries which.
+signal chapter_begun(which: int)
+
+## The chapter the story is in, 1 to 5.
+var chapter: int = 1
+## Whether the Levels page has shown the levels past ΛΗΘΗ being uncovered - the
+## first time it is opened in Chapter V.
+var levels_unveiled := false
+
+
+## Starts chapter `which`, 1 to 5. Written for a dialogue:
+##
+##     do Campaign.begin_chapter(5)
+func begin_chapter(which: int):
+	which = clampi(which, 1, CHAPTER_LEVELS.size())
+	if which == chapter:
+		return
+	chapter = which
+	announce("[color=lightgreen]Chapter %s begins.[/color]\n" % CHAPTER_NAMES[which - 1])
+	chapter_begun.emit(which)
+
+
+## The highest level the Levels page shows: up to ΛΗΘΗ until Chapter V, then all.
+func levels_in_view() -> int:
+	return Stats.MAX_LEVEL if chapter >= CHAPTER_LEVELS.size() else LETHE_LEVEL
+
+
+## The chapter `level` is reached in: 1 for 1 to 18, 2 for 19 to 33, and so on.
+static func chapter_of_level(level: int) -> int:
+	for i in CHAPTER_LEVELS.size():
+		if level <= CHAPTER_LEVELS[i]:
+			return i + 1
+	return CHAPTER_LEVELS.size()
+
+
+## --- Spellbooks ---
+##
+## Somebody who Learns Spells (CombatantDefinition.learns_spells - Prometheus)
+## does not know a spell of theirs by reaching its level, as Alithia does. They
+## know their Starting Spells, and every other spell of theirs once they have
+## learned it - from a spellbook (ItemDefinition.teaches) or by taking a Gate
+## Nade of it apart (GateNadeDefinition.spell), either of them used up. Only a
+## spell that is theirs can be learned at all: in their own Skills, or the
+## path's they took - no book teaches Prometheus Communion. Learned is
+## learned for good; a spell still needs its level, as anybody's does.
+## In a fight walked into from a map they have only what they have learned
+## (Combat._deploy_party); a fight opened from Arena Mode knows everything.
+
+## combatant key -> every spell they have learned, by key.
+var learned_spells := {}
+
+## Somebody learned a spell. Carries who, and which.
+signal spell_learned(key: String, spell: String)
+
+
+## Whether `key` learns their spells rather than growing into them.
+func learns_spells(key: String) -> bool:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	return definition != null and definition.learns_spells
+
+
+## Every spell `key` could ever know: in their own Skills, or their path's.
+func learnable_spells(key: String) -> Array:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null:
+		return []
+	var keys: Array = Array(definition.skills)
+	var path := SubclassDefinition.named(subclass_of(key))
+	if path != null:
+		for skill_key in path.skills:
+			if not keys.has(skill_key):
+				keys.append(skill_key)
+	return keys.filter(func(skill_key): return Combat.is_spell(SkillDatabase.skills.get(skill_key)))
+
+
+## Whether `key` knows `spell`: always, for somebody who does not learn spells;
+## their Starting Spells and what they have learned, for somebody who does.
+func knows_spell(key: String, spell: String) -> bool:
+	if not learns_spells(key):
+		return true
+	# A dungeon can hand them the lot (DungeonDefinition.knows_every_spell).
+	if dungeon != null and dungeon.knows_every_spell:
+		return true
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	return definition.starting_spells.has(spell) or learned_spells.get(key, []).has(spell)
+
+
+## Why `key` cannot learn `spell` now, or "" when they can.
+func cannot_learn(key: String, spell: String) -> String:
+	var skill: SkillDefinition = SkillDatabase.skills.get(spell)
+	var who := display_name_of(key)
+	if skill == null:
+		return "There is no such spell"
+	if not learns_spells(key):
+		return "%s learns spells by growing into them, not from books" % who
+	if not learnable_spells(key).has(spell):
+		return "%s is not a spell %s can learn" % [skill.name, who]
+	if knows_spell(key, spell):
+		return "%s already knows %s" % [who, skill.name]
+	return ""
+
+
+## The spell `item` teaches, by key - a spellbook's, or a Gate Nade's own - or "".
+static func spell_taught_by(item: ItemDefinition) -> String:
+	if item == null:
+		return ""
+	if item.teaches != "":
+		return item.teaches
+	if item is GateNadeDefinition:
+		return item.spell
+	return ""
+
+
+## Everything in the party's bags that would teach `spell`, spellbooks before
+## Gate Nades: [{"holder": combatant key, "item": item key}].
+func teachers_of(spell: String) -> Array:
+	var books := []
+	var nades := []
+	for holder in party_order:
+		for item_key in inventory_of(holder):
+			var item: ItemDefinition = ItemDatabase.item(item_key) if item_key != "" else null
+			if spell_taught_by(item) != spell:
+				continue
+			(nades if item is GateNadeDefinition else books).append({"holder": holder, "item": item_key})
+	return books + nades
+
+
+## `key` learns `spell` from the first thing in the party's bags that teaches it,
+## which is used up. "" when they have learned it, or why not.
+func learn_spell(key: String, spell: String) -> String:
+	var why := cannot_learn(key, spell)
+	if why != "":
+		return why
+	var teachers := teachers_of(spell)
+	if teachers.is_empty():
+		return "Nothing in the party's bags teaches %s" % SkillDatabase.skills[spell].name
+	take_item(teachers[0].holder, teachers[0].item)
+	learn(key, spell)
+	return ""
+
+
+## `key` knows `spell` from now on, whatever taught it - for the story's own
+## teaching too: `do Campaign.learn("prometheus", "fireball")`.
+func learn(key: String, spell: String):
+	if not learned_spells.has(key):
+		learned_spells[key] = []
+	if learned_spells[key].has(spell):
+		return
+	learned_spells[key].append(spell)
+	var skill: SkillDefinition = SkillDatabase.skills.get(spell)
+	announce("[color=lightgreen]%s learns %s.[/color]\n" % [display_name_of(key), skill.name if skill != null else spell])
+	spell_learned.emit(key, spell)
+
+
+## `comb`'s skill list, played as `key`, without the spells they have not learned.
+func forget_unlearned(comb: Dictionary, key: String):
+	if not learns_spells(key):
+		return
+	comb.skill_list = comb.skill_list.filter(func(skill_key):
+		return not Combat.is_spell(SkillDatabase.skills.get(skill_key)) or knows_spell(key, skill_key))
+
+
 ## --- Paths ---
 ##
-## At level 5 (Stats.SUBCLASS_LEVEL) each of the party chooses one of their
+## At level 24 (Stats.SUBCLASS_LEVEL) each of the party chooses one of their
 ## paths - SubclassDefinition, three each - once and for good. Combat puts them
 ## on it (Combat.take_path); the map asks for the choice (SubclassPicker).
 
 ## combatant key -> the key of the path they chose.
 var subclasses: Dictionary = {}
 
-## Whether a party at level 5 or past it is asked on the map to choose paths at
+## Whether a party at level 24 or past it is asked on the map to choose paths at
 ## all. On in the game. The test harness turns it off (game/asks_for_paths in
 ## its copy's project settings) so suites about other things are not stopped by
 ## the choice; the suites about paths turn it back on.
@@ -117,6 +298,28 @@ var asks_for_paths: bool = ProjectSettings.get_setting("game/asks_for_paths", tr
 
 ## Somebody chose their path.
 signal subclass_chosen(key: String, subclass: String)
+
+
+## The paths as they were before they were remade (2026-10-23), and what each
+## became - a save from before keeps its choice. The Carer has no successor, so
+## its choice is open again.
+const OLD_PATHS := {
+	"berserker": "vanguard", "controller": "juggernaut", "guardian": "warden_of_cover",
+	"swashbuckler": "skirmisher", "gunner": "saboteur", "bombardier": "trapper",
+	"spellsword": "elemental_vanguard", "abjurer": "elemental_tactician", "demolitionist": "elemental_conductor",
+	"punisher": "battle_chaplain", "illusionist": "illusory_shepherd", "carer": "",
+}
+
+
+## A save's paths under their names now (OLD_PATHS).
+func _carry_old_paths():
+	for key in subclasses.keys():
+		var path: String = subclasses[key]
+		if OLD_PATHS.has(path):
+			if OLD_PATHS[path] == "":
+				subclasses.erase(key)
+			else:
+				subclasses[key] = OLD_PATHS[path]
 
 
 ## The path `key` is on, or "".
@@ -433,6 +636,8 @@ func save_stealth_checkpoint(map_path: String, arrived_at: Vector2):
 		"party_level": party_level,
 		"party_state": party_state.duplicate(true),
 		"inventories": inventories.duplicate(true),
+		"containers": containers.duplicate(true),
+		"stacks": stacks.duplicate(true),
 		"flags": flags.duplicate(true),
 		"cleared_triggers": cleared_triggers.duplicate(),
 	}
@@ -458,6 +663,8 @@ func restart_stealth():
 	party_level = back.party_level
 	party_state = back.party_state.duplicate(true)
 	inventories = back.inventories.duplicate(true)
+	containers = back.get("containers", {}).duplicate(true)
+	stacks = back.get("stacks", {}).duplicate(true)
 	flags = back.flags.duplicate(true)
 	cleared_triggers = back.cleared_triggers.duplicate()
 	stealth_state.erase(back.map)
@@ -481,8 +688,8 @@ func restart_stealth():
 
 ## The keys of everything the run is made of, copied as they are.
 const SAVED := ["party_level", "party_state", "subclasses", "inventories", "gear", "equipped",
-	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside",
-	"parley"]
+	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
+	"parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks"]
 
 
 ## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with
@@ -513,6 +720,7 @@ func restore(state: Dictionary):
 		if state.has(key):
 			var value = state[key]
 			set(key, value.duplicate(true) if value is Dictionary or value is Array else value)
+	_carry_old_paths()
 	var dungeon_path: String = state.get("dungeon", "")
 	dungeon = load(dungeon_path) if dungeon_path != "" else null
 	current_encounter = null
@@ -571,6 +779,12 @@ func apply_carried_state(comb: Dictionary, key: String):
 		for gate in mini(slots.size(), stored.spell_slots.size()):
 			slots[gate] = mini(stored.spell_slots[gate], slots[gate])
 		comb.spell_slots = slots
+	# And so do the uses spent until a rest (Combat.SPENT_UNTIL_REST) - only a
+	# short or long rest brings them back. Elsewhere every fight has them all.
+	if in_dungeon() and stored.has("spent_until_rest"):
+		var spent: Dictionary = stored.spent_until_rest
+		for what in spent:
+			comb[what] = spent[what].duplicate(true) if spent[what] is Dictionary else spent[what]
 
 
 ## Gates `key` opened outside a fight - for a hack's hint (Hacking) - stay
@@ -622,7 +836,7 @@ func spend_gate_outside(key: String, gate: int) -> bool:
 		party_state[key]["spell_slots"] = left
 		party_state[key]["max_spell_slots"] = gates_most(key)
 		return true
-	var spent: Array = gates_spent_outside.get(key, [0, 0, 0, 0]).duplicate()
+	var spent: Array = gates_spent_outside.get(key, Stats.no_gates()).duplicate()
 	while spent.size() <= gate:
 		spent.append(0)
 	spent[gate] += 1
@@ -638,6 +852,80 @@ func strain(key: String, amount: int):
 	if not party_state.has(key):
 		party_state[key] = {"hp": _full_health(key), "max_hp": _full_health(key), "alive": true}
 	party_state[key].hp = maxi(party_state[key].hp - amount, 1)
+
+
+## --- Gates opened only outside a fight ---
+##
+## Iris (Stats.OUTSIDE_GATES) has castings of its own, for the spells cast on a
+## map (SkillDefinition.outside_gate), so sneaking never costs a fight's gates.
+## They come back when a fight's own gates do: at the start of every fight
+## (Combat._deploy_party clears this), but in a dungeon only through a rest's
+## recovery (recover_gates), at the price of the gate each matches.
+
+## combatant key -> castings spent through each outside gate, indexed by gate.
+var outside_spent := {}
+
+
+## The spells `key` can cast outside a fight, by skill key: their own and their
+## path's that go through an outside gate - learned, and through a gate the
+## party's level has opened. The rest stay on the character sheet.
+func outside_spells(key: String) -> Array:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null:
+		return []
+	var known: Array = []
+	known.append_array(definition.skills)
+	known.append_array(definition.secondary_skills)
+	var path := SubclassDefinition.named(subclass_of(key))
+	if path != null:
+		known.append_array(path.skills)
+	var opened := Stats.outside_gates_for_level(party_level)
+	var found := []
+	for skill_key in known:
+		var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
+		if skill == null or skill.outside_gate <= 0 or found.has(skill_key):
+			continue
+		if skill.required_level > party_level or skill.outside_gate >= opened.size() or opened[skill.outside_gate] <= 0:
+			continue
+		found.append(skill_key)
+	return found
+
+
+## The most castings `key` has through each outside gate: as many as the ladder
+## gate it matches has at the party's level, for a gate they know a spell of,
+## and none through the rest.
+func outside_gates_most(key: String) -> Array:
+	var most := Stats.outside_gates_for_level(party_level)
+	var opened := {}
+	for skill_key in outside_spells(key):
+		opened[SkillDatabase.skills[skill_key].outside_gate] = true
+	for gate in most.size():
+		if not opened.has(gate):
+			most[gate] = 0
+	return most
+
+
+## How many castings `key` has left through each outside gate.
+func outside_gates_left(key: String) -> Array:
+	var left := outside_gates_most(key)
+	var spent: Array = outside_spent.get(key, [])
+	for gate in mini(left.size(), spent.size()):
+		left[gate] = maxi(left[gate] - spent[gate], 0)
+	return left
+
+
+## Spends `count` of `key`'s castings through outside gate `gate`. False, and
+## nothing spent, without that many left.
+func spend_outside_gate(key: String, gate: int, count: int = 1) -> bool:
+	var left := outside_gates_left(key)
+	if gate <= 0 or gate >= left.size() or count <= 0 or left[gate] < count:
+		return false
+	var spent: Array = outside_spent.get(key, []).duplicate()
+	while spent.size() <= gate:
+		spent.append(0)
+	spent[gate] += count
+	outside_spent[key] = spent
+	return true
 
 
 ## Health of `key` at full, at the party's level.
@@ -659,8 +947,9 @@ func is_alive(key: String) -> bool:
 ## ends, for every player-side combatant, win or lose.
 func record_party(combatants: Array):
 	for comb in combatants:
-		# Somebody bought or rebound fought beside them, but is not one of them.
-		if comb.side != 0 or comb.has("turncoat"):
+		# Somebody bought or rebound fought beside them, but is not one of them;
+		# nor is anything summoned, which goes with the fight.
+		if comb.side != 0 or comb.has("turncoat") or comb.has("summoner"):
 			continue
 		var key = comb.get("combatant_key", "")
 		if key == "":
@@ -678,6 +967,7 @@ func record_party(combatants: Array):
 		if in_dungeon():
 			party_state[key]["spell_slots"] = comb.get("spell_slots", []).duplicate()
 			party_state[key]["max_spell_slots"] = comb.get("max_spell_slots", []).duplicate()
+			party_state[key]["spent_until_rest"] = Combat.spent_until_rest(comb)
 
 
 ## Back to full strength: everyone alive, everyone at full health, every
@@ -730,6 +1020,7 @@ func reset():
 	dungeon_stage = 0
 	gate_recoveries_left = 0
 	gates_spent_outside.clear()
+	outside_spent.clear()
 	parley = {}
 	_encounter_answer = EncounterAnswer.UNANSWERED
 	party_state.clear()
@@ -738,11 +1029,16 @@ func reset():
 	stealth_checkpoint = {}
 	party_order.clear()
 	party_level = 1
+	chapter = 1
+	levels_unveiled = false
+	learned_spells.clear()
 	subclasses.clear()
 	gear.clear()
 	gold = 0
 	equipped.clear()
 	inventories.clear()
+	containers.clear()
+	stacks.clear()
 	# Starting over starts over: what the last playthrough had read, pulled and
 	# opened is not true of this one.
 	flags.clear()
@@ -1055,7 +1351,9 @@ func _go_to_dungeon_stage(autosave: bool = true):
 
 
 ## Everyone back to full health - and, if the dungeon says so, back on their
-## feet. What they carry is left as it is.
+## feet. What they carry is left as it is. What is spent until a rest comes
+## back with it: the rest between a dungeon's stages counts as a short rest
+## until the designer says what it is (short_rest).
 func rest_party():
 	for key in party_order:
 		if not party_state.has(key):
@@ -1065,6 +1363,24 @@ func rest_party():
 			continue
 		state.hp = state.get("max_hp", state.hp)
 		state.alive = true
+	short_rest()
+
+
+## --- Short and long rests ---
+##
+## The plug-in for them (the designer, 2026-10-24): what each brings back. A
+## short rest brings back everything spent until one (Combat.SPENT_UNTIL_REST) -
+## a skill's uses a short rest, a free amplification, a Conduit; a long rest all
+## of that, too. What else they do - health, gates, how many a dungeon has - is
+## the designer's still to give (the ledger's Short rest and Long rest,
+## PROPOSAL; docs/healing_and_rest_proposal.md).
+func short_rest():
+	for key in party_state:
+		party_state[key].erase("spent_until_rest")
+
+
+func long_rest():
+	short_rest()
 
 
 ## Whether a rest can bring `key`'s gates back now: the dungeon offers it for
@@ -1072,14 +1388,30 @@ func rest_party():
 func can_recover_gates(key: String) -> bool:
 	if dungeon == null or gate_recoveries_left <= 0 or not dungeon.gate_recovery_for.has(key):
 		return false
-	if not party_order.has(key) or not party_state.has(key) or not party_state[key].has("spell_slots"):
+	if not party_order.has(key):
 		return false
-	var left := gates_left(key)
-	var most := gates_most(key)
-	for gate in range(1, most.size()):
-		if dungeon.gate_cost(gate) > 0 and left[gate] < most[gate]:
+	if party_state.has(key) and party_state[key].has("spell_slots"):
+		var left := gates_left(key)
+		var most := gates_most(key)
+		for gate in range(1, most.size()):
+			if dungeon.gate_cost(gate) > 0 and left[gate] < most[gate]:
+				return true
+	# Iris and the like: brought back the same way, at the price of the gate
+	# each matches.
+	var outside_left := outside_gates_left(key)
+	var outside_most := outside_gates_most(key)
+	for gate in range(1, outside_most.size()):
+		if outside_gate_cost(gate) > 0 and outside_left[gate] < outside_most[gate]:
 			return true
 	return false
+
+
+## What bringing back one casting through outside gate `gate` costs at a rest:
+## the price of the ladder gate it matches.
+func outside_gate_cost(gate: int) -> int:
+	if dungeon == null or gate < 1 or gate >= Stats.OUTSIDE_GATES.size():
+		return 0
+	return dungeon.gate_cost(Stats.OUTSIDE_GATES[gate].matches)
 
 
 ## How many castings `key` has left through each gate, indexed by gate.
@@ -1094,24 +1426,28 @@ func gates_most(key: String) -> Array:
 	if state.has("max_spell_slots"):
 		return state.max_spell_slots.duplicate()
 	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
-	return definition.gates_at(party_level) if definition != null else [0, 0, 0, 0]
+	return definition.gates_at(party_level) if definition != null else Stats.no_gates()
 
 
-## What bringing back `counts` castings - one count per gate - costs.
-func gate_recovery_cost(counts: Array) -> int:
+## What bringing back `counts` castings - one count per gate - costs, and
+## `outside` through the gates opened only outside a fight (Iris), by gate.
+func gate_recovery_cost(counts: Array, outside: Array = []) -> int:
 	var cost := 0
 	for gate in counts.size():
 		cost += maxi(counts[gate], 0) * (dungeon.gate_cost(gate) if dungeon != null else 0)
+	for gate in outside.size():
+		cost += maxi(outside[gate], 0) * outside_gate_cost(gate)
 	return cost
 
 
-## Brings back `counts` of `key`'s castings, one count per gate, spending one
-## of the run's recoveries. Refused, and nothing changed, if it costs more than
-## a recovery has to spend, brings back more than was spent, or none is left.
-func recover_gates(key: String, counts: Array) -> bool:
+## Brings back `counts` of `key`'s castings, one count per gate - and `outside`
+## through Iris and the like - spending one of the run's recoveries. Refused,
+## and nothing changed, if it costs more than a recovery has to spend, brings
+## back more than was spent, or none is left.
+func recover_gates(key: String, counts: Array, outside: Array = []) -> bool:
 	if not can_recover_gates(key):
 		return false
-	var cost := gate_recovery_cost(counts)
+	var cost := gate_recovery_cost(counts, outside)
 	if cost <= 0 or cost > dungeon.gate_recovery_points:
 		return false
 	var left := gates_left(key)
@@ -1119,10 +1455,21 @@ func recover_gates(key: String, counts: Array) -> bool:
 	for gate in counts.size():
 		if counts[gate] < 0 or (counts[gate] > 0 and (gate >= left.size() or left[gate] + counts[gate] > most[gate])):
 			return false
-	for gate in counts.size():
-		if counts[gate] > 0:
-			left[gate] += counts[gate]
-	party_state[key]["spell_slots"] = left
+	var outside_left := outside_gates_left(key)
+	var outside_most := outside_gates_most(key)
+	for gate in outside.size():
+		if outside[gate] < 0 or (outside[gate] > 0 and (gate >= outside_left.size() or outside_left[gate] + outside[gate] > outside_most[gate])):
+			return false
+	if counts.any(func(count): return count > 0):
+		for gate in counts.size():
+			if counts[gate] > 0:
+				left[gate] += counts[gate]
+		party_state[key]["spell_slots"] = left
+	var spent: Array = outside_spent.get(key, []).duplicate()
+	for gate in mini(outside.size(), spent.size()):
+		spent[gate] = maxi(spent[gate] - maxi(outside[gate], 0), 0)
+	if not spent.is_empty():
+		outside_spent[key] = spent
 	gate_recoveries_left -= 1
 	return true
 
@@ -1132,29 +1479,36 @@ func recover_gates(key: String, counts: Array) -> bool:
 ## A bag per character rather than one shared pool, so who is carrying the last
 ## potion is a real question. Everyone in the party can reach everyone else's
 ## outside a fight (see the inventory screen on I); in a battle a character has
-## only what is in their own first four slots.
+## only what is in their belt.
+##
+## The bag is the containers they wear (see "Containers") end to end - the
+## belt's slots first, then the pouch's, then the backpack's - so the front of
+## the bag is what they fight with.
 
 
-## How much anybody can carry. Slots rather than a growing list so a bag has a
-## shape on screen and "full" means something.
-const INVENTORY_SIZE := 12
+## What everybody carries to start: the starting belt's slots and the starting
+## backpack's. What somebody carries now is bag_size.
+const INVENTORY_SIZE := 24
 
-## The slots that come with you into a fight. They are the front of the same
-## bag rather than a separate pocket, so packing for a battle is a decision
-## made with the inventory screen before walking into one.
+## The starting belt's slots - what comes into a fight unless somebody wears a
+## bigger one. What somebody fights from now is combat_slots_of.
 const COMBAT_SLOTS := 4
 
-## combatant_key -> Array[String] of exactly INVENTORY_SIZE entries, "" where
-## the slot is empty. Empty slots are kept rather than compacted away so an
-## item stays where it was put.
+## combatant_key -> Array[String] of exactly bag_size entries, "" where the slot
+## is empty. Empty slots are kept rather than compacted away so an item stays
+## where it was put.
 var inventories: Dictionary = {}
+## combatant_key -> {slot index: how many}, for the slots holding more than one
+## of a bomb (EquipmentDefinition.bombs_per_slot). One is not written down.
+var stacks: Dictionary = {}
 
 
 ## Somebody's bag, made if they have never had one.
 func inventory_of(key: String) -> Array:
+	var size := bag_size(key)
 	if not inventories.has(key):
 		var slots: Array = []
-		slots.resize(INVENTORY_SIZE)
+		slots.resize(size)
 		slots.fill("")
 		# Empty. A bag is filled by something that happens - an encounter's
 		# spawn list handing one out in Arena Mode, or a dialogue giving
@@ -1162,7 +1516,35 @@ func inventory_of(key: String) -> Array:
 		# used to grant a character their database kit, which meant every
 		# exploration started with a satchel nobody had been given.
 		inventories[key] = slots
+	elif inventories[key].size() != size:
+		# A bag saved before its containers were as they are now.
+		_fit_bag(key, size)
 	return inventories[key]
+
+
+## `key`'s bag made `size` slots long, keeping what is in it in order. What will
+## not fit in a smaller one is gone, and said.
+func _fit_bag(key: String, size: int):
+	var kept: Array = []
+	var counts: Dictionary = {}
+	var was: Array = inventories[key]
+	for i in was.size():
+		if was[i] == "":
+			continue
+		if kept.size() < size:
+			counts[kept.size()] = count_in(key, i)
+			kept.append(was[i])
+		else:
+			push_warning("%s's bag is smaller now: %s is lost." % [key, was[i]])
+	var slots: Array = []
+	slots.resize(size)
+	slots.fill("")
+	stacks.erase(key)
+	inventories[key] = slots
+	# Laid out from the front, as many in a slot as were.
+	for i in kept.size():
+		slots[i] = kept[i]
+		_set_count(key, i, counts[i])
 
 
 ## Replaces somebody's bag outright, in the order given.
@@ -1171,10 +1553,12 @@ func inventory_of(key: String) -> Array:
 ## carrying is the encounter's to decide there, rather than whatever their
 ## database entry lists or they happened to be holding on some map.
 func set_inventory(key: String, items: Array):
+	var size := bag_size(key)
 	var slots: Array = []
-	slots.resize(INVENTORY_SIZE)
+	slots.resize(size)
 	slots.fill("")
-	for i in mini(items.size(), INVENTORY_SIZE):
+	stacks.erase(key)
+	for i in mini(items.size(), size):
 		if items[i] == "":
 			continue
 		if ItemDatabase.items.has(items[i]):
@@ -1205,19 +1589,27 @@ func give_item(key: String, item_id: String) -> bool:
 		push_warning("Campaign.give_item('%s', '%s'): their bag is full." % [key, item_id])
 		return false
 	var item: ItemDefinition = ItemDatabase.item(item_id)
-	announce("[color=lightgreen]%s[/color] receives [color=yellow]%s[/color].
-" % [
+	announce("[color=lightgreen]%s[/color] receives [color=yellow]%s[/color].\n" % [
 		display_name_of(key), item.name if item != null else item_id])
 	return true
 
 
 ## Puts `item_id` in `key`'s first free slot without a word said, and answers
-## which slot - -1 when the bag is full. The front slots come first, so
+## which slot - -1 when the bag is full. A bomb goes onto another of its kind
+## first, where its container lets them stack. The belt comes first, so
 ## something put away in a fight is to hand at once if there is room: a Steal
-## (Combat.steal) does its own telling.
-func stow_item(key: String, item_id: String) -> int:
+## (Combat.steal) does its own telling. `kind` keeps it to one container.
+func stow_item(key: String, item_id: String, kind: String = "") -> int:
 	var slots = inventory_of(key)
-	for i in slots.size():
+	var item: ItemDefinition = ItemDatabase.item(item_id) if item_id != "" else null
+	var span := _span_of(key, kind)
+	if item != null and item.bomb:
+		for i in range(span.x, span.y):
+			if slots[i] == item_id and count_in(key, i) < holds_at(key, i, item_id):
+				_set_count(key, i, count_in(key, i) + 1)
+				inventory_changed.emit(key)
+				return i
+	for i in range(span.x, span.y):
 		if slots[i] == "":
 			slots[i] = item_id
 			inventory_changed.emit(key)
@@ -1225,21 +1617,58 @@ func stow_item(key: String, item_id: String) -> int:
 	return -1
 
 
-## Takes one `item_id` off `key`, preferring the combat slots so that using one
-## in a fight spends the one that was to hand. False if they had none.
-func take_item(key: String, item_id: String) -> bool:
+## Takes one `item_id` off `key`, preferring the belt so that using one in a
+## fight spends the one that was to hand - or out of the container `kind` only.
+## False if they had none there.
+func take_item(key: String, item_id: String, kind: String = "") -> bool:
 	var slots = inventory_of(key)
-	for i in slots.size():
+	var span := _span_of(key, kind)
+	for i in range(span.x, span.y):
 		if slots[i] == item_id:
-			slots[i] = ""
+			var count := count_in(key, i)
+			if count > 1:
+				_set_count(key, i, count - 1)
+			else:
+				slots[i] = ""
+				_set_count(key, i, 0)
 			inventory_changed.emit(key)
 			return true
 	return false
 
 
+## How many are in `key`'s slot `slot`: 0 for an empty one, 1 for most, more for
+## a stack of bombs.
+func count_in(key: String, slot: int) -> int:
+	var slots: Array = inventories.get(key, [])
+	if slot < 0 or slot >= slots.size() or slots[slot] == "":
+		return 0
+	return stacks.get(key, {}).get(slot, 1)
+
+
+func _set_count(key: String, slot: int, count: int):
+	if count > 1:
+		if not stacks.has(key):
+			stacks[key] = {}
+		stacks[key][slot] = count
+	elif stacks.has(key):
+		stacks[key].erase(slot)
+
+
+## How many of `item_id` `key`'s slot `slot` can hold: a container's Bombs Per
+## Slot for a bomb, one of anything else.
+func holds_at(key: String, slot: int, item_id: String) -> int:
+	var item: ItemDefinition = ItemDatabase.item(item_id) if item_id != "" else null
+	if item == null or not item.bomb:
+		return 1
+	var piece := EquipmentDefinition.named(container_in(key, container_at(key, slot)))
+	return piece.bombs_per_slot if piece != null else 1
+
+
 ## Moves whatever is in one slot to another, swapping if the destination is
 ## taken. The two slots can belong to different people, which is how the party
-## hands things round: both bags are open on the same screen.
+## hands things round: both bags are open on the same screen. A bomb onto a stack
+## of its kind with room joins it; a stack into a slot that holds fewer moves
+## what fits and leaves the rest, if that slot is empty, and is refused if not.
 func move_item(from_key: String, from_slot: int, to_key: String, to_slot: int) -> bool:
 	var from_slots = inventory_of(from_key)
 	var to_slots = inventory_of(to_key)
@@ -1249,21 +1678,47 @@ func move_item(from_key: String, from_slot: int, to_key: String, to_slot: int) -
 		return false
 	if from_key == to_key and from_slot == to_slot:
 		return false
-	var moving = from_slots[from_slot]
-	from_slots[from_slot] = to_slots[to_slot]
-	to_slots[to_slot] = moving
+	var moving: String = from_slots[from_slot]
+	var moving_count := count_in(from_key, from_slot)
+	var there: String = to_slots[to_slot]
+	var there_count := count_in(to_key, to_slot)
+	if moving != "" and moving == there and holds_at(to_key, to_slot, moving) > 1:
+		# Onto more of the same, where they stack: as many as there is room for.
+		var room := holds_at(to_key, to_slot, moving) - there_count
+		if room <= 0:
+			return false
+		var going := mini(room, moving_count)
+		_set_count(to_key, to_slot, there_count + going)
+		if going >= moving_count:
+			from_slots[from_slot] = ""
+			_set_count(from_key, from_slot, 0)
+		else:
+			_set_count(from_key, from_slot, moving_count - going)
+	elif there == "" and moving_count > holds_at(to_key, to_slot, moving):
+		# More than the slot takes: what fits goes, the rest stays.
+		var going := holds_at(to_key, to_slot, moving)
+		to_slots[to_slot] = moving
+		_set_count(to_key, to_slot, going)
+		_set_count(from_key, from_slot, moving_count - going)
+	else:
+		if moving_count > holds_at(to_key, to_slot, moving) or there_count > holds_at(from_key, from_slot, there):
+			return false
+		from_slots[from_slot] = there
+		to_slots[to_slot] = moving
+		_set_count(from_key, from_slot, there_count)
+		_set_count(to_key, to_slot, moving_count)
 	inventory_changed.emit(from_key)
 	if to_key != from_key:
 		inventory_changed.emit(to_key)
 	return true
 
 
-## What `key` can actually reach in a fight: the item ids in their first
-## COMBAT_SLOTS slots, in order, with the empties left out.
+## What `key` can actually reach in a fight: the item ids in their belt, in
+## order - one for each of a stack - with the empties left out.
 func combat_items_of(key: String) -> Array:
 	var found: Array = []
 	var slots = inventory_of(key)
-	for i in mini(COMBAT_SLOTS, slots.size()):
+	for i in mini(combat_slots_of(key), slots.size()):
 		if slots[i] == "":
 			continue
 		# A disguise is worn on a stealth map, not thrown at anybody, and a
@@ -1271,7 +1726,8 @@ func combat_items_of(key: String) -> Array:
 		var item: ItemDefinition = ItemDatabase.item(slots[i])
 		if item != null and item.stealth_only():
 			continue
-		found.append(slots[i])
+		for each in count_in(key, i):
+			found.append(slots[i])
 	return found
 
 
@@ -1318,9 +1774,10 @@ func food_poison_of(key: String) -> String:
 ## How many of `item_id` somebody is carrying, anywhere in their bag.
 func count_of(key: String, item_id: String) -> int:
 	var total = 0
-	for slot in inventory_of(key):
-		if slot == item_id:
-			total += 1
+	var slots = inventory_of(key)
+	for i in slots.size():
+		if slots[i] == item_id:
+			total += count_in(key, i)
 	return total
 
 
@@ -1333,10 +1790,264 @@ func count_of(key: String, item_id: String) -> int:
 ## database, so "empty" has to be a bag that exists and is empty.
 func empty_inventory(key: String):
 	var slots: Array = []
-	slots.resize(INVENTORY_SIZE)
+	slots.resize(bag_size(key))
 	slots.fill("")
 	inventories[key] = slots
+	stacks.erase(key)
 	inventory_changed.emit(key)
+
+
+## --- Containers ---
+##
+## What somebody carries things in: a backpack, which everybody has, and a pouch
+## and a belt besides, if they wear them. The belt is what they fight from -
+## what is in it comes into a battle; the pouch and the backpack keep the rest.
+## Each is a piece of gear (EquipmentDefinition, slot Belt, Pouch or Backpack)
+## with so many Slots, bought, looted and kept in the stash like any other. The
+## bag (inventory_of) is the three end to end, belt first.
+##
+## A container worn holds what is in it; one in the stash holds nothing.
+## Putting on another (wear_container) moves the contents over, or is refused
+## if they will not fit. Taking a pouch or a belt off (take_off_container) moves
+## what was in it into the others' free slots, backpack first, or is refused;
+## the backpack can only be changed for another. Two of the party swap the
+## containers of a kind, contents and all (swap_containers). A container with
+## Bombs Per Slot above one holds that many of the same bomb to a slot, counted
+## in `stacks`.
+
+## The containers, in the order the bag lays them end to end.
+const CONTAINER_SLOTS := ["belt", "pouch", "backpack"]
+## What everybody starts out wearing.
+const STARTING_BELT := "simple_belt"
+const STARTING_BACKPACK := "travellers_pack"
+
+## combatant key -> {"belt": key, "pouch": key, "backpack": key}, "" for none.
+var containers: Dictionary = {}
+
+
+## What `key` wears to carry things in, made if they have never had any: the
+## starting belt and backpack, and no pouch.
+func containers_of(key: String) -> Dictionary:
+	if not containers.has(key):
+		containers[key] = {"belt": STARTING_BELT, "pouch": "", "backpack": STARTING_BACKPACK}
+	return containers[key]
+
+
+## The container `key` wears as their `kind` ("belt", "pouch", "backpack"), or "".
+func container_in(key: String, kind: String) -> String:
+	return containers_of(key).get(kind, "")
+
+
+## How many slots `key`'s `kind` has - 0 with none worn.
+func slots_in(key: String, kind: String) -> int:
+	var piece := EquipmentDefinition.named(container_in(key, kind))
+	return piece.slots if piece != null else 0
+
+
+## How many slots `key`'s bag has, every container's together.
+func bag_size(key: String) -> int:
+	var total := 0
+	for kind in CONTAINER_SLOTS:
+		total += slots_in(key, kind)
+	return total
+
+
+## How many things `key` can have to hand in a fight: their belt's slots.
+func combat_slots_of(key: String) -> int:
+	return slots_in(key, "belt")
+
+
+## Where `kind` starts in `key`'s bag.
+func container_start(key: String, kind: String) -> int:
+	var start := 0
+	for each in CONTAINER_SLOTS:
+		if each == kind:
+			return start
+		start += slots_in(key, each)
+	return start
+
+
+## Which container `key`'s bag slot `slot` is in.
+func container_at(key: String, slot: int) -> String:
+	var start := 0
+	for kind in CONTAINER_SLOTS:
+		start += slots_in(key, kind)
+		if slot < start:
+			return kind
+	return ""
+
+
+## The slots of `kind` in `key`'s bag, as Vector2i(first, past the last) - the
+## whole bag for "".
+func _span_of(key: String, kind: String) -> Vector2i:
+	if kind == "":
+		return Vector2i(0, inventory_of(key).size())
+	var start := container_start(key, kind)
+	return Vector2i(start, start + slots_in(key, kind))
+
+
+## What is in `key`'s `kind`, one item key for each thing - a stack of two bombs
+## twice - in slot order.
+func contents_of(key: String, kind: String) -> Array:
+	var found: Array = []
+	var slots = inventory_of(key)
+	var span := _span_of(key, kind)
+	for i in range(span.x, span.y):
+		for each in count_in(key, i):
+			found.append(slots[i])
+	return found
+
+
+## Whether `key`'s `kind` has an empty slot.
+func has_room_in(key: String, kind: String) -> bool:
+	var slots = inventory_of(key)
+	var span := _span_of(key, kind)
+	for i in range(span.x, span.y):
+		if slots[i] == "":
+			return true
+	return false
+
+
+## Each container's slots in `key`'s bag as [item, count], by kind.
+func _segments(key: String) -> Dictionary:
+	var slots = inventory_of(key)
+	var found := {}
+	for kind in CONTAINER_SLOTS:
+		var span := _span_of(key, kind)
+		var each: Array = []
+		for i in range(span.x, span.y):
+			each.append([slots[i], count_in(key, i)])
+		found[kind] = each
+	return found
+
+
+## `key`'s bag laid out again from `segments` (kind -> [item, count] per slot),
+## for the containers they wear now.
+func _lay_out(key: String, segments: Dictionary):
+	var slots: Array = []
+	stacks.erase(key)
+	for kind in CONTAINER_SLOTS:
+		var size := slots_in(key, kind)
+		var each: Array = segments.get(kind, [])
+		for i in size:
+			var entry: Array = each[i] if i < each.size() else ["", 0]
+			slots.append(entry[0])
+			if entry[0] != "":
+				_set_count(key, slots.size() - 1, entry[1])
+	inventories[key] = slots
+	inventory_changed.emit(key)
+
+
+## `entries` ([item, count] per slot) packed into `piece`: the empties dropped,
+## and bombs put together as far as its Bombs Per Slot goes. Null if it all will
+## not go in its slots.
+func _packed(entries: Array, piece: EquipmentDefinition):
+	var out: Array = []
+	for entry in entries:
+		if entry[0] == "":
+			continue
+		var item: ItemDefinition = ItemDatabase.item(entry[0])
+		var most: int = piece.bombs_per_slot if item != null and item.bomb else 1
+		var left: int = entry[1]
+		# Onto a stack of the same with room first.
+		for packed in out:
+			if left <= 0:
+				break
+			if packed[0] == entry[0] and packed[1] < most:
+				var going := mini(most - packed[1], left)
+				packed[1] += going
+				left -= going
+		while left > 0:
+			var going := mini(most, left)
+			out.append([entry[0], going])
+			left -= going
+	if out.size() > piece.slots:
+		return null
+	return out
+
+
+## `key` puts on `container_key`, from the stash, in place of whatever they wear
+## of its kind - which goes to the stash, its contents moved over. "" when done,
+## or why not.
+func wear_container(key: String, container_key: String) -> String:
+	var piece := EquipmentDefinition.named(container_key)
+	if piece == null or not piece.is_container():
+		return "That is nothing to carry things in"
+	if not gear.has(container_key):
+		return "%s is not in the stash" % piece.name
+	if not piece.fits(key):
+		return "%s is not for %s" % [piece.name, display_name_of(key)]
+	var kind := piece.slot_key()
+	var old := container_in(key, kind)
+	var segments := _segments(key)
+	var packed = _packed(segments[kind], piece)
+	if packed == null:
+		var was := EquipmentDefinition.named(old)
+		return "%s will not hold everything in %s's %s" % [piece.name, display_name_of(key), was.name.to_lower() if was != null else kind]
+	segments[kind] = packed
+	gear.erase(container_key)
+	if old != "":
+		gear.append(old)
+	containers_of(key)[kind] = container_key
+	_lay_out(key, segments)
+	gear_changed.emit()
+	return ""
+
+
+## `key` takes off their pouch or belt, back to the stash, what was in it moved
+## into their other containers' free slots - the backpack's first. "" when done,
+## or why not. The backpack stays: it can only be changed for another.
+func take_off_container(key: String, kind: String) -> String:
+	if kind == "backpack":
+		return "Everybody keeps a backpack - change it for another instead"
+	var old := container_in(key, kind)
+	if old == "":
+		return "%s wears no %s" % [display_name_of(key), kind]
+	var segments := _segments(key)
+	var moving: Array = segments[kind]
+	segments[kind] = []
+	for entry in moving:
+		if entry[0] == "":
+			continue
+		var placed := false
+		for other in ["backpack", "pouch", "belt"]:
+			if other == kind or placed:
+				continue
+			for slot in segments[other]:
+				if slot[0] == "":
+					slot[0] = entry[0]
+					slot[1] = entry[1]
+					placed = true
+					break
+		if not placed:
+			return "There is no room elsewhere for what is in %s's %s" % [display_name_of(key), kind]
+	containers_of(key)[kind] = ""
+	gear.append(old)
+	_lay_out(key, segments)
+	gear_changed.emit()
+	return ""
+
+
+## `one` and `other` swap the containers they wear as `kind`, contents and all -
+## or one hands theirs to the other, who wears none. "" when done, or why not.
+func swap_containers(one: String, other: String, kind: String) -> String:
+	if one == other:
+		return ""
+	if container_in(one, kind) == "" and container_in(other, kind) == "":
+		return "Neither of them wears a %s" % kind
+	if kind == "backpack" and (container_in(one, kind) == "" or container_in(other, kind) == ""):
+		return "Everybody keeps a backpack"
+	var first := _segments(one)
+	var second := _segments(other)
+	var was: String = containers_of(one)[kind]
+	containers_of(one)[kind] = containers_of(other)[kind]
+	containers_of(other)[kind] = was
+	var moving: Array = first[kind]
+	first[kind] = second[kind]
+	second[kind] = moving
+	_lay_out(one, first)
+	_lay_out(other, second)
+	return ""
 
 
 ## --- Gear ---
@@ -1379,6 +2090,9 @@ func equip(character: String, key: String) -> bool:
 	var piece := EquipmentDefinition.named(key)
 	if piece == null or not gear.has(key) or not piece.fits(character):
 		return false
+	# Something to carry things in, with what is in it (see "Containers").
+	if piece.is_container():
+		return wear_container(character, key) == ""
 	if not equipped.has(character):
 		equipped[character] = {}
 	var slot := piece.slot_key()
@@ -1393,6 +2107,8 @@ func equip(character: String, key: String) -> bool:
 
 ## Takes off whatever `character` has in `slot`, back to the stash.
 func unequip(character: String, slot: String) -> bool:
+	if slot in CONTAINER_SLOTS:
+		return take_off_container(character, slot) == ""
 	var was := equipped_in(character, slot)
 	if was == "":
 		return false
@@ -1698,9 +2414,14 @@ func combine_slots(from_key: String, from_slot: int, to_key: String, to_slot: in
 	if from_key == to_key and from_slot == to_slot:
 		return ""
 	var made = combination_of(from_slots[from_slot], to_slots[to_slot])
-	if made == "":
+	# One of a stack makes one thing: the stack it went onto would have to go
+	# all at once, so that is not done.
+	if made == "" or count_in(to_key, to_slot) > 1:
 		return ""
-	from_slots[from_slot] = ""
+	if count_in(from_key, from_slot) > 1:
+		_set_count(from_key, from_slot, count_in(from_key, from_slot) - 1)
+	else:
+		from_slots[from_slot] = ""
 	to_slots[to_slot] = made
 	inventory_changed.emit(from_key)
 	if to_key != from_key:

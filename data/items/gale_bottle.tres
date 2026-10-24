@@ -24,4 +24,4 @@ effects = Array[ExtResource("1_eff")]([SubResource("Effect_gale_bottle")])
 deals_damage = false
 uses_stat_contest = true
 sound = ExtResource("90_sfx")
-price = 40
+price = 120

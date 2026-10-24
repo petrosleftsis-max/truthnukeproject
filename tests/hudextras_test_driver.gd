@@ -275,7 +275,7 @@ func run_test():
 	ok(face.tooltip_text.contains(mark.name) and face.tooltip_text.contains("%d / %d HP" % [mark.hp, most]),
 		"hovering a face says who and how they are", face.tooltip_text.replace("\n", " | "))
 	face.mouse_entered.emit()
-	ok(controller._highlight_tile == mark.position, "and rings them on the map")
+	ok(controller._highlight_tile == combat.rect_of(mark), "and rings them on the map - all of them")
 	ok(face.is_hovered() and face.get_node("Border").modulate == face.HOVER_EDGE, "while the face itself lights up in the same gold")
 	face.mouse_exited.emit()
 	ok(controller._highlight_tile == null, "until the cursor leaves")

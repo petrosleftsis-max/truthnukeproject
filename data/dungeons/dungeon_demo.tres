@@ -27,9 +27,10 @@ encounter = ExtResource("7_8bjtx")
 [resource]
 script = ExtResource("1_0j4ho")
 display_name = "The Dungeon Demo"
-description = "The three fights one after another, the whole party at level 3, with a rest between each."
+description = "The three fights one after another, the whole party at level 14, with a rest between each."
 party = Array[String](["cyrus", "alithia", "prometheus"])
-level = 20
+level = 14
+knows_every_spell = true
 stages = Array[ExtResource("2_0kadc")]([SubResource("Resource_ojrih"), SubResource("Resource_3ppxl"), SubResource("Resource_0yr4t")])
 rest_revives = true
 gate_recovery_for = Array[String](["prometheus"])

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/icons/rending_claws_skill.png" id="1_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("2_skill")
+name = "Savage Bite"
+description = "Teeth, and all its weight behind them."
+min_range = 1
+max_range = 1
+icon = ExtResource("1_icon")
+can_be_copied = false
+ability_modifier = 1.35
+melee = true
+sound = ExtResource("90_sfx")

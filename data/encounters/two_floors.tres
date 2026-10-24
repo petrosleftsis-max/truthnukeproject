@@ -1,0 +1,95 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
+[ext_resource type="Script" path="res://combat/resources/FloorDefinition.gd" id="3_floor"]
+[ext_resource type="PackedScene" path="res://maps/altitude_terrain.tscn" id="4_map"]
+
+[sub_resource type="Resource" id="Floor_ground"]
+script = ExtResource("3_floor")
+name = "Ground"
+region = Rect2i(0, 0, 22, 16)
+
+[sub_resource type="Resource" id="Floor_gallery"]
+script = ExtResource("3_floor")
+name = "Gallery"
+region = Rect2i(28, 0, 22, 12)
+level = 1
+
+[sub_resource type="Resource" id="Spawn_enfina"]
+script = ExtResource("2_spawn")
+combatant_key = "enfina"
+position = Vector2i(5, 13)
+level = 8
+weapon_base = 8
+starting_items = Array[String](["cure_potion"])
+
+[sub_resource type="Resource" id="Spawn_cyrus"]
+script = ExtResource("2_spawn")
+combatant_key = "cyrus"
+position = Vector2i(7, 13)
+level = 8
+weapon_base = 8
+starting_items = Array[String](["cure_potion", "small_bomb"])
+
+[sub_resource type="Resource" id="Spawn_alithia"]
+script = ExtResource("2_spawn")
+combatant_key = "alithia"
+position = Vector2i(9, 13)
+level = 8
+weapon_base = 8
+starting_items = Array[String](["cure_potion"])
+
+[sub_resource type="Resource" id="Spawn_prometheus"]
+script = ExtResource("2_spawn")
+combatant_key = "prometheus"
+position = Vector2i(11, 13)
+level = 8
+weapon_base = 8
+starting_items = Array[String](["cure_potion"])
+
+[sub_resource type="Resource" id="Spawn_bow_a"]
+script = ExtResource("2_spawn")
+combatant_key = "hired_bow"
+side = 1
+position = Vector2i(36, 3)
+display_name = "Gallery Bow"
+level = 8
+weapon_base = 8
+
+[sub_resource type="Resource" id="Spawn_bow_b"]
+script = ExtResource("2_spawn")
+combatant_key = "hired_bow"
+side = 1
+position = Vector2i(41, 3)
+display_name = "Gallery Bow"
+level = 8
+weapon_base = 8
+
+[sub_resource type="Resource" id="Spawn_ranger"]
+script = ExtResource("2_spawn")
+combatant_key = "ranger"
+side = 1
+position = Vector2i(14, 7)
+display_name = "Ranger on the Barrels"
+level = 8
+weapon_base = 8
+
+[sub_resource type="Resource" id="Spawn_sword"]
+script = ExtResource("2_spawn")
+combatant_key = "sellsword"
+side = 1
+position = Vector2i(12, 10)
+level = 8
+weapon_base = 8
+
+[resource]
+script = ExtResource("1_enc")
+display_name = "Two Floors"
+description = "Heights: a gallery over the floor, reached by two sets of stairs (the ladders under it), and barrels to climb from beside them. Archers shoot down from the gallery through the open air, and nobody under it can be seen from up there. Up on high ground or on the gallery, low things are no cover - either way. Page Up / Page Down (L3) or the floor buttons show the other floor."
+terrain_scene = ExtResource("4_map")
+spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_cyrus"), SubResource("Spawn_alithia"), SubResource("Spawn_prometheus"), SubResource("Spawn_bow_a"), SubResource("Spawn_bow_b"), SubResource("Spawn_ranger"), SubResource("Spawn_sword")])
+music = "Scott Buckley - Filaments"
+escape_points = Array[Vector2i]([Vector2i(1, 14), Vector2i(20, 14)])
+climb_points = Array[Vector2i]([Vector2i(5, 9), Vector2i(13, 8), Vector2i(19, 10), Vector2i(2, 4)])
+floors = Array[ExtResource("3_floor")]([SubResource("Floor_ground"), SubResource("Floor_gallery")])

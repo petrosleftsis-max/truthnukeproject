@@ -1,17 +1,29 @@
 extends Node
-## Plays the Lab Fight out and checks, after every single turn, that everybody
-## is still where the game thinks they are.
-##
-## A combatant is found for targeting by comparing the clicked tile against
-## comb.position, while what the player sees is comb.sprite. If those two ever
-## disagree - or if two bodies end up on one tile, so the first one found wins -
-## somebody on screen becomes unclickable without being dead.
+## The late-Chapter-I laboratory sequence - a TEMPORARY test harness, not story
+## content (data/dungeons/lab_chapter1_sequence.tres): its three fights the same
+## as the ones they copy but for their levels, no rest between them so health
+## and spent gates carry forward, and every fight logged (LabMetrics). Its boss
+## is Erysichthon; the Ash Warden variant (lab_chapter1_sequence_ash_warden.tres)
+## differs only in the last fight.
 
 var LOG_PATH := HarnessLog.path_for("lab")
-var _log: FileAccess
+const LAB := "res://data/dungeons/lab_chapter1_sequence.tres"
+const ASH_WARDEN_LAB := "res://data/dungeons/lab_chapter1_sequence_ash_warden.tres"
+const DEMO := "res://data/dungeons/dungeon_demo.tres"
+const SOURCES := ["res://data/encounters/encounter_03_watcher.tres", "res://data/encounters/encounter_hired_blades.tres",
+	"res://data/encounters/boss_glutton.tres"]
+const ASH_WARDEN := "res://data/encounters/boss_ash_warden.tres"
+const LEVELS := [16, 17, 18, 18]
+
+var _log: FileAccess = null
 var _fail = 0
 
-func log_line(t): _log.store_line(t); _log.flush()
+
+func log_line(t: String):
+	if _log:
+		_log.store_line(t)
+		_log.flush()
+
 
 func ok(condition: bool, label: String, detail: String = ""):
 	if condition:
@@ -20,113 +32,192 @@ func ok(condition: bool, label: String, detail: String = ""):
 		_fail += 1
 		log_line("  FAIL  %s %s" % [label, detail])
 
+
 func _ready():
 	_log = FileAccess.open(LOG_PATH, FileAccess.WRITE)
-	get_tree().create_timer(260.0).timeout.connect(func(): log_line("DID NOT FINISH"); get_tree().quit(2))
+	get_tree().create_timer(280.0, true, false, true).timeout.connect(func(): log_line("DID NOT FINISH"); get_tree().quit(2))
 	await get_tree().process_frame
-	await run_test()
-
-
-## Everything wrong with where people are standing, right now.
-func survey(combat, controller) -> Array:
-	var problems: Array = []
-	var seen := {}
-	for comb in combat.combatants:
-		if not comb.alive:
-			continue
-		var where_drawn = Grid.tile_to_world(comb.position)
-		if comb.sprite.position.distance_to(where_drawn) > 1.0:
-			problems.append("%s is drawn at %s but the game says %s" % [
-				comb.name, comb.sprite.position, comb.position])
-		if seen.has(comb.position):
-			problems.append("%s and %s are both on %s" % [
-				seen[comb.position], comb.name, comb.position])
-		seen[comb.position] = comb.name
-		# The one the player's click would actually find.
-		var found = controller.get_combatant_at_position(comb.position)
-		if found == null or found.name != comb.name:
-			problems.append("clicking %s finds %s" % [
-				comb.position, "nobody" if found == null else found.name])
-		if not controller.is_in_bounds(comb.position):
-			problems.append("%s is standing off the grid at %s" % [comb.name, comb.position])
-		if controller.is_tile_blocking(comb.position, comb.movement_class):
-			problems.append("%s is standing inside a wall at %s" % [comb.name, comb.position])
-	return problems
-
-
-func run_test():
-	var encounter: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres")
-	log_line("======== %s, on %s ========" % [
-		encounter.display_name, encounter.terrain_scene.resource_path.get_file()])
-
-	Campaign.reset()
-	Campaign.current_encounter = encounter
-	var game = load("res://scenes/game.tscn").instantiate()
-	get_tree().root.add_child(game)
-	for i in 6:
-		await get_tree().process_frame
-	var combat = game.get_node("VisualCombat")
-	var controller = combat.controller
-	if combat.deployment_active:
-		combat.finish_deployment()
-		await get_tree().process_frame
-
-	var tile_map = game.get_node("Terrain/TileMap")
-	log_line("map painted %s to %s" % [tile_map.get_used_rect().position,
-		tile_map.get_used_rect().end - Vector2i.ONE])
-	log_line("playable region %s" % [controller._astargrid.region])
-	log_line("")
-
-	log_line("======== nothing is drawn on the map but the fight ========")
-	# A leftover Sprite2D sat in game.tscn drawing one grid square at (272, 208)
-	# - near the top left, off the tile centres, in every battle ever played.
-	var strays := []
-	for child in game.get_children():
-		if child is Sprite2D:
-			strays.append("%s at %s" % [child.name, child.position])
-	ok(strays.is_empty(), "no loose sprite decorating the battle scene", "%s" % [strays])
-	for comb in combat.combatants:
-		if comb.alive:
-			var centre = Grid.tile_to_world(comb.position)
-			if comb.sprite.position != centre:
-				strays.append("%s off centre" % comb.name)
-	ok(strays.is_empty(), "and everyone stands on a tile centre")
-	log_line("")
-
-	log_line("======== everybody starts where they are drawn ========")
-	var opening = survey(combat, controller)
-	ok(opening.is_empty(), "the fight opens sound", "%s" % [opening])
-	for comb in combat.combatants:
-		log_line("     %-12s %-14s %s" % [comb.name, comb.get("ai_function", "-"), comb.position])
-	log_line("")
-
-	log_line("======== and after every turn of it ========")
-	var turns = 0
-	var broke_on_turn = -1
-	var first_problems: Array = []
-	while turns < 80 and combat.groups[combat.Group.PLAYERS].size() > 0 \
-			and combat.groups[combat.Group.ENEMIES].size() > 0:
-		await combat.advance_turn()
-		turns += 1
-		var problems = survey(combat, controller)
-		if not problems.is_empty() and broke_on_turn == -1:
-			broke_on_turn = turns
-			first_problems = problems
-			log_line("  turn %d, after %s acted:" % [turns, combat.get_current_combatant().name])
-			for problem in problems:
-				log_line("      %s" % problem)
-	ok(broke_on_turn == -1, "%d turns and everybody stayed put" % turns,
-		"" if broke_on_turn == -1 else "broke on turn %d: %s" % [broke_on_turn, first_problems])
-	log_line("")
-
-	log_line("======== where the bombers ended up ========")
-	for comb in combat.combatants:
-		if comb.get("ai_function", "") == "ai_hit_and_explode":
-			log_line("     %-12s alive=%s  position %s  sprite %s" % [
-				comb.name, comb.alive, comb.position, comb.sprite.position])
-	log_line("")
-
-	game.queue_free()
-	await get_tree().process_frame
+	var booted = get_tree().current_scene
+	if booted != null:
+		booted.queue_free()
+		await settle()
+	the_data()
+	await the_run()
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
+
+
+func settle(frames: int = 3):
+	for i in frames:
+		await get_tree().process_frame
+
+
+func arrived_at(path: String, seconds: float = 10.0) -> bool:
+	var waited := 0.0
+	while waited < seconds:
+		var scene = get_tree().current_scene
+		if scene != null and scene.scene_file_path == path and scene.is_node_ready() and not SceneTransition.is_changing():
+			await settle(6)
+			return true
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+	return false
+
+
+func fighter(combat, key: String) -> Dictionary:
+	for comb in combat.combatants:
+		if comb.get("combatant_key", "") == key and not comb.get("illusion", false):
+			return comb
+	return {}
+
+
+func is_object(key: String) -> bool:
+	return CombatantDatabase.combatants.has(key) and CombatantDatabase.combatants[key] is BattleObjectDefinition
+
+
+func the_data():
+	log_line("======== the sequence, and its fights ========")
+	var lab: DungeonDefinition = load(LAB)
+	ok(lab != null and lab.stages.size() == 3, "three stages")
+	ok(lab.party == ["enfina", "cyrus", "prometheus", "alithia"] and lab.level == 18, "the whole party, at 18", "%s at %d" % [lab.party, lab.level])
+	ok(lab.skips_rests and lab.logs_metrics, "no rest between, and logged")
+	ok(not lab.rest_revives and lab.gate_recoveries == 0 and lab.store == "", "nothing given back, and no store")
+	var demo: DungeonDefinition = load(DEMO)
+	ok(not demo.skips_rests and not demo.logs_metrics, "the Dungeon Demo still rests, and logs nothing")
+	var variant: DungeonDefinition = load(ASH_WARDEN_LAB)
+	ok(variant != null and variant.stages.size() == 3, "the Ash Warden variant: three stages")
+	ok(variant.party == lab.party and variant.level == lab.level and variant.knows_every_spell == lab.knows_every_spell
+		and variant.skips_rests and variant.logs_metrics and not variant.rest_revives and variant.gate_recoveries == 0
+		and variant.store == "", "  the same party, level, rules and logging")
+	ok(variant.stages[0].encounter == lab.stages[0].encounter and variant.stages[1].encounter == lab.stages[1].encounter,
+		"  the same first two fights")
+	ok(lab.stages[2].encounter.resource_path.ends_with("lab_c_erysichthon.tres")
+		and variant.stages[2].encounter.resource_path.ends_with("lab_c_ash_warden.tres"),
+		"  the last: Erysichthon in the primary, the Ash Warden in the variant")
+	var copies := lab.stages.map(func(stage): return stage.encounter)
+	copies.append(variant.stages[2].encounter)
+	var sources := SOURCES.duplicate()
+	sources.append(ASH_WARDEN)
+	for i in 4:
+		var copy: EncounterDefinition = copies[i]
+		var source: EncounterDefinition = load(sources[i])
+		var same := copy.spawns.size() == source.spawns.size()
+		var levels_right := true
+		for s in mini(copy.spawns.size(), source.spawns.size()):
+			var a: SpawnDefinition = copy.spawns[s]
+			var b: SpawnDefinition = source.spawns[s]
+			same = same and a.combatant_key == b.combatant_key and a.side == b.side and a.position == b.position \
+				and a.starting_items == b.starting_items and a.equipment == b.equipment and a.defense == b.defense and a.weapon_base == b.weapon_base
+			if is_object(a.combatant_key):
+				levels_right = levels_right and a.level == b.level
+			else:
+				levels_right = levels_right and a.level == (18 if a.side == 0 else LEVELS[i])
+		ok(same, "%s: the same spawns as %s - who, where, what they carry, their weapon and Defense" % [copy.display_name, source.display_name])
+		ok(levels_right, "  every enemy at %d, the party's tiles at 18, the objects as they were" % LEVELS[i])
+		ok(copy.terrain_scene == source.terrain_scene and copy.hazards == source.hazards and copy.escape_points == source.escape_points
+			and copy.gold_reward == source.gold_reward, "  the same map, hazards, ways out and pay")
+		ok(copy.victory_dialogue == null and not copy.dialogue_decides_prisoners, "  and no story conversation after it")
+	log_line("")
+
+
+func the_run():
+	log_line("======== no rest: health and gates carry forward ========")
+	var lab: DungeonDefinition = load(LAB)
+	LabMetrics.begin_run("test-harness")
+	Campaign.start_dungeon(lab)
+	ok(await arrived_at("res://scenes/game.tscn"), "into the first fight")
+	var game = get_tree().current_scene
+	var combat = game.get_node("VisualCombat")
+	combat.reaction_prompt = null
+	if combat.deployment_active:
+		combat.finish_deployment()
+		await settle(2)
+	ok(combat.get_children().any(func(c): return c is LabMetrics), "the fight is being logged")
+	ok(combat.encounter == lab.stages[0].encounter, "the City Fight's enemies at 16", combat.encounter.display_name)
+	var cyrus := fighter(combat, "cyrus")
+	var prometheus := fighter(combat, "prometheus")
+	ok(cyrus.level == 18 and prometheus.level == 18, "the party at 18")
+	cyrus.hp = 20
+	var hermes_before: int = prometheus.spell_slots[2]
+	prometheus.spell_slots[2] = maxi(hermes_before - 2, 0)
+	var hermes_left: int = prometheus.spell_slots[2]
+	var foe: Dictionary = {}
+	for comb in combat.combatants:
+		if comb.side == 1 and comb.alive and not comb.has("object"):
+			foe = comb
+			break
+	combat.lose_hp(foe, 7)
+	combat.groups[Combat.Group.ENEMIES].clear()
+	combat.combat_finish()
+	await settle(4)
+	var result = game.get_node("ResultUI")
+	ok(result.rest == null and result.get_node("Panel").visible, "won: the result, and no rest")
+	ok(result.get_node("Panel/VBox/BackButton").visible and result.get_node("Panel/VBox/BackButton").text == "On to the next fight (no rest)",
+		"with a way straight on", result.get_node("Panel/VBox/BackButton").text)
+	ok(Campaign.party_state.cyrus.hp == 20, "Cyrus is not healed", "%d" % Campaign.party_state.cyrus.hp)
+	ok(Campaign.party_state.prometheus.spell_slots[2] == hermes_left, "Prometheus's spent Hermes castings stay spent",
+		"%d of %d" % [Campaign.party_state.prometheus.spell_slots[2], hermes_before])
+	ok(FileAccess.file_exists(LabMetrics.summary_path()) and FileAccess.file_exists(LabMetrics.events_path()), "the run's summary and events are written",
+		ProjectSettings.globalize_path(LabMetrics.summary_path()))
+	var summary := FileAccess.get_file_as_string(LabMetrics.summary_path())
+	ok(summary.contains("# Laboratory run: test-harness") and summary.contains("## Stage 1: Lab A") and summary.contains("Checkpoint, as it began")
+		and summary.contains("Checkpoint, as it ended"), "stage 1 in it, with its checkpoints")
+	ok(summary.contains("Hermes"), "and the gates left, by depth")
+	ok(FileAccess.get_file_as_string(LabMetrics.events_path()).contains(",damage,"), "the hit is in the events")
+
+	result._on_back_pressed()
+	ok(await arrived_at("res://scenes/game.tscn"), "on to the second fight")
+	game = get_tree().current_scene
+	combat = game.get_node("VisualCombat")
+	combat.reaction_prompt = null
+	if combat.deployment_active:
+		combat.finish_deployment()
+		await settle(2)
+	ok(combat.encounter == lab.stages[1].encounter, "the Hired Blades at 17", combat.encounter.display_name)
+	ok(fighter(combat, "cyrus").hp == 20, "Cyrus comes in as he left", "%d" % fighter(combat, "cyrus").hp)
+	ok(fighter(combat, "prometheus").spell_slots[2] == hermes_left, "and Prometheus's gates as they were", "%d" % fighter(combat, "prometheus").spell_slots[2])
+	combat.groups[Combat.Group.ENEMIES].clear()
+	combat.combat_finish()
+	await settle(4)
+	result = game.get_node("ResultUI")
+	result._on_back_pressed()
+	ok(await arrived_at("res://scenes/game.tscn"), "on to the boss")
+	game = get_tree().current_scene
+	combat = game.get_node("VisualCombat")
+	combat.reaction_prompt = null
+	if combat.deployment_active:
+		combat.finish_deployment()
+		await settle(2)
+	log_line("")
+
+	log_line("======== the boss: Erysichthon - telegraphs, stagger, what is put on it, what it eats ========")
+	var boss := fighter(combat, "glutton")
+	ok(not boss.is_empty() and boss.level == 18, "Erysichthon, at 18", "%d" % boss.get("level", 0))
+	var enfina := fighter(combat, "enfina")
+	cyrus = fighter(combat, "cyrus")
+	await combat.declare(boss, "devour", enfina.position)
+	combat.add_stagger(boss, 10.0, "damage")
+	combat.drop_declared(boss, "a test")
+	combat.put_condition(boss, load("res://data/conditions/poisoned.tres"), 2, cyrus.name, true, cyrus.id)
+	combat.shrug_off(boss, "Stunned", true)
+	combat.cue("ate:Carrion Heap")
+	combat.groups[Combat.Group.ENEMIES].clear()
+	combat.combat_finish()
+	await settle(4)
+	result = game.get_node("ResultUI")
+	ok(result.get_node("Panel/VBox/BackButton").text == "Finish", "the last fight won: Finish", result.get_node("Panel/VBox/BackButton").text)
+	summary = FileAccess.get_file_as_string(LabMetrics.summary_path())
+	ok(summary.contains("## Stage 2: Lab B") and summary.contains("## Stage 3: Lab C"), "all three stages in the one summary")
+	ok(summary.contains("Devour - dropped (a test)") and summary.contains("Enfina"), "the declared move: dropped, and who stood in it")
+	ok(summary.contains("Stagger gained, by source") and summary.contains("damage 10") and summary.contains("blocked condition 15"),
+		"its stagger, by source - a blow and a condition it shrugged off")
+	ok(summary.contains("### The boss: Erysichthon") and summary.contains("- Turns offered:") and summary.contains("- Lost, by cause:")
+		and summary.contains("- Longest run of turns not its own"), "its own section: its turns, and how many it lost and why")
+	ok(summary.contains("- Put on it: Poisoned (Cyrus x1)"), "  what was put on it, and by whom")
+	ok(summary.contains("- Shrugged off: Stunned x1"), "  what it shrugged off")
+	ok(summary.contains(": eats Carrion Heap"), "  and what it ate")
+	var events := FileAccess.get_file_as_string(LabMetrics.events_path())
+	ok(events.contains(",declared,") and events.contains(",declared dropped,") and events.contains(",stagger,")
+		and events.contains(",condition,Cyrus,") and events.contains(",blocked,") and events.contains(",cue,"), "and in the events")
+	Campaign.reset()
+	log_line("")

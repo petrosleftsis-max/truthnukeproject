@@ -272,8 +272,10 @@ func run_test():
 			break
 		poison_turns += 1
 		combat.end_of_turn_effects(hero)
-	ok(poison_turns == condition("poisoned").duration + 1,
-		"Poisoned lasts its configured duration and the turn after", "%d for %d" % [poison_turns, condition("poisoned").duration])
+	# N of their turns - and the rest of this one too, were it theirs.
+	var expected: int = condition("poisoned").duration + (1 if combat.on_whoever_acts(hero) else 0)
+	ok(poison_turns == expected,
+		"Poisoned lasts its configured duration, in their turns", "%d for %d" % [poison_turns, condition("poisoned").duration])
 	log_line("")
 
 	log_line("======== skills that affect both sides ========")

@@ -1,0 +1,122 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
+[ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://maps/crossroads_terrain.tscn" id="3_map"]
+
+[sub_resource type="Resource" id="Spawn_enfina"]
+script = ExtResource("2_spawn")
+combatant_key = "enfina"
+position = Vector2i(46, -12)
+level = 22
+weapon_base = 12
+starting_items = Array[String](["cure_potion", "burn_bottle"])
+
+[sub_resource type="Resource" id="Spawn_alithia"]
+script = ExtResource("2_spawn")
+combatant_key = "alithia"
+position = Vector2i(44, -11)
+level = 22
+weapon_base = 12
+starting_items = Array[String](["cure_potion", "poison_bottle"])
+
+[sub_resource type="Resource" id="Spawn_cyrus"]
+script = ExtResource("2_spawn")
+combatant_key = "cyrus"
+position = Vector2i(48, -12)
+level = 22
+weapon_base = 12
+starting_items = Array[String](["cure_potion", "medium_bomb", "medicine"])
+
+[sub_resource type="Resource" id="Spawn_prometheus"]
+script = ExtResource("2_spawn")
+combatant_key = "prometheus"
+position = Vector2i(43, -9)
+level = 22
+weapon_base = 12
+starting_items = Array[String](["cure_potion", "gale_bottle"])
+
+[sub_resource type="Resource" id="Spawn_glutton"]
+script = ExtResource("2_spawn")
+combatant_key = "glutton"
+side = 1
+position = Vector2i(54, -16)
+level = 22
+weapon_base = 12
+defense = 20
+
+[sub_resource type="Resource" id="Spawn_carrion"]
+script = ExtResource("2_spawn")
+combatant_key = "carrion_heap"
+side = 1
+position = Vector2i(56, -20)
+level = 22
+
+[sub_resource type="Resource" id="Spawn_keg"]
+script = ExtResource("2_spawn")
+combatant_key = "bait_keg"
+side = 1
+position = Vector2i(53, -5)
+level = 22
+
+[sub_resource type="Resource" id="Spawn_wave1_a"]
+script = ExtResource("2_spawn")
+combatant_key = "gnawer"
+side = 1
+position = Vector2i(40, -14)
+level = 22
+weapon_base = 8
+arrives_on_round = 3
+
+[sub_resource type="Resource" id="Spawn_wave1_b"]
+script = ExtResource("2_spawn")
+combatant_key = "gnawer"
+side = 1
+position = Vector2i(39, -14)
+level = 22
+weapon_base = 8
+arrives_on_round = 3
+
+[sub_resource type="Resource" id="Spawn_wave2_a"]
+script = ExtResource("2_spawn")
+combatant_key = "gnawer"
+side = 1
+position = Vector2i(44, -25)
+level = 22
+weapon_base = 8
+arrives_on_cue = "broke:Jaws"
+
+[sub_resource type="Resource" id="Spawn_wave2_b"]
+script = ExtResource("2_spawn")
+combatant_key = "gnawer"
+side = 1
+position = Vector2i(46, -25)
+level = 22
+weapon_base = 8
+arrives_on_cue = "broke:Jaws"
+
+[sub_resource type="Resource" id="Spawn_wave3_a"]
+script = ExtResource("2_spawn")
+combatant_key = "gnawer"
+side = 1
+position = Vector2i(48, -4)
+level = 22
+weapon_base = 8
+arrives_after_deaths = 3
+
+[sub_resource type="Resource" id="Spawn_wave3_b"]
+script = ExtResource("2_spawn")
+combatant_key = "gnawer"
+side = 1
+position = Vector2i(50, -4)
+level = 22
+weapon_base = 8
+arrives_after_deaths = 3
+
+[resource]
+script = ExtResource("1_enc")
+display_name = "Erysichthon"
+description = "A boss: an undead glutton that smells out its prey, grabs it and swallows it whole - and eats whatever it finds in reach. Tear its Belly Hole open to free whoever it swallowed, taint the carrion before it eats it, and feed it the meat-wrapped keg. Gnawers come in waves: on round 3, when its Jaws first break, and once three of its side have fallen."
+terrain_scene = ExtResource("3_map")
+spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_alithia"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_glutton"), SubResource("Spawn_carrion"), SubResource("Spawn_keg"), SubResource("Spawn_wave1_a"), SubResource("Spawn_wave1_b"), SubResource("Spawn_wave2_a"), SubResource("Spawn_wave2_b"), SubResource("Spawn_wave3_a"), SubResource("Spawn_wave3_b")])
+music = "Mehul ShaRma - CURSE"

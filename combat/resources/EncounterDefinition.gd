@@ -87,6 +87,17 @@ class_name EncounterDefinition
 ## distance (runners_with_nowhere_to_run says who that would be).
 @export var escape_points: Array[Vector2i] = []
 
+@export_group("Heights")
+## Tiles to climb up from, as tiles (Combat "Heights"): from one, a walker can
+## step up onto the high ground beside it - a tile that stops a walker but not a
+## flier, and is not see-through (barrels, a low wall; not water) - or, under a
+## floor above, up onto it (stairs, a ladder). Getting down is from anywhere.
+## The TileSet can mark tiles Climb as well. Place them in the encounter editor.
+@export var climb_points: Array[Vector2i] = []
+## For a map with more than one floor: which area of the terrain is which, and
+## how they lie over each other (FloorDefinition). Empty is one floor.
+@export var floors: Array[FloorDefinition] = []
+
 
 ## The enemies here who run when they break (When Broken: Flee), by name, if
 ## this map has no ways out for them to run to - for the encounter editor and

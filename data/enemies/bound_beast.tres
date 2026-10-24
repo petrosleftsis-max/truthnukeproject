@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_comb"]
+[ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_comb")
+name = "Bound Beast"
+glossary_text = "A beast bound to a Summoner: it fights on its master's turn, recklessly, and is gone the moment its master is. Mended and empowered, it hits harder than a barbarian."
+max_hp = 70
+max_hp_level_20 = 200
+defense = 10
+defense_level_64 = 60
+movement = 9
+initiative = 1
+secondary_stat = 4
+sprite_frames = ExtResource("2_frames")
+tint = Color(0.55, 0.7, 0.45, 1)
+skills = Array[String](["savage_bite", "run"])
+resist_poison = 25
+resist_fire = -25

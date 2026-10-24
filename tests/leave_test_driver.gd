@@ -23,14 +23,13 @@ func _ready():
 
 func run_test():
 	log_line("======== what each level opens ========")
-	ok(Stats.gates_for_level(10)[2] == 2,
-		"two through Hermes at level 10", "%s" % [Stats.gates_for_level(10).slice(1)])
-	ok(Stats.gates_for_level(1)[2] == 0, "none at level 1")
-	ok(Stats.gates_for_level(20)[2] == 3, "three at level 20")
-	ok(Stats.gates_for_level(10)[3] == 1,
-		"Yaldabaoth opens once at level 10", "%s" % [Stats.gates_for_level(10).slice(1)])
-	ok(Stats.gates_for_level(20)[3] == 2,
-		"and twice at level 20", "%s" % [Stats.gates_for_level(20).slice(1)])
+	ok(Stats.gates_for_level(8)[2] == 2,
+		"two through Hermes at level 8, the lab", "%s" % [Stats.gates_for_level(8).slice(1)])
+	ok(Stats.gates_for_level(1)[2] == 0 and Stats.gates_for_level(7)[2] == 0, "none before it")
+	ok(Stats.gates_for_level(14)[2] == 3, "three at level 14, the city")
+	ok(Stats.gates_for_level(14)[3] == 2,
+		"Pandora opens at level 14, twice", "%s" % [Stats.gates_for_level(14).slice(1)])
+	ok(Stats.gates_for_level(13)[3] == 0, "and not a level before")
 	ok(Stats.gates_for_level(1)[3] == 0, "still none at level 1")
 	log_line("")
 

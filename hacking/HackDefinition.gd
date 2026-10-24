@@ -54,9 +54,9 @@ enum RetryCost {
 
 @export_group("Gates")
 ## The gate a hint costs (or any deeper one). None for no hints.
-@export_enum("None", "Gates of World", "Gates of Hermes", "Gates of Yaldabaoth") var hint_gate: int = 1
+@export_enum("None", "Gates of World", "Gates of Hermes", "Gates of Pandora", "Gates of Charon", "Gates of Tartarus", "Gates of Nemesis", "Gates of Sophia", "Gates of Ogdoad", "Gates of Gnosis", "Gates of Yaldabaoth") var hint_gate: int = 1
 ## The gate making it simpler costs (or any deeper one), once a hack.
-@export_enum("None", "Gates of World", "Gates of Hermes", "Gates of Yaldabaoth") var simplify_gate: int = 2
+@export_enum("None", "Gates of World", "Gates of Hermes", "Gates of Pandora", "Gates of Charon", "Gates of Tartarus", "Gates of Nemesis", "Gates of Sophia", "Gates of Ogdoad", "Gates of Gnosis", "Gates of Yaldabaoth") var simplify_gate: int = 2
 
 @export_group("When it fails")
 ## Out of tries - or walking away after a try has failed.

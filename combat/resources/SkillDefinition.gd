@@ -15,6 +15,12 @@ enum AoEShape {
 @export_multiline var description: String = ""
 @export var min_range: int
 @export var max_range: int
+## A melee move - struck with the body, or what it holds - rather than a ranged
+## one, sent across the room. Not the same as its range: a lance, a chain or a
+## lunge is melee and still reaches past the tile beside you. For whatever
+## favours or hinders melee to ask (Combat.is_melee). So far: a rider's melee
+## blows do not shove or drag what they are riding.
+@export var melee: bool = false
 ## Chance to hit, as a percentage - the same no matter the distance, as long
 ## as the target is within range at all (being out of range is rejected
 ## before this ever matters). Ignored entirely when uses_stat_contest is on.
@@ -25,7 +31,12 @@ enum AoEShape {
 ##
 ## Filtered out rather than shown greyed out: a level 1 character's panel is
 ## what they can do, not a preview of what they will be able to do later.
-@export_range(1, 20) var required_level: int = 1
+@export_range(1, 64) var required_level: int = 1
+## How it grows stronger with its user's level (SkillRank), lowest level first:
+## from each one's level, its figures stand in for these. Read through
+## Combat.rank_of - never this skill's own figures straight - wherever the user
+## is known.
+@export var ranks: Array[SkillRank] = []
 ## If true, valid targets are the caster's own side (heals/buffs).
 ## If false (default), valid targets are the opposing side (attacks/debuffs).
 @export var targets_ally: bool = false
@@ -33,6 +44,15 @@ enum AoEShape {
 ## at somebody fallen: Resuscitate. With this on, nobody standing can be aimed
 ## at, and the skill's effects land on the fallen (see EffectType.REVIVE).
 @export var targets_fallen: bool = false
+## Only on somebody at this share of their health or less - 0.5 is half. A
+## finishing blow (Enfina's Finisher), in place of a cooldown. 0 for anybody.
+@export_range(0.0, 1.0, 0.05) var only_below_health: float = 0.0
+## Aimed twice: first at anybody of the caster's own side, wherever they are -
+## in reach or not, on the map or by their face - and then at any tile in reach,
+## where what it makes of them is put down. For an illusion (EffectType
+## SUMMON_DECOY - Alithia's Mirror Image): an image of whoever was chosen, set
+## down where she likes. Off, an image goes on a tile beside them.
+@export var placed_in_reach: bool = false
 ## If true, this skill doesn't care whose side anyone is on: an area hits every
 ## living combatant inside it, friend and foe alike, and a single-target one can
 ## be aimed at either side. Use it for a shockwave that knocks back whoever it
@@ -56,6 +76,109 @@ enum AoEShape {
 ## can use at most one reactive skill between their own turns; it resets
 ## when their own turn starts.
 @export var is_reactive: bool = false
+## What sets it off, when Is Reactive is on - any of these, ticked (Combat
+## "Reactions"). Who it lands on: a skill aimed at allies lands on whoever it
+## is protecting (themselves when it is them under attack, the ally who set it
+## off or is under attack); anything else lands on the enemy who set it off.
+##   Leaves Reach - somebody walks out of its range (what every reaction did,
+##     and so the default).
+##   Enters Reach - somebody walks into its range: an ally coming close, say.
+##   Targeted - an enemy's skill is about to land on them: before it does.
+##   Struck - an enemy's skill has just hit them: after it does.
+##   Ally Attacked - an enemy's skill is about to land on one of theirs.
+##   Casts - somebody they can see casts through a gate: before it lands.
+##   Declares - somebody calls a declared move.
+##   Foreseen Blow - the move Intuition read comes, as foreseen: before it lands.
+## Who the "somebody" may be is Set Off By.
+@export_flags("Leaves Reach", "Enters Reach", "Targeted", "Struck", "Ally Attacked", "Casts",
+	"Declares", "Foreseen Blow") var reacts_when: int = 1
+## Who sets it off, for the triggers somebody of either side can (Leaves and
+## Enters Reach, Casts, Declares, and Ready's area): an enemy, an ally, or
+## either. The rest are an enemy's doing whatever this says. A skill aimed at
+## allies set off by an ally lands on them - a ward as they come close; a skill
+## that hurts never lands on an ally, whoever set it off.
+@export_enum("Enemies", "Allies", "Either") var set_off_by: int = 0
+## Whether it can ONLY go off as a reaction, when Is Reactive is on: it is not
+## there to be picked on its user's own turn (Combat.refusal_for), nor readied,
+## and the AI never plans it - InstaHack, which only answers a spell being cast.
+@export var reaction_only: bool = false
+
+## Set Off By's choices.
+enum SetOffBy { ENEMIES, ALLIES, EITHER }
+
+## The bits of reacts_when, and Ready's own (Combat "Ready"): somebody stepping
+## into a marked area.
+enum Trigger {
+	LEAVES_REACH = 1,
+	ENTERS_REACH = 2,
+	TARGETED = 4,
+	STRUCK = 8,
+	ALLY_ATTACKED = 16,
+	CASTS = 32,
+	DECLARES = 64,
+	FORESEEN_BLOW = 128,
+	ENTERS_AREA = 256,
+}
+
+## The triggers somebody of either side can set off (set_off_by); the rest are
+## always an enemy's doing.
+const EITHER_SIDE := [Trigger.LEAVES_REACH, Trigger.ENTERS_REACH, Trigger.CASTS, Trigger.DECLARES, Trigger.ENTERS_AREA]
+
+## What each trigger is called, for the HUD and the log - "%s" is who sets it
+## off (WHO_NAMES), where that can be either side.
+const TRIGGER_NAMES := {
+	Trigger.LEAVES_REACH: "%s leaves its reach",
+	Trigger.ENTERS_REACH: "%s steps into its reach",
+	Trigger.TARGETED: "an enemy is about to hit them",
+	Trigger.STRUCK: "an enemy hits them",
+	Trigger.ALLY_ATTACKED: "an enemy is about to hit an ally",
+	Trigger.CASTS: "%s casts a spell",
+	Trigger.DECLARES: "%s calls a declared move",
+	Trigger.FORESEEN_BLOW: "the blow Intuition foresaw comes",
+	Trigger.ENTERS_AREA: "%s steps into the marked area",
+}
+const WHO_NAMES := ["an enemy", "an ally", "anybody"]
+
+
+## What `trigger` is called, set off by `by` (SetOffBy).
+static func trigger_name(trigger: int, by: int = SetOffBy.ENEMIES) -> String:
+	var said: String = TRIGGER_NAMES.get(trigger, "")
+	return said % WHO_NAMES[clampi(by, 0, WHO_NAMES.size() - 1)] if said.contains("%s") else said
+
+
+## Whether somebody on `source_side` can set off `trigger` for somebody on
+## `reactor_side` who reacts to it as `by` (SetOffBy) says.
+static func sets_off(trigger: int, by: int, reactor_side: int, source_side: int) -> bool:
+	var ally := reactor_side == source_side
+	if not trigger in EITHER_SIDE:
+		return not ally
+	match by:
+		SetOffBy.ALLIES:
+			return ally
+		SetOffBy.EITHER:
+			return true
+	return not ally
+
+
+## Whether Hack can unpick this while it is being wound up: Hackable ticked, or
+## a Hack of its own.
+func can_be_hacked() -> bool:
+	return hackable or hack != null
+
+
+## Whether this reacts to `trigger` (Trigger), as a reactive skill.
+func reacts_to(trigger: int) -> bool:
+	return is_reactive and (reacts_when & trigger) != 0
+
+
+## "an enemy leaves its reach, or an enemy is about to hit them" - what sets it
+## off, as words.
+func describe_triggers() -> String:
+	var said := []
+	for trigger in TRIGGER_NAMES:
+		if reacts_to(trigger):
+			said.append(trigger_name(trigger, set_off_by))
+	return ", or ".join(said)
 ## If true, using this skill kills the caster outright once it resolves,
 ## regardless of whether it hit anyone else - for a kamikaze-style skill
 ## like a self-destruct. This is unconditional: it still happens even if
@@ -81,6 +204,9 @@ enum AoEShape {
 ## TARGET moves whoever is aimed at to a second tile, picked afterwards.
 enum TeleportWho { NOBODY, CASTER, TARGET }
 @export var teleports: TeleportWho = TeleportWho.NOBODY
+## A CASTER teleport that has to end in cover (Combat.in_cover) - Cyrus's Cover
+## Leap.
+@export var lands_in_cover: bool = false
 ## A TARGET teleport that is a throw (Hurl): the landing tile may have somebody
 ## on it - both are hurt by the skill's damage, and the thrown one lands beside
 ## it. Immune to being thrown (Immunity) is never picked up.
@@ -124,6 +250,23 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 ## known, one of their kind questioned, a clue that bears on them
 ## (Combat.has_leverage). Intimidate, Persuade and Deceive.
 @export var needs_leverage: bool = false
+## Works only on somebody its user has read (Intuition, EffectType.READ_INTENT)
+## and whose foreseen turn has not come yet. Accusation, Recant.
+@export var needs_read: bool = false
+## How many times it can be used before a short rest brings it back; 0 for as
+## often as you like. In a dungeon what is spent stays spent from fight to
+## fight until a short or long rest (Campaign.short_rest); every fight
+## elsewhere starts with all of them, as with gates. Recant, Grand Design,
+## Minefield, Catalyst, Stunning Blow - per fight until the designer's change
+## of 2026-10-24 (APPROVED_TRIAL).
+@export_range(0, 9) var uses_per_short_rest: int = 0
+## Levels at which its user has one more use a short rest: Stunning Blow's
+## [54, 64], over its one, is two at 54 and three at 64.
+@export var more_uses_at: Array[int] = []
+## A spell its caster casts through whichever gate they choose, its own or
+## deeper - asked as it is cast - and what it does reaches as deep as that
+## gate. Dispel Magic.
+@export var chooses_gate: bool = false
 ## A quick time event (QuickTimeDefinition) that pops up as it is used. For the
 ## Attacker, when the party uses it: done in time, it lands Quick Time Bonus
 ## harder. For the Defender, when it is used on the party: done in time, it
@@ -131,9 +274,14 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 @export var quick_time: QuickTimeDefinition
 @export_enum("Attacker", "Defender") var quick_time_for: int = 0
 @export_range(0.0, 1.0, 0.05) var quick_time_bonus: float = 0.5
+## On a declared skill: whether Prometheus's Hack can unpick it while it is being
+## wound up. Off, Hack is refused on it (Combat.refusal_for) - unless it has a
+## Hack of its own below, which makes it hackable too.
+@export var hackable: bool = false
 ## A hack (HackDefinition). On a declared skill, what unpicking it takes while
-## it is being wound up - Prometheus's Hack. On a skill with a Hack effect, the
-## one it uses on anything declared without a hack of its own.
+## it is being wound up - Prometheus's Hack; left empty on one that is Hackable,
+## Hack's own is played. On a skill with a Hack effect, the one it uses on
+## anything Hackable without a hack of its own.
 @export var hack: HackDefinition
 
 ## Everything this skill does on a successful hit. Add as many as you like -
@@ -175,6 +323,10 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 ## strength comes from this one stat: Base = WeaponBase + 0.7 x Stat.
 ##
 ## Also the caster's side of a stat contest, whether or not the skill damages.
+##
+## Not for a spell (anything cast through a gate): that is worked out from its
+## caster's own spellcasting stat (CombatantDefinition.spellcasting_stat),
+## whichever spell it is, and this is hidden for one.
 @export var scaling_stat: Stats.Type = Stats.Type.PHYSICAL
 ## What kind of damage this deals, weighed against the target's resistances.
 @export var damage_type: Damage.Type = Damage.Type.PHYSICAL : set = _set_damage_type
@@ -214,16 +366,43 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 ## nothing.
 ##
 ## A spell can always be paid for with a higher gate than it asks for - one cast
-## through the Gates of World can burn Hermes or Yaldabaoth - but never a lower
-## one. Combat spends the cheapest gate that will do, so Yaldabaoth is never
+## through the Gates of World can burn Hermes or Pandora - but never a lower
+## one. Combat spends the cheapest gate that will do, so Pandora is never
 ## wasted on a World spell while a World casting is still going spare.
 ##
 ## Anything with a cost lives on its own Spells panel rather than in the main
 ## list, but still spends the same action: the main one, or the secondary one
 ## if is_secondary is also set. Casting a spell and swinging a sword in the
 ## same turn is one action either way, so only one of them happens.
-@export_enum("None", "Gates of World", "Gates of Hermes", "Gates of Yaldabaoth")
-var spell_slot_level: int = 0
+@export_enum("None", "Gates of World", "Gates of Hermes", "Gates of Pandora", "Gates of Charon", "Gates of Tartarus", "Gates of Nemesis", "Gates of Sophia", "Gates of Ogdoad", "Gates of Gnosis", "Gates of Yaldabaoth")
+var spell_slot_level: int = 0 : set = _set_spell_slot_level
+## The gate this spell is cast through outside a fight - on a stealth map - or
+## None for one that can only be cast in a fight. Its castings are its own, so
+## sneaking about never costs the next fight anything; in a fight the spell is
+## still paid through the gate above. Pick one as strong as that gate
+## (Stats.OUTSIDE_GATES says which each one matches).
+@export_enum("None", "Gates of Iris") var outside_gate: int = 0
+## Outside a fight, how long what it does lasts, in seconds - Invisibility's
+## time unseen. It ends sooner if anybody does something to a guard.
+@export_range(0, 3600, 1, "suffix:s") var outside_seconds: int = 0
+
+@export_group("Tether")
+## Held on a tether to its caster (Combat "Tethers"). Cast, it gives them a
+## tether bar under their health, Tether Strength big, which frays - Tether Per
+## Turn at the start of each of their turns, and Tether Per Damage for every
+## hundredth of their health they lose - and when it snaps, everything it did
+## ends: what it put on anybody comes off, and what it summoned goes. One at a
+## time: tethering another such spell lets go of the first.
+@export var tethered: bool = false
+## How strong the tether is: the bar's size.
+@export_range(1, 1000, 1) var tether_strength: int = 100
+## Worn off at the start of each of the caster's turns: Tether Strength / Tether
+## Per Turn of their turns is how long it lasts if nothing hits them. 0: only
+## damage snaps it.
+@export_range(0, 1000, 1) var tether_per_turn: int = 25
+## Worn off for every hundredth of their health they lose: 1 is a quarter of the
+## bar for a blow that takes a quarter of their health.
+@export_range(0.0, 10.0, 0.05) var tether_per_damage: float = 1.0
 
 @export_group("Area of Effect")
 ## 0 = single tile only (classic single-target). Any higher number gives this
@@ -271,8 +450,16 @@ func _validate_property(property: Dictionary) -> void:
 			# Nothing to resist when the skill does no damage of its own. The stat
 			# and the modifier stay: a contest reads one, a poison tick the other.
 			shown = deals_damage
+		"scaling_stat":
+			# A spell is its caster's spellcasting stat's, whichever spell it is.
+			shown = spell_slot_level == 0
 	if not shown:
 		property.usage = PROPERTY_USAGE_STORAGE
+
+
+func _set_spell_slot_level(value: int):
+	spell_slot_level = value
+	notify_property_list_changed()
 
 
 func _set_deals_damage(value: bool):

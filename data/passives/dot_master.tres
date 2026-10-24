@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "DoT Master I"
+description = "His poisons and burns bite deeper: a tenth harder."
+required_level = 16
+dot_bonus = 0.1

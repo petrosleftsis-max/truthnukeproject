@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Reflected"
+tag = "Rf"
+description = "Inside a reflection of the world: invisible to the other side while they stay in it. Acting against an enemy gives them away until their next turn starts."
+duration = 1
+makes_invisible = true

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ItemDefinition.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://art/icons/instahack_skill.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+name = "InstaHack Spellbook"
+description = "A spellbook of InstaHack. Prometheus can learn InstaHack from it - on the Moves page of his character sheet, between fights - and it is used up as he does."
+icon = ExtResource("2_icon")
+can_be_copied = false
+deals_damage = false
+price = 375
+teaches = "instahack"

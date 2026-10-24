@@ -4,7 +4,7 @@ class_name StealthBar
 ## doing - sneaking, hidden or in disguise - how on edge the map is, whether
 ## anybody has noticed anything yet, and everything he can do.
 ##
-## Keys: 1-9 put a disguise on, H hides again, Shift dashes, Ctrl creeps, P
+## Keys: 1-9 put a disguise on, H hides again, G chooses who Invisibility hides, Shift dashes, Ctrl creeps, P
 ## (held) hurries time along, T throws, Q listens, V vaults over a barrel, F springs an ambush and E beside
 ## a guard a disguise fools has a word with him. A left click on the map takes a guard
 ## down, or picks up, puts down or hides a body, and a right click picks pockets (see
@@ -44,6 +44,12 @@ var _drag: Button = null
 var _pocket: Button = null
 var _ambush: Button = null
 var _hide: Button = null
+## The party going invisible (through Iris), and how long it has left.
+var _invisible: Button = null
+## The choice of who to hide, while it is open.
+var _picker = null
+
+const InvisibilityPicker := preload("res://ui/invisibility_picker.gd")
 var _buttons: Array[Button] = []
 ## What the disguise buttons were last built for, so they are only rebuilt
 ## when that changes rather than every frame.
@@ -82,6 +88,7 @@ func _ready():
 	_patience.button_down.connect(_on_patience.bind(true))
 	_patience.button_up.connect(_on_patience.bind(false))
 	_row.add_child(_patience)
+	_invisible = _button(_on_invisible_pressed)
 	_vault = _button(_on_vault_pressed, _here)
 	_vault.tooltip_text = "Hop over the barrel beside you to the other side."
 	_takedown = _button(_on_takedown_pressed, _here)
@@ -155,6 +162,8 @@ func refresh():
 		_status.text = "Changing into %s %.1fs" % [ItemDatabase.item(changing).name, watch.change_left()]
 	elif watch.lacing() != "":
 		_status.text = "Stirring in %s %.1fs" % [ItemDatabase.item(watch.lacing()).name, watch.lace_left()]
+	elif watch.unseen():
+		_status.text = "Invisible %s" % clock(watch.unseen_left())
 	elif worn != "":
 		var copied = CombatantDatabase.combatants.get(ItemDatabase.item(worn).disguise_as)
 		_status.text = "Disguised as %s" % (copied.name if copied != null else "somebody else")
@@ -223,6 +232,8 @@ func refresh():
 		var other: ItemDefinition = ItemDatabase.item(others[i])
 		_other_throws[i].text = "%s x%d" % [other.name, Campaign.count_of(watch.leader_key(), others[i])]
 		_other_throws[i].tooltip_text = "Aim this instead. %s" % other.description
+	# Going invisible, for whoever knows how.
+	_refresh_invisible()
 	# Listening.
 	_ears.visible = watch.hides_guards()
 	if watch.ears_left() > 0.0:
@@ -270,6 +281,62 @@ func refresh():
 	_hide.tooltip_text = refusal if refusal != "" else "Take the disguise off and slip back out of sight"
 	# The second row only while there is something on it.
 	_here.visible = _here.get_children().any(func(button): return button.visible)
+
+
+## The Invisibility button: there while somebody on the map knows the spell,
+## counting down while it lasts, and saying what it costs and what is left.
+func _refresh_invisible():
+	var spell: Dictionary = watch.invisibility_spell()
+	_invisible.visible = not spell.is_empty()
+	if spell.is_empty():
+		return
+	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
+	var gate := Stats.short_outside_gate_name(skill.outside_gate)
+	var left: int = Campaign.outside_gates_left(spell.caster)[skill.outside_gate]
+	_invisible.text = Pad.hint("%s (%s %d)" % [skill.name, gate, left], &"outside_spell")
+	var nobody_left: bool = watch.could_go_invisible().is_empty()
+	_invisible.disabled = nobody_left or left <= 0
+	_invisible.add_theme_color_override("font_color", Stats.outside_gate_colour(skill.outside_gate))
+	var tip := "%s hides whoever you choose for %s, through the %s - a casting for each (%d left). Hounds still smell them, and whoever does something to a guard is seen again." % [
+		Campaign.display_name_of(spell.caster), clock(skill.outside_seconds), Stats.outside_gate_name(skill.outside_gate), left]
+	if nobody_left:
+		tip = "Everybody is invisible already"
+	elif left <= 0:
+		tip = "%s has no castings of %s left" % [Campaign.display_name_of(spell.caster), gate]
+	var hidden := []
+	for key in Campaign.living_party():
+		if watch.unseen(key):
+			hidden.append("%s %s" % [Campaign.display_name_of(key), clock(watch.unseen_left(key))])
+	if not hidden.is_empty():
+		tip += "\nInvisible: " + ", ".join(hidden)
+	_invisible.tooltip_text = tip
+
+
+## Minutes and seconds - "9:58".
+static func clock(seconds: float) -> String:
+	var whole := ceili(seconds)
+	return "%d:%02d" % [whole / 60, whole % 60]
+
+
+## Opens the choice of who to hide - or, with only one to choose, hides them.
+func open_picker():
+	if watch == null or is_instance_valid(_picker):
+		return
+	if watch.spotted_by != null or watch.invisibility_spell().is_empty():
+		return
+	if watch.scene != null and watch.scene.has_method("is_holding") and watch.scene.is_holding():
+		return
+	var could: Array = watch.could_go_invisible()
+	if could.size() <= 1:
+		watch.go_invisible(could)
+		return
+	_picker = InvisibilityPicker.new()
+	_picker.watch = watch
+	get_parent().add_child(_picker)
+
+
+func _on_invisible_pressed():
+	open_picker()
 
 
 func _rebuild(carried: Array):
@@ -420,6 +487,8 @@ func _act(event: InputEvent):
 		watch.listen()
 	elif Pad.went_down(event, &"vault"):
 		watch.vault()
+	elif Pad.went_down(event, &"outside_spell"):
+		open_picker()
 	elif Pad.went_down(event, &"ambush"):
 		watch.ambush()
 	elif Pad.went_down(event, &"take_down"):

@@ -1,0 +1,13 @@
+Tier,LevelMin,LevelMax,EnemyType,HPMin,HPMax,DefenseMin,DefenseMax,Notes
+I,1,16,Frail,25,40,5,10,Glass cannon / fodder enemies
+I,1,16,Average,60,90,10,20,Standard threats
+I,1,16,Tanky,100,130,18,26,Frontline bruisers / mini-elites
+II,17,32,Frail,40,60,10,18,"Higher damage, still dies quickly"
+II,17,32,Average,100,140,20,35,Core enemies
+II,17,32,Tanky,150,190,30,45,"Heavily armored, slower to kill"
+III,33,48,Frail,60,80,15,25,Dangerous but still fragile
+III,33,48,Average,140,180,35,50,Most common mid-late enemy
+III,33,48,Tanky,200,240,45,58,Elite frontliners / shield units
+IV,49,64,Frail,70,90,20,30,Late-game glass cannons
+IV,49,64,Average,160,200,45,60,Baseline late-game foes
+IV,49,64,Tanky,230,280,55,65,Late-game tanks / bosses support

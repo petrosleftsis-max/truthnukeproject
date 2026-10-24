@@ -13,5 +13,5 @@ script = ExtResource("2_gear")
 name = "Iron Charm"
 description = "A ring of black iron, cold to the touch."
 slot = 2
-price = 220
+price = 40
 passive = SubResource("Resource_charm")

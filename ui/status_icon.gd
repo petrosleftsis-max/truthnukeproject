@@ -87,6 +87,35 @@ func set_health(hp: int, hp_max: int, overheal: int = 0):
 	fill.bg_color = HEALTH_FULL if fraction > HURT_BELOW else HEALTH_HURT
 
 
+## The tether a spell of theirs is held by (Combat "Tethers"): a thin violet
+## bar under the health, there only while they hold one - `most` 0 for none.
+const TETHER := Color("9d7fe0")
+
+func set_tether(value: float, most: float):
+	var bar := get_node_or_null("Layout/Tether") as ProgressBar
+	if most <= 0.0:
+		if bar != null:
+			bar.visible = false
+		return
+	if bar == null:
+		bar = ProgressBar.new()
+		bar.name = "Tether"
+		bar.show_percentage = false
+		bar.custom_minimum_size = Vector2(0, 6)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = TETHER
+		bar.add_theme_stylebox_override("fill", fill)
+		var back := StyleBoxFlat.new()
+		back.bg_color = Color(0.1, 0.08, 0.15, 0.85)
+		bar.add_theme_stylebox_override("background", back)
+		$Layout.add_child(bar)
+		$Layout.move_child(bar, $Layout/Health.get_index() + 1)
+	bar.visible = true
+	bar.max_value = most
+	bar.value = clampf(value, 0.0, most)
+
+
 ## What an aimed skill would do to them - see HealthBarMarks.
 func show_change(change: int):
 	var bar: ProgressBar = $Layout/Health

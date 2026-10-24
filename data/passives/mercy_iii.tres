@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Resource" path="res://data/conditions/sheltered.tres" id="2_cond"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Mercy III"
+description = "Whoever she heals is sheltered: a fifth less damage until their next turn starts."
+required_level = 41
+heals_leave = ExtResource("2_cond")

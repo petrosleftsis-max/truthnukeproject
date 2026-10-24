@@ -78,7 +78,7 @@ metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
 [node name="MapSetup" type="Node" parent="."]
 script = ExtResource("90_party")
 members = Array[String](["alithia"])
-level = 20
+level = 14
 music = "Scott Buckley - Filaments"
 metadata/_custom_type_script = "uid://c58kyys4p7s13"
 

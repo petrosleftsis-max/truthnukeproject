@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Resource" path="res://data/conditions/fear.tres" id="1_fear"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_passive"]
+
+[resource]
+script = ExtResource("2_passive")
+name = "Dread Presence"
+description = "Whoever of the other side is within four tiles of it - when it appears, or as a turn of theirs begins - is gripped by fear of it, unless their Mindfulness is a match for its caster's Intellect."
+aura_radius = 4
+aura_on_foes = ExtResource("1_fear")
+aura_contested = true

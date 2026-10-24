@@ -30,6 +30,18 @@ enum EffectType {
 	CLIMB,             ## Climbs onto the one it lands on, to fight from on top of them - Enfina's Climb.
 	BRIBE,             ## Pays the one it lands on their price (CombatantDefinition.bribe_price) to leave the fight.
 	BREAK_FREE,        ## Tries to break the grip of the one it lands on, who is holding the user (Grappled) - Break Free.
+	INVISIBLE,         ## Out of sight even in plain view, until they do something to an enemy - Invisibility.
+	CANCEL_CASTING,    ## Cancels the spell the one it lands on is casting, as they cast it - Prometheus's InstaHack.
+	SWALLOW,           ## Swallows whole the one it lands on, if the user has hold of them - the glutton's Devour.
+	GROW,              ## Makes the one it lands on a size bigger, for a duration - Growth.
+	SUMMON,            ## Calls Summons into the fight on the tile aimed at, to fight for its user (Combat "Summons").
+	COMMAND,           ## Gives a summon of the user's its moment: its move and its action, now (Combat "Summons").
+	LOOT,              ## Takes everything a fallen enemy carried and wore (Combat "Loot").
+	DRAW,              ## Takes something from its user's pouch and puts it on their baldric, ready to use (Combat "Drawing").
+	TRAP,              ## Sets a hidden trap on the tile aimed at - Snare, Tripwire, Minefield (Combat "Traps").
+	CATALYST,          ## Every lingering condition of its user's on every enemy goes off at once, then starts again (Combat "Catalyst").
+	ZONE,              ## Leaves a lasting zone on the ground the skill covers: whoever stands in it has Zone Condition (Combat "Zones").
+	DISPEL_MAGIC,      ## Ends what spells cast through gates no deeper than its own did to the one it lands on - or a zone, aimed at its ground (Combat "Dispelling").
 }
 
 enum DispelScope {
@@ -132,6 +144,20 @@ enum DispelScope {
 ## the same size - Light Swing cuts at full strength and gives a third of it
 ## back, which with one dial for the lot was impossible to say.
 @export_range(0.0, 5.0, 0.05, "or_greater") var heal_modifier: float = 0.0
+## Used by HEAL: mends this share of the target's health on top - 0.5 is half
+## of it back, 1.0 all of it (Restoration, Grace).
+@export_range(0.0, 1.0, 0.05) var heal_share_of_health: float = 0.0
+## Used by HEAL, the flat rule (APPROVED_TRIAL, 2026-10-24): Heal Flat + Heal Per
+## Stat x the healer's healing stat + Heal Per Weapon x their weapon base, in
+## place of power x the dial. Any of the three set switches it on for a skill;
+## an item (a Gate Nade copying the spell) keeps its own flat item power. The
+## healing stat is the one the skill scales with for them (Combat.scaling_stat_of
+## - Mindfulness for Alithia and the enemy healers, Self for the Mimic).
+## Heal 12 / 0.25 / 0.3; Light Heal and Communion 8 / 0.15 / 0.2; Restoration
+## 0 / 0.25 / 0 with half the target's health on top.
+@export_range(0.0, 100.0, 0.5, "or_greater") var heal_flat: float = 0.0
+@export_range(0.0, 2.0, 0.05, "or_greater") var heal_per_stat: float = 0.0
+@export_range(0.0, 2.0, 0.05, "or_greater") var heal_per_weapon: float = 0.0
 ## Only consulted when there is no skill behind the damage at all - a shove
 ## into a wall, something applied by hand. A skill's damage comes from its
 ## caster's stat and the modifiers above.
@@ -155,15 +181,15 @@ enum DispelScope {
 
 @export_group("Duration")
 ## Used when type is STAT_MODIFIER, STAT_MULTIPLIER, or DAMAGE_OVER_TIME.
-## How many of the affected combatant's own turns this lasts for, counting the
-## one it lands in when it lands on whoever is acting. That picks the turn it
-## goes in - the one after the last - and Wears Off At Start below picks
-## whether it goes as that turn starts or as it ends (see Combat.turns_stored).
-## Run at 1, going at the end: this turn and the next.
+## How many of the affected combatant's own turns this lasts for: 2 is two of
+## their turns. Landing on whoever is acting, they have the rest of this turn as
+## well - Run at 1, going at the end: this turn and the next. Wears Off At Start
+## below picks whether it goes as the turn after the last starts, or as the
+## last ends (see Combat.turns_stored).
 @export var duration: int = 2
-## Off: holds through the turn after its duration and wears off at that turn's
-## end, so it is still on when its bearer next acts - Run, a Blind, anything
-## that should never look as if it holds when it is about to go.
+## Off: holds through the last of its turns and wears off as that turn ends, so
+## it is still on while its bearer acts - Run, a Blind, anything that should
+## never look as if it holds when it is about to go.
 ## On: wears off as that turn starts, the moment before its bearer could use it
 ## - Guard, which is for the enemies' turns in between and has nothing to do on
 ## its bearer's own. The danger view knows these go before the enemy acts.
@@ -206,12 +232,56 @@ enum DispelScope {
 ## brought to the fight. What the thief has no room for stays where it was.
 @export_range(0, 4, 1, "or_greater") var steal_count: int = 0
 
+@export_group("Summon")
+## Used when type is SUMMON: who it calls, by key (a file in data/enemies or
+## data/characters), at its user's level. It fights for its user - on their
+## turn, not one of its own (Combat "Summons").
+@export var summons: String = ""
+## It is as strong as whoever called it: their five attributes rather than its
+## own. For something made of its caster's mind - Prometheus's Illusory Dragon.
+@export var with_summoners_attributes: bool = false
+
+@export_group("Trap")
+## Used when type is TRAP. What whoever of the other side steps onto it is held
+## by - Snared - for its own duration.
+@export var trap_holds_with: ConditionDefinition
+## It bursts as it is sprung, hitting everybody of the other side within Trap
+## Burst Radius at Trap Burst Modifier (the setter's power behind it). Tripwire.
+@export_range(0.0, 5.0, 0.05) var trap_burst_modifier: float = 0.0
+@export_range(0, 4) var trap_burst_radius: int = 0
+## Set on every free tile within this many of the one aimed at, at once, past
+## the setter's usual limit. Minefield.
+@export_range(0, 4) var trap_field_radius: int = 0
+
+@export_group("Catalyst")
+## Used when type is CATALYST. Every lingering condition of its user's, on every
+## enemy - not only the one it is aimed at - goes off at once: one tick's damage
+## times the ticks it had left times this, resisted once; then each starts again
+## from the top. Bare damage-over-time wounds (not conditions) are left alone,
+## and so is whatever anybody else put on: it is its user's own condition
+## payoff, on purpose. Team-wide synergy would be a separate mechanic.
+## Scope and arithmetic approved as they are (designer, 2026-10-24).
+@export_range(0.0, 5.0, 0.05) var catalyst_times: float = 2.0
+
+@export_group("Zone")
+## Used when type is ZONE. The ground the skill covers (its area, where it is
+## aimed) stays: whoever of Zone For stands in it has this, for as long as they
+## stand there - stepping in puts it on, stepping out takes it off.
+@export var zone_condition: ConditionDefinition
+## Whose it is for: its caster's side, the other side, or anybody in it.
+@export_enum("Their side", "The other side", "Everybody") var zone_for: int = 0
+## How many of its caster's turns it lasts: 1 is until their next turn begins.
+@export_range(1, 20) var zone_turns: int = 2
+## The other side does not know it is there: the board draws it only for its
+## own side. Reality's Reflection.
+@export var zone_unseen: bool = false
+
 
 ## Which fields each effect type actually reads. Everything not listed for a
 ## type is hidden while that type is selected - see _validate_property.
 const FIELDS_BY_TYPE := {
 	EffectType.DAMAGE: ["damage_type", "min_amount", "max_amount"],
-	EffectType.HEAL: ["heal_modifier", "min_amount", "max_amount"],
+	EffectType.HEAL: ["heal_modifier", "heal_share_of_health", "heal_flat", "heal_per_stat", "heal_per_weapon", "min_amount", "max_amount"],
 	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration", "wears_off_at_start"],
 	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "damage_modifier", "min_amount", "max_amount", "duration", "wears_off_at_start"],
 	EffectType.DISPEL: ["dispel_stat", "dispel_scope", "dispel_count"],
@@ -237,6 +307,28 @@ const FIELDS_BY_TYPE := {
 	EffectType.INTERACT: [],
 	# Nothing to configure: the hack is the skill's own (SkillDefinition.hack).
 	EffectType.HACK: [],
+	# Nothing to configure: it lasts until they act against an enemy. Outside a
+	# fight it lasts the skill's own Outside Seconds.
+	EffectType.INVISIBLE: [],
+	# Nothing to configure: whatever they are casting comes to nothing.
+	EffectType.CANCEL_CASTING: [],
+	# Condition: what they suffer inside (Swallowed - a stomach eating them).
+	# Duration: the swallower's own turns until they are digested, and dead.
+	EffectType.SWALLOW: ["condition", "duration"],
+	# One size bigger for Duration of their turns (0: the rest of the fight).
+	EffectType.GROW: ["duration", "wears_off_at_start"],
+	# Who, and whether it takes on its caller's attributes.
+	EffectType.SUMMON: ["summons", "with_summoners_attributes"],
+	# Nothing to configure: the summon it is aimed at acts, now.
+	EffectType.COMMAND: [],
+	# Nothing to configure: everything on the body comes off it.
+	EffectType.LOOT: [],
+	EffectType.DRAW: [],
+	EffectType.TRAP: ["trap_holds_with", "trap_burst_modifier", "trap_burst_radius", "trap_field_radius"],
+	EffectType.CATALYST: ["catalyst_times"],
+	EffectType.ZONE: ["zone_condition", "zone_for", "zone_turns", "zone_unseen"],
+	# Nothing to configure: how deep it reaches is the gate it is cast through.
+	EffectType.DISPEL_MAGIC: [],
 }
 
 
@@ -249,6 +341,12 @@ func condition_dot_strength() -> float:
 	if condition_dot_modifier > 0.0:
 		return condition_dot_modifier
 	return condition.dot_modifier if condition != null else 0.0
+
+
+## Whether this heal is worked out by the flat rule (Heal Flat, Heal Per Stat,
+## Heal Per Weapon) rather than as a share of the healer's power.
+func heals_flat() -> bool:
+	return heal_flat > 0.0 or heal_per_stat > 0.0 or heal_per_weapon > 0.0
 
 
 func _set_damage_modifier(value: float):

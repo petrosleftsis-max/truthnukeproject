@@ -6,11 +6,14 @@
 [resource]
 script = ExtResource("1_who")
 name = "Rat"
-max_hp = 3
-max_hp_level_20 = 24
+max_hp = 25
+max_hp_level_20 = 81
+defense = 5
+defense_level_64 = 30
 size = 0
-movement = 5
+movement = 7
 initiative = 3
 main_stat = 0
 sprite_frames = ExtResource("2_frames")
 skills = Array[String](["sass_club"])
+ai_readies = 2

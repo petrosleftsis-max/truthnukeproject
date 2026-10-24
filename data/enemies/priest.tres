@@ -6,16 +6,20 @@
 
 [resource]
 script = ExtResource("2_wdrhp")
+skill_levels = {"river_flow": 7}
 name = "Priest"
 class_t = 2
-max_hp = 32
-max_hp_level_20 = 150
-movement = 4
+max_hp = 60
+max_hp_level_20 = 190
+defense = 10
+defense_level_64 = 60
+movement = 6
 initiative = 3
 main_stat = 1
 secondary_stat = 3
+spellcasting_stat = 1
 sprite_frames = ExtResource("3_gthxx")
-skills = Array[String](["rapier", "water_spike", "heal", "cleanse", "river_flow", "revitalizer", "run"])
+skills = Array[String](["rapier", "water_spike", "heal", "cleanse", "river_flow", "communion", "run"])
 resist_water = 50
 resist_earth = -50
 ai_function = "ai_healer"

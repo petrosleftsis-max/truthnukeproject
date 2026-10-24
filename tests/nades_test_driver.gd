@@ -2,7 +2,7 @@ extends Node
 ## Gate Nades: a spell sealed in a shell - the spell's whole shape, no gate
 ## opened, no level needed, the nade's own power - and gone once thrown. But only
 ## by somebody who knows the spell or could learn it (their skills, at any level,
-## or any of their paths): a Revitalizer Nade is Alithia's, not Prometheus's or
+## or any of their paths): a Communion Nade is Alithia's, not Prometheus's or
 ## Enfina's. Cyrus's Nade Juggler throws any of them, and with the secondary
 ## action.
 
@@ -143,9 +143,9 @@ func the_nade_is_its_spell():
 	ok(fireball_nade.required_level == 1 and fireball.required_level > 1, "and needs no level", "Fireball needs %d" % fireball.required_level)
 	ok(fireball_nade.icon != null and fireball_nade.sound == fireball.sound, "with the consumables' picture and the spell's sound")
 	ok(fireball_nade.item_power == 50 and fireball_nade.price > 0, "its power and price its own", "%d, %d gold" % [fireball_nade.item_power, fireball_nade.price])
-	ok(nade("revitalizer_gate_nade").targets_ally, "a Revitalizer nade is thrown at friends")
+	ok(nade("communion_gate_nade").targets_ally, "a Communion nade is thrown at friends")
 	var merchant: StoreDefinition = load("res://data/stores/travelling_merchant.tres")
-	ok(merchant.stock.has("fireball_gate_nade") and merchant.stock.has("revitalizer_gate_nade"), "the travelling merchant sells them")
+	ok(merchant.stock.has("fireball_gate_nade") and merchant.stock.has("communion_gate_nade"), "the travelling merchant sells them")
 	log_line("")
 
 
@@ -155,9 +155,9 @@ func whose_nade_it_is():
 	var prometheus := who("prometheus")
 	var enfina := who("enfina")
 	var cyrus := who("cyrus")
-	var revitalizer := nade("revitalizer_gate_nade")
-	ok(combat.can_use_gate_nade(alithia, revitalizer), "a Revitalizer nade is Alithia's")
-	ok(not combat.can_use_gate_nade(prometheus, revitalizer) and not combat.can_use_gate_nade(enfina, revitalizer),
+	var communion := nade("communion_gate_nade")
+	ok(combat.can_use_gate_nade(alithia, communion), "a Communion nade is Alithia's")
+	ok(not combat.can_use_gate_nade(prometheus, communion) and not combat.can_use_gate_nade(enfina, communion),
 		"not Prometheus's or Enfina's")
 	ok(combat.can_use_gate_nade(prometheus, nade("fireball_gate_nade")) and not combat.can_use_gate_nade(alithia, nade("fireball_gate_nade")),
 		"a Fireball nade is Prometheus's, not Alithia's")
@@ -166,16 +166,16 @@ func whose_nade_it_is():
 		"a spell only one of his paths teaches is one he could learn")
 	var young: Dictionary = combat.create_combatant(CombatantDatabase.combatants.alithia, "alithia", "", null, 1)
 	young["side"] = 0
-	ok(not combat.meets_level_for(young, SkillDatabase.skills.revitalizer) and combat.can_use_gate_nade(young, revitalizer),
+	ok(not combat.meets_level_for(young, SkillDatabase.skills.communion) and combat.can_use_gate_nade(young, communion),
 		"a spell she is not old enough for yet is one she could learn")
-	ok(combat.can_use_gate_nade(cyrus, revitalizer) and combat.can_use_gate_nade(cyrus, nade("fireball_gate_nade")),
+	ok(combat.can_use_gate_nade(cyrus, communion) and combat.can_use_gate_nade(cyrus, nade("fireball_gate_nade")),
 		"and Cyrus, through Nade Juggler, can throw any of them")
 	log_line("")
 	log_line("======== on the panel ========")
-	Campaign.set_inventory("prometheus", ["revitalizer_gate_nade", "fireball_gate_nade"])
+	Campaign.set_inventory("prometheus", ["communion_gate_nade", "fireball_gate_nade"])
 	give_turn(prometheus)
-	var refused := items_button(prometheus, "revitalizer_gate_nade")
-	ok(not refused[1] and refused[0].contains("Only somebody who knows Revitalizer"), "Prometheus's Revitalizer nade is greyed out, saying why")
+	var refused := items_button(prometheus, "communion_gate_nade")
+	ok(not refused[1] and refused[0].contains("Only somebody who knows Communion"), "Prometheus's Communion nade is greyed out, saying why")
 	ok(items_button(prometheus, "fireball_gate_nade")[1], "his Fireball nade is not")
 	log_line("")
 
@@ -192,18 +192,18 @@ func throwing_them():
 	await settle(1)
 	give_turn(prometheus)
 	var mark := heard.size()
-	await combat.use_skill("revitalizer_gate_nade", prometheus, alithia.position, false)
+	await combat.use_skill("communion_gate_nade", prometheus, alithia.position, false)
 	await settle(2)
-	ok(alithia.hp == 10 and combat.items_of(prometheus).has("revitalizer_gate_nade") and not prometheus.skill_used_this_turn,
+	ok(alithia.hp == 10 and combat.items_of(prometheus).has("communion_gate_nade") and not prometheus.skill_used_this_turn,
 		"thrown by Prometheus anyway, it is refused: nothing spent, nothing mended")
 	ok(heard.slice(mark).any(func(line): return "Only somebody who knows" in line), "and the log says why")
-	Campaign.set_inventory("alithia", ["revitalizer_gate_nade"])
+	Campaign.set_inventory("alithia", ["communion_gate_nade"])
 	give_turn(alithia)
 	var gates_before: Array = alithia.spell_slots.duplicate()
-	await combat.use_skill("revitalizer_gate_nade", alithia, alithia.position, false)
+	await combat.use_skill("communion_gate_nade", alithia, alithia.position, false)
 	await settle(3)
 	ok(alithia.hp > 10, "Alithia's mends", "%d" % alithia.hp)
-	ok(not combat.items_of(alithia).has("revitalizer_gate_nade") and alithia.spell_slots == gates_before,
+	ok(not combat.items_of(alithia).has("communion_gate_nade") and alithia.spell_slots == gates_before,
 		"and is gone, with no gate of hers opened")
 	ok(alithia.skill_used_this_turn, "it took her main action")
 	combat.teleport_to(prometheus, within(prometheus, foe, 6))
@@ -236,7 +236,7 @@ func the_juggler():
 	ok(ui._consumable_spends_secondary(cyrus, fireball), "a nade goes from his secondary action")
 	ok(not ui._consumable_spends_secondary(cyrus, SkillDatabase.skills.small_bomb), "a bomb, without Quick Hands, does not")
 	ok(ui.build_skill_tooltip(fireball, cyrus).contains("Secondary through Nade Juggler"), "and the nade's preview says whose doing that is")
-	Campaign.set_inventory("cyrus", ["fireball_gate_nade", "revitalizer_gate_nade"])
+	Campaign.set_inventory("cyrus", ["fireball_gate_nade", "communion_gate_nade"])
 	combat.teleport_to(cyrus, within(cyrus, foe, 6))
 	await settle(1)
 	give_turn(cyrus)
@@ -245,6 +245,6 @@ func the_juggler():
 	await settle(3)
 	ok(foe.hp < 999 and cyrus.secondary_used_this_turn and not cyrus.skill_used_this_turn,
 		"he throws Prometheus's Fireball with his secondary action, his main still to come", "%d" % foe.hp)
-	ok(items_button(cyrus, "revitalizer_gate_nade")[1], "and Alithia's Revitalizer nade is his to throw too")
+	ok(items_button(cyrus, "communion_gate_nade")[1], "and Alithia's Communion nade is his to throw too")
 	cyrus.passives.append(quick_hands)
 	log_line("")

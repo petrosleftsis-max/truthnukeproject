@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/ire_of_sophia_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("3_skill")
+name = "Ire of Sophia"
+description = "Wisdom's anger as a burst of lightning around where it lands."
+required_level = 41
+min_range = 1
+max_range = 15
+ability_modifier = 4.2
+damage_type = 9
+aoe_radius = 1
+respects_blocking = true
+spell_slot_level = 7
+icon = ExtResource("2_icon")
+sound = ExtResource("90_sfx")

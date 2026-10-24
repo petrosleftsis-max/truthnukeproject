@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="SubclassDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Script" path="res://combat/resources/SubclassDefinition.gd" id="2_path"]
+
+[sub_resource type="Resource" id="Passive_0"]
+script = ExtResource("1_passive")
+name = "Overcharge"
+description = "Amplify a spell by casting it through a deeper gate - half as much damage again for each gate deeper. Once a short rest he can do it without spending the deeper gate."
+required_level = 24
+amplifies_spells = true
+amplify_bonus_per_gate = 0.5
+free_amplifies_at = Array[int]([24])
+
+[sub_resource type="Resource" id="Passive_1"]
+script = ExtResource("1_passive")
+name = "Chain"
+description = "His fire and lightning spells leap from whoever they hit to one more of the other side within two tiles, at half the damage."
+required_level = 32
+chain_share = 0.5
+chain_reach = 2
+chain_elements = Array[int]([1, 9])
+
+[sub_resource type="Resource" id="Passive_2"]
+script = ExtResource("1_passive")
+name = "Resonance"
+description = "A spell of another element than his last one hits 15% harder."
+required_level = 41
+resonance = 0.15
+
+[sub_resource type="Resource" id="Passive_3"]
+script = ExtResource("1_passive")
+name = "Deep Current"
+description = "One more Overcharge a short rest that spends no deeper gate - two in all."
+required_level = 54
+free_amplifies_at = Array[int]([54])
+
+[sub_resource type="Resource" id="Passive_4"]
+script = ExtResource("1_passive")
+name = "Conduit"
+description = "Once a short rest, a spell through the deepest gate open to him comes through twice."
+required_level = 64
+conduit = true
+
+[resource]
+script = ExtResource("2_path")
+name = "Elemental Conductor"
+description = "The overcharge. Prometheus pushes every spell past where it should stop: through deeper gates, from one enemy to the next, and once, twice over."
+passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_2"), SubResource("Passive_3"), SubResource("Passive_4")])

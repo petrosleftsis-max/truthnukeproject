@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_aj4rj"]
+[ext_resource type="Texture2D" path="res://art/icons/heal_skill.png" id="2_pnxl7"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_kdpqh"]
+
+[sub_resource type="Resource" id="Resource_kvnun"]
+script = ExtResource("1_aj4rj")
+type = 14
+revive_health = 0.5
+revive_weakening = 0.1
+
+[resource]
+script = ExtResource("3_kdpqh")
+name = "Resuscitate"
+description = "Bring a fallen ally back into the fight with half their health. It costs them: everything about them but how far they can walk is a tenth less afterwards - for good, and a tenth less again each time."
+min_range = 1
+max_range = 1
+icon = ExtResource("2_pnxl7")
+required_level = 9
+targets_ally = true
+targets_fallen = true
+can_be_copied = false
+effects = Array[ExtResource("1_aj4rj")]([SubResource("Resource_kvnun")])
+deals_damage = false
+scaling_stat = 1
+spell_slot_level = 3
+melee = true

@@ -23,6 +23,33 @@ class_name BattleObjectDefinition
 @export_range(0, 10, 1) var uses: int = 1
 ## Hits hurt it, and it is set off when it breaks. Otherwise they do nothing.
 @export var breakable: bool = false
+## Using it turns it into this instead of setting it off - a carcass that a
+## Use taints. Empty: Using it sets it off, as above.
+@export var used_becomes: BattleObjectDefinition
+## Called up by somebody (a SUMMON effect): it fades after this many of their
+## turns, never having been there - Illusory Cover. 0 for for good.
+@export_range(0, 20, 1) var lasts_turns: int = 0
+## It is not there at all - an illusion, as an image is (Combat "Images"): to
+## the other side's mind it blocks sight and is cover, and they plan around it;
+## what actually happens goes straight through it, blasts and shots alike, and
+## nothing hits it. Illusory Cover.
+@export var illusion: bool = false
+
+@export_group("Food")
+## Eaten by whoever eats food on the map (CombatantDefinition.eats) once they
+## are near enough: gone, and it does what is below to them.
+@export var edible: bool = false
+## A real meal: it heals them (their Meal Heals), grows back what grows back
+## when they eat, and does their Fed Effects. Off for bait.
+@export var nourishing: bool = true
+## Hurts whoever eats it, before defence and resistance.
+@export_range(0, 999, 1, "or_greater") var eaten_damage: int = 0
+@export var eaten_damage_type: Damage.Type = Damage.Type.POISON
+@export var eaten_condition: ConditionDefinition
+## Added to their stagger bar, if they have one.
+@export_range(0.0, 500.0, 1.0, "or_greater") var eaten_stagger: float = 0.0
+## A part of theirs it breaks from the inside, by name ("Belly Hole").
+@export var eaten_breaks: String = ""
 
 @export_group("Hack")
 ## Has to be hacked to be Used (Hacking) - by somebody who can hack. Failing,

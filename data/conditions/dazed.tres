@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Dazed"
+description = "Reeling from the impact: two tiles less to walk, no secondary action and no reactions. They keep their main action."
+duration = 1
+movement_change = -2
+prevents_secondary = true
+prevents_reactions = true

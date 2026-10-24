@@ -126,7 +126,7 @@ func actions_and_names():
 	var wanted := ["ui_accept", "ui_cancel", "pause", "menus", "menus_previous", "menus_next", "inventory",
 		"journal", "character_sheet", "pointer_click", "pointer_left", "pointer_right", "pointer_up",
 		"pointer_down", "look_left", "look_right", "look_up", "look_down", "move_left", "move_right",
-		"move_up", "move_down", "interact", "swap_leader", "dash", "listen", "throw", "vault", "ambush",
+		"move_up", "move_down", "interact", "swap_leader", "dash", "listen", "throw", "vault", "outside_spell", "ambush",
 		"take_off_disguise", "next_disguise", "take_down", "pick_pocket", "creep", "patience",
 		"pan_left", "pan_right", "pan_up", "pan_down", "tile_left", "tile_right", "tile_up", "tile_down",
 		"danger_view", "end_turn", "undo_move", "skill_previous", "skill_next", "skill_tab", "zoom_toggle"]

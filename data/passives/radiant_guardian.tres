@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Radiant Guardian"
+description = "While she stands, the party takes a tenth less damage."
+required_level = 64
+party_damage_reduction = 0.1

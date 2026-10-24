@@ -26,24 +26,47 @@ const STORES := "res://data/stores/"
 ## Every resource in `folder` that is a `kind` (a class: SkillDefinition, ...),
 ## by file name, in alphabetical order. Anything else there is warned about and
 ## left out.
+##
+## Its subfolders are read too, however deep - a folder of skills sorted into
+## data/skills/enfina/, .../spells/ and so on - and a resource is still keyed by
+## its file name alone, so a name has to be one of a kind across all of them:
+## a second one is warned about and left out. The order stays alphabetical by
+## key, whichever folder each is in.
 static func read(folder: String, kind) -> Dictionary:
 	var found := {}
 	if not DirAccess.dir_exists_absolute(folder):
 		push_warning("DataFolder: there is no %s." % folder)
 		return found
+	_read_into(found, folder, kind)
+	var keys := found.keys()
+	keys.sort()
+	var ordered := {}
+	for key: String in keys:
+		ordered[key] = found[key]
+	return ordered
+
+
+static func _read_into(found: Dictionary, folder: String, kind):
 	# list_directory knows an exported game's files by their original names; a
-	# plain DirAccess listing there sees "x.tres.remap".
+	# plain DirAccess listing there sees "x.tres.remap". A folder ends in "/".
 	var names := Array(ResourceLoader.list_directory(folder))
 	names.sort()
-	for file in names:
+	for file: String in names:
+		if file.ends_with("/"):
+			_read_into(found, folder.path_join(file.trim_suffix("/")), kind)
+			continue
 		if not (file.ends_with(".tres") or file.ends_with(".res")):
 			continue
-		var loaded = load(folder.path_join(file))
+		var path := folder.path_join(file)
+		var loaded = load(path)
 		if loaded == null or not is_instance_of(loaded, kind):
-			push_warning("DataFolder: %s is not the kind of thing %s holds." % [folder.path_join(file), folder])
+			push_warning("DataFolder: %s is not the kind of thing %s holds." % [path, folder])
 			continue
-		found[file.get_basename()] = loaded
-	return found
+		var key := file.get_basename()
+		if found.has(key):
+			push_warning("DataFolder: %s has the name of another (%s); the first is kept." % [path, found[key].resource_path])
+			continue
+		found[key] = loaded
 
 
 static func skills() -> Dictionary:
@@ -54,7 +77,7 @@ static func items() -> Dictionary:
 	return read(ITEMS, ItemDefinition)
 
 
-## The paths a character can take at level 5 - see SubclassDefinition.
+## The paths a character can take at level 24 - see SubclassDefinition.
 static func subclasses() -> Dictionary:
 	return read(SUBCLASSES, SubclassDefinition)
 

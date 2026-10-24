@@ -2,7 +2,7 @@
 
 A grid tactical RPG in Godot 4.7.2. `project.godot` sits at the repo root, so
 every folder here is inside the Godot project - including `tests/`, which
-carries a `.gdignore` to keep the editor from parsing 117 test drivers on every
+carries a `.gdignore` to keep the editor from parsing 127 test drivers on every
 start and shipping them in builds.
 
 The game starts at `scenes/game.tscn` and the menu at `scenes/main_menu.tscn`.
@@ -15,7 +15,14 @@ The databases are folders: `SkillDatabase`, `ItemDatabase` and
 `CombatantDatabase` are scripts (`data/databases/`) that read `data/skills/`,
 `data/items/`, `data/characters/` and `data/enemies/` through `DataFolder` when
 the game starts, keyed by file name. There is no dictionary to register in -
-the file name is the key, and saving the file adds it. Editor tools that cannot
+the file name is the key, and saving the file adds it. `DataFolder` reads
+subfolders too, so skills are sorted by who uses them: `data/skills/common/`
+(two or more of the party, and the secondary actions), `<character>/`,
+`<character>/spells/`, `<character>/paths/<path>/`, `enemies/` and `unused/`.
+The folder is for people only - a skill is still keyed by its file name, which
+must be one of a kind across all of them (a second one is warned about and
+dropped). Move a skill freely when who uses it changes; nothing refers to its
+path except `tests/hover_test_driver.gd`. Editor tools that cannot
 rely on autoloads (`SpawnMarker`) call `DataFolder` directly. Every game class
 a designer places or saves has an editor icon (`@icon`, `art/editor_icons/`);
 give a new one an icon too. Folder colours in the FileSystem dock are
@@ -33,7 +40,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 117 suites and takes a while. Each one boots the real game
+A full run is 130 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one.
@@ -101,7 +108,11 @@ is Alegreya Sans.
 Everything routes through `power_behind(attacker, skill)` in `combat/Combat.gd`:
 
 - a **skill's** base is `WEAPON_BASE + 0.7 x scaling_stat` (6 and
-  `STAT_SCALING` in `combat/Stats.gd`), so it moves with whoever is holding it
+  `STAT_SCALING` in `combat/Stats.gd`), so it moves with whoever is holding it.
+  Read the stat through `scaling_stat_of`: a passive's `scales_every_skill_with`
+  first, then for a spell (`is_spell`, not an item) the caster's
+  `spellcasting_stat` (CombatantDefinition) - a spell's own `scaling_stat` is
+  ignored and hidden in the inspector - and otherwise the skill's own
 - an **item's** base is the flat `item_power` written on it, and does not move
   at all - a bomb is the same bomb whoever throws it
 
@@ -114,7 +125,14 @@ hit to nothing.
 `ability_modifier` - that modifier sizes the hit that lands, not the burn that
 follows. **Heals** are `power_behind x the heal dial`, with no defence and no
 randomness, so a heal is something you can count on when deciding whether it is
-enough.
+enough - except a skill's heal on the **flat rule** (APPROVED_TRIAL 2026-10-24,
+`EffectDefinition.heals_flat`: Heal Flat + Heal Per Stat x the healer's healing
+stat + Heal Per Weapon x their weapon base). Light Heal, Heal, Communion,
+Restoration and Mend the Bound use it; the healing stat is `scaling_stat_of`, so
+Self for the Mimic. Items (Gate Nades copying Heal) keep their flat item power.
+`heal_amount` works out both; the heal bonus (Mercy I) multiplies the whole
+amount and never the share of health (`heal_share_on`). `docs/healing_revision.md`
+has the numbers.
 
 `ItemDefinition extends SkillDefinition`, so items walk the same path; they
 just answer `power_behind` with their own number. A contested item weighs the
@@ -249,10 +267,34 @@ swaps the map's own fight for the stage's (`DungeonDefinition.stage_for`);
 `ExplorationScene` leaves the party and bags alone instead of applying the map's
 MapSetup cast and kit; `Combat._deploy_party` keeps the bags even on a fight
 gone straight into; and `record_party` / `apply_carried_state` carry spent
-`spell_slots` between fights, which no other mode does. `ResultUI` shows a
+`spell_slots` between fights, which no other mode does - and what is spent until a
+rest (`Combat.SPENT_UNTIL_REST`: a skill's `uses_per_short_rest` uses, free
+amplifications, Conduit; per fight until the designer's change of 2026-10-24),
+which `Campaign.short_rest` / `long_rest` clear. Those two are the plug-in for
+the short and long rest (ABSENT/PROPOSAL beyond that: the designer has the
+details to give); `rest_party`, the rest between stages, calls `short_rest` for
+now. `ResultUI` shows a
 `RestPanel` (`Campaign.rest_party`, `recover_gates`) instead of its own panel
 after every won fight but the last. `reset()` ends a dungeon, so the title
-screen and every fresh start leave it. `dungeon` covers it.
+screen and every fresh start leave it. `dungeon` covers it, `restuses` the uses.
+
+The late-Chapter-I laboratory sequence (`data/dungeons/lab_chapter1_sequence.tres`,
+boss Erysichthon; `lab_chapter1_sequence_ash_warden.tres` the same with the Ash
+Warden; `docs/lab_sequence.md`) is a TEMPORARY test harness, not story content. Its
+`DungeonDefinition.skips_rests` makes `ResultUI` skip the RestPanel (the Continue
+button goes on), and `logs_metrics` makes `GameScene` add a `LabMetrics`
+(`tools/lab_metrics.gd`) under Combat. That listens to `Combat.metric` - emitted
+by `_metric` from the round, turn, action, gate, damage (`lose_hp`), heal, item,
+declare / land / drop and stagger code, `cue`, `shrug_off`, break-free, swallowing
+and digesting, and every condition put on; `add_stagger` takes a source label - and
+writes `docs/lab_runs/`, with a section per boss (its turns lost and why, what was
+put on it, what it shrugged off, what happened around it). Nothing in the game listens to `metric`. `lab` covers it;
+the probe `chapter1` writes the inventory with its "Lethality review".
+The probe `healing` writes `healing_inventory.csv` (every heal at 1 / 8 / 14 / 18 /
+64, the designer's hybrid proposal beside it, the enemies' blows, the short rest,
+the gates Meditate would bring back, and the heal cap's triggers level by level)
+for `docs/healing_and_rest_proposal.md`, `docs/healing_cap_proposal.md` (an optional
+tuning tool) and `docs/healing_revision.md` (the revised flat heals).
 
 ## Point-and-click pictures
 
@@ -313,11 +355,31 @@ through `CController.aim_subject_at` and stands them back up with
 (everything but movement), and carried in `Campaign.party_state` like health.
 
 **What somebody has to hand is `Combat.items_of`**: an enemy's `comb.pocket`
-(from their spawn's `starting_items`), or the front `Campaign.COMBAT_SLOTS` of a
-party member's bag. A Steal (`EffectType.STEAL`, `Combat.steal`) moves from one
-to the other through `_stow` / `_give_up`, so it works either way round. For the
-party it goes through `Campaign.stow_item`, which is `give_item` with no log line.
-`SpawnDefinition` is `@tool` only so that `starting_items` can be a dropdown.
+(from their spawn's `starting_items`), or a party member's belt (the Baldric). A Steal
+(`EffectType.STEAL`, `Combat.steal`) empties one container the thief picks
+(`steal_choices`, `_choose_container`, asked in `use_skill` before the effects and
+held in `_steal_from`): a party member's belt, pouch or backpack, an enemy's
+pocket or `carried`. It moves through `_stow` / `_give_up`, so it works either
+way round; for the party through `Campaign.stow_item`, which is `give_item` with
+no log line. `SpawnDefinition` is `@tool` only so that `starting_items` can be a
+dropdown.
+
+**Bags are containers end to end** (Campaign "Containers"). The player calls the
+belt the **Baldric** (`EquipmentDefinition.SLOT_NAMES`, `slot_name_of`); its key,
+enum value and file names stay `belt`. A belt, a pouch and a
+backpack are `EquipmentDefinition`s (slots Belt, Pouch, Backpack - appended to the
+enum) with **Slots** and **Bombs Per Slot**, kept in `Campaign.containers`; the
+flat `inventory_of` is the belt's slots, then the pouch's, then the backpack's,
+so code that walks a bag as slots keeps working and "the front" is the belt.
+Ask `bag_size`, `combat_slots_of`, `container_start`/`container_at`,
+`contents_of`, never `INVENTORY_SIZE`/`COMBAT_SLOTS` (the starting sizes). A slot
+holding more than one bomb (`ItemDefinition.bomb`) is counted in `stacks`
+(`count_in`, `holds_at`); `stow_item`, `take_item`, `move_item` and `count_of`
+know it. `wear_container`, `take_off_container` and `swap_containers` re-lay the
+bag (`_segments`, `_packed`, `_lay_out`) and refuse what will not fit. Rummage
+(EffectType.DRAW, Combat "Drawing") moves one thing from pouch to belt in a
+fight: a main action from `main_skills_of`, a secondary one too from
+`secondary_grants` for anybody with `items_as_secondary`.
 
 **A new `SpawnDefinition` field needs a home on `SpawnMarker`.** The encounter
 editor's Save rebuilds every spawn from its marker (`_spawn_from`), so a field
@@ -325,19 +387,119 @@ that `rebuild()` and `_spawn_from` don't both carry goes back to its default on
 every Save. This happened to Arrives On Round and Surprised. The `gear` suite
 sets every stored field and fails on any it doesn't know about.
 
-**Twenty levels, and the story's own.** `Stats.MAX_LEVEL` is 20; attributes and
-health climb linearly between level 1 and 20 (`Stats.main_stat_at`,
-`CombatantDefinition.hp_at`), gates by `Stats.GATES_BY_LEVEL`. A fight walked into
+**Sixty-four levels, and the story's own.** `Stats.MAX_LEVEL` is 64; attributes and
+health climb linearly between level 1 and 64 (`Stats.main_stat_at`,
+`CombatantDefinition.hp_at` - its `max_hp_level_20` is the top level's health),
+gates by `Stats.GATE_STEPS` (`gates_for_level`, as wide as `GATE_NAMES`;
+`no_gates()` for nobody's). The story fights at 1, 8 and 14. A fight walked into
 from a map (or a dungeon) fields the party at `Campaign.party_level`, on their
 chosen path and in their gear (`create_combatant`'s `level`/`subclass` arguments,
 `Combat.wear_gear`); one opened from Arena Mode uses the spawn's level,
 subclass, weapon and defence. `Campaign.set_party`'s level is a floor and raises
-through `reach_level`, never lowers.
+through `reach_level`, never lowers. A spawn's defence of 0 (the default) is
+`CombatantDefinition.defense_at(level)` - `defense` to `defense_level_64`, like
+`hp_at`, or the steps of `defense_by_level` - and so is anybody created without
+a spawn. The enemies' health and defence follow `docs/enemy_progression.csv`
+(frail / average / tanky, per tier), the party's
+`docs/player_hp_defense_progression.csv`, Cyrus's shot multipliers
+`docs/cyrus_damage_adjustments.csv`; prices and fight pay follow
+`docs/consumables.csv` and `docs/gold_economy_gear.csv`. The `csv` suite checks
+the progression, party and enemy sheets against the data, `ammo` Cyrus's.
+A condition's `defense_change` (Corroded's -0.1) is folded in `fold_stat_changes`,
+so it lasts, refreshes and is cleansed with the condition.
+
+**How to treat the numbers** (the design handoff, `docs/handoff_0.1/`, read
+`claude_working_instructions.md` first): the repository is the implementation
+truth and `docs/perplexity_combat_context.md` a dated snapshot - report
+mismatches, never overwrite code to match it. Every value has two statuses:
+ImplementationState (PRESENT / ABSENT / VERIFY) and DecisionStatus
+(EXISTING_BASELINE / APPROVED_TRIAL / PROPOSAL / OPEN / APPROVED_DESIGN, and
+OPTIONAL_TUNING_TOOL for something kept on hand but not part of the baseline -
+the heal cap); blank is unknown, never zero; a sheet's ranges are references for
+testing, not decisions. Only what the designer approves is implemented - confirm scope
+first; everything else is a PROPOSAL. Every value and change is in
+`docs/design_status_ledger.csv` (source, value, proposal, dependencies,
+evidence, acceptance test, owner, version, outcome). Chapter I (levels 1-18) is
+the main target - `docs/chapter1_audit.md`, with every value in
+`docs/chapter1_inventory.csv` (`tests/run.sh chapter1` writes it); Sixty-Four is
+a regression test; party health, enemy damage, gear, rewards, boss stats and
+encounter composition are not to be changed broadly yet.
+
+**The progression is `docs/progression.csv`** (how it went in: `docs/progression_plan.md`;
+the `csv` suite checks every Base row against the data). A move that only grows
+stronger has **ranks** (`SkillDefinition.ranks`, `SkillRank`): read a skill's
+multiplier, condition dial and condition length through `Combat.modifier_of`,
+`dot_strength_of` and `rank_duration` wherever the user is known - never
+`skill.ability_modifier` straight. The passives' switches are read in Combat
+"Progression" (`damage_reduction_of` inside `damage_taken_multiplier`,
+`progression_damage_bonus` inside `damage_dealt_multiplier`, `contest_bonus_of` in
+`wins_contest`, `lingering_bonus`/`lingering_turns` in the CONDITION and
+DAMAGE_OVER_TIME branches, `_after_heal` in `do_heal`, `_mend_at_turn_start` and
+`started_in_cover`/`moved_this_turn` at a turn's start, `spells_cast` (Kindling)
+counted in `_use_skill` after the effects, `add_deepest_castings` at
+creation and after gear). `in_cover` is beside a tile that blocks sight. An
+enemy with one of the party's moves keeps its own learning level for it
+(`CombatantDefinition.skill_levels`, read by `meets_level_for`), so a move moved
+later for the party (Sweep Strike, 54) is not taken off the Barbarian.
+
+**Five chapters** (Campaign "Chapters"): `CHAPTER_LEVELS` is where each ends
+(18, 33, 45, 55, 64); `begin_chapter(n)` from a dialogue. The character sheet's
+Levels page (`ui/character_sheet.gd`, "Levels" - `levels_of(key, subclass)` is
+the table) stops at 55, ΛΗΘΗ, until Chapter V (`levels_in_view`), and plays its
+unveiling once after (`levels_unveiled`). Its Moves page lists skills, then
+spells on a shelf per gate. Tab or the right trigger (`skill_tab`, read in
+`_input` before focus takes Tab) turns the page.
+
+**Spellbooks** (Campaign "Spellbooks"): somebody with `learns_spells`
+(Prometheus) knows `starting_spells` and what is in `Campaign.learned_spells`,
+nothing else, path spells included. A book is an `ItemDefinition` with `teaches`
+(so `stealth_only`); a Gate Nade teaches its spell too (`spell_taught_by`). Only
+`learnable_spells` (theirs and their path's) can be learned. The Moves page's
+Learn button calls `learn_spell`, which uses up the first teacher in the bags.
+A fight walked into from a map strips what is not learned
+(`Campaign.forget_unlearned` in `_deploy_party`); Arena Mode knows everything.
+A test that fields Prometheus from a map with a spell in mind has him `learn` it.
 
 **Paths are passives, mostly.** `SubclassDefinition` (data/subclasses) gives
-skills and passives; `Combat.take_path` adds them from level 5. What a path does
-is a switch on `PassiveDefinition`, read in "What the paths do" in Combat.gd
+skills and passives; `Combat.take_path` adds them from level 24 (Stats.SUBCLASS_LEVEL).
+What a path does is a switch on `PassiveDefinition`, read in "What the paths do"
+and "The paths" in Combat.gd (`_path_hit_bonus` in `progression_damage_bonus`,
+`_evades` after the hit roll, `_splash`/`_overload`/`_spellstrike` in
+`_after_landing`, `_last_wall` in `do_damage`, `_paths_at_turn_start`), "Traps",
+"Catalyst" and "Zones"
 through `active_passives` (which honours each passive's `required_level`).
+**Tremor** (the control trial, APPROVED_TRIAL 2026-10-24; `tremor` covers it):
+`_splash` catches each one once at the harder of a rank's splash and Tremor's
+share, and Tremor shoves everybody beside the target, and the target, a tile
+whichever was harder - Titanfall's `splash_shove` is 0. A shove of hers into
+something solid puts `tremor_impact_condition` on them (`_tremor_impact`:
+Dazed, a PROPOSAL test value; `put_condition` replaces rather than stacks, and
+`turns_stored` keeps it to their next turn). In her own turn `_splash` notes who
+it threw (`tremor_struck`, ids, cleared at turn start); after the action
+`tremor_steps` offers a straight tile nearer one of them through
+`CController.choose_step`, for a tile of movement, provoking nothing
+(`teleport_to`). The party's player only - the AI takes no step.
+**Zones** (EffectType.ZONE, `lay_zone`): their conditions are status entries
+carrying `zone_id`, owned by `sync_zones` alone - it runs after every step
+(`CController._handle_step_arrival`), every use and every turn start
+(`_zones_at_turn_start` counts the caster's turns down). Anything else that
+moves somebody mid-turn is caught by the next of those. A zone outlasts its
+caster (`_zones_round_begins` counts it by the round then); `zone_unseen` keeps
+it off the other side's board (`zone_tiles`). `makes_invisible` on a zone's
+condition is `_zone_invisibility`, held off by `shown_this_turn` (set by
+`_invisibility_ends` and every reveal, cleared as their turn starts). A thing
+on the map with `illusion` (Illusory Cover) is an image to sight and cover and
+is left out of `get_targets_in_tiles`.
+**Illusions fool the other side, whichever that is**: `believes_illusion(thing)` -
+the AI's mind (`ai_believes`, `_believer_side` set where it is switched on) or
+the player's while aiming (`party_believes`: a skill selected on the player's
+turn). Ask it, not `ai_believes`, for anything about an illusion. An enemy's
+image is named and drawn as its original, and its making is not said.
+**Dispelling** (Combat "Dispelling"): spell effects carry `spell_gate`
+(`_mark_spell_gate` after `_apply_effect_by_type`; `invisible_gate`; summons and
+images; a zone's `gate`), from `spell_gate_of(skill)` - `_casting_gate`, set in
+`_pay_for_cast`, which honours `cast_through` (`chooses_gate`, `_choose_gate`).
+Spells never have ranks (`csv` checks).
 Damage goes through `damage_dealt_multiplier` (factions, empowered, amplified),
 so the aim prompt and the hit agree. Every health loss goes through `lose_hp`,
 which spends overheal (`temp_hp`) first. Images are combatants with
@@ -364,13 +526,14 @@ out. The same goes for what Cyrus's Light Footed and Quick Hands grant - ask
 `secondary_grants` and `items_as_secondary`, which also read the older
 per-character fields of the same names that nothing uses any more.
 
-**Gates are not fixed at three.** Names, colours and counts all extend: add a
+**Ten gates, World to Yaldabaoth.** Names, colours and counts all extend: add a
 name to `Stats.GATE_NAMES` (and a colour to `GATE_COLOURS`, or one is picked)
-and a column to `GATES_BY_LEVEL`. The Spells panel is a shelf per gate that
+and its counts to `GATE_STEPS`. Anything that lists gates should skip the ones
+somebody has none of (the HUD and the hacking screen do). The Spells panel is a shelf per gate that
 scrolls within the action panel's size (`ui/spell_shelves.gd`), so more gates
 never make it bigger. Skills use the twelve-button grid, until a tab has more
 than twelve; then they go on one untagged shelf (`build(..., flat)`), since the
-grid would drop the rest without a word. `paths` checks every kit at level 20.
+grid would drop the rest without a word. `paths` checks every kit at the top level.
 
 **Sizes: a combatant is a rectangle, not a tile.** `comb.size` (`Sizes.Size`) and
 `comb.span` (tiles a side, 1 for Human and smaller). `comb.position` is the
@@ -394,8 +557,8 @@ The controller keeps its occupancy as every tile of everybody, rebuilt by
 (`_fit_points_to_big`, a summed-area table) is solid wherever its square would
 not fit; `get_reachable_tiles(..., mover)` does the same for the reach. The
 sprite node stays on the anchor tile's centre; `CombatantSprite.size_offset`
-draws it over its square (or in its corner of a shared tile) and
-`Sizes.draw_scale` scales it. Anything that moves a sprite back "home" returns
+draws it over its square (or, sharing a tile, in a cluster round its middle -
+`drawing_offset`) and `Sizes.draw_scale` scales it. Anything that moves a sprite back "home" returns
 it to `size_offset`, not zero.
 
 **Declared moves keep their marks.** `SkillDefinition.declared`: `use_skill` calls
@@ -490,7 +653,9 @@ locked / nobody / busy, "set_off", "locked_out"}`.
   map it only roots the party. It writes `hacked:` / `hack_locked:` /
   `hack_set_off:` + id to Campaign.
 - In a fight (`Combat._hack_in_fight`) nothing is written; the combatant dict
-  carries `hacked` / `hack_locked`.
+  carries `hacked` / `hack_locked`. A declared move is hackable only when
+  `SkillDefinition.can_be_hacked()` (Hackable, or its own `hack`); `refusal_for`
+  turns the rest away. A bound creature's binding is exempt.
 - Gates spent outside a fight are `Campaign.gates_spent_outside`, taken off at
   the next deployment (`take_gates_spent_outside`). Strain outside a fight is
   `Campaign.strain`.
@@ -511,6 +676,14 @@ one section each, and every rule is a per-creature switch:
     (`_turncoats_turn_back_if_alone`).
 - **"Reading intent".** `comb.intent` is carried out by `_ai_follow_intent`
   before anything else in `ai_process`.
+  - Every way an enemy drops what was read goes through `_future_changed`:
+    the log line, `comb.thwarted` (cleared as its next turn begins), the
+    shatter (`CController.shatter_future`, `control/FutureShards.gd`), the
+    sound, the queue crack (`combat_ui._set_crack`) and the reader's line.
+  - `foreseen_victims` and `foreseen_doom` are worked out live, so the red
+    marks follow health.
+  - Path hooks live on PassiveDefinition (Intuition group), applied in
+    `read_intent` and `damage_dealt_multiplier`.
 - **"Nerve".** `comb.taken` ("fled", "surrendered", "knocked_out", "bought")
   is out of the fight without dying: `alive = false`, off its group, never
   found by `fallen_at`. `prisoners()` are the surrendered and knocked out.
@@ -527,6 +700,22 @@ one section each, and every rule is a per-creature switch:
     `_escape_field` is a flood from the ways out (leaving out a way out somebody
     stands on). `EncounterDefinition.runners_with_nowhere_to_run` is what the
     editor and the fight warn with.
+- **Sight at somebody big.** `has_line_of_sight(..., looking_at)` leaves the
+  creature being looked at out of the bodies that block it. The range filter
+  passes whoever stands on each tile; `CController.is_valid_skill_target` takes
+  the aimed tile, and a face is aimed at its `face_aim_tile`. A target check
+  against `target.position` alone is the corner of somebody big - don't.
+- **Big ones from every edge.** Ask `sees_tile(viewer, tile, looking_at)`
+  rather than `has_line_of_sight(viewer.position, ...)`: it looks from the
+  viewer's nearest tile. Anything drawn on somebody goes at their node plus
+  `drawing_offset` (their middle), not the node - floating numbers, recoil,
+  the hover ring (`rect_of`), the camera. `_aim_points` and the reaction tiles
+  in `threat_map` spread from every tile of the square.
+- **Melee.** `SkillDefinition.melee`, asked through `Combat.is_melee`. It's
+  set in the data, not worked out from range.
+- **Watching a turn.** `watch_combatant` follows the sprite offset to the middle
+  of their square, and `camera.fit_in_view` pulls back for somebody bigger than
+  the view; `release` puts the zoom back.
 - **Grid after something big.** `_fit_points_to_big` closes open ground the
   rest of `update_points_weight` never revisits, so `_big_fitted` makes the next
   update open the whole region first. Anything else that closes open ground on
@@ -538,9 +727,9 @@ one section each, and every rule is a per-creature switch:
 - **Keys or stick.** Walking and panning read `Pad.direction`, never
   `Input.get_vector` with keys and stick added together. A pad's resting
   stick walked a keyboard party slowly downhill.
-- **"Taunts" and `refusal_for`.** `refusal_for` is the one place a use is
-  ruled out for who it is aimed at: taunted, too heavy, too small to climb, no
-  leverage, can't be bought. `use_skill` and `CController.refusal_at` both ask
+- **`refusal_for`.** `refusal_for` is the one place a use is ruled out for
+  who it is aimed at: too heavy, too small to climb, no leverage, can't be
+  bought. There are no taunts (Combat "Hemmed In and Exposed"). `use_skill` and `CController.refusal_at` both ask
   it, so the preview and the use agree. A new rule of that kind goes there.
 - **"Grappling".** A rider (`comb.riding`) covers no tiles:
   - `covers` is false, and `tiles_of` with no anchor is empty.
@@ -552,13 +741,224 @@ one section each, and every rule is a per-creature switch:
     knockback, drift, Hurl, climbing on or off. A new one should too.
   - `check_holds` lets go of grips nobody is keeping. It runs after every step,
     at each turn start, and when somebody falls or is taken.
+  - A holder's walk drags them along (Combat "Dragging"): `_handle_step_arrival`
+    calls `drag_held` before `check_holds`. `drag_cost` (2 unless the held is a
+    size or more smaller) prices every step there and in `_step_cost`,
+    `move_on_path` and the drawn path, and `get_reachable_tiles` divides the
+    budget by it - so the AI and the danger view plan the same halved walk.
   - A reactive skill is offered beside any other reactive skill
     (`choose_reaction`, `ReactionPrompt.choose`).
   - A grab mid-walk is stopped in `CController._handle_step_arrival`.
 - **Ignores Defense**: `defense_against`, read by `skill_damage`, the one place
   a hit meets Defense.
+- **"Reactions"**: `SkillDefinition.reacts_when` (flags, `Trigger`). Leaves
+  Reach is still `check_reactive_skills`. Everything else goes through
+  `_react(trigger, enemy, why, protected_for, fits)`, called from:
+  - `_react_to_step`, at the end of `check_reactive_skills`;
+  - `_react_to_casting` (Casts), in `use_skill` before the animation, for
+    anything `is_spell`. It sets `comb.casting`; `cancel_casting`
+    (EffectType.CANCEL_CASTING, InstaHack) sets `cast_cancelled`, and then
+    `_cast_cancelled` pays (`_pay_for_cast`) and spends the action;
+  - `_react_before`, in `use_skill` once the targets are known (an attacker
+    left stunned there hits nobody);
+  - `_react_after`, once it has landed;
+  - `declare`, which is awaited now.
+  `SkillDefinition.set_off_by` and `sets_off` decide who may set a trigger off:
+  only the `EITHER_SIDE` ones allow allies, and a readied move's `by` does the
+  same. With an ally as `source`, `protected` is that ally.
+  `SkillDefinition.reaction_only` is refused by `refusal_for`, greyed by
+  `wasted_on`, refused by `ready_refusal` and skipped by the AI's skill pickers.
+  `_reaction_target` is who it lands on. `_choose_option` asks the player through
+  `ReactionPrompt.ask/choose` with a `happening` line. `acting_foreseen` is set
+  around `_ai_follow_intent`'s use_skill, for Foreseen Blow.
+- **"Ready"**: `comb.readied` (`ready_action`, `drop_readied`, `_fire_readied`).
+  The gate and main action are spent at readying. It's dropped at the start of
+  its user's turn, by a stagger, by changing sides or breaking, and by a hold
+  only when `_ready_impossible`. ENTERS_AREA's `area` is drawn by CController.
+  There's no player UI for it yet.
+- **"Readying, for the AI"**: `CombatantDefinition.ai_readies` (flags, `AiReady`).
+  `ai_process` sets `ai_turn_live`; `advance_turn` hands a turn that ends with its
+  main action unused to `_ai_consider_ready`. A guard is handled earlier, in
+  `ai_process` (`_ai_can_strike_this_turn`, `_ai_guard_ready`, `comb.post`).
+  `_ai_ready_pick` prefers free moves, and `_ai_can_spare` keeps the last casting.
+  `threat_map` adds readied areas and Enters Reach reaches to `reaction`.
+- **"Invisibility"**: `comb.invisible` on top of `comb.hidden`, so everything
+  that leaves the hidden alone (`is_hidden`) leaves them alone too. What ends it
+  is the difference:
+  - `reveal_anyone_now_seen` skips the sight check for them, and `do_damage`
+    doesn't reveal them.
+  - `apply_effect` ends it (`_invisibility_ends`) when the bearer does anything
+    but REVEAL to the other side.
+  - `last_in_sight` is the side rule for both kinds of hiding: with nobody on a
+    side left in sight, everybody hiding there is revealed. `refusal_for` asks
+    `_invisibility_refusal`. An image of somebody (`image_of`) counts as in
+    sight while whoever made it (`made_by`) stands (`_image_holds_the_eye`), so
+    behind images a whole side can hide; the last image gone gives away its
+    maker (`_after_image_gone`, from `_shatter`), and the maker falling gives
+    away everybody (combatant_die's `reveal_anyone_now_seen`).
+  - `set_hidden(comb, false)` always clears `invisible`.
+- **Gates outside a fight** (`Stats.OUTSIDE_GATES`, Iris): a skill's
+  `outside_gate`. Castings are `Campaign.outside_gates_left` / `spend_outside_gate`,
+  saved in `outside_spent`, which `_deploy_party` clears at every fight outside a
+  dungeon. In one, a rest brings them back: `recover_gates(key, counts, outside)`
+  at `outside_gate_cost` (the matching gate's price), RestPanel's Outside rows.
+  They are not `spell_slots` and never meet the ladder's "pay with a higher gate"
+  rule.
+- **Invisibility on a stealth map** is per member: `StealthWatch._unseen` (key ->
+  seconds), `go_invisible(keys)`, `unseen(key)` (the leader when not named).
+  `ui/invisibility_picker.gd` chooses who, holding the game (MenuPause). It's read
+  in `can_perceive` and `gaze_of` (hounds still smell), and `_seen_again()` ends
+  it for whoever leads, from every action on a guard. A new action on a guard
+  should call it too. `build_fight` carries it on as `SpawnDefinition.invisible`,
+  which Combat applies once everybody is placed (`_begin_invisible`, last spawn
+  first) and to late arrivals.
 - **"Body parts".** `_aimed_tile` is the impact tile, set only around each
-  target's effects in `use_skill`. `do_damage` → `_hit_part`.
+  target's effects in `use_skill`. `do_damage` → `_hit_part`. Drawn by
+  `CController._draw_parts` from `part_marks()` (whose `id`, `name`, `kind`),
+  coloured by `PART_COLOURS`; `_note_hover` redraws as the pointer moves. Only
+  a blow at one tile aims at a part (`aims_at_parts`: `aoe_radius_of` 0); an
+  area - a grown blow's cone too - lands on the whole of them, and neither the
+  aim prompt nor the board lights a part for it.
+- **Turn-start ticks.** `advance_turn` awaits `start_of_turn_effects(comb, true)`:
+  each tick plays the entry's `sound` (the inflicting skill's, stored when it
+  landed) with a `TICK_BEAT` after it, input locked meanwhile. It walks a
+  snapshot (`_effect_index`), since a tick can shrink the list (a phase's
+  `clears_conditions`). Unpaced (tests, `process_status_effects`) it's instant.
+- **"Images"** (`summon_decoy`): a skill `placed_in_reach` is aimed twice
+  (`CController.aimed_twice` - who, anywhere, then where in reach; `_placing_at`).
+  `ai_believes` is the other side's mind: on through `ai_process`, `threat_map`,
+  `plan_intent`, off through `use_skill`, `advance_turn` and a step arriving.
+  While on, an image is a body to sight (`CController.blocks_sight`,
+  `_SightGrid.stand_back`); otherwise it stops nothing. `ai_target_value` judges
+  an image as whoever it is of (`_seen_as`, `image_of`).
+- **"Growing"**: `size_wanted` (base_size plus "size" status entries),
+  `resync_size` from the turn ticks, dispel and revive; `resize` finds a square
+  (`_room_to_grow`) and `_stretch_parts` copies parts per combatant. BossPhase
+  `grows` raises base_size. `resize` alone leaves base_size be, so a test that
+  resizes somebody walks them at that size (`CController._full_size`), but
+  `size_wanted` still says the old one.
+  - A melee blow's area is `aoe_radius_of(comb, skill)` and `aoe_shape_of`, from
+    size minus `comb.original_size` (`_grown_by`; `area_grows_with_size`: melee,
+    damaging, no throw, reach 1 unless it has an area). A one-tile blow grown
+    becomes a CONE of 1 + sizes grown (get_impact_tiles adds the aim tile if the
+    cone misses it); one with an area of its own goes +-1 a size. Ask them, not
+    `skill.aoe_radius` / `aoe_shape`, wherever a user's actual area matters -
+    pass the user to `get_impact_tiles`. Places that only sort skills into
+    single-target and area (`find_best_single_target_skill`, `_hurts_somebody`)
+    keep the skill's own.
+  - A line or a cone from somebody bigger than a tile goes out of the tile of
+    their square nearest the aim: `nearest_tile_of`, or `nearest_from(comb,
+    anchor, aim)` for a standing tile the AI is weighing. The aiming marks
+    (CController) once drew it from the anchor, and disagreed with the hit.
+  - `resize` moves the sprite to the new anchor (`sprite_point`) - grown up or
+    left, it was drawn over the square below - and `place_sprites` puts the
+    drawing back over the tile once somebody is a tile big again.
+- **"Summons"**: `comb.summoner` (the caller's id) - from EffectType.SUMMON
+  (`summon`, aimed at a tile; `use_skill` calls it before the targets loop) or
+  `summon_at_start` (`_bring_starting_summons`, and late arrivals). Not in
+  `_base_queue`/`turn_queue` and skipped by `advance_turn`. `command` (EffectType
+  COMMAND, `secondary_grants` adds "command") makes the summon current for a
+  moment (`_commanding`); `advance_turn` with it current calls `_end_command`
+  instead of advancing - so a summon's AI or the player's End Turn hands back.
+  `_summons_turn_begins`/`_summons_turn_ends` (ticks, auto `_stand_guard`) and
+  `_summons_fend` (lost turn: `ai_summon_alone`) hang off `_advance_turn`. On the HUD a summon is no
+  party portrait: `combat_ui._refresh_summon_faces` hangs a small one (on a
+  Node2D, out of the containers' way) beside its summoner's portrait and in the
+  corner of their turn-queue face.
+  `_summoner_gone` (combatant_die, `_taken`) `_unsummon`s them; a summon falling
+  is `_unsummon`ed too (taken "unsummoned"). `record_party` skips them.
+  `CombatantDefinition.untouchable`: hit_chance 0, `lose_hp` 0, `apply_effect`
+  from the other side does nothing, `ai_target_value` 0. The AI is `ai_summoner`.
+  A summon With Summoners Attributes carries `attributes_of`, and `stat_of`
+  reads its summoner's live stats. Auras go through `_aura_of` (turn starts and
+  arrivals); `_aura_takes_hold` is the `aura_contested` check.
+- **"Tethers"**: `SkillDefinition.tethered` / `tether_strength` /
+  `tether_per_turn` / `tether_per_damage`; `comb.tether`. `use_skill`
+  snapshots everybody's status effects and marks what the cast added `tether_of`
+  its id (and its summons); `snap_tether` strips those and unsummons. Fraying:
+  `_tether_turn` (turn start) and `_tether_hurt` (from `lose_hp`), both through
+  `fray_tether`. Drawn by `status_icon.set_tether` and `CController._draw_tether`.
+- **"Loot"**: no fight rewards anything by itself. An enemy's spawn carries
+  `starting_items` (into `comb.pocket` up to `CombatantDefinition.pocket_size`,
+  the rest and anything `stealth_only` into `comb.carried`) and `equipment`
+  (`_wear_spawn_equipment`: weapon base, defence, a charm's passive;
+  `comb.equipment`). `is_lootable` is a body of the other side, down but not
+  gone (fled, bought, unsummoned), with something on it. Loot (EffectType.LOOT,
+  `data/skills/common/loot.tres`) is a secondary action `secondary_grants` offers while
+  there is one; `refusal_for` turns away a tile with no body; `loot` stows
+  items (`_stow`) and gear into `Campaign.gear`. ResultUI's "Search the fallen"
+  calls `loot_the_fallen` once the fight is won (not on a dungeon's rest panel).
+- **Pockets, for the AI**: `_ai_main_keys` takes pocket items that are
+  `_item_against_the_other_side` into the archetypes' plans, weighed like any
+  skill; `_ai_heal_key` picks the best mend between a heal skill and pocket
+  heals (the ranger and the healer use it). `ai_alchemist` mends anybody below
+  `AI_ALCHEMIST_MENDS_BELOW`, else throws, with both actions (its Bandolier).
+- **Hops** (CController "Hops"): `_begin_step` asks `hop_for(mover, from, to)`
+  at the start of every step; onto or off high ground the sprite arcs over the
+  step (`CombatantSprite.hop`); between floors the walk snaps, then holds
+  `FLOOR_HOP_SECONDS` while the drawing rises or drops into place. The height
+  walk breaks ties between equally dear routes by how long they look
+  (`_looks_longer`) - without it a diagonal costing what a straight step does
+  made Cyrus (who walks by those rules everywhere) zig-zag.
+- **"Squeezing"**: `PassiveDefinition.squeezes`, `can_squeeze`, `fold_shapes`
+  (square, then a size narrower, shorter, both), `fit_to_room` (from
+  `_handle_step_arrival` and `resync_size`). Folded, `comb.fold` is the shape and
+  `comb.squeezed` is true; size stays. Everything geometric reads
+  `Combat.footprint(comb)` (rect_of, covers, tiles_of, drawing_offset,
+  `drawn_scale`), never `span` - a new place that does needs to. Parts stay in
+  square terms; `_unfolded` / `_folded` map them (part_index_at, part_marks).
+  `resize` and `_room_to_grow` drop the fold. The walk plans it: `_stance` is the
+  shape (ZERO for none), a fold at twice the cost (`_add_step`, `_step_cost`); a
+  squeezer always walks by the heights rules (`_height_pathing`).
+- **"Heights"** (Combat) and CController "Heights" / "Floors on the screen":
+  `_heights`/`_floored`, `climb_tiles`, `is_high`, `floor_of`/`real_of`/`tile_on`.
+  Floors are separate regions of one TileMap, so everything per floor works as
+  before; cross-floor is `get_position_distance`, `has_line_of_sight` ->
+  `_sight_between_floors`, `floors_open_between` (in `refusal_for` and
+  `get_range_tiles`). Walking is `_height_steps`/`_height_search`/`_height_path`
+  for anybody a tile big (`_height_pathing`); a step more than two tiles long is
+  a floor change and snaps. `comb.up` and `_up_tiles` come from
+  `refresh_occupancy`; `terrain_class` is 1 when up. `_aim_blocked` lets a target
+  on high ground be aimed at. The danger view uses `has_line_of_sight` on height
+  maps (its flat grid knows nothing of who is up).
+  - `Combat.climbs_anywhere` (PassiveDefinition, Cyrus's Cat Burglar): such a
+    mover walks by these rules on every map (`_height_pathing`), needs no climb
+    tile (`_add_step`), climbs to the floor above over a walker-blocking tile
+    beside them when nothing is overhead (`_height_steps`), and is marked `up`
+    and has his climbs said on maps without heights too.
+  - Size is height: `Combat.elevation(comb)` (up, plus a level a size above
+    Human) fills the controller's `_raised` (`raised_at`); sight looks as a flier
+    from or to a raised tile, and `_eye_height` (with the viewer's size as a
+    floor) lifts a tall one unless a floor is over them. Any line between eyes
+    on either side of a floor's level must cross it through open air
+    (`_floors_crossed_open`, walked from one end by `_walked_from_b`) - between
+    floors, and on one floor with somebody raised under a floor above, where
+    has_line_of_sight hands it to `_sight_between_floors` too. Large+ step over high ground
+    (`steps_over_size`, `blocks_for` - room_for and `_fit_points_to_big` ask it).
+  - The walk is per footprint (`_fits_as`, `_stance`): every tile on one floor;
+    stairs only as wide as the climber (`_stairs_under`); down only into open
+    air the size of them (`_open_air`); Small and Tiny share by `room_for`.
+  - `_spread` keeps to a floor; `_aims_across_floors` is the other floors for the
+    danger view, and `threat_map` returns `across` (enemy id -> floors), which
+    `_draw_ghosts` reads to draw a threatening ghost red.
+  - Reactions: `reach_gap` (OUT_OF_REACH for melee across floors),
+    `_reaches_through_floors` and `nearest_across` in Leaves Reach, Enters Reach,
+    `_reaction_target` and the readied area. `ready_area` keeps to the floor it
+    is put on; `ready_refusal` asks `floors_open_between`.
+- **"Arriving late"**: `SpawnDefinition.arrives_late()`; `_arrival_due` wants
+  round, `fallen_of(ENEMIES)` and `_cues` (`cue(name)`, raised in `_break_part`,
+  `stagger`, `combatant_die`, `set_off`/`_becomes`, `_begin_phase`, `swallow`,
+  `_digest`, `eat`). `_bring_in_arrivals(true)` runs at every turn's end
+  (advance_turn) through `add_mid_round`; the round top keeps the plain one.
+- **"Swallowing"** reuses Climb's riding: `riding` + `inside`, `digest_left`,
+  `inside_condition`. `climbers_of` (not `riders_of`) is who gets shaken off.
+  `dismount` clears the inside state and shows the sprite. Inside, `refusal_for`
+  allows only a single-target blow at the swallower; `get_range_tiles` is its
+  tiles; `_aim_from_inside` sends the blow to the part that frees them.
+- **"Gluttony"**: `_glutton_turn_begins` (digest, `_regrow_clock`, `feed` or
+  `_eat_itself`) from advance_turn after `_turn_begins_for`; `ai_glutton` feeds
+  again after moving. A body eaten gets `eaten` (fallen_at, prisoners skip it).
+  `part_index_at` asks the newest part first; `part_marks` drops covered tiles.
 - **"Quick time"**: `quick_time_power` / `quick_time_governs`. The QuickTime
   autoload (`quicktime/`, layer 36) answers false headless unless a test sets
   `answer` or `play_headless`.

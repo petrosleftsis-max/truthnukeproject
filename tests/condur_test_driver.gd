@@ -68,7 +68,7 @@ func run_test():
 
 	target.status_effects.clear()
 	combat.apply_effect(acting, target, plain, null, false)
-	ok(stored_turns(target) == 4, "so it lands the condition's own 3, and the turn after", "%d" % stored_turns(target))
+	ok(stored_turns(target) == 3, "so it lands the condition's own 3 - N of the target's turns", "%d" % stored_turns(target))
 	log_line("")
 
 	log_line("======== a skill can say otherwise ========")
@@ -78,7 +78,7 @@ func run_test():
 	brief.condition_duration = 1
 	target.status_effects.clear()
 	combat.apply_effect(acting, target, brief, null, false)
-	ok(stored_turns(target) == 2, "a 1-turn Blind lands as 1 and the turn after", "%d" % stored_turns(target))
+	ok(stored_turns(target) == 1, "a 1-turn Blind lands as 1", "%d" % stored_turns(target))
 
 	var punishing := EffectDefinition.new()
 	punishing.type = EffectDefinition.EffectType.CONDITION
@@ -86,7 +86,7 @@ func run_test():
 	punishing.condition_duration = 8
 	target.status_effects.clear()
 	combat.apply_effect(acting, target, punishing, null, false)
-	ok(stored_turns(target) == 9, "an 8-turn Blind lands as 8 and the turn after", "%d" % stored_turns(target))
+	ok(stored_turns(target) == 8, "an 8-turn Blind lands as 8", "%d" % stored_turns(target))
 
 	ok(blind.duration == 3, "and the condition resource is untouched by either", "%d" % blind.duration)
 	log_line("")
@@ -100,7 +100,7 @@ func run_test():
 		effect.condition_duration = 5
 		target.status_effects.clear()
 		combat.apply_effect(acting, target, effect, null, false)
-		ok(stored_turns(target) == 6, "%s overridden to 5, and the turn after" % name, "own duration is %d" % definition.duration)
+		ok(stored_turns(target) == 5, "%s overridden to 5 lands as 5" % name, "own duration is %d" % definition.duration)
 	log_line("")
 
 	log_line("======== landing on whoever is acting, this turn is the first ========")
@@ -120,9 +120,9 @@ func run_test():
 
 	log_line("======== the tooltip says what the skill actually lands ========")
 	var ui = game.get_node("CanvasLayer/UI")
-	ok(ui.describe_effect(plain).contains("4 turn"), "no override reads as the condition's own, in the turns it really lasts",
+	ok(ui.describe_effect(plain).contains("3 of their turns"), "no override reads as the condition's own, in the turns it really lasts",
 		ui.describe_effect(plain))
-	ok(ui.describe_effect(brief).contains("2 turn"), "an override reads as the override, likewise",
+	ok(ui.describe_effect(brief).contains("1 of their turns"), "an override reads as the override, likewise",
 		ui.describe_effect(brief))
 	log_line("")
 

@@ -632,6 +632,136 @@ func hide_again() -> bool:
 	return true
 
 
+## --- Invisibility ---
+##
+## A spell cast through an outside gate (Iris) that hides whoever the caster
+## chooses - all of the party or some of it, at one casting each - from every
+## eye for its Outside Seconds, each on a clock of their own. A nose is not
+## fooled: hounds smell them as ever (can_perceive). Whoever does something to
+## a guard - takes him down, lifts from or slips into his pockets, darts him,
+## has a word, springs an ambush, which is always whoever leads - is seen again
+## (_seen_again); the rest stay hidden.
+
+## Party member key -> seconds they have left unseen.
+var _unseen := {}
+
+
+## The spell the party could go invisible with and who would cast it -
+## {"skill", "caster"} - or {} when nobody on the map knows one. Somebody with
+## castings enough for `wanted` of them, by preference.
+func invisibility_spell(wanted: int = 1) -> Dictionary:
+	var found := {}
+	for someone in _party_standing():
+		for skill_key in Campaign.outside_spells(someone.key):
+			var skill: SkillDefinition = SkillDatabase.skills[skill_key]
+			if not skill.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.INVISIBLE):
+				continue
+			var spell := {"skill": skill_key, "caster": someone.key}
+			if Campaign.outside_gates_left(someone.key)[skill.outside_gate] >= wanted:
+				return spell
+			if found.is_empty():
+				found = spell
+	return found
+
+
+## Everybody on the map who is not invisible already, leader first.
+func could_go_invisible() -> Array:
+	var keys := []
+	for someone in _party_standing():
+		if not unseen(someone.key):
+			keys.append(someone.key)
+	return keys
+
+
+## What hiding `keys` costs - everybody who could be, when none are named: a
+## casting each.
+func invisibility_cost(keys: Array = []) -> int:
+	return (keys if not keys.is_empty() else could_go_invisible()).size()
+
+
+## Why `keys` - everybody who could be, when none are named - could not be made
+## invisible right now, or "" when they could.
+func invisibility_refusal(keys: Array = []) -> String:
+	var who: Array = keys if not keys.is_empty() else could_go_invisible()
+	var spell := invisibility_spell(who.size())
+	if spell.is_empty():
+		return "Nobody here knows a spell to hide the party"
+	if who.is_empty():
+		return "Everybody is invisible already"
+	for key in who:
+		if unseen(key):
+			return "%s is invisible already" % _display_name(key)
+	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
+	var left: int = Campaign.outside_gates_left(spell.caster)[skill.outside_gate]
+	if left < who.size():
+		return "%s needs %d castings of %s - one for each of them - and has %d" % [
+			_display_name(spell.caster), who.size(), Stats.short_outside_gate_name(skill.outside_gate), left]
+	return ""
+
+
+## Casts it on `keys` - everybody who could be, when none are named - each
+## unseen for the spell's Outside Seconds. False, and nothing spent, when it
+## can't be.
+func go_invisible(keys: Array = []) -> bool:
+	var who: Array = keys if not keys.is_empty() else could_go_invisible()
+	if spotted_by != null or invisibility_refusal(who) != "":
+		return false
+	if scene.has_method("is_holding") and scene.is_holding():
+		return false
+	var spell := invisibility_spell(who.size())
+	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
+	if not Campaign.spend_outside_gate(spell.caster, skill.outside_gate, who.size()):
+		return false
+	for key in who:
+		_unseen[key] = float(skill.outside_seconds)
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] casts %s through the %s, and %s fade%s from sight.\n" % [
+			_display_name(spell.caster), skill.name, Stats.outside_gate_name(skill.outside_gate),
+			" and ".join(who.map(_display_name)), "s" if who.size() == 1 else ""])
+	return true
+
+
+## Whether `key` - whoever leads, when not named - is invisible right now.
+func unseen(key: String = "") -> bool:
+	return unseen_left(key) > 0.0
+
+
+## Seconds `key` - whoever leads, when not named - has left unseen.
+func unseen_left(key: String = "") -> float:
+	return _unseen.get(key if key != "" else leader_key(), 0.0)
+
+
+## Whether anybody in the party is invisible right now.
+func anyone_unseen() -> bool:
+	return not _unseen.is_empty()
+
+
+## The clock ticking down, a second at a time.
+func _wear_off_invisibility(delta: float):
+	for key in _unseen.keys():
+		_unseen[key] -= delta
+		if _unseen[key] <= 0.0:
+			_unseen.erase(key)
+			if scene.has_method("log_message"):
+				scene.log_message("[color=yellow]%s[/color]'s invisibility wears off.\n" % _display_name(key))
+
+
+## `key` - whoever leads, who is who does things to guards, when not named -
+## did something to a guard, and can be seen again.
+func _seen_again(key: String = ""):
+	if key == "":
+		key = leader_key()
+	if not unseen(key):
+		return
+	_unseen.erase(key)
+	if scene != null and scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] flickers back into sight.\n" % _display_name(key))
+
+
+func _display_name(key: String) -> String:
+	return Campaign.display_name_of(key)
+
+
 ## --- The dash ---
 
 
@@ -1977,6 +2107,7 @@ func throw_at(tile: Vector2i) -> bool:
 			scene.log_message("The dart finds [color=yellow]%s[/color].\n" % _name_of(target) if target != null
 				else "The dart misses, and is lost.\n")
 		if target != null:
+			_seen_again()
 			dose(target, item)
 		_given_away_by_throwing()
 		return true
@@ -1998,7 +2129,8 @@ func throw_at(tile: Vector2i) -> bool:
 func throw_watchers() -> Array:
 	var watchers := []
 	var party = scene.get("party") if scene != null else null
-	if not leader_hiding() or party == null or party.leader == null:
+	# Invisible, there is no arm to see going up.
+	if not leader_hiding() or unseen() or party == null or party.leader == null:
 		return watchers
 	var tile = tile_of(party.leader.global_position)
 	for guard in guards:
@@ -2315,6 +2447,7 @@ func take_down(preferred = null) -> bool:
 	var guard = takedown_target(preferred)
 	if guard == null or spotted_by != null:
 		return false
+	_seen_again()
 	guard.knock_out()
 	suspicion[guard] = 0.0
 	_bodies[guard] = false
@@ -2559,6 +2692,7 @@ func pick_pocket(preferred = null) -> bool:
 		return plant(preferred)
 	if guard == null or spotted_by != null:
 		return false
+	_seen_again()
 	var names := []
 	for item_key in guard.pockets:
 		if Campaign.give_item(leader_key(), item_key):
@@ -2783,6 +2917,7 @@ func reassure(preferred = null) -> bool:
 		return false
 	if scene.has_method("is_holding") and scene.is_holding():
 		return false
+	_seen_again()
 	guard.reassured = true
 	if guard.small_talk != null:
 		_small_talk(guard)
@@ -2979,6 +3114,9 @@ func gaze_of(guard: Guard, leader_in: String = "") -> int:
 		return Gaze.SEES
 	var asks := false
 	for someone in standing:
+		# Somebody invisible is nothing to his eyes - though not to a nose.
+		if unseen(someone.key) and guard.kind != Guard.Kind.DOG:
+			continue
 		var worn: String = leader_in if leader_in != "" and someone.key == leader_key() else worn_by(someone.key)
 		if worn == "":
 			return Gaze.SEES
@@ -3036,6 +3174,7 @@ func _process(delta):
 	_dash_cooldown = maxf(0.0, _dash_cooldown - delta)
 	_ears_cooldown = maxf(0.0, _ears_cooldown - delta)
 	_ears_left = maxf(0.0, _ears_left - delta)
+	_wear_off_invisibility(delta)
 	if _changing_into != "":
 		_change_left -= delta
 		if _change_left <= 0.0:
@@ -3370,6 +3509,9 @@ func is_hiding_spot(tile: Vector2i) -> bool:
 func can_perceive(guard: Guard, someone: Dictionary) -> bool:
 	if not _seen.get(guard, {}).has(someone.tile):
 		return false
+	# Invisible: nothing to see - but a hound's nose is not fooled.
+	if unseen(someone.key) and guard.kind != Guard.Kind.DOG:
+		return false
 	if someone.get("hiding", false) and guard.kind != Guard.Kind.DOG:
 		var gap = Vector2(someone.tile - tile_of(guard.global_position)).length()
 		if gap > REACH_TILES and not looks_behind_cover(guard, someone.tile):
@@ -3401,7 +3543,7 @@ func _dress_the_party():
 		if sprite.has_method("show_as"):
 			sprite.show_as(looks_like)
 		var alpha = 1.0 if worn != "" else SNEAKING_ALPHA
-		if someone.hiding:
+		if someone.hiding or unseen(someone.key):
 			alpha = HIDDEN_ALPHA
 		if sprite.has_method("set_hidden_alpha") and sprite.hidden_alpha != alpha:
 			sprite.set_hidden_alpha(alpha)
@@ -3590,6 +3732,7 @@ func ambush(preferred = null) -> bool:
 		return false
 	if scene.has_method("is_holding") and scene.is_holding():
 		return false
+	_seen_again()
 	_caught_by(guard, true)
 	return true
 
@@ -3645,6 +3788,9 @@ func build_fight(ambushed: bool = false) -> EncounterDefinition:
 		taken[tile] = true
 		fighters.append(member.key)
 		spawns.append(_spawn(member.key, 0, tile, Campaign.party_level))
+		# Still invisible, they start the fight that way (Combat's
+		# "Invisibility").
+		spawns.back().invisible = unseen(member.key)
 	# Where those caught stand: whoever could hit one of them on his first turn
 	# is in the fight from the start.
 	var party_tiles: Array = spawns.map(func(spawn): return spawn.position)
@@ -4287,6 +4433,7 @@ func plant(preferred = null) -> bool:
 	var item_key := evidence_key()
 	if guard == null or item_key == "" or spotted_by != null:
 		return false
+	_seen_again()
 	Campaign.take_item(leader_key(), item_key)
 	guard.framed = true
 	_framed[guard] = 0.0

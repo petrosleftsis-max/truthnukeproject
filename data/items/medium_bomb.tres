@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("2_4e0r7")
+bomb = true
 item_power = 47
 name = "Medium Bomb"
 description = "Sometimes used to demolish weak structures."
@@ -18,4 +19,4 @@ uses_stat_contest = true
 sound = ExtResource("9_sfx")
 aoe_radius = 2
 metadata/_custom_type_script = "uid://cbf4gnjv5w62v"
-price = 45
+price = 280

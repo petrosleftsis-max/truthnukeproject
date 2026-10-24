@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Synergy I"
+description = "He shows the party where it hurts: they hit anybody carrying a harmful condition a tenth harder."
+required_level = 54
+party_bonus_vs_afflicted = 0.1

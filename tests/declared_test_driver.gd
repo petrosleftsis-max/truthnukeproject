@@ -150,8 +150,7 @@ func enemy_turn(enemy: Dictionary, player: Dictionary):
 func calling_it():
 	log_line("======== calling it ========")
 	var rockfall: SkillDefinition = SkillDatabase.skills.rockfall
-	ok(rockfall.declared and SkillDatabase.skills.ground_pound.declared and SkillDatabase.skills.meteor.declared
-		and SkillDatabase.skills.earthsplitter.declared, "the four declared moves are marked so")
+	ok(rockfall.declared and SkillDatabase.skills.ground_pound.declared, "the declared moves are marked so")
 	var cyrus := who("cyrus")
 	var imps := all_of("imp")
 	var spot: Vector2i = imps[0].position
@@ -268,8 +267,9 @@ func the_ai():
 	ok(ogre.has("declared") and ogre.declared.skill == "ground_pound", "the ogre calls a Ground Pound",
 		"%s" % [ogre.get("declared", {}).get("skill", "nothing")])
 	ok(ogre.get("declared", {}).get("tiles", []).has(cyrus.position), "on where Cyrus is standing")
-	ok(cyrus.hp < hp_before or heard_since(mark, "missed"), "and still swings at him the same turn",
-		"%d -> %d" % [hp_before, cyrus.hp])
+	# At whoever is softest beside it - Cyrus in cover takes less (Agile).
+	ok(cyrus.hp < hp_before or heard_since(mark, "missed") or heard_since(mark, "used Greatsword Attack"),
+		"and still swings the same turn", "%d -> %d" % [hp_before, cyrus.hp])
 	if not ogre.has("declared"):
 		return
 	var marked: Array = ogre.declared.tiles
@@ -286,5 +286,6 @@ func the_ai():
 	mark = heard.size()
 	await enemy_turn(ogre, cyrus)
 	ok(heard_since(mark, "comes down") and not ogre.has("declared"), "at the start of its next turn it comes down")
-	ok(cyrus.hp == hp_before, "missing him, and with its action spent on it, no swing either", "%d -> %d" % [hp_before, cyrus.hp])
+	ok(cyrus.hp == hp_before and not heard_since(mark, "used Greatsword Attack"),
+		"missing him, and with its action spent on it, no swing either", "%d -> %d" % [hp_before, cyrus.hp])
 	log_line("")

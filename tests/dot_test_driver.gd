@@ -281,7 +281,7 @@ func run_test():
 	# The number it will take rather than the rule behind it, per turn and for
 	# how long - which is the decision the player is actually making.
 	ok(text.contains("a turn"), "says what it costs per turn", text)
-	ok(text.contains("turn(s)"), "and how long it keeps costing it", text)
+	ok(text.contains("of their turns"), "and how long it keeps costing it", text)
 	var has_number = false
 	for part in text.split(" "):
 		if part.is_valid_int() or part.contains("-"):
@@ -388,7 +388,8 @@ func run_test():
 	log_line("")
 
 	log_line("======== nothing carries a condition it never inflicts ========")
-	# Only a CONDITION effect reads the condition field. A DAMAGE_OVER_TIME one
+	# Only a CONDITION effect reads the condition field - and a SWALLOW, whose
+	# condition is what being inside does to them. A DAMAGE_OVER_TIME one
 	# ignores it and lays an anonymous tick instead, so filling both in looks
 	# like a skill that inflicts a condition and is not one. Burner was exactly
 	# that for three commits: a fire skill leaving a physical wound called
@@ -402,7 +403,7 @@ func run_test():
 			for carried in carrier.all_effects():
 				if carried == null or carried.condition == null:
 					continue
-				if carried.type != EffectDefinition.EffectType.CONDITION:
+				if carried.type != EffectDefinition.EffectType.CONDITION and carried.type != EffectDefinition.EffectType.SWALLOW:
 					dead_links.append("%s holds %s on a %s effect" % [carrier.name,
 						carried.condition.display_name,
 						EffectDefinition.EffectType.keys()[carried.type]])
@@ -680,6 +681,31 @@ func run_test():
 	ok(keen_swing > dull_swing, "and doubling a caster's own stat doubles what they throw",
 		"%d became %d" % [dull_swing, keen_swing])
 	acting.status_effects.clear()
+	log_line("")
+
+	log_line("======== as a turn opens, each tick lands on its own ========")
+	var heard := []
+	combat.update_information.connect(func(line): heard.append(line))
+	revive(target)
+	target.max_hp = 500
+	target.hp = 500
+	target.status_effects.clear()
+	combat.apply_effect(acting, target, dot_effect, dart, false)
+	ok(target.status_effects.back().get("sound") == dart.sound, "a wound remembers the sound of what left it")
+	var burning := dot_effect.duplicate()
+	burning.damage_type = Damage.Type.FIRE
+	combat.apply_effect(acting, target, burning, dart, false)
+	var ticks := func() -> int: return heard.filter(func(line): return "from a lingering effect" in line).size()
+	heard.clear()
+	# Not awaited: looked at between the beats.
+	combat.start_of_turn_effects(target, true)
+	ok(ticks.call() == 1 and combat.controller.action_locked and not combat.controller.player_turn,
+		"the first lands, and nobody can act meanwhile", "%d" % ticks.call())
+	await get_tree().create_timer(combat.TICK_BEAT + 0.2).timeout
+	ok(ticks.call() == 2, "a beat later, the next", "%d" % ticks.call())
+	await get_tree().create_timer(combat.TICK_BEAT + 0.2).timeout
+	ok(not combat.controller.action_locked, "and after the last one's beat, the turn can begin")
+	target.status_effects.clear()
 	log_line("")
 
 	log_line("FAILURES: %d" % _fail)

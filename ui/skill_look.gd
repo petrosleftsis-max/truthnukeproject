@@ -25,6 +25,10 @@ static func is_shared(skill: SkillDefinition) -> bool:
 	if _uses.is_empty():
 		for key in SkillDatabase.skills:
 			var other: SkillDefinition = SkillDatabase.skills[key]
+			# A spellbook wears its spell's picture: the book of a spell, not a
+			# second thing to tell it apart from.
+			if other is ItemDefinition and other.teaches != "":
+				continue
 			if other != null and other.icon != null:
 				_uses[other.icon] = _uses.get(other.icon, 0) + 1
 	return _uses.get(skill.icon, 0) > 1

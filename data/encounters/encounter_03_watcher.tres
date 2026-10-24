@@ -8,55 +8,43 @@
 script = ExtResource("2_spawn")
 combatant_key = "prometheus"
 position = Vector2i(4, 2)
-level = 20
-weapon_base = 12
-defense = 8
-starting_items = Array[String](["potent_cure_potion", "medicine", "big_bomb", "frost_bottle"])
+level = 14
+starting_items = Array[String](["cure_potion", "medicine", "tiny_bomb", "frost_bottle"])
 
 [sub_resource type="Resource" id="Resource_4gfyf"]
 script = ExtResource("2_spawn")
 combatant_key = "alithia"
 position = Vector2i(1, 4)
-level = 20
-weapon_base = 12
-defense = 20
-starting_items = Array[String](["potent_cure_potion", "medium_bomb", "gale_bottle", "terror_bottle"])
+level = 14
+starting_items = Array[String](["cure_potion", "tiny_bomb", "gale_bottle", "terror_bottle"])
 
 [sub_resource type="Resource" id="Resource_guhuk"]
 script = ExtResource("2_spawn")
 combatant_key = "enfina"
 position = Vector2i(24, 14)
-level = 20
-weapon_base = 12
-defense = 32
-starting_items = Array[String](["potent_cure_potion", "big_bomb", "blinding_bomb", "burn_bottle"])
+level = 14
+starting_items = Array[String](["cure_potion", "tiny_bomb", "blinding_bomb", "burn_bottle"])
 
 [sub_resource type="Resource" id="Resource_sd4ao"]
 script = ExtResource("2_spawn")
 combatant_key = "cyrus"
 position = Vector2i(21, 17)
-level = 20
-weapon_base = 12
-defense = 20
-starting_items = Array[String](["potent_cure_potion", "big_bomb", "poison_bottle", "crystal_bottle"])
+level = 14
+starting_items = Array[String](["cure_potion", "tiny_bomb", "poison_bottle", "crystal_bottle"])
 
 [sub_resource type="Resource" id="Resource_6rd2x"]
 script = ExtResource("2_spawn")
 combatant_key = "ranger"
 side = 1
 position = Vector2i(20, 2)
-level = 20
-weapon_base = 12
-defense = 55
+level = 14
 
 [sub_resource type="Resource" id="Resource_h0e1a"]
 script = ExtResource("2_spawn")
 combatant_key = "bomber"
 side = 1
 position = Vector2i(13, 4)
-level = 20
-weapon_base = 12
-defense = 25
+level = 14
 
 [sub_resource type="Resource" id="Resource_k1vfo"]
 script = ExtResource("2_spawn")
@@ -64,9 +52,7 @@ combatant_key = "barbarian"
 side = 1
 position = Vector2i(5, 7)
 display_name = "Striker"
-level = 20
-weapon_base = 12
-defense = 60
+level = 14
 
 [sub_resource type="Resource" id="Resource_lwarc"]
 script = ExtResource("2_spawn")
@@ -74,9 +60,7 @@ combatant_key = "sorcerer"
 side = 1
 position = Vector2i(7, 8)
 display_name = "Caster 1"
-level = 20
-weapon_base = 12
-defense = 25
+level = 14
 
 [sub_resource type="Resource" id="Resource_gyvxp"]
 script = ExtResource("2_spawn")
@@ -84,18 +68,14 @@ combatant_key = "sorcerer"
 side = 1
 position = Vector2i(22, 8)
 display_name = "Caster 2"
-level = 20
-weapon_base = 12
-defense = 25
+level = 14
 
 [sub_resource type="Resource" id="Resource_2hadd"]
 script = ExtResource("2_spawn")
 combatant_key = "priest"
 side = 1
 position = Vector2i(4, 9)
-level = 20
-weapon_base = 12
-defense = 55
+level = 14
 
 [sub_resource type="Resource" id="Resource_5dowi"]
 script = ExtResource("2_spawn")
@@ -103,40 +83,32 @@ combatant_key = "mimic"
 side = 1
 position = Vector2i(17, 10)
 display_name = "Mimic"
-level = 20
-weapon_base = 12
-defense = 55
+level = 14
 
 [sub_resource type="Resource" id="Resource_5k2mo"]
 script = ExtResource("2_spawn")
 combatant_key = "priest"
 side = 1
 position = Vector2i(18, 13)
-level = 20
-weapon_base = 12
-defense = 55
+level = 14
 
 [sub_resource type="Resource" id="Resource_tapxy"]
 script = ExtResource("2_spawn")
 combatant_key = "bomber"
 side = 1
 position = Vector2i(10, 14)
-level = 20
-weapon_base = 12
-defense = 25
+level = 14
 
 [sub_resource type="Resource" id="Resource_10mjb"]
 script = ExtResource("2_spawn")
 combatant_key = "ranger"
 side = 1
 position = Vector2i(3, 16)
-level = 20
-weapon_base = 12
-defense = 55
+level = 14
 
 [resource]
 script = ExtResource("1_enc")
-gold_reward = 120
+gold_reward = 45
 display_name = "City Fight"
 description = "Difficult fight with every enemy type."
 terrain_scene = ExtResource("3_35bqs")

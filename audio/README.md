@@ -2,7 +2,7 @@ Two kinds of audio, controlled from two different places.
 
 ## Skill sounds - chosen in the skill database
 
-Open a skill in res://data/skills/ and set **Sound** (and **Sound Volume Db** to
+Open a skill in res://data/skills/ (it is in a folder by who uses it) and set **Sound** (and **Sound Volume Db** to
 trim it). It plays as the skill's animation ENDS, so the noise lands with the
 blow rather than under the wind-up. A skill with no sound is silent; a
 combatant with no animation resolves instantly and the sound plays then.

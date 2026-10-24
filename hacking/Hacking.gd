@@ -611,6 +611,13 @@ func gates_left() -> Array:
 	return Campaign.gates_left_outside(_hacker_key)
 
 
+## The most the hacker has through each gate.
+func gates_most() -> Array:
+	if _combat != null:
+		return _hacker.get("max_spell_slots", []).duplicate()
+	return Campaign.gates_most(_hacker_key)
+
+
 func _refresh_gates():
 	if _gates_row == null or not is_instance_valid(_gates_row):
 		return
@@ -621,7 +628,11 @@ func _refresh_gates():
 	title.text = "Gates"
 	title.add_theme_color_override("font_color", _palette().dim)
 	_gates_row.add_child(title)
+	var most := gates_most()
 	for gate in range(1, left.size()):
+		# Only the gates they have at all: not ten of them, most at nothing.
+		if left[gate] <= 0 and gate < most.size() and most[gate] <= 0:
+			continue
 		var shown := Label.new()
 		shown.text = "%s %d" % [Stats.short_gate_name(gate), left[gate]]
 		shown.add_theme_color_override("font_color", Stats.gate_colour(gate) if left[gate] > 0 else _palette().dim)

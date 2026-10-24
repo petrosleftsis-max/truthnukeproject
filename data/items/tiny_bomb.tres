@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("2_item")
+bomb = true
 item_power = 10
 name = "Tiny Bomb"
 description = "Hopefully they won't appear inside someone's dinner."
@@ -17,4 +18,4 @@ ability_modifier = 2.0
 uses_stat_contest = true
 sound = ExtResource("4_sfx")
 aoe_radius = 1
-price = 15
+price = 45

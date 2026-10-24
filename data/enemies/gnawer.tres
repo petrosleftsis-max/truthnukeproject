@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/bomber/bomber_frames.tres" id="2_frames"]
+
+[resource]
+script = ExtResource("1_who")
+name = "Gnawer"
+glossary_text = "A sewer rat that died and kept eating. They come in waves to the glutton's call - and it eats them too, when they fall."
+max_hp = 25
+max_hp_level_20 = 81
+defense = 5
+defense_level_64 = 30
+size = 0
+movement = 7
+initiative = 3
+main_stat = 0
+sprite_frames = ExtResource("2_frames")
+tint = Color(0.6, 0.68, 0.55, 1)
+skills = Array[String](["ravenous_bite"])
+immune_to = Array[int]([9, 10])

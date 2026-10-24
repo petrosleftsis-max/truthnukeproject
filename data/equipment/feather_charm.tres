@@ -13,5 +13,5 @@ script = ExtResource("2_gear")
 name = "Feather Charm"
 description = "A white feather on a cord. The step comes lighter."
 slot = 2
-price = 300
+price = 120
 passive = SubResource("Resource_charm")

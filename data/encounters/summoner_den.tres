@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
+[ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://maps/crossroads_terrain.tscn" id="3_map"]
+
+[sub_resource type="Resource" id="Spawn_enfina"]
+script = ExtResource("2_spawn")
+combatant_key = "enfina"
+position = Vector2i(46, -12)
+level = 22
+weapon_base = 12
+starting_items = Array[String](["cure_potion", "burn_bottle"])
+
+[sub_resource type="Resource" id="Spawn_alithia"]
+script = ExtResource("2_spawn")
+combatant_key = "alithia"
+position = Vector2i(44, -11)
+level = 22
+weapon_base = 12
+starting_items = Array[String](["cure_potion"])
+
+[sub_resource type="Resource" id="Spawn_cyrus"]
+script = ExtResource("2_spawn")
+combatant_key = "cyrus"
+position = Vector2i(48, -12)
+level = 22
+weapon_base = 12
+starting_items = Array[String](["cure_potion", "medium_bomb"])
+
+[sub_resource type="Resource" id="Spawn_prometheus"]
+script = ExtResource("2_spawn")
+combatant_key = "prometheus"
+position = Vector2i(43, -9)
+level = 22
+weapon_base = 12
+starting_items = Array[String](["cure_potion"])
+
+[sub_resource type="Resource" id="Spawn_summoner"]
+script = ExtResource("2_spawn")
+combatant_key = "summoner"
+side = 1
+position = Vector2i(55, -22)
+level = 22
+weapon_base = 8
+
+[sub_resource type="Resource" id="Spawn_bow"]
+script = ExtResource("2_spawn")
+combatant_key = "hired_bow"
+side = 1
+position = Vector2i(56, -8)
+level = 22
+weapon_base = 10
+
+[resource]
+script = ExtResource("1_enc")
+display_name = "The Summoner"
+description = "A Summoner keeps well back and sends its Bound Beast in - mending it, empowering it, and calling another if it falls. The beast hits harder than a barbarian once empowered; the Summoner is frailer than a sorcerer. Fell the Summoner and the beast goes with it."
+terrain_scene = ExtResource("3_map")
+spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_alithia"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_summoner"), SubResource("Spawn_bow")])

@@ -1,0 +1,34 @@
+Name,Category,Tier,LevelRange,Effect,HPPercent,DRPercent,SkillMod_Hit,SkillMod_Dot,DurationTurns,Rarity,SuggestedPrice,Notes
+Small Healing Potion,Heal single,I,1-16,Heal 25-30% max HP,25-30,,,,,Common,50,"Baseline heal, weaker than early heal spells"
+Moderate Healing Potion,Heal single,II,17-32,Heal 40-45% max HP,40-45,,,,,Uncommon,120,Mid-game emergency heal
+Strong Healing Potion,Heal single,III,33-48,Heal 55-60% max HP,55-60,,,,,Uncommon/Rare,240,Comparable to strong single-target heals
+Greater Healing Potion,Heal single,IV,49-64,Heal 70-75% max HP,70-75,,,,,Rare,480,"High-end panic button, limited stock"
+Small Group Draught,Heal group,II,17-32,Heal 15-20% max HP to all allies,15-20,,,,,Uncommon,150,Early group sustain
+Strong Group Draught,Heal group,III,33-48,Heal 25-30% max HP to all allies,25-30,,,,,Rare,280,Mid-late group heal
+Major Group Draught,Heal group,IV,49-64,Heal 35-40% max HP to all allies,35-40,,,,,Very Rare,550,Late-game group emergency
+Minor Ward,Defense,I,1-16,10% DR or ~10-15% HP shield for 1-2 turns,,10,,,,Common,60,Short defensive buff
+Ward Potion,Defense,II,17-32,15% DR or ~20% HP shield for 1-2 turns,,15,,,,Uncommon,130,Mid-game defensive consumable
+Greater Ward,Defense,III,33-48,"20% DR, ~25-30% HP shield for 2 turns",,20,,,,Uncommon/Rare,260,Late mid-game defense spike
+Hero’s Ward,Defense,IV,49-64,"25% DR, ~35-40% HP shield for 2 turns",,25,,,,Rare,520,"Top-tier defense, few per act"
+Minor Antidote,Cleanse,I,1-16,Cleanse 1 simple condition from target,,,,,,Common,40,Poison or Burn or similar
+Purifying Draught,Cleanse,II,17-32,Cleanse up to 2 conditions from target,,,,,,Uncommon,110,Removes combos like Burn+Poison
+Group Purge,Cleanse,III,33-48,Cleanse 1 condition from all allies,,,,,,Rare,260,Party-wide cleanse
+Radiant Elixir,Cleanse,IV,49-64,Cleanse all common conditions from target and grant brief DR,,10,,,,Very Rare,520,Late-game clutch cleanse + DR
+Fire Bomb,Offense single,I,1-16,"Single-target hit, no/low DoT",,,1.0,0.1,2,Common,45,Baseline damage consumable
+Strong Bomb,Offense single,II,17-32,Stronger hit with small DoT,,,1.4,0.2,3,Uncommon,120,Mid-game burst option
+Heavy Bomb,Offense single,III,33-48,Heavy hit with short DoT,,,1.8,0.3,2,Uncommon/Rare,260,Late mid-game burst
+Elite Bomb,Offense single,IV,49-64,"High hit, minimal DoT",,,2.2,0.1,2,Rare,520,"Top-tier burst, below high-level spells"
+Small Cluster Bomb,Offense AoE,II,17-32,"Small AoE, reduced per-target damage",,,1.2,0.15,2,Uncommon,140,Cone or 3x3 AoE
+Heavy Cluster Bomb,Offense AoE,III,33-48,"Larger AoE, moderate damage",,,1.5,0.2,2,Rare,280,Late mid-game AoE option
+Minor Courage,Buff damage,I,1-16,+10% damage for 1 turn,,,,,,Common,40,Cheap early buff
+Battle Draught,Buff damage,II,17-32,+15% damage for 2 turns,,,,,,Uncommon,120,Mid-game damage buff
+Fury Elixir,Buff damage,III,33-48,+20% damage for 2 turns,,,,,,Uncommon/Rare,240,Late mid-game buff
+Overdrive Tonic,Buff damage,IV,49-64,+25% damage for 2 turns,,,,,,Rare,480,"Top-tier buff, limited uses"
+Haste Draught,Buff speed,I,1-16,+1 Speed for 1 turn,,,,,,Common,40,Small mobility buff
+Quickstep Tonic,Buff speed,II,17-32,+2 Speed for 1 turn or +1 for 2 turns,,,,,,Uncommon,120,Mid-game mobility
+Swift Elixir,Buff speed,III,33-48,+2 Speed for 2 turns,,,,,,Rare,260,Late mid-game strong mobility
+Surge Potion,Buff speed/actions,IV,49-64,+2 Speed and extra secondary action for 1 turn,,,,,,Very Rare,520,Encounter-defining tempo boost
+Spell Scroll L1-2,Scroll,I,1-16,Casts level-1–2 spell (mod ~1.1–1.6),,,1.1-1.6,,,Common/Uncommon,60,"Low-level scrolls, widely available"
+Spell Scroll L3-4,Scroll,II,17-32,Casts level-3–4 spell (mod ~1.8–2.6),,,1.8-2.6,,,Uncommon,150,Mid-level scrolls
+Spell Scroll L5-6,Scroll,III,33-48,Casts level-5–6 spell (mod ~3.0–3.8),,,3.0-3.8,,,Rare,300,"High-level scrolls, limited"
+Spell Scroll L7-9,Scroll,IV,49-64,Casts level-7–9 spell (mod ~4.2–5.4),,,4.2-5.4,,,Very Rare/Unique,600,"Endgame scrolls, few per act"

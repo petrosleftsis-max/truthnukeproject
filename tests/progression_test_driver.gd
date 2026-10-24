@@ -164,28 +164,28 @@ func story_fights():
 func choosing():
 	log_line("======== the paths ========")
 	var expected := {
-		"cyrus": ["swashbuckler", "gunner", "bombardier"],
-		"prometheus": ["spellsword", "demolitionist", "abjurer"],
-		"alithia": ["punisher", "carer", "illusionist"],
-		"enfina": ["berserker", "guardian", "controller"],
+		"cyrus": ["skirmisher", "saboteur", "trapper"],
+		"prometheus": ["elemental_vanguard", "elemental_tactician", "elemental_conductor"],
+		"alithia": ["battle_chaplain", "illusory_shepherd", "inquisitor"],
+		"enfina": ["vanguard", "juggernaut", "warden_of_cover"],
 	}
 	for key in expected:
 		ok(SubclassDefinition.for_character(key) == expected[key], "%s's three, in order" % key,
 			"%s" % [SubclassDefinition.for_character(key)])
-	ok(SubclassDefinition.named("swashbuckler").description.contains("rapier"), "each with its description")
+	ok(SubclassDefinition.named("skirmisher").description.contains("rapier"), "each with its description")
 	log_line("")
 
 	log_line("======== choosing one ========")
 	Campaign.reset()
-	Campaign.set_party(["cyrus", "alithia"], 4)
-	ok(not Campaign.needs_path("cyrus") and Campaign.choosing_paths().is_empty(), "before level 5 nobody has one to choose")
-	ok(not Campaign.choose_subclass("cyrus", "gunner"), "and cannot")
-	Campaign.reach_level(5)
-	ok(Campaign.choosing_paths() == ["cyrus", "alithia"], "at 5, everybody does, leader first", "%s" % [Campaign.choosing_paths()])
-	ok(not Campaign.choose_subclass("cyrus", "carer"), "nobody takes somebody else's")
+	Campaign.set_party(["cyrus", "alithia"], 23)
+	ok(not Campaign.needs_path("cyrus") and Campaign.choosing_paths().is_empty(), "before level 24 nobody has one to choose")
+	ok(not Campaign.choose_subclass("cyrus", "saboteur"), "and cannot")
+	Campaign.reach_level(24)
+	ok(Campaign.choosing_paths() == ["cyrus", "alithia"], "at 24, everybody does, leader first", "%s" % [Campaign.choosing_paths()])
+	ok(not Campaign.choose_subclass("cyrus", "battle_chaplain"), "nobody takes somebody else's")
 	ok(not Campaign.choose_subclass("cyrus", "nonsense"), "or one that does not exist")
-	ok(Campaign.choose_subclass("cyrus", "gunner") and Campaign.subclass_of("cyrus") == "gunner", "Cyrus takes the Gunner's")
-	ok(not Campaign.choose_subclass("cyrus", "swashbuckler") and Campaign.subclass_of("cyrus") == "gunner", "for good")
+	ok(Campaign.choose_subclass("cyrus", "saboteur") and Campaign.subclass_of("cyrus") == "saboteur", "Cyrus takes the Saboteur's")
+	ok(not Campaign.choose_subclass("cyrus", "skirmisher") and Campaign.subclass_of("cyrus") == "saboteur", "for good")
 	ok(Campaign.choosing_paths() == ["alithia"], "which leaves Alithia")
 	Campaign.reset()
 	ok(Campaign.subclass_of("cyrus") == "", "until the party is started over")
@@ -194,9 +194,9 @@ func choosing():
 
 func on_the_path():
 	log_line("======== on the path in a fight ========")
-	# Something to see: a skill and two passives put on the Gunner's path for
+	# Something to see: a skill and two passives put on the Saboteur's path for
 	# the length of this, one passive coming in later than the other.
-	var path := SubclassDefinition.named("gunner")
+	var path := SubclassDefinition.named("saboteur")
 	var skills_were: Array[String] = path.skills.duplicate()
 	var passives_were: Array[PassiveDefinition] = path.passives.duplicate()
 	var spell := "fire_blast"
@@ -204,25 +204,25 @@ func on_the_path():
 	early.name = "Early"
 	var late := PassiveDefinition.new()
 	late.name = "Late"
-	late.required_level = 9
+	late.required_level = 30
 	path.skills.append(spell)
 	path.passives.append(early)
 	path.passives.append(late)
 
 	Campaign.reset()
-	Campaign.set_party(["cyrus"], 6)
-	Campaign.choose_subclass("cyrus", "gunner")
+	Campaign.set_party(["cyrus"], 24)
+	Campaign.choose_subclass("cyrus", "saboteur")
 	Campaign.current_map = "res://maps/crossroads_explore.tscn"
 	Campaign.return_to_position = true
 	var game = await open_fight(load(AMBUSH))
 	var combat = game.get_node("VisualCombat")
 	var cyrus := fighter(combat, "cyrus")
-	ok(cyrus.get("subclass", "") == "gunner", "the story's Cyrus fights as a Gunner")
+	ok(cyrus.get("subclass", "") == "saboteur", "the story's Cyrus fights as a Saboteur")
 	ok(cyrus.skill_list.has(spell), "knowing what the path teaches")
 	ok(cyrus.max_spell_slots != [0, 0, 0, 0], "and given gates, since the path taught him a spell", "%s" % [cyrus.max_spell_slots])
 	ok(combat.active_passives(cyrus).has(early) and not combat.active_passives(cyrus).has(late),
 		"with the path's passive for his level, and not the one for later")
-	cyrus.level = 9
+	cyrus.level = 30
 	ok(combat.active_passives(cyrus).has(late), "which comes in at its own level")
 	game.queue_free()
 	await settle(3)
@@ -233,21 +233,21 @@ func on_the_path():
 	var encounter := ambush_copy()
 	for spawn in encounter.spawns:
 		if spawn.combatant_key == "cyrus":
-			spawn.level = 6
-			spawn.subclass = "gunner"
+			spawn.level = 24
+			spawn.subclass = "saboteur"
 	game = await open_fight(encounter)
 	combat = game.get_node("VisualCombat")
 	cyrus = fighter(combat, "cyrus")
-	ok(cyrus.get("subclass", "") == "gunner" and cyrus.skill_list.has(spell), "Battle Select puts him on the spawn's path")
+	ok(cyrus.get("subclass", "") == "saboteur" and cyrus.skill_list.has(spell), "Battle Select puts him on the spawn's path")
 	game.queue_free()
 	await settle(3)
 	for spawn in encounter.spawns:
 		if spawn.combatant_key == "cyrus":
-			spawn.level = 4
+			spawn.level = 23
 	game = await open_fight(encounter)
 	combat = game.get_node("VisualCombat")
 	ok(not fighter(combat, "cyrus").has("subclass") and not fighter(combat, "cyrus").skill_list.has(spell),
-		"but not below level 5")
+		"but not below level 24")
 	game.queue_free()
 	await settle(3)
 	path.skills = skills_were
@@ -264,18 +264,21 @@ func on_the_map():
 	var scene = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(scene)
 	await settle(6)
+	ok(scene.picker == null, "below level 24, nobody is asked")
+	Campaign.reach_level(Stats.SUBCLASS_LEVEL)
+	await settle(6)
 	var picker: SubclassPicker = scene.picker
-	ok(picker != null and picker.key == "cyrus", "arriving at level 10, the leader is asked first",
+	ok(picker != null and picker.key == "cyrus", "reaching level 24 on the map, the leader is asked first",
 		picker.key if picker != null else "nobody asked")
 	ok(get_tree().paused, "with the game held")
 	if picker != null:
 		var cards := picker.find_children("*", "PanelContainer", true, false).map(func(card): return String(card.name))
-		ok(cards == ["swashbuckler", "gunner", "bombardier"], "his three side by side", "%s" % [cards])
-		picker._on_choose("bombardier")
+		ok(cards == ["skirmisher", "saboteur", "trapper"], "his three side by side", "%s" % [cards])
+		picker._on_choose("trapper")
 		ok(Campaign.subclass_of("cyrus") == "", "choosing asks once more before it is done")
 		picker._on_take()
 		await settle(4)
-		ok(Campaign.subclass_of("cyrus") == "bombardier", "taken: Cyrus is a Bombardier")
+		ok(Campaign.subclass_of("cyrus") == "trapper", "taken: Cyrus is a Trapper")
 		ok(scene.picker != null and scene.picker != picker and scene.picker.key == Campaign.party_order[1],
 			"and the next of the party is asked", scene.picker.key if scene.picker != null else "nobody")
 		for key in Campaign.choosing_paths():
@@ -291,6 +294,8 @@ func on_the_map():
 	scene = load("res://scenes/exploration.tscn").instantiate()
 	get_tree().root.add_child(scene)
 	await settle(6)
+	Campaign.reach_level(Stats.SUBCLASS_LEVEL)
+	await settle(6)
 	ok(scene.picker == null and Campaign.party_level >= Stats.SUBCLASS_LEVEL, "a stealth stage, played on its own, asks nothing")
 	scene.queue_free()
 	await settle(3)
@@ -301,14 +306,14 @@ func on_the_map():
 func on_the_sheet():
 	log_line("======== on the character sheet ========")
 	Campaign.reset()
-	Campaign.set_party(["cyrus", "alithia"], 6)
-	Campaign.choose_subclass("alithia", "carer")
+	Campaign.set_party(["cyrus", "alithia"], 24)
+	Campaign.choose_subclass("alithia", "illusory_shepherd")
 	var sheet: CharacterSheet = load("res://ui/character_sheet.gd").new()
 	get_tree().root.add_child(sheet)
 	await settle(2)
 	sheet.open(false)
 	await settle(2)
-	ok(sheet._subtitle.text.contains("Level 6"), "it says the level", sheet._subtitle.text)
+	ok(sheet._subtitle.text.contains("Level 24"), "it says the level", sheet._subtitle.text)
 	ok(sheet._path_button.visible, "Cyrus has a path to choose, and a button for it")
 	sheet._choose_path()
 	await settle(2)
@@ -318,7 +323,7 @@ func on_the_sheet():
 	ok(sheet.path_picker == null and Campaign.subclass_of("cyrus") == "", "and can be put away for later")
 	sheet._index = 1
 	sheet._show_entry()
-	ok(sheet._subtitle.text.contains("Carer") and not sheet._path_button.visible, "Alithia's says her path", sheet._subtitle.text)
+	ok(sheet._subtitle.text.contains("Illusory Shepherd") and not sheet._path_button.visible, "Alithia's says her path", sheet._subtitle.text)
 	sheet.close()
 	sheet.queue_free()
 	await settle(2)

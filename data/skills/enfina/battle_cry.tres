@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/battle_cry_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Effect_push"]
+script = ExtResource("1_effect")
+type = 5
+knockback_distance = 1
+damage_modifier = 0.0
+
+[resource]
+script = ExtResource("3_skill")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_push")])
+name = "Battle Cry"
+description = "A roar and a sweep at everybody in front of her that drives them back a tile - off whoever stands behind her."
+required_level = 16
+min_range = 1
+max_range = 2
+ability_modifier = 0.6
+aoe_radius = 2
+aoe_shape = 2
+melee = true
+icon = ExtResource("2_icon")
+sound = ExtResource("90_sfx")

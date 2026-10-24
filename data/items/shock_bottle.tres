@@ -20,4 +20,4 @@ max_range = 5
 icon = ExtResource("4_icon")
 effects = Array[ExtResource("1_eff")]([SubResource("Effect_shock_bottle")])
 deals_damage = false
-price = 40
+price = 120

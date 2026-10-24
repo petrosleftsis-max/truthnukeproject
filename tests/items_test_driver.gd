@@ -42,8 +42,13 @@ func run_test():
 
 	log_line("======== the three named ones do what they say ========")
 	var potion: ItemDefinition = ItemDatabase.item("cure_potion")
-	ok(potion.targets_ally and potion.item_power > 0 and not potion.deals_damage,
-		"Cure Potion heals an ally", "%d" % potion.item_power)
+	var cure: EffectDefinition = potion.effects[0]
+	ok(potion.targets_ally and is_equal_approx(cure.heal_share_of_health, 0.25) and not potion.deals_damage,
+		"Cure Potion heals an ally a quarter of their health", "%s" % cure.heal_share_of_health)
+	var shares := []
+	for key in ["cure_potion", "mediocre_cure_potion", "potent_cure_potion"]:
+		shares.append(roundi(ItemDatabase.item(key).effects[0].heal_share_of_health * 100))
+	ok(shares == [25, 40, 55], "the three cures: a quarter, two fifths, more than half", "%s" % [shares])
 	var medicine: ItemDefinition = ItemDatabase.item("medicine")
 	var heals = false
 	var cures_one = false
@@ -72,13 +77,24 @@ func run_test():
 			if e.type == EffectDefinition.EffectType.CONDITION and e.condition != null:
 				bottled[e.condition.resource_path.get_file().get_basename()] = key
 	# Caught off guard comes from an ambush on a stealth map, not from a bottle.
-	# Confused comes from a spell, the Illusionist's Bewilder, not a bottle.
+	# Confused comes from a spell, Alithia's Bewilder, not a bottle.
 	# Staggered, Choking Ash and Deafened come from bosses and their arenas.
 	# Hesitating and Deceived from talking somebody round (Persuade, Deceive),
-	# Taunted from a champion's challenge, Riding from Climb, Crippled from legs
+	# Exposed from a champion turned away from, Riding from Climb, Crippled from legs
 	# broken (a body part), Grappled from Grab - a hold needs somebody holding.
+	# Scented, Swallowed and Bile-Soaked are the glutton's: its nose, its
+	# stomach, and what it spits up.
+	# Blessed, Soothed, Bulwarked, Fortified and Sheltered are the party's own
+	# good news, from passives: Alithia's Aura and Mercy, Enfina's Bulwark.
+	# And the paths': Snared from a trap, Corroded from a round, Veiled, Blurred,
+	# a Phantom Body, Sanctified, Mirage, Accused, Recanted and Grand Design from
+	# their spells and passives - and Dazed from Enfina's Tremor.
 	var not_bottled := ["surprised", "confused", "staggered", "choking_ash", "deafened",
-		"hesitating", "deceived", "taunted", "riding", "crippled", "grappled"]
+		"hesitating", "deceived", "exposed", "riding", "crippled", "grappled",
+		"scented", "swallowed", "bile_soaked",
+		"blessed", "soothed", "bulwarked", "fortified", "sheltered",
+		"snared", "corroded", "veiled", "blurred", "phantom_body", "sanctified", "mirage", "accused", "recanted", "grand_design",
+		"reflected", "dazed"]
 	for condition in conditions:
 		if not_bottled.has(condition):
 			continue

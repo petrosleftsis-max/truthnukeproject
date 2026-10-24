@@ -1,5 +1,5 @@
 extends Node
-## Resuscitate: Alithia spends a Yaldabaoth gate to stand a fallen ally back up
+## Resuscitate: Alithia spends a Pandora gate to stand a fallen ally back up
 ## at half their health - and they are a tenth less of everything but their
 ## movement afterwards, for good, compounding each time. And the party's tiles:
 ## everybody on the one written for them, with their own numbers.
@@ -94,7 +94,7 @@ func the_skill():
 	log_line("======== the skill ========")
 	var skill: SkillDefinition = SkillDatabase.skills.get("resuscitate")
 	ok(skill != null and skill.name == "Resuscitate", "there is a Resuscitate")
-	ok(skill != null and skill.spell_slot_level == 3, "through the Gates of Yaldabaoth")
+	ok(skill != null and skill.spell_slot_level == 3, "through the Gates of Pandora")
 	ok(skill != null and skill.targets_ally and skill.targets_fallen, "aimed at a fallen ally")
 	var revive: EffectDefinition = skill.effects[0] if skill != null and not skill.effects.is_empty() else null
 	ok(revive != null and revive.type == EffectDefinition.EffectType.REVIVE and is_equal_approx(revive.revive_health, 0.5)
@@ -154,7 +154,7 @@ func in_a_fight():
 
 	log_line("")
 	log_line("======== back on his feet ========")
-	var yaldabaoth_before: int = alithia.spell_slots[3]
+	var pandora_before: int = alithia.spell_slots[3]
 	await combat.use_skill("resuscitate", alithia, cyrus.position, false)
 	await settle(3)
 	ok(cyrus.alive and combat.groups[Combat.Group.PLAYERS].has(combat.combatants.find(cyrus)), "Cyrus is back in the fight")
@@ -167,7 +167,7 @@ func in_a_fight():
 	ok(cyrus.initiative == roundi(before.initiative * 0.9) and cyrus.weapon_base == roundi(before.weapon_base * 0.9),
 		"his initiative and weapon too", "%d, %d" % [cyrus.initiative, cyrus.weapon_base])
 	ok(cyrus.movement == before.movement, "but not how far he can walk")
-	ok(alithia.spell_slots[3] == yaldabaoth_before - 1, "a Yaldabaoth gate spent")
+	ok(alithia.spell_slots[3] == pandora_before - 1, "a Pandora gate spent")
 	ok(controller._occupied_spaces.has(cyrus.position), "his tile his again")
 	ok(ui._icon_for(ui.get_node("TurnQueue/Queue"), cyrus) != null, "and his face back in the turn queue")
 
@@ -242,7 +242,10 @@ func own_tiles():
 	for spawn in loadouts:
 		var comb := fighter(combat, spawn.combatant_key)
 		got[spawn.combatant_key] = comb.stats.get("defense", -1)
-		right = right and comb.stats.get("defense", -1) == spawn.defense
+		# A tile's defence of 0 is the character's own at their level.
+		var own: int = spawn.defense if spawn.defense > 0 \
+			else CombatantDatabase.combatants[spawn.combatant_key].defense_at(comb.level)
+		right = right and comb.stats.get("defense", -1) == own
 	ok(right, "in the fight, everybody's defence is their own", "%s" % [got])
 	game.queue_free()
 	await settle(3)

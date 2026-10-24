@@ -74,6 +74,11 @@ func _on_combat_finished():
 		$Panel/VBox/BackButton.text = "Finish" if won else "Start the dungeon again"
 		if won and Campaign.on_last_dungeon_stage():
 			$Panel/VBox/Title.text = "%s cleared" % Campaign.dungeon.display_name
+		elif won and Campaign.dungeon.skips_rests:
+			# The laboratory sequence (TEMPORARY): no rest - straight on, with
+			# whatever health and gates are left.
+			$Panel/VBox/BackButton.visible = true
+			$Panel/VBox/BackButton.text = "On to the next fight (no rest)"
 	$Panel/VBox/Summary.text = _describe_party()
 	# Whatever this encounter has to say about how it went, before the panel.
 	if _speak_for(won):
@@ -117,7 +122,8 @@ func _on_closing_words_ended(_resource = null):
 
 
 func _show_panel():
-	var dungeon_rest: bool = Campaign.in_dungeon() and _won and not Campaign.on_last_dungeon_stage()
+	var dungeon_rest: bool = Campaign.in_dungeon() and _won and not Campaign.on_last_dungeon_stage() \
+		and not Campaign.dungeon.skips_rests
 	# Between a dungeon's fights the rest takes the panel's place, so anybody
 	# worth questioning is questioned first; anywhere else it is a button on
 	# the panel, for the player to take up or not.
@@ -125,6 +131,7 @@ func _show_panel():
 		question_prisoners(_show_panel)
 		return
 	_refresh_prisoners_button()
+	_refresh_loot_button()
 	if dungeon_rest:
 		_rest()
 		return
@@ -153,6 +160,7 @@ func _rest():
 	rest = RestPanel.new()
 	rest.name = "Rest"
 	rest.continued.connect(Campaign.next_dungeon_stage)
+	rest.left_for_menu.connect(_on_main_menu_pressed)
 	add_child(rest)
 
 
@@ -240,6 +248,40 @@ func question_prisoners(after: Callable = Callable()):
 			after.call()
 		elif $Panel.visible:
 			FocusOnDemand.attach(self, $Panel/VBox/BackButton if $Panel/VBox/BackButton.visible else $Panel/VBox/MainMenuButton))
+
+
+## The fight won, whatever is left on the fallen of the other side - what they
+## carried and wore (Combat "Loot") - for the party to take, at a press: what
+## was taken says itself under the button.
+var _loot_button: Button = null
+var _loot_said: Label = null
+
+func _refresh_loot_button():
+	if _loot_button == null:
+		_loot_button = Button.new()
+		_loot_button.name = "LootButton"
+		_loot_button.pressed.connect(_search_the_fallen)
+		$Panel/VBox.add_child(_loot_button)
+		$Panel/VBox.move_child(_loot_button, $Panel/VBox/BackButton.get_index())
+		_loot_said = Label.new()
+		_loot_said.name = "LootTaken"
+		_loot_said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_loot_said.custom_minimum_size = Vector2(380, 0)
+		_loot_said.visible = false
+		$Panel/VBox.add_child(_loot_said)
+		$Panel/VBox.move_child(_loot_said, $Panel/VBox/BackButton.get_index())
+	var left := 0
+	if _won:
+		left = combat.loot_left_on_the_fallen().size()
+	_loot_button.visible = left > 0
+	_loot_button.text = "Search the fallen (%d)" % left
+
+
+func _search_the_fallen():
+	var taken: Array = combat.loot_the_fallen()
+	_loot_said.text = ("Taken: %s." % ", ".join(taken)) if not taken.is_empty() else "There is no room in anybody's bag for what is left."
+	_loot_said.visible = true
+	_refresh_loot_button()
 
 
 func _refresh_prisoners_button():

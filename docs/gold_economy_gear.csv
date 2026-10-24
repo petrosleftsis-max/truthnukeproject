@@ -1,0 +1,31 @@
+Category,Name,Tier,LevelRange,BasePriceGC,SellRate,RewardMinGC,RewardMaxGC,Notes
+Reward,Short contract,I,1-16,,,30,50,"Simple route, low danger"
+Reward,Standard contract,II,17-32,,,150,300,Baseline mid-game route
+Reward,Difficult contract,III,33-48,,,300,600,"High-risk route, tougher enemies"
+Reward,Major contract,IV,49-64,,,800,1200,"Late-game, long or extremely dangerous route"
+Reward,Typical mission payout,I,1-16,,,500,1000,"Gold + sellable loot, early game"
+Reward,Typical mission payout,II,17-32,,,2000,3000,Mid-game
+Reward,Typical mission payout,III,33-48,,,4000,6000,Late mid-game
+Reward,Typical mission payout,IV,49-64,,,8000,12000,Late-game big mission
+SellRate,Standard goods,All,1-64,,0.5,,,"Weapons, armor, most consumables"
+SellRate,Rare artifacts,III-IV,33-64,,0.25,,,"High-tier magitech, limited resale"
+SellRate,Common junk,I-II,1-32,,0.3,,,"Scrap, common trinkets"
+Gear,Basic weapon,I,1-16,50,,,,"Simple sword, staff, pistol"
+Gear,Improved weapon,II,17-32,150,,,,"Mid-tier quality, small stat bonus"
+Gear,Advanced weapon,III,33-48,300,,,,"Late mid-game, better base damage"
+Gear,Elite weapon,IV,49-64,600,,,,"Top-tier, near end-game base damage"
+Gear,Light armor,I,1-16,60,,,,Small Defense bonus
+Gear,Standard armor,II,17-32,180,,,,Mid Defense bonus
+Gear,Heavy armor,III,33-48,320,,,,High Defense bonus
+Gear,Superior armor,IV,49-64,640,,,,Near max Defense bonus
+Gear,Minor accessory,I,1-16,40,,,,Tiny stat or utility bonus
+Gear,Standard accessory,II,17-32,120,,,,Small passive bonus
+Gear,Major accessory,III,33-48,260,,,,Mid-late passive bonus
+Gear,Legendary accessory,IV,49-64,520,,,,"Strong passive, limited stock"
+Service,Inn stay (modest),I,1-16,2,,,,"Per night, baseline nation"
+Service,Inn stay (comfortable),I,1-16,3.5,,,,"Per night, baseline"
+Service,Horse rental per day,I,1-16,4,,,,Travel aid
+Service,Basic healing service,II,17-32,40,,,,"Healer restores HP, cleans minor conditions"
+Service,Advanced healing service,III,33-48,120,,,,Greater heal + cleanse
+Service,Gate Nade crafting (low tier),II,17-32,80,,,,Craft or recharge low-tier Gate Nade
+Service,Gate Nade crafting (high tier),III-IV,33-64,260,,,,Craft or recharge mid/high-tier Gate Nade

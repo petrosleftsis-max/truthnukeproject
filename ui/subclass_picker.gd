@@ -1,6 +1,6 @@
 extends PanelContainer
 class_name SubclassPicker
-## The choice of a path at level 5 (Stats.SUBCLASS_LEVEL): a character's three
+## The choice of a path at level 24 (Stats.SUBCLASS_LEVEL): a character's three
 ## SubclassDefinitions side by side, each with what it brings and from which
 ## level, and a button to take it. Taking one asks once more, since it is for
 ## good.

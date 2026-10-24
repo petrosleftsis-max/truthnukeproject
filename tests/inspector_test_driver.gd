@@ -134,10 +134,14 @@ func run_test():
 	# Items are registered in the same lookup so every path that resolves a key
 	# handles them too, but they live in res://data/items - one folder per kind of
 	# thing, so the editor's file list is readable.
+	# Skills are sorted into folders under data/skills (by who uses them), so the
+	# file is wherever the database found it - as long as it is under the right
+	# folder and named for its key.
 	var missing = []
 	for key in SkillDatabase.skills.keys():
-		var folder = "items" if ItemDatabase.is_item(key) else "skills"
-		if not ResourceLoader.exists("res://data/%s/%s.tres" % [folder, key]):
+		var folder = "res://data/items/" if ItemDatabase.is_item(key) else "res://data/skills/"
+		var path: String = SkillDatabase.skills[key].resource_path if SkillDatabase.skills[key] != null else ""
+		if not path.begins_with(folder) or path.get_file().get_basename() != key or not ResourceLoader.exists(path):
 			missing.append(key)
 	ok(missing.is_empty(), "all %d skills and items have a file of their own" % SkillDatabase.skills.size(), str(missing))
 	for key in SkillDatabase.skills.keys():

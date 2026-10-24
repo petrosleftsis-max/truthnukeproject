@@ -1,9 +1,19 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://burnyloofco28"]
 
-[ext_resource type="Texture2D" path="res://art/characters/alithia/idle/alithia_idle_color0000.png" id="1_nj2rw"]
-[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_t7133"]
-[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="3_7klcm"]
+[ext_resource type="Texture2D" uid="uid://j18c0awsyfjm" path="res://art/characters/alithia/idle/alithia_idle_color0000.png" id="1_nj2rw"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="2_7klcm"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="2_t7133"]
+[ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="3_1v0ks"]
+[ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="3_7klcm"]
 [ext_resource type="SpriteFrames" path="res://art/characters/alithia/alithia_frames.tres" id="4_1v0ks"]
+[ext_resource type="Resource" path="res://data/passives/mercy.tres" id="p_mercy"]
+[ext_resource type="Resource" path="res://data/passives/aura.tres" id="p_aura"]
+[ext_resource type="Resource" path="res://data/passives/mercy_ii.tres" id="p_mercy_ii"]
+[ext_resource type="Resource" path="res://data/passives/aura_ii.tres" id="p_aura_ii"]
+[ext_resource type="Resource" path="res://data/passives/reserved_power.tres" id="p_reserved_power"]
+[ext_resource type="Resource" path="res://data/passives/mercy_iii.tres" id="p_mercy_iii"]
+[ext_resource type="Resource" path="res://data/passives/reserved_power_ii.tres" id="p_reserved_power_ii"]
+[ext_resource type="Resource" path="res://data/passives/radiant_guardian.tres" id="p_radiant_guardian"]
 
 [resource]
 script = ExtResource("3_7klcm")
@@ -22,13 +32,21 @@ She is also capable of weakening enemies to mitigate their offensive capabilitie
 class_t = 2
 max_hp = 75
 max_hp_level_20 = 115
-movement = 4
+defense_by_level = {
+1: 12,
+8: 20,
+17: 28
+}
+movement = 6
 initiative = 7
 main_stat = 1
 secondary_stat = 3
+spellcasting_stat = 1
 icon = ExtResource("1_nj2rw")
 map_sprite = ExtResource("1_nj2rw")
 sprite_frames = ExtResource("4_1v0ks")
-skills = Array[String](["water_spike", "sass_club", "heal", "light_heal", "holy_lance", "flash", "river_flow", "revitalizer", "resuscitate", "cleanse", "intuition", "persuade", "slip_past", "run"])
-subclasses = Array[String](["punisher", "carer", "illusionist"])
+skills = Array[String](["votive_flame", "water_spike", "sass_club", "heal", "light_heal", "holy_lance", "flash", "river_flow", "frozen_river", "resuscitate", "cleanse", "intuition", "persuade", "slip_past", "run", "holy_splash", "communion", "piercing_light", "judgment", "glacial_tide", "purification", "divine_verdict", "restoration", "revelation", "grace", "dread_visage", "bewilder"])
+passives = Array[ExtResource("2_t7133")]([ExtResource("p_mercy"), ExtResource("p_aura"), ExtResource("p_mercy_ii"), ExtResource("p_aura_ii"), ExtResource("p_reserved_power"), ExtResource("p_mercy_iii"), ExtResource("p_reserved_power_ii"), ExtResource("p_radiant_guardian")])
+subclasses = Array[String](["battle_chaplain", "illusory_shepherd", "inquisitor"])
+future_changed_lines = Array[String](["I saw it coming.", "Not this time.", "The future bends.", "That is not how it ends."])
 starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])

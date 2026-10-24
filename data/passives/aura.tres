@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Resource" path="res://data/conditions/blessed.tres" id="2_cond"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Aura I"
+description = "Allies within two tiles of her are blessed: a tenth less damage."
+required_level = 8
+aura_radius = 2
+aura_on_allies = ExtResource("2_cond")

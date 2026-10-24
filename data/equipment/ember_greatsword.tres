@@ -7,5 +7,5 @@ script = ExtResource("1_gear")
 name = "Ember Greatsword"
 description = "Forged hot and never quite cooled."
 for_characters = Array[String](["enfina"])
-price = 180
+price = 150
 weapon_base = 11

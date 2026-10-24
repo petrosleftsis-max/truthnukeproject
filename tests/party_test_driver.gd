@@ -6,8 +6,8 @@ var LOG_PATH := HarnessLog.path_for("party")
 ## map -> who should be on it, in order, and how far along they are.
 const EXPECTED := {
 	"res://maps/crossroads_explore.tscn": [["cyrus"], 1, "Vadim Krakhmal - Mountain Spirit"],
-	"res://maps/laboratory_explore.tscn": [["cyrus", "enfina", "prometheus", "alithia"], 10, "Tokyo Music Walker - Gotta Go"],
-	"res://maps/church.tscn": [["alithia"], 20, "Scott Buckley - Filaments"],
+	"res://maps/laboratory_explore.tscn": [["cyrus", "enfina", "prometheus", "alithia"], 8, "Tokyo Music Walker - Gotta Go"],
+	"res://maps/church.tscn": [["alithia"], 14, "Scott Buckley - Filaments"],
 }
 
 var _log: FileAccess

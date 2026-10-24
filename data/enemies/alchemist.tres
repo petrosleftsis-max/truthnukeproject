@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_comb"]
+[ext_resource type="SpriteFrames" path="res://art/enemies/bomber/bomber_frames.tres" id="2_frames"]
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="3_passive"]
+[ext_resource type="Resource" path="res://data/passives/bandolier.tres" id="4_bandolier"]
+
+[resource]
+script = ExtResource("1_comb")
+name = "Alchemist"
+glossary_text = "Hung about with bottles, bombs and Gate Nades, and quick with all of them: it mends whoever of its side is worst hurt and throws the rest at you, two things a turn. Take it down and what it did not use is yours."
+class_t = 1
+max_hp = 32
+max_hp_level_20 = 90
+defense = 5
+defense_level_64 = 30
+movement = 6
+initiative = 4
+main_stat = 2
+secondary_stat = 1
+sprite_frames = ExtResource("2_frames")
+tint = Color(0.75, 0.95, 0.7, 1)
+skills = Array[String](["rapier", "run"])
+passives = Array[ExtResource("3_passive")]([ExtResource("4_bandolier")])
+ai_function = "ai_alchemist"
+pocket_size = 12

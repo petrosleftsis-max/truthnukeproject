@@ -47,11 +47,15 @@ const SCROLL_STEP := 40
 const PAGE_OVERLAP := 60
 ## How fast a pad scrolls the numbers, in pixels a second at full tilt.
 const PAD_SCROLL_SPEED := 600.0
+## The sheet's pages (see "Pages"). Levels is the party's own only.
+const PAGES := ["Sheet", "Moves", "Levels"]
 
 ## What being hidden means, for the State section. Hiding is a flag on the
 ## combatant rather than a status effect, so the HUD's marks never describe it
 ## and it has to be said here.
 const HIDDEN_TEXT := "Out of sight: the other side treats them as not being there, and nothing can react to them. It lasts until an enemy has a clear line to them - being hit, or being the last of their side standing, gives them away too."
+## And invisible, which is hiding that sight does not end.
+const INVISIBLE_TEXT := "Out of sight even in plain view: the other side treats them as not being there, and nothing can react to them. Being seen or hit does not end it - doing anything to an enemy does, and so does nobody else on their side being left in sight."
 
 var _open := false
 var _index := 0
@@ -72,6 +76,11 @@ var _still: TextureRect = null
 var _stat_rows: VBoxContainer = null
 var _members: HBoxContainer = null
 var _hint: Label = null
+## The page on show (PAGES), and the buttons that turn to each.
+var _page := 0
+var _tabs: HBoxContainer = null
+## The Levels page uncovering what is past ΛΗΘΗ, while it does.
+var _unveiling: Tween = null
 
 
 func _ready():
@@ -166,6 +175,23 @@ func _build():
 	_path_button.visible = false
 	_path_button.pressed.connect(_choose_path)
 	column.add_child(_path_button)
+
+	# The pages: what they are made of, what they can do, what each level brings.
+	_tabs = HBoxContainer.new()
+	_tabs.name = "Pages"
+	_tabs.alignment = BoxContainer.ALIGNMENT_CENTER
+	_tabs.add_theme_constant_override("separation", 6)
+	column.add_child(_tabs)
+	for i in PAGES.size():
+		var tab := Button.new()
+		tab.name = PAGES[i]
+		tab.text = PAGES[i]
+		tab.toggle_mode = true
+		# Focus stays on the row of companions; Tab or a trigger turns the page.
+		tab.focus_mode = Control.FOCUS_NONE
+		tab.add_theme_font_size_override("font_size", 13)
+		tab.pressed.connect(_show_page.bind(i))
+		_tabs.add_child(tab)
 
 	_body = HBoxContainer.new()
 	_body.add_theme_constant_override("separation", 18)
@@ -292,14 +318,21 @@ func close():
 ## What closes it, under the panel - from the keyboard or from a pad.
 func _name_keys():
 	if _hint != null and is_instance_valid(_hint):
-		_hint.text = "%s or %s to close" % [Pad.key([&"character_sheet", &"menus"]), Pad.key(&"ui_cancel")]
+		_hint.text = "%s or %s to close    %s for the next page" % [Pad.key([&"character_sheet", &"menus"]), Pad.key(&"ui_cancel"), Pad.key(&"skill_tab")]
 
 
 ## A pad reads down the numbers with the D-pad or the left stick, held, where
 ## the keyboard has Up and Down; left and right go from one of the party to
-## the next, as the buttons along the bottom do.
+## the next, as the buttons along the bottom do. Tab or the right trigger
+## turns the page - taken here, before the focus moves on Tab.
 func _input(event):
-	if not _open or not (event is InputEventJoypadButton or event is InputEventJoypadMotion):
+	if not _open:
+		return
+	if path_picker == null and Pad.went_down(event, &"skill_tab") and _index < _entries.size():
+		get_viewport().set_input_as_handled()
+		_show_page((_page + 1) % _pages_of(_entries[_index]))
+		return
+	if not (event is InputEventJoypadButton or event is InputEventJoypadMotion):
 		return
 	if event.is_action(&"ui_up") or event.is_action(&"ui_down"):
 		get_viewport().set_input_as_handled()
@@ -474,8 +507,17 @@ func _show_entry():
 	_subtitle.text = "Level %d    %s%d / %d HP" % [entry.level, also, entry.hp, entry.max_hp]
 	_path_button.visible = not entry.get("in_battle", false) and Campaign.needs_path(entry.get("key", ""))
 
+	_show_tabs(entry)
 	_show_portrait(entry)
-	_show_stats(entry)
+	# The moves and the levels want the width the portrait would take.
+	_portrait.visible = _page == 0
+	match _page:
+		1:
+			_show_moves(entry)
+		2:
+			_show_levels(entry)
+		_:
+			_show_stats(entry)
 	_show_members()
 	_fit_to_screen()
 
@@ -515,9 +557,7 @@ func _show_portrait(entry: Dictionary):
 
 
 func _show_stats(entry: Dictionary):
-	for child in _stat_rows.get_children():
-		_stat_rows.remove_child(child)
-		child.queue_free()
+	_clear_rows()
 	var stats: Dictionary = entry.get("stats", {})
 	for i in range(Stats.NAMES.size()):
 		var key = Stats.KEYS[i]
@@ -652,7 +692,9 @@ func _show_state(entry: Dictionary):
 	if subject.is_empty() or combat == null or not is_instance_valid(combat):
 		return
 	var states := []
-	if combat.is_hidden(subject):
+	if combat.is_invisible(subject):
+		states.append({"text": "Invisible\n" + INVISIBLE_TEXT, "helpful": true})
+	elif combat.is_hidden(subject):
 		states.append({"text": "Hidden\n" + HIDDEN_TEXT, "helpful": true})
 	var reader := ConditionStrip.new()
 	states.append_array(reader.states_of(subject, combat))
@@ -889,7 +931,8 @@ func _show_gear(entry: Dictionary):
 	if key == "":
 		return
 	var tags := _labelled_tags("Gear")
-	for i in EquipmentDefinition.SLOT_KEYS.size():
+	# Weapon, armour and charm; containers are changed on the inventory screen.
+	for i in EquipmentDefinition.GEAR_SLOTS:
 		var slot: String = EquipmentDefinition.SLOT_KEYS[i]
 		var piece := EquipmentDefinition.named(Campaign.equipped_in(key, slot))
 		var button := Button.new()
@@ -958,3 +1001,527 @@ func _regather():
 	_entries = _gather()
 	_index = clampi(showing, 0, maxi(_entries.size() - 1, 0))
 	_show_entry()
+
+
+## --- Pages ---
+##
+## The sheet has three: what somebody is made of (the numbers, gear, state and
+## passives above), what they can do (Moves - every skill, the spells on a shelf
+## per gate) and what every level brings them (Levels - the party's own only).
+## The buttons under the name go between them, and so does Tab or the right
+## trigger.
+
+
+## Whether `entry` has a Levels page: one of the party, not an enemy Study opened.
+func _has_levels(entry: Dictionary) -> bool:
+	return not entry.get("studied", false) and CombatantDatabase.combatants.has(entry.get("key", ""))
+
+
+## How many pages `entry` has.
+func _pages_of(entry: Dictionary) -> int:
+	return PAGES.size() if _has_levels(entry) else PAGES.size() - 1
+
+
+## Turns to page `which` (PAGES) for whoever is on show.
+func _show_page(which: int):
+	_page = which
+	_show_entry()
+
+
+## The page buttons, the one showing pressed in.
+func _show_tabs(entry: Dictionary):
+	var pages := _pages_of(entry)
+	if _page >= pages:
+		_page = 0
+	for i in _tabs.get_child_count():
+		var tab: Button = _tabs.get_child(i)
+		tab.visible = i < pages
+		tab.set_pressed_no_signal(i == _page)
+		tab.add_theme_color_override("font_color", ACCENT if i == _page else INK_DIM)
+
+
+## Everything the rows hold, gone - and an unveiling still playing, stopped.
+func _clear_rows():
+	if _unveiling != null and _unveiling.is_valid():
+		_unveiling.kill()
+	_unveiling = null
+	for child in _stat_rows.get_children():
+		_stat_rows.remove_child(child)
+		child.queue_free()
+
+
+## A heading across the rows, in `colour`, with a quieter `note` beside it.
+func _heading(text: String, colour: Color = INK, note: String = "") -> Control:
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	var label := Label.new()
+	label.text = text
+	label.theme_type_variation = GameFonts.HEADER
+	label.add_theme_font_size_override("font_size", 17)
+	label.add_theme_color_override("font_color", colour)
+	line.add_child(label)
+	if note != "":
+		var aside := Label.new()
+		aside.text = note
+		aside.add_theme_font_size_override("font_size", 12)
+		aside.add_theme_color_override("font_color", MUTED)
+		aside.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		line.add_child(aside)
+	_stat_rows.add_child(line)
+	return line
+
+
+## --- Moves ---
+
+## Every move `entry` has, by key. In a fight, what they carry into it. Out of
+## one, their own skills and their path's - every one, the ones still to come
+## included, since what is coming is worth knowing when it is your own.
+func _moves_of(entry: Dictionary) -> Array:
+	if entry.get("in_battle", false):
+		return entry.get("skills", [])
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(entry.get("key", ""))
+	if definition == null:
+		return []
+	var keys: Array = Array(definition.skills)
+	for key in definition.secondary_skills:
+		if not keys.has(key):
+			keys.append(key)
+	var path := SubclassDefinition.named(entry.get("subclass", ""))
+	if path != null:
+		for key in path.skills:
+			if not keys.has(key):
+				keys.append(key)
+	return keys
+
+
+## The level gate `gate` first opens at (Stats.GATE_STEPS).
+static func gate_opens_at(gate: int) -> int:
+	for step in Stats.GATE_STEPS:
+		if step[1].size() >= gate:
+			return step[0]
+	return Stats.MAX_LEVEL + 1
+
+
+func _show_moves(entry: Dictionary):
+	_clear_rows()
+	var key: String = entry.get("key", "")
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	var path := SubclassDefinition.named(entry.get("subclass", ""))
+	var level: int = entry.get("level", 1)
+	var skills := []
+	var secondaries := []
+	var spells := {}
+	for move in _moves_of(entry):
+		var skill: SkillDefinition = SkillDatabase.skills.get(move)
+		if skill == null:
+			continue
+		if Combat.is_spell(skill):
+			if not spells.has(skill.spell_slot_level):
+				spells[skill.spell_slot_level] = []
+			spells[skill.spell_slot_level].append(move)
+		elif skill.is_secondary or (definition != null and definition.secondary_skills.has(move)):
+			secondaries.append(move)
+		else:
+			skills.append(move)
+	if skills.is_empty() and secondaries.is_empty() and spells.is_empty():
+		_stat_rows.add_child(_stat_row("Moves", "none"))
+		return
+	var by_level := func(a, b): return SkillDatabase.skills[a].required_level < SkillDatabase.skills[b].required_level
+	if not skills.is_empty():
+		_heading("Skills", INK, "a main action")
+		skills.sort_custom(by_level)
+		for move in skills:
+			_move_row(entry, move, path, level)
+	if not secondaries.is_empty():
+		_heading("Secondary actions", INK, "beside the main one")
+		secondaries.sort_custom(by_level)
+		for move in secondaries:
+			_move_row(entry, move, path, level)
+	# The spells on a shelf per gate, World first, as the Spells panel has them.
+	var gates: Array = spells.keys()
+	gates.sort()
+	for gate in gates:
+		var opens := gate_opens_at(gate)
+		_heading(Stats.gate_name(gate), Stats.gate_colour(gate), "open" if level >= opens else "opens at level %d" % opens)
+		var shelf: Array = spells[gate]
+		shelf.sort_custom(by_level)
+		for move in shelf:
+			_move_row(entry, move, path, level)
+
+
+## One move as a row: its icon (its preview on hover), its name, what is to be
+## known about having it, and what it does. Somebody who learns their spells
+## (Campaign.learns_spells) is told which they know, and, out of a fight, can
+## learn one from a book or a Gate Nade in the party's bags right here.
+func _move_row(entry: Dictionary, move: String, path: SubclassDefinition, level: int):
+	var skill: SkillDefinition = SkillDatabase.skills[move]
+	var key: String = entry.get("key", "")
+	var subject: Dictionary = entry.get("combatant", {})
+	var notes := []
+	var dim := false
+	if path != null and path.skills.has(move):
+		notes.append(path.name)
+	if skill.required_level > level:
+		notes.append("from level %d" % skill.required_level)
+		dim = true
+	var teachers := []
+	var learner: bool = not entry.get("studied", false) and Combat.is_spell(skill) and key != "" and Campaign.learns_spells(key)
+	if learner and not entry.get("in_battle", false):
+		if Campaign.knows_spell(key, move):
+			notes.append("known")
+		else:
+			notes.append("not learned")
+			dim = true
+			teachers = Campaign.teachers_of(move)
+	var row := HBoxContainer.new()
+	row.name = "Move_" + move
+	row.add_theme_constant_override("separation", 10)
+	var chip := _skill_chip(skill, subject)
+	chip.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	row.add_child(chip)
+	var words := VBoxContainer.new()
+	words.add_theme_constant_override("separation", 0)
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(words)
+	var title := HBoxContainer.new()
+	title.add_theme_constant_override("separation", 8)
+	words.add_child(title)
+	var called := Label.new()
+	called.text = skill.name
+	called.add_theme_font_size_override("font_size", 15)
+	called.add_theme_color_override("font_color", INK)
+	title.add_child(called)
+	if not notes.is_empty():
+		var aside := Label.new()
+		aside.text = ", ".join(notes)
+		aside.add_theme_font_size_override("font_size", 12)
+		aside.add_theme_color_override("font_color", MUTED)
+		aside.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		title.add_child(aside)
+	if skill.description != "":
+		var about := Label.new()
+		about.text = skill.description
+		about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		about.add_theme_font_size_override("font_size", 12)
+		about.add_theme_color_override("font_color", INK_DIM)
+		about.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.add_child(about)
+	if not teachers.is_empty():
+		var item: ItemDefinition = ItemDatabase.item(teachers[0].item)
+		var learn := Button.new()
+		learn.name = "Learn_" + move
+		learn.text = "Learn it - uses %s's %s" % [Campaign.display_name_of(teachers[0].holder), item.name if item != null else teachers[0].item]
+		learn.add_theme_font_size_override("font_size", 12)
+		learn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		learn.pressed.connect(_learn.bind(key, move))
+		words.add_child(learn)
+	elif learner and not entry.get("in_battle", false) and not Campaign.knows_spell(key, move):
+		var how := Label.new()
+		how.text = "Learned from its spellbook, or by taking a Gate Nade of it apart."
+		how.add_theme_font_size_override("font_size", 11)
+		how.add_theme_color_override("font_color", MUTED)
+		words.add_child(how)
+	if dim:
+		row.modulate = Color(1, 1, 1, 0.55)
+	_stat_rows.add_child(row)
+
+
+## `key` learns `spell` from the first book or Gate Nade in the party's bags.
+func _learn(key: String, spell: String):
+	Campaign.learn_spell(key, spell)
+	_regather()
+
+
+## --- Levels ---
+##
+## Level 1 to 64, a row each, under the chapter it is reached in: what every one
+## brings - health, attributes, castings through the gates, skills, spells,
+## passives, the path. Nothing past 55, ΛΗΘΗ, until Chapter V has begun
+## (Campaign.levels_in_view); the first time the page is opened after, the
+## rest is uncovered row by row (Campaign.levels_unveiled).
+
+const LETHE := "ΛΗΘΗ"
+const ALETHEIA := "ΑΛΗΘΕΙΑ"
+const LEVEL_NAME_COLOUR := Color("e8c872")
+const HEALTH_COLOUR := Color("9fe0a0")
+const PASSIVE_COLOUR := Color("e8c872")
+const PATH_COLOUR := Color("c8a0f0")
+## How long each row takes to come out from under ΛΗΘΗ, and the pause first.
+const UNVEIL_ROW_SECONDS := 0.35
+const UNVEIL_PAUSE := 0.8
+
+
+func _show_levels(entry: Dictionary):
+	_clear_rows()
+	var key: String = entry.get("key", "")
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null:
+		return
+	var now: int = entry.get("level", 1)
+	var grants := levels_of(key, entry.get("subclass", ""))
+	var shown := Campaign.levels_in_view()
+	var unveil: bool = shown > Campaign.LETHE_LEVEL and not Campaign.levels_unveiled
+	var veiled := []
+	var lethe_row: Control = null
+	for level in range(1, shown + 1):
+		var chapter := Campaign.chapter_of_level(level)
+		if level == 1 or Campaign.chapter_of_level(level - 1) != chapter:
+			var first: int = 1 if chapter == 1 else Campaign.CHAPTER_LEVELS[chapter - 2] + 1
+			var header := _heading("Chapter %s" % Campaign.CHAPTER_NAMES[chapter - 1], INK,
+				"levels %d to %d" % [first, Campaign.CHAPTER_LEVELS[chapter - 1]])
+			if level > Campaign.LETHE_LEVEL:
+				veiled.append(header)
+		var row := _level_row(level, now, grants.get(level, []))
+		if level == Campaign.LETHE_LEVEL:
+			lethe_row = row
+		if level > Campaign.LETHE_LEVEL:
+			veiled.append(row)
+	var veil: Control = null
+	if shown <= Campaign.LETHE_LEVEL or unveil:
+		veil = _veil_line()
+		if unveil:
+			_stat_rows.move_child(veil, lethe_row.get_index() + 1)
+	if unveil:
+		_unveil(veiled, veil, lethe_row)
+
+
+## What every level brings `key`, on `subclass` if they have chosen it (every
+## path's, each named, if not): level -> its lines, as BBCode.
+static func levels_of(key: String, subclass: String = "") -> Dictionary:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	var lines := {}
+	if definition == null:
+		return lines
+	var add := func(level: int, text: String):
+		if not lines.has(level):
+			lines[level] = []
+		lines[level].append(text)
+	var learns: bool = definition.learns_spells
+	var paths := []
+	for path_key in definition.subclasses:
+		if subclass == "" or path_key == subclass:
+			var path := SubclassDefinition.named(path_key)
+			if path != null:
+				paths.append(path)
+	# Whether they cast through the gates at all - by their own spells, or a path's.
+	var casts: bool = definition.casts_spells()
+	for path in paths:
+		for skill_key in path.skills:
+			var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
+			if skill != null and skill.spell_slot_level > 0:
+				casts = true
+	for level in range(1, Stats.MAX_LEVEL + 1):
+		# Health.
+		var health := definition.hp_at(level)
+		if level == 1:
+			add.call(level, "[color=#%s]%d health[/color]" % [HEALTH_COLOUR.to_html(false), health])
+		elif health != definition.hp_at(level - 1):
+			add.call(level, "[color=#%s]+%d health[/color] (%d)" % [HEALTH_COLOUR.to_html(false), health - definition.hp_at(level - 1), health])
+		# Attributes - Defence is the gear's, not the level's.
+		var stats := Stats.stats_for_level(level, definition.main_stat, definition.secondary_stat)
+		var before := Stats.stats_for_level(level - 1, definition.main_stat, definition.secondary_stat) if level > 1 else {}
+		var grown := []
+		for i in Stats.KEYS.size():
+			var stat_key: String = Stats.KEYS[i]
+			if stat_key == "defense":
+				continue
+			if level == 1:
+				grown.append("%s %d" % [Stats.NAMES[i], stats[stat_key]])
+			elif stats[stat_key] != before[stat_key]:
+				grown.append("%s %d (+%d)" % [Stats.NAMES[i], stats[stat_key], stats[stat_key] - before[stat_key]])
+		if not grown.is_empty():
+			add.call(level, ", ".join(grown))
+		# Castings through the gates.
+		if casts:
+			var gates := Stats.gates_for_level(level)
+			var had := Stats.gates_for_level(level - 1) if level > 1 else Stats.no_gates()
+			for gate in range(1, gates.size()):
+				var colour: String = Stats.gate_colour(gate).to_html(false)
+				if had[gate] == 0 and gates[gate] > 0:
+					add.call(level, "[color=#%s]%s open[/color]: %d casting%s" % [colour, Stats.gate_name(gate), gates[gate], "" if gates[gate] == 1 else "s"])
+				elif gates[gate] > had[gate]:
+					add.call(level, "[color=#%s]%s[/color]: %d castings (+%d)" % [colour, Stats.gate_name(gate), gates[gate], gates[gate] - had[gate]])
+		if level == Stats.SUBCLASS_LEVEL and not definition.subclasses.is_empty():
+			var names := []
+			for path_key in definition.subclasses:
+				var path := SubclassDefinition.named(path_key)
+				if path != null:
+					names.append(path.name)
+			var chosen := SubclassDefinition.named(subclass)
+			add.call(level, "[color=#%s]Chooses a path[/color]: %s%s" % [PATH_COLOUR.to_html(false), " or ".join(names),
+				" - took %s" % chosen.name if chosen != null else ""])
+	# Skills and spells, at the level they come in.
+	var own := Array(definition.skills)
+	for skill_key in definition.secondary_skills:
+		if not own.has(skill_key):
+			own.append(skill_key)
+	for skill_key in own:
+		var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
+		if skill != null:
+			add.call(comes_in(skill), _gain_line(skill, skill_key, definition, learns, ""))
+			for rank in skill.ranks:
+				if rank != null:
+					add.call(maxi(rank.level, comes_in(skill)), _rank_line(skill, rank))
+	for passive in definition.passives:
+		if passive != null:
+			add.call(clampi(passive.required_level, 1, Stats.MAX_LEVEL), "[color=#%s]Passive[/color]: %s" % [PASSIVE_COLOUR.to_html(false), passive.name])
+	for path in paths:
+		for skill_key in path.skills:
+			var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
+			if skill != null and not own.has(skill_key):
+				add.call(maxi(comes_in(skill), Stats.SUBCLASS_LEVEL), _gain_line(skill, skill_key, definition, learns, path.name))
+				for rank in skill.ranks:
+					if rank != null:
+						add.call(maxi(rank.level, Stats.SUBCLASS_LEVEL), _rank_line(skill, rank))
+		for passive in path.passives:
+			if passive != null:
+				add.call(clampi(maxi(passive.required_level, Stats.SUBCLASS_LEVEL), 1, Stats.MAX_LEVEL),
+					"[color=#%s]%s[/color]: passive %s" % [PATH_COLOUR.to_html(false), path.name, passive.name])
+	return lines
+
+
+## A skill growing stronger (SkillRank), as a line for the Levels page: what it
+## is called from here if that changes, and what changes.
+static func _rank_line(skill: SkillDefinition, rank: SkillRank) -> String:
+	var changes := []
+	if rank.ability_modifier > 0.0:
+		changes.append("x%s" % _figure(rank.ability_modifier))
+	if rank.condition_dot_modifier > 0.0:
+		changes.append("lingering x%s" % _figure(rank.condition_dot_modifier))
+	if rank.condition_duration > 0:
+		changes.append("%d turns" % rank.condition_duration)
+	if rank.splash_radius > 0:
+		changes.append("x%s to everybody within %d of who it lands on%s" % [_figure(rank.splash_modifier), rank.splash_radius,
+			(", shoved %d" % rank.splash_shove) if rank.splash_shove > 0 else ""])
+	var called := " - %s" % rank.title if rank.title != "" else ""
+	return "[color=#%s]%s%s[/color] grows stronger: %s" % [ACCENT.lightened(0.25).to_html(false), skill.name, called, ", ".join(changes)]
+
+
+## A dial as it is written - 1.5, 0.25 - without trailing noughts.
+static func _figure(value: float) -> String:
+	var text := "%.2f" % value
+	while text.ends_with("0"):
+		text = text.left(-1)
+	return text.trim_suffix(".")
+
+
+## The level `skill` can first be used at: its own Required Level, and for a
+## spell no sooner than its gate opens (Hover asks for no level, and still waits
+## for the Gates of Hermes).
+static func comes_in(skill: SkillDefinition) -> int:
+	var level := skill.required_level
+	if Combat.is_spell(skill):
+		level = maxi(level, gate_opens_at(skill.spell_slot_level))
+	return clampi(level, 1, Stats.MAX_LEVEL)
+
+
+## A skill or spell coming in, as a line for the Levels page: learned there, or -
+## for somebody who learns their spells - able to be learned from there on.
+static func _gain_line(skill: SkillDefinition, skill_key: String, definition: CombatantDefinition, learns: bool, path_name: String) -> String:
+	var from := "[color=#%s]%s[/color]: " % [PATH_COLOUR.to_html(false), path_name] if path_name != "" else ""
+	if not Combat.is_spell(skill):
+		return "%s[color=#%s]%s[/color]" % [from, ACCENT.lightened(0.25).to_html(false), skill.name]
+	var gate := "[color=#%s]%s[/color]" % [Stats.gate_colour(skill.spell_slot_level).to_html(false), skill.name]
+	if learns and not definition.starting_spells.has(skill_key):
+		return "%s%s can be learned (its spellbook, or a Gate Nade of it)" % [from, gate]
+	return "%s%s, a spell" % [from, gate]
+
+
+## One level as a row: its number - and ΛΗΘΗ or ΑΛΗΘΕΙΑ under 55 and 64 - and
+## what it brings. The level they are at is outlined; those still to come dimmed.
+func _level_row(level: int, now: int, lines: Array) -> Control:
+	var box := PanelContainer.new()
+	box.name = "Level_%d" % level
+	var frame := StyleBoxFlat.new()
+	frame.bg_color = TAG_FILL if level == now else Color(0, 0, 0, 0)
+	frame.border_color = ACCENT if level == now else Color(0, 0, 0, 0)
+	frame.set_border_width_all(1)
+	frame.set_corner_radius_all(4)
+	frame.content_margin_left = 8
+	frame.content_margin_right = 8
+	frame.content_margin_top = 3
+	frame.content_margin_bottom = 3
+	box.add_theme_stylebox_override("panel", frame)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	box.add_child(row)
+	var number := VBoxContainer.new()
+	number.custom_minimum_size = Vector2(96, 0)
+	number.add_theme_constant_override("separation", 0)
+	row.add_child(number)
+	var called := Label.new()
+	called.text = "Level %d" % level
+	called.theme_type_variation = GameFonts.HEADER
+	called.add_theme_font_size_override("font_size", 15)
+	called.add_theme_color_override("font_color", ACCENT if level == now else INK)
+	number.add_child(called)
+	var named := ""
+	if level == Campaign.LETHE_LEVEL:
+		named = LETHE
+	elif level == Campaign.ALETHEIA_LEVEL:
+		named = ALETHEIA
+	if named != "":
+		var greek := Label.new()
+		greek.name = "Named"
+		greek.text = named
+		greek.add_theme_font_size_override("font_size", 16)
+		greek.add_theme_color_override("font_color", LEVEL_NAME_COLOUR)
+		number.add_child(greek)
+	var said := RichTextLabel.new()
+	said.bbcode_enabled = true
+	said.fit_content = true
+	said.scroll_active = false
+	said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	said.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	said.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	said.add_theme_font_size_override("normal_font_size", 13)
+	said.add_theme_color_override("default_color", INK_DIM)
+	said.text = "\n".join(lines) if not lines.is_empty() else "[color=#%s]-[/color]" % MUTED.to_html(false)
+	row.add_child(said)
+	var alpha := 0.62 if level > now else 1.0
+	box.set_meta("alpha", alpha)
+	box.modulate.a = alpha
+	_stat_rows.add_child(box)
+	return box
+
+
+## Where the levels stop until Chapter V: what is past ΛΗΘΗ, forgotten.
+func _veil_line() -> Control:
+	var veil := Label.new()
+	veil.name = "Veil"
+	veil.text = "Past %s, nothing is remembered." % LETHE
+	veil.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	veil.add_theme_font_size_override("font_size", 13)
+	veil.add_theme_color_override("font_color", MUTED)
+	_stat_rows.add_child(veil)
+	return veil
+
+
+## The levels past ΛΗΘΗ uncovered, the first time the page is opened in Chapter
+## V: the veil fades, ΛΗΘΗ flares, and the rows come up one after another, the
+## view following them down to ΑΛΗΘΕΙΑ.
+func _unveil(rows: Array, veil: Control, lethe_row: Control):
+	Campaign.levels_unveiled = true
+	for row in rows:
+		row.modulate.a = 0.0
+	_unveiling = create_tween()
+	# Once the rows are laid out (_fit_to_screen), down to ΛΗΘΗ.
+	_unveiling.tween_interval(0.15)
+	_unveiling.tween_callback(func():
+		if lethe_row != null and is_instance_valid(lethe_row):
+			_stat_scroll.ensure_control_visible(lethe_row))
+	var greek = lethe_row.find_child("Named", true, false) if lethe_row != null else null
+	if greek != null:
+		_unveiling.tween_property(greek, "modulate", Color(2.2, 2.0, 1.4), UNVEIL_PAUSE * 0.5)
+		_unveiling.tween_property(greek, "modulate", Color.WHITE, UNVEIL_PAUSE * 0.5)
+	else:
+		_unveiling.tween_interval(UNVEIL_PAUSE)
+	if veil != null:
+		_unveiling.tween_property(veil, "modulate:a", 0.0, UNVEIL_ROW_SECONDS)
+		_unveiling.tween_callback(veil.hide)
+	for row in rows:
+		var alpha: float = row.get_meta("alpha", 1.0)
+		_unveiling.tween_callback(func():
+			if is_instance_valid(row):
+				_stat_scroll.ensure_control_visible(row))
+		_unveiling.tween_property(row, "modulate:a", alpha, UNVEIL_ROW_SECONDS)

@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/buff_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[sub_resource type="Resource" id="Effect_strength"]
+script = ExtResource("1_effect")
+type = 7
+display_name = "Empowered"
+stat = "physical"
+stat_multiplier = 1.3
+duration = 2
+
+[sub_resource type="Resource" id="Effect_hide"]
+script = ExtResource("1_effect")
+type = 7
+display_name = "Hardened"
+stat = "defense"
+stat_multiplier = 1.3
+duration = 2
+
+[resource]
+script = ExtResource("3_skill")
+name = "Empower the Bound"
+description = "Floods an ally with strength: harder blows and a tougher hide, for two turns."
+max_range = 6
+icon = ExtResource("2_icon")
+targets_ally = true
+can_be_copied = false
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_strength"), SubResource("Effect_hide")])
+deals_damage = false

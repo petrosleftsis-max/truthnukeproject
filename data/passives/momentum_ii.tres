@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Momentum II"
+description = "Planted, every blow lands like a falling wall: fifteen hundredths more again."
+required_level = 64
+still_damage_bonus = 0.15

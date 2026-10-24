@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/icons/fire_icon.png" id="1_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+
+[resource]
+script = ExtResource("2_skill")
+name = "Dread Breath"
+description = "A wave of dread breaks from it, over everybody in a cone - half to whoever's mind sees through it. Made of its caster's mind: as strong as their Intellect."
+min_range = 1
+max_range = 6
+icon = ExtResource("1_icon")
+can_be_copied = false
+affects_both_sides = true
+ability_modifier = 1.6
+scaling_stat = 2
+damage_type = 6
+uses_stat_contest = true
+contest_stat = 2
+aoe_radius = 6
+aoe_shape = 2

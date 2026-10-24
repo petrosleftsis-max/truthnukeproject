@@ -10,7 +10,6 @@ combatant_key = "alithia"
 position = Vector2i(25, 19)
 level = 10
 weapon_base = 9
-defense = 12
 starting_items = Array[String](["mediocre_cure_potion", "poison_bottle"])
 
 [sub_resource type="Resource" id="Resource_j1f8v"]
@@ -19,7 +18,6 @@ combatant_key = "cyrus"
 position = Vector2i(24, 21)
 level = 10
 weapon_base = 9
-defense = 12
 starting_items = Array[String](["mediocre_cure_potion", "medium_bomb", "medicine", "crystal_bottle"])
 
 [sub_resource type="Resource" id="Resource_l7x2j"]
@@ -28,7 +26,6 @@ combatant_key = "enfina"
 position = Vector2i(26, 22)
 level = 10
 weapon_base = 9
-defense = 20
 starting_items = Array[String](["mediocre_cure_potion", "burn_bottle"])
 
 [sub_resource type="Resource" id="Resource_j5gq1"]
@@ -37,7 +34,6 @@ combatant_key = "prometheus"
 position = Vector2i(25, 23)
 level = 10
 weapon_base = 9
-defense = 5
 starting_items = Array[String](["mediocre_cure_potion", "gale_bottle", "medicine"])
 [sub_resource type="Resource" id="Foe_1"]
 script = ExtResource("3_ex5ow")
@@ -46,7 +42,6 @@ side = 1
 position = Vector2i(25, 8)
 level = 10
 weapon_base = 9
-defense = 12
 
 [sub_resource type="Resource" id="Foe_2"]
 script = ExtResource("3_ex5ow")
@@ -64,7 +59,6 @@ side = 1
 position = Vector2i(25, 14)
 level = 10
 weapon_base = 9
-defense = 12
 
 [resource]
 script = ExtResource("2_fhab5")

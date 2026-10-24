@@ -93,6 +93,9 @@ func run_test():
 	for i in 6:
 		await get_tree().process_frame
 	var combat = game.get_node("VisualCombat")
+	# Nobody here to answer a question - which container a Steal empties, what
+	# comes out of a pouch: whoever is asked takes the first.
+	combat.reaction_prompt = null
 	if combat.deployment_active:
 		combat.finish_deployment()
 		await get_tree().process_frame
@@ -160,6 +163,29 @@ func run_test():
 		# plays it.
 		if Combat._hacks(skill):
 			continue
+		# Only ever a reaction (InstaHack, as a spell is cast) - refused on its
+		# user's own turn by design; the triggers suite sets it off.
+		if skill.reaction_only:
+			continue
+		# Devour swallows only somebody already held - the glutton suite plays it.
+		if Combat._swallows(skill):
+			continue
+		# Loot wants somebody fallen with something on them - the loot suite
+		# plays it.
+		if Combat.loots(skill):
+			continue
+		# Rummage wants a pouch with something in it - the containers suite plays it.
+		if Combat.draws(skill):
+			continue
+		# A trap changes the ground, not anybody standing on it, and Catalyst wants
+		# the caster's own conditions lingering on somebody - the paths suite plays
+		# them.
+		if Combat.sets_traps(skill) or skill.effects.any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.CATALYST):
+			continue
+		# Dispel Magic undoes what spells left, and here nobody has anything on
+		# them - the dispel suite plays it.
+		if Combat.dispels_magic(skill):
+			continue
 		# Bribe wants somebody with a price, Climb something Monstrous, Climb
 		# Down somebody up on it, and Break Free somebody held - none of them
 		# here; the enemies suite plays them.
@@ -176,6 +202,8 @@ func run_test():
 		for who in [caster, ally, foe]:
 			who.alive = true
 			who.status_effects.clear()
+			# Back to their own size, too - Growth may have been the last thing used.
+			combat.resync_size(who)
 			who.erase("studied_by")
 			who.erase("studied")
 			who["reactions_suppressed"] = false
@@ -259,10 +287,29 @@ func run_test():
 		if skill.needs_leverage:
 			# Intimidate, Persuade, Deceive: something on them to work with.
 			Campaign.set_flag(Campaign.LEVERAGE_PREFIX + mark.get("combatant_key", ""))
+		mark.erase("intent")
+		if skill.needs_read:
+			# Accusation, Recant: their next turn read by the caster, as Intuition reads it.
+			combat.read_intent(caster, mark)
 		var aim = mark.position if gap > 0 else caster.position
+		# A step and nothing else (Mist Step) goes to a free tile: aimed at
+		# somebody, there is nowhere for it to land.
+		if skill.teleports == SkillDefinition.TeleportWho.CASTER and skill.all_effects().is_empty():
+			aim = lane + Vector2i(3, 0)
+			# One that has to land in cover (Cover Leap): a free tile in reach that is.
+			if skill.lands_in_cover:
+				for dy in range(-skill.max_range, skill.max_range + 1):
+					for dx in range(-skill.max_range, skill.max_range + 1):
+						var spot: Vector2i = caster.position + Vector2i(dx, dy)
+						if combat.distance_to(caster, spot) <= skill.max_range and spot != caster.position \
+								and combat.can_land_on(caster, spot) and combat.in_cover(caster, spot):
+							aim = spot
 		var destination = Vector2i(-99999, -99999)
 		if skill.teleports == SkillDefinition.TeleportWho.TARGET:
 			destination = lane + Vector2i(3, 0)
+		# Command is for a summon of theirs: the ally, made one for it.
+		if Combat.commands(skill):
+			mark["summoner"] = caster.get("id", -1)
 		var before_caster = snapshot(caster)
 		var before_mark = snapshot(mark)
 		# Somebody new on the board - an image put up - is something done too.
@@ -277,10 +324,19 @@ func run_test():
 		for i in 3:
 			await get_tree().process_frame
 		combat.update_information.disconnect(listening)
-		# An image put up would be standing on the lane for the next one.
+		# An image put up would be standing on the lane for the next one - and so
+		# would anything called up, held on the caster's tether.
+		var commanded: bool = combat.is_commanding()
+		if commanded:
+			combat._end_command()
+		mark.erase("summoner")
+		mark.erase("commanded")
+		combat.snap_tether(caster, "the next one")
 		for stray in combat.combatants.duplicate():
 			if stray.get("illusion", false) and stray.alive:
 				combat._shatter(stray)
+			elif stray.has("summoner") and stray.alive:
+				combat._unsummon(stray, "is put away")
 
 		if contested_key != "" and mark["stats"].has(contested_key):
 			mark["stats"][contested_key] = contested_was
@@ -292,6 +348,8 @@ func run_test():
 				said.append(line)
 		if combat.combatants.size() != standing_before:
 			landed.append("somebody new on the board")
+		if commanded:
+			landed.append("its moment, given")
 		if moved.is_empty() and landed.is_empty():
 			dead.append(key)
 			log_line("  DEAD  %-20s nothing changed. caster %s, %s %s, aim %s, reach %d-%d. log: %s"

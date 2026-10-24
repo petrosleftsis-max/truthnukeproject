@@ -35,16 +35,22 @@ func _ready():
 ##
 ## Passing is only "not this time": the reaction stays unspent, so the next
 ## enemy to break away this round asks again.
-func ask(reactor: Dictionary, target: Dictionary, skill: SkillDefinition) -> bool:
+func ask(reactor: Dictionary, target: Dictionary, skill: SkillDefinition, happening: String = "", label: String = "") -> bool:
+	if happening == "":
+		return await ask_about("%s can react" % reactor.name,
+			"%s is leaving range. Use %s on them?\nThis spends %s's one reaction until their next turn." % [
+				target.name, skill.name, reactor.name])
+	var aimed := "" if is_same(target, reactor) else " on %s" % target.name
 	return await ask_about("%s can react" % reactor.name,
-		"%s is leaving range. Use %s on them?\nThis spends %s's one reaction until their next turn." % [
-			target.name, skill.name, reactor.name])
+		"%s. Use %s%s?\nThis spends %s's one reaction until their next turn." % [
+			happening[0].to_upper() + happening.substr(1),
+			label if label != "" else skill.name, aimed, reactor.name])
 
 
 ## Which of `skills` to use on `target` as they leave `reactor`'s reach - a
 ## swing or a grab (Combat "Holding on") - one button each, then Skip. The
 ## index of the one chosen, or -1 to let them go.
-func choose(reactor: Dictionary, target: Dictionary, skills: Array) -> int:
+func choose(reactor: Dictionary, target: Dictionary, skills: Array, happening: String = "", labels: Array = []) -> int:
 	var row := $Panel/VBox/Buttons
 	var use_button: Button = $Panel/VBox/Buttons/UseButton
 	var skip_button: Button = $Panel/VBox/Buttons/SkipButton
@@ -53,21 +59,51 @@ func choose(reactor: Dictionary, target: Dictionary, skills: Array) -> int:
 	for i in skills.size():
 		var button := Button.new()
 		button.custom_minimum_size = use_button.custom_minimum_size
-		button.text = skills[i].name
+		button.text = labels[i] if i < labels.size() else skills[i].name
 		button.pressed.connect(func(): _choose(i))
 		row.add_child(button)
 		row.move_child(button, skip_button.get_index())
 		made.append(button)
 	FocusLoop.link(made + [skip_button])
 	_choice = -1
+	var what := "%s is leaving range" % target.name if happening == "" else happening[0].to_upper() + happening.substr(1)
 	var used := await _put_up("%s can react" % reactor.name,
-		"%s is leaving range. What does %s do?\nWhichever, it spends %s's one reaction until their next turn." % [
-			target.name, reactor.name, reactor.name], made[0] if not made.is_empty() else skip_button)
+		"%s. What does %s do?\nWhichever, it spends %s's one reaction until their next turn." % [
+			what, reactor.name, reactor.name], made[0] if not made.is_empty() else skip_button)
 	for button in made:
 		button.queue_free()
 	use_button.visible = true
 	FocusLoop.link([use_button, skip_button])
 	return _choice if used else -1
+
+
+## One of `labels`, a button each - which of somebody's containers a Steal
+## empties (Combat._choose_container), say. The index picked; Escape takes the
+## first, since something has to be chosen.
+func pick(title: String, detail: String, labels: Array) -> int:
+	var row := $Panel/VBox/Buttons
+	var use_button: Button = $Panel/VBox/Buttons/UseButton
+	var skip_button: Button = $Panel/VBox/Buttons/SkipButton
+	use_button.visible = false
+	skip_button.visible = false
+	var made: Array = []
+	for i in labels.size():
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(maxf(use_button.custom_minimum_size.x, 150), use_button.custom_minimum_size.y)
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.text = labels[i]
+		button.pressed.connect(func(): _choose(i))
+		row.add_child(button)
+		made.append(button)
+	FocusLoop.link(made)
+	_choice = -1
+	var chose := await _put_up(title, detail, made[0] if not made.is_empty() else use_button)
+	for button in made:
+		button.queue_free()
+	use_button.visible = true
+	skip_button.visible = true
+	FocusLoop.link([use_button, skip_button])
+	return _choice if chose else 0
 
 
 ## The same question in other words - a ward (Combat._offer_ward) rather than a

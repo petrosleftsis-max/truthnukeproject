@@ -103,6 +103,8 @@ func run_test():
 	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
 	ok(fireball.uses_stat_contest, "Fireball is decided by a contest")
 	caster.spell_slots = [0, 9, 9, 9]
+	# Far enough along to have learned it, whatever level the fight is at.
+	caster.level = maxi(caster.level, fireball.required_level)
 	caster.skill_used_this_turn = false
 	var clear = open_tile_near(combat, mark, caster, fireball.aoe_radius + 2)
 	ok(clear.x > -99999, "somewhere to throw it from outside its own blast", "%s" % clear)

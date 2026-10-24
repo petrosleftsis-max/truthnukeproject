@@ -122,7 +122,14 @@ func small_ones():
 	var distinct := {}
 	for offset in drawn:
 		distinct[offset] = true
-	ok(distinct.size() == 4, "each rat drawn in its own corner of the tile", "%s" % [drawn])
+	ok(distinct.size() == 4, "each rat drawn in its own place in the tile", "%s" % [drawn])
+	var middle := Vector2.ZERO
+	for offset in drawn:
+		middle += offset / drawn.size()
+	ok(middle.length() < Grid.TILE_SIZE * 0.1 and drawn.all(func(offset): return absf(offset.x) < Grid.TILE_SIZE * 0.5 and absf(offset.y) < Grid.TILE_SIZE * 0.5),
+		"gathered round the middle of the tile, all inside it", "%s" % middle)
+	var lone: Dictionary = combat.create_combatant(CombatantDatabase.combatants.imp, "imp")
+	ok(combat.drawing_offset(lone) == Vector2.ZERO, "one alone is drawn in the very middle")
 	ok(is_equal_approx(rats[0].sprite.scale.x, 0.25) and is_equal_approx(imps[0].sprite.scale.x, 0.5), "drawn a quarter and a half as big")
 
 	log_line("")

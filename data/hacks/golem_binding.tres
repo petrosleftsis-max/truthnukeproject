@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="HackDefinition" format=3]
+[gd_resource type="Resource" script_class="HackDefinition" format=3 uid="uid://ctmtcu70mqduy"]
 
-[ext_resource type="Script" path="res://hacking/HackLine.gd" id="1_infe3"]
-[ext_resource type="Script" path="res://hacking/HackDefinition.gd" id="2_ilxt6"]
+[ext_resource type="Script" uid="uid://cbecsdyikduqe" path="res://hacking/HackLine.gd" id="1_infe3"]
+[ext_resource type="Script" uid="uid://csfjqcv4w1gdb" path="res://hacking/HackDefinition.gd" id="2_ilxt6"]
 
 [sub_resource type="Resource" id="Resource_7i56u"]
 script = ExtResource("1_infe3")

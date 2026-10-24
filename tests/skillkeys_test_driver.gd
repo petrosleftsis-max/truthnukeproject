@@ -52,7 +52,9 @@ func run_test():
 		# Nothing enforces this but the convention itself, and a key that has
 		# drifted from the name shown in the inspector is exactly the confusion
 		# the rename was meant to end.
-		var expected = skill.name.to_lower().replace(" ", "_")
+		# An apostrophe has no place in a file name, and is left out of the key:
+		# Reality's Reflection is realitys_reflection.
+		var expected = skill.name.to_lower().replace(" ", "_").replace("'", "")
 		ok(text == expected, "'%s' matches its name %s" % [text, skill.name], expected)
 	log_line("")
 
@@ -61,11 +63,16 @@ func run_test():
 		var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 		if skill != null and skill.is_reactive:
 			log_line("  NOTE  '%s' (%s) reacts" % [skill_key, skill.name])
+	# Communion took Revitalizer's place (2026-10-23): the group heal is Communion's.
 	var carriers := []
+	var retired := []
 	for key in CombatantDatabase.combatants:
-		if "revitalizer" in CombatantDatabase.combatants[key].skills:
+		if "communion" in CombatantDatabase.combatants[key].skills:
 			carriers.append(key)
-	ok(not carriers.is_empty(), "somebody still carries revitalizer", "%s" % [carriers])
+		if "revitalizer" in CombatantDatabase.combatants[key].skills:
+			retired.append(key)
+	ok(carriers.has("alithia") and carriers.has("priest"), "Alithia and the Priest carry Communion", "%s" % [carriers])
+	ok(retired.is_empty(), "and nobody Revitalizer, which it replaced", "%s" % [retired])
 	log_line("")
 
 	log_line("FAILURES: %d" % _fail)

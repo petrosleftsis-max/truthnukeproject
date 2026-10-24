@@ -31,19 +31,19 @@ func _ready():
 
 func run_test():
 	log_line("======== the numbers a level hands out ========")
-	ok(Stats.MAX_LEVEL == 20, "there are twenty levels", "%d" % Stats.MAX_LEVEL)
+	ok(Stats.MAX_LEVEL == 64, "there are sixty-four levels", "%d" % Stats.MAX_LEVEL)
 	ok(Stats.main_stat_at(1) == 10, "level 1 main stat is 10", "%d" % Stats.main_stat_at(1))
-	ok(Stats.main_stat_at(20) == 85, "level 20 main stat is 85", "%d" % Stats.main_stat_at(20))
-	ok(Stats.secondary_stat_at(20) == 43, "level 20 secondary is half of 85", "%d" % Stats.secondary_stat_at(20))
-	ok(Stats.main_stat_at(10) == 46 and Stats.secondary_stat_at(10) == 23,
-		"level 10 is where level 2 was, near enough", "%d / %d" % [Stats.main_stat_at(10), Stats.secondary_stat_at(10)])
+	ok(Stats.main_stat_at(64) == 85, "level 64 main stat is 85", "%d" % Stats.main_stat_at(64))
+	ok(Stats.secondary_stat_at(64) == 43, "level 64 secondary is half of 85", "%d" % Stats.secondary_stat_at(64))
+	ok(Stats.main_stat_at(8) == 18 and Stats.main_stat_at(14) == 25,
+		"the lab's level 8 and the city's 14 on the way", "%d / %d" % [Stats.main_stat_at(8), Stats.main_stat_at(14)])
 	var climbs := true
-	for level in range(1, 20):
+	for level in range(1, Stats.MAX_LEVEL):
 		climbs = climbs and Stats.main_stat_at(level + 1) > Stats.main_stat_at(level) \
 			and Stats.secondary_stat_at(level + 1) >= Stats.secondary_stat_at(level)
 	ok(climbs, "every level is a step up")
 	ok(Stats.secondary_stat_at(2) == 10, "an early secondary never drops below 10", "%d" % Stats.secondary_stat_at(2))
-	ok(Stats.main_stat_at(29) == Stats.main_stat_at(20), "beyond level 20 is clamped")
+	ok(Stats.main_stat_at(99) == Stats.main_stat_at(64), "beyond level 64 is clamped")
 	log_line("")
 
 	log_line("======== a level 1 combatant is flat 10s ========")
@@ -56,27 +56,39 @@ func run_test():
 	log_line("")
 
 	log_line("======== higher levels raise only the two ========")
-	var cyrus_ten = Stats.stats_for_level(10, Stats.Type.SELF, Stats.Type.PHYSICAL)
-	ok(cyrus_ten["self_stat"] == 46, "main stat at 46", "%d" % cyrus_ten["self_stat"])
-	ok(cyrus_ten["physical"] == 23, "secondary at 23", "%d" % cyrus_ten["physical"])
-	ok(cyrus_ten["intellect"] == 10 and cyrus_ten["mindfulness"] == 10, "the rest stay at 10",
-		"intellect %d, mindfulness %d" % [cyrus_ten["intellect"], cyrus_ten["mindfulness"]])
-	var twenty = Stats.stats_for_level(20, Stats.Type.INTELLECT, Stats.Type.MINDFULNESS)
-	ok(twenty["intellect"] == 85 and twenty["mindfulness"] == 43, "and level 20 does the same",
-		"%d / %d" % [twenty["intellect"], twenty["mindfulness"]])
+	var cyrus_city = Stats.stats_for_level(14, Stats.Type.SELF, Stats.Type.PHYSICAL)
+	ok(cyrus_city["self_stat"] == 25, "main stat at 25", "%d" % cyrus_city["self_stat"])
+	ok(cyrus_city["physical"] == 13, "secondary at 13", "%d" % cyrus_city["physical"])
+	ok(cyrus_city["intellect"] == 10 and cyrus_city["mindfulness"] == 10, "the rest stay at 10",
+		"intellect %d, mindfulness %d" % [cyrus_city["intellect"], cyrus_city["mindfulness"]])
+	var top = Stats.stats_for_level(64, Stats.Type.INTELLECT, Stats.Type.MINDFULNESS)
+	ok(top["intellect"] == 85 and top["mindfulness"] == 43, "and level 64 does the same",
+		"%d / %d" % [top["intellect"], top["mindfulness"]])
 	log_line("")
 
 	log_line("======== gates by level ========")
-	ok(Stats.gates_for_level(1) == [0, 2, 0, 0], "level 1: two World")
-	ok(Stats.gates_for_level(5) == [0, 3, 1, 0], "level 5: Hermes opens")
-	ok(Stats.gates_for_level(9) == [0, 3, 2, 1], "level 9: Yaldabaoth opens")
-	ok(Stats.gates_for_level(10) == [0, 3, 2, 1], "level 10: what level 2 was")
-	ok(Stats.gates_for_level(20) == [0, 3, 3, 2], "level 20: what level 3 was")
+	# D&D's full casters stretched to 64 (Stats.GATE_STEPS), World first.
+	var counts := func(level: int) -> Array: return Stats.gates_for_level(level).slice(1)
+	ok(Stats.gates_for_level(1).size() == Stats.GATE_NAMES.size(), "a count for every gate there is")
+	ok(counts.call(1).slice(0, 3) == [2, 0, 0], "level 1: two World", "%s" % [counts.call(1)])
+	ok(counts.call(7).slice(0, 3) == [3, 0, 0] and counts.call(8).slice(0, 3) == [4, 2, 0], "level 8: Hermes opens, twice",
+		"%s" % [counts.call(8)])
+	ok(counts.call(13)[2] == 0 and counts.call(14).slice(0, 4) == [4, 3, 2, 0], "level 14: Pandora opens, twice",
+		"%s" % [counts.call(14)])
+	ok(counts.call(60)[9] == 0 and counts.call(61)[9] == 1, "level 61: Yaldabaoth, the tenth, opens", "%s" % [counts.call(61)])
+	ok(counts.call(64) == [4, 3, 3, 3, 3, 2, 2, 1, 1, 1], "level 64: everything", "%s" % [counts.call(64)])
+	var opens := []
+	for gate in range(1, Stats.GATE_NAMES.size()):
+		for level in range(1, Stats.MAX_LEVEL + 1):
+			if Stats.gates_for_level(level)[gate] > 0:
+				opens.append(level)
+				break
+	ok(opens == [1, 8, 14, 21, 28, 34, 41, 47, 54, 61], "a new gate every six or seven levels", "%s" % [opens])
 	var never_fewer := true
-	for level in range(1, 20):
+	for level in range(1, Stats.MAX_LEVEL):
 		var now := Stats.gates_for_level(level)
 		var next := Stats.gates_for_level(level + 1)
-		for gate in range(1, 4):
+		for gate in range(1, now.size()):
 			never_fewer = never_fewer and next[gate] >= now[gate]
 	ok(never_fewer, "and no level takes a gate away")
 	log_line("")
@@ -107,7 +119,7 @@ func run_test():
 	log_line("======== a spawn decides level, weapon and defense ========")
 	var spawn := SpawnDefinition.new()
 	spawn.combatant_key = "cyrus"
-	spawn.level = 20
+	spawn.level = 64
 	spawn.weapon_base = 30
 	spawn.defense = 70
 
@@ -122,7 +134,7 @@ func run_test():
 	await get_tree().process_frame
 
 	var built = combat.create_combatant(CombatantDatabase.combatants["cyrus"], "cyrus", "", spawn)
-	ok(built.level == 20, "the combatant is at the spawn's level", "%d" % built.level)
+	ok(built.level == 64, "the combatant is at the spawn's level", "%d" % built.level)
 	ok(combat.stat_of(built, Stats.Type.SELF) == 85, "with the level's main stat",
 		"%d" % combat.stat_of(built, Stats.Type.SELF))
 	ok(combat.stat_of(built, Stats.Type.DEFENSE) == 70, "the spawn's defense, not the level's",
@@ -131,7 +143,8 @@ func run_test():
 
 	var plain = combat.create_combatant(CombatantDatabase.combatants["cyrus"], "cyrus")
 	ok(plain.level == 1, "no spawn means level 1", "%d" % plain.level)
-	ok(combat.stat_of(plain, Stats.Type.DEFENSE) == 10, "and a default defense",
+	# With no spawn to say, their own at that level (the party's sheet: 12 at 1).
+	ok(combat.stat_of(plain, Stats.Type.DEFENSE) == CombatantDatabase.combatants["cyrus"].defense_at(1), "and their own defense",
 		"%d" % combat.stat_of(plain, Stats.Type.DEFENSE))
 	log_line("")
 
@@ -140,15 +153,17 @@ func run_test():
 	var target = combat.create_combatant(CombatantDatabase.combatants["barbarian"], "barbarian")
 	var weak = combat.skill_damage(plain, target, melee)
 	var strong = combat.skill_damage(built, target, melee)
-	ok(strong > weak, "a level 20 with a better weapon hits far harder", "%d -> %d" % [weak, strong])
+	ok(strong > weak, "a level 64 with a better weapon hits far harder", "%d -> %d" % [weak, strong])
 	# Read off the skill rather than written in, so balancing Greatsword Attack
 	# is not the same as breaking this test.
-	var expected_weak = Stats.final_damage(6 + 0.7 * 10, melee.ability_modifier, 10)
+	# The barbarian's own defence at its level, as no spawn says otherwise.
+	var soak: int = combat.stat_of(target, Stats.Type.DEFENSE)
+	var expected_weak = Stats.final_damage(6 + 0.7 * 10, melee.ability_modifier, soak)
 	ok(weak == expected_weak, "the level 1 number is the formula's", "%d, wanted %d" % [weak, expected_weak])
-	# Melee scales from Physical, which is Cyrus's secondary - 43 at level 20,
+	# Melee scales from Physical, which is Cyrus's secondary - 43 at level 64,
 	# not the 85 his main stat is at.
-	var expected_strong = Stats.final_damage(30 + 0.7 * 43, melee.ability_modifier, 10)
-	ok(strong == expected_strong, "and so is the level 20 one", "%d, wanted %d" % [strong, expected_strong])
+	var expected_strong = Stats.final_damage(30 + 0.7 * 43, Combat.modifier_of(built, melee), soak)
+	ok(strong == expected_strong, "and so is the level 64 one", "%d, wanted %d" % [strong, expected_strong])
 	log_line("")
 
 	log_line("======== skills are gated by level ========")
@@ -169,7 +184,7 @@ func run_test():
 	ok(not combat.meets_level_for(one, gated), "a level 1 has not learned a level 3 skill")
 	ok(not (gated_key in combat.main_skills_of(one)), "so it is not on their panel",
 		"%s" % [combat.main_skills_of(one)])
-	ok(combat.meets_level_for(built, gated), "a level 20 has")
+	ok(combat.meets_level_for(built, gated), "a level 64 has")
 	ok(gated_key in combat.main_skills_of(built), "and it is on theirs",
 		"%s" % [combat.main_skills_of(built)])
 	gated.required_level = 2

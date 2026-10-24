@@ -222,21 +222,35 @@ func run_test():
 	log_line("======== healing scales off the healer, like damage does ========")
 	var alithia = combat.create_combatant(CombatantDatabase.combatants["alithia"], "alithia")
 	var level_1_heal = combat.heal_amount(alithia, mender)
+	# Her heals mend more for whatever of hers says so (Mercy I).
+	var mercy := 1.0
+	for passive in combat.active_passives(alithia):
+		mercy += passive.heal_bonus
 	# What it comes to is balance and yours to set; that it is worked out from
-	# the healer rather than written on the effect is what this checks.
-	ok(level_1_heal == roundi((Stats.WEAPON_BASE + 0.7 * combat.stat_of(alithia, mender.scaling_stat)) * mender.ability_modifier),
-		"a level 1 heal is the formula off her Mindfulness", "%d from %d Mindfulness at x%s" % [
-			level_1_heal, combat.stat_of(alithia, mender.scaling_stat), mender.ability_modifier])
+	# the healer rather than written on the effect is what this checks. Heal is on
+	# the flat rule (APPROVED_TRIAL 2026-10-24): Heal Flat + Heal Per Stat x her
+	# Mindfulness + Heal Per Weapon x her weapon base, Mercy I on all of it.
+	var rule: EffectDefinition = combat.heal_effect_of(mender)
+	ok(rule != null and rule.heals_flat(), "Heal is on the flat rule")
+	ok(level_1_heal == roundi((rule.heal_flat + rule.heal_per_stat * combat.stat_of(alithia, mender.scaling_stat)
+		+ rule.heal_per_weapon * alithia.get("weapon_base", Stats.WEAPON_BASE)) * mercy),
+		"a level 1 heal is the formula off her Mindfulness and weapon", "%d from %d Mindfulness" % [
+			level_1_heal, combat.stat_of(alithia, mender.scaling_stat)])
 
 	var veteran_spawn = SpawnDefinition.new()
 	veteran_spawn.combatant_key = "alithia"
 	veteran_spawn.level = 20
 	var veteran = combat.create_combatant(CombatantDatabase.combatants["alithia"], "alithia", "", veteran_spawn)
 	var level_3_heal = combat.heal_amount(veteran, mender)
-	ok(level_3_heal > level_1_heal * 2,
-		"and a level 20 healer mends far more, rather than the same flat number",
+	var veteran_mercy := 1.0
+	for passive in combat.active_passives(veteran):
+		veteran_mercy += passive.heal_bonus
+	# Mindfulness still counts, but modestly: the trial keeps the range narrow.
+	ok(level_3_heal > level_1_heal,
+		"and a level 20 healer mends more, from her Mindfulness",
 		"%d -> %d" % [level_1_heal, level_3_heal])
-	ok(level_3_heal == roundi((Stats.WEAPON_BASE + 0.7 * combat.stat_of(veteran, mender.scaling_stat)) * mender.ability_modifier),
+	ok(level_3_heal == roundi((rule.heal_flat + rule.heal_per_stat * combat.stat_of(veteran, mender.scaling_stat)
+		+ rule.heal_per_weapon * veteran.get("weapon_base", Stats.WEAPON_BASE)) * veteran_mercy),
 		"which is the formula, off her Mindfulness", "%d from %d Mindfulness" % [
 			level_3_heal, combat.stat_of(veteran, mender.scaling_stat)])
 
@@ -256,6 +270,73 @@ func run_test():
 		"with no skill behind it, the flat range still stands in",
 		"%d, from %d-%d" % [patient.hp, heal_effect.min_amount, heal_effect.max_amount])
 	log_line("")
+	the_flat_heal_trial(combat)
 
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
+
+
+## The revised healing, an APPROVED_TRIAL (2026-10-24, docs/healing_revision.md):
+## the flat rule on Light Heal, Heal, Communion, Restoration and Mend the Bound;
+## Mercy I on the whole amount and never on the share of health; the Mimic healing
+## from its Self; the Gate Nades and Medicine left as they were.
+func the_flat_heal_trial(combat):
+	log_line("======== the flat heal trial ========")
+	var trial := {"light_heal": [8.0, 0.15, 0.2], "heal": [12.0, 0.25, 0.3], "communion": [8.0, 0.15, 0.2],
+		"restoration": [0.0, 0.25, 0.0], "mend_the_bound": [12.0, 0.25, 0.3]}
+	for key in trial:
+		var rule: EffectDefinition = combat.heal_effect_of(SkillDatabase.skills[key])
+		ok(rule != null and is_equal_approx(rule.heal_flat, trial[key][0]) and is_equal_approx(rule.heal_per_stat, trial[key][1])
+			and is_equal_approx(rule.heal_per_weapon, trial[key][2]), "%s: %s + %s x stat + %s x weapon base" % [key, trial[key][0], trial[key][1], trial[key][2]])
+	ok(is_equal_approx(combat.heal_effect_of(SkillDatabase.skills["restoration"]).heal_share_of_health, 0.5), "  Restoration keeps half the target's health")
+	ok(not combat.heal_effect_of(SkillDatabase.skills["grace"]).heals_flat(), "  Grace is left as it was")
+	ok(is_equal_approx(SkillDatabase.skills["mend_the_bound"].ability_modifier, 1.0), "  Mend the Bound has lost its x0.9")
+
+	var spawn := SpawnDefinition.new()
+	spawn.combatant_key = "alithia"
+	spawn.level = 54
+	spawn.weapon_base = 10
+	var alithia: Dictionary = combat.create_combatant(CombatantDatabase.combatants["alithia"], "alithia", "", spawn)
+	var mind: int = combat.stat_of(alithia, Stats.Type.MINDFULNESS)
+	var mercy := 1.0
+	for passive in combat.active_passives(alithia):
+		mercy += passive.heal_bonus
+	ok(is_equal_approx(mercy, 1.1), "Mercy I is a tenth", str(mercy))
+	ok(combat.heal_amount(alithia, SkillDatabase.skills["heal"]) == roundi((12.0 + 0.25 * mind + 0.3 * 10) * mercy),
+		"her Heal at 54 with a weapon base of 10: Mercy I on all of it", "%d from %d Mindfulness" % [combat.heal_amount(alithia, SkillDatabase.skills["heal"]), mind])
+	ok(combat.heal_amount(alithia, SkillDatabase.skills["communion"]) < combat.heal_amount(alithia, SkillDatabase.skills["heal"]),
+		"  Communion mends less than Heal, per ally")
+	var enfina: Dictionary = combat.create_combatant(CombatantDatabase.combatants["enfina"], "enfina")
+	var most: int = combat.get_effective_stat(enfina, "max_hp")
+	var restored: int = combat.predict_hit(alithia, enfina, SkillDatabase.skills["restoration"]).heal
+	ok(restored == roundi(0.25 * mind * mercy) + roundi(0.5 * most), "  Restoration: Mercy I on the Mindfulness part, never on the half of her health",
+		"%d on %d health" % [restored, most])
+	var prometheus: Dictionary = combat.create_combatant(CombatantDatabase.combatants["prometheus"], "prometheus")
+	ok(combat.predict_hit(alithia, prometheus, SkillDatabase.skills["heal"]).heal == combat.predict_hit(alithia, enfina, SkillDatabase.skills["heal"]).heal,
+		"  the same Heal on Prometheus as on Enfina")
+
+	var priest_spawn := SpawnDefinition.new()
+	priest_spawn.combatant_key = "priest"
+	priest_spawn.level = 18
+	var priest: Dictionary = combat.create_combatant(CombatantDatabase.combatants["priest"], "priest", "", priest_spawn)
+	var priest_mind: int = combat.stat_of(priest, Stats.Type.MINDFULNESS)
+	ok(combat.heal_amount(priest, SkillDatabase.skills["heal"]) == roundi(12.0 + 0.25 * priest_mind + 0.3 * priest.get("weapon_base", Stats.WEAPON_BASE)),
+		"a Priest's Heal is the same rule, no Mercy I", str(combat.heal_amount(priest, SkillDatabase.skills["heal"])))
+	var summoner: Dictionary = combat.create_combatant(CombatantDatabase.combatants["summoner"], "summoner", "", priest_spawn)
+	ok(combat.heal_amount(summoner, SkillDatabase.skills["mend_the_bound"]) == roundi(12.0 + 0.25 * combat.stat_of(summoner, Stats.Type.MINDFULNESS)
+		+ 0.3 * summoner.get("weapon_base", Stats.WEAPON_BASE)), "the Summoner's Mend the Bound is Heal's rule", str(combat.heal_amount(summoner, SkillDatabase.skills["mend_the_bound"])))
+	var mimic: Dictionary = combat.create_combatant(CombatantDatabase.combatants["mimic"], "mimic", "", priest_spawn)
+	ok(combat.heal_amount(mimic, SkillDatabase.skills["heal"]) == roundi(12.0 + 0.25 * combat.stat_of(mimic, Stats.Type.SELF) + 0.3 * mimic.get("weapon_base", Stats.WEAPON_BASE)),
+		"the Mimic's copied Heal works from its Self (Mimicry)", "%d from %d Self" % [combat.heal_amount(mimic, SkillDatabase.skills["heal"]), combat.stat_of(mimic, Stats.Type.SELF)])
+
+	# The consumables stay as they were, for now: tested separately.
+	var cyrus: Dictionary = combat.create_combatant(CombatantDatabase.combatants["cyrus"], "cyrus")
+	ok(combat.predict_hit(cyrus, enfina, ItemDatabase.items["heal_gate_nade"]).heal == 21, "the Heal Gate Nade still mends 21",
+		str(combat.predict_hit(cyrus, enfina, ItemDatabase.items["heal_gate_nade"]).heal))
+	ok(combat.predict_hit(cyrus, enfina, ItemDatabase.items["communion_gate_nade"]).heal == 30, "  the Communion Gate Nade 30 each",
+		str(combat.predict_hit(cyrus, enfina, ItemDatabase.items["communion_gate_nade"]).heal))
+	ok(combat.predict_hit(cyrus, enfina, ItemDatabase.items["medicine"]).heal == 24, "  Medicine 24",
+		str(combat.predict_hit(cyrus, enfina, ItemDatabase.items["medicine"]).heal))
+	ok(combat.predict_hit(cyrus, enfina, ItemDatabase.items["cure_potion"]).heal == roundi(0.25 * most), "  a Cure Potion a quarter of her health",
+		str(combat.predict_hit(cyrus, enfina, ItemDatabase.items["cure_potion"]).heal))
+	log_line("")

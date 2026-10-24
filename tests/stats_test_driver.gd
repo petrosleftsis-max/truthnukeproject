@@ -102,9 +102,10 @@ func run_test():
 	log_line("======== the contest ignores dice ========")
 	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
 	ok(fireball.uses_stat_contest, "fireball contests a stat")
-	hero.stats["intellect"] = 60
+	# A spell is weighed with its caster's spellcasting stat (scaling_stat_of).
+	hero.stats[Stats.stat_key(hero.get("spellcasting_stat", Stats.Type.INTELLECT))] = 60
 	foe.stats["physical"] = 30
-	ok(combat.wins_contest(hero, foe, fireball), "beats a frailer target", "60 intellect vs 30 physical")
+	ok(combat.wins_contest(hero, foe, fireball), "beats a frailer target", "60 spellcasting stat vs 30 physical")
 	foe.stats["physical"] = 60
 	ok(not combat.wins_contest(hero, foe, fireball), "an equal target shrugs it off", "60 vs 60")
 	foe.stats["physical"] = 90

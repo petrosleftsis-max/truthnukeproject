@@ -86,13 +86,8 @@ func audit_stale_properties():
 	var stranded := []
 	var checked := 0
 	for folder in ["res://data/items", "res://data/skills", "res://data/conditions", "res://data/passives"]:
-		var dir = DirAccess.open(folder)
-		if dir == null:
-			continue
-		for file in dir.get_files():
-			if not file.ends_with(".tres") and not file.ends_with(".tres.remap"):
-				continue
-			var path = folder + "/" + file.replace(".remap", "")
+		# Sorted into folders of their own, however deep (DataFolder reads them all).
+		for path in _tres_under(folder):
 			var loaded = load(path)
 			if loaded == null:
 				continue
@@ -119,12 +114,26 @@ func audit_stale_properties():
 					continue
 				if not known.has(key):
 					stranded.append("%s writes %s, which %s no longer has"
-						% [file, key, loaded.get_class()])
+						% [path.get_file(), key, loaded.get_class()])
 	flag(not stranded.is_empty(),
 		"a resource writes down a property its script no longer reads",
 		"%s" % [stranded])
 	note("resources whose written properties were checked", "%d" % checked)
 	log_line("")
+
+
+## Every .tres under `folder`, in its subfolders too, as res:// paths.
+func _tres_under(folder: String) -> Array:
+	var found := []
+	var dir = DirAccess.open(folder)
+	if dir == null:
+		return found
+	for file in dir.get_files():
+		if file.ends_with(".tres") or file.ends_with(".tres.remap"):
+			found.append(folder + "/" + file.replace(".remap", ""))
+	for sub in dir.get_directories():
+		found.append_array(_tres_under(folder + "/" + sub))
+	return found
 
 
 func run_audit():

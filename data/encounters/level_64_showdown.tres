@@ -1,0 +1,123 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
+[ext_resource type="PackedScene" path="res://maps/city_fight.tscn" id="3_city"]
+
+[sub_resource type="Resource" id="Party_prometheus"]
+script = ExtResource("2_spawn")
+combatant_key = "prometheus"
+position = Vector2i(4, 2)
+level = 64
+subclass = "elemental_conductor"
+starting_items = Array[String](["potent_cure_potion", "fireball_gate_nade", "big_bomb", "medicine"])
+equipment = Array[String](["rowan_staff"])
+
+[sub_resource type="Resource" id="Party_alithia"]
+script = ExtResource("2_spawn")
+combatant_key = "alithia"
+position = Vector2i(1, 4)
+level = 64
+subclass = "illusory_shepherd"
+starting_items = Array[String](["potent_cure_potion", "communion_gate_nade", "big_bomb", "medicine"])
+equipment = Array[String](["votive_mace"])
+
+[sub_resource type="Resource" id="Party_enfina"]
+script = ExtResource("2_spawn")
+combatant_key = "enfina"
+position = Vector2i(24, 14)
+level = 64
+subclass = "juggernaut"
+starting_items = Array[String](["potent_cure_potion", "big_bomb", "medium_bomb", "burn_bottle"])
+equipment = Array[String](["ember_greatsword", "plate_harness", "iron_charm"])
+
+[sub_resource type="Resource" id="Party_cyrus"]
+script = ExtResource("2_spawn")
+combatant_key = "cyrus"
+position = Vector2i(21, 17)
+level = 64
+subclass = "trapper"
+starting_items = Array[String](["potent_cure_potion", "big_bomb", "poison_bottle", "crystal_bottle"])
+equipment = Array[String](["fencers_rapier", "feather_charm"])
+
+[sub_resource type="Resource" id="Foe_ranger_1"]
+script = ExtResource("2_spawn")
+combatant_key = "ranger"
+side = 1
+position = Vector2i(20, 2)
+level = 64
+weapon_base = 12
+
+[sub_resource type="Resource" id="Foe_summoner"]
+script = ExtResource("2_spawn")
+combatant_key = "summoner"
+side = 1
+position = Vector2i(13, 4)
+level = 64
+weapon_base = 12
+
+[sub_resource type="Resource" id="Foe_barbarian"]
+script = ExtResource("2_spawn")
+combatant_key = "barbarian"
+side = 1
+position = Vector2i(5, 7)
+level = 64
+weapon_base = 12
+
+[sub_resource type="Resource" id="Foe_sorcerer_1"]
+script = ExtResource("2_spawn")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(7, 8)
+level = 64
+weapon_base = 12
+starting_items = Array[String](["potent_cure_potion"])
+
+[sub_resource type="Resource" id="Foe_sorcerer_2"]
+script = ExtResource("2_spawn")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(22, 8)
+level = 64
+weapon_base = 12
+
+[sub_resource type="Resource" id="Foe_priest_1"]
+script = ExtResource("2_spawn")
+combatant_key = "priest"
+side = 1
+position = Vector2i(4, 9)
+level = 64
+weapon_base = 12
+starting_items = Array[String](["potent_cure_potion"])
+
+[sub_resource type="Resource" id="Foe_champion"]
+script = ExtResource("2_spawn")
+combatant_key = "pit_champion"
+side = 1
+position = Vector2i(17, 10)
+level = 64
+weapon_base = 12
+
+[sub_resource type="Resource" id="Foe_priest_2"]
+script = ExtResource("2_spawn")
+combatant_key = "priest"
+side = 1
+position = Vector2i(18, 13)
+level = 64
+weapon_base = 12
+
+[sub_resource type="Resource" id="Foe_ranger_2"]
+script = ExtResource("2_spawn")
+combatant_key = "ranger"
+side = 1
+position = Vector2i(3, 16)
+level = 64
+weapon_base = 12
+
+[resource]
+script = ExtResource("1_enc")
+display_name = "Sixty-Four"
+description = "Everybody at level 64, the party on their paths - Enfina a Juggernaut, Cyrus a Trapper, Prometheus an Elemental Conductor, Alithia an Illusory Shepherd - against the strongest of everyone they have fought. Change a path on its spawn to try another."
+terrain_scene = ExtResource("3_city")
+spawns = Array[ExtResource("2_spawn")]([SubResource("Party_prometheus"), SubResource("Party_alithia"), SubResource("Party_enfina"), SubResource("Party_cyrus"), SubResource("Foe_ranger_1"), SubResource("Foe_summoner"), SubResource("Foe_barbarian"), SubResource("Foe_sorcerer_1"), SubResource("Foe_sorcerer_2"), SubResource("Foe_priest_1"), SubResource("Foe_champion"), SubResource("Foe_priest_2"), SubResource("Foe_ranger_2")])
+music = "Luce_del_Desiderio"

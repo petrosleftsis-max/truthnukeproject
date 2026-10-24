@@ -239,4 +239,6 @@ custom_data_layer_0/name = "Cost"
 custom_data_layer_0/type = 2
 custom_data_layer_1/name = "Blocks"
 custom_data_layer_1/type = 28
+custom_data_layer_2/name = "Climb"
+custom_data_layer_2/type = 1
 sources/0 = SubResource("TileSetAtlasSource_g18d7")

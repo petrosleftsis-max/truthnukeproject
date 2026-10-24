@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="DungeonDefinition" format=3]
+
+[ext_resource type="Script" path="res://campaign/DungeonDefinition.gd" id="1_dungeon"]
+[ext_resource type="Script" path="res://campaign/DungeonStage.gd" id="2_stage"]
+[ext_resource type="Resource" path="res://data/encounters/lab/lab_a_city.tres" id="3_a"]
+[ext_resource type="Resource" path="res://data/encounters/lab/lab_b_hired_blades.tres" id="4_b"]
+[ext_resource type="Resource" path="res://data/encounters/lab/lab_c_erysichthon.tres" id="5_c"]
+
+[sub_resource type="Resource" id="Stage_a"]
+script = ExtResource("2_stage")
+encounter = ExtResource("3_a")
+
+[sub_resource type="Resource" id="Stage_b"]
+script = ExtResource("2_stage")
+encounter = ExtResource("4_b")
+
+[sub_resource type="Resource" id="Stage_c"]
+script = ExtResource("2_stage")
+encounter = ExtResource("5_c")
+
+[resource]
+script = ExtResource("1_dungeon")
+display_name = "Laboratory: late Chapter I, Erysichthon (test harness)"
+description = "TEST HARNESS, not story content (docs/chapter1_audit.md, section 7). The whole party at 18 through three fights with no rest between: the City Fight's enemies at 16, the Hired Blades at 17, Erysichthon at 18 - the primary boss variant; the Ash Warden variant is lab_chapter1_sequence_ash_warden.tres. Health, the fallen and spent gates carry forward. Every fight is logged (LabMetrics). Run it from demos/lab_sequence_conservation.tscn or demos/lab_sequence_free_spending.tscn."
+party = Array[String](["enfina", "cyrus", "prometheus", "alithia"])
+level = 18
+knows_every_spell = true
+stages = Array[ExtResource("2_stage")]([SubResource("Stage_a"), SubResource("Stage_b"), SubResource("Stage_c")])
+skips_rests = true
+logs_metrics = true

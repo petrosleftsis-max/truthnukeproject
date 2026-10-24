@@ -28,7 +28,7 @@ class_name SpawnMarker
 		queue_redraw()
 ## The level this combatant fights at here - 1 to 20. Decides every attribute
 ## they have and which of their skills are unlocked. See SpawnDefinition.
-@export_range(1, 20) var level: int = 1:
+@export_range(1, 64) var level: int = 1:
 	set(value):
 		level = value
 		queue_redraw()
@@ -39,7 +39,8 @@ class_name SpawnMarker
 ## soak. Per spawn so the same character can be armed and armoured differently
 ## from one encounter to the next.
 @export_range(0, 100) var weapon_base: int = 6
-@export_range(1, 100) var defense: int = 10
+## 0 is their own at this level (SpawnDefinition.defense).
+@export_range(0, 100) var defense: int = 0
 ## What this one brings to the fight, picked from the items there are. Empty
 ## means empty-handed. An enemy uses what they bring - a potion drunk when
 ## badly hurt, a bomb thrown - and it is what a Steal takes off them. See
@@ -50,6 +51,10 @@ class_name SpawnMarker
 ## a field that saving erases. This one was not held, and one press of "Save
 ## spawns to encounter" emptied every bag in the encounter without saying so.
 @export var starting_items: Array[String] = []
+## What this one wears - a weapon, armour, a charm - by key, theirs to fight
+## with and the party's to loot. See SpawnDefinition.equipment. Held here for
+## the same reason as starting_items.
+@export var equipment: Array[String] = []
 ## The round an enemy joins on - 1 is from the start. See
 ## SpawnDefinition.arrives_on_round. Held here for the same reason as
 ## starting_items: without it, Save put every late arrival back to round 1.
@@ -57,8 +62,20 @@ class_name SpawnMarker
 	set(value):
 		arrives_on_round = value
 		queue_redraw()
+## SpawnDefinition.arrives_after_deaths - once so many of the enemy side fall.
+@export_range(0, 20) var arrives_after_deaths: int = 0:
+	set(value):
+		arrives_after_deaths = value
+		queue_redraw()
+## SpawnDefinition.arrives_on_cue - "broke:Jaws", "phase:Gorge" and the rest.
+@export var arrives_on_cue: String = "":
+	set(value):
+		arrives_on_cue = value
+		queue_redraw()
 ## Caught off guard: loses their first turn. See SpawnDefinition.surprised.
 @export var surprised: bool = false
+## Starts the fight invisible. See SpawnDefinition.invisible.
+@export var invisible: bool = false
 ## Set by EncounterEditor from the map being previewed.
 @export var tile_size := Grid.TILE_SIZE
 
@@ -155,6 +172,10 @@ func _draw():
 	if arrives_on_round > 1:
 		# Otherwise a reinforcement looks like somebody there from the start.
 		label += " R%d" % arrives_on_round
+	if arrives_after_deaths > 0:
+		label += " +%d fallen" % arrives_after_deaths
+	if arrives_on_cue != "":
+		label += " on %s" % arrives_on_cue
 	var width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 	draw_string(font, Vector2(-width * 0.5, half + 11), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color.WHITE)
 
@@ -169,6 +190,9 @@ func _validate_property(property: Dictionary):
 	elif property.name == "starting_items":
 		property.hint = PROPERTY_HINT_TYPE_STRING
 		property.hint_string = SpawnDefinition.item_list_hint()
+	elif property.name == "equipment":
+		property.hint = PROPERTY_HINT_TYPE_STRING
+		property.hint_string = SpawnDefinition.equipment_list_hint()
 	elif property.name == "subclass":
 		property.hint = PROPERTY_HINT_ENUM
 		property.hint_string = SpawnDefinition.subclass_hint()

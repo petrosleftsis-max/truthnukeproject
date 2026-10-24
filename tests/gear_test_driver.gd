@@ -206,8 +206,12 @@ func every_field_survives_save():
 	late.defense = 44
 	late.starting_items.assign(["medicine", "tiny_bomb"])
 	late.arrives_on_round = 3
+	late.arrives_after_deaths = 2
+	late.arrives_on_cue = "broke:Jaws"
 	late.surprised = true
-	late.subclass = "gunner"
+	late.invisible = true
+	late.subclass = "saboteur"
+	late.equipment.assign(["brigandine", "feather_charm"])
 	var fresh := SpawnDefinition.new()
 	var unset := spawn_fields().filter(func(field): return "%s" % [late.get(field)] == "%s" % [fresh.get(field)])
 	ok(unset.is_empty(), "(this test sets every field a spawn has - a new one needs setting here too)", "%s" % [unset])
@@ -219,6 +223,8 @@ func every_field_survives_save():
 	var marker := marker_called(editor, "Late One")
 	ok(marker != null and marker.arrives_on_round == 3 and marker.surprised,
 		"the marker holds when they arrive and whether they are caught off guard")
+	ok(marker != null and marker.arrives_after_deaths == 2 and marker.arrives_on_cue == "broke:Jaws",
+		"and what else they wait on - so many fallen, a cue")
 	editor.save_to_encounter()
 	var back := spawn_called(from_disk(), "Late One")
 	var lost := []

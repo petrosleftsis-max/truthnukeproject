@@ -28,6 +28,21 @@ class_name BossPhase
 @export var clears_conditions: bool = false
 ## Track to change to. Empty keeps the music.
 @export var music: String = ""
+## Parts it grows (BodyPartDefinition), whole. On tiles it already has a part
+## on, the new one grows over the old - the old can't be aimed at there now.
+## Laid out on it as it is before Grows below makes it bigger: they stretch
+## with the rest of it.
+@export var parts_added: Array[BodyPartDefinition] = []
+## Sizes it grows by, for good, as it begins - bigger with the parts it grows
+## (Combat "Growing"). With no room it grows as soon as there is some.
+@export_range(0, 3, 1) var grows: int = 0
+## How many it can hold at once from now on (CombatantDefinition.holds_at_once).
+## 0 keeps it.
+@export_range(0, 4, 1) var holds_at_once: int = 0
+## With nothing else in reach to eat as its turn begins, it eats itself: tears
+## off this share of its health - a meal like any other, but one that feeds it
+## nothing back. 0: it never does.
+@export_range(0.0, 0.5, 0.01) var eats_itself: float = 0.0
 
 @export_subgroup("Immunities")
 @export var immunities_gained: Array[ConditionDefinition] = []

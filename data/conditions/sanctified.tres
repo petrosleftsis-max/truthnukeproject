@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Sanctified"
+tag = "Sa"
+description = "Standing in a sanctuary of light: 15% less from every blow, and one attack in four strikes a copy of them and misses."
+duration = 2
+damage_taken_change = -0.15
+miss_chance = 25

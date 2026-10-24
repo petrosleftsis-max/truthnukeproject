@@ -150,7 +150,7 @@ func in_a_fight():
 	var refusal: String = controller.refusal_at(empty_handed.position, empty_handed)
 	ok(refusal.contains("nothing on them to steal"), "an enemy with nothing on them cannot be picked", refusal)
 	ok(controller.pad_tiles() == [mark.position], "a pad goes straight to the one worth robbing", "%s" % [controller.pad_tiles()])
-	ok(ui.describe_effect(skill.effects[0]).contains("every item"), "its tooltip says it takes everything",
+	ok(ui.describe_effect(skill.effects[0]).contains("Empties one of the target's containers"), "its tooltip says it empties a container of theirs",
 		ui.describe_effect(skill.effects[0]))
 	controller._preview_hits(mark.position)
 	var said_over := texts_in(ui._hit_preview)
@@ -198,7 +198,7 @@ func in_a_fight():
 	ok(mark.pocket.is_empty() and bag[4] == "medium_bomb" and bag[5] == "frost_bottle",
 		"with his front slots full, what he lifts goes in the bag", "%s" % [bag])
 	ok(not combat.items_of(cyrus).has("medium_bomb"), "not to hand in this fight")
-	ok(said.contains("into the bag"), "and the log says so", said.strip_edges())
+	ok(said.contains("packed away"), "and the log says so", said.strip_edges())
 
 	log_line("")
 	log_line("======== nowhere to put it ========")
@@ -273,6 +273,9 @@ func handed_out_by_the_encounter():
 	put(combat, carrier, free_beside(combat, cyrus.position, carrier.movement_class))
 	await settle(2)
 	give_turn(combat, cyrus)
+	# What it fights with and what it carries besides are both on it; with nobody
+	# to ask which, the fuller - its pocket.
+	combat.reaction_prompt = null
 	await combat.use_skill("steal", cyrus, carrier.position, false)
 	await settle(3)
 	ok(combat.items_of(carrier).is_empty() and combat.items_of(cyrus) == ["medium_bomb", "medicine", "frost_bottle", "big_bomb"],

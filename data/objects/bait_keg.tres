@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="BattleObjectDefinition" format=3]
+
+[ext_resource type="Resource" path="res://data/conditions/burn.tres" id="1_burn"]
+[ext_resource type="Texture2D" path="res://art/objects/bait_keg_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://art/objects/bait_keg_sheet.png" id="3_sheet"]
+[ext_resource type="Script" path="res://combat/resources/BattleObjectDefinition.gd" id="4_object"]
+
+[resource]
+script = ExtResource("4_object")
+breakable = true
+set_off_line = "The meat-wrapped keg goes up!"
+stagger = 20.0
+blast_radius = 1
+blast_damage = 40
+blast_damage_type = 1
+blast_condition = ExtResource("1_burn")
+edible = true
+nourishing = false
+eaten_damage = 140
+eaten_damage_type = 1
+eaten_condition = ExtResource("1_burn")
+eaten_stagger = 50.0
+eaten_breaks = "Belly Hole"
+name = "Meat-Wrapped Keg"
+glossary_text = "A powder keg bound up in raw meat. Swallowed, it goes off inside whatever swallowed it - tearing its belly open from within. Light it, or break it, and it goes up where it stands like any keg."
+max_hp = 20
+max_hp_level_20 = 20
+movement = 1
+icon = ExtResource("2_icon")
+map_sprite = ExtResource("3_sheet")

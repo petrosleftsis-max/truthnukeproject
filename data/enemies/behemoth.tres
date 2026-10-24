@@ -1,8 +1,10 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://b0cyo11qapntj"]
 
-[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
-[ext_resource type="SpriteFrames" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
-[ext_resource type="Script" path="res://combat/resources/BodyPartDefinition.gd" id="3_part"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_ays1r"]
+[ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
+[ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="3_et57q"]
+[ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="3_part"]
 
 [sub_resource type="Resource" id="Part_legs"]
 script = ExtResource("3_part")
@@ -31,9 +33,9 @@ name = "Behemoth"
 max_hp = 120
 max_hp_level_20 = 700
 size = 5
-movement = 4
+movement = 6
 initiative = 3
-main_stat = 0
 sprite_frames = ExtResource("2_frames")
 skills = Array[String](["greatsword_attack", "ground_pound", "rockfall"])
 parts = Array[ExtResource("3_part")]([SubResource("Part_legs"), SubResource("Part_tusks"), SubResource("Part_hide")])
+future_changed_lines = null

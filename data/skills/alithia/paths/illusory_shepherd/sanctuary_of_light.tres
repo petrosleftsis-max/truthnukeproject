@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/sanctuary_of_light_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/sanctified.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_1"]
+script = ExtResource("1_effect")
+type = 34
+zone_condition = ExtResource("4_cond")
+
+[resource]
+script = ExtResource("3_skill")
+name = "Sanctuary of Light"
+description = "A sanctuary on the ground, two tiles round where she puts it within six, for two of her turns: her side standing in it takes 15% less from every blow, and one attack in four at them strikes a copy and misses."
+max_range = 6
+required_level = 41
+targets_ally = true
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 6
+aoe_radius = 2
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_1")])

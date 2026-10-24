@@ -85,7 +85,7 @@ metadata/_custom_type_script = "uid://cq2s71a1q831b"
 [node name="MapSetup" type="Node" parent="." unique_id=460549672]
 script = ExtResource("90_party")
 members = Array[String](["cyrus", "enfina", "prometheus", "alithia"])
-level = 10
+level = 8
 music = "Tokyo Music Walker - Gotta Go"
 empty_handed = true
 everyone_carries = Array[String](["cure_potion"])

@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://1i3sgnx07fqe"]
+
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_4r8k0"]
+[ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://art/icons/greatsword_skill.png" id="2_54tgk"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_0scva"]
+[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="Script" path="res://combat/resources/SkillRank.gd" id="1_auto"]
+
+[sub_resource type="Resource" id="Rank_8"]
+script = ExtResource("1_auto")
+level = 8
+title = "Heavy Swing"
+ability_modifier = 1.5
+
+[sub_resource type="Resource" id="Rank_64"]
+script = ExtResource("1_auto")
+level = 64
+title = "Titanfall"
+ability_modifier = 3.0
+splash_radius = 2
+splash_modifier = 1.5
+
+[resource]
+script = ExtResource("3_0scva")
+ranks = Array[ExtResource("1_auto")]([SubResource("Rank_8"), SubResource("Rank_64")])
+name = "Greatsword Attack"
+description = "A strike trained to perfection."
+min_range = 1
+max_range = 1
+icon = ExtResource("2_54tgk")
+is_reactive = true
+animation = "attack"
+ability_modifier = 1.0
+sound = ExtResource("90_sfx")
+sound_volume_db = -6.0
+melee = true

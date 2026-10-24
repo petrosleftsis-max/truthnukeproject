@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Simple Baldric"
+description = "A plain leather baldric, worn across the chest, with loops for four things to hand."
+slot = 3
+price = 15
+slots = 4

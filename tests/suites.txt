@@ -103,6 +103,7 @@ dungeon
 resuscitate
 progression
 paths
+dispel
 sizes
 declared
 bosses
@@ -115,3 +116,16 @@ saves
 steal
 enemies
 sentries
+invisibility
+triggers
+glutton
+growth
+heights
+summons
+pages
+loot
+containers
+csv
+ammo
+tremor
+restuses

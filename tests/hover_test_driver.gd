@@ -52,7 +52,8 @@ func run_test():
 		"DISPEL": 4, "PUSH": 5, "PULL": 6, "STAT_MULTIPLIER": 7,
 		"CONDITION": 8, "REVEAL": 9, "MOVEMENT_CLASS": 10, "HIDE": 11,
 		"RESISTANCE": 12, "UPGRADE_ELEMENT": 13, "REVIVE": 14, "STEAL": 15, "SUMMON_DECOY": 16,
-		"INTERACT": 17, "HACK": 18, "READ_INTENT": 19, "SHAKE": 20, "CLIMB": 21, "BRIBE": 22, "BREAK_FREE": 23,
+		"INTERACT": 17, "HACK": 18, "READ_INTENT": 19, "SHAKE": 20, "CLIMB": 21, "BRIBE": 22, "BREAK_FREE": 23, "INVISIBLE": 24, "CANCEL_CASTING": 25, "SWALLOW": 26, "GROW": 27, "SUMMON": 28, "COMMAND": 29, "LOOT": 30, "DRAW": 31,
+		"TRAP": 32, "CATALYST": 33, "ZONE": 34, "DISPEL_MAGIC": 35,
 	}
 	var moved := []
 	for name in frozen:
@@ -91,7 +92,7 @@ func run_test():
 	# Godot leaves a property out of a saved resource when it matches its
 	# default, so a skill that relies on the default has nothing written in it
 	# and changes meaning the day the default does. Hover says it outright.
-	var written = FileAccess.open("res://data/skills/hover.tres", FileAccess.READ)
+	var written = FileAccess.open("res://data/skills/prometheus/spells/hover.tres", FileAccess.READ)
 	if written != null:
 		ok(written.get_as_text().contains("movement_class = 1"),
 			"and the resource says so itself rather than leaning on a default")
@@ -181,8 +182,8 @@ func run_test():
 		combat.end_of_turn_effects(walker)
 	ok(walker.movement_class == GROUND, "it wears off and they come down",
 		Stats.movement_class_name(walker.movement_class))
-	ok(turns == effect.duration + 1,
-		"after the turns it said and the one after, not one more or less",
+	ok(turns == effect.duration,
+		"after the turns it said - N of theirs - not one more or less",
 		"%d turns of flight for a duration of %d" % [turns, effect.duration])
 	ok(combat.controller.get_reachable_tiles(walker.position, walker.movement_class, 6).size()
 		== reach_on_foot,
@@ -225,7 +226,7 @@ func run_test():
 	log_line("======== and it reads properly in the panel ========")
 	var tip = combat.game_ui.build_skill_tooltip(SkillDatabase.skills["hover"], caster)
 	ok(tip.contains("flying"), "the preview says what it does")
-	ok(tip.contains("%d turn" % (effect.duration + 1)), "and for how long - its duration and the turn after", "written %d" % effect.duration)
+	ok(tip.contains("%d of their turns" % effect.duration), "and for how long - its duration, in their turns", "written %d" % effect.duration)
 	# The HUD names the gate on its own - "Hermes" - while the glossary is where
 	# it is still called the Gates of Hermes in full.
 	ok(tip.contains(Stats.short_gate_name(2)), "and what it costs", Stats.short_gate_name(2))

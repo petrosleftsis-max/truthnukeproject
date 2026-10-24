@@ -8,11 +8,12 @@
 script = ExtResource("1_drejt")
 type = 1
 heal_modifier = 0.7
+heal_share_of_health = 0.55
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_j4mp2")
-item_power = 85
+item_power = 0
 name = "Potent Cure Potion"
 description = "Just a sip is enough to restore a lot of vitality."
 max_range = 3
@@ -21,4 +22,4 @@ targets_ally = true
 effects = Array[ExtResource("1_drejt")]([SubResource("Resource_c21nn")])
 deals_damage = false
 metadata/_custom_type_script = "uid://cbf4gnjv5w62v"
-price = 60
+price = 240

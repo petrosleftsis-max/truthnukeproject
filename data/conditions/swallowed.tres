@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Swallowed"
+tag = "Sw"
+description = "Inside the glutton, being digested: acid every turn, no moving, and nothing to hit but the belly around them. Out alive if its Belly Hole is torn open, if it is staggered, or if it falls - dead, if it digests them first."
+duration = 999
+dot_type = 11
+dot_strength = 2
+dot_modifier = 0.5
+dot_min = 8
+dot_max = 12
+prevents_movement = true
+prevents_reactions = true

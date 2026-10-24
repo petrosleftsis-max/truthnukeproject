@@ -1,7 +1,7 @@
 extends Node
 ## Reproduces the reported Run bug: Cyrus starting later turns already doubled.
-## Durations run one turn past their number now (Combat.turns_stored), so Run 1 is
-## the turn it is used in and the next - and must be gone by the one after.
+## A duration is N of its bearer's turns (Combat.turns_stored), but Run is for
+## the turn it is used in only: it goes as its user's next turn starts.
 
 var LOG_PATH := HarnessLog.path_for("run")
 
@@ -69,29 +69,29 @@ func run_test():
 	ok(controller.movement == base_movement * 4, "a second Run compounds to 4x", "%d (was 18 before the fix)" % controller.movement)
 	log_line("")
 
-	log_line("======== turn 2: Run 1 holds through the next turn ========")
+	log_line("======== turn 2: Run is gone as his next turn starts ========")
 	# Whatever else happens in between, his turn ends by taking a turn off his
 	# statuses, his next starts by ticking them, and the effective stat is read
-	# again - exactly what advance_turn does. A duration runs one turn past its
-	# number (Combat.turns_stored): Run 1 is the turn it is used in and the next, so
-	# both of turn 1's Runs are still on him.
+	# again - exactly what advance_turn does. Run is for the turn it is used in
+	# ("this turn only"), so it goes as his next starts, the way Guard does: on
+	# through everybody else's turns, gone the moment before he could use it.
+	# Enfina Ran, set herself burning and started her next turn on (6 + 2) x 2
+	# when it went at the end of that turn instead.
 	combat.end_of_turn_effects(cyrus)
+	ok(cyrus.status_effects.size() == 2, "both Runs stay on him through the others' turns", "%d effects" % cyrus.status_effects.size())
 	combat.start_of_turn_effects(cyrus)
 	controller.set_controlled_combatant(cyrus)
-	ok(cyrus.status_effects.size() == 2, "both Runs are still on him", "%d effects" % cyrus.status_effects.size())
-	ok(controller.movement == base_movement * 4,
-		"so turn 2 starts on what turn 1 ended on", "%d" % controller.movement)
+	ok(cyrus.status_effects.is_empty(), "and are gone as his next turn starts", "%d effects left" % cyrus.status_effects.size())
+	ok(controller.movement == base_movement,
+		"so turn 2 starts on base movement", "%d" % controller.movement)
 	log_line("")
 
-	log_line("======== turn 3: and no further - the reported bug ========")
-	# The bug that was reported: Cyrus starting later turns already doubled. The
-	# turn after next is where Run must be gone.
+	log_line("======== turn 3: and stays gone ========")
 	combat.end_of_turn_effects(cyrus)
 	combat.start_of_turn_effects(cyrus)
 	controller.set_controlled_combatant(cyrus)
-	ok(cyrus.status_effects.is_empty(), "Run has expired", "%d effects left" % cyrus.status_effects.size())
-	ok(controller.movement == base_movement,
-		"turn 3 starts on base movement again", "%d" % controller.movement)
+	ok(cyrus.status_effects.is_empty() and controller.movement == base_movement,
+		"turn 3 on base movement too", "%d" % controller.movement)
 	log_line("")
 
 	log_line("======== Run again on turn 3 ========")
@@ -101,8 +101,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== movement already spent is respected ========")
-	# A turn with nothing on him, so the arithmetic is Run's alone: the Run
-	# just used would still be doubling the next one.
+	# A turn with nothing on him, so the arithmetic is Run's alone.
 	cyrus.status_effects.clear()
 	controller.set_controlled_combatant(cyrus)
 	controller.movement = base_movement - 2   # walked two tiles
@@ -129,10 +128,10 @@ func run_test():
 	var guard_says: String = ui.describe_effect(guard_skill.effects[0], guard_skill)
 	var run_says: String = ui.describe_effect(run_skill.effects[0], run_skill)
 	ok(guard_says.contains("gone as the next starts"), "Guard's preview says it goes as the next turn starts", guard_says)
-	ok(run_says.contains("for 2 turn(s), gone as the last ends"), "Run's says it lasts this turn and the next, and goes as that ends", run_says)
+	ok(run_says.contains("gone as the next starts"), "Run's says it goes as the next turn starts, as Guard's does", run_says)
 	log_line("")
 
-	log_line("======== a debuff on someone else lasts its count and the turn after ========")
+	log_line("======== a debuff on someone else lasts exactly its count ========")
 	var victim = null
 	for comb in combat.combatants:
 		if comb.side == 1:
@@ -143,8 +142,8 @@ func run_test():
 	slow.modifier_amount = -2
 	slow.duration = 2
 	combat.apply_effect(cyrus, victim, slow, null, false)
-	ok(victim.status_effects[0].duration == 3,
-		"a 2-turn debuff on a combatant who hasn't acted lands as 3", "%d" % victim.status_effects[0].duration)
+	ok(victim.status_effects[0].duration == 2,
+		"a 2-turn debuff on a combatant who is not acting lands as 2 (N of their turns)", "%d" % victim.status_effects[0].duration)
 	var active = 0
 	for turn in range(0, 6):
 		combat.start_of_turn_effects(victim)
@@ -152,7 +151,7 @@ func run_test():
 			break
 		active += 1
 		combat.end_of_turn_effects(victim)
-	ok(active == 3, "and lasts exactly 3 of their turns", "measured %d" % active)
+	ok(active == 2, "and lasts exactly 2 of their turns", "measured %d" % active)
 	log_line("")
 
 	log_line("FAILURES: %d" % _fail)

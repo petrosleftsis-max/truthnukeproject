@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/realitys_reflection_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/reflected.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_image"]
+script = ExtResource("1_effect")
+type = 16
+
+[sub_resource type="Resource" id="Effect_zone"]
+script = ExtResource("1_effect")
+type = 34
+zone_condition = ExtResource("4_cond")
+zone_unseen = true
+
+[resource]
+script = ExtResource("3_skill")
+name = "Reality's Reflection"
+description = "A reflection of the world on the ground, three tiles round where she puts it within eight, for two of her turns - and the other side never knows it is there. Her side standing in it is invisible, and an image of each of them caught as she casts it stands beside them for the other side to go for. Acting against an enemy gives one away until their next turn."
+max_range = 8
+required_level = 64
+targets_ally = true
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 10
+aoe_radius = 3
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_image"), SubResource("Effect_zone")])

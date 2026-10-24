@@ -211,6 +211,8 @@ func _page_for_condition(condition: ConditionDefinition):
 		lines.append("Movement %+d tile(s)." % condition.movement_change)
 	if condition.accuracy_change != 0:
 		lines.append("Accuracy %+d." % condition.accuracy_change)
+	if condition.defense_change != 0.0:
+		lines.append("Defense %+d%%, for as long as it lasts." % roundi(condition.defense_change * 100))
 	if condition.max_range > 0:
 		lines.append("Every skill they use reaches %d tile(s), however far it normally goes." % condition.max_range)
 	if condition.drift_tiles > 0:
@@ -245,26 +247,27 @@ func _page_for_skill(skill: SkillDefinition):
 		lines.append("Reaches the tile beside them.")
 	else:
 		lines.append("Reaches %d to %d tiles." % [maxi(skill.min_range, 0), skill.max_range])
+	lines.append("A melee move." if skill.melee else "A ranged move.")
 	if skill.aoe_radius > 0:
 		lines.append("Catches everything within %d tile(s) of where it lands." % skill.aoe_radius)
 	if skill.spell_slot_level > 0:
 		lines.append("Cast through the %s." % Stats.gate_name(skill.spell_slot_level))
 	else:
 		lines.append("Costs no gate.")
-	lines.append("Spent from the %s action." % ("secondary" if skill.is_secondary else "main"))
+	if skill.reaction_only:
+		lines.append("Only ever a reaction: it is never used on your own turn.")
+	else:
+		lines.append("Spent from the %s action." % ("secondary" if skill.is_secondary else "main"))
 	if skill.required_level > 1:
 		lines.append("Learned at level %d." % skill.required_level)
 	if skill.uses_stat_contest:
 		lines.append("Never misses: it lands in full on anyone whose %s it beats, and as a graze on anyone it does not." % Stats.stat_name(skill.contest_stat))
-	elif Combat.holding_condition(skill) != null:
-		lines.append("Physical against Physical: %d%% of the time against somebody as strong, a point more for every point stronger than them (%d-%d%%)." % [
-			Combat.GRIP_CHANCE, Combat.GRIP_MIN, Combat.GRIP_MAX])
 	else:
 		lines.append("Hits %d%% of the time." % skill.accuracy)
 	if skill.deals_damage and skill.ignores_defense > 0:
 		lines.append("Goes straight through %d%% of the target's Defense." % mini(skill.ignores_defense, 100))
 	if skill.is_reactive:
-		lines.append("Goes off on its own when somebody leaves its reach.")
+		lines.append("Goes off on its own when %s." % skill.describe_triggers())
 	if not skill.can_be_copied:
 		lines.append("The Mimic cannot copy it.")
 	_read(skill.name, "\n".join(lines))
@@ -355,7 +358,7 @@ static func conditions_from_combatants() -> Array:
 			continue
 		for passive in definition.passives:
 			if passive != null:
-				found.append_array([passive.aura_on_foes, passive.aura_on_allies])
+				found.append_array([passive.aura_on_foes, passive.aura_on_allies, passive.heals_leave, passive.exposes_with])
 		if definition.boss != null:
 			for phase in definition.boss.phases:
 				if phase == null:
@@ -365,6 +368,16 @@ static func conditions_from_combatants() -> Array:
 						found.append(hazard.condition)
 		if definition is BattleObjectDefinition:
 			found.append(definition.blast_condition)
+			# Food on the map, on whoever eats it.
+			found.append(definition.eaten_condition)
+		# Whoever comes out of something that swallowed them (Swallow).
+		found.append(definition.spat_out_with)
+	# The paths' passives (SubclassDefinition): a veil left by a heal, a stun.
+	for key in SubclassDefinition.all():
+		var path: SubclassDefinition = SubclassDefinition.all()[key]
+		for passive in path.passives:
+			if passive != null:
+				found.append_array([passive.aura_on_foes, passive.aura_on_allies, passive.heals_leave, passive.exposes_with, passive.tremor_impact_condition])
 	return found.filter(func(condition): return condition != null)
 
 
@@ -378,6 +391,12 @@ static func conditions() -> Array:
 			for effect in skill.effects:
 				if effect != null and effect.condition != null:
 					found[effect.condition.resource_path] = effect.condition
+				# What a trap holds whoever steps on it with ("Traps"), and what a
+				# zone left on the ground gives whoever stands in it ("Zones").
+				if effect != null and effect.trap_holds_with != null:
+					found[effect.trap_holds_with.resource_path] = effect.trap_holds_with
+				if effect != null and effect.zone_condition != null:
+					found[effect.zone_condition.resource_path] = effect.zone_condition
 	# And the one nothing inflicts but an ambush on a stealth map.
 	found[Combat.SURPRISED.resource_path] = Combat.SURPRISED
 	for condition in conditions_from_combatants():

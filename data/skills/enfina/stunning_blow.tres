@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/stunning_blow_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="Resource" path="res://data/conditions/stunned.tres" id="5_cond"]
+
+[sub_resource type="Resource" id="Effect_1"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("5_cond")
+condition_duration = 1
+
+[resource]
+script = ExtResource("3_skill")
+name = "Stunning Blow"
+description = "A blow to the head: they lose their next turn. Once a short rest - twice from level 54, three times from 64."
+required_level = 41
+min_range = 1
+max_range = 1
+ability_modifier = 0.8
+uses_per_short_rest = 1
+more_uses_at = Array[int]([54, 64])
+melee = true
+icon = ExtResource("2_icon")
+sound = ExtResource("90_sfx")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_1")])

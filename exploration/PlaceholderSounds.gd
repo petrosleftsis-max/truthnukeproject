@@ -33,6 +33,10 @@ const RECIPES := {
 	"solved": [[523, 523, 0.08, "sine", 0.28], [784, 784, 0.08, "sine", 0.28], [1047, 1047, 0.26, "sine", 0.28]],
 	"lens": [[320, 900, 0.18, "sine", 0.14]],
 	"journal": [[900, 350, 0.11, "noise", 0.1]],
+	# A foreseen turn changed in a fight (Combat._future_changed): glass going,
+	# then a few bright pieces of it.
+	"future_changed": [[5200, 2400, 0.07, "noise", 0.22], [2093, 2093, 0.05, "sine", 0.16], [2794, 2794, 0.05, "sine", 0.14],
+		[3520, 3520, 0.05, "sine", 0.12], [2637, 2637, 0.12, "sine", 0.1]],
 }
 
 static var _made := {}

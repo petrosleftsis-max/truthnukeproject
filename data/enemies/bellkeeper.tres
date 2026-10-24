@@ -1,17 +1,18 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://cifc2c88ejoi3"]
 
-[ext_resource type="Script" path="res://combat/resources/BossPhase.gd" id="1_ir0ey"]
-[ext_resource type="Script" path="res://combat/resources/HazardDefinition.gd" id="2_omeb0"]
-[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="3_plvun"]
-[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="4_1decp"]
-[ext_resource type="Script" path="res://combat/resources/StaggerDefinition.gd" id="5_4eeyp"]
-[ext_resource type="Script" path="res://combat/resources/BossDefinition.gd" id="6_6ji7l"]
+[ext_resource type="Script" uid="uid://ch1kwtah6ul2i" path="res://combat/resources/BossPhase.gd" id="1_ir0ey"]
+[ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="2_omeb0"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="3_plvun"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="4_1decp"]
+[ext_resource type="Script" uid="uid://bd10mcywbkueh" path="res://combat/resources/StaggerDefinition.gd" id="5_4eeyp"]
+[ext_resource type="Script" uid="uid://du4vctmb8r6pi" path="res://combat/resources/BossDefinition.gd" id="6_6ji7l"]
 [ext_resource type="Resource" path="res://data/conditions/stunned.tres" id="7_fvpxl"]
 [ext_resource type="Resource" path="res://data/conditions/confused.tres" id="8_yevj8"]
-[ext_resource type="Resource" path="res://data/conditions/frozen.tres" id="9_s5puv"]
-[ext_resource type="Resource" path="res://data/conditions/crystallised.tres" id="10_1fuxf"]
-[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="11_ymf1h"]
-[ext_resource type="SpriteFrames" path="res://art/enemies/caster/caster_frames.tres" id="12_u63wg"]
+[ext_resource type="Resource" uid="uid://da6hi26lshoi3" path="res://data/conditions/frozen.tres" id="9_s5puv"]
+[ext_resource type="Resource" uid="uid://ckup4ja1ars1i" path="res://data/conditions/crystallised.tres" id="10_1fuxf"]
+[ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="11_omeb0"]
+[ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="11_ymf1h"]
+[ext_resource type="SpriteFrames" uid="uid://nlca2j2ewp4s" path="res://art/enemies/caster/caster_frames.tres" id="12_u63wg"]
 
 [sub_resource type="Resource" id="Resource_ir0ey"]
 script = ExtResource("2_omeb0")
@@ -57,7 +58,7 @@ glossary_text = "Small, quick, and deaf to everything you throw at it. Nothing s
 max_hp = 160
 max_hp_level_20 = 900
 size = 1
-movement = 5
+movement = 7
 initiative = 5
 main_stat = 2
 sprite_frames = ExtResource("12_u63wg")
@@ -66,4 +67,5 @@ immune_to_conditions = Array[ExtResource("3_plvun")]([ExtResource("7_fvpxl"), Ex
 immune_to = Array[int]([0, 1, 2, 9])
 turns_per_round = 2
 boss = SubResource("Resource_4eeyp")
+future_changed_lines = null
 ai_function = "ai_caster"

@@ -25,7 +25,7 @@ const OWN_ICONS := {
 	"wind_shot": "windshot_icon.png", "wind_swoon": "windswept_skill.png",
 	"wind_vacuum": "windvacuum_skill.png",
 	# The paths' skills - placeholders, each its own until real art goes in.
-	"frost_round": "frost_round_skill.png", "shock_round": "shock_round_skill.png",
+	"frost_round": "frost_round_skill.png", "corrosive_round": "corrosive_round_skill.png",
 	"combined_load": "combined_load_skill.png", "flame_edge": "flame_edge_skill.png",
 	"frost_edge": "frost_edge_skill.png", "storm_edge": "storm_edge_skill.png",
 	"stone_edge": "stone_edge_skill.png", "holy_spear": "holy_spear_skill.png",
@@ -34,9 +34,27 @@ const OWN_ICONS := {
 	"bewilder": "bewilder_skill.png", "daunting_roar": "daunting_roar_skill.png",
 	"shield_bash": "shield_bash_skill.png", "chain_hook": "chain_hook_skill.png",
 	"pin_down": "pin_down_skill.png", "hamstring": "hamstring_skill.png",
+	# The paths of 2026 - placeholders too.
+	"snare": "snare_skill.png", "tripwire": "tripwire_skill.png", "minefield": "minefield_skill.png",
+	"grand_design": "grand_design_skill.png", "illusory_cover": "illusory_cover_skill.png",
+	"phantom_body": "phantom_body_skill.png", "sanctuary_of_light": "sanctuary_of_light_skill.png",
+	"mass_mirage": "mass_mirage_skill.png", "realitys_reflection": "realitys_reflection_skill.png",
+	"accusation": "accusation_skill.png", "recant": "recant_skill.png", "catalyst": "catalyst_skill.png",
+	"wildfire": "wildfire_skill.png", "frozen_river": "frozen_river_skill.png", "dispel_magic": "dispel_magic_skill.png",
 	# Declared moves - placeholders too.
 	"ground_pound": "ground_pound_skill.png", "rockfall": "rockfall_skill.png",
-	"meteor": "meteor_skill.png", "earthsplitter": "earthsplitter_skill.png",
+	# The progression's (docs/progression.csv) - placeholders, each its own.
+	"battle_cry": "battle_cry_skill.png", "armor_shred": "armor_shred_skill.png",
+	"stunning_blow": "stunning_blow_skill.png", "finisher": "finisher_skill.png",
+	"cover_leap": "cover_leap_skill.png",
+	"venom_fan": "venom_fan_skill.png", "exposing_shot": "exposing_shot_skill.png",
+	"tartarus_flame": "tartarus_flame_skill.png", "ire_of_sophia": "ire_of_sophia_skill.png",
+	"gnostic_tempest": "gnostic_tempest_skill.png", "stolen_sun": "stolen_sun_skill.png",
+	"holy_splash": "holy_splash_skill.png", "communion": "communion_skill.png",
+	"piercing_light": "piercing_light_skill.png", "judgment": "judgment_skill.png",
+	"glacial_tide": "glacial_tide_skill.png", "purification": "purification_skill.png",
+	"divine_verdict": "divine_verdict_skill.png", "restoration": "restoration_skill.png",
+	"revelation": "revelation_skill.png", "grace": "grace_skill.png",
 }
 var _log: FileAccess
 var _fail = 0
@@ -111,7 +129,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== heals and cleanses ========")
-	for key in ["heal", "light_heal", "revitalizer", "cleanse"]:
+	for key in ["heal", "light_heal", "communion", "cleanse"]:
 		ok(icon_file(SkillDatabase.skills.get(key)) == OWN_ICONS.get(key, "heal_skill.png"),
 			"%s carries the heal icon, or its own" % key, icon_file(SkillDatabase.skills.get(key)))
 	log_line("")

@@ -66,7 +66,7 @@ func run_test():
 		return
 	ok("light_heal" in healer.skill_list, "and Light Heal is hers", "%s" % [healer.skill_list])
 
-	for key in ["heal", "light_heal", "revitalizer"]:
+	for key in ["heal", "light_heal", "communion"]:
 		var skill: SkillDefinition = SkillDatabase.skills[key]
 		var mends = false
 		for effect in skill.all_effects():

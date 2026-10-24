@@ -37,17 +37,17 @@ const DOT_STRENGTH_NAMES := {
 ## Freeform text for the tooltip. Optional - one is generated from the settings
 ## below when this is empty.
 @export_multiline var description: String = ""
-## How many of the afflicted's own turns it lasts, counting the one it lands in
-## when it lands on whoever is acting. That picks the turn it goes in - the one
-## after the last - and Wears Off At Start below picks whether it goes as that
-## turn starts or as it ends (see Combat.turns_stored). Going at the end, 3 is
-## four turns and Stunned 2 is three lost.
+## How many of the afflicted's own turns it lasts: 3 is three of their turns,
+## Stunned 2 is two lost, a Burn of 3 three ticks. Landing on whoever is acting,
+## they have the rest of this turn as well. Wears Off At Start below picks
+## whether it goes as the turn after the last starts, or as the last ends (see
+## Combat.turns_stored).
 @export var duration: int = 3
-## Off: holds through the turn after its duration and wears off at that turn's
-## end, so whatever is on somebody is still on them when they next act.
-## On: wears off as that turn starts, the moment before they could act under
-## it - lasting through everybody else's turns in between. The danger view
-## knows these go before the enemy acts.
+## Off: holds through the last of its turns and wears off as that turn ends, so
+## whatever is on somebody is still on them while they act.
+## On: wears off as the turn after its last starts, the moment before they could
+## act under it - lasting through everybody else's turns in between. The danger
+## view knows these go before the enemy acts.
 @export var wears_off_at_start: bool = false
 
 @export_group("Damage over time")
@@ -79,6 +79,16 @@ const DOT_STRENGTH_NAMES := {
 @export var movement_change: int = 0
 ## Added to every hit-chance roll the afflicted makes. Fear's -20 lives here.
 @export var accuracy_change: int = 0
+## Damage taken changes by this share while it is on them: -0.1 takes a tenth
+## less (Bulwark's, Mercy III's Sheltered), 0.2 a fifth more.
+@export_range(-0.9, 2.0, 0.05) var damage_taken_change: float = 0.0
+## Mends this share of their health as each of their turns starts (Aura II).
+@export_range(0.0, 1.0, 0.05) var mends_share: float = 0.0
+## Their Defense changes by this share while it is on them: -0.1 is a tenth less
+## (Corroded). It lasts exactly as long as the condition, refreshes with it
+## rather than stacking, and goes when it is cleansed. Anybody immune to being
+## weakened keeps their Defense.
+@export_range(-0.9, 2.0, 0.05) var defense_change: float = 0.0
 
 @export_group("Restrictions")
 ## Their turn is skipped entirely.
@@ -99,16 +109,33 @@ const DOT_STRENGTH_NAMES := {
 ## friend or foe - with whatever they have that hurts, and nothing else
 ## (Combat.ai_confused). The party's too, played for them.
 @export var confuses: bool = false
-## Taunted: whatever they use to hurt has to be aimed at whoever put this on
-## them - a champion's challenge, an idol's pull. Anything else is refused, and
-## the AI goes for them. Put on by nobody in particular, it does nothing.
-@export var taunts: bool = false
+## Exposed: they take this share more from whoever put it on them - nobody
+## else. Put on by nobody in particular, it does nothing.
+@export_range(0.0, 2.0, 0.05) var more_from_source: float = 0.0
 ## Deceived: their turn goes on their own side - the nearest of them, with
 ## whatever hurts (Combat.ai_deceived). The party's too, played for them.
 @export var turns_on_own_side: bool = false
 ## It comes off the moment they are hurt - talked into standing down, and
 ## then hit.
 @export var ends_when_hit: bool = false
+
+@export_group("Illusions and favours")
+## The next attack that would hit them misses - an image takes it - and this
+## comes off. Phantom Body.
+@export var evades_next_hit: bool = false
+## Each attack at them has this chance in a hundred to miss outright - a copy
+## takes it. Sanctified, Mirage.
+@export_range(0, 100) var miss_chance: int = 0
+## They take this share less from attacks made from more than a tile away.
+## Blurred (Veil of Mercy II).
+@export_range(0.0, 0.9, 0.05) var less_from_afar: float = 0.0
+## Their spells cost no gate while it lasts, and a spell can be their secondary
+## action too. Grand Design.
+@export var casts_freely: bool = false
+## While they have it, they are invisible (Combat "Invisibility") - from a zone
+## (Combat "Zones"), again as each of their turns starts if they gave themselves
+## away, and seen again once they step out. Reflected (Reality's Reflection).
+@export var makes_invisible: bool = false
 ## Grappled: held by whoever put it on, for as long as that one keeps hold.
 ## It lasts until they break free (Break Free, their main action), whoever
 ## holds them is not beside them or is down, or either of them is teleported,
@@ -139,6 +166,8 @@ func describe() -> String:
 		parts.append("%+d movement" % movement_change)
 	if accuracy_change != 0:
 		parts.append("%+d accuracy" % accuracy_change)
+	if defense_change != 0.0:
+		parts.append("%+d%% defense" % roundi(defense_change * 100))
 	if prevents_movement:
 		parts.append("cannot move")
 	if prevents_approach:

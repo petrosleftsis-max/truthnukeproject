@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="SubclassDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Script" path="res://combat/resources/SubclassDefinition.gd" id="2_path"]
+
+[sub_resource type="Resource" id="Passive_0"]
+script = ExtResource("1_passive")
+name = "Ward"
+description = "Reaction: when an ally within five tiles - or Prometheus himself - is about to be hit, take four tenths off it."
+required_level = 24
+wards_allies = true
+ward_reduction = 0.4
+ward_range = 5
+
+[sub_resource type="Resource" id="Passive_1"]
+script = ExtResource("1_passive")
+name = "Bulwark Weave"
+description = "A spell of his landing on an ally leaves them overhealed: extra health, taken first, gone by the end of the fight."
+required_level = 32
+overheals_allies = 0.4
+
+[sub_resource type="Resource" id="Passive_2"]
+script = ExtResource("1_passive")
+name = "Battlefield Control"
+description = "His roots and slows last a turn longer, and his shoves go a tile further."
+required_level = 41
+control_extra_turns = 1
+push_extra = 1
+
+[sub_resource type="Resource" id="Passive_3"]
+script = ExtResource("1_passive")
+name = "Shared Ward"
+description = "He can Ward twice a round."
+required_level = 54
+wards_per_round = 2
+
+[resource]
+script = ExtResource("2_path")
+name = "Elemental Tactician"
+description = "The ward. Prometheus shapes the fight rather than ending it: shielding his friends, holding his enemies where he wants them - and, once, opening every gate at once."
+skills = Array[String](["grand_design"])
+passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_2"), SubResource("Passive_3")])

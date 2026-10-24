@@ -5,7 +5,7 @@ class_name GateNadeDefinition
 ## it and the spell goes off - its reach, its area, its effects, whatever it
 ## does - with no gate of the thrower's opened and no level needed. Then it is
 ## gone. Only somebody who knows the spell, or could learn it, can throw it
-## (Combat.can_use_gate_nade): a Revitalizer Nade is Alithia's, not Enfina's.
+## (Combat.can_use_gate_nade): a Communion Nade is Alithia's, not Enfina's.
 ##
 ## Only the spell is chosen here. When the game starts (ItemDatabase) the nade
 ## takes the spell's whole shape (take_on); what it keeps of its own is what

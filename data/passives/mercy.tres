@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Mercy I"
+description = "Her heals mend a tenth more."
+heal_bonus = 0.1

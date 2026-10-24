@@ -205,7 +205,7 @@ func _shake_step(delta: float):
 func _process(delta):
 	_shake_step(delta)
 	if is_following():
-		position = position.lerp(_watched.global_position, minf(1.0, follow_lerp * delta))
+		position = position.lerp(_watched.global_position + _watch_offset, minf(1.0, follow_lerp * delta))
 		clamp_to_map()
 		return
 	if not free_look:
@@ -254,17 +254,58 @@ func toggle_whole_map():
 @export var follow_lerp := 6.0
 
 var _watched: Node2D = null
+## Where on whoever is watched the view centres, from their node: the middle
+## of the square somebody bigger than a tile covers.
+var _watch_offset := Vector2.ZERO
+## The zoom to go back to once whoever was watched is let go, if fitting them
+## in pulled the view back (fit_in_view). 0 for nothing to put back.
+var _zoom_to_restore := 0.0
+## How long the view takes to pull back for somebody big, and to come in again.
+const FIT_SECONDS := 0.35
+var _zoom_tween: Tween = null
 
 
-## Rides along with `target` until release() is called. Manual panning and
-## dragging are ignored meanwhile - it is a lock, and a camera that fights the
-## player for the view is worse than either behaviour on its own.
-func follow(target: Node2D):
+## Rides along with `target` until release() is called, centred `offset_from_it`
+## away from it. Manual panning and dragging are ignored meanwhile - it is a
+## lock, and a camera that fights the player for the view is worse than either
+## behaviour on its own.
+func follow(target: Node2D, offset_from_it: Vector2 = Vector2.ZERO):
 	_watched = target
+	_watch_offset = offset_from_it
 
 
+## Lets go of whoever was watched, and puts back the zoom if the view pulled
+## back to fit them in.
 func release():
 	_watched = null
+	_watch_offset = Vector2.ZERO
+	if _zoom_to_restore > 0.0:
+		_glide_zoom(_zoom_to_restore)
+		_zoom_to_restore = 0.0
+
+
+## Pulls the view back, if it has to, until something `world_size` across fits
+## on screen with `room` to spare around it - an enemy bigger than the view,
+## whose turn it is. release() brings the zoom back in.
+func fit_in_view(world_size: Vector2, room: float = 1.5):
+	var view := get_viewport_rect().size
+	var needed := minf(view.x / maxf(world_size.x * room, 1.0), view.y / maxf(world_size.y * room, 1.0))
+	needed = clampf(needed, min_zoom, max_zoom)
+	if zoom.x <= needed:
+		return
+	if _zoom_to_restore <= 0.0:
+		_zoom_to_restore = zoom.x
+	_glide_zoom(needed)
+
+
+func _glide_zoom(to: float):
+	if _zoom_tween != null and _zoom_tween.is_valid():
+		_zoom_tween.kill()
+	if not is_inside_tree():
+		zoom = Vector2.ONE * to
+		return
+	_zoom_tween = create_tween()
+	_zoom_tween.tween_property(self, "zoom", Vector2.ONE * to, FIT_SECONDS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 ## Whether the view is currently locked onto somebody.

@@ -1,12 +1,12 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://dfybqb6o6d2px"]
 
-[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_jrtbx"]
-[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
-[ext_resource type="SpriteFrames" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
-[ext_resource type="Resource" path="res://data/conditions/poisoned.tres" id="2_vw7xq"]
-[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="3_tdf4j"]
-[ext_resource type="Script" path="res://combat/resources/BodyPartDefinition.gd" id="4_part"]
-[ext_resource type="Resource" path="res://data/hacks/golem_binding.tres" id="5_binding"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_jrtbx"]
+[ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
+[ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
+[ext_resource type="Resource" uid="uid://ttc70ufjw2r2" path="res://data/conditions/poisoned.tres" id="2_vw7xq"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="3_tdf4j"]
+[ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="4_part"]
+[ext_resource type="Resource" uid="uid://ctmtcu70mqduy" path="res://data/hacks/golem_binding.tres" id="5_binding"]
 
 [sub_resource type="Resource" id="Part_legs"]
 script = ExtResource("4_part")
@@ -31,9 +31,12 @@ when_broken = 2
 script = ExtResource("1_who")
 name = "Stone Golem"
 glossary_text = "Clay and stone with words cut into it, made to answer to whoever cut them. It feels nothing and fears nothing - but the words can be rewritten."
-max_hp = 70
-max_hp_level_20 = 400
+max_hp = 108
+max_hp_level_20 = 280
+defense = 18
+defense_level_64 = 65
 size = 4
+movement = 4
 initiative = 3
 sprite_frames = ExtResource("2_frames")
 skills = Array[String](["greatsword_attack", "rockfall"])
@@ -44,3 +47,4 @@ bound_to = "its master"
 rebind_hack = ExtResource("5_binding")
 rebind_turns = 3
 parts = Array[ExtResource("4_part")]([SubResource("Part_legs"), SubResource("Part_arms"), SubResource("Part_core")])
+future_changed_lines = null

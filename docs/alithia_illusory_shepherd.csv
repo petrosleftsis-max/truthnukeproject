@@ -1,0 +1,11 @@
+Character,Subclass,Level,Tier,FeatureType,FeatureName,Role,EffectSummary
+Alithia,Illusory Shepherd,24,3,Active,Illusory Cover,Support/Defense,Create illusionary cover; allies behind count as in cover for targeting/LOS.
+Alithia,Illusory Shepherd,24,3,Passive,Veil of Mercy I,Defense,"After healing an ally, grant small DR vs next attack or reduced damage on first hit."
+Alithia,Illusory Shepherd,32,4,Active,Phantom Body,Defense/CC,Place a duplicate of an ally; first attack that would hit them instead hits the illusion and misses.
+Alithia,Illusory Shepherd,32,4,Passive,Veil of Mercy II,Defense,Healed allies gain brief blur effect: reduced damage from ranged or distant attacks.
+Alithia,Illusory Shepherd,41,5,Active,Sanctuary of Light,Defense/Control,Create zone granting DR to allies; enemies see illusory copies and may mis-target or deal reduced damage.
+Alithia,Illusory Shepherd,41,5,Passive,Guiding Phantasm,Support/Mobility,Healing or cleansing also places an illusion that grants allies small Speed/positioning bonuses.
+Alithia,Illusory Shepherd,54,6,Active,Mass Mirage,Defense,Briefly cloak party in illusions; incoming attacks that turn are partially redirected or reduced.
+Alithia,Illusory Shepherd,54,6,Passive,Veil of Mercy III,Defense/Heal,Heals also grant short-lived illusion shields (extra effective HP for 1–2 turns).
+Alithia,Illusory Shepherd,64,7,Active,Reality’s Reflection,Defense/Control,Large AOE illusion that strongly protects allies and causes enemies to waste actions or move toward false positions.
+Alithia,Illusory Shepherd,64,7,Passive,Illusory Guardian,Defense,"While Alithia is alive, each ally gains a small defensive illusion effect vs first attack per encounter."

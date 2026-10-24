@@ -70,7 +70,12 @@ func run_test():
 	log_line("")
 
 	log_line("======== gates yet to come ========")
-	ok(Stats.gate_name(5) == "Gate 5", "a gate with no name yet is still called something", Stats.gate_name(5))
+	ok(Stats.gate_name(5) == "Gates of Tartarus" and Stats.gate_name(10) == "Gates of Yaldabaoth", "the ladder is named to the top", Stats.gate_name(10))
+	ok(Stats.gate_name(20) == "Gate 20", "a gate with no name yet is still called something", Stats.gate_name(20))
+	var initials := {}
+	for level in range(1, Stats.GATE_NAMES.size()):
+		initials[Stats.short_gate_name(level).left(1)] = true
+	ok(initials.size() == Stats.GATE_NAMES.size() - 1, "every gate starts with its own letter, for the mark that says which will pay", "%s" % [initials.keys()])
 	var colours := {}
 	for level in range(1, 10):
 		colours[Stats.gate_colour(level).to_html()] = true
@@ -78,7 +83,11 @@ func run_test():
 	log_line("")
 
 	Campaign.reset()
-	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
+	# At the city's level 14: Pandora open, and Fireball learned.
+	var at_fourteen: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
+	for spawn in at_fourteen.spawns:
+		spawn.level = 14
+	Campaign.current_encounter = at_fourteen
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 4:
@@ -149,6 +158,29 @@ func run_test():
 			if SkillDatabase.skills[String(button.name)].spell_slot_level != gate:
 				right_shelf = false
 	ok(right_shelf, "every spell on the shelf of the gate it costs")
+	log_line("")
+
+	log_line("======== a gate not yet opened is not on show ========")
+	var gates_were: Array = caster.max_spell_slots.duplicate()
+	var left_were: Array = caster.spell_slots.duplicate()
+	# Prometheus as he is at level 8: World and Hermes, no Pandora yet.
+	caster.max_spell_slots = Stats.gates_for_level(8)
+	caster.spell_slots = Stats.gates_for_level(8)
+	ui.refresh_action_buttons()
+	await settle()
+	var pandora_known: bool = caster.skill_list.any(func(key): return SkillDatabase.skills.has(key) \
+		and SkillDatabase.skills[key].spell_slot_level == 3)
+	var pandora_shown: bool = combat.spell_skills_of(caster).any(func(key): return SkillDatabase.skills[key].spell_slot_level >= 3)
+	ok(pandora_known and not pandora_shown, "he knows Pandora spells, but none is offered", "%s" % [combat.spell_skills_of(caster)])
+	ok(shelves.shelf(3) == null and shelves.shelf(2) != null, "no Pandora shelf, the Hermes one still there")
+	caster.spell_slots[2] = 0
+	ok(combat.spell_skills_of(caster).any(func(key): return SkillDatabase.skills[key].spell_slot_level == 2),
+		"a gate opened but spent stays on show, greyed")
+	caster.max_spell_slots = gates_were
+	caster.spell_slots = left_were
+	ui.refresh_action_buttons()
+	await settle()
+	ok(shelves.shelf(3) != null, "Pandora opened, its shelf is back")
 	ok(shelves.get_v_scroll_bar().max_value > shelves.size.y, "more than fits, so it scrolls rather than growing",
 		"%s tall in %s" % [shelves.get_v_scroll_bar().max_value, shelves.size.y])
 	var first_tag: Control = shelves.shelf(2).get_node("Tag")
@@ -216,8 +248,8 @@ func run_test():
 	await settle()
 	world_spell = shelves.buttons()[shelves.keys().find(world_key)]
 	hermes_spell = shelves.buttons()[shelves.keys().find(hermes_key)]
-	ok(world_spell.get_node(ui.GATE_UP).text == "↑Y" and hermes_spell.get_node(ui.GATE_UP).text == "↑Y",
-		"with Hermes gone as well, both reach for Yaldabaoth")
+	ok(world_spell.get_node(ui.GATE_UP).text == "↑P" and hermes_spell.get_node(ui.GATE_UP).text == "↑P",
+		"with Hermes gone as well, both reach for Pandora")
 	caster.spell_slots[3] = 0
 	ui.refresh_action_buttons()
 	await settle()

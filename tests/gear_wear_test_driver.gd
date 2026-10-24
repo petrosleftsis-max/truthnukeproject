@@ -132,7 +132,10 @@ func in_a_fight():
 	for each in load(AMBUSH).spawns:
 		if each.combatant_key == "enfina":
 			spawn = each
-	ok(enfina.weapon_base == spawn.weapon_base and enfina.stats.defense == spawn.defense,
+	# A tile's defence of 0 is her own at her level.
+	var tile_defense: int = spawn.defense if spawn.defense > 0 \
+		else CombatantDatabase.combatants.enfina.defense_at(enfina.level)
+	ok(enfina.weapon_base == spawn.weapon_base and enfina.stats.defense == tile_defense,
 		"Enfina, wearing nothing, has the tile's own numbers", "%d / %d" % [enfina.weapon_base, enfina.stats.defense])
 	game.queue_free()
 	await settle(3)
@@ -140,7 +143,7 @@ func in_a_fight():
 	game = await open_fight()
 	combat = game.get_node("VisualCombat")
 	enfina = fighter(combat, "enfina")
-	ok(combat.stat_of(enfina, Stats.Type.DEFENSE) == spawn.defense + 5, "a charm adding defence adds it", "%d" % combat.stat_of(enfina, Stats.Type.DEFENSE))
+	ok(combat.stat_of(enfina, Stats.Type.DEFENSE) == tile_defense + 5, "a charm adding defence adds it", "%d" % combat.stat_of(enfina, Stats.Type.DEFENSE))
 	game.queue_free()
 	await settle(3)
 

@@ -33,6 +33,10 @@ func _enter_tree():
 		push_error("GameScene has no Combat node assigned.")
 		return
 	combat.encounter = encounter
+	# The laboratory sequence counts what happens (TEMPORARY - see
+	# DungeonDefinition.logs_metrics).
+	if Campaign.in_dungeon() and Campaign.dungeon.logs_metrics:
+		combat.add_child(LabMetrics.new())
 	_build_terrain(encounter)
 	# Named rather than a stream so it matches what dialogue writes, and so
 	# Music can tell "already playing" from "start this" by name.

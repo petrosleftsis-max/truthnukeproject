@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/catch_the_scent_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/scented.tres" id="4_scent"]
+
+[sub_resource type="Resource" id="Effect_scent"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("4_scent")
+
+[resource]
+script = ExtResource("3_skill")
+name = "Catch the Scent"
+description = "It lifts its head and breathes them in. Next, it comes for them."
+min_range = 1
+max_range = 12
+icon = ExtResource("2_icon")
+is_secondary = true
+can_be_copied = false
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_scent")])
+deals_damage = false

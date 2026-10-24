@@ -7,6 +7,7 @@ const ENCOUNTERS = [
 	"res://data/encounters/encounter_01_ambush.tres",
 	"res://data/encounters/encounter_02_sappers.tres",
 	"res://data/encounters/encounter_03_watcher.tres",
+	"res://data/encounters/level_64_showdown.tres",
 ]
 
 var _log: FileAccess = null
@@ -106,11 +107,15 @@ func run_test():
 		# legitimately leaves some empty. Every enemy must appear; the player
 		# side is capped by the roster.
 		var enemy_spawns = 0
+		# A Summoner comes with what it has bound already standing beside it.
+		var brought = 0
 		for spawn in enc.spawns:
 			if spawn.side != 0:
 				enemy_spawns += 1
+				if CombatantDatabase.combatants[spawn.combatant_key].summon_at_start != "":
+					brought += 1
 		var player_tiles = enc.spawns.size() - enemy_spawns
-		var expected = enemy_spawns + mini(Campaign.battle_party().size(), player_tiles)
+		var expected = enemy_spawns + brought + mini(Campaign.battle_party().size(), player_tiles)
 		ok(combat != null and combat.combatants.size() == expected,
 			"  spawned everyone there was room and roster for",
 			"%d of %d (%d enemies + up to %d party)" % [combat.combatants.size() if combat else -1, expected, enemy_spawns, player_tiles])
@@ -147,6 +152,34 @@ func run_test():
 			ok(not controller.is_tile_blocking(spawn.position, definition.class_m),
 				"  %s on a walkable tile at %s" % [spawn.combatant_key, spawn.position])
 		log_line("")
+
+	log_line("======== Sixty-Four: everybody at the top ========")
+	var top: EncounterDefinition = load("res://data/encounters/level_64_showdown.tres")
+	var top_game = await load_battle(top)
+	var top_combat = top_game.get_node_or_null("VisualCombat")
+	var below := []
+	var off_path := []
+	var unarmed := []
+	for comb in top_combat.combatants:
+		if comb.get("level", 0) != Stats.MAX_LEVEL:
+			below.append("%s at %s" % [comb.name, comb.get("level", 0)])
+		var key: String = comb.get("combatant_key", "")
+		if Campaign.battle_party().has(key):
+			if comb.get("subclass", "") == "":
+				off_path.append(comb.name)
+			if comb.get("equipment", []).is_empty():
+				unarmed.append(comb.name)
+	ok(below.is_empty(), "everybody in it is level %d" % Stats.MAX_LEVEL, "%s" % [below])
+	ok(off_path.is_empty(), "the party is on its paths", "%s" % [off_path])
+	ok(unarmed.is_empty(), "and wearing its best gear", "%s" % [unarmed])
+	var gateless := []
+	for comb in top_combat.combatants:
+		var slots: Array = comb.get("max_spell_slots", [])
+		if comb.get("combatant_key", "") in ["prometheus", "alithia"] and (slots.size() < 2 or slots[-1] <= 0):
+			gateless.append(comb.name)
+	ok(gateless.is_empty(), "and the casters have their deepest gate open", "%s" % [gateless])
+	unload_battle()
+	log_line("")
 
 	log_line("======== party carries damage forward ========")
 	Campaign.reset()
@@ -209,7 +242,7 @@ func run_test():
 	get_tree().root.add_child(menu)
 	await get_tree().process_frame
 	var list = menu.get_node("Center/VBox/EncounterScroll/EncounterList")
-	ok(list.get_child_count() == 9, "one button per encounter", "%d" % list.get_child_count())
+	ok(list.get_child_count() == menu.encounters.size(), "one button per encounter", "%d of %d" % [list.get_child_count(), menu.encounters.size()])
 	var first_encounter: EncounterDefinition = menu.encounters[0]
 	ok(list.get_child(0).text == first_encounter.display_name,
 		"first button carries the encounter's own name",

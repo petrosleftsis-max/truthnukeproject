@@ -1,0 +1,5 @@
+SkillID,RankLevel,Field,SnapshotOldValue,TrialValue,Status,Preserve,ScopeGuard
+poisondart,8,ability_modifier (resolve actual schema),1.0,0.9,APPROVED_TRIAL,All DoT values; durations; range; area; cost; types; effects,Verify rank override and shared users; report mismatches before overwriting
+burningshot,16,ability_modifier (resolve actual schema),0.9,0.8,APPROVED_TRIAL,All DoT values; durations; range; area; cost; types; effects,Verify rank override and shared users; report mismatches before overwriting
+burningshot,32,ability_modifier (resolve actual schema),1.1,0.95,APPROVED_TRIAL,All DoT values; durations; range; area; cost; types; effects,Verify rank override and shared users; report mismatches before overwriting
+venomfan,24,ability_modifier (resolve actual schema),0.8,0.7,APPROVED_TRIAL,All DoT values; durations; range; area; cost; types; effects,Verify rank override and shared users; report mismatches before overwriting

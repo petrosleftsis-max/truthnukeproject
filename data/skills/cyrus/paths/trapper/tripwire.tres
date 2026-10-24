@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/tripwire_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/snared.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_1"]
+script = ExtResource("1_effect")
+type = 32
+trap_holds_with = ExtResource("4_cond")
+trap_burst_modifier = 1.2
+trap_burst_radius = 1
+
+[resource]
+script = ExtResource("3_skill")
+name = "Tripwire"
+description = "As Snare, and it bursts as it is sprung: x1.2 to everybody of the other side within a tile of it."
+min_range = 1
+max_range = 3
+required_level = 41
+can_be_copied = false
+ability_modifier = 1.2
+deals_damage = false
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_1")])

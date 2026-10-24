@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="BattleObjectDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/objects/powder_keg_icon.png" id="1_icon"]
+[ext_resource type="Texture2D" path="res://art/objects/powder_keg_sheet.png" id="2_sheet"]
+[ext_resource type="Script" path="res://combat/resources/BattleObjectDefinition.gd" id="3_object"]
+
+[resource]
+script = ExtResource("3_object")
+interactable = false
+breakable = true
+lasts_turns = 3
+illusion = true
+name = "Illusory Cover"
+glossary_text = "Cover that is not there: Alithia's illusion of a barricade. The other side takes it for the real thing - it blocks their sight and they plan around it - but shots and blasts go straight through it. It fades after three of her turns."
+max_hp = 1
+max_hp_level_20 = 1
+movement = 1
+icon = ExtResource("1_icon")
+map_sprite = ExtResource("2_sheet")
+tint = Color(0.6, 0.75, 1, 0.65)

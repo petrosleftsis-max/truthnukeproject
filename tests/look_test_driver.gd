@@ -64,7 +64,11 @@ func prompt_text(ui) -> String:
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
+	# At the city's level 14: Pandora open, and Fireball learned.
+	var at_fourteen: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
+	for spawn in at_fourteen.spawns:
+		spawn.level = 14
+	Campaign.current_encounter = at_fourteen
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	for i in 4:

@@ -117,8 +117,8 @@ func save_and_load():
 	Campaign.reset()
 	var scene := await walk_onto(CROSSROADS)
 	Campaign.set_party(["cyrus", "alithia"], 1)
-	Campaign.reach_level(6)
-	Campaign.choose_subclass("cyrus", "bombardier")
+	Campaign.reach_level(24)
+	Campaign.choose_subclass("cyrus", "trapper")
 	Campaign.give_gold(321)
 	Campaign.give_gear("fencers_rapier")
 	Campaign.equip("cyrus", "fencers_rapier")
@@ -132,7 +132,7 @@ func save_and_load():
 	ok(SaveGame.save("slot_2", get_tree()), "saved to slot 2")
 	ok(SaveGame.exists("slot_2") and not SaveGame.exists("slot_1"), "which is there, and slot 1 still empty")
 	var described := SaveGame.describe("slot_2")
-	ok(described.contains("Cyrus") and described.contains("level 6") and described.contains("Crossroads"),
+	ok(described.contains("Cyrus") and described.contains("level 24") and described.contains("Crossroads"),
 		"the list says whose, how far and where", described)
 	ok(SaveGame.latest() == "slot_2", "and it is the latest")
 
@@ -145,7 +145,7 @@ func save_and_load():
 	ok(SaveGame.load_slot("slot_2"), "loading it")
 	scene = await arrived()
 	ok(scene != null and scene.map_path() == CROSSROADS, "goes back to the map it was saved on")
-	ok(Campaign.party_level == 6 and Campaign.subclass_of("cyrus") == "bombardier", "the level and the path as they were",
+	ok(Campaign.party_level == 24 and Campaign.subclass_of("cyrus") == "trapper", "the level and the path as they were",
 		"%d %s" % [Campaign.party_level, Campaign.subclass_of("cyrus")])
 	ok(Campaign.gold == 321, "the purse", "%d" % Campaign.gold)
 	ok(Campaign.equipped_in("cyrus", "weapon") == "fencers_rapier" and Campaign.gear == ["padded_jacket"], "the gear, worn and in the stash")

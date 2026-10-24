@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://demos/lab_sequence.gd" id="1_lab"]
+[ext_resource type="Resource" path="res://data/dungeons/lab_chapter1_sequence.tres" id="2_dungeon"]
+
+[node name="LabSequence" type="Node"]
+script = ExtResource("1_lab")
+run_label = "erysichthon-free-spending"
+dungeon = ExtResource("2_dungeon")

@@ -162,9 +162,12 @@ do Campaign.to_main_menu()
 	if [ "$d" = "glossary" ] || [ "$d" = "bailout" ]; then
 		sed -i 's|run/main_scene="[^"]*"|run/main_scene="res://scenes/main_menu.tscn"|' "$DST/project.godot"
 	fi
-	# The sweep plays every encounter out; the rest are quick by comparison.
+	# The sweep plays every encounter out, and everycast uses every skill there
+	# is; the rest are quick by comparison.
 	budget=300
-	if [ "$d" = "sweep" ]; then budget=900; fi
+	if [ "$d" = "sweep" ]; then budget=1560; fi
+	# Every skill and item used once - more of them with every one added.
+	if [ "$d" = "everycast" ]; then budget=600; fi
 	timeout $budget "$GODOT" --headless --path "$DST" >/dev/null 2>"$LOGS/_err.txt"
 	code=$?
 	# Godot's own errors went to _err.txt and were never looked at, so a script

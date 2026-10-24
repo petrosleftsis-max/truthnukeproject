@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/revelation_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[resource]
+script = ExtResource("3_skill")
+name = "Revelation"
+description = "The truth unhidden, burning through everything near where it lands: three quarters of their defence count for nothing."
+required_level = 64
+min_range = 1
+max_range = 15
+ability_modifier = 5.0
+damage_type = 12
+ignores_defense = 75
+aoe_radius = 1
+respects_blocking = true
+scaling_stat = 1
+spell_slot_level = 10
+icon = ExtResource("2_icon")

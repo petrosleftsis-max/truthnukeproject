@@ -252,6 +252,26 @@ func run_test():
 		"an encounter with no enemies blocks the save")
 	log_line("")
 
+	log_line("======== every encounter would pass the editor ========")
+	# An encounter written by hand never went through Save, which refuses a
+	# spawn in a wall - one was, and the sellsword standing in it could path
+	# nowhere at all. Every encounter is held to the editor's rules here.
+	var paths: Array = []
+	for folder in ["res://data/encounters", "res://data/encounters/dungeon_demo"]:
+		for file in DirAccess.open(folder).get_files():
+			if file.ends_with(".tres"):
+				paths.append(folder + "/" + file)
+	var refused := []
+	for path in paths:
+		var checking = await make_editor(load(path))
+		var problems: Array = checking._problems_with_layout().filter(func(problem): return not "Music track" in problem)
+		if not problems.is_empty():
+			refused.append("%s: %s" % [path.get_file(), problems])
+		checking.queue_free()
+		await get_tree().process_frame
+	ok(paths.size() > 5 and refused.is_empty(), "every spawn in every encounter is somewhere it can stand", "%d checked, %s" % [paths.size(), refused])
+	log_line("")
+
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
 

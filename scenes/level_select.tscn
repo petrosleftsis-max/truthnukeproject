@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://ui/level_select.gd" id="1_levelselect"]
 [ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="2_encdef"]
@@ -11,6 +11,11 @@
 [ext_resource type="Resource" path="res://data/encounters/sizes_colossus.tres" id="9_enc7"]
 [ext_resource type="Resource" path="res://data/encounters/boss_ash_warden.tres" id="10_enc8"]
 [ext_resource type="Resource" path="res://data/encounters/boss_bellkeeper.tres" id="11_enc9"]
+[ext_resource type="Resource" path="res://data/encounters/boss_glutton.tres" id="12_enc10"]
+[ext_resource type="Resource" path="res://data/encounters/two_floors.tres" id="13_enc11"]
+[ext_resource type="Resource" path="res://data/encounters/summoner_den.tres" id="14_enc12"]
+[ext_resource type="Resource" path="res://data/encounters/alchemist_den.tres" id="15_enc13"]
+[ext_resource type="Resource" path="res://data/encounters/level_64_showdown.tres" id="16_enc14"]
 
 [node name="LevelSelect" type="Control"]
 layout_mode = 3
@@ -20,7 +25,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_levelselect")
-encounters = Array[ExtResource("2_encdef")]([ExtResource("3_enc1"), ExtResource("4_enc2"), ExtResource("5_enc3"), ExtResource("6_enc4"), ExtResource("7_enc5"), ExtResource("8_enc6"), ExtResource("9_enc7"), ExtResource("10_enc8"), ExtResource("11_enc9")])
+encounters = Array[ExtResource("2_encdef")]([ExtResource("3_enc1"), ExtResource("4_enc2"), ExtResource("5_enc3"), ExtResource("6_enc4"), ExtResource("7_enc5"), ExtResource("8_enc6"), ExtResource("9_enc7"), ExtResource("10_enc8"), ExtResource("11_enc9"), ExtResource("12_enc10"), ExtResource("13_enc11"), ExtResource("14_enc12"), ExtResource("15_enc13"), ExtResource("16_enc14")])
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1

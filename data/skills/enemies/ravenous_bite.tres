@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/icons/ravenous_bite_skill.png" id="1_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("2_skill")
+name = "Ravenous Bite"
+description = "Jaws that never close on enough - tearing at whoever is nearest."
+min_range = 1
+max_range = 1
+icon = ExtResource("1_icon")
+animation = "attack"
+ability_modifier = 1.2
+sound = ExtResource("90_sfx")
+sound_volume_db = -6.0
+can_be_copied = false
+melee = true

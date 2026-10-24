@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/instahack_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" uid="uid://0xf5qiq405h8" path="res://audio/sfx/SciFi_Water_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Effect_cancel"]
+script = ExtResource("1_effect")
+type = 25
+
+[resource]
+script = ExtResource("3_skill")
+name = "InstaHack"
+description = "Tear a spell apart the instant a foe in reach casts it - no minigame, no second chance for them. It comes to nothing, and their gate is spent all the same. Only ever a reaction, through the Gates of Pandora."
+min_range = 1
+max_range = 6
+icon = ExtResource("2_icon")
+respects_blocking = true
+is_reactive = true
+reacts_when = 32
+reaction_only = true
+can_be_copied = false
+sound = ExtResource("90_sfx")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_cancel")])
+deals_damage = false
+required_level = 14
+spell_slot_level = 3

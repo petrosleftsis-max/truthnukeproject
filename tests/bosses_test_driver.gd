@@ -316,12 +316,30 @@ func the_phases():
 	ok(warden.skill_list.has("rockfall") and combat._hazards_running.size() == 1, "it learns Rockfall, and the ash begins to fall")
 	ok(ui._boss_bars.row_for(warden.id).get_node("Top/Phase").text == "The Ash Rises", "the bar says which phase")
 	ok(combat.immune_to_condition(warden, cond("stunned")), "still unstunnable")
-	warden.status_effects.append({"stat": "condition", "condition": cond("burn"), "duration": 3, "source_name": "test"})
-	combat.lose_hp(warden, roundi(most * 0.4))
+	# Crossed by a lingering wound ticking as its turn opens, with more on it
+	# than the phase leaves behind: the list shrinks under the ticks.
+	# The older one harmless, so it leaves the new phase's stagger bar as it began.
+	var wound := func(amount: int): return {"stat": "dot", "duration": 3, "min_amount": amount, "max_amount": amount,
+		"damage_type": Damage.Type.PHYSICAL, "source_name": "test"}
+	warden.status_effects = [wound.call(0),
+		{"stat": "condition", "condition": cond("burn"), "duration": 3, "source_name": "test"},
+		{"stat": "condition", "condition": cond("burn"), "duration": 2, "source_name": "test"},
+		wound.call(40)]
+	warden.hp = int(most * 0.33) + 2
+	var mark := heard.size()
+	combat.start_of_turn_effects(warden)
+	var ticks := 0
+	for i in range(mark, heard.size()):
+		if "from a lingering effect" in heard[i]:
+			ticks += 1
+	ok(ticks == 2 and warden.status_effects.size() == 2,
+		"a tick that brings on a phase shedding conditions: the turn's effects still all go through, once each",
+		"%d ticks, %d left on it" % [ticks, warden.status_effects.size()])
 	ok(warden.phase == 2 and warden.phase_name == "Cinders and Fury", "below a third, the last")
 	ok(warden.stagger_def.drain_per_round > 0.0 and warden.stagger == 0.0, "its bar now the burst kind, and empty")
 	ok(not combat.immune_to_condition(warden, cond("stunned")), "its armour cracked, a stun takes now")
 	ok(not has_condition(warden, "burn"), "it shook off what was on it")
+	warden.status_effects = []
 	ok(all_of("imp").size() == imps_before + 2, "and called two imps to its side", "%d" % all_of("imp").size())
 	warden.stagger = 60.0
 	combat._drain_stagger_bars()

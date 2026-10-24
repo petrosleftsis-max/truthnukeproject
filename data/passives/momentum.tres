@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Momentum I"
+description = "Planted, she hits harder: a tenth more damage on a turn she has not walked."
+required_level = 32
+still_damage_bonus = 0.1

@@ -293,15 +293,16 @@ func run_test():
 	log_line("")
 
 	log_line("======== how many castings a level buys ========")
-	var ladder = {1: [0, 2, 0, 0], 10: [0, 3, 2, 1], 20: [0, 3, 3, 2]}
+	# The story's three fights: the sewer, the lab and the city.
+	var ladder = {1: [2, 0, 0], 8: [4, 2, 0], 14: [4, 3, 2]}
 	for level in ladder:
-		ok(Stats.gates_for_level(level) == ladder[level],
-			"a level %d caster has %s" % [level, ladder[level].slice(1)],
+		ok(Stats.gates_for_level(level).slice(1, 4) == ladder[level] and Stats.gates_for_level(level).slice(4).all(func(count): return count == 0),
+			"a level %d caster has %s" % [level, ladder[level]],
 			"%s" % [Stats.gates_for_level(level).slice(1)])
-	var first = Stats.gates_for_level(10)
+	var first = Stats.gates_for_level(8)
 	first[1] = 99
-	ok(Stats.gates_for_level(10)[1] == 3,
-		"and spending one caster's allowance does not spend everyone's", "%d" % Stats.gates_for_level(10)[1])
+	ok(Stats.gates_for_level(8)[1] == 4,
+		"and spending one caster's allowance does not spend everyone's", "%d" % Stats.gates_for_level(8)[1])
 
 	# On real characters, through the path the game actually takes.
 	var mage: CombatantDefinition = null
@@ -314,17 +315,17 @@ func run_test():
 			fighter = definition
 	ok(mage != null, "somebody in the game casts", mage.name if mage else "nobody")
 	if mage != null:
-		for level in [1, 10, 20]:
+		for level in [1, 8, 14]:
 			var spawn = SpawnDefinition.new()
 			spawn.level = level
 			var cast = combat.create_combatant(mage, "", "", spawn)
-			ok(cast.max_spell_slots == ladder[level],
-				"%s at level %d gets %s" % [mage.name, level, ladder[level].slice(1)],
+			ok(cast.max_spell_slots.slice(1, 4) == ladder[level],
+				"%s at level %d gets %s" % [mage.name, level, ladder[level]],
 				"%s" % [cast.max_spell_slots.slice(1)])
 			ok(cast.spell_slots == cast.max_spell_slots, "starting the fight with all of them unspent")
 	if fighter != null:
 		var swordsman = combat.create_combatant(fighter, "", "", null)
-		ok(swordsman.max_spell_slots == [0, 0, 0, 0],
+		ok(swordsman.max_spell_slots == Stats.no_gates(),
 			"%s, who casts nothing, has no castings at all" % fighter.name,
 			"%s" % [swordsman.max_spell_slots])
 	log_line("")
@@ -332,7 +333,7 @@ func run_test():
 	log_line("======== the gates ========")
 	ok(Stats.gate_name(1) == "Gates of World", "level 1 is the Gates of World", Stats.gate_name(1))
 	ok(Stats.gate_name(2) == "Gates of Hermes", "level 2 the Gates of Hermes", Stats.gate_name(2))
-	ok(Stats.gate_name(3) == "Gates of Yaldabaoth", "level 3 the Gates of Yaldabaoth", Stats.gate_name(3))
+	ok(Stats.gate_name(3) == "Gates of Pandora", "level 3 the Gates of Pandora", Stats.gate_name(3))
 	ok(Stats.gate_name(0) == "", "and a skill that costs nothing names no gate")
 	var caster = null
 	for comb in combat.combatants:

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Kindling I"
+description = "Every spell he casts in a fight stokes the next: each one after it burns 5% hotter, up to 15%."
+required_level = 1
+kindling_step = 0.05
+kindling_most = 0.15

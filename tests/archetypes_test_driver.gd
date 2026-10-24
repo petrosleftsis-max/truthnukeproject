@@ -377,7 +377,7 @@ func copycat():
 		# A spell through a gate, and the Mimic has none: only its passive pays.
 		combat.last_player_skill_used = "fire_blast"
 		ok(SkillDatabase.skills["fire_blast"].spell_slot_level > 0, "Fire Blast is cast through a gate")
-		ok(str(mimic.spell_slots) == str([0, 0, 0, 0]), "and the Mimic holds none", "%s" % [mimic.spell_slots])
+		ok(mimic.spell_slots.all(func(count): return count == 0), "and the Mimic holds none", "%s" % [mimic.spell_slots])
 		var hp = cyrus.hp
 		await enemy_turn(combat, mimic)
 		ok(cyrus.hp < hp, "it casts the copied spell on the nearest player all the same", "%d -> %d" % [hp, cyrus.hp])
@@ -497,7 +497,7 @@ func own_side():
 	# An ally stood between two players. Fireball would catch all three; the
 	# smaller blasts reach both players and cannot touch an ally at all.
 	var cast = [["cyrus", 0, Vector2i(8, 1)], ["enfina", 0, Vector2i(8, 5)], ["prometheus", 0, Vector2i(11, 0)],
-		["sorcerer", 1, Vector2i(0, 3)], ["barbarian", 1, Vector2i(8, 3)]]
+		["sorcerer", 1, Vector2i(0, 3), 14], ["barbarian", 1, Vector2i(8, 3)]]
 	var combat = await start_fight(cast)
 	var sorcerer = who(combat, "sorcerer", 1)
 	var ally = who(combat, "barbarian", 1)

@@ -1,0 +1,73 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
+[ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://maps/crossroads_terrain.tscn" id="3_map"]
+
+[sub_resource type="Resource" id="Spawn_enfina"]
+script = ExtResource("2_spawn")
+combatant_key = "enfina"
+position = Vector2i(46, -12)
+level = 14
+weapon_base = 10
+starting_items = Array[String](["cure_potion"])
+
+[sub_resource type="Resource" id="Spawn_alithia"]
+script = ExtResource("2_spawn")
+combatant_key = "alithia"
+position = Vector2i(44, -11)
+level = 14
+weapon_base = 10
+starting_items = Array[String](["cure_potion"])
+
+[sub_resource type="Resource" id="Spawn_cyrus"]
+script = ExtResource("2_spawn")
+combatant_key = "cyrus"
+position = Vector2i(48, -12)
+level = 14
+weapon_base = 10
+starting_items = Array[String](["cure_potion", "small_bomb"])
+
+[sub_resource type="Resource" id="Spawn_prometheus"]
+script = ExtResource("2_spawn")
+combatant_key = "prometheus"
+position = Vector2i(43, -9)
+level = 14
+weapon_base = 10
+starting_items = Array[String](["cure_potion"])
+
+[sub_resource type="Resource" id="Spawn_alchemist"]
+script = ExtResource("2_spawn")
+combatant_key = "alchemist"
+side = 1
+position = Vector2i(55, -22)
+level = 14
+weapon_base = 8
+starting_items = Array[String](["potent_cure_potion", "heal_gate_nade", "heal_gate_nade", "communion_gate_nade", "fireball_gate_nade", "crystalise_gate_nade", "medium_bomb", "big_bomb", "small_bomb", "burn_bottle", "frost_bottle", "medicine", "kindled_hound_spellbook"])
+equipment = Array[String](["padded_jacket", "feather_charm"])
+
+[sub_resource type="Resource" id="Spawn_sellsword"]
+script = ExtResource("2_spawn")
+combatant_key = "sellsword"
+side = 1
+position = Vector2i(53, -12)
+level = 14
+weapon_base = 10
+starting_items = Array[String](["cure_potion", "small_bomb"])
+equipment = Array[String](["brigandine"])
+
+[sub_resource type="Resource" id="Spawn_bow"]
+script = ExtResource("2_spawn")
+combatant_key = "hired_bow"
+side = 1
+position = Vector2i(56, -8)
+level = 14
+weapon_base = 10
+starting_items = Array[String](["instahack_spellbook"])
+
+[resource]
+script = ExtResource("1_enc")
+display_name = "The Alchemist"
+description = "An Alchemist hung with a dozen bottles, bombs and Gate Nades keeps a Sellsword and an archer on their feet and throws the rest at you, two things a turn. Every item and piece of gear on the enemy can be looted off them once they are down - Loot, a secondary action beside a body, or Search the fallen after the fight."
+terrain_scene = ExtResource("3_map")
+spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_alithia"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_alchemist"), SubResource("Spawn_sellsword"), SubResource("Spawn_bow")])

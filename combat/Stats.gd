@@ -38,16 +38,17 @@ const DEFENSE_PIVOT := 40.0
 
 ## --- Levels ---
 ##
-## Twenty of them, reached at milestones in the story (Campaign.reach_level)
-## rather than through experience. A level decides every attribute someone has,
+## Sixty-four of them - the number of truth, ἀλήθεια, letter by letter -
+## reached at milestones in the story (Campaign.reach_level) rather than
+## through experience. A level decides every attribute someone has,
 ## their health (CombatantDefinition.hp_at), their gates and which of their
 ## skills they know (SkillDefinition.required_level). Battle Select and the
 ## like still set it per spawn, so a fight can be opened at any level.
 
-const MAX_LEVEL := 20
+const MAX_LEVEL := 64
 
 ## The level a character chooses their path at - see SubclassDefinition.
-const SUBCLASS_LEVEL := 5
+const SUBCLASS_LEVEL := 24
 
 ## What a combatant is at before their level does anything. Every attribute
 ## sits here except the two their character is built around.
@@ -135,7 +136,16 @@ static func final_damage(base: float, ability_modifier: float, defense: int) -> 
 ##
 ## Indexed by level, with nothing at 0 because a skill that costs no gate is
 ## simply free.
-const GATE_NAMES := ["", "Gates of World", "Gates of Hermes", "Gates of Yaldabaoth"]
+##
+## The ladder goes down before it goes up: the world and its myths (World,
+## Hermes, Pandora), the underworld and its reckoning (Charon, Tartarus,
+## Nemesis), the climb out toward the light (Sophia, the Ogdoad, Gnosis), and
+## at the top the false god himself. When each opens is GATE_STEPS. Each starts
+## with a different letter, since a spell button marks the gate it will pay
+## from by its first.
+const GATE_NAMES := ["", "Gates of World", "Gates of Hermes", "Gates of Pandora",
+	"Gates of Charon", "Gates of Tartarus", "Gates of Nemesis", "Gates of Sophia",
+	"Gates of Ogdoad", "Gates of Gnosis", "Gates of Yaldabaoth"]
 
 ## How a combatant gets about, in the order CombatantDefinition.class_m lists
 ## them. Kept here so a number in a resource has one place that says what it
@@ -184,44 +194,102 @@ static func short_gate_name(level: int) -> String:
 	return gate_name(level).trim_prefix("Gates of ")
 
 
-## How many castings through each gate a combatant has at each level, indexed
-## [level][gate] with a nothing entry at 0 on both so a level and a gate number
-## read straight in.
+## --- Gates outside a fight ---
 ##
-## A rule of how far along someone is rather than a number set per character:
-## level 5 is what opens Hermes to you and level 9 Yaldabaoth, and nobody is a
-## special case. Only combatants who actually carry a spell get any of it - a
-## swordsman is not walking around with unused castings.
+## Gates opened only outside a fight, each as strong as one on the ladder
+## (`matches`). Their castings are their own: sneaking past a guard never costs
+## the next fight's gates. In a fight a spell of one is paid through the ladder
+## gate it says (SkillDefinition.spell_slot_level), like any other.
 ##
-## Laid out so the fights written for the old three levels play as they did:
-## level 10 is what level 2 was, and level 20 what level 3 was.
-const GATES_BY_LEVEL := [
-	[0, 0, 0, 0],
-	[0, 2, 0, 0], ## Level 1: two castings through the Gates of World.
-	[0, 2, 0, 0],
-	[0, 2, 0, 0],
-	[0, 3, 0, 0], ## Level 4: a third World.
-	[0, 3, 1, 0], ## Level 5: Hermes opens, once.
-	[0, 3, 1, 0],
-	[0, 3, 2, 0], ## Level 7: Hermes twice.
-	[0, 3, 2, 0],
-	[0, 3, 2, 1], ## Level 9: Yaldabaoth opens, once.
-	[0, 3, 2, 1],
-	[0, 3, 2, 1],
-	[0, 3, 2, 1],
-	[0, 3, 2, 1],
-	[0, 3, 2, 1],
-	[0, 3, 3, 1], ## Level 15: Hermes three times.
-	[0, 3, 3, 1],
-	[0, 3, 3, 2], ## Level 17: Yaldabaoth twice.
-	[0, 3, 3, 2],
-	[0, 3, 3, 2],
-	[0, 3, 3, 2],
+## Indexed like SkillDefinition.outside_gate, with nothing at 0. Mnemosyne is to
+## come, matching the fifth or sixth gate.
+const OUTSIDE_GATES := [
+	{},
+	{"name": "Gates of Iris", "matches": 2, "colour": Color("f2a7d8")},
 ]
 
 
-## The allowance at `level`, as a fresh array - it is spent down over a fight,
-## so handing out the shared constant would spend it for everyone.
+static func outside_gate_name(gate: int) -> String:
+	if gate < 1 or gate >= OUTSIDE_GATES.size():
+		return ""
+	return OUTSIDE_GATES[gate].name
+
+
+static func short_outside_gate_name(gate: int) -> String:
+	return outside_gate_name(gate).trim_prefix("Gates of ")
+
+
+static func outside_gate_colour(gate: int) -> Color:
+	if gate < 1 or gate >= OUTSIDE_GATES.size():
+		return Color.WHITE
+	return OUTSIDE_GATES[gate].colour
+
+
+## How many castings each outside gate has at `level`, indexed like
+## OUTSIDE_GATES: as many as the ladder gate it matches, until they have a
+## table of their own.
+static func outside_gates_for_level(level: int) -> Array:
+	var ladder := gates_for_level(level)
+	var counts := [0]
+	for gate in range(1, OUTSIDE_GATES.size()):
+		var matches: int = OUTSIDE_GATES[gate].matches
+		counts.append(ladder[matches] if matches < ladder.size() else 0)
+	return counts
+
+
+## How many castings through each gate a combatant has, by level: D&D's full
+## casters stretched so that its level 20 is our 64 - each of its levels about
+## 3.3 of ours. A new gate every six or seven levels, opening with one or two
+## castings and gaining one a few levels later; the low gates stop growing
+## early (World at 4 by level 8, Hermes at 3 by 11), and from about 34 on the
+## growth is new gates at one casting each - the price of each being so much
+## stronger than the last. D&D stops at nine; the tenth follows its rhythm, at
+## 61.
+##
+## A rule of how far along someone is rather than a number set per character:
+## nobody is a special case. Only combatants who actually carry a spell get any
+## of it - a swordsman is not walking around with unused castings.
+##
+## Each entry is the level a change comes at and what everybody has from then
+## on, World first; a level between two entries has the earlier one's.
+const GATE_STEPS := [
+	[1, [2]],
+	[4, [3]],
+	[8, [4, 2]],                          ## Hermes opens.
+	[11, [4, 3]],
+	[14, [4, 3, 2]],                      ## Pandora opens - twice already.
+	[18, [4, 3, 3]],
+	[21, [4, 3, 3, 1]],                   ## Charon.
+	[24, [4, 3, 3, 2]],
+	[28, [4, 3, 3, 3, 1]],                ## Tartarus.
+	[31, [4, 3, 3, 3, 2]],
+	[34, [4, 3, 3, 3, 2, 1]],             ## Nemesis.
+	[41, [4, 3, 3, 3, 2, 1, 1]],          ## Sophia.
+	[47, [4, 3, 3, 3, 2, 1, 1, 1]],       ## Ogdoad.
+	[54, [4, 3, 3, 3, 2, 1, 1, 1, 1]],    ## Gnosis.
+	[57, [4, 3, 3, 3, 3, 1, 1, 1, 1]],
+	[61, [4, 3, 3, 3, 3, 2, 1, 1, 1, 1]], ## Yaldabaoth.
+	[64, [4, 3, 3, 3, 3, 2, 2, 1, 1, 1]],
+]
+
+
+## No castings through any gate, as wide as the ladder.
+static func no_gates() -> Array:
+	var none := []
+	none.resize(GATE_NAMES.size())
+	none.fill(0)
+	return none
+
+
+## The allowance at `level`, indexed by gate with nothing at 0, as wide as the
+## ladder - a fresh array, since it is spent down over a fight.
 static func gates_for_level(level: int) -> Array:
-	var row = GATES_BY_LEVEL[clampi(level, 0, GATES_BY_LEVEL.size() - 1)]
-	return row.duplicate()
+	var row := no_gates()
+	for step in GATE_STEPS:
+		if step[0] > level:
+			break
+		var counts: Array = step[1]
+		for gate in counts.size():
+			if gate + 1 < row.size():
+				row[gate + 1] = counts[gate]
+	return row

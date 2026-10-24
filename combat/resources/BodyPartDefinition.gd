@@ -32,6 +32,18 @@ enum Broken {
 ## Disarmed: the skills, by key, they lose.
 @export var disarms: Array[String] = []
 
+@export_group("Growing back")
+## Their own turns after it breaks before it grows back whole - and whatever
+## breaking it did is undone. 0: it stays broken.
+@export_range(0, 20, 1) var regrows_after: int = 0
+## It grows back whole whenever they eat (Combat "Gluttony") - a meal heals it.
+@export var regrows_when_eating: bool = false
+
+@export_group("Whoever is inside")
+## Broken, whoever they have swallowed (EffectType.SWALLOW) falls out through
+## it, alive - a belly torn open.
+@export var frees_the_swallowed: bool = false
+
 
 ## What breaking it does, as the log and the hover say it.
 func describe_broken() -> String:

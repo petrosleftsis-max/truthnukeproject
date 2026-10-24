@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/chain_hook_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 6
+knockback_distance = 4
+
+[resource]
+script = ExtResource("3_skill")
+name = "Chain Hook"
+description = "A hooked chain thrown out to drag somebody to her."
+icon = ExtResource("2_icon")
+min_range = 2
+max_range = 5
+required_level = 24
+respects_blocking = true
+ability_modifier = 0.9
+scaling_stat = 0
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+sound = ExtResource("90_sfx")
+melee = true

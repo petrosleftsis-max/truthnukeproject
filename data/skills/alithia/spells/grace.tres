@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/grace_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[sub_resource type="Resource" id="Effect_1"]
+script = ExtResource("1_effect")
+type = 1
+heal_share_of_health = 1.0
+
+[resource]
+script = ExtResource("3_skill")
+name = "Grace"
+description = "Every ally near where it lands, back to full health."
+required_level = 64
+max_range = 10
+ability_modifier = 0.7
+aoe_radius = 3
+targets_ally = true
+deals_damage = false
+scaling_stat = 1
+spell_slot_level = 10
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_1")])

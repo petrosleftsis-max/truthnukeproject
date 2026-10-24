@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Cat Burglar I"
+description = "Quick between hiding places: two more tiles of movement on a turn he starts in cover."
+movement_in_cover = 2

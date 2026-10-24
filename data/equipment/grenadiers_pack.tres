@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Grenadier's Pack"
+description = "Padded cells sized for bombs: two bombs sit snugly in each."
+slot = 5
+price = 260
+slots = 16
+bombs_per_slot = 2

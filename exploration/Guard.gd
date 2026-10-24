@@ -11,7 +11,7 @@ class_name Guard
 ## set here.
 
 @export var combatant_key: String = "barbarian"
-@export_range(1, 20) var level: int = 1
+@export_range(1, 64) var level: int = 1
 ## What the fight calls them. Empty: the combatant's own name, numbered when
 ## there are several.
 @export var display_name: String = ""

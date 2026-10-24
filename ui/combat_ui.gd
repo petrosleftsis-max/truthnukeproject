@@ -9,6 +9,7 @@ signal deployment_finished()
 
 const TQIcon = preload("res://ui/tq_icon.tscn")
 const StatusIcon = preload("res://ui/status_icon.tscn")
+const FloorBar = preload("res://ui/floor_bar.gd")
 
 ## True while this HUD is being used for exploration rather than a battle.
 var exploration_mode := false
@@ -156,6 +157,17 @@ const MOVE_LABEL_LEFT := -108.0
 const HOTKEY_MARK := "Hotkey"
 
 var _pips: ActionPips = null
+## The floor buttons (FloorBar), on a map with more than one floor; null otherwise.
+var _floor_bar: Control = null
+
+
+## Puts up the floor buttons, once, if this battle has more than one floor.
+func _ensure_floor_bar():
+	if _floor_bar != null or combat == null or not combat._floored:
+		return
+	_floor_bar = FloorBar.new()
+	add_child(_floor_bar)
+	_floor_bar.setup(combat)
 var _unit_card: UnitCard = null
 var _turn_banner: TurnBanner = null
 ## The bosses' bars along the top, and their names across the middle.
@@ -315,7 +327,8 @@ func _queue_tip(comb: Dictionary) -> String:
 	# Something declared, coming down at the start of their next turn.
 	var readying := ""
 	if comb.has("declared") and SkillDatabase.skills.has(comb.declared.skill):
-		readying = "\nReadying %s - it lands on their next turn" % SkillDatabase.skills[comb.declared.skill].name
+		var winding: SkillDefinition = SkillDatabase.skills[comb.declared.skill]
+		readying = "\nReadying %s - it lands on their next turn%s" % [winding.name, " (hackable)" if winding.can_be_hacked() else ""]
 	# What Intuition read of their next turn.
 	if comb.has("intent"):
 		readying += "\nRead: %s" % combat.intent_text(comb)
@@ -330,14 +343,26 @@ func _standing_note(comb: Dictionary) -> String:
 		var left: int = comb.turncoat.turns
 		return "\nFighting for the other side%s" % ((" - %d more turn%s" % [left, "" if left == 1 else "s"]) if left > 0 else " this fight")
 	var notes := ""
+	if comb.get("thwarted", false):
+		notes += "\nIts foreseen turn was changed - until its next turn"
 	if comb.get("fleeing", 0) > 0:
 		notes += "\nBroken - running for a way out" if combat != null and not combat.escape_points.is_empty() else "\nBroken - fleeing"
-	if comb.has("riding"):
+	if Combat.is_inside(comb):
+		var left: int = comb.get("digest_left", 1)
+		notes += "\nInside %s - digested %s unless they get out" % [combat.swallower_of(comb).get("name", "somebody"),
+			"as its next turn begins" if left <= 1 else "in %d of its turns" % left]
+	elif comb.has("riding"):
 		notes += "\nUp on %s" % combat.mount_of(comb).get("name", "somebody")
+	if comb.has("riders") and combat != null and not combat.swallowed_by(comb).is_empty():
+		notes += "\nHas %s inside it" % ", ".join(combat.swallowed_by(comb).map(func(rider): return rider.name))
 	if comb.has("bound_to") and comb.side == 1:
 		notes += "\nBound to %s - a hack could rebind it" % comb.bound_to
 	if comb.get("bribe_price", 0) > 0 and comb.side == 1:
 		notes += "\nWould walk away for %d gold" % comb.bribe_price
+	var readied: Dictionary = comb.get("readied", {})
+	if not readied.is_empty() and SkillDatabase.skills.has(readied.skill):
+		notes += "\nReady: %s - when %s" % [SkillDatabase.skills[readied.skill].name,
+			SkillDefinition.trigger_name(readied.trigger, readied.get("by", 0))]
 	return notes
 
 
@@ -480,7 +505,7 @@ func _find_on_map(comb: Dictionary):
 		return
 	if combat.camera.is_following():
 		return
-	combat.camera.position = Grid.tile_to_world(comb.position)
+	combat.camera.position = combat.sprite_point(comb) + combat.drawing_offset(comb)
 	combat.camera.clamp_to_map()
 
 
@@ -798,7 +823,7 @@ func _refresh_amplify(comb):
 	var steps: int = comb.get("amplify", 0)
 	amplify_toggle.text = "Amplify: off" if steps == 0 else "Amplify: +%d gate%s" % [steps, "" if steps == 1 else "s"]
 	var free_left: int = combat.free_amplifies(comb) - comb.get("free_amplifies_used", 0)
-	amplify_toggle.tooltip_text = "Cast the next spell through a deeper gate for more damage.\n%d free this fight." % maxi(free_left, 0)
+	amplify_toggle.tooltip_text = "Cast the next spell through a deeper gate for more damage.\n%d free until a short rest." % maxi(free_left, 0)
 
 
 ## Off, one gate deeper, two, and off again.
@@ -1032,6 +1057,12 @@ func update_turn_queue(combatants: Array, turn_queue: Array):
 		if not comb.get("alive", true):
 			continue
 		add_turn_queue_icon(comb, slot)
+		var faces: Array = _queue_faces_for(comb)
+		if not faces.is_empty():
+			_set_crack(faces[-1], comb.get("thwarted", false))
+			_set_ready_badge(faces[-1], comb.has("readied"))
+	# The faces are new: summons go back beside whoever called them.
+	_refresh_summon_faces(combatants)
 
 
 func combatant_died(combatant):
@@ -1061,8 +1092,10 @@ func _icon_for(container: Node, comb: Dictionary) -> Node:
 
 
 func add_combatant_status(comb: Dictionary):
-	# An image of somebody (Combat.summon_decoy) is not one of the party.
-	if comb.side == 0 and not comb.get("illusion", false):
+	# An image of somebody (Combat.summon_decoy) is not one of the party, and a
+	# summon is drawn small beside whoever called it ("Summons beside their
+	# summoner").
+	if comb.side == 0 and not comb.get("illusion", false) and not comb.has("summoner"):
 		var new_status = StatusIcon.instantiate()
 		$Status.add_child(new_status)
 		new_status.set_icon(comb.icon)
@@ -1190,6 +1223,9 @@ func _input(event):
 
 
 func show_combatant_status_main(comb: Dictionary):
+	# The floor buttons, on a map with more than one floor - put up by the first
+	# turn, once the battle knows its floors (Combat "Heights").
+	_ensure_floor_bar()
 	# Whatever a pad had open along the bottom belonged to the turn before, and
 	# so did the skill it was last on - and any choice of action left up.
 	close_pad_panel()
@@ -1733,6 +1769,8 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	lines.append("")
 	if skill.declared:
 		lines.append("Declared: announcing it is free; it lands where it was aimed at the start of your next turn once the other side have all had one, and spends that turn's action")
+		if skill.can_be_hacked():
+			lines.append("Hackable: Hack can pick it apart while it is wound up")
 	if skill is GateNadeDefinition and skill.cast != null:
 		lines.append("Gate Nade: casts %s with no gate opened - for anybody who knows it or could learn it" % skill.cast.name)
 	if skill.spell_slot_level > 0:
@@ -1767,7 +1805,12 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		if granted_by != null:
 			action_slot = "Main, or Secondary through %s" % granted_by.name
 	lines.append("Action: %s" % action_slot)
-	lines.append("Range: %d-%d" % [skill.min_range, skill.max_range])
+	# Only so often a short rest: how often at their level, and how many are left.
+	if skill.uses_per_short_rest > 0:
+		var most := Combat.uses_a_rest(holder, skill) if not holder.is_empty() else skill.uses_per_short_rest
+		var left: int = combat.uses_left(holder, skill) if combat != null and not holder.is_empty() else most
+		lines.append("Uses: %d of %d left until a short rest" % [left, most])
+	lines.append("Range: %d-%d, %s" % [skill.min_range, skill.max_range, "melee" if skill.melee else "ranged"])
 	if skill.uses_stat_contest:
 		# A graze keeps the damage at half strength and drops everything else,
 		# so a skill carrying no damage at all does nothing whatever to whoever
@@ -1785,10 +1828,6 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 			"Everyone else takes half damage and none of the rest." if hurts
 				else "Everyone else shrugs it off entirely."
 		])
-	elif Combat.holding_condition(skill) != null:
-		# A grab is Physical against Physical (Combat.grip_chance).
-		lines.append("Hit chance: your Physical against theirs - %d%% between equals, a point more for every point stronger (%d-%d%%)" % [
-			Combat.GRIP_CHANCE, Combat.GRIP_MIN, Combat.GRIP_MAX])
 	else:
 		lines.append("Hit chance: %d%%" % skill.accuracy)
 	# Which attribute the numbers on this skill are worked out from, so the
@@ -1800,17 +1839,30 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	# advertise a Mystic that does nothing for them.
 	if _scales_off_the_caster(skill):
 		var moved_by = _scaling_moved_by()
-		lines.append("Scales with: %s%s" % [Stats.stat_name(_scaling_stat(skill)),
-			", through %s" % moved_by.name if moved_by != null else ""])
+		var through := ""
+		if moved_by != null:
+			through = ", through %s" % moved_by.name
+		elif Combat.is_spell(skill):
+			# Every spell of theirs alike (CombatantDefinition.spellcasting_stat).
+			through = " - the caster's spellcasting stat"
+		lines.append("Scales with: %s%s" % [Stats.stat_name(_scaling_stat(skill)), through])
 	if skill.deals_damage and skill.ignores_defense > 0:
 		lines.append("Ignores %d%% of the target's Defense" % mini(skill.ignores_defense, 100))
 	lines.append("Targets: %s" % ("Everyone caught in it" if skill.affects_both_sides else ("Allies" if skill.targets_ally else "Enemies")))
-	if skill.aoe_radius > 0:
-		lines.append("Area: %s" % describe_aoe_shape(skill))
+	# A melee blow's area is as big as whoever swings it (Combat.aoe_radius_of).
+	var radius: int = skill.aoe_radius
+	var shape: int = skill.aoe_shape
+	if combat != null and combat.has_method("aoe_radius_of"):
+		radius = combat.aoe_radius_of(_caster(), skill)
+		shape = combat.aoe_shape_of(_caster(), skill)
+	if radius > 0:
+		lines.append("Area: %s" % describe_aoe_shape(skill, radius, shape))
+		if radius != skill.aoe_radius:
+			lines.append("(%s by their size)" % ("grown" if radius > skill.aoe_radius else "shrunk"))
 	if skill.respects_blocking:
 		lines.append("Requires a clear line of sight")
 	if skill.is_reactive:
-		lines.append("Reactive: triggers automatically if a valid target leaves its range on their turn")
+		lines.append("%s: goes off when %s" % ["Reaction only" if skill.reaction_only else "Reactive", skill.describe_triggers()])
 	if skill.all_effects().size() > 0:
 		lines.append("")
 		lines.append("Effects:")
@@ -1852,27 +1904,35 @@ func _scales_off_the_caster(skill: SkillDefinition) -> bool:
 	return false
 
 
-func describe_aoe_shape(skill: SkillDefinition) -> String:
-	match skill.aoe_shape:
+## `radius` and `shape`, given, in place of the skill's own (a blow grown with its user).
+func describe_aoe_shape(skill: SkillDefinition, radius: int = -1, shape: int = -1) -> String:
+	if radius < 0:
+		radius = skill.aoe_radius
+	if shape < 0:
+		shape = skill.aoe_shape
+	match shape:
 		SkillDefinition.AoEShape.LINE:
-			return "Line, length %d, width %d" % [skill.aoe_radius, skill.aoe_width]
+			return "Line, length %d, width %d" % [radius, skill.aoe_width]
 		SkillDefinition.AoEShape.CONE:
-			return "Cone, length %d" % skill.aoe_radius
+			return "Cone, length %d" % radius
 		_:
-			return "Radius %d" % skill.aoe_radius
+			return "Radius %d" % radius
 
 
 ## How long an effect lasts, as a preview says it: the turns it is on whoever it
-## lands on (Combat.turns_stored), and which end of a turn it goes at - as the
-## last of them ends, or as the one after starts, which is what decides whether
-## it is still there when they next act.
-func _how_long(duration: int, at_start: bool) -> String:
+## lands on (Combat.turns_stored) - theirs, N of them - and which end of a turn
+## it goes at: as the last of them ends, or as the one after starts, which is
+## what decides whether it is still there when they next act. On the user
+## themselves it has the rest of this turn as well.
+func _how_long(duration: int, at_start: bool, on_self: bool = false) -> String:
 	var turns = Combat.turns_stored(duration, at_start)
 	if at_start:
 		if turns <= 0:
 			return "until their next turn starts"
-		return "for %d turn(s), gone as the next starts" % turns
-	return "for %d turn(s), gone as the last ends" % turns
+		return "for %d of their turns, gone as the next starts" % turns
+	if on_self:
+		return "for the rest of this turn and %d more" % turns
+	return "for %d of their turns, gone as the last ends" % turns
 
 
 func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) -> String:
@@ -1898,14 +1958,20 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 				return "Base Damage: %d %s" % [swing, Damage.type_name(effect.damage_type).to_lower()]
 			return "Base Damage: %s" % Damage.type_name(effect.damage_type).to_lower()
 		EffectDefinition.EffectType.HEAL:
-			# Reads like the damage line, because it is worked out the same way.
+			# Reads like the damage line, because it is worked out the same way -
+			# with any share of their own health on top (heal_share_of_health).
 			var mended = _heal_amount(skill, effect)
+			var share := ""
+			if effect.heal_share_of_health > 0.0:
+				share = "%d%% of their health" % roundi(effect.heal_share_of_health * 100)
+				if mended <= 0:
+					return "Heal: %s" % share
 			if mended >= 0:
-				return "Heal: %d" % mended
+				return "Heal: %d%s" % [mended, (" + " + share) if share != "" else ""]
 			return "Heal: %d-%d" % [effect.min_amount, effect.max_amount]
 		EffectDefinition.EffectType.STAT_MODIFIER:
 			var sign_str = "+" if effect.modifier_amount >= 0 else ""
-			return "%s%d %s %s" % [sign_str, effect.modifier_amount, effect.stat, _how_long(effect.duration, effect.wears_off_at_start)]
+			return "%s%d %s %s" % [sign_str, effect.modifier_amount, effect.stat, _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)]
 		EffectDefinition.EffectType.UPGRADE_ELEMENT:
 			# Named rather than described in the abstract, because "the upgraded
 			# form" means nothing until you know fire becomes plasma.
@@ -1914,19 +1980,19 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 				pairs.append("%s to %s" % [Damage.type_name(base),
 					Damage.type_name(Damage.UPGRADES[base])])
 			return "Raises the element of their next damaging spell (%s), %s" % [
-				", ".join(pairs), _how_long(effect.duration, effect.wears_off_at_start)]
+				", ".join(pairs), _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)]
 		EffectDefinition.EffectType.RESISTANCE:
 			var harder = effect.modifier_amount > 0
 			return "%s %s resistance by %d%% %s" % [
 				"Raises" if harder else "Lowers",
 				Damage.type_name(effect.damage_type).to_lower(),
-				absi(effect.modifier_amount), _how_long(effect.duration, effect.wears_off_at_start)
+				absi(effect.modifier_amount), _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)
 			]
 		EffectDefinition.EffectType.MOVEMENT_CLASS:
 			var moving_as = Stats.movement_class_name(effect.movement_class).to_lower()
 			if effect.movement_class == 1:
-				return "Moves as flying %s: over what blocks a walker, and across rough ground as though it were flat" % _how_long(effect.duration, effect.wears_off_at_start)
-			return "Moves as %s %s" % [moving_as, _how_long(effect.duration, effect.wears_off_at_start)]
+				return "Moves as flying %s: over what blocks a walker, and across rough ground as though it were flat" % _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)
+			return "Moves as %s %s" % [moving_as, _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)]
 		EffectDefinition.EffectType.DAMAGE_OVER_TIME:
 			# Per turn and in total, because a wound that ticks for 6 over 4 turns
 			# is a different decision from one that ticks for 20 once.
@@ -1935,10 +2001,10 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			if ticks >= 0:
 				return "Damage over time: %s%d %s a turn %s" % [
 					"" if effect.applies_to_caster else "base ",
-					ticks, Damage.type_name(effect.damage_type).to_lower(), _how_long(effect.duration, effect.wears_off_at_start)
+					ticks, Damage.type_name(effect.damage_type).to_lower(), _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)
 				]
 			return "Damage over time: %d-%d %s %s" % [
-				effect.min_amount, effect.max_amount, Damage.type_name(effect.damage_type).to_lower(), _how_long(effect.duration, effect.wears_off_at_start)
+				effect.min_amount, effect.max_amount, Damage.type_name(effect.damage_type).to_lower(), _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)
 			]
 		EffectDefinition.EffectType.DISPEL:
 			var scope_str = "all"
@@ -1955,7 +2021,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# this skill actually lands rather than what the condition says on
 			# its own - those are allowed to differ now.
 			var how_long = _how_long(effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration,
-				effect.condition.wears_off_at_start)
+				effect.condition.wears_off_at_start, effect.applies_to_caster)
 			# A condition describes itself in words - "a strong DOT" - which says
 			# how it compares to other conditions but not what it costs you here.
 			# The number belongs beside it, worked out from whoever is holding
@@ -1992,9 +2058,40 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# "x2" rather than the "x2.0" a float prints as.
 			var times = effect.stat_multiplier
 			var shown = str(int(times)) if is_equal_approx(times, roundf(times)) else str(times)
-			return "x%s %s %s" % [shown, effect.stat, _how_long(effect.duration, effect.wears_off_at_start)]
+			return "x%s %s %s" % [shown, effect.stat, _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)]
 		EffectDefinition.EffectType.HIDE:
 			return "Slips out of sight, if no enemy can see them - until one can"
+		EffectDefinition.EffectType.INVISIBLE:
+			return "Turns them invisible, even in plain view - until they do something to an enemy, or nobody on their side is left in sight"
+		EffectDefinition.EffectType.CANCEL_CASTING:
+			return "Cancels the spell they are casting: none of it happens, and their gate is spent all the same"
+		EffectDefinition.EffectType.GROW:
+			return "Makes them a size bigger %s, if there is room" % ("for the rest of the fight" if effect.duration <= 0 else "for %d turn%s" % [effect.duration, "" if effect.duration == 1 else "s"])
+		EffectDefinition.EffectType.SUMMON:
+			var called: CombatantDefinition = CombatantDatabase.combatants.get(effect.summons)
+			return "Calls up %s on the tile aimed at, to fight on your turn%s" % [
+				called.name if called != null else effect.summons, " - as strong as you" if effect.with_summoners_attributes else ""]
+		EffectDefinition.EffectType.COMMAND:
+			return "Your summon moves and acts now; then the turn is yours again"
+		EffectDefinition.EffectType.LOOT:
+			return "Takes everything a fallen enemy beside you carried, and whatever they wore into the stash"
+		EffectDefinition.EffectType.DRAW:
+			return "Takes one thing out of your pouch and puts it on your baldric, ready to use"
+		EffectDefinition.EffectType.TRAP:
+			var trap := "A hidden trap" if effect.trap_field_radius == 0 else "Hidden traps on every free tile within %d" % effect.trap_field_radius
+			var held := (": whoever of the other side steps in is %s" % effect.trap_holds_with.display_name.to_lower()) if effect.trap_holds_with != null else ""
+			var burst := (", and it bursts for x%s within %d" % [String.num(effect.trap_burst_modifier, 2), effect.trap_burst_radius]) if effect.trap_burst_modifier > 0.0 else ""
+			return trap + held + burst
+		EffectDefinition.EffectType.DISPEL_MAGIC:
+			return "Ends what spells did to the one it lands on, theirs or the other side's - or a spell's zone, aimed at its ground. Cast through any gate from its own down: it reaches only what came through that gate or a shallower one"
+		EffectDefinition.EffectType.ZONE:
+			var whose: String = ["your side", "the other side", "anybody"][clampi(effect.zone_for, 0, 2)]
+			var held := effect.zone_condition.display_name.to_lower() if effect.zone_condition != null else "nothing"
+			return "Stays on the ground for %d of your turns: %s standing in it is %s" % [effect.zone_turns, whose, held]
+		EffectDefinition.EffectType.CATALYST:
+			return "Every lingering condition of yours, on every enemy, goes off at once, x%s what it had left - then starts again" % String.num(effect.catalyst_times, 2)
+		EffectDefinition.EffectType.SWALLOW:
+			return "Swallows whoever it has hold of, whole - digested in %d of its turns unless they get out" % maxi(effect.duration, 1)
 		EffectDefinition.EffectType.REVEAL:
 			return "Lays their character sheet open to you for the rest of the battle"
 		EffectDefinition.EffectType.REVIVE:
@@ -2018,8 +2115,8 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Tries to break the grip of whoever is holding you"
 		EffectDefinition.EffectType.STEAL:
 			if effect.steal_count > 0:
-				return "Takes up to %d of the items the target has to hand, to use yourself" % effect.steal_count
-			return "Takes every item the target has to hand, to use yourself"
+				return "Takes up to %d of the things in one of the target's containers - you choose which - to use yourself" % effect.steal_count
+			return "Empties one of the target's containers - you choose which - into your own"
 	return ""
 
 
@@ -2031,6 +2128,9 @@ func update_combatants(combatants: Array):
 			var status = _icon_for($Status, comb)
 			if status != null:
 				status.set_health(comb.hp, effective_max_hp, comb.get("temp_hp", 0))
+				# A spell held on a tether (Combat "Tethers").
+				var held: Dictionary = comb.get("tether", {})
+				status.set_tether(held.get("bar", 0.0), held.get("max", 0.0))
 				_refresh_conditions(status, comb)
 		if comb.side == 0 and not exploration_mode and shown_combatant() == comb:
 			# The big portrait beside the skill panel belongs to whoever is
@@ -2038,10 +2138,14 @@ func update_combatants(combatants: Array):
 			# or being hurt during your own turn left it showing the health you
 			# started with, while the party portraits beside it told the truth.
 			$Actions/StatusIcon.set_health(comb.hp, effective_max_hp, comb.get("temp_hp", 0))
+			var held_now: Dictionary = comb.get("tether", {})
+			$Actions/StatusIcon.set_tether(held_now.get("bar", 0.0), held_now.get("max", 0.0))
 		var faces := _queue_faces_for(comb)
 		for turn_queue_icon in faces:
 			turn_queue_icon.tooltip_text = _queue_tip(comb)
 			_refresh_conditions(turn_queue_icon, comb)
+			_set_crack(turn_queue_icon, comb.get("thwarted", false))
+			_set_ready_badge(turn_queue_icon, comb.has("readied"))
 			turn_queue_icon.set_max_hp(effective_max_hp)
 			turn_queue_icon.set_hp(comb.hp)
 			var acting: bool = combat.get_current_combatant() == comb
@@ -2058,6 +2162,81 @@ func update_combatants(combatants: Array):
 			turn_queue_icon.set_turn_taken(taken)
 			if acting:
 				_show_current_face.call_deferred(turn_queue_icon)
+	_refresh_summon_faces(combatants)
+
+
+## --- Summons beside their summoner ---
+##
+## A summon has no turn of its own and no place in the party column: it is a
+## small portrait by whoever called it - beside their portrait in the party
+## column for the party's, and in the corner of their face in the turn queue for
+## anybody's - with its health under it. Hung off a Node2D, so the containers
+## those sit in leave it alone; in the queue it sits inside the face, since the
+## queue scrolls and clips whatever hangs outside it.
+
+## How big a summon's portrait is, beside a party portrait and in a queue face.
+const SUMMON_FACE := 30.0
+const SUMMON_FACE_IN_QUEUE := 24.0
+
+
+## Every summon's portrait put up afresh, beside whoever called it.
+func _refresh_summon_faces(combatants: Array):
+	for holder in $Status.get_children() + $TurnQueue/Queue.get_children():
+		var old = holder.get_node_or_null("Summons")
+		if old != null:
+			holder.remove_child(old)
+			old.queue_free()
+	if combat == null:
+		return
+	var by_summoner := {}
+	for comb in combatants:
+		if comb.get("alive", false) and comb.has("summoner"):
+			if not by_summoner.has(comb.summoner):
+				by_summoner[comb.summoner] = []
+			by_summoner[comb.summoner].append(comb)
+	for summoner_id in by_summoner:
+		var summoner: Dictionary = combat.combatant_with_id(summoner_id)
+		if summoner.is_empty():
+			continue
+		var status = _icon_for($Status, summoner)
+		if status != null:
+			_hang_summons(status, by_summoner[summoner_id], SUMMON_FACE, true)
+		for face in _queue_faces_for(summoner):
+			_hang_summons(face, by_summoner[summoner_id], SUMMON_FACE_IN_QUEUE, false)
+
+
+## `summons` as small portraits on `holder`: beside it to the right (`beside`),
+## or in its bottom-left corner.
+func _hang_summons(holder: Control, summons: Array, size: float, beside: bool):
+	var rack := Node2D.new()
+	rack.name = "Summons"
+	holder.add_child(rack)
+	for i in summons.size():
+		var summon: Dictionary = summons[i]
+		var at := Vector2(holder.size.x + 4.0, i * (size + 8.0)) if beside \
+			else Vector2(2.0 + i * (size + 2.0), holder.size.y - size - 6.0)
+		var face := TextureRect.new()
+		face.name = "Summon%d" % summon.get("id", 0)
+		face.texture = summon.get("icon")
+		face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		face.position = at
+		face.size = Vector2(size, size)
+		face.mouse_filter = Control.MOUSE_FILTER_STOP
+		face.tooltip_text = "%s - %s's summon, %d / %d HP" % [summon.name, combat.combatant_with_id(summon.summoner).get("name", "?"),
+			summon.hp, combat.get_effective_stat(summon, "max_hp")]
+		face.mouse_entered.connect(_point_out.bind(summon))
+		face.mouse_exited.connect(_stop_pointing)
+		rack.add_child(face)
+		var health := ProgressBar.new()
+		health.show_percentage = false
+		health.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		health.position = at + Vector2(0, size + 1.0)
+		health.custom_minimum_size = Vector2(size, 4)
+		health.size = Vector2(size, 4)
+		health.max_value = maxi(combat.get_effective_stat(summon, "max_hp"), 1)
+		health.value = summon.hp
+		rack.add_child(health)
 
 
 func set_movement(movement):
@@ -2368,7 +2547,7 @@ func show_hit_preview(skill_key: String, aim: Vector2i):
 		_hit_rows.add_child(_hit_row(caster, target, skill, hit))
 		_show_ghost(target, int(hit.heal) - int(hit.damage))
 		# Aimed at a part of somebody big: which, and what breaking it does.
-		var part: String = combat.part_note(target, aim)
+		var part: String = combat.part_note(target, aim) if combat.aims_at_parts(caster, skill) else ""
 		if part != "" and hit.deals_damage:
 			_hit_rows.add_child(_hit_label("Aimed at the %s" % part, 12, HIT_PREVIEW_WINS))
 	_hit_preview.visible = true
@@ -2432,14 +2611,18 @@ func _hit_row(caster: Dictionary, target: Dictionary, skill: SkillDefinition, hi
 	return row
 
 
-## What `target` has to hand, as a Steal would find it.
+## What `target` carries, container by container, as a Steal would find it - it
+## empties one of them, chosen as it lands.
 func _carried_line(target: Dictionary) -> Label:
-	var names := []
-	for key in combat.items_of(target):
-		var item: ItemDefinition = ItemDatabase.item(key)
-		names.append(item.name if item != null else key)
-	var text := "Carries: " + ", ".join(names) if not names.is_empty() else "Carries nothing"
-	return _hit_label(text, 12, HIT_PREVIEW_WINS if not names.is_empty() else TAB_OFF)
+	var lines := []
+	for choice in combat.steal_choices(target):
+		var names := []
+		for key in choice.items:
+			var item: ItemDefinition = ItemDatabase.item(key)
+			names.append(item.name if item != null else key)
+		lines.append("%s: %s" % [choice.label, ", ".join(names)])
+	var text := "Carries - %s" % "\n".join(lines) if not lines.is_empty() else "Carries nothing"
+	return _hit_label(text, 12, HIT_PREVIEW_WINS if not lines.is_empty() else TAB_OFF)
 
 
 ## The prompt for somebody a Steal cannot be let go at right now - out of reach,
@@ -2851,6 +3034,68 @@ func close_slot_picker():
 
 
 ## The picker itself: Escape, the pad's back button or a right click put it away.
+## Cracks `face` in the turn queue, or mends it: somebody whose foreseen turn
+## the party changed (Combat._future_changed), until their next turn begins.
+func _set_crack(face: Control, on: bool):
+	var crack = face.get_node_or_null("Crack")
+	if on and crack == null:
+		crack = _Crack.new()
+		crack.name = "Crack"
+		crack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		crack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		face.add_child(crack)
+	elif not on and crack != null:
+		face.remove_child(crack)
+		crack.queue_free()
+
+
+## Marks `face` in the turn queue as having something readied (Combat "Ready"),
+## in the violet the board draws a readied area in - or takes the mark off.
+func _set_ready_badge(face: Control, on: bool):
+	var badge = face.get_node_or_null("ReadyBadge")
+	if on and badge == null:
+		badge = _ReadyBadge.new()
+		badge.name = "ReadyBadge"
+		badge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		face.add_child(badge)
+	elif not on and badge != null:
+		face.remove_child(badge)
+		badge.queue_free()
+
+
+## A small violet eye in a face's top corner: watching, ready to act.
+class _ReadyBadge extends Control:
+	const FILL := Color(0.62, 0.42, 1.0, 0.95)
+	const EDGE := Color(0.08, 0.04, 0.16, 0.9)
+	const PUPIL := Color(1.0, 1.0, 1.0, 0.95)
+
+	func _draw():
+		var radius := minf(size.x, size.y) * 0.16
+		var centre := Vector2(size.x - radius - 2.0, radius + 2.0)
+		draw_circle(centre, radius + 1.5, EDGE)
+		draw_circle(centre, radius, FILL)
+		draw_circle(centre, radius * 0.38, PUPIL)
+
+
+## A crack across a face: a jagged line corner to corner with a branch off it,
+## pale over a dark edge so it reads on any portrait.
+class _Crack extends Control:
+	const LINE := Color(0.85, 1.0, 0.98, 0.95)
+	const SHADOW := Color(0.02, 0.08, 0.08, 0.85)
+
+	func _draw():
+		var s := size
+		var main := PackedVector2Array([Vector2(0.18, 0.04) * s, Vector2(0.36, 0.3) * s, Vector2(0.3, 0.46) * s,
+			Vector2(0.55, 0.62) * s, Vector2(0.5, 0.78) * s, Vector2(0.78, 0.98) * s])
+		var branch := PackedVector2Array([Vector2(0.3, 0.46) * s, Vector2(0.12, 0.6) * s, Vector2(0.06, 0.74) * s])
+		var twig := PackedVector2Array([Vector2(0.55, 0.62) * s, Vector2(0.82, 0.52) * s, Vector2(0.94, 0.58) * s])
+		for line in [main, branch, twig]:
+			draw_polyline(line, SHADOW, 5.0)
+		for line in [main, branch, twig]:
+			draw_polyline(line, LINE, 2.0)
+
+
 class _SlotPicker extends PanelContainer:
 	var hud = null
 

@@ -8,11 +8,12 @@
 script = ExtResource("1_e072t")
 type = 1
 heal_modifier = 0.7
+heal_share_of_health = 0.4
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_dblnd")
-item_power = 47
+item_power = 0
 name = "Mediocre Cure Potion"
 description = "In the same ammount of sips, you restore more vitality."
 max_range = 2
@@ -21,4 +22,4 @@ targets_ally = true
 effects = Array[ExtResource("1_e072t")]([SubResource("Resource_w7hvu")])
 deals_damage = false
 metadata/_custom_type_script = "uid://cbf4gnjv5w62v"
-price = 35
+price = 120

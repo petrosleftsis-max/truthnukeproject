@@ -1,8 +1,8 @@
 extends Node
 ## The ways of dealing with enemies besides hitting them: Enfina's hits studying,
 ## Alithia's Intuition reading a turn and holding them to it, changing sides,
-## taunts, nerve (fleeing, surrendering, leaders), taking them alive and
-## questioning them, Intimidate / Persuade / Deceive and the leverage they need,
+## a champion hemming the party in and Exposing them, nerve (fleeing,
+## surrendering, leaders), taking them alive and questioning them, Intimidate / Persuade / Deceive and the leverage they need,
 ## bribes and parleys, body parts, Hurl and Climb, rebinding a bound creature,
 ## and quick time events.
 
@@ -45,7 +45,7 @@ func _ready():
 	measured_eye()
 	await the_codex()
 	await intuition()
-	taunts()
+	holding_attention()
 	switching_sides()
 	leverage()
 	await talking_them_round()
@@ -63,7 +63,11 @@ func _ready():
 	await open_fight(GOLEM)
 	body_parts()
 	after_something_big()
+	shooting_something_big()
+	await watching_something_big()
 	await climbing()
+	melee_and_ranged()
+	await riders_cannot_shove()
 	await rebinding()
 	await the_party_falling()
 	await close_fight()
@@ -173,6 +177,11 @@ func give_turn(comb: Dictionary):
 
 ## `enemy`'s turn, handed back to `player` after it.
 func enemy_turn(enemy: Dictionary, player: Dictionary):
+	# A reaction would stop and ask a player who is not there - and the party's
+	# come back at the start of each of their own turns, which these hand round.
+	for comb in combat.combatants:
+		if comb.side == 0:
+			comb.reaction_used = true
 	var p: int = combat.combatants.find(player)
 	var e: int = combat.combatants.find(enemy)
 	combat.turn_queue = [p, e, p]
@@ -228,6 +237,9 @@ func intuition():
 	ok(skill.is_secondary, "Intuition is a secondary action")
 	ok(alithia.skill_list.has("intuition"), "and it is Alithia's")
 	sturdy(foe)
+	# Whoever it turns on instead - more than once - lives through it.
+	sturdy(alithia)
+	sturdy(who("prometheus"))
 	# Somebody for it to go for, within its reach.
 	var cyrus := who("cyrus")
 	sturdy(cyrus)
@@ -259,6 +271,77 @@ func intuition():
 	var hurt: Array = combat.combatants.filter(func(c): return before.has(c.id) and c.hp < before[c.id])
 	ok(hurt.is_empty(), "the blow lands where it was read, on nobody", "%s" % [hurt.map(func(c): return c.name)])
 	ok(not foe.has("intent"), "and the reading is spent")
+	# Somebody stands on the tile it meant to step to: it has to adapt, and says so.
+	var reachable := a_tile(cyrus, func(tile): return combat.distance_to(foe, tile) == 3)
+	combat.teleport_to(cyrus, reachable)
+	await settle(1)
+	combat.read_intent(alithia, foe)
+	var plan: Dictionary = foe.get("intent", {})
+	var stand: Vector2i = plan.get("tile", foe.position)
+	if stand == foe.position:
+		log_line("  NOTE  it meant to stay where it stood, so there was no tile to take")
+	else:
+		var blocker := who("enfina")
+		sturdy(blocker)
+		ok(combat.teleport_to(blocker, stand), "Enfina takes the tile it meant to stand on", "%s" % [stand])
+		mark = heard.size()
+		var made: Array = []
+		var watching := func(node): made.append(String(node.name))
+		combat.controller.child_entered_tree.connect(watching)
+		await enemy_turn(foe, alithia)
+		combat.controller.child_entered_tree.disconnect(watching)
+		ok(heard_since(mark, "The party managed to change the future that Alithia foresaw and the [color=red]Sellsword 2[/color] is forced to adapt."),
+			"so it has to adapt, and the log says the party changed the future", "%s" % [heard.slice(mark)])
+		ok(made.any(func(name): return name.begins_with("FutureShards")), "the marks shatter", "%s" % [made])
+		ok(heard_since(mark, "[color=yellow]Alithia[/color]: \""), "and Alithia has something to say about it")
+		ok(foe.get("thwarted", false), "it is thwarted until its next turn")
+		var faces: Array = combat.game_ui._queue_faces_for(foe)
+		ok(not faces.is_empty() and faces.all(func(face): return face.get_node_or_null("Crack") != null), "its face in the turn queue is cracked")
+		await enemy_turn(foe, alithia)
+		ok(not foe.get("thwarted", false), "and mended once its next turn begins")
+		faces = combat.game_ui._queue_faces_for(foe)
+		ok(faces.all(func(face): return face.get_node_or_null("Crack") == null), "face and all")
+	# A death in the vision: somebody the read blow would knock out is marked red.
+	combat.teleport_to(cyrus, a_tile(cyrus, func(tile): return combat.distance_to(foe, tile) == 1))
+	var cyrus_hp: int = cyrus.hp
+	cyrus.hp = 1
+	foe["intent"] = {"skill": "greatsword_attack", "tile": foe.position, "aim": cyrus.position, "tiles": [cyrus.position],
+		"target": cyrus.id, "read_by": "Alithia", "reader_id": alithia.id}
+	ok(combat.foreseen_doom(foe).has(cyrus), "a blow that would finish Cyrus is a death in the vision")
+	ok(combat.intent_marks().any(func(m): return not m.doomed.is_empty()), "marked for the board to draw red")
+	ok("would finish Cyrus" in combat.intent_text(foe), "and said", combat.intent_text(foe))
+	cyrus.hp = cyrus_hp
+	ok(combat.foreseen_doom(foe).is_empty(), "healed, the death is gone from the vision")
+	foe.erase("intent")
+	# A path can add to a reading (PassiveDefinition, Intuition).
+	var path := PassiveDefinition.new()
+	path.name = "Test path"
+	var fright := EffectDefinition.new()
+	fright.type = EffectDefinition.EffectType.CONDITION
+	fright.condition = condition("fear")
+	path.on_read_effects = [fright]
+	var shield := EffectDefinition.new()
+	shield.type = EffectDefinition.EffectType.CONDITION
+	shield.condition = condition("hesitating")
+	path.forewarn_effects = [shield]
+	path.thwarted_damage_bonus = 0.5
+	var kept_passives: Array = alithia.get("passives", []).duplicate()
+	alithia["passives"] = kept_passives + [path]
+	combat.teleport_to(cyrus, a_tile(cyrus, func(tile): return combat.distance_to(foe, tile) == 1))
+	combat.read_intent(alithia, foe)
+	ok(has_condition(foe, "fear"), "reading puts what the path says on the one read")
+	var victims: Array = combat.foreseen_victims(foe)
+	ok(victims.is_empty() or victims.all(func(victim): return has_condition(victim, "hesitating")), "and on whoever its blow is aimed at",
+		"%s" % [victims.map(func(v): return v.name)])
+	var plain: float = combat.damage_dealt_multiplier(alithia, foe, SkillDatabase.skills.sass_club)
+	foe["thwarted"] = true
+	var thwarted: float = combat.damage_dealt_multiplier(alithia, foe, SkillDatabase.skills.sass_club)
+	ok(is_equal_approx(thwarted, plain * 1.5), "and her hits on somebody thwarted land harder", "%.2f vs %.2f" % [thwarted, plain])
+	foe.erase("thwarted")
+	foe.erase("intent")
+	alithia["passives"] = kept_passives
+	for comb in [foe] + victims:
+		comb.status_effects = comb.status_effects.filter(func(e): return e.get("condition") == null or not (e.condition.resource_path.get_file().get_basename() in ["fear", "hesitating"]))
 	var golem_like := {"name": "Test", "side": 1, "immune_to": [Immunity.Kind.READ], "position": Vector2i(-50, -50), "status_effects": []}
 	mark = heard.size()
 	combat.read_intent(alithia, golem_like)
@@ -266,29 +349,51 @@ func intuition():
 	log_line("")
 
 
-func taunts():
-	log_line("======== Taunts ========")
+func holding_attention():
+	log_line("======== Hemmed In and Exposed ========")
 	var champion := who("pit_champion")
 	var enfina := who("enfina")
 	sturdy(champion)
 	ok(beside(enfina, champion), "Enfina starts beside the champion")
-	combat._auras_on(enfina)
-	ok(has_condition(enfina, "taunted"), "the champion's Challenge taunts her")
-	ok(combat.taunted_by(enfina) == champion, "and ties her to the champion")
-	var other := named("Sellsword 1")
-	var refused: String = combat.refusal_for(enfina, SkillDatabase.skills.greatsword_attack, other.position)
-	ok("taunted" in refused, "a blow at anybody else is refused", refused)
-	ok(combat.refusal_for(enfina, SkillDatabase.skills.greatsword_attack, champion.position) == "", "at the champion it is not")
-	ok(combat.refusal_for(enfina, SkillDatabase.skills.study, other.position) == "", "and nothing that does not hurt is bound")
-	# The AI, taunted by Cyrus: he is the only one worth anything to it.
+	# Hemmed In: twice the movement within two tiles, for the other side only.
+	var hemmed: Dictionary = combat.hemmed_tiles(enfina)
+	ok(hemmed.has(enfina.position) and combat.hem_cost(enfina, enfina.position) == 2, "beside the champion, every tile costs her twice")
+	var far: Vector2i = enfina.position + Vector2i(30, 30)
+	ok(combat.hem_cost(enfina, far) == 1, "far off, once")
+	var sellsword := named("Sellsword 1")
+	ok(combat.hemmed_tiles(sellsword).is_empty(), "and the champion's own side walks as ever")
+	var step := Vector2i(-99999, -99999)
+	for offset in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]:
+		var tile: Vector2i = enfina.position + offset
+		if hemmed.has(tile) and not combat.controller.is_tile_blocking(tile, 0) and combat.get_combatant_at(tile).is_empty() \
+				and combat.controller.get_tile_cost_for_class(tile, 0) == 1:
+			step = tile
+			break
+	if step.x != -99999:
+		var reach: Dictionary = combat.controller.get_reachable_tiles(enfina.position, 0, 6, enfina)
+		ok(reach.get(step, -1) == 2, "a step beside it takes two of her movement", "%s" % [reach.get(step, -1)])
+	# Exposed: ending a turn near it without having hurt it.
+	enfina.erase("struck_this_turn")
+	combat.end_of_turn_effects(enfina)
+	ok(has_condition(enfina, "exposed"), "ending her turn beside it without a blow at it, she is Exposed")
+	var swing: SkillDefinition = SkillDatabase.skills.greatsword_attack
+	ok(is_equal_approx(combat.progression_damage_bonus(champion, enfina, swing), 1.2), "a fifth more from the champion",
+		"%s" % combat.progression_damage_bonus(champion, enfina, swing))
+	ok(is_equal_approx(combat.progression_damage_bonus(sellsword, enfina, swing), 1.0), "and nothing more from anybody else")
+	var entry: Dictionary = {}
+	for eff in enfina.status_effects:
+		if eff.get("condition") == condition("exposed"):
+			entry = eff
+	ok(Combat.gone_by_their_turn(entry), "gone as her next turn starts")
+	enfina.status_effects = enfina.status_effects.filter(func(e): return e.get("condition") != condition("exposed"))
+	enfina["struck_this_turn"] = [champion.id]
+	combat.end_of_turn_effects(enfina)
+	ok(not has_condition(enfina, "exposed"), "having hit it, she is not")
+	enfina.erase("struck_this_turn")
 	var cyrus := who("cyrus")
-	var foe := named("Sellsword 2")
-	combat.put_condition(foe, condition("taunted"), 2, "test", true, cyrus.id)
-	var worth: Dictionary = combat.ai_worth_table(foe, SkillDatabase.skills.greatsword_attack)
-	ok(worth.has(cyrus.id) and not worth.has(enfina.id) and not worth.has(who("alithia").id), "a taunted enemy values only its taunter", "%s" % [worth.keys()])
-	ok(combat.find_nearest_enemy_of(foe) == cyrus, "and heads for him")
-	foe.status_effects = foe.status_effects.filter(func(e): return e.get("condition") == null or not e.condition.taunts)
-	enfina.status_effects = enfina.status_effects.filter(func(e): return e.get("condition") == null or not e.condition.taunts)
+	if combat.distance_to(champion, cyrus.position) > 2:
+		combat.end_of_turn_effects(cyrus)
+		ok(not has_condition(cyrus, "exposed"), "nor is anybody further off")
 	log_line("")
 
 
@@ -476,19 +581,38 @@ func hurling():
 	log_line("")
 
 
-## `holder` grabs `held`, beside them, as their main action - again, until it
-## takes (a grab is Physical against Physical, and can miss).
+## `holder` grabs `held`, beside them, as their main action. A contest of
+## Physical: it takes only if `holder` is the stronger.
 func hold(holder: Dictionary, held: Dictionary):
-	for i in 40:
-		give_turn(holder)
-		await combat.use_skill("grab", holder, combat.nearest_tile_of(held, holder.position), false)
-		await settle(1)
-		if held_by(held, holder):
-			return
+	give_turn(holder)
+	await combat.use_skill("grab", holder, combat.nearest_tile_of(held, holder.position), false)
+	await settle(1)
 
 
 func held_by(held: Dictionary, holder: Dictionary) -> bool:
 	return combat.holder_of(held).get("id", -2) == holder.get("id", -1)
+
+
+## How many steps of a walk apart two tiles are - a diagonal is one, where
+## get_position_distance counts it as two.
+func steps_between(a: Vector2i, b: Vector2i) -> int:
+	return maxi(absi(a.x - b.x), absi(a.y - b.y))
+
+
+## The first of `count` free tiles in a row, left to right: ground to stand on
+## and nobody there. (-99999, -99999) for none.
+func free_row(count: int) -> Vector2i:
+	var region: Rect2i = combat.controller._astargrid.region
+	for y in range(region.position.y, region.end.y):
+		for x in range(region.position.x, region.end.x - count):
+			var clear := true
+			for i in count:
+				var tile := Vector2i(x + i, y)
+				if combat.controller.is_tile_blocking(tile, 0) or not combat.get_combatant_at(tile).is_empty():
+					clear = false
+			if clear:
+				return Vector2i(x, y)
+	return Vector2i(-99999, -99999)
 
 
 ## Moves `comb` to `tile` as a step of a walk would - no teleport.
@@ -514,6 +638,11 @@ func grabbing():
 	sturdy(enfina)
 	var her_physical: int = enfina.stats.get("physical", 10)
 	var its_physical: int = foe.stats.get("physical", 10)
+	var bow_physical: int = other.stats.get("physical", 10)
+	# A grab is a contest of Physical: she is the stronger here, so it takes.
+	set_stat(enfina, Stats.Type.PHYSICAL, 99)
+	set_stat(foe, Stats.Type.PHYSICAL, 50)
+	set_stat(other, Stats.Type.PHYSICAL, 50)
 	var golem_like := {"name": "Golem", "side": 1, "size": Sizes.Size.ENORMOUS, "immune_to": [], "position": Vector2i.ZERO}
 	ok("too big for Enfina to get hold of" in combat._grip_refusal(enfina, grab, golem_like), "something two sizes bigger is too big to hold",
 		combat._grip_refusal(enfina, grab, golem_like))
@@ -539,12 +668,15 @@ func grabbing():
 	ok(combat.break_free_chance(foe, enfina) == combat.GRIP_MAX, "never more than the most")
 	set_stat(foe, Stats.Type.PHYSICAL, 0)
 	ok(combat.break_free_chance(foe, enfina) == combat.GRIP_MIN, "never less than the least")
-	# Getting hold is the same contest, the other way round - and the preview
-	# reads it.
-	set_stat(foe, Stats.Type.PHYSICAL, 60)
-	ok(combat.hit_chance(enfina, grab, foe) == combat.GRIP_CHANCE - 10, "a grab is her Physical against theirs, the same contest",
-		"%d" % combat.hit_chance(enfina, grab, foe))
-	ok(combat.predict_hit(enfina, foe, grab).hit_chance == combat.GRIP_CHANCE - 10, "and the hover says so")
+	# Getting hold is a contest of Physical, with no roll: never a miss on
+	# anybody weaker, never a hold on anybody as strong.
+	ok(grab.uses_stat_contest and grab.contest_stat == Stats.Type.PHYSICAL and grab.scaling_stat == Stats.Type.PHYSICAL,
+		"a grab is her Physical against theirs, with no hit roll")
+	set_stat(foe, Stats.Type.PHYSICAL, 49)
+	ok(combat.wins_contest(enfina, foe, grab), "anybody weaker is always grabbed")
+	set_stat(foe, Stats.Type.PHYSICAL, 50)
+	ok(not combat.wins_contest(enfina, foe, grab) and not combat.predict_hit(enfina, foe, grab).wins,
+		"anybody as strong never is, and the hover says so")
 	set_stat(foe, Stats.Type.PHYSICAL, 0)
 	# Held, it fights from where it stands while it can.
 	ok(combat._ai_can_strike_from_here(foe), "held beside her, it can still hit her from there")
@@ -571,6 +703,7 @@ func grabbing():
 		tries += 1
 	ok(not combat.is_held(foe) and not foe.skill_list.has("break_free"), "in the end it breaks free, and Break Free is gone", "%d tries" % tries)
 	ok(heard_since(mark, "breaks free of Enfina"), "and it is told")
+	set_stat(enfina, Stats.Type.PHYSICAL, 99)
 	set_stat(foe, Stats.Type.PHYSICAL, 50)
 	# Freed in the turn it was grabbed, what was left of its walk comes back.
 	await hold(enfina, foe)
@@ -579,7 +712,7 @@ func grabbing():
 	foe["movement_left_when_grabbed"] = 2
 	combat._let_go(foe)
 	ok(combat.controller.movement == 2, "freed the turn it was grabbed, it has what was left of its walk", "%d" % combat.controller.movement)
-	# Much the weaker, a grab mostly slips.
+	# Weaker than what she grabs at, a grab always slips.
 	set_stat(enfina, Stats.Type.PHYSICAL, 0)
 	set_stat(foe, Stats.Type.PHYSICAL, 300)
 	var slipped := heard.size()
@@ -589,8 +722,8 @@ func grabbing():
 		give_turn(enfina)
 		await combat.use_skill("grab", enfina, combat.nearest_tile_of(foe, enfina.position), false)
 		combat._let_go(foe)
-	ok(heard_since(slipped, "twists out of"), "a grab that misses: it twists out of her grab")
-	set_stat(enfina, Stats.Type.PHYSICAL, 50)
+	ok(heard_since(slipped, "twists out of") and not combat.is_held(foe), "a grab on somebody stronger: it twists out of her grab")
+	set_stat(enfina, Stats.Type.PHYSICAL, 99)
 	set_stat(foe, Stats.Type.PHYSICAL, 50)
 	# One at a time.
 	await hold(enfina, foe)
@@ -600,12 +733,40 @@ func grabbing():
 	# Teleported.
 	combat.teleport_to(enfina, a_tile(enfina, func(tile): return combat.distance_to(other, tile) >= 3))
 	ok(not combat.is_held(other), "teleported, she lets go")
-	# Walked away.
-	ok(pair_up(enfina, foe), "beside the sellsword again")
+	# Walked away: she drags it after her (Combat "Dragging"), every tile at twice
+	# the movement - it is no smaller than she is.
+	# Three free tiles in a row: the sellsword on the last, Enfina beside it, and
+	# room for her to step away.
+	var lane := free_row(3)
+	ok(lane.x != -99999, "three free tiles in a row", "%s" % lane)
+	step_to(foe, lane + Vector2i(2, 0))
+	step_to(enfina, lane + Vector2i(1, 0))
 	await hold(enfina, foe)
-	step_to(enfina, a_tile(enfina, func(tile): return combat.distance_to(foe, tile) >= 2 and combat.get_position_distance(tile, enfina.position) <= 2))
+	ok(combat.drag_cost(enfina) == 2, "holding somebody her own size, every tile costs her two")
+	var free_reach: int = 0
+	var dragging_reach: int = 0
+	for tile in combat.controller.get_reachable_tiles(enfina.position, 0, 6, enfina):
+		dragging_reach = maxi(dragging_reach, steps_between(tile, enfina.position))
+	var foe_size: int = foe.size
+	foe.size = Sizes.Size.SMALL
+	ok(combat.drag_cost(enfina) == 1, "somebody a size smaller costs her nothing more")
+	for tile in combat.controller.get_reachable_tiles(enfina.position, 0, 6, enfina):
+		free_reach = maxi(free_reach, steps_between(tile, enfina.position))
+	foe.size = foe_size
+	ok(dragging_reach <= 3 and free_reach > dragging_reach, "so six movement takes her three tiles with it, and further without",
+		"%d and %d" % [dragging_reach, free_reach])
+	var foe_was: Vector2i = foe.position
+	var enfina_was: Vector2i = enfina.position
+	step_to(enfina, lane)
+	var dragged: bool = combat.drag_held(enfina)
 	combat.check_holds()
-	ok(not combat.is_held(foe), "not beside it any more, she has let go")
+	ok(dragged and combat.is_held(foe) and foe.position != foe_was and combat.rect_gap(combat.rect_of(enfina), combat.rect_of(foe)) <= 1,
+		"a step away, and she drags it along beside her", "she %s -> %s, it %s -> %s, dragged %s, held %s" % [
+			enfina_was, enfina.position, foe_was, foe.position, dragged, combat.is_held(foe)])
+	# Somewhere it was not walked to, nobody is dragged after her: she lets go.
+	step_to(enfina, a_tile(enfina, func(tile): return combat.distance_to(foe, tile) >= 3))
+	combat.check_holds()
+	ok(not combat.is_held(foe), "not beside it any more, and not by walking, she has let go")
 	# Shoved - the held, and the holder.
 	var push := EffectDefinition.new()
 	push.type = EffectDefinition.EffectType.PUSH
@@ -678,6 +839,7 @@ func grabbing():
 	combat._let_go(other)
 	set_stat(enfina, Stats.Type.PHYSICAL, her_physical)
 	set_stat(foe, Stats.Type.PHYSICAL, its_physical)
+	set_stat(other, Stats.Type.PHYSICAL, bow_physical)
 	log_line("")
 
 
@@ -903,6 +1065,145 @@ func after_something_big():
 	log_line("")
 
 
+## Cyrus's gun on the golem, from below and to the right of it - where a line to
+## its top-left corner crosses the rest of it. Its own body is no cover to it:
+## once, aiming checked the line to that corner and refused every shot.
+func shooting_something_big():
+	log_line("======== Shooting something big ========")
+	var golem := who("golem")
+	var cyrus := who("cyrus")
+	var rect: Rect2i = combat.rect_of(golem)
+	ok(rect.size.x > 1, "the golem is bigger than a tile", "%s" % [rect.size])
+	var spot := a_tile(cyrus, func(tile): return tile.x >= rect.end.x and tile.y >= rect.end.y \
+		and combat.distance_to(golem, tile) >= 3 and combat.distance_to(golem, tile) <= 6, rect.end)
+	ok(spot.x != -99999 and combat.teleport_to(cyrus, spot) or cyrus.position == spot, "Cyrus below and right of it", "%s" % [spot])
+	give_turn(cyrus)
+	var controller = combat.controller
+	controller.set_selected_skill("gun")
+	controller.begin_target_selection()
+	var near: Vector2i = combat.nearest_tile_of(golem, cyrus.position)
+	var corner_line: bool = combat.has_line_of_sight(cyrus.position, golem.position, cyrus.movement_class)
+	log_line("  NOTE  a line to its corner %s" % ("is clear" if corner_line else "crosses its own body"))
+	ok(controller.refusal_at(near, golem) == "", "the nearest of it can be shot", controller.refusal_at(near, golem))
+	ok(controller.aim_refusal(golem) == "", "and so can its face in the queue", controller.aim_refusal(golem))
+	var seen: Array = combat.tiles_of(golem).filter(func(tile): return tile in controller._range_preview_positions)
+	ok(seen.size() > 1, "more of it than its nearest tile is in sight - it is no cover to itself", "%d of %d" % [seen.size(), combat.tiles_of(golem).size()])
+	controller.cancel_skill_selection()
+	# Not only Cyrus: every one of the party, from the same spot, one at a time -
+	# with nobody else in the way, who would be cover - with every shot of theirs
+	# that needs a clear line.
+	var refused := []
+	var tried := 0
+	var homes := {}
+	for key in ["alithia", "enfina", "prometheus"]:
+		var other := who(key)
+		if not other.is_empty():
+			homes[key] = other.position
+	combat.teleport_to(cyrus, a_tile(cyrus, func(tile): return combat.distance_to(golem, tile) >= 8))
+	for key in ["alithia", "enfina", "prometheus", "cyrus"]:
+		var shooter := who(key)
+		if shooter.is_empty() or not (combat.teleport_to(shooter, spot) or shooter.position == spot):
+			continue
+		give_turn(shooter)
+		for skill_key in shooter.skill_list:
+			var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
+			if skill == null or not skill.respects_blocking or skill.aoe_radius > 0 or skill.targets_ally or skill.targets_fallen \
+					or not skill.deals_damage or not combat.meets_level_for(shooter, skill):
+				continue
+			var aim: Vector2i = combat.nearest_tile_of(golem, shooter.position)
+			var gap: int = combat.distance_to(shooter, aim)
+			if gap < skill.min_range or gap > combat.effective_max_range(shooter, skill):
+				continue
+			controller.set_selected_skill(skill_key)
+			controller.begin_target_selection()
+			tried += 1
+			var why: String = controller.refusal_at(aim, golem)
+			if why != "":
+				refused.append("%s's %s: %s" % [shooter.name, skill.name, why])
+			controller.cancel_skill_selection()
+		# Back where they were, out of the next one's way.
+		if key != "cyrus":
+			combat.teleport_to(shooter, homes[key])
+	ok(tried >= 3 and refused.is_empty(), "and so can every one of the party, with every shot that needs a clear line",
+		"%d tried, refused: %s" % [tried, refused])
+	log_line("")
+
+
+## The view on the golem's turn: on the middle of the square it stands on, not
+## the corner its node is at, and pulled back until all of it fits - then back
+## in again once its turn is done.
+func watching_something_big():
+	log_line("======== Watching something big ========")
+	var golem := who("golem")
+	var camera = combat.camera
+	var span: int = golem.span
+	camera.zoom = Vector2.ONE * camera.max_zoom
+	await settle(1)
+	var before: float = camera.zoom.x
+	combat.watch_combatant(golem)
+	await get_tree().create_timer(0.8).timeout
+	var middle: Vector2 = golem.sprite.global_position + Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE) * 0.5 * (span - 1)
+	ok(camera.position.distance_to(middle) < Grid.TILE_SIZE * 0.25, "it watches the middle of the golem, not its corner",
+		"%s vs %s" % [camera.position, middle])
+	var shown: Vector2 = camera.get_visible_world_size()
+	var big: float = Grid.TILE_SIZE * span
+	ok(camera.zoom.x < before and shown.x >= big and shown.y >= big, "pulled back until all of it fits",
+		"zoom %.2f -> %.2f, %s on screen for %d" % [before, camera.zoom.x, shown, big])
+	combat.stop_watching()
+	await get_tree().create_timer(0.8).timeout
+	ok(is_equal_approx(camera.zoom.x, before), "and back in once its turn is done", "%.2f" % camera.zoom.x)
+	log_line("")
+
+
+## Melee and ranged moves (SkillDefinition.melee): every skill reaching only the
+## tile beside, and everything Enfina has but Fire Burst, is melee.
+func melee_and_ranged():
+	log_line("======== Melee and ranged ========")
+	var wrong := []
+	for key in SkillDatabase.skills:
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		if skill is ItemDefinition:
+			continue
+		if skill.max_range == 1 and not Combat.is_melee(skill):
+			wrong.append(key)
+	ok(wrong.is_empty(), "everything that reaches only the tile beside is melee", "%s" % [wrong])
+	var hers: Array = CombatantDatabase.combatants.enfina.skills.duplicate()
+	for path in ["vanguard", "juggernaut", "warden_of_cover"]:
+		var definition = load("res://data/subclasses/%s.tres" % path)
+		if definition != null:
+			hers.append_array(definition.skills)
+	var not_melee: Array = hers.filter(func(key): return key != "fire_burst" and SkillDatabase.skills.has(key) and not Combat.is_melee(SkillDatabase.skills[key]))
+	ok(not_melee.is_empty(), "and everything Enfina has, her paths' too", "%s" % [not_melee])
+	ok(not Combat.is_melee(SkillDatabase.skills.fire_burst), "but Fire Burst")
+	ok(not Combat.is_melee(SkillDatabase.skills.gun) and not Combat.is_melee(SkillDatabase.skills.fireball), "and a shot or a spell is ranged")
+	log_line("")
+
+
+## Up on something, a melee shove at it moves it nowhere.
+func riders_cannot_shove():
+	log_line("======== Riders cannot shove ========")
+	var enfina := who("enfina")
+	var behemoth := who("behemoth")
+	sturdy(enfina)
+	sturdy(behemoth, 3000)
+	ok(beside(enfina, behemoth), "Enfina beside the behemoth")
+	give_turn(enfina)
+	await combat.use_skill("climb", enfina, combat.nearest_tile_of(behemoth, enfina.position), false)
+	await settle(1)
+	ok(enfina.get("riding", -1) == behemoth.id, "up on it")
+	var shove: SkillDefinition = SkillDatabase.skills.shoving_strike
+	var push: EffectDefinition = shove.effects.filter(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.PUSH)[0]
+	var was: Vector2i = behemoth.position
+	var mark := heard.size()
+	combat.apply_knockback(enfina, behemoth, push, false, shove)
+	ok(behemoth.position == was, "a melee shove from up there moves it nowhere", "%s -> %s" % [was, behemoth.position])
+	ok(heard_since(mark, "cannot shift"), "and says so")
+	give_turn(enfina)
+	var jump := a_tile(enfina, func(tile): return combat.distance_to(enfina, tile) <= 3 and combat.distance_to(enfina, tile) >= 1)
+	await combat.use_skill("climb_down", enfina, jump, false, true)
+	log_line("")
+
+
 func body_parts():
 	log_line("======== Body parts ========")
 	var golem := who("golem")
@@ -913,8 +1214,34 @@ func body_parts():
 	ok("Legs" in combat.part_note(golem, legs), "aimed at its legs, the hover says so", combat.part_note(golem, legs))
 	ok(combat.part_note(golem, golem.position) == "", "a tile with no part says nothing")
 	ok(not combat.part_marks().is_empty(), "the board has the parts to outline")
+	var leg_mark: Array = combat.part_marks().filter(func(mark): return mark.id == golem.id and legs in mark.tiles)
+	ok(leg_mark.size() == 1 and leg_mark[0].name == "Legs" and leg_mark[0].kind == BodyPartDefinition.Broken.ROOTED,
+		"each mark says whose, what it is called and what breaking it does - for its colour and its name on the board",
+		"%s" % [leg_mark])
+	ok(BodyPartDefinition.Broken.values().all(func(kind): return combat.controller.PART_COLOURS.has(kind)),
+		"every way a part breaks has its own colour")
+	combat.controller._note_hover(legs)
+	ok(combat.controller._hover_tile == legs, "the pointer on its legs is remembered, to light them")
 	var legs_hp: int = golem.parts_hp[0]
 	ok(legs_hp > 0, "each part has its share of health", "%d" % legs_hp)
+	# Something with an area, aimed at its legs, lands on the whole golem.
+	ok(combat.aims_at_parts(enfina, SkillDatabase.skills.greatsword_attack) and not combat.aims_at_parts(enfina, SkillDatabase.skills.sweep_strike),
+		"a blow at one tile can be aimed at a part, and one with an area cannot")
+	var blast: SkillDefinition = SkillDatabase.skills.greatsword_attack.duplicate(true)
+	blast.max_range = 99
+	blast.aoe_radius = 1
+	blast.melee = false
+	blast.respects_blocking = false
+	SkillDatabase.skills["_test_blast"] = blast
+	enfina.skill_list.append("_test_blast")
+	var golem_hp: int = golem.hp
+	give_turn(enfina)
+	await combat.use_skill("_test_blast", enfina, legs, false)
+	await settle(3)
+	ok(golem.hp < golem_hp and golem.parts_hp[0] == legs_hp, "a blast on its legs hurts the golem and leaves its legs be",
+		"%d -> %d, legs %d -> %d" % [golem_hp, golem.hp, legs_hp, golem.parts_hp[0]])
+	enfina.skill_list.erase("_test_blast")
+	SkillDatabase.skills.erase("_test_blast")
 	combat._aimed_tile = legs
 	var guard := 0
 	while not combat.part_broken(golem, 0) and guard < 200:
@@ -994,7 +1321,7 @@ func rebinding():
 	var spot := a_tile(prometheus, func(tile): return combat.distance_to(golem, tile) <= 3 and combat.distance_to(golem, tile) >= 1)
 	combat.teleport_to(prometheus, spot)
 	give_turn(prometheus)
-	var running := func(): await combat.use_skill("hack", prometheus, golem.position, false)
+	var running := func(): await combat.use_skill("hack", prometheus, combat.nearest_tile_of(golem, prometheus.position), false)
 	running.call()
 	ok(await until(func(): return Hacking.running() and Hacking.board() != null), "the hack begins")
 	var board: RewriteBoard = Hacking.board()

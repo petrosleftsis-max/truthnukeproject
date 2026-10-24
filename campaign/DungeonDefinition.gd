@@ -26,7 +26,11 @@ class_name DungeonDefinition
 @export var party: Array[String] = []
 ## What level they are, on the maps and in every fight - the fights' own
 ## player tiles' levels are not used, as in the story.
-@export_range(1, 20) var level: int = 1
+@export_range(1, 64) var level: int = 1
+## Whether whoever learns their spells from books (Prometheus - see Campaign
+## "Spellbooks") knows every spell of theirs in here, their path's included,
+## as in Arena Mode.
+@export var knows_every_spell: bool = false
 
 @export_group("Stages")
 ## In order. Winning the last one finishes the dungeon.
@@ -43,11 +47,23 @@ class_name DungeonDefinition
 ## What a recovery has to spend.
 @export var gate_recovery_points: int = 0
 ## What bringing back one casting through each gate costs, by gate - nothing at
-## 0, then World, Hermes, Yaldabaoth (see Stats.GATE_NAMES).
+## 0, then World, Hermes, Pandora (see Stats.GATE_NAMES).
 @export var gate_costs: Array[int] = []
 ## A store the rest offers a visit to, by key (StoreDefinition) - empty for
 ## none. Gold comes from the fights' Gold Reward.
 @export var store: String = ""
+
+@export_group("Test harness")
+## TEMPORARY - for the late-Chapter-I laboratory sequence
+## (data/dungeons/lab_chapter1_sequence.tres, docs/chapter1_audit.md), not for
+## story content: no rest between the fights. Nobody is healed or gets up
+## again, no gates are offered back and no store is visited, so health, the
+## fallen and spent gates carry from each fight into the next. The result's
+## Continue goes straight on. To be removed once the test is done.
+@export var skips_rests: bool = false
+## TEMPORARY - the same test: every fight of the dungeon is logged by LabMetrics
+## (tools/lab_metrics.gd), under the run's label.
+@export var logs_metrics: bool = false
 
 
 ## What one casting through gate `gate` costs to bring back - or nothing for a

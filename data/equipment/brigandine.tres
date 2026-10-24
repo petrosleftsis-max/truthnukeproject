@@ -7,6 +7,6 @@ script = ExtResource("1_gear")
 name = "Brigandine"
 description = "Plates riveted inside a canvas coat."
 slot = 1
-price = 200
+price = 180
 defense = 20
 armour_category = 1

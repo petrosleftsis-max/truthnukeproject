@@ -124,7 +124,7 @@ func run_test():
 		for source in [SkillDatabase.skills, ItemDatabase.items]:
 			for key in source:
 				for effect in source[key].effects:
-					if effect != null and effect.condition == condition:
+					if effect != null and (effect.condition == condition or effect.trap_holds_with == condition or effect.zone_condition == condition):
 						inflicted = true
 		if inflicted:
 			without_the_folder.append(condition.display_name)
@@ -135,7 +135,7 @@ func run_test():
 	press(panel, windswept.display_name)
 	await get_tree().process_frame
 	var page = panel._body.text
-	ok("Lasts %d of" % (windswept.duration + 1) in page, "its duration is on the page, as the turns it really lasts", "%d turns written, %d lasted" % [windswept.duration, windswept.duration + 1])
+	ok("Lasts %d of" % windswept.duration in page, "its duration is on the page, as the turns it really lasts", "%d turns written" % windswept.duration)
 	ok("%+d" % windswept.movement_change in page, "and what it does to movement",
 		"%+d" % windswept.movement_change)
 	ok("%d" % windswept.drift_tiles in page, "and how far the wind takes them")

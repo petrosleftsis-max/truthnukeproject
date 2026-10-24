@@ -7,5 +7,5 @@ script = ExtResource("1_gear")
 name = "Padded Jacket"
 description = "Quilted cloth, quiet and warm."
 slot = 1
-price = 80
+price = 60
 defense = 12

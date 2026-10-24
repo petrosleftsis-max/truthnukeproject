@@ -72,6 +72,12 @@ func until_enemys_turn(combat: Combat, controller) -> Dictionary:
 		var comb = combat.get_current_combatant()
 		if comb.side == 1:
 			return comb
+		# A hit-stop as the turn begins (a burn ticking, say) is its own freeze,
+		# not the turn's speed: past it, the turn is what is being asked about.
+		for wait in 40:
+			if combat._hit_stop_depth == 0:
+				break
+			await real_wait(0.05)
 		ok(Engine.time_scale == 1.0, "another of the party's turns runs at normal speed", "%s" % Engine.time_scale)
 	return {}
 

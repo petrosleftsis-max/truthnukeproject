@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="SubclassDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Script" path="res://combat/resources/SubclassDefinition.gd" id="2_path"]
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="3_condition"]
+[ext_resource type="Resource" path="res://data/conditions/burn.tres" id="4_burn"]
+[ext_resource type="Resource" path="res://data/conditions/grappled.tres" id="5_grappled"]
+
+[sub_resource type="Resource" id="Passive_0"]
+script = ExtResource("1_passive")
+name = "Adrenaline"
+description = "While she is burning, her hits deal three tenths more damage, and set whoever they land on burning too."
+required_level = 24
+empowered_by = ExtResource("4_burn")
+empowered_damage_bonus = 0.3
+spreads_it = true
+
+[sub_resource type="Resource" id="Passive_1"]
+script = ExtResource("1_passive")
+name = "Leading Charge"
+description = "After walking three tiles or more in a turn, her next hit that turn lands a fifth harder - Momentum's other half: stand, or charge."
+required_level = 32
+charge_bonus = 0.2
+charge_tiles = 3
+
+[sub_resource type="Resource" id="Passive_2"]
+script = ExtResource("1_passive")
+name = "Unstoppable"
+description = "Nothing slows her, roots her or holds her: her movement is never less than her own, and nobody can get a grip on her."
+required_level = 54
+unstoppable = true
+immune_to_conditions = Array[ExtResource("3_condition")]([ExtResource("5_grappled")])
+
+[sub_resource type="Resource" id="Passive_3"]
+script = ExtResource("1_passive")
+name = "Rampage"
+description = "Felling somebody on her own turn gives her main action back, and three more tiles of movement - one after another, while they keep falling."
+required_level = 64
+felling_refreshes = true
+felling_movement = 3
+
+[resource]
+script = ExtResource("2_path")
+name = "Vanguard"
+description = "The charge. Enfina burns, runs at them and does not stop: harder after a charge, through everything that would hold her, and on from one fallen to the next."
+skills = Array[String](["daunting_roar"])
+passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_2"), SubResource("Passive_3")])

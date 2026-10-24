@@ -468,9 +468,20 @@ func in_a_fight():
 			if near.x == -99999 and combat.room_for(prometheus, tile) and combat.distance_to(ogre, tile) >= 2 and combat.distance_to(ogre, tile) <= 4:
 				near = tile
 	combat.teleport_to(prometheus, near)
+	var ground_pound: SkillDefinition = SkillDatabase.skills["ground_pound"]
+	ground_pound.hackable = false
 	combat.declare(ogre, "ground_pound", prometheus.position)
 	give_turn(prometheus)
 	var done := []
+	ok(combat.refusal_for(prometheus, SkillDatabase.skills["hack"], ogre.position) != "",
+		"a move that isn't Hackable can't be hacked", combat.refusal_for(prometheus, SkillDatabase.skills["hack"], ogre.position))
+	await hack_with("hack", prometheus, ogre.position, done)
+	ok(not Hacking.running() and ogre.has("declared") and not prometheus.skill_used_this_turn,
+		"refused: no minigame, nothing spent, and it still comes")
+	ground_pound.hackable = true
+	ok(combat.refusal_for(prometheus, SkillDatabase.skills["hack"], ogre.position) == "", "ticked Hackable, it can")
+	give_turn(prometheus)
+	done = []
 	await hack_with("hack", prometheus, ogre.position, done)
 	var board: ResonanceBoard = Hacking.board()
 	ok(board != null, "Hack on the ogre winding up a Ground Pound opens the minigame")
