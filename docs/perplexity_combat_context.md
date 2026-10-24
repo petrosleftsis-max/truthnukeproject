@@ -2235,6 +2235,45 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
   - Alithia fell in round 3 to both Rangers' hits plus their Burn and Poison. Prometheus fell in round 5 to a Burner, its Burn and one Striker blow (51 against his 38). Enfina fell in round 9 to two Self Destructs (72), a Burn and the Striker.
   - The party healed 8 and used no items; the enemies healed 182, the Rangers mostly themselves.
   - With no rests and the fallen kept down, the second fight was Cyrus alone.
+- **The second lab run** (`docs/lab_runs/2026-10-25_011629`; conservation, Erysichthon variant) had short rests, Resuscitate at a rest, the kit, half-caster Rangers, Tremor's free step and damage over time credited to whoever caused it. It ended in the second fight, Lab B, as the first run did; neither run reached Erysichthon.
+  - **Lab A (City Fight enemies, 16): won in round 9** (the first run took 11), with three of the four standing: Enfina 69/146, Cyrus 52/86 and Alithia 42/86.
+    - Prometheus fell in round 3, all to Ranger 1: a 15 hit with its Burn (8), then a 20 hit, 43 against his 38. Nobody else fell.
+    - Cyrus finished 6 of the 11 enemies (3 of them with his Burn), Prometheus 2, Enfina 1 and Alithia 1. Bomber 1's own Self Destruct is credited to Cyrus's Burn, at the same moment (VERIFY).
+    - Damage on the party: 390 (276 from hits, 114 lingering). Ranger 2 dealt 116, Ranger 1 114, the Striker 94, Bomber 1 36 and the Mimic 12. Enfina's own Trailblaze Burn cost her 18. Damage on the enemies: 903.
+  - **The rest after Lab A:** Enfina got back 39, Cyrus 17 and Alithia 22, half of what each had lost. No gates came back.
+    - Alithia used Resuscitate through Pandora on Prometheus, so he started Lab B at 17/34 health; his maximum went down from 38 to 34.
+    - The party went into Lab B with 258 of 352 health.
+  - **Lab B (Hired Blades, 17): lost in round 5**, all four down. The first run lost it in round 4, with Cyrus alone.
+    - Enfina fell in round 2, at 108, having taken 109: the Pit Champion's Greatsword plus Follow Up twice (76), Hired Bow 1 (10, with 6 of Poison) and Hired Bow 2 (17).
+    - Prometheus fell in round 2, to one Hired Bow 1 hit of 22 against his 17.
+    - Alithia brought Enfina back in round 3 with Resuscitate (66/131). Enfina took 59 that round and got 52 from Cyrus's Mediocre Cure Potion in round 4. She fell again in round 5 to Hired Bow 1's Poison.
+    - Alithia fell in round 5 to Hired Bow 2's Poison, having taken 68 (38 from the Pit Champion, 30 from Hired Bow 2) against her 64.
+    - Cyrus fell in round 5 to two Pit Champion blows and Sellsword 1 (66 against his 47).
+    - The party downed Sellsword 2 (Alithia) and Hired Bow 1 (Cyrus's Burn); the first run downed none. The Pit Champion (119 taken), Hired Bow 2 (none taken) and Sellsword 1 (70 taken) were still standing.
+    - Damage on the party: 407, 222 of it from the Pit Champion. Damage on the enemies: 396.
+  - **Healing:**
+    - Lab A, party 192: Alithia 168 (two World Heals of 23, a Heal Gate Nade of 23, a Communion Gate Nade of 33 on each of three) and Enfina 24 (Medicine).
+    - Lab A, enemies 105: Priest 1 63 (three Heals on the Striker), Priest 2 42 (two on itself). The Rangers cast no Heal and spent no gates.
+    - The rest: 78, and Prometheus back at 17.
+    - Lab B, party 52 (the potion); enemies none.
+    - In the first run the party healed 8 and the enemies 182, 119 of it from the Rangers.
+  - **Items:** 7 of the kit's 16 used.
+    - Lab A: Cyrus 2 Small Bombs and the Blinding Bomb; Enfina a Medicine; Alithia both Gate Nades. Lab B: Cyrus's Mediocre Cure Potion, on Enfina.
+    - Left unused when the party fell: Enfina 2 Mediocre Cure Potions and a Cure Potion; Prometheus 2 Medicines, a Mediocre Cure Potion and the Fireball Gate Nade; Alithia a Mediocre Cure Potion and a Medicine.
+    - Enfina fell twice still holding three healing potions. Prometheus used nothing in either fight. The first run had no items.
+  - **Gates spent:**
+    - Lab A: Alithia Pandora 1, Hermes 1, World 2; Prometheus Hermes 2, Pandora 1; Priest 1 World 3; Priest 2 World 2; the Rangers none. In the first run the Rangers spent 7 (World 6, Hermes 1), Prometheus 5 and Alithia 2.
+    - At the rest: Alithia Pandora 1 (Resuscitate).
+    - Lab B: Alithia Hermes 1 and Pandora 1 (Resuscitate), Prometheus Hermes 1.
+    - Left at the end: Alithia World 2, Hermes 1, Pandora 0; Prometheus World 4, Hermes 0, Pandora 2. Alithia's last two Pandora castings both went on Resuscitate.
+  - **What the changes did, by the numbers:**
+    - The overall result did not change: the run was lost in Lab B.
+    - Lab A was won with three standing instead of one, two rounds sooner. The party healed 192 instead of 8, 146 of it from items. The enemies healed 105 instead of 182.
+    - The Rangers' heals went from 119 to 0. A half caster at 16 still has World 4 and Hermes 2, so running out of gates does not explain it. OPEN: whether the AI never wanted to heal (they fell in rounds 6 and 9) or something stopped it (VERIFY).
+    - The rest and Resuscitate put all four into Lab B, against Cyrus alone in the first run. The fight lasted one round longer and two enemies fell instead of none. Prometheus lasted one enemy turn after coming back. Enfina, revived in the fight, lasted two more rounds.
+    - Nine items were never used, five of them heals.
+    - Tremor's step did not come up: Enfina is 18 here, and Tremor comes at 64.
+  - **The user's painted cover** on the upper left of `maps/city_fight.tscn` is in the run if it was saved before it; the log does not say. The map is Lab A's, and also used by the Dungeon Demo's third fight (`dungeon_demo/dungeon_3_city.tres`), `boss_bellkeeper`, `level_64_showdown`, `sizes_colossus` and `encounter_03_watcher`, so the cover is in all of those. OPEN: a lab-only copy of the map.
 - **Short rests in the lab** (APPROVED_TRIAL; the 50% is a PROPOSAL test value):
   - Between stages, everybody standing gets back half of what they lost, along with the uses spent until a rest. No gates come back.
   - The fallen stay down unless somebody who knows Resuscitate (Alithia) spends a casting of it on them at the rest: Pandora or deeper, back with 50% health and 10% weaker for good, as in a fight. If Alithia is down, nobody can.
