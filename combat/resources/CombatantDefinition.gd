@@ -73,6 +73,12 @@ class_name CombatantDefinition
 ## names no stat of its own; a skill that costs no gate still does. Prometheus's
 ## is Intellect, Alithia's Mindfulness.
 @export var spellcasting_stat: Stats.Type = Stats.Type.INTELLECT
+## A half caster: if they cast at all, the gates of a full caster at half their
+## level, rounded up (Stats.half_caster_gates) - like a D&D paladin, fewer
+## castings and every gate opening later. Off: a full caster's, at their level;
+## somebody with no spell has none either way. The Ranger (the designer,
+## 2026-10-25).
+@export var half_caster: bool = false
 
 ## Gates are not set here. How many castings someone has is decided by how far
 ## along they are - see Stats.GATES_BY_LEVEL - and they only have any at all if
@@ -341,7 +347,7 @@ func defense_at(level: int) -> int:
 func gates_at(level: int) -> Array:
 	if not casts_spells():
 		return Stats.no_gates()
-	return Stats.gates_for_level(level)
+	return Stats.half_caster_gates(level) if half_caster else Stats.gates_for_level(level)
 
 
 ## Whether anything they know is cast through a gate.

@@ -1079,7 +1079,8 @@ Demo** on the title screen is `data/dungeons/dungeon_demo.tres`, a
 * **Party** - who goes in, leader first, and their **Level** - on the maps and in
   every fight; the fights' own tiles' levels are not used. The maps'
   own parties and handed-out kit are not used: the party starts carrying
-  nothing, and keeps whatever it picks up and does not use.
+  only its **Kit** (by character, item keys, the belt first - empty for
+  nothing), and keeps whatever it picks up and does not use.
 * **Stages** - in order, each a `DungeonStage`: a **Map** to walk until its
   fight, or none to go straight into the fight. **Encounter** is the fight;
   on a map it is fought instead of the one the map starts by itself, named in
@@ -1089,7 +1090,12 @@ Demo** on the title screen is `data/dungeons/dungeon_demo.tres`, a
   with the sewer's early-game weapon base and defences, two more enemies in
   the sewer and three fewer in the city.
 * **Resting** - after every fight but the last, everyone is back to full health
-  (and back on their feet, with **Rest Revives**). Gates spent stay spent from
+  (and back on their feet, with **Rest Revives**) - or, with **Short Rests**,
+  everybody standing gets back half of what they lost, and nobody fallen gets up
+  by themselves: whoever knows Resuscitate can spend a casting of it on them at
+  the rest (the party's Resuscitate, back with half their health and a tenth
+  weaker for good). The uses of what works only so often a short rest come back
+  at either. Gates spent stay spent from
   one fight to the next; the rest offers to bring some back for whoever is in
   **Gate Recovery For**, at **Gate Recoveries** rests in the run, with **Gate
   Recovery Points** to spend at **Gate Costs** each (0, then World, Hermes,
@@ -1103,9 +1109,9 @@ title screen; losing any of them offers to start the dungeon again.
 * **Test harness** - TEMPORARY, for the late-Chapter-I laboratory sequence only
   (`data/dungeons/lab_chapter1_sequence.tres`, with Erysichthon as its boss, and
   `lab_chapter1_sequence_ash_warden.tres`, the same with the Ash Warden; how to run
-  them and what they log: `docs/lab_sequence.md`). **Skips Rests** leaves out the rest between the
-  fights: health, the fallen and spent gates carry into the next, and the result
-  goes straight on. **Logs Metrics** writes every fight's numbers to
+  them and what they log: `docs/lab_sequence.md`). The laboratory takes **Short Rests** and
+  carries a **Kit** that fills every belt. **Skips Rests** leaves out the rest between the
+  fights altogether (no dungeon uses it now). **Logs Metrics** writes every fight's numbers to
   `docs/lab_runs/` (`tools/lab_metrics.gd`). Not for story content; both come
   out once the test is done.
 
@@ -1122,6 +1128,11 @@ the lab's at 8 and the city's at 14; the Dungeon Demo is at 14 throughout.
 The gates are D&D's full casters stretched so its level 20 is our 64
 (`Stats.GATE_STEPS`): a new gate every six or seven levels, opening with one or
 two castings and gaining one a few levels later.
+
+**Half casters** (CombatantDefinition **Half Caster** - the Ranger, since 2026-10-25) have
+the gates of a full caster at half their level, rounded up, like a D&D paladin's spell
+slots (`Stats.half_caster_gates`): a Ranger at 16 has World 4 and Hermes 2, a full caster
+World 4, Hermes 3 and Pandora 2. Anybody with no spell has no gates at all.
 
 | Level | World | Hermes | Pandora | Charon | Tartarus | Nemesis | Sophia | Ogdoad | Gnosis | Yaldabaoth |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -1171,7 +1182,11 @@ on anybody afflicted, and **Kindling** - each spell cast in a fight makes the
 ones after it hotter, up to **Kindling Most**), **Lingering** (harder and longer damage over time),
 **Contests** (+ to the stat), **Gates** (more castings through the deepest gate),
 **Cover** (more movement on a turn begun in cover, stepping into cover unpunished)
-and Healing's **Heals Lift** and **Heals Leave**. Conditions can change the damage
+and Healing's **Heals Lift** and **Heals Leave**. A cleanse that lifts only so much
+(an effect's **Dispel Count** - Medicine's one) and a heal that lifts some (Heals Lift, Mercy II)
+let the player choose which comes off when there is more on them, the most recent offered
+first; anybody else lifts the most recent. Lifting what held somebody in place
+(Crystallised) in their own turn gives them back what they had not yet walked. Conditions can change the damage
 taken (**Damage Taken Change**) or mend a share of health each turn (**Mends
 Share**); a heal can give back a share of health (**Heal Share Of Health**) - the cure
 potions heal only that: a quarter, two fifths and more than half. A heal on the
@@ -1251,7 +1266,7 @@ nobody since the control trial of 2026-10-24). Juggernaut's **Tremor** hits ever
 whoever Enfina hits for half - only the harder where a splash reaches them too - shoves
 them all and her target a tile, **Dazes** whoever she shoves into something solid (a
 turn: two tiles less to walk, no secondary action, no reactions; never stacked, never
-longer than their next turn), and lets her step a tile after them for a tile of movement.
+longer than their next turn) - and she steps a tile after them by herself, free.
 
 **Traps** (the Trapper's Snare, Tripwire and Minefield - EffectType.TRAP) go on
 bare ground and are seen only by the party, drawn in bronze; the first of the

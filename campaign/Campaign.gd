@@ -1283,6 +1283,9 @@ func start_dungeon(which: DungeonDefinition):
 	set_party(which.party, which.level)
 	for key in party_order:
 		empty_inventory(key)
+		for item_id in which.kit.get(key, []):
+			if stow_item(key, str(item_id)) < 0:
+				push_warning("%s: no room in %s's bag for %s." % [which.display_name, key, item_id])
 	_go_to_dungeon_stage()
 
 
@@ -1350,11 +1353,14 @@ func _go_to_dungeon_stage(autosave: bool = true):
 ## --- Resting, between a dungeon's fights ---
 
 
-## Everyone back to full health - and, if the dungeon says so, back on their
-## feet. What they carry is left as it is. What is spent until a rest comes
-## back with it: the rest between a dungeon's stages counts as a short rest
-## until the designer says what it is (short_rest).
+## The rest between a dungeon's stages. A dungeon of short rests
+## (DungeonDefinition.short_rests) takes a short one; any other, everyone back
+## to full health - and, if the dungeon says so, back on their feet - with
+## what is spent until a rest back too. What they carry is left as it is.
 func rest_party():
+	if dungeon != null and dungeon.short_rests:
+		short_rest()
+		return
 	for key in party_order:
 		if not party_state.has(key):
 			continue
@@ -1368,19 +1374,98 @@ func rest_party():
 
 ## --- Short and long rests ---
 ##
-## The plug-in for them (the designer, 2026-10-24): what each brings back. A
-## short rest brings back everything spent until one (Combat.SPENT_UNTIL_REST) -
-## a skill's uses a short rest, a free amplification, a Conduit; a long rest all
-## of that, too. What else they do - health, gates, how many a dungeon has - is
-## the designer's still to give (the ledger's Short rest and Long rest,
-## PROPOSAL; docs/healing_and_rest_proposal.md).
+## What each brings back (the designer, 2026-10-24 and 25). A short rest brings
+## back everything spent until one (Combat.SPENT_UNTIL_REST) - a skill's uses a
+## short rest, a free amplification, a Conduit - and to everybody standing
+## Short Rest Mends of what they have lost; nobody fallen gets up by themselves,
+## and no gates come back. A long rest brings back all a short one does. What
+## else a long rest does, and how many of each a dungeon has, is the designer's
+## still to give (the ledger's Short rest and Long rest;
+## docs/healing_and_rest_proposal.md).
+
+## Of what everybody standing has lost, what a short rest gives back - a
+## PROPOSAL test value (docs/healing_and_rest_proposal.md).
+const SHORT_REST_MENDS := 0.5
+
+
 func short_rest():
 	for key in party_state:
-		party_state[key].erase("spent_until_rest")
+		var state: Dictionary = party_state[key]
+		state.erase("spent_until_rest")
+		if state.get("alive", false):
+			var most: int = state.get("max_hp", state.hp)
+			state.hp = mini(most, state.hp + roundi(maxi(most - state.hp, 0) * SHORT_REST_MENDS))
 
 
 func long_rest():
 	short_rest()
+
+
+## --- Resuscitate at a rest ---
+##
+## Somebody fallen in a dungeon of short rests stays down - unless somebody
+## standing who knows Resuscitate spends a casting of it on them at the rest:
+## through the shallowest gate deep enough that they have one left, the fallen
+## back up with the spell's Revive Health of their health, and weakened for good
+## as in a fight (Revive Weakening, Combat.weaken). The designer, 2026-10-25.
+
+const RESUSCITATE := "resuscitate"
+
+
+## Who of the party can cast Resuscitate at a rest now, or "".
+func resuscitator() -> String:
+	for key in party_order:
+		if rest_gate_for(key) > 0:
+			return key
+	return ""
+
+
+## The gate `key` would cast Resuscitate through at a rest, or 0 when they
+## cannot: fallen, not knowing it, or nothing left deep enough.
+func rest_gate_for(key: String) -> int:
+	var skill: SkillDefinition = SkillDatabase.skills.get(RESUSCITATE)
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if skill == null or definition == null or not party_state.get(key, {}).get("alive", true):
+		return 0
+	if not definition.skills.has(RESUSCITATE) or party_level < skill.required_level or not knows_spell(key, RESUSCITATE):
+		return 0
+	var left := gates_left(key)
+	for gate in range(skill.spell_slot_level, left.size()):
+		if int(left[gate]) > 0:
+			return gate
+	return 0
+
+
+## What Resuscitate does to whoever it brings back (its REVIVE effect), or null.
+func resuscitate_revive() -> EffectDefinition:
+	var skill: SkillDefinition = SkillDatabase.skills.get(RESUSCITATE)
+	for effect in skill.all_effects() if skill != null else []:
+		if effect != null and effect.type == EffectDefinition.EffectType.REVIVE:
+			return effect
+	return null
+
+
+## `caster` brings `fallen` back at the rest (see above). False, and nothing
+## spent, when they cannot.
+func resuscitate_at_rest(caster: String, fallen: String) -> bool:
+	var state: Dictionary = party_state.get(fallen, {})
+	var gate := rest_gate_for(caster)
+	if state.is_empty() or state.get("alive", true) or gate <= 0 or not party_state.has(caster):
+		return false
+	var revive := resuscitate_revive()
+	if revive == null:
+		return false
+	var left := gates_left(caster)
+	left[gate] = int(left[gate]) - 1
+	party_state[caster]["spell_slots"] = left
+	party_state[caster]["max_spell_slots"] = gates_most(caster)
+	state["frailty"] = state.get("frailty", 1.0) * (1.0 - revive.revive_weakening)
+	state["max_hp"] = maxi(1, roundi(state.get("max_hp", 1) * (1.0 - revive.revive_weakening)))
+	state["hp"] = maxi(1, roundi(state.max_hp * revive.revive_health))
+	state["alive"] = true
+	announce("[color=yellow]%s[/color] casts Resuscitate: [color=lightgreen]%s[/color] is back up with %d health - and %d%% weaker for good.\n" % [
+		display_name_of(caster), display_name_of(fallen), state.hp, roundi(revive.revive_weakening * 100.0)])
+	return true
 
 
 ## Whether a rest can bring `key`'s gates back now: the dungeon offers it for

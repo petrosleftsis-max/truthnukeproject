@@ -1,9 +1,11 @@
 extends Node
 ## The late-Chapter-I laboratory sequence - a TEMPORARY test harness, not story
 ## content (data/dungeons/lab_chapter1_sequence.tres): its three fights the same
-## as the ones they copy but for their levels, no rest between them so health
-## and spent gates carry forward, and every fight logged (LabMetrics). Its boss
-## is Erysichthon; the Ash Warden variant (lab_chapter1_sequence_ash_warden.tres)
+## as the ones they copy but for their levels, a short rest between them (half
+## of what was lost back, no gates, the fallen down unless Resuscitated there), a
+## kit of consumables filling every belt and used up as it goes, and every
+## fight logged (LabMetrics) - a tick laid at its source's door. Its boss is
+## Erysichthon; the Ash Warden variant (lab_chapter1_sequence_ash_warden.tres)
 ## differs only in the last fight.
 
 var LOG_PATH := HarnessLog.path_for("lab")
@@ -80,15 +82,21 @@ func the_data():
 	var lab: DungeonDefinition = load(LAB)
 	ok(lab != null and lab.stages.size() == 3, "three stages")
 	ok(lab.party == ["enfina", "cyrus", "prometheus", "alithia"] and lab.level == 18, "the whole party, at 18", "%s at %d" % [lab.party, lab.level])
-	ok(lab.skips_rests and lab.logs_metrics, "no rest between, and logged")
-	ok(not lab.rest_revives and lab.gate_recoveries == 0 and lab.store == "", "nothing given back, and no store")
+	ok(lab.short_rests and not lab.skips_rests and lab.logs_metrics, "a short rest between, and logged")
+	ok(not lab.rest_revives and lab.gate_recoveries == 0 and lab.store == "", "no gates given back, nobody up by themselves, and no store")
+	var kit_ok := true
+	for key in lab.party:
+		var kit: Array = lab.kit.get(key, [])
+		kit_ok = kit_ok and kit.size() == 4 and kit.all(func(item): return ItemDatabase.items.has(item))
+	ok(kit_ok, "a kit for each: four things, one for every slot of a Simple Baldric", "%s" % [lab.kit])
 	var demo: DungeonDefinition = load(DEMO)
-	ok(not demo.skips_rests and not demo.logs_metrics, "the Dungeon Demo still rests, and logs nothing")
+	ok(not demo.skips_rests and not demo.short_rests and not demo.logs_metrics and demo.kit.is_empty(),
+		"the Dungeon Demo still rests in full, carries no kit, and logs nothing")
 	var variant: DungeonDefinition = load(ASH_WARDEN_LAB)
 	ok(variant != null and variant.stages.size() == 3, "the Ash Warden variant: three stages")
 	ok(variant.party == lab.party and variant.level == lab.level and variant.knows_every_spell == lab.knows_every_spell
-		and variant.skips_rests and variant.logs_metrics and not variant.rest_revives and variant.gate_recoveries == 0
-		and variant.store == "", "  the same party, level, rules and logging")
+		and variant.short_rests and not variant.skips_rests and variant.logs_metrics and not variant.rest_revives and variant.gate_recoveries == 0
+		and variant.store == "" and variant.kit == lab.kit, "  the same party, level, rules, kit and logging")
 	ok(variant.stages[0].encounter == lab.stages[0].encounter and variant.stages[1].encounter == lab.stages[1].encounter,
 		"  the same first two fights")
 	ok(lab.stages[2].encounter.resource_path.ends_with("lab_c_erysichthon.tres")
@@ -121,10 +129,15 @@ func the_data():
 
 
 func the_run():
-	log_line("======== no rest: health and gates carry forward ========")
+	log_line("======== a short rest: half of what was lost, no gates, the fallen down but for Resuscitate ========")
 	var lab: DungeonDefinition = load(LAB)
 	LabMetrics.begin_run("test-harness")
 	Campaign.start_dungeon(lab)
+	var stocked := true
+	for key in lab.party:
+		var belt: Array = Campaign.inventory_of(key).slice(0, Campaign.combat_slots_of(key))
+		stocked = stocked and belt == Array(lab.kit[key])
+	ok(stocked, "every belt filled with its kit")
 	ok(await arrived_at("res://scenes/game.tscn"), "into the first fight")
 	var game = get_tree().current_scene
 	var combat = game.get_node("VisualCombat")
@@ -134,13 +147,28 @@ func the_run():
 		await settle(2)
 	ok(combat.get_children().any(func(c): return c is LabMetrics), "the fight is being logged")
 	ok(combat.encounter == lab.stages[0].encounter, "the City Fight's enemies at 16", combat.encounter.display_name)
+	var ranger := fighter(combat, "ranger")
+	var priest := fighter(combat, "priest")
+	ok(ranger.max_spell_slots == Stats.half_caster_gates(16) and Stats.half_caster_gates(16) == Stats.gates_for_level(8)
+		and priest.max_spell_slots == Stats.gates_for_level(16), "a Ranger at 16 has a half caster's gates - those of 8 - and a Priest a full caster's",
+		"%s against %s" % [ranger.max_spell_slots.slice(1, 4), priest.max_spell_slots.slice(1, 4)])
 	var cyrus := fighter(combat, "cyrus")
 	var prometheus := fighter(combat, "prometheus")
+	var enfina := fighter(combat, "enfina")
+	var alithia := fighter(combat, "alithia")
 	ok(cyrus.level == 18 and prometheus.level == 18, "the party at 18")
 	cyrus.hp = 20
 	var hermes_before: int = prometheus.spell_slots[2]
 	prometheus.spell_slots[2] = maxi(hermes_before - 2, 0)
 	var hermes_left: int = prometheus.spell_slots[2]
+	var pandora_before: int = alithia.spell_slots[3]
+	combat.consume_item(cyrus, "mediocre_cure_potion")
+	# A Ranger's Burn ticking on Cyrus: laid at the Ranger's door, not his.
+	var burn: ConditionDefinition = load("res://data/conditions/burn.tres")
+	combat.tick_condition_damage(cyrus, burn, 0.0, 1.0, ranger)
+	cyrus.hp = 20
+	enfina.hp = 0
+	enfina.alive = false
 	var foe: Dictionary = {}
 	for comb in combat.combatants:
 		if comb.side == 1 and comb.alive and not comb.has("object"):
@@ -151,21 +179,38 @@ func the_run():
 	combat.combat_finish()
 	await settle(4)
 	var result = game.get_node("ResultUI")
-	ok(result.rest == null and result.get_node("Panel").visible, "won: the result, and no rest")
-	ok(result.get_node("Panel/VBox/BackButton").visible and result.get_node("Panel/VBox/BackButton").text == "On to the next fight (no rest)",
-		"with a way straight on", result.get_node("Panel/VBox/BackButton").text)
-	ok(Campaign.party_state.cyrus.hp == 20, "Cyrus is not healed", "%d" % Campaign.party_state.cyrus.hp)
+	ok(result.rest != null and result.rest.find_child("Rested", true, false).text.contains("short rest"), "won: a short rest",
+		result.rest.find_child("Rested", true, false).text if result.rest != null else "no rest")
+	var most: int = Campaign.party_state.cyrus.max_hp
+	ok(Campaign.party_state.cyrus.hp == 20 + roundi((most - 20) * Campaign.SHORT_REST_MENDS), "Cyrus gets back half of what he lost",
+		"%d of %d" % [Campaign.party_state.cyrus.hp, most])
 	ok(Campaign.party_state.prometheus.spell_slots[2] == hermes_left, "Prometheus's spent Hermes castings stay spent",
 		"%d of %d" % [Campaign.party_state.prometheus.spell_slots[2], hermes_before])
+	ok(not Campaign.party_state.enfina.alive, "Enfina, fallen, stays down")
+	var button = result.rest.find_child("Resuscitate_enfina", true, false)
+	ok(button != null and not button.disabled and Campaign.resuscitator() == "alithia", "  with Alithia's Resuscitate offered for her")
+	var enfina_most: int = Campaign.party_state.enfina.max_hp
+	ok(result.rest.resuscitate("enfina"), "  cast")
+	await settle(2)
+	ok(Campaign.party_state.enfina.alive and Campaign.party_state.enfina.hp == roundi(roundi(enfina_most * 0.9) * 0.5)
+		and is_equal_approx(Campaign.party_state.enfina.get("frailty", 1.0), 0.9), "  she is back up with half her health, a tenth weaker for good",
+		"%d of %d" % [Campaign.party_state.enfina.hp, Campaign.party_state.enfina.max_hp])
+	ok(Campaign.party_state.alithia.spell_slots[3] == pandora_before - 1, "  for one of Alithia's Pandora castings",
+		"%d of %d" % [Campaign.party_state.alithia.spell_slots[3], pandora_before])
+	ok(result.rest.find_child("Resuscitate_enfina", true, false) == null or result.rest.find_child("Resuscitate_enfina", true, false).is_queued_for_deletion(),
+		"  and nobody fallen is offered any more")
 	ok(FileAccess.file_exists(LabMetrics.summary_path()) and FileAccess.file_exists(LabMetrics.events_path()), "the run's summary and events are written",
 		ProjectSettings.globalize_path(LabMetrics.summary_path()))
 	var summary := FileAccess.get_file_as_string(LabMetrics.summary_path())
 	ok(summary.contains("# Laboratory run: test-harness") and summary.contains("## Stage 1: Lab A") and summary.contains("Checkpoint, as it began")
 		and summary.contains("Checkpoint, as it ended"), "stage 1 in it, with its checkpoints")
 	ok(summary.contains("Hermes"), "and the gates left, by depth")
-	ok(FileAccess.get_file_as_string(LabMetrics.events_path()).contains(",damage,"), "the hit is in the events")
+	var events_now := FileAccess.get_file_as_string(LabMetrics.events_path())
+	ok(events_now.contains(",damage,"), "the hit is in the events")
+	ok(events_now.contains(",damage,%s,enemies,Cyrus," % ranger.name) and events_now.contains("lingering: Burn"),
+		"the Burn's tick on Cyrus is the Ranger's, and says so", ranger.name)
 
-	result._on_back_pressed()
+	result.rest.continued.emit()
 	ok(await arrived_at("res://scenes/game.tscn"), "on to the second fight")
 	game = get_tree().current_scene
 	combat = game.get_node("VisualCombat")
@@ -174,13 +219,18 @@ func the_run():
 		combat.finish_deployment()
 		await settle(2)
 	ok(combat.encounter == lab.stages[1].encounter, "the Hired Blades at 17", combat.encounter.display_name)
-	ok(fighter(combat, "cyrus").hp == 20, "Cyrus comes in as he left", "%d" % fighter(combat, "cyrus").hp)
+	ok(fighter(combat, "cyrus").hp == Campaign.party_state.cyrus.hp, "Cyrus comes in as he left the rest", "%d" % fighter(combat, "cyrus").hp)
 	ok(fighter(combat, "prometheus").spell_slots[2] == hermes_left, "and Prometheus's gates as they were", "%d" % fighter(combat, "prometheus").spell_slots[2])
+	enfina = fighter(combat, "enfina")
+	ok(enfina.alive and enfina.hp == Campaign.party_state.enfina.hp and enfina.max_hp < CombatantDatabase.combatants.enfina.hp_at(18),
+		"Enfina fights again, weakened", "%d / %d" % [enfina.hp, enfina.max_hp])
+	ok(Campaign.count_of("cyrus", "mediocre_cure_potion") == 0 and Campaign.count_of("cyrus", "small_bomb") == 2,
+		"Cyrus's potion is gone, his bombs still there")
 	combat.groups[Combat.Group.ENEMIES].clear()
 	combat.combat_finish()
 	await settle(4)
 	result = game.get_node("ResultUI")
-	result._on_back_pressed()
+	result.rest.continued.emit()
 	ok(await arrived_at("res://scenes/game.tscn"), "on to the boss")
 	game = get_tree().current_scene
 	combat = game.get_node("VisualCombat")
@@ -193,7 +243,7 @@ func the_run():
 	log_line("======== the boss: Erysichthon - telegraphs, stagger, what is put on it, what it eats ========")
 	var boss := fighter(combat, "glutton")
 	ok(not boss.is_empty() and boss.level == 18, "Erysichthon, at 18", "%d" % boss.get("level", 0))
-	var enfina := fighter(combat, "enfina")
+	enfina = fighter(combat, "enfina")
 	cyrus = fighter(combat, "cyrus")
 	await combat.declare(boss, "devour", enfina.position)
 	combat.add_stagger(boss, 10.0, "damage")

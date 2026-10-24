@@ -83,6 +83,8 @@ var _while_staggered := {}
 var _bosses := {}
 ## Per party member: damage dealt to the enemies, and conditions put on them.
 var _dealt_by := {}
+## Of that, what their conditions did as they burned.
+var _lingering_by := {}
 var _conditions_by := {}
 var _events: PackedStringArray = []
 
@@ -179,7 +181,13 @@ func _on_metric(event: String, data: Dictionary):
 			if amount <= 0 or target.has("object"):
 				return
 			var during: Dictionary = data.during
-			var lingering: bool = not during.is_empty() and during.get("id", -2) == target.get("id", -1) and _turn_of != target.get("id", -1)
+			# Laid at the door of whoever did it when Combat says (a tick at its
+			# source's, a reaction at the reactor's), else at whose turn it is.
+			var by: Dictionary = data.get("by", {})
+			var burning := str(data.get("lingering", ""))
+			var credit: Dictionary = by if not by.is_empty() else during
+			var lingering: bool = burning != "" or (by.is_empty() and not during.is_empty()
+				and during.get("id", -2) == target.get("id", -1) and _turn_of != target.get("id", -1))
 			var side := _side(target)
 			if lingering:
 				_dealt["lingering on the " + side] += amount
@@ -188,14 +196,20 @@ func _on_metric(event: String, data: Dictionary):
 				_hits[side] += 1
 			if side == "party":
 				_add(_damage_to, _name(target), "lingering" if lingering else "hits", amount)
-			elif not lingering and not during.is_empty() and during.get("side", 1) == 0:
-				_dealt_by[_name(during)] = _dealt_by.get(_name(during), 0) + amount
+			elif not credit.is_empty() and credit.get("side", 1) == 0 and not (lingering and by.is_empty()):
+				_dealt_by[_name(credit)] = _dealt_by.get(_name(credit), 0) + amount
+				if lingering:
+					_lingering_by[_name(credit)] = _lingering_by.get(_name(credit), 0) + amount
 			if target.has("boss") and combat.is_staggered(target):
 				_while_staggered[_name(target)] = _while_staggered.get(_name(target), 0) + amount
 			if not _in_landing.is_empty():
 				_in_landing.hit.append("%s %d" % [_name(target), amount])
-			target["_last_hurt_by"] = "%s (%s)" % [_name(during), "lingering" if lingering else "on %s's turn" % _name(during)]
-			_event("damage", _name(during), _side(during) if not during.is_empty() else "", _name(target), amount, "lingering" if lingering else "")
+			var how := "on %s's turn" % _name(during)
+			if lingering:
+				how = "%s, lingering" % burning if burning != "" else "lingering"
+			target["_last_hurt_by"] = "%s (%s)" % [_name(credit), how]
+			_event("damage", _name(credit), _side(credit) if not credit.is_empty() else "", _name(target), amount,
+				("lingering: %s" % burning if burning != "" else "lingering") if lingering else "")
 		"heal":
 			var who: Dictionary = data.who
 			var amount := int(data.amount)
@@ -412,7 +426,8 @@ func _on_finished():
 	lines.append("")
 	for comb in _fighters(0):
 		var put: Dictionary = _conditions_by.get(_name(comb), {})
-		lines.append("- %s: %d damage; conditions put on them: %s" % [_name(comb), _dealt_by.get(_name(comb), 0),
+		lines.append("- %s: %d damage (%d of it lingering); conditions put on them: %s" % [_name(comb), _dealt_by.get(_name(comb), 0),
+			_lingering_by.get(_name(comb), 0),
 			", ".join(put.keys().map(func(k): return "%s x%d" % [k, int(put[k])])) if not put.is_empty() else "none"])
 	for name in _bosses:
 		lines.append_array(_boss_section(name, _bosses[name]))

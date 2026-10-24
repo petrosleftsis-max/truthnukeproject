@@ -1,0 +1,356 @@
+stage,seconds,round,event,who,side,target,amount,detail
+1,31.8,1,damage,Cyrus,party,Caster 2,32,
+1,31.8,1,action,Cyrus,party,,,Rapier - main
+1,35.8,1,turn,Alithia,party,,,taken
+1,45.0,1,gate,Alithia,party,,,Gates of Pandora
+1,45.0,1,damage,Alithia,party,Lab A: City Fight enemies (16),28,
+1,45.0,1,condition,Alithia,party,Lab A: City Fight enemies (16),3,Frozen
+1,45.0,1,damage,Alithia,party,Caster 1,38,
+1,45.0,1,condition,Alithia,party,Caster 1,3,Frozen
+1,45.0,1,damage,Alithia,party,Priest 1,16,
+1,45.0,1,condition,Alithia,party,Priest 1,3,Frozen
+1,45.0,1,action,Alithia,party,,,Frozen River - main
+1,48.6,1,turn,Enfina,party,,,taken
+1,77.3,1,damage,Enfina,party,Priest 1,26,
+1,77.3,1,action,Enfina,party,,,Greatsword Attack - main
+1,81.6,1,action,Enfina,party,,,Study - secondary
+1,81.6,1,turn,Prometheus,party,,,taken
+1,99.9,1,gate,Prometheus,party,,,Gates of Hermes
+1,99.9,1,damage,Prometheus,party,Mimic,14,
+1,99.9,1,condition,Prometheus,party,Mimic,3,Crystallised
+1,99.9,1,damage,Prometheus,party,Priest 2,23,
+1,99.9,1,condition,Prometheus,party,Priest 2,3,Crystallised
+1,99.9,1,action,Prometheus,party,,,Crystalise - main
+1,109.4,1,action,Prometheus,party,,,Study - secondary
+1,111.7,1,turn,Ranger 1,enemies,,,taken
+1,113.3,1,damage,Ranger 1,enemies,Alithia,15,
+1,113.3,1,condition,Ranger 1,enemies,Alithia,5,Burn
+1,113.3,1,action,Ranger 1,enemies,,,Flammable Limb - main
+1,113.7,1,damage,Caster 1,enemies,Caster 1,5,lingering
+1,113.7,1,down,Caster 1 (lingering),,Caster 1,,enemies
+1,114.2,1,turn,Caster 2,enemies,,,taken
+1,115.1,1,gate,Caster 2,enemies,,,Gates of Hermes
+1,115.1,1,damage,Caster 2,enemies,Prometheus,21,
+1,115.1,1,condition,Caster 2,enemies,Prometheus,3,Burn
+1,115.1,1,action,Caster 2,enemies,,,Burner - main
+1,115.1,1,damage,Mimic,enemies,Mimic,2,lingering
+1,115.7,1,turn,Mimic,enemies,,,taken
+1,116.3,1,turn,Ranger 2,enemies,,,taken
+1,117.9,1,damage,Ranger 2,enemies,Alithia,12,
+1,117.9,1,condition,Ranger 2,enemies,Alithia,5,Poisoned
+1,117.9,1,action,Ranger 2,enemies,,,Venomous Shot - main
+1,118.2,1,turn,Bomber 1,enemies,,,taken
+1,119.1,1,action,Bomber 1,enemies,,,Run - main
+1,122.4,1,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),4,lingering
+1,122.9,1,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,126.3,1,damage,Lab A: City Fight enemies (16),enemies,Alithia,21,
+1,126.3,1,action,Lab A: City Fight enemies (16),enemies,,,Sweep Strike - main
+1,126.3,1,damage,Priest 1,enemies,Priest 1,2,lingering
+1,126.8,1,turn,Priest 1,enemies,,,taken
+1,130.7,1,action,Enfina,party,,,Greatsword Attack - reaction
+1,132.2,1,damage,Priest 1,enemies,Priest 1,26,
+1,133.5,1,gate,Priest 1,enemies,,,Gates of World
+1,133.5,1,heal,Priest 1,enemies,Priest 1,21,Heal
+1,133.5,1,action,Priest 1,enemies,,,Heal - main
+1,133.9,1,damage,Priest 2,enemies,Priest 2,3,lingering
+1,134.4,1,turn,Priest 2,enemies,,,taken
+1,135.0,1,turn,Bomber 2,enemies,,,taken
+1,138.1,1,damage,Bomber 2,enemies,Enfina,36,
+1,138.1,1,down,-,,Bomber 2,,enemies
+1,138.1,1,action,Bomber 2,enemies,,,Self Destruct - main
+1,138.1,2,round,,,,2,
+1,138.1,2,turn,Cyrus,party,,,taken
+1,147.4,2,damage,Cyrus,party,Caster 2,32,
+1,147.4,2,down,Cyrus (on Cyrus's turn),,Caster 2,,enemies
+1,147.4,2,action,Cyrus,party,,,Rapier - main
+1,154.9,2,action,Cyrus,party,,,Stealth - secondary
+1,156.1,2,damage,Alithia,party,Alithia,6,lingering
+1,156.7,2,damage,Alithia,party,Alithia,8,lingering
+1,157.2,2,turn,Alithia,party,,,taken
+1,177.0,2,gate,Alithia,party,,,Gates of Hermes
+1,177.0,2,condition,Alithia,party,Lab A: City Fight enemies (16),2,Fear
+1,177.0,2,action,Alithia,party,,,Dread Visage - main
+1,190.2,2,turn,Enfina,party,,,taken
+1,240.0,2,damage,Enfina,party,Bomber 1,21,
+1,240.0,2,action,Enfina,party,,,Shoving Strike - main
+1,244.7,2,damage,Prometheus,party,Prometheus,3,lingering
+1,245.2,2,turn,Prometheus,party,,,taken
+1,597.6,2,gate,Prometheus,party,,,Gates of Pandora
+1,597.6,2,damage,Prometheus,party,Mimic,38,
+1,597.6,2,condition,Prometheus,party,Mimic,3,Burn
+1,597.6,2,damage,Prometheus,party,Priest 2,38,
+1,597.6,2,condition,Prometheus,party,Priest 2,3,Burn
+1,597.6,2,action,Prometheus,party,,,Wildfire - main
+1,600.8,2,turn,Ranger 1,enemies,,,taken
+1,604.5,2,damage,Mimic,enemies,Mimic,7,lingering
+1,605.0,2,damage,Mimic,enemies,Mimic,2,lingering
+1,605.6,2,turn,Mimic,enemies,,,taken
+1,606.2,2,turn,Ranger 2,enemies,,,taken
+1,607.4,2,damage,Ranger 2,enemies,Alithia,20,
+1,607.4,2,action,Ranger 2,enemies,,,Nail Projectile - main
+1,607.8,2,turn,Bomber 1,enemies,,,taken
+1,608.7,2,damage,Bomber 1,enemies,Enfina,36,
+1,608.7,2,down,Enfina (on Enfina's turn),,Bomber 1,,enemies
+1,608.7,2,action,Bomber 1,enemies,,,Self Destruct - main
+1,608.7,2,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),4,lingering
+1,609.3,2,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,610.2,2,action,Lab A: City Fight enemies (16),enemies,,,Run - main
+1,610.2,2,damage,Priest 1,enemies,Priest 1,2,lingering
+1,610.7,2,turn,Priest 1,enemies,,,taken
+1,612.3,2,damage,Priest 2,enemies,Priest 2,7,lingering
+1,612.8,2,damage,Priest 2,enemies,Priest 2,3,lingering
+1,613.4,2,turn,Priest 2,enemies,,,taken
+1,614.3,2,gate,Priest 2,enemies,,,Gates of World
+1,614.3,2,heal,Priest 2,enemies,Priest 2,21,Heal
+1,614.3,2,action,Priest 2,enemies,,,Heal - main
+1,614.3,3,round,,,,3,
+1,614.3,3,turn,Cyrus,party,,,taken
+1,656.0,3,damage,Cyrus,party,Priest 2,16,
+1,656.0,3,condition,Cyrus,party,Priest 2,3,Poisoned
+1,656.0,3,action,Cyrus,party,,,Poison Dart - main
+1,660.3,3,action,Cyrus,party,,,Stealth - secondary
+1,661.3,3,damage,Alithia,party,Alithia,6,lingering
+1,661.3,3,down,Alithia (lingering),,Alithia,,party
+1,661.9,3,turn,Enfina,party,,,taken
+1,685.1,3,damage,Enfina,party,Priest 1,26,
+1,685.1,3,action,Enfina,party,,,Greatsword Attack - main
+1,689.1,3,damage,Prometheus,party,Prometheus,3,lingering
+1,689.7,3,turn,Prometheus,party,,,taken
+1,723.1,3,gate,Prometheus,party,,,Gates of Pandora
+1,723.1,3,damage,Prometheus,party,Mimic,40,
+1,723.1,3,down,Prometheus (on Prometheus's turn),,Mimic,,enemies
+1,723.1,3,condition,Prometheus,party,Mimic,3,Burn
+1,723.1,3,damage,Prometheus,party,Priest 2,40,
+1,723.1,3,down,Prometheus (on Prometheus's turn),,Priest 2,,enemies
+1,723.1,3,condition,Prometheus,party,Priest 2,3,Burn
+1,723.1,3,action,Prometheus,party,,,Wildfire - main
+1,725.6,3,turn,Ranger 1,enemies,,,taken
+1,729.0,3,turn,Ranger 2,enemies,,,taken
+1,730.3,3,damage,Ranger 2,enemies,Enfina,12,
+1,730.4,3,condition,Ranger 2,enemies,Enfina,5,Burn
+1,730.4,3,action,Ranger 2,enemies,,,Flammable Limb - main
+1,730.7,3,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),4,lingering
+1,731.2,3,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,732.1,3,action,Lab A: City Fight enemies (16),enemies,,,Run - main
+1,736.5,3,damage,Priest 1,enemies,Priest 1,2,lingering
+1,737.0,3,turn,Priest 1,enemies,,,taken
+1,737.9,3,gate,Priest 1,enemies,,,Gates of World
+1,737.9,3,heal,Priest 1,enemies,Priest 1,21,Heal
+1,737.9,3,action,Priest 1,enemies,,,Heal - main
+1,740.5,3,action,Enfina,party,,,Greatsword Attack - reaction
+1,742.1,3,damage,Priest 1,enemies,Priest 1,26,
+1,742.8,4,round,,,,4,
+1,742.8,4,turn,Cyrus,party,,,taken
+1,755.0,4,damage,Cyrus,party,Ranger 1,16,
+1,755.0,4,condition,Cyrus,party,Ranger 1,3,Poisoned
+1,755.0,4,action,Cyrus,party,,,Poison Dart - main
+1,759.6,4,action,Cyrus,party,,,Stealth - secondary
+1,761.4,4,damage,Enfina,party,Enfina,8,lingering
+1,762.0,4,turn,Enfina,party,,,taken
+1,768.7,4,damage,Enfina,party,Priest 1,17,
+1,768.7,4,down,Enfina (on Enfina's turn),,Priest 1,,enemies
+1,768.7,4,heal,Enfina,party,Enfina,8,Light Swing
+1,768.7,4,action,Enfina,party,,,Light Swing - main
+1,775.2,4,damage,Prometheus,party,Prometheus,3,lingering
+1,775.8,4,turn,Prometheus,party,,,taken
+1,791.8,4,gate,Prometheus,party,,,Gates of Hermes
+1,791.8,4,damage,Prometheus,party,Ranger 1,16,
+1,791.8,4,condition,Prometheus,party,Ranger 1,3,Crystallised
+1,791.8,4,action,Prometheus,party,,,Crystalise - main
+1,793.8,4,damage,Ranger 1,enemies,Ranger 1,2,lingering
+1,794.3,4,damage,Ranger 1,enemies,Ranger 1,2,lingering
+1,794.9,4,turn,Ranger 1,enemies,,,taken
+1,795.5,4,turn,Ranger 2,enemies,,,taken
+1,796.1,4,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,797.0,4,action,Lab A: City Fight enemies (16),enemies,,,Run - main
+1,801.6,5,round,,,,5,
+1,801.6,5,turn,Cyrus,party,,,taken
+1,831.7,5,damage,Cyrus,party,Ranger 1,14,
+1,831.7,5,condition,Cyrus,party,Ranger 1,3,Burn
+1,831.7,5,action,Cyrus,party,,,Burning Shot - main
+1,839.6,5,action,Cyrus,party,,,Stealth - secondary
+1,840.7,5,damage,Enfina,party,Enfina,8,lingering
+1,841.2,5,turn,Enfina,party,,,taken
+1,848.7,5,damage,Enfina,party,Ranger 2,17,
+1,848.7,5,damage,Enfina,party,Ranger 2,17,
+1,848.8,5,action,Enfina,party,,,Shoving Strike - main
+1,856.3,5,turn,Prometheus,party,,,taken
+1,867.5,5,gate,Prometheus,party,,,Gates of Hermes
+1,867.5,5,damage,Prometheus,party,Lab A: City Fight enemies (16),8,
+1,867.5,5,condition,Prometheus,party,Lab A: City Fight enemies (16),3,Crystallised
+1,867.5,5,action,Prometheus,party,,,Crystalise - main
+1,873.3,5,damage,Ranger 1,enemies,Ranger 1,7,lingering
+1,873.8,5,damage,Ranger 1,enemies,Ranger 1,2,lingering
+1,874.4,5,damage,Ranger 1,enemies,Ranger 1,2,lingering
+1,874.9,5,turn,Ranger 1,enemies,,,taken
+1,875.8,5,gate,Ranger 1,enemies,,,Gates of World
+1,875.8,5,heal,Ranger 1,enemies,Ranger 1,17,Heal
+1,875.8,5,action,Ranger 1,enemies,,,Heal - main
+1,875.8,5,turn,Ranger 2,enemies,,,taken
+1,876.4,5,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),1,lingering
+1,877.0,5,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,877.9,5,damage,Lab A: City Fight enemies (16),enemies,Prometheus,21,
+1,877.9,5,down,Lab A: City Fight enemies (16) (on Lab A: City Fight enemies (16)'s turn),,Prometheus,,party
+1,877.9,5,action,Lab A: City Fight enemies (16),enemies,,,Sweep Strike - main
+1,877.9,6,round,,,,6,
+1,877.9,6,turn,Cyrus,party,,,taken
+1,911.2,6,damage,Cyrus,party,Lab A: City Fight enemies (16),13,
+1,911.2,6,condition,Cyrus,party,Lab A: City Fight enemies (16),3,Burn
+1,911.2,6,action,Cyrus,party,,,Burning Shot - main
+1,918.4,6,action,Cyrus,party,,,Stealth - secondary
+1,918.4,6,damage,Enfina,party,Enfina,8,lingering
+1,918.9,6,turn,Enfina,party,,,taken
+1,925.3,6,damage,Enfina,party,Ranger 2,17,
+1,925.3,6,damage,Enfina,party,Ranger 2,17,
+1,925.3,6,action,Enfina,party,,,Shoving Strike - main
+1,927.1,6,damage,Ranger 1,enemies,Ranger 1,7,lingering
+1,927.7,6,damage,Ranger 1,enemies,Ranger 1,2,lingering
+1,928.2,6,damage,Ranger 1,enemies,Ranger 1,2,lingering
+1,928.8,6,turn,Ranger 1,enemies,,,taken
+1,929.7,6,gate,Ranger 1,enemies,,,Gates of World
+1,929.7,6,heal,Ranger 1,enemies,Ranger 1,17,Heal
+1,929.7,6,action,Ranger 1,enemies,,,Heal - main
+1,929.7,6,turn,Ranger 2,enemies,,,taken
+1,930.6,6,gate,Ranger 2,enemies,,,Gates of World
+1,930.6,6,heal,Ranger 2,enemies,Ranger 2,17,Heal
+1,930.6,6,action,Ranger 2,enemies,,,Heal - main
+1,930.6,6,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),9,lingering
+1,931.1,6,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),1,lingering
+1,931.7,6,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,932.3,7,round,,,,7,
+1,932.3,7,turn,Cyrus,party,,,taken
+1,941.0,7,damage,Cyrus,party,Ranger 1,16,
+1,941.0,7,condition,Cyrus,party,Ranger 1,3,Poisoned
+1,941.0,7,action,Cyrus,party,,,Poison Dart - main
+1,946.1,7,action,Cyrus,party,,,Stealth - secondary
+1,947.1,7,damage,Enfina,party,Enfina,8,lingering
+1,947.6,7,turn,Enfina,party,,,taken
+1,953.9,7,damage,Enfina,party,Ranger 2,17,
+1,953.9,7,damage,Enfina,party,Ranger 2,17,
+1,953.9,7,action,Enfina,party,,,Shoving Strike - main
+1,955.7,7,damage,Ranger 1,enemies,Ranger 1,2,lingering
+1,956.3,7,damage,Ranger 1,enemies,Ranger 1,7,lingering
+1,956.8,7,turn,Ranger 1,enemies,,,taken
+1,957.7,7,gate,Ranger 1,enemies,,,Gates of World
+1,957.7,7,heal,Ranger 1,enemies,Ranger 1,17,Heal
+1,957.7,7,action,Ranger 1,enemies,,,Heal - main
+1,957.7,7,turn,Ranger 2,enemies,,,taken
+1,958.6,7,gate,Ranger 2,enemies,,,Gates of World
+1,958.6,7,heal,Ranger 2,enemies,Ranger 2,17,Heal
+1,958.6,7,action,Ranger 2,enemies,,,Heal - main
+1,958.6,7,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),9,lingering
+1,959.1,7,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),1,lingering
+1,959.7,7,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,960.3,8,round,,,,8,
+1,960.3,8,turn,Cyrus,party,,,taken
+1,984.6,8,damage,Cyrus,party,Ranger 1,14,
+1,984.6,8,condition,Cyrus,party,Ranger 1,3,Burn
+1,984.6,8,action,Cyrus,party,,,Burning Shot - main
+1,988.3,8,action,Cyrus,party,,,Stealth - secondary
+1,989.4,8,damage,Enfina,party,Enfina,8,lingering
+1,989.9,8,turn,Enfina,party,,,taken
+1,995.4,8,damage,Enfina,party,Ranger 2,17,
+1,995.4,8,damage,Enfina,party,Ranger 2,17,
+1,995.4,8,down,Enfina (on Enfina's turn),,Ranger 2,,enemies
+1,995.5,8,action,Enfina,party,,,Shoving Strike - main
+1,1008.5,8,damage,Ranger 1,enemies,Ranger 1,7,lingering
+1,1009.1,8,damage,Ranger 1,enemies,Ranger 1,2,lingering
+1,1009.6,8,turn,Ranger 1,enemies,,,taken
+1,1010.5,8,gate,Ranger 1,enemies,,,Gates of World
+1,1010.5,8,heal,Ranger 1,enemies,Ranger 1,17,Heal
+1,1010.5,8,action,Ranger 1,enemies,,,Heal - main
+1,1010.5,8,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),9,lingering
+1,1011.1,8,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,1012.0,8,action,Lab A: City Fight enemies (16),enemies,,,Run - main
+1,1017.0,8,damage,Lab A: City Fight enemies (16),enemies,Enfina,18,
+1,1017.0,8,action,Lab A: City Fight enemies (16),enemies,,,Follow Up Attack - secondary
+1,1017.0,9,round,,,,9,
+1,1017.0,9,turn,Cyrus,party,,,taken
+1,1028.4,9,damage,Cyrus,party,Ranger 1,26,
+1,1028.4,9,action,Cyrus,party,,,Rapier - main
+1,1039.7,9,turn,Enfina,party,,,taken
+1,1046.0,9,damage,Enfina,party,Lab A: City Fight enemies (16),16,
+1,1046.0,9,damage,Enfina,party,Lab A: City Fight enemies (16),16,
+1,1046.0,9,action,Enfina,party,,,Shoving Strike - main
+1,1055.1,9,condition,Enfina,party,Enfina,6,Burn
+1,1055.1,9,action,Enfina,party,,,Trailblaze - secondary
+1,1059.3,9,damage,Ranger 1,enemies,Ranger 1,7,lingering
+1,1059.9,9,damage,Ranger 1,enemies,Ranger 1,2,lingering
+1,1060.4,9,turn,Ranger 1,enemies,,,taken
+1,1061.3,9,gate,Ranger 1,enemies,,,Gates of Hermes
+1,1061.3,9,heal,Ranger 1,enemies,Ranger 1,17,Heal
+1,1061.3,9,action,Ranger 1,enemies,,,Heal - main
+1,1061.3,9,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,1065.0,9,damage,Lab A: City Fight enemies (16),enemies,Enfina,17,
+1,1065.0,9,down,Lab A: City Fight enemies (16) (on Lab A: City Fight enemies (16)'s turn),,Enfina,,party
+1,1065.0,9,action,Lab A: City Fight enemies (16),enemies,,,Sweep Strike - main
+1,1065.0,10,round,,,,10,
+1,1065.0,10,turn,Cyrus,party,,,taken
+1,1071.1,10,damage,Cyrus,party,Ranger 1,26,
+1,1071.1,10,down,Cyrus (on Cyrus's turn),,Ranger 1,,enemies
+1,1071.1,10,action,Cyrus,party,,,Rapier - main
+1,1075.2,10,turn,Lab A: City Fight enemies (16),enemies,,,taken
+1,1078.3,11,round,,,,11,
+1,1078.3,11,turn,Cyrus,party,,,taken
+1,1082.1,11,action,Cyrus,party,,,Run - secondary
+1,1109.7,11,damage,Cyrus,party,Lab A: City Fight enemies (16),13,
+1,1109.7,11,condition,Cyrus,party,Lab A: City Fight enemies (16),3,Burn
+1,1109.7,11,action,Cyrus,party,,,Burning Shot - main
+1,1114.6,11,damage,Lab A: City Fight enemies (16),enemies,Lab A: City Fight enemies (16),9,lingering
+1,1114.6,11,down,Lab A: City Fight enemies (16) (lingering),,Lab A: City Fight enemies (16),,enemies
+2,11.5,1,damage,Cyrus,party,Lab B: Hired Blades (17),15,
+2,11.5,1,condition,Cyrus,party,Lab B: Hired Blades (17),3,Poisoned
+2,11.5,1,action,Cyrus,party,,,Poison Dart - main
+2,19.4,1,action,Cyrus,party,,,Run - secondary
+2,25.4,1,turn,Pit Champion,enemies,,,taken
+2,26.3,1,action,Pit Champion,enemies,,,Run - main
+2,31.6,1,turn,Hired Bow 1,enemies,,,taken
+2,35.3,1,turn,Hired Bow 2,enemies,,,taken
+2,38.3,1,damage,Lab B: Hired Blades (17),enemies,Lab B: Hired Blades (17),4,lingering
+2,38.8,1,turn,Lab B: Hired Blades (17),enemies,,,taken
+2,39.7,1,action,Lab B: Hired Blades (17),enemies,,,Run - main
+2,44.8,1,turn,Sellsword 2,enemies,,,taken
+2,45.7,1,action,Sellsword 2,enemies,,,Run - main
+2,50.4,2,round,,,,2,
+2,50.4,2,turn,Cyrus,party,,,taken
+2,59.9,2,damage,Cyrus,party,Lab B: Hired Blades (17),15,
+2,59.9,2,condition,Cyrus,party,Lab B: Hired Blades (17),3,Poisoned
+2,59.9,2,action,Cyrus,party,,,Poison Dart - main
+2,66.7,2,action,Cyrus,party,,,Run - secondary
+2,76.6,2,turn,Pit Champion,enemies,,,taken
+2,77.5,2,action,Pit Champion,enemies,,,Run - main
+2,80.4,2,damage,Pit Champion,enemies,Cyrus,22,
+2,80.4,2,action,Pit Champion,enemies,,,Follow Up Attack - secondary
+2,80.4,2,turn,Hired Bow 1,enemies,,,taken
+2,83.9,2,turn,Hired Bow 2,enemies,,,taken
+2,86.6,2,damage,Hired Bow 2,enemies,Cyrus,12,
+2,86.6,2,condition,Hired Bow 2,enemies,Cyrus,5,Poisoned
+2,86.6,2,action,Hired Bow 2,enemies,,,Venomous Shot - main
+2,86.9,2,damage,Lab B: Hired Blades (17),enemies,Lab B: Hired Blades (17),4,lingering
+2,87.5,2,turn,Lab B: Hired Blades (17),enemies,,,taken
+2,88.4,2,action,Lab B: Hired Blades (17),enemies,,,Run - main
+2,93.5,2,turn,Sellsword 2,enemies,,,taken
+2,94.4,2,action,Sellsword 2,enemies,,,Run - main
+2,97.9,3,round,,,,3,
+2,97.9,3,damage,Cyrus,party,Cyrus,6,lingering
+2,98.4,3,turn,Cyrus,party,,,taken
+2,112.3,3,damage,Cyrus,party,Pit Champion,6,
+2,112.3,3,damage,Cyrus,party,Sellsword 2,8,
+2,112.3,3,action,Cyrus,party,,,Blink Strike - main
+2,116.7,3,action,Cyrus,party,,,Slip Past - secondary
+2,120.5,3,turn,Pit Champion,enemies,,,taken
+2,121.3,3,action,Pit Champion,enemies,,,Run - main
+2,124.9,3,damage,Pit Champion,enemies,Cyrus,22,
+2,124.9,3,action,Pit Champion,enemies,,,Follow Up Attack - secondary
+2,124.9,3,turn,Hired Bow 1,enemies,,,taken
+2,127.9,3,turn,Hired Bow 2,enemies,,,taken
+2,131.8,3,damage,Hired Bow 2,enemies,Cyrus,20,
+2,131.8,3,action,Hired Bow 2,enemies,,,Nail Projectile - main
+2,131.8,3,damage,Lab B: Hired Blades (17),enemies,Lab B: Hired Blades (17),4,lingering
+2,132.3,3,turn,Lab B: Hired Blades (17),enemies,,,taken
+2,133.3,3,action,Lab B: Hired Blades (17),enemies,,,Run - main
+2,137.7,3,turn,Sellsword 2,enemies,,,taken
+2,138.6,3,action,Sellsword 2,enemies,,,Run - main
+2,142.8,4,round,,,,4,
+2,142.8,4,damage,Cyrus,party,Cyrus,6,lingering
+2,142.8,4,down,Cyrus (lingering),,Cyrus,,party

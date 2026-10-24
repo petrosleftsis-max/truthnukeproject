@@ -1,6 +1,8 @@
-[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3 uid="uid://dcoe6j7awajoi"]
 
 [ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
+[ext_resource type="Script" uid="uid://d3sq515l87q81" path="res://combat/resources/FloorDefinition.gd" id="1_wau1k"]
+[ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="2_2daa4"]
 [ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
 [ext_resource type="PackedScene" uid="uid://bg6jpyiju3kft" path="res://maps/city_fight.tscn" id="3_35bqs"]
 
@@ -51,7 +53,7 @@ script = ExtResource("2_spawn")
 combatant_key = "barbarian"
 side = 1
 position = Vector2i(5, 7)
-display_name = "Lab A: City Fight enemies (16)"
+display_name = "Striker"
 level = 16
 
 [sub_resource type="Resource" id="Resource_lwarc"]
@@ -108,9 +110,9 @@ level = 16
 
 [resource]
 script = ExtResource("1_enc")
-gold_reward = 45
 display_name = "Lab A: City Fight enemies (16)"
 description = "TEST HARNESS, not story content - the laboratory sequence's first fight: the City Fight's enemies at 16."
 terrain_scene = ExtResource("3_35bqs")
+gold_reward = 45
 spawns = Array[ExtResource("2_spawn")]([SubResource("Resource_35bqs"), SubResource("Resource_4gfyf"), SubResource("Resource_guhuk"), SubResource("Resource_sd4ao"), SubResource("Resource_6rd2x"), SubResource("Resource_h0e1a"), SubResource("Resource_k1vfo"), SubResource("Resource_lwarc"), SubResource("Resource_gyvxp"), SubResource("Resource_2hadd"), SubResource("Resource_5dowi"), SubResource("Resource_5k2mo"), SubResource("Resource_tapxy"), SubResource("Resource_10mjb")])
 music = "Luce_del_Desiderio"

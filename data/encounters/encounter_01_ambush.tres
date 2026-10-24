@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="EncounterDefinition" format=3 uid="uid://b24liue2xhn55"]
 
 [ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="1_85hwt"]
+[ext_resource type="Script" uid="uid://d3sq515l87q81" path="res://combat/resources/FloorDefinition.gd" id="1_ag2sr"]
 [ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_enc"]
 [ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_spawn"]
 [ext_resource type="PackedScene" uid="uid://cjfrltpu8rjnq" path="res://maps/crossroads_terrain.tscn" id="3_86m2p"]

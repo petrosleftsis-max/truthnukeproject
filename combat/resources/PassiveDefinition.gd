@@ -228,9 +228,9 @@ var scales_every_skill_with: int = -1
 ## designer's change of 2026-10-24 (APPROVED_TRIAL), Stunned before it.
 @export_range(0.0, 2.0, 0.05) var tremor_share: float = 0.0
 @export var tremor_impact_condition: ConditionDefinition
-## After a hit of theirs that set off Tremor, in their own turn, they may step a
-## tile toward whoever it landed on - for a tile of movement, onto free and safe
-## ground, provoking nothing (Combat.tremor_steps) - so Tremor never shoves
+## After a hit of theirs that set off Tremor, in their own turn, they step a
+## tile toward whoever it landed on - by themselves, free, onto free and safe
+## ground, provoking nothing (Combat.tremor_step_to) - so Tremor never shoves
 ## anybody out of their reach for good. Juggernaut's Tremor.
 @export var tremor_follow: bool = false
 ## Their Guard covers allies within this many tiles too. Warden's Covering Stance.
@@ -489,7 +489,7 @@ func _describe_paths() -> Array:
 		lines.append("Their hits also hit everybody beside the target for %d%%, shoving them all a tile%s." % [roundi(tremor_share * 100),
 			(" - into something solid, %s" % tremor_impact_condition.display_name.to_lower()) if tremor_impact_condition != null else ""])
 	if tremor_follow:
-		lines.append("After such a hit, can step a tile toward whoever they hit, for a tile of movement.")
+		lines.append("After such a hit, they step a tile after whoever they hit, free.")
 	if guard_covers > 0:
 		lines.append("Their Guard covers allies within %d too." % guard_covers)
 	if holds_the_line:

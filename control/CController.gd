@@ -3161,14 +3161,13 @@ var _step_choice = NO_TILE
 
 
 ## Marks `tiles` for `comb` to step to and waits for the choice. Answers the
-## tile chosen, or their own to stay. `what` is what the log says they can do:
-## step away (the Swashbuckler's), or step after them (Tremor's).
-func choose_step(comb: Dictionary, tiles: Array, what: String = "can step away") -> Vector2i:
+## tile chosen, or their own to stay.
+func choose_step(comb: Dictionary, tiles: Array) -> Vector2i:
 	_step_tiles = tiles.duplicate()
 	_step_choice = comb.position
 	_stepping = true
-	combat.update_information.emit("[color=yellow]%s[/color] %s: pick a marked tile, or press %s to stay.\n" % [
-		comb.name, what, Pad.key(&"ui_cancel", "Escape")])
+	combat.update_information.emit("[color=yellow]%s[/color] can step away: pick a marked tile, or press %s to stay.\n" % [
+		comb.name, Pad.key(&"ui_cancel", "Escape")])
 	queue_redraw()
 	while _stepping and is_inside_tree() and combat.still_running():
 		await get_tree().process_frame

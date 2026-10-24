@@ -1009,7 +1009,7 @@ The immovable. Enfina drags them in, cuts their legs from under them and pins th
 - Skill, level 32: **Hamstring** (see its entry under Skills)
 - Skill, level 41: **Pin Down** (see its entry under Skills)
 - Passive, Always active, from level 54: **Immovable** - A tenth less from every hit, and nothing shoves or pulls her anywhere. [Takes 10% less damage. Immune to being shoved.]
-- Passive, Always active, from level 64: **Tremor** - Every hit of hers also hits everybody beside whoever it lands on for half, and shoves them all a tile - into something solid, they are dazed. Then she can step a tile after whoever she hit. [Their hits also hit everybody beside the target for 50%, shoving them all a tile - into something solid, dazed. After such a hit, can step a tile toward whoever they hit, for a tile of movement.]
+- Passive, Always active, from level 64: **Tremor** - Every hit of hers also hits everybody beside whoever it lands on for half, and shoves them all a tile - into something solid, they are dazed. Then she steps a tile after whoever she hit, free. [Their hits also hit everybody beside the target for 50%, shoving them all a tile - into something solid, dazed. After such a hit, they step a tile after whoever they hit, free.]
 
 ### Saboteur (`saboteur`)
 
@@ -2058,7 +2058,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 - Main stat Physical, secondary Mindfulness; health 60 at level 1, 190 at 64; movement 7
 - Skills: Heal, Nail Projectile, Venomous Shot, Flammable Limb, Run
-- Settings: class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; spellcasting_stat: Mindfulness; resist_wind: -50; resist_poison: 50; ai_function: "ai_ranger"; ai_readies: Covers The Approach|Waits For The Hidden
+- Settings: class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; spellcasting_stat: Mindfulness; half_caster: true; resist_wind: -50; resist_poison: 50; ai_function: "ai_ranger"; ai_readies: Covers The Approach|Waits For The Hidden
 
 ### Rat (`rat`)
 
@@ -2218,16 +2218,40 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
   - **Effects:** two tiles less movement, no secondary action, no reactions. The target keeps its turn and its main action.
   - **Reapplying:** it never stacks; reapplying replaces it. Dazed again before the target's turn, it still lasts that one turn. Landing during the target's own turn, it covers the rest of that turn and the next, per the duration rule, and never more. The `tremor` suite checks this.
 - **Enfina's step after a Tremor hit:**
-  - **When:** optional, in her own turn after the action.
-  - **Where:** one straight tile nearer whoever Tremor threw back. The tile must be free and walkable, with nobody on it, no hazard mark, no harmful ground and no zone laid by the other side.
-  - **Cost:** 1 movement. There is no step with no movement left, or while she is held in place. It provokes nothing.
-  - **Who:** offered to the player like the Swashbuckler's step, as a choice of tile or staying put. It is never offered after a reaction.
+  - **When:** automatic, in her own turn after the action - not a choice (the designer: choosing every turn would tire the player).
+  - **Where:** one straight tile nearer the first enemy Tremor threw that still stands - the one leaving her closest beside them. The tile must be free and walkable, with nobody on it, no hazard mark, no harmful ground and no zone laid by the other side.
+  - **Cost:** none - no movement spent, and it provokes nothing. No step while she is held in place, or after a felled target.
+  - **Never** after a reaction (only in her own turn).
 - **Stunning Blow:** keeps x0.8 and its 1-turn Stun, but is now limited to uses per short rest: 1 at 41, 2 at 54, 3 at 64. A long rest restores them all.
 - **Per fight became per short rest.** Every use limit now recovers on a short rest, and a long rest restores it as well: Recant, Catalyst, Minefield, Grand Design, the Conductor's free amplifications (Overcharge, Deep Current), and Conduit. In a dungeon these carry from fight to fight until a rest. Every fight elsewhere starts with all of them, as with gates.
   - **Unchanged:** trigger conditions (Ambush Strike, Illusory Guardian, Afterimage), Kindling's build-up, durations to the fight's end, and boss phase, stagger and encounter effects.
   - **OPEN:** the Trapper's free Small Bomb, "to hand in every fight". It is left per fight for now.
-- **The short and long rest plug-in** (`Campaign.short_rest`, `long_rest`) restores those uses and nothing else yet. The rest between a dungeon's stages counts as a short rest for now. The designer will give the rests' details: health, gates, how many per segment.
+- **The short and long rest plug-in** (`Campaign.short_rest`, `long_rest`) restores those uses; since 2026-10-25 a dungeon of short rests (the lab) also mends half of what was lost (below). The designer will give the rests' details: health, gates, how many per segment.
 - **Nothing in play changes yet.** Every converted limit is learned at 24 or above, and today's dungeons are at 14 and 18.
+
+## The laboratory, short rests and half casters (2026-10-25; implemented)
+
+- **The first lab run** (conservation, Erysichthon variant) ended in the first fight.
+  - Alithia fell in round 3 to both Rangers' hits plus their Burn and Poison. Prometheus fell in round 5 to a Burner, its Burn and one Striker blow (51 against his 38). Enfina fell in round 9 to two Self Destructs (72), a Burn and the Striker.
+  - The party healed 8 and used no items; the enemies healed 182, the Rangers mostly themselves.
+  - With no rests and the fallen kept down, the second fight was Cyrus alone.
+- **Short rests in the lab** (APPROVED_TRIAL; the 50% is a PROPOSAL test value):
+  - Between stages, everybody standing gets back half of what they lost, along with the uses spent until a rest. No gates come back.
+  - The fallen stay down unless somebody who knows Resuscitate (Alithia) spends a casting of it on them at the rest: Pandora or deeper, back with 50% health and 10% weaker for good, as in a fight. If Alithia is down, nobody can.
+- **A kit** (PROPOSAL test values, tier II for a party at 18) fills every Simple Baldric, 4 slots each. It is all the party has for the three fights: what is used is gone.
+  - **Enfina:** 2 Mediocre Cure Potions, a Cure Potion, a Medicine.
+  - **Cyrus:** 2 Small Bombs, a Blinding Bomb, a Mediocre Cure Potion.
+  - **Prometheus:** 2 Medicines, a Mediocre Cure Potion, a Fireball Gate Nade.
+  - **Alithia:** a Communion Gate Nade, a Heal Gate Nade, a Mediocre Cure Potion, a Medicine.
+- **Half casters** (APPROVED_TRIAL): a half caster gets the gates of a full caster at half its level, rounded up, like a D&D paladin.
+  - The Ranger is one. At 16 it has World 4 and Hermes 2, where a full caster has World 4, Hermes 3 and Pandora 2. At 64 it has a full caster's gates of 32.
+  - Its Heal still costs a World casting.
+  - The other reading, half of each gate's castings at its own level, is open if that was what was meant.
+- **The lab's logs** now credit each tick of damage to the source of its condition, and each reaction to the reactor, rather than to whoever's turn it was.
+- **Lifting conditions** (the user's, 2026-10-25; implemented):
+  - Cured of something that held them in place (Crystallised) in their own turn, a combatant can walk again: all their movement, or what they had not yet walked.
+  - A cleanse that lifts only so much (Medicine lifts one) and a heal that lifts some (Mercy II) let the player choose which of several comes off, the most recent first, each with its turns left. The other side lifts the most recent.
+- **Reactions:** when someone leaves the reach of two or more at once, every one of them whose reaction is unspent swings, and the player is asked for each of theirs in turn. Reach is counted in straight steps, so a diagonal neighbour is 2 away and outside a reach of 1.
 
 ## Known near-twins among the spells
 

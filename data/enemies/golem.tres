@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://dfybqb6o6d2px"]
 
 [ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_jrtbx"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_ottg2"]
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
 [ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
 [ext_resource type="Resource" uid="uid://ttc70ufjw2r2" path="res://data/conditions/poisoned.tres" id="2_vw7xq"]
@@ -47,4 +48,3 @@ bound_to = "its master"
 rebind_hack = ExtResource("5_binding")
 rebind_turns = 3
 parts = Array[ExtResource("4_part")]([SubResource("Part_legs"), SubResource("Part_arms"), SubResource("Part_core")])
-future_changed_lines = null

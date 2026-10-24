@@ -21,10 +21,16 @@ encounter = ExtResource("5_c")
 [resource]
 script = ExtResource("1_dungeon")
 display_name = "Laboratory: late Chapter I, the Ash Warden (test harness)"
-description = "TEST HARNESS, not story content (docs/chapter1_audit.md, section 7). The whole party at 18 through three fights with no rest between: the City Fight's enemies at 16, the Hired Blades at 17, the Ash Warden at 18 - the second boss variant, for a different boss profile: two turns a round, immunities, phases, hazards, stagger. The primary variant, with Erysichthon, is lab_chapter1_sequence.tres. Health, the fallen and spent gates carry forward. Every fight is logged (LabMetrics). Run it from demos/lab_sequence_ash_warden_conservation.tscn or demos/lab_sequence_ash_warden_free_spending.tscn."
+description = "TEST HARNESS, not story content (docs/chapter1_audit.md, section 7). The whole party at 18 through three fights with a short rest between each (half of what was lost back, no gates; the fallen stay down unless Resuscitated at the rest), with a kit of consumables filling every belt slot, used up as it goes: the City Fight's enemies at 16, the Hired Blades at 17, the Ash Warden at 18 - the second boss variant, for a different boss profile: two turns a round, immunities, phases, hazards, stagger. The primary variant, with Erysichthon, is lab_chapter1_sequence.tres. What health is not given back, the fallen, spent gates and used items carry forward. Every fight is logged (LabMetrics). Run it from demos/lab_sequence_ash_warden_conservation.tscn or demos/lab_sequence_ash_warden_free_spending.tscn."
 party = Array[String](["enfina", "cyrus", "prometheus", "alithia"])
 level = 18
 knows_every_spell = true
+kit = {
+"alithia": ["communion_gate_nade", "heal_gate_nade", "mediocre_cure_potion", "medicine"],
+"cyrus": ["small_bomb", "small_bomb", "blinding_bomb", "mediocre_cure_potion"],
+"enfina": ["mediocre_cure_potion", "mediocre_cure_potion", "cure_potion", "medicine"],
+"prometheus": ["medicine", "medicine", "mediocre_cure_potion", "fireball_gate_nade"]
+}
 stages = Array[ExtResource("2_stage")]([SubResource("Stage_a"), SubResource("Stage_b"), SubResource("Stage_c")])
-skips_rests = true
+short_rests = true
 logs_metrics = true

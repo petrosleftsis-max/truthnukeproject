@@ -202,19 +202,6 @@ func strike(foe: Dictionary, target: Dictionary, key: String = "greatsword_attac
 	await settle(3)
 
 
-## The same, from somebody whose Tremor offers a step after it: offered, the
-## step is declined (the control suite takes it).
-func strike_and_stay(foe: Dictionary, target: Dictionary, key: String = "greatsword_attack"):
-	foe.status_effects.append({"stat": "accuracy", "amount": 200, "duration": 99, "source_name": "test"})
-	give_turn(foe)
-	var done := start_skill(key, foe, target.position)
-	await wait_for(func(): return done[0] or combat.controller.is_stepping())
-	if combat.controller.is_stepping():
-		combat.controller.stay_put()
-	await wait_for(func(): return done[0])
-	await settle(3)
-
-
 func bonus(attacker: Dictionary, target: Dictionary, key: String) -> float:
 	return combat.progression_damage_bonus(attacker, target, SkillDatabase.skills[key])
 
@@ -289,7 +276,7 @@ func enfina_paths():
 		put(other, a_tile(other.position + Vector2i(15, 15), func(tile): return combat.get_position_distance(tile, enfina.position) > 6))
 	var near_hp: int = near.hp
 	var struck_at: Vector2i = struck.position
-	await strike_and_stay(enfina, struck)
+	await strike(enfina, struck)
 	ok(near.hp < near_hp, "the one beside whoever she hits is hit too (Tremor)", "%d" % (near_hp - near.hp))
 	ok(struck.position != struck_at or has_condition(struck, "dazed"), "and the one she hit is shoved - or, against something solid, dazed",
 		"%s -> %s" % [struck_at, struck.position])

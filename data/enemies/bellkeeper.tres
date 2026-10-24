@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://bd10mcywbkueh" path="res://combat/resources/StaggerDefinition.gd" id="5_4eeyp"]
 [ext_resource type="Script" uid="uid://du4vctmb8r6pi" path="res://combat/resources/BossDefinition.gd" id="6_6ji7l"]
 [ext_resource type="Resource" path="res://data/conditions/stunned.tres" id="7_fvpxl"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="8_plvun"]
 [ext_resource type="Resource" path="res://data/conditions/confused.tres" id="8_yevj8"]
 [ext_resource type="Resource" uid="uid://da6hi26lshoi3" path="res://data/conditions/frozen.tres" id="9_s5puv"]
 [ext_resource type="Resource" uid="uid://ckup4ja1ars1i" path="res://data/conditions/crystallised.tres" id="10_1fuxf"]
@@ -67,5 +68,4 @@ immune_to_conditions = Array[ExtResource("3_plvun")]([ExtResource("7_fvpxl"), Ex
 immune_to = Array[int]([0, 1, 2, 9])
 turns_per_round = 2
 boss = SubResource("Resource_4eeyp")
-future_changed_lines = null
 ai_function = "ai_caster"

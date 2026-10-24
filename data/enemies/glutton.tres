@@ -1,43 +1,17 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://dk56apih3egrf"]
 
-[ext_resource type="Script" path="res://combat/resources/BossPhase.gd" id="1_phase"]
-[ext_resource type="Script" path="res://combat/resources/StaggerDefinition.gd" id="2_stagger"]
-[ext_resource type="Script" path="res://combat/resources/BossDefinition.gd" id="3_boss"]
-[ext_resource type="Script" path="res://combat/resources/BodyPartDefinition.gd" id="4_part"]
-[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="5_comb"]
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="6_effect"]
+[ext_resource type="Script" uid="uid://ch1kwtah6ul2i" path="res://combat/resources/BossPhase.gd" id="1_phase"]
+[ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="2_8oyj2"]
+[ext_resource type="Script" uid="uid://bd10mcywbkueh" path="res://combat/resources/StaggerDefinition.gd" id="2_stagger"]
+[ext_resource type="Script" uid="uid://du4vctmb8r6pi" path="res://combat/resources/BossDefinition.gd" id="3_boss"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="3_g0h36"]
+[ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="4_part"]
+[ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="5_comb"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="6_effect"]
 [ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="7_frames"]
 [ext_resource type="Resource" path="res://data/conditions/bile_soaked.tres" id="8_bile"]
-[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="9_passive"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="9_passive"]
 [ext_resource type="Resource" path="res://data/passives/hollow_frame.tres" id="10_hollow"]
-
-[sub_resource type="Resource" id="Part_jaws"]
-script = ExtResource("4_part")
-name = "Jaws"
-tiles = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(2, 1), Vector2i(3, 1)])
-health_share = 0.12
-when_broken = 4
-disarms = Array[String](["ravenous_bite", "devour"])
-regrows_after = 3
-regrows_when_eating = true
-
-[sub_resource type="Resource" id="Part_belly"]
-script = ExtResource("4_part")
-name = "Belly Hole"
-tiles = Array[Vector2i]([Vector2i(0, 2), Vector2i(1, 2), Vector2i(0, 3), Vector2i(1, 3)])
-health_share = 0.1
-when_broken = 2
-regrows_after = 2
-regrows_when_eating = true
-frees_the_swallowed = true
-
-[sub_resource type="Resource" id="Part_legs"]
-script = ExtResource("4_part")
-name = "Hind Legs"
-tiles = Array[Vector2i]([Vector2i(2, 2), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 3)])
-health_share = 0.1
-regrows_after = 3
-regrows_when_eating = true
 
 [sub_resource type="Resource" id="Part_second_head"]
 script = ExtResource("4_part")
@@ -48,6 +22,14 @@ when_broken = 1
 regrows_after = 3
 regrows_when_eating = true
 
+[sub_resource type="Resource" id="Phase_gorge"]
+script = ExtResource("1_phase")
+name = "Gorge"
+at_health = 0.66
+message = "A second head tears its way out of its shoulder, snapping - now it can hold two."
+parts_added = Array[ExtResource("4_part")]([SubResource("Part_second_head")])
+holds_at_once = 2
+
 [sub_resource type="Resource" id="Part_rib_maws"]
 script = ExtResource("4_part")
 name = "Rib Maws"
@@ -57,14 +39,6 @@ when_broken = 4
 disarms = Array[String](["rib_maws"])
 regrows_after = 2
 regrows_when_eating = true
-
-[sub_resource type="Resource" id="Phase_gorge"]
-script = ExtResource("1_phase")
-name = "Gorge"
-at_health = 0.66
-message = "A second head tears its way out of its shoulder, snapping - now it can hold two."
-parts_added = Array[ExtResource("4_part")]([SubResource("Part_second_head")])
-holds_at_once = 2
 
 [sub_resource type="Resource" id="Phase_hollow"]
 script = ExtResource("1_phase")
@@ -97,6 +71,34 @@ stat = "physical"
 modifier_amount = 4
 duration = 3
 
+[sub_resource type="Resource" id="Part_jaws"]
+script = ExtResource("4_part")
+name = "Jaws"
+tiles = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(2, 1), Vector2i(3, 1)])
+health_share = 0.12
+when_broken = 4
+disarms = Array[String](["ravenous_bite", "devour"])
+regrows_after = 3
+regrows_when_eating = true
+
+[sub_resource type="Resource" id="Part_belly"]
+script = ExtResource("4_part")
+name = "Belly Hole"
+tiles = Array[Vector2i]([Vector2i(0, 2), Vector2i(1, 2), Vector2i(0, 3), Vector2i(1, 3)])
+health_share = 0.1
+when_broken = 2
+regrows_after = 2
+regrows_when_eating = true
+frees_the_swallowed = true
+
+[sub_resource type="Resource" id="Part_legs"]
+script = ExtResource("4_part")
+name = "Hind Legs"
+tiles = Array[Vector2i]([Vector2i(2, 2), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 3)])
+health_share = 0.1
+regrows_after = 3
+regrows_when_eating = true
+
 [resource]
 script = ExtResource("5_comb")
 name = "Erysichthon"
@@ -109,6 +111,7 @@ initiative = 4
 sprite_frames = ExtResource("7_frames")
 tint = Color(0.62, 0.72, 0.52, 1)
 skills = Array[String](["ravenous_bite", "grab", "devour", "catch_the_scent", "rending_claws"])
+passives = Array[ExtResource("9_passive")]([ExtResource("10_hollow")])
 resist_fire = -25
 immune_to = Array[int]([9, 10, 12])
 boss = SubResource("Boss")
@@ -118,4 +121,3 @@ meal_heals = 0.06
 fed_effects = Array[ExtResource("6_effect")]([SubResource("Effect_gorged")])
 spat_out_with = ExtResource("8_bile")
 ai_function = "ai_glutton"
-passives = Array[ExtResource("9_passive")]([ExtResource("10_hollow")])

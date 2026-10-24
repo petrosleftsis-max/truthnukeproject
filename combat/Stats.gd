@@ -281,6 +281,14 @@ static func no_gates() -> Array:
 	return none
 
 
+## A half caster's allowance at `level` (CombatantDefinition.half_caster): a
+## full caster's at half the level, rounded up, as a D&D paladin's spell slots
+## are a full caster's at half the paladin's level - at 16 the gates of 8
+## (World 4, Hermes 2), at 64 those of 32. The designer, 2026-10-25.
+static func half_caster_gates(level: int) -> Array:
+	return gates_for_level(ceili(level / 2.0))
+
+
 ## The allowance at `level`, indexed by gate with nothing at 0, as wide as the
 ## ladder - a fresh array, since it is spent down over a fight.
 static func gates_for_level(level: int) -> Array:

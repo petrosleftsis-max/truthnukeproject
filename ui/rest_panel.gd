@@ -10,6 +10,11 @@ class_name RestPanel
 ## brought back that was not spent. Only so many rests in a run may do it, and
 ## the offer says so, so the player knows it is now or a later rest - not both.
 ##
+## A dungeon of short rests (DungeonDefinition.short_rests) gives back half of
+## what was lost, and leaves the fallen down - each with a button to bring them
+## back with Resuscitate, while somebody standing can cast it
+## (Campaign.resuscitate_at_rest).
+##
 ## Built in code, by ResultUI, once the battle and whatever is said after it are
 ## over. Campaign does the resting and the recovering; this only asks.
 
@@ -30,6 +35,8 @@ var chosen_outside: Array = []
 var offered_to := ""
 
 var _gate_box: VBoxContainer = null
+var _party: Label = null
+var _fallen_box: VBoxContainer = null
 var _rows: Array = []
 var _points: Label = null
 var _recover: Button = null
@@ -54,16 +61,19 @@ func _ready():
 	rested.name = "Rested"
 	rested.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rested.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	rested.text = "Everyone is back to full health. Whatever was not used, they still carry."
+	rested.text = _rested_text()
 	column.add_child(rested)
-	var party := Label.new()
-	party.name = "Party"
-	party.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	party.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	party.add_theme_color_override("font_color", MUTED)
-	var described := Campaign.describe_party()
-	party.text = "Party: " + described if described != "" else ""
-	column.add_child(party)
+	_party = Label.new()
+	_party.name = "Party"
+	_party.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_party.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_party.add_theme_color_override("font_color", MUTED)
+	_describe_party()
+	column.add_child(_party)
+	_fallen_box = VBoxContainer.new()
+	_fallen_box.name = "Fallen"
+	_fallen_box.add_theme_constant_override("separation", 8)
+	column.add_child(_fallen_box)
 	_gate_box = VBoxContainer.new()
 	_gate_box.name = "Gates"
 	_gate_box.add_theme_constant_override("separation", 8)
@@ -87,8 +97,75 @@ func _ready():
 	leave.text = "Main menu"
 	leave.pressed.connect(func(): left_for_menu.emit())
 	column.add_child(leave)
+	_offer_resuscitate()
 	_offer_gates()
 	FocusOnDemand.attach(self, _first_button())
+
+
+## What the rest gave: a full one's, or a short one's.
+func _rested_text() -> String:
+	if Campaign.dungeon != null and Campaign.dungeon.short_rests:
+		return "A short rest: everybody standing gets back %d%% of what they lost. Nobody fallen gets up by themselves, and no gates come back. Whatever was not used, they still carry." % roundi(Campaign.SHORT_REST_MENDS * 100.0)
+	return "Everyone is back to full health. Whatever was not used, they still carry."
+
+
+func _describe_party():
+	var described := Campaign.describe_party()
+	_party.text = "Party: " + described if described != "" else ""
+
+
+## --- Resuscitate ---
+
+## Everybody fallen, each with a button to bring them back, while somebody
+## standing can cast Resuscitate.
+func _offer_resuscitate():
+	for child in _fallen_box.get_children():
+		child.queue_free()
+	var fallen: Array = Campaign.party_order.filter(func(key): return Campaign.party_state.has(key) and not Campaign.party_state[key].get("alive", true))
+	if fallen.is_empty():
+		return
+	var caster := Campaign.resuscitator()
+	var heading := Label.new()
+	heading.name = "FallenHeading"
+	heading.text = "The fallen"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_color_override("font_color", GOLD)
+	heading.add_theme_font_size_override("font_size", 20)
+	_fallen_box.add_child(heading)
+	var terms := Label.new()
+	terms.name = "FallenTerms"
+	terms.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	terms.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var revive := Campaign.resuscitate_revive()
+	if caster == "" or revive == null:
+		terms.text = "Nobody standing can cast Resuscitate: they stay down."
+	else:
+		terms.text = "%s can bring one back with Resuscitate, for a casting through %s (gates: %s). Up with %d%% of their health - and %d%% weaker for good." % [
+			Campaign.display_name_of(caster), Stats.short_gate_name(Campaign.rest_gate_for(caster)), _gates_now(caster),
+			roundi(revive.revive_health * 100.0), roundi(revive.revive_weakening * 100.0)]
+	_fallen_box.add_child(terms)
+	for key in fallen:
+		var button := Button.new()
+		button.name = "Resuscitate_%s" % key
+		button.text = "Resuscitate %s" % Campaign.display_name_of(key)
+		button.disabled = caster == ""
+		button.pressed.connect(resuscitate.bind(key))
+		_fallen_box.add_child(button)
+
+
+## Brings `key` back, if somebody can.
+func resuscitate(key: String) -> bool:
+	var caster := Campaign.resuscitator()
+	if caster == "" or not Campaign.resuscitate_at_rest(caster, key):
+		return false
+	_describe_party()
+	_offer_resuscitate()
+	if offered_to == caster:
+		_offer_gates()
+	# The button pressed has gone; the keyboard goes on to Continue.
+	if get_viewport().gui_get_focus_owner() != null or Pad.using_pad:
+		_continue.grab_focus.call_deferred()
+	return true
 
 
 ## Whose gates there are to offer, if anybody's.
@@ -293,6 +370,9 @@ func _row_for(gate: int, outside: bool = false):
 
 
 func _first_button() -> Control:
+	for child in _fallen_box.get_children():
+		if child is Button and not child.disabled:
+			return child
 	for row in _rows:
 		if not row.more.disabled:
 			return row.more

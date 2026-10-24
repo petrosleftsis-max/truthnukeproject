@@ -1817,6 +1817,11 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				_steal_from = await _choose_container(attacker, target)
 				if not still_running():
 					return
+			# Which of what is on them a cleanse - or a heal that lifts - takes
+			# off, when it cannot take it all ("Cleansing: choosing what comes off").
+			_lift_picks = await _choose_lifts(attacker, target, skill)
+			if not still_running():
+				return
 			# Where it was aimed, for a part of somebody big (see "Body parts") -
 			# none for an area, which hits the whole of them.
 			_aimed_tile = _aim_from_inside(attacker, target, impact_position) if aims_at_parts(attacker, skill) else null
@@ -1838,6 +1843,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			_aimed_tile = null
 			_placing_at = NO_AREA
 			_steal_from = ""
+			_lift_picks = []
 			if not grazed:
 				_after_landing(attacker, target, skill)
 			if skill.deals_damage and target.get("side", -1) != attacker.get("side", -1):
@@ -1911,19 +1917,13 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 					return
 				if to != attacker.position and teleport_to(attacker, to):
 					update_information.emit("[color=yellow]%s[/color] steps away.\n" % attacker.name)
-		# A step after whoever their Tremor threw back, for a tile of movement -
-		# the player's to take, or to stay put (tremor_steps). Provokes nothing.
-		var follow := tremor_steps(attacker) if attacker.alive and plays_for_party(attacker) \
-				and not has_restriction(attacker, "confuses") and controller.has_method("choose_step") else []
+		# A step after whoever their Tremor threw back, taken for them: free,
+		# and provoking nothing (tremor_step_to).
+		var follow: Vector2i = tremor_step_to(attacker) if attacker.alive else attacker.position
 		attacker.erase("tremor_struck")
-		if not follow.is_empty():
-			var to: Vector2i = await controller.choose_step(attacker, follow, "can step after them")
-			if not still_running():
-				return
-			if to != attacker.position and controller.movement >= 1 and teleport_to(attacker, to):
-				controller.movement -= 1
-				update_information.emit("[color=yellow]%s[/color] steps in after them.\n" % attacker.name)
-				sync_zones()
+		if follow != attacker.position and teleport_to(attacker, follow):
+			update_information.emit("[color=yellow]%s[/color] steps in after them.\n" % attacker.name)
+			sync_zones()
 		if as_secondary:
 			attacker.secondary_used_this_turn = true
 		else:
@@ -3330,14 +3330,25 @@ func replace_matching_tick(target: Dictionary, kind: String, condition: Conditio
 
 func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: EffectDefinition):
 	var removed = 0
-	# From the end, so the most recently acquired goes first. That only shows
-	# when dispel_count limits how many come off - a remedy that lifts one thing
-	# should lift the thing that just happened.
-	var i = target.status_effects.size() - 1
 	var keeps_boons := immune_to(target, Immunity.Kind.BUFFS_REMOVED)
 	if keeps_boons and effect.dispel_scope == EffectDefinition.DispelScope.BUFFS_ONLY:
 		shrug_off(target, Immunity.name_of(Immunity.Kind.BUFFS_REMOVED))
 		return
+	var was_held := has_restriction(target, "prevents_movement")
+	var movement_before: int = get_effective_stat(target, "movement") if target.has("movement") else 0
+	# What the player chose to lift first (_choose_lifts)...
+	for entry in _lift_picks.duplicate():
+		if effect.dispel_count > 0 and removed >= effect.dispel_count:
+			break
+		var at := _effect_index(target, entry)
+		if at >= 0 and should_dispel(entry, effect, keeps_boons):
+			target.status_effects.remove_at(at)
+			_lift_picks.erase(entry)
+			removed += 1
+	# ...then from the end, so the most recently acquired goes first. That only
+	# shows when dispel_count limits how many come off - a remedy that lifts one
+	# thing should lift the thing that just happened.
+	var i = target.status_effects.size() - 1
 	while i >= 0:
 		if effect.dispel_count > 0 and removed >= effect.dispel_count:
 			break
@@ -3346,9 +3357,11 @@ func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: Eff
 			removed += 1
 		i -= 1
 	# One of the things lifted may have been what was keeping them off the floor,
-	# or a Growth.
+	# or a Growth - or, in their own turn, what held them where they stood.
 	resync_movement_class(target)
 	resync_size(target)
+	if removed > 0 and target.has("movement"):
+		_movement_after_lift(target, was_held, movement_before)
 	if removed > 0:
 		# Same reason as applying one: the icon has to leave the portrait as
 		# the cleanse lands, not when the turn happens to end.
@@ -3358,6 +3371,90 @@ func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: Eff
 			removed,
 			target.name
 		]))
+
+
+## --- Cleansing: choosing what comes off ---
+##
+## A cleanse that lifts only so much (Dispel Count) and a heal that lifts some
+## harmful conditions too (Heals Lift - Mercy II) take what the player chooses
+## when there is more on them than comes off: asked once per thing lifted,
+## before the skill lands on them, as a Steal's container is (_choose_lifts in
+## use_skill). Anybody else lifts the most recent first.
+
+## What the player chose to lift from whoever is being landed on now, in order.
+var _lift_picks: Array = []
+
+
+## Asks the player which of `target`'s entries `skill` lifts, when it cannot
+## lift them all. Empty: nothing to ask, or nobody to ask it of.
+func _choose_lifts(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> Array:
+	if skill == null or not plays_for_party(attacker) or reaction_prompt == null or not reaction_prompt.has_method("pick") \
+			or not target.has("status_effects"):
+		return []
+	var limit := 0
+	var candidates := []
+	for effect in skill.all_effects():
+		if effect != null and effect.type == EffectDefinition.EffectType.DISPEL and effect.dispel_count > 0:
+			var keeps_boons := immune_to(target, Immunity.Kind.BUFFS_REMOVED)
+			limit = effect.dispel_count
+			candidates = target.status_effects.filter(func(entry): return should_dispel(entry, effect, keeps_boons))
+			break
+	if limit == 0 and heal_effect_of(skill) != null and target.get("side", -1) == attacker.get("side", -2):
+		for passive in active_passives(attacker):
+			limit += passive.heals_lift
+		candidates = target.status_effects.filter(func(entry): return _harmful(entry))
+	if limit <= 0 or candidates.size() <= limit:
+		return []
+	# The most recent first, as anybody else would lift them.
+	candidates.reverse()
+	var picks := []
+	while picks.size() < limit and not candidates.is_empty():
+		var picked: int = await reaction_prompt.pick("%s: %s" % [attacker.name, skill.name],
+			"Which of what is on %s comes off?%s" % [target.name, (" (%d of %d)" % [picks.size() + 1, limit]) if limit > 1 else ""],
+			candidates.map(func(entry): return lift_label(entry)))
+		if not still_running():
+			return []
+		var at := clampi(picked, 0, candidates.size() - 1)
+		picks.append(candidates[at])
+		candidates.remove_at(at)
+	return picks
+
+
+## What a status entry is called, lifting it: its condition, a lingering wound,
+## or the figure it changes.
+static func lifted_name(entry: Dictionary) -> String:
+	var condition = entry.get("condition")
+	if condition != null:
+		return condition.display_name
+	match entry.get("stat", ""):
+		"dot":
+			return "a lingering wound"
+	var amount = entry.get("amount", 0)
+	if entry.get("op", "add") == "multiply":
+		return "%s x%s" % [entry.get("stat", "?"), snappedf(float(amount), 0.01)]
+	return "%s %+d" % [entry.get("stat", "?"), int(amount)]
+
+
+## The same, with how long it has left - a button's label.
+static func lift_label(entry: Dictionary) -> String:
+	var turns: int = entry.get("duration", 0)
+	if turns <= 0 or turns >= 99:
+		return lifted_name(entry)
+	return "%s (%d turn%s left)" % [lifted_name(entry), turns, "" if turns == 1 else "s"]
+
+
+## After something came off `comb`: in their own turn, what they have left to
+## walk made to fit. Let go of what held them where they stood (Crystallised,
+## a root), it is their movement less what they walked this turn before it took
+## hold; anything else changing their movement, it follows the change
+## (resync_live_movement).
+func _movement_after_lift(comb: Dictionary, was_held: bool, movement_before: int):
+	if comb != get_current_combatant() or controller == null:
+		return
+	if was_held and not has_restriction(comb, "prevents_movement"):
+		controller.movement = maxi(get_effective_stat(comb, "movement") - int(comb.get("walked_this_turn", 0)), 0)
+	else:
+		resync_live_movement(comb, movement_before)
 
 
 func should_dispel(status_effect: Dictionary, dispel_effect: EffectDefinition, keeps_boons: bool = false) -> bool:
@@ -3735,7 +3832,7 @@ func _take_collision_damage(shover: Dictionary, who: Dictionary, effect: EffectD
 	var shove_element = effective_damage_type(shover, effect.damage_type)
 	var collision_damage = resisted_damage(who, shove_element,
 		Stats.final_damage(float(impact), 1.0, stat_of(who, Stats.Type.DEFENSE)))
-	lose_hp(who, collision_damage, shove_element)
+	lose_hp(who, collision_damage, shove_element, shover)
 	show_damage(who, collision_damage, shove_element, true)
 	update_combatants.emit(combatants)
 	update_information.emit("[color=red]{0}[/color] {1}, taking [color={3}]{2} damage[/color]\n".format([
@@ -3799,7 +3896,7 @@ func start_of_turn_effects(comb: Dictionary, paced: bool = false):
 		if wound:
 			tick_damage_over_time(comb, eff)
 		else:
-			tick_condition_damage(comb, eff.condition, eff.get("dot_base", 0.0))
+			tick_condition_damage(comb, eff.condition, eff.get("dot_base", 0.0), 1.0, _combatant_by_id(eff.get("source_id", -1)))
 		if paced:
 			await get_tree().create_timer(TICK_BEAT).timeout
 			if not still_running():
@@ -3878,12 +3975,12 @@ func dot_tick(target: Dictionary, dot_base: float, flat_min: int, flat_max: int)
 
 
 ## `times` ticks' worth at once, for everything left going off together (Catalyst).
-func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition, dot_base: float = 0.0, times: float = 1.0):
+func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition, dot_base: float = 0.0, times: float = 1.0, by: Dictionary = {}):
 	if not comb.alive:
 		return
 	var resistance = resistance_of(comb, condition.dot_type)
 	var amount = resisted_damage(comb, condition.dot_type, roundi(dot_tick(comb, dot_base, condition.dot_min, condition.dot_max) * times))
-	lose_hp(comb, amount, condition.dot_type)
+	lose_hp(comb, amount, condition.dot_type, by, condition.display_name)
 	show_damage(comb, amount, condition.dot_type, true)
 	update_combatants.emit(combatants)
 	update_information.emit("[color=red]%s[/color] took [color=%s]%d %s damage%s[/color] from %s.\n" % [
@@ -3901,7 +3998,7 @@ func tick_damage_over_time(comb: Dictionary, eff: Dictionary):
 	var type = eff.get("damage_type", Damage.Type.PHYSICAL)
 	var resistance = resistance_of(comb, type)
 	var amount = resisted_damage(comb, type, dot_tick(comb, eff.get("dot_base", 0.0), eff.min_amount, eff.max_amount))
-	lose_hp(comb, amount, type)
+	lose_hp(comb, amount, type, _combatant_by_id(eff.get("source_id", -1)), "a lingering wound")
 	show_damage(comb, amount, type, true)
 	update_combatants.emit(combatants)
 	update_information.emit("[color=red]%s[/color] took [color=%s]%d %s damage%s[/color] from a lingering effect (%s).\n" % [
@@ -4975,7 +5072,7 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	damage = _guard_share(target, damage)
 	# And a blow that would fell them stops short, somebody walling them (Last Wall).
 	damage = _last_wall(target, damage)
-	lose_hp(target, damage, element)
+	lose_hp(target, damage, element, attacker)
 	if target.get("side", -1) != attacker.get("side", -2):
 		_dealt_now += damage
 	# Aimed at a part of somebody big, the part takes it too (see "Body parts").
@@ -5439,8 +5536,11 @@ func free_items_of(comb: Dictionary) -> Array:
 ## carries it out.
 
 ## Takes `amount` off `target`: their overheal first, then their health. What
-## came off their health.
-func lose_hp(target: Dictionary, amount: int, element: int = -1) -> int:
+## came off their health. `by` is whoever did it, when anybody did, and
+## `lingering` names what was burning on them (a condition's name) - both only
+## for the metric, so a tick is laid at its source's door, and a reaction at
+## the reactor's, rather than at whoever's turn it is.
+func lose_hp(target: Dictionary, amount: int, element: int = -1, by: Dictionary = {}, lingering: String = "") -> int:
 	# Nothing hurts the untouchable (Illusory Dragon).
 	if target.get("untouchable", false):
 		return 0
@@ -5450,7 +5550,8 @@ func lose_hp(target: Dictionary, amount: int, element: int = -1) -> int:
 		target.temp_hp = shield - absorbed
 	target.hp -= amount - absorbed
 	_metric("damage", {"target": target, "amount": amount - absorbed, "absorbed": absorbed, "element": element,
-		"during": combatants[current_combatant] if current_combatant >= 0 and current_combatant < combatants.size() else {}})
+		"during": combatants[current_combatant] if current_combatant >= 0 and current_combatant < combatants.size() else {},
+		"by": by, "lingering": lingering})
 	# A boss's stagger bar and phases (see "Bosses"); `element` is the damage's
 	# type, for a bar only one type fills.
 	_after_hp_lost(target, amount - absorbed, element)
@@ -5646,27 +5747,47 @@ func _splash(attacker: Dictionary, target: Dictionary, skill: SkillDefinition):
 
 
 ## The tiles `comb` could step to after their Tremor threw somebody back
-## (PassiveDefinition.tremor_follow): a tile beside them - straight, so it is a
-## tile of movement - nearer one of those it threw, free and safe: nothing in
-## the way and nobody there (can_land_on), no hazard marked on it, no ground
-## that hurts, nothing of the other side's laid on it. Only in their own turn,
-## with a tile of movement left and nothing holding them where they are. Empty
-## otherwise - in reach of them already, nothing nearer to be had.
+## (PassiveDefinition.tremor_follow): a straight tile beside them nearer the
+## first of those it threw still standing, free and safe - nothing in the way
+## and nobody there (can_land_on), no hazard marked on it, no ground that hurts,
+## nothing of the other side's laid on it. Only in their own turn and with
+## nothing holding them where they are. Empty otherwise - in reach of them
+## already, nothing nearer to be had, or nobody it threw still standing.
 func tremor_steps(comb: Dictionary) -> Array:
 	var found := []
-	var thrown: Array = comb.get("tremor_struck", []).map(func(id): return combatant_with_id(id)).filter(func(target): return not target.is_empty())
-	if thrown.is_empty() or not on_whoever_acts(comb) or controller == null or controller.movement < 1 \
-			or has_restriction(comb, "prevents_movement") or not active_passives(comb).any(func(passive): return passive.tremor_follow):
+	var thrown: Array = comb.get("tremor_struck", []).map(func(id): return combatant_with_id(id)).filter(func(target): return target.get("alive", false))
+	if thrown.is_empty() or not on_whoever_acts(comb) or has_restriction(comb, "prevents_movement") \
+			or not active_passives(comb).any(func(passive): return passive.tremor_follow):
 		return found
+	var target: Dictionary = thrown[0]
 	var unsafe := hazard_warning_tiles() + bad_ground_tiles()
 	for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]:
 		var tile: Vector2i = comb.position + way
 		if tile in unsafe or not can_land_on(comb, tile) or zones_at(tile).any(func(zone): return zone.side != comb.side):
 			continue
-		if thrown.any(func(target): return get_position_distance(tile, nearest_tile_of(target, tile)) \
-				< get_position_distance(comb.position, nearest_tile_of(target, comb.position))):
+		if get_position_distance(tile, nearest_tile_of(target, tile)) < get_position_distance(comb.position, nearest_tile_of(target, comb.position)):
 			found.append(tile)
 	return found
+
+
+## Where `comb` steps after their Tremor threw somebody back: of tremor_steps,
+## the one that leaves them closest beside whoever it was (by the eight ways
+## round) - or where they stand, with none. Taken for them, free: no movement
+## spent, and nothing provoked (the designer, 2026-10-24).
+func tremor_step_to(comb: Dictionary) -> Vector2i:
+	var best: Vector2i = comb.position
+	var steps := tremor_steps(comb)
+	if steps.is_empty():
+		return best
+	var target := combatant_with_id(comb.tremor_struck.filter(func(id): return combatant_with_id(id).get("alive", false))[0])
+	var best_gap := 999999
+	for tile in steps:
+		var near := nearest_tile_of(target, tile)
+		var gap := maxi(absi(near.x - tile.x), absi(near.y - tile.y))
+		if gap < best_gap:
+			best = tile
+			best_gap = gap
+	return best
 
 
 ## The tiles `comb` could step to after `skill` (step_after): along each of the
@@ -11134,17 +11255,29 @@ func _after_heal(healer: Dictionary, target: Dictionary):
 		if passive.heals_leave != null:
 			leaving.append(passive.heals_leave)
 	if lifting > 0:
+		var was_held := has_restriction(target, "prevents_movement")
+		var movement_before: int = get_effective_stat(target, "movement") if target.has("movement") else 0
 		var lifted := []
+		# What the player chose first (_choose_lifts), then the most recent.
+		for entry in _lift_picks.duplicate():
+			if lifted.size() >= lifting:
+				break
+			var at := _effect_index(target, entry)
+			if at >= 0 and _harmful(entry):
+				target.status_effects.remove_at(at)
+				_lift_picks.erase(entry)
+				lifted.append(lifted_name(entry))
 		for i in range(target.status_effects.size() - 1, -1, -1):
 			if lifted.size() >= lifting:
 				break
 			var entry: Dictionary = target.status_effects[i]
 			if _harmful(entry):
 				target.status_effects.remove_at(i)
-				var condition = entry.get("condition")
-				lifted.append(condition.display_name if condition != null else ("a lingering wound" if entry.stat == "dot" else entry.stat))
+				lifted.append(lifted_name(entry))
 		if not lifted.is_empty():
 			resync_movement_class(target)
+			if target.has("movement"):
+				_movement_after_lift(target, was_held, movement_before)
 			update_information.emit("[color=yellow]%s[/color]'s heal lifts %s from [color=lightgreen]%s[/color].\n" % [
 				healer.name, ", ".join(lifted), target.name])
 	for condition in leaving:
@@ -11474,7 +11607,7 @@ func _overload(attacker: Dictionary, target: Dictionary, skill: SkillDefinition)
 		var condition = entry.get("condition") if entry.get("stat", "") == "condition" else null
 		if condition != null and _lingers(condition) and entry.get("source_id", -2) == attacker.get("id", -1):
 			update_information.emit("[color=yellow]%s[/color]'s shot sets the %s off.\n" % [attacker.name, condition.display_name.to_lower()])
-			tick_condition_damage(target, condition, entry.get("dot_base", 0.0))
+			tick_condition_damage(target, condition, entry.get("dot_base", 0.0), 1.0, attacker)
 
 
 ## A hit with an Edge that lands strikes again with its element, free
@@ -11721,7 +11854,7 @@ func catalyst(attacker: Dictionary, effect: EffectDefinition):
 			any = true
 			var left := ticks_left(other, entry)
 			if left > 0 and other.alive:
-				tick_condition_damage(other, condition, entry.get("dot_base", 0.0), left * effect.catalyst_times)
+				tick_condition_damage(other, condition, entry.get("dot_base", 0.0), left * effect.catalyst_times, attacker)
 			if other.alive:
 				entry.duration = entry.get("full_duration", entry.duration)
 	if not any:
@@ -12074,6 +12207,7 @@ func dispel_magic(caster: Dictionary, target: Dictionary, skill: SkillDefinition
 			_unsummon(target, "is dispelled")
 			return
 	var movement_before = get_effective_stat(target, "movement") if target.has("movement") else 0
+	var was_held: bool = target.has("movement") and has_restriction(target, "prevents_movement")
 	for entry in target.get("status_effects", []).duplicate():
 		# A zone's goes with the zone, not by itself.
 		if not entry.has("spell_gate") or entry.has("zone_id"):
@@ -12096,7 +12230,7 @@ func dispel_magic(caster: Dictionary, target: Dictionary, skill: SkillDefinition
 		resync_size(target)
 		clamp_hp_to_max(target)
 		if target.has("movement"):
-			resync_live_movement(target, movement_before)
+			_movement_after_lift(target, was_held, movement_before)
 		update_combatants.emit(combatants)
 		update_information.emit("[color=yellow]%s[/color] undoes the magic on [color=yellow]%s[/color]: %s.\n" % [caster.name, target.name, ", ".join(ended)])
 	if not too_deep.is_empty():

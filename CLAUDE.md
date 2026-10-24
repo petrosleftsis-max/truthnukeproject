@@ -270,21 +270,27 @@ gone straight into; and `record_party` / `apply_carried_state` carry spent
 `spell_slots` between fights, which no other mode does - and what is spent until a
 rest (`Combat.SPENT_UNTIL_REST`: a skill's `uses_per_short_rest` uses, free
 amplifications, Conduit; per fight until the designer's change of 2026-10-24),
-which `Campaign.short_rest` / `long_rest` clear. Those two are the plug-in for
-the short and long rest (ABSENT/PROPOSAL beyond that: the designer has the
-details to give); `rest_party`, the rest between stages, calls `short_rest` for
-now. `ResultUI` shows a
-`RestPanel` (`Campaign.rest_party`, `recover_gates`) instead of its own panel
+which `Campaign.short_rest` / `long_rest` clear. `rest_party`, the rest between
+stages, is a short rest in a dungeon of `short_rests` (half of what was lost,
+`SHORT_REST_MENDS`; no gates; the fallen stay down) and a full one otherwise
+(which calls `short_rest` too). At a short rest somebody fallen can be brought
+back with Resuscitate (`resuscitator`, `resuscitate_at_rest`: the spell's own
+Revive Health and Weakening, a casting through Pandora or deeper). What else a
+long rest does is the designer's to give. A dungeon's `kit` stocks the bags
+`start_dungeon` empties. `ResultUI` shows a
+`RestPanel` (`Campaign.rest_party`, `recover_gates`, the fallen) instead of its own panel
 after every won fight but the last. `reset()` ends a dungeon, so the title
 screen and every fresh start leave it. `dungeon` covers it, `restuses` the uses.
 
 The late-Chapter-I laboratory sequence (`data/dungeons/lab_chapter1_sequence.tres`,
 boss Erysichthon; `lab_chapter1_sequence_ash_warden.tres` the same with the Ash
-Warden; `docs/lab_sequence.md`) is a TEMPORARY test harness, not story content. Its
-`DungeonDefinition.skips_rests` makes `ResultUI` skip the RestPanel (the Continue
-button goes on), and `logs_metrics` makes `GameScene` add a `LabMetrics`
+Warden; `docs/lab_sequence.md`) is a TEMPORARY test harness, not story content. It
+takes short rests and carries a kit (designer, 2026-10-25); `skips_rests`, which
+made `ResultUI` skip the RestPanel, is used by nothing now. Its `logs_metrics` makes `GameScene` add a `LabMetrics`
 (`tools/lab_metrics.gd`) under Combat. That listens to `Combat.metric` - emitted
-by `_metric` from the round, turn, action, gate, damage (`lose_hp`), heal, item,
+by `_metric` from the round, turn, action, gate, damage (`lose_hp`, which takes
+who did it and what was burning, so a tick is its source's and a reaction the
+reactor's), heal, item,
 declare / land / drop and stagger code, `cue`, `shrug_off`, break-free, swallowing
 and digesting, and every condition put on; `add_stagger` takes a source label - and
 writes `docs/lab_runs/`, with a section per boss (its turns lost and why, what was
@@ -362,7 +368,11 @@ held in `_steal_from`): a party member's belt, pouch or backpack, an enemy's
 pocket or `carried`. It moves through `_stow` / `_give_up`, so it works either
 way round; for the party through `Campaign.stow_item`, which is `give_item` with
 no log line. `SpawnDefinition` is `@tool` only so that `starting_items` can be a
-dropdown.
+dropdown. A limited cleanse (`dispel_count`) and a heal's Heals Lift ask the same
+way: `_choose_lifts`, in `use_skill` before the effects, held in `_lift_picks`,
+which `dispel_status_effects` and `_after_heal` take first (the `lift` suite).
+Anything lifting conditions mid-turn goes through `_movement_after_lift`, so
+lifting a root gives the actor back their movement less `walked_this_turn`.
 
 **Bags are containers end to end** (Campaign "Containers"). The player calls the
 belt the **Baldric** (`EquipmentDefinition.SLOT_NAMES`, `slot_name_of`); its key,
@@ -391,7 +401,8 @@ sets every stored field and fails on any it doesn't know about.
 health climb linearly between level 1 and 64 (`Stats.main_stat_at`,
 `CombatantDefinition.hp_at` - its `max_hp_level_20` is the top level's health),
 gates by `Stats.GATE_STEPS` (`gates_for_level`, as wide as `GATE_NAMES`;
-`no_gates()` for nobody's). The story fights at 1, 8 and 14. A fight walked into
+`no_gates()` for nobody's; a `half_caster` - the Ranger - has a full caster's at
+half its level, rounded up, `half_caster_gates`, like a D&D paladin). The story fights at 1, 8 and 14. A fight walked into
 from a map (or a dungeon) fields the party at `Campaign.party_level`, on their
 chosen path and in their gear (`create_combatant`'s `level`/`subclass` arguments,
 `Combat.wear_gear`); one opened from Arena Mode uses the spawn's level,
@@ -476,9 +487,9 @@ something solid puts `tremor_impact_condition` on them (`_tremor_impact`:
 Dazed, a PROPOSAL test value; `put_condition` replaces rather than stacks, and
 `turns_stored` keeps it to their next turn). In her own turn `_splash` notes who
 it threw (`tremor_struck`, ids, cleared at turn start); after the action
-`tremor_steps` offers a straight tile nearer one of them through
-`CController.choose_step`, for a tile of movement, provoking nothing
-(`teleport_to`). The party's player only - the AI takes no step.
+`tremor_step_to` steps her - not asked, free, provoking nothing (`teleport_to`) -
+onto the straight tile of `tremor_steps` nearest the first of them still
+standing (designer, 2026-10-24: choosing every turn would tire the player).
 **Zones** (EffectType.ZONE, `lay_zone`): their conditions are status entries
 carrying `zone_id`, owned by `sync_zones` alone - it runs after every step
 (`CController._handle_step_arrival`), every use and every turn start

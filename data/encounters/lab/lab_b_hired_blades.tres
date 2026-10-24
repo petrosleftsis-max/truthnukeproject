@@ -1,8 +1,10 @@
-[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3 uid="uid://wax38ww0giot"]
 
-[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="2_fhab5"]
-[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="3_ex5ow"]
-[ext_resource type="PackedScene" path="res://maps/laboratory_fight.tscn" id="4_x4df1"]
+[ext_resource type="Script" uid="uid://d3sq515l87q81" path="res://combat/resources/FloorDefinition.gd" id="1_wknej"]
+[ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="2_fhab5"]
+[ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="2_h7r0n"]
+[ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="3_ex5ow"]
+[ext_resource type="PackedScene" uid="uid://dqucchdhp3fkm" path="res://maps/laboratory_fight.tscn" id="4_x4df1"]
 
 [sub_resource type="Resource" id="Resource_x6mhy"]
 script = ExtResource("3_ex5ow")
@@ -31,6 +33,7 @@ combatant_key = "prometheus"
 position = Vector2i(25, 23)
 level = 18
 starting_items = Array[String](["cure_potion", "gale_bottle", "medicine"])
+
 [sub_resource type="Resource" id="Foe_1"]
 script = ExtResource("3_ex5ow")
 combatant_key = "pit_champion"
@@ -43,7 +46,7 @@ script = ExtResource("3_ex5ow")
 combatant_key = "sellsword"
 side = 1
 position = Vector2i(26, 14)
-display_name = "Lab B: Hired Blades (17)"
+display_name = "Sellsword 1"
 level = 17
 
 [sub_resource type="Resource" id="Foe_3"]

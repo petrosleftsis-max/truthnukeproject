@@ -31,13 +31,24 @@ class_name DungeonDefinition
 ## "Spellbooks") knows every spell of theirs in here, their path's included,
 ## as in Arena Mode.
 @export var knows_every_spell: bool = false
+## What each of them starts with, by character key: item keys, put away belt
+## first (Campaign.stow_item). Their bags are emptied as the dungeon starts, so
+## this is all they carry - and what they use is gone for the fights after.
+@export var kit: Dictionary = {}
 
 @export_group("Stages")
 ## In order. Winning the last one finishes the dungeon.
 @export var stages: Array[DungeonStage] = []
 
 @export_group("Resting")
-## Whether somebody who fell in the last fight gets up again at the rest.
+## Whether its rests are short ones (Campaign.short_rest): everybody standing
+## gets back half of what they lost, and the uses spent until a rest; nobody
+## fallen gets up by themselves and no gates come back - but whoever knows
+## Resuscitate may spend a casting of it on somebody fallen
+## (Campaign.resuscitate_at_rest). Off, the full rest: everybody back to full
+## health (Campaign.rest_party).
+@export var short_rests: bool = false
+## Whether somebody who fell in the last fight gets up again at a full rest.
 @export var rest_revives: bool = false
 ## Whose gates the rest offers to bring back.
 @export var gate_recovery_for: Array[String] = []

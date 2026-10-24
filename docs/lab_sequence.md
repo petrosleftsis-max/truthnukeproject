@@ -4,7 +4,7 @@ A **temporary test harness, not story content.** It is the boss-sequence test pr
 
 The boss is **Erysichthon at 18, the primary variant**, since it is the boss that closes Chapter I (designer, 2026-10-24). The Ash Warden at 18 is a **second variant**, kept for what Erysichthon does not test.
 
-Nothing about balance changed to make it: no health, damage, gear, rewards, boss stats or enemy compositions. The only new mechanic is a temporary switch to skip the rest between a dungeon's stages.
+Nothing about balance changed to make it: no health, damage, gear, rewards, boss stats or enemy compositions. What it adds is a dungeon's short rests (with Resuscitate at the rest) and a kit of consumables, both at the designer's request of 2026-10-25. Before then it skipped the rests altogether (`skips_rests`), and whoever fell stayed down for the rest of the run.
 
 ## How to run it
 
@@ -31,13 +31,13 @@ The labels are `erysichthon-conservation`, `erysichthon-free-spending`, `ash-war
 |---|---|
 | Dungeon (primary) | `data/dungeons/lab_chapter1_sequence.tres` |
 | Dungeon (second variant) | `data/dungeons/lab_chapter1_sequence_ash_warden.tres` - the same in everything but stage C |
-| Party | Enfina, Cyrus, Prometheus, Alithia, all at **18**. No path yet (paths come at 24); no gear (the story gives none in Chapter I); empty bags, as every dungeon starts. |
+| Party | Enfina, Cyrus, Prometheus, Alithia, all at **18**. No path yet (paths come at 24); no gear (the story gives none in Chapter I). Each starts with a **kit** that fills the four slots of their Simple Baldric (`kit`, PROPOSAL test values: tier II, as `docs/consumables.csv` has it for 17-32, about 1,570 gold of stock): Enfina two Mediocre Cure Potions, a Cure Potion and a Medicine; Cyrus two Small Bombs, a Blinding Bomb and a Mediocre Cure Potion; Prometheus two Medicines (24 each is 63% of his 38), a Mediocre Cure Potion and a Fireball Gate Nade; Alithia a Communion Gate Nade, a Heal Gate Nade, a Mediocre Cure Potion and a Medicine. **The kit is all they have for the three fights**: what is used is gone. |
 | Spells | Every spell of theirs (`knows_every_spell`), as in the Dungeon Demo. Which spells Prometheus would really have by 18 is OPEN, since nothing in the story teaches him any (audit, rows 4 and 6). |
 | Stage A | `data/encounters/lab/lab_a_city.tres` - the City Fight's ten enemies, at **16** |
 | Stage B | `data/encounters/lab/lab_b_hired_blades.tres` - the Hired Blades, at **17** |
 | Stage C (primary) | `data/encounters/lab/lab_c_erysichthon.tres` - Erysichthon at **18**, with its carrion heap and bait keg, and its six Gnawers: two at round 3, two when its Jaws break, two after three deaths. The Gnawers are at 18; the heap and the keg keep their own 22. |
 | Stage C (second variant) | `data/encounters/lab/lab_c_ash_warden.tres` - the Ash Warden (with its powder kegs, hazards, phases and stagger bar), at **18** |
-| Between the fights | **No rest** (`skips_rests`). Nobody is healed or revived, no gates come back, there is no store. Health, the fallen and spent gates carry into the next fight. The result's button says "On to the next fight (no rest)". Loot and questioning prisoners are still offered there, and are optional. |
+| Between the fights | **A short rest** (`short_rests`, `Campaign.short_rest`): everybody standing gets back half of what they lost (a PROPOSAL test value), and the uses spent until a rest. No gates come back and there is no store. **The fallen stay down** - unless somebody standing who knows Resuscitate (Alithia) spends a casting of it on them at the rest, through Pandora or deeper: up with half their health, a tenth weaker for good, as in a fight. If Alithia is the one down, nobody can. |
 | Logging | `logs_metrics`, through `tools/lab_metrics.gd` |
 
 The fights are copies of the existing ones. The `lab` suite checks that they keep the same enemies, positions, items, weapons, Defense, maps, hazards, ways out and pay. Only the enemies' levels differ, and the story conversations afterwards are left out. The originals are untouched.
@@ -66,8 +66,8 @@ Per fight:
 - **Actions** per fighter, by skill and kind (main, secondary, reaction, a declared move landing).
 - **Gates spent**, by depth, per caster.
 - **Items used.**
-- **Damage:** hits on each side and their total, with lingering ticks counted apart, and the damage each of the party took.
-- **What each of the party did to the enemies:** damage dealt, and the conditions they put on.
+- **Damage:** hits on each side and their total, with lingering ticks counted apart, and the damage each of the party took. Each is laid at the door of whoever did it: a tick at the source of the condition (the events say "lingering: Burn"), a reaction at the one reacting - not at whoever's turn it was.
+- **What each of the party did to the enemies:** damage dealt (and how much of it their conditions did as they burned), and the conditions they put on.
 - **Healing**, per healer.
 - **Downs:** who, in which round, and on whose turn - and the declared move it came from, if any.
 - **Declared (telegraphed) moves:**
@@ -139,6 +139,6 @@ The harness is these files:
 | The launchers | `demos/lab_sequence*.tscn`, `demos/lab_sequence.gd` |
 | The logger | `tools/lab_metrics.gd` |
 | The suite | `tests/lab_test_driver.gd` (and `lab` in `tests/suites.txt`) |
-| The two switches | `DungeonDefinition.skips_rests` and `logs_metrics`, with their uses in `ui/result_ui.gd` and `scenes/game.gd` |
+| The two switches | `DungeonDefinition.skips_rests` (no longer used by the lab) and `logs_metrics`, with their uses in `ui/result_ui.gd` and `scenes/game.gd`. Short rests, Resuscitate at a rest and the kit are general dungeon features and can stay. |
 
 Combat's `metric` signal can stay: it changes nothing in play.

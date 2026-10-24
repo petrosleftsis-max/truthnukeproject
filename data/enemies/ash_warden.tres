@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://du4vctmb8r6pi" path="res://combat/resources/BossDefinition.gd" id="8_vbww8"]
 [ext_resource type="Resource" path="res://data/conditions/confused.tres" id="9_xxdr5"]
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="10_2qv81"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="10_nrkbm"]
 [ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="11_e0yk6"]
 [ext_resource type="Resource" path="res://data/passives/ash_presence.tres" id="12_presence"]
 [ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="13_part"]
@@ -89,4 +90,3 @@ immune_to = Array[int]([0, 1, 9])
 turns_per_round = 2
 boss = SubResource("Resource_ofos0")
 parts = Array[ExtResource("13_part")]([SubResource("Part_vents")])
-future_changed_lines = null

@@ -15,6 +15,7 @@ defense_level_64 = 60
 movement = 7
 initiative = 4
 spellcasting_stat = 1
+half_caster = true
 sprite_frames = ExtResource("3_ymnqq")
 skills = Array[String](["heal", "nail_projectile", "venomous_shot", "flammable_limb", "run"])
 resist_wind = -50

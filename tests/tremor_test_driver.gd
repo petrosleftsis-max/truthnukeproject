@@ -5,7 +5,7 @@ extends Node
 ## meet, the harder only; Tremor shoves everybody beside whoever she hits and
 ## the one struck, and into something solid they are Dazed rather than
 ## Stunned; Dazed never stacks and never lasts past the target's next turn; she
-## can step after whoever she threw, for a tile of movement; Stunning Blow has
+## steps after whoever she threw, by herself and free; Stunning Blow has
 ## 1 / 2 / 3 uses a short rest.
 
 var LOG_PATH := HarnessLog.path_for("tremor")
@@ -307,29 +307,31 @@ func the_step():
 	put(foe, at)
 	put(enfina, at + Vector2i.LEFT)
 	var done := swing(enfina, foe, "greatsword_attack", 3)
-	ok(await wait_for(func(): return done[0] or combat.controller.is_stepping()) and combat.controller.is_stepping(),
-		"her blow throws them back a tile: a step after them is offered")
-	var offered: Array = combat.controller._step_tiles.duplicate()
-	ok(foe.position == at + Vector2i.RIGHT and offered == [at], "  onto the tile they were thrown from, the only one nearer",
-		"%s, %s" % [foe.position, offered])
-	combat.controller.step_to(at)
-	await wait_for(func(): return done[0])
+	ok(await wait_for(func(): return done[0] or combat.controller.is_stepping()) and done[0] and not combat.controller.is_stepping(),
+		"her blow throws them back a tile - and nothing is asked of the player")
 	await settle(2)
-	ok(enfina.position == at and combat.controller.movement == 2, "  she steps in, for a tile of movement - in reach of them again",
-		"%s, %d left" % [enfina.position, combat.controller.movement])
+	ok(foe.position == at + Vector2i.RIGHT and enfina.position == at, "  she steps in after them by herself, onto the tile they were thrown from",
+		"%s, %s" % [foe.position, enfina.position])
+	ok(combat.controller.movement == 3, "  free: no movement spent", "%d left" % combat.controller.movement)
 
 	done = swing(enfina, foe, "greatsword_attack", 0)
-	await wait_for(func(): return done[0] or combat.controller.is_stepping())
-	ok(not combat.controller.is_stepping(), "with no movement left: no step", "%s" % foe.position)
 	await finish(done)
+	ok(foe.position == at + Vector2i.RIGHT * 2 and enfina.position == at + Vector2i.RIGHT, "with no movement left, she steps all the same",
+		"%s, %s" % [foe.position, enfina.position])
 
-	# What it never steps onto.
-	put(foe, enfina.position + Vector2i.RIGHT * 2)
+	# Which tile, and what it never steps onto.
+	put(enfina, at + Vector2i.LEFT)
+	put(foe, at + Vector2i(1, 1))
 	give_turn(enfina)
-	combat.controller.movement = 3
-	var between: Vector2i = enfina.position + Vector2i.RIGHT
 	enfina["tremor_struck"] = [foe.id]
+	ok(combat.tremor_steps(enfina).size() == 2 and combat.tremor_step_to(enfina) == at,
+		"two tiles nearer them: the one that leaves her beside them", "%s -> %s" % [combat.tremor_steps(enfina), combat.tremor_step_to(enfina)])
+	put(foe, at + Vector2i.RIGHT)
+	var between: Vector2i = at
 	ok(combat.tremor_steps(enfina) == [between], "toward them, onto the free tile between", "%s" % [combat.tremor_steps(enfina)])
+	foe.alive = false
+	ok(combat.tremor_steps(enfina).is_empty(), "  not after somebody felled")
+	foe.alive = true
 	combat._bad_ground.append({"hazard": HazardDefinition.new(), "tiles": [between], "from": 0, "until": 999999})
 	ok(combat.tremor_steps(enfina).is_empty(), "  never onto ground that hurts")
 	combat._bad_ground.pop_back()
