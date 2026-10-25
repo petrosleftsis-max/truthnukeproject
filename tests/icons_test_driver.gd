@@ -113,6 +113,17 @@ func lowers_something(skill: SkillDefinition) -> bool:
 	return false
 
 
+## Whether `key` is a copy, under the same name, of the skill `face` was drawn
+## for - an enemy's own Burner (data/skills/enemies/enemy_*.tres), the same skill
+## to the eye.
+func is_copy(key: String, face: String) -> bool:
+	for owner in OWN_ICONS:
+		if OWN_ICONS[owner] == face and owner != key and SkillDatabase.skills.has(owner) \
+				and SkillDatabase.skills[owner].name == SkillDatabase.skills[key].name:
+			return true
+	return false
+
+
 func icon_file(skill: SkillDefinition) -> String:
 	if skill == null or skill.icon == null:
 		return ""
@@ -171,11 +182,7 @@ func run_test():
 		worn_twice[OWN_ICONS[key]] = worn_twice.get(OWN_ICONS[key], 0) + 1
 	for key in SkillDatabase.skills:
 		var face = icon_file(SkillDatabase.skills[key])
-		# A copy under the same name is the same skill to the eye - an enemy's own
-		# Burner (data/skills/enemies/enemy_*.tres).
-		var copy: bool = OWN_ICONS.keys().any(func(owner): return OWN_ICONS[owner] == face and owner != key
-			and SkillDatabase.skills.has(owner) and SkillDatabase.skills[owner].name == SkillDatabase.skills[key].name)
-		if worn_twice.has(face) and OWN_ICONS.get(key, "") != face and not ItemDatabase.is_item(key) and not copy:
+		if worn_twice.has(face) and OWN_ICONS.get(key, "") != face and not ItemDatabase.is_item(key) and not is_copy(key, face):
 			worn_twice[face] += 1
 	var shared := []
 	for face in worn_twice:

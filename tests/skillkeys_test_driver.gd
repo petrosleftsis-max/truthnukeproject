@@ -55,7 +55,9 @@ func run_test():
 		# An apostrophe has no place in a file name, and is left out of the key:
 		# Reality's Reflection is realitys_reflection.
 		var expected = skill.name.to_lower().replace(" ", "_").replace("'", "")
-		ok(text == expected, "'%s' matches its name %s" % [text, skill.name], expected)
+		# An enemy's own copy of one of the party's moves, kept as the move was
+		# (data/skills/enemies/enemy_*.tres), is enemy_ and the name.
+		ok(text == expected or text == "enemy_" + expected, "'%s' matches its name %s" % [text, skill.name], expected)
 	log_line("")
 
 	log_line("======== reactive skills, the ones the crash was scanning for ========")
