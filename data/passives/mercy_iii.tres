@@ -6,6 +6,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Mercy III"
-description = "Whoever she heals is sheltered: a fifth less damage until their next turn starts."
+description = "Her heals mend a tenth more and lift one harmful condition, and whoever she heals is sheltered: a fifth less damage until their next turn starts."
 required_level = 41
 heals_leave = ExtResource("2_cond")

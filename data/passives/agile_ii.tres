@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Agile II"
-description = "Into cover before anybody can strike: stepping into cover sets nothing off."
+description = "Hard to pin down in cover - a twentieth less damage there - and into cover before anybody can strike: stepping into cover sets nothing off."
 required_level = 32
 slips_into_cover = true

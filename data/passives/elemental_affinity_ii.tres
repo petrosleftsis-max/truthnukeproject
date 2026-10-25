@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Elemental Affinity II"
-description = "And a tenth more on anybody already burning, frozen, poisoned - taking any lingering damage."
+description = "He knows what each element undoes: a tenth more damage on anybody weak to the element, and a tenth more on anybody already burning, frozen, poisoned - taking any lingering damage."
 required_level = 32
 bonus_vs_lingering = 0.1

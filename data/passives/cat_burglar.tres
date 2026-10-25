@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Cat Burglar II"
-description = "Two more tiles of movement, and nothing stops him going up: he climbs onto high ground from anywhere, no ladder or steps needed, and up a wall or a pillar onto the floor above it."
+description = "Two more tiles of movement, four on a turn he starts in cover - and nothing stops him going up: he climbs onto high ground from anywhere, no ladder or steps needed, and up a wall or a pillar onto the floor above it."
 required_level = 24
 movement_bonus = 2
 climbs_anywhere = true

@@ -17,7 +17,7 @@ heals_leave = ExtResource("3_veiled")
 [sub_resource type="Resource" id="Passive_1"]
 script = ExtResource("1_passive")
 name = "Veil of Mercy II"
-description = "Whoever she heals is blurred too: a fifth less from anything thrown or shot from more than a tile away, until their next turn."
+description = "Whoever she heals is veiled - the next blow on them lands 15% softer - and blurred: a fifth less from anything thrown or shot from more than a tile away, until their next turn."
 required_level = 32
 heals_leave = ExtResource("4_blurred")
 
@@ -31,7 +31,7 @@ heals_spur = 2
 [sub_resource type="Resource" id="Passive_3"]
 script = ExtResource("1_passive")
 name = "Veil of Mercy III"
-description = "Her heals leave a shield of light too: a fifth of their health on top of it, for two of their turns."
+description = "Whoever she heals is veiled and blurred, and her heals leave a shield of light too: a fifth of their health on top of it, for two of their turns."
 required_level = 54
 heals_shield = 0.2
 heals_shield_turns = 2

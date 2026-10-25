@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Bulwark III"
-description = "Her guard reaches two tiles: allies within them are bulwarked and fortified - a fifth less damage in all."
+description = "Allies beside her are bulwarked, and her guard reaches two tiles: allies within them are fortified - a tenth less damage, a fifth beside her."
 required_level = 54
 aura_radius = 2
 aura_on_allies = ExtResource("2_cond")

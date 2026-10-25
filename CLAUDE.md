@@ -550,11 +550,11 @@ every fight begun from a map writes an autosave.
 panels, reactions, the AI's hunt for something to use - can ever offer one.
 Ask what it grants through `Combat.active_passives(comb)` rather than reading
 the list directly: that is where a passive waiting on its condition is left
-out, and where a passive's ranks are applied (Combat "Ranks of a passive",
-`with_ranks`): passives sharing a name but for the numeral are one passive, a
-higher rank's numbers replacing the lower's (a reach going to every rank), every
-effect kept - so the lower ranks come back as upgraded copies, not the
-resources themselves (`rank_of` meta holds the original's path). The same goes for what Cyrus's Light Footed and Quick Hands grant - ask
+out. Passives sharing a name but for the numeral (Momentum I and II) are one
+passive in ranks (Combat "Ranks of a passive", `passive_family`): each rank adds
+its numbers to the ones before, and the character sheet shows only the highest
+unlocked (`CharacterSheet.passive_families`, `shown_rank`) - so a higher rank's
+description gives the totals, the lower ranks' effects included. The same goes for what Cyrus's Light Footed and Quick Hands grant - ask
 `secondary_grants` and `items_as_secondary`, which also read the older
 per-character fields of the same names that nothing uses any more.
 

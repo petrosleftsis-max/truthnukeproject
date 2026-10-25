@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Synergy II"
-description = "And a tenth harder again on anybody carrying one of his."
+description = "He shows the party where it hurts: they hit anybody carrying a harmful condition a tenth harder, and a fifth harder if it is one of his."
 required_level = 64
 party_bonus_vs_own = 0.1

@@ -1034,23 +1034,15 @@ func passive_stat_bonus(comb: Dictionary, stat: String) -> int:
 ## --- Ranks of a passive ---
 ##
 ## Passives that share a name but for the numeral on the end - Momentum I and II,
-## Iron Hide I to III - are one passive in ranks (the designer, 2026-10-25): a
-## higher rank upgrades the lower. Every rank's effects stay, but a number a
-## higher rank also sets is the higher rank's, in place of the lower's rather
-## than on top of it. A reach (a radius, so many tiles) goes to every rank that
-## has one, since it is how far that rank's own effect goes: Bulwark I's aura
-## reaches as far as Bulwark III's. active_passives hands back the lower ranks as
-## copies so upgraded; the sheet shows each family as one passive.
+## Iron Hide I to III - are one passive in ranks (the designer, 2026-10-25). Each
+## rank adds its numbers to the ones before, as separate passives always did; the
+## character sheet shows only the highest unlocked, whose description gives the
+## totals (CharacterSheet.passive_families).
 
 const _NUMERALS := [" X", " IX", " VIII", " VII", " VI", " V", " IV", " III", " II", " I"]
 
 ## Passive -> the name of its family, worked out once.
 static var _families := {}
-## The ids of a set of working passives -> those passives with their ranks
-## applied.
-static var _ranked := {}
-## PassiveDefinition's numbers a rank can upgrade: [name, is a reach].
-static var _rank_numbers := []
 
 
 ## The name `passive` shares with its other ranks: its own, less the numeral.
@@ -1075,64 +1067,13 @@ static func passive_rank(passive: PassiveDefinition) -> int:
 	return 1
 
 
-## `found` with every family's lower ranks upgraded by its higher ones.
-static func with_ranks(found: Array) -> Array:
-	if found.size() < 2:
-		return found
-	var by_family := {}
-	var shared := false
-	for passive in found:
-		var family := passive_family(passive)
-		if by_family.has(family):
-			shared = true
-		by_family[family] = by_family.get(family, []) + [passive]
-	if not shared:
-		return found
-	var key := ",".join(found.map(func(passive): return str(passive.get_instance_id())))
-	if _ranked.has(key):
-		return _ranked[key]
-	if _rank_numbers.is_empty():
-		var plain := PassiveDefinition.new()
-		for property in plain.get_property_list():
-			if not (property.usage & PROPERTY_USAGE_STORAGE) or property.hint == PROPERTY_HINT_ENUM \
-					or not property.type in [TYPE_INT, TYPE_FLOAT] or property.name in ["required_level", "active_when"]:
-				continue
-			var reach: bool = property.name.ends_with("_radius") or property.name.ends_with("_within") or property.name.ends_with("_tiles")
-			_rank_numbers.append([property.name, reach, plain.get(property.name)])
-	var swapped := {}
-	for family in by_family:
-		var ranks: Array = by_family[family]
-		if ranks.size() < 2:
-			continue
-		ranks.sort_custom(func(a, b): return a.required_level < b.required_level \
-			or (a.required_level == b.required_level and passive_rank(a) < passive_rank(b)))
-		for number in _rank_numbers:
-			var field: String = number[0]
-			var top := -1
-			for i in ranks.size():
-				if ranks[i].get(field) != number[2]:
-					top = i
-			for i in top:
-				if ranks[i].get(field) == number[2]:
-					continue
-				var copy: PassiveDefinition = swapped.get(ranks[i])
-				if copy == null:
-					copy = ranks[i].duplicate()
-					copy.set_meta("rank_of", ranks[i].resource_path)
-					swapped[ranks[i]] = copy
-				copy.set(field, ranks[top].get(field) if number[1] else number[2])
-	var ranked := found.map(func(passive): return swapped.get(passive, passive))
-	_ranked[key] = ranked
-	return ranked
-
-
-## The passives `comb` has that are working right now, their ranks applied.
+## The passives `comb` has that are working right now.
 func active_passives(comb: Dictionary) -> Array:
 	var found = []
 	for passive in comb.get("passives", []):
 		if passive_is_active(comb, passive):
 			found.append(passive)
-	return with_ranks(found)
+	return found
 
 
 ## --- What the other side could do next turn ---
@@ -1553,7 +1494,7 @@ func board_fingerprint(walker: Dictionary) -> String:
 	for comb in combatants:
 		var working := []
 		for passive in active_passives(comb):
-			working.append(passive.get_meta("rank_of", passive.resource_path))
+			working.append(passive.resource_path)
 		parts.append([
 			comb.get("id", -1), comb.get("alive", false), comb.get("hp", 0), comb.get("hidden", false),
 			null if comb.get("id", -1) == walker.get("id", -2) else comb.get("position"),

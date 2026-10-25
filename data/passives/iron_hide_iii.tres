@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Iron Hide III"
-description = "She steps into blows meant for others: half of any hit on an ally beside her is hers instead."
+description = "Hide hardened to a fifth less damage from anything - and she steps into blows meant for others: half of any hit on an ally beside her is hers instead."
 required_level = 41
 guards_within = 1
 guard_share = 0.5

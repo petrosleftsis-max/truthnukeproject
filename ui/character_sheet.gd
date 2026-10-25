@@ -671,26 +671,24 @@ func _show_passives(entry: Dictionary):
 	var subject: Dictionary = entry.get("combatant", {})
 	var tags := _labelled_tags("Passive Skills")
 	for ranks in passive_families(passives):
-		# One passive in ranks (Combat "Ranks of a passive"): named for the
-		# highest come in, with what each rank does.
-		var level: int = entry.get("level", 1)
-		var passive: PassiveDefinition = ranks[0]
-		for rank in ranks:
-			if rank.required_level <= level:
-				passive = rank
+		# One passive in ranks (Combat "Ranks of a passive"): only the highest
+		# unlocked shows, its description giving the totals - the first rank
+		# until any is.
+		var passive := shown_rank(ranks, entry.get("level", 1))
 		var reading := [passive.name, passive.describe_when()]
-		if ranks.size() == 1:
-			if passive.description != "":
-				reading.append_array(["", passive.description])
-		else:
-			reading.append("")
-			for rank in ranks:
-				var line: String = "%s: %s" % [rank.name, rank.description]
-				if rank.required_level > level:
-					line += " (from level %d)" % rank.required_level
-				reading.append(line)
-			reading.append_array(["", "Each rank upgrades the one before: its numbers replace the earlier ones, and every effect stays."])
+		if passive.description != "":
+			reading.append_array(["", passive.description])
 		tags.add_child(_tag(passive.name, INK, _note_for(passive, subject), "\n".join(reading), passive.icon))
+
+
+## Which of `ranks` (one family, in order) the sheet shows at `level`: the
+## highest unlocked, or the first until any is.
+static func shown_rank(ranks: Array, level: int) -> PassiveDefinition:
+	var shown: PassiveDefinition = ranks[0]
+	for rank in ranks:
+		if rank.required_level <= level:
+			shown = rank
+	return shown
 
 
 ## `passives` gathered into families - every rank of one passive together, in

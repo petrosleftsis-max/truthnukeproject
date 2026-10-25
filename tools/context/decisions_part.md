@@ -250,24 +250,23 @@ The designer's handoff, `docs/handoff_0.1/finisher_removal_momentum_synergy.md` 
   - At 54, planted, Sweep Strike is x1.54.
   - It does not touch Leading Charge, which needs a walk.
   - The enemies' Sweep Strike (Barbarian, Pit Champion) gets nothing: Momentum is Enfina's passive.
-- **Momentum at 64:** Momentum II now upgrades Momentum I (below), so a planted Sweep Strike is x1.61, as the handoff says.
+- **Momentum at 64:** Momentum II now adds 5% to Momentum I's 10% (Passive ranks, below), so a planted Sweep Strike is x1.61, as the handoff says.
 - **The non-spell table, audited.** Every Enfina and Cyrus non-spell move matches it, once Cyrus's ammunition was put back. Three lines of the table describe the game differently. The table says "unchanged", so the game is kept as it is:
   - Titanfall has no shove: Tremor became the control layer on 2026-10-24.
   - Catalyst is once a short rest (2026-10-24), not once a fight.
-  - Momentum at 64 was x1.75 while the ranks added; it is x1.61 now (Passive ranks, below).
+  - Momentum at 64 was x1.75; it is x1.61 now, Momentum II adding 5% (Passive ranks, below).
 
 ## Passive ranks (2026-10-25; implemented)
 
-The designer: a passive's higher rank upgrades the lower, and they stay one passive. This holds for every passive sharing a name but for the numeral.
+The designer: a passive's ranks are one passive. This holds for every passive sharing a name but for the numeral.
 
-- **The rule:** every rank's effects stay. A number a higher rank also sets is the higher rank's, in place of the lower's rather than on top of it. A reach (a radius, so many tiles) goes to every rank, since it is how far that rank's own effect goes.
-- The character sheet shows each family as one passive, named for the highest rank come in, with what each rank does.
-- **What it changed in play** (test values, PROPOSAL):
-  - **Momentum:** 15% at 64 (was 25%), so Sweep Strike planted is x1.61.
-  - **DoT Master:** 20% harder at 41, and a turn longer (was 30%). OPEN: 30% if that was meant.
-  - **Bulwark:** with Bulwark III, Bulwark I's aura reaches two tiles too. Allies within two take a fifth less (before: a fifth beside her, a tenth at two).
-- **Kept as they played:** Iron Hide II, Kindling II and III, and Reserved Power II repeated rank I's number, meant to add on. They are written now as the totals the plan gives: Iron Hide 20%, Kindling up to 30% and 45%, Reserved Power two more castings.
-- **Unchanged, being separate effects:** Aura (Blessed and Soothed), Veil of Mercy (Veiled, Blurred, then a shield), Mercy, Agile, Cat Burglar, Contest Insight, Elemental Affinity, Synergy.
+- **The numbers add.** Each rank adds to the ones before, as separate passives always did. (For a few hours the same day a higher rank replaced the lower's numbers; the designer chose adding.)
+- **Only the highest unlocked rank shows** on the character sheet. Its description gives the totals, the lower ranks' effects included: Mercy I "+10% healing" and a rank adding 5% would show only the second rank, saying 15%. Every rank II and III description is written that way now.
+- **Momentum II adds 5%** to Momentum I's 10%, shown as fifteen hundredths, so a planted Sweep Strike at 64 is x1.61, as the handoff says. It added 15% before, 25% in all. This is a PROPOSAL test value.
+- **Everything else plays as before:**
+  - Iron Hide 20%; DoT Master 30% and a turn longer; Kindling up to 45%; Reserved Power two more castings.
+  - Bulwark: a tenth less within two tiles, a fifth beside her.
+  - Aura: Blessed and Soothed both.
 
 ## Known near-twins among the spells
 

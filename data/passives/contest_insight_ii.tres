@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Contest Insight II"
-description = "+10 more against anybody already afflicted."
+description = "He reads a contest before it starts: +10 to his stat in one, +20 against anybody already afflicted."
 required_level = 41
 contest_bonus_vs_afflicted = 10

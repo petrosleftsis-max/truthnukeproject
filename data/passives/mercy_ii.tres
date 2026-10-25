@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Mercy II"
-description = "Her heals lift one harmful condition as well."
+description = "Her heals mend a tenth more, and lift one harmful condition as well."
 required_level = 16
 heals_lift = 1

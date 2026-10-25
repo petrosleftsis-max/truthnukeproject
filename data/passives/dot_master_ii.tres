@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_passive")
 name = "DoT Master II"
-description = "And deeper still: a fifth harder, in place of DoT Master I's tenth - and a turn longer."
+description = "His poisons and burns bite deeper still: three tenths harder, and a turn longer."
 required_level = 41
 dot_bonus = 0.2
 dot_extra_turns = 1

@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Aura II"
-description = "Allies within two tiles of her are soothed: a twentieth of their health back as each turn starts."
+description = "Allies within two tiles of her are blessed and soothed: a tenth less damage, and a twentieth of their health back as each turn starts."
 required_level = 24
 aura_radius = 2
 aura_on_allies = ExtResource("2_cond")
