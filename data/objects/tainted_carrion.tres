@@ -13,6 +13,7 @@ nourishing = false
 eaten_damage = 90
 eaten_damage_type = 5
 eaten_condition = ExtResource("1_poison")
+eaten_condition_turns = 3
 eaten_stagger = 30.0
 name = "Tainted Carrion"
 glossary_text = "A heap of carrion, gone bad on purpose. Whatever eats it is poisoned, and reels - and is fed nothing by it."

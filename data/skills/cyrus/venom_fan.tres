@@ -10,13 +10,13 @@
 script = ExtResource("1_effect")
 type = 8
 condition = ExtResource("5_cond")
-condition_duration = 3
-condition_dot_modifier = 0.2
+condition_duration = 5
+condition_dot_modifier = 0.15
 
 [resource]
 script = ExtResource("3_skill")
 name = "Venom Fan"
-description = "A fan of poisoned darts across everybody in front of him: poisoned for three turns."
+description = "A fan of poisoned darts across everybody in front of him: poisoned for five turns."
 required_level = 24
 min_range = 1
 max_range = 3

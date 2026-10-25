@@ -46,6 +46,10 @@ class_name BattleObjectDefinition
 @export_range(0, 999, 1, "or_greater") var eaten_damage: int = 0
 @export var eaten_damage_type: Damage.Type = Damage.Type.POISON
 @export var eaten_condition: ConditionDefinition
+## How many of their turns that lasts - 0 for the condition's own length.
+## Tainted Carrion's Poisoned is held at 3, where it was before Poisoned's own
+## went to 5 (the condition proposal of 2026-10-25 leaves enemy mechanics be).
+@export_range(0, 20) var eaten_condition_turns: int = 0
 ## Added to their stagger bar, if they have one.
 @export_range(0.0, 500.0, 1.0, "or_greater") var eaten_stagger: float = 0.0
 ## A part of theirs it breaks from the inside, by name ("Belly Hole").

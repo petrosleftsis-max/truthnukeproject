@@ -13343,7 +13343,7 @@ func eat(comb: Dictionary, food: Dictionary):
 		sprite.set_dead()
 	combatant_died.emit(food)
 	if object.eaten_damage > 0 or object.eaten_condition != null:
-		hit_by_the_arena(comb, object.eaten_damage, object.eaten_damage_type, object.eaten_condition, 0, 0.0, food.name)
+		hit_by_the_arena(comb, object.eaten_damage, object.eaten_damage_type, object.eaten_condition, object.eaten_condition_turns, 0.0, food.name)
 	if not comb.alive or comb.hp <= 0:
 		if comb.alive:
 			combatant_die(comb)

@@ -10,14 +10,14 @@
 script = ExtResource("1_77oc1")
 type = 8
 condition = ExtResource("2_ejn1x")
-condition_duration = 2
+condition_duration = 5
 condition_dot_modifier = 0.1
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_ohx0v")
 damage_type = 3
-ability_modifier = 0.8
+ability_modifier = 1.0
 name = "Wind Swoon"
 description = "Swoon them with the wind."
 max_range = 15
@@ -30,5 +30,4 @@ uses_stat_contest = true
 contest_stat = 3
 sound = ExtResource("90_sfx")
 spell_slot_level = 2
-aoe_radius = 2
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

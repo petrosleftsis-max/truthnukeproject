@@ -10,13 +10,13 @@
 script = ExtResource("1_effect")
 type = 8
 condition = ExtResource("4_cond")
-condition_duration = 3
+condition_duration = 5
 condition_dot_modifier = 0.25
 
 [resource]
 script = ExtResource("3_skill")
 name = "Corrosive Round"
-description = "A round that eats at whatever it hits: it burns on for three turns, and their armour is a tenth worse while it does."
+description = "A round that eats at whatever it hits: it burns on for five turns, and their armour is a tenth worse while it does."
 min_range = 2
 max_range = 15
 required_level = 32

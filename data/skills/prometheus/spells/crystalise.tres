@@ -10,7 +10,7 @@
 script = ExtResource("1_468qc")
 type = 8
 condition = ExtResource("2_v3tq0")
-condition_duration = 3
+condition_duration = 5
 condition_dot_modifier = 0.1
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
@@ -23,12 +23,11 @@ icon = ExtResource("3_nxawm")
 required_level = 16
 respects_blocking = true
 effects = Array[ExtResource("1_468qc")]([SubResource("Resource_v3tq0")])
-ability_modifier = 0.8
+ability_modifier = 1.0
 scaling_stat = 2
 damage_type = 4
 uses_stat_contest = true
 contest_stat = 3
 sound = ExtResource("90_sfx")
 spell_slot_level = 2
-aoe_radius = 2
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

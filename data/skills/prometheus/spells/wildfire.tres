@@ -10,8 +10,8 @@
 script = ExtResource("1_effect")
 type = 8
 condition = ExtResource("2_burn")
-condition_duration = 3
-condition_dot_modifier = 0.4
+condition_duration = 5
+condition_dot_modifier = 0.35
 
 [resource]
 script = ExtResource("4_skill")

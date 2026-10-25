@@ -1,10 +1,10 @@
 Character,Skill,Level,ChangeType,CurrentDirectMultiplier,ProposedDirectMultiplier,CurrentDoTModifier,ProposedDoTModifier,DoTDurationTurns,Area,TargetCountIntent,AdditionalEffects,ImplementationNotes,Rationale
 Cyrus,Gun,1,Baseline,1.0,1.0,,,Single target,1,None,Keep as reliable no-condition benchmark,Best immediate single-target physical option
-Cyrus,Poison Dart,8,Nerf direct hit,1.0,0.9,0.2,0.2,3,Single target,1,Poison; target cannot react,"Keep condition and reaction denial, but trade 10% direct damage"
-Cyrus,Burning Shot,16,Nerf direct hit,0.9,0.8,0.35,0.35,3,Single target,1,Burn,Keep level-16 Burn values; ammunition trades burst for setup
-Cyrus,Burning Shot rank: Strong Burn,32,Nerf direct hit,1.1,0.95,0.45,0.45,3,Single target,1,Burn,Rank replaces base values at level 32,Keep below Gun before DoT is counted
-Cyrus,Venom Fan,24,Nerf AoE direct hit,0.8,0.7,0.2,0.2,3,Cone 3,Expected 2-3,Poison,Applies Poison to each target hit,Lower per-target damage because multi-target condition application is valuable
+Cyrus,Poison Dart,8,Condition proposal 2026-10-25,0.9,0.75,0.2,0.2,5,Single target,1,Poison; target cannot react,"Keep condition and reaction denial, but trade 10% direct damage"
+Cyrus,Burning Shot,16,Condition proposal 2026-10-25,0.8,0.9,0.35,0.15,5,Single target,1,Burn,Keep level-16 Burn values; ammunition trades burst for setup
+Cyrus,Burning Shot rank: Strong Burn,32,Condition proposal 2026-10-25,0.95,1.05,0.45,0.2,5,Single target,1,Burn,Rank replaces base values at level 32,Keep below Gun before DoT is counted
+Cyrus,Venom Fan,24,Condition proposal 2026-10-25,0.7,0.7,0.2,0.15,5,Cone 3,Expected 2-3,Poison,Applies Poison to each target hit,Lower per-target damage because multi-target condition application is valuable
 Cyrus,Warning Shot,32,No change,0.9,0.9,,,0,Single target,1,-1 movement for 2 turns,Verify the movement debuff is correctly implemented,"Control shot, not primary damage option"
 Cyrus,Frost Round,24,No change,0.9,0.9,,,0,Single target,1,-2 movement for 1 turn,Verify Ice resistance interactions,Control ammunition
-Cyrus,Corrosive Round,32,No change,0.8,0.8,0.25,0.25,3,Single target,1,-10% Defense while Corroded,Verify Defense reduction duration and stacking,Armor-reduction ammunition; direct damage intentionally lower
+Cyrus,Corrosive Round,32,Condition proposal 2026-10-25,0.8,0.8,0.25,0.25,5,Single target,1,-10% Defense while Corroded,Verify Defense reduction duration and stacking,Armor-reduction ammunition; direct damage intentionally lower
 Cyrus,Combined Load,41,Review after implementation,1.0,,,,Single target,1,Combines two ammunition effects,Do not add another multiplier until combined-load tests exist,Two conditions in one action may already be its value

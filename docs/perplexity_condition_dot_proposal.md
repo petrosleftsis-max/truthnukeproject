@@ -2,6 +2,8 @@
 
 Status: PROPOSAL — test values only. Do not treat as APPROVED_DESIGN or APPROVED_TRIAL.
 
+> **Implemented 2026-10-25** at the designer's word ("go with it"), as PROPOSAL test values - see `docs/design_status_ledger.csv` and Part 4 of `docs/perplexity_combat_context.md`. The enemies that share these spells (the Sorcerer, the Priest) were given their own copies as the spells were, so they are unchanged.
+
 This file proposes a coherent first pass for condition durations, condition damage, and the Hermes condition spells. It does not change any game data yet.
 
 ## Core intent

@@ -93,10 +93,11 @@ const MAP := {
 const LEFT_OUT := []
 ## Numbers the user changed from the CSV's: Titanfall (Ultimate Smash) is Greatsword
 ## Attack's rank at 64, x3.0 with a x1.5 splash (2026-10-23); and Cyrus's direct
-## hits, by docs/cyrus_damage_adjustments.csv (2026-10-23) - his ammunition trades
-## burst for what it leaves behind.
-const CHANGED := {"Enfina|Ultimate Smash": 3.0, "Cyrus|Poison Strike": 0.9, "Cyrus|Burn Bomb": 0.8,
-	"Cyrus|Wide Poison": 0.7, "Cyrus|Strong Burn": 0.95}
+## hits, by docs/cyrus_damage_adjustments.csv (2026-10-23; the condition proposal's
+## of 2026-10-25, docs/perplexity_condition_dot_proposal.md) - his ammunition
+## trades burst for what it leaves behind.
+const CHANGED := {"Enfina|Ultimate Smash": 3.0, "Cyrus|Poison Strike": 0.75, "Cyrus|Burn Bomb": 0.9,
+	"Cyrus|Wide Poison": 0.7, "Cyrus|Strong Burn": 1.05}
 
 
 func log_line(t): _log.store_line(t); _log.flush()
@@ -358,7 +359,7 @@ func the_switches():
 	ok(not SkillDatabase.skills.has("titanfall") and not SkillDatabase.skills.has("earthsplitter") and not SkillDatabase.skills.has("meteor"),
 		"Titanfall is no move of its own any more; Earthsplitter and Meteor are gone")
 	# A spell does not rank up: its stronger version is a spell of its own.
-	ok(is_equal_approx(Combat.modifier_of(prometheus, SkillDatabase.skills["burner"]), 1.4)
+	ok(is_equal_approx(Combat.modifier_of(prometheus, SkillDatabase.skills["burner"]), 1.7)
 		and SkillDatabase.skills["burner"].ranks.is_empty() and SkillDatabase.skills["river_flow"].ranks.is_empty()
 		and prometheus.skill_list.has("wildfire") and alithia.skill_list.has("frozen_river"),
 		"Burner stays Burner at 64; Wildfire and Frozen River are spells of their own")
@@ -385,7 +386,7 @@ func the_switches():
 	combat.apply_effect(cyrus, foe, burning.effects[0], burning, false)
 	var burn: Dictionary = foe.status_effects.filter(func(e): return e.get("stat", "") == "condition")[0]
 	var plain: float = combat.dot_base_damage(cyrus, burning, Combat.dot_strength_of(cyrus, burning, burning.effects[0]))
-	ok(is_equal_approx(burn.dot_base, plain * 1.3) and burn.duration == Combat.turns_stored(3 + 1, false),
+	ok(is_equal_approx(burn.dot_base, plain * 1.3) and burn.duration == Combat.turns_stored(5 + 1, false),
 		"Cyrus's burn: three tenths harder and a turn longer (DoT Master I and II)", "%.1f vs %.1f, %d" % [burn.dot_base, plain, burn.duration])
 	ok(is_equal_approx(combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["votive_flame"]), 1.2),
 		"the party hits it a fifth harder: afflicted, and by him (Synergy I and II)", "%.2f" % combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["votive_flame"]))

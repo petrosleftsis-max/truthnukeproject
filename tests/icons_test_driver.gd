@@ -171,7 +171,11 @@ func run_test():
 		worn_twice[OWN_ICONS[key]] = worn_twice.get(OWN_ICONS[key], 0) + 1
 	for key in SkillDatabase.skills:
 		var face = icon_file(SkillDatabase.skills[key])
-		if worn_twice.has(face) and OWN_ICONS.get(key, "") != face and not ItemDatabase.is_item(key):
+		# A copy under the same name is the same skill to the eye - an enemy's own
+		# Burner (data/skills/enemies/enemy_*.tres).
+		var copy: bool = OWN_ICONS.keys().any(func(owner): return OWN_ICONS[owner] == face and owner != key
+			and SkillDatabase.skills.has(owner) and SkillDatabase.skills[owner].name == SkillDatabase.skills[key].name)
+		if worn_twice.has(face) and OWN_ICONS.get(key, "") != face and not ItemDatabase.is_item(key) and not copy:
 			worn_twice[face] += 1
 	var shared := []
 	for face in worn_twice:

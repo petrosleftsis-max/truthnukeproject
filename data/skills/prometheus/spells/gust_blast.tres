@@ -17,8 +17,8 @@ knockback_distance = 3
 script = ExtResource("1_530t1")
 type = 8
 condition = ExtResource("1_auto")
-condition_duration = 2
-condition_dot_modifier = 0.15
+condition_duration = 5
+condition_dot_modifier = 0.1
 
 [resource]
 script = ExtResource("3_2orsb")

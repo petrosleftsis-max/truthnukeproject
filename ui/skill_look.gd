@@ -15,10 +15,13 @@ const INK := Color("dce8f5")
 const TINT_STRENGTH := 0.55
 const HEAL_TINT := Color("7fe08a")
 
+## Icon -> the names of the skills and items wearing it.
 static var _uses := {}
 
 
-## Whether `skill`'s icon is one it shares with any other skill or item.
+## Whether `skill`'s icon is one it shares with any other skill or item. A copy
+## of a skill under the same name (an enemy's own Burner) is not another to tell
+## apart from.
 static func is_shared(skill: SkillDefinition) -> bool:
 	if skill == null or skill.icon == null:
 		return false
@@ -30,8 +33,10 @@ static func is_shared(skill: SkillDefinition) -> bool:
 			if other is ItemDefinition and other.teaches != "":
 				continue
 			if other != null and other.icon != null:
-				_uses[other.icon] = _uses.get(other.icon, 0) + 1
-	return _uses.get(skill.icon, 0) > 1
+				var names: Dictionary = _uses.get(other.icon, {})
+				names[other.name] = true
+				_uses[other.icon] = names
+	return _uses.get(skill.icon, {}).size() > 1
 
 
 ## Two letters to tell it by: the first of each of two words, or the first two

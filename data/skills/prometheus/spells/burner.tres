@@ -10,12 +10,12 @@
 script = ExtResource("1_r1ihj")
 type = 8
 condition = ExtResource("2_cop3u")
-condition_duration = 3
-condition_dot_modifier = 0.2
+condition_duration = 5
+condition_dot_modifier = 0.25
 
 [resource]
 script = ExtResource("3_cop3u")
-ability_modifier = 1.4
+ability_modifier = 1.7
 name = "Burner"
 description = "Burn the target."
 min_range = 1
@@ -30,4 +30,3 @@ uses_stat_contest = true
 contest_stat = 1
 sound = ExtResource("90_sfx")
 spell_slot_level = 2
-aoe_radius = 2

@@ -160,9 +160,16 @@ func the_sheet():
 	log_line("")
 
 
+## The handoff's trial values the condition proposal of 2026-10-25
+## (docs/perplexity_condition_dot_proposal.md) replaced, by "key@rank level" - the
+## handoff is a dated snapshot and stays as it was.
+const SUPERSEDED := {"poisondart@8": 0.75, "burningshot@16": 0.9, "burningshot@32": 1.05}
+
+
 ## docs/handoff_0.1/cyrus_damage_adjustments.csv, the approved trial: each skill's
-## hit modifier at its rank level is the trial value - and nothing else of the
-## skill moved: its conditions' dials and turns are what the first sheet says.
+## hit modifier at its rank level is the trial value - or, where the condition
+## proposal of 2026-10-25 replaced it (SUPERSEDED), that proposal's - and its
+## conditions' dials and turns are what the first sheet says.
 func the_trial():
 	log_line("======== the approved trial (handoff 0.1) ========")
 	var file := FileAccess.open("res://docs/handoff_0.1/cyrus_damage_adjustments.csv", FileAccess.READ)
@@ -189,9 +196,15 @@ func the_trial():
 			continue
 		rows += 1
 		var level := int(row[column.RankLevel])
-		ok(is_equal_approx(Combat.modifier_of(cyrus_at(level), skill), float(row[column.TrialValue])),
-			"%s at %d hits x%s (was %s)" % [skill.name, level, row[column.TrialValue], row[column.SnapshotOldValue]],
-			"x%.2f" % Combat.modifier_of(cyrus_at(level), skill))
+		var replaced = SUPERSEDED.get("%s@%d" % [row[column.SkillID], level])
+		if replaced != null:
+			ok(is_equal_approx(Combat.modifier_of(cyrus_at(level), skill), float(replaced)),
+				"%s at %d hits x%s - the condition proposal's, in place of the trial's x%s" % [skill.name, level, replaced, row[column.TrialValue]],
+				"x%.2f" % Combat.modifier_of(cyrus_at(level), skill))
+		else:
+			ok(is_equal_approx(Combat.modifier_of(cyrus_at(level), skill), float(row[column.TrialValue])),
+				"%s at %d hits x%s (was %s)" % [skill.name, level, row[column.TrialValue], row[column.SnapshotOldValue]],
+				"x%.2f" % Combat.modifier_of(cyrus_at(level), skill))
 		var carriers := []
 		for who in CombatantDatabase.combatants:
 			if who != "cyrus" and CombatantDatabase.combatants[who].skills.has(key):
@@ -212,6 +225,12 @@ func leaves_something(skill: SkillDefinition) -> bool:
 ## Gun is the baseline for an immediate single-target hit; ammunition that
 ## leaves a condition hits less hard than the Gun; and a condition skill with an
 ## area hits each target less hard than his single-target condition ammunition.
+## Ammunition the designer let hit harder than the Gun from a level, by key: the
+## condition proposal of 2026-10-25 gives Burning Shot's rank at 32 x1.05. Noted,
+## OPEN against the rule, rather than failed.
+const OVER_THE_GUN := {"burning_shot": 32}
+
+
 func the_rules():
 	log_line("======== the Gun is the baseline ========")
 	var gun: SkillDefinition = SkillDatabase.skills.gun
@@ -225,6 +244,9 @@ func the_rules():
 				continue
 			var mod: float = Combat.modifier_of(comb, skill)
 			ammo_lowest = minf(ammo_lowest, mod)
+			if OVER_THE_GUN.has(key) and level >= OVER_THE_GUN[key]:
+				log_line("  NOTE  level %d: %s x%.2f, over the Gun's x%.2f - the condition proposal's, OPEN against this rule" % [level, skill.name, mod, baseline])
+				continue
 			ok(mod < baseline, "  level %d: %s x%.2f, under the Gun's x%.2f" % [level, skill.name, mod, baseline])
 		for key in comb.skill_list:
 			var skill: SkillDefinition = SkillDatabase.skills.get(key)
@@ -310,7 +332,7 @@ func corrosion():
 	ok(entries_of(foe, "corroded").size() == 1 and combat.stat_of(foe, Stats.Type.DEFENSE) == roundi(plain * 0.9),
 		"a second round refreshes it - one Corroded, still a tenth", "%d of it, %d Defense" % [entries_of(foe, "corroded").size(), combat.stat_of(foe, Stats.Type.DEFENSE)])
 	var lasts: int = entries_of(foe, "corroded")[0].duration
-	ok(lasts == 3 + combat.lingering_turns(cyrus), "Corroded lasts its 3 turns, and DoT Master's one more",
+	ok(lasts == 5 + combat.lingering_turns(cyrus), "Corroded lasts its 5 turns (the condition proposal of 2026-10-25), and DoT Master's one more",
 		"%d (DoT Master adds %d)" % [lasts, combat.lingering_turns(cyrus)])
 	var down := 0
 	for i in 10:

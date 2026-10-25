@@ -1178,7 +1178,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Frozen River** (`frozen_river`) - level 16; spell, Gates of Pandora; main action; range 1-15; ranged; area: Diamond 2; damage x1.8 Water; contested against Intellect
   - Who has it: Alithia
   - Says: A whole river of it, freezing as it comes down on them.
-  - Effect: {type: Condition; condition: Frozen (frozen); condition_duration: 3; condition_dot_modifier: 0.25}
+  - Effect: {type: Condition; condition: Frozen (frozen); condition_duration: 5; condition_dot_modifier: 0.3}
   - Settings: respects_blocking: true
 - **Glacial Tide** (`glacial_tide`) - level 41; spell, Gates of Sophia; main action; range 1-15; ranged; area: Diamond 3; damage x2.2 Water
   - Who has it: Alithia
@@ -1230,10 +1230,10 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia
   - Says: The truth unhidden, burning through everything near where it lands: three quarters of their defence count for nothing.
   - Settings: respects_blocking: true
-- **River Flow** (`river_flow`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; damage x1.3 Water; contested against Intellect
-  - Who has it: Alithia, Priest
+- **River Flow** (`river_flow`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.4 Water; contested against Intellect
+  - Who has it: Alithia
   - Says: Control water to freeze the target.
-  - Effect: {type: Condition; condition: Frozen (frozen); condition_duration: 2; condition_dot_modifier: 0.2}
+  - Effect: {type: Condition; condition: Frozen (frozen); condition_duration: 5; condition_dot_modifier: 0.2}
   - Settings: respects_blocking: true
 
 ### Folder: common
@@ -1290,11 +1290,11 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: cyrus
 
-- **Burning Shot** (`burning_shot`) - level 16; main action; range 2-15; ranged; single target; damage x0.8 Physical, scales with Self
+- **Burning Shot** (`burning_shot`) - level 16; main action; range 2-15; ranged; single target; damage x0.9 Physical, scales with Self
   - Who has it: Cyrus
   - Says: Special ammunition that helps them feel the heat.
-  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 3; condition_dot_modifier: 0.35}
-  - Rank from level 32 "Strong Burn": ability_modifier: 0.95; condition_dot_modifier: 0.45
+  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 5; condition_dot_modifier: 0.15}
+  - Rank from level 32 "Strong Burn": ability_modifier: 1.05; condition_dot_modifier: 0.2
   - Settings: respects_blocking: true; is_ammo: true
 - **Catalyst** (`catalyst`) - level 64; main action; range 0-0; ranged; single target; aimed at allies; no damage
   - Who has it: Cyrus
@@ -1319,10 +1319,10 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Cyrus
   - Says: Cyrus uses gun.
   - Settings: respects_blocking: true
-- **Poison Dart** (`poison_dart`) - level 8; main action; range 2-20; ranged; single target; damage x0.9 Physical, scales with Self
+- **Poison Dart** (`poison_dart`) - level 8; main action; range 2-20; ranged; single target; damage x0.75 Physical, scales with Self
   - Who has it: Cyrus
   - Says: A dart coated in a toxin that poisons the target.
-  - Effect: {type: Condition; condition: Poisoned (poisoned); condition_duration: 3; condition_dot_modifier: 0.2}
+  - Effect: {type: Condition; condition: Poisoned (poisoned); condition_duration: 5; condition_dot_modifier: 0.2}
   - Settings: respects_blocking: true; is_ammo: true
 - **Rapier** (`rapier`) - level 1; main action; reacts: an enemy leaves its reach; range 0-1; melee; single target; damage x1.5 Physical, scales with Self
   - Who has it: Cyrus, Alchemist, Priest
@@ -1339,8 +1339,8 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Effect: {type: Hide}
 - **Venom Fan** (`venom_fan`) - level 24; main action; range 1-3; ranged; area: Cone 3; damage x0.7 Physical, scales with Self
   - Who has it: Cyrus
-  - Says: A fan of poisoned darts across everybody in front of him: poisoned for three turns.
-  - Effect: {type: Condition; condition: Poisoned (poisoned); condition_duration: 3; condition_dot_modifier: 0.2}
+  - Says: A fan of poisoned darts across everybody in front of him: poisoned for five turns.
+  - Effect: {type: Condition; condition: Poisoned (poisoned); condition_duration: 5; condition_dot_modifier: 0.15}
   - Settings: respects_blocking: true
 - **Warning Shot** (`warning_shot`) - level 32; main action; range 1-20; ranged; single target; damage x0.9 Physical, scales with Self
   - Who has it: Cyrus
@@ -1356,8 +1356,8 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Settings: respects_blocking: true; can_be_copied: false; combines_ammo: true
 - **Corrosive Round** (`corrosive_round`) - level 32; main action; range 2-15; ranged; single target; damage x0.8 Acid, scales with Self
   - Who has it: Saboteur path
-  - Says: A round that eats at whatever it hits: it burns on for three turns, and their armour is a tenth worse while it does.
-  - Effect: {type: Condition; condition: Corroded (corroded); condition_duration: 3; condition_dot_modifier: 0.25}
+  - Says: A round that eats at whatever it hits: it burns on for five turns, and their armour is a tenth worse while it does.
+  - Effect: {type: Condition; condition: Corroded (corroded); condition_duration: 5; condition_dot_modifier: 0.25}
   - Settings: respects_blocking: true; is_ammo: true
 - **Frost Round** (`frost_round`) - level 24; main action; range 2-15; ranged; single target; damage x0.9 Ice, scales with Self
   - Who has it: Saboteur path
@@ -1414,6 +1414,32 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Effect: {type: Stat Multiplier; display_name: "Empowered"; stat: "physical"; stat_multiplier: 1.3}
   - Effect: {type: Stat Multiplier; display_name: "Hardened"; stat: "defense"; stat_multiplier: 1.3}
   - Settings: can_be_copied: false
+- **Burner** (`enemy_burner`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; damage x1.4 Fire; contested against Mindfulness
+  - Who has it: Sorcerer
+  - Says: Burn the target.
+  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 3; condition_dot_modifier: 0.2}
+  - Settings: respects_blocking: true
+- **Crystalise** (`enemy_crystalise`) - level 16; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x0.8 Earth; contested against Self
+  - Who has it: Sorcerer
+  - Says: Cover an enemy in hindering stones.
+  - Effect: {type: Condition; condition: Crystallised (crystallised); condition_duration: 3; condition_dot_modifier: 0.1}
+  - Settings: respects_blocking: true
+- **Gust Blast** (`enemy_gust_blast`) - level 24; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.2 Wind; contested against Physical
+  - Who has it: Sorcerer
+  - Says: Blast a powerful gust that pushes the target.
+  - Effect: {type: Push; min_amount: 2; max_amount: 4; knockback_distance: 3}
+  - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 2; condition_dot_modifier: 0.15}
+  - Settings: affects_both_sides: true; respects_blocking: true
+- **River Flow** (`enemy_river_flow`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; damage x1.3 Water; contested against Intellect
+  - Who has it: Priest
+  - Says: Control water to freeze the target.
+  - Effect: {type: Condition; condition: Frozen (frozen); condition_duration: 2; condition_dot_modifier: 0.2}
+  - Settings: respects_blocking: true
+- **Wind Swoon** (`enemy_wind_swoon`) - level 8; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x0.8 Wind; contested against Self
+  - Who has it: Sorcerer
+  - Says: Swoon them with the wind.
+  - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 2; condition_dot_modifier: 0.1}
+  - Settings: respects_blocking: true
 - **Fire Breath** (`fire_breath`) - level 1; main action; range 1-6; ranged; area: Cone 6; damage x1.6 Fire, scales with Intellect; contested against Intellect
   - Who has it: Illusory Dragon
   - Says: Fire pours from its jaws, over everybody in a cone - half to whoever's mind sees through it. Made of its caster's mind: as strong as their Intellect.
@@ -1631,15 +1657,15 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: prometheus/spells
 
-- **Burner** (`burner`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; damage x1.4 Fire; contested against Mindfulness
-  - Who has it: Prometheus, Sorcerer
+- **Burner** (`burner`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.7 Fire; contested against Mindfulness
+  - Who has it: Prometheus
   - Says: Burn the target.
-  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 3; condition_dot_modifier: 0.2}
+  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 5; condition_dot_modifier: 0.25}
   - Settings: respects_blocking: true
-- **Crystalise** (`crystalise`) - level 16; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x0.8 Earth; contested against Self
-  - Who has it: Prometheus, Sorcerer
+- **Crystalise** (`crystalise`) - level 16; spell, Gates of Hermes; main action; range 0-15; ranged; single target; damage x1.0 Earth; contested against Self
+  - Who has it: Prometheus
   - Says: Cover an enemy in hindering stones.
-  - Effect: {type: Condition; condition: Crystallised (crystallised); condition_duration: 3; condition_dot_modifier: 0.1}
+  - Effect: {type: Condition; condition: Crystallised (crystallised); condition_duration: 5; condition_dot_modifier: 0.1}
   - Settings: respects_blocking: true
 - **Dispel Magic** (`dispel_magic`) - level 14; spell, Gates of Pandora; main action; range 0-10; ranged; single target; no damage
   - Who has it: Prometheus
@@ -1664,10 +1690,10 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Effect: {type: Grow; duration: 3}
   - Settings: respects_blocking: true
 - **Gust Blast** (`gust_blast`) - level 24; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.2 Wind; contested against Physical
-  - Who has it: Prometheus, Sorcerer
+  - Who has it: Prometheus
   - Says: Blast a powerful gust that pushes the target.
   - Effect: {type: Push; min_amount: 2; max_amount: 4; knockback_distance: 3}
-  - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 2; condition_dot_modifier: 0.15}
+  - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 5; condition_dot_modifier: 0.1}
   - Settings: affects_both_sides: true; respects_blocking: true
 - **Hermes Step** (`hermes_step`) - level 7; spell, Gates of Hermes; main action; range 0-6; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
@@ -1726,16 +1752,16 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Wildfire** (`wildfire`) - level 16; spell, Gates of Pandora; main action; range 1-15; ranged; area: Diamond 2; damage x2.1 Fire; contested against Mindfulness
   - Who has it: Prometheus
   - Says: A fire that runs through all of them, and keeps burning.
-  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 3; condition_dot_modifier: 0.4}
+  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 5; condition_dot_modifier: 0.35}
   - Settings: respects_blocking: true
 - **Wind Shot** (`wind_shot`) - level 1; spell, Gates of World; main action; range 0-20; ranged; single target; damage x1.2 Wind
   - Who has it: Prometheus, Sorcerer
   - Says: Conjure wind on your fingertips before leading it to the target.
   - Settings: respects_blocking: true
-- **Wind Swoon** (`wind_swoon`) - level 8; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x0.8 Wind; contested against Self
-  - Who has it: Prometheus, Sorcerer
+- **Wind Swoon** (`wind_swoon`) - level 8; spell, Gates of Hermes; main action; range 0-15; ranged; single target; damage x1.0 Wind; contested against Self
+  - Who has it: Prometheus
   - Says: Swoon them with the wind.
-  - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 2; condition_dot_modifier: 0.1}
+  - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 5; condition_dot_modifier: 0.1}
   - Settings: respects_blocking: true
 - **Wind Vacuum** (`wind_vacuum`) - level 5; spell, Gates of Hermes; main action; range 2-15; ranged; single target; damage x0.2 Wind; contested against Physical
   - Who has it: Prometheus
@@ -1816,25 +1842,25 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Blind** (`blind`, tag ): Can barely see - every skill reaches only one tile away. | settings: max_range: 1
 - **Blurred** (`blurred`, tag Br): Hard to make out from afar: a fifth less from anything thrown or shot from more than a tile away, until their next turn starts. | settings: duration: 1; wears_off_at_start: true; less_from_afar: 0.2
 - **Bulwarked** (`bulwarked`, tag Bw): Behind Enfina's guard: takes less damage. | settings: duration: 1; damage_taken_change: -0.1
-- **Burn** (`burn`, tag ): A strong DOT that also increases the speed by 2. | settings: duration: 5; dot_type: Fire; dot_strength: Powerful; dot_modifier: 1.0; dot_min: 6; dot_max: 8; movement_change: 2
+- **Burn** (`burn`, tag ): A strong DOT that also increases the speed by 2. | settings: duration: 5; dot_type: Fire; dot_strength: Powerful; dot_modifier: 1.0; dot_min: 4; dot_max: 5; movement_change: 2
 - **Choking Ash** (`choking_ash`, tag ): Ash in the throat and eyes: everything they do is less likely to land. | settings: duration: 1; accuracy_change: -15
 - **Confused** (`confused`, tag ): Cannot tell friend from foe: goes for whoever is nearest, and does nothing else. | settings: duration: 1; confuses: true
-- **Corroded** (`corroded`, tag Cd): Eaten at by something caustic: it burns a little every turn, and their armour is worse while it does. | settings: dot_type: Acid; dot_modifier: 0.25; defense_change: -0.1
+- **Corroded** (`corroded`, tag Cd): Eaten at by something caustic: it burns a little every turn, and their armour is worse while it does. | settings: duration: 5; dot_type: Acid; dot_modifier: 0.25; dot_min: 1; dot_max: 2; defense_change: -0.1
 - **Crippled** (`crippled`, tag Cp): Its legs are broken. It cannot move again this fight. | settings: duration: 999; prevents_movement: true
-- **Crystallised** (`crystallised`, tag ): Encased and cracking. Cannot move. | settings: dot_type: Earth; dot_strength: Weak; dot_modifier: 1.0; dot_min: 2; dot_max: 4; prevents_movement: true
+- **Crystallised** (`crystallised`, tag ): Encased and cracking. Cannot move. | settings: duration: 5; dot_type: Earth; dot_strength: Weak; dot_modifier: 1.0; dot_min: 1; dot_max: 3; prevents_movement: true
 - **Dazed** (`dazed`, tag ): Reeling from the impact: two tiles less to walk, no secondary action and no reactions. They keep their main action. | settings: duration: 1; movement_change: -2; prevents_secondary: true; prevents_reactions: true
 - **Deafened** (`deafened`, tag ): The bells still ringing in their ears: less likely to land anything, and too slow to react to anybody. | settings: duration: 1; accuracy_change: -10; prevents_reactions: true
 - **Deceived** (`deceived`, tag Dc): Sure one of their own has sold them out: their next turn goes on the nearest of their own side. | settings: duration: 2; turns_on_own_side: true
 - **Exposed** (`exposed`, tag Ex): Turned their back on a champion standing close: takes a fifth more from that champion until their next turn starts. | settings: duration: 1; wears_off_at_start: true; more_from_source: 0.2
 - **Fear** (`fear`, tag ): Too afraid to advance and can barely aim. | settings: accuracy_change: -20; prevents_approach: true
 - **Fortified** (`fortified`, tag Fo): Within Enfina's reach: takes a tenth less damage. | settings: duration: 1; damage_taken_change: -0.1
-- **Frozen** (`frozen`, tag ): Locked in ice. Too stiff for a secondary action and speed is slowed by 2. | settings: dot_type: Water; dot_strength: Weak; dot_modifier: 1.0; dot_min: 1; dot_max: 2; movement_change: -2; prevents_secondary: true
+- **Frozen** (`frozen`, tag ): Locked in ice. Too stiff for a secondary action and speed is slowed by 2. | settings: duration: 5; dot_type: Water; dot_strength: Weak; dot_modifier: 1.0; dot_min: 1; dot_max: 3; movement_change: -2; prevents_secondary: true
 - **Grand Design** (`grand_design`, tag Gd): Every gate open at once: this turn his spells cost no gate, and casting one leaves his action for another. | settings: duration: 1; wears_off_at_start: true; casts_freely: true
 - **Grappled** (`grappled`, tag Gp): Held fast by whoever grabbed them: no moving until they break free, which takes their main action. Teleported, shoved or thrown - either of them - and the grip is gone; so it is if whoever holds them is not beside them any more. | settings: duration: 999; prevents_movement: true; holds: true
 - **Hesitating** (`hesitating`, tag ): Talked into standing down: they lose their next turn - unless somebody hurts them first. | settings: duration: 2; skips_turn: true; ends_when_hit: true
 - **Mirage** (`mirage`, tag Mi): Cloaked in illusions: a quarter less from every blow, and one in four misses outright, while they stand in the mirage. | settings: duration: 1; wears_off_at_start: true; damage_taken_change: -0.25; miss_chance: 25
 - **Phantom Body** (`phantom_body`, tag Ph): An image laid over them: the next attack that would hit them strikes it instead, and misses. | settings: evades_next_hit: true
-- **Poisoned** (`poisoned`, tag ): Venom works through them. Too sick to react to anything. | settings: dot_type: Poison; dot_strength: Strong; dot_modifier: 1.0; dot_min: 4; dot_max: 6; prevents_reactions: true
+- **Poisoned** (`poisoned`, tag ): Venom works through them. Too sick to react to anything. | settings: duration: 5; dot_type: Poison; dot_strength: Strong; dot_modifier: 1.0; dot_min: 3; dot_max: 4; prevents_reactions: true
 - **Recanted** (`recanted`, tag Rc): The future that was read of them will not happen: they lose their next turn. | settings: duration: 1; skips_turn: true
 - **Reflected** (`reflected`, tag Rf): Inside a reflection of the world: invisible to the other side while they stay in it. Acting against an enemy gives them away until their next turn starts. | settings: duration: 1; makes_invisible: true
 - **Riding** (`riding`, tag ): Up on somebody enormous: carried wherever they go, out of everybody's reach, and every blow on them lands - and harder. No walking until they climb down or are thrown off. | settings: duration: 999; prevents_movement: true
@@ -1848,7 +1874,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Caught off guard** (`surprised`, tag ): Ambushed before they knew anybody was there: loses their first turn. | settings: duration: 1; skips_turn: true
 - **Swallowed** (`swallowed`, tag Sw): Inside the glutton, being digested: acid every turn, no moving, and nothing to hit but the belly around them. Out alive if its Belly Hole is torn open, if it is staggered, or if it falls - dead, if it digests them first. | settings: duration: 999; dot_type: Acid; dot_strength: Medium; dot_modifier: 0.5; dot_min: 8; dot_max: 12; prevents_movement: true; prevents_reactions: true
 - **Veiled** (`veiled`, tag Ve): A veil of mercy over them: the next blow lands a little softer (15% less), and the veil goes with it. | settings: duration: 2; damage_taken_change: -0.15; ends_when_hit: true
-- **Windswept** (`windswept`, tag ): Battered by wind - slowed by 3, and blown about 3 tiles away at the start of each turn. | settings: dot_type: Wind; dot_strength: Medium; dot_modifier: 1.0; dot_min: 1; dot_max: 3; movement_change: -3; drift_tiles: 3
+- **Windswept** (`windswept`, tag ): Battered by wind - slowed by 3, and blown about 3 tiles away at the start of each turn. | settings: duration: 5; dot_type: Wind; dot_strength: Medium; dot_modifier: 1.0; dot_min: 1; dot_max: 2; movement_change: -3; drift_tiles: 3
 
 ## Items
 
@@ -1860,7 +1886,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Burner Spellbook** (`burner_spellbook`): A spellbook of Burner. Prometheus can learn Burner from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 150; teaches: "burner"; can_be_copied: false; deals_damage: false
 - **Communion Gate Nade** (`communion_gate_nade`): Communion, sealed in a shell: throw it and the spell goes off with no gate of your own opened - if you know the spell or could learn it. Gone once thrown. | spell: "communion"; item_power: 50; price: 150; max_range: 10; targets_ally: true; can_be_copied: false; effects: [{type: Heal; heal_flat: 8.0; heal_per_stat: 0.15; heal_per_weapon: 0.2}]; deals_damage: false; ability_modifier: 0.6; scaling_stat: Mindfulness; aoe_radius: 2 | heals item power 50 x 0.6 (no defence, no randomness; the effect's min and max amount are unused)
 - **Crystal Bottle** (`crystal_bottle`): Give them a highly volatile crystal in a bottle. | item_power: 47; price: 120; max_range: 5; effects: [{type: Condition; condition: Crystallised (crystallised); condition_duration: 3; condition_dot_modifier: 0.3}]; deals_damage: false; uses_stat_contest: true; contest_stat: Self
-- **Crystalise Gate Nade** (`crystalise_gate_nade`): Crystalise, sealed in a shell: throw it and the spell goes off with no gate of your own opened - if you know the spell or could learn it. Gone once thrown. | spell: "crystalise"; item_power: 40; price: 60; max_range: 15; respects_blocking: true; can_be_copied: false; effects: [{type: Condition; condition: Crystallised (crystallised); condition_duration: 3; condition_dot_modifier: 0.1}]; ability_modifier: 0.8; scaling_stat: Intellect; damage_type: Earth; uses_stat_contest: true; contest_stat: Self; aoe_radius: 2
+- **Crystalise Gate Nade** (`crystalise_gate_nade`): Crystalise, sealed in a shell: throw it and the spell goes off with no gate of your own opened - if you know the spell or could learn it. Gone once thrown. | spell: "crystalise"; item_power: 40; price: 60; max_range: 15; respects_blocking: true; can_be_copied: false; effects: [{type: Condition; condition: Crystallised (crystallised); condition_duration: 5; condition_dot_modifier: 0.1}]; scaling_stat: Intellect; damage_type: Earth; uses_stat_contest: true; contest_stat: Self
 - **Crystalise Spellbook** (`crystalise_spellbook`): A spellbook of Crystalise. Prometheus can learn Crystalise from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 150; teaches: "crystalise"; can_be_copied: false; deals_damage: false
 - **Cure Potion** (`cure_potion`): A quick drink to help you restore minor vitality. | item_power: 0; price: 50; max_range: 2; targets_ally: true; effects: [{type: Heal; heal_modifier: 0.7; heal_share_of_health: 0.25; min_amount: 25; max_amount: 25}]; deals_damage: false | heals item power 0 x 0.7 + 25% of the target's max health (no defence, no randomness; the effect's min and max amount are unused)
 - **Dispel Magic Spellbook** (`dispel_magic_spellbook`): A spellbook of Dispel Magic. Prometheus can learn Dispel Magic from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 375; teaches: "dispel_magic"; can_be_copied: false; deals_damage: false
@@ -2057,7 +2083,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 - Main stat Mindfulness, secondary Self; health 60 at level 1, 190 at 64; movement 6
 - Skills: Rapier, Water Spike, Heal, Cleanse, River Flow, Communion, Run
-- Settings: class_t: Magic; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 3; spellcasting_stat: Mindfulness; skill_levels: { "river_flow": 7 }; resist_water: 50; resist_earth: -50; ai_function: "ai_healer"
+- Settings: class_t: Magic; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 3; spellcasting_stat: Mindfulness; skill_levels: { "enemy_river_flow": 7 }; resist_water: 50; resist_earth: -50; ai_function: "ai_healer"
 
 ### Ranger (`ranger`)
 
@@ -2081,7 +2107,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 - Main stat Intellect, secondary Mindfulness; health 28 at level 1, 85 at 64; movement 6
 - Skills: Burner, Fireball, Crystalise, Gust Blast, Wind Swoon, Run, Fire Burst, Fire Blast, Rock Throw, Wind Shot
-- Settings: class_t: Magic; max_hp: 28; max_hp_level_20: 85; defense: 5; defense_level_64: 30; initiative: 4; skill_levels: { "burner": 5, "crystalise": 7, "gust_blast": 6, "wind_swoon": 6 }; resist_fire: 50; resist_poison: -50; ai_function: "ai_caster"; ai_readies: Counters Casters
+- Settings: class_t: Magic; max_hp: 28; max_hp_level_20: 85; defense: 5; defense_level_64: 30; initiative: 4; skill_levels: { "enemy_burner": 5, "enemy_crystalise": 7, "enemy_gust_blast": 6, "enemy_wind_swoon": 6 }; resist_fire: 50; resist_poison: -50; ai_function: "ai_caster"; ai_readies: Counters Casters
 
 ### Summoner (`summoner`)
 
@@ -2113,7 +2139,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Tainted Carrion (`tainted_carrion`)
 
-- Settings: interactable: false; edible: true; nourishing: false; eaten_damage: 90; eaten_condition: Poisoned (poisoned); eaten_stagger: 30.0; glossary_text: "A heap of carrion, gone bad on purpose. Whatever eats it is poisoned, and reels - and is fed nothing by it."; max_hp: 20; max_hp_level_20: 20
+- Settings: interactable: false; edible: true; nourishing: false; eaten_damage: 90; eaten_condition: Poisoned (poisoned); eaten_condition_turns: 3; eaten_stagger: 30.0; glossary_text: "A heap of carrion, gone bad on purpose. Whatever eats it is poisoned, and reels - and is fed nothing by it."; max_hp: 20; max_hp_level_20: 20
 
 ---
 
@@ -2330,6 +2356,38 @@ The designer's answers of 2026-10-25. The rules are APPROVED_TRIAL; the numbers 
 - **Repacking between fights:** the rest screen of the Dungeon Demo and the lab has an Inventory button (and the inventory key), which opens the party's bags as on a map: move items between belt, pouch and backpack, and from one member to another, before the next fight (the designer, 2026-10-25).
 - **Not decided:** whether a short rest ends conditions; where the long rests fall; whether a rest called from a conversation should open the rest screen, so Meditate and Resuscitate can be chosen there (OPEN).
 
+## The condition and DoT proposal (2026-10-25; implemented as PROPOSAL test values)
+
+Perplexity's proposal (`docs/perplexity_condition_dot_proposal.md`); the designer said to go with it. As the proposal asks, every value is logged PROPOSAL, not APPROVED_TRIAL.
+
+- **Conditions last 5 turns:** Burn, Poisoned, Frozen, Crystallised, Windswept and Corroded, and every move the proposal names inflicts them for 5. Their rules are kept: Burn's +2 movement, Poisoned's no reactions, Frozen's -2 and no secondary action, Crystallised's no movement, Windswept's -3 and 3-tile drift, Corroded's -10% Defense.
+- **Base DoT ranges** (`dot_min`-`dot_max`): Burn 4-5 (was 6-8), Poisoned 3-4 (4-6), Frozen 1-3 (1-2), Crystallised 1-3 (2-4), Windswept 1-2 (1-3), Corroded 1-2 (none).
+  - In the game these ranges are only what a tick rolls when an **item** inflicts the condition (the bottles). A **skill's** tick is the caster's power times the move's own dial. That is where the proposal's per-move dials below act.
+- **Hermes spells, single target:**
+  - Burner x1.7, Burn 0.25 (was radius 2, x1.4, 3 turns at 0.2).
+  - River Flow x1.4, Frozen 0.20 (radius 2, x1.3, 2 turns at 0.2).
+  - Wind Swoon x1.0, Windswept 0.10 (radius 2, x0.8, 2 turns at 0.1).
+  - Crystalise x1.0, Crystallised 0.10 (radius 2, x0.8, 3 turns at 0.1). The Crystalise Gate Nade copies it.
+- **Pandora spells, still radius 2:** Wildfire x2.1, Burn 0.35 (was 0.4). Frozen River x1.8, Frozen 0.30 (was 0.25).
+- **Gust Blast:** Windswept 0.10 (was 2 turns at 0.15); the shove unchanged.
+- **Cyrus's ammunition:**
+  - The Gun is unchanged, x1.0.
+  - Burning Shot x0.9, Burn 0.15 (was x0.8, 0.35); its rank at 32 x1.05, Burn 0.20 (was x0.95, 0.45).
+  - Poison Dart x0.75, Poison 0.20 (was x0.9).
+  - Venom Fan x0.7, Poison 0.15 (was 0.2).
+  - Corrosive Round's Corroded now 5 turns.
+- **Left as they were:** Catalyst; immunities; Frozen has no Defense loss; the bottles, Glacial Tide, Flame Edge and Trailblaze; the enemies.
+  - The Sorcerer and the Priest share Burner, Wind Swoon, Crystalise, Gust Blast and River Flow with the party. They now have their own copies with the old values, since the proposal says not to change enemies in this pass. OPEN: whether the enemies should follow the party's spells.
+  - Erysichthon's Tainted Carrion poisons for the Poisoned condition's own length, which went from 3 to 5. It is pinned at 3.
+- **OPEN:** Burning Shot's rank at 32 (x1.05) out-hits the Gun (x1.0). That goes against the earlier rule that ammunition leaving a condition hits less hard than the Gun. The ammo suite notes it rather than failing.
+- **To watch in testing** (from the proposal):
+  - whether Burn stays the strongest DoT, and Poison the best set-up for a decisive party turn;
+  - whether Frozen is useful without being a universal answer;
+  - whether Crystalise contains melee threats without trivialising them;
+  - whether Windswept is worth its displacement, and Corroded before a focus-fire turn;
+  - whether the Gun stays a real choice;
+  - whether the Hermes single-target spells feel stronger per target than the Pandora areas.
+
 ## Known near-twins among the spells
 
 Spells that are close to copies of each other. They are candidates to make more distinct, or to keep on purpose:
@@ -2353,16 +2411,17 @@ Spells that are close to copies of each other. They are candidates to make more 
    - Gnostic Tempest (54, Gnosis): radius 2, x5.4 Plasma.
    - Stolen Sun (64, Yaldabaoth): radius 2, x6.0 Fire.
 6. **The Frozen line:**
-   - River Flow (8, Hermes): radius 2, x1.3, Frozen 2 turns at 0.2.
-   - Frozen River (16, Pandora): radius 2, x1.8, Frozen 3 turns at 0.25.
+   - River Flow (8, Hermes): single target, x1.4, Frozen 5 turns at 0.20 (was radius 2, x1.3, 2 turns at 0.2).
+   - Frozen River (16, Pandora): radius 2, x1.8, Frozen 5 turns at 0.30 (was 3 turns at 0.25).
    - Glacial Tide (41, Sophia): radius 3, x2.2, Frozen 2 turns at 0.25.
 7. **The Burn line:**
-   - Burner (8, Hermes): radius 2, x1.4, Burn 3 turns at 0.2.
-   - Wildfire (16, Pandora): radius 2, x2.1, Burn 3 turns at 0.4.
+   - Burner (8, Hermes): single target, x1.7, Burn 5 turns at 0.25 (was radius 2, x1.4, 3 turns at 0.2).
+   - Wildfire (16, Pandora): radius 2, x2.1, Burn 5 turns at 0.35 (was 3 turns at 0.4).
    - Fireball (9, Pandora) is close in power: radius 5, x2.0, hits both sides.
 8. **Wind Swoon and Gust Blast:**
-   - Wind Swoon (8, Hermes): radius 2, x0.8, Windswept.
-   - Gust Blast (24, Hermes): single target, x1.2, a 3-tile shove, Windswept.
+   - Wind Swoon (8, Hermes): single target, x1.0, Windswept 5 turns at 0.10 (was radius 2, x0.8).
+   - Gust Blast (24, Hermes): single target, x1.2, a 3-tile shove, Windswept 5 turns at 0.10.
+   - Both single target now, they differ by the shove and the gate's level.
 9. **Communion and Revitalizer** - settled: Revitalizer was taken out and Communion took its place (Alithia's kit, the Priest's, and the Gate Nade). Revitalizer was heal x1.3, radius 3, range 20 from level 9; Communion is x0.6, radius 2, range 10 from 16. Alithia now has no group heal before 16, and neither do Priests below 16.
 10. **Heal and Light Heal** (World): Light Heal is a smaller Heal, but a secondary action.
 11. **Hermes Step and Mist Step** (Hermes, a 6-tile teleport): Hermes Step moves an ally, as a main action. Mist Step moves himself, as a secondary action.
@@ -2370,7 +2429,7 @@ Spells that are close to copies of each other. They are candidates to make more 
    - Flame and Frost (Pandora, x1.8): Burn, or -2 movement.
    - Storm and Stone (Charon, x2.2): a 2-tile shove, or -10 defence.
 
-Also: since spells stopped ranking up, the enemy Sorcerer and Priest no longer get the stronger version of Burner and River Flow past level 16. They cast the level-8 versions at any level.
+Also: since spells stopped ranking up, the enemy Sorcerer and Priest no longer get the stronger version of Burner and River Flow past level 16. They cast the level-8 versions at any level. Since 2026-10-25 those are their own copies, as the spells were before the condition proposal: radius 2, the old numbers (below).
 
 ## Open design variables
 

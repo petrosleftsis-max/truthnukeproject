@@ -214,6 +214,38 @@ The designer's answers of 2026-10-25. The rules are APPROVED_TRIAL; the numbers 
 - **Repacking between fights:** the rest screen of the Dungeon Demo and the lab has an Inventory button (and the inventory key), which opens the party's bags as on a map: move items between belt, pouch and backpack, and from one member to another, before the next fight (the designer, 2026-10-25).
 - **Not decided:** whether a short rest ends conditions; where the long rests fall; whether a rest called from a conversation should open the rest screen, so Meditate and Resuscitate can be chosen there (OPEN).
 
+## The condition and DoT proposal (2026-10-25; implemented as PROPOSAL test values)
+
+Perplexity's proposal (`docs/perplexity_condition_dot_proposal.md`); the designer said to go with it. As the proposal asks, every value is logged PROPOSAL, not APPROVED_TRIAL.
+
+- **Conditions last 5 turns:** Burn, Poisoned, Frozen, Crystallised, Windswept and Corroded, and every move the proposal names inflicts them for 5. Their rules are kept: Burn's +2 movement, Poisoned's no reactions, Frozen's -2 and no secondary action, Crystallised's no movement, Windswept's -3 and 3-tile drift, Corroded's -10% Defense.
+- **Base DoT ranges** (`dot_min`-`dot_max`): Burn 4-5 (was 6-8), Poisoned 3-4 (4-6), Frozen 1-3 (1-2), Crystallised 1-3 (2-4), Windswept 1-2 (1-3), Corroded 1-2 (none).
+  - In the game these ranges are only what a tick rolls when an **item** inflicts the condition (the bottles). A **skill's** tick is the caster's power times the move's own dial. That is where the proposal's per-move dials below act.
+- **Hermes spells, single target:**
+  - Burner x1.7, Burn 0.25 (was radius 2, x1.4, 3 turns at 0.2).
+  - River Flow x1.4, Frozen 0.20 (radius 2, x1.3, 2 turns at 0.2).
+  - Wind Swoon x1.0, Windswept 0.10 (radius 2, x0.8, 2 turns at 0.1).
+  - Crystalise x1.0, Crystallised 0.10 (radius 2, x0.8, 3 turns at 0.1). The Crystalise Gate Nade copies it.
+- **Pandora spells, still radius 2:** Wildfire x2.1, Burn 0.35 (was 0.4). Frozen River x1.8, Frozen 0.30 (was 0.25).
+- **Gust Blast:** Windswept 0.10 (was 2 turns at 0.15); the shove unchanged.
+- **Cyrus's ammunition:**
+  - The Gun is unchanged, x1.0.
+  - Burning Shot x0.9, Burn 0.15 (was x0.8, 0.35); its rank at 32 x1.05, Burn 0.20 (was x0.95, 0.45).
+  - Poison Dart x0.75, Poison 0.20 (was x0.9).
+  - Venom Fan x0.7, Poison 0.15 (was 0.2).
+  - Corrosive Round's Corroded now 5 turns.
+- **Left as they were:** Catalyst; immunities; Frozen has no Defense loss; the bottles, Glacial Tide, Flame Edge and Trailblaze; the enemies.
+  - The Sorcerer and the Priest share Burner, Wind Swoon, Crystalise, Gust Blast and River Flow with the party. They now have their own copies with the old values, since the proposal says not to change enemies in this pass. OPEN: whether the enemies should follow the party's spells.
+  - Erysichthon's Tainted Carrion poisons for the Poisoned condition's own length, which went from 3 to 5. It is pinned at 3.
+- **OPEN:** Burning Shot's rank at 32 (x1.05) out-hits the Gun (x1.0). That goes against the earlier rule that ammunition leaving a condition hits less hard than the Gun. The ammo suite notes it rather than failing.
+- **To watch in testing** (from the proposal):
+  - whether Burn stays the strongest DoT, and Poison the best set-up for a decisive party turn;
+  - whether Frozen is useful without being a universal answer;
+  - whether Crystalise contains melee threats without trivialising them;
+  - whether Windswept is worth its displacement, and Corroded before a focus-fire turn;
+  - whether the Gun stays a real choice;
+  - whether the Hermes single-target spells feel stronger per target than the Pandora areas.
+
 ## Known near-twins among the spells
 
 Spells that are close to copies of each other. They are candidates to make more distinct, or to keep on purpose:
@@ -237,16 +269,17 @@ Spells that are close to copies of each other. They are candidates to make more 
    - Gnostic Tempest (54, Gnosis): radius 2, x5.4 Plasma.
    - Stolen Sun (64, Yaldabaoth): radius 2, x6.0 Fire.
 6. **The Frozen line:**
-   - River Flow (8, Hermes): radius 2, x1.3, Frozen 2 turns at 0.2.
-   - Frozen River (16, Pandora): radius 2, x1.8, Frozen 3 turns at 0.25.
+   - River Flow (8, Hermes): single target, x1.4, Frozen 5 turns at 0.20 (was radius 2, x1.3, 2 turns at 0.2).
+   - Frozen River (16, Pandora): radius 2, x1.8, Frozen 5 turns at 0.30 (was 3 turns at 0.25).
    - Glacial Tide (41, Sophia): radius 3, x2.2, Frozen 2 turns at 0.25.
 7. **The Burn line:**
-   - Burner (8, Hermes): radius 2, x1.4, Burn 3 turns at 0.2.
-   - Wildfire (16, Pandora): radius 2, x2.1, Burn 3 turns at 0.4.
+   - Burner (8, Hermes): single target, x1.7, Burn 5 turns at 0.25 (was radius 2, x1.4, 3 turns at 0.2).
+   - Wildfire (16, Pandora): radius 2, x2.1, Burn 5 turns at 0.35 (was 3 turns at 0.4).
    - Fireball (9, Pandora) is close in power: radius 5, x2.0, hits both sides.
 8. **Wind Swoon and Gust Blast:**
-   - Wind Swoon (8, Hermes): radius 2, x0.8, Windswept.
-   - Gust Blast (24, Hermes): single target, x1.2, a 3-tile shove, Windswept.
+   - Wind Swoon (8, Hermes): single target, x1.0, Windswept 5 turns at 0.10 (was radius 2, x0.8).
+   - Gust Blast (24, Hermes): single target, x1.2, a 3-tile shove, Windswept 5 turns at 0.10.
+   - Both single target now, they differ by the shove and the gate's level.
 9. **Communion and Revitalizer** - settled: Revitalizer was taken out and Communion took its place (Alithia's kit, the Priest's, and the Gate Nade). Revitalizer was heal x1.3, radius 3, range 20 from level 9; Communion is x0.6, radius 2, range 10 from 16. Alithia now has no group heal before 16, and neither do Priests below 16.
 10. **Heal and Light Heal** (World): Light Heal is a smaller Heal, but a secondary action.
 11. **Hermes Step and Mist Step** (Hermes, a 6-tile teleport): Hermes Step moves an ally, as a main action. Mist Step moves himself, as a secondary action.
@@ -254,7 +287,7 @@ Spells that are close to copies of each other. They are candidates to make more 
    - Flame and Frost (Pandora, x1.8): Burn, or -2 movement.
    - Storm and Stone (Charon, x2.2): a 2-tile shove, or -10 defence.
 
-Also: since spells stopped ranking up, the enemy Sorcerer and Priest no longer get the stronger version of Burner and River Flow past level 16. They cast the level-8 versions at any level.
+Also: since spells stopped ranking up, the enemy Sorcerer and Priest no longer get the stronger version of Burner and River Flow past level 16. They cast the level-8 versions at any level. Since 2026-10-25 those are their own copies, as the spells were before the condition proposal: radius 2, the old numbers (below).
 
 ## Open design variables
 
