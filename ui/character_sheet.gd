@@ -670,13 +670,49 @@ func _show_passives(entry: Dictionary):
 		return
 	var subject: Dictionary = entry.get("combatant", {})
 	var tags := _labelled_tags("Passive Skills")
+	for ranks in passive_families(passives):
+		# One passive in ranks (Combat "Ranks of a passive"): named for the
+		# highest come in, with what each rank does.
+		var level: int = entry.get("level", 1)
+		var passive: PassiveDefinition = ranks[0]
+		for rank in ranks:
+			if rank.required_level <= level:
+				passive = rank
+		var reading := [passive.name, passive.describe_when()]
+		if ranks.size() == 1:
+			if passive.description != "":
+				reading.append_array(["", passive.description])
+		else:
+			reading.append("")
+			for rank in ranks:
+				var line: String = "%s: %s" % [rank.name, rank.description]
+				if rank.required_level > level:
+					line += " (from level %d)" % rank.required_level
+				reading.append(line)
+			reading.append_array(["", "Each rank upgrades the one before: its numbers replace the earlier ones, and every effect stays."])
+		tags.add_child(_tag(passive.name, INK, _note_for(passive, subject), "\n".join(reading), passive.icon))
+
+
+## `passives` gathered into families - every rank of one passive together, in
+## the order they come in (Combat "Ranks of a passive") - in the order the first
+## of each appears.
+static func passive_families(passives: Array) -> Array:
+	var order := []
+	var families := {}
 	for passive in passives:
 		if passive == null:
 			continue
-		var reading := [passive.name, passive.describe_when()]
-		if passive.description != "":
-			reading.append_array(["", passive.description])
-		tags.add_child(_tag(passive.name, INK, _note_for(passive, subject), "\n".join(reading), passive.icon))
+		var family := Combat.passive_family(passive)
+		if not families.has(family):
+			families[family] = []
+			order.append(family)
+		families[family].append(passive)
+	var found := []
+	for family in order:
+		var ranks: Array = families[family]
+		ranks.sort_custom(func(a, b): return a.required_level < b.required_level)
+		found.append(ranks)
+	return found
 
 
 ## What is on them right now - hidden, burning, slowed, raised - apart from

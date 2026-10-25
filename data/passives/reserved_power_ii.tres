@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Reserved Power II"
-description = "And one more again."
+description = "And one more again: two more castings through the deepest gate, in place of Reserved Power I's one."
 required_level = 54
-extra_deepest_castings = 1
+extra_deepest_castings = 2

@@ -133,6 +133,7 @@ Final damage  = Base x Ability Modifier x 40 / (40 + Defense), rounded, never be
   - a faction the party knows (+15%);
   - passives that hit harder against the afflicted, the weak to an element, those taking lingering damage, or on a turn spent standing still;
   - the paths' bonuses (Flanker, Ambush Strike, Righteous, Crusade...).
+- **A passive's ranks are one passive** (Momentum I and II, Iron Hide I-III): a higher rank's numbers replace the lower's rather than adding to them, a reach (a radius) goes to every rank, and every effect stays.
 - **Damage over time** (Burn, Poisoned, Frozen, Corroded...) ticks at the start of the victim's turns.
   - Each tick is the inflicter's base damage times the condition's own dial. The skill's Ability Modifier does not apply: that sizes the hit, not the burn after it.
   - Passives make lingering damage harder or longer.

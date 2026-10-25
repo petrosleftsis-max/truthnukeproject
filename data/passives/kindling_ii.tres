@@ -7,4 +7,4 @@ script = ExtResource("1_passive")
 name = "Kindling II"
 description = "The fire takes more stoking before it tops out: up to 30%."
 required_level = 16
-kindling_most = 0.15
+kindling_most = 0.3

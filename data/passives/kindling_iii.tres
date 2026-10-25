@@ -7,4 +7,4 @@ script = ExtResource("1_passive")
 name = "Kindling III"
 description = "And more again: up to 45%."
 required_level = 54
-kindling_most = 0.15
+kindling_most = 0.45

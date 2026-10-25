@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Momentum II"
-description = "Planted, every blow lands like a falling wall: fifteen hundredths more again."
+description = "Planted, every blow lands like a falling wall: fifteen hundredths more damage on a turn she has not walked, in place of Momentum I's tenth."
 required_level = 64
 still_damage_bonus = 0.15

@@ -335,8 +335,11 @@ func healer():
 
 func caster():
 	log_line("======== a caster puts its blast where it catches the most ========")
+	# At 14, with a Pandora casting for Fireball: its Hermes spells - Burner, Wind
+	# Swoon, Crystalise - are single target since the condition proposal of
+	# 2026-10-25, so Fireball is its blast.
 	var cast = [["cyrus", 0, Vector2i(7, 2)], ["enfina", 0, Vector2i(7, 4)], ["prometheus", 0, Vector2i(11, 6)],
-		["sorcerer", 1, Vector2i(0, 3)]]
+		["sorcerer", 1, Vector2i(0, 3), 14]]
 	var combat = await start_fight(cast)
 	var cyrus = who(combat, "cyrus", 0)
 	var enfina = who(combat, "enfina", 0)

@@ -375,7 +375,7 @@ func the_switches():
 	# Momentum.
 	enfina.erase("moved_this_turn")
 	foe.status_effects.clear()
-	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sword), 1.25), "planted, she hits a quarter harder (Momentum I and II)",
+	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sword), 1.15), "planted, she hits fifteen hundredths harder (Momentum II upgrading I)",
 		"%.2f" % combat.progression_damage_bonus(enfina, foe, sword))
 	enfina["moved_this_turn"] = true
 	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sword), 1.0), "and not after a walk")
@@ -387,18 +387,48 @@ func the_switches():
 	ok(is_equal_approx(Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep), 1.54),
 		"at 54, planted, Sweep Strike lands x1.54 (Momentum I)", "x%.2f" % (Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep)))
 	enfina.level = 64
-	ok(is_equal_approx(Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep), 1.75),
-		"at 64, x1.75: Momentum I and II add, as they do for every blow", "x%.2f" % (Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep)))
+	ok(is_equal_approx(Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep), 1.61),
+		"at 64, x1.61: Momentum II's fifteen hundredths in place of I's tenth", "x%.2f" % (Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep)))
 	enfina["moved_this_turn"] = true
 	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sweep), 1.0), "  and nothing more after a walk")
+
+	# Ranks of a passive (the designer, 2026-10-25): a higher rank's numbers replace
+	# the lower's, every effect stays, and a reach goes to every rank.
+	var momentum: PassiveDefinition = load("res://data/passives/momentum.tres")
+	var momentum_ii: PassiveDefinition = load("res://data/passives/momentum_ii.tres")
+	ok(Combat.passive_family(momentum) == "Momentum" and Combat.passive_family(momentum_ii) == "Momentum"
+		and Combat.passive_rank(momentum_ii) == 2, "Momentum I and II are one passive in two ranks")
+	var upgraded: Array = Combat.with_ranks([momentum, momentum_ii])
+	ok(upgraded[0].still_damage_bonus == 0.0 and upgraded[1].still_damage_bonus == 0.15 and momentum.still_damage_bonus == 0.1,
+		"  II's number in place of I's - and Momentum I itself untouched", "%s, %s" % [upgraded[0].still_damage_bonus, upgraded[1].still_damage_bonus])
+	var bulwark: PassiveDefinition = load("res://data/passives/bulwark.tres")
+	var bulwark_iii: PassiveDefinition = load("res://data/passives/bulwark_iii.tres")
+	upgraded = Combat.with_ranks([bulwark, bulwark_iii])
+	ok(upgraded[0].aura_radius == 2 and upgraded[0].aura_on_allies == bulwark.aura_on_allies and upgraded[1].aura_on_allies == bulwark_iii.aura_on_allies,
+		"Bulwark III: both auras stay, and Bulwark I's reaches two tiles", "radius %d" % upgraded[0].aura_radius)
+	var aura: PassiveDefinition = load("res://data/passives/aura.tres")
+	var aura_ii: PassiveDefinition = load("res://data/passives/aura_ii.tres")
+	upgraded = Combat.with_ranks([aura, aura_ii])
+	ok(upgraded[0].aura_on_allies != null and upgraded[1].aura_on_allies != null and upgraded[0].aura_on_allies != upgraded[1].aura_on_allies,
+		"Aura II: Blessed and Soothed both")
+	var iron: Array = [load("res://data/passives/iron_hide.tres"), load("res://data/passives/iron_hide_ii.tres"), load("res://data/passives/iron_hide_iii.tres")]
+	upgraded = Combat.with_ranks(iron)
+	ok(is_equal_approx(upgraded.reduce(func(total, rank): return total + rank.damage_reduction, 0.0), 0.2) and upgraded[2].guards_within == 1,
+		"Iron Hide: a fifth less damage, II's in place of I's, and III's guard as well")
+	var kindling: Array = [load("res://data/passives/kindling.tres"), load("res://data/passives/kindling_ii.tres"), load("res://data/passives/kindling_iii.tres")]
+	upgraded = Combat.with_ranks(kindling)
+	ok(is_equal_approx(upgraded.reduce(func(total, rank): return total + rank.kindling_most, 0.0), 0.45) and upgraded[0].kindling_step == 0.05,
+		"Kindling: up to 45%, III's in place of the others', at I's 5% a spell")
+	var families := CharacterSheet.passive_families([momentum, bulwark, momentum_ii])
+	ok(families.size() == 2 and families[0] == [momentum, momentum_ii], "the sheet shows Momentum as one passive")
 
 	# Lingering, Synergy.
 	var burning: SkillDefinition = SkillDatabase.skills["burning_shot"]
 	combat.apply_effect(cyrus, foe, burning.effects[0], burning, false)
 	var burn: Dictionary = foe.status_effects.filter(func(e): return e.get("stat", "") == "condition")[0]
 	var plain: float = combat.dot_base_damage(cyrus, burning, Combat.dot_strength_of(cyrus, burning, burning.effects[0]))
-	ok(is_equal_approx(burn.dot_base, plain * 1.3) and burn.duration == Combat.turns_stored(3 + 1, false),
-		"Cyrus's burn: three tenths harder and a turn longer (DoT Master I and II)", "%.1f vs %.1f, %d" % [burn.dot_base, plain, burn.duration])
+	ok(is_equal_approx(burn.dot_base, plain * 1.2) and burn.duration == Combat.turns_stored(3 + 1, false),
+		"Cyrus's burn: a fifth harder and a turn longer (DoT Master II upgrading I)", "%.1f vs %.1f, %d" % [burn.dot_base, plain, burn.duration])
 	ok(is_equal_approx(combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["votive_flame"]), 1.2),
 		"the party hits it a fifth harder: afflicted, and by him (Synergy I and II)", "%.2f" % combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["votive_flame"]))
 

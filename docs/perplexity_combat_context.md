@@ -133,6 +133,7 @@ Final damage  = Base x Ability Modifier x 40 / (40 + Defense), rounded, never be
   - a faction the party knows (+15%);
   - passives that hit harder against the afflicted, the weak to an element, those taking lingering damage, or on a turn spent standing still;
   - the paths' bonuses (Flanker, Ambush Strike, Righteous, Crusade...).
+- **A passive's ranks are one passive** (Momentum I and II, Iron Hide I-III): a higher rank's numbers replace the lower's rather than adding to them, a reach (a radius) goes to every rank, and every effect stays.
 - **Damage over time** (Burn, Poisoned, Frozen, Corroded...) ticks at the start of the victim's turns.
   - Each tick is the inflicter's base damage times the condition's own dial. The skill's Ability Modifier does not apply: that sizes the hit, not the burn after it.
   - Passives make lingering damage harder or longer.
@@ -840,7 +841,7 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - **Aura II** (Always active, from level 24): Allies within two tiles of her are soothed: a twentieth of their health back as each turn starts. [Aura: their own side within 2 tiles are soothed.]
   - **Reserved Power I** (Always active, from level 32): One more casting through the deepest gate open to her. [1 more casting through the deepest gate open to them.]
   - **Mercy III** (Always active, from level 41): Whoever she heals is sheltered: a fifth less damage until their next turn starts. [Whoever they heal is sheltered.]
-  - **Reserved Power II** (Always active, from level 54): And one more again. [1 more casting through the deepest gate open to them.]
+  - **Reserved Power II** (Always active, from level 54): And one more again: two more castings through the deepest gate, in place of Reserved Power I's one. [2 more castings through the deepest gate open to them.]
   - **Radiant Guardian** (Always active, from level 64): While she stands, the party takes a tenth less damage. [While they stand, their side takes 10% less damage.]
   - **Devotion** (Always active): Two castings of her own, for Heal or for Dread Visage on one person, spent before any gate. One comes back at a short rest, both at a long rest. [2 castings of their own for Heal or Dread Visage, in place of a gate - 1 back at a short rest, all at a long rest.]
 - Other settings: glossary_text: "A prideful and arrogant cleric with several capabilities of protecting her allies.  Narrative:  One of the most talented Idol Users of the Holy Order, she always kept the Divine close to her heart as It has guided her many times.  And yet the way people see her are very mixed, for many feel uncomfortable with how much she questions even the smallest thing instead of showing silent obedience. Throughout her studies and career she has infuriated a lot of clerics and yet has also helped the souls of many followers. Due to her debates, the clergy find themselves in an unspoken split between those who consider her blasphemous and those whose faith only became stronger with her masterful questioning.  Gameplay: Even though she's really important for the party to not be worn out from the duration of combat, she is durable enough to survive hits herself. Prioritise keeping her in range of everyone!  She is also capable of weakening enemies to mitigate their offensive capabilities."; class_t: Magic; max_hp: 75; max_hp_level_20: 115; defense_by_level: { 1: 12, 8: 20, 17: 28 }
@@ -868,7 +869,7 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - **Agile I** (Always active, from level 8): Hard to pin down in cover: a twentieth less damage there. [Takes 5% less damage in cover.]
   - **DoT Master I** (Always active, from level 16): His poisons and burns bite deeper: a tenth harder. [Their lingering damage is 10% harder.]
   - **Agile II** (Always active, from level 32): Into cover before anybody can strike: stepping into cover sets nothing off. [Stepping into cover sets off nothing.]
-  - **DoT Master II** (Always active, from level 41): And deeper still - a fifth harder again - and a turn longer. [Their lingering damage is 20% harder. Their lingering damage lasts 1 turn longer.]
+  - **DoT Master II** (Always active, from level 41): And deeper still: a fifth harder, in place of DoT Master I's tenth - and a turn longer. [Their lingering damage is 20% harder. Their lingering damage lasts 1 turn longer.]
   - **Synergy I** (Always active, from level 54): He shows the party where it hurts: they hit anybody carrying a harmful condition a tenth harder. [Their side hits anybody carrying a harmful condition 10% harder.]
   - **Synergy II** (Always active, from level 64): And a tenth harder again on anybody carrying one of his. [And 10% harder again on anybody carrying one of theirs.]
   - **Elusive** (Always active): He can Slip Past as a secondary action as well as a main one. [Can use Slip Past as a secondary action as well as a main one.]
@@ -892,11 +893,11 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - **Measured Eye** (Always active): Every blow she lands teaches her something. Whoever she hits is studied, just as Study would - their sheet open to the party, and her next blows landing with a studier's edge. [Every hit studies whoever it lands on, as Study does.]
   - **Iron Hide I** (Always active): Hide hardened by every blow she has taken: a tenth less damage from anything. [Takes 10% less damage.]
   - **Bulwark I** (Always active, from level 8): Allies beside her are bulwarked: a tenth less damage. [Aura: their own side within 1 tiles are bulwarked.]
-  - **Iron Hide II** (Always active, from level 16): Harder again: another tenth less damage. [Takes 10% less damage.]
+  - **Iron Hide II** (Always active, from level 16): Harder again: a fifth less damage from anything, in place of Iron Hide I's tenth. [Takes 20% less damage.]
   - **Momentum I** (Always active, from level 32): Planted, she hits harder: a tenth more damage on a turn she has not walked - every blow, Sweep Strike's whole sweep too. [10% more damage on a turn they have not walked.]
   - **Iron Hide III** (Always active, from level 41): She steps into blows meant for others: half of any hit on an ally beside her is hers instead. [Takes 50% of any hit on an ally within 1 tiles.]
-  - **Bulwark III** (Always active, from level 54): Her guard reaches two tiles: allies within them are fortified - a tenth less damage, on top of Bulwark beside her. [Aura: their own side within 2 tiles are fortified.]
-  - **Momentum II** (Always active, from level 64): Planted, every blow lands like a falling wall: fifteen hundredths more again. [15% more damage on a turn they have not walked.]
+  - **Bulwark III** (Always active, from level 54): Her guard reaches two tiles: allies within them are bulwarked and fortified - a fifth less damage in all. [Aura: their own side within 2 tiles are fortified.]
+  - **Momentum II** (Always active, from level 64): Planted, every blow lands like a falling wall: fifteen hundredths more damage on a turn she has not walked, in place of Momentum I's tenth. [15% more damage on a turn they have not walked.]
 - Other settings: glossary_text: "A city guard who has trained and studied to perfectly respond to any combat situation.  Narrative: Not born in favourable circumstances, she was faced with a lot of disadvantages. Unable to be trusted to become a knight of the Holy Order, too useful to just leave her out of the picture, yet still faced with uncertainty. An uncertainty that she also sees in herself and how cut out she truly is for the path she chose.   And yet, she still raises her sword. She still trains unrelentlessly, to perform as well as possible, even if no one has any intention of recognising and rewarding her for it with a higher rank.  But Enfina's intentions are pure. For she does not raise her sword for herself. She raises it for everyone else.  Gameplay: Capable of dealing the most damage and take the most hit, she is an invaluable piece that allows her to fend off the mightiest of foe.   Her foes fear her reactive skill, so staying close to one will either force them to stay in place, or move and be damaged.  As a frontliner, she controls where the fight takes place. Make sure she is always in front of your allies and at the part of the map where you want the fight to take place."; max_hp: 130; max_hp_level_20: 190; defense_by_level: { 1: 12, 8: 20, 17: 28 }; keeps_codex: true
 
 ### Prometheus (`prometheus`)
@@ -927,8 +928,8 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - **Contest Insight II** (Always active, from level 41): +10 more against anybody already afflicted. [+10 more in a contest with anybody carrying a harmful condition.]
   - **Elemental Mastery** (Always active, from level 64): One more casting through the deepest gate open to him. [1 more casting through the deepest gate open to them.]
   - **Kindling I** (Always active): Every spell he casts in a fight stokes the next: each one after it burns 5% hotter, up to 15%. [Each spell they cast in a fight makes the ones after it 5% harder, up to 15%.]
-  - **Kindling II** (Always active, from level 16): The fire takes more stoking before it tops out: up to 30%. [Kindling builds up to 15% further.]
-  - **Kindling III** (Always active, from level 54): And more again: up to 45%. [Kindling builds up to 15% further.]
+  - **Kindling II** (Always active, from level 16): The fire takes more stoking before it tops out: up to 30%. [Kindling builds up to 30% further.]
+  - **Kindling III** (Always active, from level 54): And more again: up to 45%. [Kindling builds up to 45% further.]
   - **Meditate** (Always active): At a short rest, once until the next long rest, he brings back castings he has spent: a point to spend every six levels, each casting costing its gate's depth, and none deeper than the shallower half of his open gates. [Meditates at a short rest, once until the next long rest: brings back spent castings, a point every six levels, each costing its gate's depth.]
 - Other settings: glossary_text: "A messy pragmatic scholar who can never be seen without a book and a drink.  Narrative: He was an up and rising star in Idology from his late teen years. This lead him to quickly get into high and important research. However... It is now a painful memory that only destroys him further and further as time passes.  Despite it all, or perhaps because of it all, he is now a really warm and caring person that, despite not saying it out loud, would always be there for you.  Gameplay: The hardest unit to use well, he has the most potent capabilities in the party. Yet they are limited by resource and his frail frame makes him easy to be killed in but an instant. It is more important for him to stay alive, rather than cast spells earlier! Make sure to properly utilise cover!  He also can provide with utility, such as weakening enemies or teleporting allies. To make the most of him is to make the most of all!"; class_t: Magic; max_hp: 30; max_hp_level_20: 58; defense_by_level: { 1: 12, 8: 20, 17: 28 }; learns_spells: true; starting_spells: ["fire_blast", "wind_shot", "rock_throw", "quicken"]; keeps_codex: true
 
@@ -1763,14 +1764,14 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Aura II** (`aura_ii`, Always active, from level 24): Allies within two tiles of her are soothed: a twentieth of their health back as each turn starts. [Aura: their own side within 2 tiles are soothed.]
 - **Bandolier** (`bandolier`, Always active): Everything it carries is to hand: an item can be its secondary action as well as its main one, and it throws any Gate Nade, whatever spell is sealed in it. [Can use items as a secondary action as well as a main one. Can throw Gate Nades as a secondary action as well as a main one. Can throw any Gate Nade, whatever spell is in it.]
 - **Bulwark I** (`bulwark`, Always active, from level 8): Allies beside her are bulwarked: a tenth less damage. [Aura: their own side within 1 tiles are bulwarked.]
-- **Bulwark III** (`bulwark_iii`, Always active, from level 54): Her guard reaches two tiles: allies within them are fortified - a tenth less damage, on top of Bulwark beside her. [Aura: their own side within 2 tiles are fortified.]
+- **Bulwark III** (`bulwark_iii`, Always active, from level 54): Her guard reaches two tiles: allies within them are bulwarked and fortified - a fifth less damage in all. [Aura: their own side within 2 tiles are fortified.]
 - **Cat Burglar II** (`cat_burglar`, Always active, from level 24): Two more tiles of movement, and nothing stops him going up: he climbs onto high ground from anywhere, no ladder or steps needed, and up a wall or a pillar onto the floor above it. [+2 movement. Climbs onto high ground from anywhere, and up a wall or pillar to the floor above it.]
 - **Cat Burglar I** (`cat_burglar_i`, Always active): Quick between hiding places: two more tiles of movement on a turn he starts in cover. [+2 movement on a turn they start in cover.]
 - **Contest Insight I** (`contest_insight`, Always active, from level 24): He reads a contest before it starts: +10 to his stat in one. [+10 to their stat in a stat contest.]
 - **Contest Insight II** (`contest_insight_ii`, Always active, from level 41): +10 more against anybody already afflicted. [+10 more in a contest with anybody carrying a harmful condition.]
 - **Devotion** (`devotion`, Always active): Two castings of her own, for Heal or for Dread Visage on one person, spent before any gate. One comes back at a short rest, both at a long rest. [2 castings of their own for Heal or Dread Visage, in place of a gate - 1 back at a short rest, all at a long rest.]
 - **DoT Master I** (`dot_master`, Always active, from level 16): His poisons and burns bite deeper: a tenth harder. [Their lingering damage is 10% harder.]
-- **DoT Master II** (`dot_master_ii`, Always active, from level 41): And deeper still - a fifth harder again - and a turn longer. [Their lingering damage is 20% harder. Their lingering damage lasts 1 turn longer.]
+- **DoT Master II** (`dot_master_ii`, Always active, from level 41): And deeper still: a fifth harder, in place of DoT Master I's tenth - and a turn longer. [Their lingering damage is 20% harder. Their lingering damage lasts 1 turn longer.]
 - **Dread Presence** (`dread_presence`, Always active): Whoever of the other side is within four tiles of it - when it appears, or as a turn of theirs begins - is gripped by fear of it, unless their Mindfulness is a match for its caster's Intellect. [Aura: the other side within 4 tiles are fear, unless their Mindfulness beats its Intellect.]
 - **Elemental Affinity I** (`elemental_affinity`, Always active, from level 8): He knows what each element undoes: a tenth more damage on anybody weak to the element. [10% more damage on anybody weak to the hit's element.]
 - **Elemental Affinity II** (`elemental_affinity_ii`, Always active, from level 32): And a tenth more on anybody already burning, frozen, poisoned - taking any lingering damage. [10% more damage on anybody taking lingering damage.]
@@ -1780,11 +1781,11 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Hemmed In** (`hemmed_in`, Always active): Nobody walks past a champion of the pits for free: every tile within two of them costs the other side twice the movement. [Tiles within 2 of them cost the other side twice the movement.]
 - **Hollow Frame** (`hollow_frame`, Always active): There is little left of it but bone and hunger. It folds itself to fit a gap - only the way the gap is too small: long and thin, tall and narrow, or down to a single tile - slowly, at twice the movement a step, and opens out again once there is room. [Folds itself a size narrower or shorter, or both, to fit where it is too big, at twice the movement a step.]
 - **Iron Hide I** (`iron_hide`, Always active): Hide hardened by every blow she has taken: a tenth less damage from anything. [Takes 10% less damage.]
-- **Iron Hide II** (`iron_hide_ii`, Always active, from level 16): Harder again: another tenth less damage. [Takes 10% less damage.]
+- **Iron Hide II** (`iron_hide_ii`, Always active, from level 16): Harder again: a fifth less damage from anything, in place of Iron Hide I's tenth. [Takes 20% less damage.]
 - **Iron Hide III** (`iron_hide_iii`, Always active, from level 41): She steps into blows meant for others: half of any hit on an ally beside her is hers instead. [Takes 50% of any hit on an ally within 1 tiles.]
 - **Kindling I** (`kindling`, Always active): Every spell he casts in a fight stokes the next: each one after it burns 5% hotter, up to 15%. [Each spell they cast in a fight makes the ones after it 5% harder, up to 15%.]
-- **Kindling II** (`kindling_ii`, Always active, from level 16): The fire takes more stoking before it tops out: up to 30%. [Kindling builds up to 15% further.]
-- **Kindling III** (`kindling_iii`, Always active, from level 54): And more again: up to 45%. [Kindling builds up to 15% further.]
+- **Kindling II** (`kindling_ii`, Always active, from level 16): The fire takes more stoking before it tops out: up to 30%. [Kindling builds up to 30% further.]
+- **Kindling III** (`kindling_iii`, Always active, from level 54): And more again: up to 45%. [Kindling builds up to 45% further.]
 - **Light Footed** (`light_footed`, Always active): Stealth, Slip Past and Run can be used as his secondary action as well as his main one - so he can Run twice in a turn, or slip away after striking. [Can use Stealth, Slip Past and Run as a secondary action as well as a main one.]
 - **Measured Eye** (`measured_eye`, Always active): Every blow she lands teaches her something. Whoever she hits is studied, just as Study would - their sheet open to the party, and her next blows landing with a studier's edge. [Every hit studies whoever it lands on, as Study does.]
 - **Meditate** (`meditate`, Always active): At a short rest, once until the next long rest, he brings back castings he has spent: a point to spend every six levels, each casting costing its gate's depth, and none deeper than the shallower half of his open gates. [Meditates at a short rest, once until the next long rest: brings back spent castings, a point every six levels, each costing its gate's depth.]
@@ -1793,13 +1794,13 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Mercy III** (`mercy_iii`, Always active, from level 41): Whoever she heals is sheltered: a fifth less damage until their next turn starts. [Whoever they heal is sheltered.]
 - **Mimicry** (`mimicry`, Always active): Does whatever your party did last: the last skill any of you used, turned on you - or on its own side, if it was meant for allies. It cannot copy Run, Slip Past or Study, and copies whatever came before them instead. Until one of you has done something it can copy, it waits. It opens no gates and needs none, so a copied spell is cast however deep a gate it calls for. Whatever it copies is worked out from its Self, not the stat the skill would usually use. [Casts without opening a gate, however deep a gate the spell calls for. Every skill scales with Self, whatever stat the skill itself names.]
 - **Momentum I** (`momentum`, Always active, from level 32): Planted, she hits harder: a tenth more damage on a turn she has not walked - every blow, Sweep Strike's whole sweep too. [10% more damage on a turn they have not walked.]
-- **Momentum II** (`momentum_ii`, Always active, from level 64): Planted, every blow lands like a falling wall: fifteen hundredths more again. [15% more damage on a turn they have not walked.]
+- **Momentum II** (`momentum_ii`, Always active, from level 64): Planted, every blow lands like a falling wall: fifteen hundredths more damage on a turn she has not walked, in place of Momentum I's tenth. [15% more damage on a turn they have not walked.]
 - **Nade Juggler** (`nade_juggler`, Always active): Throws any Gate Nade, whatever spell is in it - everybody else only those whose spell they know or could learn - and throws them with his secondary action, where the spell would take the main one. [Can throw Gate Nades as a secondary action as well as a main one. Can throw any Gate Nade, whatever spell is in it.]
 - **Prying Mind** (`prying_mind`, Always active): He can hack: wards and seals, machines and locks, and the spell a foe is winding up. The sharper his Intellect, the more tries he gets, and the less each retry costs him. [Can hack wards, machines and the spells others are winding up - more tries, and cheaper ones, the higher their Intellect.]
 - **Quick Hands** (`quick_hands`, Always active): Items can be used as his secondary action as well as his main one, and he reaches for the secondary first - so he can drink a potion and still attack in the same turn. [Can use items as a secondary action as well as a main one.]
 - **Radiant Guardian** (`radiant_guardian`, Always active, from level 64): While she stands, the party takes a tenth less damage. [While they stand, their side takes 10% less damage.]
 - **Reserved Power I** (`reserved_power`, Always active, from level 32): One more casting through the deepest gate open to her. [1 more casting through the deepest gate open to them.]
-- **Reserved Power II** (`reserved_power_ii`, Always active, from level 54): And one more again. [1 more casting through the deepest gate open to them.]
+- **Reserved Power II** (`reserved_power_ii`, Always active, from level 54): And one more again: two more castings through the deepest gate, in place of Reserved Power I's one. [2 more castings through the deepest gate open to them.]
 - **Synergy I** (`synergy`, Always active, from level 54): He shows the party where it hurts: they hit anybody carrying a harmful condition a tenth harder. [Their side hits anybody carrying a harmful condition 10% harder.]
 - **Synergy II** (`synergy_ii`, Always active, from level 64): And a tenth harder again on anybody carrying one of his. [And 10% harder again on anybody carrying one of theirs.]
 
@@ -2361,11 +2362,24 @@ The designer's handoff, `docs/handoff_0.1/finisher_removal_momentum_synergy.md` 
   - At 54, planted, Sweep Strike is x1.54.
   - It does not touch Leading Charge, which needs a walk.
   - The enemies' Sweep Strike (Barbarian, Pit Champion) gets nothing: Momentum is Enfina's passive.
-- **OPEN, Momentum at 64:** Momentum I (+10%) and II (+15%) add, so Sweep Strike planted is x1.75, as every blow is a quarter harder. The handoff's acceptance test says x1.61, which would need II to replace I rather than add to it.
+- **Momentum at 64:** Momentum II now upgrades Momentum I (below), so a planted Sweep Strike is x1.61, as the handoff says.
 - **The non-spell table, audited.** Every Enfina and Cyrus non-spell move matches it, once Cyrus's ammunition was put back. Three lines of the table describe the game differently. The table says "unchanged", so the game is kept as it is:
   - Titanfall has no shove: Tremor became the control layer on 2026-10-24.
   - Catalyst is once a short rest (2026-10-24), not once a fight.
-  - Momentum at 64 is x1.75 (above).
+  - Momentum at 64 was x1.75 while the ranks added; it is x1.61 now (Passive ranks, below).
+
+## Passive ranks (2026-10-25; implemented)
+
+The designer: a passive's higher rank upgrades the lower, and they stay one passive. This holds for every passive sharing a name but for the numeral.
+
+- **The rule:** every rank's effects stay. A number a higher rank also sets is the higher rank's, in place of the lower's rather than on top of it. A reach (a radius, so many tiles) goes to every rank, since it is how far that rank's own effect goes.
+- The character sheet shows each family as one passive, named for the highest rank come in, with what each rank does.
+- **What it changed in play** (test values, PROPOSAL):
+  - **Momentum:** 15% at 64 (was 25%), so Sweep Strike planted is x1.61.
+  - **DoT Master:** 20% harder at 41, and a turn longer (was 30%). OPEN: 30% if that was meant.
+  - **Bulwark:** with Bulwark III, Bulwark I's aura reaches two tiles too. Allies within two take a fifth less (before: a fifth beside her, a tenth at two).
+- **Kept as they played:** Iron Hide II, Kindling II and III, and Reserved Power II repeated rank I's number, meant to add on. They are written now as the totals the plan gives: Iron Hide 20%, Kindling up to 30% and 45%, Reserved Power two more castings.
+- **Unchanged, being separate effects:** Aura (Blessed and Soothed), Veil of Mercy (Veiled, Blurred, then a shield), Mercy, Agile, Cat Burglar, Contest Insight, Elemental Affinity, Synergy.
 
 ## Known near-twins among the spells
 
