@@ -6,7 +6,7 @@
 
 [resource]
 script = ExtResource("2_5r1kt")
-skill_levels = {"enemy_burner": 5, "enemy_crystalise": 7, "enemy_gust_blast": 6, "enemy_wind_swoon": 6}
+skill_levels = {"burner": 5, "crystalise": 7, "gust_blast": 6, "wind_swoon": 6}
 name = "Sorcerer"
 class_t = 2
 max_hp = 28
@@ -17,7 +17,7 @@ movement = 6
 initiative = 4
 main_stat = 2
 sprite_frames = ExtResource("3_n7ymf")
-skills = Array[String](["enemy_burner", "fireball", "enemy_crystalise", "enemy_gust_blast", "enemy_wind_swoon", "run", "fire_burst", "fire_blast", "rock_throw", "wind_shot"])
+skills = Array[String](["burner", "fireball", "crystalise", "gust_blast", "wind_swoon", "run", "fire_burst", "fire_blast", "rock_throw", "wind_shot"])
 resist_fire = 50
 resist_poison = -50
 ai_function = "ai_caster"

@@ -9696,12 +9696,6 @@ func refusal_for(attacker: Dictionary, skill: SkillDefinition, impact: Vector2i)
 		var why := draw_refusal(attacker)
 		if why != "":
 			return why
-	# A finishing blow, only on somebody worn down far enough (Finisher).
-	if skill.only_below_health > 0.0:
-		var worn := get_combatant_at(impact)
-		if not worn.is_empty() and worn.get("side", -1) != attacker.get("side", -2) \
-				and float(worn.hp) > float(get_effective_stat(worn, "max_hp")) * skill.only_below_health:
-			return "Only on somebody at %d%% of their health or less" % roundi(skill.only_below_health * 100)
 	# A leap that has to end in cover (Cover Leap).
 	if skill.lands_in_cover and skill.teleports == SkillDefinition.TeleportWho.CASTER and not in_cover(attacker, impact):
 		return "No cover there to leap into"

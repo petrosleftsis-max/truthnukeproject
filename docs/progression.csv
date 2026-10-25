@@ -11,7 +11,6 @@ Enfina,Base,32,4,Active,Double Strike,DPS,1.5,,,,,Two melee attacks per action
 Enfina,Base,32,4,Passive,Momentum I,DPS,,,,,,+10% dmg if stationary
 Enfina,Base,41,5,Active,Short Stun,CC,0.8,,1,,,Brief melee stun
 Enfina,Base,41,5,Passive,Iron Hide III,Defense,,,,+Reaction intercept,,Can intercept attacks
-Enfina,Base,54,6,Active,Finisher,DPS,2.2,,,,,"Big single-hit attack, long CD"
 Enfina,Base,54,6,Active,AOE Sweep,DPS/CC,1.4,,,,,Cleave with light CC
 Enfina,Base,54,6,Passive,Bulwark III,Defense,,,,+DR aura,,DR aura to allies
 Enfina,Base,64,7,Active,Ultimate Smash,DPS,2.5,,,,,Encounter-defining melee ultimate
@@ -34,13 +33,13 @@ Enfina,Warden of Cover,64,7,Passive,Warden of Cover Capstone,Subclass,,,,,,Final
 Cyrus,Base,1,0,Active,Basic Shot,DPS,1.0,,,,,Ranged attack
 Cyrus,Base,1,0,Active,Light Cover Leap,Mobility,,,,,+Speed when using cover,Moves between covers
 Cyrus,Base,1,0,Passive,Cover Runner I,Mobility,,,,,+2 Speed in cover,Bonus speed in cover
-Cyrus,Base,8,1,Active,Poison Strike,DoT/Debuff,1.0,0.2,5,,,"Poison DoT, disables reactions"
+Cyrus,Base,8,1,Active,Poison Strike,DoT/Debuff,1.0,0.2,3,,,"Poison DoT, disables reactions"
 Cyrus,Base,8,1,Passive,Agile I,Defense,,,,,,+5% DR/dodge in cover
-Cyrus,Base,16,2,Active,Burn Bomb,DoT,0.9,0.15,5,,+2 Speed to target,Burn DoT with speed buff
+Cyrus,Base,16,2,Active,Burn Bomb,DoT,0.9,0.35,3,,+2 Speed to target,Burn DoT with speed buff
 Cyrus,Base,16,2,Passive,DoT Master I,DPS,,,,,,+10% DoT damage
-Cyrus,Base,24,3,Active,Wide Poison,DoT,0.8,0.15,5,,,Cone poison
+Cyrus,Base,24,3,Active,Wide Poison,DoT,0.8,0.2,3,,,Cone poison
 Cyrus,Base,24,3,Passive,Cover Runner II,Mobility,,,,,"+Speed, can climb walls",Improved cover movement
-Cyrus,Base,32,4,Active,Strong Burn,DoT,1.1,0.2,5,,+2 Speed to target,High-intensity Burn
+Cyrus,Base,32,4,Active,Strong Burn,DoT,1.1,0.45,3,,+2 Speed to target,High-intensity Burn
 Cyrus,Base,32,4,Active,Minor Slow Shot,Debuff,0.9,,2,,-1 Speed,Slow effect
 Cyrus,Base,32,4,Passive,Agile II,Defense,,,,,,Reactions entering cover
 Cyrus,Base,41,5,Active,Armor Weakness,Debuff,0.7,,2,-25% Defense,,Defense shred

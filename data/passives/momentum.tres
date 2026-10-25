@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Momentum I"
-description = "Planted, she hits harder: a tenth more damage on a turn she has not walked."
+description = "Planted, she hits harder: a tenth more damage on a turn she has not walked - every blow, Sweep Strike's whole sweep too."
 required_level = 32
 still_damage_bonus = 0.1

@@ -2,7 +2,7 @@
 
 Status: PROPOSAL — test values only. Do not treat as APPROVED_DESIGN or APPROVED_TRIAL.
 
-> **Implemented 2026-10-25** at the designer's word ("go with it"), as PROPOSAL test values - see `docs/design_status_ledger.csv` and Part 4 of `docs/perplexity_combat_context.md`. The enemies that share these spells (the Sorcerer, the Priest) were given their own copies as the spells were, so they are unchanged.
+> **Implemented 2026-10-25** at the designer's word ("go with it"), as PROPOSAL test values - see `docs/design_status_ledger.csv` and Part 4 of `docs/perplexity_combat_context.md`. The enemies that share these spells (the Sorcerer, the Priest) follow them (designer, 2026-10-25). Cyrus's ammunition was put back as it was by docs/handoff_0.1/finisher_removal_momentum_synergy.md; Corrosive Round keeps Corroded's 5 turns.
 
 This file proposes a coherent first pass for condition durations, condition damage, and the Hermes condition spells. It does not change any game data yet.
 

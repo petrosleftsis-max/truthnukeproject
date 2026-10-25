@@ -10,7 +10,7 @@ These are settled; suggestions should work within them.
 **Numbers and progression**
 
 - **The numbers are the designer's.** Most are placeholders until playtesting. Weigh a suggestion against the progression plan's power level: tiers at 1/8/16/24/32/41/54/64, and the multipliers in Part 2.
-- **No cooldowns, ever.** Limits come from gates, Uses Per Short Rest, Only Below Health, Needs Read, and placement.
+- **No cooldowns, ever.** Limits come from gates, Uses Per Short Rest, Needs Read, and placement (Only Below Health went with Finisher, 2026-10-25).
 - **No passives with a downside.** Glass Cannon became Kindling.
 - **Spells never rank up.** A stronger spell is a new spell. Moves (Greatsword Attack, Burning Shot) do rank up. A row of the plan that is only a stronger version of a move is a rank on that move, never a second move.
 - **Levels come at story milestones,** not from experience. The cap is 64, the isopsephy of ἀλήθεια. 55 is ΛΗΘΗ. There are five chapters, each leveling slower than the last.
@@ -228,16 +228,10 @@ Perplexity's proposal (`docs/perplexity_condition_dot_proposal.md`); the designe
   - Crystalise x1.0, Crystallised 0.10 (radius 2, x0.8, 3 turns at 0.1). The Crystalise Gate Nade copies it.
 - **Pandora spells, still radius 2:** Wildfire x2.1, Burn 0.35 (was 0.4). Frozen River x1.8, Frozen 0.30 (was 0.25).
 - **Gust Blast:** Windswept 0.10 (was 2 turns at 0.15); the shove unchanged.
-- **Cyrus's ammunition:**
-  - The Gun is unchanged, x1.0.
-  - Burning Shot x0.9, Burn 0.15 (was x0.8, 0.35); its rank at 32 x1.05, Burn 0.20 (was x0.95, 0.45).
-  - Poison Dart x0.75, Poison 0.20 (was x0.9).
-  - Venom Fan x0.7, Poison 0.15 (was 0.2).
-  - Corrosive Round's Corroded now 5 turns.
-- **Left as they were:** Catalyst; immunities; Frozen has no Defense loss; the bottles, Glacial Tide, Flame Edge and Trailblaze; the enemies.
-  - The Sorcerer and the Priest share Burner, Wind Swoon, Crystalise, Gust Blast and River Flow with the party. They now have their own copies with the old values, since the proposal says not to change enemies in this pass. OPEN: whether the enemies should follow the party's spells.
-  - Erysichthon's Tainted Carrion poisons for the Poisoned condition's own length, which went from 3 to 5. It is pinned at 3.
-- **OPEN:** Burning Shot's rank at 32 (x1.05) out-hits the Gun (x1.0). That goes against the earlier rule that ammunition leaving a condition hits less hard than the Gun. The ammo suite notes it rather than failing.
+- **Cyrus's ammunition stays as it was.** The proposal changed it, but the non-spell handoff of the same day (below) puts it back, and the designer pointed to it: Burning Shot x0.8, Burn 0.35 for 3 turns, and x0.95, 0.45 at 32 (under the Gun); Poison Dart x0.9, Poison 0.2 for 3; Venom Fan x0.7, Poison 0.2 for 3. Corrosive Round, which the handoff does not list, keeps the proposal's 5 turns of Corroded.
+- **The enemies follow the new spells** (the designer, 2026-10-25). The Sorcerer and the Priest cast the party's Burner, Wind Swoon, Crystalise, Gust Blast and River Flow, so theirs are single target and last 5 turns too.
+- **Left as they were:** Catalyst; immunities; Frozen has no Defense loss; the bottles, Glacial Tide, Flame Edge and Trailblaze; the enemies' own moves (Flammable Limb, Venomous Shot). Erysichthon's Tainted Carrion poisons for the Poisoned condition's own length, which went from 3 to 5; it is pinned at 3 (OPEN: whether it should follow too).
+- **Ledger status:** PROPOSAL until the designer has tried them.
 - **To watch in testing** (from the proposal):
   - whether Burn stays the strongest DoT, and Poison the best set-up for a decisive party turn;
   - whether Frozen is useful without being a universal answer;
@@ -245,6 +239,22 @@ Perplexity's proposal (`docs/perplexity_condition_dot_proposal.md`); the designe
   - whether Windswept is worth its displacement, and Corroded before a focus-fire turn;
   - whether the Gun stays a real choice;
   - whether the Hermes single-target spells feel stronger per target than the Pandora areas.
+
+## Finisher removed; Momentum and Sweep Strike; the non-spell moves (2026-10-25; implemented)
+
+The designer's handoff, `docs/handoff_0.1/finisher_removal_momentum_synergy.md` (APPROVED_DESIGN / APPROVED_TRIAL).
+
+- **Finisher is gone:** the skill, Enfina's kit entry and the progression row. Titanfall at 64 (x3.0 with a x1.5 splash, no health limit) outpaced it.
+  - The Only Below Health limit, which only Finisher used, went with it. Its icon (`art/icons/finisher_skill.png`) is left unused.
+- **Momentum covers Sweep Strike.** It already did: Momentum adds to every blow on a turn Enfina has not walked, the whole sweep included, so no code changed. Its description now says so, and a test holds it.
+  - At 54, planted, Sweep Strike is x1.54.
+  - It does not touch Leading Charge, which needs a walk.
+  - The enemies' Sweep Strike (Barbarian, Pit Champion) gets nothing: Momentum is Enfina's passive.
+- **OPEN, Momentum at 64:** Momentum I (+10%) and II (+15%) add, so Sweep Strike planted is x1.75, as every blow is a quarter harder. The handoff's acceptance test says x1.61, which would need II to replace I rather than add to it.
+- **The non-spell table, audited.** Every Enfina and Cyrus non-spell move matches it, once Cyrus's ammunition was put back. Three lines of the table describe the game differently. The table says "unchanged", so the game is kept as it is:
+  - Titanfall has no shove: Tremor became the control layer on 2026-10-24.
+  - Catalyst is once a short rest (2026-10-24), not once a fight.
+  - Momentum at 64 is x1.75 (above).
 
 ## Known near-twins among the spells
 
@@ -287,7 +297,7 @@ Spells that are close to copies of each other. They are candidates to make more 
    - Flame and Frost (Pandora, x1.8): Burn, or -2 movement.
    - Storm and Stone (Charon, x2.2): a 2-tile shove, or -10 defence.
 
-Also: since spells stopped ranking up, the enemy Sorcerer and Priest no longer get the stronger version of Burner and River Flow past level 16. They cast the level-8 versions at any level. Since 2026-10-25 those are their own copies, as the spells were before the condition proposal: radius 2, the old numbers (below).
+Also: since spells stopped ranking up, the enemy Sorcerer and Priest no longer get the stronger version of Burner and River Flow past level 16. They cast the level-8 versions at any level - since 2026-10-25 the single-target ones, as the party does.
 
 ## Open design variables
 

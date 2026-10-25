@@ -26,7 +26,6 @@ const MAP := {
 	"Enfina|Momentum I": ["momentum", 0, "passive"],
 	"Enfina|Short Stun": ["stunning_blow", 0, "skill"],
 	"Enfina|Iron Hide III": ["iron_hide_iii", 0, "passive"],
-	"Enfina|Finisher": ["finisher", 0, "skill"],
 	"Enfina|AOE Sweep": ["sweep_strike", 0, "skill"],
 	"Enfina|Bulwark III": ["bulwark_iii", 0, "passive"],
 	"Enfina|Ultimate Smash": ["greatsword_attack", 64, "skill"],
@@ -93,11 +92,11 @@ const MAP := {
 const LEFT_OUT := []
 ## Numbers the user changed from the CSV's: Titanfall (Ultimate Smash) is Greatsword
 ## Attack's rank at 64, x3.0 with a x1.5 splash (2026-10-23); and Cyrus's direct
-## hits, by docs/cyrus_damage_adjustments.csv (2026-10-23; the condition proposal's
-## of 2026-10-25, docs/perplexity_condition_dot_proposal.md) - his ammunition
-## trades burst for what it leaves behind.
-const CHANGED := {"Enfina|Ultimate Smash": 3.0, "Cyrus|Poison Strike": 0.75, "Cyrus|Burn Bomb": 0.9,
-	"Cyrus|Wide Poison": 0.7, "Cyrus|Strong Burn": 1.05}
+## hits, by docs/cyrus_damage_adjustments.csv (2026-10-23, confirmed by
+## docs/handoff_0.1/finisher_removal_momentum_synergy.md) - his ammunition trades
+## burst for what it leaves behind.
+const CHANGED := {"Enfina|Ultimate Smash": 3.0, "Cyrus|Poison Strike": 0.9, "Cyrus|Burn Bomb": 0.8,
+	"Cyrus|Wide Poison": 0.7, "Cyrus|Strong Burn": 0.95}
 
 
 func log_line(t): _log.store_line(t); _log.flush()
@@ -380,13 +379,25 @@ func the_switches():
 		"%.2f" % combat.progression_damage_bonus(enfina, foe, sword))
 	enfina["moved_this_turn"] = true
 	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sword), 1.0), "and not after a walk")
+	# Sweep Strike too (docs/handoff_0.1/finisher_removal_momentum_synergy.md):
+	# Momentum is on every blow of a turn not walked, the whole sweep included.
+	var sweep: SkillDefinition = SkillDatabase.skills["sweep_strike"]
+	enfina.erase("moved_this_turn")
+	enfina.level = 54
+	ok(is_equal_approx(Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep), 1.54),
+		"at 54, planted, Sweep Strike lands x1.54 (Momentum I)", "x%.2f" % (Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep)))
+	enfina.level = 64
+	ok(is_equal_approx(Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep), 1.75),
+		"at 64, x1.75: Momentum I and II add, as they do for every blow", "x%.2f" % (Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep)))
+	enfina["moved_this_turn"] = true
+	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sweep), 1.0), "  and nothing more after a walk")
 
 	# Lingering, Synergy.
 	var burning: SkillDefinition = SkillDatabase.skills["burning_shot"]
 	combat.apply_effect(cyrus, foe, burning.effects[0], burning, false)
 	var burn: Dictionary = foe.status_effects.filter(func(e): return e.get("stat", "") == "condition")[0]
 	var plain: float = combat.dot_base_damage(cyrus, burning, Combat.dot_strength_of(cyrus, burning, burning.effects[0]))
-	ok(is_equal_approx(burn.dot_base, plain * 1.3) and burn.duration == Combat.turns_stored(5 + 1, false),
+	ok(is_equal_approx(burn.dot_base, plain * 1.3) and burn.duration == Combat.turns_stored(3 + 1, false),
 		"Cyrus's burn: three tenths harder and a turn longer (DoT Master I and II)", "%.1f vs %.1f, %d" % [burn.dot_base, plain, burn.duration])
 	ok(is_equal_approx(combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["votive_flame"]), 1.2),
 		"the party hits it a fifth harder: afflicted, and by him (Synergy I and II)", "%.2f" % combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["votive_flame"]))
@@ -442,12 +453,9 @@ func the_switches():
 	combat._mend_at_turn_start(enfina)
 	ok(enfina.hp == 10 + roundi(combat.get_effective_stat(enfina, "max_hp") * 0.05), "soothed, she mends a twentieth as her turn starts", "%d" % enfina.hp)
 
-	# Finisher.
-	var finisher: SkillDefinition = SkillDatabase.skills["finisher"]
-	foe.hp = combat.get_effective_stat(foe, "max_hp")
-	ok(combat.refusal_for(enfina, finisher, foe.position) != "", "Finisher refused on somebody at full health")
-	foe.hp = combat.get_effective_stat(foe, "max_hp") / 2
-	ok(combat.refusal_for(enfina, finisher, foe.position) == "", "and allowed at half")
+	# Finisher is gone (docs/handoff_0.1/finisher_removal_momentum_synergy.md).
+	ok(not SkillDatabase.skills.has("finisher") and not CombatantDatabase.combatants.values().any(func(who): return who.skills.has("finisher")),
+		"no Finisher, in anybody's kit or anywhere else")
 
 	# Cover.
 	var region: Rect2i = combat.controller._astargrid.region

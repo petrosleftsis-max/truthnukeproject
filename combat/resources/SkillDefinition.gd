@@ -44,9 +44,6 @@ enum AoEShape {
 ## at somebody fallen: Resuscitate. With this on, nobody standing can be aimed
 ## at, and the skill's effects land on the fallen (see EffectType.REVIVE).
 @export var targets_fallen: bool = false
-## Only on somebody at this share of their health or less - 0.5 is half. A
-## finishing blow (Enfina's Finisher), in place of a cooldown. 0 for anybody.
-@export_range(0.0, 1.0, 0.05) var only_below_health: float = 0.0
 ## Aimed twice: first at anybody of the caster's own side, wherever they are -
 ## in reach or not, on the map or by their face - and then at any tile in reach,
 ## where what it makes of them is put down. For an illusion (EffectType

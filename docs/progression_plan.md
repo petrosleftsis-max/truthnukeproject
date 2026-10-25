@@ -31,7 +31,7 @@ so at that level.
 | Momentum I (32) | new passive: +10% damage on a turn she has not moved |
 | Short Stun 0.8, 1 turn (41) | new skill, **Stunning Blow** |
 | Iron Hide III (41) | new passive: half of any hit on an ally beside her is hers instead |
-| Finisher 2.2 (54) | new skill - no cooldown: only on somebody at half health or less |
+| ~~Finisher 2.2 (54)~~ | removed 2026-10-25 (`docs/handoff_0.1/finisher_removal_momentum_synergy.md`): Titanfall at 64 outpaces it; Momentum covers Sweep Strike at 54 |
 | AOE Sweep 1.4, light CC (54) | **Sweep Strike**, from 3 to 54, 1.2 to 1.4, and a step back for whoever it hits |
 | Bulwark III (54) | Bulwark reaches two tiles and gives 20% |
 | Ultimate Smash 2.5 (64) | Greatsword Attack, rank **Titanfall**: x3.0, and x1.5 to everybody within 2 of who it lands on, shoved a tile (your change, 2026-10-23) |
@@ -117,7 +117,7 @@ so at that level.
 - More castings through the deepest gate (Reserved Power, Elemental Mastery).
 - Heals that lift a condition, or leave a ward (Mercy II, III); heals worth a share of health (Restoration, Grace); healing on the turn's start (Aura II).
 - Cover: standing beside something that blocks sight. Cat Burglar I, Agile I and II, Cover Leap.
-- A skill only for somebody at half health or less (Finisher).
+- A skill only for somebody at half health or less (Finisher) - removed with it on 2026-10-25.
 
 ## Instead of Glass Cannon: Kindling
 
@@ -129,7 +129,7 @@ so they neither stoke it nor are stoked. Turned down: Stoked Fire (a flat 10 / 2
 ## Cooldowns
 
 Only three rows mention one:
-- **Finisher** ("long CD"): an execute instead - usable only on somebody at half health or less. Other ways: it takes both actions, or it lands a turn later (declared, as Earthsplitter was).
+- **Finisher** ("long CD"): an execute instead - usable only on somebody at half health or less (removed 2026-10-25). Other ways: it takes both actions, or it lands a turn later (declared, as Earthsplitter was).
 - **Elemental Mastery** ("extra slot or reduced cooldown") and **Reserved Power II** ("extra high-tier slot or CD reduction"): the extra slot.
 
 ## Subclasses - the moves (built 2026-10-23)

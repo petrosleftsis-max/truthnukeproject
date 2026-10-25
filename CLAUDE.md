@@ -465,11 +465,10 @@ creation and after gear). `in_cover` is beside a tile that blocks sight. An
 enemy with one of the party's moves keeps its own learning level for it
 (`CombatantDefinition.skill_levels`, read by `meets_level_for`), so a move moved
 later for the party (Sweep Strike, 54) is not taken off the Barbarian. The
-Sorcerer's Burner, Wind Swoon, Crystalise and Gust Blast and the Priest's River
-Flow are their own copies (`data/skills/enemies/enemy_*.tres`), as those spells
-were before the condition proposal of 2026-10-25
-(`docs/perplexity_condition_dot_proposal.md`), so the party's can be tuned
-without them.
+Sorcerer and the Priest share the party's Burner, Wind Swoon, Crystalise, Gust
+Blast and River Flow, so the condition proposal of 2026-10-25
+(`docs/perplexity_condition_dot_proposal.md`) changed theirs too (the designer:
+enemies follow the new spells).
 
 **Five chapters** (Campaign "Chapters"): `CHAPTER_LEVELS` is where each ends
 (18, 33, 45, 55, 64); `begin_chapter(n)` from a dialogue. The character sheet's

@@ -45,7 +45,7 @@ const OWN_ICONS := {
 	"ground_pound": "ground_pound_skill.png", "rockfall": "rockfall_skill.png",
 	# The progression's (docs/progression.csv) - placeholders, each its own.
 	"battle_cry": "battle_cry_skill.png", "armor_shred": "armor_shred_skill.png",
-	"stunning_blow": "stunning_blow_skill.png", "finisher": "finisher_skill.png",
+	"stunning_blow": "stunning_blow_skill.png",
 	"cover_leap": "cover_leap_skill.png",
 	"venom_fan": "venom_fan_skill.png", "exposing_shot": "exposing_shot_skill.png",
 	"tartarus_flame": "tartarus_flame_skill.png", "ire_of_sophia": "ire_of_sophia_skill.png",
@@ -113,17 +113,6 @@ func lowers_something(skill: SkillDefinition) -> bool:
 	return false
 
 
-## Whether `key` is a copy, under the same name, of the skill `face` was drawn
-## for - an enemy's own Burner (data/skills/enemies/enemy_*.tres), the same skill
-## to the eye.
-func is_copy(key: String, face: String) -> bool:
-	for owner in OWN_ICONS:
-		if OWN_ICONS[owner] == face and owner != key and SkillDatabase.skills.has(owner) \
-				and SkillDatabase.skills[owner].name == SkillDatabase.skills[key].name:
-			return true
-	return false
-
-
 func icon_file(skill: SkillDefinition) -> String:
 	if skill == null or skill.icon == null:
 		return ""
@@ -182,7 +171,7 @@ func run_test():
 		worn_twice[OWN_ICONS[key]] = worn_twice.get(OWN_ICONS[key], 0) + 1
 	for key in SkillDatabase.skills:
 		var face = icon_file(SkillDatabase.skills[key])
-		if worn_twice.has(face) and OWN_ICONS.get(key, "") != face and not ItemDatabase.is_item(key) and not is_copy(key, face):
+		if worn_twice.has(face) and OWN_ICONS.get(key, "") != face and not ItemDatabase.is_item(key):
 			worn_twice[face] += 1
 	var shared := []
 	for face in worn_twice:

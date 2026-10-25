@@ -1196,9 +1196,8 @@ their power: Heal is 12 + 0.25 × Mindfulness + 0.3 × weapon base, Light Heal a
 Communion 8 + 0.15 + 0.2, Restoration half the target's health + 0.25 × Mindfulness,
 and the Summoner's Mend the Bound as Heal. Mercy I adds a tenth to all of it, never
 to the share of health; a Gate Nade keeps its own flat power. In
-cover means beside something that blocks sight. **Only Below Health** on a skill
-keeps it for somebody worn down (Finisher, in place of a cooldown), and **Lands In
-Cover** keeps a leap to cover (Cover Leap).
+cover means beside something that blocks sight. **Lands In Cover** keeps a leap
+to cover (Cover Leap).
 
 ### Chapters, and the sheet's pages
 

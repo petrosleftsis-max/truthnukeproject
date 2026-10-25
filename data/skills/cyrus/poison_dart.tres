@@ -10,7 +10,7 @@
 script = ExtResource("1_mcofx")
 type = 8
 condition = ExtResource("2_mm41o")
-condition_duration = 5
+condition_duration = 3
 condition_dot_modifier = 0.2
 
 [resource]
@@ -24,6 +24,6 @@ required_level = 8
 respects_blocking = true
 is_ammo = true
 effects = Array[ExtResource("1_mcofx")]([SubResource("Effect_poison_dot")])
-ability_modifier = 0.75
+ability_modifier = 0.9
 scaling_stat = 3
 sound = ExtResource("90_sfx")

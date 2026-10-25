@@ -97,8 +97,7 @@ A path hands something out at 24, 32, 41, 54 and 64. The Illusory Shepherd hands
   - one **reaction**, between their own turns.
 - **No cooldowns.** A move is limited instead by:
   - a gate (spells),
-  - **Uses Per Fight**,
-  - **Only Below Health** (Finisher only works on somebody worn down),
+  - **Uses Per Short Rest**,
   - **Needs Read** (only on somebody Alithia's Intuition has read),
   - or **Lands In Cover** (Cover Leap must land beside cover).
 - **Leaving somebody's reach** can set off their reaction (an attack of opportunity). **Slip Past** lets you leave reach without doing so. It is a secondary action for Cyrus from level 1, through his Elusive passive.
@@ -494,7 +493,7 @@ so at that level.
 | Momentum I (32) | new passive: +10% damage on a turn she has not moved |
 | Short Stun 0.8, 1 turn (41) | new skill, **Stunning Blow** |
 | Iron Hide III (41) | new passive: half of any hit on an ally beside her is hers instead |
-| Finisher 2.2 (54) | new skill - no cooldown: only on somebody at half health or less |
+| ~~Finisher 2.2 (54)~~ | removed 2026-10-25 (`docs/handoff_0.1/finisher_removal_momentum_synergy.md`): Titanfall at 64 outpaces it; Momentum covers Sweep Strike at 54 |
 | AOE Sweep 1.4, light CC (54) | **Sweep Strike**, from 3 to 54, 1.2 to 1.4, and a step back for whoever it hits |
 | Bulwark III (54) | Bulwark reaches two tiles and gives 20% |
 | Ultimate Smash 2.5 (64) | Greatsword Attack, rank **Titanfall**: x3.0, and x1.5 to everybody within 2 of who it lands on, shoved a tile (your change, 2026-10-23) |
@@ -580,7 +579,7 @@ so at that level.
 - More castings through the deepest gate (Reserved Power, Elemental Mastery).
 - Heals that lift a condition, or leave a ward (Mercy II, III); heals worth a share of health (Restoration, Grace); healing on the turn's start (Aura II).
 - Cover: standing beside something that blocks sight. Cat Burglar I, Agile I and II, Cover Leap.
-- A skill only for somebody at half health or less (Finisher).
+- A skill only for somebody at half health or less (Finisher) - removed with it on 2026-10-25.
 
 ### Instead of Glass Cannon: Kindling
 
@@ -592,7 +591,7 @@ so they neither stoke it nor are stoked. Turned down: Stoked Fire (a flat 10 / 2
 ### Cooldowns
 
 Only three rows mention one:
-- **Finisher** ("long CD"): an execute instead - usable only on somebody at half health or less. Other ways: it takes both actions, or it lands a turn later (declared, as Earthsplitter was).
+- **Finisher** ("long CD"): an execute instead - usable only on somebody at half health or less (removed 2026-10-25). Other ways: it takes both actions, or it lands a turn later (declared, as Earthsplitter was).
 - **Elemental Mastery** ("extra slot or reduced cooldown") and **Reserved Power II** ("extra high-tier slot or CD reduction"): the extra slot.
 
 ### Subclasses - the moves (built 2026-10-23)
@@ -888,13 +887,13 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - 24: Armor Shred
   - 32: Follow Up Attack
   - 41: Stunning Blow
-  - 54: Sweep Strike, Finisher
+  - 54: Sweep Strike
 - Passives:
   - **Measured Eye** (Always active): Every blow she lands teaches her something. Whoever she hits is studied, just as Study would - their sheet open to the party, and her next blows landing with a studier's edge. [Every hit studies whoever it lands on, as Study does.]
   - **Iron Hide I** (Always active): Hide hardened by every blow she has taken: a tenth less damage from anything. [Takes 10% less damage.]
   - **Bulwark I** (Always active, from level 8): Allies beside her are bulwarked: a tenth less damage. [Aura: their own side within 1 tiles are bulwarked.]
   - **Iron Hide II** (Always active, from level 16): Harder again: another tenth less damage. [Takes 10% less damage.]
-  - **Momentum I** (Always active, from level 32): Planted, she hits harder: a tenth more damage on a turn she has not walked. [10% more damage on a turn they have not walked.]
+  - **Momentum I** (Always active, from level 32): Planted, she hits harder: a tenth more damage on a turn she has not walked - every blow, Sweep Strike's whole sweep too. [10% more damage on a turn they have not walked.]
   - **Iron Hide III** (Always active, from level 41): She steps into blows meant for others: half of any hit on an ally beside her is hers instead. [Takes 50% of any hit on an ally within 1 tiles.]
   - **Bulwark III** (Always active, from level 54): Her guard reaches two tiles: allies within them are fortified - a tenth less damage, on top of Bulwark beside her. [Aura: their own side within 2 tiles are fortified.]
   - **Momentum II** (Always active, from level 64): Planted, every blow lands like a falling wall: fifteen hundredths more again. [15% more damage on a turn they have not walked.]
@@ -1231,7 +1230,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: The truth unhidden, burning through everything near where it lands: three quarters of their defence count for nothing.
   - Settings: respects_blocking: true
 - **River Flow** (`river_flow`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.4 Water; contested against Intellect
-  - Who has it: Alithia
+  - Who has it: Alithia, Priest
   - Says: Control water to freeze the target.
   - Effect: {type: Condition; condition: Frozen (frozen); condition_duration: 5; condition_dot_modifier: 0.2}
   - Settings: respects_blocking: true
@@ -1290,11 +1289,11 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: cyrus
 
-- **Burning Shot** (`burning_shot`) - level 16; main action; range 2-15; ranged; single target; damage x0.9 Physical, scales with Self
+- **Burning Shot** (`burning_shot`) - level 16; main action; range 2-15; ranged; single target; damage x0.8 Physical, scales with Self
   - Who has it: Cyrus
   - Says: Special ammunition that helps them feel the heat.
-  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 5; condition_dot_modifier: 0.15}
-  - Rank from level 32 "Strong Burn": ability_modifier: 1.05; condition_dot_modifier: 0.2
+  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 3; condition_dot_modifier: 0.35}
+  - Rank from level 32 "Strong Burn": ability_modifier: 0.95; condition_dot_modifier: 0.45
   - Settings: respects_blocking: true; is_ammo: true
 - **Catalyst** (`catalyst`) - level 64; main action; range 0-0; ranged; single target; aimed at allies; no damage
   - Who has it: Cyrus
@@ -1319,10 +1318,10 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Cyrus
   - Says: Cyrus uses gun.
   - Settings: respects_blocking: true
-- **Poison Dart** (`poison_dart`) - level 8; main action; range 2-20; ranged; single target; damage x0.75 Physical, scales with Self
+- **Poison Dart** (`poison_dart`) - level 8; main action; range 2-20; ranged; single target; damage x0.9 Physical, scales with Self
   - Who has it: Cyrus
   - Says: A dart coated in a toxin that poisons the target.
-  - Effect: {type: Condition; condition: Poisoned (poisoned); condition_duration: 5; condition_dot_modifier: 0.2}
+  - Effect: {type: Condition; condition: Poisoned (poisoned); condition_duration: 3; condition_dot_modifier: 0.2}
   - Settings: respects_blocking: true; is_ammo: true
 - **Rapier** (`rapier`) - level 1; main action; reacts: an enemy leaves its reach; range 0-1; melee; single target; damage x1.5 Physical, scales with Self
   - Who has it: Cyrus, Alchemist, Priest
@@ -1339,8 +1338,8 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Effect: {type: Hide}
 - **Venom Fan** (`venom_fan`) - level 24; main action; range 1-3; ranged; area: Cone 3; damage x0.7 Physical, scales with Self
   - Who has it: Cyrus
-  - Says: A fan of poisoned darts across everybody in front of him: poisoned for five turns.
-  - Effect: {type: Condition; condition: Poisoned (poisoned); condition_duration: 5; condition_dot_modifier: 0.15}
+  - Says: A fan of poisoned darts across everybody in front of him: poisoned for three turns.
+  - Effect: {type: Condition; condition: Poisoned (poisoned); condition_duration: 3; condition_dot_modifier: 0.2}
   - Settings: respects_blocking: true
 - **Warning Shot** (`warning_shot`) - level 32; main action; range 1-20; ranged; single target; damage x0.9 Physical, scales with Self
   - Who has it: Cyrus
@@ -1414,32 +1413,6 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Effect: {type: Stat Multiplier; display_name: "Empowered"; stat: "physical"; stat_multiplier: 1.3}
   - Effect: {type: Stat Multiplier; display_name: "Hardened"; stat: "defense"; stat_multiplier: 1.3}
   - Settings: can_be_copied: false
-- **Burner** (`enemy_burner`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; damage x1.4 Fire; contested against Mindfulness
-  - Who has it: Sorcerer
-  - Says: Burn the target.
-  - Effect: {type: Condition; condition: Burn (burn); condition_duration: 3; condition_dot_modifier: 0.2}
-  - Settings: respects_blocking: true
-- **Crystalise** (`enemy_crystalise`) - level 16; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x0.8 Earth; contested against Self
-  - Who has it: Sorcerer
-  - Says: Cover an enemy in hindering stones.
-  - Effect: {type: Condition; condition: Crystallised (crystallised); condition_duration: 3; condition_dot_modifier: 0.1}
-  - Settings: respects_blocking: true
-- **Gust Blast** (`enemy_gust_blast`) - level 24; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.2 Wind; contested against Physical
-  - Who has it: Sorcerer
-  - Says: Blast a powerful gust that pushes the target.
-  - Effect: {type: Push; min_amount: 2; max_amount: 4; knockback_distance: 3}
-  - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 2; condition_dot_modifier: 0.15}
-  - Settings: affects_both_sides: true; respects_blocking: true
-- **River Flow** (`enemy_river_flow`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; damage x1.3 Water; contested against Intellect
-  - Who has it: Priest
-  - Says: Control water to freeze the target.
-  - Effect: {type: Condition; condition: Frozen (frozen); condition_duration: 2; condition_dot_modifier: 0.2}
-  - Settings: respects_blocking: true
-- **Wind Swoon** (`enemy_wind_swoon`) - level 8; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x0.8 Wind; contested against Self
-  - Who has it: Sorcerer
-  - Says: Swoon them with the wind.
-  - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 2; condition_dot_modifier: 0.1}
-  - Settings: respects_blocking: true
 - **Fire Breath** (`fire_breath`) - level 1; main action; range 1-6; ranged; area: Cone 6; damage x1.6 Fire, scales with Intellect; contested against Intellect
   - Who has it: Illusory Dragon
   - Says: Fire pours from its jaws, over everybody in a cone - half to whoever's mind sees through it. Made of its caster's mind: as strong as their Intellect.
@@ -1522,10 +1495,6 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: Climb up onto something Monstrous or bigger and fight it from on top. Up there nobody can reach you, every blow on it lands - and harder - and it carries you wherever it goes. It will try to throw you off, and that hurts whether it works or not. Climb Down to jump off.
   - Effect: {type: Climb}
   - Settings: can_be_copied: false; needs_size_at_least: 5
-- **Finisher** (`finisher`) - level 54; main action; range 1-1; melee; single target; damage x2.2 Physical, scales with Physical
-  - Who has it: Enfina
-  - Says: A killing stroke for somebody already reeling: only on an enemy at half their health or less.
-  - Settings: only_below_health: 0.5
 - **Follow Up Attack** (`follow_up_attack`) - level 32; secondary action; range 1-1; melee; single target; damage x1.5 Physical, scales with Physical
   - Who has it: Enfina, Barbarian, Pit Champion
   - Says: Move the greatsword with such ease that your strikers are endless.
@@ -1658,12 +1627,12 @@ Sorted the way the game's folders sort them: common to the party, each character
 ### Folder: prometheus/spells
 
 - **Burner** (`burner`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.7 Fire; contested against Mindfulness
-  - Who has it: Prometheus
+  - Who has it: Prometheus, Sorcerer
   - Says: Burn the target.
   - Effect: {type: Condition; condition: Burn (burn); condition_duration: 5; condition_dot_modifier: 0.25}
   - Settings: respects_blocking: true
 - **Crystalise** (`crystalise`) - level 16; spell, Gates of Hermes; main action; range 0-15; ranged; single target; damage x1.0 Earth; contested against Self
-  - Who has it: Prometheus
+  - Who has it: Prometheus, Sorcerer
   - Says: Cover an enemy in hindering stones.
   - Effect: {type: Condition; condition: Crystallised (crystallised); condition_duration: 5; condition_dot_modifier: 0.1}
   - Settings: respects_blocking: true
@@ -1690,7 +1659,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Effect: {type: Grow; duration: 3}
   - Settings: respects_blocking: true
 - **Gust Blast** (`gust_blast`) - level 24; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.2 Wind; contested against Physical
-  - Who has it: Prometheus
+  - Who has it: Prometheus, Sorcerer
   - Says: Blast a powerful gust that pushes the target.
   - Effect: {type: Push; min_amount: 2; max_amount: 4; knockback_distance: 3}
   - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 5; condition_dot_modifier: 0.1}
@@ -1759,7 +1728,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: Conjure wind on your fingertips before leading it to the target.
   - Settings: respects_blocking: true
 - **Wind Swoon** (`wind_swoon`) - level 8; spell, Gates of Hermes; main action; range 0-15; ranged; single target; damage x1.0 Wind; contested against Self
-  - Who has it: Prometheus
+  - Who has it: Prometheus, Sorcerer
   - Says: Swoon them with the wind.
   - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 5; condition_dot_modifier: 0.1}
   - Settings: respects_blocking: true
@@ -1823,7 +1792,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Mercy II** (`mercy_ii`, Always active, from level 16): Her heals lift one harmful condition as well. [Heals lift one harmful condition too.]
 - **Mercy III** (`mercy_iii`, Always active, from level 41): Whoever she heals is sheltered: a fifth less damage until their next turn starts. [Whoever they heal is sheltered.]
 - **Mimicry** (`mimicry`, Always active): Does whatever your party did last: the last skill any of you used, turned on you - or on its own side, if it was meant for allies. It cannot copy Run, Slip Past or Study, and copies whatever came before them instead. Until one of you has done something it can copy, it waits. It opens no gates and needs none, so a copied spell is cast however deep a gate it calls for. Whatever it copies is worked out from its Self, not the stat the skill would usually use. [Casts without opening a gate, however deep a gate the spell calls for. Every skill scales with Self, whatever stat the skill itself names.]
-- **Momentum I** (`momentum`, Always active, from level 32): Planted, she hits harder: a tenth more damage on a turn she has not walked. [10% more damage on a turn they have not walked.]
+- **Momentum I** (`momentum`, Always active, from level 32): Planted, she hits harder: a tenth more damage on a turn she has not walked - every blow, Sweep Strike's whole sweep too. [10% more damage on a turn they have not walked.]
 - **Momentum II** (`momentum_ii`, Always active, from level 64): Planted, every blow lands like a falling wall: fifteen hundredths more again. [15% more damage on a turn they have not walked.]
 - **Nade Juggler** (`nade_juggler`, Always active): Throws any Gate Nade, whatever spell is in it - everybody else only those whose spell they know or could learn - and throws them with his secondary action, where the spell would take the main one. [Can throw Gate Nades as a secondary action as well as a main one. Can throw any Gate Nade, whatever spell is in it.]
 - **Prying Mind** (`prying_mind`, Always active): He can hack: wards and seals, machines and locks, and the spell a foe is winding up. The sharper his Intellect, the more tries he gets, and the less each retry costs him. [Can hack wards, machines and the spells others are winding up - more tries, and cheaper ones, the higher their Intellect.]
@@ -2083,7 +2052,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 - Main stat Mindfulness, secondary Self; health 60 at level 1, 190 at 64; movement 6
 - Skills: Rapier, Water Spike, Heal, Cleanse, River Flow, Communion, Run
-- Settings: class_t: Magic; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 3; spellcasting_stat: Mindfulness; skill_levels: { "enemy_river_flow": 7 }; resist_water: 50; resist_earth: -50; ai_function: "ai_healer"
+- Settings: class_t: Magic; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 3; spellcasting_stat: Mindfulness; skill_levels: { "river_flow": 7 }; resist_water: 50; resist_earth: -50; ai_function: "ai_healer"
 
 ### Ranger (`ranger`)
 
@@ -2107,7 +2076,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 - Main stat Intellect, secondary Mindfulness; health 28 at level 1, 85 at 64; movement 6
 - Skills: Burner, Fireball, Crystalise, Gust Blast, Wind Swoon, Run, Fire Burst, Fire Blast, Rock Throw, Wind Shot
-- Settings: class_t: Magic; max_hp: 28; max_hp_level_20: 85; defense: 5; defense_level_64: 30; initiative: 4; skill_levels: { "enemy_burner": 5, "enemy_crystalise": 7, "enemy_gust_blast": 6, "enemy_wind_swoon": 6 }; resist_fire: 50; resist_poison: -50; ai_function: "ai_caster"; ai_readies: Counters Casters
+- Settings: class_t: Magic; max_hp: 28; max_hp_level_20: 85; defense: 5; defense_level_64: 30; initiative: 4; skill_levels: { "burner": 5, "crystalise": 7, "gust_blast": 6, "wind_swoon": 6 }; resist_fire: 50; resist_poison: -50; ai_function: "ai_caster"; ai_readies: Counters Casters
 
 ### Summoner (`summoner`)
 
@@ -2152,7 +2121,7 @@ These are settled; suggestions should work within them.
 **Numbers and progression**
 
 - **The numbers are the designer's.** Most are placeholders until playtesting. Weigh a suggestion against the progression plan's power level: tiers at 1/8/16/24/32/41/54/64, and the multipliers in Part 2.
-- **No cooldowns, ever.** Limits come from gates, Uses Per Short Rest, Only Below Health, Needs Read, and placement.
+- **No cooldowns, ever.** Limits come from gates, Uses Per Short Rest, Needs Read, and placement (Only Below Health went with Finisher, 2026-10-25).
 - **No passives with a downside.** Glass Cannon became Kindling.
 - **Spells never rank up.** A stronger spell is a new spell. Moves (Greatsword Attack, Burning Shot) do rank up. A row of the plan that is only a stronger version of a move is a rank on that move, never a second move.
 - **Levels come at story milestones,** not from experience. The cap is 64, the isopsephy of ἀλήθεια. 55 is ΛΗΘΗ. There are five chapters, each leveling slower than the last.
@@ -2370,16 +2339,10 @@ Perplexity's proposal (`docs/perplexity_condition_dot_proposal.md`); the designe
   - Crystalise x1.0, Crystallised 0.10 (radius 2, x0.8, 3 turns at 0.1). The Crystalise Gate Nade copies it.
 - **Pandora spells, still radius 2:** Wildfire x2.1, Burn 0.35 (was 0.4). Frozen River x1.8, Frozen 0.30 (was 0.25).
 - **Gust Blast:** Windswept 0.10 (was 2 turns at 0.15); the shove unchanged.
-- **Cyrus's ammunition:**
-  - The Gun is unchanged, x1.0.
-  - Burning Shot x0.9, Burn 0.15 (was x0.8, 0.35); its rank at 32 x1.05, Burn 0.20 (was x0.95, 0.45).
-  - Poison Dart x0.75, Poison 0.20 (was x0.9).
-  - Venom Fan x0.7, Poison 0.15 (was 0.2).
-  - Corrosive Round's Corroded now 5 turns.
-- **Left as they were:** Catalyst; immunities; Frozen has no Defense loss; the bottles, Glacial Tide, Flame Edge and Trailblaze; the enemies.
-  - The Sorcerer and the Priest share Burner, Wind Swoon, Crystalise, Gust Blast and River Flow with the party. They now have their own copies with the old values, since the proposal says not to change enemies in this pass. OPEN: whether the enemies should follow the party's spells.
-  - Erysichthon's Tainted Carrion poisons for the Poisoned condition's own length, which went from 3 to 5. It is pinned at 3.
-- **OPEN:** Burning Shot's rank at 32 (x1.05) out-hits the Gun (x1.0). That goes against the earlier rule that ammunition leaving a condition hits less hard than the Gun. The ammo suite notes it rather than failing.
+- **Cyrus's ammunition stays as it was.** The proposal changed it, but the non-spell handoff of the same day (below) puts it back, and the designer pointed to it: Burning Shot x0.8, Burn 0.35 for 3 turns, and x0.95, 0.45 at 32 (under the Gun); Poison Dart x0.9, Poison 0.2 for 3; Venom Fan x0.7, Poison 0.2 for 3. Corrosive Round, which the handoff does not list, keeps the proposal's 5 turns of Corroded.
+- **The enemies follow the new spells** (the designer, 2026-10-25). The Sorcerer and the Priest cast the party's Burner, Wind Swoon, Crystalise, Gust Blast and River Flow, so theirs are single target and last 5 turns too.
+- **Left as they were:** Catalyst; immunities; Frozen has no Defense loss; the bottles, Glacial Tide, Flame Edge and Trailblaze; the enemies' own moves (Flammable Limb, Venomous Shot). Erysichthon's Tainted Carrion poisons for the Poisoned condition's own length, which went from 3 to 5; it is pinned at 3 (OPEN: whether it should follow too).
+- **Ledger status:** PROPOSAL until the designer has tried them.
 - **To watch in testing** (from the proposal):
   - whether Burn stays the strongest DoT, and Poison the best set-up for a decisive party turn;
   - whether Frozen is useful without being a universal answer;
@@ -2387,6 +2350,22 @@ Perplexity's proposal (`docs/perplexity_condition_dot_proposal.md`); the designe
   - whether Windswept is worth its displacement, and Corroded before a focus-fire turn;
   - whether the Gun stays a real choice;
   - whether the Hermes single-target spells feel stronger per target than the Pandora areas.
+
+## Finisher removed; Momentum and Sweep Strike; the non-spell moves (2026-10-25; implemented)
+
+The designer's handoff, `docs/handoff_0.1/finisher_removal_momentum_synergy.md` (APPROVED_DESIGN / APPROVED_TRIAL).
+
+- **Finisher is gone:** the skill, Enfina's kit entry and the progression row. Titanfall at 64 (x3.0 with a x1.5 splash, no health limit) outpaced it.
+  - The Only Below Health limit, which only Finisher used, went with it. Its icon (`art/icons/finisher_skill.png`) is left unused.
+- **Momentum covers Sweep Strike.** It already did: Momentum adds to every blow on a turn Enfina has not walked, the whole sweep included, so no code changed. Its description now says so, and a test holds it.
+  - At 54, planted, Sweep Strike is x1.54.
+  - It does not touch Leading Charge, which needs a walk.
+  - The enemies' Sweep Strike (Barbarian, Pit Champion) gets nothing: Momentum is Enfina's passive.
+- **OPEN, Momentum at 64:** Momentum I (+10%) and II (+15%) add, so Sweep Strike planted is x1.75, as every blow is a quarter harder. The handoff's acceptance test says x1.61, which would need II to replace I rather than add to it.
+- **The non-spell table, audited.** Every Enfina and Cyrus non-spell move matches it, once Cyrus's ammunition was put back. Three lines of the table describe the game differently. The table says "unchanged", so the game is kept as it is:
+  - Titanfall has no shove: Tremor became the control layer on 2026-10-24.
+  - Catalyst is once a short rest (2026-10-24), not once a fight.
+  - Momentum at 64 is x1.75 (above).
 
 ## Known near-twins among the spells
 
@@ -2429,7 +2408,7 @@ Spells that are close to copies of each other. They are candidates to make more 
    - Flame and Frost (Pandora, x1.8): Burn, or -2 movement.
    - Storm and Stone (Charon, x2.2): a 2-tile shove, or -10 defence.
 
-Also: since spells stopped ranking up, the enemy Sorcerer and Priest no longer get the stronger version of Burner and River Flow past level 16. They cast the level-8 versions at any level. Since 2026-10-25 those are their own copies, as the spells were before the condition proposal: radius 2, the old numbers (below).
+Also: since spells stopped ranking up, the enemy Sorcerer and Priest no longer get the stronger version of Burner and River Flow past level 16. They cast the level-8 versions at any level - since 2026-10-25 the single-target ones, as the party does.
 
 ## Open design variables
 

@@ -97,8 +97,7 @@ A path hands something out at 24, 32, 41, 54 and 64. The Illusory Shepherd hands
   - one **reaction**, between their own turns.
 - **No cooldowns.** A move is limited instead by:
   - a gate (spells),
-  - **Uses Per Fight**,
-  - **Only Below Health** (Finisher only works on somebody worn down),
+  - **Uses Per Short Rest**,
   - **Needs Read** (only on somebody Alithia's Intuition has read),
   - or **Lands In Cover** (Cover Leap must land beside cover).
 - **Leaving somebody's reach** can set off their reaction (an attack of opportunity). **Slip Past** lets you leave reach without doing so. It is a secondary action for Cyrus from level 1, through his Elusive passive.
