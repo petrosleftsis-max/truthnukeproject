@@ -284,11 +284,17 @@ func forget_unlearned(comb: Dictionary, key: String):
 ## --- Paths ---
 ##
 ## At level 24 (Stats.SUBCLASS_LEVEL) each of the party chooses one of their
-## paths - SubclassDefinition, three each - once and for good. Combat puts them
-## on it (Combat.take_path); the map asks for the choice (SubclassPicker).
+## paths - SubclassDefinition, three each. Combat puts them on it
+## (Combat.take_path); the map asks for the choice (SubclassPicker). Chosen, a
+## path can be changed only at a long rest: from one until the party next fights
+## (path_change_open), from the character sheet (the designer, 2026-10-25).
 
 ## combatant key -> the key of the path they chose.
 var subclasses: Dictionary = {}
+
+## Whether paths can be changed now: a long rest has been taken and the party
+## has not fought since (Combat._deploy_party closes it).
+var path_change_open := false
 
 ## Whether a party at level 24 or past it is asked on the map to choose paths at
 ## all. On in the game. The test harness turns it off (game/asks_for_paths in
@@ -348,6 +354,27 @@ func choose_subclass(key: String, subclass: String) -> bool:
 		return false
 	subclasses[key] = subclass
 	announce("[color=lightgreen]%s[/color] takes the path of the [color=yellow]%s[/color].\n" % [
+		display_name_of(key), path.name])
+	subclass_chosen.emit(key, subclass)
+	return true
+
+
+## Whether `key` can change the path they are on now: they have one, and a long
+## rest has been taken with no fight since (path_change_open).
+func can_change_path(key: String) -> bool:
+	return path_change_open and subclass_of(key) != "" and party_level >= Stats.SUBCLASS_LEVEL
+
+
+## Puts `key` on `subclass` in place of the path they are on. False - and nothing
+## changes - outside a long rest's window (can_change_path), or if it is not one
+## of theirs or the one they are on. What they have learned stays learned.
+func change_path(key: String, subclass: String) -> bool:
+	var path := SubclassDefinition.named(subclass)
+	if path == null or not can_change_path(key) or not SubclassDefinition.for_character(key).has(subclass) \
+			or subclass_of(key) == subclass:
+		return false
+	subclasses[key] = subclass
+	announce("[color=lightgreen]%s[/color] turns to the path of the [color=yellow]%s[/color].\n" % [
 		display_name_of(key), path.name])
 	subclass_chosen.emit(key, subclass)
 	return true
@@ -687,7 +714,7 @@ func restart_stealth():
 ## the moment belongs in here - the `saves` suite fails on one that does not.
 
 ## The keys of everything the run is made of, copied as they are.
-const SAVED := ["party_level", "party_state", "subclasses", "inventories", "gear", "equipped",
+const SAVED := ["party_level", "party_state", "subclasses", "path_change_open", "inventories", "gear", "equipped",
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
 	"meditated", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks"]
 
@@ -1037,6 +1064,7 @@ func reset():
 	levels_unveiled = false
 	learned_spells.clear()
 	subclasses.clear()
+	path_change_open = false
 	gear.clear()
 	gold = 0
 	equipped.clear()
@@ -1443,6 +1471,10 @@ func long_rest():
 	outside_spent.clear()
 	gates_spent_outside.clear()
 	meditated.clear()
+	# And the paths open to change until the next fight (path_change_open).
+	path_change_open = true
+	if living_party().any(func(key): return subclass_of(key) != ""):
+		announce("[color=yellow]Rested[/color]: paths can be changed from the character sheet until the next fight.\n")
 
 
 ## Brought back from falling, and weaker for it (Combat.weaken): no longer - back

@@ -160,9 +160,9 @@ func run_test():
 		ok(shown.level == source.get("level", 1), "level matches", "%d" % shown.level)
 		ok(shown.hp == source.hp, "health matches", "%d" % shown.hp)
 		ok(shown.stats == source.stats, "and every attribute matches", "%s" % [shown.stats])
-	# The five attributes, the weapon base, and what Study adds for anyone it
-	# has opened up - movement, resistances, skills.
-	ok(sheet._stat_rows.get_child_count() >= 6, "a row per number it knows",
+	# Health, the attributes with the weapon base, movement and how they get
+	# about, and their passives - their moves are on the Moves page.
+	ok(sheet._stat_rows.get_child_count() >= 5, "a row per number it knows",
 		"%d" % sheet._stat_rows.get_child_count())
 	log_line("")
 
@@ -287,8 +287,8 @@ func run_test():
 		ok(hud.size() == 1 and tooltips_under(state_row).has(TooltipText.wrap(hud[0].text)),
 			"in exactly the words the HUD's mark uses", "%s" % [hud])
 	var order = headings_of(sheet)
-	ok(order.find("State") >= 0 and order.find("State") < order.find("Skills"),
-		"State sits above Skills", "%s" % [order])
+	ok(order.find("State") >= 0 and not order.has("Skills"),
+		"State is on the Sheet page, and their moves are not - those are the Moves page's", "%s" % [order])
 	sheet.close()
 
 	# Everything the game can inflict at once, and a passive on top: far taller

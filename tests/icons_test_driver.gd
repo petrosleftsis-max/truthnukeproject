@@ -258,15 +258,15 @@ func run_test():
 			sheet._show_entry()
 			await get_tree().process_frame
 			continue
+		# Their moves are on the Moves page, an icon a row (the Sheet page has
+		# none since the designer's change of 2026-10-25).
+		sheet._show_page(1)
+		await get_tree().process_frame
 		var chips := []
 		for row in sheet._stat_rows.get_children():
-			# The Skills row only: Passive Skills lays its tags out the same way.
-			if row.get_child_count() == 0 or not (row.get_child(0) is Label and row.get_child(0).text == "Skills"):
-				continue
-			for child in row.get_children():
-				if child is HFlowContainer:
-					for chip in child.get_children():
-						chips.append(chip)
+			if row.name.begins_with("Move_") and row.get_child_count() > 0:
+				chips.append(row.get_child(0))
+		sheet._show_page(0)
 		if not showing.get("skills", []).is_empty():
 			ok(chips.size() == showing["skills"].size(),
 				"%s shows one icon per skill" % showing["name"],

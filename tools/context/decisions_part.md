@@ -287,6 +287,11 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
   - Corrosive Round is the Saboteur's. A Skirmisher or Trapper Cyrus has no Defense reduction now. OPEN.
   - Prometheus's Stone Edge (Elemental Vanguard) still takes 10 Defense for 2 turns, so Cyrus is not quite the only one. OPEN.
 
+## Paths at a long rest, and the sheet (2026-10-25; implemented)
+
+- **A path can be changed only at a long rest.** It is chosen at 24 as before. After a long rest, until the party's next fight, the character sheet offers Change Path; inside that window it can be changed as often as the player likes. The next fight closes it. (The designer first said "freely outside combat", then "only in long rests".)
+- **The Sheet page no longer lists moves.** It keeps the passives; an ally's or a studied enemy's moves are on the Moves page.
+
 ## Known near-twins among the spells
 
 Spells that are close to copies of each other. They are candidates to make more distinct, or to keep on purpose:

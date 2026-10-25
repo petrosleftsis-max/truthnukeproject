@@ -552,7 +552,11 @@ func _show_entry():
 	elif faction != null:
 		also = faction.name + (" (known)" if entry.get("known_faction", false) else "") + "    "
 	_subtitle.text = "Level %d    %s%d / %d HP" % [entry.level, also, entry.hp, entry.max_hp]
-	_path_button.visible = not entry.get("in_battle", false) and Campaign.needs_path(entry.get("key", ""))
+	# A path to choose, or - after a long rest, until the next fight - to change.
+	var key: String = entry.get("key", "")
+	var changing: bool = not Campaign.needs_path(key) and Campaign.can_change_path(key)
+	_path_button.visible = not entry.get("in_battle", false) and not entry.get("studied", false) and (Campaign.needs_path(key) or changing)
+	_path_button.text = "Change path" if changing else "Choose a path"
 
 	_show_tabs(entry)
 	_show_portrait(entry)
@@ -626,7 +630,7 @@ func _show_stats(entry: Dictionary):
 	_show_gear(entry)
 	_show_resistances(entry)
 	_show_state(entry)
-	_show_skills(entry)
+	# Their moves are the Moves page's - an ally's or a studied enemy's alike.
 	_show_passives(entry)
 
 
@@ -860,53 +864,6 @@ func _show_resistances(entry: Dictionary):
 			var element := Damage.type_name(type)
 			var reading := "%s: shrugs off %d%% of it" % [element, amount] if amount > 0 else "%s: takes %d%% more of it" % [element, -amount]
 			tags.add_child(_tag(element, found[2], "%+d%%" % amount, reading))
-
-
-## Everything they can do, a chip each - the icon the player knows from the
-## action panel and the name beside it - carrying the same preview the panel
-## would show, worked out for the character whose sheet this is. What their
-## level has not reached yet comes last, dimmed, saying when it does.
-##
-## Names alone said what an enemy could do without saying what it would cost
-## you, which is the half worth knowing before you walk into it; icons alone
-## said nothing at all until hovered.
-func _show_skills(entry: Dictionary):
-	var keys: Array = entry.get("skills", [])
-	if keys.is_empty():
-		return
-	var subject: Dictionary = entry.get("combatant", {})
-	var level: int = entry.get("level", 1)
-	var skills := []
-	for key in keys:
-		var skill: SkillDefinition = SkillDatabase.skills.get(key)
-		if skill != null:
-			skills.append(skill)
-	# Worked out together, so two whose badges would match here grow a letter.
-	var badges := SkillLook.tags_for(skills)
-	# An enemy Study opened lists only what it has (_skills_they_actually_have),
-	# at its own learning levels, so nothing of its is "to come".
-	var to_come := func(skill: SkillDefinition) -> bool: return not entry.get("studied", false) and comes_in(skill) > level
-	var order := []
-	for i in skills.size():
-		if not to_come.call(skills[i]):
-			order.append(i)
-	for i in skills.size():
-		if to_come.call(skills[i]):
-			order.append(i)
-	var chips := _labelled_tags("Skills")
-	for i in order:
-		var skill: SkillDefinition = skills[i]
-		var later: bool = to_come.call(skill)
-		var chip := _skill_chip(skill, subject, badges[i], "from level %d" % comes_in(skill) if later else "")
-		if later:
-			chip.modulate.a = 0.5
-		chips.add_child(chip)
-
-
-## One skill, as a chip to hover: its icon (badged like the action panel's when
-## somebody else has one like it), its name, and `note` beside it.
-func _skill_chip(skill: SkillDefinition, subject: Dictionary, badge: String = "", note: String = "") -> Control:
-	return _tag(skill.name, INK, note, _preview_of(skill, subject), skill.icon, skill, badge)
 
 
 ## One skill as its icon alone, large, with its preview on it - the Moves page's.
@@ -1248,7 +1205,8 @@ func _choose_path():
 	path_picker = SubclassPicker.new()
 	path_picker.process_mode = Node.PROCESS_MODE_ALWAYS
 	_root.add_child(path_picker)
-	path_picker.offer(_entries[_index].get("key", ""), true)
+	var key: String = _entries[_index].get("key", "")
+	path_picker.offer(key, true, not Campaign.needs_path(key) and Campaign.can_change_path(key))
 	path_picker.chosen.connect(func(_key, _subclass): _close_path_picker())
 	path_picker.put_away.connect(_close_path_picker)
 

@@ -1239,7 +1239,8 @@ whatever walls or cover are between.
 
 ### Paths (subclasses)
 
-At level 24 each of the party chooses one of three paths, for good - Enfina's
+At level 24 each of the party chooses one of three paths - changed only at a
+long rest, from the character sheet, until the next fight. They are Enfina's
 Vanguard, Juggernaut and Warden of Cover; Cyrus's Skirmisher, Saboteur and
 Trapper; Prometheus's Elemental Vanguard, Elemental Tactician and Elemental
 Conductor; Alithia's Battle Chaplain, Illusory Shepherd and Inquisitor. Each

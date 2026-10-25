@@ -49,6 +49,7 @@ func _ready():
 	await the_salts()
 	the_bomb()
 	await repacking()
+	await changing_paths()
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
 
@@ -410,4 +411,59 @@ func repacking():
 	panel.queue_free()
 	await settle()
 	Campaign.reset()
+	log_line("")
+
+
+func changing_paths():
+	log_line("======== paths change only at a long rest (the designer, 2026-10-25) ========")
+	Campaign.reset()
+	Campaign.set_party(PARTY, 30)
+	ok(Campaign.needs_path("enfina") and not Campaign.can_change_path("enfina"), "at 30 with no path: one to choose, nothing to change")
+	ok(Campaign.choose_subclass("enfina", "juggernaut") and Campaign.subclass_of("enfina") == "juggernaut", "the first choice is free")
+	ok(not Campaign.choose_subclass("enfina", "vanguard") and not Campaign.change_path("enfina", "vanguard")
+		and Campaign.subclass_of("enfina") == "juggernaut", "chosen, it cannot be changed outside a long rest")
+	Campaign.short_rest()
+	ok(not Campaign.can_change_path("enfina"), "  nor at a short rest")
+	Campaign.long_rest()
+	ok(Campaign.path_change_open and Campaign.can_change_path("enfina") and not Campaign.can_change_path("cyrus"),
+		"after a long rest: Enfina can change hers - Cyrus, with none chosen, chooses rather than changes")
+	ok(not Campaign.change_path("enfina", "juggernaut") and not Campaign.change_path("enfina", "saboteur"),
+		"  not to the one she is on, nor to somebody else's")
+	ok(Campaign.change_path("enfina", "vanguard") and Campaign.subclass_of("enfina") == "vanguard", "  to another of hers: changed")
+	ok(Campaign.change_path("enfina", "warden_of_cover") and Campaign.subclass_of("enfina") == "warden_of_cover",
+		"  and again, while the rest lasts")
+	ok(Campaign.SAVED.has("path_change_open") and Campaign.snapshot("", Vector2.ZERO).get("path_change_open", false),
+		"the window is saved with the run")
+	# The sheet on the map says so.
+	var sheet := CharacterSheet.new()
+	add_child(sheet)
+	await settle(2)
+	sheet.open(false)
+	for i in sheet._entries.size():
+		if sheet._entries[i].get("key", "") == "enfina":
+			sheet._index = i
+	sheet._show_entry()
+	await settle(2)
+	ok(sheet._path_button.visible and sheet._path_button.text == "Change path", "the character sheet offers to change it",
+		"%s, '%s'" % [sheet._path_button.visible, sheet._path_button.text])
+	sheet._choose_path()
+	await settle(2)
+	var picker: SubclassPicker = sheet.path_picker
+	var own: Button = picker.find_child("warden_of_cover", true, false).find_child("Choose", true, false) if picker != null else null
+	ok(picker != null and picker.changing and own != null and own.disabled, "  the picker changes, the path she is on not to be taken again")
+	if picker != null:
+		picker._on_choose("juggernaut")
+		picker._on_take()
+		await settle(2)
+	ok(Campaign.subclass_of("enfina") == "juggernaut" and sheet.path_picker == null, "  taken there, and the picker is put away")
+	sheet.close()
+	sheet.queue_free()
+	# A fight closes it.
+	var game = await open_fight("res://data/encounters/encounter_03_watcher.tres")
+	ok(not Campaign.path_change_open and not Campaign.can_change_path("enfina"), "the next fight closes the window")
+	game.queue_free()
+	await settle(3)
+	MenuPause.clear(get_tree())
+	Campaign.reset()
+	ok(not Campaign.path_change_open, "and a fresh start has it shut")
 	log_line("")

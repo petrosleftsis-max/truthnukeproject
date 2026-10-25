@@ -218,6 +218,8 @@ func _deploy_party(tiles: Array, fallback_party: Array, loadouts: Array = []):
 	# Going straight to a battle from the menu can mean no map has ever loaded
 	# and so no roster exists yet; the encounter's own player spawns stand in.
 	Campaign.seed_party(fallback_party)
+	# A fight ends the long rest's window for changing paths (Campaign.path_change_open).
+	Campaign.path_change_open = false
 	var fighters = Campaign.battle_party()
 	if not encounter.fighters.is_empty():
 		# The encounter names who fights - a stealth map's fight, fielding

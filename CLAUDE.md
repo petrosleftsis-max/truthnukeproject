@@ -488,7 +488,8 @@ the scroll (`_pinned`) and has Unlocks Only on its toolbar. Its Moves page lists
 skills, then spells on a shelf per gate, a line of numbers each (`facts_of`,
 `expected_damage`, `expected_heal`) and a role filter (`roles_of`, `ROLES`). The
 Sheet page shows what is on them folded in (`stat_of`), castings and uses as pips
-(`_pools_of`), and a passive not reached yet as "from level N". One chip
+(`_pools_of`), and a passive not reached yet as "from level N" - and no moves:
+those are the Moves page's, an ally's or a studied enemy's alike. One chip
 (`_tag`) serves all three; tests find rows by their first Label, so keep a
 heading's text first. Tab or the right trigger (`skill_tab`, read in `_input`
 before focus takes Tab) turns the page.
@@ -505,6 +506,10 @@ A test that fields Prometheus from a map with a spell in mind has him `learn` it
 
 **Paths are passives, mostly.** `SubclassDefinition` (data/subclasses) gives
 skills and passives; `Combat.take_path` adds them from level 24 (Stats.SUBCLASS_LEVEL).
+Chosen once (`choose_subclass`), a path changes only at a long rest:
+`long_rest` opens `Campaign.path_change_open` (saved), `_deploy_party` shuts it,
+and `change_path` / `can_change_path` are what the sheet's Change Path button and
+`SubclassPicker.offer(..., change = true)` ask (`restcycle` covers it).
 What a path does is a switch on `PassiveDefinition`, read in "What the paths do"
 and "The paths" in Combat.gd (`_path_hit_bonus` in `progression_damage_bonus`,
 `_evades` after the hit roll, `_splash`/`_overload`/`_spellstrike` in

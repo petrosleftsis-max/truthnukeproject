@@ -2,12 +2,13 @@ extends PanelContainer
 class_name SubclassPicker
 ## The choice of a path at level 24 (Stats.SUBCLASS_LEVEL): a character's three
 ## SubclassDefinitions side by side, each with what it brings and from which
-## level, and a button to take it. Taking one asks once more, since it is for
-## good.
+## level, and a button to take it. Taking one asks once more, since it holds
+## until a long rest.
 ##
 ## Built in code. The map puts one up for whoever in the party still has a path
 ## to choose (ExplorationScene._offer_paths), and the character sheet does when
-## asked; Campaign.choose_subclass does the choosing.
+## asked - to choose, or after a long rest to change (`changing`);
+## Campaign.choose_subclass and change_path do the choosing.
 
 ## A path was taken - Campaign already knows.
 signal chosen(key: String, subclass: String)
@@ -21,6 +22,9 @@ const CARD_WIDTH := 300
 
 ## Whose path this is.
 var key := ""
+## Whether they are changing the path they are on (Campaign.change_path) rather
+## than choosing their first.
+var changing := false
 ## The path waiting to be confirmed, or "".
 var picking := ""
 
@@ -33,8 +37,9 @@ var _choose_buttons: Array = []
 
 ## Builds the choice for `who`. `can_put_away` adds a Later button - for the
 ## character sheet, where it was asked for and can be asked for again.
-func offer(who: String, can_put_away: bool = false):
+func offer(who: String, can_put_away: bool = false, change: bool = false):
 	key = who
+	changing = change
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 	grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -45,12 +50,13 @@ func offer(who: String, can_put_away: bool = false):
 	title.theme_type_variation = &"HeaderLabel"
 	title.add_theme_font_size_override("font_size", 32)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.text = "%s chooses a path" % Campaign.display_name_of(who)
+	title.text = ("%s changes path" if changing else "%s chooses a path") % Campaign.display_name_of(who)
 	column.add_child(title)
 	var note := Label.new()
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.add_theme_color_override("font_color", MUTED)
-	note.text = "One of three, for good. Each teaches new things now and more at later levels."
+	note.text = "Rested, a path can be changed - until the party fights again. After that, only at the next long rest." if changing \
+		else "One of three, kept until a long rest. Each teaches new things now and more at later levels."
 	column.add_child(note)
 	_cards = HBoxContainer.new()
 	_cards.add_theme_constant_override("separation", 12)
@@ -80,7 +86,7 @@ func offer(who: String, can_put_away: bool = false):
 		later.text = "Later"
 		later.pressed.connect(func(): put_away.emit())
 		column.add_child(later)
-	FocusOnDemand.attach(self, _choose_buttons[0] if not _choose_buttons.is_empty() else null)
+	FocusOnDemand.attach(self, _first_choice())
 
 
 ## One path: its name, what it is, what it teaches, and the button to take it.
@@ -111,11 +117,23 @@ func _card(subclass: String) -> Control:
 	var choose := Button.new()
 	choose.name = "Choose"
 	choose.text = "Choose %s" % path.name
+	# The one they are on, when changing, is theirs already.
+	if changing and Campaign.subclass_of(key) == subclass:
+		choose.text = "Their path now"
+		choose.disabled = true
 	choose.size_flags_vertical = Control.SIZE_SHRINK_END | Control.SIZE_EXPAND
 	choose.pressed.connect(_on_choose.bind(subclass))
 	column.add_child(choose)
 	_choose_buttons.append(choose)
 	return card
+
+
+## The first path there is to take - not the one they are on, when changing.
+func _first_choice() -> Button:
+	for button in _choose_buttons:
+		if not button.disabled:
+			return button
+	return null
 
 
 ## What a path brings, a line each, with the level each comes at.
@@ -133,7 +151,7 @@ static func what_it_brings(path: SubclassDefinition) -> Array:
 
 func _on_choose(subclass: String):
 	picking = subclass
-	_confirm_text.text = "Take the path of the %s? It is for good." % SubclassDefinition.named(subclass).name
+	_confirm_text.text = ("Turn to the path of the %s?" if changing else "Take the path of the %s? It holds until a long rest.") % SubclassDefinition.named(subclass).name
 	_confirm_row.visible = true
 	_take.grab_focus.call_deferred()
 
@@ -141,11 +159,14 @@ func _on_choose(subclass: String):
 func _on_back():
 	picking = ""
 	_confirm_row.visible = false
-	if not _choose_buttons.is_empty():
-		_choose_buttons[0].grab_focus.call_deferred()
+	if _first_choice() != null:
+		_first_choice().grab_focus.call_deferred()
 
 
 func _on_take():
-	if picking == "" or not Campaign.choose_subclass(key, picking):
+	if picking == "":
+		return
+	var took: bool = Campaign.change_path(key, picking) if changing else Campaign.choose_subclass(key, picking)
+	if not took:
 		return
 	chosen.emit(key, picking)

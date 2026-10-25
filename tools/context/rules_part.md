@@ -33,7 +33,7 @@ How it is laid out:
 | **Prometheus** | An elemental mage of the five elements, and the party's hacker. He **learns** his spells from spellbooks (or by taking a Gate Nade apart). He can Hack an enemy's declared move, InstaHack a spell as it is cast, and Dispel Magic. | see Part 3 | Intellect |
 | **Alithia** | A priestess: heals, cleanses, revives (Resuscitate), Idol (holy) and water spells, and illusions. Her Intuition reads what an enemy will do next turn and holds it to that. She **grows into** her spells by level. | see Part 3 | Mindfulness |
 
-At level 24 each character chooses one of three **paths** (subclasses), for good:
+At level 24 each character chooses one of three **paths** (subclasses). A path can be changed only at a long rest: from one until the party next fights, from the character sheet (the designer, 2026-10-25).
 
 | Character | Paths |
 |---|---|
