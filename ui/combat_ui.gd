@@ -1964,10 +1964,14 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.HEAL:
 			# Reads like the damage line, because it is worked out the same way -
 			# with any share of their own health on top (heal_share_of_health).
-			var mended = _heal_amount(skill, effect)
+			var mended = 0 if effect.heals_share_only else _heal_amount(skill, effect)
 			var share := ""
-			if effect.heal_share_of_health > 0.0:
-				share = "%d%% of their health" % roundi(effect.heal_share_of_health * 100)
+			var caster = _caster()
+			var share_of: float = Combat.heal_share_of(caster, skill, effect) if not caster.is_empty() else effect.heal_share_of_health
+			if share_of > 0.0:
+				share = "%d%% of %s health" % [roundi(share_of * 100), "their own" if effect.applies_to_caster else "their"]
+				if effect.share_doubled_on_wounded:
+					share += " (twice the first time on a foe at half health)"
 				if mended <= 0:
 					return "Heal: %s" % share
 			if mended >= 0:

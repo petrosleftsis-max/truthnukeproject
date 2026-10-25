@@ -40,7 +40,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 134 suites and takes a while. Each one boots the real game
+A full run is 135 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one.
@@ -454,7 +454,14 @@ the `csv` suite checks every Base row against the data). A move that only grows
 stronger has **ranks** (`SkillDefinition.ranks`, `SkillRank`): read a skill's
 multiplier, condition dial and condition length through `Combat.modifier_of`,
 `dot_strength_of` and `rank_duration` wherever the user is known - never
-`skill.ability_modifier` straight. The passives' switches are read in Combat
+`skill.ability_modifier` straight. A rank can swap the condition
+(`SkillRank.condition`, `ranked_condition_effect`: Deep Corrosion's Deeply Corroded,
+which takes the weaker off) and a heal's share of health (`heal_share_of_health`,
+read by `heal_share_of` / `heal_share_from`: Light Swing, whose once-a-foe double
+is `_wounded_bonus`). Disarmed is a condition's `weapon_damage_change`, folded by
+`weapon_damage_factor` into `damage_dealt_multiplier` for an `is_weapon_attack`
+(Physical, not a spell, not an item), and taken off by `_weapon_attack_made`;
+`disarm` covers all three. The passives' switches are read in Combat
 "Progression" (`damage_reduction_of` inside `damage_taken_multiplier`,
 `progression_damage_bonus` inside `damage_dealt_multiplier`, `contest_bonus_of` in
 `wins_contest`, `lingering_bonus`/`lingering_turns` in the CONDITION and
@@ -473,10 +480,18 @@ enemies follow the new spells).
 **Five chapters** (Campaign "Chapters"): `CHAPTER_LEVELS` is where each ends
 (18, 33, 45, 55, 64); `begin_chapter(n)` from a dialogue. The character sheet's
 Levels page (`ui/character_sheet.gd`, "Levels" - `levels_of(key, subclass)` is
-the table) stops at 55, ΛΗΘΗ, until Chapter V (`levels_in_view`), and plays its
-unveiling once after (`levels_unveiled`). Its Moves page lists skills, then
-spells on a shelf per gate. Tab or the right trigger (`skill_tab`, read in
-`_input` before focus takes Tab) turns the page.
+the table, `level_entries_of` the same as entries: growth in a quiet line,
+everything else a chip, `is_growth`) stops at 55, ΛΗΘΗ, until Chapter V
+(`levels_in_view`), and plays its unveiling once after (`levels_unveiled`). It
+opens on the level they are at (`_scroll_target`), keeps the next unlocks above
+the scroll (`_pinned`) and has Unlocks Only on its toolbar. Its Moves page lists
+skills, then spells on a shelf per gate, a line of numbers each (`facts_of`,
+`expected_damage`, `expected_heal`) and a role filter (`roles_of`, `ROLES`). The
+Sheet page shows what is on them folded in (`stat_of`), castings and uses as pips
+(`_pools_of`), and a passive not reached yet as "from level N". One chip
+(`_tag`) serves all three; tests find rows by their first Label, so keep a
+heading's text first. Tab or the right trigger (`skill_tab`, read in `_input`
+before focus takes Tab) turns the page.
 
 **Spellbooks** (Campaign "Spellbooks"): somebody with `learns_spells`
 (Prometheus) knows `starting_spells` and what is in `Campaign.learned_spells`,

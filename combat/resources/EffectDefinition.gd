@@ -147,6 +147,13 @@ enum DispelScope {
 ## Used by HEAL: mends this share of the target's health on top - 0.5 is half
 ## of it back, 1.0 all of it (Restoration, Grace).
 @export_range(0.0, 1.0, 0.05) var heal_share_of_health: float = 0.0
+## Used by HEAL: mends only its share of health, nothing from the healer's
+## power - Light Swing, a share of Enfina's own health (ranked by SkillRank).
+@export var heals_share_only: bool = false
+## Used by HEAL with a share: twice the share when the skill strikes somebody at
+## half their health or less - once for each of them in a fight (Light Swing's
+## finishing mend, Combat._wounded_bonus).
+@export var share_doubled_on_wounded: bool = false
 ## Used by HEAL, the flat rule (APPROVED_TRIAL, 2026-10-24): Heal Flat + Heal Per
 ## Stat x the healer's healing stat + Heal Per Weapon x their weapon base, in
 ## place of power x the dial. Any of the three set switches it on for a skill;
@@ -282,7 +289,7 @@ enum DispelScope {
 ## type is hidden while that type is selected - see _validate_property.
 const FIELDS_BY_TYPE := {
 	EffectType.DAMAGE: ["damage_type", "min_amount", "max_amount"],
-	EffectType.HEAL: ["heal_modifier", "heal_share_of_health", "heal_flat", "heal_per_stat", "heal_per_weapon", "min_amount", "max_amount"],
+	EffectType.HEAL: ["heal_modifier", "heal_share_of_health", "heals_share_only", "share_doubled_on_wounded", "heal_flat", "heal_per_stat", "heal_per_weapon", "min_amount", "max_amount"],
 	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration", "wears_off_at_start"],
 	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "damage_modifier", "min_amount", "max_amount", "duration", "wears_off_at_start"],
 	EffectType.DISPEL: ["dispel_stat", "dispel_scope", "dispel_count"],

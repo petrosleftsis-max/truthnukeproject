@@ -55,7 +55,7 @@ func run_test():
 	# named sets that sound like what they are rather than what they hit for -
 	# guns bang, and bombs scatter debris even though they hit as physical.
 	var GUNS := ["gun", "burning_shot", "poison_dart", "warning_shot", "nail_projectile", "venomous_shot",
-		"frost_round", "corrosive_round", "combined_load", "venom_fan", "exposing_shot"]
+		"frost_round", "corrosive_round", "combined_load", "venom_fan"]
 	var BOMBS := ["tiny_bomb", "small_bomb", "medium_bomb", "big_bomb"]
 	var BY_ELEMENT := {
 		Damage.Type.EARTH: "Debris_Scattering",

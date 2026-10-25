@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Deeply Corroded"
+tag = "DC"
+description = "Eaten through by something caustic: it burns a little every turn, and their armour is a fifth worse while it does."
+duration = 5
+dot_type = 11
+dot_modifier = 0.25
+defense_change = -0.2
+dot_min = 1
+dot_max = 2

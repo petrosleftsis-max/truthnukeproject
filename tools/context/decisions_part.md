@@ -42,7 +42,7 @@ These are settled; suggestions should work within them.
 
 **Decided 2026-10-24**
 
-- **Corrosive Round** keeps its -10% Defense on the Corroded condition itself: it refreshes, never stacks, and is cleansed with Corroded.
+- **Corrosive Round** keeps its -10% Defense on the Corroded condition itself: it refreshes, never stacks, and is cleansed with Corroded. From 41 its Deep Corrosion rank puts on Deeply Corroded (-20%) instead, which takes Corroded off (2026-10-25).
 - **Catalyst** keeps its every-enemy scope and its exact rule (Part 1): once a short rest, every enemy, only the lingering conditions Cyrus himself inflicted. That is intentional - it is Cyrus's personal condition payoff. Team-wide condition synergy may come later as a separate mechanic, never folded into Catalyst.
 - **The Bomber's Self Destruct** stays as it is, untelegraphed: it teaches the player to read enemy moves.
 - **Erysichthon closes Chapter I.** It also appears briefly in the first encounter, as something to run from rather than a fair fight, and it has another enemy supporting it. Not implemented yet: its Chapter I level, the supporting enemy and the escape are OPEN.
@@ -267,6 +267,25 @@ The designer: a passive's ranks are one passive. This holds for every passive sh
   - Iron Hide 20%; DoT Master 30% and a turn longer; Kindling up to 45%; Reserved Power two more castings.
   - Bulwark: a tenth less within two tiles, a fifth beside her.
   - Aura: Blessed and Soothed both.
+
+## Disarm, Deep Corrosion and Light Swing (2026-10-25; implemented)
+
+The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` (APPROVED_DESIGN / APPROVED_TRIAL). Cyrus becomes the one owner of Defense reduction.
+
+- **Enfina's Armor Shred is Disarm:** level 24, a main action, melee, one target, x0.8. It puts Disarmed on the target: their next weapon attack deals half damage. Nothing lingers and nothing stacks.
+  - Disarmed comes off once they make a weapon attack, hit or miss. Unused, it wears off after 2 turns. That length is Claude's PROPOSAL test value; the handoff gives none.
+  - A weapon attack is Claude's reading of "weapon-based": a skill dealing Physical damage that is neither a spell nor an item. Swords, guns, darts and thrown nails are halved; Fire Burst, a spell or a bomb lands whole. PROPOSAL until the designer confirms.
+  - Halving goes through `damage_dealt_multiplier`, so the aim prompt says it too.
+- **Cyrus's Exposing Shot is gone.** Corrosive Round has a rank at 41, Deep Corrosion: x1.0, and Deeply Corroded (-20% Defense) in place of Corroded. It takes Corroded off rather than stacking with it, and refreshes like it.
+- **Light Swing mends a share of Enfina's own health:** 5 / 7 / 9 / 12 / 15% at levels 1 / 16 / 32 / 54 / 64.
+  - Twice that the first time in a fight a foe struck is at half their health or less. The health is read after the blow, so the blow that takes them to half pays double (Claude's reading of "when she breaks the 50% threshold"). Once a foe, then the base again; another foe can pay double too.
+  - It was 0.3 x (weapon base + 0.7 x Physical): 4 HP at level 1 (3%), 7 at 14 (5%), 17 at 54 (9%). The new base at 1 is 7 of her 130 (5%).
+- **Where the handoff and the game differ** (code kept as it is; in the ledger):
+  - Corrosive Round's base: the handoff says x0.9 and 3 turns; the game has x0.8 and 5 turns (5 from the condition proposal).
+  - Deep Corrosion lasts 5 turns, like Corroded, rather than the handoff's 3: a stronger rank should not last shorter. OPEN.
+  - At x1.0 Deep Corrosion hits as hard as the Gun, plus -20% Defense. OPEN against the rule that ammunition trades hit for condition.
+  - Corrosive Round is the Saboteur's. A Skirmisher or Trapper Cyrus has no Defense reduction now. OPEN.
+  - Prometheus's Stone Edge (Elemental Vanguard) still takes 10 Defense for 2 turns, so Cyrus is not quite the only one. OPEN.
 
 ## Known near-twins among the spells
 

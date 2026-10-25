@@ -96,6 +96,31 @@ func run_test():
 	ok(order == sorted and not order.has(-1), "the gates in their order, World first", "%s" % [gates])
 	ok(row_named(sheet, "Move_heal") != null, "Heal among them")
 	ok(not sheet._portrait.visible, "the portrait out of the way, for the width")
+	var heal_facts: Node = row_named(sheet, "Move_heal").find_child("Facts", true, false) if row_named(sheet, "Move_heal") != null else null
+	ok(heal_facts != null and "Range" in heal_facts.text and "heals " in heal_facts.text and "World" in heal_facts.text,
+		"each move says what it is in numbers: its reach, what it heals, its gate", heal_facts.text if heal_facts != null else "none")
+	var flame_facts: Node = row_named(sheet, "Move_votive_flame").find_child("Facts", true, false) if row_named(sheet, "Move_votive_flame") != null else null
+	ok(flame_facts != null and "before Defense" in flame_facts.text, "and roughly what it hits for", flame_facts.text if flame_facts != null else "none")
+	sheet._filter_moves("Healing")
+	await settle(2)
+	ok(row_named(sheet, "Move_heal").visible and not row_named(sheet, "Move_votive_flame").visible,
+		"narrowed to Healing: Heal stays, Votive Flame goes")
+	ok(sheet._toolbar.get_children().any(func(button): return button.text == "Healing" and button.button_pressed), "  and the toolbar says so")
+	sheet._filter_moves("")
+	await settle(2)
+	ok(row_named(sheet, "Move_votive_flame").visible, "  All brings it back")
+	await turn_to(sheet, "enfina", 0)
+	var passive_row: Node = null
+	for row in sheet._stat_rows.get_children():
+		if row.get_child_count() > 0 and row.get_child(0) is Label and row.get_child(0).text == "Passive Skills":
+			passive_row = row
+	var momentum_tag := []
+	if passive_row != null:
+		for tag in passive_row.get_child(1).get_children():
+			if texts_under(tag).has("Momentum I"):
+				momentum_tag = texts_under(tag)
+	ok(momentum_tag.has("from level 32") and not momentum_tag.any(func(text): return "Always active" in text),
+		"Enfina at 14: Momentum I is from level 32, not \"Always active\"", "%s" % [momentum_tag])
 
 	log_line("======== Moves: Prometheus learns his ========")
 	await turn_to(sheet, "prometheus", 1)
@@ -146,6 +171,24 @@ func run_test():
 	var now := row_named(sheet, "Level_14")
 	ok(now != null and is_equal_approx(now.modulate.a, 1.0) and row_named(sheet, "Level_20").modulate.a < 1.0,
 		"the level they are at in full, what is to come dimmed")
+	var next: Node = sheet._pinned.get_node_or_null("Next")
+	ok(next != null and texts_under(next).any(func(text): return text.begins_with("Next at level")), "what the next level with anything new brings, kept in sight",
+		"%s" % [texts_under(next) if next != null else "none"])
+	await settle(2)
+	ok(sheet._stat_scroll.scroll_vertical > 0, "the page opens on the level they are at, not at level 1", "%d" % sheet._stat_scroll.scroll_vertical)
+	var growth_only := ""
+	for level in range(15, 24):
+		var lines: Array = CharacterSheet.level_entries_of("cyrus").get(level, [])
+		if not lines.is_empty() and lines.all(func(item): return CharacterSheet.is_growth(item)):
+			growth_only = "Level_%d" % level
+			break
+	sheet._only_unlocks()
+	await settle(2)
+	ok(growth_only != "" and not row_named(sheet, growth_only).visible and row_named(sheet, "Level_24").visible and now.visible,
+		"Unlocks Only: a level of nothing but growth goes, 24 and the level they are at stay", growth_only)
+	sheet._only_unlocks()
+	await settle(2)
+	ok(row_named(sheet, growth_only).visible, "  and off again, it is back")
 	var grants := CharacterSheet.levels_of("prometheus")
 	ok(grants.get(8, []).any(func(text): return "Hermes open" in text), "Prometheus: at 8 the Gates of Hermes open", "%s" % [grants.get(8, [])])
 	# Under half a point a level, so not every level adds one.

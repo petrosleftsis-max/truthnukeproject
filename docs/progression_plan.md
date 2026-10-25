@@ -26,7 +26,7 @@ so at that level.
 | Bulwark I (8) | new passive: allies beside her take 10% less damage (aura) |
 | Taunting Shout 0.6 (16) | new skill, **Battle Cry**: a cone that hits and shoves everybody in it back a tile - no taunts (see "Taunts") |
 | Iron Hide II (16) | new passive: 10% less again (20%) |
-| Armor Shred 0.9, -20% defence, 2 turns (24) | new skill |
+| Armor Shred 0.9, -20% defence, 2 turns (24) | new skill (replaced by Disarm, 2026-10-25) |
 | Double Strike 1.5 (32) | **Follow Up Attack**, from 12 to 32, 1.4 to 1.5 |
 | Momentum I (32) | new passive: +10% damage on a turn she has not moved |
 | Short Stun 0.8, 1 turn (41) | new skill, **Stunning Blow** |
@@ -53,7 +53,7 @@ so at that level.
 | Strong Burn 1.1, 0.45, 3 turns (32) | Burning Shot, rank: 0.95 (cyrus_damage_adjustments.csv), 0.45, 3 turns |
 | Minor Slow Shot 0.9, 2 turns, -1 movement (32) | **Warning Shot**, from 1 to 32, those numbers |
 | Agile II (32) | new passive: stepping into cover sets off no reaction |
-| Armor Weakness 0.7, -25% defence, 2 turns (41) | new skill, **Exposing Shot** |
+| Armor Weakness 0.7, -25% defence, 2 turns (41) | new skill, **Exposing Shot** (removed 2026-10-25 for Corrosive Round's Deep Corrosion rank) |
 | DoT Master II (41) | +20% more and a turn longer |
 | Synergy I (54) | new passive: the party hits anybody carrying a harmful condition 10% harder |
 | Synergy II (64) | and 10% more again on whatever he put it on |

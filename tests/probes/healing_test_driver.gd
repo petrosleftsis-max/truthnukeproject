@@ -177,6 +177,16 @@ func formula_of(skill: SkillDefinition) -> String:
 				snappedf(effect.heal_flat, 0.01), snappedf(effect.heal_per_stat, 0.01), snappedf(effect.heal_per_weapon, 0.01)]
 		if effect.heal_share_of_health > 0.0:
 			text += " + round(%d%% of the target's max health)" % roundi(effect.heal_share_of_health * 100)
+		# Light Swing (the handoff of 2026-10-25): a share of her own health and
+		# nothing else, ranked, twice once a foe at half health.
+		if effect.heals_share_only:
+			var shares := ["%d%%" % roundi(effect.heal_share_of_health * 100)]
+			for rank in skill.ranks:
+				if rank != null and rank.heal_share_of_health > 0.0:
+					shares.append("%d%% from %d" % [roundi(rank.heal_share_of_health * 100), rank.level])
+			text = "round(%s of the user's max health)" % ", ".join(shares)
+			if effect.share_doubled_on_wounded:
+				text += ", twice the first time each foe it strikes is at half health or less"
 		if effect.applies_to_caster:
 			text += ", on its user"
 		parts.append(text)
@@ -186,7 +196,7 @@ func formula_of(skill: SkillDefinition) -> String:
 ## The flat rule is an APPROVED_TRIAL (2026-10-24); everything else stands as it was.
 func status_of(skill: SkillDefinition) -> String:
 	for effect in heal_effects(skill):
-		if effect.heals_flat() and not skill is ItemDefinition:
+		if (effect.heals_flat() or effect.heals_share_only) and not skill is ItemDefinition:
 			return "APPROVED_TRIAL"
 	return "EXISTING_BASELINE"
 
@@ -270,8 +280,8 @@ func current_heals():
 		var enfina := made("enfina", level)
 		var swing: SkillDefinition = SkillDatabase.skills["light_swing"]
 		for effect in heal_effects(swing):
-			var amount: int = combat.heal_amount(enfina, swing, effect)
-			row("Current", swing.name, level, "on Enfina (herself)", amount, "EXISTING_BASELINE", file_of(swing),
+			var amount: int = combat.heal_share_from(enfina, enfina, swing, effect) if effect.heals_share_only else combat.heal_amount(enfina, swing, effect)
+			row("Current", swing.name, level, "on Enfina (herself)", amount, status_of(swing), file_of(swing),
 				"%d%% of her max; with the blow" % roundi(100.0 * amount / most_of(enfina)))
 		var cyrus := made("cyrus", level)
 		for key in ITEMS:

@@ -44,10 +44,10 @@ const OWN_ICONS := {
 	# Declared moves - placeholders too.
 	"ground_pound": "ground_pound_skill.png", "rockfall": "rockfall_skill.png",
 	# The progression's (docs/progression.csv) - placeholders, each its own.
-	"battle_cry": "battle_cry_skill.png", "armor_shred": "armor_shred_skill.png",
+	"battle_cry": "battle_cry_skill.png",
 	"stunning_blow": "stunning_blow_skill.png",
 	"cover_leap": "cover_leap_skill.png",
-	"venom_fan": "venom_fan_skill.png", "exposing_shot": "exposing_shot_skill.png",
+	"venom_fan": "venom_fan_skill.png",
 	"tartarus_flame": "tartarus_flame_skill.png", "ire_of_sophia": "ire_of_sophia_skill.png",
 	"gnostic_tempest": "gnostic_tempest_skill.png", "stolen_sun": "stolen_sun_skill.png",
 	"holy_splash": "holy_splash_skill.png", "communion": "communion_skill.png",

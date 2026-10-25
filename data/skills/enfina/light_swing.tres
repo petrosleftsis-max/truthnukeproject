@@ -3,20 +3,44 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_fc1fx"]
 [ext_resource type="Texture2D" uid="uid://cc3cs3tjwhldd" path="res://art/icons/lightswing_skill.png" id="2_1jrtt"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_d0yiq"]
+[ext_resource type="Script" path="res://combat/resources/SkillRank.gd" id="3_rank"]
 [ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [sub_resource type="Resource" id="Resource_1jrtt"]
 script = ExtResource("1_fc1fx")
 type = 1
 applies_to_caster = true
-heal_modifier = 0.3
+heal_share_of_health = 0.05
+heals_share_only = true
+share_doubled_on_wounded = true
 duration = 1
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
+[sub_resource type="Resource" id="Rank_16"]
+script = ExtResource("3_rank")
+level = 16
+heal_share_of_health = 0.07
+
+[sub_resource type="Resource" id="Rank_32"]
+script = ExtResource("3_rank")
+level = 32
+heal_share_of_health = 0.09
+
+[sub_resource type="Resource" id="Rank_54"]
+script = ExtResource("3_rank")
+level = 54
+heal_share_of_health = 0.12
+
+[sub_resource type="Resource" id="Rank_64"]
+script = ExtResource("3_rank")
+level = 64
+heal_share_of_health = 0.15
+
 [resource]
 script = ExtResource("2_d0yiq")
+ranks = Array[ExtResource("3_rank")]([SubResource("Rank_16"), SubResource("Rank_32"), SubResource("Rank_54"), SubResource("Rank_64")])
 name = "Light Swing"
-description = "Preserve your energy to restore some vitality while still slashing at the enemy."
+description = "A lighter cut that steadies her: every hit mends a share of her own health - twice that the first time in a fight she strikes a foe at half their health or less."
 max_range = 1
 icon = ExtResource("2_1jrtt")
 effects = Array[ExtResource("1_fc1fx")]([SubResource("Resource_1jrtt")])

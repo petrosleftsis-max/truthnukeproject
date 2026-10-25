@@ -397,6 +397,11 @@ static func conditions() -> Array:
 					found[effect.trap_holds_with.resource_path] = effect.trap_holds_with
 				if effect != null and effect.zone_condition != null:
 					found[effect.zone_condition.resource_path] = effect.zone_condition
+			# What a rank puts on in place of the effect's (Deep Corrosion's
+			# Deeply Corroded - SkillRank.condition).
+			for rank in skill.ranks:
+				if rank != null and rank.condition != null:
+					found[rank.condition.resource_path] = rank.condition
 	# And the one nothing inflicts but an ambush on a stealth map.
 	found[Combat.SURPRISED.resource_path] = Combat.SURPRISED
 	for condition in conditions_from_combatants():

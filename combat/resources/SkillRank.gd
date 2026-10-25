@@ -20,6 +20,13 @@ class_name SkillRank
 @export_range(0.0, 5.0, 0.05, "or_greater") var condition_dot_modifier: float = 0.0
 ## How long the conditions it inflicts last from here, in turns.
 @export_range(0, 20) var condition_duration: int = 0
+## The condition it inflicts from here, in place of the effect's - a stronger
+## one, which replaces the weaker rather than stacking with it (Corrosive
+## Round's Deep Corrosion: Deeply Corroded for Corroded). Empty keeps the effect's.
+@export var condition: ConditionDefinition
+## The share of its user's health its heal mends from here (EffectDefinition's
+## Heal Share Of Health) - Light Swing's 5 / 7 / 9 / 12 / 15%.
+@export_range(0.0, 1.0, 0.01) var heal_share_of_health: float = 0.0
 
 @export_group("Splash")
 ## From here a hit that lands also catches everybody of the other side within

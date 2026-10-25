@@ -5,6 +5,8 @@
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
 [ext_resource type="AudioStream" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
 [ext_resource type="Resource" path="res://data/conditions/corroded.tres" id="4_cond"]
+[ext_resource type="Script" path="res://combat/resources/SkillRank.gd" id="5_rank"]
+[ext_resource type="Resource" path="res://data/conditions/deeply_corroded.tres" id="6_deep"]
 
 [sub_resource type="Resource" id="Effect_1"]
 script = ExtResource("1_effect")
@@ -13,8 +15,16 @@ condition = ExtResource("4_cond")
 condition_duration = 5
 condition_dot_modifier = 0.25
 
+[sub_resource type="Resource" id="Rank_41"]
+script = ExtResource("5_rank")
+level = 41
+title = "Deep Corrosion"
+ability_modifier = 1.0
+condition = ExtResource("6_deep")
+
 [resource]
 script = ExtResource("3_skill")
+ranks = Array[ExtResource("5_rank")]([SubResource("Rank_41")])
 name = "Corrosive Round"
 description = "A round that eats at whatever it hits: it burns on for five turns, and their armour is a tenth worse while it does."
 min_range = 2

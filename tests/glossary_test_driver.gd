@@ -126,6 +126,10 @@ func run_test():
 				for effect in source[key].effects:
 					if effect != null and (effect.condition == condition or effect.trap_holds_with == condition or effect.zone_condition == condition):
 						inflicted = true
+				# Or by a rank of a skill, in place of its effect's (SkillRank.condition).
+				for rank in source[key].ranks:
+					if rank != null and rank.condition == condition:
+						inflicted = true
 		if inflicted:
 			without_the_folder.append(condition.display_name)
 	ok(without_the_folder.size() == every.size(),

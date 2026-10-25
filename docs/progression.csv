@@ -6,7 +6,7 @@ Enfina,Base,8,1,Active,Heavy Swing,DPS,1.5,,,,,High-damage melee attack
 Enfina,Base,8,1,Passive,Bulwark I,Defense,,,,+DR near allies,,DR aura while adjacent
 Enfina,Base,16,2,Active,Taunting Shout,CC,0.6,,,,,Taunts enemies
 Enfina,Base,16,2,Passive,Iron Hide II,Defense,,,,+Defense scaling,,Improved DR
-Enfina,Base,24,3,Active,Armor Shred,Debuff,0.9,,2,-20% Defense,,Short defense debuff
+Enfina,Base,24,3,Active,Disarm,Control,0.8,,,,,"Next weapon attack deals half damage (replaces Armor Shred, 2026-10-25)"
 Enfina,Base,32,4,Active,Double Strike,DPS,1.5,,,,,Two melee attacks per action
 Enfina,Base,32,4,Passive,Momentum I,DPS,,,,,,+10% dmg if stationary
 Enfina,Base,41,5,Active,Short Stun,CC,0.8,,1,,,Brief melee stun
@@ -42,7 +42,6 @@ Cyrus,Base,24,3,Passive,Cover Runner II,Mobility,,,,,"+Speed, can climb walls",I
 Cyrus,Base,32,4,Active,Strong Burn,DoT,1.1,0.45,3,,+2 Speed to target,High-intensity Burn
 Cyrus,Base,32,4,Active,Minor Slow Shot,Debuff,0.9,,2,,-1 Speed,Slow effect
 Cyrus,Base,32,4,Passive,Agile II,Defense,,,,,,Reactions entering cover
-Cyrus,Base,41,5,Active,Armor Weakness,Debuff,0.7,,2,-25% Defense,,Defense shred
 Cyrus,Base,41,5,Passive,DoT Master II,DPS,,,,,,"+20% DoT, +1 turn"
 Cyrus,Base,54,6,Passive,Synergy I,Support,,,,,,+10% party dmg vs debuffed targets
 Cyrus,Base,64,7,Passive,Synergy II,Support,,,,,,+5–10% party dmg vs Cyrus-debuffed targets

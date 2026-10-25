@@ -1927,10 +1927,13 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		# arm that swung it. Once, however many it caught, and only because the
 		# skill landed on somebody.
 		if connected:
+			# Light Swing's finishing mend: twice the share, once a foe.
+			_share_times = _wounded_bonus(attacker, skill, struck)
 			for effect in skill.all_effects():
 				if not effect.applies_to_caster or not attacker.alive:
 					continue
 				apply_effect(attacker, attacker, effect, skill, false)
+			_share_times = 1.0
 			# Their Guard covering those beside them too (Covering Stance).
 			_cover_with_guard(attacker, skill_key, skill)
 		elif targets.is_empty() and _summoned_now.is_empty() and not trapped_ground:
@@ -2014,6 +2017,8 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				attacker.skill_used_this_turn = false
 				update_information.emit("[color=yellow]%s[/color] has their action back.\n" % attacker.name)
 		_metric("action", {"who": attacker, "skill": skill, "secondary": as_secondary, "landing": landing})
+		# A weapon attack made: Disarmed comes off ("Disarmed").
+		_weapon_attack_made(attacker, skill)
 		# Counted for what can be used only so often a short rest
 		# (uses_per_short_rest, SPENT_UNTIL_REST).
 		if skill.uses_per_short_rest > 0:
@@ -2272,6 +2277,7 @@ func _land_reaction(attacker: Dictionary, skill: SkillDefinition, target: Dictio
 				attacker["opened_on"] = opened
 	else:
 		update_information.emit("{0} missed.\n".format([attacker.name]))
+	_weapon_attack_made(attacker, skill)
 
 
 ## Remembers that `attacker` hurt each of `struck` this turn, for Exposed.
@@ -2754,6 +2760,12 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 			})
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, "a lingering wound"))
 		EffectDefinition.EffectType.CONDITION:
+			# A rank's stronger condition in place of the effect's, replacing the
+			# weaker on them rather than stacking with it (SkillRank.condition).
+			var ranked := ranked_condition_effect(attacker, skill, effect)
+			if ranked != effect:
+				replace_matching_tick(target, "condition", effect.condition, 0)
+				effect = ranked
 			if effect.condition == null:
 				push_warning("A CONDITION effect on %s has no condition assigned." % (skill.name if skill != null else "an unnamed skill"))
 			elif immune_to_condition(target, effect.condition):
@@ -3329,6 +3341,30 @@ static func dot_strength_of(comb: Dictionary, skill: SkillDefinition, effect: Ef
 	for rank in ranks_reached(comb, skill):
 		if rank.condition_dot_modifier > 0.0:
 			value = rank.condition_dot_modifier
+	return value
+
+
+## `effect` as `skill` in `comb`'s hands puts it on: with a rank's condition in
+## place of its own (SkillRank.condition), or `effect` itself.
+static func ranked_condition_effect(comb: Dictionary, skill: SkillDefinition, effect: EffectDefinition) -> EffectDefinition:
+	var condition: ConditionDefinition = null
+	for rank in ranks_reached(comb, skill):
+		if rank.condition != null:
+			condition = rank.condition
+	if condition == null or effect == null or effect.condition == condition:
+		return effect
+	var ranked: EffectDefinition = effect.duplicate()
+	ranked.condition = condition
+	return ranked
+
+
+## The share of its user's health `effect` mends, from `skill` in `comb`'s hands
+## (SkillRank.heal_share_of_health).
+static func heal_share_of(comb: Dictionary, skill: SkillDefinition, effect: EffectDefinition) -> float:
+	var value: float = effect.heal_share_of_health if effect != null else 0.0
+	for rank in ranks_reached(comb, skill):
+		if rank.heal_share_of_health > 0.0:
+			value = rank.heal_share_of_health
 	return value
 
 
@@ -4939,7 +4975,49 @@ func damage_dealt_multiplier(attacker: Dictionary, target: Dictionary, skill: Sk
 			multiplier *= 1.0 + passive.thwarted_damage_bonus
 	# Momentum, Elemental Affinity, Synergy ("Progression").
 	multiplier *= progression_damage_bonus(attacker, target, skill)
+	# Disarmed, a weapon attack lands for less ("Disarmed").
+	multiplier *= weapon_damage_factor(attacker, skill)
 	return multiplier
+
+
+## --- Disarmed ---
+##
+## A condition's Weapon Damage Change touches the bearer's weapon attacks - a
+## skill that hurts with Physical damage and is neither a spell (through a gate)
+## nor an item: a sword, a gun, a dart, a thrown nail, not a Fire Burst. With
+## Ends After Weapon Attack it comes off once they have made one, hit or miss.
+## Enfina's Disarm (the designer's handoff of 2026-10-25): their next one, half.
+
+## Whether `skill` is a weapon attack.
+static func is_weapon_attack(skill: SkillDefinition) -> bool:
+	return skill != null and skill.deals_damage and not skill is ItemDefinition and not is_spell(skill) \
+		and skill.damage_type == Damage.Type.PHYSICAL
+
+
+## What `attacker`'s conditions do to `skill`'s damage: 1.0 but for a weapon
+## attack while Disarmed.
+func weapon_damage_factor(attacker: Dictionary, skill: SkillDefinition) -> float:
+	if not is_weapon_attack(skill):
+		return 1.0
+	var factor := 1.0
+	for entry in attacker.get("status_effects", []):
+		var condition = entry.get("condition") if entry.get("stat", "") == "condition" else null
+		if condition != null and condition.weapon_damage_change != 0.0:
+			factor *= maxf(1.0 + condition.weapon_damage_change, 0.0)
+	return factor
+
+
+## `attacker` has made a weapon attack with `skill`: what lasted only until one
+## comes off.
+func _weapon_attack_made(attacker: Dictionary, skill: SkillDefinition):
+	if not is_weapon_attack(skill) or not attacker.has("status_effects"):
+		return
+	for entry in attacker.status_effects.duplicate():
+		var condition = entry.get("condition") if entry.get("stat", "") == "condition" else null
+		if condition != null and condition.ends_after_weapon_attack:
+			attacker.status_effects.erase(entry)
+			update_information.emit("[color=yellow]%s[/color] is no longer %s.\n" % [attacker.name, condition.display_name.to_lower()])
+			update_combatants.emit(combatants)
 
 
 
@@ -4953,9 +5031,6 @@ func base_skill_damage(attacker: Dictionary, skill: SkillDefinition) -> int:
 	return maxi(roundi(power_behind(attacker, skill) * modifier_of(attacker, skill)), 0)
 
 
-## What `skill` mends when `healer` casts it. No defence on the other side of
-## it - being tough does not make you harder to patch up - and no randomness,
-## so a heal is something you can count on when deciding whether it is enough.
 ## A share of `target`'s own health a heal gives on top of its amount
 ## (EffectDefinition.heal_share_of_health): Restoration, Grace, the cure potions.
 func heal_share_on(target: Dictionary, effect: EffectDefinition) -> int:
@@ -4964,6 +5039,41 @@ func heal_share_on(target: Dictionary, effect: EffectDefinition) -> int:
 	return roundi(get_effective_stat(target, "max_hp") * effect.heal_share_of_health)
 
 
+## The share of `target`'s health `effect` mends from `healer`'s `skill`: ranked
+## (heal_share_of), and twice it for Light Swing's finishing mend (_share_times).
+func heal_share_from(healer: Dictionary, target: Dictionary, skill: SkillDefinition, effect: EffectDefinition) -> int:
+	var share: float = heal_share_of(healer, skill, effect) if skill != null else effect.heal_share_of_health
+	if share <= 0.0 or not target.has("max_hp"):
+		return 0
+	return roundi(get_effective_stat(target, "max_hp") * share * _share_times)
+
+
+## What a heal's share is multiplied by just now: 2 while Light Swing's
+## finishing mend lands (_wounded_bonus), 1 otherwise.
+var _share_times := 1.0
+
+
+## Twice the share of `skill`'s heal (EffectDefinition.share_doubled_on_wounded)
+## when it struck somebody in `struck` now at half their health or less, the first
+## time for them this fight - remembered on `attacker` (`wounded_bonus_on`).
+func _wounded_bonus(attacker: Dictionary, skill: SkillDefinition, struck: Array) -> float:
+	if skill == null or not skill.all_effects().any(func(effect): return effect != null and effect.share_doubled_on_wounded):
+		return 1.0
+	var spent: Array = attacker.get("wounded_bonus_on", [])
+	for target in struck:
+		if spent.has(target.get("id", -1)) or not target.has("max_hp"):
+			continue
+		if target.hp * 2 <= get_effective_stat(target, "max_hp"):
+			spent.append(target.get("id", -1))
+			attacker["wounded_bonus_on"] = spent
+			update_information.emit("[color=yellow]%s[/color] finishes on a wounded foe, and mends twice over.\n" % attacker.name)
+			return 2.0
+	return 1.0
+
+
+## What `skill` mends when `healer` casts it. No defence on the other side of
+## it - being tough does not make you harder to patch up - and no randomness,
+## so a heal is something you can count on when deciding whether it is enough.
 ##
 ## A skill's heal under the flat rule (EffectDefinition.heals_flat - Heal, Light
 ## Heal, Communion, Restoration, Mend the Bound) is Heal Flat + Heal Per Stat x the
@@ -5111,7 +5221,7 @@ func predict_hit(attacker: Dictionary, target: Dictionary, skill: SkillDefinitio
 				result.damage += resisted_damage(target, element, skill_damage(attacker, target, skill, power))
 			EffectDefinition.EffectType.HEAL:
 				if result.wins:
-					result.heal += heal_amount(attacker, skill, effect) + heal_share_on(target, effect)
+					result.heal += (0 if effect.heals_share_only else heal_amount(attacker, skill, effect)) + heal_share_from(attacker, target, skill, effect)
 				else:
 					result.dropped.append("the heal")
 			EffectDefinition.EffectType.CONDITION:
@@ -5191,7 +5301,9 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	# effect's flat range only stands in when there is no skill behind the
 	# healing at all, the way it does for damage.
 	var amount = heal_amount(attacker, skill, effect) if skill != null else randi_range(effect.min_amount, effect.max_amount)
-	amount += heal_share_on(target, effect)
+	if effect.heals_share_only:
+		amount = 0
+	amount += heal_share_from(attacker, target, skill, effect)
 	var before_heal: int = target.hp
 	target.hp = mini(target.hp + amount, get_effective_stat(target, "max_hp"))
 	_metric("heal", {"who": attacker, "target": target, "amount": target.hp - before_heal, "skill": skill})

@@ -118,6 +118,12 @@ const DOT_STRENGTH_NAMES := {
 ## It comes off the moment they are hurt - talked into standing down, and
 ## then hit.
 @export var ends_when_hit: bool = false
+## Their weapon attacks - a skill that is neither a spell nor an item - deal
+## this share more or less: -0.5 is half. Disarmed.
+@export_range(-0.9, 2.0, 0.05) var weapon_damage_change: float = 0.0
+## It comes off once they have made a weapon attack - their next one is the one
+## it touches. Disarmed.
+@export var ends_after_weapon_attack: bool = false
 
 @export_group("Illusions and favours")
 ## The next attack that would hit them misses - an image takes it - and this
@@ -176,6 +182,8 @@ func describe() -> String:
 		parts.append("no secondary action")
 	if prevents_reactions:
 		parts.append("no reactions")
+	if weapon_damage_change != 0.0:
+		parts.append("%s weapon attack %+d%% damage" % ["next" if ends_after_weapon_attack else "every", roundi(weapon_damage_change * 100)])
 	if drift_tiles > 0:
 		parts.append("blown %d tiles each turn" % drift_tiles)
 	if parts.is_empty():

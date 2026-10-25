@@ -389,21 +389,25 @@ func cyrus_paths():
 	put(foe, free_beside(cyrus.position, 3))
 	foe.status_effects.clear()
 	var defence: int = combat.get_effective_stat(foe, "defense")
+	# Corroded, or from 41 Deep Corrosion's Deeply Corroded.
+	var round: SkillDefinition = SkillDatabase.skills.corrosive_round
+	var corrosion: ConditionDefinition = Combat.ranked_condition_effect(cyrus, round, round.effects[0]).condition
+	var corroded := corrosion.resource_path.get_file().get_basename()
 	give_turn(cyrus)
 	await combat.use_skill("corrosive_round", cyrus, foe.position, false)
 	await settle(3)
-	ok(has_condition(foe, "corroded") and combat.get_effective_stat(foe, "defense") < defence or defence == 0,
-		"corroded, and worse armour while it lasts", "%d -> %d" % [defence, combat.get_effective_stat(foe, "defense")])
+	ok(has_condition(foe, corroded) and (combat.get_effective_stat(foe, "defense") < defence or defence == 0),
+		"%s, and worse armour while it lasts" % corrosion.display_name.to_lower(), "%d -> %d" % [defence, combat.get_effective_stat(foe, "defense")])
 	var mark := heard.size()
 	give_turn(cyrus)
 	await combat.use_skill("gun", cyrus, foe.position, false)
 	await settle(3)
-	ok(heard_since(mark, "sets the corroded off"), "a Gun hit sets it off once more (Overload)")
+	ok(heard_since(mark, "sets the %s off" % corrosion.display_name.to_lower()), "a Gun hit sets it off once more (Overload)")
 	var beside: Dictionary = foes[1]
 	put(beside, a_tile(foe.position, func(tile): return combat._beside({"position": tile}, foe)))
 	beside.status_effects.clear()
 	combat._paths_at_turn_start(foe)
-	ok(has_condition(beside, "corroded"), "as its turn starts, it spreads to the one beside it (Contagion)")
+	ok(has_condition(beside, corroded), "as its turn starts, it spreads to the one beside it (Contagion)")
 
 	log_line("")
 	log_line("======== Trapper ========")

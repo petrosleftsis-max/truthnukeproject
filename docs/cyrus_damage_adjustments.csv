@@ -7,4 +7,5 @@ Cyrus,Venom Fan,24,Nerf AoE direct hit,0.8,0.7,0.2,0.2,3,Cone 3,Expected 2-3,Poi
 Cyrus,Warning Shot,32,No change,0.9,0.9,,,0,Single target,1,-1 movement for 2 turns,Verify the movement debuff is correctly implemented,"Control shot, not primary damage option"
 Cyrus,Frost Round,24,No change,0.9,0.9,,,0,Single target,1,-2 movement for 1 turn,Verify Ice resistance interactions,Control ammunition
 Cyrus,Corrosive Round,32,Condition proposal 2026-10-25 (Corroded 5 turns),0.8,0.8,0.25,0.25,5,Single target,1,-10% Defense while Corroded,Verify Defense reduction duration and stacking,Armor-reduction ammunition; direct damage intentionally lower
+Cyrus,Corrosive Round rank: Deep Corrosion,41,Handoff 2026-10-25 (replaces Exposing Shot),0.8,1.0,0.25,0.25,5,Single target,1,-20% Defense while Deeply Corroded (in place of Corroded),"Rank at 41: x1.0 and Deeply Corroded; Saboteur path only, as Corrosive Round is",Cyrus the one owner of Defense reduction
 Cyrus,Combined Load,41,Review after implementation,1.0,,,,Single target,1,Combines two ammunition effects,Do not add another multiplier until combined-load tests exist,Two conditions in one action may already be its value

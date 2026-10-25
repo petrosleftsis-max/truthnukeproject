@@ -345,6 +345,15 @@ func _heal_text(skill: SkillDefinition) -> String:
 			text = " + ".join(terms)
 		if effect.heal_share_of_health > 0.0:
 			text += " + %d%% of the target's max health" % roundi(effect.heal_share_of_health * 100)
+		# Only the share (Light Swing): its ranks raise it, and it doubles once a
+		# foe at half health (Combat._wounded_bonus).
+		if effect.heals_share_only:
+			text = "%d%% of the target's max health" % roundi(effect.heal_share_of_health * 100)
+			for rank in skill.ranks:
+				if rank != null and rank.heal_share_of_health > 0.0:
+					text += ", %d%% from level %d" % [roundi(rank.heal_share_of_health * 100), rank.level]
+			if effect.share_doubled_on_wounded:
+				text += ", twice the first time in a fight each foe it strikes is at half health or less"
 		if effect.applies_to_caster:
 			text += ", on its user"
 		parts.append(text)

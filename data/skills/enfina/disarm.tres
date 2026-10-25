@@ -1,26 +1,26 @@
 [gd_resource type="Resource" script_class="SkillDefinition" format=3]
 
 [ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/armor_shred_skill.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://art/icons/greatsword_skill.png" id="2_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/disarmed.tres" id="4_cond"]
 [ext_resource type="AudioStream" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
 
-[sub_resource type="Resource" id="Effect_1"]
+[sub_resource type="Resource" id="Effect_disarm"]
 script = ExtResource("1_effect")
-type = 7
-stat = "defense"
-stat_multiplier = 0.8
-duration = 2
+type = 8
+condition = ExtResource("4_cond")
 
 [resource]
 script = ExtResource("3_skill")
-name = "Armor Shred"
-description = "A tearing cut that opens up their armour: a fifth less defence for two turns."
+name = "Disarm"
+description = "A cut at the hand that holds the weapon: their next weapon attack deals half damage."
 required_level = 24
 min_range = 1
 max_range = 1
-ability_modifier = 0.9
+ability_modifier = 0.8
 melee = true
 icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_disarm")])
 sound = ExtResource("90_sfx")
-effects = Array[ExtResource("1_effect")]([SubResource("Effect_1")])
+sound_volume_db = -6.0

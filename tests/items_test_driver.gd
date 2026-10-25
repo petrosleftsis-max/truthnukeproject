@@ -88,13 +88,14 @@ func run_test():
 	# good news, from passives: Alithia's Aura and Mercy, Enfina's Bulwark.
 	# And the paths': Snared from a trap, Corroded from a round, Veiled, Blurred,
 	# a Phantom Body, Sanctified, Mirage, Accused, Recanted and Grand Design from
-	# their spells and passives - and Dazed from Enfina's Tremor.
+	# their spells and passives - and Dazed from Enfina's Tremor, Disarmed from
+	# her Disarm, Deeply Corroded from Corrosive Round's Deep Corrosion.
 	var not_bottled := ["surprised", "confused", "staggered", "choking_ash", "deafened",
 		"hesitating", "deceived", "exposed", "riding", "crippled", "grappled",
 		"scented", "swallowed", "bile_soaked",
 		"blessed", "soothed", "bulwarked", "fortified", "sheltered",
 		"snared", "corroded", "veiled", "blurred", "phantom_body", "sanctified", "mirage", "accused", "recanted", "grand_design",
-		"reflected", "dazed"]
+		"reflected", "dazed", "disarmed", "deeply_corroded"]
 	for condition in conditions:
 		if not_bottled.has(condition):
 			continue

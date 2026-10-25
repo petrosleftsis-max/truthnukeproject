@@ -13,7 +13,8 @@ const SHEET := "res://docs/cyrus_damage_adjustments.csv"
 ## The sheet's names, as the game keys them.
 const KEYS := {"Gun": "gun", "Poison Dart": "poison_dart", "Burning Shot": "burning_shot",
 	"Burning Shot rank: Strong Burn": "burning_shot", "Venom Fan": "venom_fan", "Warning Shot": "warning_shot",
-	"Frost Round": "frost_round", "Corrosive Round": "corrosive_round", "Combined Load": "combined_load"}
+	"Frost Round": "frost_round", "Corrosive Round": "corrosive_round", "Combined Load": "combined_load",
+	"Corrosive Round rank: Deep Corrosion": "corrosive_round"}
 
 var _log: FileAccess = null
 var _fail = 0
@@ -212,6 +213,13 @@ func leaves_something(skill: SkillDefinition) -> bool:
 ## Gun is the baseline for an immediate single-target hit; ammunition that
 ## leaves a condition hits less hard than the Gun; and a condition skill with an
 ## area hits each target less hard than his single-target condition ammunition.
+## Ammunition the designer set level with the Gun from a level, by key:
+## Corrosive Round's Deep Corrosion at 41, x1.0
+## (docs/handoff_0.1/disarm_deep_corrosion_light_swing.md). Noted, OPEN against
+## the rule, rather than failed.
+const LEVEL_WITH_THE_GUN := {"corrosive_round": 41}
+
+
 func the_rules():
 	log_line("======== the Gun is the baseline ========")
 	var gun: SkillDefinition = SkillDatabase.skills.gun
@@ -225,6 +233,9 @@ func the_rules():
 				continue
 			var mod: float = Combat.modifier_of(comb, skill)
 			ammo_lowest = minf(ammo_lowest, mod)
+			if LEVEL_WITH_THE_GUN.has(key) and level >= LEVEL_WITH_THE_GUN[key]:
+				log_line("  NOTE  level %d: %s x%.2f, level with the Gun's x%.2f - the handoff's Deep Corrosion, OPEN against this rule" % [level, skill.name, mod, baseline])
+				continue
 			ok(mod < baseline, "  level %d: %s x%.2f, under the Gun's x%.2f" % [level, skill.name, mod, baseline])
 		for key in comb.skill_list:
 			var skill: SkillDefinition = SkillDatabase.skills.get(key)
@@ -233,9 +244,8 @@ func the_rules():
 			var mod: float = Combat.modifier_of(comb, skill)
 			ok(ammo_lowest == 99.0 or mod < ammo_lowest, "  level %d: %s x%.2f a target, under his single-target condition ammunition's lowest x%.2f" % [level, skill.name, mod, ammo_lowest])
 	# OPEN against these rules (docs/balance_register.csv), noted rather than failed.
-	var exposing: SkillDefinition = SkillDatabase.skills.exposing_shot
 	var fan: SkillDefinition = SkillDatabase.skills.venom_fan
-	log_line("  NOTE  Exposing Shot (single target, a debuff, not ammunition) x%.2f; Venom Fan (area) x%.2f" % [exposing.ability_modifier, fan.ability_modifier])
+	log_line("  NOTE  Venom Fan (area) x%.2f" % fan.ability_modifier)
 	for key in ["tripwire", "minefield"]:
 		var trap: SkillDefinition = SkillDatabase.skills[key]
 		log_line("  NOTE  %s bursts for x%.2f on everybody within %d, and holds them" % [trap.name, trap.effects[0].trap_burst_modifier, trap.effects[0].trap_burst_radius])
@@ -298,7 +308,11 @@ func frost_and_ice():
 
 func corrosion():
 	log_line("======== Corrosive Round: a tenth less Defense while Corroded, and only then ========")
+	# At 40: from 41 it is Deep Corrosion, Deeply Corroded in place of Corroded
+	# (the disarm suite).
 	var cyrus := who("cyrus")
+	var level: int = cyrus.level
+	cyrus.level = 40
 	var round: SkillDefinition = SkillDatabase.skills.corrosive_round
 	ok(round.effects.size() == 1 and round.effects[0].condition != null, "one effect: Corroded, nothing beside it")
 	var foe := a_foe()
@@ -332,6 +346,7 @@ func corrosion():
 		"immune to being weakened, it burns but the armour holds", "%d of %d" % [combat.stat_of(foe, Stats.Type.DEFENSE), plain])
 	foe["immune_to"] = own_immunities
 	foe.status_effects.clear()
+	cyrus.level = level
 	log_line("")
 
 

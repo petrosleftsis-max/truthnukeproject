@@ -245,10 +245,8 @@ func run_test():
 	sheet.open_on(subject.name)
 	await get_tree().process_frame
 	var state_row = row_headed(sheet, "State")
-	ok(state_row != null, "somebody in a fight has a State row", subject.name)
-	if state_row != null:
-		ok(texts_under(state_row).has("none"), "which says none while nothing is on them",
-			"%s" % [texts_under(state_row)])
+	# A row saying "none" said nothing worth reading: it comes with what it lists.
+	ok(state_row == null, "with nothing on them, no State row", subject.name)
 	sheet.close()
 
 	# Burn laid the way a fight lays it, by the skill that inflicts it.
@@ -269,7 +267,7 @@ func run_test():
 	sheet.open_on(subject.name)
 	await get_tree().process_frame
 	state_row = row_headed(sheet, "State")
-	ok(state_row != null, "with something on them the row is still there")
+	ok(state_row != null, "with something on them, a State row")
 	if state_row != null:
 		var said = " / ".join(texts_under(state_row))
 		var hovered = " / ".join(tooltips_under(state_row)).replace("\n", " ")

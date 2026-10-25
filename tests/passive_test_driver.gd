@@ -245,13 +245,16 @@ func run_test():
 	if row != null:
 		var said = " / ".join(texts_under(row))
 		ok(said.contains("Mimicry"), "naming Mimicry", said)
-		ok(said.contains("Always active"), "saying it is always working")
+		# Always working, so the tag says what it does, in a line, rather than
+		# "Always active" on every tag.
+		ok(said.contains(CharacterSheet.passive_summary(mimicry)) and not said.contains("Always active"),
+			"with what it does in a line, not \"Always active\"", CharacterSheet.passive_summary(mimicry))
 		ok(not said.contains("Active now"), "without saying twice that it is on")
-		# What it does is a hover away rather than written out: a paragraph per
+		# The whole of it is a hover away rather than written out: a paragraph per
 		# passive swamps the sheet once a character has a few.
-		ok(not said.contains(mimicry.description), "what it does is not written out on the sheet")
+		ok(not said.contains(mimicry.description), "what it does is not written out in full on the sheet")
 		var hovered = " / ".join(tooltips_under(row)).replace("\n", " ")
-		ok(hovered.contains(mimicry.description), "but hovering it says, in full", hovered)
+		ok(hovered.contains(mimicry.description) and hovered.contains("Always active"), "but hovering it says, in full, and that it always works", hovered)
 	ok(row_headed(sheet, "Skills") == null, "and no Skills row, since it has nothing to press")
 	sheet.close()
 	MenuPause.clear(get_tree())
@@ -317,7 +320,7 @@ func run_test():
 	ok(row != null, "opened with no battle running, the row is still there")
 	if row != null:
 		var said = " / ".join(texts_under(row))
-		ok(said.contains("Mimicry") and said.contains("Always active"), "with the passive and when it works", said)
+		ok(said.contains("Mimicry") and said.contains(CharacterSheet.passive_summary(mimicry)), "with the passive and what it does", said)
 	loose.close()
 	log_line("")
 

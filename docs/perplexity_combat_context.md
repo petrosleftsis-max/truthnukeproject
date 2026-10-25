@@ -489,7 +489,7 @@ so at that level.
 | Bulwark I (8) | new passive: allies beside her take 10% less damage (aura) |
 | Taunting Shout 0.6 (16) | new skill, **Battle Cry**: a cone that hits and shoves everybody in it back a tile - no taunts (see "Taunts") |
 | Iron Hide II (16) | new passive: 10% less again (20%) |
-| Armor Shred 0.9, -20% defence, 2 turns (24) | new skill |
+| Armor Shred 0.9, -20% defence, 2 turns (24) | new skill (replaced by Disarm, 2026-10-25) |
 | Double Strike 1.5 (32) | **Follow Up Attack**, from 12 to 32, 1.4 to 1.5 |
 | Momentum I (32) | new passive: +10% damage on a turn she has not moved |
 | Short Stun 0.8, 1 turn (41) | new skill, **Stunning Blow** |
@@ -516,7 +516,7 @@ so at that level.
 | Strong Burn 1.1, 0.45, 3 turns (32) | Burning Shot, rank: 0.95 (cyrus_damage_adjustments.csv), 0.45, 3 turns |
 | Minor Slow Shot 0.9, 2 turns, -1 movement (32) | **Warning Shot**, from 1 to 32, those numbers |
 | Agile II (32) | new passive: stepping into cover sets off no reaction |
-| Armor Weakness 0.7, -25% defence, 2 turns (41) | new skill, **Exposing Shot** |
+| Armor Weakness 0.7, -25% defence, 2 turns (41) | new skill, **Exposing Shot** (removed 2026-10-25 for Corrosive Round's Deep Corrosion rank) |
 | DoT Master II (41) | +20% more and a turn longer |
 | Synergy I (54) | new passive: the party hits anybody carrying a harmful condition 10% harder |
 | Synergy II (64) | and 10% more again on whatever he put it on |
@@ -858,7 +858,6 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - 16: Burning Shot
   - 24: Venom Fan
   - 32: Warning Shot
-  - 41: Exposing Shot
   - 64: Catalyst
 - Passives:
   - **Light Footed** (Always active): Stealth, Slip Past and Run can be used as his secondary action as well as his main one - so he can Run twice in a turn, or slip away after striking. [Can use Stealth, Slip Past and Run as a secondary action as well as a main one.]
@@ -885,7 +884,7 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - 1: Study, Greatsword Attack, Fire Burst, Light Swing, Shoving Strike, Blink Strike, Guard, Slip Past, Run, Intimidate, Hurl, Grab, Climb
   - 4: Trailblaze
   - 16: Battle Cry
-  - 24: Armor Shred
+  - 24: Disarm
   - 32: Follow Up Attack
   - 41: Stunning Blow
   - 54: Sweep Strike
@@ -1310,11 +1309,6 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: Use what the party knows about them to convince them one of their own has sold them out: their next turn goes on the nearest of their own side. Only works on somebody the party has something on - their faction known, one of their kind questioned, a clue about them. His Self against their Intellect.
   - Effect: {type: Condition; condition: Deceived (deceived); condition_duration: 1}
   - Settings: can_be_copied: false; needs_leverage: true
-- **Exposing Shot** (`exposing_shot`) - level 41; main action; range 2-20; ranged; single target; damage x0.7 Physical, scales with Self
-  - Who has it: Cyrus
-  - Says: A shot at the joints of their armour: a quarter less defence for two turns.
-  - Effect: {type: Stat Multiplier; stat: "defense"; stat_multiplier: 0.75}
-  - Settings: respects_blocking: true
 - **Gun** (`gun`) - level 1; main action; range 2-20; ranged; single target; damage x1.0 Physical, scales with Self
   - Who has it: Cyrus
   - Says: Cyrus uses gun.
@@ -1358,6 +1352,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Saboteur path
   - Says: A round that eats at whatever it hits: it burns on for five turns, and their armour is a tenth worse while it does.
   - Effect: {type: Condition; condition: Corroded (corroded); condition_duration: 5; condition_dot_modifier: 0.25}
+  - Rank from level 41 "Deep Corrosion": ability_modifier: 1.0; condition: Deeply Corroded (deeply_corroded)
   - Settings: respects_blocking: true; is_ammo: true
 - **Frost Round** (`frost_round`) - level 24; main action; range 2-15; ranged; single target; damage x0.9 Ice, scales with Self
   - Who has it: Saboteur path
@@ -1483,10 +1478,6 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: enfina
 
-- **Armor Shred** (`armor_shred`) - level 24; main action; range 1-1; melee; single target; damage x0.9 Physical, scales with Physical
-  - Who has it: Enfina
-  - Says: A tearing cut that opens up their armour: a fifth less defence for two turns.
-  - Effect: {type: Stat Multiplier; stat: "defense"; stat_multiplier: 0.8}
 - **Battle Cry** (`battle_cry`) - level 16; main action; range 1-2; melee; area: Cone 2; damage x0.6 Physical, scales with Physical
   - Who has it: Enfina
   - Says: A roar and a sweep at everybody in front of her that drives them back a tile - off whoever stands behind her.
@@ -1496,6 +1487,10 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: Climb up onto something Monstrous or bigger and fight it from on top. Up there nobody can reach you, every blow on it lands - and harder - and it carries you wherever it goes. It will try to throw you off, and that hurts whether it works or not. Climb Down to jump off.
   - Effect: {type: Climb}
   - Settings: can_be_copied: false; needs_size_at_least: 5
+- **Disarm** (`disarm`) - level 24; main action; range 1-1; melee; single target; damage x0.8 Physical, scales with Physical
+  - Who has it: Enfina
+  - Says: A cut at the hand that holds the weapon: their next weapon attack deals half damage.
+  - Effect: {type: Condition; condition: Disarmed (disarmed)}
 - **Follow Up Attack** (`follow_up_attack`) - level 32; secondary action; range 1-1; melee; single target; damage x1.5 Physical, scales with Physical
   - Who has it: Enfina, Barbarian, Pit Champion
   - Says: Move the greatsword with such ease that your strikers are endless.
@@ -1523,10 +1518,14 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Effect: {type: Shake; min_amount: 25; max_amount: 35}
   - Effect: {type: Condition; condition: Fear (fear); condition_duration: 2}
   - Settings: can_be_copied: false; needs_leverage: true
-- **Light Swing** (`light_swing`) - level 1; main action; range 0-1; melee; single target; damage x1.0 Physical, scales with Physical; heals (weapon base + 0.7 x Physical) x 0.3, on its user (no defence, no randomness; the effect's min and max amount are unused)
+- **Light Swing** (`light_swing`) - level 1; main action; range 0-1; melee; single target; damage x1.0 Physical, scales with Physical; heals 5% of the target's max health, 7% from level 16, 9% from level 32, 12% from level 54, 15% from level 64, twice the first time in a fight each foe it strikes is at half health or less, on its user (no defence, no randomness; the effect's min and max amount are unused)
   - Who has it: Enfina
-  - Says: Preserve your energy to restore some vitality while still slashing at the enemy.
-  - Effect: {type: Heal; heal_modifier: 0.3}
+  - Says: A lighter cut that steadies her: every hit mends a share of her own health - twice that the first time in a fight she strikes a foe at half their health or less.
+  - Effect: {type: Heal; heal_share_of_health: 0.05; heals_share_only: true; share_doubled_on_wounded: true}
+  - Rank from level 16: heal_share_of_health: 0.07
+  - Rank from level 32: heal_share_of_health: 0.09
+  - Rank from level 54: heal_share_of_health: 0.12
+  - Rank from level 64: heal_share_of_health: 0.15
 - **Shoving Strike** (`shoving_strike`) - level 1; main action; range 0-1; melee; single target; damage x1.0 Physical, scales with Physical
   - Who has it: Enfina
   - Says: Hit them with enough force to push them back.
@@ -1821,6 +1820,8 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Dazed** (`dazed`, tag ): Reeling from the impact: two tiles less to walk, no secondary action and no reactions. They keep their main action. | settings: duration: 1; movement_change: -2; prevents_secondary: true; prevents_reactions: true
 - **Deafened** (`deafened`, tag ): The bells still ringing in their ears: less likely to land anything, and too slow to react to anybody. | settings: duration: 1; accuracy_change: -10; prevents_reactions: true
 - **Deceived** (`deceived`, tag Dc): Sure one of their own has sold them out: their next turn goes on the nearest of their own side. | settings: duration: 2; turns_on_own_side: true
+- **Deeply Corroded** (`deeply_corroded`, tag DC): Eaten through by something caustic: it burns a little every turn, and their armour is a fifth worse while it does. | settings: duration: 5; dot_type: Acid; dot_modifier: 0.25; dot_min: 1; dot_max: 2; defense_change: -0.2
+- **Disarmed** (`disarmed`, tag ): Their grip knocked loose: their next weapon attack deals half damage. | settings: duration: 2; weapon_damage_change: -0.5; ends_after_weapon_attack: true
 - **Exposed** (`exposed`, tag Ex): Turned their back on a champion standing close: takes a fifth more from that champion until their next turn starts. | settings: duration: 1; wears_off_at_start: true; more_from_source: 0.2
 - **Fear** (`fear`, tag ): Too afraid to advance and can barely aim. | settings: accuracy_change: -20; prevents_approach: true
 - **Fortified** (`fortified`, tag Fo): Within Enfina's reach: takes a tenth less damage. | settings: duration: 1; damage_taken_change: -0.1
@@ -2154,7 +2155,7 @@ These are settled; suggestions should work within them.
 
 **Decided 2026-10-24**
 
-- **Corrosive Round** keeps its -10% Defense on the Corroded condition itself: it refreshes, never stacks, and is cleansed with Corroded.
+- **Corrosive Round** keeps its -10% Defense on the Corroded condition itself: it refreshes, never stacks, and is cleansed with Corroded. From 41 its Deep Corrosion rank puts on Deeply Corroded (-20%) instead, which takes Corroded off (2026-10-25).
 - **Catalyst** keeps its every-enemy scope and its exact rule (Part 1): once a short rest, every enemy, only the lingering conditions Cyrus himself inflicted. That is intentional - it is Cyrus's personal condition payoff. Team-wide condition synergy may come later as a separate mechanic, never folded into Catalyst.
 - **The Bomber's Self Destruct** stays as it is, untelegraphed: it teaches the player to read enemy moves.
 - **Erysichthon closes Chapter I.** It also appears briefly in the first encounter, as something to run from rather than a fair fight, and it has another enemy supporting it. Not implemented yet: its Chapter I level, the supporting enemy and the escape are OPEN.
@@ -2379,6 +2380,25 @@ The designer: a passive's ranks are one passive. This holds for every passive sh
   - Iron Hide 20%; DoT Master 30% and a turn longer; Kindling up to 45%; Reserved Power two more castings.
   - Bulwark: a tenth less within two tiles, a fifth beside her.
   - Aura: Blessed and Soothed both.
+
+## Disarm, Deep Corrosion and Light Swing (2026-10-25; implemented)
+
+The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` (APPROVED_DESIGN / APPROVED_TRIAL). Cyrus becomes the one owner of Defense reduction.
+
+- **Enfina's Armor Shred is Disarm:** level 24, a main action, melee, one target, x0.8. It puts Disarmed on the target: their next weapon attack deals half damage. Nothing lingers and nothing stacks.
+  - Disarmed comes off once they make a weapon attack, hit or miss. Unused, it wears off after 2 turns. That length is Claude's PROPOSAL test value; the handoff gives none.
+  - A weapon attack is Claude's reading of "weapon-based": a skill dealing Physical damage that is neither a spell nor an item. Swords, guns, darts and thrown nails are halved; Fire Burst, a spell or a bomb lands whole. PROPOSAL until the designer confirms.
+  - Halving goes through `damage_dealt_multiplier`, so the aim prompt says it too.
+- **Cyrus's Exposing Shot is gone.** Corrosive Round has a rank at 41, Deep Corrosion: x1.0, and Deeply Corroded (-20% Defense) in place of Corroded. It takes Corroded off rather than stacking with it, and refreshes like it.
+- **Light Swing mends a share of Enfina's own health:** 5 / 7 / 9 / 12 / 15% at levels 1 / 16 / 32 / 54 / 64.
+  - Twice that the first time in a fight a foe struck is at half their health or less. The health is read after the blow, so the blow that takes them to half pays double (Claude's reading of "when she breaks the 50% threshold"). Once a foe, then the base again; another foe can pay double too.
+  - It was 0.3 x (weapon base + 0.7 x Physical): 4 HP at level 1 (3%), 7 at 14 (5%), 17 at 54 (9%). The new base at 1 is 7 of her 130 (5%).
+- **Where the handoff and the game differ** (code kept as it is; in the ledger):
+  - Corrosive Round's base: the handoff says x0.9 and 3 turns; the game has x0.8 and 5 turns (5 from the condition proposal).
+  - Deep Corrosion lasts 5 turns, like Corroded, rather than the handoff's 3: a stronger rank should not last shorter. OPEN.
+  - At x1.0 Deep Corrosion hits as hard as the Gun, plus -20% Defense. OPEN against the rule that ammunition trades hit for condition.
+  - Corrosive Round is the Saboteur's. A Skirmisher or Trapper Cyrus has no Defense reduction now. OPEN.
+  - Prometheus's Stone Edge (Elemental Vanguard) still takes 10 Defense for 2 turns, so Cyrus is not quite the only one. OPEN.
 
 ## Known near-twins among the spells
 
