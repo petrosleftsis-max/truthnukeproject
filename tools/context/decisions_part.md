@@ -81,13 +81,13 @@ Full analysis: `docs/healing_revision.md`, numbers in `docs/healing_inventory.cs
   - mythic full heals are OPEN until a boss defines one.
 - **To check against the policy:** Soothed (Aura II), a 5% heal every turn.
 - **Erysichthon's 6% meal stays the existing value.** Separate PROPOSAL: a meal heals one Heal of its level (21 at 18), one a turn, none from its own fallen, with Gorging (-20% Defense) or an exposed Belly Hole as the counterplay.
-- **The rest framework, kept for testing:**
-  - 2-3 short rests per segment, each 50% of the missing health, no gates;
+- **The rest framework,** implemented 2026-10-25 (see "Rests, Meditate and Devotion"):
+  - 2-3 short rests per segment (2-4 late), each 50% of the missing health, no gates;
   - a long rest restores everything;
   - Meditate, option A: ceil(level / 6) points, a casting costs its depth, only the shallower half of Prometheus's open gates.
 - **How the rests interact with healing:**
   - Short rests heal the big pools most between fights. The flat Heal helps the small ones most during fights.
-  - Alithia's World castings (2, then 4 from level 8) are the segment's healing limit.
+  - Alithia's World castings (2, then 4 from level 8), and her two Devotion castings, are the segment's healing limit.
 - **Still open:**
   - the enemy healers under the revision;
   - Mend the Bound, Gate Nades, Medicine and Purification;
@@ -114,8 +114,8 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
 - **Stunning Blow:** keeps x0.8 and its 1-turn Stun, but is now limited to uses per short rest: 1 at 41, 2 at 54, 3 at 64. A long rest restores them all.
 - **Per fight became per short rest.** Every use limit now recovers on a short rest, and a long rest restores it as well: Recant, Catalyst, Minefield, Grand Design, the Conductor's free amplifications (Overcharge, Deep Current), and Conduit. In a dungeon these carry from fight to fight until a rest. Every fight elsewhere starts with all of them, as with gates.
   - **Unchanged:** trigger conditions (Ambush Strike, Illusory Guardian, Afterimage), Kindling's build-up, durations to the fight's end, and boss phase, stagger and encounter effects.
-  - **OPEN:** the Trapper's free Small Bomb, "to hand in every fight". It is left per fight for now.
-- **The short and long rest plug-in** (`Campaign.short_rest`, `long_rest`) restores those uses; since 2026-10-25 a dungeon of short rests (the lab) also mends half of what was lost (below). The designer will give the rests' details: health, gates, how many per segment.
+  - **The Trapper's free Small Bomb** is once a short rest too (the designer, 2026-10-25: "it adds flavor to his short rest").
+- **The short and long rest plug-in** (`Campaign.short_rest`, `long_rest`) restores those uses. The designer gave the rests' details on 2026-10-25 (below, "Rests, Meditate and Devotion").
 - **Nothing in play changes yet.** Every converted limit is learned at 24 or above, and today's dungeons are at 14 and 18.
 
 ## The laboratory, short rests and half casters (2026-10-25; implemented)
@@ -158,28 +158,60 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
   - **What the changes did, by the numbers:**
     - The overall result did not change: the run was lost in Lab B.
     - Lab A was won with three standing instead of one, two rounds sooner. The party healed 192 instead of 8, 146 of it from items. The enemies healed 105 instead of 182.
-    - The Rangers' heals went from 119 to 0. A half caster at 16 still has World 4 and Hermes 2, so running out of gates does not explain it. OPEN: whether the AI never wanted to heal (they fell in rounds 6 and 9) or something stopped it (VERIFY).
+    - The Rangers' heals went from 119 to 0. A half caster at 16 still has World 4 and Hermes 2, so running out of gates does not explain it. The designer burst them down this time rather than wearing them down with damage over time, and the log agrees:
+      - Neither Ranger took any damage in rounds 1-4. A Ranger heals itself only below half its health (about 91 at 16).
+      - Ranger 2 had lost 44 at its round-5 turn, just above half. Cyrus then hit it for 26 straight after, and 26 in round 6: down before its next turn.
+      - Ranger 1 was at 74 at its round-7 turn, walked away, and was caught by Enfina's Grab. At its round-8 turn it was at about 10, well under half, but it did not heal. It seems to have spent the turn breaking free and walking off, and was grabbed again. Cyrus finished it at the start of round 9.
+      - VERIFY: the log does not record a break-free. A Ranger held below half might be expected to heal itself where it stands, since a self-heal needs no movement.
     - The rest and Resuscitate put all four into Lab B, against Cyrus alone in the first run. The fight lasted one round longer and two enemies fell instead of none. Prometheus lasted one enemy turn after coming back. Enfina, revived in the fight, lasted two more rounds.
     - Nine items were never used, five of them heals.
     - Tremor's step did not come up: Enfina is 18 here, and Tremor comes at 64.
-  - **The user's painted cover** on the upper left of `maps/city_fight.tscn` is in the run if it was saved before it; the log does not say. The map is Lab A's, and also used by the Dungeon Demo's third fight (`dungeon_demo/dungeon_3_city.tres`), `boss_bellkeeper`, `level_64_showdown`, `sizes_colossus` and `encounter_03_watcher`, so the cover is in all of those. OPEN: a lab-only copy of the map.
+  - **The user's painted cover** on the upper left of `maps/city_fight.tscn` is in the run if it was saved before it; the log does not say. The map is Lab A's, and also used by the Dungeon Demo's third fight (`dungeon_demo/dungeon_3_city.tres`), `boss_bellkeeper`, `level_64_showdown`, `sizes_colossus` and `encounter_03_watcher`, so the cover is in all of those. The designer is fine with that: no lab-only copy (2026-10-25).
 - **Short rests in the lab** (APPROVED_TRIAL; the 50% is a PROPOSAL test value):
   - Between stages, everybody standing gets back half of what they lost, along with the uses spent until a rest. No gates come back.
-  - The fallen stay down unless somebody who knows Resuscitate (Alithia) spends a casting of it on them at the rest: Pandora or deeper, back with 50% health and 10% weaker for good, as in a fight. If Alithia is down, nobody can.
+  - The fallen stay down unless somebody who knows Resuscitate (Alithia) spends a casting of it on them at the rest: Pandora or deeper, back with 50% health and 10% weaker, as in a fight. If Alithia is down, nobody can. Since 2026-10-25 they are also rested, and the weakening lasts only until a long rest (below).
 - **A kit** (PROPOSAL test values, tier II for a party at 18) fills every Simple Baldric, 4 slots each. It is all the party has for the three fights: what is used is gone.
   - **Enfina:** 2 Mediocre Cure Potions, a Cure Potion, a Medicine.
-  - **Cyrus:** 2 Small Bombs, a Blinding Bomb, a Mediocre Cure Potion.
+  - **Cyrus:** a Small Bomb, Smelling Salts (since 2026-10-25, in place of his second Small Bomb), a Blinding Bomb, a Mediocre Cure Potion.
   - **Prometheus:** 2 Medicines, a Mediocre Cure Potion, a Fireball Gate Nade.
   - **Alithia:** a Communion Gate Nade, a Heal Gate Nade, a Mediocre Cure Potion, a Medicine.
 - **Half casters** (APPROVED_TRIAL): a half caster gets the gates of a full caster at half its level, rounded up, like a D&D paladin.
   - The Ranger is one. At 16 it has World 4 and Hermes 2, where a full caster has World 4, Hermes 3 and Pandora 2. At 64 it has a full caster's gates of 32.
   - Its Heal still costs a World casting.
-  - The other reading, half of each gate's castings at its own level, is open if that was what was meant.
+  - The designer confirmed this reading (2026-10-25: "this is correct"), rather than half of each gate's castings at its own level.
 - **The lab's logs** now credit each tick of damage to the source of its condition, and each reaction to the reactor, rather than to whoever's turn it was.
 - **Lifting conditions** (the user's, 2026-10-25; implemented):
   - Cured of something that held them in place (Crystallised) in their own turn, a combatant can walk again: all their movement, or what they had not yet walked.
   - A cleanse that lifts only so much (Medicine lifts one) and a heal that lifts some (Mercy II) let the player choose which of several comes off, the most recent first, each with its turns left. The other side lifts the most recent.
 - **Reactions:** when someone leaves the reach of two or more at once, every one of them whose reaction is unspent swings, and the player is asked for each of theirs in turn. Reach is counted in straight steps, so a diagonal neighbour is 2 away and outside a reach of 1.
+
+## Rests, Meditate and Devotion (2026-10-25; implemented)
+
+The designer's answers of 2026-10-25. The rules are APPROVED_TRIAL; the numbers the designer did not give are PROPOSAL test values, marked.
+
+- **When rests happen:** whenever something calls for one: a conversation (`do Campaign.short_rest()` or `long_rest()`), or a dungeon between its fights. The Dungeon Demo and the lab take a short rest between each fight. A segment has 2-3 short rests on average, 2-4 late in the game; nothing counts them.
+- **A short rest:**
+  - Everybody standing gets back half of what they lost (the 50% is a PROPOSAL test value).
+  - Uses spent until a rest come back: the use limits, the Trapper's bomb, one of Alithia's two Devotion castings.
+  - No gates come back, except through Prometheus's Meditate.
+  - The fallen stay down unless Resuscitated. Somebody Resuscitated at the rest is then rested too: half of what they still miss, so 75% of their (weakened) health in all.
+- **A long rest** brings back everything:
+  - everybody up and at full health;
+  - the 10% weakening from being brought back lifted (it used to last for good);
+  - every gate, those opened outside a fight (Iris) too;
+  - Meditate, both Devotion castings, and every use spent until a rest.
+  - No dungeon has a long rest yet.
+- **Meditate** (Prometheus's passive; Alithia gets none):
+  - At a short rest, once until the next long rest, he brings back castings he spent.
+  - **Points:** one every six levels, rounded up. **Cost:** a casting costs its gate's depth (World 1, Hermes 2, Pandora 3). **Depth:** nothing deeper than the shallower half of his open gates, rounded up.
+  - So: L1 1 point (World), L8 2 (World), L14-18 3 (up to Hermes), L24 4 (Hermes), L33 6 (Pandora), L45 8 (Charon), L55 10 (Tartarus), L64 11 (Tartarus).
+  - These are option A of the rest proposal, PROPOSAL test values. Iris's outside gates are not among them; a long rest brings those back.
+  - It is offered on the rest screen. The Dungeon Demo's own recovery (once a run, 3 points) was taken out, so Meditate is not a second one (PROPOSAL: the proposal said Meditate "would be that recovery").
+- **Devotion** (Alithia's passive; the name is a placeholder, PROPOSAL):
+  - Two castings of her own. Each pays for a Heal or a Dread Visage (on one person) in place of its gate, and is spent before any gate.
+  - One comes back at a short rest, both at a long rest. In a dungeon they carry from fight to fight; every other fight starts with both.
+- **Smelling Salts** (PROPOSAL test values, for the lab): a consumable that brings somebody fallen beside you back up with 50% of their health, 10% weaker until a long rest, as Resuscitate does. Cyrus carries it in the lab kit, in place of his second Small Bomb.
+- **Not decided:** whether a short rest ends conditions; where the long rests fall; whether a rest called from a conversation should open the rest screen, so Meditate and Resuscitate can be chosen there (OPEN).
 
 ## Known near-twins among the spells
 

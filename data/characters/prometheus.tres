@@ -15,6 +15,7 @@
 [ext_resource type="Resource" path="res://data/passives/kindling.tres" id="p_kindling"]
 [ext_resource type="Resource" path="res://data/passives/kindling_ii.tres" id="p_kindling_ii"]
 [ext_resource type="Resource" path="res://data/passives/kindling_iii.tres" id="p_kindling_iii"]
+[ext_resource type="Resource" path="res://data/passives/meditate.tres" id="p_meditate"]
 
 [resource]
 script = ExtResource("3_genhd")
@@ -45,7 +46,7 @@ icon = ExtResource("1_miqts")
 map_sprite = ExtResource("1_miqts")
 sprite_frames = ExtResource("4_emjge")
 skills = Array[String](["fire_burst", "zephyr_dart", "caucasus_shard", "study", "hack", "instahack", "dispel_magic", "fire_blast", "wind_shot", "rock_throw", "quicken", "burner", "wildfire", "fireball", "wind_vacuum", "gust_blast", "crystalise", "wind_swoon", "hermes_step", "hover", "slip_past", "invisibility", "growth", "mist_step", "kindled_hound", "illusory_dragon", "run", "tartarus_flame", "ire_of_sophia", "gnostic_tempest", "stolen_sun"])
-passives = Array[ExtResource("2_7nvba")]([ExtResource("9_prying"), ExtResource("p_elemental_affinity"), ExtResource("p_contest_insight"), ExtResource("p_elemental_affinity_ii"), ExtResource("p_contest_insight_ii"), ExtResource("p_elemental_mastery"), ExtResource("p_kindling"), ExtResource("p_kindling_ii"), ExtResource("p_kindling_iii")])
+passives = Array[ExtResource("2_7nvba")]([ExtResource("9_prying"), ExtResource("p_elemental_affinity"), ExtResource("p_contest_insight"), ExtResource("p_elemental_affinity_ii"), ExtResource("p_contest_insight_ii"), ExtResource("p_elemental_mastery"), ExtResource("p_kindling"), ExtResource("p_kindling_ii"), ExtResource("p_kindling_iii"), ExtResource("p_meditate")])
 subclasses = Array[String](["elemental_vanguard", "elemental_tactician", "elemental_conductor"])
 learns_spells = true
 starting_spells = Array[String](["fire_blast", "wind_shot", "rock_throw", "quicken"])

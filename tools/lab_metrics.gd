@@ -171,6 +171,12 @@ func _on_metric(event: String, data: Dictionary):
 			var who: Dictionary = data.who
 			_add(_gates, _name(who), Stats.gate_name(int(data.gate)).replace("Gates of ", ""))
 			_event("gate", _name(who), _side(who), "", "", Stats.gate_name(int(data.gate)))
+		# A spare casting in a gate's place (Devotion), listed with the gates.
+		"spare":
+			var who: Dictionary = data.who
+			var called: String = combat.spares_name(who)
+			_add(_gates, _name(who), called)
+			_event("gate", _name(who), _side(who), "", "", called)
 		"item":
 			var who: Dictionary = data.who
 			_add(_items, _name(who), str(data.item))

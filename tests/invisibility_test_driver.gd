@@ -362,10 +362,16 @@ func fight_from(fight: EncounterDefinition) -> Node:
 
 
 ## In a dungeon, Iris is like its other gates: spent stays spent from fight to
-## fight, and a rest's recovery brings it back, at Hermes's price.
+## fight, and a rest's recovery brings it back, at Hermes's price. The demo has
+## no recovery of its own since its short rests (2026-10-25), so it is given the
+## one it had; Meditate leaves Iris to the long rest (the restcycle suite).
 func iris_in_a_dungeon():
 	log_line("======== in a dungeon, Iris waits for a rest ========")
-	var dungeon: DungeonDefinition = load("res://data/dungeons/dungeon_demo.tres")
+	var dungeon: DungeonDefinition = load("res://data/dungeons/dungeon_demo.tres").duplicate()
+	dungeon.gate_recovery_for = ["prometheus"]
+	dungeon.gate_recoveries = 1
+	dungeon.gate_recovery_points = 3
+	dungeon.gate_costs = [0, 1, 2, 3]
 	Campaign.reset()
 	Campaign.dungeon = dungeon
 	Campaign.gate_recoveries_left = dungeon.gate_recoveries

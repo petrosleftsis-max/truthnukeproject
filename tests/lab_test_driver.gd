@@ -89,9 +89,12 @@ func the_data():
 		var kit: Array = lab.kit.get(key, [])
 		kit_ok = kit_ok and kit.size() == 4 and kit.all(func(item): return ItemDatabase.items.has(item))
 	ok(kit_ok, "a kit for each: four things, one for every slot of a Simple Baldric", "%s" % [lab.kit])
+	var salts: ItemDefinition = ItemDatabase.item("smelling_salts")
+	ok(Array(lab.kit.cyrus).count("smelling_salts") == 1 and Array(lab.kit.cyrus).count("small_bomb") == 1 and salts != null
+		and salts.targets_fallen, "  Cyrus carries Smelling Salts, to bring somebody fallen round, in place of his second Small Bomb", "%s" % [lab.kit.cyrus])
 	var demo: DungeonDefinition = load(DEMO)
-	ok(not demo.skips_rests and not demo.short_rests and not demo.logs_metrics and demo.kit.is_empty(),
-		"the Dungeon Demo still rests in full, carries no kit, and logs nothing")
+	ok(not demo.skips_rests and demo.short_rests and not demo.logs_metrics and demo.kit.is_empty(),
+		"the Dungeon Demo takes short rests too (2026-10-25), carries no kit, and logs nothing")
 	var variant: DungeonDefinition = load(ASH_WARDEN_LAB)
 	ok(variant != null and variant.stages.size() == 3, "the Ash Warden variant: three stages")
 	ok(variant.party == lab.party and variant.level == lab.level and variant.knows_every_spell == lab.knows_every_spell
@@ -192,8 +195,11 @@ func the_run():
 	var enfina_most: int = Campaign.party_state.enfina.max_hp
 	ok(result.rest.resuscitate("enfina"), "  cast")
 	await settle(2)
-	ok(Campaign.party_state.enfina.alive and Campaign.party_state.enfina.hp == roundi(roundi(enfina_most * 0.9) * 0.5)
-		and is_equal_approx(Campaign.party_state.enfina.get("frailty", 1.0), 0.9), "  she is back up with half her health, a tenth weaker for good",
+	var weakened := roundi(enfina_most * 0.9)
+	var revived := roundi(weakened * 0.5)
+	ok(Campaign.party_state.enfina.alive and Campaign.party_state.enfina.hp == revived + roundi((weakened - revived) * Campaign.SHORT_REST_MENDS)
+		and is_equal_approx(Campaign.party_state.enfina.get("frailty", 1.0), 0.9),
+		"  she is back up with half her health, then rested like the rest - a tenth weaker until a long rest",
 		"%d of %d" % [Campaign.party_state.enfina.hp, Campaign.party_state.enfina.max_hp])
 	ok(Campaign.party_state.alithia.spell_slots[3] == pandora_before - 1, "  for one of Alithia's Pandora castings",
 		"%d of %d" % [Campaign.party_state.alithia.spell_slots[3], pandora_before])
@@ -224,8 +230,8 @@ func the_run():
 	enfina = fighter(combat, "enfina")
 	ok(enfina.alive and enfina.hp == Campaign.party_state.enfina.hp and enfina.max_hp < CombatantDatabase.combatants.enfina.hp_at(18),
 		"Enfina fights again, weakened", "%d / %d" % [enfina.hp, enfina.max_hp])
-	ok(Campaign.count_of("cyrus", "mediocre_cure_potion") == 0 and Campaign.count_of("cyrus", "small_bomb") == 2,
-		"Cyrus's potion is gone, his bombs still there")
+	ok(Campaign.count_of("cyrus", "mediocre_cure_potion") == 0 and Campaign.count_of("cyrus", "small_bomb") == 1
+		and Campaign.count_of("cyrus", "smelling_salts") == 1, "Cyrus's potion is gone, his bomb and Smelling Salts still there")
 	combat.groups[Combat.Group.ENEMIES].clear()
 	combat.combat_finish()
 	await settle(4)

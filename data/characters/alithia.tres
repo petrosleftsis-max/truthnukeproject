@@ -14,6 +14,7 @@
 [ext_resource type="Resource" path="res://data/passives/mercy_iii.tres" id="p_mercy_iii"]
 [ext_resource type="Resource" path="res://data/passives/reserved_power_ii.tres" id="p_reserved_power_ii"]
 [ext_resource type="Resource" path="res://data/passives/radiant_guardian.tres" id="p_radiant_guardian"]
+[ext_resource type="Resource" path="res://data/passives/devotion.tres" id="p_devotion"]
 
 [resource]
 script = ExtResource("3_7klcm")
@@ -46,7 +47,7 @@ icon = ExtResource("1_nj2rw")
 map_sprite = ExtResource("1_nj2rw")
 sprite_frames = ExtResource("4_1v0ks")
 skills = Array[String](["votive_flame", "water_spike", "sass_club", "heal", "light_heal", "holy_lance", "flash", "river_flow", "frozen_river", "resuscitate", "cleanse", "intuition", "persuade", "slip_past", "run", "holy_splash", "communion", "piercing_light", "judgment", "glacial_tide", "purification", "divine_verdict", "restoration", "revelation", "grace", "dread_visage", "bewilder"])
-passives = Array[ExtResource("2_t7133")]([ExtResource("p_mercy"), ExtResource("p_aura"), ExtResource("p_mercy_ii"), ExtResource("p_aura_ii"), ExtResource("p_reserved_power"), ExtResource("p_mercy_iii"), ExtResource("p_reserved_power_ii"), ExtResource("p_radiant_guardian")])
+passives = Array[ExtResource("2_t7133")]([ExtResource("p_mercy"), ExtResource("p_aura"), ExtResource("p_mercy_ii"), ExtResource("p_aura_ii"), ExtResource("p_reserved_power"), ExtResource("p_mercy_iii"), ExtResource("p_reserved_power_ii"), ExtResource("p_radiant_guardian"), ExtResource("p_devotion")])
 subclasses = Array[String](["battle_chaplain", "illusory_shepherd", "inquisitor"])
 future_changed_lines = Array[String](["I saw it coming.", "Not this time.", "The future bends.", "That is not how it ends."])
 starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])

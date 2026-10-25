@@ -164,7 +164,7 @@ Spells are cast through ten **gates**. Each gate opens at a level and has so man
 | 61 | 4 | 3 | 3 | 3 | 3 | 2 | 1 | 1 | 1 | 1 |
 | 64 | 4 | 3 | 3 | 3 | 3 | 2 | 2 | 1 | 1 | 1 |
 
-- **Refilling:** gates come back at the start of every fight in the story. In a dungeon they come back only when the party rests.
+- **Refilling:** gates come back at the start of every fight in the story. In a dungeon they come back only at a long rest, or some through Prometheus's Meditate at a short rest.
   - Later in the game the party will fight several fights between rests. Gates then become scarce, and the fighters (Enfina and Cyrus, who use no gates) should outshine the casters.
 - **Gates outside a fight:** the **Gates of Iris** works like Hermes and is used for casting outside fights (Invisibility on a stealth map). A second outside gate, Mnemosyne, is planned.
 - **Spells never rank up.** A stronger version of a spell is a spell of its own: Burner and Wildfire, River Flow and Frozen River.
@@ -198,7 +198,7 @@ Spells are cast through ten **gates**. Each gate opens at a level and has so man
 | **Hide** | Takes the target out of sight. |
 | **Resistance** | Raises or lowers a resistance. |
 | **Upgrade Element** | The next damaging skill is cast in the upgraded element. |
-| **Revive** | Brings back a fallen ally weaker, for good. |
+| **Revive** | Brings back a fallen ally weaker, until a long rest. |
 | **Steal** | Empties one container. |
 | **Summon Decoy** | Makes an image of an ally. |
 | **Interact** | Uses a thing on the map. |

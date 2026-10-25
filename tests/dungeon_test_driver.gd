@@ -1,7 +1,8 @@
 extends Node
 ## The dungeon demo: three fights one after another with the whole party at
-## level 14, a rest after each with everybody back to full health and their
-## unused items kept, and - at one rest only - some of Prometheus's gates back,
+## level 14, a short rest after each (since 2026-10-25) with their unused items
+## kept. And a dungeon's own rests as the demo had them before: everybody back
+## to full health, and - at one rest only - some of Prometheus's gates back,
 ## three points' worth at World 1, Hermes 2, Pandora 3.
 
 const DUNGEON := "res://data/dungeons/dungeon_demo.tres"
@@ -101,9 +102,9 @@ func the_data():
 	ok(dungeon.party == ["cyrus", "alithia", "prometheus"] and dungeon.level == 14, "the party at level 14 - without Enfina, whom the sewer brings in")
 	ok(dungeon.stages[0].map == SEWER_MAP and dungeon.stages[1].map == LAB_MAP and dungeon.stages[2].map == "",
 		"the sewer to walk, then the lab, then the city fight gone straight into")
-	ok(dungeon.gate_recovery_for == ["prometheus"] and dungeon.gate_recoveries == 1 and dungeon.gate_recovery_points == 3,
-		"Prometheus's gates, at one rest, with three points")
-	ok(dungeon.gate_cost(1) == 1 and dungeon.gate_cost(2) == 2 and dungeon.gate_cost(3) == 3, "World 1, Hermes 2, Pandora 3")
+	ok(dungeon.short_rests and not dungeon.rest_revives, "a short rest between each fight (the designer, 2026-10-25)")
+	ok(dungeon.gate_recovery_for.is_empty() and dungeon.gate_recoveries == 0,
+		"no gate recovery of its own any more: Prometheus's Meditate is that now (the restcycle suite)")
 	var sewer: EncounterDefinition = dungeon.stages[0].encounter
 	var lab: EncounterDefinition = dungeon.stages[1].encounter
 	var city: EncounterDefinition = dungeon.stages[2].encounter
@@ -231,8 +232,18 @@ func in_a_fight():
 	log_line("")
 
 
+## The demo as it was before its short rests (2026-10-25): a full rest that
+## brings the fallen back, and one recovery of Prometheus's gates a run, three
+## points, World 1, Hermes 2, Pandora 3 - kept to test the dungeon's own
+## recovery, which any dungeon may still have.
 func dungeon_with_spent(gates: Array) -> DungeonDefinition:
-	var dungeon: DungeonDefinition = load(DUNGEON)
+	var dungeon: DungeonDefinition = load(DUNGEON).duplicate()
+	dungeon.short_rests = false
+	dungeon.rest_revives = true
+	dungeon.gate_recovery_for = ["prometheus"]
+	dungeon.gate_recoveries = 1
+	dungeon.gate_recovery_points = 3
+	dungeon.gate_costs = [0, 1, 2, 3]
 	Campaign.reset()
 	Campaign.dungeon = dungeon
 	Campaign.gate_recoveries_left = dungeon.gate_recoveries
@@ -324,7 +335,8 @@ func the_rest_panel():
 	var later := RestPanel.new()
 	add_child(later)
 	await settle(2)
-	ok(later.offered_to == "" and later.find_child("Question", true, false) == null, "the next rest offers nothing")
+	ok(later.offered_to == "prometheus" and later.meditating, "the next rest offers nothing of the dungeon's - only his own Meditate",
+		"%s, meditating %s" % [later.offered_to, later.meditating])
 	later.queue_free()
 	Campaign.reset()
 	await settle()
@@ -345,7 +357,8 @@ func after_a_fight():
 	await settle(2)
 	ok(result.rest != null and result.rest.is_visible_in_tree() and not result.get_node("Panel").visible,
 		"won, and not the last: a rest, not the result")
-	ok(Campaign.party_state.cyrus.hp == 90, "which has healed everybody")
+	ok(Campaign.party_state.cyrus.hp == 5 + roundi(85 * Campaign.SHORT_REST_MENDS), "a short one, which has given him back half of what he lost",
+		"%d of 90" % Campaign.party_state.cyrus.hp)
 	result.rest.queue_free()
 	game.queue_free()
 	await settle(3)

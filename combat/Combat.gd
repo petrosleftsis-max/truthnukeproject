@@ -941,7 +941,46 @@ func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
 		return true
 	if casts_without_gates(comb):
 		return true
+	if spares_left(comb, skill) > 0:
+		return true
 	return slot_available_for(comb, skill.spell_slot_level) > 0
+
+
+## --- Spare castings ---
+##
+## Castings of somebody's own on top of their gates, for only the spells their
+## passive names (PassiveDefinition.spare_castings - Alithia's Devotion: Heal,
+## or Dread Visage). One pays for one of those spells in place of its gate, and
+## is spent before any gate. They are spent until a rest (`spare_spent`, in
+## SPENT_UNTIL_REST): a short rest gives back so many, a long rest all
+## (Campaign.short_rest, long_rest). The designer, 2026-10-25.
+
+## How many spare castings `comb` has when none are spent.
+func spares_most(comb: Dictionary) -> int:
+	var most := 0
+	for passive in active_passives(comb):
+		most += passive.spare_castings
+	return most
+
+
+## How many spare castings `comb` has left for `skill` - 0 for a spell no
+## passive of theirs lets them pay for that way.
+func spares_left(comb: Dictionary, skill: SkillDefinition) -> int:
+	if skill == null or skill is ItemDefinition:
+		return 0
+	var key := skill_key_of(skill)
+	if not active_passives(comb).any(func(passive): return passive.spare_castings > 0 and passive.spare_casting_spells.has(key)):
+		return 0
+	return maxi(spares_most(comb) - int(comb.get("spare_spent", 0)), 0)
+
+
+## What their spare castings are called, for the log and the HUD: the first
+## passive of theirs that gives any.
+func spares_name(comb: Dictionary) -> String:
+	for passive in active_passives(comb):
+		if passive.spare_castings > 0:
+			return passive.name
+	return "spare castings"
 
 
 ## Spends the cheapest slot that covers `skill`, so a level 3 is never burned
@@ -1992,6 +2031,15 @@ func _pay_for_cast(attacker: Dictionary, skill: SkillDefinition):
 	# Through a gate of their choosing (SkillDefinition.chooses_gate - Dispel Magic).
 	var through: int = attacker.get("cast_through", 0)
 	attacker.erase("cast_through")
+	# A spare casting of their own, before any gate (see "Spare castings").
+	if through <= 0 and not casts_without_gates(attacker) and spares_left(attacker, skill) > 0:
+		attacker["spare_spent"] = int(attacker.get("spare_spent", 0)) + 1
+		update_information.emit("[color=yellow]%s[/color] spends one of %s (%d left).\n" % [
+			attacker.name, spares_name(attacker), spares_left(attacker, skill)])
+		_metric("spare", {"who": attacker, "skill": skill})
+		_casting_skill = skill
+		_casting_gate = skill.spell_slot_level
+		return
 	var spent := 0
 	if through > 0 and not casts_without_gates(attacker) and through < attacker.spell_slots.size() and attacker.spell_slots[through] > 0:
 		attacker.spell_slots[through] -= 1
@@ -5286,7 +5334,7 @@ func revive(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, 
 	float_number(target, "+" + str(target.hp), Color("7fe08a"))
 	update_combatants.emit(combatants)
 	update_turn_queue.emit(combatants, turn_queue)
-	update_information.emit("[color=yellow]%s[/color] used %s: [color=lightgreen]%s[/color] is back on their feet with %d health - and %d%% weaker for good.\n" % [
+	update_information.emit("[color=yellow]%s[/color] used %s: [color=lightgreen]%s[/color] is back on their feet with %d health - and %d%% weaker until a long rest.\n" % [
 		attacker.name, skill.name if skill != null else "it", target.name, target.hp, roundi(effect.revive_weakening * 100.0)])
 
 
@@ -11766,11 +11814,13 @@ static func uses_a_rest(comb: Dictionary, skill: SkillDefinition) -> int:
 ## What is spent until a short rest rather than for a fight (the designer's
 ## change of 2026-10-24, APPROVED_TRIAL), by what it is kept under on the
 ## combatant: the uses of a skill (uses_per_short_rest), a free amplification
-## (free_amplifies_at) and a Conduit. In a dungeon Campaign carries them from
-## fight to fight (record_party, apply_carried_state) until a short or long
-## rest clears them; every fight elsewhere starts with all of them, as it does
-## with the gates.
-const SPENT_UNTIL_REST := ["uses", "free_amplifies_used", "conduit_spent"]
+## (free_amplifies_at), a Conduit, the Trapper's free bomb (free_item_each_fight,
+## a short rest's since the designer's change of 2026-10-25) and spare castings
+## (Devotion - a short rest gives only some of those back). In a dungeon
+## Campaign carries them from fight to fight (record_party, apply_carried_state)
+## until a short or long rest clears them; every fight elsewhere starts with all
+## of them, as it does with the gates.
+const SPENT_UNTIL_REST := ["uses", "free_amplifies_used", "conduit_spent", "free_items_used", "spare_spent"]
 
 
 ## What `comb` has spent until a rest (SPENT_UNTIL_REST), to carry into the
@@ -11779,7 +11829,7 @@ static func spent_until_rest(comb: Dictionary) -> Dictionary:
 	var spent := {}
 	for key in SPENT_UNTIL_REST:
 		if comb.has(key):
-			spent[key] = comb[key].duplicate(true) if comb[key] is Dictionary else comb[key]
+			spent[key] = comb[key].duplicate(true) if comb[key] is Dictionary or comb[key] is Array else comb[key]
 	return spent
 
 

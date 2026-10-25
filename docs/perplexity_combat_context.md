@@ -164,7 +164,7 @@ Spells are cast through ten **gates**. Each gate opens at a level and has so man
 | 61 | 4 | 3 | 3 | 3 | 3 | 2 | 1 | 1 | 1 | 1 |
 | 64 | 4 | 3 | 3 | 3 | 3 | 2 | 2 | 1 | 1 | 1 |
 
-- **Refilling:** gates come back at the start of every fight in the story. In a dungeon they come back only when the party rests.
+- **Refilling:** gates come back at the start of every fight in the story. In a dungeon they come back only at a long rest, or some through Prometheus's Meditate at a short rest.
   - Later in the game the party will fight several fights between rests. Gates then become scarce, and the fighters (Enfina and Cyrus, who use no gates) should outshine the casters.
 - **Gates outside a fight:** the **Gates of Iris** works like Hermes and is used for casting outside fights (Invisibility on a stealth map). A second outside gate, Mnemosyne, is planned.
 - **Spells never rank up.** A stronger version of a spell is a spell of its own: Burner and Wildfire, River Flow and Frozen River.
@@ -198,7 +198,7 @@ Spells are cast through ten **gates**. Each gate opens at a level and has so man
 | **Hide** | Takes the target out of sight. |
 | **Resistance** | Raises or lowers a resistance. |
 | **Upgrade Element** | The next damaging skill is cast in the upgraded element. |
-| **Revive** | Brings back a fallen ally weaker, for good. |
+| **Revive** | Brings back a fallen ally weaker, until a long rest. |
 | **Steal** | Empties one container. |
 | **Summon Decoy** | Makes an image of an ally. |
 | **Interact** | Uses a thing on the map. |
@@ -843,6 +843,7 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - **Mercy III** (Always active, from level 41): Whoever she heals is sheltered: a fifth less damage until their next turn starts. [Whoever they heal is sheltered.]
   - **Reserved Power II** (Always active, from level 54): And one more again. [1 more casting through the deepest gate open to them.]
   - **Radiant Guardian** (Always active, from level 64): While she stands, the party takes a tenth less damage. [While they stand, their side takes 10% less damage.]
+  - **Devotion** (Always active): Two castings of her own, for Heal or for Dread Visage on one person, spent before any gate. One comes back at a short rest, both at a long rest. [2 castings of their own for Heal or Dread Visage, in place of a gate - 1 back at a short rest, all at a long rest.]
 - Other settings: glossary_text: "A prideful and arrogant cleric with several capabilities of protecting her allies.  Narrative:  One of the most talented Idol Users of the Holy Order, she always kept the Divine close to her heart as It has guided her many times.  And yet the way people see her are very mixed, for many feel uncomfortable with how much she questions even the smallest thing instead of showing silent obedience. Throughout her studies and career she has infuriated a lot of clerics and yet has also helped the souls of many followers. Due to her debates, the clergy find themselves in an unspoken split between those who consider her blasphemous and those whose faith only became stronger with her masterful questioning.  Gameplay: Even though she's really important for the party to not be worn out from the duration of combat, she is durable enough to survive hits herself. Prioritise keeping her in range of everyone!  She is also capable of weakening enemies to mitigate their offensive capabilities."; class_t: Magic; max_hp: 75; max_hp_level_20: 115; defense_by_level: { 1: 12, 8: 20, 17: 28 }
 
 ### Cyrus (`cyrus`)
@@ -929,6 +930,7 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - **Kindling I** (Always active): Every spell he casts in a fight stokes the next: each one after it burns 5% hotter, up to 15%. [Each spell they cast in a fight makes the ones after it 5% harder, up to 15%.]
   - **Kindling II** (Always active, from level 16): The fire takes more stoking before it tops out: up to 30%. [Kindling builds up to 15% further.]
   - **Kindling III** (Always active, from level 54): And more again: up to 45%. [Kindling builds up to 15% further.]
+  - **Meditate** (Always active): At a short rest, once until the next long rest, he brings back castings he has spent: a point to spend every six levels, each casting costing its gate's depth, and none deeper than the shallower half of his open gates. [Meditates at a short rest, once until the next long rest: brings back spent castings, a point every six levels, each costing its gate's depth.]
 - Other settings: glossary_text: "A messy pragmatic scholar who can never be seen without a book and a drink.  Narrative: He was an up and rising star in Idology from his late teen years. This lead him to quickly get into high and important research. However... It is now a painful memory that only destroys him further and further as time passes.  Despite it all, or perhaps because of it all, he is now a really warm and caring person that, despite not saying it out loud, would always be there for you.  Gameplay: The hardest unit to use well, he has the most potent capabilities in the party. Yet they are limited by resource and his frail frame makes him easy to be killed in but an instant. It is more important for him to stay alive, rather than cast spells earlier! Make sure to properly utilise cover!  He also can provide with utility, such as weakening enemies or teleporting allies. To make the most of him is to make the most of all!"; class_t: Magic; max_hp: 30; max_hp_level_20: 58; defense_by_level: { 1: 12, 8: 20, 17: 28 }; learns_spells: true; starting_spells: ["fire_blast", "wind_shot", "rock_throw", "quicken"]; keeps_codex: true
 
 ## The paths (subclasses, chosen at level 24)
@@ -1038,7 +1040,7 @@ Bombs and traps. Cyrus never fights a fight that is not already rigged: a bomb i
 - Skill, level 32: **Snare** (see its entry under Skills)
 - Skill, level 41: **Tripwire** (see its entry under Skills)
 - Skill, level 64: **Minefield** (see its entry under Skills)
-- Passive, Always active, from level 24: **Bombardier's Kit** - A Small Bomb to hand in every fight, free - on top of whatever is in his bag. And Steal reaches three tiles further. [Steal reaches +3 tiles. Has a Small Bomb to hand in every fight, free, once.]
+- Passive, Always active, from level 24: **Bombardier's Kit** - A Small Bomb to hand, free, once a short rest - on top of whatever is in his bag. And Steal reaches three tiles further. [Steal reaches +3 tiles. Has a Small Bomb to hand, free, once a short rest.]
 - Passive, Always active, from level 54: **Field of Traps** - Two traps set at once, and setting one - Snare or Tripwire - is a secondary action as well as a main one. [Can use Snare and Tripwire as a secondary action as well as a main one. 1 more trap set at once.]
 - Passive, Always active, from level 64: **Grand Snare** - Anybody held fast by one of his traps takes a quarter more from him. [Anybody held by their traps takes 25% more from them.]
 
@@ -1221,7 +1223,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Effect: {type: Heal; heal_share_of_health: 0.5; heal_per_stat: 0.25}
 - **Resuscitate** (`resuscitate`) - level 9; spell, Gates of Pandora; main action; range 1-1; melee; single target; aimed at allies; no damage
   - Who has it: Alithia
-  - Says: Bring a fallen ally back into the fight with half their health. It costs them: everything about them but how far they can walk is a tenth less afterwards - for good, and a tenth less again each time.
+  - Says: Bring a fallen ally back into the fight with half their health. It costs them: everything about them but how far they can walk is a tenth less afterwards - until a long rest, and a tenth less again each time.
   - Effect: {type: Revive; revive_health: 0.5; revive_weakening: 0.1}
   - Settings: targets_fallen: true; can_be_copied: false
 - **Revelation** (`revelation`) - level 64; spell, Gates of Yaldabaoth; main action; range 1-15; ranged; area: Diamond 1; damage x5.0 Idol; ignores 75% defence
@@ -1771,6 +1773,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Cat Burglar I** (`cat_burglar_i`, Always active): Quick between hiding places: two more tiles of movement on a turn he starts in cover. [+2 movement on a turn they start in cover.]
 - **Contest Insight I** (`contest_insight`, Always active, from level 24): He reads a contest before it starts: +10 to his stat in one. [+10 to their stat in a stat contest.]
 - **Contest Insight II** (`contest_insight_ii`, Always active, from level 41): +10 more against anybody already afflicted. [+10 more in a contest with anybody carrying a harmful condition.]
+- **Devotion** (`devotion`, Always active): Two castings of her own, for Heal or for Dread Visage on one person, spent before any gate. One comes back at a short rest, both at a long rest. [2 castings of their own for Heal or Dread Visage, in place of a gate - 1 back at a short rest, all at a long rest.]
 - **DoT Master I** (`dot_master`, Always active, from level 16): His poisons and burns bite deeper: a tenth harder. [Their lingering damage is 10% harder.]
 - **DoT Master II** (`dot_master_ii`, Always active, from level 41): And deeper still - a fifth harder again - and a turn longer. [Their lingering damage is 20% harder. Their lingering damage lasts 1 turn longer.]
 - **Dread Presence** (`dread_presence`, Always active): Whoever of the other side is within four tiles of it - when it appears, or as a turn of theirs begins - is gripped by fear of it, unless their Mindfulness is a match for its caster's Intellect. [Aura: the other side within 4 tiles are fear, unless their Mindfulness beats its Intellect.]
@@ -1789,6 +1792,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Kindling III** (`kindling_iii`, Always active, from level 54): And more again: up to 45%. [Kindling builds up to 15% further.]
 - **Light Footed** (`light_footed`, Always active): Stealth, Slip Past and Run can be used as his secondary action as well as his main one - so he can Run twice in a turn, or slip away after striking. [Can use Stealth, Slip Past and Run as a secondary action as well as a main one.]
 - **Measured Eye** (`measured_eye`, Always active): Every blow she lands teaches her something. Whoever she hits is studied, just as Study would - their sheet open to the party, and her next blows landing with a studier's edge. [Every hit studies whoever it lands on, as Study does.]
+- **Meditate** (`meditate`, Always active): At a short rest, once until the next long rest, he brings back castings he has spent: a point to spend every six levels, each casting costing its gate's depth, and none deeper than the shallower half of his open gates. [Meditates at a short rest, once until the next long rest: brings back spent castings, a point every six levels, each costing its gate's depth.]
 - **Mercy I** (`mercy`, Always active): Her heals mend a tenth more. [Heals mend 10% more.]
 - **Mercy II** (`mercy_ii`, Always active, from level 16): Her heals lift one harmful condition as well. [Heals lift one harmful condition too.]
 - **Mercy III** (`mercy_iii`, Always active, from level 41): Whoever she heals is sheltered: a fifth less damage until their next turn starts. [Whoever they heal is sheltered.]
@@ -1898,6 +1902,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Sleep Dart** (`sleep_dart`): Throw it at a guard (T, then click him). He is out cold where he stands, without a sound. | poison: Sedative; poison_onset: Instant; poison_shootable: true; targets_ally: true; deals_damage: false
 - **Sleeping Draught** (`sleeping_draught`): Into somebody's food or drink. A quarter of a minute after they have had it they are out cold where they stand - a body, to be found. | poison: Sedative; poison_onset: Delayed; targets_ally: true; deals_damage: false
 - **Small Bomb** (`small_bomb`): Rather more than a firecracker. | item_power: 25; price: 140; bomb: true; max_range: 5; affects_both_sides: true; ability_modifier: 2.0; uses_stat_contest: true; aoe_radius: 1
+- **Smelling Salts** (`smelling_salts`): Held under the nose of somebody fallen beside you: they are back up with half their health - and, as after Resuscitate, a tenth weaker until a long rest. | min_range: 1; max_range: 1; melee: true; targets_ally: true; targets_fallen: true; effects: [{type: Revive; revive_health: 0.5; revive_weakening: 0.1}]; deals_damage: false
 - **Stolen Signet** (`stolen_signet`): The captain's own ring, missing since yesterday - and the whole watch looking for whoever took it. Slip it into a guard's pocket and let the next one find it there. | keepsake: true; frames: true; targets_ally: true; deals_damage: false
 - **Stolen Sun Spellbook** (`stolen_sun_spellbook`): A spellbook of Stolen Sun. Prometheus can learn Stolen Sun from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 2000; teaches: "stolen_sun"; can_be_copied: false; deals_damage: false
 - **Stone Edge Spellbook** (`stone_edge_spellbook`): A spellbook of Stone Edge. Prometheus can learn Stone Edge from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 375; teaches: "stone_edge"; can_be_copied: false; deals_damage: false
@@ -2192,13 +2197,13 @@ Full analysis: `docs/healing_revision.md`, numbers in `docs/healing_inventory.cs
   - mythic full heals are OPEN until a boss defines one.
 - **To check against the policy:** Soothed (Aura II), a 5% heal every turn.
 - **Erysichthon's 6% meal stays the existing value.** Separate PROPOSAL: a meal heals one Heal of its level (21 at 18), one a turn, none from its own fallen, with Gorging (-20% Defense) or an exposed Belly Hole as the counterplay.
-- **The rest framework, kept for testing:**
-  - 2-3 short rests per segment, each 50% of the missing health, no gates;
+- **The rest framework,** implemented 2026-10-25 (see "Rests, Meditate and Devotion"):
+  - 2-3 short rests per segment (2-4 late), each 50% of the missing health, no gates;
   - a long rest restores everything;
   - Meditate, option A: ceil(level / 6) points, a casting costs its depth, only the shallower half of Prometheus's open gates.
 - **How the rests interact with healing:**
   - Short rests heal the big pools most between fights. The flat Heal helps the small ones most during fights.
-  - Alithia's World castings (2, then 4 from level 8) are the segment's healing limit.
+  - Alithia's World castings (2, then 4 from level 8), and her two Devotion castings, are the segment's healing limit.
 - **Still open:**
   - the enemy healers under the revision;
   - Mend the Bound, Gate Nades, Medicine and Purification;
@@ -2225,8 +2230,8 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
 - **Stunning Blow:** keeps x0.8 and its 1-turn Stun, but is now limited to uses per short rest: 1 at 41, 2 at 54, 3 at 64. A long rest restores them all.
 - **Per fight became per short rest.** Every use limit now recovers on a short rest, and a long rest restores it as well: Recant, Catalyst, Minefield, Grand Design, the Conductor's free amplifications (Overcharge, Deep Current), and Conduit. In a dungeon these carry from fight to fight until a rest. Every fight elsewhere starts with all of them, as with gates.
   - **Unchanged:** trigger conditions (Ambush Strike, Illusory Guardian, Afterimage), Kindling's build-up, durations to the fight's end, and boss phase, stagger and encounter effects.
-  - **OPEN:** the Trapper's free Small Bomb, "to hand in every fight". It is left per fight for now.
-- **The short and long rest plug-in** (`Campaign.short_rest`, `long_rest`) restores those uses; since 2026-10-25 a dungeon of short rests (the lab) also mends half of what was lost (below). The designer will give the rests' details: health, gates, how many per segment.
+  - **The Trapper's free Small Bomb** is once a short rest too (the designer, 2026-10-25: "it adds flavor to his short rest").
+- **The short and long rest plug-in** (`Campaign.short_rest`, `long_rest`) restores those uses. The designer gave the rests' details on 2026-10-25 (below, "Rests, Meditate and Devotion").
 - **Nothing in play changes yet.** Every converted limit is learned at 24 or above, and today's dungeons are at 14 and 18.
 
 ## The laboratory, short rests and half casters (2026-10-25; implemented)
@@ -2269,28 +2274,60 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
   - **What the changes did, by the numbers:**
     - The overall result did not change: the run was lost in Lab B.
     - Lab A was won with three standing instead of one, two rounds sooner. The party healed 192 instead of 8, 146 of it from items. The enemies healed 105 instead of 182.
-    - The Rangers' heals went from 119 to 0. A half caster at 16 still has World 4 and Hermes 2, so running out of gates does not explain it. OPEN: whether the AI never wanted to heal (they fell in rounds 6 and 9) or something stopped it (VERIFY).
+    - The Rangers' heals went from 119 to 0. A half caster at 16 still has World 4 and Hermes 2, so running out of gates does not explain it. The designer burst them down this time rather than wearing them down with damage over time, and the log agrees:
+      - Neither Ranger took any damage in rounds 1-4. A Ranger heals itself only below half its health (about 91 at 16).
+      - Ranger 2 had lost 44 at its round-5 turn, just above half. Cyrus then hit it for 26 straight after, and 26 in round 6: down before its next turn.
+      - Ranger 1 was at 74 at its round-7 turn, walked away, and was caught by Enfina's Grab. At its round-8 turn it was at about 10, well under half, but it did not heal. It seems to have spent the turn breaking free and walking off, and was grabbed again. Cyrus finished it at the start of round 9.
+      - VERIFY: the log does not record a break-free. A Ranger held below half might be expected to heal itself where it stands, since a self-heal needs no movement.
     - The rest and Resuscitate put all four into Lab B, against Cyrus alone in the first run. The fight lasted one round longer and two enemies fell instead of none. Prometheus lasted one enemy turn after coming back. Enfina, revived in the fight, lasted two more rounds.
     - Nine items were never used, five of them heals.
     - Tremor's step did not come up: Enfina is 18 here, and Tremor comes at 64.
-  - **The user's painted cover** on the upper left of `maps/city_fight.tscn` is in the run if it was saved before it; the log does not say. The map is Lab A's, and also used by the Dungeon Demo's third fight (`dungeon_demo/dungeon_3_city.tres`), `boss_bellkeeper`, `level_64_showdown`, `sizes_colossus` and `encounter_03_watcher`, so the cover is in all of those. OPEN: a lab-only copy of the map.
+  - **The user's painted cover** on the upper left of `maps/city_fight.tscn` is in the run if it was saved before it; the log does not say. The map is Lab A's, and also used by the Dungeon Demo's third fight (`dungeon_demo/dungeon_3_city.tres`), `boss_bellkeeper`, `level_64_showdown`, `sizes_colossus` and `encounter_03_watcher`, so the cover is in all of those. The designer is fine with that: no lab-only copy (2026-10-25).
 - **Short rests in the lab** (APPROVED_TRIAL; the 50% is a PROPOSAL test value):
   - Between stages, everybody standing gets back half of what they lost, along with the uses spent until a rest. No gates come back.
-  - The fallen stay down unless somebody who knows Resuscitate (Alithia) spends a casting of it on them at the rest: Pandora or deeper, back with 50% health and 10% weaker for good, as in a fight. If Alithia is down, nobody can.
+  - The fallen stay down unless somebody who knows Resuscitate (Alithia) spends a casting of it on them at the rest: Pandora or deeper, back with 50% health and 10% weaker, as in a fight. If Alithia is down, nobody can. Since 2026-10-25 they are also rested, and the weakening lasts only until a long rest (below).
 - **A kit** (PROPOSAL test values, tier II for a party at 18) fills every Simple Baldric, 4 slots each. It is all the party has for the three fights: what is used is gone.
   - **Enfina:** 2 Mediocre Cure Potions, a Cure Potion, a Medicine.
-  - **Cyrus:** 2 Small Bombs, a Blinding Bomb, a Mediocre Cure Potion.
+  - **Cyrus:** a Small Bomb, Smelling Salts (since 2026-10-25, in place of his second Small Bomb), a Blinding Bomb, a Mediocre Cure Potion.
   - **Prometheus:** 2 Medicines, a Mediocre Cure Potion, a Fireball Gate Nade.
   - **Alithia:** a Communion Gate Nade, a Heal Gate Nade, a Mediocre Cure Potion, a Medicine.
 - **Half casters** (APPROVED_TRIAL): a half caster gets the gates of a full caster at half its level, rounded up, like a D&D paladin.
   - The Ranger is one. At 16 it has World 4 and Hermes 2, where a full caster has World 4, Hermes 3 and Pandora 2. At 64 it has a full caster's gates of 32.
   - Its Heal still costs a World casting.
-  - The other reading, half of each gate's castings at its own level, is open if that was what was meant.
+  - The designer confirmed this reading (2026-10-25: "this is correct"), rather than half of each gate's castings at its own level.
 - **The lab's logs** now credit each tick of damage to the source of its condition, and each reaction to the reactor, rather than to whoever's turn it was.
 - **Lifting conditions** (the user's, 2026-10-25; implemented):
   - Cured of something that held them in place (Crystallised) in their own turn, a combatant can walk again: all their movement, or what they had not yet walked.
   - A cleanse that lifts only so much (Medicine lifts one) and a heal that lifts some (Mercy II) let the player choose which of several comes off, the most recent first, each with its turns left. The other side lifts the most recent.
 - **Reactions:** when someone leaves the reach of two or more at once, every one of them whose reaction is unspent swings, and the player is asked for each of theirs in turn. Reach is counted in straight steps, so a diagonal neighbour is 2 away and outside a reach of 1.
+
+## Rests, Meditate and Devotion (2026-10-25; implemented)
+
+The designer's answers of 2026-10-25. The rules are APPROVED_TRIAL; the numbers the designer did not give are PROPOSAL test values, marked.
+
+- **When rests happen:** whenever something calls for one: a conversation (`do Campaign.short_rest()` or `long_rest()`), or a dungeon between its fights. The Dungeon Demo and the lab take a short rest between each fight. A segment has 2-3 short rests on average, 2-4 late in the game; nothing counts them.
+- **A short rest:**
+  - Everybody standing gets back half of what they lost (the 50% is a PROPOSAL test value).
+  - Uses spent until a rest come back: the use limits, the Trapper's bomb, one of Alithia's two Devotion castings.
+  - No gates come back, except through Prometheus's Meditate.
+  - The fallen stay down unless Resuscitated. Somebody Resuscitated at the rest is then rested too: half of what they still miss, so 75% of their (weakened) health in all.
+- **A long rest** brings back everything:
+  - everybody up and at full health;
+  - the 10% weakening from being brought back lifted (it used to last for good);
+  - every gate, those opened outside a fight (Iris) too;
+  - Meditate, both Devotion castings, and every use spent until a rest.
+  - No dungeon has a long rest yet.
+- **Meditate** (Prometheus's passive; Alithia gets none):
+  - At a short rest, once until the next long rest, he brings back castings he spent.
+  - **Points:** one every six levels, rounded up. **Cost:** a casting costs its gate's depth (World 1, Hermes 2, Pandora 3). **Depth:** nothing deeper than the shallower half of his open gates, rounded up.
+  - So: L1 1 point (World), L8 2 (World), L14-18 3 (up to Hermes), L24 4 (Hermes), L33 6 (Pandora), L45 8 (Charon), L55 10 (Tartarus), L64 11 (Tartarus).
+  - These are option A of the rest proposal, PROPOSAL test values. Iris's outside gates are not among them; a long rest brings those back.
+  - It is offered on the rest screen. The Dungeon Demo's own recovery (once a run, 3 points) was taken out, so Meditate is not a second one (PROPOSAL: the proposal said Meditate "would be that recovery").
+- **Devotion** (Alithia's passive; the name is a placeholder, PROPOSAL):
+  - Two castings of her own. Each pays for a Heal or a Dread Visage (on one person) in place of its gate, and is spent before any gate.
+  - One comes back at a short rest, both at a long rest. In a dungeon they carry from fight to fight; every other fight starts with both.
+- **Smelling Salts** (PROPOSAL test values, for the lab): a consumable that brings somebody fallen beside you back up with 50% of their health, 10% weaker until a long rest, as Resuscitate does. Cyrus carries it in the lab kit, in place of his second Small Bomb.
+- **Not decided:** whether a short rest ends conditions; where the long rests fall; whether a rest called from a conversation should open the rest screen, so Meditate and Resuscitate can be chosen there (OPEN).
 
 ## Known near-twins among the spells
 

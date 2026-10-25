@@ -40,7 +40,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 130 suites and takes a while. Each one boots the real game
+A full run is 134 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one.
@@ -269,23 +269,34 @@ MapSetup cast and kit; `Combat._deploy_party` keeps the bags even on a fight
 gone straight into; and `record_party` / `apply_carried_state` carry spent
 `spell_slots` between fights, which no other mode does - and what is spent until a
 rest (`Combat.SPENT_UNTIL_REST`: a skill's `uses_per_short_rest` uses, free
-amplifications, Conduit; per fight until the designer's change of 2026-10-24),
-which `Campaign.short_rest` / `long_rest` clear. `rest_party`, the rest between
-stages, is a short rest in a dungeon of `short_rests` (half of what was lost,
-`SHORT_REST_MENDS`; no gates; the fallen stay down) and a full one otherwise
-(which calls `short_rest` too). At a short rest somebody fallen can be brought
-back with Resuscitate (`resuscitator`, `resuscitate_at_rest`: the spell's own
-Revive Health and Weakening, a casting through Pandora or deeper). What else a
-long rest does is the designer's to give. A dungeon's `kit` stocks the bags
+amplifications, Conduit, the Trapper's free bomb, spare castings; per fight
+until the designer's changes of 2026-10-24 and 25), which `Campaign.short_rest` /
+`long_rest` clear. Rests are taken whenever something calls for one (a
+conversation's `do Campaign.short_rest()`, a dungeon between its fights); nothing
+counts them. `rest_party`, the rest between stages, is a short rest in a dungeon
+of `short_rests` (the Dungeon Demo and the lab: half of what was lost,
+`SHORT_REST_MENDS`; one Devotion casting back, `spares_back_at_short_rest`; no
+gates; the fallen stay down) and a full one otherwise (which calls `short_rest`
+too). At a short rest somebody fallen can be brought back with Resuscitate
+(`resuscitator`, `resuscitate_at_rest`: the spell's own Revive Health and
+Weakening, a casting through Pandora or deeper - then rested like the rest), and
+Prometheus can Meditate (`can_meditate`, `meditate`: `ceil(level / 6)` points, a
+casting its gate's depth, the shallower half of his gates, once until a long
+rest, `meditated`; the RestPanel offers it where the dungeon has no recovery of
+its own). A long rest brings everything back: everybody up and whole, the
+weakening lifted (`_lift_weakening`, from `unweakened_max_hp`), every gate and
+Iris's, Meditate, Devotion. Alithia's Devotion is Combat "Spare castings"
+(`spares_left`, paid first in `_pay_for_cast`). A dungeon's `kit` stocks the bags
 `start_dungeon` empties. `ResultUI` shows a
 `RestPanel` (`Campaign.rest_party`, `recover_gates`, the fallen) instead of its own panel
 after every won fight but the last. `reset()` ends a dungeon, so the title
-screen and every fresh start leave it. `dungeon` covers it, `restuses` the uses.
+screen and every fresh start leave it. `dungeon` covers it, `restuses` the uses,
+`restcycle` the rests, Meditate, Devotion, the Smelling Salts and the Trapper's bomb.
 
 The late-Chapter-I laboratory sequence (`data/dungeons/lab_chapter1_sequence.tres`,
 boss Erysichthon; `lab_chapter1_sequence_ash_warden.tres` the same with the Ash
 Warden; `docs/lab_sequence.md`) is a TEMPORARY test harness, not story content. It
-takes short rests and carries a kit (designer, 2026-10-25); `skips_rests`, which
+takes short rests and carries a kit, Cyrus's Smelling Salts in it (designer, 2026-10-25); `skips_rests`, which
 made `ResultUI` skip the RestPanel, is used by nothing now. Its `logs_metrics` makes `GameScene` add a `LabMetrics`
 (`tools/lab_metrics.gd`) under Combat. That listens to `Combat.metric` - emitted
 by `_metric` from the round, turn, action, gate, damage (`lose_hp`, which takes
@@ -358,7 +369,8 @@ which is freed. A Resuscitate (`targets_fallen`, `EffectType.REVIVE`) is aimed
 through `CController.aim_subject_at` and stands them back up with
 `Combat.revive`. Its weakening is `comb.frailty`, applied by
 `Combat.apply_frailty` from the untouched figures kept in `comb.unweakened`
-(everything but movement), and carried in `Campaign.party_state` like health.
+(everything but movement), and carried in `Campaign.party_state` like health
+until a long rest lifts it. Smelling Salts does the same as an item.
 
 **What somebody has to hand is `Combat.items_of`**: an enemy's `comb.pocket`
 (from their spawn's `starting_items`), or a party member's belt (the Baldric). A Steal

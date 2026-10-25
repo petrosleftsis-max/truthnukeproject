@@ -90,13 +90,28 @@ var scales_every_skill_with: int = -1
 @export_subgroup("Reach and kit")
 ## Skill key -> tiles more it reaches. The Bombardier's: {"steal": 3}.
 @export var range_bonuses: Dictionary = {}
-## An item, by key, they have to hand in every fight on top of their bag, used
-## without spending anything from it - once a fight. The Bombardier's bomb.
+## An item, by key, they have to hand on top of their bag, used without spending
+## anything from it - once a short rest (the designer, 2026-10-25; it was once a
+## fight, which the name still says). The Bombardier's bomb.
 @export var free_item_each_fight: String = ""
 ## Skills, by key, after which they may step away (step_tiles, in a straight
 ## line, provoking nothing) - the Swashbuckler's Rapier.
 @export var step_after: Array[String] = []
 @export_range(0, 6) var step_tiles: int = 0
+
+@export_subgroup("Rests")
+## Castings of their own on top of their gates, each paying for one of Spare
+## Casting Spells in place of its gate, and spent before any gate (Combat "Spare
+## castings"). Short Rest Gives Back of them come back at a short rest, all at a
+## long one. Alithia's Devotion: 2, for Heal or Dread Visage, 1 back a short rest.
+@export_range(0, 9) var spare_castings: int = 0
+@export var spare_casting_spells: Array[String] = []
+@export_range(0, 9) var spare_castings_a_short_rest: int = 0
+## At a short rest, once until the next long rest, brings back castings they
+## spent: a point every six levels, each casting costing its gate's depth, none
+## deeper than the shallower half of the gates they have open (Campaign
+## "Meditate"). Prometheus's Meditate.
+@export var meditates: bool = false
 
 @export_subgroup("Spells")
 ## They can amplify a spell: cast it through a higher gate than it needs, each
@@ -386,7 +401,13 @@ func describe_effects() -> Array:
 	for key in range_bonuses:
 		lines.append("%s reaches %+d tiles." % [_named([key]), range_bonuses[key]])
 	if free_item_each_fight != "":
-		lines.append("Has a %s to hand in every fight, free, once." % _item_name(free_item_each_fight))
+		lines.append("Has a %s to hand, free, once a short rest." % _item_name(free_item_each_fight))
+	if spare_castings > 0 and not spare_casting_spells.is_empty():
+		lines.append("%d castings of their own for %s, in place of a gate - %s back at a short rest, all at a long rest." % [
+			spare_castings, " or ".join(spare_casting_spells.map(func(key): return _named([key]))),
+			str(spare_castings_a_short_rest) if spare_castings_a_short_rest > 0 else "none"])
+	if meditates:
+		lines.append("Meditates at a short rest, once until the next long rest: brings back spent castings, a point every six levels, each costing its gate's depth.")
 	if not step_after.is_empty() and step_tiles > 0:
 		lines.append("After %s, can step up to %d tiles away in a straight line, provoking nothing." % [_named(step_after), step_tiles])
 	if amplifies_spells:

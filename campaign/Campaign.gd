@@ -689,7 +689,7 @@ func restart_stealth():
 ## The keys of everything the run is made of, copied as they are.
 const SAVED := ["party_level", "party_state", "subclasses", "inventories", "gear", "equipped",
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
-	"parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks"]
+	"meditated", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks"]
 
 
 ## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with
@@ -762,7 +762,7 @@ func apply_carried_state(comb: Dictionary, key: String):
 	if not party_state.has(key):
 		return
 	var stored = party_state[key]
-	# Brought back from falling, and weaker for it for good (Combat.weaken) -
+	# Brought back from falling, and weaker for it until a long rest (Combat.weaken) -
 	# before their health is set, so it is set against what they can have now.
 	if stored.get("frailty", 1.0) < 1.0:
 		comb["frailty"] = stored.frailty
@@ -784,7 +784,7 @@ func apply_carried_state(comb: Dictionary, key: String):
 	if in_dungeon() and stored.has("spent_until_rest"):
 		var spent: Dictionary = stored.spent_until_rest
 		for what in spent:
-			comb[what] = spent[what].duplicate(true) if spent[what] is Dictionary else spent[what]
+			comb[what] = spent[what].duplicate(true) if spent[what] is Dictionary or spent[what] is Array else spent[what]
 
 
 ## Gates `key` opened outside a fight - for a hack's hint (Hacking) - stay
@@ -964,6 +964,9 @@ func record_party(combatants: Array):
 		}
 		if comb.get("frailty", 1.0) < 1.0:
 			party_state[key]["frailty"] = comb.frailty
+			# What a long rest gives them back (_lift_weakening).
+			if comb.has("unweakened"):
+				party_state[key]["unweakened_max_hp"] = comb.unweakened.max_hp
 		if in_dungeon():
 			party_state[key]["spell_slots"] = comb.get("spell_slots", []).duplicate()
 			party_state[key]["max_spell_slots"] = comb.get("max_spell_slots", []).duplicate()
@@ -1021,6 +1024,7 @@ func reset():
 	gate_recoveries_left = 0
 	gates_spent_outside.clear()
 	outside_spent.clear()
+	meditated.clear()
 	parley = {}
 	_encounter_answer = EncounterAnswer.UNANSWERED
 	party_state.clear()
@@ -1374,14 +1378,22 @@ func rest_party():
 
 ## --- Short and long rests ---
 ##
-## What each brings back (the designer, 2026-10-24 and 25). A short rest brings
-## back everything spent until one (Combat.SPENT_UNTIL_REST) - a skill's uses a
-## short rest, a free amplification, a Conduit - and to everybody standing
-## Short Rest Mends of what they have lost; nobody fallen gets up by themselves,
-## and no gates come back. A long rest brings back all a short one does. What
-## else a long rest does, and how many of each a dungeon has, is the designer's
-## still to give (the ledger's Short rest and Long rest;
-## docs/healing_and_rest_proposal.md).
+## What each brings back (the designer, 2026-10-24 and 25). Either is taken
+## whenever something calls for it - a conversation (`do Campaign.short_rest()`),
+## or a dungeon of short rests between its fights (the Dungeon Demo, the lab);
+## a segment has 2-3 short rests on average, 2-4 late in the game, which nothing
+## counts.
+##
+## A short rest brings back everything spent until one (Combat.SPENT_UNTIL_REST)
+## - a skill's uses a short rest, a free amplification, a Conduit, the Trapper's
+## bomb - but of spare castings (Devotion) only so many, and to everybody
+## standing Short Rest Mends of what they have lost; nobody fallen gets up by
+## themselves, and no gates come back - but Meditate may bring some, and
+## Resuscitate somebody fallen (below).
+##
+## A long rest brings back everything: everybody up and at full health, the
+## weakening of being brought back lifted, every gate (those opened outside a
+## fight too - Iris), every spare casting, and Meditate.
 
 ## Of what everybody standing has lost, what a short rest gives back - a
 ## PROPOSAL test value (docs/healing_and_rest_proposal.md).
@@ -1391,14 +1403,57 @@ const SHORT_REST_MENDS := 0.5
 func short_rest():
 	for key in party_state:
 		var state: Dictionary = party_state[key]
+		var spare: int = state.get("spent_until_rest", {}).get("spare_spent", 0)
 		state.erase("spent_until_rest")
+		spare = maxi(spare - spares_back_at_short_rest(key), 0)
+		if spare > 0:
+			state["spent_until_rest"] = {"spare_spent": spare}
 		if state.get("alive", false):
-			var most: int = state.get("max_hp", state.hp)
-			state.hp = mini(most, state.hp + roundi(maxi(most - state.hp, 0) * SHORT_REST_MENDS))
+			_mend_for_short_rest(state)
+
+
+## Short Rest Mends of what `state` has lost.
+func _mend_for_short_rest(state: Dictionary):
+	var most: int = state.get("max_hp", state.hp)
+	state.hp = mini(most, state.hp + roundi(maxi(most - state.hp, 0) * SHORT_REST_MENDS))
+
+
+## How many spare castings (PassiveDefinition.spare_castings) a short rest gives
+## `key` back, from their passives working at the party's level.
+func spares_back_at_short_rest(key: String) -> int:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	var back := 0
+	for passive in definition.passives if definition != null else []:
+		if passive != null and party_level >= passive.required_level:
+			back += passive.spare_castings_a_short_rest
+	return back
 
 
 func long_rest():
-	short_rest()
+	for key in party_state:
+		var state: Dictionary = party_state[key]
+		state.erase("spent_until_rest")
+		_lift_weakening(state)
+		state["alive"] = true
+		state["hp"] = state.get("max_hp", state.get("hp", 1))
+		if state.has("max_spell_slots"):
+			state["spell_slots"] = state.max_spell_slots.duplicate()
+		else:
+			state.erase("spell_slots")
+	outside_spent.clear()
+	gates_spent_outside.clear()
+	meditated.clear()
+
+
+## Brought back from falling, and weaker for it (Combat.weaken): no longer - back
+## to the health they had before any of it.
+func _lift_weakening(state: Dictionary):
+	if state.get("frailty", 1.0) >= 1.0:
+		return
+	var frailty: float = state.frailty
+	state["max_hp"] = state.get("unweakened_max_hp", roundi(state.get("max_hp", 1) / frailty))
+	state.erase("frailty")
+	state.erase("unweakened_max_hp")
 
 
 ## --- Resuscitate at a rest ---
@@ -1406,8 +1461,10 @@ func long_rest():
 ## Somebody fallen in a dungeon of short rests stays down - unless somebody
 ## standing who knows Resuscitate spends a casting of it on them at the rest:
 ## through the shallowest gate deep enough that they have one left, the fallen
-## back up with the spell's Revive Health of their health, and weakened for good
-## as in a fight (Revive Weakening, Combat.weaken). The designer, 2026-10-25.
+## back up with the spell's Revive Health of their health, and weakened as in a
+## fight (Revive Weakening, Combat.weaken) until a long rest - and then rested
+## like everybody else, Short Rest Mends of what they are still missing. The
+## designer, 2026-10-25.
 
 const RESUSCITATE := "resuscitate"
 
@@ -1459,12 +1516,106 @@ func resuscitate_at_rest(caster: String, fallen: String) -> bool:
 	left[gate] = int(left[gate]) - 1
 	party_state[caster]["spell_slots"] = left
 	party_state[caster]["max_spell_slots"] = gates_most(caster)
+	if not state.has("unweakened_max_hp"):
+		state["unweakened_max_hp"] = state.get("max_hp", 1)
 	state["frailty"] = state.get("frailty", 1.0) * (1.0 - revive.revive_weakening)
 	state["max_hp"] = maxi(1, roundi(state.get("max_hp", 1) * (1.0 - revive.revive_weakening)))
 	state["hp"] = maxi(1, roundi(state.max_hp * revive.revive_health))
 	state["alive"] = true
-	announce("[color=yellow]%s[/color] casts Resuscitate: [color=lightgreen]%s[/color] is back up with %d health - and %d%% weaker for good.\n" % [
+	# And the rest everybody else has had.
+	_mend_for_short_rest(state)
+	announce("[color=yellow]%s[/color] casts Resuscitate: [color=lightgreen]%s[/color] is back up and rested, with %d health - and %d%% weaker until a long rest.\n" % [
 		display_name_of(caster), display_name_of(fallen), state.hp, roundi(revive.revive_weakening * 100.0)])
+	return true
+
+
+## --- Meditate ---
+##
+## At a short rest, once until the next long rest, somebody with a passive's
+## Meditates (Prometheus) brings back castings they spent: Meditation Points of
+## them - a point every MEDITATE_LEVELS levels, rounded up - each casting
+## costing its gate's depth (World 1, Hermes 2, Pandora 3), and none through a
+## gate deeper than the shallower half of the gates they have open, rounded up.
+## Option A of docs/healing_and_rest_proposal.md, section 4 (the designer,
+## 2026-10-25: "put in meditate"; its numbers are PROPOSAL test values). The
+## gates opened only outside a fight (Iris) are not among them - a long rest
+## brings those back. Offered on the RestPanel.
+
+## A point to spend every so many levels, rounded up - a PROPOSAL test value.
+const MEDITATE_LEVELS := 6
+
+## Who has meditated since the last long rest.
+var meditated: Array = []
+
+
+## Whether `key` meditates at all, at the party's level.
+func meditates(key: String) -> bool:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	for passive in definition.passives if definition != null else []:
+		if passive != null and passive.meditates and party_level >= passive.required_level:
+			return true
+	return false
+
+
+## What `key`'s meditation has to spend.
+func meditation_points(_key: String) -> int:
+	return ceili(party_level / float(MEDITATE_LEVELS))
+
+
+## The deepest gate `key`'s meditation reaches: the shallower half of the gates
+## they have open, rounded up.
+func meditation_deepest(key: String) -> int:
+	var most := gates_most(key)
+	var open := 0
+	for gate in range(1, most.size()):
+		if most[gate] > 0:
+			open += 1
+	return ceili(open / 2.0)
+
+
+## What one casting through `gate` costs `key` to bring back by meditating - 0
+## for a gate too deep.
+func meditation_cost(key: String, gate: int) -> int:
+	return gate if gate >= 1 and gate <= meditation_deepest(key) else 0
+
+
+## Whether `key` can meditate now: they meditate, are standing, have not since
+## the last long rest, and have spent something it could bring back.
+func can_meditate(key: String) -> bool:
+	if not meditates(key) or meditated.has(key) or not party_order.has(key):
+		return false
+	if not party_state.get(key, {}).get("alive", true):
+		return false
+	var left := gates_left(key)
+	var most := gates_most(key)
+	for gate in range(1, mini(most.size(), meditation_deepest(key) + 1)):
+		if left[gate] < most[gate] and meditation_cost(key, gate) <= meditation_points(key):
+			return true
+	return false
+
+
+## `key` meditates, bringing back `counts` of their castings, one count per
+## gate. Refused, and nothing changed, if they cannot, it costs more than they
+## have to spend or nothing, reaches too deep, or brings back more than was spent.
+func meditate(key: String, counts: Array) -> bool:
+	if not can_meditate(key):
+		return false
+	var left := gates_left(key)
+	var most := gates_most(key)
+	var cost := 0
+	for gate in counts.size():
+		var count: int = counts[gate]
+		if count < 0 or (count > 0 and (gate >= left.size() or meditation_cost(key, gate) <= 0 or left[gate] + count > most[gate])):
+			return false
+		cost += count * meditation_cost(key, gate)
+	if cost <= 0 or cost > meditation_points(key):
+		return false
+	for gate in counts.size():
+		left[gate] += counts[gate]
+	party_state[key]["spell_slots"] = left
+	party_state[key]["max_spell_slots"] = most
+	meditated.append(key)
+	announce("[color=yellow]%s[/color] meditates, and has back what they spent.\n" % display_name_of(key))
 	return true
 
 

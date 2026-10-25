@@ -8,7 +8,7 @@
 [sub_resource type="Resource" id="Passive_0"]
 script = ExtResource("1_passive")
 name = "Bombardier's Kit"
-description = "A Small Bomb to hand in every fight, free - on top of whatever is in his bag. And Steal reaches three tiles further."
+description = "A Small Bomb to hand, free, once a short rest - on top of whatever is in his bag. And Steal reaches three tiles further."
 required_level = 24
 range_bonuses = {
 "steal": 3

@@ -447,7 +447,7 @@ func _gather() -> Array:
 		var armour := EquipmentDefinition.named(Campaign.equipped_in(member.key, "armour"))
 		if armour != null:
 			stats["defense"] = armour.defense
-		# Brought back from falling in a fight, and weaker for it for good (see
+		# Brought back from falling in a fight, and weaker for it until a long rest (see
 		# Combat.weaken). Their health already is: it is what they were last
 		# fielded with.
 		var frailty: float = Campaign.party_state.get(member.key, {}).get("frailty", 1.0)

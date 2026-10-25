@@ -13,7 +13,7 @@ revive_weakening = 0.1
 [resource]
 script = ExtResource("3_kdpqh")
 name = "Resuscitate"
-description = "Bring a fallen ally back into the fight with half their health. It costs them: everything about them but how far they can walk is a tenth less afterwards - for good, and a tenth less again each time."
+description = "Bring a fallen ally back into the fight with half their health. It costs them: everything about them but how far they can walk is a tenth less afterwards - until a long rest, and a tenth less again each time."
 min_range = 1
 max_range = 1
 icon = ExtResource("2_pnxl7")

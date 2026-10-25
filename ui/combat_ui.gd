@@ -1604,7 +1604,7 @@ const GATE_UP := "GateUp"
 func _gate_up(action: Button, comb: Dictionary, skill: SkillDefinition) -> int:
 	var paying := 0
 	if skill != null and not comb.is_empty() and combat != null and skill.spell_slot_level > 0 \
-			and not combat.casts_without_gates(comb):
+			and not combat.casts_without_gates(comb) and combat.spares_left(comb, skill) <= 0:
 		var through = combat.slot_available_for(comb, skill.spell_slot_level)
 		if through > skill.spell_slot_level:
 			paying = through
@@ -1810,6 +1810,10 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		var most := Combat.uses_a_rest(holder, skill) if not holder.is_empty() else skill.uses_per_short_rest
 		var left: int = combat.uses_left(holder, skill) if combat != null and not holder.is_empty() else most
 		lines.append("Uses: %d of %d left until a short rest" % [left, most])
+	# Paid for by a spare casting of theirs before any gate (Devotion).
+	if combat != null and not holder.is_empty() and not (skill is ItemDefinition) and combat.spares_most(holder) > 0 \
+			and combat.active_passives(holder).any(func(passive): return passive.spare_casting_spells.has(SkillDatabase.skills.find_key(skill))):
+		lines.append("%s: %d of %d left, spent before a gate" % [combat.spares_name(holder), combat.spares_left(holder, skill), combat.spares_most(holder)])
 	lines.append("Range: %d-%d, %s" % [skill.min_range, skill.max_range, "melee" if skill.melee else "ranged"])
 	if skill.uses_stat_contest:
 		# A graze keeps the damage at half strength and drops everything else,
@@ -2095,7 +2099,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.REVEAL:
 			return "Lays their character sheet open to you for the rest of the battle"
 		EffectDefinition.EffectType.REVIVE:
-			return "Brings back a fallen ally with %d%% of their health - everything about them but their movement %d%% lower, for good, and lower again each time" % [
+			return "Brings back a fallen ally with %d%% of their health - everything about them but their movement %d%% lower until a long rest, and lower again each time" % [
 				roundi(effect.revive_health * 100.0), roundi(effect.revive_weakening * 100.0)]
 		EffectDefinition.EffectType.SUMMON_DECOY:
 			return "Puts an image of them beside them: one point of health, no turns - the enemy goes for it as it would for them"

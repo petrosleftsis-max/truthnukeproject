@@ -20,7 +20,7 @@ enum EffectType {
 	HIDE,              ## Takes the target out of sight, until somebody sees them again.
 	RESISTANCE,        ## Raises or lowers how much of one damage type gets through, for a duration.
 	UPGRADE_ELEMENT,   ## The target's next damaging skill is cast with the upgraded form of its element.
-	REVIVE,            ## Brings back an ally who has fallen - and they come back weaker, for good.
+	REVIVE,            ## Brings back an ally who has fallen - and they come back weaker, until a long rest.
 	STEAL,             ## Takes what the target has to hand in this fight and gives it to the thief.
 	SUMMON_DECOY,      ## An image of the ally it lands on, beside them: no turns, gone at the first touch.
 	INTERACT,          ## Uses the thing on the battlefield it lands on (BattleObjectDefinition) - rings the bell.
@@ -221,9 +221,10 @@ enum DispelScope {
 @export_range(0.0, 1.0, 0.05) var revive_health: float = 0.0
 ## Used when type is REVIVE: how much less of everything they are made of -
 ## their attributes, their health, their weapon, how quick they are - they are
-## left with, for good: 0.1 takes a tenth off. Everything but how far they can
-## walk. It compounds, a second time taking a tenth off what the first left, and
-## it goes with them out of the fight (see Combat.weaken).
+## left with until a long rest (Campaign.long_rest): 0.1 takes a tenth off.
+## Everything but how far they can walk. It compounds, a second time taking a
+## tenth off what the first left, and it goes with them out of the fight (see
+## Combat.weaken).
 @export_range(0.0, 1.0, 0.01) var revive_weakening: float = 0.0
 
 @export_group("Steal")

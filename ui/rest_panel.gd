@@ -13,7 +13,9 @@ class_name RestPanel
 ## A dungeon of short rests (DungeonDefinition.short_rests) gives back half of
 ## what was lost, and leaves the fallen down - each with a button to bring them
 ## back with Resuscitate, while somebody standing can cast it
-## (Campaign.resuscitate_at_rest).
+## (Campaign.resuscitate_at_rest). Where the dungeon brings no gates back,
+## somebody who meditates (Prometheus) is offered Meditate on the same rows
+## instead (Campaign "Meditate").
 ##
 ## Built in code, by ResultUI, once the battle and whatever is said after it are
 ## over. Campaign does the resting and the recovering; this only asks.
@@ -33,6 +35,8 @@ var chosen: Array = []
 var chosen_outside: Array = []
 ## Whose gates are offered, or "".
 var offered_to := ""
+## Whether what is offered is their Meditate rather than the dungeon's recovery.
+var meditating := false
 
 var _gate_box: VBoxContainer = null
 var _party: Label = null
@@ -140,7 +144,7 @@ func _offer_resuscitate():
 	if caster == "" or revive == null:
 		terms.text = "Nobody standing can cast Resuscitate: they stay down."
 	else:
-		terms.text = "%s can bring one back with Resuscitate, for a casting through %s (gates: %s). Up with %d%% of their health - and %d%% weaker for good." % [
+		terms.text = "%s can bring one back with Resuscitate, for a casting through %s (gates: %s). Up with %d%% of their health and rested like everybody else - and %d%% weaker until a long rest." % [
 			Campaign.display_name_of(caster), Stats.short_gate_name(Campaign.rest_gate_for(caster)), _gates_now(caster),
 			roundi(revive.revive_health * 100.0), roundi(revive.revive_weakening * 100.0)]
 	_fallen_box.add_child(terms)
@@ -171,20 +175,26 @@ func resuscitate(key: String) -> bool:
 ## Whose gates there are to offer, if anybody's.
 func _offer_gates():
 	offered_to = ""
+	meditating = false
 	for key in Campaign.dungeon.gate_recovery_for if Campaign.dungeon != null else []:
 		if Campaign.can_recover_gates(key):
 			offered_to = key
 			break
+	if offered_to == "":
+		for key in Campaign.party_order:
+			if Campaign.can_meditate(key):
+				offered_to = key
+				meditating = true
+				break
 	for child in _gate_box.get_children():
 		child.queue_free()
 	_rows.clear()
 	if offered_to == "":
 		return
-	var dungeon: DungeonDefinition = Campaign.dungeon
 	var who := Campaign.display_name_of(offered_to)
 	var question := Label.new()
 	question.name = "Question"
-	question.text = "Recover %s's gates?" % who
+	question.text = ("Meditate? %s can bring back gates spent." if meditating else "Recover %s's gates?") % who
 	question.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	question.add_theme_color_override("font_color", GOLD)
 	question.add_theme_font_size_override("font_size", 20)
@@ -193,7 +203,7 @@ func _offer_gates():
 	terms.name = "Terms"
 	terms.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	terms.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	terms.text = "%d points to spend: %s. %s" % [dungeon.gate_recovery_points, _prices(), _how_often()]
+	terms.text = "%d point%s to spend: %s. %s" % [_points_to_spend(), "" if _points_to_spend() == 1 else "s", _prices(), _how_often()]
 	_gate_box.add_child(terms)
 	var left := Campaign.gates_left(offered_to)
 	var most := Campaign.gates_most(offered_to)
@@ -201,12 +211,13 @@ func _offer_gates():
 	chosen.resize(most.size())
 	chosen.fill(0)
 	for gate in range(1, most.size()):
-		if dungeon.gate_cost(gate) <= 0 or most[gate] <= 0:
+		if _cost(gate) <= 0 or most[gate] <= 0:
 			continue
-		_add_row(gate, false, dungeon.gate_cost(gate), left[gate], most[gate])
-	# Iris and the like, at the price of the gate each matches.
+		_add_row(gate, false, _cost(gate), left[gate], most[gate])
+	# Iris and the like, at the price of the gate each matches - the dungeon's
+	# recovery only; a long rest brings them back from Meditate's.
 	var outside_left := Campaign.outside_gates_left(offered_to)
-	var outside_most := Campaign.outside_gates_most(offered_to)
+	var outside_most: Array = Campaign.outside_gates_most(offered_to) if not meditating else []
 	chosen_outside = []
 	chosen_outside.resize(outside_most.size())
 	chosen_outside.fill(0)
@@ -220,7 +231,7 @@ func _offer_gates():
 	_gate_box.add_child(_points)
 	_recover = Button.new()
 	_recover.name = "Recover"
-	_recover.text = "Recover gates"
+	_recover.text = "Meditate" if meditating else "Recover gates"
 	_recover.pressed.connect(recover)
 	_gate_box.add_child(_recover)
 	_refresh()
@@ -262,14 +273,28 @@ func _add_row(gate: int, outside: bool, cost: int, left: int, most: int):
 		"less": less, "more": more, "left": left, "most": most})
 
 
+## What one casting through `gate` costs to bring back, in what is offered - 0
+## for a gate not offered.
+func _cost(gate: int) -> int:
+	if meditating:
+		return Campaign.meditation_cost(offered_to, gate)
+	return Campaign.dungeon.gate_cost(gate) if Campaign.dungeon != null else 0
+
+
+## What is offered has to spend.
+func _points_to_spend() -> int:
+	if meditating:
+		return Campaign.meditation_points(offered_to)
+	return Campaign.dungeon.gate_recovery_points if Campaign.dungeon != null else 0
+
+
 ## "World 1, Hermes 2, Pandora 3" - what each gate's casting costs.
 func _prices() -> String:
-	var dungeon: DungeonDefinition = Campaign.dungeon
 	var each: Array = []
-	for gate in range(1, dungeon.gate_costs.size()):
-		if dungeon.gate_cost(gate) > 0:
-			each.append("%s costs %d" % [Stats.short_gate_name(gate), dungeon.gate_cost(gate)])
-	var outside_most := Campaign.outside_gates_most(offered_to) if offered_to != "" else []
+	for gate in range(1, Stats.GATE_NAMES.size()):
+		if _cost(gate) > 0:
+			each.append("%s costs %d" % [Stats.short_gate_name(gate), _cost(gate)])
+	var outside_most: Array = Campaign.outside_gates_most(offered_to) if offered_to != "" and not meditating else []
 	for gate in range(1, outside_most.size()):
 		if outside_most[gate] > 0 and Campaign.outside_gate_cost(gate) > 0:
 			each.append("%s costs %d" % [Stats.short_outside_gate_name(gate), Campaign.outside_gate_cost(gate)])
@@ -278,6 +303,8 @@ func _prices() -> String:
 
 ## What the offer is worth keeping for: how many rests in the run may use it.
 func _how_often() -> String:
+	if meditating:
+		return "Once until the next long rest - this rest, or a later short one."
 	var dungeon: DungeonDefinition = Campaign.dungeon
 	if dungeon.gate_recoveries == 1:
 		return "This can be done at only one rest in the whole dungeon - this one, or a later one."
@@ -287,7 +314,17 @@ func _how_often() -> String:
 
 ## What is chosen costs, against what there is to spend.
 func points_left() -> int:
-	return Campaign.dungeon.gate_recovery_points - Campaign.gate_recovery_cost(chosen, chosen_outside)
+	return _points_to_spend() - _chosen_cost()
+
+
+## What is chosen costs.
+func _chosen_cost() -> int:
+	if not meditating:
+		return Campaign.gate_recovery_cost(chosen, chosen_outside)
+	var cost := 0
+	for gate in chosen.size():
+		cost += chosen[gate] * _cost(gate)
+	return cost
 
 
 ## One more - or one less - casting through `gate` (one opened only outside a
@@ -310,7 +347,9 @@ func change(gate: int, by: int, outside: bool = false):
 
 ## Brings back what is chosen, if anything is.
 func recover() -> bool:
-	if offered_to == "" or not Campaign.recover_gates(offered_to, chosen, chosen_outside):
+	if offered_to == "":
+		return false
+	if not (Campaign.meditate(offered_to, chosen) if meditating else Campaign.recover_gates(offered_to, chosen, chosen_outside)):
 		return false
 	var who := Campaign.display_name_of(offered_to)
 	for child in _gate_box.get_children():
@@ -357,9 +396,9 @@ func _refresh():
 		row.less.disabled = counts[gate] <= 0
 		row.more.disabled = row.cost > spare or row.left + counts[gate] >= row.most
 	if _points != null:
-		_points.text = "Points left: %d of %d" % [spare, Campaign.dungeon.gate_recovery_points]
+		_points.text = "Points left: %d of %d" % [spare, _points_to_spend()]
 	if _recover != null:
-		_recover.disabled = Campaign.gate_recovery_cost(chosen, chosen_outside) <= 0
+		_recover.disabled = _chosen_cost() <= 0
 
 
 func _row_for(gate: int, outside: bool = false):

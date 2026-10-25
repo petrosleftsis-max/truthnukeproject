@@ -3,6 +3,7 @@
 > **Status, 2026-10-24:**
 > - The share-of-missing-health proposal (section 2) is superseded by the flat-plus-scaling revision in `docs/healing_revision.md`.
 > - The rest framework is kept for testing (sections 3-4), with Meditate option A.
+> - **2026-10-25:** short and long rests and Meditate (option A, Prometheus only) are implemented as the designer gave them - see the table at the end and the ledger. Alithia gets no gate recovery; she has Devotion instead (two castings of her own for Heal or Dread Visage).
 > - The current values (section 1) and the coherence list (section 5) still stand.
 
 Prepared 2026-10-24 at the designer's request. **Nothing here is implemented.** Every new healing and rest value is a **PROPOSAL test value**, not final balance; the ledger (`docs/design_status_ledger.csv`) has a row for each.
@@ -297,8 +298,8 @@ Three options, all PROPOSAL. Each cell gives the points, the deepest gate it may
 |---|---|---|
 | Current heals, as above | PRESENT | EXISTING_BASELINE |
 | Hybrid healing coefficients | ABSENT | PROPOSAL (test values) |
-| Short rest: 2-3 a segment, 50% of missing, no gates | ABSENT | PROPOSAL |
-| Long rest: full health, all gates, Meditate back | ABSENT | PROPOSAL |
-| Meditate: options A / B / C | ABSENT | PROPOSAL |
+| Short rest: 2-3 a segment (2-4 late), 50% of missing, no gates | PRESENT (2026-10-25: whenever called) | APPROVED_TRIAL (50% a PROPOSAL test value) |
+| Long rest: full health, the fallen up, the weakening lifted, all gates and Iris, Meditate and Devotion back | PRESENT (2026-10-25) | APPROVED_TRIAL |
+| Meditate: option A, Prometheus only | PRESENT (2026-10-25) | APPROVED_TRIAL (the numbers PROPOSAL test values) |
 | Enemy heals under the hybrid; Gate Nades, Medicine and Purification; Mercy I's place | ABSENT | OPEN |
 | The export showing each heal's real formula | PRESENT | - (a fix to the documentation tool) |

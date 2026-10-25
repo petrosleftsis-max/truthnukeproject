@@ -51,8 +51,8 @@ func the_limits():
 			"%s: once a short rest, and says so" % key, skill.description if skill != null else "missing")
 	var blow: SkillDefinition = SkillDatabase.skills["stunning_blow"]
 	ok(Array(blow.more_uses_at) == [54, 64] and blow.required_level == 41, "  Stunning Blow: learned at 41, more at 54 and 64")
-	ok(Combat.SPENT_UNTIL_REST == ["uses", "free_amplifies_used", "conduit_spent"],
-		"kept until a rest: a skill's uses, a free amplification, a Conduit", "%s" % [Combat.SPENT_UNTIL_REST])
+	ok(Combat.SPENT_UNTIL_REST == ["uses", "free_amplifies_used", "conduit_spent", "free_items_used", "spare_spent"],
+		"kept until a rest: a skill's uses, a free amplification, a Conduit, the Trapper's bomb, spare castings", "%s" % [Combat.SPENT_UNTIL_REST])
 	var conductor: SubclassDefinition = load("res://data/subclasses/elemental_conductor.tres")
 	var spoken: Array = conductor.passives.filter(func(passive): return passive.free_amplifies_at.size() > 0 or passive.conduit)
 	ok(spoken.size() == 3 and spoken.all(func(passive): return "short rest" in passive.description and not "a fight" in passive.description),
@@ -71,9 +71,9 @@ func the_triggers():
 	ok(shepherd.passives.any(func(passive): return passive.guards_first_blow and "in a fight" in passive.description),
 		"Illusory Guardian: each ally's first blow taken in a fight (a trigger)")
 	var trapper: SubclassDefinition = load("res://data/subclasses/trapper.tres")
-	ok(trapper.passives.any(func(passive): return passive.free_item_each_fight == "small_bomb" and "every fight" in passive.description),
-		"the Trapper's free Small Bomb: every fight still - OPEN, for the designer")
-	ok(not "free_items_used" in Combat.SPENT_UNTIL_REST, "  so it is not carried")
+	ok(trapper.passives.any(func(passive): return passive.free_item_each_fight == "small_bomb" and "once a short rest" in passive.description),
+		"the Trapper's free Small Bomb: once a short rest (the designer, 2026-10-25)")
+	ok("free_items_used" in Combat.SPENT_UNTIL_REST, "  so it is carried until a rest")
 	log_line("")
 
 
@@ -118,7 +118,7 @@ func the_carry():
 	ok(not carried("enfina").has("uses"), "a long rest too")
 	Campaign.record_party([fought("enfina", spent)])
 	Campaign.rest_party()
-	ok(not carried("enfina").has("uses"), "the rest between a dungeon's stages counts as a short rest, for now")
+	ok(not carried("enfina").has("uses"), "the rest between a dungeon's stages is a short rest")
 
 	Campaign.record_party([fought("enfina", spent)])
 	Campaign.dungeon = null
