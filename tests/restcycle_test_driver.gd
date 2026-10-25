@@ -48,6 +48,7 @@ func _ready():
 	await devotion()
 	await the_salts()
 	the_bomb()
+	await repacking()
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
 
@@ -369,5 +370,44 @@ func the_bomb():
 	ok(Campaign.party_state.cyrus.spent_until_rest.free_items_used == ["small_bomb"], "  (each fight its own copy)")
 	Campaign.short_rest()
 	ok(not carried("cyrus").has("free_items_used"), "  until a short rest")
+	Campaign.reset()
+	log_line("")
+
+
+func repacking():
+	log_line("======== the bags at a rest (the designer, 2026-10-25) ========")
+	in_the_lab()
+	var lab: DungeonDefinition = Campaign.dungeon
+	for key in PARTY:
+		Campaign.empty_inventory(key)
+		for item in lab.kit.get(key, []):
+			Campaign.stow_item(key, str(item))
+	var panel := RestPanel.new()
+	add_child(panel)
+	await settle(2)
+	var bags := panel.find_child("Inventory", true, false) as Button
+	ok(bags != null and not bags.disabled, "the rest has an Inventory button")
+	bags.pressed.emit()
+	await settle(2)
+	ok(panel.inventory_screen != null and panel.inventory_screen.visible and not panel.visible, "  which opens the bags in place of the rest")
+	var cyrus_first: String = Campaign.inventory_of("cyrus")[0]
+	var alithia_last: String = Campaign.inventory_of("alithia")[3]
+	panel.inventory_screen._on_slot_pressed("cyrus", 0)
+	panel.inventory_screen._on_slot_pressed("alithia", 3)
+	ok(Campaign.inventory_of("alithia")[3] == cyrus_first and Campaign.inventory_of("cyrus")[0] == alithia_last,
+		"a thing handed from one baldric to another", "%s <-> %s" % [cyrus_first, alithia_last])
+	panel.inventory_screen.close()
+	await settle(2)
+	ok(panel.inventory_screen == null and panel.visible, "closed, back to the rest")
+	var press := InputEventAction.new()
+	press.action = &"inventory"
+	press.pressed = true
+	panel._unhandled_input(press)
+	await settle(2)
+	ok(panel.inventory_screen != null and panel.inventory_screen.visible, "the inventory key opens them too")
+	panel.inventory_screen.close()
+	await settle(2)
+	panel.queue_free()
+	await settle()
 	Campaign.reset()
 	log_line("")

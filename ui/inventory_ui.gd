@@ -10,7 +10,12 @@ class_name InventoryUI
 ## hands things round.
 ##
 ## Only outside a fight. In a battle a character has what they packed, and
-## shuffling the bags mid-turn would make the four combat slots meaningless.
+## shuffling the bags mid-turn would make the four combat slots meaningless. A
+## dungeon's rest between fights opens one too (RestPanel), since that is where
+## a party would repack after a fight.
+
+## Closed - for whoever opened it to take back over (RestPanel).
+signal closed
 
 ## Palette, shared with the other menus.
 const INK := Color("dce8f5")
@@ -395,6 +400,7 @@ func close():
 	_holding = {}
 	_holding_container = {}
 	visible = false
+	closed.emit()
 
 
 ## The line along the bottom: how to use it, and what closes it - from the

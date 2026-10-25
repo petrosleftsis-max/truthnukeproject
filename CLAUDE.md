@@ -288,7 +288,8 @@ weakening lifted (`_lift_weakening`, from `unweakened_max_hp`), every gate and
 Iris's, Meditate, Devotion. Alithia's Devotion is Combat "Spare castings"
 (`spares_left`, paid first in `_pay_for_cast`). A dungeon's `kit` stocks the bags
 `start_dungeon` empties. `ResultUI` shows a
-`RestPanel` (`Campaign.rest_party`, `recover_gates`, the fallen) instead of its own panel
+`RestPanel` (`Campaign.rest_party`, `recover_gates`, the fallen, and an Inventory
+button or the inventory key opening an `InventoryUI` over it, to repack) instead of its own panel
 after every won fight but the last. `reset()` ends a dungeon, so the title
 screen and every fresh start leave it. `dungeon` covers it, `restuses` the uses,
 `restcycle` the rests, Meditate, Devotion, the Smelling Salts and the Trapper's bomb.

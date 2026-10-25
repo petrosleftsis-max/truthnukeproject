@@ -2327,6 +2327,7 @@ The designer's answers of 2026-10-25. The rules are APPROVED_TRIAL; the numbers 
   - Two castings of her own. Each pays for a Heal or a Dread Visage (on one person) in place of its gate, and is spent before any gate.
   - One comes back at a short rest, both at a long rest. In a dungeon they carry from fight to fight; every other fight starts with both.
 - **Smelling Salts** (PROPOSAL test values, for the lab): a consumable that brings somebody fallen beside you back up with 50% of their health, 10% weaker until a long rest, as Resuscitate does. Cyrus carries it in the lab kit, in place of his second Small Bomb.
+- **Repacking between fights:** the rest screen of the Dungeon Demo and the lab has an Inventory button (and the inventory key), which opens the party's bags as on a map: move items between belt, pouch and backpack, and from one member to another, before the next fight (the designer, 2026-10-25).
 - **Not decided:** whether a short rest ends conditions; where the long rests fall; whether a rest called from a conversation should open the rest screen, so Meditate and Resuscitate can be chosen there (OPEN).
 
 ## Known near-twins among the spells

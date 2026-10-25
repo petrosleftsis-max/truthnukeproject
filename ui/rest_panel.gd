@@ -17,6 +17,9 @@ class_name RestPanel
 ## somebody who meditates (Prometheus) is offered Meditate on the same rows
 ## instead (Campaign "Meditate").
 ##
+## And the party's bags (InventoryUI), to repack after the fight - who carries
+## what, and what is on the baldric for the next one (the designer, 2026-10-25).
+##
 ## Built in code, by ResultUI, once the battle and whatever is said after it are
 ## over. Campaign does the resting and the recovering; this only asks.
 
@@ -82,6 +85,12 @@ func _ready():
 	_gate_box.name = "Gates"
 	_gate_box.add_theme_constant_override("separation", 8)
 	column.add_child(_gate_box)
+	# The bags, to repack before the next fight.
+	var bags := Button.new()
+	bags.name = "Inventory"
+	bags.text = "Inventory"
+	bags.pressed.connect(open_inventory)
+	column.add_child(bags)
 	# A store to visit between fights, when the dungeon has one.
 	if Campaign.dungeon != null and StoreDefinition.named(Campaign.dungeon.store) != null:
 		var visit := Button.new()
@@ -416,6 +425,41 @@ func _first_button() -> Control:
 		if not row.more.disabled:
 			return row.more
 	return _continue
+
+
+## --- The bags ---
+
+## The party's bags, open over the rest, or null.
+var inventory_screen: InventoryUI = null
+
+
+## Opens the bags in place of the rest; closing them comes back here.
+func open_inventory():
+	if inventory_screen != null:
+		return
+	inventory_screen = InventoryUI.new()
+	inventory_screen.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_parent().add_child(inventory_screen)
+	inventory_screen.closed.connect(_leave_inventory)
+	inventory_screen.open()
+	visible = false
+
+
+## The inventory key opens the bags here too, as it does walking about.
+func _unhandled_input(event):
+	if visible and inventory_screen == null and store_screen == null and event.is_action_pressed(&"inventory"):
+		get_viewport().set_input_as_handled()
+		open_inventory()
+
+
+func _leave_inventory():
+	inventory_screen.queue_free()
+	inventory_screen = null
+	visible = true
+	_describe_party()
+	var bags := find_child("Inventory", true, false) as Button
+	if bags != null and (get_viewport().gui_get_focus_owner() != null or Pad.using_pad):
+		bags.grab_focus.call_deferred()
 
 
 ## --- The store ---
