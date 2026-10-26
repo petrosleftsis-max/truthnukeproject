@@ -320,7 +320,8 @@ static func _entry_of(key: String) -> Dictionary:
 
 ## The spells anybody standing could cast to some purpose right now, other than
 ## Invisibility and Find Familiar (which StealthBar.outside_spell asks about
-## itself): [{"key": caster, "move": spell}], leader first.
+## itself) and a hurry - always ready, it would have G ask "which?" every time:
+## [{"key": caster, "move": spell}], leader first.
 static func ready_spells(scene: Node) -> Array:
 	var found := []
 	var taken := {}
@@ -330,7 +331,7 @@ static func ready_spells(scene: Node) -> Array:
 			if not Combat.is_spell(skill) or taken.has(move):
 				continue
 			var kind := use_of(skill)
-			if kind == Use.NONE or kind == Use.FAMILIAR or kind == Use.INVISIBILITY:
+			if kind == Use.NONE or kind == Use.FAMILIAR or kind == Use.INVISIBILITY or kind == Use.SPEED:
 				continue
 			if refusal(scene, key, move) == "":
 				found.append({"key": key, "move": move})

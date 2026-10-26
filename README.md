@@ -66,7 +66,7 @@ it is not needed.
 | X (Square) / Y | take down, drag, put down / pick pockets | the skill panel / end the turn | |
 | LB / RB | listen / dash | the skill before / after; aiming or placing the party, the tile before / after | turn a dial back / on |
 | LT / RT | patience (held) / throw | danger view (held) / next skill tab | |
-| Left stick click | an outside spell (Invisibility, Find Familiar, or a heal, Resuscitate or Quicken when it would do something); let the familiar go | the next floor up (Page Up / Page Down on a keyboard) | |
+| Left stick click | an outside spell (Invisibility, Find Familiar, or a heal or Resuscitate when it would do something); let the familiar go | the next floor up (Page Up / Page Down on a keyboard) | |
 | Right stick click | swap the leader; with a familiar out, switch between it and the party | out to the whole map and back | |
 | Share (Create, Mic, Capture) | hide the UI but the log and the conversation; again to bring it back (U on a keyboard) | | |
 
@@ -1623,7 +1623,8 @@ only shows when there is something to do with it:
   "Outside a fight") are heard by guards: Quiet turns them to the sound, Loud
   sends them to look. Moves that deal damage are greyed for now (they will
   start an ambush or break a wall). **G** casts the one spell that would do
-  something, or asks which.
+  something - Invisibility, Find Familiar, a heal with somebody hurt,
+  Resuscitate with somebody down - or asks which; Quicken is on the panel only.
 - **U - Hide UI.** Everything but the log and the conversation goes - the
   portraits, the action bar, the stealth bar, the objectives, the prompts; the
   guards' cones and meters stay. U again brings it back.

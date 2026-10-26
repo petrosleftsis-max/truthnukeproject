@@ -46,7 +46,8 @@ As built, and where it differs from the plan below:
 - Nothing is marked Out Of Combat yet; the toggle shows Find Familiar and
   Invisibility by their nature.
 - G lists the spells that would do something now (keys and a pad have no
-  pointer on a map); skills are on the panel for the mouse.
+  pointer on a map) - not Quicken, which is always ready and would make G ask
+  every time; skills and Quicken are on the panel for the mouse.
 - Hide UI is U, and Share (Create, Mic, Capture) on a pad - every other pad
   button is taken on a stealth map, and View opens the menus on its press.
 - The edge arrows and the familiar's frame stay up with the UI hidden.

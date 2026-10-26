@@ -2,7 +2,7 @@ extends PanelContainer
 ## The choice of which spell to cast on a map, when there is more than one to
 ## cast: on a watched map Invisibility (Prometheus) and Find Familiar (Alithia),
 ## and anywhere the spells that would do something now (OutsideMoves.ready_spells
-## - a heal with somebody hurt, Quicken). The Outside Spell key (G) opens it;
+## - a heal with somebody hurt, Resuscitate with somebody down). The Outside Spell key (G) opens it;
 ## with only one, it goes straight to that one. Holds the game while it is up
 ## (MenuPause), as the invisibility picker does.
 
