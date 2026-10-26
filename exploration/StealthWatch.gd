@@ -720,6 +720,7 @@ func go_invisible(keys: Array = []) -> bool:
 		scene.log_message("[color=yellow]%s[/color] casts %s through the %s, and %s fade%s from sight.\n" % [
 			_display_name(spell.caster), skill.name, Stats.outside_gate_name(skill.outside_gate),
 			" and ".join(who.map(_display_name)), "s" if who.size() == 1 else ""])
+	OutsideMoves.sound(scene, spell.caster, skill)
 	return true
 
 
@@ -762,6 +763,27 @@ func _seen_again(key: String = ""):
 
 func _display_name(key: String) -> String:
 	return Campaign.display_name_of(key)
+
+
+## The bar along the top, which opens the choice of who to hide.
+func stealth_bar() -> StealthBar:
+	return _bar
+
+
+## --- Hiding the HUD ---
+##
+## The Hide UI key (ExplorationScene.set_ui_hidden): the bar, the objectives and
+## the prompts over people's heads go; the guards' cones and meters, drawn in the
+## world, the edge arrows and the familiar's frame stay, since play leans on them.
+
+## Whether the player has the HUD hidden.
+var ui_hidden := false
+
+
+func set_ui_hidden(on: bool):
+	ui_hidden = on
+	if _bar != null and is_instance_valid(_bar):
+		_bar.visible = not on
 
 
 ## --- Familiar ---
@@ -841,10 +863,7 @@ func familiar_refusal() -> String:
 		return "Not now"
 	if _changing_into != "" or _dragging != null or _lacing != null or _reassuring != null:
 		return "Not in the middle of something"
-	var gate: int = SkillDatabase.skills[spell.skill].spell_slot_level
-	if Campaign.gates_left_outside(spell.caster)[gate] <= 0:
-		return "%s has no castings of %s left" % [_display_name(spell.caster), Stats.short_gate_name(gate)]
-	return ""
+	return OutsideMoves.cannot_pay(spell.caster, SkillDatabase.skills[spell.skill], true)
 
 
 ## Calls the familiar beside its caster, through a World casting, and hands it
@@ -854,7 +873,10 @@ func summon_familiar() -> bool:
 		return false
 	var spell := familiar_spell()
 	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
-	if not Campaign.spend_gate_outside(spell.caster, skill.spell_slot_level):
+	# Its own gate exactly - or Iris first, once the designer marks it Out Of
+	# Combat (OutsideMoves).
+	var paid := OutsideMoves.pay(spell.caster, skill, true)
+	if paid.is_empty():
 		return false
 	var party = scene.get("party")
 	var caster_sprite = party.sprite_for(spell.caster) if party != null else null
@@ -867,8 +889,9 @@ func summon_familiar() -> bool:
 	familiar_caster = spell.caster
 	familiar_doubt.clear()
 	if scene.has_method("log_message"):
-		scene.log_message("[color=yellow]%s[/color] casts %s through the %s: a %s answers, and she sees through its eyes.\n" % [
-			_display_name(spell.caster), skill.name, Stats.gate_name(skill.spell_slot_level), familiar.form.name.to_lower()])
+		scene.log_message("[color=yellow]%s[/color] casts %s%s: a %s answers, and she sees through its eyes.\n" % [
+			_display_name(spell.caster), skill.name, OutsideMoves.paid_through(paid), familiar.form.name.to_lower()])
+	OutsideMoves.sound(scene, spell.caster, skill)
 	take_familiar_control(true)
 	return true
 
@@ -4573,7 +4596,7 @@ class _Prompt extends PanelContainer:
 		visible = false
 
 	func _process(_delta):
-		var shown: Array = watch.prompt() if watch != null else []
+		var shown: Array = watch.prompt() if watch != null and not watch.ui_hidden else []
 		if shown.is_empty() or not (shown[0] is Vector2 or is_instance_valid(shown[0])):
 			visible = false
 			return
@@ -4653,7 +4676,7 @@ class _ObjectiveList extends PanelContainer:
 
 	func _process(_delta):
 		var listed: Array = watch.objectives() if watch != null else []
-		visible = not listed.is_empty()
+		visible = not listed.is_empty() and not watch.ui_hidden
 		if not visible:
 			return
 		if listed != _written:

@@ -66,8 +66,9 @@ it is not needed.
 | X (Square) / Y | take down, drag, put down / pick pockets | the skill panel / end the turn | |
 | LB / RB | listen / dash | the skill before / after; aiming or placing the party, the tile before / after | turn a dial back / on |
 | LT / RT | patience (held) / throw | danger view (held) / next skill tab | |
-| Left stick click | an outside spell (Invisibility, Find Familiar); let the familiar go | the next floor up (Page Up / Page Down on a keyboard) | |
+| Left stick click | an outside spell (Invisibility, Find Familiar, or a heal, Resuscitate or Quicken when it would do something); let the familiar go | the next floor up (Page Up / Page Down on a keyboard) | |
 | Right stick click | swap the leader; with a familiar out, switch between it and the party | out to the whole map and back | |
+| Share (Create, Mic, Capture) | hide the UI but the log and the conversation; again to bring it back (U on a keyboard) | | |
 
 **In a fight** the pointer sits on a tile, the cursor, and goes from tile to
 tile - any tile on the map, walkable or not, since a click further off than a
@@ -1605,6 +1606,27 @@ only shows when there is something to do with it:
   invisible - and nothing else. It never moves or fights. Sure of the familiar,
   it breaks the spell and sounds (the map a level more on edge, the nearest guard
   comes to look); sure of somebody invisible, they are caught.
+- **Moves outside a fight** (any map, watched or not). The action bar shows the
+  leader's **Skills** and **Spells** (Tab changes the leader), the castings left
+  through each gate - and the **Gates of Iris** - and a letter for how loud each
+  move is: **S**ilent, **Q**uiet, **L**oud. Click one to use it; one that does
+  nothing out here, or nothing now, is greyed and its tooltip says why. What
+  works so far: a **heal** mends whoever is worst hurt (an area heal, everybody
+  hurt), **Resuscitate** brings back somebody fallen (weaker until a long rest,
+  as in a fight), **Run** and **Quicken** hurry the party along (half as fast
+  again, for 20 seconds, Quicken's for its **Outside Seconds**: 60), and
+  Invisibility and Find Familiar as above. A spell is paid through a real
+  casting - off the next fight's gates, through its own gate or a deeper one;
+  one the designer ticked **Out Of Combat** goes through the Gates of Iris first.
+  **Out of combat only** on the Spells tab shows just those (and Invisibility and
+  Find Familiar). A move's **Noise** and **Noise Tiles** (SkillDefinition,
+  "Outside a fight") are heard by guards: Quiet turns them to the sound, Loud
+  sends them to look. Moves that deal damage are greyed for now (they will
+  start an ambush or break a wall). **G** casts the one spell that would do
+  something, or asks which.
+- **U - Hide UI.** Everything but the log and the conversation goes - the
+  portraits, the action bar, the stealth bar, the objectives, the prompts; the
+  guards' cones and meters stay. U again brings it back.
 - **Poisons.** An item with **Poison** set: an **Emetic** sends a guard off to
   be sick at the nearest **RetchSpot** for five minutes, seeing nothing; a
   **Sedative** drops him where he stands, a body like any other; a **Disease**

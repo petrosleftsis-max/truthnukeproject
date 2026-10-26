@@ -1011,9 +1011,65 @@ func show_exploration_party(members: Array):
 ## Shows what the party can interact with right now, reusing the same banner
 ## combat uses to say "select a target". Pass "" to clear it.
 func set_interaction_prompt(text: String):
-	$Actions/SelectTargetMessage.visible = text != ""
+	$Actions/SelectTargetMessage.visible = text != "" and not ui_hidden
 	if text != "":
 		$Actions/SelectTargetMessage/MarginContainer/Label.text = text
+
+
+## --- On a map: the moves, and hiding the HUD ---
+
+## Where the moves panel (OutsideMovesPanel) sits in the action bar, over the
+## tabs and the grid it stands in for.
+const OUTSIDE_MOVES_AT := Vector2(82, 22)
+## What hiding the HUD leaves up: the log, and its button.
+const SHOWN_WHEN_HIDDEN := ["Information", "LogToggle"]
+
+## The moves panel, on a map.
+var outside_moves: OutsideMovesPanel = null
+## Whether the player has the HUD hidden (ExplorationScene.set_ui_hidden).
+var ui_hidden := false
+## What hiding it hid, to be put back.
+var _hidden_by_player: Array = []
+
+
+## Puts `panel` in the action bar's place, on a map.
+func show_outside_moves(panel: OutsideMovesPanel):
+	if outside_moves != null and is_instance_valid(outside_moves):
+		outside_moves.queue_free()
+	outside_moves = panel
+	panel.name = "OutsideMoves"
+	$Actions.add_child(panel)
+	panel.position = OUTSIDE_MOVES_AT
+	$Actions/ActionsPanel.visible = false
+	var spells := _spells_toggle()
+	if spells != null:
+		spells.visible = false
+
+
+## Hides everything but the log (and the conversation, which is not the HUD's),
+## or puts back what it hid.
+func set_ui_hidden(on: bool):
+	if on == ui_hidden:
+		return
+	ui_hidden = on
+	if on:
+		_hidden_by_player = []
+		var nodes: Array = []
+		for child in get_children():
+			if child != $Actions:
+				nodes.append(child)
+		nodes.append_array($Actions.get_children())
+		for node in nodes:
+			if node is CanvasItem and node.visible and not SHOWN_WHEN_HIDDEN.has(String(node.name)):
+				node.visible = false
+				_hidden_by_player.append(node)
+		return
+	for node in _hidden_by_player:
+		# The prompt is put back by whatever sets it next, not here: what it
+		# said may be stale.
+		if is_instance_valid(node) and node != $Actions/SelectTargetMessage:
+			node.visible = true
+	_hidden_by_player = []
 
 
 func add_turn_queue_icon(combatant: Dictionary, slot: int = -1):

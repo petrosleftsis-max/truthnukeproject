@@ -40,6 +40,9 @@ var frozen := false
 var rooted := false
 ## How fast they walk, as a share of move_speed - slower dragging a body.
 var pace := 1.0
+## And faster for a while, by a move used on the map (OutsideMoves, Speed) -
+## kept apart from pace, which dragging sets and puts back.
+var hurry := 1.0
 
 ## Positions the leader has occupied, newest last, with the distance walked to
 ## reach each. Followers index into this by distance behind the leader.
@@ -249,7 +252,7 @@ func _step(direction: Vector2, delta: float, speed: float = -1.0) -> bool:
 		# leaves everyone facing the way they last went, rather than snapping
 		# back to the default every time the path turns a corner.
 		_set_facing(direction.x < 0.0)
-	var step = direction.normalized() * (speed if speed >= 0.0 else move_speed * pace) * delta
+	var step = direction.normalized() * (speed if speed >= 0.0 else move_speed * pace * hurry) * delta
 	var before = leader.position
 	# Each axis separately, so running into a wall at an angle slides along it
 	# instead of stopping dead.

@@ -22,4 +22,5 @@ respects_blocking = true
 effects = Array[ExtResource("1_qdw11")]([SubResource("Resource_a82w3")])
 deals_damage = false
 spell_slot_level = 1
+outside_seconds = 60
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

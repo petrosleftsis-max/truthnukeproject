@@ -1,8 +1,10 @@
 extends PanelContainer
-## The choice of which spell to cast on a stealth map, when the party knows more
-## than one - Invisibility (Prometheus) and Find Familiar (Alithia). The Outside
-## Spell key (G) opens it; with only one known, it goes straight to that one.
-## Holds the game while it is up (MenuPause), as the invisibility picker does.
+## The choice of which spell to cast on a map, when there is more than one to
+## cast: on a watched map Invisibility (Prometheus) and Find Familiar (Alithia),
+## and anywhere the spells that would do something now (OutsideMoves.ready_spells
+## - a heal with somebody hurt, Quicken). The Outside Spell key (G) opens it;
+## with only one, it goes straight to that one. Holds the game while it is up
+## (MenuPause), as the invisibility picker does.
 
 signal closed
 
@@ -11,6 +13,8 @@ const MUTED := Color("8296a9")
 var watch: StealthWatch = null
 ## The stealth bar, which opens the invisibility picker.
 var bar: StealthBar = null
+## The map, for the other spells - the watch's, on a watched one.
+var scene: Node = null
 
 var _gone := false
 
@@ -30,29 +34,46 @@ func _ready():
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 8)
 	column.add_child(row)
-	var hide := Button.new()
-	hide.name = "Invisibility"
-	var spell: Dictionary = watch.invisibility_spell()
-	hide.text = SkillDatabase.skills[spell.skill].name if not spell.is_empty() else "Invisibility"
-	hide.disabled = spell.is_empty() or watch.could_go_invisible().is_empty()
-	hide.pressed.connect(_hide)
-	row.add_child(hide)
-	var call := Button.new()
-	call.name = "Familiar"
-	var familiar: Dictionary = watch.familiar_spell()
-	call.text = SkillDatabase.skills[familiar.skill].name if not familiar.is_empty() else "Find Familiar"
-	var refusal: String = watch.familiar_refusal()
-	call.disabled = refusal != ""
-	call.tooltip_text = refusal
-	call.pressed.connect(_call)
-	row.add_child(call)
+	if scene == null and watch != null:
+		scene = watch.scene
+	var first: Button = null
+	if watch != null and not watch.invisibility_spell().is_empty():
+		var hide := Button.new()
+		hide.name = "Invisibility"
+		hide.text = SkillDatabase.skills[watch.invisibility_spell().skill].name
+		hide.disabled = watch.could_go_invisible().is_empty()
+		hide.pressed.connect(_hide)
+		row.add_child(hide)
+		if not hide.disabled:
+			first = hide
+	if watch != null and not watch.familiar_spell().is_empty():
+		var call := Button.new()
+		call.name = "Familiar"
+		call.text = SkillDatabase.skills[watch.familiar_spell().skill].name
+		var refusal: String = watch.familiar_refusal()
+		call.disabled = refusal != ""
+		call.tooltip_text = refusal
+		call.pressed.connect(_call)
+		row.add_child(call)
+		if first == null and not call.disabled:
+			first = call
+	for ready in OutsideMoves.ready_spells(scene):
+		var skill: SkillDefinition = SkillDatabase.skills[ready.move]
+		var cast := Button.new()
+		cast.name = ready.move
+		cast.text = "%s (%s)" % [skill.name, Campaign.display_name_of(ready.key)]
+		cast.tooltip_text = "%s - %s" % [OutsideMoves.USE_NAMES[OutsideMoves.use_of(skill)], OutsideMoves.noise_fact(skill)]
+		cast.pressed.connect(_cast.bind(ready.key, ready.move))
+		row.add_child(cast)
+		if first == null:
+			first = cast
 	var cancel := Button.new()
 	cancel.name = "Cancel"
 	cancel.text = Pad.hint("Cancel", &"ui_cancel")
 	cancel.pressed.connect(close)
 	column.add_child(cancel)
 	MenuPause.hold(self)
-	FocusOnDemand.attach(self, hide if not hide.disabled else (call if not call.disabled else cancel))
+	FocusOnDemand.attach(self, first if first != null else cancel)
 
 
 func _process(_delta):
@@ -76,6 +97,12 @@ func _hide():
 func _call():
 	close()
 	watch.summon_familiar()
+
+
+## `key` casts `move` (OutsideMoves).
+func _cast(key: String, move: String):
+	close()
+	OutsideMoves.use(scene, key, move)
 
 
 func close():

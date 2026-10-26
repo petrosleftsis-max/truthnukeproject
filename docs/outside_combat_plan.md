@@ -1,9 +1,10 @@
 # Moves outside a fight - the plan
 
 The designer's request of 2026-10-26, and their answers to the proposal made
-for it. Nothing here is built yet. A session picking this up should read this,
-then `CLAUDE.md` ("Stealth maps", "Find Familiar", "Gates outside a fight"),
-then build Phase 1 and stop for the designer's word before Phase 2.
+for it. **Phase 1 is built** (2026-10-26, the `outside` suite; CLAUDE.md "Moves
+outside a fight"); Phases 2 and 3 wait for the designer's word. A session picking
+this up should read this, then `CLAUDE.md` ("Stealth maps", "Find Familiar",
+"Gates outside a fight", "Moves outside a fight").
 
 ## The request
 
@@ -31,7 +32,27 @@ key hides the UI outside combat, except the dialogue and the text box.
    second on a pad, since every pad button is taken on stealth maps.
 5. **What each move does outside** - the table below. *Awaiting the designer.*
 
-## Phase 1 - see and pay
+## Phase 1 - see and pay (built)
+
+As built, and where it differs from the plan below:
+
+- A heal lands on whoever is worst hurt (an area heal on everybody hurt), and
+  Resuscitate on the first fallen - there is no picker (PROPOSAL).
+- Hurry is x1.5 for the move's Outside Seconds, else 20 s; Quicken's is 60
+  (PROPOSAL test values).
+- Spells go deeper than their gate when it is spent, as in a fight; Find
+  Familiar pays exactly World, Invisibility Iris only, as before.
+- Iris pays a marked spell no deeper than the gate Iris matches (Hermes).
+- Nothing is marked Out Of Combat yet; the toggle shows Find Familiar and
+  Invisibility by their nature.
+- G lists the spells that would do something now (keys and a pad have no
+  pointer on a map); skills are on the panel for the mouse.
+- Hide UI is U, and Share (Create, Mic, Capture) on a pad - every other pad
+  button is taken on a stealth map, and View opens the menus on its press.
+- The edge arrows and the familiar's frame stay up with the UI hidden.
+
+The plan as it was:
+
 
 - **The exploration panel.** `combat_ui.set_exploration_mode` hides the turn
   queue, movement and End Turn and empties the skill grid

@@ -40,7 +40,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 136 suites and takes a while. Each one boots the real game
+A full run is 137 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one.
@@ -243,6 +243,27 @@ within Noticed Within, a dog's nose, a sensor's Sense Tiles; civilians never);
 `can_perceive` is `unseen` for it, `_refresh_seen` is its radius, it never moves
 or fights. G is `StealthBar.outside_spell` (`ui/outside_spell_choice.gd` asks
 which when both spells are known). `familiar` covers it.
+
+**Moves outside a fight** (`exploration/OutsideMoves.gd`, docs/outside_combat_plan.md
+Phase 1, the designer 2026-10-26): `moves_of(key)` is everything somebody has on a
+map; `use_of` reads what a move does out there off its effects (Mend, Revive,
+Speed, Invisibility, Familiar; NONE greys it - damaging moves wait for Phase 2's
+ambush and breakable walls); `refusal` / `use` are the one place both the panel
+and G ask. Spells pay `pay`: Iris first for a spell marked
+`SkillDefinition.out_of_combat` no deeper than Iris's match (`iris_gate_for`;
+`Campaign.outside_gates_most` opens Iris for them), then a real casting through
+its gate or deeper; Find Familiar exactly its own. `noise` (`Loudness`, appended)
+and `noise_tiles` are heard through `sound` -> `StealthWatch.make_noise`; shown
+only out of a fight (the panel, the sheet's Moves page on a map,
+`noise_fact`). The panel is `ui/outside_moves_panel.gd`, put in the action bar
+by `combat_ui.show_outside_moves`; G is `StealthBar.outside_spell` on a watched
+map and `ExplorationScene.outside_spell` elsewhere (`ui/outside_spell_choice.gd`).
+Hurry is `ExplorationScene.hurry` and `ExplorationParty.hurry` (apart from
+`pace`). Hide UI (`hide_ui`, U / pad Share) is `ExplorationScene.set_ui_hidden`
+-> `combat_ui.set_ui_hidden` (all but the log) and `StealthWatch.set_ui_hidden`
+(bar, objectives, prompts). Heals out here use the sheet's arithmetic
+(`CharacterSheet.map_entry_of`, `heal_on_the_map`); `Campaign.mend`,
+`revive_outside` and `fallen_members` hold the state. `outside` covers it.
 
 `stealthkit` covers the tools (throwing, ears, hiding spots, takedowns,
 pockets, alert, dogs, wards, captains, questions, the ghost flag, late

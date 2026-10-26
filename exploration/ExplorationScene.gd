@@ -100,6 +100,10 @@ func _ready():
 		Campaign.save_stealth_checkpoint(map_path(), party.position_of_leader())
 	if game_ui != null and game_ui.has_method("set_exploration_mode"):
 		game_ui.set_exploration_mode(true)
+	if game_ui != null and game_ui.has_method("show_outside_moves"):
+		moves_panel = OutsideMovesPanel.new()
+		moves_panel.scene = self
+		game_ui.show_outside_moves(moves_panel)
 	_refresh_party_panel()
 	_update_prompt()
 	# Anything automatic the party has arrived standing on fires now rather than
@@ -464,9 +468,19 @@ func _update_prompt():
 
 
 func _unhandled_input(event):
+	if not event.is_pressed() or event.is_echo():
+		return
+	# Hiding the HUD is the player's at any time on a map, a conversation too.
+	if Pad.went_down(event, &"hide_ui"):
+		get_viewport().set_input_as_handled()
+		set_ui_hidden(not ui_hidden)
+		return
 	if _blocking_interaction:
 		return
-	if not event.is_pressed() or event.is_echo():
+	# On a watched map the stealth bar has the key (StealthBar.outside_spell).
+	if stealth == null and Pad.went_down(event, &"outside_spell"):
+		get_viewport().set_input_as_handled()
+		outside_spell()
 		return
 	if event.is_action_pressed(&"swap_leader"):
 		get_viewport().set_input_as_handled()
@@ -593,9 +607,10 @@ func _on_party_leveled(_level: int):
 	_paths_due = true
 
 
-func _process(_delta):
+func _process(delta):
 	if picker != null or store_screen != null or is_holding() or get_tree().paused or SceneTransition.is_changing():
 		return
+	_hurry_on(delta)
 	if _paths_due:
 		_offer_paths()
 	elif _store_due != "":
@@ -641,6 +656,87 @@ func _overlay(layer_name: String) -> CanvasLayer:
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(dim)
 	return layer
+
+
+## --- Moves outside a fight ---
+##
+## The party's moves on a map (OutsideMoves): the panel in the action bar's place
+## (OutsideMovesPanel), the Outside Spell key's choice on a map nobody watches
+## (on a watched one it is StealthBar.outside_spell), the party's hurry, and the
+## Hide UI key.
+
+## The moves panel, while the HUD has one.
+var moves_panel: OutsideMovesPanel = null
+## The choice the Outside Spell key put up, while it is up.
+var spell_choice: Control = null
+## Whether the player has the HUD hidden (Hide UI).
+var ui_hidden := false
+var _hurry_left := 0.0
+var _hurry_times := 1.0
+const OutsideSpellChoice := preload("res://ui/outside_spell_choice.gd")
+
+
+## The party walks `times` as fast for `seconds` (Speed - OutsideMoves).
+func hurry(times: float, seconds: float):
+	_hurry_times = times
+	_hurry_left = seconds
+	if party != null:
+		party.hurry = times
+
+
+## Whether the party is hurrying now.
+func hurried() -> bool:
+	return _hurry_left > 0.0
+
+
+## Seconds of hurry left.
+func hurry_left() -> float:
+	return _hurry_left
+
+
+func _hurry_on(delta: float):
+	if _hurry_left <= 0.0:
+		return
+	_hurry_left -= delta
+	if _hurry_left <= 0.0:
+		_hurry_left = 0.0
+		if party != null:
+			party.hurry = 1.0
+		log_message("The party's hurry wears off.\n")
+
+
+## Hides the HUD but for the conversation and the log, or puts it back: the
+## party portraits, the action bar and the moves, the prompt, and on a watched
+## map the stealth bar, the objectives and the prompts over heads.
+func set_ui_hidden(on: bool):
+	ui_hidden = on
+	if game_ui != null and game_ui.has_method("set_ui_hidden"):
+		game_ui.set_ui_hidden(on)
+	if stealth != null:
+		stealth.set_ui_hidden(on)
+	_update_prompt()
+
+
+## The Outside Spell key on a map nobody watches: the one spell to some purpose
+## now cast, or the choice of which when there are more.
+func outside_spell():
+	if is_instance_valid(spell_choice) or is_holding():
+		return
+	var ready := OutsideMoves.ready_spells(self)
+	if ready.size() == 1:
+		OutsideMoves.use(self, ready[0].key, ready[0].move)
+		if moves_panel != null:
+			moves_panel.refresh()
+	elif ready.size() > 1:
+		var layer := CanvasLayer.new()
+		layer.name = "SpellChoice"
+		layer.layer = 60
+		layer.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(layer)
+		spell_choice = OutsideSpellChoice.new()
+		spell_choice.scene = self
+		spell_choice.closed.connect(layer.queue_free)
+		layer.add_child(spell_choice)
 
 
 ## --- Stores ---

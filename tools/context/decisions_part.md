@@ -301,6 +301,15 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
 - **Magic sensors** (a new guard kind) feel every working spell within their reach, walls or not - the familiar and anybody invisible - and nothing else. Sure of the familiar, they break it and sound (the alert a level up, the nearest guard comes); sure of somebody invisible, the party is caught.
 - Open: small creatures squeezing through gaps in a fight; the familiar in combat (the designer: maps only for now).
 
+## Moves outside a fight, Phase 1 (2026-10-26; implemented)
+
+- On every map the action bar shows the leader's skills and spells, the castings left through each gate and the Gates of Iris, and how loud each move is. Noise is shown only outside a fight.
+- What works out there so far: heals mend whoever is worst hurt (area heals: everybody hurt), Resuscitate brings back the fallen (weaker until a long rest), Run and Quicken hurry the party (x1.5 for 20 s, Quicken 60 s - PROPOSAL test values), plus Invisibility and Find Familiar. Everything else is greyed: "only in a fight".
+- Spells cast outside pay a real casting (off the next fight's gates), through their gate or deeper. A spell the designer marks **Out Of Combat** - only one that deals no damage - pays the Gates of Iris first (no deeper than Hermes, which Iris matches - PROPOSAL). Nothing is marked yet.
+- The designer marks each move's **Noise**: Silent, Quiet (guards within its tiles turn to look) or Loud (they go and investigate). Unmarked plays as silent.
+- A toggle shows only the out-of-combat spells. U (pad Share) hides the UI but for the log and the conversation.
+- Decided for Phase 2 (not built): a damaging move used on an unaware guard starts the fight as an ambush with that move as the opener, or it breaks an interactable such as a breakable wall. Open: whether the opener is a free action; minimum damage for walls.
+
 ## Known near-twins among the spells
 
 Spells that are close to copies of each other. They are candidates to make more distinct, or to keep on purpose:

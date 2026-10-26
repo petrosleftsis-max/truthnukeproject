@@ -383,6 +383,21 @@ var spell_slot_level: int = 0 : set = _set_spell_slot_level
 ## time unseen. It ends sooner if anybody does something to a guard.
 @export_range(0, 3600, 1, "suffix:s") var outside_seconds: int = 0
 
+@export_group("Outside a fight")
+## A spell for outside a fight, marked by the designer: the exploration panel's
+## Out Of Combat Only shows it, and it may be paid through the Gates of Iris
+## before its own gate (OutsideMoves). Only a move that deals no damage may be
+## marked - the outside suite fails on one that does.
+@export var out_of_combat: bool = false
+## Stored by number: append, never insert.
+enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
+## How loud using it outside a fight is, on a watched map (OutsideMoves.sound):
+## Quiet turns every guard within Noise Tiles to the sound, Loud sends them to
+## see what it was. Unmarked plays as Silent, and the outside suite lists every
+## move still unmarked.
+@export var noise: Loudness = Loudness.UNMARKED
+@export_range(0.0, 20.0, 0.5, "suffix:tiles") var noise_tiles: float = 0.0
+
 @export_group("Tether")
 ## Held on a tether to its caster (Combat "Tethers"). Cast, it gives them a
 ## tether bar under their health, Tether Strength big, which frays - Tether Per

@@ -480,45 +480,54 @@ func _gather() -> Array:
 			})
 		return found
 	for member in Campaign.party_members():
-		var definition: CombatantDefinition = CombatantDatabase.combatants.get(member.key)
-		if definition == null:
-			continue
-		var stats := Stats.stats_for_level(Campaign.party_level, definition.main_stat, definition.secondary_stat)
-		var weapon_base := Stats.WEAPON_BASE
-		# What they are wearing is what they will fight with (Combat.wear_gear).
-		var weapon := EquipmentDefinition.named(Campaign.equipped_in(member.key, "weapon"))
-		if weapon != null:
-			weapon_base = weapon.weapon_base
-		var armour := EquipmentDefinition.named(Campaign.equipped_in(member.key, "armour"))
-		if armour != null:
-			stats["defense"] = armour.defense
-		# Brought back from falling in a fight, and weaker for it until a long rest (see
-		# Combat.weaken). Their health already is: it is what they were last
-		# fielded with.
-		var frailty: float = Campaign.party_state.get(member.key, {}).get("frailty", 1.0)
-		if frailty < 1.0:
-			for key in stats:
-				stats[key] = Combat.weakened_figure(stats[key], frailty)
-			weapon_base = Combat.weakened_figure(weapon_base, frailty)
-		found.append({
-			"name": member.name,
-			"level": Campaign.party_level,
-			"hp": member.hp,
-			"max_hp": member.max_hp,
-			"stats": stats,
-			"weapon_base": weapon_base,
-			"sprite_frames": definition.sprite_frames,
-			"map_sprite": definition.map_still(),
-			"in_battle": false,
-			"movement_class": definition.class_m,
-			"base_movement_class": definition.class_m,
-			"passives": _passives_on_the_map(member.key, definition),
-			"key": member.key,
-			"subclass": Campaign.subclass_of(member.key),
-			"casts": definition.casts_spells(),
-			"spellcasting_stat": definition.spellcasting_stat,
-		})
+		var entry := map_entry_of(member)
+		if not entry.is_empty():
+			found.append(entry)
 	return found
+
+
+## A party member away from a fight (one of Campaign.party_members()), as the
+## sheet draws them - and as what they cast on a map is worked out from
+## (OutsideMoves). {} for somebody not in the database.
+static func map_entry_of(member: Dictionary) -> Dictionary:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(member.key)
+	if definition == null:
+		return {}
+	var stats := Stats.stats_for_level(Campaign.party_level, definition.main_stat, definition.secondary_stat)
+	var weapon_base := Stats.WEAPON_BASE
+	# What they are wearing is what they will fight with (Combat.wear_gear).
+	var weapon := EquipmentDefinition.named(Campaign.equipped_in(member.key, "weapon"))
+	if weapon != null:
+		weapon_base = weapon.weapon_base
+	var armour := EquipmentDefinition.named(Campaign.equipped_in(member.key, "armour"))
+	if armour != null:
+		stats["defense"] = armour.defense
+	# Brought back from falling in a fight, and weaker for it until a long rest (see
+	# Combat.weaken). Their health already is: it is what they were last
+	# fielded with.
+	var frailty: float = Campaign.party_state.get(member.key, {}).get("frailty", 1.0)
+	if frailty < 1.0:
+		for key in stats:
+			stats[key] = Combat.weakened_figure(stats[key], frailty)
+		weapon_base = Combat.weakened_figure(weapon_base, frailty)
+	return {
+		"name": member.name,
+		"level": Campaign.party_level,
+		"hp": member.hp,
+		"max_hp": member.max_hp,
+		"stats": stats,
+		"weapon_base": weapon_base,
+		"sprite_frames": definition.sprite_frames,
+		"map_sprite": definition.map_still(),
+		"in_battle": false,
+		"movement_class": definition.class_m,
+		"base_movement_class": definition.class_m,
+		"passives": passives_on_the_map(member.key, definition),
+		"key": member.key,
+		"subclass": Campaign.subclass_of(member.key),
+		"casts": definition.casts_spells(),
+		"spellcasting_stat": definition.spellcasting_stat,
+	}
 
 
 ## Whoever it makes most sense to open on: the combatant taking their turn if
@@ -774,13 +783,25 @@ func _pools_of(entry: Dictionary) -> Array:
 		left = most
 		var carried: Dictionary = Campaign.party_state.get(key, {})
 		if Campaign.in_dungeon():
-			left = carried.get("spell_slots", most)
 			spent = carried.get("spent_until_rest", {})
+		# Castings spent on the map are off the next fight's gates (Campaign
+		# "Gates outside a fight"), and a dungeon's carried ones are what is left.
+		if Campaign.party_order.has(key):
+			left = Campaign.gates_left_outside(key)
 	for gate in range(1, most.size()):
 		if most[gate] > 0:
 			var unspent: int = left[gate] if gate < left.size() else most[gate]
 			pools.append({"name": Stats.short_gate_name(gate), "left": unspent, "most": most[gate], "colour": Stats.gate_colour(gate),
 				"reading": "%s: %d of %d castings left" % [Stats.gate_name(gate), unspent, most[gate]]})
+	# The gates opened only outside a fight (Iris), on the map.
+	if not live and Campaign.party_order.has(key):
+		var outside_most := Campaign.outside_gates_most(key)
+		var outside_left := Campaign.outside_gates_left(key)
+		for gate in range(1, outside_most.size()):
+			if outside_most[gate] > 0:
+				pools.append({"name": Stats.short_outside_gate_name(gate), "left": outside_left[gate], "most": outside_most[gate],
+					"colour": Stats.OUTSIDE_GATES[gate].colour,
+					"reading": "%s: %d of %d castings left, outside a fight" % [Stats.outside_gate_name(gate), outside_left[gate], outside_most[gate]]})
 	# Devotion: castings of their own for named spells (Combat "Spare castings").
 	var passives: Array = entry.get("passives", [])
 	var spares := 0
@@ -1182,7 +1203,7 @@ func _skills_they_actually_have(comb: Dictionary) -> Array:
 
 ## What `key` does without being asked at the party's level, away from a fight:
 ## their own passives and their path's that have come in by now.
-func _passives_on_the_map(key: String, definition: CombatantDefinition) -> Array:
+static func passives_on_the_map(key: String, definition: CombatantDefinition) -> Array:
 	var found: Array = definition.passives.duplicate()
 	var charm := EquipmentDefinition.named(Campaign.equipped_in(key, "charm"))
 	if charm != null and charm.passive != null:
@@ -1581,7 +1602,14 @@ func expected_heal(entry: Dictionary, skill: SkillDefinition) -> int:
 	var subject: Dictionary = entry.get("combatant", {})
 	if not subject.is_empty() and combat != null and is_instance_valid(combat):
 		return combat.heal_amount(subject, skill, heal)
-	if skill is ItemDefinition:
+	return heal_on_the_map(entry, skill, heal)
+
+
+## What `heal` (one of `skill`'s) mends in `entry`'s hands away from a fight -
+## expected_heal's arithmetic without a Combat, which a heal cast on a map
+## (OutsideMoves) is worked out by too. 0 for an item.
+static func heal_on_the_map(entry: Dictionary, skill: SkillDefinition, heal: EffectDefinition) -> int:
+	if skill is ItemDefinition or heal == null:
 		return 0
 	var level: int = entry.get("level", 1)
 	var bonus := 1.0
@@ -1785,6 +1813,9 @@ func _move_row(entry: Dictionary, move: String, path: SubclassDefinition, level:
 	for i in facts.size():
 		if mends > 0 and facts[i].begins_with("heals"):
 			facts[i] = "heals %d%s" % [mends, facts[i].trim_prefix("heals")]
+	# On a map, how loud it is out there - said only outside a fight.
+	if not entry.get("in_battle", false):
+		facts.append(OutsideMoves.noise_fact(skill))
 	var numbers := Label.new()
 	numbers.name = "Facts"
 	numbers.text = "  ·  ".join(facts)

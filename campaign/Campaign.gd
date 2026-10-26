@@ -881,6 +881,50 @@ func strain(key: String, amount: int):
 	party_state[key].hp = maxi(party_state[key].hp - amount, 1)
 
 
+## Gives `key` back `amount` of their health outside a fight - a heal cast on a
+## map (OutsideMoves) - never past their most. What it mended.
+func mend(key: String, amount: int) -> int:
+	if amount <= 0 or not party_state.has(key) or not party_state[key].get("alive", true):
+		return 0
+	var state: Dictionary = party_state[key]
+	var most: int = state.get("max_hp", _full_health(key))
+	var before: int = state.hp
+	state.hp = mini(state.hp + amount, most)
+	return state.hp - before
+
+
+## Who of the party has fallen and is still down, in marching order.
+func fallen_members() -> Array:
+	var down := []
+	for key in party_order:
+		if not is_alive(key):
+			down.append(key)
+	return down
+
+
+## Stands `fallen` back up outside a fight, by `revive` (a REVIVE effect) - with
+## its share of their health, and weaker for it until a long rest, as in a fight.
+## False, and nothing changed, for somebody who is not down.
+func revive_outside(fallen: String, revive: EffectDefinition) -> bool:
+	var state: Dictionary = party_state.get(fallen, {})
+	if state.is_empty() or state.get("alive", true) or revive == null:
+		return false
+	_bring_back(state, revive)
+	party_changed.emit()
+	return true
+
+
+## Up again, by `revive`: weaker by its Weakening, with its share of the health
+## that leaves them.
+func _bring_back(state: Dictionary, revive: EffectDefinition):
+	if not state.has("unweakened_max_hp"):
+		state["unweakened_max_hp"] = state.get("max_hp", 1)
+	state["frailty"] = state.get("frailty", 1.0) * (1.0 - revive.revive_weakening)
+	state["max_hp"] = maxi(1, roundi(state.get("max_hp", 1) * (1.0 - revive.revive_weakening)))
+	state["hp"] = maxi(1, roundi(state.max_hp * revive.revive_health))
+	state["alive"] = true
+
+
 ## --- Gates opened only outside a fight ---
 ##
 ## Iris (Stats.OUTSIDE_GATES) has castings of its own, for the spells cast on a
@@ -926,6 +970,11 @@ func outside_gates_most(key: String) -> Array:
 	var opened := {}
 	for skill_key in outside_spells(key):
 		opened[SkillDatabase.skills[skill_key].outside_gate] = true
+	# And a gate a spell marked Out Of Combat may be paid through (OutsideMoves).
+	for skill_key in OutsideMoves.moves_of(key):
+		var gate := OutsideMoves.iris_gate_for(SkillDatabase.skills[skill_key])
+		if gate > 0:
+			opened[gate] = true
 	for gate in most.size():
 		if not opened.has(gate):
 			most[gate] = 0
@@ -1548,12 +1597,7 @@ func resuscitate_at_rest(caster: String, fallen: String) -> bool:
 	left[gate] = int(left[gate]) - 1
 	party_state[caster]["spell_slots"] = left
 	party_state[caster]["max_spell_slots"] = gates_most(caster)
-	if not state.has("unweakened_max_hp"):
-		state["unweakened_max_hp"] = state.get("max_hp", 1)
-	state["frailty"] = state.get("frailty", 1.0) * (1.0 - revive.revive_weakening)
-	state["max_hp"] = maxi(1, roundi(state.get("max_hp", 1) * (1.0 - revive.revive_weakening)))
-	state["hp"] = maxi(1, roundi(state.max_hp * revive.revive_health))
-	state["alive"] = true
+	_bring_back(state, revive)
 	# And the rest everybody else has had.
 	_mend_for_short_rest(state)
 	announce("[color=yellow]%s[/color] casts Resuscitate: [color=lightgreen]%s[/color] is back up and rested, with %d health - and %d%% weaker until a long rest.\n" % [

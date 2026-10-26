@@ -369,7 +369,9 @@ func _on_familiar_pressed():
 
 
 ## The Outside Spell key: lets the familiar go while it is out; otherwise casts
-## the one spell the party knows, or asks which when it knows both.
+## the one spell there is to cast, or asks which - Invisibility and Find Familiar
+## when known, and any other spell that would do something now
+## (OutsideMoves.ready_spells).
 func outside_spell():
 	if watch == null or is_instance_valid(_picker) or is_instance_valid(_choice):
 		return
@@ -378,7 +380,8 @@ func outside_spell():
 		return
 	var hides: bool = not watch.invisibility_spell().is_empty()
 	var calls: bool = not watch.familiar_spell().is_empty()
-	if hides and calls:
+	var others: Array = OutsideMoves.ready_spells(watch.scene)
+	if int(hides) + int(calls) + others.size() >= 2:
 		if watch.spotted_by != null or (watch.scene != null and watch.scene.has_method("is_holding") and watch.scene.is_holding()):
 			return
 		_choice = OutsideSpellChoice.new()
@@ -387,6 +390,8 @@ func outside_spell():
 		get_parent().add_child(_choice)
 	elif calls:
 		watch.summon_familiar()
+	elif not others.is_empty():
+		OutsideMoves.use(watch.scene, others[0].key, others[0].move)
 	else:
 		open_picker()
 
