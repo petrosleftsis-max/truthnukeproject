@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FamiliarForm" format=3]
+
+[ext_resource type="Script" path="res://exploration/FamiliarForm.gd" id="1_form"]
+
+[resource]
+script = ExtResource("1_form")
+name = "Cat"
+description = "A lean black cat: small, sure-footed, and only a cat to anybody in the streets or a great house."
+size = 1
+movement_class = 0
+speed = 1.5
+noticed_within = 3.0
+colour = Color(0.2392, 0.2275, 0.251, 1)

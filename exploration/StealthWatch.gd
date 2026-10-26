@@ -44,6 +44,8 @@ const SEEN_EDGE := Color(0.72, 0.5, 1.0, 0.7)
 const METER_BACK := Color(0.08, 0.1, 0.14, 0.8)
 const METER_DOUBT := Color("e0b04a")
 const METER_SURE := Color("e05a4a")
+## A guard growing sure of the familiar (StealthWatch "Familiar").
+const FAMILIAR_DOUBT := Color("b48cf0")
 
 ## How see-through anyone sneaking is drawn - combat's look for a hidden ally.
 const SNEAKING_ALPHA := 0.55
@@ -760,6 +762,258 @@ func _seen_again(key: String = ""):
 
 func _display_name(key: String) -> String:
 	return Campaign.display_name_of(key)
+
+
+## --- Familiar ---
+##
+## Alithia's Find Familiar (EffectType.FAMILIAR), cast only outside a fight: the
+## map's animal (StealthSetup.familiar_form - the rat, when it names none)
+## appears beside her, and the player steers it and sees through its eyes
+## while the party waits where it stands - rooted, the world going on, so a
+## guard can still walk up on them. It is paid through a real World gate
+## (Campaign.spend_gate_outside: off the next fight's gates, or straight off a
+## dungeon's). Swap Leader (Tab) hands control to the party and back; Outside
+## Spell (G) lets it go. It fits through small gaps nobody else does
+## (ExplorationScene "Small gaps"), and a flying one goes over what stops only
+## walkers.
+##
+## A watchman, a captain or a ward makes it out only within its form's Noticed
+## Within, and turns to look at it; a hound smells it as ever; somebody who is
+## nobody's guard takes no notice of an animal. Sure of it, a guard shoos or
+## kills it: it is gone, he goes to look where it was, and the map is a little
+## more on edge. A magic sensor (Guard.Kind.SENSOR) feels it within Sense Tiles,
+## walls or not, and sure of it breaks the spell and sounds: the alert rises a
+## level and the nearest guard comes to look. The designer, 2026-10-26.
+
+## The animal for a map that names none.
+const DEFAULT_FAMILIAR := "res://data/familiars/rat.tres"
+
+## The familiar, while there is one.
+var familiar: Familiar = null
+## Whether the player is steering it now, rather than the party.
+var controlling := false
+## Who called it.
+var familiar_caster := ""
+## Guard -> how sure they are of the familiar, 0 to 1.
+var familiar_doubt := {}
+## Whether it was the familiar that rooted the party, to be let go with it.
+var _rooted_by_familiar := false
+## The frame round the screen while seeing through its eyes.
+var _eyes: Control = null
+
+
+## The spell that calls a familiar and who would cast it - {"skill", "caster"}
+## - or {} when nobody on the map knows one at the party's level.
+func familiar_spell() -> Dictionary:
+	for someone in _party_standing():
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(someone.key)
+		if definition == null:
+			continue
+		var known: Array = Array(definition.skills) + Array(definition.secondary_skills)
+		var path := SubclassDefinition.named(Campaign.subclass_of(someone.key))
+		if path != null:
+			known.append_array(path.skills)
+		for skill_key in known:
+			var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
+			if skill != null and skill.outside_only() and skill.required_level <= Campaign.party_level \
+					and Campaign.gates_most(someone.key)[skill.spell_slot_level] > 0:
+				return {"skill": skill_key, "caster": someone.key}
+	return {}
+
+
+## The animal a familiar takes here.
+func familiar_form() -> FamiliarForm:
+	if setup != null and setup.familiar_form != null:
+		return setup.familiar_form
+	return load(DEFAULT_FAMILIAR)
+
+
+## Why a familiar could not be called right now, or "" when it could.
+func familiar_refusal() -> String:
+	if familiar != null:
+		return "The familiar is out already"
+	var spell := familiar_spell()
+	if spell.is_empty():
+		return "Nobody here knows a spell to call a familiar"
+	if spotted_by != null:
+		return "Too late for that"
+	if scene.has_method("is_holding") and scene.is_holding():
+		return "Not now"
+	if _changing_into != "" or _dragging != null or _lacing != null or _reassuring != null:
+		return "Not in the middle of something"
+	var gate: int = SkillDatabase.skills[spell.skill].spell_slot_level
+	if Campaign.gates_left_outside(spell.caster)[gate] <= 0:
+		return "%s has no castings of %s left" % [_display_name(spell.caster), Stats.short_gate_name(gate)]
+	return ""
+
+
+## Calls the familiar beside its caster, through a World casting, and hands it
+## the player's control. False, and nothing spent, when it can't be.
+func summon_familiar() -> bool:
+	if familiar_refusal() != "":
+		return false
+	var spell := familiar_spell()
+	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
+	if not Campaign.spend_gate_outside(spell.caster, skill.spell_slot_level):
+		return false
+	var party = scene.get("party")
+	var caster_sprite = party.sprite_for(spell.caster) if party != null else null
+	var at: Vector2 = caster_sprite.global_position if caster_sprite != null else (party.position_of_leader() if party != null else Vector2.ZERO)
+	familiar = Familiar.new()
+	familiar.name = "Familiar"
+	scene.add_child(familiar)
+	familiar.setup(familiar_form(), at, Callable(scene, "is_walkable_for"))
+	familiar.moved.connect(_on_familiar_moved)
+	familiar_caster = spell.caster
+	familiar_doubt.clear()
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] casts %s through the %s: a %s answers, and she sees through its eyes.\n" % [
+			_display_name(spell.caster), skill.name, Stats.gate_name(skill.spell_slot_level), familiar.form.name.to_lower()])
+	take_familiar_control(true)
+	return true
+
+
+## Hands the player's control to the familiar (`to_it`) or back to the party -
+## the camera with it, and the party rooted while it is not theirs.
+func take_familiar_control(to_it: bool):
+	if familiar == null:
+		to_it = false
+	controlling = to_it
+	if familiar != null:
+		familiar.controlled = to_it
+	var party = scene.get("party") if scene != null else null
+	if party != null and is_instance_valid(party):
+		if to_it and not party.rooted:
+			party.rooted = true
+			_rooted_by_familiar = true
+		elif not to_it and _rooted_by_familiar:
+			party.rooted = false
+			_rooted_by_familiar = false
+		if scene.has_method("_follow_camera"):
+			scene._follow_camera(familiar.global_position if to_it else party.position_of_leader())
+	_show_eyes(to_it)
+
+
+## Swaps who the player steers, while there is a familiar. False with none.
+func toggle_familiar_control() -> bool:
+	if familiar == null:
+		return false
+	take_familiar_control(not controlling)
+	return true
+
+
+## Lets the familiar go - `why` for the log, or a plain parting.
+func dismiss_familiar(why: String = ""):
+	if familiar == null:
+		return
+	var what := familiar.form.name.to_lower()
+	take_familiar_control(false)
+	familiar.queue_free()
+	familiar = null
+	familiar_doubt.clear()
+	if scene != null and scene.has_method("log_message"):
+		scene.log_message(why if why != "" else "[color=yellow]%s[/color] lets the %s go.\n" % [_display_name(familiar_caster), what])
+
+
+## Whether the player is steering the familiar now.
+func controlling_familiar() -> bool:
+	return familiar != null and controlling
+
+
+func _on_familiar_moved(at: Vector2):
+	if controlling and scene.has_method("_follow_camera"):
+		scene._follow_camera(at)
+
+
+## Whether `guard` makes out the familiar on `tile`, `near` tiles off: a
+## sensor feels it within Sense Tiles, walls or not; a hound smells it within
+## Smell Tiles; anybody with eyes sees it only within the form's Noticed Within,
+## where he can see at all; somebody who is nobody's guard pays an animal no
+## mind.
+func feels_familiar(guard: Guard, tile: Vector2i, near: float) -> bool:
+	if familiar == null or guard.knocked_out or guard.sees_nothing():
+		return false
+	match guard.kind:
+		Guard.Kind.CIVILIAN:
+			return false
+		Guard.Kind.SENSOR:
+			return near <= guard.sense_tiles
+		Guard.Kind.DOG:
+			return near <= guard.smell_tiles
+	return near <= maxf(familiar.form.noticed_within, REACH_TILES) and _seen.get(guard, {}).has(tile)
+
+
+## Every guard growing sure of the familiar, or forgetting it - once a frame,
+## after the guards have looked about.
+func _watch_familiar(delta: float):
+	if familiar == null:
+		return
+	var party = scene.get("party")
+	# Theirs to steer, not the party's: kept where they stand while it is.
+	if controlling and party != null and not party.rooted:
+		party.rooted = true
+		_rooted_by_familiar = true
+	var tile := tile_of(familiar.global_position)
+	for guard in guards:
+		if not is_instance_valid(guard):
+			continue
+		var near := Vector2(tile - tile_of(guard.global_position)).length()
+		var was: float = familiar_doubt.get(guard, 0.0)
+		if feels_familiar(guard, tile, near):
+			familiar_doubt[guard] = minf(1.0, was + delta * fill_rate(near, false) * (1.0 + ALERT_FILL * alert))
+			# Something small moved: he stops and looks - not the dead stop of
+			# somebody seen, so he takes up his business again once it is gone.
+			if suspicion.get(guard, 0.0) <= 0.0:
+				if guard.mood == Guard.Mood.LISTENING:
+					guard.last_seen = familiar.global_position
+				else:
+					guard.hear(familiar.global_position, false)
+			if familiar_doubt[guard] >= 1.0:
+				_familiar_found(guard)
+				return
+		elif was > 0.0:
+			familiar_doubt[guard] = maxf(0.0, was - DOUBT_FADES * delta)
+
+
+## `guard` is sure of the familiar. A sensor breaks the spell and sounds; any
+## other shoos or kills it and goes to look where it was.
+func _familiar_found(guard: Guard):
+	var at := familiar.global_position
+	var what := familiar.form.name.to_lower()
+	var why := ""
+	if guard.kind == Guard.Kind.SENSOR:
+		raise_alert_level()
+		var nearest: Guard = null
+		for other in guards:
+			if is_instance_valid(other) and other.moves() and other.fights() and not other.knocked_out \
+					and (nearest == null or other.global_position.distance_to(at) < nearest.global_position.distance_to(at)):
+				nearest = other
+		if nearest != null:
+			nearest.investigate(at)
+		why = "[color=yellow]%s[/color] flares: there is magic about. The %s comes apart - and the map is %s.\n" % [
+			_name_of(guard), what, alert_level().to_lower()]
+	else:
+		raise_alert(ALERT_PER_INVESTIGATION)
+		guard.investigate(at)
+		why = "[color=yellow]%s[/color] %s the %s - and goes to see what it was about.\n" % [
+			_name_of(guard), "chases off" if guard.kind == Guard.Kind.DOG else "kicks out at", what]
+	dismiss_familiar(why)
+
+
+## The frame round the screen while seeing through the familiar's eyes, and
+## what to press: back to the party, or let it go.
+func _show_eyes(on: bool):
+	if _eyes == null and on:
+		var layer = get_node_or_null("StealthHud")
+		if layer == null:
+			return
+		_eyes = _FamiliarEyes.new()
+		_eyes.watch = self
+		layer.add_child(_eyes)
+		layer.move_child(_eyes, 0)
+	if _eyes != null:
+		_eyes.visible = on
+		_eyes.refresh()
 
 
 ## --- The dash ---
@@ -2165,7 +2419,9 @@ func _unhandled_input(event):
 		# Whose round to show, if it is known.
 		_hovered = _guard_on(tile_of(_world_at(event.position)))
 	if _aiming == "":
-		_click_on_guard(event)
+		# Seeing through the familiar's eyes, nobody is in the party's reach.
+		if not controlling_familiar():
+			_click_on_guard(event)
 		return
 	if event is InputEventMouseButton and event.pressed:
 		get_viewport().set_input_as_handled()
@@ -2335,6 +2591,11 @@ func guard_shown(guard: Guard) -> bool:
 		return true
 	var from = tile_of(party.leader.global_position)
 	var to = tile_of(guard.global_position)
+	# Or the familiar can - which is what seeing through its eyes is for.
+	if familiar != null:
+		var eyes := tile_of(familiar.global_position)
+		if Vector2(to - eyes).length() <= REACH_TILES or sight.clear(eyes, to):
+			return true
 	return Vector2(to - from).length() <= REACH_TILES or sight.clear(from, to)
 
 
@@ -2718,7 +2979,7 @@ func body_unfound(guard: Guard) -> bool:
 ## A guard whose view falls on somebody knocked out puts the map a level more
 ## on edge for good, and goes to bring them round - see _found.
 func _look_for_bodies(finder: Guard):
-	if finder.kind == Guard.Kind.WARD or finder.sees_nothing():
+	if finder.kind == Guard.Kind.WARD or finder.kind == Guard.Kind.SENSOR or finder.sees_nothing():
 		return
 	for body in _bodies.keys():
 		if _bodies[body] or not is_instance_valid(body):
@@ -3112,6 +3373,10 @@ func gaze_of(guard: Guard, leader_in: String = "") -> int:
 	var standing := _party_standing()
 	if standing.is_empty():
 		return Gaze.SEES
+	# A magic sensor: danger only to a working spell - the familiar, anybody
+	# invisible. To everybody else it is nothing.
+	if guard.kind == Guard.Kind.SENSOR:
+		return Gaze.SEES if familiar != null or standing.any(func(someone): return unseen(someone.key)) else Gaze.FOOLED
 	var asks := false
 	for someone in standing:
 		# Somebody invisible is nothing to his eyes - though not to a nose.
@@ -3166,6 +3431,8 @@ func _process(delta):
 	for guard in guards:
 		if is_instance_valid(guard):
 			guard.holding = holding
+	if familiar != null:
+		familiar.holding = holding
 	# Waiting things out, while nothing else holds the game.
 	_hurry(patient() and not holding)
 	if holding:
@@ -3266,6 +3533,8 @@ func _process(delta):
 					raise_alert(ALERT_PER_INVESTIGATION)
 		_look_for_bodies(guard)
 		_notice_oddities(guard)
+	if spotted_by == null:
+		_watch_familiar(delta)
 	_check_on_wakers()
 	_check_on_reassuring()
 	_see_to_oddities()
@@ -3371,9 +3640,16 @@ func _exit_tree():
 	_let_go()
 	_stop_reassuring()
 	_stop_lacing()
+	# A familiar is this watch's: it goes with it, and the party is theirs again.
+	if familiar != null and is_instance_valid(familiar):
+		familiar.queue_free()
+	familiar = null
 	var party = scene.get("party") if scene != null else null
 	if party != null and is_instance_valid(party):
 		party.pace = 1.0
+		if _rooted_by_familiar:
+			party.rooted = false
+			_rooted_by_familiar = false
 
 
 ## Stand-ins until there are real sounds: a heartbeat's two low thumps, and a
@@ -3509,6 +3785,9 @@ func is_hiding_spot(tile: Vector2i) -> bool:
 func can_perceive(guard: Guard, someone: Dictionary) -> bool:
 	if not _seen.get(guard, {}).has(someone.tile):
 		return false
+	# A magic sensor feels nothing of anybody but a working spell on them.
+	if guard.kind == Guard.Kind.SENSOR:
+		return unseen(someone.key)
 	# Invisible: nothing to see - but a hound's nose is not fooled.
 	if unseen(someone.key) and guard.kind != Guard.Kind.DOG:
 		return false
@@ -3557,6 +3836,19 @@ func _refresh_seen(guard: Guard):
 			_seen[guard] = {}
 		return
 	var from = tile_of(guard.global_position)
+	if guard.kind == Guard.Kind.SENSOR:
+		# No eyes: every tile within reach of what it feels, walls or not.
+		if _seen_key.get(guard) == [from, "sense"]:
+			return
+		_seen_key[guard] = [from, "sense"]
+		var felt := {}
+		var span = ceili(guard.sense_tiles)
+		for dx in range(-span, span + 1):
+			for dy in range(-span, span + 1):
+				if Vector2(dx, dy).length() <= guard.sense_tiles:
+					felt[from + Vector2i(dx, dy)] = true
+		_seen[guard] = felt
+		return
 	if guard.kind == Guard.Kind.DOG:
 		# A nose: every tile within smell, walls or no walls.
 		if _seen_key.get(guard) == [from, _world_version]:
@@ -3596,6 +3888,9 @@ func _refresh_seen(guard: Guard):
 ## of anything - he sprang on `guard` (see ambush), and whoever had not noticed
 ## him loses their first turn.
 func _caught_by(guard: Guard, ambushed: bool = false):
+	# No animal in the fight: the familiar is let go, and the party is theirs.
+	if familiar != null:
+		dismiss_familiar("[color=yellow]%s[/color]'s familiar slips away.\n" % _display_name(familiar_caster))
 	spotted_by = guard
 	if ambushed:
 		stats.ambushes += 1
@@ -4117,6 +4412,11 @@ class _Meters extends Node2D:
 				continue
 			var sure: float = watch.suspicion.get(guard, 0.0)
 			var caught = watch.spotted_by == guard
+			# Growing sure of the familiar: a violet "?".
+			var animal: float = watch.familiar_doubt.get(guard, 0.0)
+			if sure <= 0.0 and not caught and animal > 0.0:
+				_mark(head, animal, "?", StealthWatch.FAMILIAR_DOUBT, 1.0 + StealthWatch.PULSE_SIZE * sin(now * StealthWatch.pulse_rate(animal)))
+				continue
 			if sure <= 0.0 and not caught:
 				if guard.visible and not guard.knocked_out:
 					_state(head, guard, now)
@@ -4594,3 +4894,53 @@ func hand_over() -> bool:
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color] hands over %s.\n" % [_name_of(guard), ", ".join(names) if not names.is_empty() else "nothing at all"])
 	return true
+
+
+## The frame round the screen while the player sees through the familiar's
+## eyes: a violet edge, and a line saying whose eyes and what to press.
+class _FamiliarEyes extends Control:
+	var watch: StealthWatch = null
+	var _line: Label = null
+
+	## How far down the screen the line sits: under the stealth bar.
+	const LINE_TOP := 104.0
+
+	func _ready():
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_line = Label.new()
+		_line.name = "EyesLine"
+		_line.add_theme_font_size_override("font_size", 18)
+		_line.add_theme_color_override("font_color", Color(0.88, 0.8, 1.0))
+		_line.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		_line.add_theme_constant_override("outline_size", 6)
+		add_child(_line)
+		if not Pad.changed.is_connected(refresh):
+			Pad.changed.connect(refresh)
+		refresh()
+
+	func refresh():
+		if _line == null or watch == null or watch.familiar == null:
+			return
+		_line.text = "Through the %s's eyes    %s    %s" % [watch.familiar.form.name.to_lower(),
+			Pad.hint("Back to the party", &"swap_leader"), Pad.hint("Let it go", &"outside_spell")]
+		queue_redraw()
+
+	func _process(_delta):
+		# Sized and placed by hand: anchors resolve against nothing under a bare
+		# CanvasLayer.
+		var screen := get_viewport_rect().size
+		if size != screen:
+			position = Vector2.ZERO
+			size = screen
+			queue_redraw()
+		_line.reset_size()
+		_line.position = Vector2(roundf((screen.x - _line.size.x) / 2.0), LINE_TOP)
+
+	func _draw():
+		var edge := 14.0
+		var colour := Color(0.62, 0.45, 0.95, 0.45)
+		var r := get_rect()
+		draw_rect(Rect2(0, 0, r.size.x, edge), colour)
+		draw_rect(Rect2(0, r.size.y - edge, r.size.x, edge), colour)
+		draw_rect(Rect2(0, 0, edge, r.size.y), colour)
+		draw_rect(Rect2(r.size.x - edge, 0, edge, r.size.y), colour)

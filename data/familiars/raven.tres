@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FamiliarForm" format=3]
+
+[ext_resource type="Script" path="res://exploration/FamiliarForm.gd" id="1_form"]
+
+[resource]
+script = ExtResource("1_form")
+name = "Raven"
+description = "A raven: small, and on the wing - over walls a walker would go round, out of doors."
+size = 1
+movement_class = 1
+speed = 1.6
+noticed_within = 3.5
+colour = Color(0.1686, 0.1765, 0.2275, 1)

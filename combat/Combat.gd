@@ -408,7 +408,8 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# list per class underneath this, so being a mage granted a mage's kit and
 		# the database only added to it - which meant a skill could not be taken
 		# away from a character without taking it from their whole class.
-		"skill_list" = definition.skills.duplicate(),
+		# Less what is cast only outside a fight (Find Familiar).
+		"skill_list" = Combat.fighting_skills(definition.skills),
 		"skill_levels" = definition.skill_levels.duplicate(),
 		"icon" = definition.portrait(),
 		"map_sprite" = definition.map_still(),
@@ -546,6 +547,12 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 	return comb
 
 
+## `keys` without what is cast only outside a fight (SkillDefinition.outside_only -
+## Find Familiar), which is nobody's to use in one.
+static func fighting_skills(keys: Array) -> Array:
+	return keys.filter(func(key): return not (SkillDatabase.skills.has(key) and SkillDatabase.skills[key].outside_only()))
+
+
 ## Puts `comb` on the path called `subclass` (SubclassDefinition), from the
 ## level paths open at: its skills and passives on top of their own. Each skill
 ## and passive still waits for its own level. Nothing for "" or below the level.
@@ -554,7 +561,7 @@ func take_path(comb: Dictionary, subclass: String):
 	if path == null or comb.get("level", 1) < Stats.SUBCLASS_LEVEL:
 		return
 	comb["subclass"] = subclass
-	for key in path.skills:
+	for key in Combat.fighting_skills(path.skills):
 		if SkillDatabase.skills.has(key) and not comb.skill_list.has(key):
 			comb.skill_list.append(key)
 	for passive in path.passives:

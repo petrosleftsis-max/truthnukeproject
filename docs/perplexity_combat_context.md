@@ -821,7 +821,7 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
 - Gates: level 1 World 2; level 24 World 4, Hermes 3, Pandora 3, Charon 2; level 64 World 4, Hermes 3, Pandora 3, Charon 3, Tartarus 3, Nemesis 2, Sophia 2, Ogdoad 1, Gnosis 1, Yaldabaoth 1
 - Paths (chosen at 24): Battle Chaplain, Illusory Shepherd, Inquisitor
 - Skills and spells, by the level they come at:
-  - 1: Votive Flame, Water Spike, Sass Club, Heal, Cleanse, Intuition, Persuade, Slip Past, Run
+  - 1: Votive Flame, Water Spike, Sass Club, Heal, Cleanse, Intuition, Persuade, Slip Past, Run, Find Familiar
   - 3: Light Heal
   - 5: Holy Lance
   - 6: Flash
@@ -1169,6 +1169,10 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia
   - Says: A face only the target sees, and cannot stop seeing.
   - Effect: {type: Condition; condition: Fear (fear); condition_duration: 2}
+- **Find Familiar** (`find_familiar`) - level 1; spell, Gates of World; main action; range 0-0; ranged; single target; no damage
+  - Who has it: Alithia
+  - Says: Outside a fight: a spirit takes the shape of whatever animal belongs where she is - a rat in the sewers, a cat in the streets, a raven out of doors - and she sees through its eyes and steers it while the party waits. It slips through gaps nobody else fits through, and a guard makes it out only close up; but it is magic, and a magic sensor knows it for what it is.
+  - Effect: {type: Familiar}
 - **Flash** (`flash`) - level 6; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; no damage; contested against Mindfulness
   - Who has it: Alithia
   - Says: A burst of light enough to blind anyone.
@@ -2404,6 +2408,15 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
 
 - **A path can be changed only at a long rest.** It is chosen at 24 as before. After a long rest, until the party's next fight, the character sheet offers Change Path; inside that window it can be changed as often as the player likes. The next fight closes it. (The designer first said "freely outside combat", then "only in long rests".)
 - **The Sheet page no longer lists moves.** It keeps the passives; an ally's or a studied enemy's moves are on the Moves page.
+
+## Find Familiar and magic sensors (2026-10-26; implemented)
+
+- **Find Familiar** is Alithia's, level 1 (a PROPOSAL), through a real **Gates of World** casting: cast on a map, it comes off the next fight's World castings (or straight off a dungeon's). It is never part of a fight's kit.
+- The map's animal (its StealthSetup names one; the rat otherwise): the player steers it and sees through its eyes while the party waits where it stands, rooted, the world going on. Tab switches between it and the party; G lets it go.
+- It slips through **small gaps** (a tile whose Blocks has 4) nobody else fits through; a flying form (the raven) goes over what stops only walkers.
+- Guards make it out only within the form's range (rat 2 tiles, cat 3, raven 3.5 - PROPOSAL test values); a hound smells it; a bystander ignores it. Sure of it, a guard kicks out at it: it is gone, he looks where it was, and the alert rises a little. Caught while it is out, it slips away.
+- **Magic sensors** (a new guard kind) feel every working spell within their reach, walls or not - the familiar and anybody invisible - and nothing else. Sure of the familiar, they break it and sound (the alert a level up, the nearest guard comes); sure of somebody invisible, the party is caught.
+- Open: small creatures squeezing through gaps in a fight; the familiar in combat (the designer: maps only for now).
 
 ## Known near-twins among the spells
 

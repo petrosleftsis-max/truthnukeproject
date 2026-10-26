@@ -23,10 +23,13 @@ enum Kind {
 	WARD,      ## A statue or a charm: turns in place for ever, sees through every disguise, never moves, never fights.
 	CAPTAIN,   ## A watchman whose shout, once sure, brings every guard within Shout Tiles into the fight.
 	CIVILIAN,  ## Nobody's guard, and never in a fight. Sure of somebody - or seeing a takedown, a body, a body dragged - they run to the nearest guard and tell them where.
+	SENSOR,    ## A magic sensor: no eyes, but every working spell within Sense Tiles, walls or not - a familiar, anybody invisible - and nothing else. Never moves, never fights.
 }
 @export var kind: Kind = Kind.WATCHMAN : set = _set_kind
 ## A dog's nose, in tiles.
 @export var smell_tiles: float = 3.0 : set = _set_smell_tiles
+## How far a magic sensor feels a working spell, in tiles, walls or not.
+@export var sense_tiles: float = 4.0 : set = _set_sense_tiles
 ## How fast a ward turns, in degrees a second. Negative turns it the other way.
 @export var ward_turn_degrees: float = 30.0
 ## How far a captain's shout carries, in tiles.
@@ -239,6 +242,11 @@ func _set_smell_tiles(value: float):
 	queue_redraw()
 
 
+func _set_sense_tiles(value: float):
+	sense_tiles = value
+	queue_redraw()
+
+
 func _ready():
 	facing = Vector2.RIGHT.rotated(deg_to_rad(facing_degrees))
 	if Engine.is_editor_hint():
@@ -304,15 +312,15 @@ func sees_nothing() -> bool:
 	return knocked_out or mood == Mood.ASLEEP or mood == Mood.RETCHING
 
 
-## Whether they walk about and react - everything but a ward.
+## Whether they walk about and react - everything but a ward or a sensor.
 func moves() -> bool:
-	return kind != Kind.WARD
+	return kind != Kind.WARD and kind != Kind.SENSOR
 
 
-## Whether they would be in a fight here - not a ward, and not somebody who is
-## nobody's guard.
+## Whether they would be in a fight here - not a ward or a sensor, and not
+## somebody who is nobody's guard.
 func fights() -> bool:
-	return kind != Kind.WARD and kind != Kind.CIVILIAN
+	return kind != Kind.WARD and kind != Kind.CIVILIAN and kind != Kind.SENSOR
 
 
 ## Where their patrol takes them, in order, as positions - empty for somebody
@@ -517,6 +525,9 @@ func _process(delta):
 		# Round and round, whatever happens.
 		facing = facing.rotated(deg_to_rad(ward_turn_degrees) * delta)
 		_face_sprite()
+		return
+	if kind == Kind.SENSOR:
+		# Feels; never looks about.
 		return
 	match mood:
 		Mood.LISTENING:
@@ -754,6 +765,9 @@ func _draw():
 		Kind.DOG:
 			# A nose, not eyes: everything within smell, all the way round.
 			draw_arc(Vector2.ZERO, Grid.tiles(smell_tiles), 0.0, TAU, 48, colour, 4.0)
+		Kind.SENSOR:
+			# What it feels: every working spell within reach, walls or not.
+			draw_arc(Vector2.ZERO, Grid.tiles(sense_tiles), 0.0, TAU, 48, Color(0.75, 0.55, 1.0, 0.9), 4.0)
 		Kind.WARD:
 			draw_arc(Vector2.ZERO, reach, 0.0, TAU, 32, Color(colour, 0.4), 3.0)
 			draw_line(Vector2.ZERO, facing.rotated(-half) * reach, colour, 6.0)

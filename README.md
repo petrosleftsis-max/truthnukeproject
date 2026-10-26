@@ -66,8 +66,8 @@ it is not needed.
 | X (Square) / Y | take down, drag, put down / pick pockets | the skill panel / end the turn | |
 | LB / RB | listen / dash | the skill before / after; aiming or placing the party, the tile before / after | turn a dial back / on |
 | LT / RT | patience (held) / throw | danger view (held) / next skill tab | |
-| Left stick click | an outside spell (Invisibility) | the next floor up (Page Up / Page Down on a keyboard) | |
-| Right stick click | swap the leader | out to the whole map and back | |
+| Left stick click | an outside spell (Invisibility, Find Familiar); let the familiar go | the next floor up (Page Up / Page Down on a keyboard) | |
+| Right stick click | swap the leader; with a familiar out, switch between it and the party | out to the whole map and back | |
 
 **In a fight** the pointer sits on a tile, the cursor, and goes from tile to
 tile - any tile on the map, walkable or not, since a click further off than a
@@ -1583,7 +1583,28 @@ only shows when there is something to do with it:
   takes him down, picks or plants in his pockets, darts him, has a word, springs
   an ambush, which is always the one leading - is seen again; the rest stay
   hidden. The bar's button says what is left; its tooltip, and the status for
-  whoever leads, count down.
+  whoever leads, count down. With Find Familiar known too, G first asks which.
+- **G - Find Familiar** (Alithia, through a real **Gates of World** casting -
+  it comes off the next fight's World castings, or straight off a dungeon's).
+  A spirit takes the shape of the map's animal - the StealthSetup's **Familiar
+  Form**: a rat (`data/familiars/rat.tres`, the default), a cat or a raven - and
+  the player steers it with the walking keys and sees through its eyes (a
+  violet frame round the screen) while the party waits where it stands, rooted,
+  the world going on. **Tab** switches between it and the party; **G** lets it
+  go. It slips through **small gaps** nobody else fits through - a tile whose
+  **Blocks** has **4** beside what it stops ([0, 4] is a wall to all but the
+  small); a flying form goes over what stops only walkers (Blocks without 1).
+  A watchman, captain or ward makes it out only within the form's **Noticed
+  Within** (2 tiles for the rat) and turns to look; a hound smells it; a
+  bystander pays an animal no mind. Sure of it (a violet "?"), a guard kicks out
+  at it: it is gone, he goes to look where it was, and the map is a little more
+  on edge. On a map that hides guards out of sight, guards the familiar sees are
+  shown. Caught while it is out, it slips away - it is never in a fight.
+- **Magic sensors.** A Guard of **Kind: Sensor** has no eyes: it feels every
+  working spell within **Sense Tiles**, walls or not - a familiar, anybody
+  invisible - and nothing else. It never moves or fights. Sure of the familiar,
+  it breaks the spell and sounds (the map a level more on edge, the nearest guard
+  comes to look); sure of somebody invisible, they are caught.
 - **Poisons.** An item with **Poison** set: an **Emetic** sends a guard off to
   be sick at the nearest **RetchSpot** for five minutes, seeing nothing; a
   **Sedative** drops him where he stands, a body like any other; a **Disease**

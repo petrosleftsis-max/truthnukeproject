@@ -1476,7 +1476,8 @@ static func roles_of(skill: SkillDefinition) -> Array:
 					EffectDefinition.EffectType.INVISIBLE:
 				add.call("Movement")
 			EffectDefinition.EffectType.SUMMON, EffectDefinition.EffectType.SUMMON_DECOY, EffectDefinition.EffectType.ZONE, \
-					EffectDefinition.EffectType.UPGRADE_ELEMENT, EffectDefinition.EffectType.COMMAND, EffectDefinition.EffectType.DRAW:
+					EffectDefinition.EffectType.UPGRADE_ELEMENT, EffectDefinition.EffectType.COMMAND, EffectDefinition.EffectType.DRAW, \
+					EffectDefinition.EffectType.FAMILIAR:
 				add.call("Support")
 	return roles
 
@@ -1487,6 +1488,12 @@ static func roles_of(skill: SkillDefinition) -> Array:
 ## `comb` is the combatant in a fight, or {"level": n} out of one.
 static func facts_of(skill: SkillDefinition, comb: Dictionary) -> Array:
 	var facts := []
+	# Cast only on a map (Find Familiar): no action, reach or target to speak of.
+	if skill.outside_only():
+		facts.append("Outside a fight")
+		if Combat.is_spell(skill):
+			facts.append(Stats.short_gate_name(skill.spell_slot_level))
+		return facts
 	if skill.declared:
 		facts.append("Declared")
 	elif skill.is_reactive and skill.reaction_only:

@@ -67,6 +67,11 @@ class_name StealthSetup
 ## The sting as a guard is sure and the "!" goes up. Empty: a synthesised one.
 @export var caught_sound: AudioStream
 
+@export_group("Familiar")
+## The animal a familiar takes here (Find Familiar): a rat in the sewers, a cat
+## in the streets, a raven out of doors (data/familiars/). Empty: the rat.
+@export var familiar_form: FamiliarForm
+
 @export_group("After")
 ## What marks this map's guards as dealt with once the fight is won, so they are
 ## not standing there again when the party walks back in. Left empty, the map's

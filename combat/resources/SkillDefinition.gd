@@ -484,6 +484,12 @@ func _set_damage_type(value: Damage.Type):
 ## and on every tooltip.
 var _own_damage: EffectDefinition = null
 
+## Whether it is cast only outside a fight - Find Familiar - and so is no part
+## of anybody's kit in one (Combat.create_combatant leaves it out).
+func outside_only() -> bool:
+	return effects.any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.FAMILIAR)
+
+
 func damage_effect() -> EffectDefinition:
 	if _own_damage == null:
 		_own_damage = EffectDefinition.new()

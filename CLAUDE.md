@@ -40,7 +40,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 135 suites and takes a while. Each one boots the real game
+A full run is 136 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one.
@@ -226,6 +226,23 @@ The alert never fades. `alert_floor` is where a found body pinned it;
 `lower_alert_level` will not go below it - whether by a word (E beside a guard
 a disguise fools), a conversation (`do Campaign.settle_alert()`) or an
 Interactable with Settles Alert ticked.
+
+**Find Familiar** (StealthWatch "Familiar", the designer 2026-10-26): a skill
+with an EffectType.FAMILIAR effect is `outside_only` - `Combat.fighting_skills`
+keeps it out of every kit in a fight. On a map it is paid through
+`Campaign.spend_gate_outside` (a real gate, off the next fight), and makes a
+`Familiar` (exploration/Familiar.gd) in the StealthSetup's `familiar_form`
+(`FamiliarForm`, data/familiars/; the rat by default). `controlling` roots the
+party (`_rooted_by_familiar`) and moves the camera; ExplorationScene's
+`swap_leader` toggles it and its `interact` and StealthWatch's clicks wait while
+it is steered. It walks by `ExplorationScene.is_walkable_for` (small gaps -
+Blocks 4, `set_small_gap` - for Small and smaller; fliers by Blocks 1).
+`_watch_familiar` fills `familiar_doubt` per guard by `feels_familiar` (eyes
+within Noticed Within, a dog's nose, a sensor's Sense Tiles; civilians never);
+`_familiar_found` dismisses it. `Guard.Kind.SENSOR` (appended) feels only magic:
+`can_perceive` is `unseen` for it, `_refresh_seen` is its radius, it never moves
+or fights. G is `StealthBar.outside_spell` (`ui/outside_spell_choice.gd` asks
+which when both spells are known). `familiar` covers it.
 
 `stealthkit` covers the tools (throwing, ears, hiding spots, takedowns,
 pockets, alert, dogs, wards, captains, questions, the ghost flag, late

@@ -2090,6 +2090,8 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			var held := (": whoever of the other side steps in is %s" % effect.trap_holds_with.display_name.to_lower()) if effect.trap_holds_with != null else ""
 			var burst := (", and it bursts for x%s within %d" % [String.num(effect.trap_burst_modifier, 2), effect.trap_burst_radius]) if effect.trap_burst_modifier > 0.0 else ""
 			return trap + held + burst
+		EffectDefinition.EffectType.FAMILIAR:
+			return "Outside a fight only: a familiar in the shape of the map's animal, steered and seen through while the party waits - through small gaps, unnoticed but close up, felt by magic sensors"
 		EffectDefinition.EffectType.DISPEL_MAGIC:
 			return "Ends what spells did to the one it lands on, theirs or the other side's - or a spell's zone, aimed at its ground. Cast through any gate from its own down: it reaches only what came through that gate or a shallower one"
 		EffectDefinition.EffectType.ZONE:

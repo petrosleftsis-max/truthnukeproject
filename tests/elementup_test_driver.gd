@@ -39,6 +39,7 @@ func run_test():
 		"RESISTANCE": 12, "UPGRADE_ELEMENT": 13, "REVIVE": 14, "STEAL": 15, "SUMMON_DECOY": 16,
 		"INTERACT": 17, "HACK": 18, "READ_INTENT": 19, "SHAKE": 20, "CLIMB": 21, "BRIBE": 22, "BREAK_FREE": 23, "INVISIBLE": 24, "CANCEL_CASTING": 25, "SWALLOW": 26, "GROW": 27, "SUMMON": 28, "COMMAND": 29, "LOOT": 30, "DRAW": 31,
 		"TRAP": 32, "CATALYST": 33, "ZONE": 34, "DISPEL_MAGIC": 35,
+		"FAMILIAR": 36,
 	}
 	var moved := []
 	for name in frozen:

@@ -186,6 +186,10 @@ func run_test():
 		# them - the dispel suite plays it.
 		if Combat.dispels_magic(skill):
 			continue
+		# Cast only outside a fight (Find Familiar), and in nobody's kit in one -
+		# the familiar suite plays it.
+		if skill.outside_only():
+			continue
 		# Bribe wants somebody with a price, Climb something Monstrous, Climb
 		# Down somebody up on it, and Break Free somebody held - none of them
 		# here; the enemies suite plays them.

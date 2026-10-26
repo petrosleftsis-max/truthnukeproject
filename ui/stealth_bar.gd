@@ -48,8 +48,13 @@ var _hide: Button = null
 var _invisible: Button = null
 ## The choice of who to hide, while it is open.
 var _picker = null
+## Calling the familiar, or letting it go (Find Familiar - StealthWatch "Familiar").
+var _familiar: Button = null
+## The choice of which spell, while it is open.
+var _choice = null
 
 const InvisibilityPicker := preload("res://ui/invisibility_picker.gd")
+const OutsideSpellChoice := preload("res://ui/outside_spell_choice.gd")
 var _buttons: Array[Button] = []
 ## What the disguise buttons were last built for, so they are only rebuilt
 ## when that changes rather than every frame.
@@ -89,6 +94,7 @@ func _ready():
 	_patience.button_up.connect(_on_patience.bind(false))
 	_row.add_child(_patience)
 	_invisible = _button(_on_invisible_pressed)
+	_familiar = _button(_on_familiar_pressed)
 	_vault = _button(_on_vault_pressed, _here)
 	_vault.tooltip_text = "Hop over the barrel beside you to the other side."
 	_takedown = _button(_on_takedown_pressed, _here)
@@ -232,8 +238,9 @@ func refresh():
 		var other: ItemDefinition = ItemDatabase.item(others[i])
 		_other_throws[i].text = "%s x%d" % [other.name, Campaign.count_of(watch.leader_key(), others[i])]
 		_other_throws[i].tooltip_text = "Aim this instead. %s" % other.description
-	# Going invisible, for whoever knows how.
+	# Going invisible, for whoever knows how - and the familiar.
 	_refresh_invisible()
+	_refresh_familiar()
 	# Listening.
 	_ears.visible = watch.hides_guards()
 	if watch.ears_left() > 0.0:
@@ -281,6 +288,16 @@ func refresh():
 	_hide.tooltip_text = refusal if refusal != "" else "Take the disguise off and slip back out of sight"
 	# The second row only while there is something on it.
 	_here.visible = _here.get_children().any(func(button): return button.visible)
+	# Seeing through the familiar's eyes: nothing the party does is theirs to do.
+	if watch.controlling_familiar():
+		_status.text = "Through the %s's eyes" % watch.familiar.form.name.to_lower()
+		_here.visible = false
+		for button in [_throw, _dash, _creep, _ears, _invisible] + _buttons + _other_throws:
+			button.disabled = true
+	else:
+		# What nothing else sets each frame, put back.
+		for button in [_throw, _creep] + _other_throws:
+			button.disabled = false
 
 
 ## The Invisibility button: there while somebody on the map knows the spell,
@@ -316,6 +333,62 @@ func _refresh_invisible():
 static func clock(seconds: float) -> String:
 	var whole := ceili(seconds)
 	return "%d:%02d" % [whole / 60, whole % 60]
+
+
+## The familiar's button: calling it, with what that costs and what is left, or
+## letting it go while it is out.
+func _refresh_familiar():
+	var spell: Dictionary = watch.familiar_spell()
+	_familiar.visible = not spell.is_empty() or watch.familiar != null
+	if not _familiar.visible:
+		return
+	if watch.familiar != null:
+		var what: String = watch.familiar.form.name.to_lower()
+		_familiar.text = Pad.hint("Let the %s go" % what, &"outside_spell")
+		_familiar.disabled = false
+		_familiar.tooltip_text = "%s switches between the %s and the party." % [Pad.key(&"swap_leader"), what]
+		return
+	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
+	var gate := skill.spell_slot_level
+	var left: int = Campaign.gates_left_outside(spell.caster)[gate]
+	_familiar.text = Pad.hint("%s (%s %d)" % [skill.name, Stats.short_gate_name(gate), left], &"outside_spell")
+	_familiar.add_theme_color_override("font_color", Stats.gate_colour(gate))
+	var refusal: String = watch.familiar_refusal()
+	_familiar.disabled = refusal != ""
+	var form: FamiliarForm = watch.familiar_form()
+	_familiar.tooltip_text = refusal if refusal != "" else "%s calls a %s and sees through its eyes while the party waits - a casting of %s, off the next fight's (%d left). It slips through gaps nobody else fits through, and guards make it out only within %s tiles; but a magic sensor feels it. %s switches between it and the party." % [
+		Campaign.display_name_of(spell.caster), form.name.to_lower(), Stats.short_gate_name(gate), left,
+		CharacterSheet._figure(form.noticed_within), Pad.key(&"swap_leader")]
+
+
+func _on_familiar_pressed():
+	if watch.familiar != null:
+		watch.dismiss_familiar()
+	else:
+		watch.summon_familiar()
+
+
+## The Outside Spell key: lets the familiar go while it is out; otherwise casts
+## the one spell the party knows, or asks which when it knows both.
+func outside_spell():
+	if watch == null or is_instance_valid(_picker) or is_instance_valid(_choice):
+		return
+	if watch.familiar != null:
+		watch.dismiss_familiar()
+		return
+	var hides: bool = not watch.invisibility_spell().is_empty()
+	var calls: bool = not watch.familiar_spell().is_empty()
+	if hides and calls:
+		if watch.spotted_by != null or (watch.scene != null and watch.scene.has_method("is_holding") and watch.scene.is_holding()):
+			return
+		_choice = OutsideSpellChoice.new()
+		_choice.watch = watch
+		_choice.bar = self
+		get_parent().add_child(_choice)
+	elif calls:
+		watch.summon_familiar()
+	else:
+		open_picker()
 
 
 ## Opens the choice of who to hide - or, with only one to choose, hides them.
@@ -466,6 +539,13 @@ func _act(event: InputEvent):
 	if watch.scene != null and watch.scene.has_method("is_holding") and watch.scene.is_holding():
 		return
 	var from_pad := not event is InputEventKey
+	# Seeing through the familiar's eyes: only letting it go is theirs to do here
+	# (switching back is the map's Swap Leader).
+	if watch.controlling_familiar():
+		if Pad.went_down(event, &"outside_spell"):
+			watch.dismiss_familiar()
+			get_viewport().set_input_as_handled()
+		return
 	var acted := true
 	if watch.is_aiming() and from_pad and Pad.went_down(event, &"throw"):
 		# A pad lets go where its pointer is: RT is the mouse's click.
@@ -488,7 +568,7 @@ func _act(event: InputEvent):
 	elif Pad.went_down(event, &"vault"):
 		watch.vault()
 	elif Pad.went_down(event, &"outside_spell"):
-		open_picker()
+		outside_spell()
 	elif Pad.went_down(event, &"ambush"):
 		watch.ambush()
 	elif Pad.went_down(event, &"take_down"):

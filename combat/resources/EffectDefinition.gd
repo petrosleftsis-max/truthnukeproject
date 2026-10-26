@@ -42,6 +42,7 @@ enum EffectType {
 	CATALYST,          ## Every lingering condition of its user's on every enemy goes off at once, then starts again (Combat "Catalyst").
 	ZONE,              ## Leaves a lasting zone on the ground the skill covers: whoever stands in it has Zone Condition (Combat "Zones").
 	DISPEL_MAGIC,      ## Ends what spells cast through gates no deeper than its own did to the one it lands on - or a zone, aimed at its ground (Combat "Dispelling").
+	FAMILIAR,          ## Outside a fight only: calls a familiar in the map's animal form, to be steered and seen through - Alithia's Find Familiar (StealthWatch "Familiar").
 }
 
 enum DispelScope {
@@ -337,6 +338,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.ZONE: ["zone_condition", "zone_for", "zone_turns", "zone_unseen"],
 	# Nothing to configure: how deep it reaches is the gate it is cast through.
 	EffectType.DISPEL_MAGIC: [],
+	EffectType.FAMILIAR: [],
 }
 
 

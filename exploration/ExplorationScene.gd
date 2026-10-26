@@ -198,6 +198,8 @@ func _hide_grid(node: Node):
 ## combat: there's no ground there.
 func _build_blocking():
 	_blocking.clear()
+	_blocking_fliers.clear()
+	_small_gaps.clear()
 	if _tile_map == null:
 		return
 	var used = _tile_map.get_used_rect()
@@ -205,8 +207,17 @@ func _build_blocking():
 		for y in range(used.position.y, used.position.y + used.size.y):
 			var tile = Vector2i(x, y)
 			var data = _tile_map.get_cell_tile_data(0, tile)
-			if data == null or 0 in data.get_custom_data("Blocks"):
+			if data == null:
 				_blocking[tile] = true
+				_blocking_fliers[tile] = true
+				continue
+			var blocks = data.get_custom_data("Blocks")
+			if 0 in blocks:
+				_blocking[tile] = true
+			if 1 in blocks:
+				_blocking_fliers[tile] = true
+			if SMALL_GAP in blocks:
+				_small_gaps[tile] = true
 
 
 ## Whether the party may stand at this world position. Outside the map counts
@@ -217,7 +228,52 @@ func is_walkable(world_position: Vector2) -> bool:
 	var tile = _tile_map.local_to_map(world_position)
 	if not _tile_map.get_used_rect().has_point(tile):
 		return false
-	return not _blocking.has(tile) and not _shut.has(tile)
+	return not _blocking.has(tile) and not _shut.has(tile) and not _small_gaps.has(tile)
+
+
+## --- Small gaps ---
+##
+## A gap only something Small or smaller fits through - a grate, a drain, a hole
+## under a fence: a tile whose Blocks carries SMALL_GAP (4) beside what it stops,
+## or one opened by set_small_gap. Nobody in the party gets through one; a
+## familiar does (Find Familiar - StealthWatch "Familiar"). A flier goes by what
+## stops fliers (Blocks 1) rather than walkers.
+
+## The value a tile's Blocks data carries to say "only Small or smaller fit
+## through": [0, 4] is a wall to everybody but the small.
+const SMALL_GAP := 4
+
+## Tiles that stop fliers - the 1s in Blocks.
+var _blocking_fliers: Dictionary = {}
+## The small gaps, as a set.
+var _small_gaps: Dictionary = {}
+
+
+## Makes `tile` a small gap, or a wall to the small again - for a map's script
+## or a test; a painted one is in the tile's Blocks.
+func set_small_gap(tile: Vector2i, gap: bool):
+	if gap:
+		_small_gaps[tile] = true
+	else:
+		_small_gaps.erase(tile)
+
+
+func is_small_gap(tile: Vector2i) -> bool:
+	return _small_gaps.has(tile)
+
+
+## Whether something of `size` getting about by `movement_class` (0 on foot, 1
+## flying) may be at this world position: a small gap if it is Small or smaller,
+## and otherwise whatever stops its movement class - and a shut door, always.
+func is_walkable_for(world_position: Vector2, size: int, movement_class: int = 0) -> bool:
+	if _tile_map == null:
+		return true
+	var tile = _tile_map.local_to_map(world_position)
+	if not _tile_map.get_used_rect().has_point(tile) or _shut.has(tile):
+		return false
+	if _small_gaps.has(tile):
+		return size <= Sizes.Size.SMALL
+	return not (_blocking_fliers if movement_class == 1 else _blocking).has(tile)
 
 
 ## Tiles shut for now - a closed door - on top of the painted walls. Not in
@@ -401,7 +457,7 @@ func _update_prompt():
 	_current_target = _nearest_interactable()
 	if game_ui == null or not game_ui.has_method("set_interaction_prompt"):
 		return
-	if _current_target == null or _blocking_interaction:
+	if _current_target == null or _blocking_interaction or (stealth != null and stealth.controlling_familiar()):
 		game_ui.set_interaction_prompt("")
 	else:
 		game_ui.set_interaction_prompt("Press %s to %s" % [Pad.key(&"interact"), _current_target.prompt.to_lower()])
@@ -414,9 +470,17 @@ func _unhandled_input(event):
 		return
 	if event.is_action_pressed(&"swap_leader"):
 		get_viewport().set_input_as_handled()
+		# With a familiar out, Tab is who the player steers: it or the party.
+		if stealth != null and stealth.familiar != null:
+			stealth.toggle_familiar_control()
+			_update_prompt()
+			return
 		swap_leader()
 		return
 	if not event.is_action_pressed(&"interact"):
+		return
+	# Seeing through the familiar's eyes, nothing within the party's reach is.
+	if stealth != null and stealth.controlling_familiar():
 		return
 	if _current_target == null or not _current_target.is_available():
 		return
