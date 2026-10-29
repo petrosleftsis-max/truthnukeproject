@@ -29,6 +29,7 @@ func run_sections():
 	await the_opening_blow()
 	await walls_and_moving()
 	await lures_cover_traps()
+	await the_familiar_stage()
 
 
 func skill(key: String) -> SkillDefinition:
@@ -500,3 +501,23 @@ func lures_cover_traps():
 		await settle(3)
 		ok(m.walker.knocked_out and not is_instance_valid(traps[0]), "  a guard walks onto it, and is down")
 	await close_map(m)
+
+
+func the_familiar_stage():
+	log_line("======== the familiar's stage ========")
+	Campaign.reset()
+	Campaign.current_map = "res://maps/stealth_stages/stealth_8.tscn"
+	var scene: ExplorationScene = load("res://scenes/exploration.tscn").instantiate()
+	get_tree().root.add_child(scene)
+	await settle(6)
+	scene.end_blocking_interaction()
+	ok(Campaign.party_order.has("alithia") and scene.stealth != null, "Alithia on a watched stage", "%s" % [Campaign.party_order])
+	var grate := Vector2i(7, 2)
+	var at: Vector2 = scene._tile_map.to_global(scene._tile_map.map_to_local(grate))
+	ok(scene.is_small_gap(grate) and not scene.is_walkable(at), "a grate: no way through for the party")
+	ok(scene.is_walkable_for(at, Sizes.Size.TINY), "  but a rat fits")
+	ok(scene.walls().size() == 1 and not scene.is_walkable(scene.walls()[0].global_position), "a cracked wall standing in the way")
+	ok(scene.familiar_refusal() == "", "the familiar can be called", scene.familiar_refusal())
+	scene.queue_free()
+	await settle()
+	log_line("")

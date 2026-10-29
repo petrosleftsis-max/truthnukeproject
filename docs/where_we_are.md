@@ -77,9 +77,10 @@ updated 2026-10-29, at commit 9da558c and after.
 
 ## Good to know
 
-- Alithia is in no stealth stage. To try the familiar with guards, put her in
-  a stage's party: the MapSetup's members, or the StealthSetup's backup. Or use
-  any story map she is on; the familiar works there now, without guards.
+- To try the familiar with guards: Stealth Stages, stage 8, The Familiar
+  (Alithia and Cyrus at level 10; grates, an arcane ward, a cracked wall).
+  It is built by `tools/build_stealth_stages.gd` (`stage_familiar`). Or use any
+  story map she is on; the familiar works there now, without guards.
 - A map that is not a stealth map names its familiar's animal in its
   MapSetup's Familiar Form.
 - The designer works on Windows. Godot is found by `tools/find_godot.sh`.

@@ -1,0 +1,153 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://maps/stealth_stages/stealth_8_terrain.tscn" id="1_ja0ac"]
+[ext_resource type="Script" path="res://exploration/EntryPoint.gd" id="2_v8pn7"]
+[ext_resource type="Script" path="res://exploration/MapSetup.gd" id="3_r6dvv"]
+[ext_resource type="Script" path="res://exploration/StealthSetup.gd" id="4_0t5hc"]
+[ext_resource type="Script" path="res://exploration/SmallGap.gd" id="5_2xemb"]
+[ext_resource type="Script" path="res://exploration/BreakableWall.gd" id="6_r3sek"]
+[ext_resource type="Script" path="res://exploration/StealthDoor.gd" id="7_6t552"]
+[ext_resource type="Script" path="res://exploration/HidingSpot.gd" id="8_4exrj"]
+[ext_resource type="Texture2D" path="res://art/terrain/first_area_tiles.png" id="9_nkhtf"]
+[ext_resource type="Script" path="res://exploration/Waypoint.gd" id="10_7wbrv"]
+[ext_resource type="Script" path="res://exploration/Guard.gd" id="11_pa7xy"]
+[ext_resource type="Script" path="res://exploration/StealthGoal.gd" id="12_1rbqv"]
+[ext_resource type="Resource" path="res://dialogue/stealth_stages.dialogue" id="13_27qee"]
+[ext_resource type="SpriteFrames" path="res://art/interactables/sparkle/sparkle_frames.tres" id="14_3jpb7"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2hbyl"]
+atlas = ExtResource("9_nkhtf")
+region = Rect2(1024, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_l8vue"]
+atlas = ExtResource("9_nkhtf")
+region = Rect2(1024, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3s1lb"]
+atlas = ExtResource("9_nkhtf")
+region = Rect2(1024, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4s4mn"]
+atlas = ExtResource("9_nkhtf")
+region = Rect2(1024, 0, 256, 256)
+
+[node name="Stage8Familiar" type="Node2D" unique_id=1993031698]
+
+[node name="Terrain" type="Node2D" parent="." unique_id=964286201 instance=ExtResource("1_ja0ac")]
+
+[node name="EntryPoint" type="Marker2D" parent="." unique_id=653659206]
+position = Vector2(640, 640)
+script = ExtResource("2_v8pn7")
+entry_name = "start"
+
+[node name="MapSetup" type="Node" parent="." unique_id=1098633687]
+script = ExtResource("3_r6dvv")
+members = Array[String](["alithia", "cyrus"])
+level = 10
+asks_for_paths = false
+empty_handed = true
+everyone_carries = Array[String](["pebble", "pebble"])
+
+[node name="StealthSetup" type="Node" parent="." unique_id=443007104]
+script = ExtResource("4_0t5hc")
+battle_terrain = ExtResource("1_ja0ac")
+fight_name = "Caught in the archive"
+guards_seen_only_in_sight = true
+
+[node name="Grate_7_2" type="Node2D" parent="." unique_id=1697955709]
+position = Vector2(1920, 640)
+script = ExtResource("5_2xemb")
+
+[node name="Grate_8_2" type="Node2D" parent="." unique_id=1596351490]
+position = Vector2(2176, 640)
+script = ExtResource("5_2xemb")
+
+[node name="Grate_22_2" type="Node2D" parent="." unique_id=952173335]
+position = Vector2(5760, 640)
+script = ExtResource("5_2xemb")
+
+[node name="CrackedWall" type="Node2D" parent="." unique_id=1978710258]
+position = Vector2(5760, 2688)
+script = ExtResource("6_r3sek")
+
+[node name="ArchiveDoor" type="Node2D" parent="." unique_id=536234997]
+position = Vector2(5760, 1664)
+script = ExtResource("7_6t552")
+prompt = "Open"
+interaction_radius = 332.8
+
+[node name="HidingSpot0" type="Node2D" parent="." unique_id=484640113]
+position = Vector2(2688, 1920)
+script = ExtResource("8_4exrj")
+look = SubResource("AtlasTexture_2hbyl")
+look_scale = 0.8
+
+[node name="HidingSpot1" type="Node2D" parent="." unique_id=1496184446]
+position = Vector2(4992, 2944)
+script = ExtResource("8_4exrj")
+look = SubResource("AtlasTexture_l8vue")
+look_scale = 0.8
+
+[node name="HidingSpot2" type="Node2D" parent="." unique_id=1898210179]
+position = Vector2(8064, 640)
+script = ExtResource("8_4exrj")
+look = SubResource("AtlasTexture_3s1lb")
+look_scale = 0.8
+
+[node name="HidingSpot3" type="Node2D" parent="." unique_id=936344686]
+position = Vector2(6272, 3456)
+script = ExtResource("8_4exrj")
+look = SubResource("AtlasTexture_4s4mn")
+look_scale = 0.8
+
+[node name="Waypoint_hall_west" type="Node2D" parent="." unique_id=253075415]
+position = Vector2(2432, 1664)
+script = ExtResource("10_7wbrv")
+point_name = "hall_west"
+
+[node name="Waypoint_hall_east" type="Node2D" parent="." unique_id=999031230]
+position = Vector2(5248, 1664)
+script = ExtResource("10_7wbrv")
+point_name = "hall_east"
+
+[node name="HallWatch" type="Node2D" parent="." unique_id=387488976]
+position = Vector2(2432, 1664)
+script = ExtResource("11_pa7xy")
+level = 10
+display_name = "Hall Watch"
+patrol = Array[String](["hall_west", "hall_east"])
+back_and_forth = true
+
+[node name="ArcaneWard" type="Node2D" parent="." unique_id=433749155]
+position = Vector2(6272, 896)
+script = ExtResource("11_pa7xy")
+combatant_key = "mimic"
+level = 10
+display_name = "Arcane Ward"
+kind = 5
+sense_tiles = 3.0
+back_and_forth = true
+can_be_taken_down = false
+
+[node name="Archivist" type="Node2D" parent="." unique_id=1498734890]
+position = Vector2(7808, 2944)
+script = ExtResource("11_pa7xy")
+combatant_key = "ranger"
+level = 10
+display_name = "Archivist"
+facing_degrees = 180.0
+back_and_forth = true
+
+[node name="Goal" type="Node2D" parent="." unique_id=1059259258]
+position = Vector2(8320, 384)
+script = ExtResource("12_1rbqv")
+completed_flag = "stage8_done"
+ghost_flag = "stage8_ghost"
+dialogue = ExtResource("13_27qee")
+dialogue_title = "s8_goal"
+ends_at_menu = true
+automatic = true
+only_once = true
+prompt = "Slip out"
+interaction_radius = 230.4
+sprite_frames = ExtResource("14_3jpb7")

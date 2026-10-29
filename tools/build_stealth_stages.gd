@@ -35,6 +35,7 @@ func _ready():
 	stage_lights_out()
 	stage_supper()
 	stage_checkpoint()
+	stage_familiar()
 	print("Stealth stages built.")
 	get_tree().quit()
 
@@ -731,3 +732,54 @@ func stage_checkpoint():
 	objective(root, "Bombs", StealthObjective.Kind.CARRY_ITEM, "Lift the quartermaster's bombs", "", "small_bomb")
 	goal(root, Vector2i(42, 8), 7, "s7_goal")
 	finish_stage(root, OUT + "stealth_7.tscn")
+
+
+## 8. The familiar: Alithia and Cyrus, and guards seen only in sight. Alithia's
+## familiar (G) slips through the grates nobody else fits through - along the
+## crawlspace over the hall and into the archive - to see who is where; the
+## archive's arcane ward feels it, or anybody invisible, if it comes too close.
+## A breakable wall from the annex is a quicker way in, for a damaging move -
+## and a loud one.
+func stage_familiar():
+	var c := Carve.new(34, 15)
+	c.room(1, 1, 6, 7)              # where they start
+	c.room(9, 1, 21, 2)             # the crawlspace, behind grates at (7-8, 2)
+	c.room(23, 1, 32, 13)           # the archive, a grate in from it at (22, 2)
+	c.room(7, 6, 7, 6)              # out of the start room
+	c.room(8, 5, 21, 7)             # the hall the watchman walks
+	c.room(14, 8, 21, 11)           # the annex off it
+	c.room(22, 6, 22, 6)            # the archive door
+	c.room(22, 10, 22, 10)          # the breakable wall's tile
+	for barrel in [[26, 4, "b"], [26, 5, "b"], [29, 9, "o"], [30, 9, "b"], [17, 10, "b"]]:
+		c.put(barrel[0], barrel[1], barrel[2])
+	for torch in [[0, 4], [33, 6], [33, 11]]:
+		c.put(torch[0], torch[1], "T")
+	var terrain = make_terrain("stealth_8", c)
+	var root = begin_stage(terrain, "Stage8Familiar")
+	entry(root, Vector2i(2, 2))
+	map_setup(root, ["alithia", "cyrus"], ["pebble", "pebble"])
+	stealth_setup(root, terrain, "Caught in the archive")
+	for tile in [Vector2i(7, 2), Vector2i(8, 2), Vector2i(22, 2)]:
+		var gap := SmallGap.new()
+		place(root, gap, "Grate_%d_%d" % [tile.x, tile.y], tile)
+	var wall := BreakableWall.new()
+	place(root, wall, "CrackedWall", Vector2i(22, 10))
+	door(root, Vector2i(22, 6), "ArchiveDoor")
+	var spots := 0
+	for tile in [Vector2i(10, 7), Vector2i(19, 11), Vector2i(31, 2), Vector2i(24, 13)]:
+		hiding_spot(root, tile, spots)
+		spots += 1
+	waypoint(root, "hall_west", Vector2i(9, 6))
+	waypoint(root, "hall_east", Vector2i(20, 6))
+	var rounds = guard(root, "HallWatch", "barbarian", Vector2i(9, 6), 0.0, ["hall_west", "hall_east"])
+	rounds.display_name = "Hall Watch"
+	rounds.pause_seconds = 1.5
+	var ward = guard(root, "ArcaneWard", "mimic", Vector2i(24, 3))
+	ward.kind = Guard.Kind.SENSOR
+	ward.display_name = "Arcane Ward"
+	ward.sense_tiles = 3.0
+	ward.can_be_taken_down = false
+	var keeper = guard(root, "Archivist", "ranger", Vector2i(30, 11), 180.0)
+	keeper.display_name = "Archivist"
+	goal(root, Vector2i(32, 1), 8, "s8_goal")
+	finish_stage(root, OUT + "stealth_8.tscn")

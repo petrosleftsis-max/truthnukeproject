@@ -1744,14 +1744,18 @@ Most of the numbers - reach, throw range, how long the ears last, how much
 each alert level adds - are constants at the top of
 `exploration/StealthWatch.gd`.
 
-**Stealth stages.** **Stealth Stages** on the title screen lists seven short
+**Stealth stages.** **Stealth Stages** on the title screen lists eight short
 maps to play on their own: 1 has the tools (throwing, hiding, pockets, a
 takedown), 2 the ward, the hound and the captain, 3 getting Enfina out, 4
 disguises and a checkpoint that asks questions, 5 a dark archive (lamps, doors,
 noisy floors, a sleeping porter and a duty roster), 6 poisons and two guards who
-meet to talk, and 7 a camp on edge to settle in disguise, with an ambush at
-the gate. In all of them, guards are seen only when Cyrus could see them, so Q
-is worth pressing.
+meet to talk, 7 a camp on edge to settle in disguise, with an ambush at the
+gate, and 8 Alithia's familiar (grates only it fits through, an arcane ward
+that feels magic, and a cracked wall a damaging move breaks; she is level 10,
+so her Hermes spells on guards work there too). In all of them, guards are
+seen only when somebody could see them, so Q is worth pressing - or a
+familiar's eyes. A **Small Gap** node placed on a wall tile makes a grate
+there, for a map whose tileset paints none.
 Reaching a stage's way out goes back to the list, which says how it went - a
 **StealthGoal** with **Ends At Menu** ticked does that. The list is
 `STEALTH_STAGES` in `ui/main_menu.gd`. From the editor,

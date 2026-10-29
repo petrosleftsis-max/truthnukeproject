@@ -9,7 +9,8 @@ const MENU := "res://demos/try_stealth_stages.tscn"
 const TALK := "res://dialogue/stealth_stages.dialogue"
 const BALLOON := "res://ui/dialogue_balloon.tscn"
 const STAGES := ["res://maps/stealth_stages/stealth_1.tscn", "res://maps/stealth_stages/stealth_2.tscn", "res://maps/stealth_stages/stealth_3.tscn", "res://maps/stealth_stages/stealth_4.tscn",
-	"res://maps/stealth_stages/stealth_5.tscn", "res://maps/stealth_stages/stealth_6.tscn", "res://maps/stealth_stages/stealth_7.tscn"]
+	"res://maps/stealth_stages/stealth_5.tscn", "res://maps/stealth_stages/stealth_6.tscn", "res://maps/stealth_stages/stealth_7.tscn",
+	"res://maps/stealth_stages/stealth_8.tscn"]
 
 var _log: FileAccess = null
 var _fail = 0
@@ -44,7 +45,7 @@ func settle(frames: int = 3):
 func run_test():
 	log_line("======== the title screen lists every stage ========")
 	var on_title: Array = MainMenu.STEALTH_STAGES.map(func(s): return s.map)
-	ok(on_title == STAGES, "all seven, in order", "%s" % [on_title])
+	ok(on_title == STAGES, "all eight, in order", "%s" % [on_title])
 	for stage in MainMenu.STEALTH_STAGES:
 		ok(ResourceLoader.exists(stage.map) and stage.name != "" and stage.description != "", "%s is there, and says what it is" % stage.name)
 	var listed: Array = load(MENU.replace(".tscn", ".gd")).stages().map(func(s): return s.map)

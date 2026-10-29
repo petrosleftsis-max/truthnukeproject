@@ -126,6 +126,11 @@ const STEALTH_STAGES := [
 		"map": "res://maps/stealth_stages/stealth_7.tscn",
 		"description": "The camp is on edge. In priest's robes, a word (E beside one) calms the guards they fool - and the view on the ground shows who they fool. Lift the quartermaster's bombs, then ambush the gate (F) or slip round by the ditch.",
 	},
+	{
+		"name": "The Familiar",
+		"map": "res://maps/stealth_stages/stealth_8.tscn",
+		"description": "Alithia's familiar (G) slips through grates nobody else fits through - scout the archive from the crawlspace, and mind the arcane ward, which feels magic through walls. Tab swaps back to the party, E sends it to her shoulder. Or break the cracked wall with a damaging move - loudly.",
+	},
 ]
 ## The panel a stage's way out comes back to - see StealthGoal.ends_at_menu.
 const STEALTH_PANEL := "stealth"

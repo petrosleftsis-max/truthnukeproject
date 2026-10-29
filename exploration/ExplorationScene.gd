@@ -186,6 +186,10 @@ func _build_map():
 	_interactables = []
 	_collect_interactables(map)
 	_collect_walls(map)
+	# Gaps placed as nodes, on a map whose tileset paints none (SmallGap).
+	if _tile_map != null:
+		for gap in map.find_children("*", "SmallGap", true, false):
+			set_small_gap(_tile_map.local_to_map(_tile_map.to_local(gap.global_position)), true)
 	# Dialogue can walk people about this map now, and anything it was walking
 	# on the last one is gone with it.
 	Actors.use_scene(self, _tile_map)
@@ -261,8 +265,8 @@ var _blocking_fliers: Dictionary = {}
 var _small_gaps: Dictionary = {}
 
 
-## Makes `tile` a small gap, or a wall to the small again - for a map's script
-## or a test; a painted one is in the tile's Blocks.
+## Makes `tile` a small gap, or a wall to the small again - for a placed
+## SmallGap, a map's script or a test; a painted one is in the tile's Blocks.
 func set_small_gap(tile: Vector2i, gap: bool):
 	if gap:
 		_small_gaps[tile] = true

@@ -53,3 +53,8 @@ Cyrus Rowe: Not the chaplain, though. A priest knows a priest.
 ~ s7_goal
 Cyrus Rowe: Through the checkpoint, and the camp none the wiser. Or at least none the calmer.
 => END
+
+~ s8_goal
+Alithia Undersen: The archive, and nobody the wiser - but the rat.
+Cyrus Rowe: The rat won't talk. Let's go.
+=> END
