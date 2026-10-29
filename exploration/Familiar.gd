@@ -31,6 +31,9 @@ const SHIMMER := Color(0.75, 0.6, 1.0, 0.35)
 var form: FamiliarForm = null
 ## Whether the player is steering it now - seeing through its eyes.
 var controlled := false
+## In co-op, the player steering it, by their own device (Coop) - -1 for
+## whoever presses, as outside co-op.
+var player := -1
 ## Held still: a conversation, a menu, a catch (ExplorationScene.is_holding).
 var holding := false
 ## Who it is riding on the shoulder of (FamiliarKeeper.perch), or null.
@@ -83,6 +86,8 @@ func _process(delta):
 		_play("idle")
 		return
 	var direction := Pad.direction(&"move_left", &"move_right", &"move_up", &"move_down")
+	if player >= 0 and Coop.on():
+		direction = Coop.direction(player, &"move_left", &"move_right", &"move_up", &"move_down")
 	if direction == Vector2.ZERO:
 		_play("idle")
 		return

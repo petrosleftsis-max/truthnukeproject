@@ -30,7 +30,9 @@ updated 2026-10-29, after the co-op commit.
   suite `coop`): Players on the title screen and the pause menu; a group
   each on a map, one camera, a leash; turns, menus and conversations go to
   whoever's they are; a player left steering nobody is offered the party to
-  share out. **Pings** (Z; in co-op a pad's Share). LAN and online are not built.
+  share out. **Pings** (Z; in co-op a pad's Share). The other player can ask
+  Alithia's player for her familiar (Tab) while it is off her shoulder.
+  LAN and online are not built.
 - **The readied "steps into an area" trigger is a great cone** (12 tiles,
   respects blocking), in fights and on maps.
 - **Breakable walls act as walls** until broken (sight for every size, cover,

@@ -351,7 +351,12 @@ group (`all_groups`, `_held_by_another`). The turn banner names whose turn
 (`Combat.player_of`). A player steering nobody of the party standing
 (`Coop.stranded`) is offered the Players panel (`ui/players_panel.gd`,
 `only_party`) to share it out again - once per change (`party_shape`,
-`share_out_offered`); the title screen and the pause menu have it too.
+`share_out_offered`); the title screen and the pause menu have it too. Alithia's
+familiar is steered by one player (`FamiliarKeeper.steerer`, `Familiar.player`;
+their group is the one rooted). Tab is `swap_for(acting)`: her player takes it
+or gives it back; the other player gives it back, or - while it is off her
+shoulder - asks her player for it (`request_control` -> `ui/familiar_request.gd`,
+theirs alone to answer). Only her player lets it go (`may_dismiss`).
 **Pings** (`Pings` autoload, `multiplayer/Pings.gd`, action `ping`: Z, and in
 co-op a pad's Share - alone, Share is still Hide UI): a ring in the player's
 colour where they point (`aim_of`), what is there named (`label_at`), a sound,

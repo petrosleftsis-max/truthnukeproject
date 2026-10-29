@@ -26,6 +26,7 @@ func run_sections():
 	await the_panel()
 	await pings()
 	await sharing_out()
+	await the_familiar_asked_for()
 	Coop.reset()
 	Campaign.controllers.clear()
 
@@ -425,5 +426,43 @@ func sharing_out():
 	ok(scene._sharing == null, "Done leaves it as it is")
 	await settle(4)
 	ok(scene._sharing == null, "  and it is not offered again for the same")
+	await close_map(m)
+	Coop.reset()
+
+
+func the_familiar_asked_for():
+	log_line("======== the familiar, asked for ========")
+	var m := await open_map()
+	for key in ["alithia", "cyrus"]:
+		if not Campaign.party_order.has(key):
+			Campaign.add_member(key)
+	Campaign.set_leader("alithia")
+	await settle(2)
+	two_players(["cyrus"])
+	await settle(3)
+	var scene: ExplorationScene = m.scene
+	var keeper: FamiliarKeeper = scene.familiar_keeper
+	var mine: ExplorationParty = scene._main_party
+	var theirs: ExplorationParty = scene.groups.get(1)
+	ok(theirs != null and scene.summon_familiar() and keeper.steerer == 0 and mine.rooted and not theirs.rooted,
+		"Alithia (Player 1's) calls it: Player 1 steers it, their group waits")
+	keeper.perch()
+	ok(keeper.perched() and not keeper.swap_for(1) and keeper.asking == null, "on her shoulder, Player 2 can't ask for it")
+	keeper.swap_for(0)
+	ok(keeper.controlling and keeper.steerer == 0 and not keeper.perched(), "Player 1's Tab: off her shoulder, theirs again")
+	ok(keeper.swap_for(1) and is_instance_valid(keeper.asking) and Coop.focus == 0, "Player 2's Tab: Player 1 is asked, and only they can answer")
+	ok(not Coop.lets_through(pad_button(0, JOY_BUTTON_A)) and Coop.lets_through(key_event(KEY_E)), "  Player 2's pad waits on the answer")
+	keeper.asking.answer(false)
+	await settle(2)
+	ok(keeper.steerer == 0 and keeper.asking == null and Coop.focus == Coop.ANYONE, "refused: Player 1 keeps it")
+	keeper.swap_for(1)
+	keeper.asking.answer(true)
+	await settle(2)
+	ok(keeper.steerer == 1 and keeper.familiar.player == 1 and theirs.rooted and not mine.rooted, "allowed: Player 2 steers it, and it is their group that waits")
+	Coop.acting = 0
+	ok(not scene.controlling_familiar() and not keeper.may_dismiss(1) and keeper.may_dismiss(0), "  Player 1 walks free; only Player 1 lets it go")
+	Coop.acting = Coop.ANYONE
+	ok(keeper.swap_for(1) and not keeper.controlling and not theirs.rooted, "Player 2's Tab again: handed back")
+	scene.dismiss_familiar()
 	await close_map(m)
 	Coop.reset()

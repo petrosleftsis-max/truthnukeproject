@@ -505,7 +505,7 @@ func _update_prompt():
 	_current_target = _nearest_interactable()
 	if game_ui == null or not game_ui.has_method("set_interaction_prompt"):
 		return
-	if not groups.is_empty() and not _blocking_interaction and not controlling_familiar():
+	if not groups.is_empty() and not _blocking_interaction:
 		game_ui.set_interaction_prompt(_coop_prompts())
 	elif _current_target == null or _blocking_interaction or controlling_familiar():
 		game_ui.set_interaction_prompt("")
@@ -535,9 +535,10 @@ func _unhandled_input(event):
 		return
 	if event.is_action_pressed(&"swap_leader"):
 		get_viewport().set_input_as_handled()
-		# With a familiar out, Tab is who the player steers: it or the party.
+		# With a familiar out, Tab is who the player steers: it or the party -
+		# in co-op, the other player's asks for it (FamiliarKeeper.swap_for).
 		if familiar_keeper != null and familiar_keeper.familiar != null:
-			familiar_keeper.toggle()
+			familiar_keeper.swap_for(Coop.acting if Coop.on() else -1)
 			_update_prompt()
 			return
 		swap_leader()
@@ -978,6 +979,9 @@ func _frame_groups() -> bool:
 	for group in all_groups():
 		if group.leader != null:
 			leaders.append(group.leader.position)
+	# A familiar steered in co-op is kept in the frame too.
+	if not groups.is_empty() and familiar_keeper != null and familiar_keeper.controlling and familiar_keeper.familiar != null:
+		leaders.append(familiar_keeper.familiar.position)
 	if leaders.size() < 2:
 		if _coop_zoom > 0.0:
 			camera.zoom = Vector2.ONE * _coop_zoom
@@ -1022,6 +1026,9 @@ func _coop_prompts() -> String:
 	for id in ids:
 		var group = groups[id]
 		if not is_instance_valid(group) or group.puppet:
+			continue
+		# Whoever is seeing through the familiar's eyes has nothing to hand.
+		if familiar_keeper != null and familiar_keeper.controlling and familiar_keeper.steerer == id:
 			continue
 		var target := _nearest_interactable(group)
 		if target == null:
@@ -1428,7 +1435,8 @@ const WALL_NOISE_TILES := 8.0
 func outside_spell():
 	if is_instance_valid(spell_choice) or is_holding():
 		return
-	if familiar_keeper != null and familiar_keeper.familiar != null:
+	# Only the caster's player lets it go, in co-op; the other casts their own.
+	if familiar_keeper != null and familiar_keeper.familiar != null and familiar_keeper.may_dismiss(Coop.acting):
 		dismiss_familiar()
 		return
 	var ready := OutsideMoves.ready_spells(self)

@@ -10,6 +10,13 @@ class_name FamiliarKeeper
 ## it sends it back to its caster's shoulder, where it rides along until sent
 ## off again; Outside Spell (G) lets it go. The first casting after a long rest
 ## is free (Campaign.free_familiar_used - the designer, 2026-10-29).
+##
+## In co-op it is steered by one player (`steerer`), with their own device, and
+## it is their group that stands rooted meanwhile. Its caster's player takes it
+## with Tab as ever; the other player's Tab, while it is off the caster's
+## shoulder, asks the caster's player for it (request_control,
+## ui/familiar_request.gd - the designer, 2026-10-29), and Tab again hands it
+## back. Only the caster's player lets it go.
 
 ## The animal for a map that names none.
 const DEFAULT_FORM := "res://data/familiars/rat.tres"
@@ -19,10 +26,16 @@ var scene: Node = null
 var familiar: Familiar = null
 ## Whether the player is steering it now, rather than the party.
 var controlling := false
+## In co-op, which player steers it (Coop), or -1.
+var steerer := -1
+## The question put to the caster's player, while it is up.
+var asking: Control = null
 ## Who called it.
 var caster := ""
-## Whether it was the familiar that rooted the party, to be let go with it.
+## Whether it was the familiar that rooted the party, to be let go with it -
+## and which group (in co-op, its steerer's).
 var _rooted_by_it := false
+var _rooted_group: Node = null
 var _layer: CanvasLayer = null
 var _eyes: Control = null
 
@@ -77,31 +90,118 @@ func summon(by: String, form: FamiliarForm) -> Familiar:
 	familiar.setup(form, at, Callable(scene, "is_walkable_for"))
 	familiar.moved.connect(_on_moved)
 	caster = by
-	take_control(true)
+	take_control(true, caster_player())
 	return familiar
 
 
 ## Hands the player's control to the familiar (`to_it`) or back to the party -
-## the camera with it, and the party rooted while it is not theirs.
-func take_control(to_it: bool):
+## the camera with it, and the party rooted while it is not theirs. In co-op,
+## `by` is the player who steers it (their group is the one rooted).
+func take_control(to_it: bool, by: int = -1):
 	if familiar == null:
 		to_it = false
+	if _rooted_by_it and _rooted_group != null and is_instance_valid(_rooted_group):
+		_rooted_group.rooted = false
+	_rooted_by_it = false
+	_rooted_group = null
 	controlling = to_it
+	steerer = by if to_it and Coop.on() else -1
 	if familiar != null:
 		familiar.controlled = to_it
+		familiar.player = steerer
 		if to_it:
 			familiar.perched_on = null
-	var party = scene.get("party") if scene != null else null
-	if party != null and is_instance_valid(party):
-		if to_it and not party.rooted:
-			party.rooted = true
-			_rooted_by_it = true
-		elif not to_it and _rooted_by_it:
-			party.rooted = false
-			_rooted_by_it = false
-		if scene.has_method("_follow_camera"):
-			scene._follow_camera(familiar.global_position if to_it else party.position_of_leader())
+	var party = _group_of(steerer) if to_it else null
+	if party != null and is_instance_valid(party) and not party.rooted:
+		party.rooted = true
+		_rooted_by_it = true
+		_rooted_group = party
+	var leading = scene.get("party") if scene != null else null
+	if scene != null and scene.has_method("_follow_camera") and leading != null and is_instance_valid(leading):
+		scene._follow_camera(familiar.global_position if to_it else leading.position_of_leader())
 	_show_eyes(to_it)
+
+
+## The co-op player who steers the familiar's caster (Coop.controller_of).
+func caster_player() -> int:
+	return Coop.controller_of(caster) if Coop.on() else -1
+
+
+## The group `player` walks - the party, outside co-op.
+func _group_of(player: int) -> Node:
+	if scene == null:
+		return null
+	var groups = scene.get("groups")
+	if player >= 0 and groups is Dictionary and groups.has(player):
+		return groups[player]
+	return scene.get("_main_party") if scene.get("_main_party") != null else scene.get("party")
+
+
+## Tab, for `player` (Coop.acting, or whoever outside co-op): the caster's
+## player takes it or gives it back as ever; the other player gives it back if
+## they steer it, or else asks the caster's player for it - while it is not on
+## the caster's shoulder. True when something was done (asked included).
+func swap_for(player: int) -> bool:
+	if familiar == null:
+		return false
+	if not Coop.on() or player < 0:
+		return toggle()
+	if controlling and steerer == player:
+		take_control(false)
+		return true
+	if player == caster_player():
+		take_control(true, player)
+		return true
+	return request_control(player)
+
+
+## The other player asks the caster's player for the familiar (the designer,
+## 2026-10-29) - not while it rides on its caster's shoulder. True when asked.
+func request_control(player: int) -> bool:
+	if familiar == null or is_instance_valid(asking):
+		return false
+	if perched():
+		_say("The %s is on [color=yellow]%s[/color]'s shoulder - nobody else can take it from there.\n" % [
+			familiar.form.name.to_lower(), Campaign.display_name_of(caster)])
+		return false
+	var asked := caster_player()
+	if asked == player:
+		take_control(true, player)
+		return true
+	asking = FamiliarRequest.new()
+	asking.keeper = self
+	asking.asker = player
+	asking.asked = asked
+	asking.answered.connect(_on_answered.bind(player))
+	var layer := CanvasLayer.new()
+	layer.name = "FamiliarRequest"
+	layer.layer = 60
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	scene.add_child(layer)
+	layer.add_child(asking)
+	asking.tree_exited.connect(layer.queue_free)
+	return true
+
+
+func _on_answered(yes: bool, player: int):
+	asking = null
+	if familiar == null:
+		return
+	if yes:
+		take_control(true, player)
+		_say("[color=yellow]%s[/color] hands the %s to %s.\n" % [Coop.name_of(caster_player()), familiar.form.name.to_lower(), Coop.name_of(player)])
+	else:
+		_say("[color=yellow]%s[/color] keeps the %s.\n" % [Coop.name_of(caster_player()), familiar.form.name.to_lower()])
+
+
+## Whether `player` may let it go: its caster's, in co-op.
+func may_dismiss(player: int) -> bool:
+	return not Coop.on() or player < 0 or player == caster_player()
+
+
+func _say(line: String):
+	if scene != null and scene.has_method("log_message"):
+		scene.log_message(line)
 
 
 ## Swaps who the player steers, while there is a familiar. False with none.
@@ -146,17 +246,23 @@ func dismiss(line: String = ""):
 		scene.log_message(line if line != "" else "[color=yellow]%s[/color] lets the %s go.\n" % [Campaign.display_name_of(caster), what])
 
 
-## Whether the player is steering the familiar now.
+## Whether the player is steering the familiar now - in co-op, the player whose
+## press this is (Coop.acting), or anybody when nobody is pressing.
 func controlling_it() -> bool:
-	return familiar != null and controlling
+	if familiar == null or not controlling:
+		return false
+	if not Coop.on() or steerer < 0:
+		return true
+	return Coop.acting == Coop.ANYONE or Coop.acting == steerer
 
 
 ## Kept rooted while it is steered - something else may have let the party go.
 func keep_party_rooted():
-	var party = scene.get("party") if scene != null else null
+	var party = _group_of(steerer)
 	if controlling and party != null and not party.rooted:
 		party.rooted = true
 		_rooted_by_it = true
+		_rooted_group = party
 
 
 func _on_moved(at: Vector2):
@@ -168,10 +274,10 @@ func _exit_tree():
 	if familiar != null and is_instance_valid(familiar):
 		familiar.queue_free()
 	familiar = null
-	var party = scene.get("party") if scene != null else null
-	if party != null and is_instance_valid(party) and _rooted_by_it:
-		party.rooted = false
-		_rooted_by_it = false
+	if _rooted_group != null and is_instance_valid(_rooted_group) and _rooted_by_it:
+		_rooted_group.rooted = false
+	_rooted_by_it = false
+	_rooted_group = null
 
 
 ## The frame round the screen while seeing through its eyes, and the line

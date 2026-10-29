@@ -378,7 +378,9 @@ func _on_familiar_pressed():
 func outside_spell():
 	if watch == null or is_instance_valid(_picker) or is_instance_valid(_choice):
 		return
-	if watch.familiar != null:
+	# Only the caster's player lets it go, in co-op; the other casts their own.
+	var keeper = watch.scene.get("familiar_keeper") if watch.scene != null else null
+	if watch.familiar != null and (keeper == null or keeper.may_dismiss(Coop.acting)):
 		watch.dismiss_familiar()
 		return
 	var hides: bool = not watch.invisibility_spell().is_empty()
