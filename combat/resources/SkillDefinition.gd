@@ -401,8 +401,9 @@ enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
 ## a fight: a heal mends, a revive brings back, a boost to walking quickens,
 ## Invisibility and Find Familiar as ever, and anything that deals damage springs
 ## an ambush with it as the opening blow - or breaks a breakable wall. Anything
-## else does nothing out there unless it is set here. Stored by number: append.
-@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap")
+## else does nothing out there unless it is set here. Counter Trap answers a
+## magical trap as it goes off (MagicTrap - InstaHack). Stored by number: append.
+@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap")
 var outside_use: int = 0
 
 @export_group("Tether")

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="BattleObjectDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://combat/resources/BattleObjectDefinition.gd" id="1_wall"]
+[ext_resource type="Texture2D" path="res://art/terrain/first_area_tiles.png" id="2_tiles"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wall"]
+atlas = ExtResource("2_tiles")
+region = Rect2(0, 512, 256, 256)
+
+[resource]
+script = ExtResource("1_wall")
+interactable = false
+breakable = true
+wall = true
+name = "Cracked Wall"
+glossary_text = "A wall with a crack through it. A spell or a bomb brings it down - or Enfina's strength - and nothing else does."
+max_hp = 30
+max_hp_level_20 = 30
+movement = 0
+icon = SubResource("AtlasTexture_wall")
+map_sprite = SubResource("AtlasTexture_wall")

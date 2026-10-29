@@ -142,12 +142,14 @@ func entry(root: Node, tile: Vector2i):
 	place(root, point, "EntryPoint", tile)
 
 
-func map_setup(root: Node, members: Array[String], carries: Array[String] = []):
+func map_setup(root: Node, members: Array[String], carries: Array[String] = [], level: int = 10, also: Dictionary = {}):
 	var setup := Node.new()
 	setup.name = "MapSetup"
 	setup.set_script(load("res://exploration/MapSetup.gd"))
 	setup.set("members", members)
-	setup.set("level", 10)
+	setup.set("level", level)
+	if not also.is_empty():
+		setup.set("also_carries", also)
 	setup.set("asks_for_paths", false)
 	setup.set("empty_handed", true)
 	if not carries.is_empty():
@@ -734,12 +736,14 @@ func stage_checkpoint():
 	finish_stage(root, OUT + "stealth_7.tscn")
 
 
-## 8. The familiar: Alithia and Cyrus, and guards seen only in sight. Alithia's
-## familiar (G) slips through the grates nobody else fits through - along the
-## crawlspace over the hall and into the archive - to see who is where; the
-## archive's arcane ward feels it, or anybody invisible, if it comes too close.
-## A breakable wall from the annex is a quicker way in, for a damaging move -
-## and a loud one.
+## 8. The familiar: Alithia, Cyrus and Prometheus at 14, and guards seen only
+## in sight. Alithia's familiar (G) slips through the grates nobody else fits
+## through - along the crawlspace over the hall and into the archive - to see
+## who is where; the archive's arcane ward feels it, or anybody invisible, if it
+## comes too close. A breakable wall from the annex is a quicker way in, for a
+## spell, a bomb or Enfina - and a loud one. A magical trap guards the archive
+## door: Prometheus, once he has learned InstaHack from the book he carries,
+## can hack its laser apart as it goes off.
 func stage_familiar():
 	var c := Carve.new(34, 15)
 	c.room(1, 1, 6, 7)              # where they start
@@ -757,8 +761,11 @@ func stage_familiar():
 	var terrain = make_terrain("stealth_8", c)
 	var root = begin_stage(terrain, "Stage8Familiar")
 	entry(root, Vector2i(2, 2))
-	map_setup(root, ["alithia", "cyrus"], ["pebble", "pebble"])
+	map_setup(root, ["alithia", "cyrus", "prometheus"], ["pebble", "pebble"], 14,
+		{"prometheus": ["instahack_spellbook"], "cyrus": ["tiny_bomb"]})
 	stealth_setup(root, terrain, "Caught in the archive")
+	var trap := MagicTrap.new()
+	place(root, trap, "DoorGlyph", Vector2i(21, 6))
 	for tile in [Vector2i(7, 2), Vector2i(8, 2), Vector2i(22, 2)]:
 		var gap := SmallGap.new()
 		place(root, gap, "Grate_%d_%d" % [tile.x, tile.y], tile)

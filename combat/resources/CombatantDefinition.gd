@@ -270,6 +270,10 @@ class_name CombatantDefinition
 ## any other way - gets its page written (Campaign "The enemy codex"). Enfina
 ## and Prometheus do.
 @export var keeps_codex: bool = false
+## Whether any damaging move of theirs knocks down a breakable wall
+## (BreakableWall), on a map or in a fight. Anybody's damaging spell or item
+## does; only the strong break one with a blade or a fist. Enfina does.
+@export var breaks_walls: bool = false
 ## What they say when the party changes a turn they foresaw (Intuition) - one
 ## of these, at random, over their head and in the log. Empty says nothing.
 @export var future_changed_lines: Array[String] = []

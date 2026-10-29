@@ -1618,8 +1618,8 @@ only shows when there is something to do with it:
   **Automatic** reads it off what it does in a fight:
   - a **heal** mends whoever is worst hurt (an area heal, everybody hurt);
     **Resuscitate** brings back somebody fallen (weaker until a long rest);
-  - **Run** and **Quicken** hurry the party along (half as fast again, for 20
-    seconds; Quicken's for its **Outside Seconds**: 60);
+  - **Quicken** hurries the party along (half as fast again, for its **Outside
+    Seconds**: 60); **Run** is for fights only;
   - **Flash** strikes a guard blind (12 s), **Dread Visage** and **Intimidate**
     scare him off (15 s), **Bewilder** sets him wandering (20 s) - seeing
     nothing; **Study** and **Intuition** learn a guard's round; **Dispel Magic**
@@ -1627,15 +1627,22 @@ only shows when there is something to do with it:
     guard the pointer is on, or the nearest in its reach;
   - anything that **deals damage** springs an ambush on an unaware guard in its
     reach, the move landing first - free, before anybody's first turn - or, with
-    nobody to spring on, knocks down a **BreakableWall** in reach (place one on a
-    floor tile; it stays down, and it is loud);
+    nobody to spring on, knocks down a **BreakableWall** in reach - but only a
+    **spell**, an **item** (the panel's **Items** tab: bombs) or **Enfina**
+    (**Breaks Walls** on her character) does that. Place one on a floor tile; it
+    stays down, and it is loud. In a fight it is a **Cracked Wall** (an object:
+    data/objects/breakable_wall.tres - put one in any encounter) that only the
+    same break, and one broken in a fight stays broken on the map;
+  - a **MagicTrap** on the floor fires a laser at whoever steps on it (30% of
+    their health, the alert up a level). Somebody who knows **InstaHack** gets a
+    quick time event as it goes off; in time, the casting is hacked apart for
+    its gate. That is the only thing InstaHack does out of a fight;
   - **Hermes Step**, **Mist Step** and **Cover Leap** step the party ahead over
     anything; **Hover** and **Climb** fly it over barrels and carts (20 s);
     **Phantom Body**, **Mass Mirage**, **Reality's Reflection** and **Kindled
     Hound** leave a lure ahead that guards come to look at; **Illusory Cover**
     and **Stealth** make cover where the leader stands (60 s); **Snare** and
-    **Tripwire** lay a trap there that drops the first guard to walk onto it;
-  - a move with no gate waits 30 seconds before it can be used again out here. A spell is paid through a real
+    **Tripwire** lay a trap there that drops the first guard to walk onto it. A spell is paid through a real
   casting - off the next fight's gates, through its own gate or a deeper one;
   one the designer ticked **Out Of Combat** goes through the Gates of Iris first.
   **Out of combat only** on the Spells tab shows just those (and Invisibility and

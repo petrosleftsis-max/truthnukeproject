@@ -30,6 +30,8 @@ func run_sections():
 	await walls_and_moving()
 	await lures_cover_traps()
 	await the_familiar_stage()
+	await magic_traps()
+	await walls_in_a_fight()
 
 
 func skill(key: String) -> SkillDefinition:
@@ -70,12 +72,12 @@ func the_uses():
 	log_line("======== what each does out there ========")
 	var wanted := {
 		"heal": OutsideMoves.Use.MEND, "light_heal": OutsideMoves.Use.MEND, "communion": OutsideMoves.Use.MEND,
-		"resuscitate": OutsideMoves.Use.REVIVE, "run": OutsideMoves.Use.SPEED, "quicken": OutsideMoves.Use.SPEED,
+		"resuscitate": OutsideMoves.Use.REVIVE, "run": OutsideMoves.Use.NONE, "quicken": OutsideMoves.Use.SPEED,
 		"find_familiar": OutsideMoves.Use.FAMILIAR, "invisibility": OutsideMoves.Use.INVISIBILITY,
 		"votive_flame": OutsideMoves.Use.AMBUSH, "light_swing": OutsideMoves.Use.AMBUSH, "guard": OutsideMoves.Use.NONE,
 		"growth": OutsideMoves.Use.NONE, "flash": OutsideMoves.Use.BLIND, "dread_visage": OutsideMoves.Use.SCARE,
 		"intimidate": OutsideMoves.Use.SCARE, "bewilder": OutsideMoves.Use.CONFUSE, "study": OutsideMoves.Use.READ,
-		"intuition": OutsideMoves.Use.READ, "dispel_magic": OutsideMoves.Use.SWITCH_OFF_MAGIC, "instahack": OutsideMoves.Use.SWITCH_OFF_MAGIC,
+		"intuition": OutsideMoves.Use.READ, "dispel_magic": OutsideMoves.Use.SWITCH_OFF_MAGIC, "instahack": OutsideMoves.Use.COUNTER_TRAP,
 		"hermes_step": OutsideMoves.Use.BLINK, "mist_step": OutsideMoves.Use.BLINK, "cover_leap": OutsideMoves.Use.BLINK,
 		"hover": OutsideMoves.Use.FLY, "climb": OutsideMoves.Use.FLY, "phantom_body": OutsideMoves.Use.LURE,
 		"kindled_hound": OutsideMoves.Use.LURE, "illusory_cover": OutsideMoves.Use.HIDING_SPOT, "stealth": OutsideMoves.Use.HIDING_SPOT,
@@ -144,6 +146,7 @@ func on_a_plain_map():
 	ok(not scene.game_ui.get_node("Actions/ActionsPanel").visible, "  the fight's grid out of the way")
 	panel.show_spells(false)
 	ok(panel.button_for("run") != null and panel.button_for("votive_flame") != null, "her skills on it, Run and Votive Flame")
+	ok(panel.button_for("run").disabled, "  Run greyed: no sprinting out of a fight")
 	ok(panel.button_for("votive_flame").disabled and OutsideMoves.refusal(scene, "alithia", "votive_flame") == "No wall in reach to break",
 		"  a damaging one greyed with no wall about to break", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
 	panel.show_spells(true)
@@ -222,17 +225,16 @@ func bringing_back_and_hurrying():
 	ok(Campaign.gates_left_outside("alithia")[3] == pandora - 1, "  for a Pandora casting")
 	ok(OutsideMoves.refusal(scene, "alithia", "resuscitate") == "Nobody has fallen", "  then nobody has fallen")
 	var walking: float = scene.party.move_speed
-	ok(OutsideMoves.use(scene, "alithia", "run"), "Run, out here")
-	ok(scene.hurried() and is_equal_approx(scene.party.hurry, OutsideMoves.HURRY), "  the party hurries, %.1f times as fast" % OutsideMoves.HURRY)
-	ok(is_equal_approx(scene.hurry_left(), OutsideMoves.HURRY_SECONDS), "  for %d seconds" % OutsideMoves.HURRY_SECONDS)
-	ok(OutsideMoves.refusal(scene, "alithia", "run") == "Already hurrying", "  not twice at once")
-	scene._hurry_on(OutsideMoves.HURRY_SECONDS + 1.0)
-	ok(not scene.hurried() and is_equal_approx(scene.party.hurry, 1.0) and is_equal_approx(scene.party.move_speed, walking), "  then it wears off")
+	ok(OutsideMoves.refusal(scene, "alithia", "run") == "Only in a fight", "Run: only in a fight - no sprinting out here")
 	Campaign.add_member("prometheus")
 	Campaign.set_leader("prometheus")
 	await settle(3)
 	ok(OutsideMoves.use(scene, "prometheus", "quicken") and is_equal_approx(scene.hurry_left(), skill("quicken").outside_seconds),
 		"Quicken: for its Outside Seconds (%d), through a World casting" % skill("quicken").outside_seconds)
+	ok(scene.hurried() and is_equal_approx(scene.party.hurry, OutsideMoves.HURRY), "  the party hurries, %.1f times as fast" % OutsideMoves.HURRY)
+	ok(OutsideMoves.refusal(scene, "prometheus", "quicken") == "Already hurrying", "  not twice at once")
+	scene._hurry_on(skill("quicken").outside_seconds + 1.0)
+	ok(not scene.hurried() and is_equal_approx(scene.party.hurry, 1.0) and is_equal_approx(scene.party.move_speed, walking), "  then it wears off")
 	ok(m.scene.moves_panel.who() == "prometheus", "the panel follows the lead")
 	await close_map(m)
 
@@ -405,8 +407,8 @@ func on_guards():
 		"Dispel Magic: the magic sensor stilled", OutsideMoves.refusal(scene, "prometheus", "dispel_magic"))
 	ok(OutsideMoves.use(scene, "enfina", "intimidate") and guard.mood == Guard.Mood.FRIGHTENED, "Intimidate, with no gate to pay: he runs",
 		OutsideMoves.refusal(scene, "enfina", "intimidate"))
-	ok(OutsideMoves.refusal(scene, "enfina", "intimidate").begins_with("Ready again in 30"), "  and it waits half a minute before it can be used again",
-		OutsideMoves.refusal(scene, "enfina", "intimidate"))
+	guard.end_errand()
+	ok(OutsideMoves.use(scene, "enfina", "intimidate"), "  and again at once: no waiting", OutsideMoves.refusal(scene, "enfina", "intimidate"))
 	guard.end_errand()
 	await settle()
 	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "", "Votive Flame at an unaware watchman", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
@@ -459,15 +461,25 @@ func walls_and_moving():
 	await settle(3)
 	var scene: ExplorationScene = m.scene
 	var from := tile_at(m, m.party.position_of_leader())
-	var spot := find_tile(m, func(tile): return manhattan(tile, from) >= 2 and manhattan(tile, from) <= 3 and standable(m, tile))
+	var spot := find_tile(m, func(tile): return manhattan(tile, from) == 1 and standable(m, tile))
 	var wall := BreakableWall.new()
 	wall.name = "TestWall"
 	m.map.add_child(wall)
 	wall.global_position = at(m, spot)
 	scene._collect_walls(m.map)
 	ok(not scene.is_walkable(at(m, spot)), "a breakable wall: nobody walks through it")
-	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "", "  a damaging move in reach of it", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
-	ok(OutsideMoves.use(scene, "alithia", "votive_flame") and wall.broken and scene.is_walkable(at(m, spot)), "  Votive Flame brings it down")
+	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "Only a spell, an item or Enfina's strength knocks a wall down",
+		"  not Votive Flame, a skill of hers", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
+	ok(OutsideMoves.refusal(scene, "alithia", "holy_lance") == "", "  but Holy Lance, a spell", OutsideMoves.refusal(scene, "alithia", "holy_lance"))
+	ok(OutsideMoves.refusal(scene, "cyrus", "rapier") == "Only a spell, an item or Enfina's strength knocks a wall down",
+		"  not Cyrus's rapier", OutsideMoves.refusal(scene, "cyrus", "rapier"))
+	ok(OutsideMoves.refusal(scene, "enfina", "greatsword_attack") == "", "  but Enfina's greatsword", OutsideMoves.refusal(scene, "enfina", "greatsword_attack"))
+	Campaign.give_item("alithia", "tiny_bomb")
+	m.scene.moves_panel.show_tab(OutsideMovesPanel.Tab.ITEMS)
+	ok(m.scene.moves_panel.button_for("tiny_bomb") != null, "  a bomb she carries, on the panel's Items")
+	ok(OutsideMoves.refusal(scene, "alithia", "tiny_bomb") == "", "  which could do it too", OutsideMoves.refusal(scene, "alithia", "tiny_bomb"))
+	m.scene.moves_panel.show_tab(OutsideMovesPanel.Tab.SKILLS)
+	ok(OutsideMoves.use(scene, "alithia", "holy_lance") and wall.broken and scene.is_walkable(at(m, spot)), "  Holy Lance brings it down")
 	ok(Campaign.flag(wall.flag_for(scene.map_path())), "  for good: kept in the flags")
 	var before: Vector2 = m.party.position_of_leader()
 	ok(OutsideMoves.use(scene, "prometheus", "hermes_step") and m.party.position_of_leader().distance_to(before) >= Grid.tiles(1.0),
@@ -519,5 +531,117 @@ func the_familiar_stage():
 	ok(scene.walls().size() == 1 and not scene.is_walkable(scene.walls()[0].global_position), "a cracked wall standing in the way")
 	ok(scene.familiar_refusal() == "", "the familiar can be called", scene.familiar_refusal())
 	scene.queue_free()
+	await settle()
+	log_line("")
+
+
+func magic_traps():
+	log_line("======== magical traps and InstaHack ========")
+	var m := await plain_map(14)
+	Campaign.add_member("prometheus")
+	Campaign.learned_spells["prometheus"] = ["instahack"]
+	await settle(3)
+	var scene: ExplorationScene = m.scene
+	ok(OutsideMoves.refusal(scene, "prometheus", "instahack") == "Only as a magical trap goes off", "InstaHack on the panel: only as a trap goes off")
+	var from := tile_at(m, m.party.position_of_leader())
+	var spots := []
+	var first := find_tile(m, func(tile): return manhattan(tile, from) == 3 and standable(m, tile))
+	if first != NOWHERE:
+		spots.append(first)
+		var second := find_tile(m, func(tile): return manhattan(tile, from) == 3 and manhattan(tile, first) >= 3 and standable(m, tile))
+		if second != NOWHERE:
+			spots.append(second)
+	ok(spots.size() >= 2, "(two floor tiles for traps)")
+	if spots.size() < 2:
+		await close_map(m)
+		return
+	var traps := []
+	for i in 2:
+		var trap := MagicTrap.new()
+		trap.name = "Glyph%d" % i
+		m.map.add_child(trap)
+		trap.global_position = at(m, spots[i])
+		traps.append(trap)
+	scene._traps = traps
+	var pandora: int = Campaign.gates_left_outside("prometheus")[3]
+	var hp: int = Campaign.party_members()[0].hp
+	QuickTime.answer = 1
+	m.party.teleport(at(m, spots[0]))
+	await until(func(): return not traps[0].armed and scene.springing == null, 3.0)
+	ok(not traps[0].armed and Campaign.gates_left_outside("prometheus")[3] == pandora - 1, "stepped on: InstaHack in time - hacked apart, for a Pandora casting")
+	ok(Campaign.party_members()[0].hp == hp, "  and nobody hurt")
+	QuickTime.answer = 0
+	m.party.teleport(at(m, spots[1]))
+	await until(func(): return not traps[1].armed and scene.springing == null, 3.0)
+	var leader: String = Campaign.party_members()[0].key
+	ok(not traps[1].armed and Campaign.party_state.get(leader, {}).get("hp", hp) < hp, "too late: the laser hits")
+	ok(Campaign.flag(traps[1].flag_for(scene.map_path())), "  and the glyph is spent for good")
+	QuickTime.answer = -1
+	await close_map(m)
+
+
+func walls_in_a_fight():
+	log_line("======== walls in a fight ========")
+	var m := await open_map()
+	var from := tile_at(m, m.party.position_of_leader())
+	var spot := find_tile(m, func(tile): return manhattan(tile, from) >= 2 and manhattan(tile, from) <= 3 and standable(m, tile))
+	var wall := BreakableWall.new()
+	wall.name = "FightWall"
+	m.map.add_child(wall)
+	wall.global_position = at(m, spot)
+	m.scene._collect_walls(m.map)
+	var watch: StealthWatch = await watch_it(m, from)
+	var fight := watch.build_fight()
+	var standing := fight.spawns.filter(func(spawn): return spawn.combatant_key == "breakable_wall")
+	ok(standing.size() == 1 and standing[0].position == spot and standing[0].has_meta("wall_flag"), "a stealth fight brings the wall along")
+	await close_map(m)
+	Campaign.reset()
+	Campaign.set_party(["alithia", "enfina", "cyrus"], 8)
+	var encounter: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
+	encounter.fighters.assign(["alithia", "enfina", "cyrus"])
+	encounter.skip_deployment = true
+	var replaced: SpawnDefinition = null
+	for each in encounter.spawns:
+		if each.side == 1 and replaced == null:
+			replaced = each
+	var stone := SpawnDefinition.new()
+	stone.combatant_key = "breakable_wall"
+	stone.side = 1
+	stone.position = replaced.position
+	stone.set_meta("wall_flag", "broken:test_wall")
+	var spawns: Array[SpawnDefinition] = []
+	for each in encounter.spawns:
+		spawns.append(stone if each == replaced else each)
+	encounter.spawns = spawns
+	Campaign.current_encounter = encounter
+	var game = load("res://scenes/game.tscn").instantiate()
+	get_tree().root.add_child(game)
+	await settle(8)
+	var combat: Combat = game.get_node("VisualCombat")
+	var thing: Dictionary = {}
+	var by := {}
+	for comb in combat.combatants:
+		if comb.has("object") and comb.object.wall:
+			thing = comb
+		by[comb.get("combatant_key", "")] = comb
+	ok(not thing.is_empty() and thing.get("wall_flag", "") == "broken:test_wall", "a cracked wall on the field")
+	if thing.is_empty():
+		game.queue_free()
+		await settle()
+		return
+	var full: int = thing.hp
+	var rapier: SkillDefinition = skill("rapier")
+	combat.do_damage(by.cyrus, thing, rapier.all_effects()[0], rapier)
+	ok(thing.hp == full, "Cyrus's rapier: it holds")
+	var swing: SkillDefinition = skill("greatsword_attack")
+	combat.do_damage(by.enfina, thing, swing.all_effects()[0], swing)
+	ok(thing.hp < full, "Enfina's greatsword: it cracks", "%d -> %d" % [full, thing.hp])
+	var lance: SkillDefinition = skill("holy_lance")
+	for i in 8:
+		if thing.alive:
+			combat.do_damage(by.alithia, thing, lance.all_effects()[0], lance)
+	await settle(3)
+	ok(not thing.alive and Campaign.flag("broken:test_wall"), "a spell brings it down, and the map will know")
+	game.queue_free()
 	await settle()
 	log_line("")

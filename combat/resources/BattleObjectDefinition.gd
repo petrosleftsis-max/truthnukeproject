@@ -23,6 +23,10 @@ class_name BattleObjectDefinition
 @export_range(0, 10, 1) var uses: int = 1
 ## Hits hurt it, and it is set off when it breaks. Otherwise they do nothing.
 @export var breakable: bool = false
+## A breakable wall (BreakableWall, data/objects/breakable_wall.tres): only a
+## spell, an item, or a move of somebody who Breaks Walls (Enfina) hurts it
+## (Combat.breaks_wall). Broken in a fight on a map, it stays down there.
+@export var wall: bool = false
 ## Using it turns it into this instead of setting it off - a carcass that a
 ## Use taints. Empty: Using it sets it off, as above.
 @export var used_becomes: BattleObjectDefinition

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="QuickTimeDefinition" format=3]
+
+[ext_resource type="Script" path="res://quicktime/QuickTimeDefinition.gd" id="1_qt"]
+
+[resource]
+script = ExtResource("1_qt")
+kind = 1
+prompt = "Hack the casting!"
+time = 2.0
+count = 3

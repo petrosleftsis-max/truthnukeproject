@@ -1,7 +1,8 @@
 extends PanelContainer
 class_name OutsideMovesPanel
 ## The leader's moves on a map, in the action bar's place (OutsideMoves; the
-## designer, 2026-10-26): Skills and Spells, the castings left through each gate
+## designer, 2026-10-26): Skills, Spells and the damaging Items they carry (to
+## spring an ambush with, or knock a wall down), the castings left through each gate
 ## and the Gates of Iris, and how loud each move is - said only out here. Clicking
 ## one uses it; one that does nothing outside a fight, or nothing now, is greyed
 ## and its tooltip says why. Out Of Combat Only narrows the spells to those marked
@@ -24,17 +25,25 @@ const NOISE_MARKS := {
 	SkillDefinition.Loudness.LOUD: ["L", Color("e05a4a")],
 }
 
+## The tabs.
+enum Tab { SKILLS, SPELLS, ITEMS }
+
 ## Kept for the viewer while the game runs, map to map.
 static var remembered_only := false
-static var remembered_spells := false
+static var remembered_tab := Tab.SKILLS
 
 ## The map (ExplorationScene).
 var scene: Node = null
-var showing_spells := false
+var tab := Tab.SKILLS
 var out_of_combat_only := false
+## Whether the Spells tab is on show.
+var showing_spells: bool:
+	get:
+		return tab == Tab.SPELLS
 
 var _skills_tab: Button = null
 var _spells_tab: Button = null
+var _items_tab: Button = null
 var _only: CheckBox = null
 var _gates: HBoxContainer = null
 var _grid: GridContainer = null
@@ -45,7 +54,7 @@ var _built_for := ""
 
 
 func _ready():
-	showing_spells = remembered_spells
+	tab = remembered_tab
 	out_of_combat_only = remembered_only
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var column := VBoxContainer.new()
@@ -54,10 +63,12 @@ func _ready():
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 6)
 	column.add_child(top)
-	_skills_tab = _tab("Skills", false)
+	_skills_tab = _tab("Skills", Tab.SKILLS)
 	top.add_child(_skills_tab)
-	_spells_tab = _tab("Spells", true)
+	_spells_tab = _tab("Spells", Tab.SPELLS)
 	top.add_child(_spells_tab)
+	_items_tab = _tab("Items", Tab.ITEMS)
+	top.add_child(_items_tab)
 	_only = CheckBox.new()
 	_only.name = "OutOfCombatOnly"
 	_only.text = "Out of combat only"
@@ -98,15 +109,15 @@ func _exit_tree():
 		Campaign.party_changed.disconnect(_on_party_changed)
 
 
-func _tab(text: String, spells: bool) -> Button:
-	var tab := Button.new()
-	tab.name = text + "Tab"
-	tab.text = text
-	tab.focus_mode = Control.FOCUS_NONE
-	tab.flat = true
-	tab.add_theme_font_size_override("font_size", 14)
-	tab.pressed.connect(show_spells.bind(spells))
-	return tab
+func _tab(text: String, which: int) -> Button:
+	var button := Button.new()
+	button.name = text + "Tab"
+	button.text = text
+	button.focus_mode = Control.FOCUS_NONE
+	button.flat = true
+	button.add_theme_font_size_override("font_size", 14)
+	button.pressed.connect(show_tab.bind(which))
+	return button
 
 
 func _process(delta):
@@ -121,8 +132,12 @@ func _on_party_changed():
 
 ## Skills (false) or Spells (true).
 func show_spells(spells: bool):
-	showing_spells = spells
-	remembered_spells = spells
+	show_tab(Tab.SPELLS if spells else Tab.SKILLS)
+
+
+func show_tab(which: int):
+	tab = which
+	remembered_tab = which
 	refresh(true)
 
 
@@ -142,6 +157,8 @@ func who() -> String:
 ## The moves on show, by key: the leader's skills, or spells by gate - narrowed
 ## to the out-of-combat ones while Out Of Combat Only is ticked.
 func shown_moves() -> Array:
+	if tab == Tab.ITEMS:
+		return OutsideMoves.items_of(who())
 	var shown := []
 	for move in OutsideMoves.moves_of(who()):
 		var skill: SkillDefinition = SkillDatabase.skills[move]
@@ -167,7 +184,7 @@ func refresh(rebuild: bool = false):
 		return
 	var key := who()
 	var moves := shown_moves()
-	var built := "%s|%s|%s|%s" % [key, showing_spells, out_of_combat_only, ",".join(moves)]
+	var built := "%s|%s|%s|%s" % [key, tab, out_of_combat_only, ",".join(moves)]
 	if rebuild or built != _built_for:
 		_built_for = built
 		for child in _grid.get_children():
@@ -175,18 +192,19 @@ func refresh(rebuild: bool = false):
 			child.queue_free()
 		for move in moves:
 			_grid.add_child(_button(move))
-	_skills_tab.add_theme_color_override("font_color", TAB_ON if not showing_spells else TAB_OFF)
-	_spells_tab.add_theme_color_override("font_color", TAB_ON if showing_spells else TAB_OFF)
+	_skills_tab.add_theme_color_override("font_color", TAB_ON if tab == Tab.SKILLS else TAB_OFF)
+	_spells_tab.add_theme_color_override("font_color", TAB_ON if tab == Tab.SPELLS else TAB_OFF)
+	_items_tab.add_theme_color_override("font_color", TAB_ON if tab == Tab.ITEMS else TAB_OFF)
 	_only.visible = showing_spells
 	for button in _grid.get_children():
 		_freshen(button, key)
 	_empty.visible = moves.is_empty()
-	_empty.text = "No out-of-combat spells." if showing_spells and out_of_combat_only else ("No spells." if showing_spells else "No skills.")
+	_empty.text = "No out-of-combat spells." if showing_spells and out_of_combat_only else ["No skills.", "No spells.", "Nothing to throw that hurts."][tab]
 	_show_gates(key)
 
 
 func _button(move: String) -> Button:
-	var skill: SkillDefinition = SkillDatabase.skills[move]
+	var skill: SkillDefinition = OutsideMoves.definition_of(move)
 	var button := Button.new()
 	button.name = move
 	button.custom_minimum_size = BUTTON_SIZE
@@ -213,7 +231,7 @@ func _button(move: String) -> Button:
 ## Greyed or not, and what hovering it says.
 func _freshen(button: Button, key: String):
 	var move: String = button.name
-	var skill: SkillDefinition = SkillDatabase.skills.get(move)
+	var skill: SkillDefinition = OutsideMoves.definition_of(move)
 	if skill == null:
 		return
 	var why := OutsideMoves.refusal(scene, key, move)

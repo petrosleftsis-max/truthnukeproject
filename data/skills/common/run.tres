@@ -14,6 +14,7 @@ wears_off_at_start = true
 [resource]
 script = ExtResource("3_4yooe")
 name = "Run"
+outside_use = 1
 description = "Doubles your movement for this turn only."
 icon = ExtResource("2_fwp5i")
 targets_ally = true

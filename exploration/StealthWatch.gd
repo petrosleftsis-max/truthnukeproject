@@ -806,6 +806,8 @@ const WANDER_PACE := 0.5
 
 ## The opening blow of the ambush being sprung - {key, move, guard} - or {}.
 var _opener := {}
+## The object a breakable wall is in a fight (data/objects/).
+const BREAKABLE_WALL := "breakable_wall"
 
 
 ## The guard the pointer is on, or null.
@@ -4280,6 +4282,17 @@ func build_fight(ambushed: bool = false) -> EncounterDefinition:
 			spawn.set_meta("opened_on", true)
 		spawns.append(spawn)
 	_send_for_reinforcements(spawns, taken, caught_at)
+	# Breakable walls still standing stand in the fight too, and one broken there
+	# stays broken here (Combat._object_gone).
+	if scene.has_method("walls"):
+		for wall in scene.walls():
+			if not is_instance_valid(wall) or wall.broken or not CombatantDatabase.combatants.has(BREAKABLE_WALL):
+				continue
+			var tile := tile_of(wall.global_position)
+			taken[tile] = true
+			var standing := _spawn(BREAKABLE_WALL, 1, tile, 1)
+			standing.set_meta("wall_flag", wall.flag_for(scene.map_path()))
+			spawns.append(standing)
 	fight.spawns = spawns
 	fight.fighters = fighters
 	return fight

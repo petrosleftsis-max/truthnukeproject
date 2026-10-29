@@ -14,8 +14,9 @@ class_name OutsideMoves
 ## fight), or else knocks down a breakable wall in reach (ExplorationScene
 ## .break_wall). Blink steps the party ahead, Fly lifts it over low things, a
 ## Lure draws guards to a shimmer ahead, a Hiding Spot is made where the leader
-## stands, a Trap is laid there. A move with no gate waits COOLDOWN_SECONDS
-## before it can be used again out here.
+## stands, a Trap is laid there. Only a spell, an item or the move of somebody
+## who Breaks Walls (Enfina) knocks a wall down (breaks_walls). Damaging items
+## carried are on the panel too (items_of).
 ##
 ## Paying: a spell cast out here spends a real casting (Campaign.spend_gate_outside:
 ## off the next fight's gates, or straight off a dungeon's), through its own gate
@@ -30,7 +31,7 @@ class_name OutsideMoves
 ## Unmarked plays as Silent.
 
 enum Use { NONE, MEND, REVIVE, SPEED, INVISIBILITY, FAMILIAR, BLIND, SCARE, CONFUSE, READ, SWITCH_OFF_MAGIC,
-	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP }
+	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP }
 
 const USE_NAMES := {
 	Use.NONE: "Only in a fight",
@@ -50,11 +51,12 @@ const USE_NAMES := {
 	Use.LURE: "Leaves a lure for the guards",
 	Use.HIDING_SPOT: "Makes somewhere to hide",
 	Use.TRAP: "Lays a trap",
+	Use.COUNTER_TRAP: "Hacks a magical trap's casting apart as it goes off",
 }
 
 ## SkillDefinition.outside_use, as a Use - -1 for Automatic.
 const FROM_FIELD := [-1, Use.NONE, Use.MEND, Use.REVIVE, Use.SPEED, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ,
-	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP]
+	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP]
 
 ## How long each lasts when the move gives no Outside Seconds - PROPOSAL test
 ## values, as are the rest below.
@@ -66,10 +68,6 @@ const BLINK_MOST := 6
 ## How far ahead a Lure lands at most, and how far off guards hear it.
 const LURE_AHEAD := 4
 const LURE_TILES := 6.0
-## How long a move with no gate waits before it can be used again out here.
-const COOLDOWN_SECONDS := 30.0
-## What waits so.
-const COOLING := [Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP]
 ## What the Outside Spell key offers: what needs somebody to land on, so it is
 ## to some purpose only now and then.
 const ON_G := [Use.MEND, Use.REVIVE, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC]
@@ -107,6 +105,35 @@ static func moves_of(key: String) -> Array:
 			continue
 		found.append(move)
 	return found
+
+
+## The skill or item `key` names, or null.
+static func definition_of(key: String) -> SkillDefinition:
+	if SkillDatabase.skills.has(key):
+		return SkillDatabase.skills[key]
+	return ItemDatabase.item(key)
+
+
+## The damaging things `key` carries, by item key, each once: bombs and the
+## like, to spring an ambush with or knock a wall down.
+static func items_of(key: String) -> Array:
+	var found := []
+	for item_key in Campaign.combat_items_of(key):
+		var item: ItemDefinition = ItemDatabase.item(item_key)
+		if item != null and item.deals_damage and not found.has(item_key):
+			found.append(item_key)
+	return found
+
+
+## Whether `key` using `skill` knocks down a breakable wall: a spell, an item,
+## or anything damaging of somebody who Breaks Walls.
+static func breaks_walls(key: String, skill: SkillDefinition) -> bool:
+	if skill == null or not skill.deals_damage:
+		return false
+	if skill is ItemDefinition or Combat.is_spell(skill):
+		return true
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	return definition != null and definition.breaks_walls
 
 
 ## What `skill` does outside a fight.
@@ -284,10 +311,14 @@ static func guard_for(watch, skill: SkillDefinition, kind: int) -> Guard:
 ## Why `key` could not use `move` on `scene`'s map right now, or "" when they
 ## could.
 static func refusal(scene: Node, key: String, move: String) -> String:
-	var skill: SkillDefinition = SkillDatabase.skills.get(move)
+	var skill: SkillDefinition = definition_of(move)
+	if skill is ItemDefinition and Campaign.count_of(key, move) <= 0:
+		return "%s has none left" % Campaign.display_name_of(key)
 	var kind := use_of(skill)
 	if kind == Use.NONE:
 		return "Only in a fight"
+	if kind == Use.COUNTER_TRAP:
+		return "Only as a magical trap goes off"
 	var watch = scene.get("stealth") if scene != null else null
 	if watch != null and not is_instance_valid(watch):
 		watch = null
@@ -305,8 +336,6 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 		return "Not now"
 	if watch != null and watch.spotted_by != null:
 		return "Too late for that"
-	if skill.spell_slot_level <= 0 and kind in COOLING and scene != null and scene.has_method("cooldown_of") and scene.cooldown_of(key, move) > 0.0:
-		return "Ready again in %d seconds" % ceili(scene.cooldown_of(key, move))
 	var party = scene.get("party") if scene != null else null
 	match kind:
 		Use.MEND:
@@ -339,6 +368,8 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 				return ""
 			if scene == null or not scene.has_method("wall_in_reach") or scene.wall_in_reach(skill.max_range) == null:
 				return "Nobody unaware in reach to spring on, and no wall to break" if watch != null else "No wall in reach to break"
+			if not breaks_walls(key, skill):
+				return "Only a spell, an item or Enfina's strength knocks a wall down"
 		Use.BLINK, Use.FLY:
 			if party != null and party.rooted:
 				return "Not while standing still for something"
@@ -360,7 +391,7 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 static func use(scene: Node, key: String, move: String) -> bool:
 	if refusal(scene, key, move) != "":
 		return false
-	var skill: SkillDefinition = SkillDatabase.skills[move]
+	var skill: SkillDefinition = definition_of(move)
 	var kind := use_of(skill)
 	var watch = scene.get("stealth")
 	if watch != null and not is_instance_valid(watch):
@@ -448,6 +479,8 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			var paid := pay(key, skill)
 			if paid.is_empty():
 				return false
+			if skill is ItemDefinition:
+				Campaign.take_item(key, move)
 			scene.break_wall(wall)
 			said = "[color=yellow]%s[/color] uses %s%s: the wall comes down.\n" % [who, skill.name, paid_through(paid)]
 		Use.BLINK:
@@ -495,8 +528,6 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			scene.add_child(trap)
 			trap.global_position = _tile_centre(watch, at)
 			said = "[color=yellow]%s[/color] lays %s%s where they stand.\n" % [who, skill.name, paid_through(paid)]
-	if skill.spell_slot_level <= 0 and kind in COOLING and scene.has_method("start_cooldown"):
-		scene.start_cooldown(key, move, COOLDOWN_SECONDS)
 	if scene.has_method("log_message"):
 		scene.log_message(said)
 	# The portraits down the left read health off the party: drawn again.

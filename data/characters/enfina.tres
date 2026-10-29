@@ -16,6 +16,7 @@
 [resource]
 script = ExtResource("3_efyvm")
 name = "Enfina"
+breaks_walls = true
 glossary_text = "A city guard who has trained and studied to perfectly respond to any combat situation.
 
 Narrative:

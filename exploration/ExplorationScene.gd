@@ -190,6 +190,9 @@ func _build_map():
 	if _tile_map != null:
 		for gap in map.find_children("*", "SmallGap", true, false):
 			set_small_gap(_tile_map.local_to_map(_tile_map.to_local(gap.global_position)), true)
+	_traps = map.find_children("*", "MagicTrap", true, false)
+	for trap in _traps:
+		trap.armed = not Campaign.flag(trap.flag_for(map_path()))
 	# Dialogue can walk people about this map now, and anything it was walking
 	# on the last one is gone with it.
 	Actors.use_scene(self, _tile_map)
@@ -628,6 +631,7 @@ func _process(delta):
 	if picker != null or store_screen != null or is_holding() or get_tree().paused or SceneTransition.is_changing():
 		return
 	_hurry_on(delta)
+	_watch_traps()
 	if _paths_due:
 		_offer_paths()
 	elif _store_due != "":
@@ -713,10 +717,6 @@ func hurry_left() -> float:
 
 func _hurry_on(delta: float):
 	_fly_on(delta)
-	for move in _cooldowns.keys():
-		_cooldowns[move] -= delta
-		if _cooldowns[move] <= 0.0:
-			_cooldowns.erase(move)
 	if _hurry_left <= 0.0:
 		return
 	_hurry_left -= delta
@@ -811,13 +811,11 @@ func controlling_familiar() -> bool:
 	return familiar_keeper != null and familiar_keeper.controlling_it()
 
 
-## --- Flying, blinking, waiting ---
+## --- Flying and blinking ---
 
 var _flying_left := 0.0
 ## Whether the time is up but they are still over something they cannot stand on.
 var _landing := false
-## "key|move" -> seconds until a move with no gate can be used again.
-var _cooldowns := {}
 
 
 ## The party flies for `seconds` (Fly - OutsideMoves): over whatever stops only
@@ -868,13 +866,85 @@ func blink(tiles: int) -> bool:
 	return false
 
 
-## Seconds before `key` can use `move` again (a move with no gate - OutsideMoves).
-func cooldown_of(key: String, move: String) -> float:
-	return _cooldowns.get(key + "|" + move, 0.0)
+## --- Magical traps (MagicTrap) ---
+##
+## Somebody of the party stepping onto an armed one sets it off: the casting can
+## be answered - a Counter Trap move (InstaHack) and a quick time event - or the
+## laser fires (MagicTrap's own words say what it does).
+
+var _traps: Array = []
+## The trap going off now, while its quick time event plays.
+var springing: MagicTrap = null
 
 
-func start_cooldown(key: String, move: String, seconds: float):
-	_cooldowns[key + "|" + move] = seconds
+func _watch_traps():
+	if springing != null or party == null or _tile_map == null:
+		return
+	for trap in _traps:
+		if not is_instance_valid(trap) or not trap.armed:
+			continue
+		var at := _tile_map.local_to_map(_tile_map.to_local(trap.global_position))
+		for member in Campaign.living_party():
+			var sprite = party.sprite_for(member)
+			if sprite != null and _tile_map.local_to_map(_tile_map.to_local(sprite.global_position)) == at:
+				spring_trap(trap, member)
+				return
+
+
+## Who of the party could answer a trap going off, and with what - {"key",
+## "move"} - or {}: somebody walking here with a Counter Trap move they could
+## pay for.
+func trap_answer() -> Dictionary:
+	for key in Campaign.living_party():
+		if party != null and party.sprite_for(key) == null:
+			continue
+		for move in OutsideMoves.moves_of(key):
+			var skill: SkillDefinition = SkillDatabase.skills[move]
+			if OutsideMoves.use_of(skill) == OutsideMoves.Use.COUNTER_TRAP and OutsideMoves.cannot_pay(key, skill) == "":
+				return {"key": key, "move": move}
+	return {}
+
+
+## `who` stepped onto `trap`: answered in time, or the laser.
+func spring_trap(trap: MagicTrap, who: String):
+	if not trap.armed or springing != null:
+		return
+	springing = trap
+	trap.armed = false
+	Campaign.set_flag(trap.flag_for(map_path()))
+	var answer := trap_answer()
+	var hacked := false
+	if not answer.is_empty():
+		var skill: SkillDefinition = SkillDatabase.skills[answer.move]
+		log_message("A glyph flares under [color=yellow]%s[/color] - a laser is being cast! [color=yellow]%s[/color] reaches for %s...\n" % [
+			Campaign.display_name_of(who), Campaign.display_name_of(answer.key), skill.name])
+		hacked = await QuickTime.run(trap.quick_time_event())
+		if not is_instance_valid(self):
+			return
+		if hacked:
+			var paid := OutsideMoves.pay(answer.key, skill)
+			log_message("[color=yellow]%s[/color] hacks the casting apart%s. The glyph goes dark.\n" % [
+				Campaign.display_name_of(answer.key), OutsideMoves.paid_through(paid)])
+	if not hacked:
+		_laser(trap, who)
+	springing = null
+	_refresh_party_panel()
+
+
+## The laser: a share of `who`'s health - never the last point - and, where
+## guards watch, the alert up a level and everybody near coming to look.
+func _laser(trap: MagicTrap, who: String):
+	var most: int = Campaign.party_state.get(who, {}).get("max_hp", 0)
+	if most <= 0:
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(who)
+		most = definition.hp_at(Campaign.party_level) if definition != null else 1
+	var before: int = Campaign.party_state.get(who, {}).get("hp", most)
+	Campaign.strain(who, roundi(most * trap.laser_share))
+	log_message("A laser lances out of the glyph: [color=red]%s[/color] loses %d health.\n" % [
+		Campaign.display_name_of(who), before - Campaign.party_state[who].hp])
+	if stealth != null:
+		stealth.raise_alert_level()
+		stealth.make_noise(trap.global_position, trap.noise_tiles, true)
 
 
 ## --- Breakable walls ---

@@ -163,6 +163,8 @@ func _ready():
 		add_combatant(enemy, 1, spawn.position)
 		if spawn.has_meta("opened_on"):
 			_opened_on = enemy
+		if spawn.has_meta("wall_flag"):
+			enemy["wall_flag"] = spawn.get_meta("wall_flag")
 		if spawn.invisible:
 			_invisible_from_the_start.append(enemy)
 		if changing_sides.get(spawn.combatant_key, 0) > 0:
@@ -5300,6 +5302,10 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	if target.has("object") and not target.object.breakable:
 		update_information.emit("The [color=orange]%s[/color] takes no harm.\n" % target.name)
 		return
+	# A wall only to a spell, an item, or the strong (breaks_wall).
+	if target.has("object") and target.object.wall and not breaks_wall(attacker, skill):
+		update_information.emit("The [color=orange]%s[/color] holds: only a spell, a bomb or great strength brings it down.\n" % target.name)
+		return
 	# The raised element while an upgrade is being spent on this cast, and the
 	# written one otherwise - read once, so what is resisted, what is shown and
 	# what the log says can never disagree.
@@ -7278,8 +7284,22 @@ func _hack_spends_action(attacker: Dictionary, as_secondary: bool, end_turn_afte
 		game_ui.refresh_action_buttons()
 
 
+## Whether `attacker`'s `skill` can hurt a breakable wall: a spell, an item, or
+## anything of somebody who Breaks Walls (CombatantDefinition.breaks_walls).
+func breaks_wall(attacker: Dictionary, skill: SkillDefinition) -> bool:
+	if skill == null:
+		return false
+	if skill is ItemDefinition or is_spell(skill):
+		return true
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(attacker.get("combatant_key", ""))
+	return definition != null and definition.breaks_walls
+
+
 ## Takes `thing` off the board - spent, or broken - saying `how`.
 func _object_gone(thing: Dictionary, how: String):
+	# A wall off a map, kept down there (StealthWatch.build_fight's "wall_flag").
+	if thing.has("wall_flag"):
+		Campaign.set_flag(thing.wall_flag)
 	thing.alive = false
 	update_information.emit("The [color=orange]%s[/color] %s.\n" % [thing.name, how])
 	var sprite = thing.get("sprite")

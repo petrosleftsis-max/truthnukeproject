@@ -275,12 +275,18 @@ respects blocking). Ambush: `ambush_with` sets `_opener`, `build_fight` writes t
 encounter's "opener" meta and the guard spawn's "opened_on", and Combat "An
 ambush's opening blow" (`opener_due`, `_open_the_ambush`, from `start_first_turn`)
 uses it free before the first turn; with no guard, a `BreakableWall`
-(exploration/BreakableWall.gd, flag `broken:`) in reach is `break_wall`. Blink is
+(exploration/BreakableWall.gd, flag `broken:`) in reach is `break_wall` - only by a
+spell, an item (`items_of`, the panel's Items tab) or somebody with
+`CombatantDefinition.breaks_walls` (Enfina): `OutsideMoves.breaks_walls`, and in a
+fight `Combat.breaks_wall` for a `BattleObjectDefinition.wall` (data/objects/breakable_wall.tres;
+`build_fight` brings standing walls along with a "wall_flag", which `_object_gone`
+sets). InstaHack's Outside Use is Counter Trap: a `MagicTrap` (exploration/MagicTrap.gd)
+stepped on (`ExplorationScene._watch_traps`, `spring_trap`) is answered by
+`trap_answer` through `QuickTime.run`, else the laser (`_laser`). Run's is None. Blink is
 `ExplorationScene.blink`, Fly `fly` (`is_walkable` by flier blocking while
 `flying()`, down only over open ground), Lure an `OutsideMoves.Decoy` and
 `make_noise`, Hiding Spot `StealthWatch.add_hiding_spot`, Trap an
-`OutsideMoves.Trap` (`caught_in_trap`). Gateless moves in `COOLING` wait
-`COOLDOWN_SECONDS` (`ExplorationScene.cooldown_of`). The panel is `ui/outside_moves_panel.gd`, put in the action bar
+`OutsideMoves.Trap` (`caught_in_trap`). The panel is `ui/outside_moves_panel.gd`, put in the action bar
 by `combat_ui.show_outside_moves`; G is `StealthBar.outside_spell` on a watched
 map and `ExplorationScene.outside_spell` elsewhere (`ui/outside_spell_choice.gd`).
 Hurry is `ExplorationScene.hurry` and `ExplorationParty.hurry` (apart from
