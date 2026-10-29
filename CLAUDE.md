@@ -327,7 +327,7 @@ back, or run it in place and accept that `maps/stealth_stages/` is overwritten.
 
 ## Co-op (two players, one screen)
 
-`Coop` (autoload, `multiplayer/Coop.gd`; docs/multiplayer_plan.md Steps 1-2,
+`Coop` (autoload, `multiplayer/Coop.gd`; docs/multiplayer_plan.md "Where it stands",
 the designer 2026-10-29) holds the players - two at most (`MAX_PLAYERS`), each
 with a device: the keyboard and mouse (`KEYBOARD`) or a pad. One player is not
 co-op (`on()` false) and nothing changes. Who steers whom is
@@ -361,8 +361,9 @@ theirs alone to answer). Only her player lets it go (`may_dismiss`).
 co-op a pad's Share - alone, Share is still Hide UI): a ring in the player's
 colour where they point (`aim_of`), what is there named (`label_at`), a sound,
 a log line, an arrow at the screen's edge; `PING_SECONDS`, `PINGS_EACH`.
-Over a network (Step 3) nothing is built yet: it waits on the designer's word
-on a seeded fight RNG. `coop` covers it all.
+Over a network nothing is built yet; `docs/multiplayer_plan.md` is the approved
+plan (download only, the seeded fight RNG, LAN, online by ENet + UPnP, WebRTC,
+Steam - in that order). `coop` covers it all.
 
 ## Keys and controllers
 
@@ -1187,6 +1188,10 @@ two letters are taken: Staggered is "Sg", since Stunned is "St". `hudextras`
 fails on any clash.
 
 ## Releasing
+
+**The designer has dropped the browser build (2026-10-29): download only.** Until
+`tools/release.sh` is changed to match (docs/multiplayer_plan.md Step 0) it
+still builds both, as below.
 
 ```bash
 tools/release.sh                 # build both and zip them

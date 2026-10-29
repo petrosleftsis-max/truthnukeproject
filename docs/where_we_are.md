@@ -2,7 +2,7 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-10-29, after the co-op commit.
+updated 2026-10-29, after the co-op commits (cf04690 and the plan after it).
 
 ## How the designer works with Claude
 
@@ -23,6 +23,31 @@ updated 2026-10-29, after the co-op commit.
 - `tools/context/decisions_part.md` and `rules_part.md` feed
   `docs/perplexity_combat_context.md`. Rebuild it with `tests/run.sh refdump`,
   then `perl tools/context/rebuild_context.pl <work>/logs/refdump_data.md`.
+
+## Next to build (approved, 2026-10-29)
+
+The designer wants all of the network play, and is carrying on with it in a
+local session. **`docs/multiplayer_plan.md` is the plan** - decisions, then
+Steps 0-5 with what to change where and how to test it. In order:
+
+0. **Download only:** take the browser (Web) build out of `tools/release.sh`;
+   CLAUDE.md "Releasing" to match.
+1. **The seeded fight RNG** in `combat/Combat.gd` (the code is written out in
+   the plan): every roll through one `rng`, seeded from the encounter's "seed".
+2. **LAN** (`multiplayer/Net.gd`, new): host / join / broadcast, players and
+   whom they steer across machines, the host's scene and state followed,
+   walking synced, the joiner's presses played on the host, guards run by the
+   host, fights replayed from the moves with a checksum, conversations mirrored,
+   pings. Tested by a suite that starts a second headless Godot.
+3. **Online by ENet + UPnP**, with a virtual LAN app (Tailscale, ZeroTier,
+   Radmin VPN) as the fallback players are told about.
+4. **WebRTC on desktop** - once the designer has a signalling server and a TURN
+   relay hosted.
+5. **Steam** (GodotSteam) - once the game is on Steam.
+
+Two questions to ask before the end of Step 2: who takes a leaving player's
+characters mid-fight, and whether a menu holds the game for both over a
+network.
 
 ## Done recently (newest first)
 
@@ -82,12 +107,11 @@ updated 2026-10-29, after the co-op commit.
 5. **Secondary stats** (asked about earlier, answered in chat, no decision yet):
    more uses for each secondary stat, a table of which stat each contest
    tests, and a stat point system that does not depend on gear.
-6. **Multiplayer:** local co-op is built with the plan's defaults (PROPOSAL)
-   for its open questions. **Before LAN:** the designer asked what the seeded
-   fight RNG is before it is built - replay fights on every machine (needs it)
-   or let the host play every fight? Also: which pad button pings (none is
-   free; Share for now in co-op), the 10-tile leash, the 12-tile cone, and
-   which enemies Protect Their Own.
+6. **Multiplayer values:** local co-op is built with the plan's defaults
+   (PROPOSAL) for its open questions. Also open: which pad button pings (none
+   is free; Share for now in co-op), the 10-tile leash, the 12-tile cone, and
+   which enemies Protect Their Own. The network itself is approved - see "Next
+   to build".
 7. **OPEN rows in the ledger**, among them:
    - Deep Corrosion's duration (5 vs the handoff's 3);
    - Corrosive Round at 41 equal to the Gun;

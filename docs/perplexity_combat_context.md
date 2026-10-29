@@ -2452,7 +2452,7 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
 - **Smarter enemy readies** (PROPOSAL): the move worth most against whoever is likely to set it off; casters only when in reach; the cone down the party's way in, never over them; Protects Its Own on the Ranger and the Hired Bow.
 - **Stay Here** leaves the leader where they stand; the next not staying leads.
 - **Local co-op, two players**: whom each steers is saved; a group each, one camera, a 10-tile leash (PROPOSAL); turns, menus and conversations go to whoever's they are; a player left steering nobody is offered the party to share out. **Pings** for the other player.
-- **Not built**: the seeded fight RNG (explained, waiting on the designer), LAN and online.
+- **Approved, not built yet** (docs/multiplayer_plan.md): download only (no browser build); a seeded fight RNG so a networked fight replays alike on both machines; LAN; online by ENet + UPnP with a virtual LAN app as the fallback; WebRTC on desktop; Steam once the game is there.
 
 ## Known near-twins among the spells
 
