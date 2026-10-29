@@ -36,6 +36,19 @@ var followers: Array[CombatantSprite] = []
 ## Told to stay where they are (ExplorationScene.stay_here): out of the line,
 ## standing still, until the leader walks back up to them.
 var stayers: Array[CombatantSprite] = []
+## In co-op (Coop), the player who walks this group with their own device, or
+## -1 for whoever presses, as outside co-op.
+var player := -1
+## The other players' groups (ExplorationScene "Co-op"), whose people
+## sprite_for finds too - so whatever asks who of the party is where (the
+## guards, a fight built on the spot, a conversation) sees all of them.
+var companions: Array = []
+## Walked from somewhere else - another machine's player (Net): no input here,
+## and walk_to puts it where it is said to be.
+var puppet := false
+## Asked of every step in co-op: Callable(group, to) -> bool, false where the
+## group would leave the others too far behind (ExplorationScene._within_leash).
+var leash: Callable = Callable()
 var frozen := false
 ## Held where they stand by something they are doing - changing into a
 ## disguise - while the world goes on around them. `frozen` holds everything:
@@ -105,6 +118,19 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 ## The party member with this combatant key, or null for anyone not in the
 ## line. How dialogue addresses the people the player is already walking with.
 func sprite_for(combatant_key: String) -> CombatantSprite:
+	for sprite in _members():
+		if String(sprite.get_meta("combatant_key", "")).to_lower() == combatant_key.to_lower():
+			return sprite
+	for group in companions:
+		if is_instance_valid(group) and group != self:
+			var found = group.own_sprite_for(combatant_key)
+			if found != null:
+				return found
+	return null
+
+
+## sprite_for among this group's own, not its companions'.
+func own_sprite_for(combatant_key: String) -> CombatantSprite:
 	for sprite in _members():
 		if String(sprite.get_meta("combatant_key", "")).to_lower() == combatant_key.to_lower():
 			return sprite
@@ -204,6 +230,10 @@ func _vault_along(delta: float):
 func held_direction() -> Vector2:
 	# Keys or stick, never the two added together (Pad.direction): a pad's
 	# stick resting a little off centre walked a party on the keys slowly down.
+	if puppet:
+		return Vector2.ZERO
+	if player >= 0 and Coop.on():
+		return Coop.direction(player, &"move_left", &"move_right", &"move_up", &"move_down")
 	return Pad.direction(&"move_left", &"move_right", &"move_up", &"move_down")
 
 
@@ -218,7 +248,7 @@ func light_touch() -> bool:
 func _process(delta):
 	if _scripted:
 		return
-	if leader == null or frozen or rooted:
+	if leader == null or frozen or rooted or _held_by_another():
 		dashing = false
 		if vaulting:
 			# Not left hanging over the barrel: down on the far side.
@@ -241,6 +271,15 @@ func _process(delta):
 		_set_walking(false)
 		return
 	_step(direction, delta)
+
+
+## Whether another player's group is held - a conversation, a catch: in co-op
+## everybody holds together (ExplorationScene "Co-op").
+func _held_by_another() -> bool:
+	for group in companions:
+		if group != self and is_instance_valid(group) and group.frozen:
+			return true
+	return false
 
 
 ## One step of the line in `direction`, sliding along anything it runs into.
@@ -368,6 +407,8 @@ func _set_facing(left: bool):
 ## Whether the party's body fits at `centre`. Tests the corners of a box rather
 ## than a single point, so a member can't stand half-buried in a wall.
 func _can_stand(centre: Vector2) -> bool:
+	if leash.is_valid() and not leash.call(self, centre):
+		return false
 	if not _walkable_test.is_valid():
 		return true
 	for offset in [
@@ -425,6 +466,25 @@ func teleport(to: Vector2):
 		leader.position = to
 	for follower in followers:
 		follower.position = to
+
+
+## A puppet's leader put at `to`, the rest trailing after as if walked there -
+## where another machine says its player has walked (Net).
+func walk_to(to: Vector2, facing_left: bool, walking: bool):
+	if leader == null:
+		return
+	var before := leader.position
+	if before.distance_to(to) > Grid.tiles(3.0):
+		# Too far to have walked - a door, a blink: there at once.
+		teleport(to)
+	else:
+		leader.position = to
+		_record_trail(before, to)
+		_place_followers()
+	_set_facing(facing_left)
+	_set_walking(walking)
+	if before != to:
+		moved.emit(to)
 
 
 func position_of_leader() -> Vector2:

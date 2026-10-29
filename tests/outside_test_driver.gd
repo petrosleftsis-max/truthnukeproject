@@ -481,7 +481,9 @@ func walls_and_moving():
 	ok(m.scene.moves_panel.button_for("tiny_bomb") != null, "  a bomb she carries, on the panel's Items")
 	ok(OutsideMoves.refusal(scene, "alithia", "tiny_bomb") == "", "  which could do it too", OutsideMoves.refusal(scene, "alithia", "tiny_bomb"))
 	m.scene.moves_panel.show_tab(OutsideMovesPanel.Tab.SKILLS)
+	ok(Actors._grid.is_point_solid(spot), "  nor walk a route through it - guards neither")
 	ok(OutsideMoves.use(scene, "alithia", "holy_lance") and wall.broken and scene.is_walkable(at(m, spot)), "  Holy Lance brings it down")
+	ok(not Actors._grid.is_point_solid(spot), "  and the routes go through where it stood")
 	ok(Campaign.flag(wall.flag_for(scene.map_path())), "  for good: kept in the flags")
 	var before: Vector2 = m.party.position_of_leader()
 	ok(OutsideMoves.use(scene, "prometheus", "hermes_step") and m.party.position_of_leader().distance_to(before) >= Grid.tiles(1.0),
@@ -635,6 +637,22 @@ func walls_in_a_fight():
 	var rapier: SkillDefinition = skill("rapier")
 	combat.do_damage(by.cyrus, thing, rapier.all_effects()[0], rapier)
 	ok(thing.hp == full, "Cyrus's rapier: it holds")
+	# A wall in every way until it is down (the designer, 2026-10-29).
+	ok(combat.controller.blocks_sight(thing.position, Sizes.Size.GIGANTIC), "nobody sees past it, however big")
+	var grid = Combat._SightGrid.new(combat.controller, combat.combatants)
+	ok(grid._bodies[grid._index(thing.position)] == Combat._SightGrid.WALL_BODY, "  nor in the danger view's copy of sight")
+	ok(combat.refusal_for(by.cyrus, rapier, thing.position) == Combat.WALL_HOLDS, "  the rapier is turned away before it is swung",
+		combat.refusal_for(by.cyrus, rapier, thing.position))
+	ok(combat.refusal_for(by.alithia, skill("heal"), thing.position) == "That is a wall", "  nothing else is done to it",
+		combat.refusal_for(by.alithia, skill("heal"), thing.position))
+	ok(combat.refusal_for(by.alithia, skill("holy_lance"), thing.position) == "", "  but a spell may knock it down")
+	thing.hp = full - 5
+	combat.do_heal(by.alithia, thing, skill("heal").all_effects()[0], skill("heal"))
+	ok(thing.hp == full - 5, "  and no heal mends it")
+	thing.hp = full
+	var beside: Vector2i = thing.position + Vector2i.LEFT
+	var stand_in := {"position": beside, "size": Sizes.Size.HUMAN, "span": 1}
+	ok(combat.in_cover(stand_in), "  cover to whoever stands beside it")
 	var swing: SkillDefinition = skill("greatsword_attack")
 	combat.do_damage(by.enfina, thing, swing.all_effects()[0], swing)
 	ok(thing.hp < full, "Enfina's greatsword: it cracks", "%d -> %d" % [full, thing.hp])
@@ -729,8 +747,15 @@ func readied_outside():
 	var from := tile_at(m, m.party.position_of_leader())
 	var post := tile_at(m, guard.global_position)
 	var centre := find_tile(m, func(tile): return manhattan(tile, from) >= 2 and manhattan(tile, from) <= 6 and manhattan(tile, post) >= 4 and standable(m, tile) and m.sight.clear(from, tile))
+	# His post somewhere out of the cone, so walking into it is stepping in.
+	var cone: Dictionary = watch.ready_cone(from, centre) if centre != NOWHERE else {}
+	var outside := find_tile(m, func(tile): return standable(m, tile) and not cone.has(tile) and tile != from and gap(tile, from) >= 2.0 and gap(tile, centre) >= 3.0)
+	if outside != NOWHERE:
+		post = outside
+		guard.global_position = at(m, post)
+		guard._post = guard.global_position
 	var hidden := find_tile(m, func(tile): return standable(m, tile) and not m.sight.clear(tile, centre) and gap(tile, post) >= 4.0)
-	ok(centre != NOWHERE and hidden != NOWHERE, "(an open spot in sight, and somewhere out of sight of it)")
+	ok(centre != NOWHERE and hidden != NOWHERE, "(an open spot in sight, and somewhere out of sight of it)", "%s %s from %s post %s" % [centre, hidden, from, post])
 	if centre == NOWHERE or hidden == NOWHERE:
 		await close_map(m)
 		return

@@ -197,7 +197,7 @@ func open_ready_picker():
 ## The next click on the board marks where `hold`'s area goes.
 func mark_ready_area(hold: Dictionary):
 	_ready_marking = hold
-	set_interaction_prompt("Click where the area goes - %s to stop" % Pad.key(&"ui_cancel"))
+	set_interaction_prompt("Click which way the cone points - %s to stop" % Pad.key(&"ui_cancel"))
 
 
 func _take_ready_click(event: InputEvent) -> bool:
@@ -765,7 +765,13 @@ func _announce_turn(comb: Dictionary):
 	if comb.side == 0:
 		# Fighting for the party without being the player's (bought, rebound).
 		colour = Color("a8e0a0") if comb.get("ai_controlled", false) else Color("dce8f5")
-	_turn_banner.announce("%s's Turn" % comb.name, colour)
+	var heading := "%s's Turn" % comb.name
+	if Coop.on() and combat != null and combat.plays_for_party(comb):
+		# Whose it is, in co-op, in their colour.
+		var player: int = combat.player_of(comb)
+		heading = "%s's Turn - %s" % [comb.name, Coop.name_of(player)]
+		colour = Coop.colour_of(player)
+	_turn_banner.announce(heading, colour)
 
 
 ## Where the turn banner goes: under the bosses' bars, when there are any.

@@ -46,6 +46,8 @@ var _speed: BattleSpeedPicker = null
 var _window_mode: WindowModePicker = null
 ## Restart Stage, and every Pause button whether shown or not.
 var _restart: Button = null
+## Players (Coop), on a map: who steers whom, and joining.
+var _players: Button = null
 var _all_pause_buttons: Array = []
 
 
@@ -54,11 +56,21 @@ var _all_pause_buttons: Array = []
 ## whose run a fight picked from the list would step outside of.
 func _offer_restart():
 	_restart.visible = Campaign.can_restart_stealth()
+	_players.visible = get_tree().current_scene is ExplorationScene
 	_save_button.visible = SaveGame.why_not(get_tree()) == ""
 	_load_button.visible = SaveGame.latest() != ""
 	$PausePanel/VBox/LevelSelectButton.visible = not Campaign.in_dungeon()
 	_pause_buttons = _all_pause_buttons.filter(func(button): return button.visible)
 	FocusLoop.link(_pause_buttons)
+
+
+## The Players panel over the map (ExplorationScene.open_players): a second
+## player joining, or the party shared out again.
+func _on_players_pressed():
+	var scene = get_tree().current_scene
+	_close()
+	if scene is ExplorationScene:
+		scene.open_players()
 
 
 func _on_restart_pressed():
@@ -109,10 +121,17 @@ func _ready():
 	_load_button.pressed.connect(_open_saves.bind(false))
 	$PausePanel/VBox.add_child(_load_button)
 	$PausePanel/VBox.move_child(_load_button, _save_button.get_index() + 1)
+	_players = Button.new()
+	_players.name = "PlayersButton"
+	_players.text = "Players"
+	_players.pressed.connect(_on_players_pressed)
+	$PausePanel/VBox.add_child(_players)
+	$PausePanel/VBox.move_child(_players, _load_button.get_index() + 1)
 	_all_pause_buttons = _pause_buttons.duplicate()
 	_all_pause_buttons.insert(_all_pause_buttons.find($PausePanel/VBox/OptionsButton) + 1, _restart)
 	_all_pause_buttons.insert(_all_pause_buttons.find(_restart) + 1, _save_button)
 	_all_pause_buttons.insert(_all_pause_buttons.find(_save_button) + 1, _load_button)
+	_all_pause_buttons.insert(_all_pause_buttons.find(_load_button) + 1, _players)
 	_offer_restart()
 	$OptionsPanel/VBox/Res1280Button.pressed.connect(func(): set_resolution(1280, 720))
 	$OptionsPanel/VBox/Res1920Button.pressed.connect(func(): set_resolution(1920, 1080))

@@ -1419,6 +1419,8 @@ static func _spread_over_ground(reals: Array, reach: int) -> Dictionary:
 ## same walk from the same end of the pair, stopped by the same things, read
 ## off a flat grid built once instead of through three lookups a step.
 class _SightGrid:
+	## What a standing breakable wall counts as: bigger than any viewer.
+	const WALL_BODY := 255
 	var _origin: Vector2i
 	var _width := 0
 	var _height := 0
@@ -1451,6 +1453,9 @@ class _SightGrid:
 		if comb.get("illusion", false) and not _controller.combat.believes_illusion(comb):
 			return
 		var value: int = comb.get("size", Sizes.Size.HUMAN) + 1
+		# A breakable wall is a wall to everybody, however big (CController.blocks_sight).
+		if Combat.is_wall(comb):
+			value = WALL_BODY
 		for tile in Combat.tiles_of(comb):
 			var at = _index(tile)
 			if at >= 0:
@@ -4651,6 +4656,8 @@ func combat_finish():
 	if combat_over:
 		return
 	combat_over = true
+	# Whatever comes after is everybody's again (Coop).
+	Coop.fight_turn(Coop.ANYONE)
 	var enemies_alive = groups[Group.ENEMIES].size() > 0
 	var players_alive = groups[Group.PLAYERS].size() > 0
 	if lost_because != "":
@@ -5360,6 +5367,9 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 
 
 func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition = null, mention_skill: bool = false):
+	# A wall is no patient: a heal over it mends nothing.
+	if is_wall(target):
+		return
 	# The same shape as damage: the healer's stat and the skill's modifier. The
 	# effect's flat range only stands in when there is no skill behind the
 	# healing at all, the way it does for damage.
@@ -9535,6 +9545,27 @@ func plays_for_party(comb: Dictionary) -> bool:
 	return comb.get("side", 1) == 0 and not comb.get("ai_controlled", false)
 
 
+## Whether `comb` is a breakable wall still standing (BattleObjectDefinition
+## .wall): a wall in every way - walked round, seen past by nobody, cover - until
+## it is knocked down (breaks_wall).
+static func is_wall(comb: Dictionary) -> bool:
+	return comb.get("alive", false) and comb.has("object") and comb.object.wall
+
+
+## Why a move does nothing to a breakable wall (refusal_for, the map's own).
+const WALL_HOLDS := "Only a spell, an item or Enfina's strength knocks a wall down"
+
+
+## The co-op player (Coop) who plays `comb`'s turn: whoever steers them, or
+## their summoner (Campaign.controllers).
+func player_of(comb: Dictionary) -> int:
+	var key: String = comb.get("combatant_key", "")
+	if comb.has("summoner"):
+		var summoner := _combatant_by_id(comb.summoner)
+		key = summoner.get("combatant_key", key)
+	return Coop.controller_of(key)
+
+
 ## `comb` fights for the other side for `turns` of their own turns, or for the
 ## rest of the fight with 0. Called on somebody already turned, it turns them
 ## back.
@@ -9897,6 +9928,14 @@ func refusal_for(attacker: Dictionary, skill: SkillDefinition, impact: Vector2i)
 		return ""
 	if skill.reaction_only:
 		return "%s only goes off as a reaction" % skill.name
+	# A standing breakable wall is a wall: nothing is done to it but knocking it
+	# down - by a spell, an item, or somebody who Breaks Walls (breaks_wall).
+	var aimed_at := get_combatant_at(impact)
+	if is_wall(aimed_at) and aoe_radius_of(attacker, skill) == 0:
+		if not skill.deals_damage:
+			return "That is a wall"
+		if not breaks_wall(attacker, skill):
+			return WALL_HOLDS
 	# Only so often a short rest (Recant, Grand Design, Minefield, Catalyst,
 	# Stunning Blow).
 	if uses_left(attacker, skill) == 0:
@@ -13831,7 +13870,7 @@ func _react_to_step(mover: Dictionary, from: Vector2i, to: Vector2i):
 		var was_in := tiles_of(mover, from).any(func(tile): return tile in area)
 		var now_in := tiles_of(mover, to).any(func(tile): return tile in area)
 		return now_in and not was_in
-	await _react(Trigger.ENTERS_AREA, mover, "%s steps into the marked area" % mover.name, Callable(), into_area)
+	await _react(Trigger.ENTERS_AREA, mover, "%s steps into the watched cone" % mover.name, Callable(), into_area)
 
 
 ## Whether `skill` is a spell: something that normally takes a gate - cast
@@ -13977,8 +14016,9 @@ func _react_watched_hit(attacker: Dictionary, victim: Dictionary):
 ## with any gate it costs, whether or not the moment ever comes - to go off as
 ## their reaction the first time its trigger happens before their next turn.
 ## Any trigger a reactive skill can have, or, for something ranged, somebody
-## stepping into an area they mark: a diamond READY_AREA_RADIUS tiles out from
-## where they put it, within the move's reach and in sight - or somebody they
+## stepping into an area they mark: a great cone (READY_CONE_TILES long) out of
+## them towards where they point, over every tile they can see from there past
+## the walls (the designer, 2026-10-29: it respects blocking) - or somebody they
 ## choose, in sight, being hit (HIT_IN_SIGHT, the designer 2026-10-29): a
 ## hostile move then goes at them if they are the other side's, else at whoever
 ## hit them, and a move for allies at them (_react_watched_hit). Out of sight
@@ -13990,7 +14030,9 @@ func _react_watched_hit(attacker: Dictionary, victim: Dictionary):
 ## Stunned, confused or deceived, it does not go off; held (Grappled), it is
 ## lost only if it is a move they could not then make.
 
-const READY_AREA_RADIUS := 4
+## How far out a readied cone watches, in tiles - a PROPOSAL value: "very, very
+## big" (the designer, 2026-10-29). It once was a diamond of 4 round a point.
+const READY_CONE_TILES := 12
 const NO_AREA := Vector2i(-99999, -99999)
 
 
@@ -14023,13 +14065,14 @@ func ready_refusal(comb: Dictionary, skill_key: String, trigger: int, centre: Ve
 			return "Only something ranged that hurts can watch an area for enemies, or something for allies watch it for them"
 		if centre == NO_AREA or (controller != null and not controller.is_on_map(centre)):
 			return "Choose where the area goes"
-		if get_position_distance(nearest_across(comb, centre), centre) > effective_max_range(comb, skill):
-			return "That is beyond the reach of %s" % skill.name
+		# The point only says which way the cone goes: anywhere off them will do.
+		if tiles_of(comb).has(centre):
+			return "Point it away from %s" % comb.name
 		# On another floor, through a gap in whatever floor is between ("Heights").
 		if not floors_open_between(nearest_across(comb, centre), centre):
 			return "The floor is in the way"
-		if skill.respects_blocking and not has_line_of_sight(nearest_across(comb, centre), centre, comb.get("movement_class", 0)):
-			return "%s can't see there" % comb.name
+		if ready_area(comb, centre).is_empty():
+			return "%s can't see anything that way" % comb.name
 	if trigger == Trigger.HIT_IN_SIGHT:
 		if watched.is_empty() or not watched.get("alive", false) or is_same(watched, comb):
 			return "Choose who to watch"
@@ -14056,7 +14099,7 @@ func ready_action(comb: Dictionary, skill_key: String, trigger: int, centre: Vec
 		_metric("gate", {"who": comb, "gate": spent, "skill": skill})
 	comb.skill_used_this_turn = true
 	comb["readied"] = {"skill": skill_key, "trigger": trigger, "centre": centre, "by": by,
-		"area": ready_area(centre) if trigger == Trigger.ENTERS_AREA else [],
+		"area": ready_area(comb, centre) if trigger == Trigger.ENTERS_AREA else [],
 		"watched": watched.get("id", -1)}
 	var when := SkillDefinition.trigger_name(trigger, by)
 	if trigger == Trigger.HIT_IN_SIGHT:
@@ -14070,18 +14113,42 @@ func ready_action(comb: Dictionary, skill_key: String, trigger: int, centre: Vec
 	return true
 
 
-## The tiles a readied area around `centre` watches: a diamond, on the map and
-## on the floor it is put on.
-func ready_area(centre: Vector2i) -> Array:
+## The tiles `comb`'s readied cone pointed at `centre` watches: out of the tile
+## of theirs nearest it, READY_CONE_TILES long, on the floor `centre` is on, and
+## only what they see from there past the walls - the ground and every breakable
+## wall standing, not the bodies, who walk on (at the moment it goes off, a move
+## that respects blocking still wants a clear line - _react). Pointed at another
+## floor, it lies over the same ground there, seen through the gaps between.
+func ready_area(comb: Dictionary, centre: Vector2i) -> Array:
+	var from := nearest_across(comb, centre)
+	var on := floor_of(centre)
+	var across := _floored and floor_of(from) != on
+	var mover_class := terrain_class(comb)
+	var size: int = comb.get("size", Sizes.Size.HUMAN)
+	var walls = null
+	if controller != null and not heights_in_play():
+		walls = _SightGrid.new(controller, combatants.filter(func(other): return is_wall(other)))
+	var nowhere := Vector2i(-99999, -99999)
+	var own := tiles_of(comb)
 	var tiles := []
-	var here := floor_of(centre)
-	for dx in range(-READY_AREA_RADIUS, READY_AREA_RADIUS + 1):
-		for dy in range(-READY_AREA_RADIUS, READY_AREA_RADIUS + 1):
-			if absi(dx) + absi(dy) > READY_AREA_RADIUS:
+	var reals := get_cone_tiles(real_of(from), real_of(centre), READY_CONE_TILES)
+	# Whatever way it leans, the tile pointed at is in it.
+	if not reals.has(real_of(centre)):
+		reals.append(real_of(centre))
+	for real in reals:
+		var tile: Vector2i = tile_on(on, real) if _floored else real
+		if tile == nowhere or own.has(tile):
+			continue
+		if controller != null and (not controller.is_on_map(tile) or _aim_blocked(tile, mover_class)):
+			continue
+		if across and not floors_open_between(from, tile):
+			continue
+		if walls != null:
+			if not walls.clear(from, tile, mover_class, size):
 				continue
-			var tile := centre + Vector2i(dx, dy)
-			if (controller == null or controller.is_on_map(tile)) and floor_of(tile) == here:
-				tiles.append(tile)
+		elif controller != null and not has_line_of_sight(from, tile, mover_class, size, get_combatant_at(tile)):
+			continue
+		tiles.append(tile)
 	return tiles
 
 
@@ -14151,18 +14218,25 @@ func _fire_readied(reactor: Dictionary, target: Dictionary, why: String):
 ## it could hit this turn: as a turn ends with its main action unused
 ## (advance_turn, through ai_turn_live, which ai_process sets), or - for a guard
 ## - instead of leaving its post to chase (ai_process). A gate it would spend
-## has to be one it can spare: never its last casting.
-##   Counters Casters - somebody of the party who casts, in sight: readied for
-##     when they cast, with what reaches furthest.
+## has to be one it can spare: never its last casting. Whatever it readies is
+## the move worth most against whoever is likely to set it off (_ai_ready_pick -
+## ai_target_value, the planner's own arithmetic), not merely the one that
+## reaches furthest (the designer, 2026-10-29: smarter readies - PROPOSAL).
+##   Counters Casters - somebody of the party who casts, in sight and within
+##     reach of where it stands (a reaction does not walk): readied for when
+##     they cast.
 ##   Waits For The Hidden - somebody of the party out of sight: readied for
 ##     whoever steps into its reach. A hidden one steps in seen, or not at all.
-##   Covers The Approach - something ranged over the way the nearest of the
-##     party would come, just short of them, so walking up sets it off.
-##   Guards Its Post - an area over its post (the thing on the map beside it - a
-##     bell - or the tile it started on) with something ranged, or else its
-##     own reach.
+##   Covers The Approach - its cone (ready_area) pointed down the way the party
+##     has to come, never over anybody already in it, who would not "step in"
+##     (_ai_approach_aim); with nowhere like that, its reach.
+##   Guards Its Post - its cone over its post (the thing on the map beside it -
+##     a bell - or the tile it started on), or the way they would come, or else
+##     its own reach.
+##   Protects Its Own - the ally of its in sight most at risk, watched: whoever
+##     hits them is hit back (HIT_IN_SIGHT), if they would be within reach.
 
-enum AiReady { APPROACH = 1, GUARDS = 2, CASTERS = 4, HIDDEN = 8 }
+enum AiReady { APPROACH = 1, GUARDS = 2, CASTERS = 4, HIDDEN = 8, PROTECTS = 16 }
 
 ## How near a thing on the map has to be to be the one a guard stands over.
 const GUARD_OBJECT_TILES := 6
@@ -14179,36 +14253,49 @@ func _ai_consider_ready(comb: Dictionary):
 	for restriction in ["skips_turn", "confuses", "turns_on_own_side"]:
 		if has_restriction(comb, restriction):
 			return
-	if wants & AiReady.CASTERS and _ai_caster_in_sight(comb):
-		var key := _ai_ready_pick(comb, false, Trigger.CASTS)
-		if key != "" and ready_action(comb, key, Trigger.CASTS):
-			return
+	var foes := _ai_foes_in_view(comb)
+	if wants & AiReady.CASTERS:
+		var casters := _ai_casters_in_sight(comb)
+		if not casters.is_empty():
+			var key := _ai_ready_pick(comb, false, Trigger.CASTS, casters, true)
+			if key != "" and ready_action(comb, key, Trigger.CASTS):
+				return
 	if wants & AiReady.HIDDEN and _ai_somebody_hidden(comb):
-		var key := _ai_ready_pick(comb, false, Trigger.ENTERS_REACH)
+		var key := _ai_ready_pick(comb, false, Trigger.ENTERS_REACH, _ai_hidden_foes(comb))
 		if key != "" and ready_action(comb, key, Trigger.ENTERS_REACH):
 			return
-	if wants & AiReady.APPROACH:
-		var key := _ai_ready_pick(comb, true, Trigger.ENTERS_AREA)
+	if wants & AiReady.APPROACH and not foes.is_empty():
+		var key := _ai_ready_pick(comb, true, Trigger.ENTERS_AREA, foes)
 		if key != "":
-			var centre := _ai_approach_centre(comb, key)
-			if centre != NO_AREA and ready_action(comb, key, Trigger.ENTERS_AREA, centre):
+			var aim := _ai_approach_aim(comb, key)
+			if aim != NO_AREA and ready_action(comb, key, Trigger.ENTERS_AREA, aim):
 				return
-	if wants & AiReady.GUARDS:
-		_ai_guard_ready(comb)
+		# Nowhere the cone would catch them coming: its reach, which they have
+		# to step into to come at it.
+		var near := _ai_ready_pick(comb, false, Trigger.ENTERS_REACH, foes)
+		if near != "" and ready_action(comb, near, Trigger.ENTERS_REACH):
+			return
+	if wants & AiReady.GUARDS and _ai_guard_ready(comb):
+		return
+	if wants & AiReady.PROTECTS:
+		_ai_protect_ready(comb)
 
 
 ## The move `comb` would ready for `trigger`: something that hurts, it knows
-## and can spare the gate for - ranged, when `ranged`; what reaches furthest,
-## then what hits hardest. "" when there is nothing.
-func _ai_ready_pick(comb: Dictionary, ranged: bool, trigger: int) -> String:
+## and can spare the gate for - ranged, when `ranged`. The one worth most
+## against `likely` (who would set it off), within its reach from here when
+## `needs_reach`; then what reaches furthest, then what hits hardest. "" when
+## there is nothing - or nothing worth anything against `likely`, given some.
+func _ai_ready_pick(comb: Dictionary, ranged: bool, trigger: int, likely: Array = [], needs_reach: bool = false) -> String:
 	# Something free first, whatever a spell would add: a readied move that never
 	# goes off spends its gate all the same.
-	var free := _ai_ready_pick_among(comb, ranged, trigger, true)
-	return free if free != "" else _ai_ready_pick_among(comb, ranged, trigger, false)
+	var free := _ai_ready_pick_among(comb, ranged, trigger, true, likely, needs_reach)
+	return free if free != "" else _ai_ready_pick_among(comb, ranged, trigger, false, likely, needs_reach)
 
 
-func _ai_ready_pick_among(comb: Dictionary, ranged: bool, trigger: int, free_only: bool) -> String:
+func _ai_ready_pick_among(comb: Dictionary, ranged: bool, trigger: int, free_only: bool, likely: Array, needs_reach: bool) -> String:
 	var best := ""
+	var best_worth := -1.0
 	var best_reach := -1
 	var best_power := -1.0
 	for key in _ai_main_keys(comb):
@@ -14221,14 +14308,39 @@ func _ai_ready_pick_among(comb: Dictionary, ranged: bool, trigger: int, free_onl
 			continue
 		if not _ai_can_spare(comb, skill):
 			continue
-		if ready_refusal(comb, key, trigger, NO_AREA) != "" and trigger != Trigger.ENTERS_AREA:
+		if ready_refusal(comb, key, trigger, NO_AREA) != "" and trigger != Trigger.ENTERS_AREA and trigger != Trigger.HIT_IN_SIGHT:
+			continue
+		var worth := _ai_ready_worth(comb, skill, likely, needs_reach)
+		if not likely.is_empty() and worth <= 0.0:
 			continue
 		var reach := effective_max_range(comb, skill)
-		if reach > best_reach or (reach == best_reach and skill.ability_modifier > best_power):
+		var better := worth > best_worth
+		if is_equal_approx(worth, best_worth):
+			better = reach > best_reach or (reach == best_reach and skill.ability_modifier > best_power)
+		if better:
 			best = key
+			best_worth = worth
 			best_reach = reach
 			best_power = skill.ability_modifier
 	return best
+
+
+## What `skill` readied by `comb` is worth: the most it would do to any of
+## `likely` (ai_target_value) - only those within its reach from where `comb`
+## stands, when `needs_reach`. 0 for nobody.
+func _ai_ready_worth(comb: Dictionary, skill: SkillDefinition, likely: Array, needs_reach: bool) -> float:
+	var most := 0.0
+	for other in likely:
+		if not other.get("alive", false):
+			continue
+		if needs_reach:
+			var gap := reach_gap(comb, other, skill)
+			if gap < skill.min_range or gap > effective_max_range(comb, skill) or not _reaches_through_floors(comb, other):
+				continue
+			if skill.respects_blocking and not sees_tile(comb, nearest_across(other, comb.position), other):
+				continue
+		most = maxf(most, ai_target_value(comb, other, skill))
+	return most
 
 
 ## Whether `comb` can spend what `skill` costs without it being their last
@@ -14259,17 +14371,28 @@ func _ai_can_strike_this_turn(comb: Dictionary) -> bool:
 	return false
 
 
-## Whether somebody of the other side who casts through a gate is in `comb`'s
-## sight.
-func _ai_caster_in_sight(comb: Dictionary) -> bool:
+## The other side's, standing and not hidden from `comb` - who it knows of.
+func _ai_foes_in_view(comb: Dictionary) -> Array:
+	return combatants.filter(func(other): return other.get("alive", false) and other.get("side", -1) != comb.side \
+		and not other.has("object") and not other.get("illusion", false) and not is_hidden(other) and other.has("position"))
+
+
+## The other side's who are out of sight - hidden or invisible.
+func _ai_hidden_foes(comb: Dictionary) -> Array:
+	return combatants.filter(func(other): return other.get("alive", false) and other.get("side", -1) != comb.side and is_hidden(other))
+
+
+## Everybody of the other side who casts through a gate, in `comb`'s sight.
+func _ai_casters_in_sight(comb: Dictionary) -> Array:
+	var found := []
 	for other in combatants:
 		if not other.alive or other.side == comb.side or is_hidden(other) or other.has("object"):
 			continue
 		if not other.get("spell_slots", []).any(func(count): return count > 0):
 			continue
 		if sees_tile(comb, nearest_tile_of(other, comb.position), other):
-			return true
-	return false
+			found.append(other)
+	return found
 
 
 ## Whether somebody of the other side is out of sight - hidden or invisible.
@@ -14277,42 +14400,137 @@ func _ai_somebody_hidden(comb: Dictionary) -> bool:
 	return combatants.any(func(other): return other.alive and other.side != comb.side and is_hidden(other))
 
 
-## Where `comb` would centre an area watched with `key`, to cover the way the
-## nearest of the other side would come: on the line between them, as far
-## out as the move reaches and it can see, but short enough that they are not
-## in it yet. NO_AREA when there is nowhere.
-func _ai_approach_centre(comb: Dictionary, key: String) -> Vector2i:
-	var target := find_nearest_enemy_of(comb)
-	if target.is_empty():
+## Which way `comb` would point a readied cone with `key` to catch the other
+## side coming: of the four ways, one with nobody in it already (they would not
+## "step in"), across the line between it and the most of them - the nearest
+## counting most, since they come soonest. NO_AREA when no way does.
+func _ai_approach_aim(comb: Dictionary, key: String) -> Vector2i:
+	var foes := _ai_foes_in_view(comb)
+	if foes.is_empty():
 		return NO_AREA
+	var shape := footprint(comb)
+	var middle: Vector2i = comb.position + shape / 2
 	var best := NO_AREA
-	for tile in get_tiles_between(nearest_tile_of(comb, target.position), nearest_tile_of(target, comb.position)):
-		if rect_gap(rect_of(target), Rect2i(tile, Vector2i.ONE)) <= READY_AREA_RADIUS:
-			break
-		if ready_refusal(comb, key, Trigger.ENTERS_AREA, tile) == "":
-			best = tile
+	var best_score := 0.0
+	for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+		var aim := NO_AREA
+		for out in range(maxi(shape.x, shape.y), maxi(shape.x, shape.y) + 3):
+			var tile: Vector2i = middle + way * out
+			if ready_refusal(comb, key, Trigger.ENTERS_AREA, tile) == "":
+				aim = tile
+				break
+		if aim == NO_AREA:
+			continue
+		var score := _ai_cone_score(comb, ready_area(comb, aim), foes)
+		if score > best_score:
+			best_score = score
+			best = aim
 	return best
 
 
-## A guard readying over its post, without moving: an area over the thing on
-## the map nearest it (or the tile it started on) with something ranged, or
-## else its reach. True when it readied something.
+## What a cone over `tiles` is worth to `comb` against `foes`: nothing with any
+## of them in it already; else, for each whose straight way to `comb` crosses
+## it, more the nearer they are.
+func _ai_cone_score(comb: Dictionary, tiles: Array, foes: Array) -> float:
+	if tiles.is_empty():
+		return 0.0
+	var cone := {}
+	for tile in tiles:
+		cone[tile] = true
+	var score := 0.0
+	for foe in foes:
+		if tiles_of(foe).any(func(tile): return cone.has(tile)):
+			return 0.0
+		var way := get_tiles_between(nearest_tile_of(foe, comb.position), nearest_tile_of(comb, foe.position))
+		if way.any(func(tile): return cone.has(tile)):
+			score += 1.0 / (1.0 + float(distance_to(comb, foe.position)))
+	return score
+
+
+## Whether any of `foes` stands on any of `tiles`.
+func _ai_anybody_in(tiles: Array, foes: Array) -> bool:
+	for foe in foes:
+		for tile in tiles_of(foe):
+			if tile in tiles:
+				return true
+	return false
+
+
+## A guard readying over its post, without moving: its cone over the thing on
+## the map nearest it (or the tile it started on), else over the way the other
+## side would come (_ai_approach_aim), with something ranged; or else its reach.
+## True when it readied something.
 func _ai_guard_ready(comb: Dictionary) -> bool:
 	if comb.get("skill_used_this_turn", false) or comb.has("readied"):
 		return false
 	var post: Vector2i = comb.get("post", comb.position)
 	var nearest_thing := GUARD_OBJECT_TILES + 1
 	for other in combatants:
-		if other.get("alive", false) and other.has("object"):
+		if other.get("alive", false) and other.has("object") and not is_wall(other):
 			var gap := distance_to(comb, other.position)
 			if gap < nearest_thing:
 				nearest_thing = gap
 				post = other.position
-	var ranged := _ai_ready_pick(comb, true, Trigger.ENTERS_AREA)
-	if ranged != "" and ready_refusal(comb, ranged, Trigger.ENTERS_AREA, post) == "":
-		return ready_action(comb, ranged, Trigger.ENTERS_AREA, post)
-	var near := _ai_ready_pick(comb, false, Trigger.ENTERS_REACH)
+	var foes := _ai_foes_in_view(comb)
+	var ranged := _ai_ready_pick(comb, true, Trigger.ENTERS_AREA, foes)
+	if ranged != "":
+		var aim := NO_AREA
+		if not tiles_of(comb).has(post) and ready_refusal(comb, ranged, Trigger.ENTERS_AREA, post) == "" \
+				and not _ai_anybody_in(ready_area(comb, post), foes):
+			aim = post
+		if aim == NO_AREA:
+			aim = _ai_approach_aim(comb, ranged)
+		if aim != NO_AREA and ready_action(comb, ranged, Trigger.ENTERS_AREA, aim):
+			return true
+	var near := _ai_ready_pick(comb, false, Trigger.ENTERS_REACH, foes)
 	return near != "" and ready_action(comb, near, Trigger.ENTERS_REACH)
+
+
+## Protects Its Own: the ally of `comb`'s in sight that the most of the other
+## side could get at next turn - the hurt counting double - watched with what
+## hurts their attackers most and would reach them there. True when it readied.
+func _ai_protect_ready(comb: Dictionary) -> bool:
+	if comb.get("skill_used_this_turn", false) or comb.has("readied"):
+		return false
+	var foes := _ai_foes_in_view(comb)
+	var ward := {}
+	var most := 0.0
+	for ally in combatants:
+		if is_same(ally, comb) or not ally.get("alive", false) or ally.get("side", -1) != comb.side \
+				or ally.has("object") or ally.get("illusion", false) or not ally.has("position"):
+			continue
+		if not sees_tile(comb, nearest_across(ally, comb.position), ally):
+			continue
+		var near := foes.filter(func(foe): return distance_to(ally, nearest_tile_of(foe, ally.position)) <= movement_budget_of(foe) + 1)
+		if near.is_empty():
+			continue
+		var hurt := 1.0 - float(ally.hp) / maxf(float(get_effective_stat(ally, "max_hp")), 1.0)
+		var risk := float(near.size()) * (1.0 + hurt)
+		if risk > most:
+			most = risk
+			ward = ally
+	if ward.is_empty():
+		return false
+	var attackers := foes.filter(func(foe): return distance_to(ward, nearest_tile_of(foe, ward.position)) <= movement_budget_of(foe) + 1)
+	var best := ""
+	var best_worth := 0.0
+	for key in _ai_main_keys(comb):
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if skill == null or not _hostile(skill) or not _ai_plannable(comb, skill) or not _ai_can_spare(comb, skill):
+			continue
+		# Whoever hits them will be beside them: within reach of where they stand.
+		if reach_gap(comb, ward, skill) > effective_max_range(comb, skill) + 1:
+			continue
+		if ready_refusal(comb, key, Trigger.HIT_IN_SIGHT, NO_AREA, SkillDefinition.SetOffBy.ENEMIES, ward) != "":
+			continue
+		var worth := _ai_ready_worth(comb, skill, attackers, false)
+		if skill.spell_slot_level <= 0:
+			# Free first, as ever, all else near enough equal.
+			worth *= 1.25
+		if worth > best_worth:
+			best_worth = worth
+			best = key
+	return best != "" and ready_action(comb, best, Trigger.HIT_IN_SIGHT, NO_AREA, SkillDefinition.SetOffBy.ENEMIES, ward)
 
 
 ## Whether `comb` could hurt anybody from where it stands with its main action.

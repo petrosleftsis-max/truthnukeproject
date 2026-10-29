@@ -897,7 +897,7 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
   - **Iron Hide III** (Always active, from level 41): Hide hardened to a fifth less damage from anything - and she steps into blows meant for others: half of any hit on an ally beside her is hers instead. [Takes 50% of any hit on an ally within 1 tiles.]
   - **Bulwark III** (Always active, from level 54): Allies beside her are bulwarked, and her guard reaches two tiles: allies within them are fortified - a tenth less damage, a fifth beside her. [Aura: their own side within 2 tiles are fortified.]
   - **Momentum II** (Always active, from level 64): Planted, every blow lands like a falling wall: fifteen hundredths more damage on a turn she has not walked - Sweep Strike's whole sweep too. [5% more damage on a turn they have not walked.]
-- Other settings: glossary_text: "A city guard who has trained and studied to perfectly respond to any combat situation.  Narrative: Not born in favourable circumstances, she was faced with a lot of disadvantages. Unable to be trusted to become a knight of the Holy Order, too useful to just leave her out of the picture, yet still faced with uncertainty. An uncertainty that she also sees in herself and how cut out she truly is for the path she chose.   And yet, she still raises her sword. She still trains unrelentlessly, to perform as well as possible, even if no one has any intention of recognising and rewarding her for it with a higher rank.  But Enfina's intentions are pure. For she does not raise her sword for herself. She raises it for everyone else.  Gameplay: Capable of dealing the most damage and take the most hit, she is an invaluable piece that allows her to fend off the mightiest of foe.   Her foes fear her reactive skill, so staying close to one will either force them to stay in place, or move and be damaged.  As a frontliner, she controls where the fight takes place. Make sure she is always in front of your allies and at the part of the map where you want the fight to take place."; max_hp: 130; max_hp_level_20: 190; defense_by_level: { 1: 12, 8: 20, 17: 28 }; keeps_codex: true
+- Other settings: glossary_text: "A city guard who has trained and studied to perfectly respond to any combat situation.  Narrative: Not born in favourable circumstances, she was faced with a lot of disadvantages. Unable to be trusted to become a knight of the Holy Order, too useful to just leave her out of the picture, yet still faced with uncertainty. An uncertainty that she also sees in herself and how cut out she truly is for the path she chose.   And yet, she still raises her sword. She still trains unrelentlessly, to perform as well as possible, even if no one has any intention of recognising and rewarding her for it with a higher rank.  But Enfina's intentions are pure. For she does not raise her sword for herself. She raises it for everyone else.  Gameplay: Capable of dealing the most damage and take the most hit, she is an invaluable piece that allows her to fend off the mightiest of foe.   Her foes fear her reactive skill, so staying close to one will either force them to stay in place, or move and be damaged.  As a frontliner, she controls where the fight takes place. Make sure she is always in front of your allies and at the part of the map where you want the fight to take place."; max_hp: 130; max_hp_level_20: 190; defense_by_level: { 1: 12, 8: 20, 17: 28 }; keeps_codex: true; breaks_walls: true
 
 ### Prometheus (`prometheus`)
 
@@ -1278,7 +1278,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia, Cyrus, Enfina, Prometheus, Alchemist, Barbarian, Bomber, Bound Beast, Hired Bow, Kindled Hound, Pit Champion, Priest, Ranger, Sellsword, Sorcerer, Summoner
   - Says: Doubles your movement for this turn only.
   - Effect: {type: Stat Multiplier; display_name: "Haste"; duration: 1; wears_off_at_start: true}
-  - Settings: can_be_copied: false
+  - Settings: can_be_copied: false; outside_use: None
 - **Slip Past** (`slip_past`) - level 1; main action; range 0-0; melee; single target; aimed at allies; no damage
   - Who has it: Alithia, Cyrus, Enfina, Prometheus
   - Says: Move as though nobody were watching. Nothing can react to you for the rest of this turn.
@@ -1690,7 +1690,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Prometheus
   - Says: Tear a spell apart the instant a foe in reach casts it - no minigame, no second chance for them. It comes to nothing, and their gate is spent all the same. Only ever a reaction, through the Gates of Pandora.
   - Effect: {type: Cancel Casting}
-  - Settings: respects_blocking: true; can_be_copied: false; outside_use: Switch Off Magic
+  - Settings: respects_blocking: true; can_be_copied: false; outside_use: Counter Trap
 - **Invisibility** (`invisibility`) - level 1; spell, Gates of Hermes; main action; range 0-10; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: Turn yourself or an ally invisible - even while the enemy is watching. It lasts until they do anything to an enemy. On a stealth map it hides whoever you choose for ten minutes, through the Gates of Iris, at one casting each.
@@ -2016,7 +2016,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 - Main stat Physical, secondary Mindfulness; health 60 at level 1, 190 at 64; movement 7
 - Skills: Nail Projectile, Venomous Shot, Run
-- Settings: glossary_text: "An archer who fights for whoever pays, and runs the moment the pay stops being worth it."; class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; nerve: 40; when_fled: Comes back; brings_back: ["sellsword"]; fled_flag: "hired_bow_got_away"; bribe_price: 40; leverage_clues: ["sellsword_contract"]; interrogation_gold: 20; ai_function: "ai_ranger"; ai_readies: Covers The Approach
+- Settings: glossary_text: "An archer who fights for whoever pays, and runs the moment the pay stops being worth it."; class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; nerve: 40; when_fled: Comes back; brings_back: ["sellsword"]; fled_flag: "hired_bow_got_away"; bribe_price: 40; leverage_clues: ["sellsword_contract"]; interrogation_gold: 20; ai_function: "ai_ranger"; ai_readies: Covers The Approach|Protects Its Own
 
 ### Illusory Dragon (`illusory_dragon`)
 
@@ -2068,7 +2068,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 - Main stat Physical, secondary Mindfulness; health 60 at level 1, 190 at 64; movement 7
 - Skills: Heal, Nail Projectile, Venomous Shot, Flammable Limb, Run
-- Settings: class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; spellcasting_stat: Mindfulness; half_caster: true; resist_wind: -50; resist_poison: 50; ai_function: "ai_ranger"; ai_readies: Covers The Approach|Waits For The Hidden
+- Settings: class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; spellcasting_stat: Mindfulness; half_caster: true; resist_wind: -50; resist_poison: 50; ai_function: "ai_ranger"; ai_readies: Covers The Approach|Waits For The Hidden|Protects Its Own
 
 ### Rat (`rat`)
 
@@ -2103,6 +2103,10 @@ Sorted the way the game's folders sort them: common to the party, each character
 ### Bell (`bell`)
 
 - Settings: set_off_line: "The bell tolls!"; stagger: 40.0; blast_radius: 2; blast_condition: Deafened (deafened); blast_hits: The Enemies; glossary_text: "An old iron bell. Use it from beside it: its toll staggers the Bellkeeper, and leaves its own side deafened. It rings once."; max_hp: 10; max_hp_level_20: 10
+
+### Cracked Wall (`breakable_wall`)
+
+- Settings: interactable: false; breakable: true; wall: true; glossary_text: "A wall with a crack through it. A spell or a bomb brings it down - or Enfina's strength - and nothing else does."; max_hp: 30; max_hp_level_20: 30
 
 ### Carrion Heap (`carrion_heap`)
 
@@ -2434,10 +2438,21 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
 ## Moves outside a fight, Phases 2 and 3 (2026-10-29; implemented)
 
 - Each skill has an **Outside Use** (the plan's table; Automatic reads it from its effects). On a watched map: Flash strikes a guard blind (12 s), Dread Visage and Intimidate scare him off (15 s), Bewilder sets him wandering (20 s) - seeing nothing all the while; Study and Intuition learn his round; Dispel Magic and InstaHack still a ward or magic sensor (60 s). All PROPOSAL test values.
-- A **damaging move** at an unaware guard in its reach springs an ambush; the move lands before the first turn, free (PROPOSAL - the designer left it open). With nobody to spring on, it knocks down a breakable wall in reach (any damage; loud).
+- A **damaging move** at an unaware guard in its reach springs an ambush; the move lands before the first turn, free (PROPOSAL - the designer left it open). With nobody to spring on, it knocks down a breakable wall in reach - only a spell, an item or Enfina's strength (the designer, 2026-10-29); loud.
 - Blink (Hermes Step, Mist Step, Cover Leap) steps the party ahead over anything; Fly (Hover, Climb) for 20 s over barrels; Lures (Phantom Body, Mass Mirage, Reality's Reflection, Kindled Hound) draw guards ahead; Illusory Cover and Stealth make cover for 60 s; Snare and Tripwire lay a trap that drops a guard.
-- A move with no gate waits 30 s before it can be used again out of a fight (PROPOSAL).
+- No cooldown on gateless moves out of a fight, and no Run (sprint) out of one (the designer, 2026-10-29).
+- InstaHack only answers a magical trap as it goes off, by a quick time event (the designer, 2026-10-29).
 - **Find Familiar** works on any map now; E while steering sends it to Alithia's shoulder, where it rides along; the first casting after a long rest is free (the designer, 2026-10-29).
+
+## Readies, walls, co-op and pings (2026-10-29; implemented)
+
+- **Ready for the player** in fights (the HUD's Ready) and on maps; a new trigger, "a chosen target in sight is hit". On a map a readied move is lost once whoever readied it loses sight of what it waits for.
+- **The area trigger is a great cone** out of whoever readied it, 12 tiles long (PROPOSAL), over what they see past the walls; it fires at whoever steps in, past the move's own reach.
+- **Breakable walls are walls** until broken: nobody sees past one however big, it is cover, and only a wall-breaking blow is aimed at it. They stand in fights too.
+- **Smarter enemy readies** (PROPOSAL): the move worth most against whoever is likely to set it off; casters only when in reach; the cone down the party's way in, never over them; Protects Its Own on the Ranger and the Hired Bow.
+- **Stay Here** leaves the leader where they stand; the next not staying leads.
+- **Local co-op, two players**: whom each steers is saved; a group each, one camera, a 10-tile leash (PROPOSAL); turns, menus and conversations go to whoever's they are; a player left steering nobody is offered the party to share out. **Pings** for the other player.
+- **Not built**: the seeded fight RNG (explained, waiting on the designer), LAN and online.
 
 ## Known near-twins among the spells
 

@@ -991,8 +991,8 @@ func ready_refusal(key: String, move: String, trigger: int, centre: Vector2i = N
 	if trigger == SkillDefinition.Trigger.ENTERS_AREA:
 		if centre == NO_TILE:
 			return "Choose where the area goes"
-		if absi(centre.x - from.x) + absi(centre.y - from.y) > maxi(skill.max_range, 1):
-			return "That is beyond the reach of %s" % skill.name
+		if centre == from:
+			return "Point it away from %s" % _display_name(key)
 		if not sight.clear(from, centre):
 			return "%s can't see there" % _display_name(key)
 	if trigger == SkillDefinition.Trigger.HIT_IN_SIGHT:
@@ -1016,15 +1016,13 @@ func ready_outside(key: String, move: String, trigger: int, centre: Vector2i = N
 		paid = OutsideMoves.pay(key, skill)
 	var area := {}
 	if trigger == SkillDefinition.Trigger.ENTERS_AREA:
-		for dx in range(-READY_AREA_TILES, READY_AREA_TILES + 1):
-			for dy in range(-READY_AREA_TILES, READY_AREA_TILES + 1):
-				if absi(dx) + absi(dy) <= READY_AREA_TILES:
-					area[centre + Vector2i(dx, dy)] = true
+		var party = scene.get("party")
+		area = ready_cone(tile_of(party.sprite_for(key).global_position), centre)
 	readied_outside[key] = {"move": move, "trigger": trigger, "centre": centre, "area": area, "watched": watched,
 		"near": _guards_in_reach(key, skill)}
 	readied_outside[key]["inside"] = _guards_in(area)
 	var when: String = {SkillDefinition.Trigger.ENTERS_REACH: "a guard steps into its reach",
-		SkillDefinition.Trigger.ENTERS_AREA: "a guard steps into the marked area",
+		SkillDefinition.Trigger.ENTERS_AREA: "a guard steps into the cone",
 		SkillDefinition.Trigger.HIT_IN_SIGHT: "%s is hit" % (_name_of(watched) if watched != null else "")}[trigger]
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color] readies %s%s - for when %s.\n" % [_display_name(key), skill.name, OutsideMoves.paid_through(paid), when])
@@ -1032,9 +1030,24 @@ func ready_outside(key: String, move: String, trigger: int, centre: Vector2i = N
 	return true
 
 
-## How far round its middle a readied area watches, in tiles (a diamond) - as
-## in a fight.
-const READY_AREA_TILES := 2
+## A readied area is a great cone out of whoever readied it, towards where they
+## pointed, over what they see from there (the designer, 2026-10-29) - as in a
+## fight (Combat.READY_CONE_TILES): tile -> true.
+func ready_cone(from: Vector2i, towards: Vector2i) -> Dictionary:
+	var cone := {}
+	var delta := towards - from
+	var way := (Vector2i.RIGHT if delta.x >= 0 else Vector2i.LEFT) if absi(delta.x) >= absi(delta.y) \
+		else (Vector2i.DOWN if delta.y >= 0 else Vector2i.UP)
+	var across := Vector2i(-way.y, way.x)
+	for step in range(1, Combat.READY_CONE_TILES + 1):
+		for offset in range(-(step - 1), step):
+			var tile := from + way * step + across * offset
+			if not sight.stops_sight(tile) and sight.clear(from, tile):
+				cone[tile] = true
+	# Whatever way it leans, the tile pointed at is in it.
+	if towards != from and not sight.stops_sight(towards) and sight.clear(from, towards):
+		cone[towards] = true
+	return cone
 
 
 ## Lets `key`'s readied move go, saying why.
@@ -1141,15 +1154,32 @@ func guard_hit(guard, by: String = ""):
 func mark_ready_area(key: String, move: String):
 	marking_ready = {"key": key, "move": move}
 	if scene.has_method("log_message"):
-		scene.log_message("Click where the area goes - %s to stop.\n" % Pad.key(&"ui_cancel"))
+		scene.log_message("Click which way the cone points - %s to stop.\n" % Pad.key(&"ui_cancel"))
 
 
 func _draw_readied():
-	var half := Vector2(Grid.HALF_TILE)
 	for key in readied_outside:
-		for tile in readied_outside[key].area:
-			var centre = to_local(_tile_map.to_global(_tile_map.map_to_local(tile)))
-			draw_rect(Rect2(centre - half, half * 2.0), READIED_EDGE, false, 6.0)
+		_draw_cone(readied_outside[key].area)
+	# The cone being pointed, while the click that marks it is waited for.
+	if not marking_ready.is_empty():
+		var party = scene.get("party")
+		var sprite = party.sprite_for(marking_ready.key) if party != null else null
+		if sprite != null:
+			var from := tile_of(sprite.global_position)
+			var at := tile_of(_world_at(get_viewport().get_mouse_position()))
+			if at != from:
+				_draw_cone(ready_cone(from, at))
+
+
+const READIED_FILL := Color(0.62, 0.45, 0.95, 0.16)
+
+
+func _draw_cone(area: Dictionary):
+	var half := Vector2(Grid.HALF_TILE)
+	for tile in area:
+		var centre = to_local(_tile_map.to_global(_tile_map.map_to_local(tile)))
+		draw_rect(Rect2(centre - half, half * 2.0), READIED_FILL)
+		draw_rect(Rect2(centre - half, half * 2.0), READIED_EDGE, false, 3.0)
 
 
 ## A breakable wall gone (ExplorationScene.break_wall): seen through again.
@@ -2758,6 +2788,9 @@ func _unhandled_input(event):
 		# Whose round to show, if it is known.
 		_hovered = _guard_on(tile_of(_world_at(event.position)))
 	if not marking_ready.is_empty():
+		if event is InputEventMouseMotion:
+			# The cone follows the pointer until the click lays it.
+			queue_redraw()
 		if event is InputEventMouseButton and event.pressed:
 			get_viewport().set_input_as_handled()
 			var hold := marking_ready

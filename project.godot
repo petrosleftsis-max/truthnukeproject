@@ -34,6 +34,8 @@ Journal="*res://ui/journal.gd"
 Hacking="*res://hacking/Hacking.gd"
 QuickTime="*res://quicktime/QuickTime.gd"
 Pad="*res://control/Pad.gd"
+Coop="*res://multiplayer/Coop.gd"
+Pings="*res://multiplayer/Pings.gd"
 
 [dialogue_manager]
 
@@ -241,6 +243,12 @@ outside_spell={
 hide_ui={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":85,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+, Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"button_index":15,"pressure":0.0,"pressed":false,"script":null)
+]
+}
+ping={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":90,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 , Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"button_index":15,"pressure":0.0,"pressed":false,"script":null)
 ]
 }

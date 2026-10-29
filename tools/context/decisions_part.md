@@ -313,10 +313,21 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
 ## Moves outside a fight, Phases 2 and 3 (2026-10-29; implemented)
 
 - Each skill has an **Outside Use** (the plan's table; Automatic reads it from its effects). On a watched map: Flash strikes a guard blind (12 s), Dread Visage and Intimidate scare him off (15 s), Bewilder sets him wandering (20 s) - seeing nothing all the while; Study and Intuition learn his round; Dispel Magic and InstaHack still a ward or magic sensor (60 s). All PROPOSAL test values.
-- A **damaging move** at an unaware guard in its reach springs an ambush; the move lands before the first turn, free (PROPOSAL - the designer left it open). With nobody to spring on, it knocks down a breakable wall in reach (any damage; loud).
+- A **damaging move** at an unaware guard in its reach springs an ambush; the move lands before the first turn, free (PROPOSAL - the designer left it open). With nobody to spring on, it knocks down a breakable wall in reach - only a spell, an item or Enfina's strength (the designer, 2026-10-29); loud.
 - Blink (Hermes Step, Mist Step, Cover Leap) steps the party ahead over anything; Fly (Hover, Climb) for 20 s over barrels; Lures (Phantom Body, Mass Mirage, Reality's Reflection, Kindled Hound) draw guards ahead; Illusory Cover and Stealth make cover for 60 s; Snare and Tripwire lay a trap that drops a guard.
-- A move with no gate waits 30 s before it can be used again out of a fight (PROPOSAL).
+- No cooldown on gateless moves out of a fight, and no Run (sprint) out of one (the designer, 2026-10-29).
+- InstaHack only answers a magical trap as it goes off, by a quick time event (the designer, 2026-10-29).
 - **Find Familiar** works on any map now; E while steering sends it to Alithia's shoulder, where it rides along; the first casting after a long rest is free (the designer, 2026-10-29).
+
+## Readies, walls, co-op and pings (2026-10-29; implemented)
+
+- **Ready for the player** in fights (the HUD's Ready) and on maps; a new trigger, "a chosen target in sight is hit". On a map a readied move is lost once whoever readied it loses sight of what it waits for.
+- **The area trigger is a great cone** out of whoever readied it, 12 tiles long (PROPOSAL), over what they see past the walls; it fires at whoever steps in, past the move's own reach.
+- **Breakable walls are walls** until broken: nobody sees past one however big, it is cover, and only a wall-breaking blow is aimed at it. They stand in fights too.
+- **Smarter enemy readies** (PROPOSAL): the move worth most against whoever is likely to set it off; casters only when in reach; the cone down the party's way in, never over them; Protects Its Own on the Ranger and the Hired Bow.
+- **Stay Here** leaves the leader where they stand; the next not staying leads.
+- **Local co-op, two players**: whom each steers is saved; a group each, one camera, a 10-tile leash (PROPOSAL); turns, menus and conversations go to whoever's they are; a player left steering nobody is offered the party to share out. **Pings** for the other player.
+- **Not built**: the seeded fight RNG (explained, waiting on the designer), LAN and online.
 
 ## Known near-twins among the spells
 

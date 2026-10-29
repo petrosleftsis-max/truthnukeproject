@@ -80,21 +80,22 @@ func open(tile: Vector2i) -> bool:
 	return not combat.controller.is_tile_blocking(tile, 0) and combat.get_combatant_at(tile).is_empty()
 
 
-## Somewhere `comb` could mark an area with a move reaching `reach`: its middle
-## in sight, an edge tile in sight and a free tile just past it to step in from
-## - [middle, edge, past], or [] when there is nowhere.
-func area_spot(comb: Dictionary, reach: int) -> Array:
-	for dx in range(-reach, reach + 1):
-		for dy in range(-reach, reach + 1):
-			var middle: Vector2i = comb.position + Vector2i(dx, dy)
-			var gap: int = combat.distance_to(comb, middle)
-			if gap < 2 or gap > reach or not open(middle) or not combat.sees_tile(comb, middle):
+## A way `comb` could point a readied cone, with a free tile in it and a free
+## one just outside it to step in from - [aim, inside, outside], or [] when
+## there is nowhere.
+func cone_spot(comb: Dictionary) -> Array:
+	for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+		var aim: Vector2i = comb.position + way * 2
+		if not combat.controller.is_on_map(aim):
+			continue
+		var cone: Array = combat.ready_area(comb, aim)
+		for tile in cone:
+			if not open(tile) or combat.distance_to(comb, tile) < 3 or not combat.sees_tile(comb, tile):
 				continue
 			for step in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
-				var edge: Vector2i = middle + step * 4
-				var past: Vector2i = middle + step * 5
-				if open(edge) and open(past) and combat.sees_tile(comb, edge):
-					return [middle, edge, past]
+				var past: Vector2i = tile + step
+				if open(past) and not cone.has(past):
+					return [aim, tile, past]
 	return []
 
 
@@ -281,36 +282,27 @@ func run_test():
 	ok(ranged != "", "Prometheus has a World spell that reaches", ranged)
 	ok(combat.ready_refusal(prometheus, "greatsword_attack", Trigger.TARGETED) != "", "nobody readies what they don't know")
 	ok(combat.ready_refusal(prometheus, ranged, Trigger.ENTERS_AREA) != "", "an area needs a place")
-	ok(combat.ready_refusal(prometheus, ranged, Trigger.ENTERS_AREA, prometheus.position + Vector2i(40, 0)) != "",
-		"and a place within the move's reach")
-	# An area he can see the middle of, with an edge tile he can see and a free
-	# tile just past it to step in from.
-	var centre: Vector2i = combat.NO_AREA
-	var inside := Vector2i.ZERO
-	var outside := Vector2i.ZERO
-	var reach: int = combat.effective_max_range(prometheus, SkillDatabase.skills[ranged])
-	for dx in range(-reach, reach + 1):
-		for dy in range(-reach, reach + 1):
-			var middle: Vector2i = prometheus.position + Vector2i(dx, dy)
-			var gap: int = combat.distance_to(prometheus, middle)
-			if centre != combat.NO_AREA or gap < 2 or gap > reach or not open(middle) or not combat.sees_tile(prometheus, middle):
-				continue
-			for step in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
-				var edge: Vector2i = middle + step * 4
-				var past: Vector2i = middle + step * 5
-				if open(edge) and open(past) and combat.sees_tile(prometheus, edge):
-					centre = middle
-					inside = edge
-					outside = past
-					break
-	ok(combat.ready_refusal(prometheus, ranged, Trigger.ENTERS_AREA, centre) == "", "an area in sight and in reach can be marked", "%s" % centre)
+	ok(combat.ready_refusal(prometheus, ranged, Trigger.ENTERS_AREA, prometheus.position) != "", "and a way to point it, off himself")
+	# A way to point his cone, with a tile in it to step into from one outside.
+	var spot := cone_spot(prometheus)
+	ok(not spot.is_empty(), "(a way to point it, and a way in)")
+	var centre: Vector2i = spot[0] if not spot.is_empty() else combat.NO_AREA
+	var inside: Vector2i = spot[1] if not spot.is_empty() else Vector2i.ZERO
+	var outside: Vector2i = spot[2] if not spot.is_empty() else Vector2i.ZERO
+	ok(combat.ready_refusal(prometheus, ranged, Trigger.ENTERS_AREA, centre) == "", "a cone pointed his way can be readied", "%s" % centre)
+	var raw: Array = combat.get_cone_tiles(prometheus.position, centre, Combat.READY_CONE_TILES)
 	var worlds: int = prometheus.spell_slots[1]
-	ok(combat.ready_action(prometheus, ranged, Trigger.ENTERS_AREA, centre), "readied, watching an area 4 tiles round", "%s" % centre)
+	ok(combat.ready_action(prometheus, ranged, Trigger.ENTERS_AREA, centre), "readied, watching a great cone that way", "%s" % centre)
 	ok(prometheus.spell_slots[1] == worlds - 1, "a World spent there and then", "%s" % [prometheus.spell_slots])
 	ok(prometheus.skill_used_this_turn, "and his main action")
 	var area: Array = prometheus.readied.area
-	ok(area.has(centre) and area.has(centre + Vector2i(4, 0)) and not area.has(centre + Vector2i(3, 2)) and area.size() <= 41,
-		"a diamond, 4 out", "%d tiles" % area.size())
+	var walls = Combat._SightGrid.new(combat.controller, [])
+	ok(area.any(func(tile): return combat.distance_to(prometheus, tile) >= 6), "%d tiles, out past the move's own reach" % area.size())
+	ok(area.all(func(tile): return raw.has(tile) and walls.clear(prometheus.position, tile, 0, Sizes.Size.HUMAN)),
+		"  a cone, and nothing in it he can't see past the walls")
+	var hidden_by_walls := raw.filter(func(tile): return combat.controller.is_on_map(tile) and not walls.clear(prometheus.position, tile, 0, Sizes.Size.HUMAN))
+	ok(not hidden_by_walls.any(func(tile): return area.has(tile)), "  it respects blocking: what is round a wall is left out",
+		"%d left out" % hidden_by_walls.size())
 	ok(combat.ready_refusal(prometheus, ranged, Trigger.TARGETED) != "", "one thing readied at a time")
 	enfina.skill_used_this_turn = false
 	ok(combat.ready_refusal(enfina, "greatsword_attack", Trigger.ENTERS_AREA, free_near(enfina, 1)) != "",
@@ -418,16 +410,15 @@ func run_test():
 	log_line("======== a heal readied for allies stepping into an area ========")
 	fresh_round()
 	alithia.spell_slots = [0, 4, 3, 3, 0, 0, 0, 0, 0, 0, 0]
-	var heal_reach: int = combat.effective_max_range(alithia, SkillDatabase.skills["heal"])
-	var spot := area_spot(alithia, heal_reach)
-	ok(not spot.is_empty(), "somewhere for her to mark", "%s" % [spot])
-	if not spot.is_empty():
-		ok(combat.ready_refusal(alithia, "heal", Trigger.ENTERS_AREA, spot[0]) != "", "a heal can't watch an area for enemies")
-		ok(combat.ready_action(alithia, "heal", Trigger.ENTERS_AREA, spot[0], SkillDefinition.SetOffBy.ALLIES),
+	var heal_spot := cone_spot(alithia)
+	ok(not heal_spot.is_empty(), "somewhere for her to mark", "%s" % [heal_spot])
+	if not heal_spot.is_empty():
+		ok(combat.ready_refusal(alithia, "heal", Trigger.ENTERS_AREA, heal_spot[0]) != "", "a heal can't watch an area for enemies")
+		ok(combat.ready_action(alithia, "heal", Trigger.ENTERS_AREA, heal_spot[0], SkillDefinition.SetOffBy.ALLIES),
 			"but can for allies")
 		cyrus.hp = 900
-		put(cyrus, spot[1])
-		await combat.check_reactive_skills(cyrus, spot[2], spot[1])
+		put(cyrus, heal_spot[1])
+		await combat.check_reactive_skills(cyrus, heal_spot[2], heal_spot[1])
 		await settle()
 		ok(not alithia.has("readied") and cyrus.hp > 900, "Cyrus steps in, and is healed", "%d" % cyrus.hp)
 	log_line("")
@@ -663,15 +654,15 @@ func enemies_ready():
 			"barbarian":
 				if barbarian.is_empty():
 					barbarian = comb
-	ok(CombatantDatabase.combatants["ranger"].ai_readies == 9 and CombatantDatabase.combatants["rat"].ai_readies == 2,
-		"switched on per creature: the Ranger covers the approach and waits for the hidden, the Rat guards")
+	ok(CombatantDatabase.combatants["ranger"].ai_readies == 25 and CombatantDatabase.combatants["rat"].ai_readies == 2,
+		"switched on per creature: the Ranger covers the approach, waits for the hidden and protects its own, the Rat guards")
 	var prometheus = who("prometheus")
 	prometheus.spell_slots = [0, 4, 3, 3, 0, 0, 0, 0, 0, 0, 0]
 	if not sorcerer.is_empty():
 		sorcerer.spell_slots = [0, 4, 3, 3, 0, 0, 0, 0, 0, 0, 0]
 		# Clear of whoever else stands between them.
 		put(sorcerer, free_near(prometheus, 6, true))
-		ok(combat._ai_caster_in_sight(sorcerer), "the Sorcerer sees Prometheus, who casts")
+		ok(not combat._ai_casters_in_sight(sorcerer).is_empty(), "the Sorcerer sees Prometheus, who casts")
 		ending(sorcerer)
 		ok(sorcerer.get("readied", {}).get("trigger", 0) == Trigger.CASTS, "and readies for when he does",
 			"%s" % [sorcerer.get("readied", {})])
@@ -706,6 +697,50 @@ func enemies_ready():
 			ok(combat.threat_map().reaction.has(readied.centre), "and the danger view marks the area")
 		else:
 			log_line("  NOTE  nowhere in sight on the way to %s for the Ranger to cover: %s" % [nearest.get("name", "nobody"), readied])
+		ranger.erase("readied")
+	log_line("")
+
+	log_line("======== smarter readies ========")
+	if not sorcerer.is_empty():
+		sorcerer.spell_slots = [0, 4, 3, 3, 0, 0, 0, 0, 0, 0, 0]
+		var longest := 0
+		for key in sorcerer.skill_list:
+			var skill: SkillDefinition = SkillDatabase.skills.get(key)
+			if skill != null and combat._hostile(skill):
+				longest = maxi(longest, combat.effective_max_range(sorcerer, skill))
+		put(prometheus, free_near(sorcerer, longest + 3, true))
+		# Nobody else of the party who casts, to be within its reach.
+		var kept := {}
+		for comb in combat.combatants:
+			if comb.side == 0 and comb != prometheus and comb.has("spell_slots"):
+				kept[comb.id] = comb.spell_slots.duplicate()
+				comb.spell_slots = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+		if combat.sees_tile(sorcerer, prometheus.position, prometheus) and combat.distance_to(sorcerer, prometheus.position) > longest:
+			ending(sorcerer)
+			ok(sorcerer.get("readied", {}).get("trigger", 0) != Trigger.CASTS,
+				"a caster in sight but past every reach: nothing is readied for his casting", "%s" % [sorcerer.get("readied", {})])
+		else:
+			log_line("  NOTE  nowhere in sight past the Sorcerer's reach to put Prometheus")
+		for comb in combat.combatants:
+			if kept.has(comb.get("id", -1)):
+				comb.spell_slots = kept[comb.id]
+		sorcerer.erase("readied")
+	if not ranger.is_empty() and not barbarian.is_empty():
+		var cyrus = who("cyrus")
+		put(barbarian, free_near(ranger, 3, true))
+		# Beside the barbarian, on the far side from the Ranger's eye.
+		for step in [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+			if open(barbarian.position + step):
+				put(cyrus, barbarian.position + step)
+				if combat.sees_tile(ranger, barbarian.position, barbarian):
+					break
+		fresh_round()
+		ranger.erase("readied")
+		ok(combat._ai_protect_ready(ranger), "Protects Its Own: the Ranger readies over the Barbarian, Cyrus beside him",
+			"%s" % [ranger.get("readied", {})])
+		var watching: Dictionary = ranger.get("readied", {})
+		ok(watching.get("trigger", 0) == Trigger.HIT_IN_SIGHT and watching.get("watched", -1) == barbarian.id,
+			"  for when he is hit", "%s" % [watching])
 		ranger.erase("readied")
 	log_line("")
 

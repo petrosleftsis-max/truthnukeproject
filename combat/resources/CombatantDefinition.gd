@@ -311,14 +311,19 @@ class_name CombatantDefinition
 ## When the AI readies a move ("Ready" - Combat "Readying, for the AI"), if at
 ## all: only with nothing it could hit this turn, and never with its last
 ## casting of a gate.
-##   Covers The Approach - something ranged watching an area on the way the
-##     party comes, so walking up to it costs them.
-##   Guards Its Post - stays put rather than chase: an area over the thing on
+##   Covers The Approach - something ranged watching a cone down the way the
+##     party comes (nobody in it yet), so walking up to it costs them; else
+##     its reach.
+##   Guards Its Post - stays put rather than chase: a cone over the thing on
 ##     the map beside it (a bell) or the tile it started on, or its own reach.
-##   Counters Casters - with somebody who casts in sight: ready for when they do.
+##   Counters Casters - with somebody who casts in sight and in reach: ready for
+##     when they do.
 ##   Waits For The Hidden - with somebody of the party out of sight: ready for
 ##     whoever steps into its reach.
-@export_flags("Covers The Approach", "Guards Its Post", "Counters Casters", "Waits For The Hidden") var ai_readies: int = 0
+##   Protects Its Own - the ally of its in sight most at risk watched: whoever
+##     hits them is hit back (appended; the designer's "smarter readies",
+##     2026-10-29 - PROPOSAL).
+@export_flags("Covers The Approach", "Guards Its Post", "Counters Casters", "Waits For The Hidden", "Protects Its Own") var ai_readies: int = 0
 
 
 ## Health at `level`: Max Hp at level 1, Max Hp Level 20 at the top level, and the

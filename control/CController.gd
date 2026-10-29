@@ -658,6 +658,9 @@ func blocks_sight(tile: Vector2i, viewer_size: int = Sizes.Size.HUMAN, looking_a
 		# it decides what to do (Combat.believes_illusion, "Images").
 		if standing.get("illusion", false) and not combat.believes_illusion(standing):
 			continue
+		# A breakable wall standing is a wall to anybody, however big.
+		if Combat.is_wall(standing):
+			return true
 		if not combat.is_hidden(standing) and standing.get("size", Sizes.Size.HUMAN) > viewer_size - 2:
 			return true
 	return false
@@ -1391,6 +1394,8 @@ func set_controlled_combatant(combatant: Dictionary):
 		_point_pad_at.call_deferred(combatant)
 	else:
 		player_turn = false
+	# In co-op the board is theirs alone whose character this is (Coop).
+	Coop.fight_turn(combat.player_of(combatant) if player_turn else Coop.ANYONE)
 	controlled_node = combatant.sprite
 	movement = maxi(combat.get_effective_stat(combatant, "movement"), 0)
 	if combat.has_restriction(combatant, "prevents_movement"):
@@ -2856,6 +2861,9 @@ func _note_hover(tile: Vector2i):
 	_hover_tile = tile
 	if combat != null and not combat.part_marks().is_empty():
 		queue_redraw()
+	elif combat != null and combat.game_ui != null and combat.game_ui.get("_ready_marking") is Dictionary \
+			and not combat.game_ui.get("_ready_marking").is_empty():
+		queue_redraw()
 
 
 ## Each part tinted in its colour (PART_COLOURS) and named on the board; the
@@ -3053,6 +3061,10 @@ func _draw():
 			# and it goes off.
 			if comb.alive and not comb.get("readied", {}).get("area", []).is_empty():
 				_draw_area(comb.readied.area, READIED_AREA_FILL, READIED_AREA_EDGE, INTENT_WIDTH)
+		# The cone being pointed, while a readied area is marked (the HUD's).
+		var marking = combat.game_ui.get("_ready_marking") if combat.game_ui != null else null
+		if marking is Dictionary and not marking.is_empty() and _hover_tile != Vector2i(-99999, -99999):
+			_draw_area(combat.ready_area(marking.comb, _hover_tile), READIED_AREA_FILL, READIED_AREA_EDGE, INTENT_WIDTH)
 		# What Intuition read: the blow's tiles filled, the tile they will stand
 		# on outlined, and a line from where they are to it.
 		for mark in combat.intent_marks():

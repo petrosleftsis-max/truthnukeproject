@@ -48,7 +48,7 @@ func options() -> Array:
 	var watch = scene.stealth
 	var found := [
 		{"name": "EntersReach", "text": "A guard steps into its reach", "trigger": SkillDefinition.Trigger.ENTERS_REACH, "watched": null},
-		{"name": "EntersArea", "text": "A guard steps into an area you mark", "trigger": SkillDefinition.Trigger.ENTERS_AREA, "watched": null},
+		{"name": "EntersArea", "text": "A guard steps into a cone you point", "trigger": SkillDefinition.Trigger.ENTERS_AREA, "watched": null},
 	]
 	for guard in watch.guards:
 		if is_instance_valid(guard) and guard.visible and watch.ready_refusal(key, move, SkillDefinition.Trigger.HIT_IN_SIGHT, StealthWatch.NO_TILE, guard) == "":

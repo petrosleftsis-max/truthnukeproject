@@ -89,6 +89,13 @@ func _build_grid():
 			_grid.set_point_solid(tile, not _walkable(tile))
 
 
+## Looks at `tile` again - a breakable wall knocked down there opens it to
+## everybody's routes, the guards' included.
+func refresh_tile(tile: Vector2i):
+	if _grid != null and _grid.region.has_point(tile):
+		_grid.set_point_solid(tile, not _walkable(tile))
+
+
 func _walkable(tile: Vector2i) -> bool:
 	if _scene == null or not _scene.has_method("is_walkable"):
 		return true

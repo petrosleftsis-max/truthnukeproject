@@ -1,9 +1,24 @@
-# Multiplayer - the plan (PROPOSAL)
+# Multiplayer - the plan
 
 The designer's request of 2026-10-29: each player chooses which characters they
 control; everyone moves on the same map at the same time in exploration;
-dialogues are synced. Local co-op first, then LAN and online. Nothing here is
-built; the designer decides first.
+dialogues are synced. Local co-op first, then LAN and online.
+
+## Where it stands (2026-10-29)
+
+- **Built: local co-op, two players at most** (the designer: "up to two
+  players"). `multiplayer/Coop.gd`, `ui/players_panel.gd`, CLAUDE.md "Co-op".
+  Players join on the title screen or from the pause menu; each picks whom they
+  steer; a walking group each, one camera, a leash; fight turns, menus and
+  conversations go to whoever's they are; a player left steering nobody is
+  offered the party to share out again. Pings (`multiplayer/Pings.gd`).
+- **Not built: the seeded fight RNG** - the designer asked for it to be
+  explained first. See "Randomness" below.
+- **Not built: LAN.** Its fights depend on the RNG decision: either every
+  machine replays the fight from the moves made (needs the seeded RNG), or the
+  host plays every fight and sends the results (no RNG, more to send, clients
+  wait on the host for everything they see).
+- **Not built: online** (WebRTC, a relay, or Steam) - not asked for yet.
 
 ## What the game is built on now, and what that means
 
@@ -23,9 +38,15 @@ built; the designer decides first.
 - **Combat is turn-based** and every action goes through
   `use_skill(skill, attacker, tile)`. That is a clean seam for sending actions
   between machines.
-- **Randomness:** Combat makes 13 calls to the global RNG (`randf`/`randi`).
-  Combat results could be replayed identically on every machine, with a shared
-  seed, if all randomness went through one seeded `RandomNumberGenerator`.
+- **Randomness:** Combat makes 13 calls to the global RNG (`randf`/`randi`):
+  the hit roll, contests, damage and heal ranges, which way a wind blows, the
+  AI's coin flips, a line an enemy says. Each machine's global RNG is seeded
+  differently, so two machines playing the same fight from the same moves roll
+  differently and drift apart. A seeded `RandomNumberGenerator` that every roll
+  goes through, with the same seed sent to every machine at the start of the
+  fight, makes the rolls - and so the whole fight - come out the same
+  everywhere. It changes nothing for one player: rolls stay random, because the
+  seed itself is random each fight. (Not built - waiting on the designer.)
 - **Real-time stealth** (guards seeing and filling meters every frame) cannot be
   replayed identically on several machines. One machine has to run it and
   send the results.
@@ -128,6 +149,12 @@ with different device numbers.
 2. Can players split up on a map, or even go to different maps?
 3. Dialogue: who chooses - whoever started it, the host, or a vote?
 4. Menus in multiplayer: hold the game for everyone, or let the world go on?
-5. How many players: 2, or up to 4 (one per character)?
+5. How many players: 2, or up to 4 (one per character)? **Answered: two.**
 6. Online: desktop only, the itch.io browser build too, or Steam?
 7. A player who leaves mid-fight: do the AI or the host take their characters?
+8. LAN fights: replay them on every machine (the seeded RNG), or let the host
+   play every fight and send the results?
+
+Built as defaults until answered (PROPOSAL): 1 a shared zooming camera with a
+leash; 2 together on one map; 3 whoever started it; 4 hold the game for
+everyone, the menu theirs alone.

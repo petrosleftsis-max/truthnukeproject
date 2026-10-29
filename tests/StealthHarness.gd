@@ -122,6 +122,8 @@ func close_map(m: Dictionary):
 		if node.scene_file_path == BALLOON:
 			node.queue_free()
 	m.scene.queue_free()
+	# As a scene change does (SceneTransition): whatever held the game goes with it.
+	MenuPause.clear(get_tree())
 	await settle()
 	Engine.time_scale = 1.0
 	log_line("")

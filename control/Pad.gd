@@ -124,6 +124,9 @@ var layout := "xbox"
 ## screenshot runs, which must leave the mouse of whoever is at the computer
 ## alone; everything else the pointer does still happens.
 var warps := true
+## The pad whose stick moved the pointer last - whose its mouse events are, to
+## Coop, which in co-op lets only the player with the focus point.
+var pointer_pad := 0
 
 var _point := Vector2.ZERO
 var _last_mode := Mode.MENU
@@ -205,13 +208,19 @@ func point_at(at: Vector2):
 ## device in use - "E" or "A", "Space" or "Y" - or `otherwise` when none has.
 ## For the mouse's half of things, which is no action: "Left click".
 func key(actions, otherwise: String = "") -> String:
+	return key_on(using_pad, actions, otherwise)
+
+
+## key(), for the keyboard (`pad` false) or a pad - for a co-op player's own
+## device, whichever was used last.
+func key_on(pad: bool, actions, otherwise: String = "") -> String:
 	if actions is String or actions is StringName:
 		actions = [actions]
 	for action in actions:
 		if not InputMap.has_action(action):
 			continue
 		for event in InputMap.action_get_events(action):
-			var named := _name_of(event)
+			var named := _name_of(event, pad)
 			if named != "":
 				return named
 	return otherwise
@@ -224,8 +233,8 @@ func hint(text: String, actions, otherwise: String = "") -> String:
 	return text if named == "" else "%s (%s)" % [text, named]
 
 
-func _name_of(event: InputEvent) -> String:
-	if using_pad:
+func _name_of(event: InputEvent, pad: bool) -> String:
+	if pad:
 		if event is InputEventJoypadButton:
 			if DPAD.has(event.button_index):
 				return "D-pad " + DPAD[event.button_index]
@@ -327,10 +336,12 @@ func _notice(event: InputEvent):
 	if event is InputEventMouse and event.device == POINTER_DEVICE:
 		return
 	if event is InputEventJoypadButton:
-		if event.pressed:
+		if event.pressed and _may_point(event.device):
+			pointer_pad = event.device
 			_use(true, event.device)
 	elif event is InputEventJoypadMotion:
-		if absf(event.axis_value) >= WAKE:
+		if absf(event.axis_value) >= WAKE and _may_point(event.device):
+			pointer_pad = event.device
 			_use(true, event.device)
 	elif event is InputEventKey:
 		if event.pressed:
@@ -572,8 +583,8 @@ func _keyboard_menu() -> bool:
 
 ## Which way the sticks that move the pointer here are pushed.
 func _stick(now: Mode) -> Vector2:
-	var left := Input.get_vector(&"pointer_left", &"pointer_right", &"pointer_up", &"pointer_down")
-	var right := Input.get_vector(&"look_left", &"look_right", &"look_up", &"look_down")
+	var left := _vector(&"pointer_left", &"pointer_right", &"pointer_up", &"pointer_down")
+	var right := _vector(&"look_left", &"look_right", &"look_up", &"look_down")
 	if now == Mode.PICTURE:
 		return (left + right).limit_length(1.0)
 	return right
@@ -584,11 +595,11 @@ func _stick(now: Mode) -> Vector2:
 ## the eight ways the D-pad does, whichever its angle is nearest.
 func _step_tiles(board: Node, delta: float):
 	var way := Vector2i(
-		int(Input.is_action_pressed(&"tile_right")) - int(Input.is_action_pressed(&"tile_left")),
-		int(Input.is_action_pressed(&"tile_down")) - int(Input.is_action_pressed(&"tile_up")))
+		int(_held(&"tile_right")) - int(_held(&"tile_left")),
+		int(_held(&"tile_down")) - int(_held(&"tile_up")))
 	var every := STEP_EVERY
 	if way == Vector2i.ZERO:
-		var stick := Input.get_vector(&"pointer_left", &"pointer_right", &"pointer_up", &"pointer_down")
+		var stick := _vector(&"pointer_left", &"pointer_right", &"pointer_up", &"pointer_down")
 		if stick.length() >= STICK_STEP:
 			var eighth := roundi(stick.angle() / (PI / 4.0))
 			way = Vector2i(roundi(cos(eighth * PI / 4.0)), roundi(sin(eighth * PI / 4.0)))
@@ -606,6 +617,41 @@ func _step_tiles(board: Node, delta: float):
 		_step_wait = every
 	_idle = 0.0
 	board.pad_tile_step(way)
+
+
+## --- In co-op, only the pad of whoever has the focus points (Coop) ---
+
+
+## Whether pad `device` may drive the pointer now.
+func _may_point(device: int) -> bool:
+	var coop = get_node_or_null("/root/Coop")
+	if coop == null:
+		return true
+	var allowed: int = coop.pointer_device()
+	return allowed == coop.ANY_DEVICE or allowed == device
+
+
+## Input.get_vector, for the pad that may point.
+func _vector(left: StringName, right: StringName, up: StringName, down: StringName) -> Vector2:
+	var coop = get_node_or_null("/root/Coop")
+	var allowed: int = coop.pointer_device() if coop != null else -2
+	if coop == null or allowed == coop.ANY_DEVICE:
+		return Input.get_vector(left, right, up, down)
+	if allowed == coop.KEYBOARD:
+		return Vector2.ZERO
+	pointer_pad = allowed
+	return coop.device_vector(allowed, left, right, up, down)
+
+
+## Input.is_action_pressed, for the pad that may point.
+func _held(action: StringName) -> bool:
+	var coop = get_node_or_null("/root/Coop")
+	var allowed: int = coop.pointer_device() if coop != null else -2
+	if coop == null or allowed == coop.ANY_DEVICE:
+		return Input.is_action_pressed(action)
+	if allowed == coop.KEYBOARD:
+		return false
+	return coop.held(allowed, action)
 
 
 func _move_to(at: Vector2):
@@ -712,10 +758,19 @@ const AXIS_SNAP := 0.3
 
 
 func direction(left: StringName, right: StringName, up: StringName, down: StringName) -> Vector2:
-	var keys := Vector2(_key_held(right) - _key_held(left), _key_held(down) - _key_held(up))
+	var keys := key_direction(left, right, up, down)
 	if keys != Vector2.ZERO:
-		return keys.limit_length(1.0)
-	var held := Input.get_vector(left, right, up, down)
+		return keys
+	return snap_to_axis(Input.get_vector(left, right, up, down))
+
+
+## The keys' half of direction(): all or nothing, the keyboard alone.
+func key_direction(left: StringName, right: StringName, up: StringName, down: StringName) -> Vector2:
+	return Vector2(_key_held(right) - _key_held(left), _key_held(down) - _key_held(up)).limit_length(1.0)
+
+
+## A stick's push, snapped straight along an axis when it is nearly so.
+func snap_to_axis(held: Vector2) -> Vector2:
 	var most := maxf(absf(held.x), absf(held.y))
 	if absf(held.x) < AXIS_SNAP * most:
 		held.x = 0.0

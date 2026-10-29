@@ -32,6 +32,11 @@ var party_state := {}
 ## time an exploration map loads, so adding a teammate is an inspector edit
 ## rather than a code change. Add them to CombatantDatabase first.
 var party_order: Array[String] = []
+## Which player steers each of the party, by combatant key -> player number
+## (Coop; 0 the first). Anybody not named is the first player's. Saved, so a
+## co-op run comes back with everybody steering whom they did; Coop.controller_of
+## reads it, and gives anybody whose player is not playing to the first.
+var controllers := {}
 
 ## How far along the party is while walking a map, 1 to 3. Set by the map's
 ## MapSetup; decides the health they carry and what the character sheet
@@ -394,13 +399,14 @@ func seed_party(keys: Array):
 
 ## The roster in marching order, leaving out anyone who has died. The leader is
 ## first. Everything that draws or spawns the party uses this, so the line on
-## the map matches who is actually still standing.
+## the map matches who is actually still standing. In co-op, the characters of
+## whoever is acting come first (Coop.ordered), so the leader is theirs.
 func living_party() -> Array:
 	var living: Array = []
 	for key in party_order:
 		if is_alive(key):
 			living.append(key)
-	return living
+	return Coop.ordered(living)
 
 
 ## Who is currently being steered, or "" if the whole party has fallen.
@@ -716,7 +722,8 @@ func restart_stealth():
 ## The keys of everything the run is made of, copied as they are.
 const SAVED := ["party_level", "party_state", "subclasses", "path_change_open", "inventories", "gear", "equipped",
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
-	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks"]
+	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks",
+	"controllers"]
 
 
 ## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with

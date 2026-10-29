@@ -21,4 +21,4 @@ skills = Array[String](["heal", "nail_projectile", "venomous_shot", "flammable_l
 resist_wind = -50
 resist_poison = 50
 ai_function = "ai_ranger"
-ai_readies = 9
+ai_readies = 25

@@ -33,6 +33,10 @@ static func hold(who: Node) -> void:
 	var id := who.get_instance_id()
 	if not _holders.has(id):
 		_holders.append(id)
+		# In co-op, whoever opened it has it alone until it closes (Coop).
+		var coop = who.get_node_or_null("/root/Coop") if who.is_inside_tree() else null
+		if coop != null:
+			coop.menu_held(who)
 	_apply(who.get_tree())
 
 
@@ -40,6 +44,10 @@ static func hold(who: Node) -> void:
 static func release(who: Node) -> void:
 	if who == null:
 		return
+	if _holders.has(who.get_instance_id()):
+		var coop = who.get_node_or_null("/root/Coop") if who.is_inside_tree() else null
+		if coop != null:
+			coop.menu_released(who)
 	_holders.erase(who.get_instance_id())
 	_apply(who.get_tree())
 
@@ -61,6 +69,9 @@ static func clear(tree: SceneTree) -> void:
 	_holders.clear()
 	if tree != null:
 		tree.paused = false
+		var coop = tree.root.get_node_or_null("Coop")
+		if coop != null:
+			coop.menus_cleared()
 
 
 static func _apply(tree: SceneTree) -> void:

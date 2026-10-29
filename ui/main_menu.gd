@@ -171,6 +171,7 @@ func _ready():
 	_panels["volume"] = _build_volume()
 	_panels["glossary"] = _build_glossary()
 	_panels["load"] = _build_load()
+	_panels["players"] = _build_players()
 	for key in _panels:
 		add_child(_panels[key])
 	_keyboard = FocusOnDemand.attach(self, null)
@@ -277,6 +278,9 @@ func _build_root() -> Control:
 	load_game.visible = has_saves
 	buttons.add_child(load_game)
 	buttons.add_child(_menu_button("Play", func(): _show("play")))
+	var players := _menu_button("Players", func(): _show("players"))
+	players.name = "Players"
+	buttons.add_child(players)
 	buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
 	buttons.add_child(_menu_button("Stealth Stages", func(): _show(STEALTH_PANEL)))
 	buttons.add_child(_menu_button("Clues Demo", func(): SceneTransition.change_scene(CLUES_DEMO)))
@@ -365,6 +369,15 @@ func _build_load() -> Control:
 	list.open_as(false, false)
 	list.closed.connect(_go_back)
 	return list
+
+
+## Who is playing, and whom each steers (Coop) - and, over a network, hosting
+## or joining (Net).
+func _build_players() -> Control:
+	var panel := PlayersPanel.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.closed.connect(_go_back)
+	return panel
 
 
 func _build_glossary() -> Control:

@@ -21,6 +21,9 @@ var _answer := false
 var _waiting := false
 ## Which of choose()'s skills was picked, or -1.
 var _choice := -1
+## Who answers, in co-op: the player who steers the one reacting, or whoever
+## has the board (Coop.ANYONE).
+var _decider := -1
 
 
 func _ready():
@@ -36,6 +39,7 @@ func _ready():
 ## Passing is only "not this time": the reaction stays unspent, so the next
 ## enemy to break away this round asks again.
 func ask(reactor: Dictionary, target: Dictionary, skill: SkillDefinition, happening: String = "", label: String = "") -> bool:
+	_decider = Coop.controller_of(reactor.get("combatant_key", ""))
 	if happening == "":
 		return await ask_about("%s can react" % reactor.name,
 			"%s is leaving range. Use %s on them?\nThis spends %s's one reaction until their next turn." % [
@@ -66,6 +70,7 @@ func choose(reactor: Dictionary, target: Dictionary, skills: Array, happening: S
 		made.append(button)
 	FocusLoop.link(made + [skip_button])
 	_choice = -1
+	_decider = Coop.controller_of(reactor.get("combatant_key", ""))
 	var what := "%s is leaving range" % target.name if happening == "" else happening[0].to_upper() + happening.substr(1)
 	var used := await _put_up("%s can react" % reactor.name,
 		"%s. What does %s do?\nWhichever, it spends %s's one reaction until their next turn." % [
@@ -114,6 +119,13 @@ func ask_about(title: String, detail: String) -> bool:
 
 ## Shows the question with `first` lit, and waits for the answer.
 func _put_up(title: String, detail: String, first: Control) -> bool:
+	# In co-op, theirs to answer alone (Coop.focus) while it is up.
+	var decider := _decider
+	_decider = Coop.ANYONE
+	if decider != Coop.ANYONE:
+		Coop.take_focus(decider, self)
+		if Coop.on():
+			title = "%s - %s" % [title, Coop.name_of(decider)]
 	$Panel/VBox/Title.text = title
 	$Panel/VBox/Detail.text = detail
 	$Panel.visible = true
@@ -126,6 +138,7 @@ func _put_up(title: String, detail: String, first: Control) -> bool:
 	var focused = get_viewport().gui_get_focus_owner()
 	if focused != null:
 		focused.release_focus()
+	Coop.let_go(self)
 	return _answer
 
 

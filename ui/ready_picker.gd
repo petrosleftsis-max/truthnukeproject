@@ -55,7 +55,7 @@ func triggers() -> Array:
 		["%s casts a spell" % who.capitalize(), SkillDefinition.Trigger.CASTS, {}],
 	]
 	if not combat.is_melee(skill):
-		found.append(["%s steps into an area you mark" % who.capitalize(), SkillDefinition.Trigger.ENTERS_AREA, {}])
+		found.append(["%s steps into a cone you point" % who.capitalize(), SkillDefinition.Trigger.ENTERS_AREA, {}])
 	for other in combat.combatants:
 		if not other.get("alive", false) or is_same(other, comb) or other.has("object") or other.get("illusion", false):
 			continue

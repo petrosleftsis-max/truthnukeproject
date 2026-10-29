@@ -2,7 +2,7 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-10-29, at commit 9da558c and after.
+updated 2026-10-29, after the co-op commit.
 
 ## How the designer works with Claude
 
@@ -25,6 +25,21 @@ updated 2026-10-29, at commit 9da558c and after.
   then `perl tools/context/rebuild_context.pl <work>/logs/refdump_data.md`.
 
 ## Done recently (newest first)
+
+- **Local co-op, two players** (`multiplayer/Coop.gd`, CLAUDE.md "Co-op",
+  suite `coop`): Players on the title screen and the pause menu; a group
+  each on a map, one camera, a leash; turns, menus and conversations go to
+  whoever's they are; a player left steering nobody is offered the party to
+  share out. **Pings** (Z; in co-op a pad's Share). LAN and online are not built.
+- **The readied "steps into an area" trigger is a great cone** (12 tiles,
+  respects blocking), in fights and on maps.
+- **Breakable walls act as walls** until broken (sight for every size, cover,
+  guards' routes, nothing aimed at them but a wall-breaking blow).
+- **Smarter enemy readies** (PROPOSAL): scored by what they would do; casters
+  only within reach; the cone down the party's way in; Protects Its Own on the
+  Ranger and the Hired Bow.
+- **Stay Here** (X / pad Touchpad) and **moves readied on a map** (lost when
+  out of sight).
 
 - **Moves outside a fight, all three phases** (`docs/outside_combat_plan.md`;
   `exploration/OutsideMoves.gd`, `ui/outside_moves_panel.gd`; suite `outside`).
@@ -65,8 +80,12 @@ updated 2026-10-29, at commit 9da558c and after.
 5. **Secondary stats** (asked about earlier, answered in chat, no decision yet):
    more uses for each secondary stat, a table of which stat each contest
    tests, and a stat point system that does not depend on gear.
-6. **Multiplayer:** `docs/multiplayer_plan.md` is a proposal. Its seven
-   questions need answers before anything is built.
+6. **Multiplayer:** local co-op is built with the plan's defaults (PROPOSAL)
+   for its open questions. **Before LAN:** the designer asked what the seeded
+   fight RNG is before it is built - replay fights on every machine (needs it)
+   or let the host play every fight? Also: which pad button pings (none is
+   free; Share for now in co-op), the 10-tile leash, the 12-tile cone, and
+   which enemies Protect Their Own.
 7. **OPEN rows in the ledger**, among them:
    - Deep Corrosion's duration (5 vs the handoff's 3);
    - Corrosive Round at 41 equal to the Gun;

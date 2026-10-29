@@ -149,7 +149,7 @@ and `CombatantDatabase.combatants["cyrus"]` work from anywhere.
 | `pictures/` | Point-and-click pictures, and `feedback.tres` for their sounds and cursors |
 | `scenes/` | The game's own screens: the title screen, the battle, walking around, story screens |
 | `demos/` | Scenes to open and press F6 on to try something: the stealth demo, the stealth stages, the clues demo |
-| `campaign/`, `combat/`, `control/`, `exploration/`, `hacking/`, `ui/` | The code: the playthrough's state, the fights, the grid and camera, walking around (stealth and pictures too), the hacking minigames, and the screens |
+| `campaign/`, `combat/`, `control/`, `exploration/`, `hacking/`, `multiplayer/`, `ui/` | The code: the playthrough's state, the fights, the grid and camera, walking around (stealth and pictures too), the hacking minigames, two-player co-op and pings, and the screens |
 | `tools/` | Editor tools and build scripts: the encounter editor (`encounter_editor.tscn`), the stage builder, the layout painter and void filler, `release.sh` |
 | `tests/` | The test suites (see `tests/README.md`) |
 | `docs/` | Notes and the store image - not part of the game |

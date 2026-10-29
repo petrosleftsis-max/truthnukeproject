@@ -134,7 +134,7 @@ const TRIGGER_NAMES := {
 	Trigger.CASTS: "%s casts a spell",
 	Trigger.DECLARES: "%s calls a declared move",
 	Trigger.FORESEEN_BLOW: "the blow Intuition foresaw comes",
-	Trigger.ENTERS_AREA: "%s steps into the marked area",
+	Trigger.ENTERS_AREA: "%s steps into the watched cone",
 	Trigger.HIT_IN_SIGHT: "the one they watch is hit",
 }
 const WHO_NAMES := ["an enemy", "an ally", "anybody"]

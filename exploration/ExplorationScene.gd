@@ -28,7 +28,17 @@ class_name ExplorationScene
 const MAP_NODE = "Map"
 const PARTY_NODE = "Party"
 
-var party: ExplorationParty = null
+## The party walking the map - in co-op, the group of whoever's press is being
+## handled (Coop.acting), else the first player's: so everything a press does,
+## through all the code that has only ever known one party, is done by the
+## player who pressed (see "Co-op").
+var party: ExplorationParty:
+	get:
+		return _acting_group()
+	set(value):
+		_main_party = value
+## The first player's group - everybody's, outside co-op.
+var _main_party: ExplorationParty = null
 var _tile_map: TileMap = null
 var _blocking: Dictionary = {}
 var _interactables: Array = []
@@ -129,8 +139,12 @@ func _on_party_changed():
 	if party == null or not is_inside_tree() or _passing_lead:
 		return
 	var from := _lead_from if _lead_from != NOWHERE else party_position()
+	var leading := party
 	_lead_from = NOWHERE
-	party.setup(_party_textures(), from, is_walkable)
+	if Coop.on():
+		_build_groups(leading, from)
+	else:
+		_main_party.setup(_party_textures(), from, is_walkable)
 	_keep_stayers()
 	_refresh_party_panel()
 
@@ -321,11 +335,15 @@ func _collect_interactables(node: Node):
 
 func _spawn_party():
 	party = ExplorationParty.new()
-	party.name = PARTY_NODE
-	add_child(party)
-	party.setup(_party_textures(), _start_position(), is_walkable)
-	party.moved.connect(_on_party_moved)
-	_follow_camera(party.position_of_leader())
+	_main_party.name = PARTY_NODE
+	add_child(_main_party)
+	_main_party.setup(_party_textures(), _start_position(), is_walkable)
+	_main_party.moved.connect(_on_party_moved)
+	if Coop.on():
+		_build_groups(_main_party, _main_party.position_of_leader())
+	if not Coop.players_changed.is_connected(_on_players_changed):
+		Coop.players_changed.connect(_on_players_changed)
+	_follow_camera(_main_party.position_of_leader())
 
 
 ## What everyone still standing looks like, leader first - straight off the
@@ -333,6 +351,8 @@ func _spawn_party():
 ## field. Each entry carries both the still and the animation set, because the
 ## party walks with the same SpriteFrames it fights with.
 func _party_textures() -> Array:
+	if Coop.on():
+		return _looks_of(Coop.keys_of(_first_player()))
 	var looks = []
 	for member in Campaign.party_members():
 		looks.append({"key": member.key, "map_sprite": member.map_sprite, "sprite_frames": member.sprite_frames})
@@ -412,6 +432,9 @@ func _collect_entries(node: Node, into: Array):
 
 
 func _on_party_moved(leader_position: Vector2):
+	if not groups.is_empty():
+		_group_moved(leader_position, _main_party)
+		return
 	_follow_camera(leader_position)
 	_update_prompt()
 	_check_contact_triggers(leader_position)
@@ -420,6 +443,8 @@ func _on_party_moved(leader_position: Vector2):
 
 func _follow_camera(leader_position: Vector2):
 	if camera == null:
+		return
+	if _frame_groups():
 		return
 	camera.position = leader_position
 	if camera.has_method("clamp_to_map"):
@@ -456,9 +481,9 @@ func _check_contact_triggers(leader_position: Vector2):
 		return
 
 
-## The nearest usable thing in range, or null.
-func _nearest_interactable() -> Interactable:
-	var leader_position = party_position()
+## The nearest usable thing in range of the leader - or of `group`'s - or null.
+func _nearest_interactable(group: ExplorationParty = null) -> Interactable:
+	var leader_position = group.position_of_leader() if group != null else party_position()
 	var best: Interactable = null
 	var best_distance := INF
 	for interactable in _interactables:
@@ -480,7 +505,9 @@ func _update_prompt():
 	_current_target = _nearest_interactable()
 	if game_ui == null or not game_ui.has_method("set_interaction_prompt"):
 		return
-	if _current_target == null or _blocking_interaction or controlling_familiar():
+	if not groups.is_empty() and not _blocking_interaction and not controlling_familiar():
+		game_ui.set_interaction_prompt(_coop_prompts())
+	elif _current_target == null or _blocking_interaction or controlling_familiar():
 		game_ui.set_interaction_prompt("")
 	else:
 		game_ui.set_interaction_prompt("Press %s to %s" % [Pad.key(&"interact"), _current_target.prompt.to_lower()])
@@ -524,10 +551,12 @@ func _unhandled_input(event):
 		familiar_keeper.perch()
 		_update_prompt()
 		return
-	if _current_target == null or not _current_target.is_available():
+	# In co-op, what is nearest to whoever pressed (`party` is their group).
+	var target := _nearest_interactable() if not groups.is_empty() else _current_target
+	if target == null or not target.is_available():
 		return
 	get_viewport().set_input_as_handled()
-	_current_target.use(self)
+	target.use(self)
 	_update_prompt()
 
 
@@ -543,7 +572,7 @@ func swap_leader():
 	# Round the line, past anybody told to stay: with nobody else in it, the
 	# lead stays where it is.
 	var new_leader := ""
-	var living := Campaign.living_party()
+	var living := _line_keys()
 	for i in range(1, living.size()):
 		if not staying.has(living[i]):
 			new_leader = living[i]
@@ -556,7 +585,7 @@ func swap_leader():
 		Campaign.cycle_leader()
 		guard -= 1
 	_passing_lead = false
-	party.setup(_party_textures(), standing_at, is_walkable)
+	party.setup(_textures_for(party), standing_at, is_walkable)
 	_keep_stayers()
 	_refresh_party_panel()
 	var definition: CombatantDefinition = CombatantDatabase.combatants.get(new_leader)
@@ -569,15 +598,15 @@ func swap_leader():
 ## end_blocking_interaction when they're finished.
 func begin_blocking_interaction():
 	_blocking_interaction = true
-	if party != null:
-		party.frozen = true
+	for group in all_groups():
+		group.frozen = true
 	_update_prompt()
 
 
 func end_blocking_interaction(_arg = null):
 	_blocking_interaction = false
-	if party != null:
-		party.frozen = false
+	for group in all_groups():
+		group.frozen = false
 	_update_prompt()
 
 
@@ -627,7 +656,12 @@ func begin_stealth():
 ## Whether something else has the party held right now - a conversation, a
 ## menu. The guards stand still for it too: nobody is caught mid-sentence.
 func is_holding() -> bool:
-	return _blocking_interaction or (party != null and party.frozen)
+	if _blocking_interaction:
+		return true
+	for group in all_groups():
+		if group.frozen:
+			return true
+	return false
 
 
 ## --- Choosing paths ---
@@ -654,7 +688,9 @@ func _process(delta):
 		return
 	_hurry_on(delta)
 	_watch_traps()
-	if _paths_due:
+	if _share_out_due():
+		share_out()
+	elif _paths_due:
 		_offer_paths()
 	elif _store_due != "":
 		_open_store()
@@ -761,6 +797,293 @@ func set_ui_hidden(on: bool):
 	_update_prompt()
 
 
+## --- Co-op (Coop) ---
+##
+## Each player walks a group of their own (Campaign.controllers): the first
+## player's is the party node it always was (_main_party), the others' are more
+## ExplorationParty nodes beside it, every one walked by its player's own
+## device. `party` is whoever's press is being handled (Coop.acting), so E, G,
+## Tab, Stay Here and the stealth bar's keys act for them; their characters come
+## first in Campaign.living_party() for the moment, so the leader is theirs too.
+## Every group knows the others (`companions`), so sprite_for - what the guards,
+## a fight built on the spot and a conversation ask - finds everybody. One
+## camera frames them all, pulling back as far as COOP_ZOOM_FLOOR, and the
+## leash keeps any group from walking further than LEASH_TILES from the middle
+## of the others. Anything that holds the party (a conversation, a catch, a
+## menu) holds every group.
+
+## How far a group may walk from the middle of the others, in tiles - a
+## PROPOSAL value.
+const LEASH_TILES := 10.0
+## How far the view may pull back to keep everybody in it, as a share of the
+## map's own zoom - a PROPOSAL value.
+const COOP_ZOOM_FLOOR := 0.6
+## Room kept round everybody in the view, in tiles.
+const COOP_VIEW_ROOM := 5.0
+
+## Every player's group, by player number - empty outside co-op.
+var groups := {}
+## The map's own zoom, before co-op pulled the view back.
+var _coop_zoom := 0.0
+
+
+func _acting_group() -> ExplorationParty:
+	if not groups.is_empty() and groups.has(Coop.acting) and is_instance_valid(groups[Coop.acting]):
+		return groups[Coop.acting]
+	return _main_party
+
+
+## Every group walking the map - the party alone, outside co-op.
+func all_groups() -> Array:
+	if groups.is_empty():
+		return [_main_party] if _main_party != null else []
+	return groups.values().filter(func(group): return is_instance_valid(group))
+
+
+## The first player with anybody standing: whose group is the party node.
+func _first_player() -> int:
+	var ids := Coop.players_in_the_party()
+	return ids[0] if not ids.is_empty() else 0
+
+
+## How each of `keys` looks, for a group's setup.
+func _looks_of(keys: Array) -> Array:
+	var looks := []
+	for key in keys:
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+		if definition != null:
+			looks.append({"key": key, "map_sprite": definition.map_sprite, "sprite_frames": definition.sprite_frames})
+	return looks
+
+
+## What `group` is set up with: its player's characters in co-op.
+func _textures_for(group: ExplorationParty) -> Array:
+	if groups.is_empty() or group == null or group.player < 0:
+		return _party_textures()
+	return _looks_of(Coop.keys_of(group.player))
+
+
+## Who walks in the acting group, in marching order.
+func _line_keys() -> Array:
+	if groups.is_empty():
+		return Campaign.living_party()
+	return Coop.keys_of(party.player)
+
+
+## The group `key` walks in, or null.
+func _group_of(key: String) -> ExplorationParty:
+	for group in all_groups():
+		if group.own_sprite_for(key) != null:
+			return group
+	return null
+
+
+## Lays the groups out afresh for who steers whom now: each where its leader
+## stood, `leading` from `from`, and anybody new beside the party.
+func _build_groups(leading: ExplorationParty, from: Vector2):
+	var was := {}
+	for id in groups:
+		var group = groups[id]
+		if is_instance_valid(group) and group.leader != null:
+			was[id] = group.position_of_leader()
+	for id in groups:
+		var group = groups[id]
+		if is_instance_valid(group) and group != _main_party:
+			group.queue_free()
+	groups.clear()
+	if not Coop.on():
+		_main_party.player = -1
+		_main_party.companions = []
+		_main_party.leash = Callable()
+		_main_party.setup(_party_textures(), from if leading == _main_party else _main_party.position_of_leader(), is_walkable)
+		_frame_groups()
+		return
+	var ids := Coop.players_in_the_party()
+	var first := _first_player()
+	var main_at := from if leading == _main_party else _main_party.position_of_leader()
+	_main_party.player = first
+	_main_party.puppet = not Coop.is_local(first)
+	_main_party.setup(_looks_of(Coop.keys_of(first)), main_at, is_walkable)
+	groups[first] = _main_party
+	for id in ids:
+		if id == first:
+			continue
+		var group := ExplorationParty.new()
+		group.name = "Party%d" % (id + 1)
+		group.player = id
+		group.puppet = not Coop.is_local(id)
+		add_child(group)
+		var at: Vector2 = was.get(id, _beside(main_at, groups.size()))
+		if leading != null and leading.player == id:
+			at = from
+		group.setup(_looks_of(Coop.keys_of(id)), at, is_walkable)
+		group.moved.connect(_group_moved.bind(group))
+		groups[id] = group
+	for group in groups.values():
+		group.companions = groups.values()
+		group.leash = _within_leash
+		_ring(group)
+	_frame_groups()
+
+
+## Somewhere to stand `nth` beside `at` - a tile or so off, on open ground.
+func _beside(at: Vector2, nth: int) -> Vector2:
+	for step in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP, Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
+		var there: Vector2 = at + step * Grid.tiles(float(nth))
+		if is_walkable(there):
+			return there
+	return at
+
+
+## Each player's colour round their group's feet.
+func _ring(group: ExplorationParty):
+	for sprite in group._members():
+		var ring = sprite.get_node_or_null("CoopRing")
+		if ring == null:
+			ring = _CoopRing.new()
+			ring.name = "CoopRing"
+			ring.show_behind_parent = true
+			sprite.add_child(ring)
+		ring.colour = Coop.colour_of(group.player)
+		ring.queue_redraw()
+
+
+## A group walked: the camera, what is in reach, its automatic triggers and
+## those staying, all as its player.
+func _group_moved(leader_position: Vector2, group: ExplorationParty):
+	var before := Coop.acting
+	Coop.acting = group.player
+	_follow_camera(leader_position)
+	_check_contact_triggers(leader_position)
+	_pick_up_stayers(leader_position, group)
+	Coop.acting = before
+	_update_prompt()
+
+
+## Somebody joined or left the game, or changed whom they steer.
+func _on_players_changed():
+	if _main_party == null or not is_inside_tree():
+		return
+	_build_groups(_main_party, _main_party.position_of_leader())
+	_keep_stayers()
+	_refresh_party_panel()
+	_update_prompt()
+
+
+## Keeps everybody in view - true while there is more than one group to frame.
+func _frame_groups() -> bool:
+	if camera == null:
+		return false
+	var leaders := []
+	for group in all_groups():
+		if group.leader != null:
+			leaders.append(group.leader.position)
+	if leaders.size() < 2:
+		if _coop_zoom > 0.0:
+			camera.zoom = Vector2.ONE * _coop_zoom
+			_coop_zoom = 0.0
+		return false
+	var box := Rect2(leaders[0], Vector2.ZERO)
+	for at in leaders:
+		box = box.expand(at)
+	if _coop_zoom <= 0.0:
+		_coop_zoom = camera.zoom.x
+	var view: Vector2 = camera.get_viewport_rect().size
+	var room := box.size + Vector2.ONE * Grid.tiles(COOP_VIEW_ROOM)
+	var needed := minf(view.x / room.x, view.y / room.y)
+	camera.zoom = Vector2.ONE * clampf(needed, _coop_zoom * COOP_ZOOM_FLOOR, _coop_zoom)
+	camera.position = box.get_center()
+	if camera.has_method("clamp_to_map"):
+		camera.clamp_to_map()
+	return true
+
+
+## Whether `group` may step to `to`: within LEASH_TILES of the middle of the
+## other groups, or at least no further from it than it is now.
+func _within_leash(group: ExplorationParty, to: Vector2) -> bool:
+	var middle := Vector2.ZERO
+	var others := 0
+	for other in all_groups():
+		if other != group and other.leader != null:
+			middle += other.leader.position
+			others += 1
+	if others == 0 or group.leader == null:
+		return true
+	middle /= others
+	var then := to.distance_to(middle)
+	return then <= Grid.tiles(LEASH_TILES) or then <= group.leader.position.distance_to(middle)
+
+
+## What each player here can do where they stand: "Player 2: Press A to talk".
+func _coop_prompts() -> String:
+	var lines := []
+	var ids := groups.keys()
+	ids.sort()
+	for id in ids:
+		var group = groups[id]
+		if not is_instance_valid(group) or group.puppet:
+			continue
+		var target := _nearest_interactable(group)
+		if target == null:
+			continue
+		var pad: bool = Coop.device_of_player(id) >= 0
+		lines.append("%s: Press %s to %s" % [Coop.name_of(id), Pad.key_on(pad, &"interact"), target.prompt.to_lower()])
+	return "\n".join(lines)
+
+
+## The Players panel up over the map to share the party out again, or null.
+var _sharing: CanvasLayer = null
+
+
+## Whether to offer to share the party out again: a player steers nobody now
+## (theirs left the party, or fell), and this is not what was offered last.
+func _share_out_due() -> bool:
+	if not Coop.on() or _sharing != null or PlayersPanel.party_now().is_empty():
+		return false
+	return not Coop.stranded().is_empty() and Coop.party_shape() != Coop.share_out_offered
+
+
+## Puts the Players panel up, the party as it stands, to share it out again
+## (the designer, 2026-10-29). Done leaves it as it is.
+func share_out():
+	Coop.share_out_offered = Coop.party_shape()
+	var names := Coop.stranded().map(func(id): return Coop.name_of(id))
+	open_players("%s has nobody left to steer. Share the party out again - or Done to leave it as it is." % " and ".join(names))
+
+
+## The Players panel over the map, the party as it stands (the pause menu's
+## Players, and share_out), with `note` over it.
+func open_players(note: String = ""):
+	if _sharing != null:
+		return
+	_sharing = _overlay("ShareOut")
+	var panel := PlayersPanel.new()
+	panel.only_party = true
+	panel.note = note
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.closed.connect(_shared_out.bind(panel))
+	_sharing.add_child(panel)
+	MenuPause.hold(panel)
+
+
+func _shared_out(panel: Node):
+	MenuPause.release(panel)
+	if _sharing != null:
+		_sharing.queue_free()
+	_sharing = null
+	# What they settled on is not to be offered again.
+	Coop.share_out_offered = Coop.party_shape()
+
+
+## A player's colour under each of their party's feet.
+class _CoopRing extends Node2D:
+	var colour := Color.WHITE
+
+	func _draw():
+		var tile := float(Grid.TILE_SIZE)
+		draw_arc(Vector2(0, tile * 0.32), tile * 0.3, 0.0, TAU, 40, Color(colour, 0.85), 8.0)
+
+
 ## --- Staying behind ---
 ##
 ## The leader told to stay where they are (Stay Here): they stand there, out of
@@ -791,15 +1114,15 @@ func stay_here() -> bool:
 		return false
 	var leading := Campaign.leader()
 	var next := ""
-	for key in Campaign.living_party():
-		if key != leading and not staying.has(key) and party.sprite_for(key) != null:
+	for key in _line_keys():
+		if key != leading and not staying.has(key) and party.own_sprite_for(key) != null:
 			next = key
 			break
 	if next == "":
 		log_message("Nobody else to lead - [color=yellow]%s[/color] keeps the lead.\n" % Campaign.display_name_of(leading))
 		return false
 	staying[leading] = party_position()
-	_lead_from = party.sprite_for(next).global_position
+	_lead_from = party.own_sprite_for(next).global_position
 	Campaign.set_leader(next)
 	log_message("[color=yellow]%s[/color] stays where they are; [color=yellow]%s[/color] leads.\n" % [
 		Campaign.display_name_of(leading), Campaign.display_name_of(next)])
@@ -809,18 +1132,24 @@ func stay_here() -> bool:
 ## Puts everybody staying back where they stay, after the line is rebuilt.
 func _keep_stayers():
 	for key in staying.keys():
-		if not Campaign.is_alive(key) or not Campaign.party_order.has(key) or key == Campaign.leader():
+		var group := _group_of(key)
+		var sprite = group.own_sprite_for(key) if group != null else null
+		if not Campaign.is_alive(key) or not Campaign.party_order.has(key) or sprite == null or sprite == group.leader:
 			staying.erase(key)
 			continue
-		party.stay(party.sprite_for(key), staying[key])
+		group.stay(sprite, staying[key])
 
 
-## Somebody staying, with the leader come up to them, falls in behind.
-func _pick_up_stayers(leader_position: Vector2):
+## Somebody staying, with the leader of their group (`group`, or the party)
+## come up to them, falls in behind.
+func _pick_up_stayers(leader_position: Vector2, group: ExplorationParty = null):
+	if group == null:
+		group = party
 	for key in staying.keys():
-		if staying[key].distance_to(leader_position) <= Grid.tiles(PICK_UP_TILES):
+		var sprite = group.own_sprite_for(key)
+		if sprite != null and group.stayers.has(sprite) and staying[key].distance_to(leader_position) <= Grid.tiles(PICK_UP_TILES):
 			staying.erase(key)
-			party.rejoin(party.sprite_for(key))
+			group.rejoin(sprite)
 			log_message("[color=yellow]%s[/color] falls in behind.\n" % Campaign.display_name_of(key))
 
 
@@ -1047,7 +1376,11 @@ func _collect_walls(map: Node):
 	for wall in _walls:
 		wall.broken = Campaign.flag(wall.flag_for(map_path()))
 		if not wall.broken and _tile_map != null:
-			set_tile_shut(_tile_map.local_to_map(_tile_map.to_local(wall.global_position)), true)
+			var tile := _tile_map.local_to_map(_tile_map.to_local(wall.global_position))
+			set_tile_shut(tile, true)
+			# Not a door: nobody has the key, guards included.
+			if Actors._scene == self:
+				Actors.refresh_tile(tile)
 
 
 ## The standing wall nearest the leader within `reach` tiles (the fight's count),
@@ -1078,6 +1411,8 @@ func break_wall(wall: BreakableWall):
 	Campaign.set_flag(wall.flag_for(map_path()))
 	var tile := _tile_map.local_to_map(_tile_map.to_local(wall.global_position))
 	set_tile_shut(tile, false)
+	# A way through now, for whoever walks a route - guards and conversations.
+	Actors.refresh_tile(tile)
 	if stealth != null:
 		stealth.wall_broken(tile)
 		stealth.make_noise(wall.global_position, WALL_NOISE_TILES, true)
