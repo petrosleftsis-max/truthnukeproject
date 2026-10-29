@@ -13,6 +13,7 @@ duration = 3
 [resource]
 script = ExtResource("3_skill")
 name = "Growth"
+outside_use = 1
 description = "Swell an ally to a size bigger for three turns - a Human to a Large, covering four tiles and reaching from every edge of them; too big to be lifted by what could lift them before, and seeing over the bodies of the smaller. They need the room to grow into."
 max_range = 5
 icon = ExtResource("2_icon")

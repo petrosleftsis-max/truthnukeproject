@@ -92,6 +92,11 @@ func _ready():
 	if not Campaign.store_requested.is_connected(_on_store_requested):
 		Campaign.store_requested.connect(_on_store_requested)
 	_spawn_party()
+	# The familiar's keeper, on every map (Find Familiar - FamiliarKeeper).
+	familiar_keeper = FamiliarKeeper.new()
+	familiar_keeper.name = "FamiliarKeeper"
+	familiar_keeper.scene = self
+	add_child(familiar_keeper)
 	begin_stealth()
 	# Walked onto a stealth map rather than back onto it from a fight: how
 	# things stand now is where Restart Stage goes back to. So too arriving by
@@ -180,6 +185,7 @@ func _build_map():
 	_build_blocking()
 	_interactables = []
 	_collect_interactables(map)
+	_collect_walls(map)
 	# Dialogue can walk people about this map now, and anything it was walking
 	# on the last one is gone with it.
 	Actors.use_scene(self, _tile_map)
@@ -232,7 +238,9 @@ func is_walkable(world_position: Vector2) -> bool:
 	var tile = _tile_map.local_to_map(world_position)
 	if not _tile_map.get_used_rect().has_point(tile):
 		return false
-	return not _blocking.has(tile) and not _shut.has(tile) and not _small_gaps.has(tile)
+	# Flying (Fly - OutsideMoves), over whatever stops only walkers.
+	var walls: Dictionary = _blocking_fliers if flying() else _blocking
+	return not walls.has(tile) and not _shut.has(tile) and not _small_gaps.has(tile)
 
 
 ## --- Small gaps ---
@@ -461,7 +469,7 @@ func _update_prompt():
 	_current_target = _nearest_interactable()
 	if game_ui == null or not game_ui.has_method("set_interaction_prompt"):
 		return
-	if _current_target == null or _blocking_interaction or (stealth != null and stealth.controlling_familiar()):
+	if _current_target == null or _blocking_interaction or controlling_familiar():
 		game_ui.set_interaction_prompt("")
 	else:
 		game_ui.set_interaction_prompt("Press %s to %s" % [Pad.key(&"interact"), _current_target.prompt.to_lower()])
@@ -478,6 +486,7 @@ func _unhandled_input(event):
 	if _blocking_interaction:
 		return
 	# On a watched map the stealth bar has the key (StealthBar.outside_spell).
+	# Here, it lets a familiar go too.
 	if stealth == null and Pad.went_down(event, &"outside_spell"):
 		get_viewport().set_input_as_handled()
 		outside_spell()
@@ -485,16 +494,20 @@ func _unhandled_input(event):
 	if event.is_action_pressed(&"swap_leader"):
 		get_viewport().set_input_as_handled()
 		# With a familiar out, Tab is who the player steers: it or the party.
-		if stealth != null and stealth.familiar != null:
-			stealth.toggle_familiar_control()
+		if familiar_keeper != null and familiar_keeper.familiar != null:
+			familiar_keeper.toggle()
 			_update_prompt()
 			return
 		swap_leader()
 		return
 	if not event.is_action_pressed(&"interact"):
 		return
-	# Seeing through the familiar's eyes, nothing within the party's reach is.
-	if stealth != null and stealth.controlling_familiar():
+	# Seeing through the familiar's eyes, nothing within the party's reach is -
+	# and E sends it back to its caster's shoulder.
+	if controlling_familiar():
+		get_viewport().set_input_as_handled()
+		familiar_keeper.perch()
+		_update_prompt()
 		return
 	if _current_target == null or not _current_target.is_available():
 		return
@@ -695,6 +708,11 @@ func hurry_left() -> float:
 
 
 func _hurry_on(delta: float):
+	_fly_on(delta)
+	for move in _cooldowns.keys():
+		_cooldowns[move] -= delta
+		if _cooldowns[move] <= 0.0:
+			_cooldowns.erase(move)
 	if _hurry_left <= 0.0:
 		return
 	_hurry_left -= delta
@@ -717,17 +735,217 @@ func set_ui_hidden(on: bool):
 	_update_prompt()
 
 
-## The Outside Spell key on a map nobody watches: the one spell to some purpose
-## now cast, or the choice of which when there are more.
+## --- The familiar, on any map (FamiliarKeeper) ---
+##
+## On a watched map StealthWatch answers for it (the guards have a say); here
+## nobody is watching, so it is only calling, steering, the shoulder and letting
+## it go.
+
+var familiar_keeper: FamiliarKeeper = null
+
+
+## The animal a familiar takes here: the stealth setup's, or the map setup's, or
+## the rat.
+func familiar_form() -> FamiliarForm:
+	if stealth != null and stealth.setup != null and stealth.setup.familiar_form != null:
+		return stealth.setup.familiar_form
+	var setup := _map_setup()
+	if setup != null and setup.familiar_form != null:
+		return setup.familiar_form
+	return load(FamiliarKeeper.DEFAULT_FORM)
+
+
+## The spell that calls a familiar and who would cast it, or {}.
+func familiar_spell() -> Dictionary:
+	if stealth != null:
+		return stealth.familiar_spell()
+	var walking := Campaign.living_party().filter(func(key): return party != null and party.sprite_for(key) != null)
+	return FamiliarKeeper.spell_among(walking)
+
+
+## Why a familiar could not be called right now, or "".
+func familiar_refusal() -> String:
+	if stealth != null:
+		return stealth.familiar_refusal()
+	if familiar_keeper == null or familiar_keeper.familiar != null:
+		return "The familiar is out already"
+	var spell := familiar_spell()
+	if spell.is_empty():
+		return "Nobody here knows a spell to call a familiar"
+	if is_holding():
+		return "Not now"
+	return FamiliarKeeper.cannot_pay(spell.caster, SkillDatabase.skills[spell.skill])
+
+
+## Calls the familiar. False, and nothing spent, when it can't be.
+func summon_familiar() -> bool:
+	if stealth != null:
+		return stealth.summon_familiar()
+	if familiar_refusal() != "":
+		return false
+	var spell := familiar_spell()
+	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
+	var paid := FamiliarKeeper.pay(spell.caster, skill)
+	if paid.is_empty():
+		return false
+	familiar_keeper.summon(spell.caster, familiar_form())
+	log_message("[color=yellow]%s[/color] casts %s%s: a %s answers, and she sees through its eyes.\n" % [
+		Campaign.display_name_of(spell.caster), skill.name, FamiliarKeeper.paid_words(paid), familiar_keeper.familiar.form.name.to_lower()])
+	return true
+
+
+## Lets the familiar go.
+func dismiss_familiar():
+	if stealth != null:
+		stealth.dismiss_familiar()
+	elif familiar_keeper != null:
+		familiar_keeper.dismiss()
+
+
+## Whether the player is steering the familiar now.
+func controlling_familiar() -> bool:
+	return familiar_keeper != null and familiar_keeper.controlling_it()
+
+
+## --- Flying, blinking, waiting ---
+
+var _flying_left := 0.0
+## Whether the time is up but they are still over something they cannot stand on.
+var _landing := false
+## "key|move" -> seconds until a move with no gate can be used again.
+var _cooldowns := {}
+
+
+## The party flies for `seconds` (Fly - OutsideMoves): over whatever stops only
+## walkers - a barrel, a cart - and down once the time is up and they are over
+## somewhere they can stand.
+func fly(seconds: float):
+	_flying_left = seconds
+	_landing = false
+
+
+func flying() -> bool:
+	return _flying_left > 0.0 or _landing
+
+
+func _fly_on(delta: float):
+	if _flying_left <= 0.0 and not _landing:
+		return
+	_flying_left = maxf(_flying_left - delta, 0.0)
+	if _flying_left > 0.0:
+		return
+	# Down only onto open ground - judged as a walker.
+	var tile := _tile_map.local_to_map(party_position()) if _tile_map != null else Vector2i.ZERO
+	if _blocking.has(tile):
+		if not _landing:
+			log_message("The party will come down once over open ground.\n")
+		_landing = true
+		return
+	_landing = false
+	log_message("The party comes down.\n")
+
+
+## The leader steps up to `tiles` the way they are going - over anything, onto
+## the furthest open ground (Blink - OutsideMoves), the party with them. False
+## when there is nowhere to land.
+func blink(tiles: int) -> bool:
+	if party == null or party.leader == null:
+		return false
+	var way: Vector2 = party.held_direction()
+	if way == Vector2.ZERO:
+		way = Vector2.LEFT if party.facing_left() else Vector2.RIGHT
+	var from := party_position()
+	for step in range(tiles, 0, -1):
+		var there := from + way.normalized() * Grid.tiles(step)
+		if is_walkable(there):
+			party.teleport(there)
+			_on_party_moved(there)
+			return true
+	return false
+
+
+## Seconds before `key` can use `move` again (a move with no gate - OutsideMoves).
+func cooldown_of(key: String, move: String) -> float:
+	return _cooldowns.get(key + "|" + move, 0.0)
+
+
+func start_cooldown(key: String, move: String, seconds: float):
+	_cooldowns[key + "|" + move] = seconds
+
+
+## --- Breakable walls ---
+
+var _walls: Array = []
+
+
+## Every breakable wall on the map, standing or not.
+func walls() -> Array:
+	return _walls
+
+
+func _collect_walls(map: Node):
+	_walls = map.find_children("*", "BreakableWall", true, false)
+	for wall in _walls:
+		wall.broken = Campaign.flag(wall.flag_for(map_path()))
+		if not wall.broken and _tile_map != null:
+			set_tile_shut(_tile_map.local_to_map(_tile_map.to_local(wall.global_position)), true)
+
+
+## The standing wall nearest the leader within `reach` tiles (the fight's count),
+## or null.
+func wall_in_reach(reach: int) -> BreakableWall:
+	if _tile_map == null or party == null:
+		return null
+	var from := _tile_map.local_to_map(_tile_map.to_local(party_position()))
+	var best: BreakableWall = null
+	var best_gap := 1 << 30
+	for wall in _walls:
+		if not is_instance_valid(wall) or wall.broken:
+			continue
+		var at := _tile_map.local_to_map(_tile_map.to_local(wall.global_position))
+		var gap := absi(at.x - from.x) + absi(at.y - from.y)
+		if gap <= maxi(reach, 1) and gap < best_gap:
+			best = wall
+			best_gap = gap
+	return best
+
+
+## Knocks `wall` down for good: walked and seen through, kept in the flags, and
+## heard far and wide on a watched map.
+func break_wall(wall: BreakableWall):
+	if wall == null or wall.broken:
+		return
+	wall.broken = true
+	Campaign.set_flag(wall.flag_for(map_path()))
+	var tile := _tile_map.local_to_map(_tile_map.to_local(wall.global_position))
+	set_tile_shut(tile, false)
+	if stealth != null:
+		stealth.wall_broken(tile)
+		stealth.make_noise(wall.global_position, WALL_NOISE_TILES, true)
+
+
+## How far a wall coming down is heard - a PROPOSAL test value.
+const WALL_NOISE_TILES := 8.0
+
+
+## The Outside Spell key on a map nobody watches: lets a familiar go while one
+## is out; otherwise the one spell to some purpose now cast - Find Familiar among
+## them - or the choice of which when there are more.
 func outside_spell():
 	if is_instance_valid(spell_choice) or is_holding():
 		return
+	if familiar_keeper != null and familiar_keeper.familiar != null:
+		dismiss_familiar()
+		return
 	var ready := OutsideMoves.ready_spells(self)
-	if ready.size() == 1:
+	var calls := familiar_refusal() == ""
+	if calls and ready.is_empty():
+		summon_familiar()
+	elif ready.size() == 1 and not calls:
 		OutsideMoves.use(self, ready[0].key, ready[0].move)
 		if moves_panel != null:
 			moves_panel.refresh()
-	elif ready.size() > 1:
+	elif ready.size() + int(calls) > 1:
 		var layer := CanvasLayer.new()
 		layer.name = "SpellChoice"
 		layer.layer = 60

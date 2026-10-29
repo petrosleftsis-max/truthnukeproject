@@ -227,22 +227,28 @@ The alert never fades. `alert_floor` is where a found body pinned it;
 a disguise fools), a conversation (`do Campaign.settle_alert()`) or an
 Interactable with Settles Alert ticked.
 
-**Find Familiar** (StealthWatch "Familiar", the designer 2026-10-26): a skill
-with an EffectType.FAMILIAR effect is `outside_only` - `Combat.fighting_skills`
-keeps it out of every kit in a fight. On a map it is paid through
-`Campaign.spend_gate_outside` (a real gate, off the next fight), and makes a
-`Familiar` (exploration/Familiar.gd) in the StealthSetup's `familiar_form`
-(`FamiliarForm`, data/familiars/; the rat by default). `controlling` roots the
-party (`_rooted_by_familiar`) and moves the camera; ExplorationScene's
-`swap_leader` toggles it and its `interact` and StealthWatch's clicks wait while
-it is steered. It walks by `ExplorationScene.is_walkable_for` (small gaps -
+**Find Familiar** (the designer 2026-10-26 and 29): a skill with an
+EffectType.FAMILIAR effect is `outside_only` - `Combat.fighting_skills` keeps it
+out of every kit in a fight. It works on any map: `ExplorationScene.familiar_keeper`
+(`exploration/FamiliarKeeper.gd`) calls, steers, perches and lets it go, and on a
+watched map StealthWatch "Familiar" adds what guards make of it (its `familiar`,
+`controlling` and `familiar_caster` read the keeper). Paid through
+`FamiliarKeeper.pay`: the first since a long rest free (`Campaign.free_familiar_used`,
+saved, cleared by `long_rest`), then `Campaign.spend_gate_outside` (a real gate,
+off the next fight). The `Familiar` (exploration/Familiar.gd) takes the
+StealthSetup's `familiar_form`, else the MapSetup's, else the rat (`FamiliarForm`,
+data/familiars/). Steering roots the party (`keep_party_rooted`) and moves the
+camera; ExplorationScene's `swap_leader` toggles it, its `interact` while steering
+is `perch` (onto the caster's shoulder, `Familiar.perched_on`, riding along), and
+StealthWatch's clicks wait while it is steered. It walks by `ExplorationScene.is_walkable_for` (small gaps -
 Blocks 4, `set_small_gap` - for Small and smaller; fliers by Blocks 1).
 `_watch_familiar` fills `familiar_doubt` per guard by `feels_familiar` (eyes
 within Noticed Within, a dog's nose, a sensor's Sense Tiles; civilians never);
 `_familiar_found` dismisses it. `Guard.Kind.SENSOR` (appended) feels only magic:
 `can_perceive` is `unseen` for it, `_refresh_seen` is its radius, it never moves
-or fights. G is `StealthBar.outside_spell` (`ui/outside_spell_choice.gd` asks
-which when both spells are known). `familiar` covers it.
+or fights. G is `StealthBar.outside_spell` on a watched map and
+`ExplorationScene.outside_spell` elsewhere (`ui/outside_spell_choice.gd` asks
+which when there is more than one). `familiar` and `outside` cover it.
 
 **Moves outside a fight** (`exploration/OutsideMoves.gd`, docs/outside_combat_plan.md
 Phase 1, the designer 2026-10-26): `moves_of(key)` is everything somebody has on a
@@ -255,7 +261,23 @@ and G ask. Spells pay `pay`: Iris first for a spell marked
 its gate or deeper; Find Familiar exactly its own. `noise` (`Loudness`, appended)
 and `noise_tiles` are heard through `sound` -> `StealthWatch.make_noise`; shown
 only out of a fight (the panel, the sheet's Moves page on a map,
-`noise_fact`). The panel is `ui/outside_moves_panel.gd`, put in the action bar
+`noise_fact`). `SkillDefinition.outside_use` (appended enum; Automatic reads
+`use_of` off the effects, a damaging move being Ambush) sets the rest, per
+docs/outside_combat_plan.md's table: Blind / Scare / Confuse put a guard in a
+`Guard.SPELLBOUND` mood (appended, errands, ABSORBED, `sees_nothing`) via
+`StealthWatch.spellbind`; Read is `learn_route`; Switch Off Magic is
+`Guard.switch_off` (`still`); targets are `StealthWatch.move_target` (the hovered
+guard, else the nearest in the move's reach, Manhattan, clear line for one that
+respects blocking). Ambush: `ambush_with` sets `_opener`, `build_fight` writes the
+encounter's "opener" meta and the guard spawn's "opened_on", and Combat "An
+ambush's opening blow" (`opener_due`, `_open_the_ambush`, from `start_first_turn`)
+uses it free before the first turn; with no guard, a `BreakableWall`
+(exploration/BreakableWall.gd, flag `broken:`) in reach is `break_wall`. Blink is
+`ExplorationScene.blink`, Fly `fly` (`is_walkable` by flier blocking while
+`flying()`, down only over open ground), Lure an `OutsideMoves.Decoy` and
+`make_noise`, Hiding Spot `StealthWatch.add_hiding_spot`, Trap an
+`OutsideMoves.Trap` (`caught_in_trap`). Gateless moves in `COOLING` wait
+`COOLDOWN_SECONDS` (`ExplorationScene.cooldown_of`). The panel is `ui/outside_moves_panel.gd`, put in the action bar
 by `combat_ui.show_outside_moves`; G is `StealthBar.outside_spell` on a watched
 map and `ExplorationScene.outside_spell` elsewhere (`ui/outside_spell_choice.gd`).
 Hurry is `ExplorationScene.hurry` and `ExplorationParty.hurry` (apart from

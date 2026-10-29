@@ -1585,14 +1585,17 @@ only shows when there is something to do with it:
   an ambush, which is always the one leading - is seen again; the rest stay
   hidden. The bar's button says what is left; its tooltip, and the status for
   whoever leads, count down. With Find Familiar known too, G first asks which.
-- **G - Find Familiar** (Alithia, through a real **Gates of World** casting -
-  it comes off the next fight's World castings, or straight off a dungeon's).
+- **G - Find Familiar** (Alithia; on any map, watched or not. The first casting
+  after a long rest is free; after that a real **Gates of World** casting - it
+  comes off the next fight's World castings, or straight off a dungeon's).
   A spirit takes the shape of the map's animal - the StealthSetup's **Familiar
   Form**: a rat (`data/familiars/rat.tres`, the default), a cat or a raven - and
   the player steers it with the walking keys and sees through its eyes (a
   violet frame round the screen) while the party waits where it stands, rooted,
-  the world going on. **Tab** switches between it and the party; **G** lets it
-  go. It slips through **small gaps** nobody else fits through - a tile whose
+  the world going on. **Tab** switches between it and the party; **E**, while
+  steering it, sends it back to her shoulder, where it rides along until Tab
+  sends it off again; **G** lets it go. A map that is not a stealth map names its
+  animal in its MapSetup's **Familiar Form**. It slips through **small gaps** nobody else fits through - a tile whose
   **Blocks** has **4** beside what it stops ([0, 4] is a wall to all but the
   small); a flying form goes over what stops only walkers (Blocks without 1).
   A watchman, captain or ward makes it out only within the form's **Noticed
@@ -1610,21 +1613,38 @@ only shows when there is something to do with it:
   leader's **Skills** and **Spells** (Tab changes the leader), the castings left
   through each gate - and the **Gates of Iris** - and a letter for how loud each
   move is: **S**ilent, **Q**uiet, **L**oud. Click one to use it; one that does
-  nothing out here, or nothing now, is greyed and its tooltip says why. What
-  works so far: a **heal** mends whoever is worst hurt (an area heal, everybody
-  hurt), **Resuscitate** brings back somebody fallen (weaker until a long rest,
-  as in a fight), **Run** and **Quicken** hurry the party along (half as fast
-  again, for 20 seconds, Quicken's for its **Outside Seconds**: 60), and
-  Invisibility and Find Familiar as above. A spell is paid through a real
+  nothing out here, or nothing now, is greyed and its tooltip says why. Each
+  move's **Outside Use** (SkillDefinition, "Outside a fight") says what it does;
+  **Automatic** reads it off what it does in a fight:
+  - a **heal** mends whoever is worst hurt (an area heal, everybody hurt);
+    **Resuscitate** brings back somebody fallen (weaker until a long rest);
+  - **Run** and **Quicken** hurry the party along (half as fast again, for 20
+    seconds; Quicken's for its **Outside Seconds**: 60);
+  - **Flash** strikes a guard blind (12 s), **Dread Visage** and **Intimidate**
+    scare him off (15 s), **Bewilder** sets him wandering (20 s) - seeing
+    nothing; **Study** and **Intuition** learn a guard's round; **Dispel Magic**
+    and **InstaHack** still a ward or a magic sensor (60 s). A move lands on the
+    guard the pointer is on, or the nearest in its reach;
+  - anything that **deals damage** springs an ambush on an unaware guard in its
+    reach, the move landing first - free, before anybody's first turn - or, with
+    nobody to spring on, knocks down a **BreakableWall** in reach (place one on a
+    floor tile; it stays down, and it is loud);
+  - **Hermes Step**, **Mist Step** and **Cover Leap** step the party ahead over
+    anything; **Hover** and **Climb** fly it over barrels and carts (20 s);
+    **Phantom Body**, **Mass Mirage**, **Reality's Reflection** and **Kindled
+    Hound** leave a lure ahead that guards come to look at; **Illusory Cover**
+    and **Stealth** make cover where the leader stands (60 s); **Snare** and
+    **Tripwire** lay a trap there that drops the first guard to walk onto it;
+  - a move with no gate waits 30 seconds before it can be used again out here. A spell is paid through a real
   casting - off the next fight's gates, through its own gate or a deeper one;
   one the designer ticked **Out Of Combat** goes through the Gates of Iris first.
   **Out of combat only** on the Spells tab shows just those (and Invisibility and
   Find Familiar). A move's **Noise** and **Noise Tiles** (SkillDefinition,
   "Outside a fight") are heard by guards: Quiet turns them to the sound, Loud
-  sends them to look. Moves that deal damage are greyed for now (they will
-  start an ambush or break a wall). **G** casts the one spell that would do
-  something - Invisibility, Find Familiar, a heal with somebody hurt,
-  Resuscitate with somebody down - or asks which; Quicken is on the panel only.
+  sends them to look. **G** casts the one spell that would do something -
+  Invisibility, Find Familiar, a heal with somebody hurt, Resuscitate with
+  somebody down, a spell on a guard in reach - or asks which; what is always
+  ready (Quicken, a blink, a lure) is on the panel only.
 - **U - Hide UI.** Everything but the log and the conversation goes - the
   portraits, the action bar, the stealth bar, the objectives, the prompts; the
   guards' cones and meters stay. U again brings it back.

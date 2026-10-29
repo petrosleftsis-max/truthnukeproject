@@ -35,6 +35,10 @@ class_name MapSetup
 ## next one.
 @export var asks_for_paths: bool = true
 
+## The animal a familiar takes on this map (Find Familiar - FamiliarKeeper);
+## the rat when empty. A stealth map's StealthSetup says it there.
+@export var familiar_form: FamiliarForm
+
 @export_group("Sound")
 ## What plays while the party is here. Named rather than a path - the file's own
 ## name without its extension, so "Scott Buckley - Filaments" finds

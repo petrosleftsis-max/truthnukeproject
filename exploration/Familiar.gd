@@ -33,6 +33,8 @@ var form: FamiliarForm = null
 var controlled := false
 ## Held still: a conversation, a menu, a catch (ExplorationScene.is_holding).
 var holding := false
+## Who it is riding on the shoulder of (FamiliarKeeper.perch), or null.
+var perched_on: Node2D = null
 ## Takes a world position, a size and a movement class; true where it may be.
 var _walkable: Callable = Callable()
 var _facing_left := false
@@ -59,8 +61,24 @@ func tile_on(tile_map: TileMap) -> Vector2i:
 	return tile_map.local_to_map(tile_map.to_local(global_position))
 
 
+## Where on whoever it rides it sits: up on the shoulder.
+const SHOULDER := Vector2(-0.16, -0.5) * Grid.TILE_SIZE
+
+
+## Up on `who`'s shoulder, at once, riding along with them.
+func perch_on(who: Node2D):
+	perched_on = who
+	global_position = who.global_position + SHOULDER
+	moved.emit(global_position)
+
+
 func _process(delta):
 	queue_redraw()
+	if perched_on != null and not controlled:
+		if is_instance_valid(perched_on):
+			global_position = perched_on.global_position + SHOULDER
+		else:
+			perched_on = null
 	if not controlled or holding:
 		_play("idle")
 		return

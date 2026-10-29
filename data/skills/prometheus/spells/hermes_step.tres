@@ -8,6 +8,7 @@
 [resource]
 script = ExtResource("1_skill")
 name = "Hermes Step"
+outside_use = 10
 description = "Pick an ally, then pick where they should be. They are simply there. Click them first, then the tile."
 max_range = 6
 accuracy = 100

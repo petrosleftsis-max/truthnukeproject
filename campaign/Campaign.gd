@@ -716,7 +716,7 @@ func restart_stealth():
 ## The keys of everything the run is made of, copied as they are.
 const SAVED := ["party_level", "party_state", "subclasses", "path_change_open", "inventories", "gear", "equipped",
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
-	"meditated", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks"]
+	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks"]
 
 
 ## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with
@@ -1101,6 +1101,7 @@ func reset():
 	gates_spent_outside.clear()
 	outside_spent.clear()
 	meditated.clear()
+	free_familiar_used = false
 	parley = {}
 	_encounter_answer = EncounterAnswer.UNANSWERED
 	party_state.clear()
@@ -1520,6 +1521,7 @@ func long_rest():
 	outside_spent.clear()
 	gates_spent_outside.clear()
 	meditated.clear()
+	free_familiar_used = false
 	# And the paths open to change until the next fight (path_change_open).
 	path_change_open = true
 	if living_party().any(func(key): return subclass_of(key) != ""):
@@ -1622,6 +1624,10 @@ const MEDITATE_LEVELS := 6
 
 ## Who has meditated since the last long rest.
 var meditated: Array = []
+
+## Whether Find Familiar's free casting has been had since the last long rest
+## (FamiliarKeeper.pay - the designer, 2026-10-29).
+var free_familiar_used := false
 
 
 ## Whether `key` meditates at all, at the party's level.

@@ -161,6 +161,8 @@ func _ready():
 		if spawn.surprised or agreed.get("surprised", false):
 			catch_off_guard(enemy)
 		add_combatant(enemy, 1, spawn.position)
+		if spawn.has_meta("opened_on"):
+			_opened_on = enemy
 		if spawn.invisible:
 			_invisible_from_the_start.append(enemy)
 		if changing_sides.get(spawn.combatant_key, 0) > 0:
@@ -332,9 +334,55 @@ func catch_off_guard(comb: Dictionary):
 	})
 
 
+## --- An ambush's opening blow ---
+##
+## An ambush sprung on a stealth map with a damaging move (OutsideMoves, Ambush;
+## StealthWatch.ambush_with) opens with it: the encounter's "opener" meta names
+## who and the move, and the spawn of the guard it was aimed at is marked
+## "opened_on". Once everybody is placed and before the first turn, they use it
+## on him - free, their own first turn untouched (a PROPOSAL, 2026-10-26: the
+## designer left open whether it costs the action). Paid for as in any turn.
+
+## The guard the opening blow is for, while it is still to land.
+var _opened_on: Dictionary = {}
+var _opening_done := false
+
+
+## Whether there is an opening blow still to land.
+func opener_due() -> bool:
+	return not _opening_done and encounter != null and encounter.has_meta("opener")
+
+
+## The opening blow, then the first turn.
+func _open_the_ambush():
+	_opening_done = true
+	var opener: Dictionary = encounter.get_meta("opener")
+	var who: Dictionary = {}
+	for index in groups[Group.PLAYERS]:
+		var comb: Dictionary = combatants[index]
+		if comb.get("combatant_key", "") == opener.get("key", "") and comb.alive:
+			who = comb
+	var skill: SkillDefinition = SkillDatabase.skills.get(opener.get("move", ""))
+	if not who.is_empty() and skill != null and not _opened_on.is_empty() and _opened_on.alive:
+		var aim := nearest_tile_of(_opened_on, who.position)
+		if distance_to(who, aim) <= effective_max_range(who, skill) and distance_to(who, aim) >= skill.min_range:
+			update_information.emit("[color=yellow]%s[/color] opens with %s!\n" % [who.name, skill.name])
+			await use_skill(opener.move, who, aim, false)
+			if not still_running():
+				return
+			who.skill_used_this_turn = false
+			who.secondary_used_this_turn = false
+		else:
+			update_information.emit("[color=yellow]%s[/color]'s %s falls short.\n" % [who.name, skill.name])
+	start_first_turn()
+
+
 ## Sets the battle actually running. Separate from _ready because deployment
 ## sits in between.
 func start_first_turn():
+	if opener_due():
+		_open_the_ambush.call_deferred()
+		return
 	var first: Dictionary = combatants[current_combatant]
 	# The bosses on the field, brought up across the screen; the arena's first
 	# round; then the opening turn begins like any other.

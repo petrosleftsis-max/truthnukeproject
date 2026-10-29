@@ -18,6 +18,7 @@ zone_unseen = true
 [resource]
 script = ExtResource("3_skill")
 name = "Reality's Reflection"
+outside_use = 12
 description = "A reflection of the world on the ground, three tiles round where she puts it within eight, for two of her turns - and the other side never knows it is there. Her side standing in it is invisible, and an image of each of them caught as she casts it stands beside them for the other side to go for. Acting against an enemy gives one away until their next turn."
 max_range = 8
 required_level = 64

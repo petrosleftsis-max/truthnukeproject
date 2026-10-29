@@ -346,12 +346,15 @@ func _refresh_familiar():
 		var what: String = watch.familiar.form.name.to_lower()
 		_familiar.text = Pad.hint("Let the %s go" % what, &"outside_spell")
 		_familiar.disabled = false
-		_familiar.tooltip_text = "%s switches between the %s and the party." % [Pad.key(&"swap_leader"), what]
+		_familiar.tooltip_text = "%s switches between the %s and the party; %s, while steering it, sends it to %s's shoulder." % [
+			Pad.key(&"swap_leader"), what, Pad.key(&"interact"), Campaign.display_name_of(watch.familiar_caster)]
 		return
 	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
 	var gate := skill.spell_slot_level
 	var left: int = Campaign.gates_left_outside(spell.caster)[gate]
-	_familiar.text = Pad.hint("%s (%s %d)" % [skill.name, Stats.short_gate_name(gate), left], &"outside_spell")
+	# The first since a long rest is free (FamiliarKeeper.pay).
+	var cost := "free" if not Campaign.free_familiar_used else "%s %d" % [Stats.short_gate_name(gate), left]
+	_familiar.text = Pad.hint("%s (%s)" % [skill.name, cost], &"outside_spell")
 	_familiar.add_theme_color_override("font_color", Stats.gate_colour(gate))
 	var refusal: String = watch.familiar_refusal()
 	_familiar.disabled = refusal != ""

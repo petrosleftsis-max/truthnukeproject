@@ -121,9 +121,10 @@ func casting():
 		watch.familiar_refusal())
 	var world_before: int = Campaign.gates_left_outside("alithia")[1]
 	var leader_at: Vector2 = m.party.position_of_leader()
+	ok(not Campaign.free_familiar_used, "the first since a long rest is free")
 	ok(watch.summon_familiar() and watch.familiar != null, "called")
-	ok(Campaign.gates_left_outside("alithia")[1] == world_before - 1 and Campaign.gates_spent_outside.get("alithia", [0, 0])[1] == 1,
-		"through a real World casting, off the next fight's", "%d -> %d" % [world_before, Campaign.gates_left_outside("alithia")[1]])
+	ok(Campaign.gates_left_outside("alithia")[1] == world_before and Campaign.free_familiar_used, "  for nothing - and the free one is had",
+		"%d -> %d" % [world_before, Campaign.gates_left_outside("alithia")[1]])
 	ok(watch.familiar.form.name == "Rat" and watch.familiar.form.size == Sizes.Size.TINY, "a map that names none: a rat")
 	var alithia_sprite = m.party.sprite_for("alithia")
 	ok(alithia_sprite != null and watch.familiar.global_position.distance_to(alithia_sprite.global_position) < 1.0, "beside her")
@@ -143,7 +144,10 @@ func casting():
 	ok(watch.controlling_familiar() and m.party.rooted, "  and back to it")
 	watch.dismiss_familiar()
 	ok(watch.familiar == null and not watch.controlling_familiar() and not m.party.rooted, "let go: gone, and the party theirs again")
-	ok(watch.summon_familiar(), "called again, with her second World casting")
+	ok(watch.summon_familiar() and Campaign.gates_left_outside("alithia")[1] == world_before - 1 and Campaign.gates_spent_outside.get("alithia", [0, 0])[1] == 1,
+		"called again: through a real World casting, off the next fight's", "%d -> %d" % [world_before, Campaign.gates_left_outside("alithia")[1]])
+	watch.dismiss_familiar()
+	ok(watch.summon_familiar(), "and again, with her second")
 	watch.dismiss_familiar()
 	ok(Campaign.gates_left_outside("alithia")[1] == 0 and watch.familiar_refusal().contains("no castings"), "  and with none left, it will not come",
 		watch.familiar_refusal())
@@ -323,7 +327,10 @@ func the_bar():
 	var watch: StealthWatch = m.watch
 	var bar: StealthBar = watch.get_node("StealthHud/StealthBar")
 	bar.refresh()
-	ok(bar._familiar.visible and bar._familiar.text.begins_with("Find Familiar (World 2"), "a button for it, with its castings", bar._familiar.text)
+	ok(bar._familiar.visible and bar._familiar.text.begins_with("Find Familiar (free)"), "a button for it: the first since a long rest free", bar._familiar.text)
+	Campaign.free_familiar_used = true
+	bar.refresh()
+	ok(bar._familiar.text.begins_with("Find Familiar (World 2"), "  then with its castings", bar._familiar.text)
 	bar.outside_spell()
 	ok(watch.familiar != null, "with only it known, the Outside Spell key calls it")
 	bar.refresh()

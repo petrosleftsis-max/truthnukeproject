@@ -11,6 +11,7 @@ type = 9
 [resource]
 script = ExtResource("3_skill")
 name = "Study"
+outside_use = 8
 description = "Take the measure of an enemy: their health, attributes, movement, what they resist, what they are weak to, and everything they can do. Read it all on the character sheet, under C. What is learned lasts the battle."
 min_range = 1
 max_range = 40

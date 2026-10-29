@@ -13,6 +13,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 [resource]
 script = ExtResource("3_stealth")
 name = "Stealth"
+outside_use = 13
 description = "Slip out of sight. Only possible while no enemy can see you, and it lasts until one of them can again - at which point whoever spotted you stops where they stand."
 icon = ExtResource("2_stealth")
 targets_ally = true

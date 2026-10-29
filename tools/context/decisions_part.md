@@ -308,7 +308,15 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
 - Spells cast outside pay a real casting (off the next fight's gates), through their gate or deeper. A spell the designer marks **Out Of Combat** - only one that deals no damage - pays the Gates of Iris first (no deeper than Hermes, which Iris matches - PROPOSAL). Nothing is marked yet.
 - The designer marks each move's **Noise**: Silent, Quiet (guards within its tiles turn to look) or Loud (they go and investigate). Unmarked plays as silent.
 - A toggle shows only the out-of-combat spells. U (pad Share) hides the UI but for the log and the conversation.
-- Decided for Phase 2 (not built): a damaging move used on an unaware guard starts the fight as an ambush with that move as the opener, or it breaks an interactable such as a breakable wall. Open: whether the opener is a free action; minimum damage for walls.
+- Decided for Phase 2: a damaging move used on an unaware guard starts the fight as an ambush with that move as the opener, or it breaks an interactable such as a breakable wall. Open: whether the opener is a free action; minimum damage for walls.
+
+## Moves outside a fight, Phases 2 and 3 (2026-10-29; implemented)
+
+- Each skill has an **Outside Use** (the plan's table; Automatic reads it from its effects). On a watched map: Flash strikes a guard blind (12 s), Dread Visage and Intimidate scare him off (15 s), Bewilder sets him wandering (20 s) - seeing nothing all the while; Study and Intuition learn his round; Dispel Magic and InstaHack still a ward or magic sensor (60 s). All PROPOSAL test values.
+- A **damaging move** at an unaware guard in its reach springs an ambush; the move lands before the first turn, free (PROPOSAL - the designer left it open). With nobody to spring on, it knocks down a breakable wall in reach (any damage; loud).
+- Blink (Hermes Step, Mist Step, Cover Leap) steps the party ahead over anything; Fly (Hover, Climb) for 20 s over barrels; Lures (Phantom Body, Mass Mirage, Reality's Reflection, Kindled Hound) draw guards ahead; Illusory Cover and Stealth make cover for 60 s; Snare and Tripwire lay a trap that drops a guard.
+- A move with no gate waits 30 s before it can be used again out of a fight (PROPOSAL).
+- **Find Familiar** works on any map now; E while steering sends it to Alithia's shoulder, where it rides along; the first casting after a long rest is free (the designer, 2026-10-29).
 
 ## Known near-twins among the spells
 

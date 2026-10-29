@@ -11,7 +11,7 @@ func suite() -> String:
 
 
 func time_limit() -> float:
-	return 240.0
+	return 420.0
 
 
 func run_sections():
@@ -24,6 +24,11 @@ func run_sections():
 	await noise()
 	await hiding_the_ui()
 	await the_sheet()
+	await familiar_anywhere()
+	await on_guards()
+	await the_opening_blow()
+	await walls_and_moving()
+	await lures_cover_traps()
 
 
 func skill(key: String) -> SkillDefinition:
@@ -66,7 +71,14 @@ func the_uses():
 		"heal": OutsideMoves.Use.MEND, "light_heal": OutsideMoves.Use.MEND, "communion": OutsideMoves.Use.MEND,
 		"resuscitate": OutsideMoves.Use.REVIVE, "run": OutsideMoves.Use.SPEED, "quicken": OutsideMoves.Use.SPEED,
 		"find_familiar": OutsideMoves.Use.FAMILIAR, "invisibility": OutsideMoves.Use.INVISIBILITY,
-		"votive_flame": OutsideMoves.Use.NONE, "light_swing": OutsideMoves.Use.NONE, "guard": OutsideMoves.Use.NONE,
+		"votive_flame": OutsideMoves.Use.AMBUSH, "light_swing": OutsideMoves.Use.AMBUSH, "guard": OutsideMoves.Use.NONE,
+		"growth": OutsideMoves.Use.NONE, "flash": OutsideMoves.Use.BLIND, "dread_visage": OutsideMoves.Use.SCARE,
+		"intimidate": OutsideMoves.Use.SCARE, "bewilder": OutsideMoves.Use.CONFUSE, "study": OutsideMoves.Use.READ,
+		"intuition": OutsideMoves.Use.READ, "dispel_magic": OutsideMoves.Use.SWITCH_OFF_MAGIC, "instahack": OutsideMoves.Use.SWITCH_OFF_MAGIC,
+		"hermes_step": OutsideMoves.Use.BLINK, "mist_step": OutsideMoves.Use.BLINK, "cover_leap": OutsideMoves.Use.BLINK,
+		"hover": OutsideMoves.Use.FLY, "climb": OutsideMoves.Use.FLY, "phantom_body": OutsideMoves.Use.LURE,
+		"kindled_hound": OutsideMoves.Use.LURE, "illusory_cover": OutsideMoves.Use.HIDING_SPOT, "stealth": OutsideMoves.Use.HIDING_SPOT,
+		"snare": OutsideMoves.Use.TRAP, "tripwire": OutsideMoves.Use.TRAP, "purification": OutsideMoves.Use.MEND,
 	}
 	for key in wanted:
 		var got := OutsideMoves.use_of(skill(key))
@@ -131,12 +143,13 @@ func on_a_plain_map():
 	ok(not scene.game_ui.get_node("Actions/ActionsPanel").visible, "  the fight's grid out of the way")
 	panel.show_spells(false)
 	ok(panel.button_for("run") != null and panel.button_for("votive_flame") != null, "her skills on it, Run and Votive Flame")
-	ok(panel.button_for("votive_flame").disabled and OutsideMoves.refusal(scene, "alithia", "votive_flame") == "Only in a fight, for now",
-		"  a damaging one greyed: only in a fight, for now")
+	ok(panel.button_for("votive_flame").disabled and OutsideMoves.refusal(scene, "alithia", "votive_flame") == "No wall in reach to break",
+		"  a damaging one greyed with no wall about to break", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
 	panel.show_spells(true)
 	ok(panel.button_for("heal") != null and panel.button_for("find_familiar") != null, "her spells, on the Spells tab")
 	ok(panel.button_for("heal").disabled and OutsideMoves.refusal(scene, "alithia", "heal") == "Nobody is hurt", "  Heal greyed with nobody hurt")
-	ok(OutsideMoves.refusal(scene, "alithia", "find_familiar") == "Only on a watched map", "  Find Familiar only where guards watch")
+	ok(OutsideMoves.refusal(scene, "alithia", "find_familiar") == "", "  Find Familiar here too, with nobody watching",
+		OutsideMoves.refusal(scene, "alithia", "find_familiar"))
 	var gate_label = panel.find_child("Gate_World", true, false)
 	ok(gate_label != null and gate_label.text == "World 2/2", "  her World castings beside them", gate_label.text if gate_label != null else "none")
 	var other := ally()
@@ -157,14 +170,12 @@ func on_a_plain_map():
 	var before: int = Campaign.party_state[other].hp
 	scene.outside_spell()
 	await settle(3)
-	if ready.size() == 1:
-		ok(Campaign.party_state[other].hp > before, "  one of them: cast at once")
-	else:
-		ok(is_instance_valid(scene.spell_choice), "  more than one: which?")
-		if is_instance_valid(scene.spell_choice):
-			scene.spell_choice.find_child(ready[0].move, true, false).pressed.emit()
-			await settle(3)
-		ok(Campaign.party_state[other].hp > before, "  chosen: cast")
+	ok(is_instance_valid(scene.spell_choice) and scene.spell_choice.find_child("Familiar", true, false) != null,
+		"  with Find Familiar too: which?")
+	if is_instance_valid(scene.spell_choice):
+		scene.spell_choice.find_child(ready[0].move, true, false).pressed.emit()
+		await settle(3)
+	ok(Campaign.party_state[other].hp > before, "  a mend chosen: cast")
 	MenuPause.clear(get_tree())
 	await close_map(m)
 
@@ -287,4 +298,205 @@ func the_sheet():
 	ok(not world.is_empty() and world[0].left == 1 and world[0].most == 2, "a casting spent on the map is off the sheet's World pips",
 		"%s" % [world])
 	sheet.free()
+	await close_map(m)
+
+
+func press_key(scene: Node, keycode: Key):
+	var key := InputEventKey.new()
+	key.physical_keycode = keycode
+	key.pressed = true
+	scene._unhandled_input(key)
+
+
+func manhattan(a: Vector2i, b: Vector2i) -> int:
+	return absi(a.x - b.x) + absi(a.y - b.y)
+
+
+func familiar_anywhere():
+	log_line("======== the familiar, on any map ========")
+	var m := await plain_map()
+	var scene: ExplorationScene = m.scene
+	var keeper: FamiliarKeeper = scene.familiar_keeper
+	var world: int = Campaign.gates_left_outside("alithia")[1]
+	ok(scene.stealth == null and scene.familiar_refusal() == "", "nobody watching, and Alithia can call it", scene.familiar_refusal())
+	ok(scene.summon_familiar() and keeper.familiar != null and scene.controlling_familiar() and m.party.rooted,
+		"called and steered, the party waiting")
+	ok(Campaign.free_familiar_used and Campaign.gates_left_outside("alithia")[1] == world, "  free: the first since a long rest")
+	press_key(scene, KEY_E)
+	await settle(2)
+	var sprite = m.party.sprite_for("alithia")
+	ok(keeper.perched() and not scene.controlling_familiar() and not m.party.rooted, "E: onto her shoulder, the party hers again")
+	ok(keeper.familiar.global_position.distance_to(sprite.global_position + Familiar.SHOULDER) < 1.0, "  sitting up there, riding along")
+	ok(OutsideMoves.refusal(scene, "alithia", "find_familiar").begins_with("On Alithia's shoulder"), "  the panel says where it is",
+		OutsideMoves.refusal(scene, "alithia", "find_familiar"))
+	press_key(scene, KEY_TAB)
+	ok(scene.controlling_familiar() and not keeper.perched(), "Tab: off her shoulder and steered again")
+	ok(OutsideMoves.use(scene, "alithia", "find_familiar") and keeper.perched(), "  Find Familiar on the panel, while it is out, sends it back too")
+	scene.outside_spell()
+	ok(keeper.familiar == null, "G lets it go")
+	ok(scene.summon_familiar() and Campaign.gates_left_outside("alithia")[1] == world - 1, "the next one pays a World casting")
+	scene.dismiss_familiar()
+	Campaign.long_rest()
+	ok(not Campaign.free_familiar_used, "a long rest, and the next is free again")
+	await close_map(m)
+
+
+## A crossroads watched, Alithia leading at 14 with Prometheus and Enfina, and a
+## watchman `reach` tiles off (the fight's count) in a clear line, facing away.
+func watched_with_guard(reach: int, extra: Callable = Callable()) -> Dictionary:
+	var m := await open_map()
+	for key in ["alithia", "prometheus", "enfina", "cyrus"]:
+		if not Campaign.party_order.has(key):
+			Campaign.add_member(key)
+	Campaign.reach_level(14, true)
+	Campaign.set_leader("alithia")
+	await settle(3)
+	var from := tile_at(m, m.party.position_of_leader())
+	var spot := find_tile(m, func(tile): return manhattan(tile, from) == reach and standable(m, tile) and m.sight.clear(from, tile))
+	var facing := rad_to_deg(Vector2(spot - from).angle())
+	m.guard = add_guard(m, "Watchman", spot, facing)
+	if extra.is_valid():
+		extra.call(m, from)
+	m.watch = await watch_it(m, from)
+	settle_guard(m.watch, m.guard, facing)
+	await settle(2)
+	return m
+
+
+## A magic sensor two tiles from the party.
+func _add_sensor(map: Dictionary, from: Vector2i):
+	var near := find_tile(map, func(tile): return manhattan(tile, from) == 2 and standable(map, tile) and tile != from)
+	map.sensor = add_guard(map, "Ward Stone", near, 0.0, "mimic")
+	map.sensor.kind = Guard.Kind.SENSOR
+
+
+## A watchman far off, out of the party's sight.
+func _add_walker(map: Dictionary, from: Vector2i):
+	var far := find_tile(map, func(tile): return gap(tile, from) >= 9.0 and standable(map, tile) and not map.sight.clear(from, tile))
+	map.walker = add_guard(map, "Walker", far, 0.0) if far != NOWHERE else null
+
+
+func on_guards():
+	log_line("======== on guards ========")
+	var m := await watched_with_guard(3, _add_sensor)
+	var scene: ExplorationScene = m.scene
+	var watch: StealthWatch = m.watch
+	var guard: Guard = m.guard
+	ok(watch.spotted_by == null and OutsideMoves.refusal(scene, "alithia", "flash") == "", "Flash: a watchman in reach",
+		OutsideMoves.refusal(scene, "alithia", "flash"))
+	ok(OutsideMoves.use(scene, "alithia", "flash") and guard.mood == Guard.Mood.BLINDED and guard.sees_nothing(), "  struck blind: he sees nothing")
+	watch._refresh_seen(guard)
+	ok(watch._seen.get(guard, {}).is_empty(), "  nothing at all")
+	ok(OutsideMoves.refusal(scene, "alithia", "flash") == "Nobody in reach it could take hold of", "  and not twice at once")
+	guard.end_errand()
+	ok(not guard.sees_nothing(), "  the spell over, he sees again")
+	var from: Vector2 = m.party.position_of_leader()
+	ok(OutsideMoves.use(scene, "alithia", "dread_visage") and guard.mood == Guard.Mood.FRIGHTENED, "Dread Visage: he runs")
+	ok(guard.errand_at().distance_to(from) >= guard.global_position.distance_to(from), "  away from her",
+		"%.0f vs %.0f" % [guard.errand_at().distance_to(from), guard.global_position.distance_to(from)])
+	guard.end_errand()
+	ok(OutsideMoves.use(scene, "alithia", "bewilder") and guard.mood == Guard.Mood.BEWILDERED and guard.sees_nothing(), "Bewilder: he wanders, seeing nothing")
+	guard.end_errand()
+	ok(OutsideMoves.refusal(scene, "alithia", "intuition") == "Nobody in reach with a round still to learn", "Intuition: a man at his post has no round to learn")
+	watch.learn_route(guard)
+	ok(watch.route_known(guard), "  one read is known")
+	ok(OutsideMoves.use(scene, "prometheus", "dispel_magic") and m.sensor.switched_off() and m.sensor.sees_nothing(),
+		"Dispel Magic: the magic sensor stilled", OutsideMoves.refusal(scene, "prometheus", "dispel_magic"))
+	ok(OutsideMoves.use(scene, "enfina", "intimidate") and guard.mood == Guard.Mood.FRIGHTENED, "Intimidate, with no gate to pay: he runs",
+		OutsideMoves.refusal(scene, "enfina", "intimidate"))
+	ok(OutsideMoves.refusal(scene, "enfina", "intimidate").begins_with("Ready again in 30"), "  and it waits half a minute before it can be used again",
+		OutsideMoves.refusal(scene, "enfina", "intimidate"))
+	guard.end_errand()
+	await settle()
+	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "", "Votive Flame at an unaware watchman", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
+	ok(OutsideMoves.use(scene, "alithia", "votive_flame") and watch.spotted_by == guard, "  springs an ambush")
+	var fight: EncounterDefinition = Campaign.current_encounter
+	ok(fight != null and fight.has_meta("opener") and fight.get_meta("opener").move == "votive_flame", "  with it as the opening blow")
+	var marked := fight.spawns.filter(func(spawn): return spawn.has_meta("opened_on")) if fight != null else []
+	ok(marked.size() == 1 and marked[0].surprised, "  on him, caught off guard")
+	await close_map(m)
+
+
+func the_opening_blow():
+	log_line("======== the opening blow, in the fight ========")
+	Campaign.reset()
+	Campaign.set_party(["alithia"], 8)
+	var encounter: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
+	encounter.fighters.assign(["alithia"])
+	encounter.skip_deployment = true
+	var marked: SpawnDefinition = null
+	for spawn in encounter.spawns:
+		if spawn.side == 1 and marked == null:
+			marked = spawn
+	marked.display_name = "Marked"
+	marked.set_meta("opened_on", true)
+	encounter.set_meta("opener", {"key": "alithia", "move": "votive_flame"})
+	Campaign.current_encounter = encounter
+	var game = load("res://scenes/game.tscn").instantiate()
+	get_tree().root.add_child(game)
+	await settle(6)
+	var combat: Combat = game.get_node("VisualCombat")
+	var log_text: RichTextLabel = combat.game_ui.get_node("Actions/Information/Text")
+	await until(func(): return "opens with" in log_text.get_parsed_text() or "falls short" in log_text.get_parsed_text(), 10.0)
+	await wait(4.0)
+	var alithia: Dictionary = {}
+	for comb in combat.combatants:
+		if comb.get("combatant_key", "") == "alithia":
+			alithia = comb
+	var said: String = log_text.get_parsed_text()
+	ok(combat._opening_done and ("opens with Votive Flame" in said or "falls short" in said), "before the first turn, the opening blow", said.right(300))
+	ok(not alithia.is_empty() and not alithia.get("skill_used_this_turn", false), "  free: her own first turn untouched")
+	game.queue_free()
+	await settle()
+	log_line("")
+
+
+func walls_and_moving():
+	log_line("======== walls, blinking, flying ========")
+	var m := await plain_map(14)
+	Campaign.add_member("prometheus")
+	await settle(3)
+	var scene: ExplorationScene = m.scene
+	var from := tile_at(m, m.party.position_of_leader())
+	var spot := find_tile(m, func(tile): return manhattan(tile, from) >= 2 and manhattan(tile, from) <= 3 and standable(m, tile))
+	var wall := BreakableWall.new()
+	wall.name = "TestWall"
+	m.map.add_child(wall)
+	wall.global_position = at(m, spot)
+	scene._collect_walls(m.map)
+	ok(not scene.is_walkable(at(m, spot)), "a breakable wall: nobody walks through it")
+	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "", "  a damaging move in reach of it", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
+	ok(OutsideMoves.use(scene, "alithia", "votive_flame") and wall.broken and scene.is_walkable(at(m, spot)), "  Votive Flame brings it down")
+	ok(Campaign.flag(wall.flag_for(scene.map_path())), "  for good: kept in the flags")
+	var before: Vector2 = m.party.position_of_leader()
+	ok(OutsideMoves.use(scene, "prometheus", "hermes_step") and m.party.position_of_leader().distance_to(before) >= Grid.tiles(1.0),
+		"Hermes Step: the party steps ahead", OutsideMoves.refusal(scene, "prometheus", "hermes_step"))
+	ok(OutsideMoves.use(scene, "prometheus", "hover") and scene.flying(), "Hover: the party flies")
+	var crate := find_tile(m, func(tile): return scene._blocking.has(tile) and not scene._blocking_fliers.has(tile) and not scene._small_gaps.has(tile))
+	if crate != NOWHERE:
+		ok(scene.is_walkable(at(m, crate)), "  over a barrel")
+	ok(OutsideMoves.refusal(scene, "prometheus", "hover") == "Already flying", "  not twice at once")
+	scene._fly_on(1000.0)
+	ok(not scene.flying() and (crate == NOWHERE or not scene.is_walkable(at(m, crate))), "  and down when the time is up")
+	await close_map(m)
+
+
+func lures_cover_traps():
+	log_line("======== lures, cover, traps ========")
+	var m := await watched_with_guard(3, _add_walker)
+	var scene: ExplorationScene = m.scene
+	var watch: StealthWatch = m.watch
+	ok(OutsideMoves.use(scene, "prometheus", "kindled_hound"), "Kindled Hound, as a lure", OutsideMoves.refusal(scene, "prometheus", "kindled_hound"))
+	var lures := scene.get_children().filter(func(node): return node is OutsideMoves.Decoy)
+	ok(lures.size() == 1, "  something stirs ahead")
+	ok(not watch._ripples.is_empty() and is_equal_approx(watch._ripples.back()[2], OutsideMoves.LURE_TILES), "  heard %d tiles about" % OutsideMoves.LURE_TILES)
+	ok(not watch.leader_hiding() and OutsideMoves.use(scene, "cyrus", "stealth") and watch.leader_hiding(), "Stealth: cover where she stands, and she is hidden in it",
+		OutsideMoves.refusal(scene, "cyrus", "stealth"))
+	ok(OutsideMoves.use(scene, "cyrus", "snare"), "Snare: a trap laid", OutsideMoves.refusal(scene, "cyrus", "snare"))
+	var traps := scene.get_children().filter(func(node): return node is OutsideMoves.Trap)
+	ok(traps.size() == 1, "  where she stands")
+	if not traps.is_empty() and m.walker != null:
+		m.walker.global_position = traps[0].global_position
+		await settle(3)
+		ok(m.walker.knocked_out and not is_instance_valid(traps[0]), "  a guard walks onto it, and is down")
 	await close_map(m)

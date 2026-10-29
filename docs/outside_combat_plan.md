@@ -1,10 +1,11 @@
 # Moves outside a fight - the plan
 
 The designer's request of 2026-10-26, and their answers to the proposal made
-for it. **Phase 1 is built** (2026-10-26, the `outside` suite; CLAUDE.md "Moves
-outside a fight"); Phases 2 and 3 wait for the designer's word. A session picking
-this up should read this, then `CLAUDE.md` ("Stealth maps", "Find Familiar",
-"Gates outside a fight", "Moves outside a fight").
+for it. **All three phases are built** (Phase 1 on 2026-10-26, Phases 2 and 3 on
+2026-10-29 at the designer's "continue building the rest"; the `outside` suite;
+CLAUDE.md "Moves outside a fight"). A session picking this up should read this,
+then `CLAUDE.md` ("Stealth maps", "Find Familiar", "Gates outside a fight",
+"Moves outside a fight").
 
 ## The request
 
@@ -87,7 +88,29 @@ The plan as it was:
   rows "Moves outside a fight" are already in `docs/design_status_ledger.csv`;
   update their state as each lands.
 
-## Phase 2 - on guards and the world
+## Phase 2 - on guards and the world (built)
+
+As built (the numbers PROPOSAL test values, in `OutsideMoves.SECONDS`):
+
+- Each skill's **Outside Use** (`SkillDefinition.outside_use`) holds the table
+  below; Automatic reads it off the effects, and anything damaging is Ambush.
+- A move on a guard lands on the one the pointer is on, else the nearest in its
+  reach (the fight's count, a clear line for a move that respects blocking).
+- Blind 12 s (he stands, seeing nothing), Scare 15 s (runs 6 tiles away, then
+  waits), Confuse 20 s (wanders 3 tiles, slowly) - spellbound moods nothing draws
+  him out of. Read needs a guard with a round. Switch Off Magic 60 s, wards and
+  sensors.
+- **The opener is free** (decided here, open for the designer): used before the
+  first turn, paid for in the fight, the user's first turn untouched. A melee
+  opener needs the guard within its reach; one that falls short is said so.
+- **Breakable walls** (`BreakableWall`): any damaging move breaks one - no
+  minimum damage or type yet - when no unaware guard is in reach. Loud: 8 tiles,
+  guards come to look. Kept broken in the flags.
+- A move with no gate (Intimidate, Cover Leap, Stealth, Snare...) waits 30 s
+  before it can be used again out here.
+
+The plan as it was:
+
 
 - Blind / Scare / Confuse a guard for some seconds; Read a guard (his route
   known); Switch off magic (a sensor or ward, for some seconds).
@@ -99,13 +122,23 @@ The plan as it was:
   tiles the way an opened door does (`_shut`, `_world_version`). *OPEN:* whether
   some walls want a minimum damage or a damage type.
 
-## Phase 3 - moving, luring, traps
+## Phase 3 - moving, luring, traps (built)
+
+As built: Blink steps the party up to its reach (at most 6 tiles) the way it is
+going, onto the furthest open ground, over anything. Fly 20 s over what stops
+only walkers, down only over open ground. A Lure lands up to 4 tiles ahead - no
+aiming yet - and guards within 6 tiles go to look; the shimmer lasts 10 s. A
+Hiding Spot is made on the leader's tile for 60 s (one person, as any spot). A
+Trap is laid on the leader's tile and stays until a guard walks onto it.
+
+The plan as it was:
+
 
 Blink / Fly (a few tiles through a gap, or over low obstacles for a while), Lure
 (a decoy guards go to look at, as a thrown thing), Hiding spot (made where cast),
 Trap (catches a guard who walks into it, down as after a takedown).
 
-## What each move does outside (PROPOSAL, for the designer)
+## What each move does outside (built as below; the designer can change any in the inspector)
 
 The game has to be told what a move does outside a fight: a heal there is
 obvious, a Flash at a guard needs a rule. Rather than write each move by hand,

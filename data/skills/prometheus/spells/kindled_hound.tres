@@ -12,6 +12,7 @@ summons = "kindled_hound"
 [resource]
 script = ExtResource("3_skill")
 name = "Kindled Hound"
+outside_use = 12
 description = "A hound of embers, called up on a tile in reach to fight for you. Commanded, it runs and bites with fire; otherwise it stands on guard. It lasts as long as its tether to you holds."
 min_range = 1
 max_range = 5

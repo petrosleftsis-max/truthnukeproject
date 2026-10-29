@@ -17,6 +17,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 [resource]
 script = ExtResource("2_80nlb")
 name = "Guard"
+outside_use = 1
 description = "Stay on your guard."
 icon = ExtResource("2_60int")
 targets_ally = true

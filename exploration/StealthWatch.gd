@@ -786,6 +786,180 @@ func set_ui_hidden(on: bool):
 		_bar.visible = not on
 
 
+## --- Moves outside a fight, on guards (OutsideMoves) ---
+##
+## A move used on a map lands on the guard the pointer is on, if it can, or
+## else the nearest one it can: on show, in the move's reach by the fight's count
+## (across plus along), with a clear line for a move that needs one. Blind, Scare
+## and Confuse put him in a spellbound mood (Guard.SPELLBOUND) - seeing nothing,
+## drawn off by nothing - for its seconds; Read finds out his round; Switch Off
+## Magic stills a ward or a sensor (Guard.switch_off). A damaging move springs an
+## ambush with itself as the opening blow (ambush_with, build_fight's "opener").
+## The designer, 2026-10-26; the numbers are PROPOSAL test values.
+
+## How far a scared guard runs, and how fast; how far a bewildered one wanders,
+## and how slowly.
+const FLEE_TILES := 6.0
+const FLEE_PACE := 1.6
+const WANDER_TILES := 3.0
+const WANDER_PACE := 0.5
+
+## The opening blow of the ambush being sprung - {key, move, guard} - or {}.
+var _opener := {}
+
+
+## The guard the pointer is on, or null.
+func hovered_guard() -> Guard:
+	return _hovered if is_instance_valid(_hovered) else null
+
+
+## Whether `guard` is within `skill`'s reach of the leader: on show, near enough
+## by the fight's count, and in a clear line for a move that needs one.
+func in_reach_of(skill: SkillDefinition, guard) -> bool:
+	if not is_instance_valid(guard) or guard.knocked_out or _stashed.has(guard) or not guard_shown(guard):
+		return false
+	var party = scene.get("party") if scene != null else null
+	if party == null or party.leader == null:
+		return false
+	var from := tile_of(party.leader.global_position)
+	var to := tile_of(guard.global_position)
+	var gap := absi(to.x - from.x) + absi(to.y - from.y)
+	if gap > maxi(skill.max_range, 1) or gap < skill.min_range:
+		return false
+	return not skill.respects_blocking or gap <= 1 or sight.clear(from, to)
+
+
+## The guard `skill` would land on: the one pointed at, if `fits` him, or else
+## the nearest it can reach who does - or null.
+func move_target(skill: SkillDefinition, fits: Callable) -> Guard:
+	var pointed := hovered_guard()
+	if pointed != null and in_reach_of(skill, pointed) and fits.call(pointed):
+		return pointed
+	var party = scene.get("party")
+	var best: Guard = null
+	var best_gap := INF
+	for guard in guards:
+		if not in_reach_of(skill, guard) or not fits.call(guard):
+			continue
+		var gap: float = guard.global_position.distance_to(party.leader.global_position)
+		if gap < best_gap:
+			best = guard
+			best_gap = gap
+	return best
+
+
+## Whether a spell could take hold of `guard`: awake, somebody who walks about,
+## and not under one already.
+func can_spellbind(guard) -> bool:
+	return is_instance_valid(guard) and not guard.knocked_out and guard.moves() and not guard.mood in Guard.SPELLBOUND
+
+
+## Puts `guard` in `mood` (one of Guard.SPELLBOUND) for `seconds` - from the
+## leader, who is who casts it: struck blind where he stands, scared off away
+## from him, or wandering. The leader is seen again, if invisible.
+func spellbind(guard: Guard, mood: Guard.Mood, seconds: float):
+	_seen_again()
+	var party = scene.get("party")
+	var from: Vector2 = party.leader.global_position
+	match mood:
+		Guard.Mood.FRIGHTENED:
+			guard.send_on_errand(mood, _ground_toward(guard.global_position, guard.global_position - from, FLEE_TILES),
+				seconds, Callable(), Callable(), FLEE_PACE)
+		Guard.Mood.BEWILDERED:
+			var way := Vector2.RIGHT.rotated(randf() * TAU)
+			guard.send_on_errand(mood, _ground_toward(guard.global_position, way, WANDER_TILES),
+				seconds, Callable(), Callable(), WANDER_PACE)
+		_:
+			guard.send_on_errand(mood, guard.global_position, seconds)
+	_seen_key.erase(guard)
+
+
+## The furthest walkable point up to `tiles` from `at` the way `way` points, or
+## `at` itself.
+func _ground_toward(at: Vector2, way: Vector2, tiles: float) -> Vector2:
+	if way.length() < 0.01:
+		way = Vector2.RIGHT
+	var step := floori(tiles)
+	while step >= 1:
+		var there := at + way.normalized() * Grid.tiles(step)
+		if scene.has_method("is_walkable") and scene.is_walkable(there):
+			return there
+		step -= 1
+	return at
+
+
+## The party has found out `guard`'s round (Read).
+func learn_route(guard: Guard):
+	Campaign.set_flag(ROUTE_TOLD + _id_of(guard))
+
+
+## Stills `guard` - a ward, a sensor - for `seconds` (Switch Off Magic).
+func still(guard: Guard, seconds: float):
+	_seen_again()
+	guard.switch_off(seconds)
+	_seen_key.erase(guard)
+
+
+## Whether a damaging move could open an ambush on `guard`: one who fights and
+## has no idea anybody is about.
+func can_open_on(guard) -> bool:
+	return is_instance_valid(guard) and not guard.knocked_out and guard.fights() \
+		and CombatantDatabase.combatants.has(guard.combatant_key) and _unaware(guard)
+
+
+## Springs an ambush on `guard` with `key`'s `move` as its opening blow: the
+## fight starts as an ambush does (F), and before the first turn `key` uses it on
+## him (Combat "An ambush's opening blow"). False, and nothing done, when it can't be.
+func ambush_with(guard: Guard, key: String, move: String) -> bool:
+	if not can_open_on(guard) or ambush_refusal() != "" or (scene.has_method("is_holding") and scene.is_holding()):
+		return false
+	_opener = {"key": key, "move": move, "guard": _id_of(guard)}
+	_seen_again()
+	_caught_by(guard, true)
+	return true
+
+
+## A hiding spot made by a spell (Illusory Cover), for `seconds`: hidden in like
+## any other, gone when the time is up - unless a body is in it.
+func add_hiding_spot(spot: HidingSpot, at: Vector2, seconds: float):
+	_map.add_child(spot)
+	spot.global_position = at
+	_hiding_spots.append(spot)
+	get_tree().create_timer(seconds, false).timeout.connect(_spot_fades.bind(spot))
+
+
+func _spot_fades(spot: HidingSpot):
+	if not is_instance_valid(spot) or not spot.is_free():
+		return
+	_hiding_spots.erase(spot)
+	spot.queue_free()
+	if scene != null and scene.has_method("log_message"):
+		scene.log_message("The illusory cover fades.\n")
+
+
+## A trap laid on a map (OutsideMoves) has `guard`: down where he stands, a body
+## like any other - and heard, as a takedown is.
+func caught_in_trap(guard) -> bool:
+	if not is_instance_valid(guard) or guard.knocked_out or not guard.moves() or spotted_by != null:
+		return false
+	guard.knock_out()
+	suspicion[guard] = 0.0
+	_bodies[guard] = false
+	guard.visible = true
+	stats.takedowns += 1
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] walks into the trap, and is down.\n" % _name_of(guard))
+	make_noise(guard.global_position, TAKEDOWN_NOISE_TILES, true)
+	_witnesses(guard.global_position)
+	return true
+
+
+## A breakable wall gone (ExplorationScene.break_wall): seen through again.
+func wall_broken(tile: Vector2i):
+	sight.set_shut(tile, false)
+	_relight()
+
+
 ## --- Familiar ---
 ##
 ## Alithia's Find Familiar (EffectType.FAMILIAR), cast only outside a fight: the
@@ -794,8 +968,10 @@ func set_ui_hidden(on: bool):
 ## while the party waits where it stands - rooted, the world going on, so a
 ## guard can still walk up on them. It is paid through a real World gate
 ## (Campaign.spend_gate_outside: off the next fight's gates, or straight off a
-## dungeon's). Swap Leader (Tab) hands control to the party and back; Outside
-## Spell (G) lets it go. It fits through small gaps nobody else does
+## dungeon's), the first since a long rest free. Calling, steering, the shoulder
+## and letting it go are the map's FamiliarKeeper's (any map has one); what
+## guards make of it is here. Swap Leader (Tab) hands control to the party and
+## back; Interact (E) sends it to her shoulder; Outside Spell (G) lets it go. It fits through small gaps nobody else does
 ## (ExplorationScene "Small gaps"), and a flying one goes over what stops only
 ## walkers.
 ##
@@ -808,46 +984,39 @@ func set_ui_hidden(on: bool):
 ## level and the nearest guard comes to look. The designer, 2026-10-26.
 
 ## The animal for a map that names none.
-const DEFAULT_FAMILIAR := "res://data/familiars/rat.tres"
+const DEFAULT_FAMILIAR := FamiliarKeeper.DEFAULT_FORM
 
+## The map's keeper of the familiar (ExplorationScene.familiar_keeper).
+var keeper: FamiliarKeeper:
+	get:
+		return scene.get("familiar_keeper") if scene != null and is_instance_valid(scene) else null
 ## The familiar, while there is one.
-var familiar: Familiar = null
+var familiar: Familiar:
+	get:
+		return keeper.familiar if keeper != null else null
 ## Whether the player is steering it now, rather than the party.
-var controlling := false
+var controlling: bool:
+	get:
+		return keeper != null and keeper.controlling
 ## Who called it.
-var familiar_caster := ""
+var familiar_caster: String:
+	get:
+		return keeper.caster if keeper != null else ""
 ## Guard -> how sure they are of the familiar, 0 to 1.
 var familiar_doubt := {}
-## Whether it was the familiar that rooted the party, to be let go with it.
-var _rooted_by_familiar := false
-## The frame round the screen while seeing through its eyes.
-var _eyes: Control = null
 
 
 ## The spell that calls a familiar and who would cast it - {"skill", "caster"}
 ## - or {} when nobody on the map knows one at the party's level.
 func familiar_spell() -> Dictionary:
-	for someone in _party_standing():
-		var definition: CombatantDefinition = CombatantDatabase.combatants.get(someone.key)
-		if definition == null:
-			continue
-		var known: Array = Array(definition.skills) + Array(definition.secondary_skills)
-		var path := SubclassDefinition.named(Campaign.subclass_of(someone.key))
-		if path != null:
-			known.append_array(path.skills)
-		for skill_key in known:
-			var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
-			if skill != null and skill.outside_only() and skill.required_level <= Campaign.party_level \
-					and Campaign.gates_most(someone.key)[skill.spell_slot_level] > 0:
-				return {"skill": skill_key, "caster": someone.key}
-	return {}
+	return FamiliarKeeper.spell_among(_party_standing().map(func(someone): return someone.key))
 
 
 ## The animal a familiar takes here.
 func familiar_form() -> FamiliarForm:
 	if setup != null and setup.familiar_form != null:
 		return setup.familiar_form
-	return load(DEFAULT_FAMILIAR)
+	return scene.familiar_form() if scene != null and scene.has_method("familiar_form") else load(DEFAULT_FAMILIAR)
 
 
 ## Why a familiar could not be called right now, or "" when it could.
@@ -863,89 +1032,51 @@ func familiar_refusal() -> String:
 		return "Not now"
 	if _changing_into != "" or _dragging != null or _lacing != null or _reassuring != null:
 		return "Not in the middle of something"
-	return OutsideMoves.cannot_pay(spell.caster, SkillDatabase.skills[spell.skill], true)
+	return FamiliarKeeper.cannot_pay(spell.caster, SkillDatabase.skills[spell.skill])
 
 
-## Calls the familiar beside its caster, through a World casting, and hands it
-## the player's control. False, and nothing spent, when it can't be.
+## Calls the familiar beside its caster, through a World casting - the first
+## since a long rest free - and hands it the player's control. False, and
+## nothing spent, when it can't be.
 func summon_familiar() -> bool:
-	if familiar_refusal() != "":
+	if familiar_refusal() != "" or keeper == null:
 		return false
 	var spell := familiar_spell()
 	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
-	# Its own gate exactly - or Iris first, once the designer marks it Out Of
-	# Combat (OutsideMoves).
-	var paid := OutsideMoves.pay(spell.caster, skill, true)
+	var paid := FamiliarKeeper.pay(spell.caster, skill)
 	if paid.is_empty():
 		return false
-	var party = scene.get("party")
-	var caster_sprite = party.sprite_for(spell.caster) if party != null else null
-	var at: Vector2 = caster_sprite.global_position if caster_sprite != null else (party.position_of_leader() if party != null else Vector2.ZERO)
-	familiar = Familiar.new()
-	familiar.name = "Familiar"
-	scene.add_child(familiar)
-	familiar.setup(familiar_form(), at, Callable(scene, "is_walkable_for"))
-	familiar.moved.connect(_on_familiar_moved)
-	familiar_caster = spell.caster
 	familiar_doubt.clear()
+	keeper.summon(spell.caster, familiar_form())
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color] casts %s%s: a %s answers, and she sees through its eyes.\n" % [
-			_display_name(spell.caster), skill.name, OutsideMoves.paid_through(paid), familiar.form.name.to_lower()])
+			_display_name(spell.caster), skill.name, FamiliarKeeper.paid_words(paid), familiar.form.name.to_lower()])
 	OutsideMoves.sound(scene, spell.caster, skill)
-	take_familiar_control(true)
 	return true
 
 
-## Hands the player's control to the familiar (`to_it`) or back to the party -
-## the camera with it, and the party rooted while it is not theirs.
+## Hands the player's control to the familiar (`to_it`) or back to the party.
 func take_familiar_control(to_it: bool):
-	if familiar == null:
-		to_it = false
-	controlling = to_it
-	if familiar != null:
-		familiar.controlled = to_it
-	var party = scene.get("party") if scene != null else null
-	if party != null and is_instance_valid(party):
-		if to_it and not party.rooted:
-			party.rooted = true
-			_rooted_by_familiar = true
-		elif not to_it and _rooted_by_familiar:
-			party.rooted = false
-			_rooted_by_familiar = false
-		if scene.has_method("_follow_camera"):
-			scene._follow_camera(familiar.global_position if to_it else party.position_of_leader())
-	_show_eyes(to_it)
+	if keeper != null:
+		keeper.take_control(to_it)
 
 
 ## Swaps who the player steers, while there is a familiar. False with none.
 func toggle_familiar_control() -> bool:
-	if familiar == null:
-		return false
-	take_familiar_control(not controlling)
-	return true
+	return keeper != null and keeper.toggle()
 
 
 ## Lets the familiar go - `why` for the log, or a plain parting.
 func dismiss_familiar(why: String = ""):
 	if familiar == null:
 		return
-	var what := familiar.form.name.to_lower()
-	take_familiar_control(false)
-	familiar.queue_free()
-	familiar = null
 	familiar_doubt.clear()
-	if scene != null and scene.has_method("log_message"):
-		scene.log_message(why if why != "" else "[color=yellow]%s[/color] lets the %s go.\n" % [_display_name(familiar_caster), what])
+	keeper.dismiss(why)
 
 
 ## Whether the player is steering the familiar now.
 func controlling_familiar() -> bool:
-	return familiar != null and controlling
-
-
-func _on_familiar_moved(at: Vector2):
-	if controlling and scene.has_method("_follow_camera"):
-		scene._follow_camera(at)
+	return keeper != null and keeper.controlling_it()
 
 
 ## Whether `guard` makes out the familiar on `tile`, `near` tiles off: a
@@ -971,11 +1102,8 @@ func feels_familiar(guard: Guard, tile: Vector2i, near: float) -> bool:
 func _watch_familiar(delta: float):
 	if familiar == null:
 		return
-	var party = scene.get("party")
 	# Theirs to steer, not the party's: kept where they stand while it is.
-	if controlling and party != null and not party.rooted:
-		party.rooted = true
-		_rooted_by_familiar = true
+	keeper.keep_party_rooted()
 	var tile := tile_of(familiar.global_position)
 	for guard in guards:
 		if not is_instance_valid(guard):
@@ -1021,22 +1149,6 @@ func _familiar_found(guard: Guard):
 		why = "[color=yellow]%s[/color] %s the %s - and goes to see what it was about.\n" % [
 			_name_of(guard), "chases off" if guard.kind == Guard.Kind.DOG else "kicks out at", what]
 	dismiss_familiar(why)
-
-
-## The frame round the screen while seeing through the familiar's eyes, and
-## what to press: back to the party, or let it go.
-func _show_eyes(on: bool):
-	if _eyes == null and on:
-		var layer = get_node_or_null("StealthHud")
-		if layer == null:
-			return
-		_eyes = _FamiliarEyes.new()
-		_eyes.watch = self
-		layer.add_child(_eyes)
-		layer.move_child(_eyes, 0)
-	if _eyes != null:
-		_eyes.visible = on
-		_eyes.refresh()
 
 
 ## --- The dash ---
@@ -1274,6 +1386,11 @@ func _collect_world():
 		_pickups = _map.find_children("*", "StealthPickup", true, false)
 	for door in _doors:
 		_apply_door(door)
+	# A breakable wall standing stops sight, as a shut door does.
+	if scene.has_method("walls"):
+		for wall in scene.walls():
+			if is_instance_valid(wall) and not wall.broken:
+				sight.set_shut(tile_of(wall.global_position), true)
 	_dark = _Dark.new()
 	_dark.watch = self
 	_dark.z_index = -1
@@ -3663,16 +3780,9 @@ func _exit_tree():
 	_let_go()
 	_stop_reassuring()
 	_stop_lacing()
-	# A familiar is this watch's: it goes with it, and the party is theirs again.
-	if familiar != null and is_instance_valid(familiar):
-		familiar.queue_free()
-	familiar = null
 	var party = scene.get("party") if scene != null else null
 	if party != null and is_instance_valid(party):
 		party.pace = 1.0
-		if _rooted_by_familiar:
-			party.rooted = false
-			_rooted_by_familiar = false
 
 
 ## Stand-ins until there are real sounds: a heartbeat's two low thumps, and a
@@ -4085,7 +4195,12 @@ func pop_scale() -> float:
 ## guard fights with what is still in his pockets. `ambushed`: whoever had
 ## not noticed anything is caught off guard.
 func build_fight(ambushed: bool = false) -> EncounterDefinition:
+	# Sprung with a move (ambush_with): who opens, with what, on whom.
+	var opener := _opener
+	_opener = {}
 	var fight := EncounterDefinition.new()
+	if not opener.is_empty():
+		fight.set_meta("opener", {"key": opener.key, "move": opener.move})
 	fight.display_name = setup.fight_name if setup != null else "Caught"
 	fight.terrain_scene = setup.battle_terrain if setup != null else null
 	fight.skip_deployment = true
@@ -4161,6 +4276,8 @@ func build_fight(ambushed: bool = false) -> EncounterDefinition:
 		spawn.arrives_on_round = arrives
 		spawn.starting_items.assign(_pocket_for_fight(guard))
 		spawn.surprised = ambushed and arrives == 1 and _unaware(guard)
+		if not opener.is_empty() and opener.guard == _id_of(guard):
+			spawn.set_meta("opened_on", true)
 		spawns.append(spawn)
 	_send_for_reinforcements(spawns, taken, caught_at)
 	fight.spawns = spawns
@@ -4917,53 +5034,3 @@ func hand_over() -> bool:
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color] hands over %s.\n" % [_name_of(guard), ", ".join(names) if not names.is_empty() else "nothing at all"])
 	return true
-
-
-## The frame round the screen while the player sees through the familiar's
-## eyes: a violet edge, and a line saying whose eyes and what to press.
-class _FamiliarEyes extends Control:
-	var watch: StealthWatch = null
-	var _line: Label = null
-
-	## How far down the screen the line sits: under the stealth bar.
-	const LINE_TOP := 104.0
-
-	func _ready():
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_line = Label.new()
-		_line.name = "EyesLine"
-		_line.add_theme_font_size_override("font_size", 18)
-		_line.add_theme_color_override("font_color", Color(0.88, 0.8, 1.0))
-		_line.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-		_line.add_theme_constant_override("outline_size", 6)
-		add_child(_line)
-		if not Pad.changed.is_connected(refresh):
-			Pad.changed.connect(refresh)
-		refresh()
-
-	func refresh():
-		if _line == null or watch == null or watch.familiar == null:
-			return
-		_line.text = "Through the %s's eyes    %s    %s" % [watch.familiar.form.name.to_lower(),
-			Pad.hint("Back to the party", &"swap_leader"), Pad.hint("Let it go", &"outside_spell")]
-		queue_redraw()
-
-	func _process(_delta):
-		# Sized and placed by hand: anchors resolve against nothing under a bare
-		# CanvasLayer.
-		var screen := get_viewport_rect().size
-		if size != screen:
-			position = Vector2.ZERO
-			size = screen
-			queue_redraw()
-		_line.reset_size()
-		_line.position = Vector2(roundf((screen.x - _line.size.x) / 2.0), LINE_TOP)
-
-	func _draw():
-		var edge := 14.0
-		var colour := Color(0.62, 0.45, 0.95, 0.45)
-		var r := get_rect()
-		draw_rect(Rect2(0, 0, r.size.x, edge), colour)
-		draw_rect(Rect2(0, r.size.y - edge, r.size.x, edge), colour)
-		draw_rect(Rect2(0, 0, edge, r.size.y), colour)
-		draw_rect(Rect2(r.size.x - edge, 0, edge, r.size.y), colour)

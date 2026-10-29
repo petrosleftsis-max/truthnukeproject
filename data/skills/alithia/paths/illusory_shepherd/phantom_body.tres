@@ -13,6 +13,7 @@ condition = ExtResource("4_cond")
 [resource]
 script = ExtResource("3_skill")
 name = "Phantom Body"
+outside_use = 12
 description = "An image laid over an ally within six: the next attack that would hit them strikes it instead, and misses. It lasts three of their turns, or one blow."
 max_range = 6
 required_level = 32

@@ -1073,7 +1073,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia
   - Says: Read what an enemy means to do with their next turn: where they will stand, what they will use, and where it will land - all marked on the map. They are held to it, so step out of the marked tiles and the blow finds nothing.
   - Effect: {type: Read Intent}
-  - Settings: can_be_copied: false
+  - Settings: can_be_copied: false; outside_use: Read
 - **Persuade** (`persuade`) - level 1; main action; range 1-4; ranged; single target; no damage; contested against Self
   - Who has it: Alithia
   - Says: Use what the party knows about them to talk them into standing down: they lose their next turn, unless somebody hurts them first. Only works on somebody the party has something on - their faction known, one of their kind questioned, a clue about them. Her Mindfulness against their Self.
@@ -1111,23 +1111,23 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Illusory Shepherd path
   - Says: Cover that is not there, on a bare tile within six, for three of her turns. The other side takes it for a real barricade - it blocks their sight, whoever stands beside it is in cover to them, and they plan around it - but shots and blasts go straight through it, and they never learn it.
   - Effect: {type: Summon; summons: "illusory_cover"}
-  - Settings: can_be_copied: false
+  - Settings: can_be_copied: false; outside_use: Hiding Spot
 - **Mass Mirage** (`mass_mirage`) - level 54; spell, Gates of Ogdoad; main action; range 0-6; ranged; area: Diamond 3; aimed at allies; no damage
   - Who has it: Illusory Shepherd path
   - Says: A mirage on the ground, three tiles round where she puts it within six, until her next turn: her side standing in it takes a quarter less from every blow, and one attack in four at them misses outright.
   - Effect: {type: Zone; zone_condition: Mirage (mirage); zone_turns: 1}
-  - Settings: can_be_copied: false
+  - Settings: can_be_copied: false; outside_use: Lure
 - **Phantom Body** (`phantom_body`) - level 32; spell, Gates of Charon; main action; range 0-6; ranged; single target; aimed at allies; no damage
   - Who has it: Illusory Shepherd path
   - Says: An image laid over an ally within six: the next attack that would hit them strikes it instead, and misses. It lasts three of their turns, or one blow.
   - Effect: {type: Condition; condition: Phantom Body (phantom_body)}
-  - Settings: can_be_copied: false
+  - Settings: can_be_copied: false; outside_use: Lure
 - **Reality's Reflection** (`realitys_reflection`) - level 64; spell, Gates of Yaldabaoth; main action; range 0-8; ranged; area: Diamond 3; aimed at allies; no damage
   - Who has it: Illusory Shepherd path
   - Says: A reflection of the world on the ground, three tiles round where she puts it within eight, for two of her turns - and the other side never knows it is there. Her side standing in it is invisible, and an image of each of them caught as she casts it stands beside them for the other side to go for. Acting against an enemy gives one away until their next turn.
   - Effect: {type: Summon Decoy}
   - Effect: {type: Zone; zone_condition: Reflected (reflected); zone_unseen: true}
-  - Settings: can_be_copied: false
+  - Settings: can_be_copied: false; outside_use: Lure
 - **Sanctuary of Light** (`sanctuary_of_light`) - level 41; spell, Gates of Nemesis; main action; range 0-6; ranged; area: Diamond 2; aimed at allies; no damage
   - Who has it: Illusory Shepherd path
   - Says: A sanctuary on the ground, two tiles round where she puts it within six, for two of her turns: her side standing in it takes 15% less from every blow, and one attack in four at them strikes a copy and misses.
@@ -1153,6 +1153,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia
   - Says: Twists what the target sees until friend and foe are one. Confused, they go for whoever is nearest.
   - Effect: {type: Condition; condition: Confused (confused); condition_duration: 1}
+  - Settings: outside_use: Confuse
 - **Cleanse** (`cleanse`) - level 1; spell, Gates of World; secondary action; range 0-10; ranged; single target; aimed at allies; no damage
   - Who has it: Alithia, Priest
   - Says: Removes debuff effects from an ally.
@@ -1169,6 +1170,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia
   - Says: A face only the target sees, and cannot stop seeing.
   - Effect: {type: Condition; condition: Fear (fear); condition_duration: 2}
+  - Settings: outside_use: Scare
 - **Find Familiar** (`find_familiar`) - level 1; spell, Gates of World; main action; range 0-0; ranged; single target; no damage
   - Who has it: Alithia
   - Says: Outside a fight: a spirit takes the shape of whatever animal belongs where she is - a rat in the sewers, a cat in the streets, a raven out of doors - and she sees through its eyes and steers it while the party waits. It slips through gaps nobody else fits through, and a guard makes it out only close up; but it is magic, and a magic sensor knows it for what it is.
@@ -1177,7 +1179,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia
   - Says: A burst of light enough to blind anyone.
   - Effect: {type: Condition; condition: Blind (blind); condition_duration: 5}
-  - Settings: respects_blocking: true
+  - Settings: respects_blocking: true; outside_use: Blind
 - **Frozen River** (`frozen_river`) - level 16; spell, Gates of Pandora; main action; range 1-15; ranged; area: Diamond 2; damage x1.8 Water; contested against Intellect
   - Who has it: Alithia
   - Says: A whole river of it, freezing as it comes down on them.
@@ -1285,7 +1287,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Enfina, Prometheus
   - Says: Take the measure of an enemy: their health, attributes, movement, what they resist, what they are weak to, and everything they can do. Read it all on the character sheet, under C. What is learned lasts the battle.
   - Effect: {type: Reveal}
-  - Settings: can_be_copied: false
+  - Settings: can_be_copied: false; outside_use: Read
 - **Use** (`use`) - level 1; main action; range 1-1; melee; single target; no damage
   - Says: Use something on the battlefield beside you: ring the bell, pull the lever, cut the rope. What it does is the thing's own - hover it to read.
   - Effect: {type: Interact}
@@ -1307,7 +1309,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Cover Leap** (`cover_leap`) - level 1; secondary action; range 1-3; ranged; single target; no damage
   - Who has it: Cyrus
   - Says: A quick dash of up to three tiles into cover - beside a wall, a crate, anything that blocks sight. Nothing can react to it. A secondary action.
-  - Settings: teleports: Caster; lands_in_cover: true
+  - Settings: teleports: Caster; lands_in_cover: true; outside_use: Blink
 - **Deceive** (`deceive`) - level 1; main action; range 1-4; ranged; single target; no damage; contested against Intellect
   - Who has it: Cyrus
   - Says: Use what the party knows about them to convince them one of their own has sold them out: their next turn goes on the nearest of their own side. Only works on somebody the party has something on - their faction known, one of their kind questioned, a clue about them. His Self against their Intellect.
@@ -1335,6 +1337,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Cyrus
   - Says: Slip out of sight. Only possible while no enemy can see you, and it lasts until one of them can again - at which point whoever spotted you stops where they stand.
   - Effect: {type: Hide}
+  - Settings: outside_use: Hiding Spot
 - **Venom Fan** (`venom_fan`) - level 24; main action; range 1-3; ranged; area: Cone 3; damage x0.7 Physical, scales with Self
   - Who has it: Cyrus
   - Says: A fan of poisoned darts across everybody in front of him: poisoned for three turns.
@@ -1375,12 +1378,12 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Trapper path
   - Says: A hidden snare on bare ground within three tiles: the first of the other side to step on it is caught fast, and cannot walk on, for a turn. One set at a time - setting another takes the first one's place.
   - Effect: {type: Trap; trap_holds_with: Snared (snared)}
-  - Settings: can_be_copied: false
+  - Settings: can_be_copied: false; outside_use: Trap
 - **Tripwire** (`tripwire`) - level 41; main action; range 1-3; ranged; single target; no damage
   - Who has it: Trapper path
   - Says: As Snare, and it bursts as it is sprung: x1.2 to everybody of the other side within a tile of it.
   - Effect: {type: Trap; trap_holds_with: Snared (snared); trap_burst_modifier: 1.2; trap_burst_radius: 1}
-  - Settings: can_be_copied: false
+  - Settings: can_be_copied: false; outside_use: Trap
 
 ### Folder: enemies
 
@@ -1490,7 +1493,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Enfina
   - Says: Climb up onto something Monstrous or bigger and fight it from on top. Up there nobody can reach you, every blow on it lands - and harder - and it carries you wherever it goes. It will try to throw you off, and that hurts whether it works or not. Climb Down to jump off.
   - Effect: {type: Climb}
-  - Settings: can_be_copied: false; needs_size_at_least: 5
+  - Settings: can_be_copied: false; needs_size_at_least: 5; outside_use: Fly
 - **Disarm** (`disarm`) - level 24; main action; range 1-1; melee; single target; damage x0.8 Physical, scales with Physical
   - Who has it: Enfina
   - Says: A cut at the hand that holds the weapon: their next weapon attack deals half damage.
@@ -1512,6 +1515,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Enfina
   - Says: Stay on your guard.
   - Effect: {type: Stat Multiplier; stat: "defense"; duration: 1; wears_off_at_start: true}
+  - Settings: outside_use: None
 - **Hurl** (`hurl`) - level 1; main action; range 1-1; melee; single target; damage x1.0 Physical, scales with Physical
   - Who has it: Enfina, Barbarian, Pit Champion, Sellsword
   - Says: Grab somebody beside you - your size or smaller, or one size bigger at most - and throw them. Throw them into somebody else and both are hurt. Further and harder the stronger you are.
@@ -1521,7 +1525,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: Use what the party knows about them to break their nerve: they are afraid, and nearer to running or giving up. Only works on somebody the party has something on - their faction known, one of their kind questioned, a clue about them. Her Physical against their Self.
   - Effect: {type: Shake; min_amount: 25; max_amount: 35}
   - Effect: {type: Condition; condition: Fear (fear); condition_duration: 2}
-  - Settings: can_be_copied: false; needs_leverage: true
+  - Settings: can_be_copied: false; needs_leverage: true; outside_use: Scare
 - **Light Swing** (`light_swing`) - level 1; main action; range 0-1; melee; single target; damage x1.0 Physical, scales with Physical; heals 5% of the target's max health, 7% from level 16, 9% from level 32, 12% from level 54, 15% from level 64, twice the first time in a fight each foe it strikes is at half health or less, on its user (no defence, no randomness; the effect's min and max amount are unused)
   - Who has it: Enfina
   - Says: A lighter cut that steadies her: every hit mends a share of her own health - twice that the first time in a fight she strikes a foe at half their health or less.
@@ -1644,7 +1648,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Prometheus
   - Says: Undo magic: everything spells did to the one it lands on - theirs or the other side's, blessing or curse - or a spell's zone, aimed at its ground. Cast through Pandora's gate it reaches what came through Pandora's or a shallower one; cast through a deeper gate, deeper. Something a spell called up or made is undone with it.
   - Effect: {type: Dispel Magic}
-  - Settings: affects_both_sides: true; can_be_copied: false; chooses_gate: true
+  - Settings: affects_both_sides: true; can_be_copied: false; chooses_gate: true; outside_use: Switch Off Magic
 - **Fire Blast** (`fire_blast`) - level 1; spell, Gates of World; main action; range 0-20; ranged; single target; damage x1.2 Fire
   - Who has it: Prometheus, Sorcerer
   - Says: Shoot a flaming laser onto the target.
@@ -1661,7 +1665,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Prometheus
   - Says: Swell an ally to a size bigger for three turns - a Human to a Large, covering four tiles and reaching from every edge of them; too big to be lifted by what could lift them before, and seeing over the bodies of the smaller. They need the room to grow into.
   - Effect: {type: Grow; duration: 3}
-  - Settings: respects_blocking: true
+  - Settings: respects_blocking: true; outside_use: None
 - **Gust Blast** (`gust_blast`) - level 24; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.2 Wind; contested against Physical
   - Who has it: Prometheus, Sorcerer
   - Says: Blast a powerful gust that pushes the target.
@@ -1671,12 +1675,12 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Hermes Step** (`hermes_step`) - level 7; spell, Gates of Hermes; main action; range 0-6; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: Pick an ally, then pick where they should be. They are simply there. Click them first, then the tile.
-  - Settings: teleports: Target
+  - Settings: teleports: Target; outside_use: Blink
 - **Hover** (`hover`) - level 1; spell, Gates of Hermes; main action; range 0-10; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: Surround an ally in uplifting wind that allows them to fly across the field.
   - Effect: {type: Movement Class; display_name: "Hovering"; movement_class: Flying; duration: 5}
-  - Settings: respects_blocking: true
+  - Settings: respects_blocking: true; outside_use: Fly
 - **Illusory Dragon** (`illusory_dragon`) - level 47; spell, Gates of Ogdoad; main action; range 1-12; ranged; single target; no damage
   - Who has it: Prometheus
   - Says: Shadow drawn out of the Ogdoad and given a dragon's shape, anywhere in reach. It stands where it stands like a living thing, but every blow misses it and nothing harms it; the other side near it is gripped by fear. Commanded, it flies and breathes a cone of whatever it is told to - fire, frost, lightning, poison, acid or dread - as strong as your own mind. It lasts as long as its tether to you holds.
@@ -1686,7 +1690,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Prometheus
   - Says: Tear a spell apart the instant a foe in reach casts it - no minigame, no second chance for them. It comes to nothing, and their gate is spent all the same. Only ever a reaction, through the Gates of Pandora.
   - Effect: {type: Cancel Casting}
-  - Settings: respects_blocking: true; can_be_copied: false
+  - Settings: respects_blocking: true; can_be_copied: false; outside_use: Switch Off Magic
 - **Invisibility** (`invisibility`) - level 1; spell, Gates of Hermes; main action; range 0-10; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: Turn yourself or an ally invisible - even while the enemy is watching. It lasts until they do anything to an enemy. On a stealth map it hides whoever you choose for ten minutes, through the Gates of Iris, at one casting each.
@@ -1700,11 +1704,11 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Prometheus
   - Says: A hound of embers, called up on a tile in reach to fight for you. Commanded, it runs and bites with fire; otherwise it stands on guard. It lasts as long as its tether to you holds.
   - Effect: {type: Summon; summons: "kindled_hound"}
-  - Settings: can_be_copied: false; tethered: true; tether_per_damage: 1.5
+  - Settings: can_be_copied: false; outside_use: Lure; tethered: true; tether_per_damage: 1.5
 - **Mist Step** (`mist_step`) - level 8; spell, Gates of Hermes; secondary action; range 0-6; ranged; single target; no damage
   - Who has it: Prometheus
   - Says: Gone in a breath of silver mist, and there again on any free tile within six - walls, cover and all between are nothing to it. A secondary action, so the main one is still yours.
-  - Settings: teleports: Caster
+  - Settings: teleports: Caster; outside_use: Blink
 - **Quicken** (`quicken`) - level 1; spell, Gates of World; main action; range 0-10; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: Grant an ally extra speed
@@ -2425,7 +2429,15 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
 - Spells cast outside pay a real casting (off the next fight's gates), through their gate or deeper. A spell the designer marks **Out Of Combat** - only one that deals no damage - pays the Gates of Iris first (no deeper than Hermes, which Iris matches - PROPOSAL). Nothing is marked yet.
 - The designer marks each move's **Noise**: Silent, Quiet (guards within its tiles turn to look) or Loud (they go and investigate). Unmarked plays as silent.
 - A toggle shows only the out-of-combat spells. U (pad Share) hides the UI but for the log and the conversation.
-- Decided for Phase 2 (not built): a damaging move used on an unaware guard starts the fight as an ambush with that move as the opener, or it breaks an interactable such as a breakable wall. Open: whether the opener is a free action; minimum damage for walls.
+- Decided for Phase 2: a damaging move used on an unaware guard starts the fight as an ambush with that move as the opener, or it breaks an interactable such as a breakable wall. Open: whether the opener is a free action; minimum damage for walls.
+
+## Moves outside a fight, Phases 2 and 3 (2026-10-29; implemented)
+
+- Each skill has an **Outside Use** (the plan's table; Automatic reads it from its effects). On a watched map: Flash strikes a guard blind (12 s), Dread Visage and Intimidate scare him off (15 s), Bewilder sets him wandering (20 s) - seeing nothing all the while; Study and Intuition learn his round; Dispel Magic and InstaHack still a ward or magic sensor (60 s). All PROPOSAL test values.
+- A **damaging move** at an unaware guard in its reach springs an ambush; the move lands before the first turn, free (PROPOSAL - the designer left it open). With nobody to spring on, it knocks down a breakable wall in reach (any damage; loud).
+- Blink (Hermes Step, Mist Step, Cover Leap) steps the party ahead over anything; Fly (Hover, Climb) for 20 s over barrels; Lures (Phantom Body, Mass Mirage, Reality's Reflection, Kindled Hound) draw guards ahead; Illusory Cover and Stealth make cover for 60 s; Snare and Tripwire lay a trap that drops a guard.
+- A move with no gate waits 30 s before it can be used again out of a fight (PROPOSAL).
+- **Find Familiar** works on any map now; E while steering sends it to Alithia's shoulder, where it rides along; the first casting after a long rest is free (the designer, 2026-10-29).
 
 ## Known near-twins among the spells
 

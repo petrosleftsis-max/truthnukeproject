@@ -14,6 +14,7 @@ condition_duration = 2
 [resource]
 script = ExtResource("3_skill")
 name = "Dread Visage"
+outside_use = 6
 description = "A face only the target sees, and cannot stop seeing."
 icon = ExtResource("2_icon")
 min_range = 1

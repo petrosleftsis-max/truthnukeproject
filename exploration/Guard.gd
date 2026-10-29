@@ -143,6 +143,9 @@ enum Mood {
 	REPORTING,      ## Nobody's guard, running to a guard with what they saw.
 	ASLEEP,         ## Asleep at their post. Sees nothing; a noise wakes them.
 	WAKING,         ## Off to bring round somebody knocked out, or bringing them round.
+	BLINDED,        ## Struck blind by a spell cast on a map (OutsideMoves - Flash): stands where he is, seeing nothing.
+	FRIGHTENED,     ## Scared off by one (Dread Visage, Intimidate): runs from whoever did it, seeing nothing behind him.
+	BEWILDERED,     ## Bewildered by one: wanders off a little way, slowly, his mind on nothing.
 }
 var mood: Mood = Mood.PATROLLING
 ## Knocked out: lying where they fell, watching nothing, fighting nobody -
@@ -307,9 +310,27 @@ func is_awake() -> bool:
 	return not knocked_out
 
 
-## Whether they see nothing whatever right now: out cold, asleep, or being sick.
+## Whether they see nothing whatever right now: out cold, asleep, being sick,
+## under a spell (SPELLBOUND), or - a ward or a sensor - switched off.
 func sees_nothing() -> bool:
-	return knocked_out or mood == Mood.ASLEEP or mood == Mood.RETCHING
+	return knocked_out or mood == Mood.ASLEEP or mood == Mood.RETCHING or mood in SPELLBOUND or switched_off()
+
+
+## --- Switched off ---
+##
+## Dispel Magic or InstaHack cast on a map (OutsideMoves, Switch Off Magic): a
+## ward or a magic sensor - or anybody - sees and feels nothing for a while.
+
+var _off_left := 0.0
+
+
+## Off for `seconds`.
+func switch_off(seconds: float):
+	_off_left = maxf(_off_left, seconds)
+
+
+func switched_off() -> bool:
+	return _off_left > 0.0
 
 
 ## Whether they walk about and react - everything but a ward or a sensor.
@@ -348,11 +369,14 @@ func is_free() -> bool:
 ## says what the errand is for.
 
 ## The moods that are errands: walked to, stayed at, then left for the beat.
-const ERRANDS := [Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING]
+const ERRANDS := [Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING,
+	Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED]
 ## The moods nothing draws them out of: being sick, too unwell to stand, or
 ## asleep. Somebody running to tell a guard what they saw has no mind for
-## anything else either.
-const ABSORBED := [Mood.RETCHING, Mood.SICK, Mood.ASLEEP, Mood.REPORTING]
+## anything else either, and nor has anybody a spell is working on.
+const ABSORBED := [Mood.RETCHING, Mood.SICK, Mood.ASLEEP, Mood.REPORTING, Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED]
+## The moods a spell puts them in - what they see nothing in.
+const SPELLBOUND := [Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED]
 
 var _errand_at := Vector2.ZERO
 var _errand_face := Vector2.ZERO
@@ -515,6 +539,8 @@ func wake_up():
 func _process(delta):
 	if Engine.is_editor_hint() or not active:
 		return
+	if _off_left > 0.0:
+		_off_left = maxf(_off_left - delta, 0.0)
 	if knocked_out:
 		return
 	if holding:
@@ -547,7 +573,8 @@ func _process(delta):
 			if sprite != null:
 				sprite.play_idle()
 			return
-		Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING:
+		Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING, \
+				Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED:
 			_run_errand(delta)
 			return
 		Mood.WATCHING, Mood.SUSPICIOUS:

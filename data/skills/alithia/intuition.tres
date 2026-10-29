@@ -11,6 +11,7 @@ type = 19
 [resource]
 script = ExtResource("3_skill")
 name = "Intuition"
+outside_use = 8
 description = "Read what an enemy means to do with their next turn: where they will stand, what they will use, and where it will land - all marked on the map. They are held to it, so step out of the marked tiles and the blow finds nothing."
 min_range = 1
 max_range = 8

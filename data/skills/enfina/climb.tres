@@ -11,6 +11,7 @@ type = 21
 [resource]
 script = ExtResource("3_skill")
 name = "Climb"
+outside_use = 11
 description = "Climb up onto something Monstrous or bigger and fight it from on top. Up there nobody can reach you, every blow on it lands - and harder - and it carries you wherever it goes. It will try to throw you off, and that hurts whether it works or not. Climb Down to jump off."
 min_range = 1
 max_range = 1

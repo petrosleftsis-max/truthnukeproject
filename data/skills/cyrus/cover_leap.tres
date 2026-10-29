@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("3_skill")
 name = "Cover Leap"
+outside_use = 10
 description = "A quick dash of up to three tiles into cover - beside a wall, a crate, anything that blocks sight. Nothing can react to it. A secondary action."
 min_range = 1
 max_range = 3

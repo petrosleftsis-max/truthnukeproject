@@ -11,6 +11,7 @@ type = 35
 [resource]
 script = ExtResource("3_skill")
 name = "Dispel Magic"
+outside_use = 9
 description = "Undo magic: everything spells did to the one it lands on - theirs or the other side's, blessing or curse - or a spell's zone, aimed at its ground. Cast through Pandora's gate it reaches what came through Pandora's or a shallower one; cast through a deeper gate, deeper. Something a spell called up or made is undone with it."
 max_range = 10
 required_level = 14

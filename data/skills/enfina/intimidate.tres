@@ -20,6 +20,7 @@ condition_duration = 2
 [resource]
 script = ExtResource("3_skill")
 name = "Intimidate"
+outside_use = 6
 description = "Use what the party knows about them to break their nerve: they are afraid, and nearer to running or giving up. Only works on somebody the party has something on - their faction known, one of their kind questioned, a clue about them. Her Physical against their Self."
 min_range = 1
 max_range = 3

@@ -16,6 +16,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 [resource]
 script = ExtResource("3_hover")
 name = "Hover"
+outside_use = 11
 description = "Surround an ally in uplifting wind that allows them to fly across the field."
 max_range = 10
 icon = ExtResource("2_hover")
