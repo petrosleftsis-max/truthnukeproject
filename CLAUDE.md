@@ -5,6 +5,9 @@ every folder here is inside the Godot project - including `tests/`, which
 carries a `.gdignore` to keep the editor from parsing 127 test drivers on every
 start and shipping them in builds.
 
+**Where the work stands, and what waits on the designer: `docs/where_we_are.md`.**
+Read it at the start of a session, and keep it current at the end of one.
+
 The game starts at `scenes/game.tscn` and the menu at `scenes/main_menu.tscn`.
 Images are in `art/`, content resources (characters, enemies, skills, items,
 conditions, passives, encounters, clues) in `data/`, maps and stealth stages in
