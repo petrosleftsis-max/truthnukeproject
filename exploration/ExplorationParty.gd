@@ -33,6 +33,9 @@ const LIGHT_TOUCH := 0.45
 
 var leader: CombatantSprite = null
 var followers: Array[CombatantSprite] = []
+## Told to stay where they are (ExplorationScene.stay_here): out of the line,
+## standing still, until the leader walks back up to them.
+var stayers: Array[CombatantSprite] = []
 var frozen := false
 ## Held where they stand by something they are doing - changing into a
 ## disguise - while the world goes on around them. `frozen` holds everything:
@@ -59,6 +62,7 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 		child.queue_free()
 	leader = null
 	followers.clear()
+	stayers.clear()
 	_trail.clear()
 	_trail_length = 0.0
 	for i in members.size():
@@ -307,14 +311,44 @@ func _members() -> Array:
 	if leader != null:
 		all.append(leader)
 	all.append_array(followers)
+	all.append_array(stayers)
 	return all
+
+
+## The leader and whoever follows - not those staying.
+func _line() -> Array:
+	var all = []
+	if leader != null:
+		all.append(leader)
+	all.append_array(followers)
+	return all
+
+
+## `sprite` stays at `at`, out of the line.
+func stay(sprite: CombatantSprite, at: Vector2):
+	if sprite == null or sprite == leader:
+		return
+	followers.erase(sprite)
+	if not stayers.has(sprite):
+		stayers.append(sprite)
+	sprite.position = at
+	sprite.play_idle()
+
+
+## `sprite` falls in at the back of the line again.
+func rejoin(sprite: CombatantSprite):
+	if not stayers.has(sprite):
+		return
+	stayers.erase(sprite)
+	followers.append(sprite)
+	sprite.z_index = PARTY_Z_TOP - followers.size()
 
 
 func _set_walking(walking: bool):
 	if walking == _walking:
 		return
 	_walking = walking
-	for sprite in _members():
+	for sprite in _line():
 		if walking:
 			sprite.play_walk()
 		else:
@@ -327,7 +361,7 @@ func _set_facing(left: bool):
 	if left == _facing_left:
 		return
 	_facing_left = left
-	for sprite in _members():
+	for sprite in _line():
 		sprite.set_facing(left)
 
 

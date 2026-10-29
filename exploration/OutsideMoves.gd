@@ -453,27 +453,11 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			var seconds := skill.outside_seconds if skill.outside_seconds > 0 else HURRY_SECONDS
 			scene.hurry(HURRY, seconds)
 			said = "[color=yellow]%s[/color] uses %s%s: the party hurries on for %d seconds.\n" % [who, skill.name, paid_through(paid), seconds]
-		Use.BLIND, Use.SCARE, Use.CONFUSE:
+		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC:
 			var paid := pay(key, skill)
 			if paid.is_empty():
 				return false
-			var seconds := seconds_of(skill, kind)
-			watch.spellbind(target, MOODS[kind], seconds)
-			said = "[color=yellow]%s[/color] uses %s%s on [color=yellow]%s[/color]: %s for %d seconds.\n" % [who, skill.name, paid_through(paid),
-				watch._name_of(target), {Use.BLIND: "struck blind", Use.SCARE: "he runs", Use.CONFUSE: "bewildered"}[kind], seconds]
-		Use.READ:
-			var paid := pay(key, skill)
-			if paid.is_empty():
-				return false
-			watch.learn_route(target)
-			said = "[color=yellow]%s[/color] uses %s%s: [color=yellow]%s[/color]'s round is known.\n" % [who, skill.name, paid_through(paid), watch._name_of(target)]
-		Use.SWITCH_OFF_MAGIC:
-			var paid := pay(key, skill)
-			if paid.is_empty():
-				return false
-			var seconds := seconds_of(skill, kind)
-			watch.still(target, seconds)
-			said = "[color=yellow]%s[/color] casts %s%s: [color=yellow]%s[/color] is still for %d seconds.\n" % [who, skill.name, paid_through(paid), watch._name_of(target), seconds]
+			said = _do_to(watch, key, skill, kind, target, paid_through(paid))
 		Use.AMBUSH:
 			var wall: BreakableWall = scene.wall_in_reach(skill.max_range)
 			var paid := pay(key, skill)
@@ -533,6 +517,81 @@ static func use(scene: Node, key: String, move: String) -> bool:
 	# The portraits down the left read health off the party: drawn again.
 	if scene.has_method("_refresh_party_panel"):
 		scene._refresh_party_panel()
+	sound(scene, key, skill)
+	return true
+
+
+## What `key`'s `skill` (as `kind`) does to `target` - paying is the caller's -
+## and the line for the log. `paid_words` is how it was paid (paid_through).
+static func _do_to(watch, key: String, skill: SkillDefinition, kind: int, target: Guard, paid_words: String) -> String:
+	var who := Campaign.display_name_of(key)
+	var said := ""
+	match kind:
+		Use.BLIND, Use.SCARE, Use.CONFUSE:
+			var seconds := seconds_of(skill, kind)
+			watch.spellbind(target, MOODS[kind], seconds, key)
+			said = "[color=yellow]%s[/color] uses %s%s on [color=yellow]%s[/color]: %s for %d seconds.\n" % [who, skill.name, paid_words,
+				watch._name_of(target), {Use.BLIND: "struck blind", Use.SCARE: "he runs", Use.CONFUSE: "bewildered"}[kind], seconds]
+		Use.READ:
+			watch.learn_route(target)
+			said = "[color=yellow]%s[/color] uses %s%s: [color=yellow]%s[/color]'s round is known.\n" % [who, skill.name, paid_words, watch._name_of(target)]
+		Use.SWITCH_OFF_MAGIC:
+			var seconds := seconds_of(skill, kind)
+			watch.still(target, seconds)
+			said = "[color=yellow]%s[/color] casts %s%s: [color=yellow]%s[/color] is still for %d seconds.\n" % [who, skill.name, paid_words, watch._name_of(target), seconds]
+	# Whoever readied something for when he is hit lets it go now - after.
+	watch.guard_hit(target, key)
+	return said
+
+
+## --- Readied, out of a fight ---
+##
+## A move that lands on a guard (READYABLE), held back for a trigger (the
+## designer, 2026-10-29): a guard stepping into its reach, a guard stepping into
+## an area marked on the map, or a guard chosen, in sight, being hit by the party
+## (StealthWatch.guard_hit). Its gate is spent when it is readied. Whoever
+## readied it has to keep what it waits for in sight - the marked area's middle,
+## the guard watched - or it is lost (StealthWatch "Readied, out of a fight").
+
+## What can be readied out here: what lands on a guard.
+const READYABLE := [Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.AMBUSH]
+## The triggers out here.
+const READY_TRIGGERS := [SkillDefinition.Trigger.ENTERS_REACH, SkillDefinition.Trigger.ENTERS_AREA, SkillDefinition.Trigger.HIT_IN_SIGHT]
+
+
+## Whether `skill` could be readied out of a fight.
+static func can_ready(skill: SkillDefinition) -> bool:
+	return use_of(skill) in READYABLE
+
+
+## Whether `guard` is somebody `skill` (as `kind`) could do something to.
+static func fits(watch, skill: SkillDefinition, kind: int, guard) -> bool:
+	match kind:
+		Use.BLIND, Use.SCARE, Use.CONFUSE:
+			return watch.can_spellbind(guard)
+		Use.READ:
+			return is_instance_valid(guard) and not guard.knocked_out and not guard.patrol_points().is_empty() and not watch.route_known(guard)
+		Use.SWITCH_OFF_MAGIC:
+			return is_instance_valid(guard) and (guard.kind == Guard.Kind.WARD or guard.kind == Guard.Kind.SENSOR) and not guard.switched_off()
+		Use.AMBUSH:
+			return watch.can_open_on(guard)
+	return false
+
+
+## A readied `move` of `key`'s going off at `guard` - paid for already.
+static func fire_readied(scene: Node, key: String, move: String, guard: Guard) -> bool:
+	var watch = scene.get("stealth")
+	var skill: SkillDefinition = definition_of(move)
+	var kind := use_of(skill)
+	if watch == null or skill == null or not fits(watch, skill, kind, guard):
+		return false
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color]'s readied %s goes off!\n" % [Campaign.display_name_of(key), skill.name])
+	if kind == Use.AMBUSH:
+		return watch.ambush_with(guard, key, move)
+	var said := _do_to(watch, key, skill, kind, guard, "")
+	if scene.has_method("log_message"):
+		scene.log_message(said)
 	sound(scene, key, skill)
 	return true
 

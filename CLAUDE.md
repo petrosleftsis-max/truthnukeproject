@@ -294,7 +294,22 @@ Hurry is `ExplorationScene.hurry` and `ExplorationParty.hurry` (apart from
 -> `combat_ui.set_ui_hidden` (all but the log) and `StealthWatch.set_ui_hidden`
 (bar, objectives, prompts). Heals out here use the sheet's arithmetic
 (`CharacterSheet.map_entry_of`, `heal_on_the_map`); `Campaign.mend`,
-`revive_outside` and `fallen_members` hold the state. `outside` covers it.
+`revive_outside` and `fallen_members` hold the state. **Stay Here** (`stay_here`,
+X / pad Touchpad, the panel's Stay; the designer 2026-10-29) is
+`ExplorationScene.stay_here`: the leader goes into `ExplorationParty.stayers`
+(out of the line, still in `sprite_for` and `_members`, so guards see them and
+`build_fight` places them) and `staying` (key -> spot); the next not staying
+leads, or nobody does and the leader keeps it. `_keep_stayers` puts them back
+after every rebuild, `_pick_up_stayers` brings them along when the leader walks
+up, and `swap_leader` goes round past them (`_passing_lead`). **Readied out of
+a fight** (OutsideMoves / StealthWatch "Readied, out of a fight"; the panel's
+Ready box -> `ui/outside_ready_choice.gd`): what lands on a guard (`READYABLE`),
+for a guard stepping into reach, into an area marked by a click
+(`mark_ready_area`, a diamond of `READY_AREA_TILES`), or a chosen guard being
+hit (`guard_hit`, from `_do_to`, takedowns, darts and traps). Paid at readying
+(an ambush's opener in the fight); `_watch_readied` drops it once whoever
+readied it loses sight of the area's middle or the guard, and fires it through
+`fire_readied`. `outside` covers it.
 
 `stealthkit` covers the tools (throwing, ears, hiding spots, takedowns,
 pockets, alert, dogs, wards, captains, questions, the ghost flag, late
@@ -904,7 +919,8 @@ one section each, and every rule is a per-creature switch:
   HIT_IN_SIGHT (512, appended; `readied.watched` is an id): `_react_after` calls
   `_react_watched_hit` - a hostile move at the watched one if they are the other
   side's, else at whoever hit them; a move for allies at the watched one; only
-  while the watched one is in sight.
+  while the watched one is in sight. On a map the same is StealthWatch
+  `readied_outside` (see Moves outside a fight).
 - **"Readying, for the AI"**: `CombatantDefinition.ai_readies` (flags, `AiReady`).
   `ai_process` sets `ai_turn_live`; `advance_turn` hands a turn that ends with its
   main action unused to `_ai_consider_ready`. A guard is handled earlier, in

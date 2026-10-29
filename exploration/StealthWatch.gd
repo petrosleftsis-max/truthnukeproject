@@ -856,13 +856,14 @@ func can_spellbind(guard) -> bool:
 	return is_instance_valid(guard) and not guard.knocked_out and guard.moves() and not guard.mood in Guard.SPELLBOUND
 
 
-## Puts `guard` in `mood` (one of Guard.SPELLBOUND) for `seconds` - from the
-## leader, who is who casts it: struck blind where he stands, scared off away
-## from him, or wandering. The leader is seen again, if invisible.
-func spellbind(guard: Guard, mood: Guard.Mood, seconds: float):
+## Puts `guard` in `mood` (one of Guard.SPELLBOUND) for `seconds` - from `by`,
+## who casts it, or the leader: struck blind where he stands, scared off away
+## from them, or wandering. The leader is seen again, if invisible.
+func spellbind(guard: Guard, mood: Guard.Mood, seconds: float, by: String = ""):
 	_seen_again()
 	var party = scene.get("party")
-	var from: Vector2 = party.leader.global_position
+	var caster = party.sprite_for(by) if by != "" else null
+	var from: Vector2 = (caster if caster != null else party.leader).global_position
 	match mood:
 		Guard.Mood.FRIGHTENED:
 			guard.send_on_errand(mood, _ground_toward(guard.global_position, guard.global_position - from, FLEE_TILES),
@@ -945,6 +946,7 @@ func caught_in_trap(guard) -> bool:
 	if not is_instance_valid(guard) or guard.knocked_out or not guard.moves() or spotted_by != null:
 		return false
 	guard.knock_out()
+	guard_hit(guard)
 	suspicion[guard] = 0.0
 	_bodies[guard] = false
 	guard.visible = true
@@ -954,6 +956,200 @@ func caught_in_trap(guard) -> bool:
 	make_noise(guard.global_position, TAKEDOWN_NOISE_TILES, true)
 	_witnesses(guard.global_position)
 	return true
+
+
+## --- Readied, out of a fight (OutsideMoves "Readied, out of a fight") ---
+
+## The violet a readied area is drawn in, as in a fight.
+const READIED_EDGE := Color(0.62, 0.45, 0.95, 0.7)
+const NO_TILE := Vector2i(-99999, -99999)
+
+## Party key -> {move, trigger, centre, area (tile -> true), watched (Guard),
+## near (guards in reach last frame)}.
+var readied_outside := {}
+## What waits for its area to be marked with a click: {key, move}, or {}.
+var marking_ready := {}
+
+
+## Why `key` could not ready `move` for `trigger` now - around `centre` for an
+## area, on `watched` for a guard being hit - or "".
+func ready_refusal(key: String, move: String, trigger: int, centre: Vector2i = NO_TILE, watched: Guard = null) -> String:
+	var skill: SkillDefinition = OutsideMoves.definition_of(move)
+	if skill == null or not OutsideMoves.can_ready(skill):
+		return "Only a move that lands on a guard can be readied out here"
+	if readied_outside.has(key):
+		return "%s has %s readied already" % [_display_name(key), OutsideMoves.definition_of(readied_outside[key].move).name]
+	if spotted_by != null:
+		return "Too late for that"
+	if not trigger in OutsideMoves.READY_TRIGGERS:
+		return "Choose what it waits for"
+	var party = scene.get("party")
+	var sprite = party.sprite_for(key) if party != null else null
+	if sprite == null:
+		return "%s is not here" % _display_name(key)
+	var from := tile_of(sprite.global_position)
+	if trigger == SkillDefinition.Trigger.ENTERS_AREA:
+		if centre == NO_TILE:
+			return "Choose where the area goes"
+		if absi(centre.x - from.x) + absi(centre.y - from.y) > maxi(skill.max_range, 1):
+			return "That is beyond the reach of %s" % skill.name
+		if not sight.clear(from, centre):
+			return "%s can't see there" % _display_name(key)
+	if trigger == SkillDefinition.Trigger.HIT_IN_SIGHT:
+		if watched == null or not is_instance_valid(watched) or watched.knocked_out:
+			return "Choose who to watch"
+		if not sight.clear(from, tile_of(watched.global_position)):
+			return "%s can't see %s" % [_display_name(key), _name_of(watched)]
+	if skill.spell_slot_level > 0 and OutsideMoves.use_of(skill) != OutsideMoves.Use.AMBUSH:
+		return OutsideMoves.cannot_pay(key, skill)
+	return ""
+
+
+## Readies it (ready_refusal), the gate spent now - an ambush's opener is paid
+## in the fight. False, and nothing spent, when it can't be.
+func ready_outside(key: String, move: String, trigger: int, centre: Vector2i = NO_TILE, watched: Guard = null) -> bool:
+	if ready_refusal(key, move, trigger, centre, watched) != "":
+		return false
+	var skill: SkillDefinition = OutsideMoves.definition_of(move)
+	var paid := {}
+	if OutsideMoves.use_of(skill) != OutsideMoves.Use.AMBUSH:
+		paid = OutsideMoves.pay(key, skill)
+	var area := {}
+	if trigger == SkillDefinition.Trigger.ENTERS_AREA:
+		for dx in range(-READY_AREA_TILES, READY_AREA_TILES + 1):
+			for dy in range(-READY_AREA_TILES, READY_AREA_TILES + 1):
+				if absi(dx) + absi(dy) <= READY_AREA_TILES:
+					area[centre + Vector2i(dx, dy)] = true
+	readied_outside[key] = {"move": move, "trigger": trigger, "centre": centre, "area": area, "watched": watched,
+		"near": _guards_in_reach(key, skill)}
+	readied_outside[key]["inside"] = _guards_in(area)
+	var when: String = {SkillDefinition.Trigger.ENTERS_REACH: "a guard steps into its reach",
+		SkillDefinition.Trigger.ENTERS_AREA: "a guard steps into the marked area",
+		SkillDefinition.Trigger.HIT_IN_SIGHT: "%s is hit" % (_name_of(watched) if watched != null else "")}[trigger]
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] readies %s%s - for when %s.\n" % [_display_name(key), skill.name, OutsideMoves.paid_through(paid), when])
+	queue_redraw()
+	return true
+
+
+## How far round its middle a readied area watches, in tiles (a diamond) - as
+## in a fight.
+const READY_AREA_TILES := 2
+
+
+## Lets `key`'s readied move go, saying why.
+func drop_ready(key: String, why: String):
+	if not readied_outside.has(key):
+		return
+	var skill: SkillDefinition = OutsideMoves.definition_of(readied_outside[key].move)
+	readied_outside.erase(key)
+	queue_redraw()
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color]'s readied %s comes to nothing - %s.\n" % [_display_name(key), skill.name, why])
+
+
+## The guards standing in `area` (tile -> true).
+func _guards_in(area: Dictionary) -> Array:
+	var inside := []
+	for guard in guards:
+		if is_instance_valid(guard) and not guard.knocked_out and area.has(tile_of(guard.global_position)):
+			inside.append(guard)
+	return inside
+
+
+## The guards `key`'s `skill` reaches from where they stand, in sight.
+func _guards_in_reach(key: String, skill: SkillDefinition) -> Array:
+	var party = scene.get("party")
+	var sprite = party.sprite_for(key) if party != null else null
+	var near := []
+	if sprite == null:
+		return near
+	var from := tile_of(sprite.global_position)
+	for guard in guards:
+		if not is_instance_valid(guard) or guard.knocked_out:
+			continue
+		var at := tile_of(guard.global_position)
+		if absi(at.x - from.x) + absi(at.y - from.y) <= maxi(skill.max_range, 1) and (not skill.respects_blocking or sight.clear(from, at)):
+			near.append(guard)
+	return near
+
+
+## Every frame: kept in sight of what it waits for, or lost; and set off.
+func _watch_readied():
+	if readied_outside.is_empty() or spotted_by != null:
+		return
+	var party = scene.get("party")
+	for key in readied_outside.keys():
+		var held: Dictionary = readied_outside[key]
+		var skill: SkillDefinition = OutsideMoves.definition_of(held.move)
+		var kind := OutsideMoves.use_of(skill)
+		var sprite = party.sprite_for(key) if party != null else null
+		if sprite == null or not Campaign.is_alive(key):
+			drop_ready(key, "they are gone")
+			continue
+		var from := tile_of(sprite.global_position)
+		match held.trigger:
+			SkillDefinition.Trigger.ENTERS_AREA:
+				if not sight.clear(from, held.centre):
+					drop_ready(key, "the marked area is out of sight")
+					continue
+				# Stepping in - not standing there when it was marked.
+				var inside := _guards_in(held.area)
+				for guard in inside:
+					if not held.inside.has(guard) and OutsideMoves.fits(self, skill, kind, guard):
+						readied_outside.erase(key)
+						queue_redraw()
+						OutsideMoves.fire_readied(scene, key, held.move, guard)
+						break
+				if readied_outside.has(key):
+					held.inside = inside
+			SkillDefinition.Trigger.HIT_IN_SIGHT:
+				var watched = held.watched
+				if watched == null or not is_instance_valid(watched) or not sight.clear(from, tile_of(watched.global_position)):
+					drop_ready(key, "%s is out of sight" % (_name_of(watched) if watched != null and is_instance_valid(watched) else "the one watched"))
+			SkillDefinition.Trigger.ENTERS_REACH:
+				var now := _guards_in_reach(key, skill)
+				for guard in now:
+					if not held.near.has(guard) and OutsideMoves.fits(self, skill, kind, guard):
+						readied_outside.erase(key)
+						queue_redraw()
+						OutsideMoves.fire_readied(scene, key, held.move, guard)
+						break
+				if readied_outside.has(key):
+					held.near = now
+
+
+## The party did something to `guard` - `by` whoever, or the leader: whoever
+## readied something for when he is hit, with him in sight, lets it go at him.
+func guard_hit(guard, by: String = ""):
+	if not is_instance_valid(guard):
+		return
+	var party = scene.get("party")
+	for key in readied_outside.keys():
+		var held: Dictionary = readied_outside[key]
+		if held.trigger != SkillDefinition.Trigger.HIT_IN_SIGHT or held.watched != guard or key == by:
+			continue
+		var sprite = party.sprite_for(key) if party != null else null
+		if sprite == null or not sight.clear(tile_of(sprite.global_position), tile_of(guard.global_position)):
+			continue
+		readied_outside.erase(key)
+		queue_redraw()
+		OutsideMoves.fire_readied(scene, key, held.move, guard)
+
+
+## The next click on the map marks where `move`'s area goes, for `key`.
+func mark_ready_area(key: String, move: String):
+	marking_ready = {"key": key, "move": move}
+	if scene.has_method("log_message"):
+		scene.log_message("Click where the area goes - %s to stop.\n" % Pad.key(&"ui_cancel"))
+
+
+func _draw_readied():
+	var half := Vector2(Grid.HALF_TILE)
+	for key in readied_outside:
+		for tile in readied_outside[key].area:
+			var centre = to_local(_tile_map.to_global(_tile_map.map_to_local(tile)))
+			draw_rect(Rect2(centre - half, half * 2.0), READIED_EDGE, false, 6.0)
 
 
 ## A breakable wall gone (ExplorationScene.break_wall): seen through again.
@@ -2505,6 +2701,7 @@ func throw_at(tile: Vector2i) -> bool:
 		if target != null:
 			_seen_again()
 			dose(target, item)
+			guard_hit(target, leader_key())
 		_given_away_by_throwing()
 		return true
 	make_noise(_tile_map.to_global(_tile_map.map_to_local(tile)), item.distraction_radius, true)
@@ -2560,6 +2757,21 @@ func _unhandled_input(event):
 	if event is InputEventMouseMotion:
 		# Whose round to show, if it is known.
 		_hovered = _guard_on(tile_of(_world_at(event.position)))
+	if not marking_ready.is_empty():
+		if event is InputEventMouseButton and event.pressed:
+			get_viewport().set_input_as_handled()
+			var hold := marking_ready
+			marking_ready = {}
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				var tile := tile_of(_world_at(event.position))
+				var refused := ready_refusal(hold.key, hold.move, SkillDefinition.Trigger.ENTERS_AREA, tile)
+				if refused != "" and scene.has_method("log_message"):
+					scene.log_message(refused + ".\n")
+				ready_outside(hold.key, hold.move, SkillDefinition.Trigger.ENTERS_AREA, tile)
+		elif event.is_action_pressed("ui_cancel"):
+			get_viewport().set_input_as_handled()
+			marking_ready = {}
+		return
 	if _aiming == "":
 		# Seeing through the familiar's eyes, nobody is in the party's reach.
 		if not controlling_familiar():
@@ -2858,6 +3070,7 @@ func take_down(preferred = null) -> bool:
 	stats.takedowns += 1
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color] is out cold.\n" % _name_of(guard))
+	guard_hit(guard, leader_key())
 	# Not quietly: anybody near enough comes to see what that was.
 	make_noise(guard.global_position, TAKEDOWN_NOISE_TILES, true)
 	# And seen by somebody who is nobody's guard, they run to tell.
@@ -3584,6 +3797,7 @@ func _process(delta):
 	_ears_cooldown = maxf(0.0, _ears_cooldown - delta)
 	_ears_left = maxf(0.0, _ears_left - delta)
 	_wear_off_invisibility(delta)
+	_watch_readied()
 	if _changing_into != "":
 		_change_left -= delta
 		if _change_left <= 0.0:
@@ -4474,6 +4688,7 @@ func _battle_blocking():
 ## in a disguise (or one is being looked at on the bar), by what it means to
 ## him: see gaze_of.
 func _draw():
+	_draw_readied()
 	var by_gaze := seen_by_gaze()
 	var half := Vector2(Grid.HALF_TILE)
 	for gaze in [Gaze.FOOLED, Gaze.ASKS, Gaze.SEES]:

@@ -126,9 +126,12 @@ func _ready():
 ## to the map's entry point.
 func _on_party_changed():
 	_paths_due = true
-	if party == null or not is_inside_tree():
+	if party == null or not is_inside_tree() or _passing_lead:
 		return
-	party.setup(_party_textures(), party_position(), is_walkable)
+	var from := _lead_from if _lead_from != NOWHERE else party_position()
+	_lead_from = NOWHERE
+	party.setup(_party_textures(), from, is_walkable)
+	_keep_stayers()
 	_refresh_party_panel()
 
 
@@ -412,6 +415,7 @@ func _on_party_moved(leader_position: Vector2):
 	_follow_camera(leader_position)
 	_update_prompt()
 	_check_contact_triggers(leader_position)
+	_pick_up_stayers(leader_position)
 
 
 func _follow_camera(leader_position: Vector2):
@@ -498,6 +502,10 @@ func _unhandled_input(event):
 		get_viewport().set_input_as_handled()
 		outside_spell()
 		return
+	if Pad.went_down(event, &"stay_here"):
+		get_viewport().set_input_as_handled()
+		stay_here()
+		return
 	if event.is_action_pressed(&"swap_leader"):
 		get_viewport().set_input_as_handled()
 		# With a familiar out, Tab is who the player steers: it or the party.
@@ -532,10 +540,24 @@ func swap_leader():
 	if party == null:
 		return
 	var standing_at = party_position()
-	var new_leader = Campaign.cycle_leader()
+	# Round the line, past anybody told to stay: with nobody else in it, the
+	# lead stays where it is.
+	var new_leader := ""
+	var living := Campaign.living_party()
+	for i in range(1, living.size()):
+		if not staying.has(living[i]):
+			new_leader = living[i]
+			break
 	if new_leader == "":
 		return
+	_passing_lead = true
+	var guard := Campaign.party_order.size()
+	while Campaign.leader() != new_leader and guard > 0:
+		Campaign.cycle_leader()
+		guard -= 1
+	_passing_lead = false
 	party.setup(_party_textures(), standing_at, is_walkable)
+	_keep_stayers()
 	_refresh_party_panel()
 	var definition: CombatantDefinition = CombatantDatabase.combatants.get(new_leader)
 	if definition != null:
@@ -737,6 +759,69 @@ func set_ui_hidden(on: bool):
 	if stealth != null:
 		stealth.set_ui_hidden(on)
 	_update_prompt()
+
+
+## --- Staying behind ---
+##
+## The leader told to stay where they are (Stay Here): they stand there, out of
+## the line, and the next of the party not told to stay takes the lead from
+## where they were walking. With nobody else to lead, the leader stays the
+## leader. Walking the leader back up to somebody staying has them fall in
+## behind again; Tab goes round only those in the line. The guards see somebody
+## staying where they stand, and a fight places them there (the designer,
+## 2026-10-29).
+
+const NOWHERE := Vector2(-99999, -99999)
+## How near the leader has to come to somebody staying for them to fall in.
+const PICK_UP_TILES := 1.0
+
+## Who is staying, and where: combatant key -> world position.
+var staying := {}
+## Where the next rebuild of the line starts from, when not the leader's spot.
+var _lead_from := NOWHERE
+## Set while Tab turns the order round past those staying, so the line is
+## rebuilt once at the end rather than at every turn.
+var _passing_lead := false
+
+
+## The leader stays here, and the next of the party not staying leads. False,
+## and nothing changed, with nobody else to lead.
+func stay_here() -> bool:
+	if party == null or is_holding() or controlling_familiar():
+		return false
+	var leading := Campaign.leader()
+	var next := ""
+	for key in Campaign.living_party():
+		if key != leading and not staying.has(key) and party.sprite_for(key) != null:
+			next = key
+			break
+	if next == "":
+		log_message("Nobody else to lead - [color=yellow]%s[/color] keeps the lead.\n" % Campaign.display_name_of(leading))
+		return false
+	staying[leading] = party_position()
+	_lead_from = party.sprite_for(next).global_position
+	Campaign.set_leader(next)
+	log_message("[color=yellow]%s[/color] stays where they are; [color=yellow]%s[/color] leads.\n" % [
+		Campaign.display_name_of(leading), Campaign.display_name_of(next)])
+	return true
+
+
+## Puts everybody staying back where they stay, after the line is rebuilt.
+func _keep_stayers():
+	for key in staying.keys():
+		if not Campaign.is_alive(key) or not Campaign.party_order.has(key) or key == Campaign.leader():
+			staying.erase(key)
+			continue
+		party.stay(party.sprite_for(key), staying[key])
+
+
+## Somebody staying, with the leader come up to them, falls in behind.
+func _pick_up_stayers(leader_position: Vector2):
+	for key in staying.keys():
+		if staying[key].distance_to(leader_position) <= Grid.tiles(PICK_UP_TILES):
+			staying.erase(key)
+			party.rejoin(party.sprite_for(key))
+			log_message("[color=yellow]%s[/color] falls in behind.\n" % Campaign.display_name_of(key))
 
 
 ## --- The familiar, on any map (FamiliarKeeper) ---

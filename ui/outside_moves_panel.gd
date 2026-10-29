@@ -44,6 +44,9 @@ var showing_spells: bool:
 var _skills_tab: Button = null
 var _spells_tab: Button = null
 var _items_tab: Button = null
+## Readying instead of using (OutsideMoves "Readied, out of a fight").
+var readying := false
+var _ready_box: CheckBox = null
 var _only: CheckBox = null
 var _gates: HBoxContainer = null
 var _grid: GridContainer = null
@@ -78,6 +81,23 @@ func _ready():
 	_only.button_pressed = out_of_combat_only
 	_only.toggled.connect(set_out_of_combat_only)
 	top.add_child(_only)
+	_ready_box = CheckBox.new()
+	_ready_box.name = "Readying"
+	_ready_box.text = "Ready"
+	_ready_box.focus_mode = Control.FOCUS_NONE
+	_ready_box.add_theme_font_size_override("font_size", 13)
+	_ready_box.tooltip_text = "Click a move to hold it back for a guard stepping into its reach, into an area you mark, or being hit. Whoever readies it has to keep that in sight, or it is lost."
+	_ready_box.toggled.connect(set_readying)
+	top.add_child(_ready_box)
+	var stay := Button.new()
+	stay.name = "StayHere"
+	stay.focus_mode = Control.FOCUS_NONE
+	stay.flat = true
+	stay.add_theme_font_size_override("font_size", 13)
+	stay.text = Pad.hint("Stay", &"stay_here")
+	stay.tooltip_text = "The leader stays where they are, and the next of the party leads. Walk back up to them to bring them along again."
+	stay.pressed.connect(func(): scene.stay_here())
+	top.add_child(stay)
 	_gates = HBoxContainer.new()
 	_gates.name = "Gates"
 	_gates.add_theme_constant_override("separation", 10)
@@ -235,6 +255,9 @@ func _freshen(button: Button, key: String):
 	if skill == null:
 		return
 	var why := OutsideMoves.refusal(scene, key, move)
+	if readying:
+		var watch = scene.get("stealth")
+		why = "Only where guards watch" if watch == null else watch.ready_refusal(key, move, SkillDefinition.Trigger.ENTERS_REACH)
 	button.disabled = why != ""
 	var lines := [skill.name, OutsideMoves.USE_NAMES[OutsideMoves.use_of(skill)], "Noise: " + OutsideMoves.noise_fact(skill)]
 	if skill.spell_slot_level > 0:
@@ -254,8 +277,35 @@ func _freshen(button: Button, key: String):
 
 
 func _use(move: String):
+	if readying:
+		_choose_trigger(move)
+		return
 	OutsideMoves.use(scene, who(), move)
 	refresh()
+
+
+## Readying moves rather than using them, or not.
+func set_readying(on: bool):
+	readying = on
+	if _ready_box != null and _ready_box.button_pressed != on:
+		_ready_box.set_pressed_no_signal(on)
+	refresh(true)
+
+
+## What a move readied waits for (OutsideReadyChoice).
+func _choose_trigger(move: String):
+	var layer := CanvasLayer.new()
+	layer.name = "ReadyChoice"
+	layer.layer = 60
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	scene.add_child(layer)
+	var choice := OutsideReadyChoice.new()
+	choice.scene = scene
+	choice.key = who()
+	choice.move = move
+	choice.closed.connect(layer.queue_free)
+	choice.closed.connect(set_readying.bind(false))
+	layer.add_child(choice)
 
 
 ## The leader's castings: each gate they have, and Iris.

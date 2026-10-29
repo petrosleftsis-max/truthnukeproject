@@ -32,6 +32,8 @@ func run_sections():
 	await the_familiar_stage()
 	await magic_traps()
 	await walls_in_a_fight()
+	await staying_behind()
+	await readied_outside()
 
 
 func skill(key: String) -> SkillDefinition:
@@ -645,3 +647,132 @@ func walls_in_a_fight():
 	game.queue_free()
 	await settle()
 	log_line("")
+
+
+func staying_behind():
+	log_line("======== staying behind ========")
+	var m := await plain_map(8)
+	for key in ["enfina", "cyrus"]:
+		if not Campaign.party_order.has(key):
+			Campaign.add_member(key)
+	Campaign.set_leader("alithia")
+	await settle(3)
+	var scene: ExplorationScene = m.scene
+	var party: ExplorationParty = scene.party
+	var from: Vector2 = party.position_of_leader()
+	press_key(scene, KEY_X)
+	await settle(2)
+	var stayer := party.sprite_for("alithia")
+	ok(Campaign.leader() != "alithia" and scene.staying.has("alithia"), "Stay Here (X): Alithia stays, the next leads", Campaign.leader())
+	ok(stayer != null and party.stayers.has(stayer) and stayer.position.distance_to(from) < 1.0, "  standing where she was")
+	var second := Campaign.leader()
+	var far := find_tile(m, func(tile): return gap(tile, tile_at(m, from)) >= 4.0 and standable(m, tile))
+	party.teleport(at(m, far))
+	await settle(2)
+	ok(stayer.position.distance_to(from) < 1.0, "  and stays there while the rest walk off")
+	scene.swap_leader()
+	ok(Campaign.leader() != "alithia" and Campaign.leader() != second, "Tab: round the line, past her", Campaign.leader())
+	scene.swap_leader()
+	ok(Campaign.leader() == second, "  and back", Campaign.leader())
+	ok(scene.stay_here(), "the second stays too")
+	var last := Campaign.leader()
+	ok(not scene.stay_here() and Campaign.leader() == last, "  the last keeps the lead: nobody else to lead", Campaign.leader())
+	scene.swap_leader()
+	ok(Campaign.leader() == last, "  and Tab has nobody to pass it to", Campaign.leader())
+	party.teleport(from)
+	party.moved.emit(party.position_of_leader())
+	await settle(2)
+	ok(not scene.staying.has("alithia") and party.followers.has(party.sprite_for("alithia")), "walked back up to her: she falls in behind")
+	ok(scene.staying.has(second), "  the other still where they stay")
+	await close_map(m)
+
+
+func readied_outside():
+	log_line("======== readied, out of a fight ========")
+	var hit := SkillDefinition.Trigger.HIT_IN_SIGHT
+	var area := SkillDefinition.Trigger.ENTERS_AREA
+	var m := await watched_with_guard(3)
+	var scene: ExplorationScene = m.scene
+	var watch: StealthWatch = m.watch
+	var guard: Guard = m.guard
+	ok(watch.ready_refusal("alithia", "heal", SkillDefinition.Trigger.ENTERS_REACH) == "Only a move that lands on a guard can be readied out here",
+		"Heal: nothing to ready out here", watch.ready_refusal("alithia", "heal", SkillDefinition.Trigger.ENTERS_REACH))
+	var panel: OutsideMovesPanel = scene.moves_panel
+	panel.set_readying(true)
+	panel.show_tab(OutsideMovesPanel.Tab.SPELLS)
+	var flash_button := panel.button_for("flash")
+	ok(flash_button != null and not flash_button.disabled, "the panel's Ready: Flash can be readied")
+	panel._use("flash")
+	await settle(2)
+	var choice := scene.get_node_or_null("ReadyChoice/OutsideReadyChoice") as OutsideReadyChoice
+	var hit_button: Button = choice.find_child("Hit_Watchman", true, false) if choice != null else null
+	ok(hit_button != null and choice.find_child("EntersArea", true, false) != null, "  asked what for: a step into reach, an area, the watchman hit")
+	if hit_button != null:
+		hit_button.pressed.emit()
+	await settle(2)
+	ok(watch.readied_outside.get("alithia", {}).get("trigger", -1) == hit and not panel.readying and not get_tree().paused,
+		"  readied for when he is hit; the panel back to using")
+	watch.drop_ready("alithia", "a test")
+	ok(watch.ready_outside("cyrus", "rapier", hit, StealthWatch.NO_TILE, guard), "Cyrus readies his rapier for when the watchman is hit",
+		watch.ready_refusal("cyrus", "rapier", hit, StealthWatch.NO_TILE, guard))
+	ok(watch.ready_refusal("cyrus", "rapier", hit, StealthWatch.NO_TILE, guard).begins_with("Cyrus has"), "  one at a time")
+	ok(OutsideMoves.use(scene, "alithia", "flash") and guard.mood == Guard.Mood.BLINDED, "Alithia's Flash strikes him blind")
+	ok(not watch.readied_outside.has("cyrus") and watch.spotted_by == guard, "  and Cyrus's rapier goes off: an ambush")
+	var fight: EncounterDefinition = Campaign.current_encounter
+	ok(fight != null and fight.has_meta("opener") and fight.get_meta("opener").key == "cyrus", "  his the opening blow")
+	await close_map(m)
+
+	m = await watched_with_guard(3)
+	scene = m.scene
+	watch = m.watch
+	guard = m.guard
+	var from := tile_at(m, m.party.position_of_leader())
+	var post := tile_at(m, guard.global_position)
+	var centre := find_tile(m, func(tile): return manhattan(tile, from) >= 2 and manhattan(tile, from) <= 6 and manhattan(tile, post) >= 4 and standable(m, tile) and m.sight.clear(from, tile))
+	var hidden := find_tile(m, func(tile): return standable(m, tile) and not m.sight.clear(tile, centre) and gap(tile, post) >= 4.0)
+	ok(centre != NOWHERE and hidden != NOWHERE, "(an open spot in sight, and somewhere out of sight of it)")
+	if centre == NOWHERE or hidden == NOWHERE:
+		await close_map(m)
+		return
+	ok(watch.ready_refusal("alithia", "dread_visage", area) == "Choose where the area goes", "an area waits for where it goes")
+	var before := castings_left("alithia")
+	ok(watch.ready_outside("alithia", "dread_visage", area, centre), "Dread Visage readied for an area she marks",
+		watch.ready_refusal("alithia", "dread_visage", area, centre))
+	ok(castings_left("alithia") == before - 1, "  its casting spent now", "%d -> %d" % [before, castings_left("alithia")])
+	await settle(2)
+	ok(watch.readied_outside.has("alithia"), "  waiting: nobody in it yet")
+	guard.global_position = at(m, centre)
+	await settle(3)
+	ok(guard.mood == Guard.Mood.FRIGHTENED and not watch.readied_outside.has("alithia"), "the watchman steps in: it goes off, and he runs")
+	guard.end_errand()
+	guard.global_position = at(m, post)
+	await settle(2)
+	ok(watch.ready_outside("alithia", "bewilder", area, centre), "Bewilder readied for the same spot", watch.ready_refusal("alithia", "bewilder", area, centre))
+	m.party.teleport(at(m, hidden))
+	await settle(2)
+	ok(not watch.readied_outside.has("alithia"), "  she walks out of sight of it: lost")
+	m.party.teleport(at(m, from))
+	guard.global_position = at(m, post)
+	await settle(2)
+	ok(watch.ready_outside("alithia", "flash", area, centre), "Flash readied for it", watch.ready_refusal("alithia", "flash", area, centre))
+	ok(scene.stay_here(), "  and she stays to watch it while the others walk on", Campaign.leader())
+	await settle(2)
+	m.party.teleport(at(m, hidden))
+	await settle(2)
+	ok(watch.readied_outside.has("alithia"), "  still readied: she has it in sight")
+	var standing := watch._party_standing().filter(func(one): return one.key == "alithia")
+	ok(standing.size() == 1 and standing[0].tile == from, "  the guards would see her where she stands")
+	var spawns := watch.build_fight().spawns.filter(func(spawn): return spawn.combatant_key == "alithia")
+	ok(spawns.size() == 1 and manhattan(spawns[0].position, from) <= 1, "  and a fight would start with her there")
+	guard.global_position = at(m, centre)
+	await settle(3)
+	ok(guard.mood == Guard.Mood.BLINDED and not watch.readied_outside.has("alithia"), "the watchman steps in: struck blind")
+	await close_map(m)
+
+
+## Every casting `key` has left, all gates together.
+func castings_left(key: String) -> int:
+	var total := 0
+	for count in Campaign.gates_left_outside(key):
+		total += count
+	return total
