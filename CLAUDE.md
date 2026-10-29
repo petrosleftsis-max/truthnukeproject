@@ -898,7 +898,13 @@ one section each, and every rule is a per-creature switch:
   The gate and main action are spent at readying. It's dropped at the start of
   its user's turn, by a stagger, by changing sides or breaking, and by a hold
   only when `_ready_impossible`. ENTERS_AREA's `area` is drawn by CController.
-  There's no player UI for it yet.
+  The player readies through the HUD's Ready button (`combat_ui._refresh_ready`,
+  `open_ready_picker` -> `ui/ready_picker.gd`; an area is marked by the next
+  click, `mark_ready_area` / `_take_ready_click` in `_input`). Trigger
+  HIT_IN_SIGHT (512, appended; `readied.watched` is an id): `_react_after` calls
+  `_react_watched_hit` - a hostile move at the watched one if they are the other
+  side's, else at whoever hit them; a move for allies at the watched one; only
+  while the watched one is in sight.
 - **"Readying, for the AI"**: `CombatantDefinition.ai_readies` (flags, `AiReady`).
   `ai_process` sets `ai_turn_live`; `advance_turn` hands a turn that ends with its
   main action unused to `_ai_consider_ready`. A guard is handled earlier, in

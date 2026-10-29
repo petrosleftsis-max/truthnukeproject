@@ -13935,6 +13935,40 @@ func _react_after(attacker: Dictionary, struck: Array):
 		var only_them := func(reactor: Dictionary, _skill: SkillDefinition, _readied: Dictionary) -> bool:
 			return is_same(reactor, victim)
 		await _react(Trigger.STRUCK, attacker, "%s hits %s" % [attacker.name, victim.name], Callable(), only_them)
+	for victim in struck:
+		await _react_watched_hit(attacker, victim)
+
+
+## Whoever readied something for when `victim` is hit (HIT_IN_SIGHT), with them
+## still in sight: off it goes - a hostile move at `victim` if they are of the
+## other side, else at `attacker`; a move for allies at `victim`. Out of sight,
+## or nobody it could land on in reach, and it waits on.
+func _react_watched_hit(attacker: Dictionary, victim: Dictionary):
+	for reactor in combatants.duplicate():
+		if not still_running() or combat_over:
+			return
+		var readied: Dictionary = reactor.get("readied", {})
+		if readied.is_empty() or readied.trigger != Trigger.HIT_IN_SIGHT or readied.get("watched", -1) != victim.get("id", -2):
+			continue
+		if is_same(reactor, attacker) or not _can_react(reactor):
+			continue
+		if not sees_tile(reactor, nearest_across(victim, reactor.position), victim):
+			continue
+		var skill: SkillDefinition = SkillDatabase.skills.get(readied.skill)
+		if skill == null:
+			continue
+		var at: Dictionary = {}
+		if skill.targets_ally:
+			at = victim if victim.get("side", -1) == reactor.get("side", -2) else {}
+		elif victim.get("side", -1) != reactor.get("side", -2):
+			at = victim
+		elif attacker.get("side", -1) != reactor.get("side", -2):
+			at = attacker
+		if at.is_empty() or not at.get("alive", false):
+			continue
+		if _reaction_target(reactor, skill, at, at).is_empty():
+			continue
+		await _fire_readied(reactor, at, "%s is hit" % victim.name)
 
 
 ## --- Ready ---
@@ -13944,7 +13978,12 @@ func _react_after(attacker: Dictionary, struck: Array):
 ## their reaction the first time its trigger happens before their next turn.
 ## Any trigger a reactive skill can have, or, for something ranged, somebody
 ## stepping into an area they mark: a diamond READY_AREA_RADIUS tiles out from
-## where they put it, within the move's reach and in sight. Like Set Off By on a
+## where they put it, within the move's reach and in sight - or somebody they
+## choose, in sight, being hit (HIT_IN_SIGHT, the designer 2026-10-29): a
+## hostile move then goes at them if they are the other side's, else at whoever
+## hit them, and a move for allies at them (_react_watched_hit). Out of sight
+## when it happens, it does not go off. The player readies through the HUD's
+## Ready button (ui/ready_picker.gd). Like Set Off By on a
 ## skill, `by` says who sets it off where either side can: an enemy (a shot at
 ## whoever comes through the door), an ally (a heal for whoever steps into the
 ## light), or either. Lost at the start of their next turn if it never went off.
@@ -13957,7 +13996,7 @@ const NO_AREA := Vector2i(-99999, -99999)
 
 ## Why `comb` cannot ready `skill_key` for `trigger` set off by `by` (SetOffBy)
 ## (and, for the area, around `centre`), or "" when they can.
-func ready_refusal(comb: Dictionary, skill_key: String, trigger: int, centre: Vector2i = NO_AREA, by: int = SkillDefinition.SetOffBy.ENEMIES) -> String:
+func ready_refusal(comb: Dictionary, skill_key: String, trigger: int, centre: Vector2i = NO_AREA, by: int = SkillDefinition.SetOffBy.ENEMIES, watched: Dictionary = {}) -> String:
 	var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
 	if skill == null or not comb.get("skill_list", []).has(skill_key):
 		return "%s does not know that" % comb.get("name", "They")
@@ -13991,6 +14030,11 @@ func ready_refusal(comb: Dictionary, skill_key: String, trigger: int, centre: Ve
 			return "The floor is in the way"
 		if skill.respects_blocking and not has_line_of_sight(nearest_across(comb, centre), centre, comb.get("movement_class", 0)):
 			return "%s can't see there" % comb.name
+	if trigger == Trigger.HIT_IN_SIGHT:
+		if watched.is_empty() or not watched.get("alive", false) or is_same(watched, comb):
+			return "Choose who to watch"
+		if not sees_tile(comb, nearest_across(watched, comb.position), watched):
+			return "%s can't see %s" % [comb.name, watched.name]
 	return ""
 
 
@@ -13998,10 +14042,10 @@ func ready_refusal(comb: Dictionary, skill_key: String, trigger: int, centre: Ve
 ## unless the trigger is one either side can set off), around `centre` for an
 ## area. The main action and any gate are spent now. False, and nothing spent,
 ## when it can't be.
-func ready_action(comb: Dictionary, skill_key: String, trigger: int, centre: Vector2i = NO_AREA, by: int = SkillDefinition.SetOffBy.ENEMIES) -> bool:
+func ready_action(comb: Dictionary, skill_key: String, trigger: int, centre: Vector2i = NO_AREA, by: int = SkillDefinition.SetOffBy.ENEMIES, watched: Dictionary = {}) -> bool:
 	if not trigger in SkillDefinition.EITHER_SIDE:
 		by = SkillDefinition.SetOffBy.ENEMIES
-	var refused := ready_refusal(comb, skill_key, trigger, centre, by)
+	var refused := ready_refusal(comb, skill_key, trigger, centre, by, watched)
 	if refused != "":
 		update_information.emit(refused + ".\n")
 		return false
@@ -14012,9 +14056,12 @@ func ready_action(comb: Dictionary, skill_key: String, trigger: int, centre: Vec
 		_metric("gate", {"who": comb, "gate": spent, "skill": skill})
 	comb.skill_used_this_turn = true
 	comb["readied"] = {"skill": skill_key, "trigger": trigger, "centre": centre, "by": by,
-		"area": ready_area(centre) if trigger == Trigger.ENTERS_AREA else []}
-	update_information.emit("[color=yellow]%s[/color] readies %s - for when %s.\n" % [
-		comb.name, skill.name, SkillDefinition.trigger_name(trigger, by)])
+		"area": ready_area(centre) if trigger == Trigger.ENTERS_AREA else [],
+		"watched": watched.get("id", -1)}
+	var when := SkillDefinition.trigger_name(trigger, by)
+	if trigger == Trigger.HIT_IN_SIGHT:
+		when = "%s is hit" % watched.name
+	update_information.emit("[color=yellow]%s[/color] readies %s - for when %s.\n" % [comb.name, skill.name, when])
 	update_combatants.emit(combatants)
 	if controller != null:
 		controller.queue_redraw()

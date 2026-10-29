@@ -432,6 +432,80 @@ func run_test():
 		ok(not alithia.has("readied") and cyrus.hp > 900, "Cyrus steps in, and is healed", "%d" % cyrus.hp)
 	log_line("")
 
+	log_line("======== watching somebody: when they are hit ========")
+	fresh_round()
+	# Over the stun of before.
+	prometheus.status_effects.clear()
+	prometheus.spell_slots = [0, 4, 3, 3, 0, 0, 0, 0, 0, 0, 0]
+	put(foe, free_near(prometheus, 3, true))
+	ok(combat.ready_refusal(prometheus, ranged, Trigger.HIT_IN_SIGHT) == "Choose who to watch", "watching needs somebody to watch")
+	ok(combat.ready_action(prometheus, ranged, Trigger.HIT_IN_SIGHT, combat.NO_AREA, SkillDefinition.SetOffBy.ENEMIES, foe),
+		"readied for when the barbarian, in sight, is hit", combat.ready_refusal(prometheus, ranged, Trigger.HIT_IN_SIGHT, combat.NO_AREA, 0, foe))
+	# Beside him, but not in the way of Prometheus's view of him.
+	for step in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+		if open(foe.position + step):
+			put(enfina, foe.position + step)
+			if combat.sees_tile(prometheus, foe.position, foe):
+				break
+	ok(combat.sees_tile(prometheus, foe.position, foe), "(he still has the barbarian in sight)")
+	enfina.skill_used_this_turn = false
+	foe.hp = 990
+	said.clear()
+	await combat.use_skill("greatsword_attack", enfina, foe.position, false)
+	await settle()
+	ok(not prometheus.has("readied") and said.any(func(line): return line.contains("readied") and line.contains("goes off")),
+		"Enfina hits him: Prometheus's readied move goes off at him")
+	fresh_round()
+	prometheus.spell_slots = [0, 4, 3, 3, 0, 0, 0, 0, 0, 0, 0]
+	combat.ready_action(prometheus, ranged, Trigger.HIT_IN_SIGHT, combat.NO_AREA, SkillDefinition.SetOffBy.ENEMIES, foe)
+	var blocker: Vector2i = foe.position + Vector2i(signi(prometheus.position.x - foe.position.x), signi(prometheus.position.y - foe.position.y))
+	if open(blocker) and blocker != prometheus.position:
+		put(enfina, blocker)
+		if not combat.sees_tile(prometheus, foe.position, foe):
+			enfina.skill_used_this_turn = false
+			await combat.use_skill("greatsword_attack", enfina, foe.position, false)
+			await settle()
+			ok(prometheus.has("readied"), "out of his sight when he is hit: it waits")
+	fresh_round()
+	alithia.spell_slots = [0, 4, 3, 3, 0, 0, 0, 0, 0, 0, 0]
+	put(foe, free_near(foe, 12))
+	put(cyrus, free_near(alithia, 2, true))
+	ok(combat.ready_action(alithia, "heal", Trigger.HIT_IN_SIGHT, combat.NO_AREA, SkillDefinition.SetOffBy.ALLIES, cyrus),
+		"Alithia readies Heal for when Cyrus is hit")
+	cyrus.hp = 900
+	put(foe, free_near(cyrus, 1))
+	foe.skill_used_this_turn = false
+	await combat.use_skill(strike, foe, cyrus.position, false)
+	await settle()
+	ok(not alithia.has("readied") and cyrus.hp > 0, "he is hit, and her heal goes off on him", "%d" % cyrus.hp)
+	log_line("")
+
+	log_line("======== the HUD's Ready picker ========")
+	fresh_round()
+	prometheus.spell_slots = [0, 4, 3, 3, 0, 0, 0, 0, 0, 0, 0]
+	put(foe, free_near(prometheus, 3, true))
+	var picker := ReadyPicker.new()
+	picker.combat = combat
+	picker.comb = prometheus
+	picker.hud = combat.game_ui
+	combat.game_ui.add_child(picker)
+	await settle()
+	ok(picker.readiable().has(ranged), "it offers what he could ready", "%s" % [picker.readiable()])
+	picker._choose_move(ranged)
+	var watching := picker.triggers().filter(func(option): return option[1] == Trigger.HIT_IN_SIGHT and is_same(option[2], foe))
+	ok(not watching.is_empty(), "then what it waits for - the barbarian being hit among them")
+	if not watching.is_empty():
+		picker._choose_trigger(Trigger.HIT_IN_SIGHT, foe)
+		ok(prometheus.get("readied", {}).get("watched", -1) == foe.id and prometheus.skill_used_this_turn, "chosen: readied, his main action spent")
+	fresh_round()
+	combat.game_ui.mark_ready_area({"comb": prometheus, "skill": ranged, "by": SkillDefinition.SetOffBy.ENEMIES})
+	ok(not combat.game_ui._ready_marking.is_empty(), "an area waits for a click on the board")
+	var escape := InputEventAction.new()
+	escape.action = &"ui_cancel"
+	escape.pressed = true
+	ok(combat.game_ui._take_ready_click(escape) and combat.game_ui._ready_marking.is_empty(), "  Escape lets it go")
+	log_line("")
+
 	await enemies_ready()
 	await instahack()
 	game.queue_free()

@@ -91,6 +91,7 @@ func _ready():
 		toggle.pressed.connect(toggle_log)
 	_apply_log_state()
 	_build_undo_button()
+	_build_ready_button()
 	_style_turn_buttons()
 	_pips = ActionPips.new()
 	$Actions.add_child(_pips)
@@ -146,6 +147,75 @@ func _build_undo_button():
 	$Actions.add_child(_undo_button)
 	_undo_button.position = end_turn.position - Vector2(0, end_turn.size.y + 5)
 	_undo_button.pressed.connect(_on_undo_pressed)
+
+
+## --- Ready (Combat "Ready") ---
+##
+## The player's own: a move held back for a trigger, chosen in a ReadyPicker.
+## An area to watch is marked with the next click on the board (mark_ready_area).
+
+var _ready_button: Button = null
+var ready_picker: ReadyPicker = null
+## What waits for its area to be marked: {comb, skill, by}, or {}.
+var _ready_marking := {}
+
+
+func _build_ready_button():
+	var end_turn = $Actions/EndTurnButton
+	_ready_button = end_turn.duplicate(0)
+	_ready_button.name = "ReadyButton"
+	_ready_button.text = "Ready"
+	_ready_button.tooltip_text = "Hold a move back for the right moment: it goes off as your reaction when what you choose happens, before your next turn. It costs your main action now."
+	_ready_button.visible = false
+	$Actions.add_child(_ready_button)
+	_ready_button.position = end_turn.position - Vector2(0, (end_turn.size.y + 5) * 2)
+	_ready_button.pressed.connect(open_ready_picker)
+
+
+func _refresh_ready():
+	if _ready_button == null:
+		return
+	var comb: Dictionary = combat.get_current_combatant() if combat != null else {}
+	var can_show: bool = combat != null and controller != null and not exploration_mode and not _deployment_mode \
+		and not is_viewing_other() and not comb.is_empty() and combat.plays_for_party(comb) and controller.player_turn \
+		and not comb.get("skill_used_this_turn", false) and not comb.has("readied")
+	_ready_button.visible = can_show
+	_ready_button.disabled = not can_show or (controller.has_method("is_idle") and not controller.is_idle())
+
+
+## The choice of what to ready, for whoever's turn it is.
+func open_ready_picker():
+	if combat == null or is_instance_valid(ready_picker):
+		return
+	ready_picker = ReadyPicker.new()
+	ready_picker.combat = combat
+	ready_picker.comb = combat.get_current_combatant()
+	ready_picker.hud = self
+	add_child(ready_picker)
+
+
+## The next click on the board marks where `hold`'s area goes.
+func mark_ready_area(hold: Dictionary):
+	_ready_marking = hold
+	set_interaction_prompt("Click where the area goes - %s to stop" % Pad.key(&"ui_cancel"))
+
+
+func _take_ready_click(event: InputEvent) -> bool:
+	if _ready_marking.is_empty():
+		return false
+	if event.is_action_pressed(&"ui_cancel"):
+		_ready_marking = {}
+		set_interaction_prompt("")
+		return true
+	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+		return false
+	var hold := _ready_marking
+	_ready_marking = {}
+	set_interaction_prompt("")
+	var tile: Vector2i = controller.tile_map.local_to_map(controller._pointed_at())
+	combat.ready_action(hold.comb, hold.skill, SkillDefinition.Trigger.ENTERS_AREA, tile, hold.by)
+	refresh_action_buttons()
+	return true
 
 
 ## --- The HUD's furniture ---
@@ -953,6 +1023,7 @@ func _show_skills_for(comb: Dictionary):
 	if controller != null and controller.has_method("is_idle"):
 		$Actions/EndTurnButton.disabled = not controller.is_idle() or is_viewing_other()
 	_refresh_undo()
+	_refresh_ready()
 	if _pips != null:
 		_pips.show_for(comb, combat)
 
@@ -1267,6 +1338,10 @@ func _refresh_portraits():
 ## Escape goes back, taken before anything else hears it - the pause menu would
 ## otherwise open over a HUD still showing somebody else.
 func _input(event):
+	# Marking a readied move's area: the click is the HUD's, not the board's.
+	if _take_ready_click(event):
+		get_viewport().set_input_as_handled()
+		return
 	if not is_viewing_other():
 		return
 	# Mid-look at a teammate's skill, Escape ends the look first; the view of

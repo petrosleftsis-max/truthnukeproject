@@ -115,6 +115,8 @@ enum Trigger {
 	DECLARES = 64,
 	FORESEEN_BLOW = 128,
 	ENTERS_AREA = 256,
+	## Ready's own: somebody chosen, in sight, is hit (Combat "Ready").
+	HIT_IN_SIGHT = 512,
 }
 
 ## The triggers somebody of either side can set off (set_off_by); the rest are
@@ -133,6 +135,7 @@ const TRIGGER_NAMES := {
 	Trigger.DECLARES: "%s calls a declared move",
 	Trigger.FORESEEN_BLOW: "the blow Intuition foresaw comes",
 	Trigger.ENTERS_AREA: "%s steps into the marked area",
+	Trigger.HIT_IN_SIGHT: "the one they watch is hit",
 }
 const WHO_NAMES := ["an enemy", "an ally", "anybody"]
 
