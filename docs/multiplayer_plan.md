@@ -14,13 +14,14 @@ leans on the one before.
 | What | Decided |
 | --- | --- |
 | Players | Two at most. |
-| Release | **Download only.** The browser build is dropped: the game has got too heavy for it. |
+| Release | **Download only, for Windows, macOS and Linux.** The browser build is dropped: the game has got too heavy for it. |
 | Fights over a network | **Replayed on every machine** from the moves made, with a **seeded fight RNG**. |
 | LAN | Yes: host / join by address, the host found by broadcast. |
 | Online, first | Godot's own networking (ENet) over the internet, the host's router opened by **UPnP**; a **virtual LAN app** (Tailscale, ZeroTier, Radmin VPN) for anybody UPnP fails for. |
 | Online, also | **WebRTC** on desktop (needs a signalling server, STUN, TURN - the designer hosts them) and **Steam** (GodotSteam - only once the game is on Steam). |
-| Still open, built as defaults (PROPOSAL) | One shared zooming camera with a leash; both players on one map; a conversation chosen by whoever started it; a menu holds the game for both, and is the opener's alone. |
-| Still open, to ask | A player leaving mid-fight: the AI or the other player takes their characters? Menus over a network: hold the game for both (as local co-op does) or let the world go on? |
+| Still open, built as defaults (PROPOSAL) | One shared zooming camera with a leash; both players on one map; a conversation chosen by whoever started it; in local co-op a menu holds the game for both, and is the opener's alone. |
+| A player leaving mid-fight | **The other player takes their characters** (not the AI). |
+| Menus over a network | **An open menu does not stop the world** carrying on for the other player (local co-op still holds the game for both). |
 
 ## Where it stands
 
@@ -42,9 +43,26 @@ leans on the one before.
   - `ReactionPrompt._decider` - who answers a question in a fight.
   - `PlayersPanel` asks `/root/Net` for `make_panel()` and shows it under the
     players: Host / Join go there.
-- **Not built:** Steps 0-6 below.
+- **Built: Step 0** (download only, 2026-10-29): `tools/release.sh` builds
+  Windows, macOS and Linux.
+- **Not built:** Steps 1-5 below.
 
-## Step 0 - download only (small)
+## Step 0 - download only (small; done 2026-10-29)
+
+Done as below; the README's "Exporting" says it too, and `encmusic` speaks of
+"the build" rather than the web build (it still reads every preset's exclude
+filter). The designer then asked for **macOS and Linux** as well (2026-10-29):
+`tools/release.sh` builds all three - a Linux x86_64 binary and a universal
+macOS `.app` signed ad hoc (not notarized: that needs an Apple developer
+account) beside Windows - packs them (Windows `.zip`, Linux `.tar.gz` that keeps
+the game runnable, the Mac Godot's own `.zip`) and pushes the channels
+`windows`, `linux` and `mac`, the last two with `--fix-permissions`. The presets
+are in the README's "Exporting". A Mac and a PC in one fight is the reason for
+the floating-point note under "Cost and risk". Two things went otherwise than
+planned: the `.gdignore` in `export/` stays (without it the Mac build's own
+icon, made in `export/tmp`, went into its pack), and the Mac export makes its
+`.app` in `export/tmp` rather than the system's temp folder, where on the
+designer's PC it stalled for good writing the 170 MB program.
 
 - `tools/release.sh`: drop the Web export, its zip and its butler push
   (`"$ITCH:web"`); keep Windows. `export/web` and the "keep the web build's
@@ -193,11 +211,13 @@ machine sends what its player does and shows what it is told.
    joiner comes back to the host.
 10. **Menus.** The inventory, the sheet and the stores change `Campaign`: on the
     joiner they send what they do to the host, or open read-only - decide which
-    per menu. Whether a menu holds the game over a network is still open (see
-    Decisions); `MenuPause._apply` is the one place to change.
+    per menu. Over a network a menu does not hold the game (the designer,
+    2026-10-29, Decisions): the world carries on for the other player.
+    `MenuPause._apply` is the one place to change.
 11. **Pings** go both ways (`Pings.pinged` -> rpc -> `show_ping`).
 12. **Leaving.** A dropped joiner's characters go to the host's player
-    (`Coop.leave`); the host leaving ends the game for the joiner, back to the
+    (`Coop.leave`) - mid-fight too: the other player takes them, not the AI
+    (the designer, 2026-10-29); the host leaving ends the game for the joiner, back to the
     title screen with a note (`Campaign.to_main_menu(panel, note)`).
 
 **Testing two machines in one suite:** the driver (an autoload, see
@@ -254,6 +274,13 @@ The same code as LAN; only reaching the host is new.
 - Step 0 and Step 1 are small and safe; Step 1 changes no behaviour for one
   player, but a missed roll only shows over a network - the checksum test is
   what catches it.
+- With macOS (Apple Silicon is ARM) and Linux builds, the two machines in a
+  fight may have different processors and maths libraries. Adding, subtracting,
+  multiplying, dividing and square roots round the same everywhere; `sin`,
+  `cos`, `atan2`, `pow` and the like may differ in the last bit, so a decision
+  resting on them can, rarely, go the other way on the other machine. The
+  checksum after every turn (Step 2, 8) catches it, and the host's values patch
+  it.
 - Step 2 is the biggest change this project has had. Every feature added after
   it has to be network-aware. The hardest part is real-time stealth: the
   joiner's view of who is seen lags the host's by the network's delay.

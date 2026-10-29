@@ -1189,20 +1189,24 @@ fails on any clash.
 
 ## Releasing
 
-**The designer has dropped the browser build (2026-10-29): download only.** Until
-`tools/release.sh` is changed to match (docs/multiplayer_plan.md Step 0) it
-still builds both, as below.
+**Download only, for Windows, macOS and Linux** (the designer, 2026-10-29): the
+browser build is dropped - the game has got too heavy for it.
 
 ```bash
-tools/release.sh                 # build both and zip them
-tools/release.sh --publish       # and push to itch, after asking
+tools/release.sh                 # build all three and pack them
+tools/release.sh --publish       # and push them to itch, after asking
 ```
 
 `export_presets.cfg` is git-ignored, so a fresh clone has to set its export
 presets up before either that or `tests/run_packed.sh` will work. The scripts
-ask for two by name - **Windows Desktop**, with the `.pck` beside the `.exe`
-rather than embedded, and **Web**, single-threaded for itch - and exporting
-needs the templates for exactly this Godot version, which are installed per
-machine. The three `.wav` music tracks are ignored too -
+ask for three by name - **Windows Desktop** (the `.pck` beside the `.exe`
+rather than embedded), **Linux** (x86_64, the `.pck` beside it) and **macOS**
+(universal, exported to a `.zip`, a bundle identifier, signed ad hoc - the
+README's "Exporting" has the settings) - and exporting needs the templates for
+exactly this Godot version, which are installed per machine. Itch's channels
+are `windows`, `linux` and `mac`; the Mac and Linux builds are pushed with
+`--fix-permissions`, since nothing on a Windows disk says they may be run. The
+Mac build is not notarized (that needs an Apple developer account), so macOS
+asks before opening it the first time. The three `.wav` music tracks are ignored too -
 126 MB, and `audio/Music.gd` warns and plays on in silence when one is missing,
 so a clone without them runs fine and fights quietly.

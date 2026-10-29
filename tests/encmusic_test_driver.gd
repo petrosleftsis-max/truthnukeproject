@@ -179,10 +179,10 @@ func run_test():
 	editor.free()
 	log_line("")
 
-	log_line("======== nothing plays a track the web build leaves behind ========")
+	log_line("======== nothing plays a track the build leaves behind ========")
 	# Music is looked up by name at run time, so a dialogue naming a track that
-	# the export filter drops is silent in the browser and says nothing about it
-	# anywhere. This is the only place that would notice.
+	# the export filter drops is silent in the released game and says nothing
+	# about it anywhere. This is the only place that would notice.
 	var excluded := []
 	var presets = FileAccess.get_file_as_string("res://export_presets.cfg")
 	if presets == "":
@@ -217,7 +217,7 @@ func run_test():
 			if track in excluded:
 				silenced.append("%s, played by %s" % [track, named[track]])
 		ok(silenced.is_empty(),
-			"every track something names is in the web build", "%s" % [silenced])
+			"every track something names is in the build", "%s" % [silenced])
 	log_line("")
 
 	log_line("FAILURES: %d" % _fail)

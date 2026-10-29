@@ -1934,18 +1934,33 @@ its header.
 
 ## Exporting
 
-The builds are for itch.io: `tools/release.sh` makes both and zips each the
-way itch wants it, and `--publish` pushes them there.
+The game is a download for Windows, macOS and Linux, on itch.io:
+`tools/release.sh` makes the three builds and packs each the way it travels
+best (Windows a `.zip`, Linux a `.tar.gz`, the Mac Godot's own `.zip` of the
+app), and `--publish` pushes them there, to the channels `windows`, `linux` and
+`mac`. There is no browser build any more - the game has got too heavy for one.
 
 `export_presets.cfg` is gitignored - it can hold signing credentials - so
-export settings do not travel with the repo. On a fresh clone, recreate two
-presets, named exactly as the script asks for them:
+export settings do not travel with the repo. On a fresh clone, recreate the
+three presets, named exactly as the script asks for them:
 
 * **Windows Desktop**, with **Embed PCK** off - the script checks for the
   `.pck` beside the `.exe` - and **Application → Icon** set to
   `res://art/app_icon/icon.ico`, which is what the exported `.exe` uses.
-* **Web**, with **Thread Support** off. A threaded web build needs headers
-  itch does not send by default, and fails to start without them.
+* **Linux**, architecture **x86_64** (the Steam Deck too), with **Embed PCK**
+  off.
+* **macOS**, architecture **universal** (Intel and Apple Silicon), a
+  **Bundle Identifier** (`io.itch.eplogos.messengersoftruth`) and
+  **Codesign → Built-in (ad-hoc only)**: an Apple Silicon Mac runs nothing
+  unsigned. Its icon is made from `config/icon`. Universal and Apple Silicon
+  builds need **Import ETC2 ASTC** on in the project settings
+  (`rendering/textures/vram_compression/import_etc2_astc`), which it is.
+
+The Mac build is signed ad hoc but not notarized - that needs a paid Apple
+developer account - so the first time it is opened from a download, macOS asks:
+right-click the app and choose **Open**, or allow it under **System Settings →
+Privacy & Security**.
+
 `config/icon` in the project settings is a different thing: it covers the
 project manager, the editor, and the window while the game runs.
 

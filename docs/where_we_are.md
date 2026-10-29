@@ -2,7 +2,7 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-10-29, after the co-op commits (cf04690 and the plan after it).
+updated 2026-10-29, after Step 0 of the network play (download only).
 
 ## How the designer works with Claude
 
@@ -30,8 +30,9 @@ The designer wants all of the network play, and is carrying on with it in a
 local session. **`docs/multiplayer_plan.md` is the plan** - decisions, then
 Steps 0-5 with what to change where and how to test it. In order:
 
-0. **Download only:** take the browser (Web) build out of `tools/release.sh`;
-   CLAUDE.md "Releasing" to match.
+0. **Download only** - done 2026-10-29: `tools/release.sh` builds Windows,
+   macOS and Linux (the designer asked for the last two the same day);
+   CLAUDE.md "Releasing" and the README's "Exporting" match.
 1. **The seeded fight RNG** in `combat/Combat.gd` (the code is written out in
    the plan): every roll through one `rng`, seeded from the encounter's "seed".
 2. **LAN** (`multiplayer/Net.gd`, new): host / join / broadcast, players and
@@ -45,12 +46,19 @@ Steps 0-5 with what to change where and how to test it. In order:
    relay hosted.
 5. **Steam** (GodotSteam) - once the game is on Steam.
 
-Two questions to ask before the end of Step 2: who takes a leaving player's
-characters mid-fight, and whether a menu holds the game for both over a
-network.
+The designer answered Step 2's two questions (2026-10-29): a player leaving
+mid-fight hands their characters to the other player, not the AI; and over a
+network an open menu does not stop the world carrying on (local co-op still
+holds the game for both).
 
 ## Done recently (newest first)
 
+- **Download only, for Windows, macOS and Linux** (network play Step 0):
+  `tools/release.sh` builds the three (no browser build), packs them
+  (`.zip`, `.tar.gz`, the Mac's own `.zip`) and pushes the channels `windows`,
+  `linux` and `mac` to itch. The Mac build is signed ad hoc, not notarized, so
+  macOS asks before it first opens. Neither has been run on a Mac or a Linux
+  machine yet.
 - **Local co-op, two players** (`multiplayer/Coop.gd`, CLAUDE.md "Co-op",
   suite `coop`): Players on the title screen and the pause menu; a group
   each on a map, one camera, a leash; turns, menus and conversations go to
@@ -111,7 +119,10 @@ network.
    (PROPOSAL) for its open questions. Also open: which pad button pings (none
    is free; Share for now in co-op), the 10-tile leash, the 12-tile cone, and
    which enemies Protect Their Own. The network itself is approved - see "Next
-   to build".
+   to build". On itch, the designer stops showing the browser version (its
+   settings page) and tries the Mac and Linux builds; shipping the music as
+   Ogg Vorbis, and notarizing the Mac build (an Apple developer account), are
+   theirs to decide (`docs/multiplayer_plan.md` Step 0).
 7. **OPEN rows in the ledger**, among them:
    - Deep Corrosion's duration (5 vs the handoff's 3);
    - Corrosive Round at 41 equal to the Gun;
