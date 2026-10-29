@@ -43,7 +43,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 137 suites and takes a while. Each one boots the real game
+A full run is 139 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one.
@@ -167,6 +167,23 @@ ignoring walls painted it all red. That is tens of thousands of sight lines, so
 they are read off `_SightGrid`, a flat copy of the blocking; `danger` checks
 it agrees with `has_line_of_sight` line for line. Change the sight rule in one
 and the other has to follow.
+
+## Rolls in a fight
+
+Every roll in a fight - to hit, contests, damage and heal ranges, breaking free,
+which way the wind blows, where the arena strikes, the AI's choices - comes out
+of `Combat.rng` ("Rolls"), seeded once from the encounter's "seed" meta (a
+networked fight's) or at random (`seed_rolls`, `_seed_wanted`). A fight begun
+from one seed and played with the same moves comes out the same on every
+machine, which is what lets a network send only the moves
+(docs/multiplayer_plan.md). So fight code never calls `randf`, `randi`,
+`randi_range`, `shuffle` or `pick_random` itself: it uses `rng` and `_shuffle`.
+Randomness that changes nothing in the fight (the camera's shake, FutureShards)
+can stay global; QuickTime's and Hacking's are the player's to play, and over a
+network what they come to is sent like an answer. `fight_state()` is the fight
+as text - round, whose turn, everybody's side, health, tile, standing and
+conditions - and is what a replay is checked by. `rolls` reads Combat.gd and
+CController.gd for global rolls, and plays one fight twice from one seed.
 
 ## Stealth maps
 

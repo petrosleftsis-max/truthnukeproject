@@ -2,7 +2,7 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-10-29, after Step 0 of the network play (download only).
+updated 2026-10-29, after Step 1 of the network play (the seeded fight RNG).
 
 ## How the designer works with Claude
 
@@ -16,7 +16,7 @@ updated 2026-10-29, after Step 0 of the network play (download only).
   designer as they/them.
 - Commit and push at the end of every piece of work. Kill processes by pid.
   Never shut down or restart the computer.
-- Tests: `tests/run.sh` (all 137 suites) or `tests/run.sh outside familiar`.
+- Tests: `tests/run.sh` (all 139 suites) or `tests/run.sh outside familiar`.
   In the cloud, five suites fail on untouched code too, for environment
   reasons: audio, encmusic (the music `.wav` files are not in git), gear,
   editor, sweep. Locally, with the music present, audio and encmusic may pass.
@@ -33,8 +33,9 @@ Steps 0-5 with what to change where and how to test it. In order:
 0. **Download only** - done 2026-10-29: `tools/release.sh` builds Windows,
    macOS and Linux (the designer asked for the last two the same day);
    CLAUDE.md "Releasing" and the README's "Exporting" match.
-1. **The seeded fight RNG** in `combat/Combat.gd` (the code is written out in
-   the plan): every roll through one `rng`, seeded from the encounter's "seed".
+1. **The seeded fight RNG** - done 2026-10-29: every roll in a fight through
+   `Combat.rng`, seeded from the encounter's "seed" (CLAUDE.md "Rolls in a
+   fight"; suite `rolls`).
 2. **LAN** (`multiplayer/Net.gd`, new): host / join / broadcast, players and
    whom they steer across machines, the host's scene and state followed,
    walking synced, the joiner's presses played on the host, guards run by the
@@ -53,6 +54,10 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The seeded fight RNG** (network play Step 1): all 16 rolls in Combat.gd
+  through `Combat.rng`, seeded from the encounter's "seed" meta or at random;
+  `fight_state()` writes a fight down for a replay to be checked by. Suite
+  `rolls`. For one player nothing changes.
 - **Download only, for Windows, macOS and Linux** (network play Step 0):
   `tools/release.sh` builds the three (no browser build), packs them
   (`.zip`, `.tar.gz`, the Mac's own `.zip`) and pushes the channels `windows`,

@@ -77,10 +77,69 @@ var deployment_tiles: Array = []
 var deployment_active := false
 
 
+## --- Rolls ---
+##
+## Every roll in a fight - to hit, contests, damage ranges, which way the wind
+## blows, the AI's choices - comes out of this one generator, so a fight begun
+## from the same seed rolls the same on every machine (multiplayer/Net.gd).
+## Nothing in a fight calls randf, randi or shuffle by itself.
+var rng := RandomNumberGenerator.new()
+## The seed this fight rolls from.
+var fight_seed := 0
+
+
+## The encounter's "seed" meta - a networked fight's - else any.
+func _seed_wanted() -> int:
+	if encounter != null and encounter.has_meta("seed"):
+		return int(encounter.get_meta("seed"))
+	return randi()
+
+
+func seed_rolls(value: int):
+	fight_seed = value
+	rng.seed = value
+
+
+## `array` shuffled in place by the fight's own rolls.
+func _shuffle(array: Array):
+	for i in range(array.size() - 1, 0, -1):
+		var j := rng.randi() % (i + 1)
+		var kept = array[i]
+		array[i] = array[j]
+		array[j] = kept
+
+
+## How the fight stands, as text: the round and whose turn, then everybody's
+## side, health, tile, standing and conditions, a line each. Two machines
+## replaying one fight from one seed and the same moves have the same text
+## after every turn - a roll made outside `rng` sooner or later makes it
+## differ. Numbers that are not whole are written to four places, so the last
+## bit of a float cannot tell two machines apart.
+func fight_state() -> String:
+	var acting: Dictionary = combatants[current_combatant] if current_combatant < combatants.size() else {}
+	var lines := ["round %d, the turn of %d" % [round_number, acting.get("id", -1)]]
+	for comb in combatants:
+		var effects := []
+		for entry in comb.get("status_effects", []):
+			var condition = entry.get("condition")
+			var named := ""
+			if condition is ConditionDefinition:
+				named = condition.resource_path.get_file() if condition.resource_path != "" else condition.display_name
+			effects.append("%s %s %s %s" % [entry.get("stat", ""), named, _state_value(entry.get("duration", "")), _state_value(entry.get("amount", ""))])
+		effects.sort()
+		lines.append("%d %s side %d hp %d at %s %s [%s]" % [comb.get("id", -1), comb.get("combatant_key", ""),
+			comb.get("side", -1), comb.get("hp", 0), comb.get("position", Vector2i.ZERO),
+			"up" if comb.get("alive", false) else "down", "; ".join(effects)])
+	return "\n".join(lines)
+
+
+func _state_value(value) -> String:
+	return "%.4f" % value if value is float else str(value)
+
 
 func _ready():
 	emit_signal("register_combat", self)
-	randomize()
+	seed_rolls(_seed_wanted())
 
 	if encounter == null:
 		push_error("Combat has no EncounterDefinition - GameScene assigns one before _ready. There is nothing to fight.")
@@ -1932,7 +1991,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		if not still_running():
 			return
 		for target in targets:
-			if not skill.uses_stat_contest and (randi() % 100) >= hit_chance(attacker, skill, target):
+			if not skill.uses_stat_contest and (rng.randi() % 100) >= hit_chance(attacker, skill, target):
 				update_information.emit("[color=yellow]%s[/color] missed [color=red]%s[/color].\n" % [
 					attacker.name, target.name])
 				continue
@@ -2319,7 +2378,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 func _land_reaction(attacker: Dictionary, skill: SkillDefinition, target: Dictionary):
 	var connected = true
 	if not skill.uses_stat_contest:
-		connected = (randi() % 100) < hit_chance(attacker, skill, target)
+		connected = (rng.randi() % 100) < hit_chance(attacker, skill, target)
 	# An illusion takes it instead (see "The paths").
 	if connected and _evades(attacker, target, skill):
 		return
@@ -2950,7 +3009,7 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 		EffectDefinition.EffectType.READ_INTENT:
 			read_intent(attacker, target)
 		EffectDefinition.EffectType.SHAKE:
-			shake(attacker, target, randi_range(effect.min_amount, maxi(effect.min_amount, effect.max_amount)))
+			shake(attacker, target, rng.randi_range(effect.min_amount, maxi(effect.min_amount, effect.max_amount)))
 		EffectDefinition.EffectType.CLIMB:
 			climb_onto(attacker, target)
 		EffectDefinition.EffectType.BRIBE:
@@ -4005,7 +4064,7 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 ## stands in when there is no skill behind the shove.
 func collision_impact(attacker: Dictionary, effect: EffectDefinition, skill: SkillDefinition) -> int:
 	if skill == null:
-		return randi_range(effect.min_amount, effect.max_amount)
+		return rng.randi_range(effect.min_amount, effect.max_amount)
 	return maxi(roundi(float(base_skill_damage(attacker, skill)) * effect.damage_modifier), 0)
 
 
@@ -4155,7 +4214,7 @@ func ticks_left(comb: Dictionary, effect: Dictionary) -> int:
 func dot_tick(target: Dictionary, dot_base: float, flat_min: int, flat_max: int) -> int:
 	if dot_base > 0.0:
 		return Stats.final_damage(dot_base, 1.0, stat_of(target, Stats.Type.DEFENSE))
-	return randi_range(flat_min, flat_max)
+	return rng.randi_range(flat_min, flat_max)
 
 
 ## `times` ticks' worth at once, for everything left going off together (Catalyst).
@@ -4604,7 +4663,7 @@ func apply_drift(comb: Dictionary):
 	# nothing at all most of the time in a room - which reads as the condition
 	# being broken rather than as the body being braced against something.
 	var options := DIRECTIONS.duplicate()
-	options.shuffle()
+	_shuffle(options)
 	var direction = Vector2i.ZERO
 	for candidate in options:
 		var first_step = comb.position + candidate
@@ -5321,7 +5380,7 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	# A skill's damage comes from the caster's stat and the skill's modifier.
 	# The effect's own min/max only stand in when there is no skill behind the
 	# damage at all - a condition burning away, a shove into a wall.
-	var raw = skill_damage(attacker, target, skill, power) if skill != null else randi_range(effect.min_amount, effect.max_amount)
+	var raw = skill_damage(attacker, target, skill, power) if skill != null else rng.randi_range(effect.min_amount, effect.max_amount)
 	var damage = resisted_damage(target, element, raw)
 	var flavour = "%s damage%s" % [Damage.type_name(element).to_lower(), Damage.describe_resistance(resistance)]
 	# Being hit gives you away, whoever was aimed at. A blast thrown at somebody
@@ -5373,7 +5432,7 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	# The same shape as damage: the healer's stat and the skill's modifier. The
 	# effect's flat range only stands in when there is no skill behind the
 	# healing at all, the way it does for damage.
-	var amount = heal_amount(attacker, skill, effect) if skill != null else randi_range(effect.min_amount, effect.max_amount)
+	var amount = heal_amount(attacker, skill, effect) if skill != null else rng.randi_range(effect.min_amount, effect.max_amount)
 	if effect.heals_share_only:
 		amount = 0
 	amount += heal_share_from(attacker, target, skill, effect)
@@ -6980,15 +7039,15 @@ func _hazard_tiles(hazard: HazardDefinition) -> Array:
 					var tile := Vector2i(x, y)
 					if controller.is_on_map(tile) and not controller.is_tile_blocking(tile, 0):
 						open.append(tile)
-			open.shuffle()
+			_shuffle(open)
 			places = open.slice(0, hazard.count)
 		_:
 			var standing := []
 			for comb in combatants:
 				if comb.alive and _takes_turns(comb) and (hazard.aim == HazardDefinition.Aim.AT_EVERYONE or comb.side == 0):
 					var theirs := tiles_of(comb)
-					standing.append(theirs[randi() % theirs.size()])
-			standing.shuffle()
+					standing.append(theirs[rng.randi() % theirs.size()])
+			_shuffle(standing)
 			places = standing.slice(0, hazard.count)
 	var tiles := {}
 	for place in places:
@@ -9212,7 +9271,7 @@ func aim_for_copied_skill(comb: Dictionary, skill: SkillDefinition, target: Dict
 
 
 func ai_pick_target(weights):
-	var rand_num = randf()
+	var rand_num = rng.randf()
 	var full_weight = 1.0
 	for w in weights:
 		var weight = w[0]
@@ -9851,7 +9910,7 @@ func _future_changed(comb: Dictionary, intent: Dictionary):
 	var reader := _combatant_by_id(intent.get("reader_id", -1))
 	var lines: Array = reader.get("future_changed_lines", [])
 	if reader.get("alive", false) and not lines.is_empty():
-		var line: String = lines[randi() % lines.size()]
+		var line: String = lines[rng.randi() % lines.size()]
 		float_number(reader, line, FUTURE_COLOUR)
 		update_information.emit("[color=yellow]%s[/color]: \"%s\"\n" % [reader.name, line])
 	update_combatants.emit(combatants)
@@ -10602,7 +10661,7 @@ func _ai_shake_off(mount: Dictionary):
 		if rider.hp <= 0:
 			combatant_die(rider)
 			continue
-		if randi() % 100 < chance:
+		if rng.randi() % 100 < chance:
 			update_information.emit("[color=yellow]%s[/color] holds on.\n" % rider.name)
 		else:
 			dismount(rider)
@@ -10790,7 +10849,7 @@ func break_free(held: Dictionary, holder: Dictionary):
 		update_information.emit("[color=yellow]%s[/color] is not held by %s.\n" % [held.name, holder.get("name", "anybody")])
 		return
 	var chance := break_free_chance(held, holder)
-	var freed := randi() % 100 < chance
+	var freed := rng.randi() % 100 < chance
 	_metric("break_free", {"held": held, "holder": holder, "chance": chance, "freed": freed})
 	if freed:
 		_let_go(held, "[color=yellow]%s[/color] breaks free of %s's grip" % [held.name, holder.name])
@@ -11895,7 +11954,7 @@ func _evades(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -
 	var chance := 0
 	for condition in conditions_of(target):
 		chance = maxi(chance, condition.miss_chance)
-	if chance > 0 and randi() % 100 < chance:
+	if chance > 0 and rng.randi() % 100 < chance:
 		update_information.emit("[color=yellow]%s[/color] strikes a copy of [color=yellow]%s[/color], and misses.\n" % [attacker.name, target.name])
 		return true
 	return false

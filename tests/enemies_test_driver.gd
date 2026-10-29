@@ -696,7 +696,7 @@ func grabbing():
 	await settle(1)
 	ok(foe.skill_used_this_turn, "breaking free is the main action")
 	ok(heard_since(mark, "strains against") or heard_since(mark, "breaks free"), "and it is told")
-	seed(7)
+	combat.seed_rolls(7)
 	var tries := 0
 	while combat.is_held(foe) and tries < 80:
 		combat.break_free(foe, enfina)

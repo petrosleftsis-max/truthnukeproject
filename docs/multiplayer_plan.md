@@ -45,7 +45,10 @@ leans on the one before.
     players: Host / Join go there.
 - **Built: Step 0** (download only, 2026-10-29): `tools/release.sh` builds
   Windows, macOS and Linux.
-- **Not built:** Steps 1-5 below.
+- **Built: Step 1** (the seeded fight RNG, 2026-10-29): `Combat.rng`,
+  `seed_rolls`, `_shuffle`, `fight_state`; CLAUDE.md "Rolls in a fight"; suite
+  `rolls`.
+- **Not built:** Steps 2-5 below.
 
 ## Step 0 - download only (small; done 2026-10-29)
 
@@ -80,7 +83,24 @@ designer's PC it stalled for good writing the 170 MB program.
   Players of the browser version keep their saves in the browser; they do not
   carry over to the download.
 
-## Step 1 - the seeded fight RNG (small, do it before LAN)
+## Step 1 - the seeded fight RNG (small, do it before LAN; done 2026-10-29)
+
+Done as below. Combat.gd had 16 rolls, not 13; all go through `rng` now, and
+`_seed_wanted`'s `randi()` - a fight with no seed picking its own - is the one
+global roll left, on purpose. Nothing else the fight calls rolls: CController
+has none, and QuickTime's and Hacking's own generators set the player a
+challenge - over a network what the player makes of it is sent as an answer
+(Step 2, 8). Beside the rolls, `fight_state()` writes the fight down as text
+(round, whose turn, everybody's side, health, tile, standing and conditions,
+floats to four places) - what the suite compares, and what Step 2's checksum
+will hash. The suite is `rolls`: one seed rolls and shuffles the same; a fight
+takes its encounter's seed and picks its own without; Combat.gd and
+CController.gd are read for global rolls; and one fight (two of the party
+against three, everybody's aim 40 worse, since at level 8 every blow lands
+and no roll would matter) is played twice from one seed - the global generator
+seeded otherwise and the enemies at another speed the second time - and comes
+out the same after every turn, while from another seed it does not. Put back on
+the global generator, the hit roll failed all three of those checks.
 
 Why: two machines playing the same fight from the same moves roll differently
 (each machine's global RNG has its own seed) and drift apart. With one seeded
