@@ -129,8 +129,16 @@ func refresh():
 	if Net.is_host():
 		_leave.text = "Stop hosting"
 		var addresses := Net.own_addresses()
-		_status.text = "Hosting. On this network the other player finds this game under \"Join\", or types %s." % (
-			" or ".join(addresses) if not addresses.is_empty() else "this machine's address")
+		var lines := ["Hosting. On this network the other player finds this game with Look for games, or types %s." % (
+			" or ".join(addresses) if not addresses.is_empty() else "this machine's address")]
+		match Net.router:
+			Net.Router.ASKING:
+				lines.append("Asking the router to open the game to the internet...")
+			Net.Router.OPEN:
+				lines.append("Over the internet, the other player types %s:%d." % [Net.public_address, Net.host_port])
+			Net.Router.CLOSED:
+				lines.append("The router would not open the game to the internet. To play over the internet, both install a virtual LAN app - Tailscale, ZeroTier or Radmin VPN - join the same network in it, and join by the address it gives this machine.")
+		_status.text = "\n".join(lines)
 	elif Net.joined():
 		_leave.text = "Leave the game"
 		_status.text = "Joined the game at %s. The host's screen decides where everybody is." % Net.host_address

@@ -59,7 +59,11 @@ leans on the one before.
   `ui/net_panel.gd`, `ui/conversation_mirror.gd`; suite `net`, which plays the
   joiner in a second Godot). Still to do: pointer-aimed stealth moves and the
   familiar.
-- **Not built:** the rest of Step 2, and Steps 3-5 below.
+- **Built: Step 3** (2026-10-30): hosting asks the router to open the game to
+  the internet (UPnP), and the Players panel points at a virtual LAN app when
+  it will not. Not yet tried against a real router.
+- **Not built:** Steps 4-5 below (they wait on the designer's servers and on
+  Steam), and of Step 2 the pointer-aimed stealth moves and the familiar.
 
 ## Step 0 - download only (small; done 2026-10-29)
 
@@ -321,9 +325,17 @@ gives the same `Campaign.snapshot`; walking shows on the other side; a press on
 the joiner happens on the host; a fight played from the same moves ends with the
 same checksum; a conversation's choice made on the joiner is the one taken.
 
-## Step 3 - online by Godot's own networking (small, after LAN)
+## Step 3 - online by Godot's own networking (small, after LAN; built 2026-10-30)
 
 The same code as LAN; only reaching the host is new.
+
+Built as below (`Net` "Over the internet"): hosting on every network asks the
+router on a thread of its own, since a router can take seconds; the Players
+panel says while it asks, then gives the public address and port to send, or
+names the virtual LAN apps. A host bound to one address (the suite's
+127.0.0.1) never asks, so the suite checks that and the panel's three answers,
+not a real router - asking one would open a port on the designer's. The README
+tells players what to do.
 
 - Hosting tries **UPnP**: `var upnp := UPNP.new()`, `upnp.discover()`,
   `upnp.add_port_mapping(24700, 24700, "Messengers of Truth", "UDP")`, and

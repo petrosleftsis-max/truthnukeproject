@@ -2,8 +2,8 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-10-30, during Step 2 of the network play (LAN: hosting, joining
-and players built).
+updated 2026-10-30, after Steps 2 and 3 of the network play (LAN, and online
+by UPnP). Steps 4 and 5 wait on the designer.
 
 ## How the designer works with Claude
 
@@ -47,8 +47,10 @@ Steps 0-5 with what to change where and how to test it. In order:
    "Network play"; suite `net`, which starts a second headless Godot). Still to
    come: pointer-aimed stealth moves and the familiar - and trying it on two
    real machines.
-3. **Online by ENet + UPnP**, with a virtual LAN app (Tailscale, ZeroTier,
-   Radmin VPN) as the fallback players are told about.
+3. **Online by ENet + UPnP** - built 2026-10-30: hosting asks the router to
+   open the game to the internet, and the Players panel names a virtual LAN
+   app (Tailscale, ZeroTier, Radmin VPN) when it will not. Not yet tried
+   against a real router.
 4. **WebRTC on desktop** - once the designer has a signalling server and a TURN
    relay hosted.
 5. **Steam** (GodotSteam) - once the game is on Steam.
@@ -60,6 +62,10 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **Online by ENet + UPnP** (network play Step 3): hosting asks the router to
+  open the game's port (on a thread), the Players panel shows the address to
+  send or points at a virtual LAN app, and the port is shut on leaving. The
+  suite checks the panel, not a real router.
 - **LAN, the first part** (network play Step 2, items 1-2): the `Net` autoload
   hosts and joins over ENet, a host's beacon is heard by Look for games, the
   joiner is seated as the second player on its own machine, whom each steers is

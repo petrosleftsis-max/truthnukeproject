@@ -428,6 +428,29 @@ func hosts_half():
 	ok(not get_tree().paused, "  and lets it go")
 	log_line("")
 
+	log_line("======== over the internet ========")
+	ok(Net.router == Net.Router.UNASKED, "hosting on one address only asks no router to open anything")
+	var shown := NetPanel.new()
+	get_tree().root.add_child(shown)
+	await settle()
+	Net.router = Net.Router.ASKING
+	shown.refresh()
+	ok(shown.get_node("Status").text.contains("Asking the router"), "  the Players panel says while the router is being asked")
+	Net.router = Net.Router.OPEN
+	Net.public_address = "203.0.113.5"
+	shown.refresh()
+	ok(shown.get_node("Status").text.contains("203.0.113.5:%d" % TEST_PORT), "  and, opened, the address to give over the internet",
+		shown.get_node("Status").text)
+	Net.router = Net.Router.CLOSED
+	shown.refresh()
+	ok(shown.get_node("Status").text.contains("Tailscale") and shown.get_node("Status").text.contains("ZeroTier"),
+		"  and, not, what to do instead: a virtual LAN app")
+	Net.router = Net.Router.UNASKED
+	Net.public_address = ""
+	shown.queue_free()
+	await settle()
+	log_line("")
+
 	resources_as_data()
 
 	log_line("======== the host on a map ========")

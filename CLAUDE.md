@@ -470,7 +470,12 @@ them; each line (`DialogueBalloon.apply_dialogue_line` -> `conversation_line`)
 goes to the joiner's `ConversationMirror` (ui/conversation_mirror.gd), its
 party held; when it is the joiner's (Coop.focus), its press or answer
 (`answer_line`) comes back and is `advance_from_afar` / `respond_from_afar` on
-the host's balloon. The Players panel's network half is
+the host's balloon. **Over the internet** (Step 3): hosting on every network
+(`bind_ip` "*") asks the router to open the port by UPnP on a thread
+(`_open_router`, `_ask_router`, `_router_answered`; `router`, `public_address`)
+and shuts it on leaving and as the game closes (`_close_router`); a host bound
+to one address never asks. The panel shows the address to give, or points at a
+virtual LAN app. The Players panel's network half is
 `ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
 since listening (or hosting) is what makes Windows ask about its firewall.
 `net` plays two machines: the suite hosts on 127.0.0.1:24790 and starts a second

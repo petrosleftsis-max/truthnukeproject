@@ -120,6 +120,14 @@ a player leaving, even mid-fight, hands their characters to the other. The
 first time a machine hosts or looks for games, Windows asks whether to let the
 game through its firewall: allow it on private networks.
 
+**Over the internet:** hosting also asks the host's router to let the game in
+from the internet (UPnP), and the Players panel shows the address and port to
+send the other player, who types it to join. Some routers will not, and some
+providers share one address among many homes; then the panel says so. Both
+players install a virtual LAN app instead - Tailscale, ZeroTier or Radmin VPN -
+join the same network in it, and join by the address the app gives the host's
+machine, as on a LAN.
+
 What the joiner changes in a menu - the bags, gear, gold, spells, paths - is
 sent to the host when the menu closes. Not across the network yet: what is
 aimed with the pointer on a map (where a throw lands, a click on a guard, a

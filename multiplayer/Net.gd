@@ -9,7 +9,8 @@ extends Node
 ## Hosting and joining: host() / join(address) / leave(); active(), is_host(),
 ## is_joiner(), joined(). A host says so on the network once a second (BEACON,
 ## on DISCOVERY_PORT) and look_for_games() hears it; typing an address always
-## works too, since a virtual LAN often passes no broadcasts on.
+## works too, since a virtual LAN often passes no broadcasts on. Hosting also
+## asks the router to open the game to the internet (UPnP; "Over the internet").
 ##
 ## Players: the joiner says hello with its devices, and the host seats a player
 ## for one of them (Coop.join with the joiner's peer) and sends the whole table -
@@ -249,6 +250,9 @@ func host(port: int = PORT, bind_ip: String = "*") -> Error:
 	_beacon.set_broadcast_enabled(true)
 	_beacon.set_dest_address(beacon_to, discovery_port)
 	_beacon_clock = 0.0
+	# Open on every network: the router is asked to let the internet in too.
+	if bind_ip == "*":
+		_open_router(port)
 	changed.emit()
 	Coop.players_changed.emit()
 	return OK
@@ -316,6 +320,8 @@ func _close():
 		_peer = null
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	var was_joiner := is_joiner()
+	if is_host():
+		_close_router()
 	role = Role.NONE
 	_seated = false
 	_joining_since = -1
@@ -1334,6 +1340,79 @@ func _seated_peers() -> Array:
 		if player.peer > 1 and not peers.has(player.peer):
 			peers.append(player.peer)
 	return peers
+
+
+## --- Over the internet (docs/multiplayer_plan.md Step 3) ---
+##
+## Hosting on every network (bind "*") also asks the router to open the game's
+## port to the internet (UPnP), on a thread of its own, since a router can take
+## seconds to answer. Opened, the host's public address is shown to send to the
+## friend (public_address); not - some providers share one address among many
+## homes, some routers will not do it - the Players panel says so and points at
+## a virtual LAN app (Tailscale, ZeroTier, Radmin VPN): both join the same one
+## and use the address it shows as on a LAN. The port is shut again on leaving,
+## and as the game closes. A host bound to one address (a test's 127.0.0.1)
+## never asks.
+
+enum Router { UNASKED, ASKING, OPEN, CLOSED }
+
+## What came of asking the router.
+var router := Router.UNASKED
+## The host's address on the internet, once the router has opened the port.
+var public_address := ""
+var _upnp: UPNP = null
+var _router_thread: Thread = null
+
+
+func _open_router(port: int):
+	if _router_thread != null:
+		# Still asking for the last time this hosted.
+		_router_thread.wait_to_finish()
+	router = Router.ASKING
+	_router_thread = Thread.new()
+	_router_thread.start(_ask_router.bind(port))
+
+
+## On its own thread: the router found, the port mapped, the address asked.
+func _ask_router(port: int):
+	var upnp := UPNP.new()
+	var answer := {}
+	if upnp.discover(2000, 2, "InternetGatewayDevice") == UPNP.UPNP_RESULT_SUCCESS \
+			and upnp.get_gateway() != null and upnp.get_gateway().is_valid_gateway() \
+			and upnp.add_port_mapping(port, port, "Messengers of Truth", "UDP") == UPNP.UPNP_RESULT_SUCCESS:
+		answer = {"upnp": upnp, "address": upnp.query_external_address(), "port": port}
+	_router_answered.call_deferred(answer)
+
+
+func _router_answered(answer: Dictionary):
+	if _router_thread != null:
+		_router_thread.wait_to_finish()
+		_router_thread = null
+	if answer.has("upnp") and is_host() and answer.port == host_port and router == Router.ASKING:
+		_upnp = answer.upnp
+		public_address = str(answer.address)
+		router = Router.OPEN
+	else:
+		if answer.has("upnp"):
+			# Hosting stopped while the router was being asked: shut it again.
+			answer.upnp.delete_port_mapping(answer.port, "UDP")
+		router = Router.CLOSED if is_host() else Router.UNASKED
+	changed.emit()
+
+
+func _close_router():
+	if _upnp != null:
+		_upnp.delete_port_mapping(host_port, "UDP")
+		_upnp = null
+	public_address = ""
+	router = Router.UNASKED
+
+
+func _exit_tree():
+	if _router_thread != null:
+		_router_thread.wait_to_finish()
+		_router_thread = null
+	_close_router()
 
 
 ## --- Finding games ---
