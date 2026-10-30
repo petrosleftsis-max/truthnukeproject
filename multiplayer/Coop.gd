@@ -367,8 +367,11 @@ func let_go(holder: Object):
 
 
 ## A menu holding the game (MenuPause): the player who opened it has it alone.
+## Over a network a menu holds nothing (the designer, 2026-10-29) - each
+## machine has its own screen, and the other plays on.
 func menu_held(holder: Object):
-	if on() and acting != ANYONE:
+	var net = get_node_or_null("/root/Net")
+	if on() and acting != ANYONE and not (net != null and net.with_another()):
 		take_focus(acting, holder)
 
 

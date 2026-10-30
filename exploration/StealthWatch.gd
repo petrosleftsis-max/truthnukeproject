@@ -253,6 +253,8 @@ var _shuffle_left := false
 ## up; the guards are whatever Guard nodes the map holds.
 func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 	scene = the_scene
+	# On a joiner the host's watch decides; this one only shows it (Net).
+	puppet = Net.follows()
 	# Aiming a throw from a pad keeps its pointer up - see wants_pad_pointer.
 	add_to_group(&"pad_pointer")
 	Campaign.stealth_watch = self
@@ -312,6 +314,7 @@ func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 				continue
 			points.append(at)
 		guard.start(points, Actors.route)
+		guard.puppet = puppet
 	_collect_chats()
 	_collect_edibles()
 	_collect_objectives()
@@ -3807,8 +3810,90 @@ func sees(guard: Guard, tile: Vector2i) -> bool:
 	return _seen.get(guard, {}).has(tile)
 
 
+## --- A puppet (Net) ---
+##
+## Over a network only the host's watch decides anything - who is seen, how
+## sure each guard is, the alert, who is caught. On the joiner the watch is a
+## puppet: its guards are puppets too (Guard.puppet), and it takes how things
+## stand from the host (apply_net_state) - each guard's place, facing, mood and
+## suspicion, the alert, the doors, the lamps and what is still lying about -
+## and only draws: the party's disguises, what each guard sees, the meters.
+
+var puppet := false
+
+
+## How things stand here, for a puppet watch on the other machine.
+func net_state() -> Dictionary:
+	var state := {"alert": alert, "floor": alert_floor, "guards": {}, "doors": {}, "lamps": {}, "pickups": []}
+	for guard in guards:
+		if is_instance_valid(guard):
+			state.guards[_id_of(guard)] = [guard.global_position, guard.facing, int(guard.mood), guard.knocked_out,
+				guard.visible, float(suspicion.get(guard, 0.0))]
+	for door in _doors:
+		if is_instance_valid(door):
+			state.doors[_id_of(door)] = door.is_open
+	for lamp in _lamps:
+		if is_instance_valid(lamp):
+			state.lamps[_id_of(lamp)] = lamp.lit
+	for pickup in _pickups:
+		if is_instance_valid(pickup) and pickup.visible:
+			state.pickups.append(_id_of(pickup))
+	return state
+
+
+## On a puppet: how things stand on the host's map (net_state there).
+func apply_net_state(state: Dictionary):
+	if not puppet or _map == null:
+		return
+	alert = clampf(float(state.get("alert", alert)), 0.0, 1.0)
+	alert_floor = clampf(float(state.get("floor", alert_floor)), 0.0, 1.0)
+	var theirs = state.get("guards", {})
+	if theirs is Dictionary:
+		for guard in guards:
+			if not is_instance_valid(guard):
+				continue
+			var said = theirs.get(_id_of(guard))
+			if not said is Array or said.size() < 6 or typeof(said[0]) != TYPE_VECTOR2 or typeof(said[1]) != TYPE_VECTOR2:
+				# Gone on the host - beaten, marched off.
+				guard.visible = false
+				continue
+			guard.puppet_to(said[0], said[1], clampi(int(said[2]), 0, Guard.Mood.size() - 1), bool(said[3]), bool(said[4]))
+			suspicion[guard] = clampf(float(said[5]), 0.0, 1.0)
+	var doors = state.get("doors", {})
+	if doors is Dictionary:
+		for door in _doors:
+			if is_instance_valid(door) and doors.has(_id_of(door)) and bool(doors[_id_of(door)]) != door.is_open:
+				door.set_open(bool(doors[_id_of(door)]))
+				_apply_door(door)
+	var lamps = state.get("lamps", {})
+	var relit := false
+	if lamps is Dictionary:
+		for lamp in _lamps:
+			if is_instance_valid(lamp) and lamps.has(_id_of(lamp)) and bool(lamps[_id_of(lamp)]) != lamp.lit:
+				lamp.set_lit(bool(lamps[_id_of(lamp)]))
+				relit = true
+	if relit:
+		_relight()
+	var lying = state.get("pickups", [])
+	if lying is Array:
+		for pickup in _pickups:
+			if is_instance_valid(pickup) and pickup.visible and not lying.has(_id_of(pickup)):
+				pickup.visible = false
+
+
+func _play_puppet():
+	_dress_the_party()
+	for guard in guards:
+		if is_instance_valid(guard) and not guard.knocked_out:
+			_refresh_seen(guard)
+	_meters.queue_redraw()
+
+
 func _process(delta):
 	if scene == null:
+		return
+	if puppet:
+		_play_puppet()
 		return
 	_dress_the_party()
 	if spotted_by != null:

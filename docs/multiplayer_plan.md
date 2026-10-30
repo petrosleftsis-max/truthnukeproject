@@ -51,9 +51,11 @@ leans on the one before.
 - **Step 2 under way** (2026-10-30): `multiplayer/Net.gd` hosts, joins, finds
   games by their beacon, and seats players across machines; the joiner joins a
   game under way and follows the host's scene and Campaign; the two walk
-  together, the joiner's presses are done on the host, and pings go both ways
-  (items 1-6 and 11 below; `ui/net_panel.gd`; suite `net`, which plays the
-  joiner in a second Godot). Items 7-10 and 12 to come.
+  together, the joiner's presses are done on the host, pings go both ways, the
+  host's guards are the joiner's puppets, and a menu over a network stops
+  nothing (items 1-7, 11, and 10's rule; `ui/net_panel.gd`; suite `net`, which
+  plays the joiner in a second Godot). Items 8, 9, the rest of 10, and 12 to
+  come.
 - **Not built:** the rest of Step 2, and Steps 3-5 below.
 
 ## Step 0 - download only (small; done 2026-10-29)
@@ -240,6 +242,17 @@ on a guard, a readied cone) and the familiar, which lives on the host.
    ordered); the other machine's copy of that group is a `puppet` and
    `walk_to`s it. The host checks positions against `is_walkable` before
    passing them on.
+Item 7 is built (2026-10-30), and item 10's rule. As built: guards, doors,
+lamps and what is lying about are known by their path under the map
+(`StealthWatch._id_of`); the host's watch is sent ten times a second, and the
+joiner's guards ease to it. Over a network a menu pauses nothing and takes no
+focus - each machine has its own screen - and only that machine's own party
+stands while it is open (`ExplorationParty.in_a_menu`); hosting with nobody
+joined, a menu holds the game as before. Still to do of item 10: what the
+joiner's own menus change (its inventory, its sheet, a store) is put right by
+the host's Campaign arriving, not sent to the host. Hacking and quick-times
+still pause their own machine.
+
 7. **Guards (stealth maps).** Only the host runs `StealthWatch`'s brain and the
    guards' `_process`. The joiner gets each guard's position, facing, mood,
    suspicion and the alert level ~10 times a second and draws them; its guards

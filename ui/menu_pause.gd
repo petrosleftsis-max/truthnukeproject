@@ -74,10 +74,28 @@ static func clear(tree: SceneTree) -> void:
 			coop.menus_cleared()
 
 
+## Whether any menu is holding the game.
+static func is_held() -> bool:
+	return not _live().is_empty()
+
+
 static func _apply(tree: SceneTree) -> void:
 	if tree == null:
 		return
+	# Over a network an open menu does not stop the world (the designer,
+	# 2026-10-29): the other player plays on, and only this machine's own
+	# party stands still while it is open (Net, ExplorationParty.in_a_menu).
+	var net = tree.root.get_node_or_null("Net")
+	if net != null and net.with_another():
+		tree.paused = false
+		return
 	tree.paused = not _live().is_empty()
+
+
+## Holds or lets go again by the rules as they are now - when another machine
+## has come or gone (Net).
+static func reapply(tree: SceneTree) -> void:
+	_apply(tree)
 
 
 ## The holders that still exist, forgetting any that were freed while holding.

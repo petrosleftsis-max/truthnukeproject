@@ -536,8 +536,55 @@ func wake_up():
 	back_to_beat()
 
 
+## --- A puppet (Net) ---
+##
+## Over a network only the host's guards decide anything. On the joiner a guard
+## is a puppet: it goes where the host's copy is said to be (puppet_to), turned
+## the way it faces and in its mood, and only draws itself - eased there over
+## the tenth of a second between one word and the next.
+
+var puppet := false
+var _puppet_at := Vector2.ZERO
+var _puppet_set := false
+
+
+## Where the host's copy of this guard is, which way it faces and how it is.
+func puppet_to(at: Vector2, faces: Vector2, in_mood: int, out: bool, shown: bool):
+	_puppet_at = at
+	if not _puppet_set or global_position.distance_to(at) > Grid.tiles(3.0):
+		global_position = at
+	_puppet_set = true
+	if faces.length() > 0.01:
+		facing = faces.normalized()
+	mood = in_mood as Mood
+	visible = shown
+	if out != knocked_out:
+		knocked_out = out
+		if sprite != null:
+			if out:
+				sprite.set_dead()
+			else:
+				sprite.set_alive()
+
+
+func _play_puppet(delta: float):
+	if not _puppet_set or knocked_out:
+		return
+	var moving := global_position.distance_to(_puppet_at) > 0.5
+	global_position = global_position.lerp(_puppet_at, minf(1.0, delta * 12.0))
+	if sprite != null:
+		if moving:
+			sprite.play_walk()
+		else:
+			sprite.play_idle()
+	_face_sprite()
+
+
 func _process(delta):
 	if Engine.is_editor_hint() or not active:
+		return
+	if puppet:
+		_play_puppet(delta)
 		return
 	if _off_left > 0.0:
 		_off_left = maxf(_off_left - delta, 0.0)

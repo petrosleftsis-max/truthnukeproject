@@ -433,7 +433,19 @@ and `pressed_here`. `_sent_by_whoever_plays` checks every such call came from
 the machine that player is on. Pings go both ways (`Pings.pinged` -> `_ping` ->
 `show_ping`). Not across yet: what is aimed with the pointer on a map (a
 throw's landing, a click on a guard, a readied cone) and the familiar, which
-lives on the host. The Players panel's network half is
+lives on the host. **Guards:** on a joiner the watch is a puppet
+(`StealthWatch.puppet`, set in `begin` from `Net.follows()`, and every
+`Guard.puppet`): `_process` only dresses the party, works out what each guard
+sees and draws the meters, and a guard only eases to `puppet_to`. The host sends
+`StealthWatch.net_state()` `WATCHES_A_SECOND` (each guard by `_id_of`: place,
+facing, mood, knocked out, shown, suspicion; the alert and its floor; doors,
+lamps, what is still lying about) and the joiner's `apply_net_state` puts it
+on. A catch is the host's: its fight goes over with the scene change. **Menus
+over a network** (the designer, 2026-10-29): while `Net.with_another()`,
+`MenuPause` pauses nothing and `Coop.menu_held` takes no focus; only this
+machine's own groups stand (`ExplorationParty.in_a_menu`, set by
+`_stand_for_menus`). Hacking and QuickTime still pause their own machine. The
+Players panel's network half is
 `ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
 since listening (or hosting) is what makes Windows ask about its firewall.
 `net` plays two machines: the suite hosts on 127.0.0.1:24790 and starts a second

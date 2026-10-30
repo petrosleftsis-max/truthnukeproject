@@ -28,6 +28,13 @@ extends Node
 ## map comes straight there (_welcome); one seated mid-fight comes in once the
 ## fight is over. The host leaving sends the joiner back to the title screen.
 ##
+## Guards: on a watched map only the host's watch decides anything; the
+## joiner's is a puppet (StealthWatch.puppet, Guard.puppet) given how things
+## stand there WATCHES_A_SECOND times a second (_watched): each guard's place,
+## facing, mood and suspicion, the alert, the doors, the lamps and what is
+## still lying about. Caught, the host builds the fight and changes scene, and
+## the encounter goes with Campaign to the joiner like any other.
+##
 ## Walking, presses and pings: on a map each machine walks its own players'
 ## groups and says where their leaders are WALKS_A_SECOND times a second
 ## (_walked, unreliable but in order); the other machine's copy of a group is a
@@ -78,6 +85,8 @@ const DATA_SCRIPTS := ["res://combat/resources/", "res://campaign/", "res://data
 ## standing still, how long it goes without saying anyway.
 const WALKS_A_SECOND := 20.0
 const WALK_ANYWAY_SECONDS := 0.5
+## How often the host says how its watch stands, on a watched map.
+const WATCHES_A_SECOND := 10.0
 ## The presses on a map that do something to the world, which on a joiner are
 ## the host's to act on.
 const HOSTS_PRESSES: Array[StringName] = [&"interact", &"swap_leader", &"dash", &"listen", &"throw", &"vault",
@@ -128,6 +137,7 @@ var _arriving_as_it_stands := false
 var _walk_clock := 0.0
 ## Player id -> [where, facing left, walking, msec] as last said.
 var _walk_said := {}
+var _watch_clock := 0.0
 
 
 func _ready():
@@ -157,6 +167,12 @@ func is_joiner() -> bool:
 ## Joining, and seated at the host's table.
 func joined() -> bool:
 	return role == Role.JOINER and _seated
+
+
+## Playing with another machine right now: hosting with a joiner seated, or
+## seated at a host's table.
+func with_another() -> bool:
+	return (is_host() and not _seated_peers().is_empty()) or joined()
 
 
 ## The Players panel's network half (PlayersPanel).
@@ -412,6 +428,8 @@ func _table(players, controllers):
 
 
 func _on_players_changed():
+	# Another machine come or gone: a menu open holds the game, or no longer.
+	MenuPause.reapply(get_tree())
 	# Once for however many changes come in a frame.
 	if is_host() and not _table_due:
 		_table_due = true
@@ -541,6 +559,47 @@ func _send_state():
 	_state_digest = digest
 	_state_anyway = STATE_ANYWAY_SECONDS
 	_state.rpc(state)
+
+
+## --- Menus ---
+##
+## Over a network an open menu does not stop the world (the designer,
+## 2026-10-29): MenuPause pauses nothing and Coop gives no menu the focus. Only
+## this machine's own groups stand where they are while a menu is open here.
+
+
+func _stand_for_menus():
+	var scene := _map()
+	if scene == null:
+		return
+	var held := MenuPause.is_held()
+	for id in Coop.local_players():
+		var group = scene.groups.get(id)
+		if group != null and is_instance_valid(group):
+			group.in_a_menu = held
+
+
+## --- Guards ---
+
+
+## How the host's watch stands, to the joiner.
+func _say_how_it_stands(delta: float):
+	_watch_clock -= delta
+	if _watch_clock > 0.0:
+		return
+	_watch_clock = 1.0 / WATCHES_A_SECOND
+	var scene := _map()
+	if scene != null and scene.stealth != null and not scene.stealth.puppet:
+		_watched.rpc(scene.stealth.net_state())
+
+
+@rpc("authority", "unreliable_ordered")
+func _watched(state):
+	if not follows() or typeof(state) != TYPE_DICTIONARY:
+		return
+	var scene := _map()
+	if scene != null and scene.stealth != null and scene.stealth.puppet and not SceneTransition.is_changing():
+		scene.stealth.apply_net_state(state)
 
 
 ## --- Walking, presses and pings ---
@@ -936,8 +995,11 @@ func _process(delta: float):
 		if _state_held != null and _follow_due.is_empty() and not SceneTransition.is_changing():
 			Campaign.apply(_state_held)
 			_state_held = null
-	if (is_host() and not _seated_peers().is_empty()) or follows():
+	if with_another():
 		_say_where(delta)
+		_stand_for_menus()
+	if is_host() and not _seated_peers().is_empty():
+		_say_how_it_stands(delta)
 	var now := Time.get_ticks_msec()
 	if is_joiner() and _joining_since >= 0 and now - _joining_since > JOIN_SECONDS * 1000.0:
 		told.emit("No answer from %s." % host_address)

@@ -25,6 +25,8 @@ extends "res://StealthHarness.gd"
 
 const TEST_PORT := 24790
 const TEST_BEACON := 24791
+## A stealth stage with guards, doors and lamps to watch over.
+const STAGE := "res://maps/stealth_stages/stealth_5.tscn"
 
 var _joiner_pid := -1
 ## What the other machine has said (say).
@@ -85,6 +87,18 @@ func heard_after(start: String) -> String:
 	return ""
 
 
+## The guard on `watch`'s map known as `id`, or null.
+func guard_called(watch: StealthWatch, id: String) -> Guard:
+	return thing_called(watch, watch.guards, id)
+
+
+func thing_called(watch: StealthWatch, things: Array, id: String):
+	for thing in things:
+		if is_instance_valid(thing) and watch._id_of(thing) == id:
+			return thing
+	return null
+
+
 ## A key going down, from this machine's keyboard.
 func key_event(physical: Key) -> InputEventKey:
 	var event := InputEventKey.new()
@@ -129,6 +143,10 @@ func hosts_half():
 	ok(Net.refusal_for(Net.PROTOCOL, "another build", [Coop.KEYBOARD]) != "", "  and another build")
 	ok(Net.refusal_for(Net.PROTOCOL, Net.build_key(), []) != "", "  and a hello naming nothing to play with")
 	ok(Net.refusal_for(Net.PROTOCOL, Net.build_key(), [Coop.KEYBOARD]) == "", "  and the same version is let in")
+	MenuPause.hold(self)
+	ok(get_tree().paused, "hosting with nobody joined yet, a menu holds the game as it always has")
+	MenuPause.release(self)
+	ok(not get_tree().paused, "  and lets it go")
 	log_line("")
 
 	resources_as_data()
@@ -237,6 +255,72 @@ func hosts_half():
 	scene = get_tree().current_scene
 	scene.end_blocking_interaction()
 	ok(await hear("followed the reload"), "  and the joiner comes too")
+	log_line("")
+
+	log_line("======== a menu over a network ========")
+	# The map has just offered to share the party out - the joiner steers nobody
+	# of it now - and that panel is a menu too. Done with it first.
+	for offered in scene.find_children("*", "PlayersPanel", true, false):
+		offered.close()
+	await settle()
+	MenuPause.hold(self)
+	await settle()
+	ok(not get_tree().paused, "a menu open here stops nothing")
+	ok(scene._main_party.in_a_menu and (not scene.groups.has(1) or not scene.groups[1].in_a_menu),
+		"  but this machine's own group stands for it, and not the other's")
+	MenuPause.release(self)
+	await settle()
+	ok(not scene._main_party.in_a_menu, "  and walks again once it closes")
+	log_line("")
+
+	log_line("======== guards, run by the host ========")
+	Campaign.current_map = STAGE
+	before = scene.get_instance_id()
+	say("to the stage")
+	scene.reload_map()
+	ok(await until(func(): return get_tree().current_scene is ExplorationScene and get_tree().current_scene.get_instance_id() != before \
+		and not SceneTransition.is_changing(), 20.0), "the host goes on to a watched map, a stealth stage")
+	scene = get_tree().current_scene
+	scene.end_blocking_interaction()
+	var watch: StealthWatch = scene.stealth
+	ok(watch != null and not watch.puppet and watch.guards.size() >= 2,
+		"  where the host's watch decides, over its guards", "%d" % (watch.guards.size() if watch != null else 0))
+	ok(await hear("on the stage"), "  and the joiner comes too")
+	if watch != null and watch.guards.size() >= 2:
+		# Everybody held, so that nothing moves but what is moved here.
+		for group in scene.all_groups():
+			group.frozen = true
+		await settle()
+		var guard: Guard = watch.guards[0]
+		var spot := guard.global_position + Vector2(Grid.tiles(1.0), 0.0)
+		guard.global_position = spot
+		guard.facing = Vector2.LEFT
+		say("guard:%s|%d,%d" % [watch._id_of(guard), int(spot.x), int(spot.y)])
+		ok(await hear("guard followed"), "a guard moved here stands there, facing the same way")
+		var door: StealthDoor = watch._doors[0] if not watch._doors.is_empty() else null
+		if door != null:
+			door.set_open(not door.is_open)
+			watch._apply_door(door)
+			say("door:%s|%s" % [watch._id_of(door), "open" if door.is_open else "shut"])
+			ok(await hear("door followed"), "a door opened or shut here is so there")
+		var lamp: Lamp = null
+		for each in watch._lamps:
+			if lamp == null and each.lit and each.can_be_put_out:
+				lamp = each
+		if lamp != null:
+			watch.put_out(lamp)
+			say("lamp:%s" % watch._id_of(lamp))
+			ok(await hear("lamp followed"), "a lamp put out here is out there")
+		watch.alert = 0.6
+		watch.suspicion[guard] = 0.7
+		say("alert:%s" % watch._id_of(guard))
+		ok(await hear("alert followed"), "the alert, and how sure a guard is, are the same there")
+		var other: Guard = watch.guards[1]
+		other.knock_out()
+		say("out:%s" % watch._id_of(other))
+		ok(await hear("out followed"), "a guard knocked out here is down there")
+		for group in scene.all_groups():
+			group.frozen = false
 	log_line("")
 
 	log_line("======== whom to steer ========")
@@ -434,6 +518,46 @@ func joiners_half():
 		and not SceneTransition.is_changing(), 20.0), "follows the host through a reload of the map")
 	scene = get_tree().current_scene
 	say("followed the reload")
+	log_line("")
+
+	log_line("======== guards, run by the host ========")
+	await hear("to the stage")
+	ok(await until(func(): return get_tree().current_scene is ExplorationScene and get_tree().current_scene != scene \
+		and not SceneTransition.is_changing(), 20.0) and Campaign.current_map == STAGE, "follows the host onto a watched map")
+	scene = get_tree().current_scene
+	var watch: StealthWatch = scene.stealth
+	ok(watch != null and watch.puppet and watch.guards.all(func(guard): return guard.puppet),
+		"  its watch only shows the host's, and so does every guard on it")
+	MenuPause.hold(self)
+	await settle()
+	ok(not get_tree().paused, "a menu open here stops nothing - the guards go on")
+	MenuPause.release(self)
+	say("on the stage")
+	if watch == null:
+		return
+	await until(func(): return heard_after("guard:") != "", 15.0)
+	var guard := guard_called(watch, heard_after("guard:").get_slice("|", 0))
+	var spot := Vector2(float(heard_after("guard:").get_slice("|", 1).get_slice(",", 0)), float(heard_after("guard:").get_slice("|", 1).get_slice(",", 1)))
+	ok(guard != null and await until(func(): return guard.global_position.distance_to(spot) < 2.0 and guard.facing.x < 0.0, 10.0),
+		"a guard the host moved stands here where it does, facing the same way", "%s at %s" % [guard, guard.global_position if guard != null else Vector2.ZERO])
+	say("guard followed")
+	if await until(func(): return heard_after("door:") != "", 10.0):
+		var door: StealthDoor = thing_called(watch, watch._doors, heard_after("door:").get_slice("|", 0))
+		var wanted := heard_after("door:").get_slice("|", 1) == "open"
+		ok(door != null and await until(func(): return door.is_open == wanted, 10.0), "a door the host opened or shut is so here", "%s" % wanted)
+		say("door followed")
+	if await until(func(): return heard_after("lamp:") != "", 10.0):
+		var lamp: Lamp = thing_called(watch, watch._lamps, heard_after("lamp:"))
+		ok(lamp != null and await until(func(): return not lamp.lit, 10.0), "a lamp the host put out is out here")
+		say("lamp followed")
+	await until(func(): return heard_after("alert:") != "", 10.0)
+	ok(await until(func(): return absf(watch.alert - 0.6) < 0.01 and guard != null and absf(watch.suspicion.get(guard, 0.0) - 0.7) < 0.01, 10.0),
+		"the host's alert, and how sure its guard is, are the same here", "%.2f %.2f" % [watch.alert, watch.suspicion.get(guard, 0.0)])
+	say("alert followed")
+	await until(func(): return heard_after("out:") != "", 10.0)
+	var other := guard_called(watch, heard_after("out:"))
+	ok(other != null and await until(func(): return other.knocked_out, 10.0), "a guard the host knocked out is down here")
+	say("out followed")
 	log_line("")
 
 	log_line("======== whom to steer ========")

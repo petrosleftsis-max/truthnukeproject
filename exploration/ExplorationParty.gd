@@ -54,6 +54,9 @@ var frozen := false
 ## disguise - while the world goes on around them. `frozen` holds everything:
 ## a conversation, a menu, a catch.
 var rooted := false
+## Over a network: a menu is open on this machine, which stops nothing else -
+## only this group, which stands where it is until it closes (Net).
+var in_a_menu := false
 ## How fast they walk, as a share of move_speed - slower dragging a body.
 var pace := 1.0
 ## And faster for a while, by a move used on the map (OutsideMoves, Speed) -
@@ -168,7 +171,7 @@ var _dash_speed := 0.0
 ## Dashes `distance` along `direction` - or the way the line faces, given none -
 ## over `seconds`. False, and nothing started, when the line cannot move now.
 func dash(direction: Vector2, distance: float, seconds: float) -> bool:
-	if leader == null or frozen or rooted or _scripted or dashing or vaulting or distance <= 0.0:
+	if leader == null or frozen or rooted or in_a_menu or _scripted or dashing or vaulting or distance <= 0.0:
 		return false
 	if direction == Vector2.ZERO:
 		direction = Vector2.LEFT if _facing_left else Vector2.RIGHT
@@ -199,7 +202,7 @@ var _vault_elapsed := 0.0
 ## Hops the leader to `to` (in the party's own space) over `seconds`. False, and
 ## nothing started, when the line cannot move now.
 func vault(to: Vector2, seconds: float) -> bool:
-	if leader == null or frozen or rooted or _scripted or dashing or vaulting:
+	if leader == null or frozen or rooted or in_a_menu or _scripted or dashing or vaulting:
 		return false
 	_vault_from = leader.position
 	_vault_to = to
@@ -248,7 +251,7 @@ func light_touch() -> bool:
 func _process(delta):
 	if _scripted:
 		return
-	if leader == null or frozen or rooted or _held_by_another():
+	if leader == null or frozen or rooted or in_a_menu or _held_by_another():
 		dashing = false
 		if vaulting:
 			# Not left hanging over the barrel: down on the far side.
