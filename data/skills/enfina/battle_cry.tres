@@ -13,6 +13,8 @@ damage_modifier = 0.0
 
 [resource]
 script = ExtResource("3_skill")
+hand_look = 5
+projectile_style = 7
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_push")])
 name = "Battle Cry"
 description = "A roar and a sweep at everybody in front of her that drives them back a tile - off whoever stands behind her."

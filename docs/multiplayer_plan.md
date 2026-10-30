@@ -62,9 +62,9 @@ leans on the one before.
   asking, the familiar and hacks go across, and a player leaving mid-fight
   hands their characters to the other (`ui/net_panel.gd`,
   `ui/conversation_mirror.gd`, `ui/character_choice.gd`, `ui/steer_request.gd`;
-  suite `net`, which plays the joiner in a second Godot). Not yet tried on two
-  real machines. Not across: the point-and-click pictures, stores, a dragged
-  body's pace (see "Added after Step 3").
+  suite `net`, which plays the joiner in a second Godot). The point-and-click
+  pictures, stores and a dragged body's pace went across on 2026-10-31 (see
+  "Added after Step 3"). Not yet tried on two real machines.
 - **Built: Step 3** (2026-10-30): hosting asks the router to open the game to
   the internet (UPnP), and the Players panel points at a virtual LAN app when
   it will not. Not yet tried against a real router.
@@ -398,10 +398,23 @@ same checksum; a conversation's choice made on the joiner is the one taken.
 
   Over a network neither pauses: only that machine's own party stands.
 
-Still not across: the point-and-click pictures (`Pictures`), a store, and the
-pace of a body being dragged. The pictures and the store open on the host's
-screen only; the dragged body's pace is slowed only on the host's copy of the
-joiner's group.
+- **Pictures and stores** (built 2026-10-31). A point-and-click picture or a
+  store is opened for whoever it is for - the player who walked up to it, or
+  who began the conversation that opened it - on their own screen. The host's
+  Campaign is kept from a picture played on the joiner while it is open, and
+  what it changed goes back as it closes, by entries for flags and bags so
+  whatever the host's player changed meanwhile stands; a hotspot leading to
+  another map takes the host there. A store is a menu on the joiner, whose
+  changes go back as menus' do. Over a network a picture stops nothing: only
+  its own machine's party stands. While a menu or a picture is open on a
+  machine, that machine's presses are its own - none goes to the world.
+- **A dragged body, and creeping** (built 2026-10-31). Each group has its own
+  pace: the one dragging a body walks at a body's pace, on its own machine
+  too (the host says who drags), and each creeps on its own player's keys. The
+  joiner says whether it creeps with every walk, so the host's guards do not
+  hear its steps either. In local co-op the body now follows whoever picked it
+  up. `PROTOCOL` is 3.
+- **The share-out offer** is made only on the stranded player's own machine.
 
 ## Step 3 - online by Godot's own networking (small, after LAN; built 2026-10-30)
 

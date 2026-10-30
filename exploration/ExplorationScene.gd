@@ -527,6 +527,11 @@ func _unhandled_input(event):
 		return
 	if _blocking_interaction:
 		return
+	# Over a network a menu or a picture open here stops nothing - but what its
+	# player presses meanwhile is for it, not for the map (Net).
+	var pressing = party
+	if pressing != null and pressing.in_a_menu:
+		return
 	# On a watched map the stealth bar has the key (StealthBar.outside_spell).
 	# Here, it lets a familiar go too.
 	if stealth == null and Pad.went_down(event, &"outside_spell"):
@@ -1065,9 +1070,11 @@ func _share_out_due() -> bool:
 
 
 ## The players steering nobody standing - but for one who has just joined over
-## a network and is still choosing whom to play (Net.choosing).
+## a network and is still choosing whom to play (Net.choosing). Over a network,
+## only this machine's own: the other player is offered it on their screen, and
+## a panel up here for them would only stand this player's party.
 func _stranded() -> Array:
-	return Coop.stranded().filter(func(id): return not Net.choosing(id))
+	return Coop.stranded().filter(func(id): return not Net.choosing(id) and (not Net.with_another() or Coop.is_local(id)))
 
 
 ## Puts the Players panel up, the party as it stands, to share it out again
@@ -1517,6 +1524,12 @@ var store_screen: StoreScreen = null
 
 
 func _on_store_requested(store: String):
+	# Over a network, one for the other machine's player opens there, on their
+	# screen (Net.store_afar).
+	var player := Net.player_now()
+	if Net.plays_afar(player):
+		Net.store_afar(player, store)
+		return
 	_store_due = store
 
 

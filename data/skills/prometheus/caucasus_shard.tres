@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("2_c2spk")
+projectile_look = 5
 name = "Caucasus Shard"
 description = "Throw a rock at an enemy target."
 icon = ExtResource("3_icon")

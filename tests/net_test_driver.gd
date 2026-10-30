@@ -259,8 +259,14 @@ func aimed_there(scene: ExplorationScene, watch: StealthWatch, body: Guard):
 	say("seen beside")
 	ok(await until(func(): return watch._dragging == body, 15.0), "  and a click on him there drags him here, by that player's group",
 		"%s" % [watch._dragging])
+	ok(watch._drag_group == scene.groups.get(1) and is_equal_approx(scene.groups[0].pace, 1.0),
+		"  dragged behind the joiner's group - this player's own walks on at its own pace", "%s" % scene.groups[0].pace)
 	say("dragging")
+	ok(await hear("creeping"), "  the joiner creeps, dragging him")
+	ok(await until(func(): return scene.groups[1].creeping_there, 10.0), "  and says so: its steps are not heard here either")
+	say("heard creeping")
 	ok(await until(func(): return watch._dragging == null, 15.0), "  and a click again there puts him down")
+	ok(await until(func(): return not scene.groups[1].creeping_there, 10.0), "  creeping no more, said too")
 	say("put down")
 
 
@@ -325,8 +331,16 @@ func aimed_here(scene: ExplorationScene, watch: StealthWatch):
 	click.position = watch.get_canvas_transform() * body.global_position
 	watch._click_on_guard(click)
 	await hear("dragging")
+	ok(await until(func(): return is_equal_approx(mine.pace, StealthWatch.DRAG_PACE), 10.0),
+		"dragging a body there, its own group walks at a body's pace here, where it walks", "%s" % mine.pace)
+	watch.toggle_creep()
+	ok(is_equal_approx(mine.pace, StealthWatch.DRAG_PACE * StealthWatch.CREEP_PACE), "  and creeping, slower still", "%s" % mine.pace)
+	say("creeping")
+	await hear("heard creeping")
+	watch.toggle_creep()
 	watch._click_on_guard(click)
 	await hear("put down")
+	ok(await until(func(): return is_equal_approx(mine.pace, 1.0), 10.0), "  put down, back to its own pace", "%s" % mine.pace)
 
 
 ## --- The familiar, across ---
@@ -376,6 +390,9 @@ func joiners_familiar():
 	log_where(scene)
 	ok(await until(func(): return Coop.controller_of("alithia") == 1 and scene.familiar_spell().get("caster", "") == "alithia" \
 			and scene.familiar_refusal() == "", 10.0), "Alithia is this player's, and could call her familiar", scene.familiar_refusal())
+	# Steering nobody for a moment while whom it steers was asked and answered,
+	# it was offered the party to share out - a menu, whose presses are its own.
+	await close_offers()
 	get_viewport().push_input(key_event(KEY_G))
 	ok(await until(func(): return keeper.familiar != null, 15.0), "G pressed here: the host's map calls it, and it is here too")
 	if keeper.familiar == null:
@@ -461,7 +478,7 @@ func played_there():
 func played_here():
 	log_line("======== a hack and a quick time, its own to play ========")
 	await hear("strongbox up")
-	await settle(5)
+	await close_offers()
 	get_viewport().push_input(key_event(KEY_E))
 	ok(await until(func(): return Hacking.running() and Hacking.board() != null, 15.0),
 		"E pressed beside the host's strongbox: its board comes up here, for this player to play")
@@ -478,6 +495,119 @@ func played_here():
 	await hear("quick done")
 	QuickTime.answer = -1
 	log_line("")
+
+
+## --- A picture and a store, the joiner's ---
+
+
+func pictures_there():
+	log_line("======== a picture and a store, the joiner's to look at ========")
+	var scene: ExplorationScene = get_tree().current_scene
+	if not scene.groups.has(1):
+		ok(false, "the joiner's group, to stand beside a picture")
+		return
+	# Out of the way: the strongbox, which E would find first.
+	for thing in scene._interactables.duplicate():
+		if thing is ExamineInteractable and thing.sets_flag == "net_strongbox_open":
+			scene._interactables.erase(thing)
+			thing.queue_free()
+	var desk := PictureInteractable.new()
+	desk.picture = "res://pictures/clues_desk.tscn"
+	scene.get_node("Map").add_child(desk)
+	desk.global_position = scene.groups[1].leader.global_position
+	scene._interactables.append(desk)
+	var carried_before := _carried("magnifying_glass")
+	say("desk up")
+	ok(await hear("desk open"), "E pressed on the joiner beside a picture: it opens there, on its screen")
+	ok(not Pictures.is_open(), "  and not here - nothing to see on this screen")
+	ok(not scene.is_holding() and not scene.groups[0].in_a_menu, "  and nothing here is held for it: this player walks on")
+	ok(await hear("desk closed", 30.0), "looked at and closed there")
+	ok(await until(func(): return _carried("magnifying_glass") > carried_before, 15.0),
+		"  what it gave there is in the bag here", "%d -> %d" % [carried_before, _carried("magnifying_glass")])
+	var spot := heard_after("examined:")
+	ok(spot != "" and await until(func(): return Campaign.was_examined(spot), 10.0), "  and what was looked at there is looked at here", spot)
+	scene._interactables.erase(desk)
+	desk.queue_free()
+	await settle(5)
+	# A store, the same way: its purse and bags are the host's.
+	Campaign.gold = 500
+	var potions := _carried("cure_potion")
+	var stall := StoreInteractable.new()
+	stall.store = "travelling_merchant"
+	scene.get_node("Map").add_child(stall)
+	stall.global_position = scene.groups[1].leader.global_position
+	scene._interactables.append(stall)
+	say("stall up")
+	ok(await hear("stall open"), "E pressed on the joiner beside a stall: the store opens there")
+	ok(scene.store_screen == null, "  and not here")
+	ok(await hear("stall closed", 30.0), "bought from and left there")
+	ok(await until(func(): return _carried("cure_potion") == potions + 1, 15.0), "  what was bought there is in the bag here",
+		"%d -> %d" % [potions, _carried("cure_potion")])
+	ok(Campaign.gold == 500 - Campaign.price_of("cure_potion"), "  paid for out of the purse here", "%d" % Campaign.gold)
+	scene._interactables.erase(stall)
+	stall.queue_free()
+	say("shopped")
+	log_line("")
+
+
+func pictures_here():
+	log_line("======== a picture and a store, its own to look at ========")
+	var scene: ExplorationScene = get_tree().current_scene
+	await hear("desk up")
+	await close_offers()
+	get_viewport().push_input(key_event(KEY_E))
+	ok(await until(func(): return Pictures.is_open(), 15.0), "E pressed beside the host's picture: it opens here")
+	var mine: ExplorationParty = scene.groups.get(1)
+	ok(mine != null and mine.in_a_menu, "  and this player's group stands while it is up, as for a menu")
+	say("desk open")
+	var glass: Hotspot = null
+	if Pictures.is_open():
+		for spot in Pictures.current().hotspots():
+			if spot.gives_item == "magnifying_glass":
+				glass = spot
+	ok(glass != null, "  a hotspot in it that gives something")
+	if glass != null:
+		Pictures.click(glass)
+		ok(Campaign.was_examined(glass.examined_id()), "  clicked here: looked at")
+		say("examined:%s" % glass.examined_id())
+	# The host's state arriving meanwhile leaves what the picture did here alone.
+	await settle(30)
+	ok(glass == null or Campaign.was_examined(glass.examined_id()), "  and still so here as the host's Campaign goes on arriving")
+	Pictures.close()
+	say("desk closed")
+	await hear("stall up")
+	await settle(5)
+	get_viewport().push_input(key_event(KEY_E))
+	ok(await until(func(): return scene.store_screen != null, 15.0), "E pressed beside the host's stall: the store opens here")
+	say("stall open")
+	if scene.store_screen != null:
+		scene.store_screen._on_buy("cure_potion")
+		scene.store_screen.closed.emit()
+	say("stall closed")
+	await hear("shopped")
+	log_line("")
+
+
+## Puts away any offer to share the party out - a menu, which keeps this
+## machine's presses for itself - and says what still holds a menu, if anything.
+func close_offers():
+	for offered in get_tree().current_scene.find_children("*", "PlayersPanel", true, false):
+		offered.close()
+	await settle(5)
+	if MenuPause.is_held():
+		var holding := []
+		for id in MenuPause._holders:
+			var holder = instance_from_id(id)
+			holding.append(str(holder.name) if holder != null else "(gone)")
+		log_line("  still holding a menu here: %s" % [holding])
+
+
+## How many of `item` the party carries between them.
+func _carried(item: String) -> int:
+	var total := 0
+	for key in Campaign.party_order:
+		total += Campaign.count_of(key, item)
+	return total
 
 
 ## --- A fight, played on both ---
@@ -1032,6 +1162,7 @@ func hosts_half():
 
 	await hosts_familiar()
 	await played_there()
+	await pictures_there()
 
 	log_line("======== leaving mid-fight ========")
 	var combat := await into_the_fight("to the second fight")
@@ -1231,7 +1362,7 @@ func joiners_half():
 	say("saw the host")
 	await until(func(): return heard_after("wall:") != "", 10.0)
 	var wall := Vector2i(int(heard_after("wall:").get_slice(",", 0)), int(heard_after("wall:").get_slice(",", 1)))
-	Net._walked.rpc_id(1, 1, at(m, wall), false, false)
+	Net._walked.rpc_id(1, 1, at(m, wall), false, false, false)
 	say("claimed the wall")
 	log_line("")
 
@@ -1367,6 +1498,7 @@ func joiners_half():
 
 	await joiners_familiar()
 	await played_here()
+	await pictures_here()
 
 	log_line("======== leaving mid-fight ========")
 	await hear("to the second fight")

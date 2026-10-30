@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("2_va4hi")
+projectile_look = 15
 name = "Votive Flame"
 description = "Shoot them with the offering of the idol."
 icon = ExtResource("3_icon")

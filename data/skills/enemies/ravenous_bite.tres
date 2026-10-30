@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("2_skill")
+impact_look = 6
 name = "Ravenous Bite"
 description = "Jaws that never close on enough - tearing at whoever is nearest."
 min_range = 1

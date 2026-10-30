@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("2_skill")
+impact_look = 6
 name = "Rib Maws"
 description = "Its ribs have split into mouths along its flanks: whoever steps up beside it is bitten."
 min_range = 1

@@ -14,6 +14,7 @@ condition_duration = 2
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 39
 name = "Flame Edge"
 description = "A blade of fire, swung close. It leaves the wound burning."
 icon = ExtResource("2_icon")

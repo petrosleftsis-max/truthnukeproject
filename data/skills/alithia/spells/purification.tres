@@ -15,6 +15,7 @@ dispel_scope = 2
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 17
 name = "Purification"
 description = "Mends an ally and lifts every harmful condition from them."
 required_level = 41

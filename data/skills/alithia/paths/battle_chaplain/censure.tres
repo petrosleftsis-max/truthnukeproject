@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("3_skill")
+projectile_style = 7
 name = "Censure"
 description = "A wide sweep of judgement, spreading from her hands."
 icon = ExtResource("2_icon")

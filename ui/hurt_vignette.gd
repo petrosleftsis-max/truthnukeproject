@@ -116,5 +116,9 @@ func flare(colour: Color, strength: float = 1.0, lethal: bool = false):
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
 	_tween = create_tween()
+	# On real time: a blow's hit-stop freezes the world, not the screen's
+	# answer to it - a kill freezes longest, and its flare was held back until
+	# the freeze let go.
+	_tween.set_ignore_time_scale(true)
 	_tween.tween_property(_frame, "modulate:a", strength, IN_SECONDS)
 	_tween.tween_property(_frame, "modulate:a", 0.0, OUT_SECONDS)

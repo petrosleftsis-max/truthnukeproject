@@ -15,6 +15,7 @@ condition_dot_modifier = 0.35
 
 [resource]
 script = ExtResource("4_skill")
+impact_look = 40
 ability_modifier = 2.1
 name = "Wildfire"
 description = "A fire that runs through all of them, and keeps burning."

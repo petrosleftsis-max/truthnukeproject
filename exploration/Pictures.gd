@@ -63,6 +63,8 @@ var _next_player := 0
 ## (no area: it only fades in).
 var _intro := 1.0
 var _intro_from := Rect2()
+## Over a network: holding MenuPause, so only this machine's party stands.
+var _held_as_a_menu := false
 
 
 func _ready():
@@ -73,11 +75,22 @@ func _ready():
 ## until the pictures are closed again. Opening one while another is showing
 ## stacks it on top, and returns straight away.
 func open(picture) -> void:
+	var first = _stack.is_empty()
+	# Over a network, one for the other machine's player is played there, on
+	# their screen (Net.picture_afar) - and waited for, as one here would be.
+	var net = get_node_or_null("/root/Net")
+	if first and net != null and net.picture_goes_afar(picture):
+		await net.picture_afar(picture)
+		return
 	var scene: PackedScene = load(picture) if picture is String else picture
 	if scene == null:
 		push_warning("Pictures: there is no picture at '%s'." % [picture])
 		return
-	var first = _stack.is_empty()
+	# Over a network a picture stops nothing: as a menu does, it stands only
+	# this machine's own party.
+	if first and net != null and net.with_another():
+		MenuPause.hold(self)
+		_held_as_a_menu = true
 	show_picture(scene.instantiate())
 	if first:
 		await closed
@@ -167,6 +180,9 @@ func close():
 		_layer.queue_free()
 		_layer = null
 		_players.clear()
+	if _held_as_a_menu:
+		_held_as_a_menu = false
+		MenuPause.release(self)
 	closed.emit()
 
 

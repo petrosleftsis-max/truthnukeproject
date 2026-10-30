@@ -14,6 +14,7 @@ condition_duration = 1
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 9
 name = "Stunning Blow"
 description = "A blow to the head: they lose their next turn. Once a short rest - twice from level 54, three times from 64."
 required_level = 41

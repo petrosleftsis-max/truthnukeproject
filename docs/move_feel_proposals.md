@@ -1,8 +1,46 @@
 # How moves could land harder - proposals
 
 Written 2026-10-30, after the placeholder projectiles went in
-(`combat/Projectile.gd`). Everything below is a **PROPOSAL**: nothing here is
-built. The designer picks; each pick becomes its own piece of work.
+(`combat/Projectile.gd`).
+
+**Status, 2026-10-31: built, all but moves coming down from above or up from
+below.** The designer (2026-10-30): "go ahead and do everything not done and
+suggested, except the following 'moves that come down from above (hammers,
+suns) or up from below (spikes)'". So the "From above" and "From below" styles
+are not built, nor what each of those moves was to do with them (Judgement
+Hammer, Judgment, Divine Verdict, Stolen Sun, Ire of Sophia, Rockfall, Water
+Spike, Tartarus Flame, Crystalise keep their bolt or arc). Everything else
+below is in `combat/MoveFeel.gd` and `combat/Projectile.gd` (CLAUDE.md
+"Projectiles"; suite `projectile`), each move's own look set in its skill file
+(SkillDefinition's Projectile Look, Hand Look, Impact Look and Ground Mark,
+and the Beam / Spray / Back To User styles). It is all placeholder art and
+sound, drawn or generated in code behind slots: the designer makes the real
+ones. Every timing and size in it is a PROPOSAL value (ledger).
+
+Where each went, in short:
+
+| Proposal | Built as |
+|---|---|
+| A flash at the hand | `MoveFeel.hand`, by Hand Look (muzzle and a casing for a tracer, glyph, swish, roar, puff) |
+| A burst in the element's own way | `MoveFeel.burst`, one particle set per element and a mend's |
+| Pushed the way the blow came | `CombatantSprite.recoil(direction, single)`: along the line, further, and `squash` |
+| Weight from the numbers | `Combat.hit_stop_for`, `shake_for`, `slow_motion` (`_last_standing`, a boss) |
+| A miss that misses | `Projectile.verdict` (MISSED flies on past, GRAZED bursts dimly, IMAGE shatters); `MoveFeel.missed` for a blow |
+| The number says what happened | `FloatingNumber.spawn(..., how)`: share, graze, resisted, vulnerable |
+| Something left behind | `MoveFeel.mark_ground` (scorch, frost, puddle, pit), two rounds |
+| Sound in three | SkillDefinition `sound` (launch), `travel_sound`, `impact_sound`; `PlaceholderSounds` stand-ins; `pitch_for` from the round and who |
+| Cause and effect | `MoveFeel.condition_put` (to `combat_ui.condition_point`); `MoveFeel.mended`; `HealthBarMarks.fill` |
+| Beam, Spray, Back to the user | ProjectileStyle BEAM, SPRAY (a roar: rings), BACK_TO_USER; a steal or a loot: `MoveFeel.item_flies` |
+| Move by move | the looks named below, set on each move (but those from above or below) |
+| Readied moves going off | `MoveFeel.readied_line` |
+| Reactions | `MoveFeel.exclaim` - a "!" and the face card |
+| Declared moves | `MoveFeel.declared` glyphs; a landing's `DECLARED_SHAKE` and `DECLARED_HIT_STOP` |
+| Element raised | `Projectile.colour_from`, the flare half way |
+| A boss staggered | `BossBars.crack`, `slow_motion` |
+| Body parts | `MoveFeel.part_struck` |
+| Zones | `Combat.spreading_zones`, `zone_tiles` / `_spread_so_far` |
+
+The rest of this file is the proposals as they were written.
 
 The game already has some of the tools these build on:
 

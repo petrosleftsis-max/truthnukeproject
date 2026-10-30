@@ -14,6 +14,7 @@ condition_duration = 2
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 9
 name = "Shield Bash"
 description = "A blow with the flat of the blade that leaves them afraid to press on."
 icon = ExtResource("2_icon")

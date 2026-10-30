@@ -22,6 +22,7 @@ condition_dot_modifier = 0.1
 
 [resource]
 script = ExtResource("3_2orsb")
+projectile_look = 9
 name = "Gust Blast"
 description = "Blast a powerful gust that pushes the target."
 min_range = 1

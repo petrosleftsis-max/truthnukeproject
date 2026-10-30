@@ -12,6 +12,7 @@ with_summoners_attributes = true
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 33
 name = "Illusory Dragon"
 description = "Shadow drawn out of the Ogdoad and given a dragon's shape, anywhere in reach. It stands where it stands like a living thing, but every blow misses it and nothing harms it; the other side near it is gripped by fear. Commanded, it flies and breathes a cone of whatever it is told to - fire, frost, lightning, poison, acid or dread - as strong as your own mind. It lasts as long as its tether to you holds."
 min_range = 1

@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("3_skill")
+projectile_look = 3
 name = "Combined Load"
 description = "Two loads at once: pick two of your ammunition, and fire them as one shot."
 icon = ExtResource("2_icon")

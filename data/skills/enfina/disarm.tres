@@ -13,6 +13,7 @@ condition = ExtResource("4_cond")
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 34
 name = "Disarm"
 description = "A cut at the hand that holds the weapon: their next weapon attack deals half damage."
 required_level = 24

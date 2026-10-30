@@ -11,6 +11,8 @@ type = 25
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 25
+projectile_look = 11
 name = "InstaHack"
 outside_use = 15
 description = "Tear a spell apart the instant a foe in reach casts it - no minigame, no second chance for them. It comes to nothing, and their gate is spent all the same. Only ever a reaction, through the Gates of Pandora."

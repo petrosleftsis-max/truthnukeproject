@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("2_weg6h")
+projectile_look = 9
 name = "Wind Shot"
 description = "Conjure wind on your fingertips before leading it to the target."
 max_range = 20

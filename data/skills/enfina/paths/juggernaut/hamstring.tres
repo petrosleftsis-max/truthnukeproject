@@ -15,6 +15,7 @@ display_name = "Hamstrung"
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 7
 name = "Hamstring"
 description = "A cut low at the legs. They will not be going far for a while."
 icon = ExtResource("2_icon")

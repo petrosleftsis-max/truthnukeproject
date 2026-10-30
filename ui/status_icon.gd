@@ -77,6 +77,8 @@ func set_health(hp: int, hp_max: int, overheal: int = 0):
 	$Layout/HealthText.text = "{0}/{1}".format([hp, hp_max]) + (" +%d" % overheal if overheal > 0 else "")
 	if _hp > hp:
 		HealthBarMarks.drain(bar, _hp, hp, maxi(hp_max, 1))
+	elif _hp < hp and _hp > 0:
+		HealthBarMarks.fill(bar, _hp, hp, maxi(hp_max, 1))
 	_hp = hp
 	bar.max_value = maxi(hp_max, 1)
 	bar.value = clampi(hp, 0, maxi(hp_max, 1))

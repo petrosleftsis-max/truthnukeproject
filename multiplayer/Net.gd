@@ -99,7 +99,7 @@ const DISCOVERY_PORT := 24701
 const BEACON := "MOT-HOST"
 ## What the two machines say to each other. Bumped whenever that changes; a
 ## joiner with another is turned away.
-const PROTOCOL := 2
+const PROTOCOL := 3
 const BEACON_SECONDS := 1.0
 ## How long a game goes unheard before the Join list forgets it.
 const FORGET_SECONDS := 4.0
@@ -428,6 +428,11 @@ func _close():
 	_close_choice()
 	_close_request()
 	_end_catching_up()
+	if _picture_asked >= 0:
+		_picture_asked = -1
+		_before_the_picture = {}
+		Pictures.close()
+	_scene_wanted = ""
 	Coop.networked = false
 	Coop.local_peer = 0
 	if was_joiner:
@@ -901,9 +906,14 @@ func follows() -> bool:
 
 ## Whether SceneTransition may change scene to `path` - never on a joiner, but
 ## where the host has said.
-func may_change_scene(_path: String) -> bool:
+func may_change_scene(path: String) -> bool:
 	if not follows() or _following:
 		return true
+	# Sent somewhere from a picture played here for the host: the host goes,
+	# once it is closed (_picture_done).
+	if _picture_asked >= 0:
+		_scene_wanted = path
+		return false
 	told.emit("The host decides where everybody goes.")
 	return false
 
@@ -1037,6 +1047,11 @@ func _follow_now():
 	var due := _follow_due
 	_follow_due = {}
 	_close_mirror()
+	# A picture played here for the host ends with the scene it was opened on -
+	# what it changed sent before the host's Campaign is put on.
+	if _picture_asked >= 0:
+		_picture_done()
+		Pictures.close()
 	Campaign.apply(due.state)
 	_arriving_as_it_stands = due.as_it_stands
 	_following = true
@@ -1063,6 +1078,11 @@ func _kept_here() -> Array:
 		kept.append("controllers")
 	if not _hack_costs.is_empty():
 		kept.append_array(HACK_KEYS)
+	# A picture played here for the host may change anything but who steers whom.
+	if _picture_asked >= 0:
+		for key in Campaign.SAVED:
+			if key != "controllers" and not kept.has(key):
+				kept.append(key)
 	return kept
 
 
@@ -1529,6 +1549,160 @@ func _familiar_answer(asker, yes):
 	keeper._on_answered(yes, asker)
 
 
+## --- Pictures and stores ---
+##
+## A point-and-click picture or a store opened for the player on the other
+## machine is theirs, on their own screen: on the host, Pictures.open for the
+## joiner's player - their press at a PictureInteractable, or a conversation
+## they began (`player_now`) - is picture_afar, and a store asked for them is
+## store_afar. The joiner plays the picture (_picture_here) with the host's
+## Campaign kept from it meanwhile (_kept_here: all but who steers whom), and
+## once it is closed sends what it changed (_picture_done: a dictionary by its
+## entries, anything else whole) and the map a hotspot in it sent the party
+## to. The host takes that (_picture_changes), goes there, and whatever opened
+## the picture - a conversation - goes on. A store is a menu on the joiner:
+## what is bought and sold there goes to the host as it closes (_menu_changes).
+## Neither holds anything on the other machine; over a network a picture
+## stands only its own machine's party, as a menu does (Pictures holds
+## MenuPause).
+
+## The joiner: the number of the picture being played here for the host, or -1.
+var _picture_asked := -1
+## The joiner: Campaign as it stood when that picture opened.
+var _before_the_picture := {}
+## The joiner: the scene something in that picture sent the party to, or "".
+var _scene_wanted := ""
+
+
+## On the host: the player what is happening now is for - whoever began the
+## conversation on the host's balloon, or else whoever's press is being handled.
+func player_now() -> int:
+	if is_host() and _balloon != null and is_instance_valid(_balloon) and _starter >= 0:
+		return _starter
+	return Coop.acting
+
+
+## On the host: whether `picture` (a path, or a scene) opened now is the other
+## machine's player's, to be played there.
+func picture_goes_afar(picture) -> bool:
+	var path: String = picture if picture is String else (picture.resource_path if picture is PackedScene else "")
+	return path.begins_with("res://") and plays_afar(player_now())
+
+
+## The host: `picture` played by the player it is for on their machine, and
+## waited for until they close it - what it changed taken here.
+func picture_afar(picture):
+	var path: String = picture if picture is String else picture.resource_path
+	_afar_asked += 1
+	var asked := _afar_asked
+	_picture_here.rpc_id(Coop.player(player_now()).peer, asked, path)
+	var answer = await _wait_from_afar(asked)
+	if answer is Dictionary:
+		_picture_changes(answer)
+
+
+## The joiner: a picture to play for the host.
+@rpc("authority", "reliable")
+func _picture_here(asked, path):
+	if not follows() or typeof(asked) != TYPE_INT or typeof(path) != TYPE_STRING:
+		return
+	if _picture_asked >= 0 or Pictures.is_open() or not path.begins_with("res://") or not ResourceLoader.exists(path):
+		_from_afar.rpc_id(1, asked, {})
+		return
+	_picture_asked = asked
+	_before_the_picture = _campaign_part()
+	_scene_wanted = ""
+	await Pictures.open(path)
+	# Whatever closing it set going - a hotspot sending the party off - has
+	# asked for its scene by the next frame.
+	await get_tree().process_frame
+	_picture_done()
+
+
+## Everything of Campaign a picture may change: all that is saved but who
+## steers whom.
+func _campaign_part() -> Dictionary:
+	var part := {}
+	for key in Campaign.SAVED:
+		if key == "controllers":
+			continue
+		var value = Campaign.get(key)
+		part[key] = value.duplicate(true) if value is Dictionary or value is Array else value
+	return part
+
+
+## The joiner: the picture played here for the host is over - what it changed,
+## and where it sent the party, to the host.
+func _picture_done():
+	if _picture_asked < 0:
+		return
+	var asked := _picture_asked
+	_picture_asked = -1
+	var now := _campaign_part()
+	var changes := {}
+	for key in now:
+		var was = _before_the_picture.get(key)
+		if var_to_str(now[key]) == var_to_str(was):
+			continue
+		if now[key] is Dictionary and was is Dictionary:
+			# By its entries, so what the host's player changed meanwhile in the
+			# rest of it - a flag, a bag - stands.
+			var entries := {}
+			for entry in now[key]:
+				if not was.has(entry) or var_to_str(now[key][entry]) != var_to_str(was[entry]):
+					entries[entry] = now[key][entry]
+			changes[key] = {"entries": entries, "gone": was.keys().filter(func(entry): return not now[key].has(entry))}
+		else:
+			changes[key] = {"whole": now[key]}
+	_before_the_picture = {}
+	var answer := {"changes": changes}
+	if _scene_wanted != "":
+		answer["scene"] = _scene_wanted
+		answer["map"] = Campaign.current_map
+		answer["entry"] = Campaign.target_entry
+		_scene_wanted = ""
+	_from_afar.rpc_id(1, asked, answer if is_plain(answer) else {})
+
+
+## The host: what a picture played on the joiner changed, taken here - and the
+## map a hotspot in it sent the party to, gone to.
+func _picture_changes(answer: Dictionary):
+	var changes = answer.get("changes", {})
+	if changes is Dictionary:
+		for key in changes:
+			var change = changes[key]
+			if not Campaign.SAVED.has(key) or key == "controllers" or not change is Dictionary:
+				continue
+			var mine = Campaign.get(key)
+			if change.has("whole"):
+				# Only what is already of that kind: a bag for a bag, a number for gold.
+				if typeof(change.whole) == typeof(mine):
+					Campaign.set(key, change.whole)
+			elif mine is Dictionary and change.get("entries") is Dictionary and change.get("gone") is Array:
+				for entry in change.entries:
+					mine[entry] = change.entries[entry]
+				for entry in change.gone:
+					mine.erase(entry)
+	var scene = answer.get("scene")
+	var map = answer.get("map")
+	if scene is String and scene == Campaign.EXPLORATION_SCENE and map is String and map.begins_with("res://") \
+			and ResourceLoader.exists(map):
+		Campaign.travel_to_map(map, str(answer.get("entry", "")))
+		SceneTransition.change_scene(scene)
+
+
+## The host: `store` asked for `player`, who plays on the other machine - opened
+## there.
+func store_afar(player: int, store: String):
+	_store_here.rpc_id(Coop.player(player).peer, store)
+
+
+@rpc("authority", "reliable")
+func _store_here(store):
+	if follows() and typeof(store) == TYPE_STRING and _map() != null:
+		Campaign.open_store(store)
+
+
 ## --- Catching up ---
 ##
 ## A joiner come into a fight under way plays everything done in it so far
@@ -1811,6 +1985,13 @@ var _menu_open := false
 var _before_the_menu := {}
 
 
+## A menu opened or shut here (MenuPause): stood for at once rather than at the
+## next frame.
+func menus_changed():
+	if with_another():
+		_stand_for_menus()
+
+
 func _stand_for_menus():
 	var held := MenuPause.is_held()
 	if follows() and held != _menu_open:
@@ -1908,12 +2089,14 @@ func _say_where(delta: float):
 		var group = scene.groups.get(id, scene._main_party if scene.groups.is_empty() else null)
 		if group == null or not is_instance_valid(group) or group.puppet or group.leader == null:
 			continue
-		var said: Array = [group.position_of_leader(), group.facing_left(), group._walking]
+		# Creeping too, so its steps are not heard on the other machine either.
+		var creeping: bool = scene.stealth != null and scene.stealth.creeping_in(group)
+		var said: Array = [group.position_of_leader(), group.facing_left(), group._walking, creeping]
 		var last: Array = _walk_said.get(id, [])
-		if not last.is_empty() and last.slice(0, 3) == said and now - last[3] < WALK_ANYWAY_SECONDS * 1000.0:
+		if not last.is_empty() and last.slice(0, 4) == said and now - last[4] < WALK_ANYWAY_SECONDS * 1000.0:
 			continue
 		_walk_said[id] = said + [now]
-		_walked.rpc(id, said[0], said[1], said[2])
+		_walked.rpc(id, said[0], said[1], said[2], said[3])
 	_say_where_the_familiar_is(scene, now)
 
 
@@ -1964,8 +2147,9 @@ func _familiar_walked(id, at, facing_left):
 
 
 @rpc("any_peer", "unreliable_ordered")
-func _walked(id, at, facing_left, walking):
-	if typeof(id) != TYPE_INT or typeof(at) != TYPE_VECTOR2 or typeof(facing_left) != TYPE_BOOL or typeof(walking) != TYPE_BOOL:
+func _walked(id, at, facing_left, walking, creeping):
+	if typeof(id) != TYPE_INT or typeof(at) != TYPE_VECTOR2 or typeof(facing_left) != TYPE_BOOL or typeof(walking) != TYPE_BOOL \
+			or typeof(creeping) != TYPE_BOOL:
 		return
 	if not _sent_by_whoever_plays(id):
 		return
@@ -1978,7 +2162,7 @@ func _walked(id, at, facing_left, walking):
 	# The host has the last word on where anybody can stand.
 	if is_host() and not scene.is_walkable(at):
 		return
-	group.walk_to(at, facing_left, walking)
+	group.walk_to(at, facing_left, walking, creeping)
 
 
 ## Whether the call being handled came from the machine player `id` plays on:
@@ -1999,8 +2183,8 @@ func forwards(event: InputEvent) -> bool:
 	if not follows() or not event.is_pressed() or event.is_echo() or event.device >= Coop.REMOTE_DEVICE_BASE:
 		return false
 	var scene := _map()
-	# A menu or a conversation open here has its own keys.
-	if scene == null or scene.is_holding():
+	# A menu, a picture or a conversation open here has its own keys.
+	if scene == null or scene.is_holding() or MenuPause.is_held() or Pictures.is_open():
 		return false
 	var player := Coop.player_of_event(event)
 	if player == Coop.ANYONE or not Coop.is_local(player):

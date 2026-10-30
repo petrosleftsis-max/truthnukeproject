@@ -292,6 +292,10 @@ const FLASH_FRIENDLY = Color(0.4, 1.0, 0.5)
 ## inside its tile and never the tile the combatant is actually on.
 const RECOIL_DISTANCE = Grid.TILE_SIZE * 0.16
 const RECOIL_SECONDS = 0.22
+## How much a single blow squashes the drawing along the way it came, and how
+## much further it nudges it (MoveFeel - PROPOSAL values).
+const SQUASH := 0.14
+const NUDGE := 1.35
 
 var _flash_tween: Tween = null
 var _recoil_tween: Tween = null
@@ -335,7 +339,10 @@ func flash_hit(hostile: bool, damage_colour = null):
 ## the hit as something that arrived from somewhere, which a flash alone does
 ## not - an area skill going off shoves everyone caught outward from its
 ## centre, and you can see where it landed from that alone.
-func recoil(direction: Vector2):
+##
+## `single`: one blow at them alone, which nudges them further along the way it
+## came and squashes them against it as it lands (MoveFeel).
+func recoil(direction: Vector2, single: bool = false):
 	var drawn = _drawn()
 	if drawn == null or direction == Vector2.ZERO:
 		return
@@ -344,7 +351,9 @@ func recoil(direction: Vector2):
 	if _recoil_tween != null and _recoil_tween.is_valid():
 		_recoil_tween.kill()
 		drawn.position = size_offset
-	var away = direction.normalized() * RECOIL_DISTANCE
+	var away = direction.normalized() * RECOIL_DISTANCE * (NUDGE if single else 1.0)
+	if single:
+		squash(direction)
 	_recoil_tween = create_tween()
 	_recoil_tween.tween_property(drawn, "position", size_offset + away, RECOIL_SECONDS * 0.3).set_ease(Tween.EASE_OUT)
 	# Springs back rather than easing, so it reads as a body absorbing a blow
@@ -407,7 +416,11 @@ func set_dead():
 		_flash_tween.kill()
 	if _hop_tween != null and _hop_tween.is_valid():
 		end_hop()
+	if _shape_tween != null and _shape_tween.is_valid():
+		_shape_tween.kill()
 	var drawn = _drawn()
+	if drawn != null:
+		drawn.scale = Vector2.ONE
 	var fade = create_tween()
 	fade.set_parallel(true)
 	fade.tween_property(self, "modulate", Color(0.6, 0.6, 0.6, DEATH_ALPHA), DEATH_SECONDS)
@@ -474,6 +487,71 @@ func _hop_at(t: float, kind: int):
 	# Up the screen is down the y axis; and in the node's own units, like
 	# size_offset.
 	drawn.position = size_offset + Vector2(0.0, -lift * tile / (scale.y if scale.y != 0.0 else 1.0))
+
+
+## The drawing comes in from `from` (as measured on the map, off where it
+## stands now) over `seconds`, on an arc `height` high - bounding out of a
+## summoner, thrown (Hurl), lifted a moment off the ground (MoveFeel). Put
+## home by end_hop, like a hop.
+func fly_in(from: Vector2, seconds: float, height: float):
+	var drawn = _drawn()
+	if drawn == null:
+		return
+	end_hop()
+	_hop_tween = create_tween()
+	_hop_tween.tween_method(_fly_at.bind(from, height), 0.0, 1.0, maxf(seconds, 0.05))
+	_hop_tween.finished.connect(end_hop)
+
+
+func _fly_at(t: float, from: Vector2, height: float):
+	var drawn = _drawn()
+	if drawn == null:
+		return
+	var away := from * (1.0 - t) + Vector2(0.0, -height * 4.0 * t * (1.0 - t))
+	drawn.position = size_offset + Vector2(away.x / (scale.x if scale.x != 0.0 else 1.0), away.y / (scale.y if scale.y != 0.0 else 1.0))
+
+
+## The drawing dips a moment, legs cut from under it (MoveFeel).
+func dip(seconds: float):
+	fly_in(Vector2.ZERO, seconds, -Grid.TILE_SIZE * 0.1)
+
+
+var _shape_tween: Tween = null
+
+
+## The drawing shudders, squeezed one way and the other and settling - a mind
+## struck (MoveFeel).
+func wobble(seconds: float):
+	var drawn = _drawn()
+	if drawn == null:
+		return
+	if _shape_tween != null and _shape_tween.is_valid():
+		_shape_tween.kill()
+	_shape_tween = create_tween()
+	_shape_tween.tween_method(_wobble_at, 0.0, 1.0, maxf(seconds, 0.05))
+
+
+func _wobble_at(t: float):
+	var drawn = _drawn()
+	if drawn != null:
+		var swing := 0.09 * sin(t * 28.0) * (1.0 - t)
+		drawn.scale = Vector2(1.0 + swing, 1.0 - swing)
+
+
+## The drawing squashed against a blow come along `direction`, and springing
+## back (MoveFeel: pushed the way the blow came).
+func squash(direction: Vector2):
+	var drawn = _drawn()
+	if drawn == null or direction == Vector2.ZERO:
+		return
+	if _shape_tween != null and _shape_tween.is_valid():
+		_shape_tween.kill()
+	var across := absf(direction.normalized().x)
+	var squashed := Vector2(1.0 - SQUASH * across + SQUASH * 0.6 * (1.0 - across), 1.0 - SQUASH * (1.0 - across) + SQUASH * 0.6 * across)
+	# In a moment rather than this very frame, as the recoil goes - and back.
+	_shape_tween = create_tween()
+	_shape_tween.tween_property(drawn, "scale", squashed, RECOIL_SECONDS * 0.15)
+	_shape_tween.tween_property(drawn, "scale", Vector2.ONE, RECOIL_SECONDS).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 
 ## 0 at both ends and 1 at `peak` (0 to 1), a parabola either side of it.

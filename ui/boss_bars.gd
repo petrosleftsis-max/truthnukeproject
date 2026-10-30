@@ -70,6 +70,43 @@ func row_for(id: int) -> Control:
 	return _by_id.get(id)
 
 
+## A crack across the stagger bar of the boss whose id is `id` - staggered
+## (MoveFeel). It splits, flashes and fades.
+func crack(id: int):
+	var row := row_for(id)
+	var bar = row.get_node_or_null("Stagger/StaggerBar") if row != null else null
+	if bar == null:
+		return
+	var split := _Crack.new()
+	split.set_anchors_preset(Control.PRESET_FULL_RECT)
+	split.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(split)
+
+
+class _Crack extends Control:
+	const SECONDS := 1.4
+	var _clock := 0.0
+
+	func _process(delta: float):
+		_clock += delta
+		if _clock >= SECONDS:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw():
+		var t := _clock / SECONDS
+		var fade := 1.0 - maxf(t - 0.5, 0.0) / 0.5
+		var w := size.x
+		var h := maxf(size.y, 6.0)
+		var line := PackedVector2Array([Vector2(w * 0.3, -h * 0.9), Vector2(w * 0.36, h * 0.2), Vector2(w * 0.42, -h * 0.1),
+			Vector2(w * 0.5, h * 1.1), Vector2(w * 0.57, h * 0.1), Vector2(w * 0.63, h * 0.6), Vector2(w * 0.7, -h * 0.7)])
+		draw_polyline(line, Color(0, 0, 0, 0.9 * fade), 5.0)
+		draw_polyline(line, Color(1, 1, 1, fade), 2.0)
+		if t < 0.2:
+			draw_rect(Rect2(Vector2.ZERO, size), Color(1, 1, 1, 0.7 * (1.0 - t / 0.2)))
+
+
 func _make_row(comb: Dictionary) -> VBoxContainer:
 	var row := VBoxContainer.new()
 	row.name = "Boss%d" % comb.get("id", -1)

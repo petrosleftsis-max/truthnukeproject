@@ -11,6 +11,7 @@ summons = "illusory_cover"
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 19
 name = "Illusory Cover"
 outside_use = 13
 description = "Cover that is not there, on a bare tile within six, for three of her turns. The other side takes it for a real barricade - it blocks their sight, whoever stands beside it is in cover to them, and they plan around it - but shots and blasts go straight through it, and they never learn it."

@@ -14,6 +14,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_3xjpu")
+impact_look = 12
 name = "Flash"
 outside_use = 5
 description = "A burst of light enough to blind anyone."

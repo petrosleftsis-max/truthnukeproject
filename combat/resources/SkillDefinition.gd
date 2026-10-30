@@ -349,26 +349,66 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 @export var contest_stat: Stats.Type = Stats.Type.PHYSICAL
 
 @export_group("Sound")
-## Played when this skill goes off. Left empty for a skill that makes no noise,
-## which is every skill until one is given a sound - nothing here needs audio
-## to exist.
+## A move sounds three times (the designer, 2026-10-30): leaving its user,
+## travelling, and landing. Each slot left empty plays a stand-in made on the
+## spot (PlaceholderSounds, MoveFeel) - gone the moment a real sound goes in.
 ##
-## It fires as the skill animation ENDS rather than when the skill is chosen,
-## so the noise lands with the blow instead of underneath the wind-up. A
-## combatant with no animation resolves instantly and the sound plays then.
+## This one, leaving its user: it fires as the skill animation ENDS rather than
+## when the skill is chosen, so the noise goes with the release instead of
+## underneath the wind-up. A combatant with no animation resolves instantly and
+## the sound plays then. A condition it puts on ticks with it too - and with
+## nothing, while it is empty.
 @export var sound: AudioStream
 ## Per-skill trim, because raw samples arrive at wildly different levels and
 ## the alternative is re-exporting the audio to balance a fight.
 @export_range(-40.0, 12.0, 0.5) var sound_volume_db: float = 0.0
+## Under its projectile while it flies (Projectile).
+@export var travel_sound: AudioStream
+## As it lands on somebody - or where it was aimed.
+@export var impact_sound: AudioStream
 
 @export_group("Projectile")
 ## How the move is seen travelling from its user to where it was aimed
 ## (Projectile; the designer, 2026-10-30). Automatic works it out from the
 ## move: nothing for a melee blow or one at the user's own tile, a streak along
 ## a line, a fan for a cone, an arc for something that goes over what is in
-## the way (Respects Blocking off), and a straight bolt for the rest.
-enum ProjectileStyle { AUTOMATIC, NONE, BOLT, ARC, STREAK, FAN }
+## the way (Respects Blocking off), and a straight bolt for the rest. A Beam is
+## a line of light that holds a moment and fades; a Spray a stream filling a
+## cone for half a second (the breaths, a roar); Back To User goes from where it
+## was aimed to its user (a drain). What a steal or a loot takes flies back to
+## its taker anyway (MoveFeel.item_flies).
+enum ProjectileStyle { AUTOMATIC, NONE, BOLT, ARC, STREAK, FAN, BEAM, SPRAY, BACK_TO_USER }
 @export var projectile_style: ProjectileStyle = ProjectileStyle.AUTOMATIC
+## What is drawn flying, in place of the orb (stand-ins drawn in Projectile,
+## behind the texture and scene slots below): a tracer for a shot, two
+## twisting for a combined load, a dart, a rock that breaks as it lands, a
+## spinning nail, a burning limb, a great flickering orb, swirling wind, wind
+## pulled in, a glyph of code, a chain out and yanked back, a little bag,
+## golden drops, a candle flame, a speech bubble with scales, a jet of flame.
+## Automatic: the orb.
+enum ProjectileLook { AUTOMATIC, ORB, TRACER, TWIN_TRACER, DART, ROCK, NAIL, LIMB, GREAT_ORB, SWIRL, VACUUM,
+	CODE, CHAIN, ITEM, DROPLETS, CANDLE, BUBBLE, JET }
+@export var projectile_look: ProjectileLook = ProjectileLook.AUTOMATIC
+## The flash at its user as it leaves them, saying who did it before anything
+## has gone anywhere (MoveFeel): a muzzle flash, a spell's glyph, a throw's
+## swish, a roar's shockwave, a puff where they vanish. Automatic: a glyph for
+## a spell, a swish for something thrown, a flash for any other shot, nothing
+## for a blow.
+enum HandLook { AUTOMATIC, NONE, MUZZLE, GLYPH, SWISH, ROAR, PUFF }
+@export var hand_look: HandLook = HandLook.AUTOMATIC
+## What it looks like where it lands, beside the burst its element always
+## makes (MoveFeel). Automatic: a swing's arc for a blow, a column of light for
+## a mend, a wash for a cleanse, nothing more for the rest.
+enum ImpactLook { AUTOMATIC, NONE, SWOOSH, HEAVY_SWOOSH, HALF_CIRCLE, THRUST, CLAW, LOW_SLASH, STAKE, SHIELD_STARS,
+	SHOCKWAVE, WHITE_OUT, FLASH, RIPPLES, BONK, SEAL, COLUMN, WASH, RISE, SHARDS_GATHER, DOME, GLYPH_CIRCLE, STORM,
+	FIRE_RING, CUT_RING, CODE_SCATTER, LIFT, SPEED_LINES, SHIMMER, EYE, STREAM, ICE_SPREAD, RAYS, WING, DISARM,
+	SETTLE, SPARK_BESIDE, PUFF, ROCK_BREAK, EDGE, WILDFIRE }
+@export var impact_look: ImpactLook = ImpactLook.AUTOMATIC
+## A mark it leaves on the ground, fading over two turns - purely to look at.
+## Automatic: by its element (fire scorches, ice frosts, water puddles, acid
+## leaves a smoking pit) for anything that hurts.
+enum GroundMark { AUTOMATIC, NONE, SCORCH, FROST, PUDDLE, PIT }
+@export var ground_mark: GroundMark = GroundMark.AUTOMATIC
 ## What flies in place of the drawn orb, turned the way it goes, its trail
 ## behind it. Empty, the orb.
 @export var projectile_texture: Texture2D

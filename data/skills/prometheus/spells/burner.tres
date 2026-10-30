@@ -15,6 +15,7 @@ condition_dot_modifier = 0.25
 
 [resource]
 script = ExtResource("3_cop3u")
+projectile_look = 17
 ability_modifier = 1.7
 name = "Burner"
 description = "Burn the target."

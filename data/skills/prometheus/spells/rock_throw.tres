@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("2_a2hwr")
+projectile_look = 5
 name = "Rock Throw"
 description = "Create a stone that throws itself at high velocity."
 max_range = 20

@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("2_hpffb")
+projectile_look = 9
 name = "Zephyr Dart"
 description = "Throw a wind dart onto an enemy."
 icon = ExtResource("3_icon")

@@ -12,6 +12,7 @@ condition = ExtResource("4_cond")
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 21
 name = "Grand Design"
 description = "Once a short rest, as a secondary action: for this turn every gate stands open. His spells cost no gate, and the first he casts leaves his action for another."
 max_range = 0

@@ -12,6 +12,7 @@ zone_condition = ExtResource("4_cond")
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 20
 name = "Sanctuary of Light"
 description = "A sanctuary on the ground, two tiles round where she puts it within six, for two of her turns: her side standing in it takes 15% less from every blow, and one attack in four at them strikes a copy and misses."
 max_range = 6

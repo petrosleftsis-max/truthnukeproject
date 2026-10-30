@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("2_skill")
+impact_look = 6
 name = "Savage Bite"
 description = "Teeth, and all its weight behind them."
 min_range = 1

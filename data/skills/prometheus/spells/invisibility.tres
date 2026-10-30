@@ -11,6 +11,7 @@ display_name = "Invisible"
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 28
 name = "Invisibility"
 description = "Turn yourself or an ally invisible - even while the enemy is watching. It lasts until they do anything to an enemy. On a stealth map it hides whoever you choose for ten minutes, through the Gates of Iris, at one casting each."
 max_range = 10

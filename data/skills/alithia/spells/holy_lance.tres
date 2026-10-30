@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("2_fhap5")
+projectile_style = 6
 name = "Holy Lance"
 description = "Blast a line of pure Idol energy."
 min_range = 1

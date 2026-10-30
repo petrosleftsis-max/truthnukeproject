@@ -14,6 +14,7 @@ duration = 2
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 6
 name = "Devour"
 description = "Whoever it has hold of, it opens wide for - announced a turn ahead, landing next turn if they are still in its grip. Swallowed, they are digested in two of its turns unless its Belly Hole is torn open, it is staggered, or it falls."
 min_range = 1

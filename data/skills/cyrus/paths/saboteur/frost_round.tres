@@ -15,6 +15,7 @@ display_name = "Chilled"
 
 [resource]
 script = ExtResource("3_skill")
+projectile_look = 2
 name = "Frost Round"
 description = "A round packed with rime. It bites, and the cold slows whoever it hits."
 icon = ExtResource("2_icon")

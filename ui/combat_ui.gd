@@ -797,6 +797,36 @@ func boss_banner_showing() -> String:
 	return _boss_banner.showing() if _boss_banner != null else ""
 
 
+## A crack across `comb`'s stagger bar: staggered (MoveFeel).
+func crack_stagger_bar(comb: Dictionary):
+	if _boss_bars != null:
+		_boss_bars.crack(comb.get("id", -1))
+
+
+## Where `comb`'s condition marks are on the screen - beside their portrait, or
+## on their face in the turn queue - for a mark just put on them to fly to
+## (MoveFeel.condition_put). null when neither is up.
+func condition_point(comb: Dictionary):
+	var holders := []
+	if comb.get("side", 1) == 0:
+		var status = _icon_for($Status, comb)
+		if status != null:
+			holders.append(status)
+	holders.append_array(_queue_faces_for(comb))
+	for holder in holders:
+		if not holder.is_visible_in_tree():
+			continue
+		var anchor: Control = holder.get_node_or_null("Layout/Icon")
+		if anchor == null:
+			anchor = holder.get_node_or_null("Icon")
+		if anchor == null:
+			anchor = holder
+		var strip: Control = anchor.get_node_or_null("Conditions")
+		var there: Control = strip if strip != null and strip.size.x > 0.0 else anchor
+		return there.get_global_rect().get_center()
+	return null
+
+
 func _refresh_boss_bars():
 	if _boss_bars == null or combat == null:
 		return

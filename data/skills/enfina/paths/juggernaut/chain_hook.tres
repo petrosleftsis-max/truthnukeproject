@@ -12,6 +12,8 @@ knockback_distance = 4
 
 [resource]
 script = ExtResource("3_skill")
+projectile_look = 12
+projectile_style = 2
 name = "Chain Hook"
 description = "A hooked chain thrown out to drag somebody to her."
 icon = ExtResource("2_icon")

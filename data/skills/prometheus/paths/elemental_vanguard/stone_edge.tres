@@ -15,6 +15,7 @@ display_name = "Cracked Armour"
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 39
 name = "Stone Edge"
 description = "A blade of rock, heavy enough to crack armour."
 icon = ExtResource("2_icon")

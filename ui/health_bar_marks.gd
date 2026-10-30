@@ -14,6 +14,10 @@ const PREVIEW_GAIN := Color(0.55, 0.95, 0.6, 0.75)
 const DRAIN := Color(0.95, 0.8, 0.45, 0.85)
 const DRAIN_HOLD := 0.25
 const DRAIN_TIME := 0.45
+## A mend's stretch filling, brighter than the bar, then fading into it.
+const FILL := Color(0.85, 1.0, 0.82, 0.95)
+const FILL_TIME := 0.35
+const FILL_HOLD := 0.3
 
 
 ## Marks the stretch of `bar` that `change` would take off (negative) or put
@@ -56,6 +60,28 @@ static func drain(bar: ProgressBar, before: int, after: int, most: int):
 	var tween := strip.create_tween()
 	tween.tween_interval(DRAIN_HOLD)
 	tween.tween_property(strip, "size:x", 0.0, DRAIN_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_callback(strip.queue_free)
+
+
+## Health came back from `before` to `after`, out of `most`: the bar's value is
+## the new one at once, as for a loss, and the stretch that came back is seen
+## filling - brighter than the rest - and fading into it (MoveFeel).
+static func fill(bar: ProgressBar, before: int, after: int, most: int):
+	if bar == null or after <= before or most <= 0 or not bar.is_inside_tree():
+		return
+	var old = bar.get_node_or_null("Fill")
+	if old != null:
+		bar.remove_child(old)
+		old.queue_free()
+	var from = float(clampi(before, 0, most)) / float(most)
+	var to = float(clampi(after, 0, most)) / float(most)
+	var strip := _strip(bar, "Fill", from, to, FILL)
+	var width := strip.size.x
+	strip.size.x = 1.0
+	var tween := strip.create_tween()
+	tween.tween_property(strip, "size:x", width, FILL_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(FILL_HOLD)
+	tween.tween_property(strip, "modulate:a", 0.0, FILL_TIME)
 	tween.tween_callback(strip.queue_free)
 
 

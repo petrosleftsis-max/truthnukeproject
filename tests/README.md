@@ -76,7 +76,11 @@ being tested is timed.
 `net` is two machines: it starts a second headless Godot on the same copy
 (`--net-client`) for the joiner's half, and the two wait on each other with
 `say` / `hear`. It plays a map, a stealth stage and two fights - the second
-joined under way and caught up with - so its budget is 900 seconds. A driver
+joined under way and caught up with - so its budget is 900 seconds. On the
+stage the joiner also drags a body while creeping, and opens a picture and a
+store from the host's map; a menu left open on the joiner keeps its presses,
+so its half puts away any share-out offer (`close_offers`) before it presses
+something meant for the map. A driver
 that does not parse runs the main scene until that budget is spent, so check a
 changed `net_test_driver.gd` parses first (`--check-only --script` on the copy
 stops at its first autoload name, past the parse). A run killed by hand leaves
@@ -84,7 +88,13 @@ stops at its first autoload name, past the parse). A run killed by hand leaves
 another is going until it is removed.
 
 Projectiles (`combat/Projectile.gd`) land at once headless, so no suite waits on
-them; `projectile` sets `Projectile.plays_headless` to watch them fly.
+them, and how moves are felt (`combat/MoveFeel.gd`) makes nothing headless;
+`projectile` sets `Projectile.plays_headless` and `MoveFeel.plays_headless` to
+watch both, and checks a fight comes out the same with them on. Headless proves
+only that each is made and goes; a look can only be judged in a window: copy the
+project (without `.godot`), add a driver as an autoload that stages a fight and
+saves `get_viewport().get_texture().get_image()` as PNGs (with `Pad.warps = false`),
+run the copy once with `--headless --import`, then without `--headless`.
 
 ## Suites and probes
 

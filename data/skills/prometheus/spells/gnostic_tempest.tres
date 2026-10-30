@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 22
 name = "Gnostic Tempest"
 description = "A tempest of knowing over everything near where it lands."
 required_level = 54

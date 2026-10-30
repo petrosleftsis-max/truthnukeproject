@@ -14,6 +14,7 @@ display_name = "Frostbitten"
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 39
 name = "Frost Edge"
 description = "A blade of ice. Whoever it cuts is slow to follow."
 icon = ExtResource("2_icon")

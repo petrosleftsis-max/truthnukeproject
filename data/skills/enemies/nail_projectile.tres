@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("2_cec8y")
+projectile_look = 6
 name = "Nail Projectile"
 description = "The monster fires off a long nail-like projectile."
 min_range = 2

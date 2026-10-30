@@ -13,6 +13,7 @@ damage_modifier = 0.0
 
 [resource]
 script = ExtResource("3_2al5t")
+impact_look = 4
 effects = Array[ExtResource("1_crdpa")]([SubResource("Effect_push")])
 name = "Sweep Strike"
 description = "Use swift movements and swing at all enemies in range."

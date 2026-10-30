@@ -13,6 +13,7 @@ condition_duration = 1
 
 [resource]
 script = ExtResource("3_skill")
+projectile_look = 16
 name = "Persuade"
 description = "Use what the party knows about them to talk them into standing down: they lose their next turn, unless somebody hurts them first. Only works on somebody the party has something on - their faction known, one of their kind questioned, a clue about them. Her Mindfulness against their Self."
 min_range = 1

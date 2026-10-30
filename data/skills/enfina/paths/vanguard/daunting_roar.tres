@@ -14,6 +14,8 @@ condition_duration = 1
 
 [resource]
 script = ExtResource("3_skill")
+hand_look = 5
+projectile_style = 7
 ability_modifier = 0.6
 name = "Daunting Roar"
 description = "A roar that hits those in front of her and stops them coming any closer: x0.6, and Fear for a turn."

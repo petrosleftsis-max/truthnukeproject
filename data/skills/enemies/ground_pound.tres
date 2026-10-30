@@ -8,6 +8,7 @@
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 10
 name = "Ground Pound"
 description = "A fist raised high and brought down a turn later. Everything around where it lands is thrown off its feet."
 icon = ExtResource("2_icon")

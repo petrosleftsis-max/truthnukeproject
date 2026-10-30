@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("3_skill")
+projectile_style = 6
 name = "Holy Spear"
 description = "A spear of Idol light thrown straight through a line of them."
 icon = ExtResource("2_icon")

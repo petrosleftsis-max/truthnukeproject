@@ -15,6 +15,7 @@ condition_dot_modifier = 0.25
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 31
 name = "Glacial Tide"
 description = "A wave of freezing water over everything near where it lands: frozen for two turns."
 required_level = 41

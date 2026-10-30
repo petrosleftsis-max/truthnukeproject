@@ -13,6 +13,7 @@ condition_duration = 2
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 13
 name = "Dread Visage"
 outside_use = 6
 description = "A face only the target sees, and cannot stop seeing."

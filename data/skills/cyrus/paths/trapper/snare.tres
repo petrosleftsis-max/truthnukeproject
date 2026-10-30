@@ -12,6 +12,8 @@ trap_holds_with = ExtResource("4_cond")
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 35
+projectile_style = 3
 name = "Snare"
 outside_use = 14
 description = "A hidden snare on bare ground within three tiles: the first of the other side to step on it is caught fast, and cannot walk on, for a turn. One set at a time - setting another takes the first one's place."

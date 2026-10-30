@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("2_skill")
+impact_look = 6
 name = "Rending Claws"
 description = "Forepaws raking at whoever is beside it - what it falls back on with its jaws in pieces."
 min_range = 1

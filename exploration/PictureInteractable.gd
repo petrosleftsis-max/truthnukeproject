@@ -24,6 +24,12 @@ func interact(scene: Node):
 	if viewer == null:
 		push_warning("There is no Pictures autoload to open '%s' with." % picture)
 		return
+	# Over a network a picture holds nothing here but its own player's party -
+	# on the other machine, for that machine's player (Pictures, Net).
+	var net = get_node_or_null("/root/Net")
+	if net != null and net.with_another():
+		await viewer.open(picture)
+		return
 	scene.begin_blocking_interaction()
 	await viewer.open(picture)
 	if is_instance_valid(scene) and scene.is_inside_tree():

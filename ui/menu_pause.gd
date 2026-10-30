@@ -37,6 +37,7 @@ static func hold(who: Node) -> void:
 		var coop = who.get_node_or_null("/root/Coop") if who.is_inside_tree() else null
 		if coop != null:
 			coop.menu_held(who)
+		_tell_net(who)
 	_apply(who.get_tree())
 
 
@@ -44,12 +45,24 @@ static func hold(who: Node) -> void:
 static func release(who: Node) -> void:
 	if who == null:
 		return
-	if _holders.has(who.get_instance_id()):
+	var held_it := _holders.has(who.get_instance_id())
+	if held_it:
 		var coop = who.get_node_or_null("/root/Coop") if who.is_inside_tree() else null
 		if coop != null:
 			coop.menu_released(who)
 	_holders.erase(who.get_instance_id())
+	if held_it:
+		_tell_net(who)
 	_apply(who.get_tree())
+
+
+## Over a network, a menu opening or shutting is told at once (Net.menus_changed)
+## - not at the next frame, which a menu opened and shut within one would miss,
+## and with it what it changed.
+static func _tell_net(who: Node):
+	var net = who.get_node_or_null("/root/Net") if who.is_inside_tree() else null
+	if net != null:
+		net.menus_changed()
 
 
 ## True when something other than `who` is holding the game - what a menu asks

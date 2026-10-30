@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("2_83nw4")
+impact_look = 23
 name = "Fire Blast"
 description = "Shoot a flaming laser onto the target."
 max_range = 20

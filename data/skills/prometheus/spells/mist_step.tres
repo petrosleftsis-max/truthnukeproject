@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("1_skill")
+hand_look = 1
 name = "Mist Step"
 outside_use = 10
 description = "Gone in a breath of silver mist, and there again on any free tile within six - walls, cover and all between are nothing to it. A secondary action, so the main one is still yours."

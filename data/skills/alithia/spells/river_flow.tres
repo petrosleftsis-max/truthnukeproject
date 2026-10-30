@@ -16,6 +16,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_uvvmi")
+impact_look = 30
 ability_modifier = 1.4
 name = "River Flow"
 description = "Control water to freeze the target."

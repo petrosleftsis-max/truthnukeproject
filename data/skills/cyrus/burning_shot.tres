@@ -25,6 +25,7 @@ condition_dot_modifier = 0.45
 
 [resource]
 script = ExtResource("2_sasll")
+projectile_look = 2
 ranks = Array[ExtResource("1_auto")]([SubResource("Rank_32")])
 ability_modifier = 0.8
 name = "Burning Shot"

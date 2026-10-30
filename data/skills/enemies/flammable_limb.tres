@@ -16,6 +16,8 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_umyqf")
+projectile_look = 7
+projectile_style = 3
 name = "Flammable Limb"
 description = "It throws an organ coated in flammable liquid that burns the target."
 min_range = 2

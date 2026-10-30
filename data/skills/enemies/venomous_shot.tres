@@ -16,6 +16,9 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_it2bi")
+impact_look = 37
+projectile_look = 4
+projectile_style = 3
 name = "Venomous Shot"
 description = "A fang containing a highly dangerous poison."
 min_range = 2

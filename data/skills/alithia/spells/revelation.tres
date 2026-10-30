@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 32
 name = "Revelation"
 description = "The truth unhidden, burning through everything near where it lands: three quarters of their defence count for nothing."
 required_level = 64

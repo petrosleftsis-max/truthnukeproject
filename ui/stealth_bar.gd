@@ -548,6 +548,11 @@ func _act(event: InputEvent):
 		return
 	if watch.scene != null and watch.scene.has_method("is_holding") and watch.scene.is_holding():
 		return
+	# Over a network a menu or a picture open here stops nothing - but what its
+	# player presses meanwhile is for it, not for the map (Net).
+	var pressing = watch.scene.get("party") if watch.scene != null else null
+	if pressing != null and pressing.get("in_a_menu"):
+		return
 	var from_pad := not event is InputEventKey
 	# Seeing through the familiar's eyes: only letting it go is theirs to do here
 	# (switching back is the map's Swap Leader).

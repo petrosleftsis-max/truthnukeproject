@@ -68,6 +68,8 @@ func set_max_hp(max_hp: int):
 func set_hp(hp: int):
 	if self.hp > hp:
 		HealthBarMarks.drain($Health, self.hp, hp, maxi(max_hp, 1))
+	elif self.hp < hp and self.hp > 0:
+		HealthBarMarks.fill($Health, self.hp, hp, maxi(max_hp, 1))
 	self.hp = hp
 	_refresh_health()
 

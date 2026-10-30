@@ -39,6 +39,37 @@ const RECIPES := {
 	# then a few bright pieces of it.
 	"future_changed": [[5200, 2400, 0.07, "noise", 0.22], [2093, 2093, 0.05, "sine", 0.16], [2794, 2794, 0.05, "sine", 0.14],
 		[3520, 3520, 0.05, "sine", 0.12], [2637, 2637, 0.12, "sine", 0.1]],
+	# A move in a fight, in three (MoveFeel): leaving its user...
+	"launch_shot": [[3200, 900, 0.035, "noise", 0.2], [160, 90, 0.05, "sine", 0.22]],
+	"launch_spell": [[420, 960, 0.13, "sine", 0.12]],
+	"launch_throw": [[700, 1500, 0.09, "noise", 0.09]],
+	"launch_roar": [[120, 85, 0.28, "square", 0.08]],
+	"launch_puff": [[1400, 500, 0.12, "noise", 0.08]],
+	# ...travelling...
+	"travel": [[700, 350, 0.26, "noise", 0.05]],
+	"travel_beam": [[220, 230, 0.3, "sine", 0.07]],
+	"travel_spray": [[1600, 900, 0.45, "noise", 0.07]],
+	# ...and landing, by its element - or a mend, a miss, a graze, an image gone.
+	"impact_physical": [[150, 60, 0.08, "sine", 0.3], [900, 300, 0.03, "noise", 0.08]],
+	"impact_fire": [[420, 120, 0.16, "noise", 0.16]],
+	"impact_water": [[2200, 380, 0.13, "noise", 0.12]],
+	"impact_wind": [[800, 1600, 0.13, "noise", 0.08]],
+	"impact_earth": [[95, 45, 0.13, "sine", 0.32], [300, 120, 0.06, "noise", 0.14]],
+	"impact_poison": [[300, 520, 0.04, "sine", 0.14], [0, 0, 0.02, "rest", 0.0], [340, 600, 0.04, "sine", 0.12],
+		[0, 0, 0.02, "rest", 0.0], [380, 680, 0.04, "sine", 0.1]],
+	"impact_psychic": [[760, 520, 0.08, "sine", 0.14], [520, 760, 0.08, "sine", 0.12]],
+	"impact_plasma": [[1300, 260, 0.11, "square", 0.08]],
+	"impact_ice": [[1760, 1760, 0.05, "sine", 0.16], [2350, 2350, 0.11, "sine", 0.12]],
+	"impact_lightning": [[4200, 3000, 0.03, "noise", 0.18], [0, 0, 0.015, "rest", 0.0], [3800, 2600, 0.03, "noise", 0.16],
+		[0, 0, 0.015, "rest", 0.0], [3400, 2200, 0.05, "noise", 0.12]],
+	"impact_metal": [[900, 900, 0.03, "square", 0.08], [1320, 1250, 0.16, "sine", 0.16]],
+	"impact_acid": [[3200, 2100, 0.26, "noise", 0.07]],
+	"impact_idol": [[1047, 1047, 0.12, "sine", 0.16], [1568, 1568, 0.2, "sine", 0.12]],
+	"impact_mend": [[523, 784, 0.2, "sine", 0.12]],
+	"impact_miss": [[1300, 600, 0.11, "noise", 0.05]],
+	"impact_graze": [[200, 120, 0.06, "sine", 0.16]],
+	"impact_shatter": [[5200, 2400, 0.06, "noise", 0.16], [2794, 2794, 0.05, "sine", 0.1], [3520, 3520, 0.08, "sine", 0.08]],
+	"impact_thud": [[110, 50, 0.12, "sine", 0.32], [400, 150, 0.05, "noise", 0.12]],
 }
 
 static var _made := {}

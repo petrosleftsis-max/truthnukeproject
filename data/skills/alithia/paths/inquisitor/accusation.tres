@@ -12,6 +12,8 @@ condition = ExtResource("4_cond")
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 15
+projectile_style = 6
 name = "Accusation"
 description = "Spoken at somebody whose next turn she has read: x1.5, and until their next turn they take 15% more from everybody."
 max_range = 15

@@ -46,6 +46,9 @@ var companions: Array = []
 ## Walked from somewhere else - another machine's player (Net): no input here,
 ## and walk_to puts it where it is said to be.
 var puppet := false
+## A puppet: whether its machine says it creeps (StealthWatch.creeping_in), so
+## its steps are not heard here either.
+var creeping_there := false
 ## Asked of every step in co-op: Callable(group, to) -> bool, false where the
 ## group would leave the others too far behind (ExplorationScene._within_leash).
 var leash: Callable = Callable()
@@ -473,7 +476,8 @@ func teleport(to: Vector2):
 
 ## A puppet's leader put at `to`, the rest trailing after as if walked there -
 ## where another machine says its player has walked (Net).
-func walk_to(to: Vector2, facing_left: bool, walking: bool):
+func walk_to(to: Vector2, facing_left: bool, walking: bool, creeping: bool = false):
+	creeping_there = creeping
 	if leader == null:
 		return
 	var before := leader.position

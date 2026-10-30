@@ -24,6 +24,7 @@ condition = ExtResource("6_deep")
 
 [resource]
 script = ExtResource("3_skill")
+projectile_look = 2
 ranks = Array[ExtResource("5_rank")]([SubResource("Rank_41")])
 name = "Corrosive Round"
 description = "A round that eats at whatever it hits: it burns on for five turns, and their armour is a tenth worse while it does."

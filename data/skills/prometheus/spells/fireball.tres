@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("3_jae8u")
+projectile_look = 8
 name = "Fireball"
 description = "Fire engulfs everyone around where it lands, unless a wall shelters them."
 min_range = 1

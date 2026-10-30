@@ -16,6 +16,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_ohx0v")
+projectile_look = 9
 damage_type = 3
 ability_modifier = 1.0
 name = "Wind Swoon"

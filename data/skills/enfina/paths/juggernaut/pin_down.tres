@@ -15,6 +15,7 @@ display_name = "Pinned"
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 8
 name = "Pin Down"
 description = "Pins them where they stand: they cannot walk at all on their next turn."
 icon = ExtResource("2_icon")

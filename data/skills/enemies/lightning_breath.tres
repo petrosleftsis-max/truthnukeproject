@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("2_skill")
+projectile_style = 7
 name = "Lightning Breath"
 description = "Lightning forks from its throat, over everybody in a cone - half to whoever's mind sees through it. Made of its caster's mind: as strong as their Intellect."
 min_range = 1

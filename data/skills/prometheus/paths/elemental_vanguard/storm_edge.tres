@@ -11,6 +11,7 @@ knockback_distance = 2
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 39
 name = "Storm Edge"
 description = "A blade of lightning that throws its target back."
 icon = ExtResource("2_icon")

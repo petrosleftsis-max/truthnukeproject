@@ -205,8 +205,55 @@ a line's and a cone's as it passes, an area's rippling out from where it lands;
 `projectile_scene` in place of everything (told `landed()`). Its clock is the game's
 (fast enemy turns, catching up) and nothing in it rolls or changes the fight.
 Headless it lands at once unless `Projectile.plays_headless` - so no other suite
-pays for it. `projectile` covers it. What else could make moves land harder is
-`docs/move_feel_proposals.md` (all PROPOSAL).
+pays for it. `projectile` covers it.
+
+**How moves are felt** (`combat/MoveFeel.gd`; `docs/move_feel_proposals.md`, built
+2026-10-31 but for moves coming down from above or up from below, which the
+designer did not want). All of it is placeholder art and sound behind slots - the
+designer makes the real ones - and none of it rolls on `Combat.rng` (MoveFeel's
+scatter has a generator of its own, seeded from where it is) or changes the fight;
+headless nothing is made (`MoveFeel.plays_headless`), nor while catching up
+(`MoveFeel.shown`). Each move's looks are SkillDefinition's Projectile group
+(enums appended - never insert): `projectile_look` (`ProjectileLook`: what flies,
+drawn in `Projectile._draw_head` - tracer, dart, rock, chain, jet...), `hand_look`
+(`HandLook`, `MoveFeel.hand` at release: Automatic is a glyph for a spell, a swish
+for something thrown, a muzzle for another shot, nothing for melee),
+`impact_look` (`ImpactLook`, `MoveFeel.impact` on each it lands on, or
+`over_area` once for an area look - `looks_over_area`; Automatic: a column for a
+mend, a wash for a dispel, a rise for a revive, a swoosh for a damaging blow,
+ignoring what a move does to its own user) and `ground_mark` (`GroundMark`,
+`mark_ground`, two rounds - `MARK_ROUNDS`; Automatic by element). ProjectileStyle
+gains BEAM, SPRAY (a roar - `hand_look` ROAR - pours rings) and BACK_TO_USER.
+Sounds in three: `sound` is the launch (played as before; while empty
+`MoveFeel.hand` plays a stand-in), `travel_sound` and `impact_sound`; stand-ins
+are `PlaceholderSounds` recipes ("launch_*", "travel*", "impact_<element>",
+miss, graze, shatter, thud), pitched by `MoveFeel.pitch_for` (round and who,
+never rolled; `Combat.play_stream`'s `pitch`). A blow's verdict goes to what flew
+(`Projectile.verdict` - HIT, MISSED flies on past, GRAZED bursts dimly, IMAGE
+shatters - for a `judged` one, a blow at one alone; `settle` after the targets
+loop): told in `_use_skill`'s loop and `_land_reaction`; a move that flew nothing
+lands through `MoveFeel.impact(..., flown = false)` (its burst and sound) and
+`missed`. Combat's other hooks: `show_damage` (`hit_stop_for` - none under
+`HIT_STOP_FROM`, a beat from `HEAVY_SHARE`, `HIT_STOP_KILL`; `shake_for`;
+`slow_motion` for a boss or `_last_standing`, given back by `_time_after_stop`;
+the number's `how` - share, `_grazing`, resisted, vulnerable - for
+`FloatingNumber.spawn`), `flash_target` (a single blow `recoil(line, single)`:
+further, and `squash`, for a blow from the other side only), the CONDITION branch (`condition_put` flies the mark to
+`combat_ui.condition_point`), `do_heal` (`mended`; the bars' own
+`HealthBarMarks.fill`), `_fire_readied` (`readied_line`), `use_reactive_skill` and
+`_fire_readied` (`exclaim`: a "!" and the face card), `declare` (`declared`
+glyphs, gone with `comb.declared`), a landing (`DECLARED_SHAKE`,
+`DECLARED_HIT_STOP`), `stagger` (`staggered` -> `combat_ui.crack_stagger_bar`,
+and `slow_motion`), `_hit_part` (`part_struck`), `lay_zone` (`zone_spreads`;
+`spreading_zones` and `_spread_so_far` make `zone_tiles` grow from `_landing_at`),
+`apply_knockback` (`dust` per tile slid, `thud` into anything solid), CASTER and
+TARGET teleports (`puff`s), `summon` (`bound_out`, or `shards_gather` for an image),
+`summon_decoy` and `_shatter`, `steal` and `loot` (`item_flies`), `_hurl` (`thrown`:
+`CombatantSprite.fly_in`), `_hack_in_fight` (a CODE projectile, `code_scatter`).
+Marks and declared glyphs go under everybody (`on_the_ground`: first child of the
+map). Screen-wide flashes and faces are on `MoveFeelOverlay` (layer 20). The hurt
+vignette's flare runs on real time (`HurtVignette.flare`), so a hit-stop - a kill's
+longest - does not hold it back.
 
 ## Stealth maps
 
@@ -508,6 +555,29 @@ a magic trap's answer and a conversation's `QuickTime.start` go through
 `quick_time_by` (the starter's: `conversation_starter`). Over a network neither
 pauses the tree: like a menu, only this machine's own party stands
 (`MenuPause.hold`). A joiner's map springs no traps (`_traps_gone_dark`).
+**Pictures and stores** (2026-10-31) are opened for whoever they are for
+(`player_now`: the conversation's starter, else `Coop.acting`): `Pictures.open`
+on the host for the joiner's player is `picture_afar` (`picture_goes_afar`; a
+PictureInteractable holds nothing over a network), played there as
+`_picture_here` with every saved key but `controllers` kept from the host's state
+(`_kept_here`), and `_picture_done` sends what it changed - a dictionary by its
+entries, the rest whole - and the map a hotspot sent the party to (a scene change
+asked for meanwhile, `may_change_scene` -> `_scene_wanted`), which
+`_picture_changes` takes and goes to. Following a scene change or leaving ends it
+there. Over a network a picture holds `MenuPause` (`_held_as_a_menu`), so only its
+own machine's party stands. A store asked for the joiner's player
+(`ExplorationScene._on_store_requested`) is `store_afar` -> `_store_here`, a menu
+there (`_menu_changes`). **A menu or a picture open on a machine keeps that
+machine's presses:** the joiner forwards none (`forwards`), and
+`ExplorationScene._unhandled_input` and `StealthBar._act` ignore a press from a
+group `in_a_menu`. The share-out offer goes only to the stranded player's own
+machine (`_stranded`). **Dragging and creeping are each group's**
+(`StealthWatch._drag_group`, `_drags`, `creeping_in` - on its player's device -
+`_set_pace` for every group of this machine's, `_group_of` for whose steps are
+heard): the host says who drags (`net_state` "dragger" -> `_dragged_by`, which
+the puppet watch's `_play_puppet` paces by), and the joiner says it creeps with
+every walk (`_walked`'s `creeping` -> `ExplorationParty.creeping_there`;
+`PROTOCOL` 3).
 **Guards:** on a joiner the watch is a puppet
 (`StealthWatch.puppet`, set in `begin` from `Net.follows()`, and every
 `Guard.puppet`): `_process` only dresses the party, works out what each guard
@@ -519,7 +589,7 @@ on. A catch is the host's: its fight goes over with the scene change. **Menus
 over a network** (the designer, 2026-10-29): while `Net.with_another()`,
 `MenuPause` pauses nothing and `Coop.menu_held` takes no focus; only this
 machine's own groups stand (`ExplorationParty.in_a_menu`, set by
-`_stand_for_menus`). What a menu on the joiner changes (`MENU_KEYS`: bags,
+`_stand_for_menus`, every frame and at once as `MenuPause` holds or lets go - `menus_changed` - so a menu opened and shut within one frame still counts). What a menu on the joiner changes (`MENU_KEYS`: bags,
 gear, gold, spells, paths) stays the joiner's while it is open
 (`Campaign.apply(state, keeping)`) and goes to the host as it closes
 (`_menu_changes`). **Fights, replayed:** going into `FIGHT_SCENE` the host gives a copy of the
@@ -558,7 +628,7 @@ to one address never asks. The panel shows the address to give, or points at a
 virtual LAN app. The Players panel's network half is
 `ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
 since listening (or hosting) is what makes Windows ask about its firewall.
-`net` plays two machines (twice into a fight, the second joined under way): the suite hosts on 127.0.0.1:24790 and starts a second
+`net` plays two machines (twice into a fight, the second joined under way; a picture, a store and a dragged body the joiner's): the suite hosts on 127.0.0.1:24790 and starts a second
 headless Godot (`--net-client`) on the same copy for the joiner's half, which
 logs to `net_joiner` (copied into `net`'s log, its FAILs counted) and its Godot
 output to `net_joiner_godot.log` (read for script errors); the halves wait on

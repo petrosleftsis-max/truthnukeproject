@@ -12,6 +12,7 @@ knockback_distance = 3
 
 [resource]
 script = ExtResource("3_3np3a")
+projectile_look = 10
 name = "Wind Vacuum"
 description = "Suck a target closer to you."
 min_range = 2

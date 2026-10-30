@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("3_skill")
+projectile_style = 6
 name = "Piercing Light"
 description = "A spear of light that finds the gaps in armour: a quarter of their defence counts for nothing."
 required_level = 24

@@ -13,6 +13,7 @@ zone_turns = 1
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 19
 name = "Mass Mirage"
 outside_use = 12
 description = "A mirage on the ground, three tiles round where she puts it within six, until her next turn: her side standing in it takes a quarter less from every blow, and one attack in four at them misses outright."

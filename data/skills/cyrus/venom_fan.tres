@@ -15,6 +15,8 @@ condition_dot_modifier = 0.2
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 37
+projectile_look = 4
 name = "Venom Fan"
 description = "A fan of poisoned darts across everybody in front of him: poisoned for three turns."
 required_level = 24

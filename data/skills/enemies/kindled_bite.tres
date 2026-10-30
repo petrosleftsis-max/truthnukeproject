@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("2_skill")
+impact_look = 6
 name = "Kindled Bite"
 description = "Burning teeth."
 min_range = 1

@@ -1890,18 +1890,29 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			dismount(attacker, impact_position)
 			update_information.emit("[color=yellow]%s[/color] jumps down.\n" % attacker.name)
 		elif skill.teleports == SkillDefinition.TeleportWho.CASTER:
-			teleport_to(attacker, impact_position)
+			# A puff where they vanish, and another where they arrive (MoveFeel).
+			var gone_from: Vector2 = MoveFeel.middle_of(self, attacker)
+			if teleport_to(attacker, impact_position):
+				MoveFeel.puff(self, gone_from)
+				MoveFeel.puff(self, MoveFeel.middle_of(self, attacker))
+				MoveFeel.sound(self, null, "launch_puff", attacker)
 		elif skill.teleports == SkillDefinition.TeleportWho.TARGET:
 			var travelling = get_combatant_at(impact_position)
 			if not travelling.is_empty() and immune_to(travelling, Immunity.Kind.TELEPORTED):
 				shrug_off(travelling, Immunity.name_of(Immunity.Kind.TELEPORTED))
 			elif not travelling.is_empty():
-				teleport_to(travelling, destination)
+				var gone_from: Vector2 = MoveFeel.middle_of(self, travelling)
+				if teleport_to(travelling, destination):
+					MoveFeel.puff(self, gone_from)
+					MoveFeel.puff(self, MoveFeel.middle_of(self, travelling))
 		await attacker.sprite.play_skill_and_wait(skill.animation)
 		# The battle was left while it played: nothing here to resolve it on.
 		if not still_running():
 			return
 		play_skill_sound(skill)
+		# The flash at their hand as it leaves them, and the stand-in for its sound
+		# while it has none of its own (MoveFeel).
+		MoveFeel.hand(self, attacker, skill, impact_position)
 		controller.action_locked = false
 		game_ui.refresh_action_buttons()
 		if not attacker.alive:
@@ -1960,6 +1971,11 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				return
 			controller.action_locked = false
 			game_ui.refresh_action_buttons()
+		# Whether something was seen flying, which lands - bursts, misses past - for
+		# itself; a blow that flew nothing lands here (MoveFeel).
+		var flown := Projectile.style_for(self, attacker, skill, impact_position) != SkillDefinition.ProjectileStyle.NONE
+		# Where it came down, for a zone it leaves to spread out from (lay_zone).
+		_landing_at = impact_position
 		targets = targets.filter(func(target): return target.get("alive", false) or skill.targets_fallen)
 		# Whoever it hurts, for what goes off once it has (Struck).
 		var struck := []
@@ -2010,9 +2026,17 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			if not skill.uses_stat_contest and (rng.randi() % 100) >= hit_chance(attacker, skill, target):
 				update_information.emit("[color=yellow]%s[/color] missed [color=red]%s[/color].\n" % [
 					attacker.name, target.name])
+				# Seen to miss (MoveFeel): what was flying flies on past them, and a
+				# blow whiffs.
+				Projectile.verdict(target, Projectile.Verdict.MISSED)
+				if not flown:
+					MoveFeel.missed(self, attacker, target, skill)
 				continue
-			# An illusion takes it instead (see "The paths").
+			# An illusion takes it instead (see "The paths") - shattering as it does.
 			if _evades(attacker, target, skill):
+				Projectile.verdict(target, Projectile.Verdict.IMAGE)
+				if not flown:
+					MoveFeel.shatter(self, MoveFeel.middle_of(self, target))
 				continue
 			connected = true
 			# Only the first effect on each target names the skill, so a
@@ -2022,6 +2046,11 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
 			if grazed:
 				update_information.emit(_contest_lost_line(attacker, target, skill))
+			# How it lands on them, for the eye (MoveFeel): a swing's arc, a column of
+			# light, stars over a stunned head - dimmer for a graze.
+			Projectile.verdict(target, Projectile.Verdict.GRAZED if grazed else Projectile.Verdict.HIT)
+			if not MoveFeel.looks_over_area(skill):
+				MoveFeel.impact(self, attacker, target, skill, flown, grazed)
 			# Somebody warding them may take some of it off (the Abjurer's).
 			var warded: float = await _offer_ward(attacker, target, skill)
 			if not still_running():
@@ -2041,6 +2070,8 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			_aimed_tile = _aim_from_inside(attacker, target, impact_position) if aims_at_parts(attacker, skill) else null
 			# Where what it makes goes, for a skill Placed In Reach (summon_decoy).
 			_placing_at = destination if skill.placed_in_reach else NO_AREA
+			# A graze says so, over its number (show_damage).
+			_grazing = grazed
 			for effect in skill.all_effects():
 				# Whatever the skill does to its own caster is done once,
 				# below, rather than once for every person it caught.
@@ -2054,6 +2085,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				# landed, so the shape of the blast reads off the recoil.
 				apply_effect(attacker, target, effect, skill, mention_skill, (0.5 if grazed else 1.0) * warded * (quick if quick_time_governs(skill, target) else 1.0), impact_position if radius > 0 else attacker.position)
 				mention_skill = false
+			_grazing = false
 			_aimed_tile = null
 			_placing_at = NO_AREA
 			_steal_from = ""
@@ -2062,6 +2094,16 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				_after_landing(attacker, target, skill)
 			if skill.deals_damage and target.get("side", -1) != attacker.get("side", -1):
 				struck.append(target)
+		# Every blow told: whatever is still flying has hit (Projectile). What it
+		# leaves on the ground, and how it looks over the whole of an area - a dome
+		# settling, a storm turning (MoveFeel).
+		Projectile.settle()
+		MoveFeel.mark_ground(self, attacker, skill, tiles if radius > 0 else struck.map(func(each): return each.position))
+		MoveFeel.over_area(self, attacker, skill, impact_position, tiles)
+		# Declared, and landing now: it comes down harder than any blow of a turn.
+		if landing and connected:
+			shake_camera(DECLARED_SHAKE)
+			hit_stop(DECLARED_HIT_STOP)
 		# And what the skill does to whoever used it - a swing that steadies the
 		# arm that swung it. Once, however many it caught, and only because the
 		# skill landed on somebody.
@@ -2376,12 +2418,15 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 		]))
 	else:
 		update_information.emit("[color=yellow]%s[/color] reacts with %s - %s!\n" % [attacker.name, skill.name, why])
+	# A "!" over whoever reacts, and their face at the side of the screen (MoveFeel).
+	MoveFeel.exclaim(self, attacker)
 	controller.action_locked = true
 	game_ui.lock_action_buttons()
 	await attacker.sprite.play_skill_and_wait(skill.animation)
 	if not still_running():
 		return
 	play_skill_sound(skill)
+	MoveFeel.hand(self, attacker, skill, target.position)
 	controller.action_locked = false
 	game_ui.refresh_action_buttons()
 	if not attacker.alive or not target.alive:
@@ -2390,27 +2435,37 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	if not still_running() or not attacker.alive or not target.alive:
 		return
 	_land_reaction(attacker, skill, target)
+	Projectile.settle()
 
 
 ## A reaction's skill landing on `target`: the roll (or the contest), and what
 ## it does - the same for a reactive skill and a readied move.
 func _land_reaction(attacker: Dictionary, skill: SkillDefinition, target: Dictionary):
+	# Whether something was seen flying at them (Projectile), which lands for itself.
+	var flown := Projectile.style_for(self, attacker, skill, target.get("position", attacker.position)) != SkillDefinition.ProjectileStyle.NONE
 	var connected = true
 	if not skill.uses_stat_contest:
 		connected = (rng.randi() % 100) < hit_chance(attacker, skill, target)
 	# An illusion takes it instead (see "The paths").
 	if connected and _evades(attacker, target, skill):
+		Projectile.verdict(target, Projectile.Verdict.IMAGE)
+		if not flown:
+			MoveFeel.shatter(self, MoveFeel.middle_of(self, target))
 		return
 	if connected:
 		var mention_skill = true
 		var grazed = skill.uses_stat_contest and not wins_contest(attacker, target, skill)
 		if grazed:
 			update_information.emit(_contest_lost_line(attacker, target, skill))
+		Projectile.verdict(target, Projectile.Verdict.GRAZED if grazed else Projectile.Verdict.HIT)
+		MoveFeel.impact(self, attacker, target, skill, flown, grazed)
+		_grazing = grazed
 		for effect in skill.all_effects():
 			if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
 				continue
 			apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0)
 			mention_skill = false
+		_grazing = false
 		if skill.deals_damage:
 			_note_struck(attacker, [target])
 			var opened: Array = attacker.get("opened_on", [])
@@ -2418,6 +2473,9 @@ func _land_reaction(attacker: Dictionary, skill: SkillDefinition, target: Dictio
 				opened.append(target.get("id", -1))
 				attacker["opened_on"] = opened
 	else:
+		Projectile.verdict(target, Projectile.Verdict.MISSED)
+		if not flown:
+			MoveFeel.missed(self, attacker, target, skill)
 		update_information.emit("{0} missed.\n".format([attacker.name]))
 	_weapon_attack_made(attacker, skill)
 
@@ -2943,6 +3001,8 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 				# redrawn when this goes out. Without it, a condition landing
 				# mid-turn showed on nobody until the turn changed.
 				update_combatants.emit(combatants)
+				# Its mark pops up over them and flies into that strip (MoveFeel).
+				MoveFeel.condition_put(self, target, effect.condition, ConditionStrip.condition_helps(effect.condition))
 				update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, effect.condition.display_name))
 		EffectDefinition.EffectType.UPGRADE_ELEMENT:
 			# Only one is worth holding: two of these would still only upgrade
@@ -4043,9 +4103,15 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 			break
 		final_position = candidate
 	if final_position != old_position:
+		# Dust kicked up at every tile they are slid over (MoveFeel).
+		var slid_from: Vector2 = MoveFeel.middle_of(self, target)
 		target.position = final_position
 		target.sprite.position = sprite_point(target)
 		controller.reposition_combatant(old_position, final_position)
+		var slid_to: Vector2 = MoveFeel.middle_of(self, target)
+		var tiles_slid := maxi(get_position_distance(old_position, final_position), 1)
+		for i in tiles_slid + 1:
+			MoveFeel.dust(self, slid_from.lerp(slid_to, float(i) / float(tiles_slid)) + Vector2(0.0, Grid.TILE_SIZE * 0.3), 0.8)
 		var distance_moved = get_position_distance(old_position, final_position)
 		update_information.emit("[color=yellow]{0}[/color] {1} [color=red]{2}[/color] {3} tile(s)\n".format([
 			attacker.name,
@@ -4056,8 +4122,10 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 	# A shove loosens any grip, whether or not it moved them (Holding on).
 	if not pulling or final_position != old_position:
 		_break_holds_on(target)
-	# Shoved into something solid by somebody whose shoves daze (Tremor).
+	# Shoved into something solid by somebody whose shoves daze (Tremor) - a thud,
+	# a ring of dust and the view shaken, whoever it was (MoveFeel).
 	if not pulling and (hit_obstacle or not bumped.is_empty()):
+		MoveFeel.thud(self, MoveFeel.middle_of(self, target))
 		_tremor_impact(attacker, target)
 	if pulling or effect.max_amount <= 0:
 		return
@@ -4733,7 +4801,8 @@ func combat_finish():
 	# Whatever comes after the fight - the log, the result, the map - at normal speed.
 	_turn_scale = 1.0
 	if _hit_stop_depth == 0:
-		Engine.time_scale = 1.0
+		# Slowed for the last blow (slow_motion), until that is over.
+		Engine.time_scale = _time_after_stop()
 	if combat_over:
 		return
 	combat_over = true
@@ -4820,7 +4889,7 @@ func play_skill_sound(skill: SkillDefinition):
 
 ## Plays `stream` on the next free voice - a skill's sound, or anything else a
 ## fight makes a noise about.
-func play_stream(stream: AudioStream, volume_db: float = 0.0):
+func play_stream(stream: AudioStream, volume_db: float = 0.0, pitch: float = 1.0):
 	if stream == null:
 		return
 	if _sound_players.is_empty():
@@ -4829,6 +4898,8 @@ func play_stream(stream: AudioStream, volume_db: float = 0.0):
 	_next_voice = (_next_voice + 1) % _sound_players.size()
 	player.stream = stream
 	player.volume_db = volume_db
+	# A stand-in told apart from the last by its pitch (MoveFeel.pitch_for) - never rolled.
+	player.pitch_scale = pitch
 	player.play()
 
 
@@ -4864,7 +4935,13 @@ func flash_target(attacker: Dictionary, target: Dictionary, damage_colour = null
 	# corner of somebody bigger than a tile.
 	var struck: Vector2i = nearest_tile_of(target, origin)
 	if origin != struck:
-		sprite.recoil(Vector2(struck - origin))
+		# A blow at them alone pushes them along the very line it came, and
+		# squashes them as it lands (MoveFeel); a blast shoves out from its middle,
+		# and an ally's help only nudges, as ever.
+		var single: bool = attacker.has("position") and origin == attacker.position and attacker != target \
+			and attacker.get("side", 1) != target.get("side", 1)
+		var line: Vector2 = MoveFeel.middle_of(self, target) - MoveFeel.middle_of(self, attacker) if single else Vector2(struck - origin)
+		sprite.recoil(line if line.length() > 0.01 else Vector2(struck - origin), single)
 
 
 ## Floats a number off `target` - what they just lost, or gained. Parented to
@@ -4907,7 +4984,7 @@ func combatant_layer() -> Node2D:
 	return layer
 
 
-func float_number(target: Dictionary, text: String, colour: Color):
+func float_number(target: Dictionary, text: String, colour: Color, how: Dictionary = {}):
 	var sprite = target.get("sprite")
 	if sprite == null or not is_instance_valid(sprite) or sprite.get_parent() == null:
 		return
@@ -4916,7 +4993,7 @@ func float_number(target: Dictionary, text: String, colour: Color):
 	# Over the middle of them, too: somebody bigger than a tile is drawn in the
 	# middle of their square, away from the corner their node stands on.
 	var above = Vector2(0.0, -sprite.head_height())
-	FloatingNumber.spawn(sprite.get_parent(), sprite.position + drawing_offset(target) + above, text, colour)
+	FloatingNumber.spawn(sprite.get_parent(), sprite.position + drawing_offset(target) + above, text, colour, how)
 
 
 ## Blooms the screen edges in `colour`. Silent when this battle has no vignette
@@ -4937,11 +5014,20 @@ func flare_hurt(colour: Color, share_of_health: float, lethal: bool = false):
 ## a sword that does - and before this, only the sword did. `flash` is for the
 ## paths with no attacker to recoil away from, where apply_effect has not
 ## already tinted the target.
-func show_damage(target: Dictionary, amount: int, type: int, flash: bool = false):
+##
+## `how` says more of what happened, for the number to say it too (MoveFeel,
+## FloatingNumber): {"resisted": true} or {"vulnerable": true}. A graze is read
+## off `_grazing`, set while one lands.
+func show_damage(target: Dictionary, amount: int, type: int, flash: bool = false, how: Dictionary = {}):
 	if amount <= 0:
 		return
 	var ceiling = get_effective_stat(target, "max_hp")
-	float_number(target, str(amount), Damage.type_colour(type))
+	var share := float(amount) / maxf(ceiling, 1.0)
+	var lethal: bool = target.hp <= 0
+	var told := how.duplicate()
+	told["share"] = share
+	told["graze"] = _grazing
+	float_number(target, str(amount), Damage.type_colour(type), told)
 	if flash:
 		var sprite = target.get("sprite")
 		if sprite != null and is_instance_valid(sprite):
@@ -4950,10 +5036,19 @@ func show_damage(target: Dictionary, amount: int, type: int, flash: bool = false
 		# Twice the intensity when this is the blow that takes them down, and
 		# read before the death is applied - target.hp is already below zero by
 		# the time anyone would ask afterwards.
-		flare_hurt(Damage.type_colour(type), float(amount) / maxf(ceiling, 1.0), target.hp <= 0)
-	var freeze = hit_stop_for(amount, ceiling)
+		flare_hurt(Damage.type_colour(type), share, lethal)
+	# Weight from the numbers (MoveFeel): a scratch stops nothing, a heavy blow
+	# a beat and shakes the view, a kill longest of all - and the blow that
+	# downs the last of the other side, or a boss, slows the world a moment.
+	var freeze = hit_stop_for(amount, ceiling, lethal)
 	if freeze > 0.0:
 		hit_stop(freeze)
+	var shake := shake_for(share, lethal)
+	if shake > 0.0:
+		shake_camera(shake)
+	if lethal and not target.get("illusion", false) and not target.has("object") \
+			and (target.has("boss") or _last_standing(target)):
+		slow_motion(SLOW_MOTION_SECONDS, SLOW_MOTION_SHARE)
 
 
 ## --- Hit stop ---
@@ -4965,6 +5060,20 @@ func show_damage(target: Dictionary, amount: int, type: int, flash: bool = false
 
 const HIT_STOP_MINIMUM = 0.03
 const HIT_STOP_MAXIMUM = 0.13
+## Weight from the numbers (MoveFeel - PROPOSAL values): under HIT_STOP_FROM of
+## somebody's health is a scratch, HEAVY_SHARE or more a heavy blow, a beat of
+## HIT_STOP_HEAVY at the least; a kill freezes HIT_STOP_KILL. The view shakes
+## SHAKE_HEAVY to SHAKE_MOST pixels for a heavy blow, SHAKE_KILL for a kill.
+const HIT_STOP_FROM := 0.08
+const HEAVY_SHARE := 0.25
+const HIT_STOP_HEAVY := 0.07
+const HIT_STOP_KILL := 0.18
+const SHAKE_HEAVY := 5.0
+const SHAKE_MOST := 16.0
+const SHAKE_KILL := 12.0
+## A declared move landing comes down harder than any blow of a turn.
+const DECLARED_SHAKE := 20.0
+const DECLARED_HIT_STOP := 0.12
 
 ## How many hit stops are currently waiting to end. Time only starts again
 ## when the last of them does - otherwise two hits landing together would have
@@ -4985,16 +5094,77 @@ func hit_stop(seconds: float):
 	_hit_stop_depth = maxi(_hit_stop_depth - 1, 0)
 	if _hit_stop_depth == 0:
 		# Back to whatever this turn runs at - an enemy's may be sped up.
-		Engine.time_scale = _turn_scale
+		Engine.time_scale = _time_after_stop()
 
 
 ## The freeze for a hit that took `damage` off a target with `max_hp`, or 0 for
-## one too small to be worth stopping for.
-func hit_stop_for(damage: int, max_hp: int) -> float:
+## one too small to be worth stopping for: a scratch (under HIT_STOP_FROM of
+## their health) none, a heavy blow (HEAVY_SHARE or more) a full beat, and the
+## blow that fells them the longest of all (MoveFeel - PROPOSAL values).
+func hit_stop_for(damage: int, max_hp: int, lethal: bool = false) -> float:
 	if damage <= 0 or max_hp <= 0:
 		return 0.0
+	if lethal:
+		return HIT_STOP_KILL
 	var share = clampf(float(damage) / float(max_hp), 0.0, 1.0)
-	return lerpf(HIT_STOP_MINIMUM, HIT_STOP_MAXIMUM, share)
+	if share < HIT_STOP_FROM:
+		return 0.0
+	if share < HEAVY_SHARE:
+		return HIT_STOP_MINIMUM
+	return lerpf(HIT_STOP_HEAVY, HIT_STOP_MAXIMUM, inverse_lerp(HEAVY_SHARE, 1.0, share))
+
+
+## How hard a hit that took `share` of somebody's health shakes the view, in
+## screen pixels: not at all under HEAVY_SHARE, more the more it took, most for a
+## kill.
+func shake_for(share: float, lethal: bool = false) -> float:
+	if lethal:
+		return SHAKE_KILL
+	if share < HEAVY_SHARE:
+		return 0.0
+	return lerpf(SHAKE_HEAVY, SHAKE_MOST, inverse_lerp(HEAVY_SHARE, 1.0, clampf(share, 0.0, 1.0)))
+
+
+## Whether `comb` is the last of their side still standing - the blow that fells
+## them ends it. Things and images do not count, nor somebody already taken.
+func _last_standing(comb: Dictionary) -> bool:
+	var side: int = comb.get("side", -1)
+	if side < 0 or side >= groups.size():
+		return false
+	for index in groups[side]:
+		var other: Dictionary = combatants[index]
+		if other != comb and other.get("alive", false) and not other.get("illusion", false) and not other.has("summoner"):
+			return false
+	return true
+
+
+## --- Slow motion ---
+##
+## The world slowed a moment - a boss felled, the last of the other side
+## (MoveFeel). Like a hit stop, a garnish never awaited by its callers, and
+## nothing while a fight is being caught up with or played headless.
+
+const SLOW_MOTION_SECONDS := 0.3
+const SLOW_MOTION_SHARE := 0.4
+var _slowed := 0
+
+
+func slow_motion(seconds: float, share: float):
+	if not MoveFeel.shown():
+		return
+	_slowed += 1
+	if _hit_stop_depth == 0:
+		Engine.time_scale = _turn_scale * share
+	await get_tree().create_timer(seconds, true, false, true).timeout
+	_slowed = maxi(_slowed - 1, 0)
+	if _slowed == 0 and _hit_stop_depth == 0:
+		Engine.time_scale = _turn_scale
+
+
+## What time runs at once a hit stop lets go: the turn's own, slowed while a
+## slow motion is on.
+func _time_after_stop() -> float:
+	return _turn_scale * (SLOW_MOTION_SHARE if _slowed > 0 else 1.0)
 
 
 ## Time scale is global, so a battle torn down mid-freeze would leave the whole
@@ -5008,6 +5178,7 @@ func _exit_tree():
 	# An enemy's turn may have been sped up too, and a menu running at three
 	# times its speed is no menu at all.
 	_hit_stop_depth = 0
+	_slowed = 0
 	_turn_scale = 1.0
 	Engine.time_scale = 1.0
 	stop_watching()
@@ -5424,7 +5595,8 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	_hit_part(target, damage)
 	# A hit on a boss counts on its stagger bar, beyond the damage it did.
 	_stagger_from_hit(target, skill)
-	show_damage(target, damage, element)
+	# Resisted, or found weak: the number says which (FloatingNumber).
+	show_damage(target, damage, element, false, {"resisted": resistance > 0, "vulnerable": resistance < 0})
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
 		update_information.emit("[color=yellow]%s[/color] used %s on [color=red]%s[/color], dealing [color=%s]%d %s[/color].\n" % [
@@ -5464,6 +5636,9 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	# What the healer's heals do besides (Mercy II and III - "Progression").
 	_after_heal(attacker, target)
 	float_number(target, "+" + str(amount), Color("7fe08a"))
+	# Motes rising off them; their health bar is seen filling (MoveFeel, HealthBarMarks.fill).
+	if target.hp > before_heal:
+		MoveFeel.mended(self, target)
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
 		update_information.emit("[color=yellow]%s[/color] used %s on [color=lightgreen]%s[/color], healing [color=lightgreen]%d[/color].\n" % [
@@ -5788,6 +5963,8 @@ func steal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, s
 			attacker.name, target.name])
 		return
 	float_number(target, "Stolen", Color("f2d36b"))
+	# What was taken, seen flying from them to the thief's hand (MoveFeel).
+	MoveFeel.item_flies(self, target, attacker, taken[0])
 	update_combatants.emit(combatants)
 	update_information.emit("[color=yellow]%s[/color] used %s: empties [color=red]%s[/color]'s %s - %s.\n" % [
 		attacker.name, skill.name if skill != null else "it", target.name, chosen.noun, _item_names(taken)])
@@ -6424,6 +6601,8 @@ func summon_decoy(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 	var sprite = image.get("sprite")
 	if ours and sprite != null and is_instance_valid(sprite):
 		sprite.modulate = Color(0.75, 0.85, 1.0, 0.65)
+		# Mirror shards gathering into it (MoveFeel) - the other side's, made unseen.
+		MoveFeel.spawn(self, &"shards_gather", MoveFeel.middle_of(self, image))
 	update_turn_queue.emit(combatants, turn_queue)
 	update_combatants.emit(combatants)
 	if ours:
@@ -6453,6 +6632,9 @@ func _shatter(image: Dictionary):
 	combatant_died.emit(image)
 	var sprite = image.get("sprite")
 	if sprite != null and is_instance_valid(sprite):
+		# Going to pieces where it stood (MoveFeel).
+		if sprite.visible:
+			MoveFeel.shatter(self, MoveFeel.middle_of(self, image))
 		sprite.queue_free()
 	image["sprite"] = null
 	# The last of them gone, with everybody out of sight ("Images, and hiding").
@@ -6498,6 +6680,8 @@ func declare(comb: Dictionary, key: String, aim: Vector2i, as_secondary: bool = 
 		comb.name, skill.name])
 	_metric("declared", {"who": comb, "skill": skill, "tiles": tiles})
 	update_combatants.emit(combatants)
+	# A glyph on each tile it will land on, turning faster as its turn comes (MoveFeel).
+	MoveFeel.declared(self, comb)
 	if controller != null:
 		controller.queue_redraw()
 	if game_ui != null and comb.side == 0 and game_ui.has_method("refresh_action_buttons"):
@@ -6910,6 +7094,9 @@ func stagger(comb: Dictionary):
 	cue("staggered:%s" % comb.name)
 	float_number(comb, "Staggered!", STAGGER_COLOUR)
 	shake_camera(STAGGER_SHAKE)
+	# A crack across its bar, and the world slowed a beat (MoveFeel).
+	MoveFeel.staggered(self, comb)
+	slow_motion(SLOW_MOTION_SECONDS, SLOW_MOTION_SHARE)
 	update_information.emit("[color=yellow]%s is staggered![/color] It loses %s, and is hit %d%% harder until then.\n" % [
 		comb.name, "its next turn" if bar.turns_lost == 1 else "its next %d turns" % bar.turns_lost,
 		roundi((bar.damage_taken - 1.0) * 100.0)])
@@ -7313,11 +7500,17 @@ func _hack_in_fight(attacker: Dictionary, skill_key: String, skill: SkillDefinit
 		if hack == null:
 			push_warning("%s has no hack to play: give it, or %s, one (SkillDefinition.hack)." % [skill.name, target.declared.skill])
 			return
+		# A glyph of code flying at them first (Projectile, MoveFeel).
+		await Projectile.fly(self, attacker, skill, impact, [impact], target)
+		Projectile.settle()
+		if not still_running():
+			return
 		var outcome: Dictionary = await Net.decided(player_of(attacker), func(): return await hacking.run(hack, "", self, attacker))
 		if not still_running():
 			return
 		match outcome.get("result", ""):
 			"success":
+				MoveFeel.spawn(self, &"code_scatter", MoveFeel.middle_of(self, target))
 				drop_declared(target, "hacked apart by %s" % attacker.name)
 				if hack.stagger_on_success > 0.0:
 					add_stagger(target, hack.stagger_on_success, "a hack")
@@ -10559,9 +10752,13 @@ func _hurl(thrower: Dictionary, skill: SkillDefinition, subject_tile: Vector2i, 
 	_break_holds_on(thrown)
 	if landing != thrown.position:
 		var from: Vector2i = thrown.position
+		# Seen going over on an arc, its shadow under it, landing with a thud
+		# and a ring of dust (MoveFeel).
+		var thrown_from: Vector2 = MoveFeel.middle_of(self, thrown)
 		thrown.position = landing
 		thrown.sprite.position = sprite_point(thrown)
 		controller.reposition_combatant(from, landing)
+		MoveFeel.thrown(self, thrown, thrown_from)
 	if struck.is_empty():
 		update_information.emit("[color=yellow]%s[/color] hurls [color=red]%s[/color]!\n" % [thrower.name, thrown.name])
 	else:
@@ -12102,6 +12299,11 @@ func _cast_again(attacker: Dictionary, skill: SkillDefinition, struck: Array):
 
 ## Damage dealt by the use under way, for Righteous - counted in do_damage.
 var _dealt_now := 0
+## A graze landing now, for its number to say so (show_damage).
+var _grazing := false
+## Where the move under way came down, for a zone it leaves to spread out from
+## (lay_zone, MoveFeel.zone_spreads).
+var _landing_at := NO_AREA
 
 
 ## A damaging spell of somebody Righteous heals the most hurt of their side
@@ -12365,6 +12567,10 @@ func spring_trap(mover: Dictionary, tile: Vector2i) -> bool:
 
 ## {"id", "tiles", "condition", "for", "turns", "owner_id", "side", "name"}.
 var zones: Array = []
+## Zones just laid, spreading out from where they landed rather than appearing
+## all at once - only how the board draws them (zone_tiles; MoveFeel.zone_spreads):
+## zone id -> {"from": tile, "since": msec}.
+var spreading_zones := {}
 var _next_zone_id := 1
 ## Whether a zone was ever laid this fight - before then, nothing to square up.
 var _zones_laid := false
@@ -12380,6 +12586,8 @@ func lay_zone(caster: Dictionary, effect: EffectDefinition, tiles: Array, skill:
 		"unseen": effect.zone_unseen,
 		# The gate it came through, for Dispel Magic ("Dispelling") - 0, no spell's.
 		"gate": spell_gate_of(skill) if is_spell(skill) else 0})
+	# Seen spreading out from where it came down (MoveFeel).
+	MoveFeel.zone_spreads(self, _next_zone_id, _landing_at if _landing_at != NO_AREA else tiles[0], tiles)
 	_next_zone_id += 1
 	_zones_laid = true
 	update_information.emit("[color=yellow]%s[/color]'s %s stays on the ground.\n" % [caster.name, skill.name if skill != null else "zone"])
@@ -12500,7 +12708,18 @@ func _zone_fades(zone: Dictionary, how: String = "fades from the ground"):
 func zone_tiles() -> Array:
 	# One the other side keeps from them is not drawn for them (zone_unseen).
 	return zones.filter(func(zone): return zone.side == 0 or not zone.get("unseen", false)) \
-		.map(func(zone): return {"tiles": zone.tiles, "hostile": zone.side != 0})
+		.map(func(zone): return {"tiles": _spread_so_far(zone), "hostile": zone.side != 0})
+
+
+## As much of `zone` as has spread out from where it landed so far - all of it,
+## once it has (spreading_zones).
+func _spread_so_far(zone: Dictionary) -> Array:
+	var spreading = spreading_zones.get(zone.id)
+	if spreading == null:
+		return zone.tiles
+	var steps := int(float(Time.get_ticks_msec() - spreading.since) / 1000.0 / MoveFeel.SPREAD_SECONDS_A_TILE)
+	var from: Vector2i = spreading.from
+	return zone.tiles.filter(func(tile): return absi(tile.x - from.x) + absi(tile.y - from.y) <= steps)
 
 
 ## --- Dispelling ---
@@ -12777,6 +12996,9 @@ func loot(looter: Dictionary, body: Dictionary) -> Array:
 				continue
 			body[list].erase(key)
 			var item: ItemDefinition = ItemDatabase.item(key)
+			# The first thing taken seen going from the body to the looter (MoveFeel).
+			if taken.is_empty() and looter.has("position") and body.has("position"):
+				MoveFeel.item_flies(self, body, looter, key)
 			taken.append(item.name if item != null else key)
 	for key in body.get("equipment", []).duplicate():
 		var piece := EquipmentDefinition.named(key)
@@ -12939,6 +13161,12 @@ func summon(caster: Dictionary, effect: EffectDefinition, tile: Vector2i, skill:
 		return {}
 	add_combatant(called, caster.side, at)
 	_summoned_now.append(called)
+	# Seen arriving (MoveFeel): an image's mirror shards gathering into it, a
+	# creature bounding out of whoever called it.
+	if skill != null and (called.get("illusion", false) or MoveFeel.impact_look_of(skill) == SkillDefinition.ImpactLook.SHARDS_GATHER):
+		MoveFeel.spawn(self, &"shards_gather", MoveFeel.middle_of(self, called))
+	elif skill != null and not called.has("object"):
+		MoveFeel.bound_out(self, caster, called)
 	# Called up by a spell: Dispel Magic through as deep a gate undoes it.
 	if is_spell(skill):
 		called["spell_gate"] = spell_gate_of(skill)
@@ -14289,12 +14517,18 @@ func _fire_readied(reactor: Dictionary, target: Dictionary, why: String):
 	if aoe_radius_of(reactor, skill) > 0:
 		tiles = get_impact_tiles(skill, nearest_across(reactor, aim), aim, terrain_class(reactor), reactor.get("size", Sizes.Size.HUMAN), reactor)
 		victims = get_targets_in_tiles(tiles, reactor, skill.targets_ally, skill.affects_both_sides)
+	# A quick line from whoever readied it to whoever set it off, just before it
+	# fires - so it is plain who reacted to whom - and a "!" over them (MoveFeel).
+	MoveFeel.exclaim(self, reactor)
+	MoveFeel.readied_line(self, reactor, target)
+	MoveFeel.hand(self, reactor, skill, aim)
 	await Projectile.fly(self, reactor, skill, aim, tiles, target if aoe_radius_of(reactor, skill) == 0 else {})
 	if not still_running() or not reactor.alive:
 		return
 	for victim in victims:
 		if victim.get("alive", false):
 			_land_reaction(reactor, skill, victim)
+	Projectile.settle()
 
 
 ## --- Readying, for the AI ---
@@ -14801,6 +15035,11 @@ func _hit_part(target: Dictionary, damage: int):
 	if index == -1 or part_broken(target, index):
 		return
 	target.parts_hp[index] = maxi(target.parts_hp[index] - damage, 0)
+	# The struck part's outline flashing (MoveFeel).
+	for mark in part_marks():
+		if mark.id == target.get("id", -1) and mark.name == target.parts[index].name:
+			MoveFeel.part_struck(self, mark.tiles, CController.PART_COLOURS.get(mark.kind, Color.WHITE))
+			break
 	if target.parts_hp[index] == 0:
 		_break_part(target, index)
 

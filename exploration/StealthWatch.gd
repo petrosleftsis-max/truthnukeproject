@@ -238,6 +238,11 @@ var _ripples: Array = []
 ## up - the body follows along it, a place behind the last of the party.
 var _dragging: Guard = null
 var _drag_path: Array = []
+## The group dragging it - in co-op, whoever's press picked it up.
+var _drag_group: ExplorationParty = null
+## On a puppet watch: the player whose group drags a body, as the host says,
+## or -1.
+var _dragged_by := -1
 ## Knocked-out guard -> the hiding spot they have been stuffed into.
 var _stashed := {}
 ## Stashed bodies a hunting guard has found in their hiding spot anyway.
@@ -2566,12 +2571,29 @@ func noisy_floor_at(tile: Vector2i) -> NoisyFloor:
 
 
 ## Whether the party is creeping: Ctrl held, the bar's Creep kept on, or the
-## stick pushed only a little way.
+## stick pushed only a little way - in co-op, the group of whoever's press is
+## being handled (creeping_in).
 func creeping() -> bool:
-	if _creep_kept or Input.is_action_pressed(&"creep"):
+	return creeping_in(scene.get("party") if scene != null else null)
+
+
+## Whether `group` creeps: the bar's Creep kept on, Ctrl held - in co-op on its
+## player's own device - or its stick pushed only a little way. The other
+## machine's group, over a network, creeps as that machine says
+## (ExplorationParty.creeping_there).
+func creeping_in(group) -> bool:
+	if group == null or not is_instance_valid(group):
+		return _creep_kept or Input.is_action_pressed(&"creep")
+	if group.puppet:
+		return group.creeping_there
+	if _creep_kept:
 		return true
-	var party = scene.get("party") if scene != null else null
-	return party != null and is_instance_valid(party) and party.light_touch()
+	if Coop.on() and group.player >= 0:
+		if Coop.held(Coop.device_of_player(group.player), &"creep"):
+			return true
+	elif Input.is_action_pressed(&"creep"):
+		return true
+	return group.light_touch()
 
 
 ## Keeps creeping on, or lets it go - the bar's Creep, for playing with the mouse.
@@ -2580,20 +2602,48 @@ func toggle_creep():
 	_set_pace()
 
 
-## The party's pace for whatever they are doing: slower dragging a body,
-## slower still creeping.
+## Each group's pace for whatever it is doing: slower dragging a body, slower
+## still creeping. Only this machine's own: the other machine's walks there,
+## and over a network the host says which group drags (net_state "dragger").
 func _set_pace():
-	var party = scene.get("party") if scene != null else null
-	if party == null or not is_instance_valid(party):
+	if scene == null:
 		return
-	party.pace = (DRAG_PACE if _dragging != null else 1.0) * (CREEP_PACE if creeping() else 1.0)
+	for group in _groups():
+		if is_instance_valid(group) and not group.puppet:
+			group.pace = (DRAG_PACE if _drags(group) else 1.0) * (CREEP_PACE if creeping_in(group) else 1.0)
+
+
+## Every group walking the map - the party alone outside co-op.
+func _groups() -> Array:
+	if scene.has_method("all_groups"):
+		return scene.all_groups()
+	var party = scene.get("party")
+	return [party] if party != null else []
+
+
+## Whether `group` is the one dragging the body: whoever picked it up - or, on a
+## puppet watch, whoever the host says.
+func _drags(group) -> bool:
+	if puppet:
+		return _dragged_by >= 0 and group.player == _dragged_by
+	if _dragging == null:
+		return false
+	return group == _drag_group if _drag_group != null and is_instance_valid(_drag_group) else group == scene.get("party")
+
+
+## The group of whoever plays `key`, or the party.
+func _group_of(key: String):
+	var groups = scene.get("groups")
+	if groups is Dictionary and not groups.is_empty():
+		var group = groups.get(Coop.controller_of(key))
+		if group != null and is_instance_valid(group):
+			return group
+	return scene.get("party")
 
 
 ## Every member of the party walking noisy ground at an ordinary pace is heard,
-## a step at a time.
+## a step at a time - unless their group creeps, and does not dash.
 func _listen_to_feet(delta: float):
-	var party = scene.get("party")
-	var quiet = creeping()
 	for someone in _party_standing():
 		var at: Vector2 = someone.sprite.global_position
 		# Walking, not put somewhere: a teleport - arriving on the map - is no step.
@@ -2601,7 +2651,9 @@ func _listen_to_feet(delta: float):
 		var moved = stride > 0.5 and stride < Grid.tiles(1.0)
 		_stood[someone.key] = at
 		var ground = noisy_floor_at(someone.tile)
-		if ground == null or not moved or (quiet and not (party != null and party.dashing)):
+		var group = _group_of(someone.key)
+		var quiet: bool = creeping_in(group) and not (group != null and group.dashing)
+		if ground == null or not moved or quiet:
 			_step_in[someone.key] = 0.0
 			continue
 		_step_in[someone.key] = _step_in.get(someone.key, 0.0) - delta
@@ -3257,6 +3309,7 @@ func drag(preferred = null) -> bool:
 	if body == null or spotted_by != null or party == null or party.leader == null:
 		return false
 	_dragging = body
+	_drag_group = party
 	_drag_path = [body.global_position, party.leader.global_position]
 	_set_pace()
 	return true
@@ -3322,16 +3375,17 @@ func is_stashed(guard) -> bool:
 func _let_go():
 	_dragging = null
 	_drag_path = []
-	var party = scene.get("party") if scene != null else null
-	if party != null and is_instance_valid(party):
+	if scene != null:
 		_set_pace()
+	_drag_group = null
 
 
 ## Keeps the body being dragged a place behind the last of the party, along the
 ## way the leader has walked since picking it up - so it follows round corners
 ## rather than through them, and only moves once he has walked off from it.
 func _drag_along():
-	var party = scene.get("party")
+	# Behind whoever picked it up, in co-op - not whoever pressed last.
+	var party = _drag_group if _drag_group != null and is_instance_valid(_drag_group) else scene.get("party")
 	if _dragging == null or party == null or party.leader == null:
 		return
 	if not is_instance_valid(_dragging):
@@ -3880,6 +3934,8 @@ func net_state() -> Dictionary:
 	for key in readied_outside:
 		readied[key] = [readied_outside[key].move, readied_outside[key].trigger, readied_outside[key].area.keys()]
 	state["readied"] = readied
+	# Whose group drags a body, for the joiner's own group to walk at its pace.
+	state["dragger"] = _drag_group.player if _dragging != null and _drag_group != null and is_instance_valid(_drag_group) else -1
 	return state
 
 
@@ -3946,10 +4002,14 @@ func apply_net_state(state: Dictionary):
 		if var_to_str(shown.keys()) != var_to_str(readied_outside.keys()) or shown.size() != readied_outside.size():
 			queue_redraw()
 		readied_outside = shown
+	var dragger = state.get("dragger", -1)
+	_dragged_by = dragger if typeof(dragger) == TYPE_INT else -1
 
 
 func _play_puppet():
 	_dress_the_party()
+	# This machine's own group walks here: at a body's pace, creeping, as here.
+	_set_pace()
 	for guard in guards:
 		if is_instance_valid(guard) and not guard.knocked_out:
 			_refresh_seen(guard)

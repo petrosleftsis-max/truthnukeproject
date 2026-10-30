@@ -15,6 +15,9 @@ condition_dot_modifier = 0.2
 
 [resource]
 script = ExtResource("3_mm41o")
+impact_look = 37
+projectile_look = 4
+projectile_style = 3
 name = "Poison Dart"
 description = "A dart coated in a toxin that poisons the target."
 min_range = 2

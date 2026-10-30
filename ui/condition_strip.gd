@@ -112,19 +112,23 @@ static func tag_of(condition: ConditionDefinition) -> String:
 ## Whether this is something the combatant wants. A buff is a raised stat; a
 ## condition is judged by its own effects, since "Blessed" and "Blinded" are
 ## stored identically.
+## Whether `condition` is one somebody wants on them - judged by what it does.
+static func condition_helps(condition: ConditionDefinition) -> bool:
+	if condition == null:
+		return false
+	if condition.dot_modifier > 0.0 or condition.dot_max > 0:
+		return false
+	if condition.skips_turn or condition.prevents_movement or condition.prevents_secondary:
+		return false
+	return condition.movement_change > 0 or condition.accuracy_change > 0
+
+
 func _is_helpful(effect: Dictionary) -> bool:
 	match effect.get("stat", ""):
 		"dot":
 			return false
 		"condition":
-			var condition: ConditionDefinition = effect.get("condition")
-			if condition == null:
-				return false
-			if condition.dot_modifier > 0.0 or condition.dot_max > 0:
-				return false
-			if condition.skips_turn or condition.prevents_movement or condition.prevents_secondary:
-				return false
-			return condition.movement_change > 0 or condition.accuracy_change > 0
+			return condition_helps(effect.get("condition"))
 		"element_up":
 			return true
 		"movement_class":

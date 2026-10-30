@@ -137,8 +137,19 @@ join the same network in it, and join by the address the app gives the host's
 machine, as on a LAN.
 
 What the joiner changes in a menu - the bags, gear, gold, spells, paths - is
-sent to the host when the menu closes. Not across the network yet: the
-point-and-click pictures and the stores, which open on the host's screen only.
+sent to the host when the menu closes. A point-and-click picture or a store
+opens on the screen of whoever it is for: the player who walked up to it, or
+who began the conversation that opened it. What the joiner does in one - looks
+at, picks up, buys - goes to the host as it closes, and a hotspot that leads to
+another map takes everybody there. While a menu or a picture is open, that
+player's presses are its own; the other player plays on. Dragging a body slows
+whoever drags it, on their own screen, and each player creeps on their own keys.
+
+**Trying it on one PC:** in the Godot editor, Debug -> Customize Run Instances,
+turn on Enable Multiple Instances and set it to 2, then run the game. In one
+window, Players -> Host a game; in the other, Players -> Look for games (or type
+`127.0.0.1`) -> Join. Both copies share this PC's save folder, so a joiner's
+autosave before a fight lands in the same autosave slots.
 
 ## The shape of it
 
@@ -348,6 +359,30 @@ the price of the gate they match (Iris at Hermes's). In a fight the spell is
 still paid through its ordinary gate.
 **Outside Seconds** is how long it lasts out there. `Stats.OUTSIDE_GATES` lists
 these gates and which ladder gate each matches; Mnemosyne is to come.
+
+**How a move looks and sounds** is the **Projectile** and **Sound** groups. All
+of it is drawn or made in code as a stand-in until real art and sound go in its
+slots, and none of it changes what the move does:
+- **Projectile Style** - how it travels: a bolt, an arc, a streak along a line,
+  a fan for a cone, a **Beam** that holds a moment, a **Spray** that fills a
+  cone (the breaths), **Back To User**, or nothing. Automatic works it out.
+- **Projectile Look** - what flies: the orb, a tracer, two twisting tracers, a
+  dart, a rock, a nail, a burning limb, a great orb, swirling wind, wind pulled
+  in, a glyph of code, a chain, a bag, golden drops, a candle flame, a speech
+  bubble, a jet of flame. **Projectile Texture** or **Projectile Scene** fly
+  instead of anything drawn; **Projectile Colour** replaces the element's.
+- **Hand Look** - the flash at the user as it leaves them: a muzzle flash, a
+  spell's glyph, a throw's swish, a roar, a puff.
+- **Impact Look** - how it looks on whoever it lands on, beside the burst its
+  element always makes: a swing's arc, claws, stars over a stunned head, a seal,
+  a column of light, a dome, a storm and the rest.
+- **Ground Mark** - scorched, frosted, a puddle or a smoking pit, fading over
+  two rounds. Automatic goes by its element.
+- **Sound** (as it leaves the user), **Travel Sound** and **Impact Sound** - an
+  empty one plays a made-up stand-in.
+
+Automatic is a fair guess for each; set one to change it. A move coming down
+from above or rising from below is not one of the choices.
 
 ### Adding a passive skill
 

@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("3_skill")
+projectile_look = 14
 name = "Holy Splash"
 description = "A splash of the idol's light over a small area."
 required_level = 8

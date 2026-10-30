@@ -13,6 +13,7 @@ condition_duration = 1
 
 [resource]
 script = ExtResource("3_skill")
+impact_look = 13
 name = "Bewilder"
 outside_use = 7
 description = "Twists what the target sees until friend and foe are one. Confused, they go for whoever is nearest."

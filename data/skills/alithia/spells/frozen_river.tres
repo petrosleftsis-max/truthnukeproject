@@ -15,6 +15,7 @@ condition_dot_modifier = 0.3
 
 [resource]
 script = ExtResource("4_skill")
+impact_look = 31
 ability_modifier = 1.8
 name = "Frozen River"
 description = "A whole river of it, freezing as it comes down on them."

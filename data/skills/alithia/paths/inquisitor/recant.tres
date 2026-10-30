@@ -12,6 +12,9 @@ condition = ExtResource("4_cond")
 
 [resource]
 script = ExtResource("3_skill")
+projectile_colour = Color(1, 0.819608, 0.4, 1)
+impact_look = 15
+projectile_style = 6
 name = "Recant"
 description = "Once a short rest, as a secondary action, on somebody whose next turn she has read: it does not happen. They lose it."
 max_range = 15

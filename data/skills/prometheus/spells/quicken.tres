@@ -13,6 +13,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_1tt36")
+impact_look = 27
 name = "Quicken"
 description = "Grant an ally extra speed"
 max_range = 10

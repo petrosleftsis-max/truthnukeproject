@@ -2,9 +2,11 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-10-30, after Steps 2 and 3 of the network play (LAN, and online
-by UPnP), the designer's additions to it, and the placeholder projectiles.
-Steps 4 and 5 wait on the designer.
+updated 2026-10-31, after Steps 2 and 3 of the network play (LAN, and online
+by UPnP), the designer's additions to it, the pictures, stores and dragging
+across the network, the placeholder projectiles, and everything in
+`docs/move_feel_proposals.md` but moves coming down from above or up from
+below. Steps 4 and 5 wait on the designer.
 
 ## How the designer works with Claude
 
@@ -53,11 +55,13 @@ Steps 0-5 with what to change where and how to test it. In order:
    - whom each plays, chosen on joining and changed by asking (Party
      Management), and the host kicking;
    - the familiar, hacks and quick times across;
+   - the point-and-click pictures and stores, opened on the screen of whoever
+     they are for, and a dragged body's pace and creeping on the joiner's own
+     screen (2026-10-31);
    - leaving mid-fight.
 
-   Still to come: trying it on two real machines. Not across yet: the
-   point-and-click pictures, stores, and a dragged body's pace
-   (`docs/multiplayer_plan.md` "Added after Step 3").
+   Still to come: trying it on two real machines (the README's "Two players"
+   says how, one PC included).
 3. **Online by ENet + UPnP** - built 2026-10-30: hosting asks the router to
    open the game to the internet, and the Players panel names a virtual LAN
    app (Tailscale, ZeroTier, Radmin VPN) when it will not. Not yet tried
@@ -73,6 +77,46 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **How moves are felt** (the designer, 2026-10-30: everything in
+  `docs/move_feel_proposals.md` "except ... moves that come down from above
+  (hammers, suns) or up from below (spikes)"; built 2026-10-31):
+  `combat/MoveFeel.gd`, the new parts of `combat/Projectile.gd`, CLAUDE.md
+  "Projectiles", suite `projectile`. All of it placeholder art and sound,
+  drawn or generated in code behind slots - the designer makes the real ones.
+  - A flash at the hand as a move leaves (muzzle, glyph, swish, roar, puff),
+    and a burst in each element's own way where it lands.
+  - Each move's look: SkillDefinition's Projectile Look (tracer, twin tracers,
+    dart, rock, nail, burning limb, great orb, swirl, vacuum, code, chain, bag,
+    drops, candle, speech bubble, jet), Hand Look, Impact Look (40 of them:
+    swooshes, claws, stars over a stunned head, a seal, a column of light, a
+    dome, a storm...) and Ground Mark; the proposals' moves have theirs set.
+  - Three new styles: Beam, Spray (the breaths, Censure, the roars), Back To
+    User.
+  - A miss flies on past, a graze bursts dimly, a copy taking the blow
+    shatters (`Projectile.verdict`).
+  - Weight from the numbers: hit-stop and shake by the share of health taken,
+    the longest for a kill, slow motion for the last of a side or a boss.
+  - The number says what happened (bigger for a big share, "Graze", cracked
+    when resisted, a jagged star when weak to it).
+  - Marks on the ground fading over two rounds; a condition's mark flying into
+    its strip on the HUD; a mend's motes and the health bar seen filling;
+    sound in three (launch, travel, impact - slots, stand-ins while empty).
+  - The fight's own moments: a line from a readied move to whoever set it off,
+    a "!" and a face for a reaction, a declared move's glyphs turning faster as
+    it comes due and landing harder, a crack on a staggered boss's bar, a part
+    struck flashing, a zone spreading out from where it landed. Shoves kick up
+    dust and thud into walls; a summon bounds out of its caller; a thrown body
+    goes over on an arc; a stolen or looted thing flies to its taker.
+- **Pictures, stores and dragging, across the network** (2026-10-31;
+  `docs/multiplayer_plan.md` "Added after Step 3"): a point-and-click picture or
+  a store opened for the joiner's player opens on the joiner's screen, and what
+  it changes goes back to the host (a hotspot sending the party to a map sends
+  the host there). Over a network a picture stops nothing - only its own
+  machine's party stands, as for a menu - and a press made while a menu or a
+  picture is open is that menu's. A dragged body slows the dragger's own group
+  on its own machine; each group creeps on its own player's keys, and the
+  joiner's creeping is told to the host so its steps go unheard there too. The
+  share-out offer is only made on the stranded player's own machine.
 - **Placeholder projectiles** (the designer, 2026-10-30, "go ahead with what you
   suggested ... add traces following behind"): `combat/Projectile.gd`, CLAUDE.md
   "Projectiles", suite `projectile`. Every move but a melee blow, one at its
@@ -209,11 +253,15 @@ holds the game for both).
    - a fight joined under way is played through at 8 times the speed;
    - a change of hands in a fight waits for one of the host's characters'
      turns.
-7. **Projectiles and how moves feel:** the projectiles' timings (0.16-0.5 s
-   by distance, a fifth longer for an arc) and the Automatic styles are
-   PROPOSAL. The ways to make moves land harder are all in
-   `docs/move_feel_proposals.md`, its "What to try first" a suggested order -
-   the designer picks.
+7. **Projectiles and how moves feel:** built, but every timing and size is
+   PROPOSAL - the projectiles' (0.16-0.5 s by distance, a fifth longer for an
+   arc; a beam's hold, a spray's half second), how long each look plays,
+   the weight (no stop under 8% of somebody's health, a heavy blow from 25%,
+   0.18 s for a kill, slow motion 0.3 s at 40%), a mark lasting two rounds, a
+   number up to 1.6 times as big. The Automatic choices too (a glyph for every
+   spell, a column for every mend, a scorch for every fire move). Which look
+   each move has is the designer's to change in its skill file. Moves coming
+   down from above or up from below were left out, as asked.
 8. **OPEN rows in the ledger**, among them:
    - Deep Corrosion's duration (5 vs the handoff's 3);
    - Corrosive Round at 41 equal to the Gun;
