@@ -284,10 +284,9 @@ func _use(move: String):
 		_choose_trigger(move)
 		return
 	# Over a network the joiner's moves are the host's to use (Net).
-	if Net.follows():
-		Net.use_move(who(), move)
-	else:
-		OutsideMoves.use(scene, who(), move)
+	# On a joiner it is used on the host, but for what is chosen here first
+	# (OutsideMoves.use).
+	OutsideMoves.use(scene, who(), move)
 	refresh()
 
 

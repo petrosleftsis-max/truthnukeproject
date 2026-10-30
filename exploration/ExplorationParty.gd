@@ -491,7 +491,11 @@ func walk_to(to: Vector2, facing_left: bool, walking: bool):
 
 
 func position_of_leader() -> Vector2:
-	return leader.position if leader != null else Vector2.ZERO
+	if leader != null:
+		return leader.position
+	# Nobody in it standing - the whole party down: still where it was set up,
+	# not the corner of the map, which a rebuild would put everybody in.
+	return _trail.back().position if not _trail.is_empty() else Vector2.ZERO
 
 
 ## Whether the line faces left right now.

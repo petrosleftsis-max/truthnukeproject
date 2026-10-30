@@ -14,7 +14,10 @@ extends Node
 ##
 ## The world waits while it is up - the tree is paused, unless something else
 ## already paused it - and it takes every key and button pressed meanwhile, so
-## nothing underneath hears them.
+## nothing underneath hears them. Over a network nothing stops for it: only
+## this machine's own party stands, as for any menu (MenuPause, Net) - and one
+## that is the other machine's player's to play is played there
+## (Net.quick_time_by).
 ##
 ## With nobody to press anything - the headless test harness - it answers at
 ## once: `answer` if a test has set one, and otherwise false. False is what the
@@ -84,7 +87,8 @@ func start(key: String) -> bool:
 		push_warning("QuickTime.start('%s'): there is no such quick time event in %s." % [key, FOLDER])
 		passed = false
 		return false
-	passed = await run(definition)
+	# Over a network, whoever began the conversation plays it, on their machine.
+	passed = await Net.quick_time_by(Net.conversation_starter(), definition)
 	Campaign.set_flag("qte:" + key, passed)
 	return passed
 
@@ -114,12 +118,18 @@ func run(definition: QuickTimeDefinition) -> bool:
 			_zone_centre = _rng.randf_range(0.15 + half, 0.85 - half)
 		_:
 			_wanted.append(BUTTONS[_rng.randi() % BUTTONS.size()])
-	if not get_tree().paused:
+	var net = get_node_or_null("/root/Net")
+	var as_a_menu: bool = net != null and net.with_another()
+	if as_a_menu:
+		MenuPause.hold(self)
+	elif not get_tree().paused:
 		get_tree().paused = true
 		_paused_here = true
 	_build()
 	var done_in_time: bool = await finished
 	_close()
+	if as_a_menu:
+		MenuPause.release(self)
 	if _paused_here:
 		get_tree().paused = false
 	_paused_here = false

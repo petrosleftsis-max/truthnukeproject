@@ -22,6 +22,9 @@ leans on the one before.
 | Still open, built as defaults (PROPOSAL) | One shared zooming camera with a leash; both players on one map; a conversation chosen by whoever started it; in local co-op a menu holds the game for both, and is the opener's alone. |
 | A player leaving mid-fight | **The other player takes their characters** (not the AI). |
 | Menus over a network | **An open menu does not stop the world** carrying on for the other player (local co-op still holds the game for both). |
+| Whom each plays, over a network (2026-10-30) | **The joiner chooses on joining; after that a change is asked of the other player** (Party Management, in the pause menu, on a map and in a fight), and the choices hold for maps and fights alike. **The host leads** and can kick the joiner out. |
+| Conversations over a network (2026-10-30) | **Both pick the answer**; picked differently, both pick again. |
+| A joiner mid-fight (2026-10-30) | **Joins the fight at that point.** |
 
 ## Where it stands
 
@@ -48,22 +51,25 @@ leans on the one before.
 - **Built: Step 1** (the seeded fight RNG, 2026-10-29): `Combat.rng`,
   `seed_rolls`, `_shuffle`, `fight_state`; CLAUDE.md "Rolls in a fight"; suite
   `rolls`.
-- **Step 2 under way** (2026-10-30): `multiplayer/Net.gd` hosts, joins, finds
+- **Built: Step 2** (2026-10-30): `multiplayer/Net.gd` hosts, joins, finds
   games by their beacon, and seats players across machines; the joiner joins a
-  game under way and follows the host's scene and Campaign; the two walk
-  together, the joiner's presses are done on the host, pings go both ways, the
-  host's guards are the joiner's puppets, a menu over a network stops nothing,
-  fights are played on both from one seed and the same moves, conversations
-  are the host's and shown on the joiner, and a player leaving mid-fight hands
-  their characters to the other (items 1-9, 11, 12 and 10's rule;
-  `ui/net_panel.gd`, `ui/conversation_mirror.gd`; suite `net`, which plays the
-  joiner in a second Godot). Still to do: pointer-aimed stealth moves and the
-  familiar.
+  game under way - a fight too - and follows the host's scene and Campaign; the
+  two walk together, the joiner's presses are done on the host and what it aims
+  or chooses on its own screen, pings go both ways, the host's guards are the
+  joiner's puppets, a menu over a network stops nothing, fights are played on
+  both from one seed and the same moves, conversations are the host's and both
+  pick their answers, whom each plays is chosen on joining and changed by
+  asking, the familiar and hacks go across, and a player leaving mid-fight
+  hands their characters to the other (`ui/net_panel.gd`,
+  `ui/conversation_mirror.gd`, `ui/character_choice.gd`, `ui/steer_request.gd`;
+  suite `net`, which plays the joiner in a second Godot). Not yet tried on two
+  real machines. Not across: the point-and-click pictures, stores, a dragged
+  body's pace (see "Added after Step 3").
 - **Built: Step 3** (2026-10-30): hosting asks the router to open the game to
   the internet (UPnP), and the Players panel points at a virtual LAN app when
   it will not. Not yet tried against a real router.
 - **Not built:** Steps 4-5 below (they wait on the designer's servers and on
-  Steam), and of Step 2 the pointer-aimed stealth moves and the familiar.
+  Steam).
 
 ## Step 0 - download only (small; done 2026-10-29)
 
@@ -281,7 +287,8 @@ waiting on that combatant; each machine's enemy speed can differ. Questions,
 quick times and hacks are the decider's, by number. In the suite a whole fight
 of 29 turns was the same on both machines at the start of every one of them;
 the patch for a fight told apart puts hp, tiles and who stands right, not
-conditions. A player joining during a fight comes in after it. Conversations:
+conditions. A player joining during a fight came in after it (now into it -
+"Added after Step 3"). Conversations:
 the joiner's copy shows each line as a whole (no typing out) and its answers;
 the host's skip button is the host's alone.
 
@@ -324,6 +331,77 @@ own log, which is what `run.sh` reads. Connect on 127.0.0.1. Check: joining
 gives the same `Campaign.snapshot`; walking shows on the other side; a press on
 the joiner happens on the host; a fight played from the same moves ends with the
 same checksum; a conversation's choice made on the joiner is the one taken.
+
+### Added after Step 3 (the designer, 2026-10-30; built the same day)
+
+- **Choosing whom to play.** The joiner chooses as it first comes into the
+  host's game, on a map or into a fight (`ui/character_choice.gd`). The host
+  keeps the rest, and at least one of them (PROPOSAL: so two can play). Choosing
+  nobody watches.
+- **Party Management.** In the pause menu, on a map and in a fight (it was
+  Players). Over a network a press there asks the other player - for one of
+  their characters, or offering one of yours - and the change is made only if
+  they agree (`ui/steer_request.gd`).
+- **The host leads.** Kick out on the joiner's row, made sure of first. The
+  joiner is told why, on its title screen. The title screen now shows the note
+  a network game sends back with (it was dropped before).
+- **In a fight, a change is a move.** It waits for one of the host's
+  characters' turns, standing idle, since the joiner's fight cannot be past
+  that. The character whose turn it is changes hands only before anything is
+  done in it. It is sent with the other moves as "steer", and the joiner's
+  table and Campaign leave who steers whom to those moves until the fight is
+  over. Without this, a change made in the middle of a turn could have the two
+  machines each waiting for the other.
+- **Joining a fight under way.** Every fight keeps:
+  - its beginning (Campaign as it went in);
+  - every move in order (the host's, the joiner's, and the changes of who
+    steers whom, a player leaving included);
+  - every answer.
+
+  A joiner seated mid-fight gets all of it, with the seed. It plays the fight
+  through from the beginning at 8 times the speed (PROPOSAL), with the sound
+  off, behind a curtain, its own presses held. Then it stands where the host's
+  fight stands and is asked whom it plays.
+
+  In the suite this was checked after two players had played some turns and
+  one had left: every turn played through was the same as the host's, and the
+  rest of the fight ended identically on both. What the host sends while the
+  joiner's fight is still on its way is now kept rather than dropped (it could
+  have been dropped before, if the host placed the party very fast).
+- **Conversations: both pick.** Whoever began it presses on through its lines
+  (PROPOSAL). An answer is both players': the same one is taken; two different
+  ones are shown to both, with what each picked, and both pick again. Local
+  co-op is unchanged: whoever began it chooses (PROPOSAL; the designer's words
+  were about a network game).
+- **Aimed on the joiner's own screen.** The joiner aims and chooses on its own
+  screen, and only the result goes to the host, done there as the joiner's
+  player:
+  - a throw's landing;
+  - a click on a guard (knock out, drag, put down, pick a pocket);
+  - which way a readied cone points;
+  - the guard a move is used on;
+  - who goes unseen;
+  - the Outside Spell key's choice.
+
+  The joiner's screen now shows the party's listening, who is unseen and what
+  is readied.
+- **Alithia's familiar.** The host decides and the joiner shows. Whoever steers
+  it walks it on their own machine and sees through its eyes there; on the
+  other machine it follows. Asking for it puts the question on the other
+  machine.
+- **Hacks and quick times on a map.** They are played by whoever they are for,
+  on their own screen:
+  - a hack set going by the joiner's player, its gates and strain spent on the
+    host too;
+  - a magic trap's answer;
+  - a conversation's quick time, by whoever began it (PROPOSAL).
+
+  Over a network neither pauses: only that machine's own party stands.
+
+Still not across: the point-and-click pictures (`Pictures`), a store, and the
+pace of a body being dragged. The pictures and the store open on the host's
+screen only; the dragged body's pace is slowed only on the host's copy of the
+joiner's group.
 
 ## Step 3 - online by Godot's own networking (small, after LAN; built 2026-10-30)
 

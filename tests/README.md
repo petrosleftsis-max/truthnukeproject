@@ -1,6 +1,6 @@
 # The headless harness
 
-139 suites that boot the real game without a window, play something out and
+141 suites that boot the real game without a window, play something out and
 write down what happened.
 
 ```bash
@@ -72,6 +72,19 @@ its sections in `run_sections()`, and gets the crossroads made a stealth map
 a headless run passes faster than frames at 60 a second would suggest - walk
 the party by `get_process_delta_time()`, not by a fixed sixtieth, when what is
 being tested is timed.
+
+`net` is two machines: it starts a second headless Godot on the same copy
+(`--net-client`) for the joiner's half, and the two wait on each other with
+`say` / `hear`. It plays a map, a stealth stage and two fights - the second
+joined under way and caught up with - so its budget is 900 seconds. A driver
+that does not parse runs the main scene until that budget is spent, so check a
+changed `net_test_driver.gd` parses first (`--check-only --script` on the copy
+stops at its first autoload name, past the parse). A run killed by hand leaves
+`.run.lock` behind - a folder - in the work directory, and the next run says
+another is going until it is removed.
+
+Projectiles (`combat/Projectile.gd`) land at once headless, so no suite waits on
+them; `projectile` sets `Projectile.plays_headless` to watch them fly.
 
 ## Suites and probes
 

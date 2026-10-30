@@ -43,7 +43,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 139 suites and takes a while. Each one boots the real game
+A full run is 141 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one.
@@ -184,6 +184,29 @@ network what they come to is sent like an answer. `fight_state()` is the fight
 as text - round, whose turn, everybody's side, health, tile, standing and
 conditions - and is what a replay is checked by. `rolls` reads Combat.gd and
 CController.gd for global rolls, and plays one fight twice from one seed.
+
+## Projectiles
+
+A move is seen going from its user to where it was aimed (the designer,
+2026-10-30: so it is clear who does what): `combat/Projectile.gd`, a placeholder
+drawn in code behind slots. `Projectile.fly` is awaited in `_use_skill` once the
+targets are known and the reactions to it are over (the controller locked
+meanwhile), in `use_reactive_skill` and in `_fire_readied` - so the blow lands as
+it arrives. How it goes is `SkillDefinition.projectile_style` (the "Projectile"
+group; `ProjectileStyle`, appended): Automatic is `style_for` - nothing for melee,
+the user's own tile or a move that teleports somebody; STREAK for a line, FAN (three)
+for a cone, BOLT when it respects blocking, ARC (over what is in the way, with a
+shadow) when it does not. Its colour is `colour_for`: `projectile_colour`, else a
+mend's green, else the element it lands as (`elements_of` / `effective_damage_type`,
+`Damage.type_colour`). An orb with a two-layer trail behind it and a burst where it
+lands; a move with an area lights the tiles it lands on (`area_points`, `_lit_at`) -
+a line's and a cone's as it passes, an area's rippling out from where it lands;
+`projectile_texture` flies in place of the orb,
+`projectile_scene` in place of everything (told `landed()`). Its clock is the game's
+(fast enemy turns, catching up) and nothing in it rolls or changes the fight.
+Headless it lands at once unless `Projectile.plays_headless` - so no other suite
+pays for it. `projectile` covers it. What else could make moves land harder is
+`docs/move_feel_proposals.md` (all PROPOSAL).
 
 ## Stealth maps
 
@@ -382,8 +405,8 @@ a log line, an arrow at the screen's edge; `PING_SECONDS`, `PINGS_EACH`.
 
 ## Network play (two machines)
 
-`docs/multiplayer_plan.md` is the approved plan, built step by step (Step 2,
-LAN, is under way). `Net` (autoload, `multiplayer/Net.gd`, after Coop and Pings)
+`docs/multiplayer_plan.md` is the approved plan, built step by step (Steps 0-3
+done; 4 and 5 wait on the designer). `Net` (autoload, `multiplayer/Net.gd`, after Coop and Pings)
 is Godot's high-level multiplayer over ENet, and every RPC is on it - an
 autoload's path is the one node path both machines share. **The host decides**:
 it owns Campaign, the scene and the guards; the joiner sends what its player does.
@@ -395,9 +418,24 @@ second, to `beacon_to` on `discovery_port`) that `look_for_games` hears into
 `build_key`, its devices) is checked by `refusal_for` - another version, a full
 table - and the host seats one player for the machine (`Coop.join(device, "",
 peer)`) and sends the whole table (`_table`: Coop.players, Campaign.controllers)
-on every `Coop.players_changed`. On the joiner the Players panel's picks are
-requests (`ask_to_steer`), its Leave buttons are gone and no second pad joins;
-the host's Leave on the joiner's row is `send_away`. A machine dropping out takes
+on every `Coop.players_changed`. **Whom each steers** (the designer, 2026-10-30):
+the joiner chooses as it first comes into the host's game, on a map or in a fight
+(`ui/character_choice.gd`, `_offer_the_choice` -> `choose_characters` -> `_chose`;
+the host keeps at least one; `choosing(id)` keeps the share-out offer off them
+meanwhile, and choosing nobody is watching). After that a change is asked of the
+other player and made only if they agree: the pause menu's **Party Management**
+(the Players panel with `management`; `PlayersPanel.open_over` in a fight) turns
+a press into `ask_for`, answered on the other machine in `ui/steer_request.gd`
+(`_ask` / `_asked` / `_reply` / `_answered`); the host makes it
+(`_change_steering`). The host leads: Kick out on the joiner's row, made sure of,
+is `kick` (`_kicked` tells them why, then the line goes). **In a fight** a change
+waits for a moment both fights are sure to be at - one of the host's characters'
+turns, standing idle (`_steer_when_both_can`), the character whose turn it is only
+before anything is done in it (`_turn_fresh`) - and goes with the moves as a
+"steer" move (`_note_steering`, which also writes down any change in the middle
+of a fight, a joiner leaving included). The joiner's controllers change only by
+those during a fight: its `_table` and `_state` keep them
+(`_controllers_after_fight`, `_kept_here`). A machine dropping out takes
 its player with it (`Coop.leave`: their characters to the other player, mid-fight
 too - the designer, 2026-10-29); a joiner left alone is back to its own players
 (`_own_devices`). Every call from the other machine is checked for its sender and
@@ -412,7 +450,19 @@ too. The joiner puts it on with `Campaign.apply` (no scene change) and changes
 scene, and its map does to that state what the host's arriving did. A joiner
 seated while the host is on a map is sent there `as_it_stands`
 (`arrives_as_it_stands`: the party and bags kept, where the host's party
-stands); one seated mid-fight waits for the next change. After that the host
+stands). **One seated mid-fight comes into it** (the designer, 2026-10-30): every
+fight keeps its beginning (`_fight_start`, Campaign as `scene_changing` sent it
+into `FIGHT_SCENE`), everything done in it in order (`_history`: the host's
+moves from `fight_move`, the joiner's as `_play_moves` plays them, the "steer"
+moves) and every answer (`_answers_given`), alone or not; `_welcome` sends them
+with the fight's seed (`_join_fight`), and the joiner goes into the same fight
+and plays it all through (`fight_begins` installs it; `_known_answers` answers
+its questions) - `catching_up()`: `Combat._pace_turn` at `CATCH_UP_SPEED`, the
+sound off, a curtain, its presses dropped by the gate (`drops`) - until it stands
+where the host's did; then `_offer_the_choice`. What the host sends while a fight
+is on its way to the joiner is kept, not dropped (`_fight_coming`,
+`_expect_a_fight`). A joiner seated while a fight's result is up waits for the
+next change. After that the host
 sends Campaign whenever it changes and every `STATE_ANYWAY_SECONDS` anyway
 (`_send_state`), held on the joiner while it changes scene. On a joiner the map
 sets off no contact triggers and offers no paths (`Net.follows()`): the host's
@@ -431,9 +481,34 @@ reads as that player, so the gate's focus and `acting` are theirs. A trigger
 goes as the action it presses. The moves panel on a joiner sends `use_move`
 and `pressed_here`. `_sent_by_whoever_plays` checks every such call came from
 the machine that player is on. Pings go both ways (`Pings.pinged` -> `_ping` ->
-`show_ping`). Not across yet: what is aimed with the pointer on a map (a
-throw's landing, a click on a guard, a readied cone) and the familiar, which
-lives on the host. **Guards:** on a joiner the watch is a puppet
+`show_ping`). **Aimed and chosen on the joiner's own screen:** T (throw) and G
+(Outside Spell) are not forwarded; their aiming and choices are the joiner's, on
+its puppet watch, and what they come to is sent with `do_on_host` (`DONE_AFAR`:
+`StealthWatch.throw_at`, `_click_on_guard` -> `click_at`, `ready_outside`,
+`go_invisible`, `summon_familiar` / `dismiss_familiar` on a puppet, and
+`ExplorationScene`'s own on a joiner) and done there as that player
+(`_done_afar`). `OutsideMoves.use` on a joiner is `use_move` but for
+Invisibility, whose picker is the joiner's. Every forwarded press, move and
+doing carries the guard the joiner's pointer is on (`_pointed_here`), and on the
+host `StealthWatch.hovered_guard` is theirs while their press is handled
+(`pointing_afar`, `pointed_guard`). The puppet watch is sent the party's
+listening, who is unseen and what is readied (`net_state` "ears", "unseen",
+"readied"). **Alithia's familiar:** the host's `FamiliarKeeper` decides and sends
+`net_state` (`_familiar_is`); the joiner's `apply_net_state`s it. Whoever steers
+it walks it on their machine and sees through its eyes there (`steered_here`);
+on the other it is a puppet (`Familiar.puppet`, `puppet_to`; the host takes the
+joiner's walk by `_familiar_walked`, only where `can_be_at`). Asked for by the
+host's player of the joiner's caster's player, the question is put there
+(`ask_for_the_familiar`). **Hacks and quick times outside a fight** are played by
+whoever they are for, on their screen: `Hacking.run` on the host for the
+joiner's player's press is `hack_afar` (the joiner plays it as `_hack_here`,
+spending gates and strain as it goes - `HACK_KEYS` kept from the host's state -
+and sends what it cost, `hack_cost`; the host spends the same and settles it);
+a magic trap's answer and a conversation's `QuickTime.start` go through
+`quick_time_by` (the starter's: `conversation_starter`). Over a network neither
+pauses the tree: like a menu, only this machine's own party stands
+(`MenuPause.hold`). A joiner's map springs no traps (`_traps_gone_dark`).
+**Guards:** on a joiner the watch is a puppet
 (`StealthWatch.puppet`, set in `begin` from `Net.follows()`, and every
 `Guard.puppet`): `_process` only dresses the party, works out what each guard
 sees and draws the meters, and a guard only eases to `puppet_to`. The host sends
@@ -447,8 +522,7 @@ machine's own groups stand (`ExplorationParty.in_a_menu`, set by
 `_stand_for_menus`). What a menu on the joiner changes (`MENU_KEYS`: bags,
 gear, gold, spells, paths) stays the joiner's while it is open
 (`Campaign.apply(state, keeping)`) and goes to the host as it closes
-(`_menu_changes`). Hacking and QuickTime still pause their own machine.
-**Fights, replayed:** going into `FIGHT_SCENE` the host gives a copy of the
+(`_menu_changes`). **Fights, replayed:** going into `FIGHT_SCENE` the host gives a copy of the
 encounter a "seed" (`scene_changing`); both play the fight (`fight_begins`
 from `Combat._ready`). Whoever's character it is moves on their own machine,
 and each move is sent from where it is made - `CController.move_player`
@@ -468,9 +542,15 @@ standing right (`_put_right`). A joiner leaving mid-fight hands the turn under
 way to the host's player (`Coop.fight_turn`). **Conversations:** the host runs
 them; each line (`DialogueBalloon.apply_dialogue_line` -> `conversation_line`)
 goes to the joiner's `ConversationMirror` (ui/conversation_mirror.gd), its
-party held; when it is the joiner's (Coop.focus), its press or answer
-(`answer_line`) comes back and is `advance_from_afar` / `respond_from_afar` on
-the host's balloon. **Over the internet** (Step 3): hosting on every network
+party held. Whoever began it (`_starter`) presses on through its lines - the
+joiner's press comes back (`answer_line(-1)`) as `advance_from_afar`. An answer
+is **both players'** (the designer, 2026-10-30): `Coop.focus` is let go for it,
+the host's pick (`DialogueBalloon._on_responses_menu_response_selected` ->
+`chose_here`) and the joiner's (`_converse`) are gathered in `_picks`, and
+`_settle_picks` takes one they share (`respond_from_afar`) or shows both what
+each chose and asks again (`DialogueBalloon.choose_again`, `_pick_again`); a
+player leaving mid-pick leaves it to the other. Local co-op is as it was: the
+one who began it chooses. **Over the internet** (Step 3): hosting on every network
 (`bind_ip` "*") asks the router to open the port by UPnP on a thread
 (`_open_router`, `_ask_router`, `_router_answered`; `router`, `public_address`)
 and shuts it on leaving and as the game closes (`_close_router`); a host bound
@@ -478,7 +558,7 @@ to one address never asks. The panel shows the address to give, or points at a
 virtual LAN app. The Players panel's network half is
 `ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
 since listening (or hosting) is what makes Windows ask about its firewall.
-`net` plays two machines: the suite hosts on 127.0.0.1:24790 and starts a second
+`net` plays two machines (twice into a fight, the second joined under way): the suite hosts on 127.0.0.1:24790 and starts a second
 headless Godot (`--net-client`) on the same copy for the joiner's half, which
 logs to `net_joiner` (copied into `net`'s log, its FAILs counted) and its Godot
 output to `net_joiner_godot.log` (read for script errors); the halves wait on

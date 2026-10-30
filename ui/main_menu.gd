@@ -375,6 +375,9 @@ func _build_load() -> Control:
 ## or joining (Net).
 func _build_players() -> Control:
 	var panel := PlayersPanel.new()
+	# Sent back here from a game over a network: why, over the panel (Net).
+	if Campaign.menu_opens_at == "players":
+		panel.note = Campaign.menu_note
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel.closed.connect(_go_back)
 	return panel

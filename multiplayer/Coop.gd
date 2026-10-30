@@ -445,9 +445,10 @@ class _Gate extends Node:
 
 	func _input(event: InputEvent):
 		# On a joiner, a press that does something to the world goes to the host
-		# instead (Net.forwards).
+		# instead (Net.forwards) - and catching up with a fight joined under way,
+		# nothing of this machine's own is pressed (Net.drops).
 		var net = get_node_or_null("/root/Net")
-		if net != null and net.forwards(event):
+		if net != null and (net.drops(event) or net.forwards(event)):
 			get_viewport().set_input_as_handled()
 			return
 		var coop = get_node_or_null("/root/Coop")

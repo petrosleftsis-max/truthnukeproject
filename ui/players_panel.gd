@@ -5,9 +5,12 @@ class_name PlayersPanel
 ## and the keyboard with Enter. Each player has a row with a button for every
 ## character - pressed, that character is theirs (Campaign.controllers).
 ## Anybody nobody has picked is the first player's. On the title screen (every
-## character), and on a map (the party as it stands, `only_party`) - put up by
-## itself when a player is left steering nobody (ExplorationScene "Co-op").
-## Over a network, Host and Join are here too (Net).
+## character), and on a map or in a fight (the party as it stands, `only_party`)
+## as the pause menu's Party Management (`management`; open_over) - put up by
+## itself on a map when a player is left steering nobody (ExplorationScene
+## "Co-op"). Over a network, Host and Join are here too (Net), and a change of
+## whom each steers is asked of the other player, made only once they agree
+## (Net.ask_for; the designer, 2026-10-30); the host can kick the joiner out.
 
 signal closed
 
@@ -17,8 +20,12 @@ const CHARACTERS := "res://data/characters/"
 
 ## Only who is in the party now, standing - not every character there is.
 var only_party := false
+## Opened as the pause menu's Party Management, which it is called.
+var management := false
 ## A line over the rest - why it came up, when it came up by itself.
 var note := ""
+## The player whose Kick out is waiting to be made sure of, or -1.
+var _kicking := -1
 
 var _rows: VBoxContainer = null
 var _hint: Label = null
@@ -32,8 +39,9 @@ func _ready():
 	alignment = BoxContainer.ALIGNMENT_CENTER
 	add_theme_constant_override("separation", 14)
 	var title := Label.new()
+	title.name = "Title"
 	title.theme_type_variation = GameFonts.HEADER
-	title.text = "Players"
+	title.text = "Party Management" if management else "Players"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", INK)
@@ -57,9 +65,6 @@ func _ready():
 	_hint.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_hint.add_theme_font_size_override("font_size", 14)
 	_hint.add_theme_color_override("font_color", MUTED)
-	_hint.text = "Up to %d on one screen. Press A on a pad, or Enter on the keyboard, to join. Then each player picks who they steer; anybody nobody picks is Player 1's." % Coop.MAX_PLAYERS
-	if only_party:
-		_hint.text = "Each player picks who they steer of the party as it stands; anybody nobody picks is Player 1's."
 	add_child(_hint)
 	_rows = VBoxContainer.new()
 	_rows.name = "Rows"
@@ -123,11 +128,21 @@ static func device_name(device: int) -> String:
 func refresh():
 	if _rows == null:
 		return
+	_hint.text = _hint_text()
 	for child in _rows.get_children():
 		_rows.remove_child(child)
 		child.queue_free()
 	for id in Coop.players.size():
 		_rows.add_child(_row(id))
+
+
+func _hint_text() -> String:
+	var net := _net()
+	if net != null and net.with_another():
+		return "Press one of the other player's characters to ask for them, or one of yours in their row to offer them. It changes once they agree - in a fight, as soon as the fight allows."
+	if only_party:
+		return "Each player picks who they steer of the party as it stands; anybody nobody picks is Player 1's."
+	return "Up to %d on one screen. Press A on a pad, or Enter on the keyboard, to join. Then each player picks who they steer; anybody nobody picks is Player 1's." % Coop.MAX_PLAYERS
 
 
 func _row(id: int) -> Control:
@@ -157,14 +172,42 @@ func _row(id: int) -> Control:
 		pick.pressed.connect(choose.bind(key, id))
 		row.add_child(pick)
 	# Over a network the joiner leaves from the network half (Net), and the
-	# host's Leave on the joiner's row sends their machine away.
+	# host - who leads - can kick the joiner out, once it is sure.
 	if id > 0 and not _joining():
-		var leave := Button.new()
-		leave.name = "Leave"
-		leave.text = "Leave"
-		leave.flat = true
-		leave.pressed.connect(_leave.bind(id))
-		row.add_child(leave)
+		if Coop.is_local(id):
+			var leave := Button.new()
+			leave.name = "Leave"
+			leave.text = "Leave"
+			leave.flat = true
+			leave.pressed.connect(_leave.bind(id))
+			row.add_child(leave)
+		elif _kicking == id:
+			var sure := Label.new()
+			sure.text = "Kick %s out?" % Coop.name_of(id)
+			sure.add_theme_color_override("font_color", Color("e8c27a"))
+			row.add_child(sure)
+			var yes := Button.new()
+			yes.name = "KickYes"
+			yes.text = "Kick out"
+			yes.pressed.connect(_kick.bind(id))
+			row.add_child(yes)
+			var no := Button.new()
+			no.name = "KickNo"
+			no.text = "Keep"
+			no.pressed.connect(func():
+				_kicking = -1
+				refresh())
+			row.add_child(no)
+		else:
+			var kick := Button.new()
+			kick.name = "Kick"
+			kick.text = "Kick out"
+			kick.flat = true
+			kick.tooltip_text = "Send %s's machine out of the game" % Coop.name_of(id)
+			kick.pressed.connect(func():
+				_kicking = id
+				refresh())
+			row.add_child(kick)
 	return row
 
 
@@ -181,20 +224,64 @@ func _joining() -> bool:
 func _leave(id: int):
 	if Coop.is_local(id):
 		Coop.leave(id)
-	elif _net() != null:
-		_net().send_away(id)
 
 
-## `key` steered by player `id` from now on - on a joiner, asked of the host.
+func _kick(id: int):
+	_kicking = -1
+	if _net() != null:
+		_net().kick(id)
+	refresh()
+
+
+## `key` steered by player `id` from now on - over a network, asked of the
+## other player (Net.ask_for), the buttons left as they stand until they agree.
 func choose(key: String, id: int):
+	var net := _net()
+	if net != null and net.with_another():
+		if Coop.controller_of(key) != id:
+			net.ask_for(key, id)
+		refresh()
+		return
 	if _joining():
-		_net().ask_to_steer(key, id)
 		return
 	if id <= 0:
 		Campaign.controllers.erase(key)
 	else:
 		Campaign.controllers[key] = id
 	Coop.players_changed.emit()
+	# In a fight, whose turn this is may be somebody else's now.
+	var scene := get_tree().current_scene if is_inside_tree() else null
+	if scene is GameScene and scene.combat != null and is_instance_valid(scene.combat) and not scene.combat.combat_over \
+			and not scene.combat.combatants.is_empty():
+		var combat: Combat = scene.combat
+		Coop.fight_turn(combat.player_of(combat.get_current_combatant()) if combat.controller.player_turn else Coop.ANYONE)
+
+
+## The panel over `scene` - a map or a fight - with the party as it stands, as
+## the pause menu's Party Management: on a layer of its own, dimmed behind,
+## holding the game while it is up (over a network, only this machine's own
+## party). Done frees it.
+static func open_over(scene: Node, note: String = "") -> CanvasLayer:
+	var layer := CanvasLayer.new()
+	layer.name = "PartyManagement"
+	layer.layer = 60
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	scene.add_child(layer)
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.6)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(dim)
+	var panel := PlayersPanel.new()
+	panel.only_party = true
+	panel.management = true
+	panel.note = note
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.closed.connect(func():
+		MenuPause.release(panel)
+		layer.queue_free())
+	layer.add_child(panel)
+	MenuPause.hold(panel)
+	return layer
 
 
 func close():

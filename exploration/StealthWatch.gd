@@ -713,6 +713,10 @@ func go_invisible(keys: Array = []) -> bool:
 		return false
 	if scene.has_method("is_holding") and scene.is_holding():
 		return false
+	# Chosen on a puppet's screen, cast on the host's map (Net).
+	if puppet:
+		Net.do_on_host("invisible", [who])
+		return true
 	var spell := invisibility_spell(who.size())
 	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
 	if not Campaign.spend_outside_gate(spell.caster, skill.outside_gate, who.size()):
@@ -813,8 +817,11 @@ var _opener := {}
 const BREAKABLE_WALL := "breakable_wall"
 
 
-## The guard the pointer is on, or null.
+## The guard the pointer is on, or null - for another machine's player, their
+## press done here, the one their pointer was on there (Net.pointed_guard).
 func hovered_guard() -> Guard:
+	if Net.pointing_afar():
+		return Net.pointed_guard(self)
 	return _hovered if is_instance_valid(_hovered) else null
 
 
@@ -1013,6 +1020,10 @@ func ready_refusal(key: String, move: String, trigger: int, centre: Vector2i = N
 func ready_outside(key: String, move: String, trigger: int, centre: Vector2i = NO_TILE, watched: Guard = null) -> bool:
 	if ready_refusal(key, move, trigger, centre, watched) != "":
 		return false
+	# Pointed and chosen on a puppet's screen, readied on the host's map (Net).
+	if puppet:
+		Net.do_on_host("ready", [key, move, trigger, centre, _id_of(watched) if watched != null else ""])
+		return true
 	var skill: SkillDefinition = OutsideMoves.definition_of(move)
 	var paid := {}
 	if OutsideMoves.use_of(skill) != OutsideMoves.Use.AMBUSH:
@@ -1272,6 +1283,10 @@ func familiar_refusal() -> String:
 func summon_familiar() -> bool:
 	if familiar_refusal() != "" or keeper == null:
 		return false
+	# A puppet's map is the host's: it is called there (Net).
+	if puppet:
+		Net.do_on_host("summon_familiar", [])
+		return true
 	var spell := familiar_spell()
 	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
 	var paid := FamiliarKeeper.pay(spell.caster, skill)
@@ -1300,6 +1315,9 @@ func toggle_familiar_control() -> bool:
 ## Lets the familiar go - `why` for the log, or a plain parting.
 func dismiss_familiar(why: String = ""):
 	if familiar == null:
+		return
+	if puppet:
+		Net.do_on_host("dismiss_familiar", [])
 		return
 	familiar_doubt.clear()
 	keeper.dismiss(why)
@@ -2723,6 +2741,13 @@ func throw_at(tile: Vector2i) -> bool:
 	var item: ItemDefinition = ItemDatabase.item(item_key) if item_key != "" else null
 	if item == null or not can_throw_to(tile):
 		return false
+	# Aimed on a puppet's screen, thrown on the host's map (Net).
+	if puppet:
+		_aiming = ""
+		_last_thrown = item_key
+		queue_redraw()
+		Net.do_on_host("throw", [item_key, tile])
+		return true
 	Campaign.take_item(leader_key(), item_key)
 	_aiming = ""
 	_last_thrown = item_key
@@ -3036,18 +3061,27 @@ func _click_on_guard(event):
 	if spotted_by != null or _lacing != null or (scene.has_method("is_holding") and scene.is_holding()):
 		return
 	var tile = tile_of(_world_at(event.position))
-	var clicked = _guard_on(tile)
-	var done := false
-	if event.button_index == MOUSE_BUTTON_RIGHT:
-		done = pick_pocket(clicked)
-	elif _dragging != null:
-		done = put_down(tile)
-	elif _can_drag(clicked):
-		done = drag(clicked)
-	else:
-		done = take_down(clicked) or drag()
-	if done:
+	# On a puppet the click is the host's to act on, as this machine's player's
+	# (Net) - whatever it comes to there.
+	if puppet:
+		if Coop.player_of_event(event) != Coop.ANYONE or not Coop.on():
+			Net.do_on_host("click", [event.button_index == MOUSE_BUTTON_RIGHT, tile])
+		return
+	if click_at(tile, event.button_index == MOUSE_BUTTON_RIGHT):
 		get_viewport().set_input_as_handled()
+
+
+## A click on `tile` - `right`, or left - as _click_on_guard says: true when it
+## did something.
+func click_at(tile: Vector2i, right: bool) -> bool:
+	var clicked = _guard_on(tile)
+	if right:
+		return pick_pocket(clicked)
+	if _dragging != null:
+		return put_down(tile)
+	if _can_drag(clicked):
+		return drag(clicked)
+	return take_down(clicked) or drag()
 
 
 ## Whoever is on `tile` and on show - or stuffed into a hiding spot there -
@@ -3838,6 +3872,14 @@ func net_state() -> Dictionary:
 	for pickup in _pickups:
 		if is_instance_valid(pickup) and pickup.visible:
 			state.pickups.append(_id_of(pickup))
+	# What is the party's as a whole: listening, who is unseen, and what is
+	# readied - for the joiner's screen to show as this one does.
+	state["ears"] = [_ears_left, _ears_cooldown]
+	state["unseen"] = _unseen.duplicate()
+	var readied := {}
+	for key in readied_outside:
+		readied[key] = [readied_outside[key].move, readied_outside[key].trigger, readied_outside[key].area.keys()]
+	state["readied"] = readied
 	return state
 
 
@@ -3879,6 +3921,31 @@ func apply_net_state(state: Dictionary):
 		for pickup in _pickups:
 			if is_instance_valid(pickup) and pickup.visible and not lying.has(_id_of(pickup)):
 				pickup.visible = false
+	var ears = state.get("ears", [])
+	if ears is Array and ears.size() == 2:
+		_ears_left = maxf(float(ears[0]), 0.0)
+		_ears_cooldown = maxf(float(ears[1]), 0.0)
+	var unseen = state.get("unseen", {})
+	if unseen is Dictionary:
+		_unseen.clear()
+		for key in unseen:
+			if typeof(key) == TYPE_STRING:
+				_unseen[key] = float(unseen[key])
+	var readied = state.get("readied", {})
+	if readied is Dictionary:
+		var shown := {}
+		for key in readied:
+			var said = readied[key]
+			if typeof(key) == TYPE_STRING and said is Array and said.size() == 3 and said[2] is Array:
+				var area := {}
+				for tile in said[2]:
+					if typeof(tile) == TYPE_VECTOR2I:
+						area[tile] = true
+				shown[key] = {"move": str(said[0]), "trigger": int(said[1]), "area": area, "centre": NO_TILE, "watched": null,
+					"near": [], "inside": []}
+		if var_to_str(shown.keys()) != var_to_str(readied_outside.keys()) or shown.size() != readied_outside.size():
+			queue_redraw()
+		readied_outside = shown
 
 
 func _play_puppet():

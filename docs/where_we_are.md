@@ -3,7 +3,8 @@
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
 updated 2026-10-30, after Steps 2 and 3 of the network play (LAN, and online
-by UPnP). Steps 4 and 5 wait on the designer.
+by UPnP), the designer's additions to it, and the placeholder projectiles.
+Steps 4 and 5 wait on the designer.
 
 ## How the designer works with Claude
 
@@ -17,7 +18,7 @@ by UPnP). Steps 4 and 5 wait on the designer.
   designer as they/them.
 - Commit and push at the end of every piece of work. Kill processes by pid.
   Never shut down or restart the computer.
-- Tests: `tests/run.sh` (all 139 suites) or `tests/run.sh outside familiar`.
+- Tests: `tests/run.sh` (all 141 suites) or `tests/run.sh outside familiar`.
   In the cloud, five suites fail on untouched code too, for environment
   reasons: audio, encmusic (the music `.wav` files are not in git), gear,
   editor, sweep. Locally, with the music present, audio and encmusic may pass.
@@ -37,16 +38,26 @@ Steps 0-5 with what to change where and how to test it. In order:
 1. **The seeded fight RNG** - done 2026-10-29: every roll in a fight through
    `Combat.rng`, seeded from the encounter's "seed" (CLAUDE.md "Rolls in a
    fight"; suite `rolls`).
-2. **LAN** (`multiplayer/Net.gd`) - under way (2026-10-30): hosting, joining,
-   finding games, seating players across machines, joining a game under way and
-   following the host's scene and Campaign, walking together, the joiner's
-   presses done on the host, pings both ways, the host's guards shown on the
-   joiner, menus that stop nothing over a network, fights replayed from the
-   moves with a checksum, conversations mirrored and leaving mid-fight are
-   built, and what the joiner's menus change goes to the host (CLAUDE.md
-   "Network play"; suite `net`, which starts a second headless Godot). Still to
-   come: pointer-aimed stealth moves and the familiar - and trying it on two
-   real machines.
+2. **LAN** (`multiplayer/Net.gd`) - built 2026-10-30 (CLAUDE.md "Network
+   play"; suite `net`, which starts a second headless Godot). What is in it:
+   - hosting, joining and finding games, and seating players across machines;
+   - joining a game under way, a fight too, and following the host's scene and
+     Campaign;
+   - walking together, the joiner's presses done on the host, and what it aims
+     or chooses on its own screen;
+   - pings both ways, and the host's guards shown on the joiner;
+   - menus that stop nothing over a network, and what the joiner's menus change
+     going to the host;
+   - fights replayed from the moves with a checksum;
+   - conversations whose answers both pick;
+   - whom each plays, chosen on joining and changed by asking (Party
+     Management), and the host kicking;
+   - the familiar, hacks and quick times across;
+   - leaving mid-fight.
+
+   Still to come: trying it on two real machines. Not across yet: the
+   point-and-click pictures, stores, and a dragged body's pace
+   (`docs/multiplayer_plan.md` "Added after Step 3").
 3. **Online by ENet + UPnP** - built 2026-10-30: hosting asks the router to
    open the game to the internet, and the Players panel names a virtual LAN
    app (Tailscale, ZeroTier, Radmin VPN) when it will not. Not yet tried
@@ -62,6 +73,36 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **Placeholder projectiles** (the designer, 2026-10-30, "go ahead with what you
+  suggested ... add traces following behind"): `combat/Projectile.gd`, CLAUDE.md
+  "Projectiles", suite `projectile`. Every move but a melee blow, one at its
+  user's own tile or one that moves somebody is seen going from its user to
+  where it was aimed:
+  - an orb in its element's colour, a trail behind it, a burst where it
+    lands;
+  - a bolt, an arc over what is in the way, a streak along a line, or a fan of
+    three for a cone.
+
+  The blow lands as it arrives. Each move has Projectile Style, Texture, Scene
+  and Colour slots. The designer also asked for ways to make moves land
+  harder: `docs/move_feel_proposals.md` (all PROPOSAL).
+- **The designer's additions to network play** (2026-10-30;
+  `docs/multiplayer_plan.md` "Added after Step 3"):
+  - The joiner chooses whom to play on joining; the host keeps at least one.
+  - Party Management in the pause menu, on a map and in a fight: a change is
+    asked of the other player, and made only if they agree. In a fight it
+    waits for one of the host's characters' turns and goes with the moves.
+  - The host can kick the joiner out.
+  - Conversations: both pick the answer; picked differently, both pick again.
+  - A joiner seated mid-fight comes into the fight: it plays it through from
+    its beginning, fast, until it stands where the host's does.
+  - What the joiner aims and chooses on a map is its own, on its own screen,
+    and only the result goes to the host: a throw, a click on a guard, a
+    readied cone, the guard a move is used on, who goes unseen, the Outside
+    Spell's choice.
+  - Alithia's familiar is shared.
+  - A hack or a quick time on a map is played by whoever it is for. Over a
+    network neither pauses.
 - **Online by ENet + UPnP** (network play Step 3): hosting asks the router to
   open the game's port (on a thread), the Players panel shows the address to
   send or points at a virtual LAN app, and the port is shut on leaving. The
@@ -159,7 +200,21 @@ holds the game for both).
    browser version comes off and the Mac and Linux builds go up. Shipping the
    music as Ogg Vorbis, and notarizing the Mac build (an Apple developer
    account), are theirs to decide (`docs/multiplayer_plan.md` Step 0).
-7. **OPEN rows in the ledger**, among them:
+   The additions of 2026-10-30 were built with these defaults (PROPOSAL):
+   - the host keeps at least one character when the joiner chooses;
+   - over a network, whoever began a conversation presses on through its
+     lines, and plays any quick time in it;
+   - local co-op still lets whoever began a conversation choose (the
+     designer's "both pick" was about a network game);
+   - a fight joined under way is played through at 8 times the speed;
+   - a change of hands in a fight waits for one of the host's characters'
+     turns.
+7. **Projectiles and how moves feel:** the projectiles' timings (0.16-0.5 s
+   by distance, a fifth longer for an arc) and the Automatic styles are
+   PROPOSAL. The ways to make moves land harder are all in
+   `docs/move_feel_proposals.md`, its "What to try first" a suggested order -
+   the designer picks.
+8. **OPEN rows in the ledger**, among them:
    - Deep Corrosion's duration (5 vs the handoff's 3);
    - Corrosive Round at 41 equal to the Gun;
    - Venom Fan vs Exposing Shot;

@@ -61,6 +61,8 @@ var _rng := RandomNumberGenerator.new()
 var _scene_at_start: Node = null
 var _paused_here := false
 var _rooted_party = null
+## Held over a network as a menu is (MenuPause), rather than paused.
+var _held_as_a_menu := false
 
 var _layer: CanvasLayer = null
 var _board = null
@@ -109,8 +111,13 @@ func running() -> bool:
 ## Runs `hack`, and returns how it went: {"result": "success", "failed",
 ## "walked_away", "locked", "nobody" or "busy", "set_off": bool, "locked_out":
 ## bool}. `id` names it for the flags it leaves ("" for none). In a fight,
-## `combat` and the combatant `hacker`.
-func run(hack: HackDefinition, id: String = "", combat = null, hacker: Dictionary = {}) -> Dictionary:
+## `combat` and the combatant `hacker`; outside one, `key` names who hacks, or
+## the best of the party does.
+##
+## Over a network a hack outside a fight set going by the other machine's
+## player is theirs to play, on their own screen (Net.hack_afar): this waits
+## for how it went, and what it cost, and settles it here.
+func run(hack: HackDefinition, id: String = "", combat = null, hacker: Dictionary = {}, key: String = "") -> Dictionary:
 	if _running or hack == null:
 		return {"result": "busy"}
 	if id != "" and locked(id):
@@ -118,12 +125,19 @@ func run(hack: HackDefinition, id: String = "", combat = null, hacker: Dictionar
 		return {"result": "locked"}
 	_combat = combat
 	_hacker = hacker
-	_hacker_key = hacker.get("combatant_key", "") if combat != null else hacker_key()
+	_hacker_key = hacker.get("combatant_key", "") if combat != null else (key if key != "" else hacker_key())
 	if combat == null and _hacker_key == "":
 		Campaign.announce("Nobody here knows how to hack this.\n")
 		return {"result": "nobody"}
 	_hack = hack
 	_id = id
+	var net = get_node_or_null("/root/Net")
+	if combat == null and net != null and net.plays_afar(Coop.acting):
+		_running = true
+		var played: Dictionary = await net.hack_afar(Coop.acting, hack, id, _hacker_key)
+		_running = false
+		_settle(played)
+		return played
 	_running = true
 	_done = false
 	_failed_once = false
@@ -224,7 +238,11 @@ func _spend_gate(level: int) -> bool:
 		_hacker.spell_slots[gate] -= 1
 		_combat.update_combatants.emit(_combat.combatants)
 		return true
-	return Campaign.spend_gate_outside(_hacker_key, gate)
+	if not Campaign.spend_gate_outside(_hacker_key, gate):
+		return false
+	# Played for the host over a network: spent there too (Net).
+	Net.hack_cost("gates", gate)
+	return true
 
 
 ## --- A try ---
@@ -275,9 +293,13 @@ func _pay_retry():
 					_combat.update_combatants.emit(_combat.combatants)
 			else:
 				Campaign.strain(_hacker_key, amount)
+				Net.hack_cost("strain", amount)
 		HackDefinition.RetryCost.ALERT:
 			var watch = Campaign.stealth_watch
-			if watch != null and is_instance_valid(watch):
+			# A puppet's guards are the host's: raised there (Net).
+			if watch != null and is_instance_valid(watch) and watch.puppet:
+				Net.hack_cost("alert", _retry_cost / 100.0)
+			elif watch != null and is_instance_valid(watch):
 				watch.raise_alert(_retry_cost / 100.0)
 
 
@@ -417,6 +439,14 @@ func _process(delta: float):
 func _hold_world():
 	_paused_here = false
 	_rooted_party = null
+	_held_as_a_menu = false
+	# Over a network nothing stops for it (the designer, 2026-10-29): only this
+	# machine's own party stands, as for any menu (Net).
+	var net = get_node_or_null("/root/Net")
+	if net != null and net.with_another():
+		MenuPause.hold(self)
+		_held_as_a_menu = true
+		return
 	if _combat == null and _hack.world_keeps_moving and Campaign.stealth_watch != null and is_instance_valid(Campaign.stealth_watch):
 		# The guards carry on: only the party stands still while he works.
 		var scene = get_tree().current_scene
@@ -430,6 +460,9 @@ func _hold_world():
 
 
 func _release_world():
+	if _held_as_a_menu:
+		MenuPause.release(self)
+	_held_as_a_menu = false
 	if _rooted_party != null and is_instance_valid(_rooted_party):
 		_rooted_party.rooted = false
 	_rooted_party = null

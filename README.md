@@ -101,21 +101,29 @@ and the button names; `tests/pad_test_driver.gd` plays every row above.
 
 ### Two players
 
-**On one screen:** open **Players** on the title screen or from the pause menu,
-press **A** on a second pad (or **Enter** on the keyboard) to join, and pick
-whom each player steers. Each walks their own group, fights their own
-characters' turns and answers their own characters' questions; **Z** (a pad's
-Share) pings something for the other.
+**On one screen:** open **Players** on the title screen (or **Party
+Management** in the pause menu), press **A** on a second pad (or **Enter** on
+the keyboard) to join, and pick whom each player steers. Each walks their own
+group, fights their own characters' turns and answers their own characters'
+questions; **Z** (a pad's Share) pings something for the other.
 
 **Over a network** (two machines on one network): one player opens **Players**
 and presses **Host a game**; the other opens **Players**, presses **Look for
 games** and joins the game that appears - or types the address the host's
-screen shows, which always works, a virtual LAN included. The host's machine
-decides: the joiner goes wherever the host goes and has the host's story, gold
-and bags. Each walks their own group; fights are played on both machines from
-the same moves, and a question in a fight is put to whoever's character it is;
-a conversation is the host's, and whoever started it goes on and chooses. Over
-a network a menu stops nothing - only its own player's party stands still - and
+screen shows, which always works, a virtual LAN included. Coming in, the joiner
+chooses whom to play; the host keeps the rest. The host's machine decides: the
+joiner goes wherever the host goes and has the host's story, gold and bags -
+even into a fight under way, which it plays through quickly from its start
+until it is where the host is. Each walks their own group, and aims, throws
+and chooses on their own screen. Fights are played on both machines from the
+same moves, and a question, a quick time or a hack is put to whoever's it is.
+A conversation is the host's: whoever started it goes on through its lines,
+and both pick its answers - picked differently, both pick again. To change who
+plays whom, open **Party Management** in the pause menu (on a map or in a
+fight) and press one of the other player's characters to ask for them, or one
+of yours to offer them; it changes once they agree, in a fight as soon as the
+fight allows. The host leads, and can **Kick out** the joiner there. Over a
+network a menu stops nothing - only its own player's party stands still - and
 a player leaving, even mid-fight, hands their characters to the other. The
 first time a machine hosts or looks for games, Windows asks whether to let the
 game through its firewall: allow it on private networks.
@@ -129,9 +137,8 @@ join the same network in it, and join by the address the app gives the host's
 machine, as on a LAN.
 
 What the joiner changes in a menu - the bags, gear, gold, spells, paths - is
-sent to the host when the menu closes. Not across the network yet: what is
-aimed with the pointer on a map (where a throw lands, a click on a guard, a
-readied cone) and the familiar.
+sent to the host when the menu closes. Not across the network yet: the
+point-and-click pictures and the stores, which open on the host's screen only.
 
 ## The shape of it
 
@@ -183,7 +190,7 @@ and `CombatantDatabase.combatants["cyrus"]` work from anywhere.
 | `pictures/` | Point-and-click pictures, and `feedback.tres` for their sounds and cursors |
 | `scenes/` | The game's own screens: the title screen, the battle, walking around, story screens |
 | `demos/` | Scenes to open and press F6 on to try something: the stealth demo, the stealth stages, the clues demo |
-| `campaign/`, `combat/`, `control/`, `exploration/`, `hacking/`, `multiplayer/`, `ui/` | The code: the playthrough's state, the fights, the grid and camera, walking around (stealth and pictures too), the hacking minigames, two-player co-op and pings, and the screens |
+| `campaign/`, `combat/`, `control/`, `exploration/`, `hacking/`, `multiplayer/`, `ui/` | The code: the playthrough's state, the fights, the grid and camera, walking around (stealth and pictures too), the hacking minigames, two players on one screen or over a network, and pings, and the screens |
 | `tools/` | Editor tools and build scripts: the encounter editor (`encounter_editor.tscn`), the stage builder, the layout painter and void filler, `release.sh` |
 | `tests/` | The test suites (see `tests/README.md`) |
 | `docs/` | Notes and the store image - not part of the game |

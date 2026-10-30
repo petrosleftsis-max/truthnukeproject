@@ -122,6 +122,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if is_instance_valid(dialogue_line):
 		progress.visible = not dialogue_label.is_typing and dialogue_line.responses.size() == 0 and not dialogue_line.has_tag("voice")
+	_place_choice_note()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -197,6 +198,7 @@ func apply_dialogue_line() -> void:
 
 	responses_menu.hide()
 	responses_menu.responses = dialogue_line.responses
+	show_choice_note("", false)
 	# Over a network the joiner is shown the line too (Net).
 	var net = get_node_or_null("/root/Net")
 	if net != null:
@@ -304,7 +306,65 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 
 
 func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
+	# Over a network an answer is both players' to choose, and waits for the
+	# other's (Net; the designer, 2026-10-30).
+	var net = get_node_or_null("/root/Net")
+	if net != null and net.chooses_together(self):
+		net.chose_here(self, dialogue_line.responses.find(response))
+		return
 	next(response.next_id)
+
+
+## --- Choosing together ---
+##
+## Over a network both players choose an answer (Net._settle_picks): once this
+## machine's player has picked, the answers go while the other's pick is
+## waited for, and a line says how it stands; picked differently, the answers
+## come back with what each chose.
+
+## The line over the answers, built the first time it is wanted.
+var _choice_note: Label = null
+
+
+## `text` over the answers ("" for none) - `waiting` for the other player, the
+## answers put away meanwhile.
+func show_choice_note(text: String, waiting: bool) -> void:
+	if text == "" and _choice_note == null:
+		return
+	if _choice_note == null:
+		_choice_note = Label.new()
+		_choice_note.name = "ChoiceNote"
+		_choice_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_choice_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		# Wrapped, a label is as wide as it is told to be: told nothing, a letter.
+		_choice_note.custom_minimum_size = Vector2(720, 0)
+		_choice_note.add_theme_font_size_override("font_size", 18)
+		_choice_note.add_theme_color_override("font_color", Color("e8c27a"))
+		_choice_note.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		_choice_note.add_theme_constant_override("outline_size", 6)
+		_choice_note.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		balloon.add_child(_choice_note)
+	_choice_note.text = text
+	_choice_note.visible = text != ""
+	if is_instance_valid(dialogue_line) and dialogue_line.responses.size() > 0 and not dialogue_label.is_typing:
+		responses_menu.visible = not waiting
+
+
+## The two picks differed: the answers again, and `text` saying what each chose.
+func choose_again(text: String) -> void:
+	show_choice_note(text, false)
+	responses_menu.show()
+	responses_menu.configure_focus()
+
+
+func _place_choice_note() -> void:
+	if _choice_note == null or not _choice_note.visible:
+		return
+	var screen := balloon.size
+	_choice_note.reset_size()
+	var above: float = responses_menu.global_position.y - balloon.global_position.y - _choice_note.size.y - 12.0 \
+		if responses_menu.visible else screen.y * 0.5 - _choice_note.size.y
+	_choice_note.position = Vector2(roundf((screen.x - _choice_note.size.x) / 2.0), roundf(above))
 
 
 ## Over a network: the joiner's player, whose conversation this is, pressed on

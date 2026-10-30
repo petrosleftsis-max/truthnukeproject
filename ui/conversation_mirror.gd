@@ -2,10 +2,12 @@ extends CanvasLayer
 class_name ConversationMirror
 ## A conversation on the host's machine, shown on the joiner's (Net): the line,
 ## who says it, and the answers there are. The conversation itself runs only on
-## the host. When it is the joiner's player's - they started it - they press on
-## and choose here, and that is sent back; otherwise this only shows what the
-## host's player is reading. While it is up nothing else here hears a press but
-## Escape, which is the pause menu's.
+## the host. When the joiner's player began it they press on through its lines
+## here, and that is sent back; otherwise this shows what the host's player is
+## reading. An answer is both players' to choose (the designer, 2026-10-30):
+## picked here, it is sent and the answers wait for the other's pick; picked
+## differently, they come back with what each chose (choose_again). While it is
+## up nothing else here hears a press but Escape, which is the pause menu's.
 
 const INK := Color("dce8f5")
 const MUTED := Color("8296a9")
@@ -68,23 +70,51 @@ func show_line(character: String, text: String, answers: Array, is_mine: bool):
 	for child in _answers.get_children():
 		_answers.remove_child(child)
 		child.queue_free()
+	_allowed.clear()
 	var first: Button = null
 	for i in answers.size():
 		var button := Button.new()
 		button.text = answers[i][0]
-		button.disabled = not mine or not answers[i][1]
-		button.pressed.connect(Net.answer_line.bind(i))
+		button.disabled = not answers[i][1]
+		button.pressed.connect(_pick.bind(i))
 		_answers.add_child(button)
+		_allowed.append(answers[i][1])
 		if first == null and not button.disabled:
 			first = button
-	if not mine:
+	if not answers.is_empty():
+		_hint.text = "Choose together - the answer you both pick is taken."
+	elif not mine:
 		_hint.text = "The other player is reading."
-	elif answers.is_empty():
-		_hint.text = "Press %s to go on" % Pad.key(&"ui_accept")
 	else:
-		_hint.text = ""
+		_hint.text = "Press %s to go on" % Pad.key(&"ui_accept")
 	if first != null:
 		first.grab_focus()
+
+
+## Which answers may be picked at all, by number.
+var _allowed: Array = []
+
+
+func _pick(index: int):
+	Net.answer_line(index)
+	show_pick_note("Waiting for the other player to choose...", true)
+
+
+## How the choosing stands - `waiting` with this player's pick in, the answers
+## put away until the other's comes.
+func show_pick_note(text: String, waiting: bool):
+	_hint.text = text
+	for i in _answers.get_child_count():
+		_answers.get_child(i).disabled = waiting or not _allowed[i]
+
+
+## The picks differed: the answers again, and `text` saying what each chose.
+func choose_again(text: String):
+	show_pick_note(text, false)
+	for child in _answers.get_children():
+		if not child.disabled:
+			child.grab_focus()
+			break
 
 
 func _unhandled_input(event: InputEvent):

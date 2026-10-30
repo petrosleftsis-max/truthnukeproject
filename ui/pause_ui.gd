@@ -46,7 +46,8 @@ var _speed: BattleSpeedPicker = null
 var _window_mode: WindowModePicker = null
 ## Restart Stage, and every Pause button whether shown or not.
 var _restart: Button = null
-## Players (Coop), on a map: who steers whom, and joining.
+## Party Management (Coop, Net), on a map or in a fight: who steers whom,
+## joining - and over a network, asking the other player for a change.
 var _players: Button = null
 var _all_pause_buttons: Array = []
 
@@ -56,7 +57,7 @@ var _all_pause_buttons: Array = []
 ## whose run a fight picked from the list would step outside of.
 func _offer_restart():
 	_restart.visible = Campaign.can_restart_stealth()
-	_players.visible = get_tree().current_scene is ExplorationScene
+	_players.visible = get_tree().current_scene is ExplorationScene or get_tree().current_scene is GameScene
 	_save_button.visible = SaveGame.why_not(get_tree()) == ""
 	_load_button.visible = SaveGame.latest() != ""
 	$PausePanel/VBox/LevelSelectButton.visible = not Campaign.in_dungeon()
@@ -64,13 +65,16 @@ func _offer_restart():
 	FocusLoop.link(_pause_buttons)
 
 
-## The Players panel over the map (ExplorationScene.open_players): a second
-## player joining, or the party shared out again.
+## Party Management: the Players panel over the map (ExplorationScene
+## .open_players) or the fight (PlayersPanel.open_over) - a second player
+## joining, the party shared out again, a change asked for over a network.
 func _on_players_pressed():
 	var scene = get_tree().current_scene
 	_close()
 	if scene is ExplorationScene:
-		scene.open_players()
+		scene.open_players("", true)
+	elif scene is GameScene:
+		PlayersPanel.open_over(scene)
 
 
 func _on_restart_pressed():
@@ -123,7 +127,7 @@ func _ready():
 	$PausePanel/VBox.move_child(_load_button, _save_button.get_index() + 1)
 	_players = Button.new()
 	_players.name = "PlayersButton"
-	_players.text = "Players"
+	_players.text = "Party Management"
 	_players.pressed.connect(_on_players_pressed)
 	$PausePanel/VBox.add_child(_players)
 	$PausePanel/VBox.move_child(_players, _load_button.get_index() + 1)

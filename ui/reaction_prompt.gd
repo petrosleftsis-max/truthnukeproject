@@ -121,12 +121,14 @@ func ask_about(title: String, detail: String) -> bool:
 
 ## Shows the question with `first` lit, and waits for the answer. Over a
 ## network it is put up only on the machine of whoever decides - the other
-## waits for what they chose (Net.decided), counted as asking all the while.
+## waits for what they chose (Net.decided), counted as asking all the while. In
+## any fight the answer goes through Net, which keeps it for a player who joins
+## the fight later and plays it through.
 func _put_up(title: String, detail: String, first: Control) -> bool:
 	var decider := _decider
 	_decider = Coop.ANYONE
 	var net = get_node_or_null("/root/Net")
-	if net == null or not net.in_a_shared_fight():
+	if net == null or not net.in_a_fight():
 		return await _ask_here(decider, title, detail, first)
 	var who := decider if decider != Coop.ANYONE else (Coop.focus if Coop.focus != Coop.ANYONE else 0)
 	_asking_afar = true

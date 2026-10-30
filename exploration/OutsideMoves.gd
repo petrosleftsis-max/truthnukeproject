@@ -396,6 +396,12 @@ static func use(scene: Node, key: String, move: String) -> bool:
 	var watch = scene.get("stealth")
 	if watch != null and not is_instance_valid(watch):
 		watch = null
+	# On a joiner the host's map is where it is used, as this player's - but for
+	# whom it hides, chosen here (Net; the picker's choice goes there too).
+	var net = scene.get_node_or_null("/root/Net")
+	if net != null and net.follows() and kind != Use.INVISIBILITY:
+		net.use_move(key, move)
+		return true
 	match kind:
 		Use.FAMILIAR:
 			if scene.familiar_keeper.familiar != null:

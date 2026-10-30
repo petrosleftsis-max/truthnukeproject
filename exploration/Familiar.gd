@@ -38,6 +38,15 @@ var player := -1
 var holding := false
 ## Who it is riding on the shoulder of (FamiliarKeeper.perch), or null.
 var perched_on: Node2D = null
+## Walked on another machine (Net): eased to where it is said to be, its own
+## steering read from nobody's keys here - and, until it is told anything,
+## staying where it is.
+var puppet := false:
+	set(value):
+		if value and not puppet:
+			_puppet_at = global_position
+		puppet = value
+var _puppet_at := Vector2.ZERO
 ## Takes a world position, a size and a movement class; true where it may be.
 var _walkable: Callable = Callable()
 var _facing_left := false
@@ -75,6 +84,12 @@ func perch_on(who: Node2D):
 	moved.emit(global_position)
 
 
+## Another machine says it is at `at`, facing left or not.
+func puppet_to(at: Vector2, facing_left: bool):
+	_puppet_at = at
+	_facing_left = facing_left
+
+
 func _process(delta):
 	queue_redraw()
 	if perched_on != null and not controlled:
@@ -82,6 +97,13 @@ func _process(delta):
 			global_position = perched_on.global_position + SHOULDER
 		else:
 			perched_on = null
+	if puppet and perched_on == null:
+		var was := global_position
+		global_position = global_position.lerp(_puppet_at, minf(1.0, delta * 14.0)) if was.distance_to(_puppet_at) < Grid.TILE_SIZE * 3.0 else _puppet_at
+		_play("walk" if was.distance_to(global_position) > 0.5 else "idle")
+		if was != global_position:
+			moved.emit(global_position)
+		return
 	if not controlled or holding:
 		_play("idle")
 		return

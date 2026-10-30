@@ -361,6 +361,24 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 ## the alternative is re-exporting the audio to balance a fight.
 @export_range(-40.0, 12.0, 0.5) var sound_volume_db: float = 0.0
 
+@export_group("Projectile")
+## How the move is seen travelling from its user to where it was aimed
+## (Projectile; the designer, 2026-10-30). Automatic works it out from the
+## move: nothing for a melee blow or one at the user's own tile, a streak along
+## a line, a fan for a cone, an arc for something that goes over what is in
+## the way (Respects Blocking off), and a straight bolt for the rest.
+enum ProjectileStyle { AUTOMATIC, NONE, BOLT, ARC, STREAK, FAN }
+@export var projectile_style: ProjectileStyle = ProjectileStyle.AUTOMATIC
+## What flies in place of the drawn orb, turned the way it goes, its trail
+## behind it. Empty, the orb.
+@export var projectile_texture: Texture2D
+## A scene of its own to fly instead of anything drawn - turned the way it
+## goes, and told `landed()` as it arrives, if it has that. Empty, the orb.
+@export var projectile_scene: PackedScene
+## Its colour, in place of the element's (or a mend's green). Left clear, the
+## element's.
+@export var projectile_colour: Color = Color(0, 0, 0, 0)
+
 @export_group("Cost")
 ## Which gate this spell is cast through, or None for a skill that costs
 ## nothing.

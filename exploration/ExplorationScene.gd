@@ -696,7 +696,12 @@ func _process(delta):
 	if picker != null or store_screen != null or is_holding() or get_tree().paused or SceneTransition.is_changing():
 		return
 	_hurry_on(delta)
-	_watch_traps()
+	# Over a network the host's map springs the traps, whoever steps on them;
+	# here, one sprung there goes dark (Net).
+	if Net.follows():
+		_traps_gone_dark()
+	else:
+		_watch_traps()
 	if _share_out_due():
 		share_out()
 	elif _paths_due:
@@ -1056,25 +1061,39 @@ var _sharing: CanvasLayer = null
 func _share_out_due() -> bool:
 	if not Coop.on() or _sharing != null or PlayersPanel.party_now().is_empty():
 		return false
-	return not Coop.stranded().is_empty() and Coop.party_shape() != Coop.share_out_offered
+	return not _stranded().is_empty() and Coop.party_shape() != Coop.share_out_offered
+
+
+## The players steering nobody standing - but for one who has just joined over
+## a network and is still choosing whom to play (Net.choosing).
+func _stranded() -> Array:
+	return Coop.stranded().filter(func(id): return not Net.choosing(id))
 
 
 ## Puts the Players panel up, the party as it stands, to share it out again
 ## (the designer, 2026-10-29). Done leaves it as it is.
 func share_out():
 	Coop.share_out_offered = Coop.party_shape()
-	var names := Coop.stranded().map(func(id): return Coop.name_of(id))
+	var names := _stranded().map(func(id): return Coop.name_of(id))
 	open_players("%s has nobody left to steer. Share the party out again - or Done to leave it as it is." % " and ".join(names))
 
 
 ## The Players panel over the map, the party as it stands (the pause menu's
-## Players, and share_out), with `note` over it.
-func open_players(note: String = ""):
+## Party Management - `management` - and share_out), with `note` over it.
+func open_players(note: String = "", management: bool = false):
 	if _sharing != null:
-		return
+		if not management:
+			return
+		# Party Management asked for over an offer to share out: in its place.
+		for offered in _sharing.find_children("*", "PlayersPanel", true, false):
+			offered.close()
+		if _sharing != null:
+			_sharing.queue_free()
+			_sharing = null
 	_sharing = _overlay("ShareOut")
 	var panel := PlayersPanel.new()
 	panel.only_party = true
+	panel.management = management
 	panel.note = note
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel.closed.connect(_shared_out.bind(panel))
@@ -1211,12 +1230,16 @@ func familiar_refusal() -> String:
 	return FamiliarKeeper.cannot_pay(spell.caster, SkillDatabase.skills[spell.skill])
 
 
-## Calls the familiar. False, and nothing spent, when it can't be.
+## Calls the familiar. False, and nothing spent, when it can't be. On a joiner
+## the host's map calls it (Net.do_on_host).
 func summon_familiar() -> bool:
 	if stealth != null:
 		return stealth.summon_familiar()
 	if familiar_refusal() != "":
 		return false
+	if Net.follows():
+		Net.do_on_host("summon_familiar", [])
+		return true
 	var spell := familiar_spell()
 	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
 	var paid := FamiliarKeeper.pay(spell.caster, skill)
@@ -1228,10 +1251,12 @@ func summon_familiar() -> bool:
 	return true
 
 
-## Lets the familiar go.
+## Lets the familiar go - on a joiner, the host's (Net.do_on_host).
 func dismiss_familiar():
 	if stealth != null:
 		stealth.dismiss_familiar()
+	elif Net.follows():
+		Net.do_on_host("dismiss_familiar", [])
 	elif familiar_keeper != null:
 		familiar_keeper.dismiss()
 
@@ -1321,6 +1346,14 @@ func _watch_traps():
 				return
 
 
+## On a joiner: a trap the host's map has sprung - its flag set - unarmed here.
+func _traps_gone_dark():
+	for trap in _traps:
+		if is_instance_valid(trap) and trap.armed and Campaign.flag(trap.flag_for(map_path())):
+			trap.armed = false
+			trap.queue_redraw()
+
+
 ## Who of the party could answer a trap going off, and with what - {"key",
 ## "move"} - or {}: somebody walking here with a Counter Trap move they could
 ## pay for.
@@ -1348,7 +1381,9 @@ func spring_trap(trap: MagicTrap, who: String):
 		var skill: SkillDefinition = SkillDatabase.skills[answer.move]
 		log_message("A glyph flares under [color=yellow]%s[/color] - a laser is being cast! [color=yellow]%s[/color] reaches for %s...\n" % [
 			Campaign.display_name_of(who), Campaign.display_name_of(answer.key), skill.name])
-		hacked = await QuickTime.run(trap.quick_time_event())
+		# Played by whoever steers the one answering - over a network, on their
+		# own machine (Net.quick_time_by).
+		hacked = await Net.quick_time_by(Coop.controller_of(answer.key), trap.quick_time_event())
 		if not is_instance_valid(self):
 			return
 		if hacked:

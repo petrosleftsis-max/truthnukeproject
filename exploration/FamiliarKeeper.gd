@@ -17,6 +17,11 @@ class_name FamiliarKeeper
 ## shoulder, asks the caster's player for it (request_control,
 ## ui/familiar_request.gd - the designer, 2026-10-29), and Tab again hands it
 ## back. Only the caster's player lets it go.
+##
+## Over a network (Net) the host's keeper decides all of that, and the joiner's
+## shows what it says (apply_net_state). Whoever steers it walks it on their own
+## machine, seeing through its eyes there; on the other it is a puppet
+## (Familiar.puppet), put where they say.
 
 ## The animal for a map that names none.
 const DEFAULT_FORM := "res://data/familiars/rat.tres"
@@ -109,6 +114,8 @@ func take_control(to_it: bool, by: int = -1):
 	if familiar != null:
 		familiar.controlled = to_it
 		familiar.player = steerer
+		# Steered from another machine, it goes where they walk it (Net).
+		familiar.puppet = to_it and not steered_here()
 		if to_it:
 			familiar.perched_on = null
 	var party = _group_of(steerer) if to_it else null
@@ -117,9 +124,15 @@ func take_control(to_it: bool, by: int = -1):
 		_rooted_by_it = true
 		_rooted_group = party
 	var leading = scene.get("party") if scene != null else null
-	if scene != null and scene.has_method("_follow_camera") and leading != null and is_instance_valid(leading):
-		scene._follow_camera(familiar.global_position if to_it else leading.position_of_leader())
-	_show_eyes(to_it)
+	if scene != null and scene.has_method("_follow_camera") and leading != null and is_instance_valid(leading) and steered_here():
+		scene._follow_camera(familiar.global_position if to_it and familiar != null else leading.position_of_leader())
+	# Seeing through its eyes is for whoever's screen that is.
+	_show_eyes(to_it and steered_here())
+
+
+## Whether its steerer - anybody, outside co-op - plays on this machine.
+func steered_here() -> bool:
+	return steerer < 0 or Coop.is_local(steerer)
 
 
 ## The co-op player who steers the familiar's caster (Coop.controller_of).
@@ -167,6 +180,10 @@ func request_control(player: int) -> bool:
 	var asked := caster_player()
 	if asked == player:
 		take_control(true, player)
+		return true
+	# Over a network, put to the caster's player on their own machine (Net).
+	if Net.plays_afar(asked):
+		Net.ask_for_the_familiar(player, asked)
 		return true
 	asking = FamiliarRequest.new()
 	asking.keeper = self
@@ -266,8 +283,54 @@ func keep_party_rooted():
 
 
 func _on_moved(at: Vector2):
-	if controlling and scene.has_method("_follow_camera"):
+	if controlling and steered_here() and scene.has_method("_follow_camera"):
 		scene._follow_camera(at)
+
+
+## --- Over a network ---
+
+
+## How it stands, for the joiner's keeper: {} with none out.
+func net_state() -> Dictionary:
+	if familiar == null or not is_instance_valid(familiar) or familiar.form == null:
+		return {}
+	return {"form": familiar.form.resource_path, "caster": caster, "controlling": controlling, "steerer": steerer,
+		"perched": perched(), "at": familiar.global_position, "left": familiar._facing_left}
+
+
+## On the joiner: the host's keeper as it stands (net_state there) - called,
+## steered, perched or let go. Walked here only while this machine's player
+## steers it.
+func apply_net_state(state: Dictionary):
+	if state.is_empty():
+		if familiar != null:
+			take_control(false)
+			familiar.queue_free()
+			familiar = null
+		return
+	var path := str(state.get("form", ""))
+	if not path.begins_with("res://") or not ResourceLoader.exists(path) or typeof(state.get("at")) != TYPE_VECTOR2:
+		return
+	if familiar == null:
+		var form = load(path)
+		if not form is FamiliarForm:
+			return
+		familiar = Familiar.new()
+		familiar.name = "Familiar"
+		scene.add_child(familiar)
+		familiar.setup(form, state.at, Callable(scene, "is_walkable_for"))
+		familiar.moved.connect(_on_moved)
+	caster = str(state.get("caster", caster))
+	var steering := int(state.get("steerer", -1))
+	var steered := bool(state.get("controlling", false))
+	if steered != controlling or steering != steerer:
+		take_control(steered, steering)
+	if not (steered and steered_here()):
+		familiar.puppet = true
+		familiar.puppet_to(state.at, bool(state.get("left", false)))
+	var party = scene.get("party") if scene != null else null
+	var sprite = party.sprite_for(caster) if party != null and bool(state.get("perched", false)) else null
+	familiar.perched_on = sprite if sprite != null and not steered else null
 
 
 func _exit_tree():

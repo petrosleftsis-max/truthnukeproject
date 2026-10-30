@@ -1949,6 +1949,17 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		if has_restriction(attacker, "skips_turn"):
 			update_information.emit("[color=yellow]%s[/color] is stopped before %s lands.\n" % [attacker.name, skill.name])
 			targets = []
+		else:
+			# Seen going from them to where it was aimed - and landing as it
+			# arrives (Projectile; nothing in it is rolled). Nothing else is
+			# begun while it flies, as while the move's animation plays.
+			controller.action_locked = true
+			game_ui.lock_action_buttons()
+			await Projectile.fly(self, attacker, skill, impact_position, tiles)
+			if not still_running() or not attacker.alive:
+				return
+			controller.action_locked = false
+			game_ui.refresh_action_buttons()
 		targets = targets.filter(func(target): return target.get("alive", false) or skill.targets_fallen)
 		# Whoever it hurts, for what goes off once it has (Struck).
 		var struck := []
@@ -2374,6 +2385,9 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	controller.action_locked = false
 	game_ui.refresh_action_buttons()
 	if not attacker.alive or not target.alive:
+		return
+	await Projectile.fly(self, attacker, skill, target.position, [], target)
+	if not still_running() or not attacker.alive or not target.alive:
 		return
 	_land_reaction(attacker, skill, target)
 
@@ -4705,6 +4719,9 @@ func apply_drift(comb: Dictionary):
 ## player's own at normal speed. See GameSettings.ENEMY_SPEEDS.
 func _pace_turn(comb: Dictionary):
 	_turn_scale = GameSettings.enemy_time_scale() if comb.get("side", 0) == 1 else 1.0
+	# Joined under way and playing the fight through to catch up (Net): fast.
+	if Net.catching_up():
+		_turn_scale = Net.CATCH_UP_SPEED
 	if _hit_stop_depth == 0:
 		Engine.time_scale = _turn_scale
 
@@ -14267,10 +14284,14 @@ func _fire_readied(reactor: Dictionary, target: Dictionary, why: String):
 	if not reactor.alive or not target.alive:
 		return
 	var victims := [target]
+	var aim: Vector2i = nearest_across(target, reactor.position)
+	var tiles := [aim]
 	if aoe_radius_of(reactor, skill) > 0:
-		var aim := nearest_across(target, reactor.position)
-		var tiles = get_impact_tiles(skill, nearest_across(reactor, aim), aim, terrain_class(reactor), reactor.get("size", Sizes.Size.HUMAN), reactor)
+		tiles = get_impact_tiles(skill, nearest_across(reactor, aim), aim, terrain_class(reactor), reactor.get("size", Sizes.Size.HUMAN), reactor)
 		victims = get_targets_in_tiles(tiles, reactor, skill.targets_ally, skill.affects_both_sides)
+	await Projectile.fly(self, reactor, skill, aim, tiles, target if aoe_radius_of(reactor, skill) == 0 else {})
+	if not still_running() or not reactor.alive:
+		return
 	for victim in victims:
 		if victim.get("alive", false):
 			_land_reaction(reactor, skill, victim)
