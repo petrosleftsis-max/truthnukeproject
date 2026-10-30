@@ -156,18 +156,40 @@ func _row(id: int) -> Control:
 		pick.tooltip_text = "%s steers %s" % [Coop.name_of(id), Campaign.display_name_of(key)]
 		pick.pressed.connect(choose.bind(key, id))
 		row.add_child(pick)
-	if id > 0:
+	# Over a network the joiner leaves from the network half (Net), and the
+	# host's Leave on the joiner's row sends their machine away.
+	if id > 0 and not _joining():
 		var leave := Button.new()
 		leave.name = "Leave"
 		leave.text = "Leave"
 		leave.flat = true
-		leave.pressed.connect(Coop.leave.bind(id))
+		leave.pressed.connect(_leave.bind(id))
 		row.add_child(leave)
 	return row
 
 
-## `key` steered by player `id` from now on.
+func _net() -> Node:
+	return get_node_or_null("/root/Net")
+
+
+## Whether this machine joined somebody else's game, whose table is theirs.
+func _joining() -> bool:
+	var net := _net()
+	return net != null and net.is_joiner()
+
+
+func _leave(id: int):
+	if Coop.is_local(id):
+		Coop.leave(id)
+	elif _net() != null:
+		_net().send_away(id)
+
+
+## `key` steered by player `id` from now on - on a joiner, asked of the host.
 func choose(key: String, id: int):
+	if _joining():
+		_net().ask_to_steer(key, id)
+		return
 	if id <= 0:
 		Campaign.controllers.erase(key)
 	else:
@@ -189,7 +211,8 @@ func _input(event: InputEvent):
 		device = event.device
 	elif event is InputEventKey and event.is_action_pressed(&"ui_accept"):
 		device = Coop.KEYBOARD
-	if device == -99:
+	# One player for each machine over a network.
+	if device == -99 or _joining():
 		return
 	for player in Coop.players:
 		if player.device == device and Coop.is_local(player.id):

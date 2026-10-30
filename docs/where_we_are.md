@@ -2,7 +2,8 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-10-29, after Step 1 of the network play (the seeded fight RNG).
+updated 2026-10-30, during Step 2 of the network play (LAN: hosting, joining
+and players built).
 
 ## How the designer works with Claude
 
@@ -36,11 +37,13 @@ Steps 0-5 with what to change where and how to test it. In order:
 1. **The seeded fight RNG** - done 2026-10-29: every roll in a fight through
    `Combat.rng`, seeded from the encounter's "seed" (CLAUDE.md "Rolls in a
    fight"; suite `rolls`).
-2. **LAN** (`multiplayer/Net.gd`, new): host / join / broadcast, players and
-   whom they steer across machines, the host's scene and state followed,
-   walking synced, the joiner's presses played on the host, guards run by the
-   host, fights replayed from the moves with a checksum, conversations mirrored,
-   pings. Tested by a suite that starts a second headless Godot.
+2. **LAN** (`multiplayer/Net.gd`) - under way (2026-10-30): hosting, joining,
+   finding games and seating players across machines are built (CLAUDE.md
+   "Network play"; suite `net`, which starts a second headless Godot). Still to
+   come, in the plan's order: the host's scene and state followed, walking
+   synced, the joiner's presses played on the host, guards run by the host,
+   fights replayed from the moves with a checksum, conversations mirrored,
+   menus, pings, leaving.
 3. **Online by ENet + UPnP**, with a virtual LAN app (Tailscale, ZeroTier,
    Radmin VPN) as the fallback players are told about.
 4. **WebRTC on desktop** - once the designer has a signalling server and a TURN
@@ -54,6 +57,12 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **LAN, the first part** (network play Step 2, items 1-2): the `Net` autoload
+  hosts and joins over ENet, a host's beacon is heard by Look for games, the
+  joiner is seated as the second player on its own machine, whom each steers is
+  the host's to set, and a machine leaving takes its player with it. The
+  Players panel has the network half. Suite `net` plays the joiner in a second
+  Godot. Nothing of the game itself is shared yet (scenes, walking, fights).
 - **The seeded fight RNG** (network play Step 1): all 16 rolls in Combat.gd
   through `Combat.rng`, seeded from the encounter's "seed" meta or at random;
   `fight_state()` writes a fight down for a replay to be checked by. Suite
@@ -124,10 +133,11 @@ holds the game for both).
    (PROPOSAL) for its open questions. Also open: which pad button pings (none
    is free; Share for now in co-op), the 10-tile leash, the 12-tile cone, and
    which enemies Protect Their Own. The network itself is approved - see "Next
-   to build". On itch, the designer stops showing the browser version (its
-   settings page) and tries the Mac and Linux builds; shipping the music as
-   Ogg Vorbis, and notarizing the Mac build (an Apple developer account), are
-   theirs to decide (`docs/multiplayer_plan.md` Step 0).
+   to build". **Itch is left alone** - nothing published, the page untouched -
+   until the designer says (2026-10-30: more work on the game first); then the
+   browser version comes off and the Mac and Linux builds go up. Shipping the
+   music as Ogg Vorbis, and notarizing the Mac build (an Apple developer
+   account), are theirs to decide (`docs/multiplayer_plan.md` Step 0).
 7. **OPEN rows in the ledger**, among them:
    - Deep Corrosion's duration (5 vs the handoff's 3);
    - Corrosive Round at 41 equal to the Gun;

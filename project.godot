@@ -36,6 +36,7 @@ QuickTime="*res://quicktime/QuickTime.gd"
 Pad="*res://control/Pad.gd"
 Coop="*res://multiplayer/Coop.gd"
 Pings="*res://multiplayer/Pings.gd"
+Net="*res://multiplayer/Net.gd"
 
 [dialogue_manager]
 

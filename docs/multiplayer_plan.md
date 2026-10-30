@@ -48,7 +48,11 @@ leans on the one before.
 - **Built: Step 1** (the seeded fight RNG, 2026-10-29): `Combat.rng`,
   `seed_rolls`, `_shuffle`, `fight_state`; CLAUDE.md "Rolls in a fight"; suite
   `rolls`.
-- **Not built:** Steps 2-5 below.
+- **Step 2 under way** (2026-10-30): `multiplayer/Net.gd` hosts, joins, finds
+  games by their beacon, and seats players across machines (items 1 and 2
+  below; `ui/net_panel.gd`; suite `net`, which plays the joiner in a second
+  Godot). Items 3-12 to come.
+- **Not built:** the rest of Step 2, and Steps 3-5 below.
 
 ## Step 0 - download only (small; done 2026-10-29)
 
@@ -168,6 +172,15 @@ A `Net` autoload (`multiplayer/Net.gd`, after `Coop` in the autoload list).
 Godot's high-level multiplayer (`MultiplayerAPI`, `ENetMultiplayerPeer`, `@rpc`).
 **The host decides**: it owns `Campaign`, the guards and the scene; the other
 machine sends what its player does and shows what it is told.
+
+Items 1 and 2 are built (2026-10-30). As built: `host(port, bind_ip)` takes an
+address to bind to (the test's 127.0.0.1); the beacon reads `MOT-HOST|protocol|
+port|name`; the hello carries `PROTOCOL` and `build_key()` (the protocol, the
+Godot version and every move, character and item by name), and another version
+or a full table is turned away; the joiner's machine seats one player, with the
+first device it names. One change from the plan: the Players panel listens for
+games only when Look for games is pressed - listening on the network is what
+brings up Windows' firewall question, and a game on one screen should never ask.
 
 1. **Hosting and joining.** `host(port := 24700)` / `join(address, port)` /
    `leave()`; `active()`, `is_host()`. Hosting sets `Coop.networked`,

@@ -378,9 +378,37 @@ theirs alone to answer). Only her player lets it go (`may_dismiss`).
 co-op a pad's Share - alone, Share is still Hide UI): a ring in the player's
 colour where they point (`aim_of`), what is there named (`label_at`), a sound,
 a log line, an arrow at the screen's edge; `PING_SECONDS`, `PINGS_EACH`.
-Over a network nothing is built yet; `docs/multiplayer_plan.md` is the approved
-plan (download only, the seeded fight RNG, LAN, online by ENet + UPnP, WebRTC,
-Steam - in that order). `coop` covers it all.
+`coop` covers it all.
+
+## Network play (two machines)
+
+`docs/multiplayer_plan.md` is the approved plan, built step by step (Step 2,
+LAN, is under way). `Net` (autoload, `multiplayer/Net.gd`, after Coop and Pings)
+is Godot's high-level multiplayer over ENet, and every RPC is on it - an
+autoload's path is the one node path both machines share. **The host decides**:
+it owns Campaign, the scene and the guards; the joiner sends what its player does.
+`host(port, bind_ip)` / `join(address)` / `leave()`; `active()`, `is_host()`,
+`is_joiner()`, `joined()` (seated). Hosting makes the host's players peer 1
+(`Coop.local_peer`), sets `Coop.networked` and sends a beacon (`BEACON`, once a
+second, to `beacon_to` on `discovery_port`) that `look_for_games` hears into
+`found`; an address typed always works too. The joiner's hello (`PROTOCOL`,
+`build_key`, its devices) is checked by `refusal_for` - another version, a full
+table - and the host seats one player for the machine (`Coop.join(device, "",
+peer)`) and sends the whole table (`_table`: Coop.players, Campaign.controllers)
+on every `Coop.players_changed`. On the joiner the Players panel's picks are
+requests (`ask_to_steer`), its Leave buttons are gone and no second pad joins;
+the host's Leave on the joiner's row is `send_away`. A machine dropping out takes
+its player with it (`Coop.leave`: their characters to the other player, mid-fight
+too - the designer, 2026-10-29); a joiner left alone is back to its own players
+(`_own_devices`). Every call from the other machine is checked for its sender and
+its types, and objects never travel. The Players panel's network half is
+`ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
+since listening (or hosting) is what makes Windows ask about its firewall.
+`net` plays two machines: the suite hosts on 127.0.0.1:24790 and starts a second
+headless Godot (`--net-client`) on the same copy for the joiner's half, which
+logs to `net_joiner` (copied into `net`'s log, its FAILs counted) and its Godot
+output to `net_joiner_godot.log` (read for script errors); the halves wait on
+each other with `say` / `hear`.
 
 ## Keys and controllers
 
