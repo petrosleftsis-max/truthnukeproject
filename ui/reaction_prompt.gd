@@ -24,6 +24,8 @@ var _choice := -1
 ## Who answers, in co-op: the player who steers the one reacting, or whoever
 ## has the board (Coop.ANYONE).
 var _decider := -1
+## Over a network: waiting for the other machine's player to answer (Net).
+var _asking_afar := false
 
 
 func _ready():
@@ -117,11 +119,29 @@ func ask_about(title: String, detail: String) -> bool:
 	return await _put_up(title, detail, $Panel/VBox/Buttons/UseButton)
 
 
-## Shows the question with `first` lit, and waits for the answer.
+## Shows the question with `first` lit, and waits for the answer. Over a
+## network it is put up only on the machine of whoever decides - the other
+## waits for what they chose (Net.decided), counted as asking all the while.
 func _put_up(title: String, detail: String, first: Control) -> bool:
-	# In co-op, theirs to answer alone (Coop.focus) while it is up.
 	var decider := _decider
 	_decider = Coop.ANYONE
+	var net = get_node_or_null("/root/Net")
+	if net == null or not net.in_a_shared_fight():
+		return await _ask_here(decider, title, detail, first)
+	var who := decider if decider != Coop.ANYONE else (Coop.focus if Coop.focus != Coop.ANYONE else 0)
+	_asking_afar = true
+	var answer = await net.decided(who, func(): return [await _ask_here(decider, title, detail, first), _choice])
+	_asking_afar = false
+	if not answer is Array or answer.size() < 2:
+		answer = [false, -1]
+	_choice = int(answer[1])
+	_answer = bool(answer[0])
+	return _answer
+
+
+## The question put up here, and the answer waited for.
+func _ask_here(decider: int, title: String, detail: String, first: Control) -> bool:
+	# In co-op, theirs to answer alone (Coop.focus) while it is up.
 	if decider != Coop.ANYONE:
 		Coop.take_focus(decider, self)
 		if Coop.on():
@@ -146,7 +166,7 @@ func _put_up(title: String, detail: String, first: Control) -> bool:
 ## reads this to pause its movement timeouts, rather than being told to, so
 ## there is no state to be left behind if ask() is interrupted.
 func is_asking() -> bool:
-	return _waiting
+	return _waiting or _asking_afar
 
 
 func _answer_with(use_it: bool):

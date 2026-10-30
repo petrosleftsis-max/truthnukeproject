@@ -47,6 +47,10 @@ var dialogue_line: DialogueLine:
 			dialogue_line = value
 			apply_dialogue_line()
 		else:
+			# Over a network the joiner's copy closes too (Net).
+			var net = get_node_or_null("/root/Net")
+			if net != null:
+				net.conversation_over(self)
 			# The dialogue has finished so close the balloon
 			if owner == null:
 				queue_free()
@@ -193,6 +197,10 @@ func apply_dialogue_line() -> void:
 
 	responses_menu.hide()
 	responses_menu.responses = dialogue_line.responses
+	# Over a network the joiner is shown the line too (Net).
+	var net = get_node_or_null("/root/Net")
+	if net != null:
+		net.conversation_line(self)
 
 	# Show our balloon
 	balloon.show()
@@ -297,6 +305,33 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 
 func _on_responses_menu_response_selected(response: DialogueResponse) -> void:
 	next(response.next_id)
+
+
+## Over a network: the joiner's player, whose conversation this is, pressed on
+## (Net) - as a click on the balloon would.
+func advance_from_afar() -> void:
+	if not is_instance_valid(dialogue_line) or _skipping:
+		return
+	if dialogue_label.is_typing:
+		dialogue_label.skip_typing()
+		return
+	if is_waiting_for_input and dialogue_line.responses.is_empty():
+		next(dialogue_line.next_id)
+
+
+## ... or chose the `index`th of the answers.
+func respond_from_afar(index: int) -> void:
+	if not is_instance_valid(dialogue_line) or _skipping or index < 0 or index >= dialogue_line.responses.size():
+		return
+	var line := dialogue_line
+	if dialogue_label.is_typing:
+		dialogue_label.skip_typing()
+		await get_tree().process_frame
+	if dialogue_line != line:
+		return
+	var response: DialogueResponse = line.responses[index]
+	if response.is_allowed:
+		next(response.next_id)
 
 
 #endregion

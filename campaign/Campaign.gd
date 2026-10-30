@@ -784,7 +784,7 @@ func restore(state: Dictionary):
 
 
 func net_state() -> Dictionary:
-	var state := {"party_order": Array(party_order), "current_map": current_map,
+	var state := {"party_order": party_order.duplicate(), "current_map": current_map,
 		"return_position": return_position, "return_to_position": return_to_position,
 		"target_entry": target_entry, "stealth_checkpoint": stealth_checkpoint.duplicate(true),
 		"dungeon": dungeon.resource_path if dungeon != null else "",
@@ -795,12 +795,14 @@ func net_state() -> Dictionary:
 	return state
 
 
-func apply(state: Dictionary):
-	var party_before := Array(party_order)
+## `keeping`: SAVED keys left as they are here (Net: what an open menu changes).
+func apply(state: Dictionary, keeping: Array = []):
+	# A copy: Array() of an array is that same array, and would change with it.
+	var party_before := party_order.duplicate()
 	if state.get("party_order") is Array:
 		party_order.assign(state.party_order)
 	for key in SAVED:
-		if state.has(key):
+		if state.has(key) and not keeping.has(key):
 			var value = state[key]
 			set(key, value.duplicate(true) if value is Dictionary or value is Array else value)
 	current_map = str(state.get("current_map", current_map))

@@ -159,6 +159,19 @@ do Campaign.to_main_menu()
 ' > "$DST/dialogue/_bailout_probe.dialogue"
 		"$GODOT" --headless --path "$DST" --import >/dev/null 2>&1
 	fi
+	if [ "$d" = "net" ]; then
+		# A question with two answers, each leaving its own flag - to be asked on
+		# one machine and answered on the other.
+		printf '~ start
+Cyrus: Which way?
+- Left
+	do Campaign.set_flag("net_went_left")
+- Right
+	do Campaign.set_flag("net_went_right")
+=> END
+' > "$DST/dialogue/_net_probe.dialogue"
+		"$GODOT" --headless --path "$DST" --import >/dev/null 2>&1
+	fi
 	if [ "$d" = "glossary" ] || [ "$d" = "bailout" ]; then
 		sed -i 's|run/main_scene="[^"]*"|run/main_scene="res://scenes/main_menu.tscn"|' "$DST/project.godot"
 	fi
@@ -168,6 +181,8 @@ do Campaign.to_main_menu()
 	if [ "$d" = "sweep" ]; then budget=1560; fi
 	# Every skill and item used once - more of them with every one added.
 	if [ "$d" = "everycast" ]; then budget=600; fi
+	# Two Godots, playing a map, a stealth stage and a whole fight between them.
+	if [ "$d" = "net" ]; then budget=600; fi
 	timeout $budget "$GODOT" --headless --path "$DST" >/dev/null 2>"$LOGS/_err.txt"
 	code=$?
 	# Godot's own errors went to _err.txt and were never looked at, so a script

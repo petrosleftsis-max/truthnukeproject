@@ -444,8 +444,33 @@ on. A catch is the host's: its fight goes over with the scene change. **Menus
 over a network** (the designer, 2026-10-29): while `Net.with_another()`,
 `MenuPause` pauses nothing and `Coop.menu_held` takes no focus; only this
 machine's own groups stand (`ExplorationParty.in_a_menu`, set by
-`_stand_for_menus`). Hacking and QuickTime still pause their own machine. The
-Players panel's network half is
+`_stand_for_menus`). What a menu on the joiner changes (`MENU_KEYS`: bags,
+gear, gold, spells, paths) stays the joiner's while it is open
+(`Campaign.apply(state, keeping)`) and goes to the host as it closes
+(`_menu_changes`). Hacking and QuickTime still pause their own machine.
+**Fights, replayed:** going into `FIGHT_SCENE` the host gives a copy of the
+encounter a "seed" (`scene_changing`); both play the fight (`fight_begins`
+from `Combat._ready`). Whoever's character it is moves on their own machine,
+and each move is sent from where it is made - `CController.move_player`
+("walk"), `confirm_skill_target` ("skill", with `aim_choice`), `undo_move`,
+the HUD's End Turn and readied cone, `ReadyPicker` ("ready"), and
+`Combat.finish_deployment` ("deployed": the host places the party; the
+joiner's Begin and placing wait, `may_deploy`). `_play_moves` does each on the
+other machine once its fight is at the same `fight_turn` and stands waiting on
+that combatant (`_replaying` keeps it from being sent back; `walk_along` walks
+a sent path). The AI is not sent. A question (`ReactionPrompt._put_up` ->
+`_ask_here`), a quick time (`quick_time_power`) or a hack (`hacking.run`) goes
+through `Net.decided(player, call)`: put up on the decider's machine, the
+answer sent, the other machine waiting for it by number. Every `turn_advanced`
+the joiner sends `hash(fight_state())`; the host compares (`checked_turns`),
+and told apart writes the turn into `parted` and puts the joiner's hp, tile and
+standing right (`_put_right`). A joiner leaving mid-fight hands the turn under
+way to the host's player (`Coop.fight_turn`). **Conversations:** the host runs
+them; each line (`DialogueBalloon.apply_dialogue_line` -> `conversation_line`)
+goes to the joiner's `ConversationMirror` (ui/conversation_mirror.gd), its
+party held; when it is the joiner's (Coop.focus), its press or answer
+(`answer_line`) comes back and is `advance_from_afar` / `respond_from_afar` on
+the host's balloon. The Players panel's network half is
 `ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
 since listening (or hosting) is what makes Windows ask about its firewall.
 `net` plays two machines: the suite hosts on 127.0.0.1:24790 and starts a second

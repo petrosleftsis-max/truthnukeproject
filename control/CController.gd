@@ -438,7 +438,9 @@ func _unhandled_input(event):
 			get_viewport().set_input_as_handled()
 			return
 	if _deployment_active:
-		_handle_deployment_input(event)
+		# Over a network the party is the host's to place (Net).
+		if Net.may_deploy():
+			_handle_deployment_input(event)
 		return
 	if _stepping:
 		_handle_step_input(event)
@@ -1510,6 +1512,8 @@ func undo_move() -> bool:
 	combat.update_information.emit("[color=yellow]%s[/color] walks back.\n" % comb.name)
 	game_ui_refresh()
 	queue_redraw()
+	# Over a network the other machine walks them back too (Net).
+	Net.fight_move(combat, "undo", [])
 	return true
 
 
@@ -2076,7 +2080,16 @@ func move_player():
 		queue_redraw()
 		return
 	if _path_size > 1 and movement > 0:
+		# Over a network the other machine walks the same way (Net).
+		Net.fight_move(combat, "walk", [Array(_path).map(func(point): return tile_map.local_to_map(point))])
 		move_on_path(current_position)
+
+
+## Walks whoever is acting along `tiles` - a walk made on the other machine,
+## played here (Net).
+func walk_along(tiles: Array):
+	_path = PackedVector2Array(tiles.filter(func(tile): return tile is Vector2i).map(func(tile): return tile_map.map_to_local(tile)))
+	move_on_path(tile_map.local_to_map(controlled_node.position))
 
 
 ## Whether whoever is acting may end their move on `tile`.
@@ -2427,9 +2440,12 @@ func confirm_skill_target(position: Vector2i):
 	_previewing_hide = false
 	refresh_watched_tiles(combat.get_current_combatant())
 	queue_redraw()
+	# Over a network the other machine uses it too, at the same tiles (Net).
 	if aimed_twice(skill):
+		Net.fight_move(combat, "skill", [_selected_skill, subject, _selected_skill_is_secondary, position, combat.aim_choice])
 		await combat.use_skill(_selected_skill, combat.get_current_combatant(), subject, true, _selected_skill_is_secondary, position)
 	else:
+		Net.fight_move(combat, "skill", [_selected_skill, position, _selected_skill_is_secondary, Vector2i(-99999, -99999), combat.aim_choice])
 		await combat.use_skill(_selected_skill, combat.get_current_combatant(), position, true, _selected_skill_is_secondary)
 	target_selection_finished.emit()
 	queue_redraw()

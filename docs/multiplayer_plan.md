@@ -52,10 +52,13 @@ leans on the one before.
   games by their beacon, and seats players across machines; the joiner joins a
   game under way and follows the host's scene and Campaign; the two walk
   together, the joiner's presses are done on the host, pings go both ways, the
-  host's guards are the joiner's puppets, and a menu over a network stops
-  nothing (items 1-7, 11, and 10's rule; `ui/net_panel.gd`; suite `net`, which
-  plays the joiner in a second Godot). Items 8, 9, the rest of 10, and 12 to
-  come.
+  host's guards are the joiner's puppets, a menu over a network stops nothing,
+  fights are played on both from one seed and the same moves, conversations
+  are the host's and shown on the joiner, and a player leaving mid-fight hands
+  their characters to the other (items 1-9, 11, 12 and 10's rule;
+  `ui/net_panel.gd`, `ui/conversation_mirror.gd`; suite `net`, which plays the
+  joiner in a second Godot). Still to do: pointer-aimed stealth moves and the
+  familiar.
 - **Not built:** the rest of Step 2, and Steps 3-5 below.
 
 ## Step 0 - download only (small; done 2026-10-29)
@@ -248,10 +251,11 @@ lamps and what is lying about are known by their path under the map
 joiner's guards ease to it. Over a network a menu pauses nothing and takes no
 focus - each machine has its own screen - and only that machine's own party
 stands while it is open (`ExplorationParty.in_a_menu`); hosting with nobody
-joined, a menu holds the game as before. Still to do of item 10: what the
-joiner's own menus change (its inventory, its sheet, a store) is put right by
-the host's Campaign arriving, not sent to the host. Hacking and quick-times
-still pause their own machine.
+joined, a menu holds the game as before. What a menu on the joiner changes -
+the bags, gear, gold, spells learned, paths (`Net.MENU_KEYS`) - stays the
+joiner's while it is open (the host's Campaign goes on arriving but for those)
+and is sent to the host when it closes; whole values, the joiner's latest
+winning. Hacking and quick-times still pause their own machine.
 
 7. **Guards (stealth maps).** Only the host runs `StealthWatch`'s brain and the
    guards' `_process`. The joiner gets each guard's position, facing, mood,
@@ -262,6 +266,21 @@ still pause their own machine.
    fight (`build_fight`) and sends it with the scene change. Send resources as
    plain data - script path plus stored properties, loading scripts only from
    `res://` - never `bytes_to_var_with_objects` on what another machine sent.
+Items 8, 9 and 12 are built (2026-10-30). As built: the seed goes on a copy
+of the encounter, so the file's own never carries one into a fight played
+alone. The moves sent are a walk (its path), a skill (key, tile, secondary,
+where it is put down, which of several on a tile was meant), the end of a
+turn, a step back, a move readied, and the party placed - the host places it,
+and the joiner's Begin waits for that. A move is done on the other machine
+once its fight is at the same turn (counted by `turn_advanced`) and stands
+waiting on that combatant; each machine's enemy speed can differ. Questions,
+quick times and hacks are the decider's, by number. In the suite a whole fight
+of 29 turns was the same on both machines at the start of every one of them;
+the patch for a fight told apart puts hp, tiles and who stands right, not
+conditions. A player joining during a fight comes in after it. Conversations:
+the joiner's copy shows each line as a whole (no typing out) and its answers;
+the host's skip button is the host's alone.
+
 8. **Fights - replayed.** The host picks the seed and puts it on the encounter
    (`encounter.set_meta("seed", ...)`) before sending it. On the player's turn
    their machine sends each action - walk to a tile, use a skill at a tile, end

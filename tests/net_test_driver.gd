@@ -38,7 +38,7 @@ func suite() -> String:
 
 
 func time_limit() -> float:
-	return 260.0
+	return 560.0
 
 
 static func joining_half() -> bool:
@@ -85,6 +85,285 @@ func heard_after(start: String) -> String:
 		if line.begins_with(start):
 			return line.trim_prefix(start)
 	return ""
+
+
+## --- A conversation, mirrored ---
+
+
+const PROBE := "res://dialogue/_net_probe.dialogue"
+
+
+func hosts_conversation():
+	log_line("======== a conversation, mirrored ========")
+	var scene: ExplorationScene = get_tree().current_scene
+	# The map set its own cast, and Enfina may have fallen in the fight: Alithia,
+	# the joiner's and in no fight yet, joins so the joiner has a group to walk.
+	Campaign.add_member("alithia")
+	Campaign.controllers["alithia"] = 1
+	ok(await until(func(): return scene.groups.has(1), 10.0), "the joiner has a group on the map again")
+	ok(await hear("group back"), "  there too")
+	if not scene.groups.has(1):
+		return
+	var talk := DialogueInteractable.new()
+	talk.dialogue = load(PROBE)
+	scene.get_node("Map").add_child(talk)
+	talk.global_position = scene.groups[1].leader.global_position
+	scene._interactables.append(talk)
+	say("talk up")
+	ok(await until(func(): return Coop.focus == 1, 15.0), "E pressed on the joiner starts a conversation here - the joiner's to have",
+		"focus %d" % Coop.focus)
+	ok(await until(func(): return Campaign.flag("net_went_right"), 20.0), "  and the answer chosen there is the one taken here")
+	ok(not Campaign.flag("net_went_left"), "  and only that one")
+	ok(await until(func(): return Coop.focus == Coop.ANYONE and not scene.is_holding(), 10.0),
+		"  and with it over, nobody holds the map")
+	ok(await hear("copy closed"), "  and the joiner's copy of it has closed")
+	log_line("")
+
+
+func joiners_conversation():
+	log_line("======== a conversation, mirrored ========")
+	var scene: ExplorationScene = get_tree().current_scene
+	ok(await until(func(): return get_tree().current_scene == scene and scene.groups.has(1) and not scene.groups[1].puppet, 15.0),
+		"has its own group again - the host's party changed under it, and the map was told",
+		"%s %s" % [scene.groups.keys(), Campaign.party_order])
+	scene = get_tree().current_scene
+	say("group back")
+	await hear("talk up")
+	get_viewport().push_input(key_event(KEY_E))
+	ok(await until(func(): return Net._mirror != null and is_instance_valid(Net._mirror) and Net._mirror.mine \
+		and Net._mirror._answers.get_child_count() == 2, 15.0),
+		"the host's conversation is shown here - this machine's player's, its two answers to choose from")
+	ok(scene.is_holding(), "  and holds the party here meanwhile")
+	if Net._mirror != null and is_instance_valid(Net._mirror) and Net._mirror._answers.get_child_count() == 2:
+		Net._mirror._answers.get_child(1).pressed.emit()
+	ok(await until(func(): return Net._mirror == null or not is_instance_valid(Net._mirror), 15.0),
+		"choosing the second, the conversation ends there and its copy here closes")
+	ok(not scene.is_holding(), "  and the party walks again")
+	ok(await until(func(): return Campaign.flag("net_went_right"), 10.0), "  and what it set reaches here")
+	say("copy closed")
+	log_line("")
+
+
+## --- A fight, played on both ---
+
+
+## Two of the party against a rusher and a ranger from the Sappers' fight.
+## Cyrus is the host's player's, Enfina the joiner's. Played to its end on both.
+const FIGHT_SOURCE := "res://data/encounters/encounter_02_sappers.tres"
+const FIGHT_CAST := [["enfina", 0], ["cyrus", 0], ["barbarian", 1], ["ranger", 1]]
+## Taken off everybody's aim, so the rolls decide what lands (as in rolls).
+const UNSURE_AIM := 25
+
+
+## The encounter the host last went into a fight with (into_the_fight).
+var _fight_given: EncounterDefinition = null
+
+
+## The host into a fight of FIGHT_CAST, Enfina the joiner's, the joiner told
+## `word` - and the fight, once it is up.
+func into_the_fight(word: String) -> Combat:
+	# Everybody up and whole - a fight before may have left somebody down.
+	Campaign.long_rest()
+	Campaign.add_member("enfina")
+	Campaign.controllers["enfina"] = 1
+	var source: EncounterDefinition = load(FIGHT_SOURCE)
+	var fight := EncounterDefinition.new()
+	fight.display_name = "Net fight"
+	fight.terrain_scene = source.terrain_scene
+	var spawns: Array[SpawnDefinition] = []
+	var used := []
+	for wanted in FIGHT_CAST:
+		for spawn in source.spawns:
+			if spawn.combatant_key == wanted[0] and spawn.side == wanted[1] and not used.has(spawn):
+				used.append(spawn)
+				spawns.append(spawn.duplicate())
+				break
+	fight.spawns = spawns
+	_fight_given = fight
+	Campaign.current_encounter = fight
+	GameSettings._enemy_speed = GameSettings.ENEMY_SPEEDS.size() - 1
+	# The seed the host picks comes from the global generator: seeded, the fight
+	# is the same one every run, and as long.
+	seed(20261030)
+	say(word)
+	SceneTransition.change_scene(Net.FIGHT_SCENE)
+	await until(func(): return get_tree().current_scene is GameScene and not SceneTransition.is_changing(), 20.0)
+	return get_tree().current_scene.combat if get_tree().current_scene is GameScene else null
+
+
+func hosts_fight():
+	log_line("======== a fight, played on both ========")
+	var combat := await into_the_fight("to the fight")
+	ok(combat != null, "the host goes into a fight")
+	if combat == null:
+		return
+	ok(combat.encounter.has_meta("seed") and combat.fight_seed == int(combat.encounter.get_meta("seed")),
+		"  rolling from a seed it gave the encounter", "%d" % combat.fight_seed)
+	ok(not _fight_given.has_meta("seed") and combat.encounter != _fight_given,
+		"  on a copy - the encounter it was given carries none into a fight played alone")
+	say("seed:%d" % combat.fight_seed)
+	ok(await hear("in the fight", 30.0), "  and the joiner comes into it too, from the same seed")
+	var prompt: ReactionPrompt = combat.reaction_prompt
+	combat.reaction_prompt = null
+	for comb in combat.combatants:
+		comb["accuracy"] = comb.get("accuracy", 0) - UNSURE_AIM
+
+	# A question for the joiner's character: put up there, waited for here.
+	var enfina := party_member(combat, "enfina")
+	var foe := nearest_foe(combat, enfina)
+	var said := []
+	var asking := func(): said.append(await prompt.ask(enfina, foe, SkillDatabase.skills["greatsword_attack"]))
+	asking.call()
+	var shown := false
+	var waited := 0.0
+	while said.is_empty() and waited < 20.0:
+		shown = shown or prompt.get_node("Panel").visible
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+	ok(not shown, "a question for the joiner's player is never put up here")
+	ok(not said.is_empty() and said[0] == true, "  and the answer given there is the one taken here", "%s" % [said])
+
+	combat.finish_deployment()
+	ok(not combat.deployment_active, "the host places the party and begins")
+	var turns := await play_my_turns(combat)
+	ok(combat.combat_over, "each plays its own player's turns, to the end of the fight",
+		"%d turns, %d of them played here" % [Net.fight_turn, turns])
+	ok(await until(func(): return heard_after("over:") != "", 60.0), "  and the joiner's fight ends too")
+	var theirs := heard_after("over:")
+	ok(int(theirs.get_slice("|", 0)) == Net.fight_turn and int(theirs.get_slice("|", 1)) == hash(combat.fight_state()),
+		"  the same - as many turns, and the same to the last condition", "%s, here %d|%d" % [theirs, Net.fight_turn, hash(combat.fight_state())])
+	ok(Net.parted.is_empty() and Net.checked_turns >= 6, "  and the same at the start of every turn on the way",
+		"%d turns checked, parted at %s" % [Net.checked_turns, Net.parted])
+	log_line("  how it ended:")
+	for line in combat.fight_state().split("\n"):
+		log_line("    " + line)
+
+	# Out of it, back onto a map for what is left.
+	Campaign.current_map = MAP
+	SceneTransition.change_scene(Campaign.EXPLORATION_SCENE)
+	ok(await on_a_map(), "the host leaves the fight for a map")
+	get_tree().current_scene.end_blocking_interaction()
+	ok(await hear("off the fight"), "  and the joiner comes too")
+	log_line("")
+
+
+func joiners_fight():
+	log_line("======== a fight, played on both ========")
+	await hear("to the fight")
+	ok(await until(func(): return get_tree().current_scene is GameScene and not SceneTransition.is_changing(), 30.0),
+		"follows the host into a fight")
+	var combat: Combat = get_tree().current_scene.combat
+	await until(func(): return heard_after("seed:") != "", 10.0)
+	ok(combat.fight_seed == int(heard_after("seed:")), "  rolling from the host's seed", "%d" % combat.fight_seed)
+	ok(combat.deployment_active, "  waiting for the host to place the party")
+	var prompt: ReactionPrompt = combat.reaction_prompt
+	combat.reaction_prompt = null
+	for comb in combat.combatants:
+		comb["accuracy"] = comb.get("accuracy", 0) - UNSURE_AIM
+	GameSettings._enemy_speed = GameSettings.ENEMY_SPEEDS.size() - 2
+	combat.finish_deployment()
+	ok(combat.deployment_active, "  and its own Begin does not begin it")
+	say("in the fight")
+
+	var enfina := party_member(combat, "enfina")
+	var foe := nearest_foe(combat, enfina)
+	var said := []
+	var asking := func(): said.append(await prompt.ask(enfina, foe, SkillDatabase.skills["greatsword_attack"]))
+	asking.call()
+	ok(await until(func(): return prompt.get_node("Panel").visible, 10.0), "a question for its own character is put up here")
+	prompt._answer_with(true)
+	ok(await until(func(): return not said.is_empty(), 5.0) and said[0] == true, "  and answered here")
+
+	ok(await until(func(): return not combat.deployment_active, 30.0), "the host's placing begins the fight here")
+	var turns := await play_my_turns(combat)
+	ok(combat.combat_over, "it plays its own player's turns, to the end of the fight",
+		"%d turns, %d of them played here" % [Net.fight_turn, turns])
+	say("over:%d|%d" % [Net.fight_turn, hash(combat.fight_state())])
+	ok(await until(func(): return get_tree().current_scene is ExplorationScene and not SceneTransition.is_changing(), 30.0),
+		"follows the host out of the fight")
+	say("off the fight")
+	log_line("")
+
+
+## Plays this machine's player's turns in `combat` - through the board, as a
+## player's clicks would go, so the other machine is sent each move - until
+## the fight is over. How many it played.
+func play_my_turns(combat: Combat) -> int:
+	var played := 0
+	while not combat.combat_over:
+		var mine := await until(func(): return combat.combat_over or my_turn(combat), 90.0)
+		if not mine or combat.combat_over:
+			break
+		await move_on_the_board(combat, combat.get_current_combatant())
+		played += 1
+	return played
+
+
+## Whether `combat` stands waiting on one of this machine's player's characters.
+func my_turn(combat: Combat) -> bool:
+	var current: Dictionary = combat.get_current_combatant()
+	return combat.controller.player_turn and not combat.deployment_active and combat.controller.is_idle() \
+		and not combat.controller.action_locked and combat.plays_for_party(current) and Coop.is_local(combat.player_of(current))
+
+
+## `comb`'s turn, played on the board: the first attack that reaches the
+## nearest of the other side - walking towards them first when none does - and
+## the turn ended with the End Turn button.
+func move_on_the_board(combat: Combat, comb: Dictionary):
+	var controller: CController = combat.controller
+	var foe := nearest_foe(combat, comb)
+	if not foe.is_empty() and attack_for(combat, comb, foe) == "":
+		controller.find_path(combat.nearest_tile_of(foe, comb.position))
+		controller.move_player()
+		await until(func(): return controller.is_idle() or not is_same(combat.get_current_combatant(), comb), 15.0)
+	foe = nearest_foe(combat, comb)
+	if is_same(combat.get_current_combatant(), comb) and not foe.is_empty():
+		var key := attack_for(combat, comb, foe)
+		if key != "":
+			controller.set_selected_skill(key)
+			await controller.confirm_skill_target(combat.nearest_tile_of(foe, comb.position))
+	if not combat.combat_over and is_same(combat.get_current_combatant(), comb):
+		await until(func(): return controller.is_idle(), 15.0)
+		combat.game_ui._on_end_turn_button_pressed()
+	await settle()
+
+
+## The first of `comb`'s attacks that reaches `foe` from where they stand, or "".
+func attack_for(combat: Combat, comb: Dictionary, foe: Dictionary) -> String:
+	var aim: Vector2i = combat.nearest_tile_of(foe, comb.position)
+	var gap: int = combat.distance_to(comb, aim)
+	for key in combat._ai_main_keys(comb):
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if skill == null or not combat._hostile(skill) or combat.wasted_on(comb, skill) != "":
+			continue
+		if gap < skill.min_range or gap > combat.effective_max_range(comb, skill):
+			continue
+		if skill.respects_blocking and not combat.sees_tile(comb, aim, foe):
+			continue
+		if combat.refusal_for(comb, skill, aim) == "":
+			return key
+	return ""
+
+
+func nearest_foe(combat: Combat, comb: Dictionary) -> Dictionary:
+	var best := {}
+	var best_gap := 1 << 30
+	for other in combat.combatants:
+		if not other.get("alive", false) or other.get("side", 0) == comb.get("side", 0) \
+				or other.has("object") or other.get("illusion", false):
+			continue
+		var gap: int = combat.distance_to(comb, combat.nearest_tile_of(other, comb.position))
+		if gap < best_gap:
+			best_gap = gap
+			best = other
+	return best
+
+
+func party_member(combat: Combat, key: String) -> Dictionary:
+	for comb in combat.combatants:
+		if comb.get("combatant_key", "") == key and comb.get("side", 1) == 0:
+			return comb
+	return {}
 
 
 ## The guard on `watch`'s map known as `id`, or null.
@@ -323,6 +602,17 @@ func hosts_half():
 			group.frozen = false
 	log_line("")
 
+	log_line("======== what a menu on the joiner changes ========")
+	var gold_before := Campaign.gold
+	say("menu")
+	ok(await until(func(): return Campaign.gold == gold_before + 7, 15.0),
+		"gold the joiner's player spent in a menu there is spent here too", "%d -> %d" % [gold_before, Campaign.gold])
+	ok(await hear("menu back"), "  and stays so there once the host's Campaign comes back")
+	log_line("")
+
+	await hosts_fight()
+	await hosts_conversation()
+
 	log_line("======== whom to steer ========")
 	var spare := ""
 	for key in PlayersPanel.characters():
@@ -336,15 +626,30 @@ func hosts_half():
 	ok(await hear("table agrees"), "  and the joiner's table says the same", "%s" % [_heard])
 	log_line("")
 
-	log_line("======== leaving ========")
-	say("leave")
-	ok(await until(func(): return Coop.players.size() == 1, 15.0), "the joiner leaving takes its player with it",
-		"%s" % [Coop.players])
-	ok(party.size() < 2 or (Coop.controller_of(party[1]) == 0 and not Campaign.controllers.has(party[1])),
-		"  and its characters are the host's player's again", "%s" % [Campaign.controllers])
-	ok(Net.is_host() and get_tree().current_scene is ExplorationScene, "  while the host hosts on, on its map")
+	log_line("======== leaving mid-fight ========")
+	var combat := await into_the_fight("to the second fight")
+	ok(await hear("in the second fight", 30.0), "the two go into another fight")
+	combat.reaction_prompt = null
+	combat.finish_deployment()
+	# The host's player's turns ended as they come, until the joiner goes.
+	var waited := 0.0
+	while Coop.players.size() == 2 and waited < 60.0:
+		if my_turn(combat):
+			combat.game_ui._on_end_turn_button_pressed()
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+	ok(Coop.players.size() == 1, "the joiner leaves in the middle of it, taking its player with it", "%s" % [Coop.players])
+	ok(Coop.controller_of("enfina") == 0 and not Campaign.controllers.has("enfina"),
+		"  and Enfina is the host's player's from then on", "%s" % [Campaign.controllers])
+	ok(await until(func(): return combat.combat_over or (my_turn(combat) and combat.get_current_combatant().get("combatant_key", "") == "enfina"), 30.0),
+		"  her turn, the one the joiner was to play, is the host's player's to play now",
+		"%s, focus %d" % [combat.get_current_combatant().get("name", ""), Coop.focus])
+	ok(Net.is_host(), "  while the host hosts on")
+	Campaign.current_map = MAP
+	SceneTransition.change_scene(Campaign.EXPLORATION_SCENE)
+	ok(await on_a_map(), "the host leaves the fight for a map")
 	ok(await until(func(): return Coop.players.size() == 2, 40.0), "the joiner joins again", "%s" % [Coop.players])
-	ok(await hear("back on the map"), "  and comes back onto the map")
+	ok(await hear("back on the map", 40.0), "  and comes back onto the map")
 	Net.leave()
 	ok(not Net.active() and not Coop.networked and Coop.players.size() == 1 and Coop.players[0].peer == 0,
 		"stopping, the host plays on alone", "%s" % [Coop.players])
@@ -560,6 +865,29 @@ func joiners_half():
 	say("out followed")
 	log_line("")
 
+	log_line("======== what a menu here changes ========")
+	await hear("menu")
+	# Steering nobody on the stage, this machine was offered the party to share
+	# out - a menu too. Done with it first.
+	for offered in get_tree().current_scene.find_children("*", "PlayersPanel", true, false):
+		offered.close()
+	await settle()
+	var gold_before := Campaign.gold
+	MenuPause.hold(self)
+	await settle()
+	# As a store or the inventory would, while it is open.
+	Campaign.gold += 7
+	await wait(0.6)
+	ok(Campaign.gold == gold_before + 7, "while a menu is open here, the host's Campaign does not undo what it does")
+	MenuPause.release(self)
+	await wait(1.0)
+	ok(Campaign.gold == gold_before + 7, "  and once it closes, what it did is the host's too", "%d -> %d" % [gold_before, Campaign.gold])
+	say("menu back")
+	log_line("")
+
+	await joiners_fight()
+	await joiners_conversation()
+
 	log_line("======== whom to steer ========")
 	await until(func(): return heard_after("spare:") != "", 10.0)
 	var spare := heard_after("spare:")
@@ -570,14 +898,20 @@ func joiners_half():
 	say("table agrees" if Coop.controller_of(spare) == 1 else "table disagrees")
 	log_line("")
 
-	log_line("======== leaving ========")
-	ok(await hear("leave"), "the host says to leave")
+	log_line("======== leaving mid-fight ========")
+	await hear("to the second fight")
+	ok(await until(func(): return get_tree().current_scene is GameScene and not SceneTransition.is_changing(), 30.0),
+		"follows the host into another fight")
+	var combat: Combat = get_tree().current_scene.combat
+	combat.reaction_prompt = null
+	say("in the second fight")
+	ok(await until(func(): return my_turn(combat), 60.0), "comes to its own player's turn in it")
 	Net.leave()
 	ok(not Net.active() and not Coop.networked and Coop.players.size() == 1 and Coop.is_local(0) and Campaign.controllers.is_empty(),
-		"left, it plays on alone: one player, here, steering everybody", "%s %s" % [Coop.players, Campaign.controllers])
+		"leaves there and then, and plays on alone: one player, here, steering everybody", "%s %s" % [Coop.players, Campaign.controllers])
 	ok(await on_the_title_screen(), "  and, out of the host's story, is on the title screen")
 	ok(Net.join("127.0.0.1", TEST_PORT) == OK and await until(func(): return Net.joined(), 20.0), "joins again")
-	ok(await on_a_map(), "  and is back on the host's map")
+	ok(await on_a_map(40.0), "  and is back on the host's map")
 	say("back on the map")
 	ok(await until(func(): return not Net.active(), 20.0), "the host leaves")
 	ok(await on_the_title_screen(), "  and that sends it to the title screen")

@@ -140,6 +140,8 @@ func _state_value(value) -> String:
 func _ready():
 	emit_signal("register_combat", self)
 	seed_rolls(_seed_wanted())
+	# Played on another machine too, it is told of every turn (Net).
+	Net.fight_begins(self)
 
 	if encounter == null:
 		push_error("Combat has no EncounterDefinition - GameScene assigns one before _ready. There is nothing to fight.")
@@ -368,10 +370,13 @@ func begin_deployment():
 	game_ui.set_deployment_mode(true)
 
 
-## Called when the player presses Begin Battle.
+## Called when the player presses Begin Battle. Over a network the party is
+## the host's to place: a joiner's Begin waits for the host's, and the host's
+## places go with it (Net).
 func finish_deployment():
-	if not deployment_active:
+	if not deployment_active or not Net.may_deploy():
 		return
+	Net.fight_move(self, "deployed", [])
 	deployment_active = false
 	controller.end_deployment()
 	game_ui.set_deployment_mode(false)
@@ -7291,7 +7296,7 @@ func _hack_in_fight(attacker: Dictionary, skill_key: String, skill: SkillDefinit
 		if hack == null:
 			push_warning("%s has no hack to play: give it, or %s, one (SkillDefinition.hack)." % [skill.name, target.declared.skill])
 			return
-		var outcome: Dictionary = await hacking.run(hack, "", self, attacker)
+		var outcome: Dictionary = await Net.decided(player_of(attacker), func(): return await hacking.run(hack, "", self, attacker))
 		if not still_running():
 			return
 		match outcome.get("result", ""):
@@ -7315,7 +7320,7 @@ func _hack_in_fight(attacker: Dictionary, skill_key: String, skill: SkillDefinit
 	if thing.get("hack_locked", false):
 		update_information.emit("The [color=orange]%s[/color] is locked against hacking now.\n" % thing.name)
 		return
-	var outcome: Dictionary = await hacking.run(thing.object.hack, "", self, attacker)
+	var outcome: Dictionary = await Net.decided(player_of(attacker), func(): return await hacking.run(thing.object.hack, "", self, attacker))
 	if not still_running():
 		return
 	match outcome.get("result", ""):
@@ -14664,13 +14669,17 @@ func quick_time_power(user: Dictionary, targets: Array, skill: SkillDefinition) 
 	var quick = get_node_or_null("/root/QuickTime")
 	if quick == null:
 		return 1.0
+	# Over a network, played on the machine of whoever it is for (Net.decided).
 	if skill.quick_time_for == 0:
 		if not plays_for_party(user):
 			return 1.0
-		return 1.0 + skill.quick_time_bonus if await quick.run(skill.quick_time) else 1.0
-	if not ai_plays(user) or not targets.any(func(target): return plays_for_party(target)):
+		var done: bool = await Net.decided(player_of(user), func(): return await quick.run(skill.quick_time))
+		return 1.0 + skill.quick_time_bonus if done else 1.0
+	var defended := targets.filter(func(target): return plays_for_party(target))
+	if not ai_plays(user) or defended.is_empty():
 		return 1.0
-	return maxf(1.0 - skill.quick_time_bonus, 0.0) if await quick.run(skill.quick_time) else 1.0
+	var held: bool = await Net.decided(player_of(defended[0]), func(): return await quick.run(skill.quick_time))
+	return maxf(1.0 - skill.quick_time_bonus, 0.0) if held else 1.0
 
 
 ## Whether the QTE on `skill` has its say on the hit on `target`: every hit for
@@ -14869,7 +14878,7 @@ func _rebind(hacker: Dictionary, target: Dictionary, hacking, end_turn_after: bo
 	if target.get("hack_locked", false):
 		update_information.emit("[color=red]%s[/color]'s binding is locked against hacking now.\n" % target.name)
 		return
-	var outcome: Dictionary = await hacking.run(target.rebind_hack, "", self, hacker)
+	var outcome: Dictionary = await Net.decided(player_of(hacker), func(): return await hacking.run(target.rebind_hack, "", self, hacker))
 	if not still_running():
 		return
 	match outcome.get("result", ""):

@@ -99,6 +99,32 @@ The buttons are actions in **Project Settings > Input Map**, keyboard and pad
 side by side, so either can be rebound there. `control/Pad.gd` is the pointer
 and the button names; `tests/pad_test_driver.gd` plays every row above.
 
+### Two players
+
+**On one screen:** open **Players** on the title screen or from the pause menu,
+press **A** on a second pad (or **Enter** on the keyboard) to join, and pick
+whom each player steers. Each walks their own group, fights their own
+characters' turns and answers their own characters' questions; **Z** (a pad's
+Share) pings something for the other.
+
+**Over a network** (two machines on one network): one player opens **Players**
+and presses **Host a game**; the other opens **Players**, presses **Look for
+games** and joins the game that appears - or types the address the host's
+screen shows, which always works, a virtual LAN included. The host's machine
+decides: the joiner goes wherever the host goes and has the host's story, gold
+and bags. Each walks their own group; fights are played on both machines from
+the same moves, and a question in a fight is put to whoever's character it is;
+a conversation is the host's, and whoever started it goes on and chooses. Over
+a network a menu stops nothing - only its own player's party stands still - and
+a player leaving, even mid-fight, hands their characters to the other. The
+first time a machine hosts or looks for games, Windows asks whether to let the
+game through its firewall: allow it on private networks.
+
+What the joiner changes in a menu - the bags, gear, gold, spells, paths - is
+sent to the host when the menu closes. Not across the network yet: what is
+aimed with the pointer on a map (where a throw lands, a click on a guard, a
+readied cone) and the familiar.
+
 ## The shape of it
 
 Everything a designer sets lives in resources and scenes, not in code. Adding a

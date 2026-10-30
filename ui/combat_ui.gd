@@ -213,6 +213,8 @@ func _take_ready_click(event: InputEvent) -> bool:
 	_ready_marking = {}
 	set_interaction_prompt("")
 	var tile: Vector2i = controller.tile_map.local_to_map(controller._pointed_at())
+	# Over a network the other machine readies it too (Net).
+	Net.fight_move(combat, "ready", [hold.comb.get("id", -1), hold.skill, SkillDefinition.Trigger.ENTERS_AREA, tile, hold.by, -1])
 	combat.ready_action(hold.comb, hold.skill, SkillDefinition.Trigger.ENTERS_AREA, tile, hold.by)
 	refresh_action_buttons()
 	return true
@@ -1550,6 +1552,8 @@ func _on_end_turn_button_pressed():
 	if _deployment_mode:
 		deployment_finished.emit()
 	else:
+		# Over a network the other machine ends it too (Net).
+		Net.fight_move(combat, "end_turn", [])
 		turn_ended.emit()
 
 

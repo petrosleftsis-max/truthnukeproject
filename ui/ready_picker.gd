@@ -141,6 +141,8 @@ func _choose_trigger(trigger: int, watched: Dictionary):
 	var skill_key := _skill_key
 	var by := _by()
 	close()
+	# Over a network the other machine readies it too (Net).
+	Net.fight_move(combat, "ready", [comb.get("id", -1), skill_key, trigger, Combat.NO_AREA, by, watched.get("id", -1)])
 	combat.ready_action(comb, skill_key, trigger, Combat.NO_AREA, by, watched)
 
 

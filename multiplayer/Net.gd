@@ -35,6 +35,20 @@ extends Node
 ## still lying about. Caught, the host builds the fight and changes scene, and
 ## the encounter goes with Campaign to the joiner like any other.
 ##
+## Fights, replayed (docs/multiplayer_plan.md Step 2, 8): a fight is played on
+## both machines from one seed and the same moves. The host gives the encounter
+## its seed as it goes into the fight (scene_changing). Whoever's character it
+## is moves on their own machine as anybody would, and each move - a walk, a
+## skill, the end of the turn, a step back, a move readied, the party placed -
+## is sent (fight_move) and done on the other machine too, once its fight has
+## come to the same turn and stands waiting (_play_moves). The AI needs nothing
+## sent: the seed makes its turns the same. A question in the middle of
+## something (ReactionPrompt), a quick time or a hack is the decider's, on their
+## machine, and what they decide is sent (decided). After every turn the
+## joiner's fight_state is checked against the host's (_fight_check); told
+## apart - something rolled outside Combat.rng - the host's numbers are put on
+## the joiner's fight and the turn is written down (parted).
+##
 ## Walking, presses and pings: on a map each machine walks its own players'
 ## groups and says where their leaders are WALKS_A_SECOND times a second
 ## (_walked, unreliable but in order); the other machine's copy of a group is a
@@ -87,6 +101,10 @@ const WALKS_A_SECOND := 20.0
 const WALK_ANYWAY_SECONDS := 0.5
 ## How often the host says how its watch stands, on a watched map.
 const WATCHES_A_SECOND := 10.0
+## The one scene every fight is played in.
+const FIGHT_SCENE := "res://scenes/game.tscn"
+## The moves a fight sends.
+const FIGHT_MOVES := ["walk", "skill", "end_turn", "undo", "ready", "deployed"]
 ## The presses on a map that do something to the world, which on a joiner are
 ## the host's to act on.
 const HOSTS_PRESSES: Array[StringName] = [&"interact", &"swap_leader", &"dash", &"listen", &"throw", &"vault",
@@ -138,6 +156,26 @@ var _walk_clock := 0.0
 ## Player id -> [where, facing left, walking, msec] as last said.
 var _walk_said := {}
 var _watch_clock := 0.0
+## The fight being played here, and how many turns of it have begun.
+var _fight: Combat = null
+var fight_turn := 0
+## Moves from the other machine still to be done here: [turn, combatant id, kind, args].
+var _moves: Array = []
+var _playing_move := false
+var _replaying := false
+## Questions asked in this fight here, and the other machine's answers by number.
+var _questions := 0
+var _answers := {}
+## The host: each side's fight_state hash by turn, until both are in.
+var _checks_here := {}
+var _checks_there := {}
+## The turns the two fights were told apart and the joiner's put right, and how
+## many turns have been checked and found the same.
+var parted: Array = []
+var checked_turns := 0
+## The host: the balloon showing a conversation now. The joiner: its copy.
+var _balloon: Node = null
+var _mirror: ConversationMirror = null
 
 
 func _ready():
@@ -286,6 +324,9 @@ func _close():
 	_follow_due = {}
 	_state_held = null
 	_state_digest = 0
+	_moves.clear()
+	_balloon = null
+	_close_mirror()
 	Coop.networked = false
 	Coop.local_peer = 0
 	if was_joiner:
@@ -319,6 +360,12 @@ func _on_peer_disconnected(peer: int):
 			gone = true
 	if gone:
 		told.emit("The other player has left. Their characters are yours.")
+		# Mid-fight too (the designer, 2026-10-29): the turn under way, if it
+		# was theirs, is this machine's player's now, and nothing more of theirs
+		# is coming.
+		_moves.clear()
+		if _fight != null and is_instance_valid(_fight) and not _fight.combat_over and not _fight.combatants.is_empty():
+			Coop.fight_turn(_fight.player_of(_fight.get_current_combatant()))
 		changed.emit()
 
 
@@ -475,10 +522,19 @@ func may_change_scene(_path: String) -> bool:
 
 
 ## The host is changing scene to `path` (SceneTransition, ExplorationScene.
-## reload_map): the joiner comes too, with Campaign as it stands now.
+## reload_map): the joiner comes too, with Campaign as it stands now. Into a
+## fight, the encounter gets its seed first - a copy of it, so the file's own
+## encounter never carries one into a fight played alone.
 func scene_changing(path: String):
-	if is_host() and not _seated_peers().is_empty():
-		_follow.rpc(path, Campaign.net_state(), false)
+	if not is_host() or _seated_peers().is_empty():
+		return
+	if path == FIGHT_SCENE and Campaign.current_encounter != null:
+		var fight: EncounterDefinition = Campaign.current_encounter.duplicate()
+		for meta in Campaign.current_encounter.get_meta_list():
+			fight.set_meta(meta, Campaign.current_encounter.get_meta(meta))
+		fight.set_meta("seed", randi())
+		Campaign.current_encounter = fight
+	_follow.rpc(path, Campaign.net_state(), false)
 
 
 ## On a joiner, whether the map coming up is one the host is already on, so its
@@ -532,6 +588,7 @@ func _follow_now():
 		return
 	var due := _follow_due
 	_follow_due = {}
+	_close_mirror()
 	Campaign.apply(due.state)
 	_arriving_as_it_stands = due.as_it_stands
 	_following = true
@@ -546,7 +603,8 @@ func _state(state):
 	if SceneTransition.is_changing() or not _follow_due.is_empty():
 		_state_held = state
 		return
-	Campaign.apply(state)
+	# While a menu here is open, what it may change stays as it has it.
+	Campaign.apply(state, MENU_KEYS if _menu_open else [])
 
 
 ## Campaign to the joiner, when it has changed since last sent - or anyway,
@@ -561,22 +619,375 @@ func _send_state():
 	_state.rpc(state)
 
 
+## --- Fights, replayed ---
+
+
+## A fight has come up here (Combat._ready).
+func fight_begins(combat: Combat):
+	_fight = combat
+	fight_turn = 0
+	_moves.clear()
+	_playing_move = false
+	_replaying = false
+	_questions = 0
+	_answers.clear()
+	_checks_here.clear()
+	_checks_there.clear()
+	parted.clear()
+	checked_turns = 0
+	combat.turn_advanced.connect(_on_turn_advanced)
+
+
+## Whether a fight here is being played on the other machine too.
+func in_a_shared_fight() -> bool:
+	return with_another() and _fight != null and is_instance_valid(_fight) and _fight.is_inside_tree() and not _fight.combat_over
+
+
+## Whether this machine places the party before a fight - the host does; on the
+## joiner only the host's placing, played here, does (Combat.finish_deployment).
+func may_deploy() -> bool:
+	return not in_a_shared_fight() or not follows() or _replaying
+
+
+## A move made here in `combat`, for the other machine to make too: `kind` (one
+## of FIGHT_MOVES) with `args` - plain data. Nothing while playing the other's.
+func fight_move(combat: Combat, kind: String, args: Array):
+	if _replaying or combat != _fight or not in_a_shared_fight():
+		return
+	if kind == "deployed":
+		var places := {}
+		for comb in combat.combatants:
+			if comb.get("side", 1) == 0 and not comb.has("object"):
+				places[comb.get("id", -1)] = comb.position
+		args = [places]
+	_fight_move.rpc(fight_turn, combat.get_current_combatant().get("id", -1), kind, args)
+
+
+@rpc("any_peer", "reliable")
+func _fight_move(turn, comb_id, kind, args):
+	if typeof(turn) != TYPE_INT or typeof(comb_id) != TYPE_INT or typeof(kind) != TYPE_STRING or typeof(args) != TYPE_ARRAY:
+		return
+	if not FIGHT_MOVES.has(kind) or not in_a_shared_fight():
+		return
+	# Only from the machine of whoever steers the one moving - the party's
+	# placing, from the host.
+	var sender := multiplayer.get_remote_sender_id()
+	if kind == "deployed":
+		if sender != 1:
+			return
+	else:
+		var comb: Dictionary = _fight._combatant_by_id(comb_id)
+		var id := _fight.player_of(comb) if not comb.is_empty() else -1
+		if id < 0 or id >= Coop.players.size() or Coop.players[id].peer != sender:
+			return
+	_moves.append([turn, comb_id, kind, args])
+
+
+## The other machine's moves, each once this fight has come to its turn and
+## stands waiting for the one moving.
+func _play_moves():
+	if _playing_move or _moves.is_empty() or not in_a_shared_fight():
+		return
+	var move: Array = _moves[0]
+	var combat := _fight
+	if move[2] == "deployed":
+		if not combat.deployment_active:
+			return
+	else:
+		if move[0] != fight_turn or combat.deployment_active:
+			return
+		var comb: Dictionary = combat.get_current_combatant()
+		if comb.get("id", -1) != move[1] or not combat.controller.player_turn \
+				or not combat.controller.is_idle() or combat.controller.action_locked:
+			return
+	_moves.pop_front()
+	_playing_move = true
+	_replaying = true
+	await _make(combat, move[2], move[3])
+	_replaying = false
+	_playing_move = false
+
+
+func _make(combat: Combat, kind: String, args: Array):
+	var controller := combat.controller
+	var comb: Dictionary = combat.get_current_combatant()
+	match kind:
+		"walk":
+			if args.size() == 1 and args[0] is Array:
+				controller.walk_along(args[0])
+		"skill":
+			if args.size() == 5 and typeof(args[0]) == TYPE_STRING and SkillDatabase.skills.has(args[0]) \
+					and typeof(args[1]) == TYPE_VECTOR2I and typeof(args[2]) == TYPE_BOOL \
+					and typeof(args[3]) == TYPE_VECTOR2I and typeof(args[4]) == TYPE_INT:
+				combat.aim_choice = args[4]
+				await combat.use_skill(args[0], comb, args[1], true, args[2], args[3])
+		"end_turn":
+			await combat.advance_turn()
+		"undo":
+			controller.undo_move()
+		"ready":
+			if args.size() == 6 and typeof(args[0]) == TYPE_INT and typeof(args[1]) == TYPE_STRING \
+					and typeof(args[2]) == TYPE_INT and typeof(args[3]) == TYPE_VECTOR2I and typeof(args[4]) == TYPE_INT \
+					and typeof(args[5]) == TYPE_INT:
+				combat.ready_action(combat._combatant_by_id(args[0]), args[1], args[2], args[3], args[4],
+					combat._combatant_by_id(args[5]))
+		"deployed":
+			if args.size() == 1 and args[0] is Dictionary:
+				for comb_id in args[0]:
+					var placed: Dictionary = combat._combatant_by_id(int(comb_id))
+					if not placed.is_empty() and placed.get("side", 1) == 0 and typeof(args[0][comb_id]) == TYPE_VECTOR2I:
+						controller._set_deployed_position(placed, args[0][comb_id])
+				controller.update_points_weight()
+				combat.finish_deployment()
+
+
+## What `who` decides - `deciding` called on their machine (a question put
+## up, a quick time played, a hack) and its answer sent, so that on the other
+## machine the same call waits for that answer instead. Outside a fight played
+## on both machines, simply `deciding` called.
+func decided(who: int, deciding: Callable):
+	if not in_a_shared_fight():
+		return await deciding.call()
+	_questions += 1
+	var asked := _questions
+	if who < 0 or who >= Coop.players.size():
+		who = 0
+	if Coop.is_local(who):
+		var answer = await deciding.call()
+		_answer.rpc(asked, answer)
+		return answer
+	while not _answers.has(asked):
+		if not in_a_shared_fight():
+			return await deciding.call()
+		await get_tree().process_frame
+	var given = _answers[asked]
+	_answers.erase(asked)
+	return given
+
+
+@rpc("any_peer", "reliable")
+func _answer(asked, answer):
+	if typeof(asked) == TYPE_INT and in_a_shared_fight() and is_plain(answer):
+		_answers[asked] = answer
+
+
+func _on_turn_advanced(_comb: Dictionary):
+	fight_turn += 1
+	if not in_a_shared_fight():
+		return
+	var digest := hash(_fight.fight_state())
+	if is_host():
+		_checks_here[fight_turn] = digest
+		_check(fight_turn)
+	else:
+		_fight_check.rpc_id(1, fight_turn, digest)
+
+
+@rpc("any_peer", "reliable")
+func _fight_check(turn, digest):
+	if is_host() and typeof(turn) == TYPE_INT and typeof(digest) == TYPE_INT and _seated_peers().has(multiplayer.get_remote_sender_id()):
+		_checks_there[turn] = digest
+		_check(turn)
+
+
+## The host: the two fights as each was when `turn` began. Told apart, the
+## joiner's is put right from this one, and it is written down.
+func _check(turn: int):
+	if not _checks_here.has(turn) or not _checks_there.has(turn):
+		return
+	var same: bool = _checks_here[turn] == _checks_there[turn]
+	_checks_here.erase(turn)
+	_checks_there.erase(turn)
+	if same:
+		checked_turns += 1
+		return
+	parted.append(turn)
+	push_warning("Net: the two fights told apart at turn %d - something rolled outside Combat.rng. The joiner's is put right from the host's." % turn)
+	var numbers := {}
+	for comb in _fight.combatants:
+		numbers[comb.get("id", -1)] = [comb.get("hp", 0), comb.get("position", Vector2i.ZERO), comb.get("alive", false)]
+	_put_right.rpc(turn, numbers)
+
+
+@rpc("authority", "reliable")
+func _put_right(turn, numbers):
+	if not follows() or not in_a_shared_fight() or typeof(numbers) != TYPE_DICTIONARY:
+		return
+	push_warning("Net: this fight parted from the host's at turn %d; put right from it." % turn)
+	for comb_id in numbers:
+		var comb: Dictionary = _fight._combatant_by_id(int(comb_id))
+		var said = numbers[comb_id]
+		if comb.is_empty() or not said is Array or said.size() < 3 or typeof(said[1]) != TYPE_VECTOR2I:
+			continue
+		comb.hp = int(said[0])
+		comb.alive = bool(said[2])
+		if comb.position != said[1]:
+			var was: Vector2i = comb.position
+			comb.position = said[1]
+			var sprite = comb.get("sprite")
+			if sprite != null and is_instance_valid(sprite):
+				sprite.position = _fight.controller.tile_map.map_to_local(said[1])
+			_fight.controller.reposition_combatant(was, said[1])
+	_fight.update_combatants.emit(_fight.combatants)
+
+
+## --- Conversations ---
+##
+## The host runs every conversation. Each line its balloon shows
+## (DialogueBalloon.apply_dialogue_line -> conversation_line) goes to the joiner
+## and is shown there in a copy (ConversationMirror), the joiner's own party held
+## meanwhile. Whoever has the focus - who started it - goes on and chooses: on
+## the joiner that is sent back (answer_line) and done on the host's balloon. The
+## conversation's end closes the copy.
+
+
+func conversation_line(balloon: Node):
+	if not is_host() or _seated_peers().is_empty():
+		return
+	_balloon = balloon
+	var line = balloon.dialogue_line
+	var answers := []
+	for response in line.responses:
+		answers.append([str(response.text), bool(response.is_allowed)])
+	_line.rpc(str(line.character), str(line.text), answers, Coop.focus)
+
+
+func conversation_over(balloon: Node):
+	if balloon == _balloon:
+		_balloon = null
+	if is_host() and not _seated_peers().is_empty():
+		_line_over.rpc()
+
+
+@rpc("authority", "reliable")
+func _line(character, text, answers, decider):
+	if not follows() or typeof(character) != TYPE_STRING or typeof(text) != TYPE_STRING \
+			or typeof(answers) != TYPE_ARRAY or typeof(decider) != TYPE_INT:
+		return
+	var shown := []
+	for answer in answers:
+		if answer is Array and answer.size() == 2 and typeof(answer[0]) == TYPE_STRING:
+			shown.append([answer[0], bool(answer[1])])
+	if _mirror == null or not is_instance_valid(_mirror):
+		_mirror = ConversationMirror.new()
+		get_tree().root.add_child(_mirror)
+	_mirror.show_line(character, text, shown, Coop.is_local(decider))
+	_hold_for_conversation(true)
+
+
+@rpc("authority", "reliable")
+func _line_over():
+	_close_mirror()
+
+
+func _close_mirror():
+	if _mirror != null and is_instance_valid(_mirror):
+		_mirror.queue_free()
+	_mirror = null
+	_hold_for_conversation(false)
+
+
+## A conversation on the host holds the joiner's own party too.
+func _hold_for_conversation(held: bool):
+	var scene := _map()
+	if scene == null:
+		return
+	for group in scene.all_groups():
+		if is_instance_valid(group) and not group.puppet:
+			group.frozen = held
+
+
+## On the joiner, whose conversation it is: pressed on (`choice` -1), or chose
+## the `choice`th answer (ConversationMirror).
+func answer_line(choice: int):
+	if follows():
+		_converse.rpc_id(1, choice)
+
+
+@rpc("any_peer", "reliable")
+func _converse(choice):
+	if not is_host() or typeof(choice) != TYPE_INT or _balloon == null or not is_instance_valid(_balloon):
+		return
+	# Only the machine of whoever has the conversation.
+	var sender := multiplayer.get_remote_sender_id()
+	if Coop.focus < 0 or Coop.focus >= Coop.players.size() or Coop.players[Coop.focus].peer != sender:
+		return
+	if choice < 0:
+		_balloon.advance_from_afar()
+	else:
+		_balloon.respond_from_afar(choice)
+
+
 ## --- Menus ---
 ##
 ## Over a network an open menu does not stop the world (the designer,
 ## 2026-10-29): MenuPause pauses nothing and Coop gives no menu the focus. Only
 ## this machine's own groups stand where they are while a menu is open here.
+##
+## What a menu on the joiner changes - the bags, the gear, gold, spells
+## learned, paths chosen (MENU_KEYS) - is the joiner's own doing: while one is
+## open the host's Campaign goes on arriving but for those, which stay as the
+## joiner has them; once it closes, those of them it changed are sent to the
+## host (_menu_changes), which takes them and sends Campaign back to both. A
+## menu that changes none of them (the Players panel, the journal) sends
+## nothing. The host trusts the joiner with that much.
+
+const MENU_KEYS := ["inventories", "containers", "stacks", "equipped", "gear", "gold", "learned_spells",
+	"subclasses", "path_change_open"]
+
+var _menu_open := false
+## The joiner: MENU_KEYS as they stood when a menu opened.
+var _before_the_menu := {}
 
 
 func _stand_for_menus():
+	var held := MenuPause.is_held()
+	if follows() and held != _menu_open:
+		if held:
+			_before_the_menu = _menu_part()
+		else:
+			_send_what_the_menu_changed()
+	_menu_open = held
 	var scene := _map()
 	if scene == null:
 		return
-	var held := MenuPause.is_held()
 	for id in Coop.local_players():
 		var group = scene.groups.get(id)
 		if group != null and is_instance_valid(group):
 			group.in_a_menu = held
+
+
+func _menu_part() -> Dictionary:
+	var part := {}
+	for key in MENU_KEYS:
+		var value = Campaign.get(key)
+		part[key] = value.duplicate(true) if value is Dictionary or value is Array else value
+	return part
+
+
+func _send_what_the_menu_changed():
+	var now := _menu_part()
+	var changed_keys := {}
+	for key in MENU_KEYS:
+		if var_to_str(now[key]) != var_to_str(_before_the_menu.get(key)):
+			changed_keys[key] = now[key]
+	_before_the_menu = {}
+	if not changed_keys.is_empty() and is_plain(changed_keys):
+		_menu_changes.rpc_id(1, changed_keys)
+
+
+@rpc("any_peer", "reliable")
+func _menu_changes(changes):
+	if not is_host() or typeof(changes) != TYPE_DICTIONARY or not _seated_peers().has(multiplayer.get_remote_sender_id()):
+		return
+	for key in changes:
+		if not MENU_KEYS.has(key):
+			continue
+		var value = changes[key]
+		# Only what is already of that kind: a bag for a bag, a number for gold.
+		if typeof(value) != typeof(Campaign.get(key)):
+			continue
+		Campaign.set(key, value.duplicate(true) if value is Dictionary or value is Array else value)
 
 
 ## --- Guards ---
@@ -993,11 +1404,12 @@ func _process(delta: float):
 	if follows():
 		_follow_now()
 		if _state_held != null and _follow_due.is_empty() and not SceneTransition.is_changing():
-			Campaign.apply(_state_held)
+			Campaign.apply(_state_held, MENU_KEYS if _menu_open else [])
 			_state_held = null
 	if with_another():
 		_say_where(delta)
 		_stand_for_menus()
+		_play_moves()
 	if is_host() and not _seated_peers().is_empty():
 		_say_how_it_stands(delta)
 	var now := Time.get_ticks_msec()
