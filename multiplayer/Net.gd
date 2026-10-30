@@ -18,9 +18,21 @@ extends Node
 ## A machine that drops out takes its player with it, and what they steered goes
 ## to the other player (Coop.leave) - mid-fight too (the designer, 2026-10-29).
 ##
+## Following the host: the joiner never changes scene by itself
+## (may_change_scene). Every change on the host is sent with Campaign as it
+## stands then (scene_changing -> _follow), and the joiner puts that state on
+## and changes too - so the map arriving does to the state what the host's
+## arriving did. After that Campaign is kept the host's (_send_state): sent
+## whenever it has changed and every few seconds anyway, and held back while
+## the joiner is still changing scene. A joiner seated while the host is on a
+## map comes straight there (_welcome); one seated mid-fight comes in once the
+## fight is over. The host leaving sends the joiner back to the title screen.
+##
 ## Nothing another machine sends is trusted: every call from the joiner is
 ## checked for who sent it and what it holds, and objects never travel
-## (SceneMultiplayer.allow_object_decoding stays off).
+## (SceneMultiplayer.allow_object_decoding stays off) - a resource goes as its
+## file, or as its script and stored properties (resource_to_data), and only
+## the game's own data scripts are made from them (data_to_resource).
 
 ## Hosting, joined, left, or a player in or out.
 signal changed
@@ -46,6 +58,13 @@ const FORGET_SECONDS := 4.0
 const JOIN_SECONDS := 8.0
 ## How long a machine that has connected has to say hello.
 const HELLO_SECONDS := 6.0
+## How often the host looks whether Campaign has changed, and how long it goes
+## at most without sending it anyway.
+const STATE_SECONDS := 0.25
+const STATE_ANYWAY_SECONDS := 3.0
+## Where a resource sent as data may take its script from - the game's own
+## data, never anything else.
+const DATA_SCRIPTS := ["res://combat/resources/", "res://campaign/", "res://data/"]
 
 enum Role { NONE, HOST, JOINER }
 
@@ -77,6 +96,16 @@ var _turned_away := {}
 ## back down with on leaving.
 var _own_devices: Array = []
 var _table_due := false
+var _state_clock := 0.0
+var _state_anyway := 0.0
+var _state_digest := 0
+## Joiner: a change of scene the host has asked for, waiting until a change
+## already under way is over - {path, state}.
+var _follow_due := {}
+## Joiner: Campaign from the host, kept while a change of scene is under way.
+var _state_held = null
+var _following := false
+var _arriving_as_it_stands := false
 
 
 func _ready():
@@ -177,15 +206,19 @@ func join(address: String, port: int = PORT) -> Error:
 	return OK
 
 
-## Ends hosting, or leaves the game joined - this machine plays on alone.
+## Ends hosting, or leaves the game joined - this machine plays on alone. A
+## joiner was in the host's story, so it goes back to the title screen.
 func leave():
 	if not active():
 		return
+	var was_following := follows()
 	if is_host():
 		for id in range(Coop.players.size() - 1, -1, -1):
 			if not Coop.is_local(id):
 				Coop.leave(id)
 	_close()
+	if was_following:
+		_back_to_the_title("You have left the game.")
 
 
 ## The host sends player `id`'s machine away - Leave on their row.
@@ -211,6 +244,9 @@ func _close():
 	_joining_since = -1
 	_strangers.clear()
 	_turned_away.clear()
+	_follow_due = {}
+	_state_held = null
+	_state_digest = 0
 	Coop.networked = false
 	Coop.local_peer = 0
 	if was_joiner:
@@ -257,8 +293,19 @@ func _on_connection_failed():
 
 
 func _on_host_gone():
+	var was_following := follows()
 	told.emit("The host has left the game.")
 	_close()
+	if was_following:
+		_back_to_the_title("The host has left the game.")
+
+
+## To the title screen's Players, saying `why` - unless already there.
+func _back_to_the_title(why: String):
+	var scene := get_tree().current_scene
+	if scene == null or scene.scene_file_path == Campaign.MAIN_MENU:
+		return
+	Campaign.to_main_menu("players", why)
 
 
 ## --- Players ---
@@ -282,6 +329,10 @@ func _hello(protocol, build, devices):
 	Coop.join(int(devices[0]), "", peer)
 	told.emit("%s has joined over the network." % Coop.name_of(Coop.players.size() - 1))
 	changed.emit()
+	# The table first - the joiner follows only once seated - then where the
+	# game is.
+	_send_table()
+	_welcome(peer)
 
 
 ## Why a hello saying `protocol`, `build` and `devices` is turned away, or "".
@@ -365,6 +416,240 @@ func _steer(key, id):
 	Coop.players_changed.emit()
 
 
+## --- Following the host ---
+
+
+## This machine plays another's game - a seated joiner - and goes where it says.
+func follows() -> bool:
+	return joined()
+
+
+## Whether SceneTransition may change scene to `path` - never on a joiner, but
+## where the host has said.
+func may_change_scene(_path: String) -> bool:
+	if not follows() or _following:
+		return true
+	told.emit("The host decides where everybody goes.")
+	return false
+
+
+## The host is changing scene to `path` (SceneTransition, ExplorationScene.
+## reload_map): the joiner comes too, with Campaign as it stands now.
+func scene_changing(path: String):
+	if is_host() and not _seated_peers().is_empty():
+		_follow.rpc(path, Campaign.net_state(), false)
+
+
+## On a joiner, whether the map coming up is one the host is already on, so its
+## party and bags are the host's as they stand - not set up again as arriving
+## sets them (ExplorationScene._ready). Asked once, as the map comes up.
+func arrives_as_it_stands() -> bool:
+	var was := _arriving_as_it_stands
+	_arriving_as_it_stands = false
+	return was
+
+
+## Where a joiner just seated should be: on the host's map, or wherever else it
+## is but the title screen. Not into a fight under way - it comes in after it.
+func _welcome(peer: int):
+	var scene := get_tree().current_scene
+	var path := scene.scene_file_path if scene != null else ""
+	if path == "" or path == Campaign.MAIN_MENU:
+		return
+	if scene is GameScene and scene.combat != null and not scene.combat.combat_over:
+		_waiting.rpc_id(peer, "The host is in a fight. You come in once it is over.")
+		return
+	var state := Campaign.net_state()
+	if scene is ExplorationScene:
+		# Where the host's party stands now, not where it came in.
+		state.return_position = scene.party_position()
+		state.return_to_position = true
+	_follow.rpc_id(peer, path, state, true)
+
+
+@rpc("authority", "reliable")
+func _waiting(why):
+	if follows():
+		told.emit(str(why))
+
+
+## Go to `path` with `state` on - `as_it_stands` when the host is already
+## there (arrives_as_it_stands).
+@rpc("authority", "reliable")
+func _follow(path, state, as_it_stands):
+	if not follows() or typeof(path) != TYPE_STRING or typeof(state) != TYPE_DICTIONARY:
+		return
+	if not path.begins_with("res://") or not path.ends_with(".tscn") or not ResourceLoader.exists(path):
+		return
+	_follow_due = {"path": path, "state": state, "as_it_stands": as_it_stands == true}
+	_state_held = null
+	_follow_now()
+
+
+func _follow_now():
+	if _follow_due.is_empty() or SceneTransition.is_changing():
+		return
+	var due := _follow_due
+	_follow_due = {}
+	Campaign.apply(due.state)
+	_arriving_as_it_stands = due.as_it_stands
+	_following = true
+	SceneTransition.change_scene(due.path)
+	_following = false
+
+
+@rpc("authority", "reliable")
+func _state(state):
+	if not follows() or typeof(state) != TYPE_DICTIONARY:
+		return
+	if SceneTransition.is_changing() or not _follow_due.is_empty():
+		_state_held = state
+		return
+	Campaign.apply(state)
+
+
+## Campaign to the joiner, when it has changed since last sent - or anyway,
+## once in a while.
+func _send_state():
+	var state := Campaign.net_state()
+	var digest := hash(var_to_str(state))
+	if digest == _state_digest and _state_anyway > 0.0:
+		return
+	_state_digest = digest
+	_state_anyway = STATE_ANYWAY_SECONDS
+	_state.rpc(state)
+
+
+## --- Resources as data ---
+
+
+## `resource` as plain data for the other machine: its file, when it has one of
+## its own, or else its script and stored properties - never the object.
+static func resource_to_data(resource: Resource):
+	if resource == null:
+		return null
+	var data := {"meta": {}}
+	for meta in resource.get_meta_list():
+		data.meta[meta] = value_to_data(resource.get_meta(meta))
+	if resource.resource_path.begins_with("res://") and not resource.resource_path.contains("::"):
+		data["path"] = resource.resource_path
+		return data
+	var script: Script = resource.get_script()
+	data["script"] = script.resource_path if script != null else ""
+	data["props"] = {}
+	for property in resource.get_property_list():
+		if property.usage & PROPERTY_USAGE_STORAGE and property.name not in ["script", "resource_local_to_scene", "resource_name", "resource_path"]:
+			data.props[property.name] = value_to_data(resource.get(property.name))
+	return data
+
+
+static func value_to_data(value):
+	if value is Resource:
+		return {"__resource": resource_to_data(value)}
+	if value is Object:
+		return null
+	if value is Array:
+		var items := []
+		for each in value:
+			items.append(value_to_data(each))
+		return items
+	if value is Dictionary:
+		var copy := {}
+		for key in value:
+			copy[value_to_data(key)] = value_to_data(value[key])
+		return copy
+	return value
+
+
+## A resource back from resource_to_data: loaded from the game's own files, or
+## made from one of its own data scripts - anything else is nothing.
+static func data_to_resource(data) -> Resource:
+	if not data is Dictionary:
+		return null
+	var made: Resource = null
+	var path := str(data.get("path", ""))
+	if path != "":
+		if not path.begins_with("res://") or not ResourceLoader.exists(path):
+			return null
+		made = load(path)
+		if made != null and not Dictionary(data.get("meta", {})).is_empty():
+			# A file's resource is shared by everything that loaded it: metadata
+			# for this one fight goes on a copy.
+			made = made.duplicate()
+	else:
+		var script_path := str(data.get("script", ""))
+		var ours := false
+		for root in DATA_SCRIPTS:
+			ours = ours or script_path.begins_with(root)
+		if not ours or not script_path.ends_with(".gd") or not ResourceLoader.exists(script_path):
+			return null
+		var script = load(script_path)
+		# A resource's script, and nothing that is not one is ever made.
+		if not script is GDScript or not script.can_instantiate() \
+				or not ClassDB.is_parent_class(script.get_instance_base_type(), &"Resource"):
+			return null
+		made = script.new()
+		var stored := {}
+		for property in made.get_property_list():
+			if property.usage & PROPERTY_USAGE_STORAGE:
+				stored[property.name] = true
+		var props = data.get("props", {})
+		if props is Dictionary:
+			for key in props:
+				if typeof(key) == TYPE_STRING and stored.has(key) and key != "script":
+					var value = data_to_value(props[key])
+					var current = made.get(key)
+					if current is Array and value is Array:
+						var typed: Array = current.duplicate()
+						typed.clear()
+						for each in value:
+							typed.append(each)
+						made.set(key, typed)
+					else:
+						made.set(key, value)
+	if made == null:
+		return null
+	var metas = data.get("meta", {})
+	if metas is Dictionary:
+		for meta in metas:
+			if typeof(meta) == TYPE_STRING or typeof(meta) == TYPE_STRING_NAME:
+				made.set_meta(meta, data_to_value(metas[meta]))
+	return made
+
+
+static func data_to_value(value):
+	if value is Dictionary and value.size() == 1 and value.has("__resource"):
+		return data_to_resource(value.__resource)
+	if value is Array:
+		var items := []
+		for each in value:
+			items.append(data_to_value(each))
+		return items
+	if value is Dictionary:
+		var copy := {}
+		for key in value:
+			copy[data_to_value(key)] = data_to_value(value[key])
+		return copy
+	return value
+
+
+## Whether `value` is plain data, with no object anywhere in it - what may go to
+## the other machine.
+static func is_plain(value) -> bool:
+	if value is Object:
+		return false
+	if value is Array:
+		for each in value:
+			if not is_plain(each):
+				return false
+		return true
+	if value is Dictionary:
+		for key in value:
+			if not is_plain(key) or not is_plain(value[key]):
+				return false
+	return true
+
+
 ## The machines with a player seated at the host's table.
 func _seated_peers() -> Array:
 	var peers := []
@@ -433,6 +718,17 @@ func _process(delta: float):
 			_beacon.put_packet(("%s|%d|%d|%s" % [BEACON, PROTOCOL, host_port, game_name.replace("|", " ")]).to_utf8_buffer())
 	if _listener != null:
 		_listen()
+	if is_host() and not _seated_peers().is_empty():
+		_state_clock -= delta
+		_state_anyway -= delta
+		if _state_clock <= 0.0:
+			_state_clock = STATE_SECONDS
+			_send_state()
+	if follows():
+		_follow_now()
+		if _state_held != null and _follow_due.is_empty() and not SceneTransition.is_changing():
+			Campaign.apply(_state_held)
+			_state_held = null
 	var now := Time.get_ticks_msec()
 	if is_joiner() and _joining_since >= 0 and now - _joining_since > JOIN_SECONDS * 1000.0:
 		told.emit("No answer from %s." % host_address)

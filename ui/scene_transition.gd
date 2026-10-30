@@ -63,8 +63,14 @@ func _ready():
 ##
 ## Returns immediately - the caller is usually a node inside the scene being
 ## replaced, and awaiting its own destruction is not something to ask of it.
+##
+## Over a network the joiner goes only where the host goes (Net): a change asked
+## for on the joiner by anything else is refused, and one on the host is sent.
 func change_scene(path: String):
 	if _changing:
+		return
+	var net = get_node_or_null("/root/Net")
+	if net != null and not net.may_change_scene(path):
 		return
 	_changing = true
 	_run_change(path)
@@ -82,6 +88,11 @@ func _run_change(path: String):
 	# Whoever was holding the game is about to stop existing and can no longer
 	# let go of it, so the scene arriving would arrive frozen. See MenuPause.
 	MenuPause.clear(get_tree())
+	# Sent now rather than when asked: what was asked for has all been set up
+	# by the time the screen is dark.
+	var net = get_node_or_null("/root/Net")
+	if net != null:
+		net.scene_changing(path)
 	get_tree().change_scene_to_file(path)
 	# One frame for the new scene to be built, so the fade back in reveals it
 	# rather than the gap where it is about to be.

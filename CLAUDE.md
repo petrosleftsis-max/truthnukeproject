@@ -401,7 +401,23 @@ the host's Leave on the joiner's row is `send_away`. A machine dropping out take
 its player with it (`Coop.leave`: their characters to the other player, mid-fight
 too - the designer, 2026-10-29); a joiner left alone is back to its own players
 (`_own_devices`). Every call from the other machine is checked for its sender and
-its types, and objects never travel. The Players panel's network half is
+its types, and objects never travel: a resource goes as its file or as its
+script and stored properties (`resource_to_data` / `data_to_resource`, which
+makes nothing but a Resource of a script under `DATA_SCRIPTS`), and `is_plain`
+says whether something may go. **The joiner follows the host:**
+`SceneTransition.change_scene` asks `Net.may_change_scene` (no on a joiner but
+where the host said) and tells `scene_changing`, which sends `_follow(path,
+Campaign.net_state())` - so `ExplorationScene.reload_map` goes through both
+too. The joiner puts it on with `Campaign.apply` (no scene change) and changes
+scene, and its map does to that state what the host's arriving did. A joiner
+seated while the host is on a map is sent there `as_it_stands`
+(`arrives_as_it_stands`: the party and bags kept, where the host's party
+stands); one seated mid-fight waits for the next change. After that the host
+sends Campaign whenever it changes and every `STATE_ANYWAY_SECONDS` anyway
+(`_send_state`), held on the joiner while it changes scene. On a joiner the map
+sets off no contact triggers and offers no paths (`Net.follows()`): the host's
+does. Leaving, and the host leaving, send the joiner to the title screen's
+Players with a note. The Players panel's network half is
 `ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
 since listening (or hosting) is what makes Windows ask about its firewall.
 `net` plays two machines: the suite hosts on 127.0.0.1:24790 and starts a second

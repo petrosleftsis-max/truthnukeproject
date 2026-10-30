@@ -49,9 +49,10 @@ leans on the one before.
   `seed_rolls`, `_shuffle`, `fight_state`; CLAUDE.md "Rolls in a fight"; suite
   `rolls`.
 - **Step 2 under way** (2026-10-30): `multiplayer/Net.gd` hosts, joins, finds
-  games by their beacon, and seats players across machines (items 1 and 2
-  below; `ui/net_panel.gd`; suite `net`, which plays the joiner in a second
-  Godot). Items 3-12 to come.
+  games by their beacon, and seats players across machines; the joiner joins a
+  game under way and follows the host's scene and Campaign (items 1-4 below;
+  `ui/net_panel.gd`; suite `net`, which plays the joiner in a second Godot).
+  Items 5-12 to come.
 - **Not built:** the rest of Step 2, and Steps 3-5 below.
 
 ## Step 0 - download only (small; done 2026-10-29)
@@ -194,6 +195,19 @@ brings up Windows' firewall question, and a game on one screen should never ask.
    `Coop.players` and `Campaign.controllers` to everybody, again whenever they
    change. Choosing characters on the joiner is a request to the host. Still two
    players at most - one per machine, as a rule.
+Items 3 and 4 are built (2026-10-30). As built: `Campaign.net_state()` is the
+live state (a stealth map's too, not its checkpoint) with the map, where the
+party is going and the encounter as data; `Campaign.apply` puts it on. A joiner
+seated while the host is on a map comes straight there with the party and bags
+as they stand and where the host's party stands; one seated during a fight
+comes in at the next change of scene rather than into a fight already played
+partway (that would need every move so far). After a change the host keeps
+sending Campaign - when it changes, and every three seconds anyway - and the
+joiner holds what arrives while it is still changing scene, so a map coming up
+does to the state what the host's did. On the joiner a map sets off nothing it
+is walked into and offers no paths: the host's does. Leaving, or the host
+leaving, sends the joiner to the title screen.
+
 3. **Joining a game under way.** The host sends everything `Campaign.snapshot`
    holds plus `current_map`, `party_order`, `return_position` and the encounter if
    in a fight. `Campaign.restore` changes scene by itself - add an `apply(state)`

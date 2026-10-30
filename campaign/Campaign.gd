@@ -775,6 +775,48 @@ func restore(state: Dictionary):
 	SceneTransition.change_scene(EXPLORATION_SCENE)
 
 
+## --- Over a network ---
+##
+## On a joiner, Campaign is the host's (multiplayer/Net.gd): net_state() on the
+## host is everything a save holds - live, a stealth map's too rather than its
+## checkpoint - with where the party is going and the fight it is going into,
+## all plain data; apply() puts it on the joiner without changing scene.
+
+
+func net_state() -> Dictionary:
+	var state := {"party_order": Array(party_order), "current_map": current_map,
+		"return_position": return_position, "return_to_position": return_to_position,
+		"target_entry": target_entry, "stealth_checkpoint": stealth_checkpoint.duplicate(true),
+		"dungeon": dungeon.resource_path if dungeon != null else "",
+		"encounter": Net.resource_to_data(current_encounter)}
+	for key in SAVED:
+		var value = get(key)
+		state[key] = value.duplicate(true) if value is Dictionary or value is Array else value
+	return state
+
+
+func apply(state: Dictionary):
+	var party_before := Array(party_order)
+	if state.get("party_order") is Array:
+		party_order.assign(state.party_order)
+	for key in SAVED:
+		if state.has(key):
+			var value = state[key]
+			set(key, value.duplicate(true) if value is Dictionary or value is Array else value)
+	current_map = str(state.get("current_map", current_map))
+	if state.get("return_position") is Vector2:
+		return_position = state.return_position
+	return_to_position = bool(state.get("return_to_position", return_to_position))
+	target_entry = str(state.get("target_entry", target_entry))
+	if state.get("stealth_checkpoint") is Dictionary:
+		stealth_checkpoint = state.stealth_checkpoint.duplicate(true)
+	var dungeon_path := str(state.get("dungeon", ""))
+	dungeon = load(dungeon_path) if dungeon_path.begins_with("res://") and ResourceLoader.exists(dungeon_path) else null
+	current_encounter = Net.data_to_resource(state.get("encounter")) as EncounterDefinition
+	if Array(party_order) != party_before:
+		party_changed.emit()
+
+
 func is_trigger_cleared(trigger_id: String) -> bool:
 	return trigger_id != "" and cleared_triggers.has(trigger_id)
 

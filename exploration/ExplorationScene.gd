@@ -64,7 +64,10 @@ func _ready():
 	# In a dungeon the party and what it carries are the dungeon's, from one
 	# map to the next: a map's own cast and kit are where its story has them.
 	var in_dungeon := Campaign.in_dungeon()
-	if in_dungeon:
+	# Joining a game under way on this map, the party and its bags are the
+	# host's as they stand (Net), not set up again as arriving sets them.
+	var as_it_stands := Net.arrives_as_it_stands()
+	if in_dungeon or as_it_stands:
 		pass
 	elif setup != null and setup.is_set():
 		Campaign.set_party(setup.members, setup.level)
@@ -74,7 +77,7 @@ func _ready():
 	# Emptying the bags and handing the kit out again is for arriving: done on
 	# the way back, it took whatever had been picked up or lifted here since.
 	var coming_back = Campaign.return_to_position
-	var keep_bags = coming_back or in_dungeon
+	var keep_bags = coming_back or in_dungeon or as_it_stands
 	if setup != null and setup.empty_handed and not keep_bags:
 		# Before the story has given anybody anything. Done after the party is
 		# set, so it empties the bags of whoever is actually here.
@@ -456,7 +459,8 @@ func _follow_camera(leader_position: Vector2):
 
 ## Doors and ambushes marked `automatic` fire by being walked into.
 func _check_contact_triggers(leader_position: Vector2):
-	if _blocking_interaction:
+	# On a joiner what the party walks into is the host's to set off (Net).
+	if _blocking_interaction or Net.follows():
 		return
 	for interactable in _interactables:
 		if not is_instance_valid(interactable) or not interactable.is_available():
@@ -630,8 +634,12 @@ func step_party_back_from(interactable: Node) -> void:
 
 
 ## Rebuilds the whole scene for whatever map Campaign now points at - how a
-## door moves the party between maps.
+## door moves the party between maps. Over a network the joiner comes too
+## (Net); on the joiner nothing but the host moves anybody between maps.
 func reload_map():
+	if not Net.may_change_scene(scene_file_path):
+		return
+	Net.scene_changing(scene_file_path)
 	get_tree().reload_current_scene()
 
 
@@ -701,7 +709,8 @@ func _process(delta):
 func _offer_paths():
 	_paths_due = false
 	var setup := _map_setup()
-	if not Campaign.asks_for_paths or (setup != null and not setup.asks_for_paths):
+	# Over a network the host's screen asks, for everybody (Net).
+	if not Campaign.asks_for_paths or (setup != null and not setup.asks_for_paths) or Net.follows():
 		return
 	var due := Campaign.choosing_paths()
 	if due.is_empty():

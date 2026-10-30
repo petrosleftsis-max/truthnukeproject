@@ -38,12 +38,12 @@ Steps 0-5 with what to change where and how to test it. In order:
    `Combat.rng`, seeded from the encounter's "seed" (CLAUDE.md "Rolls in a
    fight"; suite `rolls`).
 2. **LAN** (`multiplayer/Net.gd`) - under way (2026-10-30): hosting, joining,
-   finding games and seating players across machines are built (CLAUDE.md
-   "Network play"; suite `net`, which starts a second headless Godot). Still to
-   come, in the plan's order: the host's scene and state followed, walking
-   synced, the joiner's presses played on the host, guards run by the host,
-   fights replayed from the moves with a checksum, conversations mirrored,
-   menus, pings, leaving.
+   finding games, seating players across machines, joining a game under way and
+   following the host's scene and Campaign are built (CLAUDE.md "Network play";
+   suite `net`, which starts a second headless Godot). Still to come, in the
+   plan's order: the joiner's presses played on the host, walking synced,
+   guards run by the host, fights replayed from the moves with a checksum,
+   conversations mirrored, menus, pings, leaving mid-fight.
 3. **Online by ENet + UPnP**, with a virtual LAN app (Tailscale, ZeroTier,
    Radmin VPN) as the fallback players are told about.
 4. **WebRTC on desktop** - once the designer has a signalling server and a TURN
@@ -62,7 +62,10 @@ holds the game for both).
   joiner is seated as the second player on its own machine, whom each steers is
   the host's to set, and a machine leaving takes its player with it. The
   Players panel has the network half. Suite `net` plays the joiner in a second
-  Godot. Nothing of the game itself is shared yet (scenes, walking, fights).
+  Godot. Then the joiner follows the host: it joins a game under way onto the
+  host's map, goes wherever the host goes, has the host's Campaign, and goes
+  back to the title screen when either leaves. Walking, guards and fights are
+  not shared yet.
 - **The seeded fight RNG** (network play Step 1): all 16 rolls in Combat.gd
   through `Combat.rng`, seeded from the encounter's "seed" meta or at random;
   `fight_state()` writes a fight down for a replay to be checked by. Suite
