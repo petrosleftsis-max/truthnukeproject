@@ -85,6 +85,15 @@ func heard_after(start: String) -> String:
 	return ""
 
 
+## A key going down, from this machine's keyboard.
+func key_event(physical: Key) -> InputEventKey:
+	var event := InputEventKey.new()
+	event.physical_keycode = physical
+	event.keycode = physical
+	event.pressed = true
+	return event
+
+
 ## Until this machine shows a map, settled.
 func on_a_map(seconds: float = 20.0) -> bool:
 	return await until(func(): return get_tree().current_scene is ExplorationScene and not SceneTransition.is_changing(), seconds)
@@ -134,12 +143,14 @@ func hosts_half():
 	# Somebody joins on the way - as a conversation would have them - so the
 	# party is no longer what the map's arriving made it.
 	Campaign.add_member("enfina")
+	Campaign.add_member("alithia")
 	await settle()
 	var party := Array(Campaign.party_order)
-	ok(party.size() >= 2, "  with a party to share, one of them joined since arriving", "%s" % [party])
-	# The second of them is the joiner's from the moment it is seated.
-	if party.size() >= 2:
-		Campaign.controllers[party[1]] = 1
+	ok(party.size() >= 3, "  with a party to share, two of them joined since arriving", "%s" % [party])
+	# All but the first are the joiner's from the moment it is seated - two, so
+	# that one of them can stay behind while the other leads.
+	for key in party.slice(1):
+		Campaign.controllers[key] = 1
 	ok(Net.is_plain(Campaign.net_state()), "  and Campaign as it stands is plain data, to send")
 	start_joiner()
 	log_line("")
@@ -163,6 +174,61 @@ func hosts_half():
 	say("gold:%d" % Campaign.gold)
 	ok(await hear("state followed", 15.0), "gold and a flag set on the host reach the joiner", "%s" % [_heard])
 	ok(await hear("stayed"), "the joiner will not change scene by itself")
+	log_line("")
+
+	log_line("======== walking together ========")
+	var m := {"scene": scene, "tile_map": scene._tile_map, "sight": StealthSight.new(scene._tile_map)}
+	var home := tile_at(m, scene._main_party.position_of_leader())
+	var theirs := find_tile(m, func(tile): return gap(tile, home) >= 4.0 and gap(tile, home) <= 6.0)
+	var mine := find_tile(m, func(tile): return gap(tile, home) >= 2.0 and gap(tile, home) <= 3.0 and gap(tile, theirs) >= 2.0)
+	var wall := NOWHERE
+	for x in range(home.x - 8, home.x + 8):
+		for y in range(home.y - 8, home.y + 8):
+			if wall == NOWHERE and not standable(m, Vector2i(x, y)) and gap(Vector2i(x, y), home) >= 2.0:
+				wall = Vector2i(x, y)
+	say("walk:%d,%d" % [theirs.x, theirs.y])
+	ok(await until(func(): return scene.groups.has(1) and scene.groups[1].position_of_leader().distance_to(at(m, theirs)) < Grid.tiles(1.0), 10.0),
+		"the joiner's group, walked over there, shows here where it went")
+	scene._main_party.teleport(at(m, mine))
+	say("host at:%d,%d" % [mine.x, mine.y])
+	ok(await hear("saw the host"), "  and the host's, moved here, shows there")
+	var joiners_place: Vector2 = scene.groups[1].position_of_leader()
+	say("wall:%d,%d" % [wall.x, wall.y])
+	ok(await hear("claimed the wall"), "the joiner says its group is in a wall")
+	await settle(10)
+	ok(wall != NOWHERE and scene.groups[1].position_of_leader().distance_to(at(m, wall)) > Grid.tiles(0.5),
+		"  and the host does not put it there", "%s %s" % [wall, joiners_place])
+	log_line("")
+
+	log_line("======== a press on the joiner, done here ========")
+	var sign := ExamineInteractable.new()
+	sign.text = "A notice, nailed up."
+	sign.sets_flag = "net_sign_read"
+	scene.get_node("Map").add_child(sign)
+	sign.global_position = scene.groups[1].leader.global_position
+	scene._interactables.append(sign)
+	say("sign up")
+	ok(await until(func(): return Campaign.flag("net_sign_read"), 10.0),
+		"E pressed on the joiner examines what is beside the joiner's group here: its flag is set")
+	say("read")
+	var joiners_leader: String = Coop.keys_of(1)[0] if not Coop.keys_of(1).is_empty() else ""
+	ok(await hear("stayed here"), "Stay Here is pressed on the joiner")
+	ok(await until(func(): return scene.staying.has(joiners_leader), 5.0), "  and done here too: their leader stays",
+		"%s %s" % [joiners_leader, scene.staying.keys()])
+	log_line("")
+
+	log_line("======== pings ========")
+	Pings.clear()
+	Pings.ping(0, scene._main_party.position_of_leader())
+	say("pinged")
+	ok(await hear("saw the ping"), "a ping made here shows on the joiner's screen")
+	ok(await until(func(): return Pings.pings.any(func(ping): return ping.player == 1), 10.0),
+		"  and one made there shows here, the joiner's", "%s" % [Pings.pings])
+	log_line("")
+
+	log_line("======== a reload, followed ========")
+	# A map coming up again sets its own cast again - Enfina goes, as she would
+	# through a door - and does the same on the joiner.
 	var before := scene.get_instance_id()
 	say("reloading")
 	scene.reload_map()
@@ -311,9 +377,62 @@ func joiners_half():
 	await settle(20)
 	ok(get_tree().current_scene == scene and not SceneTransition.is_changing(), "asked to change scene by itself, it stays")
 	say("stayed")
+	log_line("")
+
+	log_line("======== walking together ========")
+	var m := {"scene": scene, "tile_map": scene._tile_map, "sight": StealthSight.new(scene._tile_map)}
+	await until(func(): return heard_after("walk:") != "", 10.0)
+	var going := Vector2i(int(heard_after("walk:").get_slice(",", 0)), int(heard_after("walk:").get_slice(",", 1)))
+	var mine: ExplorationParty = scene.groups.get(1)
+	ok(mine != null and not mine.puppet, "its own group, walked here")
+	if mine != null:
+		mine.teleport(at(m, going))
+	say("walked")
+	await until(func(): return heard_after("host at:") != "", 10.0)
+	var hosts := Vector2i(int(heard_after("host at:").get_slice(",", 0)), int(heard_after("host at:").get_slice(",", 1)))
+	ok(await until(func(): return scene.groups.has(0) and scene.groups[0].position_of_leader().distance_to(at(m, hosts)) < Grid.tiles(1.0), 10.0),
+		"the host's group, moved there, shows here where it went")
+	say("saw the host")
+	await until(func(): return heard_after("wall:") != "", 10.0)
+	var wall := Vector2i(int(heard_after("wall:").get_slice(",", 0)), int(heard_after("wall:").get_slice(",", 1)))
+	Net._walked.rpc_id(1, 1, at(m, wall), false, false)
+	say("claimed the wall")
+	log_line("")
+
+	log_line("======== a press on the joiner, done on the host ========")
+	await hear("sign up")
+	# The same notice here, to see that nothing here is the one examined.
+	var sign := ExamineInteractable.new()
+	sign.text = "A notice, nailed up."
+	scene.get_node("Map").add_child(sign)
+	sign.global_position = mine.leader.global_position
+	scene._interactables.append(sign)
+	get_viewport().push_input(key_event(KEY_E))
+	ok(await until(func(): return Campaign.flag("net_sign_read"), 10.0),
+		"E pressed here is done on the host - the flag the notice there leaves arrives")
+	ok(not sign.contact_spent, "  and nothing here is examined")
+	await hear("read")
+	var leader: String = Coop.keys_of(1)[0] if not Coop.keys_of(1).is_empty() else ""
+	get_viewport().push_input(key_event(KEY_X))
+	await settle()
+	ok(scene.staying.has(leader), "Stay Here pressed here is done here", "%s %s" % [leader, scene.staying.keys()])
+	say("stayed here")
+	log_line("")
+
+	log_line("======== pings ========")
+	await hear("pinged")
+	ok(await until(func(): return Pings.pings.any(func(ping): return ping.player == 0), 10.0),
+		"the host's ping shows here, the host's", "%s" % [Pings.pings])
+	say("saw the ping")
+	# The group as it is now: staying rebuilt the line.
+	Pings.ping(1, scene.groups[1].position_of_leader() if scene.groups.has(1) else Vector2.ZERO)
+	log_line("")
+
+	log_line("======== a reload, followed ========")
 	await hear("reloading")
 	ok(await until(func(): return get_tree().current_scene is ExplorationScene and get_tree().current_scene != scene \
 		and not SceneTransition.is_changing(), 20.0), "follows the host through a reload of the map")
+	scene = get_tree().current_scene
 	say("followed the reload")
 	log_line("")
 

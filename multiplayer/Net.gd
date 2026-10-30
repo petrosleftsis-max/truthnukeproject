@@ -28,6 +28,18 @@ extends Node
 ## map comes straight there (_welcome); one seated mid-fight comes in once the
 ## fight is over. The host leaving sends the joiner back to the title screen.
 ##
+## Walking, presses and pings: on a map each machine walks its own players'
+## groups and says where their leaders are WALKS_A_SECOND times a second
+## (_walked, unreliable but in order); the other machine's copy of a group is a
+## puppet (ExplorationParty.puppet) and walk_to's it there - on the host only
+## once it has checked the group could stand there. A press on the joiner that
+## does something to the world (HOSTS_PRESSES, and the number keys on a watched
+## map) is not acted on there: it goes to the host (forwards), which hands it to
+## the map as a press from that player's device - Coop.REMOTE_DEVICE_BASE plus
+## their number - so it is done as them (Coop.acting). Stay Here is done on
+## both, since who stays is the joiner's own line. A move used from the joiner's
+## moves panel goes the same way (use_move). Pings go both ways.
+##
 ## Nothing another machine sends is trusted: every call from the joiner is
 ## checked for who sent it and what it holds, and objects never travel
 ## (SceneMultiplayer.allow_object_decoding stays off) - a resource goes as its
@@ -48,9 +60,6 @@ const BEACON := "MOT-HOST"
 ## What the two machines say to each other. Bumped whenever that changes; a
 ## joiner with another is turned away.
 const PROTOCOL := 1
-## A press from another machine's player arrives on device REMOTE_DEVICE_BASE +
-## their number (Coop.player_of_event).
-const REMOTE_DEVICE_BASE := 9000
 const BEACON_SECONDS := 1.0
 ## How long a game goes unheard before the Join list forgets it.
 const FORGET_SECONDS := 4.0
@@ -65,6 +74,16 @@ const STATE_ANYWAY_SECONDS := 3.0
 ## Where a resource sent as data may take its script from - the game's own
 ## data, never anything else.
 const DATA_SCRIPTS := ["res://combat/resources/", "res://campaign/", "res://data/"]
+## How often a machine says where its groups' leaders are, walking - and,
+## standing still, how long it goes without saying anyway.
+const WALKS_A_SECOND := 20.0
+const WALK_ANYWAY_SECONDS := 0.5
+## The presses on a map that do something to the world, which on a joiner are
+## the host's to act on.
+const HOSTS_PRESSES: Array[StringName] = [&"interact", &"swap_leader", &"dash", &"listen", &"throw", &"vault",
+	&"outside_spell", &"ambush", &"take_off_disguise", &"next_disguise", &"take_down", &"pick_pocket"]
+## Presses acted on by both: what they change is the joiner's own line.
+const BOTH_PRESSES: Array[StringName] = [&"stay_here"]
 
 enum Role { NONE, HOST, JOINER }
 
@@ -106,6 +125,9 @@ var _follow_due := {}
 var _state_held = null
 var _following := false
 var _arriving_as_it_stands := false
+var _walk_clock := 0.0
+## Player id -> [where, facing left, walking, msec] as last said.
+var _walk_said := {}
 
 
 func _ready():
@@ -117,6 +139,7 @@ func _ready():
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_host_gone)
 	Coop.players_changed.connect(_on_players_changed)
+	Pings.pinged.connect(_on_pinged)
 
 
 func active() -> bool:
@@ -520,6 +543,190 @@ func _send_state():
 	_state.rpc(state)
 
 
+## --- Walking, presses and pings ---
+
+
+## The map being walked, or null.
+func _map() -> ExplorationScene:
+	var scene := get_tree().current_scene
+	return scene if scene is ExplorationScene and scene.is_inside_tree() else null
+
+
+## Where this machine's players' groups are, to the other machine: walking,
+## WALKS_A_SECOND times a second; standing, every WALK_ANYWAY_SECONDS.
+func _say_where(delta: float):
+	_walk_clock -= delta
+	if _walk_clock > 0.0:
+		return
+	_walk_clock = 1.0 / WALKS_A_SECOND
+	var scene := _map()
+	if scene == null:
+		return
+	var now := Time.get_ticks_msec()
+	for id in Coop.local_players():
+		var group = scene.groups.get(id, scene._main_party if scene.groups.is_empty() else null)
+		if group == null or not is_instance_valid(group) or group.puppet or group.leader == null:
+			continue
+		var said: Array = [group.position_of_leader(), group.facing_left(), group._walking]
+		var last: Array = _walk_said.get(id, [])
+		if not last.is_empty() and last.slice(0, 3) == said and now - last[3] < WALK_ANYWAY_SECONDS * 1000.0:
+			continue
+		_walk_said[id] = said + [now]
+		_walked.rpc(id, said[0], said[1], said[2])
+
+
+@rpc("any_peer", "unreliable_ordered")
+func _walked(id, at, facing_left, walking):
+	if typeof(id) != TYPE_INT or typeof(at) != TYPE_VECTOR2 or typeof(facing_left) != TYPE_BOOL or typeof(walking) != TYPE_BOOL:
+		return
+	if not _sent_by_whoever_plays(id):
+		return
+	var scene := _map()
+	if scene == null or not scene.groups.has(id):
+		return
+	var group: ExplorationParty = scene.groups[id]
+	if not is_instance_valid(group) or not group.puppet:
+		return
+	# The host has the last word on where anybody can stand.
+	if is_host() and not scene.is_walkable(at):
+		return
+	group.walk_to(at, facing_left, walking)
+
+
+## Whether the call being handled came from the machine player `id` plays on:
+## on the host, theirs; on the joiner, the host, for one of the host's players.
+func _sent_by_whoever_plays(id: int) -> bool:
+	if id < 0 or id >= Coop.players.size() or Coop.is_local(id):
+		return false
+	var sender := multiplayer.get_remote_sender_id()
+	if is_host():
+		return Coop.players[id].peer == sender
+	return follows() and sender == 1
+
+
+## On a joiner: whether `event` is a press that does something to the world,
+## sent to the host to be done there as its player instead of here (the gate,
+## Coop._Gate). Stay Here is sent and done here too.
+func forwards(event: InputEvent) -> bool:
+	if not follows() or not event.is_pressed() or event.is_echo() or event.device >= Coop.REMOTE_DEVICE_BASE:
+		return false
+	var scene := _map()
+	# A menu or a conversation open here has its own keys.
+	if scene == null or scene.is_holding():
+		return false
+	var player := Coop.player_of_event(event)
+	if player == Coop.ANYONE or not Coop.is_local(player):
+		return false
+	if event is InputEventJoypadMotion:
+		# A trigger: what it presses, by name (Pad.went_down knows a trigger held).
+		var pressed := false
+		for action in HOSTS_PRESSES:
+			if Pad.went_down(event, action):
+				_press.rpc_id(1, player, {"kind": "action", "action": String(action)})
+				pressed = true
+		return pressed
+	var data := _press_data(event)
+	if data.is_empty():
+		return false
+	for action in BOTH_PRESSES:
+		if event.is_action_pressed(action):
+			_press.rpc_id(1, player, data)
+			return false
+	var the_hosts := HOSTS_PRESSES.any(func(action): return event.is_action_pressed(action))
+	# The number keys put a disguise on, on a watched map.
+	if event is InputEventKey and event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_9 and scene.stealth != null:
+		the_hosts = true
+	if not the_hosts:
+		return false
+	_press.rpc_id(1, player, data)
+	return true
+
+
+static func _press_data(event: InputEvent) -> Dictionary:
+	if event is InputEventKey:
+		return {"kind": "key", "keycode": event.keycode, "physical": event.physical_keycode}
+	if event is InputEventJoypadButton:
+		return {"kind": "button", "button": event.button_index}
+	return {}
+
+
+## A press made on the joiner, by player `id`, done here as theirs.
+@rpc("any_peer", "reliable")
+func _press(id, data):
+	if not is_host() or typeof(id) != TYPE_INT or typeof(data) != TYPE_DICTIONARY or not _sent_by_whoever_plays(id):
+		return
+	var event: InputEvent = null
+	match data.get("kind"):
+		"key":
+			if typeof(data.get("keycode")) != TYPE_INT or typeof(data.get("physical")) != TYPE_INT:
+				return
+			var key := InputEventKey.new()
+			key.keycode = data.keycode
+			key.physical_keycode = data.physical
+			event = key
+		"button":
+			if typeof(data.get("button")) != TYPE_INT:
+				return
+			var button := InputEventJoypadButton.new()
+			button.button_index = data.button
+			event = button
+		"action":
+			var named := StringName(str(data.get("action")))
+			if not HOSTS_PRESSES.has(named) and not BOTH_PRESSES.has(named):
+				return
+			var action := InputEventAction.new()
+			action.action = StringName(str(data.action))
+			event = action
+	if event == null:
+		return
+	event.pressed = true
+	event.device = Coop.REMOTE_DEVICE_BASE + id
+	# Into the scene as any press is, through the gate - never into Input,
+	# which would think this machine's own keys were down.
+	get_viewport().push_input(event)
+
+
+## On a joiner: `action`, done here by player `id` some other way than a press
+## (a button on the moves panel), done on the host too.
+func pressed_here(action: StringName, id: int):
+	if follows() and Coop.is_local(id):
+		_press.rpc_id(1, id, {"kind": "action", "action": String(action)})
+
+
+## On a joiner: player `key`'s `move` from the moves panel, used on the host
+## (OutsideMovesPanel).
+func use_move(key: String, move: String):
+	if follows():
+		_use_move.rpc_id(1, key, move)
+
+
+@rpc("any_peer", "reliable")
+func _use_move(key, move):
+	if not is_host() or typeof(key) != TYPE_STRING or typeof(move) != TYPE_STRING:
+		return
+	var id := Coop.controller_of(key)
+	var scene := _map()
+	if scene == null or not _sent_by_whoever_plays(id):
+		return
+	var before := Coop.acting
+	Coop.acting = id
+	OutsideMoves.use(scene, key, move)
+	Coop.acting = before
+
+
+func _on_pinged(player: int, at: Vector2, label: String):
+	if active() and Coop.is_local(player):
+		_ping.rpc(player, at, label)
+
+
+@rpc("any_peer", "reliable")
+func _ping(player, at, label):
+	if typeof(player) != TYPE_INT or typeof(at) != TYPE_VECTOR2 or typeof(label) != TYPE_STRING:
+		return
+	if _sent_by_whoever_plays(player):
+		Pings.show_ping(player, at, label.left(60))
+
+
 ## --- Resources as data ---
 
 
@@ -729,6 +936,8 @@ func _process(delta: float):
 		if _state_held != null and _follow_due.is_empty() and not SceneTransition.is_changing():
 			Campaign.apply(_state_held)
 			_state_held = null
+	if (is_host() and not _seated_peers().is_empty()) or follows():
+		_say_where(delta)
 	var now := Time.get_ticks_msec()
 	if is_joiner() and _joining_since >= 0 and now - _joining_since > JOIN_SECONDS * 1000.0:
 		told.emit("No answer from %s." % host_address)

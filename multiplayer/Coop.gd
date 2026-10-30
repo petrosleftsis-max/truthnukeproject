@@ -27,6 +27,9 @@ signal focus_changed
 const KEYBOARD := -1
 ## Any device at all - Pad reads every pad, as outside co-op.
 const ANY_DEVICE := -2
+## A press from another machine's player arrives on this device plus their
+## number (Net).
+const REMOTE_DEVICE_BASE := 9000
 ## Nobody in particular: everybody's input counts.
 const ANYONE := -1
 ## Two at most (the designer, 2026-10-29).
@@ -242,8 +245,12 @@ func _first_with_anybody(keys: Array) -> int:
 
 
 ## The device `event` came from: a pad's number, or KEYBOARD for the keyboard
-## and mouse. The pad pointer's mouse events are the pad's that moved it.
+## and mouse. The pad pointer's mouse events are the pad's that moved it. A
+## press made on another machine and handed in here (Net) keeps its own
+## number, REMOTE_DEVICE_BASE and up.
 func device_of(event: InputEvent) -> int:
+	if event.device >= REMOTE_DEVICE_BASE:
+		return event.device
 	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
 		return event.device
 	if event is InputEventMouse and event.device == Pad.POINTER_DEVICE:
@@ -257,6 +264,10 @@ func player_of_event(event: InputEvent) -> int:
 	if not on():
 		return 0
 	var device := device_of(event)
+	if device >= REMOTE_DEVICE_BASE:
+		# Another machine's player: theirs, and never anybody here.
+		var id := device - REMOTE_DEVICE_BASE
+		return id if id < players.size() and not is_local(id) else ANYONE
 	for id in players.size():
 		if players[id].device == device and is_local(id):
 			return id
@@ -430,6 +441,12 @@ class _Gate extends Node:
 		process_mode = Node.PROCESS_MODE_ALWAYS
 
 	func _input(event: InputEvent):
+		# On a joiner, a press that does something to the world goes to the host
+		# instead (Net.forwards).
+		var net = get_node_or_null("/root/Net")
+		if net != null and net.forwards(event):
+			get_viewport().set_input_as_handled()
+			return
 		var coop = get_node_or_null("/root/Coop")
 		if coop != null and not coop.lets_through(event):
 			get_viewport().set_input_as_handled()

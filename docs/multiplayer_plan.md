@@ -50,9 +50,10 @@ leans on the one before.
   `rolls`.
 - **Step 2 under way** (2026-10-30): `multiplayer/Net.gd` hosts, joins, finds
   games by their beacon, and seats players across machines; the joiner joins a
-  game under way and follows the host's scene and Campaign (items 1-4 below;
-  `ui/net_panel.gd`; suite `net`, which plays the joiner in a second Godot).
-  Items 5-12 to come.
+  game under way and follows the host's scene and Campaign; the two walk
+  together, the joiner's presses are done on the host, and pings go both ways
+  (items 1-6 and 11 below; `ui/net_panel.gd`; suite `net`, which plays the
+  joiner in a second Godot). Items 7-10 and 12 to come.
 - **Not built:** the rest of Step 2, and Steps 3-5 below.
 
 ## Step 0 - download only (small; done 2026-10-29)
@@ -217,6 +218,16 @@ leaving, sends the joiner to the title screen.
    (`reload_current_scene` - route it through the same hook). On the host, a
    change sends `{path, state}` to the joiner, which applies the state and
    changes too. A joiner never changes scene on its own.
+Items 5, 6 and 11 are built (2026-10-30). As built: only the presses that do
+something to the world go across (`Net.HOSTS_PRESSES` - E, Tab, G, the stealth
+keys - and the number keys on a watched map); the rest are the joiner's own
+(walking, menus, the camera, hide UI). The host hands each to the scene with
+`Viewport.push_input`, not `Input.parse_input_event`, which would think the
+host's own keys were down. Stay Here is done on both, since who stays is the
+joiner's own line, and a trigger goes as the action it presses. Still to carry
+across: what is aimed with the pointer on a map (where a throw lands, a click
+on a guard, a readied cone) and the familiar, which lives on the host.
+
 5. **Presses from the joiner.** Its key and pad presses are sent to the host and
    played there as the joiner's player: give the event `device =
    REMOTE_DEVICE_BASE + player id` (say 9000 + id) and teach

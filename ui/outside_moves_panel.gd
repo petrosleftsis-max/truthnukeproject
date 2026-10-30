@@ -96,7 +96,10 @@ func _ready():
 	stay.add_theme_font_size_override("font_size", 13)
 	stay.text = Pad.hint("Stay", &"stay_here")
 	stay.tooltip_text = "The leader stays where they are, and the next of the party leads. Walk back up to them to bring them along again."
-	stay.pressed.connect(func(): scene.stay_here())
+	# Over a network the host's map is told too (Net).
+	stay.pressed.connect(func():
+		scene.stay_here()
+		Net.pressed_here(&"stay_here", Coop.controller_of(who())))
 	top.add_child(stay)
 	_gates = HBoxContainer.new()
 	_gates.name = "Gates"
@@ -280,7 +283,11 @@ func _use(move: String):
 	if readying:
 		_choose_trigger(move)
 		return
-	OutsideMoves.use(scene, who(), move)
+	# Over a network the joiner's moves are the host's to use (Net).
+	if Net.follows():
+		Net.use_move(who(), move)
+	else:
+		OutsideMoves.use(scene, who(), move)
 	refresh()
 
 

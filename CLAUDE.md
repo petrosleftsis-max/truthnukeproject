@@ -417,7 +417,23 @@ sends Campaign whenever it changes and every `STATE_ANYWAY_SECONDS` anyway
 (`_send_state`), held on the joiner while it changes scene. On a joiner the map
 sets off no contact triggers and offers no paths (`Net.follows()`): the host's
 does. Leaving, and the host leaving, send the joiner to the title screen's
-Players with a note. The Players panel's network half is
+Players with a note. **Walking:** each machine walks its own players' groups
+and `_say_where` sends their leaders' place, facing and walking
+`WALKS_A_SECOND` (unreliable, ordered; every `WALK_ANYWAY_SECONDS` standing);
+the other machine's copy is a puppet and `walk_to`s it, the host only where
+`is_walkable`. **Presses:** the gate (`Coop._Gate`) asks `Net.forwards` first:
+on a joiner a press of `HOSTS_PRESSES` (or a number key on a watched map) goes
+to the host and is not acted on here; `BOTH_PRESSES` (Stay Here - the joiner's
+own line) is sent and acted on here too. The host `push_input`s it - never
+`Input.parse_input_event`, which would hold this machine's own keys down - on
+device `Coop.REMOTE_DEVICE_BASE` + the player, which `Coop.player_of_event`
+reads as that player, so the gate's focus and `acting` are theirs. A trigger
+goes as the action it presses. The moves panel on a joiner sends `use_move`
+and `pressed_here`. `_sent_by_whoever_plays` checks every such call came from
+the machine that player is on. Pings go both ways (`Pings.pinged` -> `_ping` ->
+`show_ping`). Not across yet: what is aimed with the pointer on a map (a
+throw's landing, a click on a guard, a readied cone) and the familiar, which
+lives on the host. The Players panel's network half is
 `ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
 since listening (or hosting) is what makes Windows ask about its firewall.
 `net` plays two machines: the suite hosts on 127.0.0.1:24790 and starts a second
