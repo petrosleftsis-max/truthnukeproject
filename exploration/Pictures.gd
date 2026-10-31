@@ -23,7 +23,9 @@ extends Node
 ## in it is the other's at once - Campaign comes back changed (campaign_changed
 ## -> _on_campaign_changed), a dial or a piece the other moved is laid here
 ## (lay_part), and on the same picture the other's pointer is drawn in their
-## colour and what their clicks say shown along the top (said_there).
+## colour and what their clicks say shown along the top (said_there). In co-op
+## on one screen it is both players' too, each with a pointer ("Two on one
+## screen").
 
 signal closed
 
@@ -81,6 +83,15 @@ var _held_as_a_menu := false
 var _other: _OtherPointer = null
 var _said: Label = null
 var _said_left := 0.0
+## Two on one screen: the second player's pointer and where it is (on the
+## screen), what it is over, what their hand holds, and the piece they carry
+## with where they took hold of it.
+var _second: _OtherPointer = null
+var _second_at := Vector2.ZERO
+var _second_over: Control = null
+var _second_holding := ""
+var _second_piece: PuzzlePiece = null
+var _second_grab := Vector2.ZERO
 
 
 func _ready():
@@ -207,7 +218,11 @@ func back():
 func _let_go_of(picture: Picture):
 	for spot in picture.hotspots():
 		spot._set_hovered(false)
+		spot.pointed_by_other = false
 	_hovered = null
+	_second_over = null
+	if _second_piece != null and is_instance_valid(_second_piece) and picture.is_ancestor_of(_second_piece):
+		_second_drop()
 	_refresh_hover()
 
 
@@ -228,6 +243,10 @@ func close():
 	_said = null
 	_said_left = 0.0
 	_bag_drawn = ""
+	_second = null
+	_second_over = null
+	_second_holding = ""
+	_second_piece = null
 	if _held_as_a_menu:
 		_held_as_a_menu = false
 		MenuPause.release(self)
@@ -585,6 +604,242 @@ func _picture_of(node: Node) -> Picture:
 	return at
 
 
+## --- Two on one screen ---
+##
+## In co-op on one screen a picture is both players' as well (the designer,
+## 2026-10-31: as over a network): whoever opened it, or began the conversation
+## that did, both act in it (Coop.lets_through asks shared_here). The keyboard
+## and mouse player - with two pads, the first player - has the pointer as ever
+## (first_pointer); the other has one of their own in their colour, their name
+## and what it is over beside it, moved by either stick of their pad: A looks,
+## takes, turns a dial on or presses a button along the bottom, picks a piece up
+## and puts it down where A is let go; LB and RB turn a dial back and on; B puts
+## down what their hand holds, or goes back. Each has a hand of their own for
+## what they pick from the bag (_second_holding); a lens in theirs looks round
+## their pointer.
+
+
+## Whether the picture up is both players' on this one screen: two players
+## here and no network, with nothing over it that is one player's - a
+## conversation from a hotspot, a hack, a menu.
+func shared_here() -> bool:
+	if not is_open() or _talking or Coop.networked or Coop.local_players().size() < 2:
+		return false
+	return not Hacking.running() and not MenuPause.is_held()
+
+
+## The player whose pointer is the mouse's (or a pad's, through Pad): the one on
+## the keyboard - or, both on pads, the first.
+func first_pointer() -> int:
+	var here := Coop.local_players()
+	for id in here:
+		if Coop.device_of_player(id) == Coop.KEYBOARD:
+			return id
+	return here[0] if not here.is_empty() else 0
+
+
+## The other player here, on a pad, with a pointer of their own - or -1.
+func second_pointer() -> int:
+	if not shared_here():
+		return -1
+	var first := first_pointer()
+	for id in Coop.local_players():
+		if id != first and Coop.device_of_player(id) >= 0:
+			return id
+	return -1
+
+
+## Where the second player's pointer is, on the screen.
+func second_at() -> Vector2:
+	return _second_at
+
+
+## Puts the second player's pointer at `at` (on the screen) - for tests, as
+## lens_point stands in for the mouse.
+func point_second(at: Vector2):
+	_second_at = at
+	if second_pointer() >= 0 and _second != null and is_instance_valid(_second):
+		_second.visible = true
+	_hover_second()
+
+
+## What the second player's hand holds, or "".
+func second_holding() -> String:
+	return _second_holding
+
+
+func _move_second(delta: float):
+	var id := second_pointer()
+	if id < 0 or _second == null or not is_instance_valid(_second):
+		if _second != null and is_instance_valid(_second) and _second.visible:
+			_second.visible = false
+			_set_second_over(null)
+		return
+	if not _second.visible:
+		# Up for the first time: in the middle of the picture.
+		_second.visible = true
+		var picture := current()
+		var design: Vector2 = picture.get_meta("design_size", picture.size) if picture != null else Vector2.ZERO
+		_second_at = picture.get_global_transform() * (design / 2.0) if picture != null else _holder.get_viewport_rect().size / 2.0
+	var device := Coop.device_of_player(id)
+	var push := (Coop.device_vector(device, &"pointer_left", &"pointer_right", &"pointer_up", &"pointer_down")
+		+ Coop.device_vector(device, &"look_left", &"look_right", &"look_up", &"look_down")).limit_length(1.0)
+	if push != Vector2.ZERO:
+		var speed := Pad.SPEED * pow(minf(push.length(), 1.0), Pad.CURVE)
+		if _second_over != null:
+			speed *= Pad.SLOW_OVER
+		var screen: Vector2 = _holder.get_viewport_rect().size
+		_second_at = (_second_at + push.normalized() * speed * delta).clamp(Vector2.ZERO, screen - Vector2.ONE)
+	if _second_piece != null and is_instance_valid(_second_piece):
+		_second_piece.position = _in_parent_of(_second_piece, _second_at) - _second_grab
+		_second_piece._keep_inside()
+	_hover_second()
+
+
+## What the second player's pointer is over now, and what it says beside it.
+func _hover_second():
+	var id := second_pointer()
+	if id < 0 or _second == null or not is_instance_valid(_second):
+		return
+	var over: Control = _thing_at(_second_at) if _second_piece == null else _second_piece
+	_set_second_over(over)
+	_second.position = _second_at
+	_second.colour = Coop.colour_of(id)
+	var line := Coop.name_of(id)
+	var said := ""
+	if _second_holding != "" and not _is_lens(_second_holding):
+		said = "Use %s on %s" % [_item_name(_second_holding), _name_of_thing(over)] if over is Hotspot \
+			else "%s in hand" % _item_name(_second_holding)
+	elif over != null and _hints() == Picture.HoverHints.OUTLINE_AND_NAME:
+		said = _name_of_thing(over) + ("  (seen)" if over is Hotspot and over.was_examined() else "")
+	_second.label = line + (": " + said if said != "" else "")
+	_second.queue_redraw()
+
+
+func _set_second_over(over: Control):
+	if over == _second_over:
+		return
+	if _second_over is Hotspot and is_instance_valid(_second_over):
+		_second_over.pointed_by_other = false
+	_second_over = over
+	if over is Hotspot:
+		over.pointed_by_other = true
+	if over != null and _hints() != Picture.HoverHints.NONE:
+		play("hover")
+
+
+func _name_of_thing(thing: Control) -> String:
+	if thing == null:
+		return ""
+	if thing is Button:
+		return thing.text
+	var called: String = thing.get("display_name") if thing.get("display_name") != null else ""
+	return called if called != "" else String(thing.name)
+
+
+## What a pointer at `at` (on the screen) is over: a button along the bottom, or
+## the topmost piece, dial or hotspot it can find in the picture on show - or null.
+func _thing_at(at: Vector2) -> Control:
+	var buttons: Array = [_back, _journal_button] + (_bag.get_children() if _bag != null else [])
+	for button in buttons:
+		if is_instance_valid(button) and button.is_visible_in_tree() and button.get_global_rect().has_point(at):
+			return button
+	var picture := current()
+	if picture == null:
+		return null
+	var found: Control = null
+	for node in picture.find_children("*", "Control", true, false):
+		if not (node is PuzzlePiece or node is PuzzleDial or (node is Hotspot and node.can_be_pointed_at())):
+			continue
+		if node.is_visible_in_tree() and node.get_global_rect().has_point(at):
+			# Later in the tree is drawn over what came before.
+			found = node
+	return found
+
+
+## The second player's pad, while there is one with a pointer here: true when
+## `event` was theirs - done here, and for nothing else.
+func _second_input(event: InputEvent) -> bool:
+	var id := second_pointer()
+	if id < 0 or not (event is InputEventJoypadButton or event is InputEventJoypadMotion):
+		return false
+	if event.device != Coop.device_of_player(id):
+		return false
+	if event.is_action(&"pointer_click") or event.is_action(&"interact"):
+		if event.is_pressed() and not event.is_echo():
+			_second_press(id)
+		elif not event.is_pressed() and _second_piece != null:
+			_second_drop()
+	elif Pad.went_down(event, &"menus_previous") or Pad.went_down(event, &"menus_next"):
+		var dial := _thing_at(_second_at)
+		if dial is PuzzleDial:
+			dial.turn(-1 if event.is_action(&"menus_previous") else 1)
+	elif event.is_action_pressed(&"ui_cancel"):
+		if _second_holding != "":
+			_as_second(id, hold.bind(_second_holding))
+		else:
+			back()
+	return true
+
+
+## A at the second player's pointer.
+func _second_press(id: int):
+	var over := _thing_at(_second_at)
+	if over is PuzzlePiece:
+		var owner_puzzle: Puzzle = over.puzzle()
+		if over.is_dragging() or (owner_puzzle != null and owner_puzzle.is_solved()):
+			return
+		_second_piece = over
+		_second_grab = _in_parent_of(over, _second_at) - over.position
+		over.sits_in = null
+		over.move_to_front()
+		play("pick_up")
+	elif over is PuzzleDial:
+		over.turn(1)
+	elif over is Hotspot:
+		_as_second(id, click.bind(over))
+	elif over == _back:
+		back()
+	elif over == _journal_button:
+		_open_journal()
+	elif over is Button:
+		_as_second(id, hold.bind(String(over.name)))
+	elif _second_holding != "":
+		# Nothing there: what their hand holds goes down.
+		_as_second(id, hold.bind(_second_holding))
+	_hover_second()
+
+
+## Puts down the piece the second player carries, where their pointer is.
+func _second_drop():
+	var piece := _second_piece
+	_second_piece = null
+	if piece != null and is_instance_valid(piece):
+		piece.drop_at(_in_parent_of(piece, _second_at) - _second_grab + piece.size / 2.0)
+
+
+## `call` done with the second player's hand and as them - so a conversation a
+## hotspot starts is theirs to choose in (Coop.acting).
+func _as_second(id: int, call: Callable):
+	var mine := _holding
+	_holding = _second_holding
+	var acting := Coop.acting
+	Coop.acting = id
+	call.call()
+	Coop.acting = acting
+	_second_holding = _holding
+	_holding = mine
+	_refresh_bag()
+	_refresh_hover()
+
+
+## `at` (on the screen) in the terms of `node`'s parent, as PuzzlePiece reads
+## the mouse.
+func _in_parent_of(node: Control, at: Vector2) -> Vector2:
+	var parent := node.get_parent() as CanvasItem
+	return parent.get_global_transform_with_canvas().affine_inverse() * at
+
+
 ## --- Sound ---
 
 
@@ -706,6 +961,12 @@ func _build():
 	_other.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_other.visible = false
 	_layer.add_child(_other)
+	# Two on one screen: the second player's.
+	_second = _OtherPointer.new()
+	_second.name = "SecondPointer"
+	_second.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_second.visible = false
+	_layer.add_child(_second)
 	var said_panel := PanelContainer.new()
 	said_panel.name = "OtherSaid"
 	said_panel.theme_type_variation = &"TooltipPanel"
@@ -794,6 +1055,7 @@ func _process(delta):
 	_fit()
 	var mouse := Pad.screen_point()
 	var screen = _holder.get_viewport_rect().size
+	_move_second(delta)
 	_update_lens(mouse)
 	_show_the_other(delta)
 	_badge.position = mouse + Vector2(14, 14)
@@ -809,13 +1071,18 @@ func _process(delta):
 func _update_lens(mouse: Vector2):
 	var picture = current()
 	var on = lens_held() and picture != null
+	var at: Vector2 = lens_point if lens_point != null else Pad.screen_point()
+	# Two on one screen, the second player's hand holding it: round theirs.
+	if not on and picture != null and _is_lens(_second_holding) and second_pointer() >= 0:
+		on = true
+		at = _second_at
+		mouse = _second_at
 	_lens_ring.visible = on
 	if on:
 		_lens_ring.position = mouse - Vector2(LENS_RADIUS, LENS_RADIUS)
 		_lens_ring.size = Vector2(LENS_RADIUS, LENS_RADIUS) * 2.0
 	if picture == null:
 		return
-	var at: Vector2 = lens_point if lens_point != null else Pad.screen_point()
 	for spot in picture.hotspots():
 		if spot.hidden_detail:
 			spot.lens_lit = on and _rect_within(spot.get_global_rect(), at, LENS_RADIUS * 0.8)
@@ -958,6 +1225,11 @@ func _refresh_bag():
 		button.expand_icon = false
 		button.add_theme_constant_override("icon_max_width", 40)
 		button.text = "%s%s" % [item.name, " x%d" % counts[item_key] if counts[item_key] > 1 else ""]
+		# Two on one screen: in the second player's hand, in their colour.
+		var second := second_pointer()
+		if second >= 0 and item_key == _second_holding:
+			button.modulate = Coop.colour_of(second).lightened(0.35)
+			button.text += "  (%s)" % Coop.name_of(second)
 		if item.reveals_hidden_details:
 			button.tooltip_text = "Hold it over the picture to look closer"
 		elif _holding != "" and _holding != item_key:
@@ -993,6 +1265,10 @@ func _input(event):
 		return
 	# A hack over the picture takes its own Escape (walking away from it).
 	if Hacking.running():
+		return
+	# Two on one screen: the second player's pad is their own pointer's.
+	if _second_input(event):
+		get_viewport().set_input_as_handled()
 		return
 	var cancel = event.is_action_pressed("ui_cancel") \
 			or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT)

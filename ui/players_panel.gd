@@ -2,8 +2,11 @@ extends VBoxContainer
 class_name PlayersPanel
 ## Who is playing, and whom each steers (Coop; the designer, 2026-10-29). Two at
 ## most, on one screen: while this is up, a pad nobody plays with joins with A,
-## and the keyboard with Enter. Each player has a row with a button for every
-## character - pressed, that character is theirs (Campaign.controllers).
+## and the keyboard with Enter. Each player has a slot - a line edged in their
+## colour - with a button for every character - pressed, that character is
+## theirs (Campaign.controllers). Every seat there is shows, one nobody has
+## taken dashed and saying how to take it (the designer, 2026-10-31: "its a way
+## to show them that it's up to two players").
 ## Anybody nobody has picked is the first player's. On the title screen (every
 ## character), and on a map or in a fight (the party as it stands, `only_party`)
 ## as the pause menu's Party Management (`management`; open_over) - put up by
@@ -17,6 +20,13 @@ signal closed
 const INK := Color("dce8f5")
 const MUTED := Color("8296a9")
 const CHARACTERS := "res://data/characters/"
+## A character's button: room for their portrait over their name.
+const PICK_SIZE := Vector2(96, 118)
+## Behind a player's slot, over the dimmed game; half as much behind an open one.
+const SLOT_FILL := Color(0.043, 0.063, 0.094, 0.8)
+## An open slot's dashes, and how thick.
+const DASH := 10.0
+const DASH_WIDTH := 2.0
 
 ## Only who is in the party now, standing - not every character there is.
 var only_party := false
@@ -84,6 +94,11 @@ func _ready():
 	done.pressed.connect(close)
 	add_child(done)
 	Coop.players_changed.connect(refresh)
+	# What an open slot says changes with the pads plugged in and with hosting.
+	Pad.changed.connect(_say_how_to_join)
+	Input.joy_connection_changed.connect(_say_how_to_join.unbind(2))
+	if net != null and net.has_signal("changed"):
+		net.changed.connect(_say_how_to_join)
 	visibility_changed.connect(_on_visibility_changed)
 	# Once whoever put it up has said whether it is showing yet.
 	_on_visibility_changed.call_deferred()
@@ -132,8 +147,9 @@ func refresh():
 	for child in _rows.get_children():
 		_rows.remove_child(child)
 		child.queue_free()
-	for id in Coop.players.size():
-		_rows.add_child(_row(id))
+	for id in Coop.MAX_PLAYERS:
+		_rows.add_child(_row(id) if id < Coop.players.size() else _open_slot(id))
+	_say_how_to_join()
 
 
 func _hint_text() -> String:
@@ -142,14 +158,129 @@ func _hint_text() -> String:
 		return "Press one of the other player's characters to ask for them, or one of yours in their row to offer them. It changes once they agree - in a fight, as soon as the fight allows."
 	if only_party:
 		return "Each player picks who they steer of the party as it stands; anybody nobody picks is Player 1's."
-	return "Up to %d on one screen. Press A on a pad, or Enter on the keyboard, to join. Then each player picks who they steer; anybody nobody picks is Player 1's." % Coop.MAX_PLAYERS
+	return "Each player picks who they steer; anybody nobody picks is Player 1's."
+
+
+## A slot's box: edged in its player's colour while somebody plays there,
+## dashed while nobody does yet.
+func _slot(called: String, id: int, taken: bool) -> PanelContainer:
+	var slot := PanelContainer.new()
+	slot.name = called
+	var box := StyleBoxFlat.new()
+	box.bg_color = SLOT_FILL if taken else Color(SLOT_FILL, SLOT_FILL.a * 0.5)
+	box.content_margin_left = 14
+	box.content_margin_right = 14
+	box.content_margin_top = 6
+	box.content_margin_bottom = 6
+	if taken:
+		box.border_color = Color(Coop.colour_of(id), 0.6)
+		box.set_border_width_all(2)
+		box.set_corner_radius_all(10)
+	else:
+		slot.draw.connect(_dash_round.bind(slot, Color(Coop.colour_of(id), 0.5)))
+	slot.add_theme_stylebox_override("panel", box)
+	return slot
+
+
+## An open slot's dashed edge.
+func _dash_round(slot: Control, colour: Color):
+	var edge := Rect2(Vector2.ONE * DASH_WIDTH / 2.0, slot.size - Vector2.ONE * DASH_WIDTH)
+	var corners := [edge.position, Vector2(edge.end.x, edge.position.y), edge.end, Vector2(edge.position.x, edge.end.y)]
+	for i in corners.size():
+		slot.draw_dashed_line(corners[i], corners[(i + 1) % corners.size()], colour, DASH_WIDTH, DASH)
+
+
+## The slot of player `id`, nobody playing there yet: whose it would be, and
+## how to take it (_say_how_to_join) where their characters would be.
+func _open_slot(id: int) -> Control:
+	var slot := _slot("Open%d" % (id + 1), id, false)
+	var line := HBoxContainer.new()
+	line.name = "Line"
+	line.add_theme_constant_override("separation", 10)
+	line.custom_minimum_size = Vector2(0, PICK_SIZE.y)
+	slot.add_child(line)
+	var who := Label.new()
+	who.text = "Player %d" % (id + 1)
+	who.custom_minimum_size = Vector2(90, 0)
+	who.add_theme_font_size_override("font_size", 17)
+	who.add_theme_color_override("font_color", Color(Coop.colour_of(id), 0.6))
+	line.add_child(who)
+	var device := Label.new()
+	device.text = "Not playing yet"
+	device.custom_minimum_size = Vector2(190, 0)
+	device.add_theme_font_size_override("font_size", 13)
+	device.add_theme_color_override("font_color", MUTED)
+	line.add_child(device)
+	var how := VBoxContainer.new()
+	how.name = "How"
+	how.alignment = BoxContainer.ALIGNMENT_CENTER
+	how.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line.add_child(how)
+	var join := Label.new()
+	join.name = "Join"
+	join.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	join.add_theme_font_size_override("font_size", 16)
+	join.add_theme_color_override("font_color", INK)
+	how.add_child(join)
+	var other := Label.new()
+	other.name = "Else"
+	other.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	other.add_theme_font_size_override("font_size", 13)
+	other.add_theme_color_override("font_color", MUTED)
+	how.add_child(other)
+	return slot
+
+
+## What each open slot says: how to take it on this screen, naming only what is
+## free - and, hosting, that the other machine's player may take it.
+func _say_how_to_join():
+	if _rows == null:
+		return
+	var net := _net()
+	for slot in _rows.get_children():
+		if not String(slot.name).begins_with("Open"):
+			continue
+		var join: Label = slot.get_node("Line/How/Join")
+		var other: Label = slot.get_node("Line/How/Else")
+		join.text = "Waiting for the host's game" if _joining() else how_to_join()
+		other.text = "or from another machine, over the network" if net != null and net.is_host() else ""
+		other.visible = other.text != ""
+
+
+## How to take a slot on this screen, naming only what nobody here plays with
+## yet: "Press Cross on a pad, or Enter on the keyboard, to join".
+static func how_to_join() -> String:
+	var keyboard_free := true
+	var pad_playing := false
+	for id in Coop.local_players():
+		if Coop.device_of_player(id) == Coop.KEYBOARD:
+			keyboard_free = false
+		else:
+			pad_playing = true
+	var pad := "%s on %s" % [join_button(), "another pad" if pad_playing else "a pad"]
+	if keyboard_free:
+		return "Press %s, or Enter on the keyboard, to join" % pad
+	return "Press %s to join" % pad
+
+
+## What the pads nobody plays with yet print on the button that joins - the
+## bottom one: Cross, A or B - or, where they differ, the last pad played with.
+static func join_button() -> String:
+	var layouts := {}
+	for device in Input.get_connected_joypads():
+		if Coop.local_players().all(func(id): return Coop.device_of_player(id) != device):
+			layouts[Pad.layout_named(Input.get_joy_name(device))] = true
+	var layout: String = layouts.keys()[0] if layouts.size() == 1 else Pad.layout
+	return Pad.NAMES[layout][JOY_BUTTON_A]
 
 
 func _row(id: int) -> Control:
 	var player: Dictionary = Coop.players[id]
+	var slot := _slot("Player%d" % (id + 1), id, true)
 	var row := HBoxContainer.new()
-	row.name = "Player%d" % (id + 1)
+	row.name = "Line"
 	row.add_theme_constant_override("separation", 10)
+	slot.add_child(row)
 	var who := Label.new()
 	who.text = Coop.name_of(id)
 	who.custom_minimum_size = Vector2(90, 0)
@@ -163,14 +294,7 @@ func _row(id: int) -> Control:
 	device.add_theme_color_override("font_color", MUTED)
 	row.add_child(device)
 	for key in (party_now() if only_party else characters()):
-		var pick := Button.new()
-		pick.name = key
-		pick.toggle_mode = true
-		pick.text = Campaign.display_name_of(key)
-		pick.button_pressed = Coop.controller_of(key) == id
-		pick.tooltip_text = "%s steers %s" % [Coop.name_of(id), Campaign.display_name_of(key)]
-		pick.pressed.connect(choose.bind(key, id))
-		row.add_child(pick)
+		row.add_child(_pick(key, id))
 	# Over a network the joiner leaves from the network half (Net), and the
 	# host - who leads - can kick the joiner out, once it is sure.
 	if id > 0 and not _joining():
@@ -208,7 +332,35 @@ func _row(id: int) -> Control:
 				_kicking = id
 				refresh())
 			row.add_child(kick)
-	return row
+	return slot
+
+
+## The button for player `id` steering `key`: their portrait over their name
+## (the designer, 2026-10-31), edged in the player's colour while it is theirs.
+func _pick(key: String, id: int) -> Button:
+	var pick := Button.new()
+	pick.name = key
+	pick.toggle_mode = true
+	pick.text = Campaign.display_name_of(key)
+	pick.button_pressed = Coop.controller_of(key) == id
+	pick.tooltip_text = "%s steers %s" % [Coop.name_of(id), Campaign.display_name_of(key)]
+	pick.custom_minimum_size = PICK_SIZE
+	pick.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pick.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	pick.expand_icon = true
+	pick.add_theme_font_size_override("font_size", 14)
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	pick.icon = definition.portrait() if definition != null else null
+	var theirs := StyleBoxFlat.new()
+	theirs.bg_color = Color(Coop.colour_of(id), 0.22)
+	theirs.border_color = Coop.colour_of(id)
+	theirs.set_border_width_all(3)
+	theirs.set_corner_radius_all(6)
+	theirs.set_content_margin_all(6)
+	pick.add_theme_stylebox_override("pressed", theirs)
+	pick.add_theme_stylebox_override("hover_pressed", theirs)
+	pick.pressed.connect(choose.bind(key, id))
+	return pick
 
 
 func _net() -> Node:

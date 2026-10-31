@@ -31,7 +31,6 @@ const MAP := {
 	"Enfina|Ultimate Smash": ["greatsword_attack", 64, "skill"],
 	"Enfina|Momentum II": ["momentum_ii", 0, "passive"],
 	"Cyrus|Basic Shot": ["gun", 0, "skill"],
-	"Cyrus|Light Cover Leap": ["cover_leap", 0, "skill"],
 	"Cyrus|Cover Runner I": ["cat_burglar_i", 0, "passive"],
 	"Cyrus|Poison Strike": ["poison_dart", 0, "skill"],
 	"Cyrus|Agile I": ["agile", 0, "passive"],
@@ -498,7 +497,9 @@ func the_switches():
 	ok(in_cover_moves == combat.get_effective_stat(cyrus, "movement") + 2, "starting in cover, Cyrus has two more tiles (Cat Burglar I)")
 	ok(combat.damage_reduction_of(cyrus) >= 0.05 + 0.1 - 0.001, "and takes a twentieth less there (Agile I)", "%.2f" % combat.damage_reduction_of(cyrus))
 	cyrus.position = was_at
-	ok(combat.refusal_for(cyrus, SkillDatabase.skills["cover_leap"], open) != "", "Cover Leap will not land in the open")
+	# Cover Leap is gone (the designer, 2026-10-31).
+	ok(not SkillDatabase.skills.has("cover_leap") and not CombatantDatabase.combatants.values().any(func(who): return who.skills.has("cover_leap")),
+		"no Cover Leap, in anybody's kit or anywhere else")
 
 	game.queue_free()
 	await settle(2)

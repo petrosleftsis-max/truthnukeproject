@@ -54,6 +54,12 @@ var networked := false
 var _gate: Node = null
 ## What focus was before a menu or a conversation took it.
 var _focus_before := []
+## The conversations going on, latest last: [the hold on the focus, who began it].
+var _talks: Array = []
+## Who began the conversation up now - the latest - or ANYONE: on one screen,
+## whom the camera is drawn to (ExplorationScene "The camera in another's
+## conversation").
+var conversation_starter := ANYONE
 
 
 func _ready():
@@ -131,6 +137,8 @@ func reset():
 	acting = ANYONE
 	accepting_joins = false
 	_focus_before.clear()
+	_talks.clear()
+	conversation_starter = ANYONE
 	players_changed.emit()
 
 
@@ -276,9 +284,14 @@ func player_of_event(event: InputEvent) -> int:
 
 ## Which pad may drive the pointer: ANY_DEVICE outside co-op and while
 ## nobody has the focus, KEYBOARD (none) while a keyboard player has it, else
-## the pad of whoever does.
+## the pad of whoever does. In a picture on one screen, the first pointer's -
+## the other player has one of their own (Pictures "Two on one screen").
 func pointer_device() -> int:
-	if not on() or focus == ANYONE:
+	if not on():
+		return ANY_DEVICE
+	if _picture_shared():
+		return device_of_player(get_node("/root/Pictures").first_pointer())
+	if focus == ANYONE:
 		return ANY_DEVICE
 	return device_of_player(focus)
 
@@ -384,26 +397,67 @@ func menu_released(holder: Object):
 func menus_cleared():
 	if _focus_before.is_empty():
 		return
-	var mine := get_instance_id()
+	var talking := _talks.map(func(talk): return talk[0].get_instance_id())
 	var first_before: int = _focus_before[0][1]
 	var kept := []
 	for entry in _focus_before:
-		if entry[0] == mine:
+		if talking.has(entry[0]):
 			kept.append(entry)
 	_focus_before = kept
 	focus = kept.back()[2] if not kept.is_empty() else first_before
 
 
+## --- Conversations ---
+##
+## Whoever starts one chooses in it (the plan's default - PROPOSAL); one nobody
+## pressed for (walked into, after a fight) is the first player's. It holds the
+## focus until it ends - or until its balloon is gone without it saying so (the
+## scene changed under it), which once left the first player with the focus for
+## good and the second's every press dropped.
+
+
 func _on_dialogue_started(_resource):
-	# Whoever started it chooses (the plan's default - PROPOSAL); a
-	# conversation nobody pressed for (walked into, after a fight) is the
-	# first player's.
+	var starter: int = acting if acting != ANYONE else (focus if focus != ANYONE else 0)
+	var hold := RefCounted.new()
+	_talks.append([hold, starter])
+	conversation_starter = starter
 	if on():
-		take_focus(acting if acting != ANYONE else (focus if focus != ANYONE else 0), self)
+		take_focus(starter, hold)
+	# The balloon goes into the scene straight after this is said.
+	_watch_balloon.call_deferred(hold)
 
 
 func _on_dialogue_ended(_resource):
-	let_go(self)
+	if not _talks.is_empty():
+		_end_talk(_talks.back()[0])
+
+
+## Whether a conversation is going on.
+func talking() -> bool:
+	return not _talks.is_empty()
+
+
+func _end_talk(hold: RefCounted):
+	for i in _talks.size():
+		if _talks[i][0] == hold:
+			_talks.remove_at(i)
+			let_go(hold)
+			break
+	conversation_starter = _talks.back()[1] if not _talks.is_empty() else ANYONE
+
+
+## The newest balloon in the tree, not yet anybody's: `hold`'s - let go of with
+## it, should it go without the conversation saying it ended.
+func _watch_balloon(hold: RefCounted):
+	if not _talks.any(func(talk): return talk[0] == hold):
+		return
+	var found := get_tree().root.find_children("*", "DialogueBalloon", true, false)
+	for i in range(found.size() - 1, -1, -1):
+		var balloon: Node = found[i]
+		if not balloon.has_meta("coop_talk"):
+			balloon.set_meta("coop_talk", true)
+			balloon.tree_exited.connect(_end_talk.bind(hold))
+			return
 
 
 ## A fight's turn begun: `id` - whoever steers the one acting, or ANYONE for
@@ -436,7 +490,16 @@ func lets_through(event: InputEvent) -> bool:
 	# A ping is for whenever - somebody else's turn above all (Pings).
 	if event.is_action(&"ping"):
 		return true
+	# A picture on one screen is both players', whoever has the focus
+	# (Pictures "Two on one screen").
+	if _picture_shared():
+		return true
 	return focus == ANYONE or who == focus
+
+
+func _picture_shared() -> bool:
+	var pictures = get_node_or_null("/root/Pictures")
+	return pictures != null and pictures.shared_here()
 
 
 class _Gate extends Node:

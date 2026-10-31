@@ -13,6 +13,9 @@ const DOT := 7.0
 const DOT_GAP := 3.0
 
 var level := 0
+## Whether it is one of the Gates of Iris (Stats.OUTSIDE_GATES) - castings for
+## outside a fight - rather than a gate of the ladder.
+var iris := false
 var _name: Label = null
 var _dots: Control = null
 var _left := 0
@@ -43,11 +46,25 @@ func _init(stacked: bool = false):
 
 ## Shows gate `gate` with `left` of `most` castings still to use.
 func show_gate(gate: int, left: int, most: int):
+	iris = false
+	_show(gate, left, most, Stats.short_gate_name(gate), Stats.gate_colour(gate), Stats.gate_name(gate))
+
+
+## Shows the Gates of Iris `gate` (Stats.OUTSIDE_GATES), as show_gate a gate.
+func show_iris(gate: int, left: int, most: int):
+	iris = true
+	_show(gate, left, most, Stats.short_outside_gate_name(gate), Stats.outside_gate_colour(gate), Stats.outside_gate_name(gate))
+
+
+func _colour() -> Color:
+	return Stats.outside_gate_colour(level) if iris else Stats.gate_colour(level)
+
+
+func _show(gate: int, left: int, most: int, short_name: String, colour: Color, full_name: String):
 	level = gate
 	_left = left
 	_most = most
-	var colour := Stats.gate_colour(gate)
-	_name.text = Stats.short_gate_name(gate)
+	_name.text = short_name
 	_name.add_theme_color_override("font_color", colour)
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color(0.07, 0.09, 0.12, 0.92)
@@ -65,7 +82,7 @@ func show_gate(gate: int, left: int, most: int):
 	else:
 		_dots.custom_minimum_size = Vector2(most * DOT + maxi(most - 1, 0) * DOT_GAP, DOT)
 	_dots.queue_redraw()
-	tooltip_text = "%s: %d of %d left" % [Stats.gate_name(gate), left, most]
+	tooltip_text = "%s: %d of %d left" % [full_name, left, most]
 
 
 ## How many castings the tag says are left, for the tests and the curious.
@@ -76,7 +93,7 @@ func uses() -> Vector2i:
 func _draw_dots():
 	if _most > MOST_DOTS:
 		return
-	var colour := Stats.gate_colour(level)
+	var colour := _colour()
 	var radius := DOT * 0.5
 	for i in _most:
 		var centre := Vector2(radius + i * (DOT + DOT_GAP), radius)

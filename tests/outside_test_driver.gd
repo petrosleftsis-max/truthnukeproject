@@ -27,6 +27,7 @@ func run_sections():
 	await familiar_anywhere()
 	await on_guards()
 	await the_opening_blow()
+	await a_placed_fight_struck_first()
 	await walls_and_moving()
 	await lures_cover_traps()
 	await the_familiar_stage()
@@ -80,7 +81,7 @@ func the_uses():
 		"growth": OutsideMoves.Use.NONE, "flash": OutsideMoves.Use.BLIND, "dread_visage": OutsideMoves.Use.SCARE,
 		"intimidate": OutsideMoves.Use.SCARE, "bewilder": OutsideMoves.Use.CONFUSE, "study": OutsideMoves.Use.READ,
 		"intuition": OutsideMoves.Use.READ, "dispel_magic": OutsideMoves.Use.SWITCH_OFF_MAGIC, "instahack": OutsideMoves.Use.COUNTER_TRAP,
-		"hermes_step": OutsideMoves.Use.BLINK, "mist_step": OutsideMoves.Use.BLINK, "cover_leap": OutsideMoves.Use.BLINK,
+		"hermes_step": OutsideMoves.Use.BLINK, "mist_step": OutsideMoves.Use.BLINK,
 		"hover": OutsideMoves.Use.FLY, "climb": OutsideMoves.Use.FLY, "phantom_body": OutsideMoves.Use.LURE,
 		"kindled_hound": OutsideMoves.Use.LURE, "illusory_cover": OutsideMoves.Use.HIDING_SPOT, "stealth": OutsideMoves.Use.HIDING_SPOT,
 		"snare": OutsideMoves.Use.TRAP, "tripwire": OutsideMoves.Use.TRAP, "purification": OutsideMoves.Use.MEND,
@@ -149,15 +150,19 @@ func on_a_plain_map():
 	panel.show_spells(false)
 	ok(panel.button_for("run") != null and panel.button_for("votive_flame") != null, "her skills on it, Run and Votive Flame")
 	ok(panel.button_for("run").disabled, "  Run greyed: no sprinting out of a fight")
-	ok(panel.button_for("votive_flame").disabled and OutsideMoves.refusal(scene, "alithia", "votive_flame") == "No wall in reach to break",
-		"  a damaging one greyed with no wall about to break", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
+	ok(panel.button_for("votive_flame").disabled and OutsideMoves.refusal(scene, "alithia", "votive_flame") == "Nobody in reach waiting to fight, and no wall to break",
+		"  a damaging one greyed with no fight or wall in reach", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
 	panel.show_spells(true)
 	ok(panel.button_for("heal") != null and panel.button_for("find_familiar") != null, "her spells, on the Spells tab")
 	ok(panel.button_for("heal").disabled and OutsideMoves.refusal(scene, "alithia", "heal") == "Nobody is hurt", "  Heal greyed with nobody hurt")
 	ok(OutsideMoves.refusal(scene, "alithia", "find_familiar") == "", "  Find Familiar here too, with nobody watching",
 		OutsideMoves.refusal(scene, "alithia", "find_familiar"))
-	var gate_label = panel.find_child("Gate_World", true, false)
-	ok(gate_label != null and gate_label.text == "World 2/2", "  her World castings beside them", gate_label.text if gate_label != null else "none")
+	# The fight's Spells panel: a shelf a gate, its castings at its start.
+	var world: HBoxContainer = panel.shelves().shelf(1) if panel.shelves() != null else null
+	var world_tag: GateTag = world.get_node_or_null("Tag") if world != null else null
+	ok(world != null and world.find_child("heal", true, false) != null and world_tag != null and world_tag.uses() == Vector2i(2, 2),
+		"  on the World's shelf, as in a fight, two castings of two at its start", "%s" % [world_tag.uses() if world_tag != null else null])
+	ok(not panel.find_child("Gates", true, false).visible, "  the counters beside the tabs standing down meanwhile, as in a fight")
 	var other := ally()
 	Campaign.strain(other, 12)
 	var hurt: int = Campaign.party_state[other].hp
@@ -167,7 +172,12 @@ func on_a_plain_map():
 	await settle()
 	ok(Campaign.party_state[other].hp > hurt, "  pressed, it mends them", "%d -> %d" % [hurt, Campaign.party_state[other].hp])
 	ok(Campaign.gates_left_outside("alithia")[1] == 1, "  for a World casting, off the next fight", "%s" % [Campaign.gates_left_outside("alithia")])
-	ok(panel.find_child("Gate_World", true, false).text == "World 1/2", "  and the panel says so", panel.find_child("Gate_World", true, false).text)
+	world_tag = panel.shelves().shelf(1).get_node_or_null("Tag")
+	ok(world_tag != null and world_tag.uses() == Vector2i(1, 2), "  and the panel says so", "%s" % [world_tag.uses() if world_tag != null else null])
+	panel.show_spells(false)
+	var counter: GateTag = panel.find_child("Gate_World", true, false)
+	ok(counter != null and counter.is_visible_in_tree() and counter.uses() == Vector2i(1, 2), "  as do the counters, on the Skills tab")
+	panel.show_spells(true)
 	# The Outside Spell key here: the one spell with a purpose, cast.
 	Campaign.strain(other, 12)
 	var ready := OutsideMoves.ready_spells(scene)
@@ -198,6 +208,29 @@ func the_toggle():
 	panel.refresh()
 	ok(panel.button_for("heal") != null, "  Heal marked by the designer: it is back")
 	skill("heal").out_of_combat = false
+	await close_map(m)
+	# Gates left with nothing on show have no shelf (the designer, 2026-10-31).
+	m = await plain_map(14)
+	panel = m.scene.moves_panel
+	panel.show_spells(true)
+	panel.set_out_of_combat_only(false)
+	await settle()
+	var pandora_before: bool = panel.shelves().shelf(3) != null
+	panel.set_out_of_combat_only(true)
+	await settle()
+	ok(pandora_before and panel.shelves().shelf(3) == null and panel.shelves().shelf(1) != null,
+		"at 14, ticked: Pandora's shelf goes with Resuscitate, the World's stays for Find Familiar")
+	# With Hermes open, a marked spell is on the shelf of the Gates of Iris.
+	skill("heal").out_of_combat = true
+	panel.refresh()
+	var iris: HBoxContainer = panel.shelves().shelf(1, true)
+	var iris_tag: GateTag = iris.get_node_or_null("Tag") if iris != null else null
+	ok(iris != null and iris.find_child("heal", true, false) != null and iris_tag != null and iris_tag.iris
+		and iris_tag.uses() == Vector2i(Campaign.outside_gates_left("alithia")[1], Campaign.outside_gates_most("alithia")[1]),
+		"  Heal marked: on the shelf of the Gates of Iris, first paid through them, Iris's castings at its start",
+		"%s" % [iris_tag.uses() if iris_tag != null else null])
+	skill("heal").out_of_combat = false
+	panel.refresh()
 	panel.show_spells(false)
 	ok(panel.button_for("run") != null, "  the skills are left alone")
 	await close_map(m)
@@ -334,8 +367,25 @@ func familiar_anywhere():
 	ok(keeper.familiar.global_position.distance_to(sprite.global_position + Familiar.SHOULDER) < 1.0, "  sitting up there, riding along")
 	ok(OutsideMoves.refusal(scene, "alithia", "find_familiar").begins_with("On Alithia's shoulder"), "  the panel says where it is",
 		OutsideMoves.refusal(scene, "alithia", "find_familiar"))
+	# Tab is who leads, familiar or not (the designer, 2026-10-31); R is the
+	# familiar's.
+	var leading := Campaign.leader()
 	press_key(scene, KEY_TAB)
-	ok(scene.controlling_familiar() and not keeper.perched(), "Tab: off her shoulder and steered again")
+	await settle(2)
+	ok(Campaign.leader() != leading and keeper.perched() and not scene.controlling_familiar(),
+		"Tab, the familiar out: the next of the party leads, and it stays where it sits", "%s -> %s" % [leading, Campaign.leader()])
+	press_key(scene, KEY_TAB)
+	await settle(2)
+	Campaign.set_leader("alithia")
+	await settle(2)
+	press_key(scene, KEY_R)
+	ok(scene.controlling_familiar() and not keeper.perched(), "R: off her shoulder and steered again")
+	press_key(scene, KEY_TAB)
+	ok(scene.controlling_familiar(), "  Tab, seeing through its eyes: nobody walking to lead, so nothing")
+	press_key(scene, KEY_R)
+	ok(not scene.controlling_familiar() and keeper.familiar != null, "  R again: back to the party, the familiar still out")
+	press_key(scene, KEY_R)
+	ok(scene.controlling_familiar(), "  and R once more: to it")
 	ok(OutsideMoves.use(scene, "alithia", "find_familiar") and keeper.perched(), "  Find Familiar on the panel, while it is out, sends it back too")
 	scene.outside_spell()
 	ok(keeper.familiar == null, "G lets it go")
@@ -453,6 +503,57 @@ func the_opening_blow():
 	ok(not alithia.is_empty() and not alithia.get("skill_used_this_turn", false), "  free: her own first turn untouched")
 	game.queue_free()
 	await settle()
+	log_line("")
+
+
+## An attacking move on a map nobody watches, at a placed fight (the designer,
+## 2026-10-31: start a combat by hitting someone): the fight, opened with it.
+func a_placed_fight_struck_first():
+	log_line("======== a placed fight, struck first ========")
+	var m := await plain_map()
+	var scene: ExplorationScene = m.scene
+	scene.leave_for_battle = false
+	var from := tile_at(m, m.party.position_of_leader())
+	var near := find_tile(m, func(tile): return gap(tile, from) >= 2.0 and gap(tile, from) <= 3.0 and standable(m, tile))
+	var spot := EncounterInteractable.new()
+	spot.name = "Sappers"
+	var encounter: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
+	encounter.fighters.assign(["alithia"])
+	encounter.skip_deployment = true
+	spot.encounter = encounter
+	spot.trigger_id = "struck_first_test"
+	m.map.add_child(spot)
+	spot.global_position = at(m, near)
+	scene._interactables.append(spot)
+	var reach: int = skill("votive_flame").max_range
+	ok(scene.fight_in_reach(reach) == spot, "a fight waiting %d tiles off, in Votive Flame's reach of %d" % [roundi(gap(near, from)), reach])
+	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "", "  Votive Flame can be used on it", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
+	ok(OutsideMoves.use(scene, "alithia", "votive_flame"), "  used: the fight begins")
+	var fight: EncounterDefinition = Campaign.current_encounter
+	var opener: Dictionary = fight.get_meta("opener", {}) if fight != null else {}
+	ok(opener.get("key", "") == "alithia" and opener.get("move", "") == "votive_flame" and opener.get("anywhere", false),
+		"  with it as the opening blow, wherever the fight puts them", "%s" % [opener])
+	ok(not encounter.has_meta("opener"), "  on a copy: the map's own fight is left as it was")
+	await close_map(m)
+	# The fight it opens: the blow lands on the nearest of them, however far.
+	Campaign.set_party(["alithia"], 8)
+	Campaign.current_encounter = fight
+	var game = load("res://scenes/game.tscn").instantiate()
+	get_tree().root.add_child(game)
+	await settle(6)
+	var combat: Combat = game.get_node("VisualCombat")
+	var log_text: RichTextLabel = combat.game_ui.get_node("Actions/Information/Text")
+	await until(func(): return "opens with" in log_text.get_parsed_text() or "falls short" in log_text.get_parsed_text(), 10.0)
+	await wait(4.0)
+	var said: String = log_text.get_parsed_text()
+	var hurt := false
+	for comb in combat.combatants:
+		if comb.side == 1 and comb.hp < comb.max_hp:
+			hurt = true
+	ok("opens with Votive Flame" in said and not "falls short" in said and hurt, "  in the fight: it opens with Votive Flame, and lands", said.right(300))
+	game.queue_free()
+	await settle()
+	Campaign.set_party(["alithia"], 8)
 	log_line("")
 
 

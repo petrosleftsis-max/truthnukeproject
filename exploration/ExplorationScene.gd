@@ -98,6 +98,8 @@ func _ready():
 	# whenever the roster changes rather than only on arrival.
 	if not Campaign.party_changed.is_connected(_on_party_changed):
 		Campaign.party_changed.connect(_on_party_changed)
+	if not Campaign.member_joined.is_connected(_on_member_joined):
+		Campaign.member_joined.connect(_on_member_joined)
 	# A level reached, or somebody joining at one, can mean a path to choose.
 	if not Campaign.party_leveled.is_connected(_on_party_leveled):
 		Campaign.party_leveled.connect(_on_party_leveled)
@@ -475,7 +477,9 @@ func _aim_camera(at: Vector2, zoom_level: float = 0.0):
 ## draws this machine's camera to them (the designer, 2026-10-31): it glides
 ## onto their leader at the map's own zoom while it lasts
 ## (Net.conversation_focus), and back to whatever it would be framing once it is
-## over - for CAMERA_BACK_SECONDS, then it follows as ever.
+## over - for CAMERA_BACK_SECONDS, then it follows as ever. On one screen in
+## co-op the one camera is drawn the same way to whoever began it
+## (_conversation_focus).
 
 ## How quickly the camera glides: the share of the way left covered in a second
 ## is 1 - e^-CAMERA_GLIDE - a PROPOSAL value.
@@ -497,10 +501,21 @@ func _camera_gliding() -> bool:
 	return conversation_shot >= 0 or _gliding_back > 0.0
 
 
+## Whose conversation the camera is drawn to: over a network, the other machine's
+## player's (Net.conversation_focus); on one screen in co-op, whoever began the
+## one going on (Coop.conversation_starter; the designer, 2026-10-31) - or -1.
+func _conversation_focus() -> int:
+	if Net.with_another():
+		return Net.conversation_focus()
+	if groups.size() > 1 and Coop.talking():
+		return Coop.conversation_starter
+	return -1
+
+
 func _glide_camera(delta: float):
 	if camera == null:
 		return
-	var focus := Net.conversation_focus()
+	var focus := _conversation_focus()
 	var group = groups.get(focus) if focus >= 0 else null
 	if group != null and is_instance_valid(group) and group.leader != null:
 		if conversation_shot < 0:
@@ -671,6 +686,15 @@ func _unhandled_input(event):
 	var pressing = party
 	if pressing != null and pressing.in_a_menu:
 		return
+	# With a familiar out, R goes to it and back (the designer, 2026-10-31: Tab is
+	# who leads, always) - in co-op, the other player's asks for it
+	# (FamiliarKeeper.swap_for). A pad's is the Outside Spell button, so it is
+	# heard first.
+	if familiar_keeper != null and familiar_keeper.familiar != null and Pad.went_down(event, &"familiar"):
+		get_viewport().set_input_as_handled()
+		familiar_keeper.swap_for(Coop.acting if Coop.on() else -1)
+		_update_prompt()
+		return
 	# On a watched map the stealth bar has the key (StealthBar.outside_spell).
 	# Here, it lets a familiar go too.
 	if stealth == null and Pad.went_down(event, &"outside_spell"):
@@ -683,13 +707,9 @@ func _unhandled_input(event):
 		return
 	if event.is_action_pressed(&"swap_leader"):
 		get_viewport().set_input_as_handled()
-		# With a familiar out, Tab is who the player steers: it or the party -
-		# in co-op, the other player's asks for it (FamiliarKeeper.swap_for).
-		if familiar_keeper != null and familiar_keeper.familiar != null:
-			familiar_keeper.swap_for(Coop.acting if Coop.on() else -1)
-			_update_prompt()
-			return
-		swap_leader()
+		# Seeing through the familiar's eyes there is nobody walking to lead.
+		if not controlling_familiar():
+			swap_leader()
 		return
 	if not event.is_action_pressed(&"interact"):
 		return
@@ -838,10 +858,13 @@ func _on_party_leveled(_level: int):
 
 func _process(delta):
 	# Over a network: the camera drawn to another's conversation, and the other
-	# player marked while they look at a picture - a conversation or not.
+	# player marked while they look at a picture - a conversation or not. On one
+	# screen in co-op: drawn to whoever began one.
 	if Net.with_another():
 		_glide_camera(delta)
 		_mark_the_looking()
+	elif groups.size() > 1:
+		_glide_camera(delta)
 	elif _camera_gliding():
 		conversation_shot = -1
 		_gliding_back = 0.0
@@ -857,6 +880,8 @@ func _process(delta):
 		_watch_traps()
 	if _share_out_due():
 		share_out()
+	elif _management_due != "":
+		_manage_party()
 	elif _paths_due:
 		_offer_paths()
 	elif _store_due != "":
@@ -1230,6 +1255,29 @@ func share_out():
 	open_players("%s has nobody left to steer. Share the party out again - or Done to leave it as it is." % " and ".join(names))
 
 
+## Somebody who has just joined the party, for Party Management to come up for
+## once nothing else is going on (the designer, 2026-10-31) - "" when nobody.
+var _management_due := ""
+
+
+func _on_member_joined(key: String):
+	# Over a network the host's map says, for both machines (Net).
+	if Coop.on() and not Net.follows():
+		_management_due = key
+
+
+## Party Management up, for who steers whoever has just joined - on the other
+## machine too, over a network.
+func _manage_party():
+	var key := _management_due
+	_management_due = ""
+	if not Coop.on() or not Campaign.party_order.has(key):
+		return
+	var note := "%s joins the party. Who steers them?" % Campaign.display_name_of(key)
+	open_players(note, true)
+	Net.manage_party_there(note)
+
+
 ## The Players panel over the map, the party as it stands (the pause menu's
 ## Party Management - `management` - and share_out), with `note` over it.
 func open_players(note: String = "", management: bool = false):
@@ -1325,6 +1373,9 @@ func _keep_stayers():
 			staying.erase(key)
 			continue
 		group.stay(sprite, staying[key])
+	# A familiar on its caster's shoulder rides on their new figure.
+	if familiar_keeper != null:
+		familiar_keeper.keep_perched()
 
 
 ## Somebody staying, with the leader of their group (`group`, or the party)
@@ -1623,6 +1674,59 @@ func break_wall(wall: BreakableWall):
 
 ## How far a wall coming down is heard - a PROPOSAL test value.
 const WALL_NOISE_TILES := 8.0
+
+
+## --- Opening a fight with a blow ---
+##
+## An attacking move used on a map within reach of a placed fight (an
+## EncounterInteractable still standing) starts that fight with it: the blow
+## lands before anybody moves, wherever the fight puts them (Combat "An ambush's
+## opening blow", "anywhere"), and nothing is said first (the designer,
+## 2026-10-31: start a combat by hitting someone).
+
+
+## Off in tests, which want to see the fight set up without the scene changing
+## under them (as StealthWatch.leave_for_battle).
+var leave_for_battle := true
+
+
+## The placed fight nearest the leader within `reach` tiles (the fight's count),
+## or null.
+func fight_in_reach(reach: int) -> EncounterInteractable:
+	if _tile_map == null or party == null:
+		return null
+	var from := _tile_map.local_to_map(_tile_map.to_local(party_position()))
+	var best: EncounterInteractable = null
+	var best_gap := 1 << 30
+	for spot in _interactables:
+		if not (spot is EncounterInteractable) or not is_instance_valid(spot) or spot.encounter == null \
+				or not spot.visible or not spot.is_available():
+			continue
+		var at := _tile_map.local_to_map(_tile_map.to_local(spot.global_position))
+		var gap := absi(at.x - from.x) + absi(at.y - from.y)
+		if gap <= maxi(reach, 1) and gap < best_gap:
+			best = spot
+			best_gap = gap
+	return best
+
+
+## Starts `spot`'s fight with `key`'s `move` as its opening blow. False, and
+## nothing done, when it can't be.
+func open_fight_with(spot: EncounterInteractable, key: String, move: String) -> bool:
+	if spot == null or spot.encounter == null or not spot.is_available() or is_holding() or SceneTransition.is_changing():
+		return false
+	var skill: SkillDefinition = SkillDatabase.skills.get(move)
+	log_message("[color=yellow]%s[/color] strikes first%s!\n" % [Campaign.display_name_of(key), " with " + skill.name if skill != null else ""])
+	Campaign.begin_battle_from_exploration(spot.encounter, map_path(), party_position(), spot.trigger_id)
+	# On a copy: the encounter is the map's for every fight after this one.
+	var fight: EncounterDefinition = Campaign.current_encounter.duplicate()
+	for meta in Campaign.current_encounter.get_meta_list():
+		fight.set_meta(meta, Campaign.current_encounter.get_meta(meta))
+	fight.set_meta("opener", {"key": key, "move": move, "anywhere": true})
+	Campaign.current_encounter = fight
+	if leave_for_battle:
+		SceneTransition.change_scene(battle_scene)
+	return true
 
 
 ## The Outside Spell key on a map nobody watches: lets a familiar go while one

@@ -69,7 +69,7 @@ Party,Cyrus,1,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres:
 Party,Cyrus,1,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,1,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,1,Main / secondary stat,Self 10 / Physical 10,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
-Party,Cyrus,1,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Steal; Deceive; Stealth; Slip Past; Run; Cover Leap,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
+Party,Cyrus,1,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Steal; Deceive; Stealth; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
 Party,Cyrus,1,Passives active,Light Footed; Quick Hands; Nade Juggler; Cat Burglar I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,4,HP,77,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Cyrus,4,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -77,7 +77,7 @@ Party,Cyrus,4,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres:
 Party,Cyrus,4,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,4,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,4,Main / secondary stat,Self 14 / Physical 10,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
-Party,Cyrus,4,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Steal; Deceive; Stealth; Slip Past; Run; Cover Leap,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
+Party,Cyrus,4,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Steal; Deceive; Stealth; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
 Party,Cyrus,4,Passives active,Light Footed; Quick Hands; Nade Juggler; Cat Burglar I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,8,HP,79,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Cyrus,8,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -85,7 +85,7 @@ Party,Cyrus,8,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres:
 Party,Cyrus,8,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,8,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,8,Main / secondary stat,Self 18 / Physical 10,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
-Party,Cyrus,8,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Steal; Deceive; Stealth; Slip Past; Run; Cover Leap,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
+Party,Cyrus,8,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Steal; Deceive; Stealth; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
 Party,Cyrus,8,Passives active,Light Footed; Quick Hands; Nade Juggler; Cat Burglar I; Agile I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,11,HP,81,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Cyrus,11,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -93,7 +93,7 @@ Party,Cyrus,11,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres
 Party,Cyrus,11,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,11,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,11,Main / secondary stat,Self 22 / Physical 11,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
-Party,Cyrus,11,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Steal; Deceive; Stealth; Slip Past; Run; Cover Leap,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
+Party,Cyrus,11,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Steal; Deceive; Stealth; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
 Party,Cyrus,11,Passives active,Light Footed; Quick Hands; Nade Juggler; Cat Burglar I; Agile I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,14,HP,83,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Cyrus,14,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -101,7 +101,7 @@ Party,Cyrus,14,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres
 Party,Cyrus,14,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,14,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,14,Main / secondary stat,Self 25 / Physical 13,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
-Party,Cyrus,14,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Steal; Deceive; Stealth; Slip Past; Run; Cover Leap,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
+Party,Cyrus,14,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Steal; Deceive; Stealth; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
 Party,Cyrus,14,Passives active,Light Footed; Quick Hands; Nade Juggler; Cat Burglar I; Agile I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,16,HP,85,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Cyrus,16,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -109,7 +109,7 @@ Party,Cyrus,16,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres
 Party,Cyrus,16,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,16,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,16,Main / secondary stat,Self 28 / Physical 14,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
-Party,Cyrus,16,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Burning Shot x0.8; Steal; Deceive; Stealth; Slip Past; Run; Cover Leap,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
+Party,Cyrus,16,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Burning Shot x0.8; Steal; Deceive; Stealth; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
 Party,Cyrus,16,Passives active,Light Footed; Quick Hands; Nade Juggler; Cat Burglar I; Agile I; DoT Master I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,18,HP,86,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Cyrus,18,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -117,7 +117,7 @@ Party,Cyrus,18,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres
 Party,Cyrus,18,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,18,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,18,Main / secondary stat,Self 30 / Physical 15,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
-Party,Cyrus,18,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Burning Shot x0.8; Steal; Deceive; Stealth; Slip Past; Run; Cover Leap,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
+Party,Cyrus,18,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Burning Shot x0.8; Steal; Deceive; Stealth; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
 Party,Cyrus,18,Passives active,Light Footed; Quick Hands; Nade Juggler; Cat Burglar I; Agile I; DoT Master I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party (level-64 regression),Cyrus,64,HP,115,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party (level-64 regression),Cyrus,64,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -125,7 +125,7 @@ Party (level-64 regression),Cyrus,64,Initiative,8,PRESENT,EXISTING_BASELINE,data
 Party (level-64 regression),Cyrus,64,Movement,8 (10 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party (level-64 regression),Cyrus,64,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party (level-64 regression),Cyrus,64,Main / secondary stat,Self 85 / Physical 43,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
-Party (level-64 regression),Cyrus,64,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Warning Shot x0.9; Burning Shot x0.95; Steal; Deceive; Stealth; Slip Past; Run; Cover Leap; Venom Fan x0.7; Catalyst,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
+Party (level-64 regression),Cyrus,64,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Warning Shot x0.9; Burning Shot x0.95; Steal; Deceive; Stealth; Slip Past; Run; Venom Fan x0.7; Catalyst,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
 Party (level-64 regression),Cyrus,64,Passives active,Light Footed; Quick Hands; Nade Juggler; Cat Burglar II; Cat Burglar I; Agile I; DoT Master I; Agile II; DoT Master II; Synergy I; Synergy II; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Prometheus,1,HP,30,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Prometheus,1,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -136,7 +136,7 @@ Party,Prometheus,1,Main / secondary stat,Intellect 10 / Mindfulness 10,PRESENT,E
 Party,Prometheus,1,Gates,World 2,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_STEPS,,
 Party,Prometheus,1,Skills (not spells),Fire Burst x0.7; Zephyr Dart x0.7; Caucasus Shard x0.7; Study; Hack; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: skills, required_level, ranks",,
 Party,Prometheus,1,Spells - Arena Mode,Fire Blast; Wind Shot; Rock Throw; Quicken; Hover; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: skills (Arena knows everything),,
-Party,Prometheus,1,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
+Party,Prometheus,1,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,1,Passives active,Prying Mind; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,4,HP,31,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Prometheus,4,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -147,7 +147,7 @@ Party,Prometheus,4,Main / secondary stat,Intellect 14 / Mindfulness 10,PRESENT,E
 Party,Prometheus,4,Gates,World 3,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_STEPS,,
 Party,Prometheus,4,Skills (not spells),Fire Burst x0.7; Zephyr Dart x0.7; Caucasus Shard x0.7; Study; Hack; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: skills, required_level, ranks",,
 Party,Prometheus,4,Spells - Arena Mode,Fire Blast; Wind Shot; Rock Throw; Quicken; Hover; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: skills (Arena knows everything),,
-Party,Prometheus,4,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
+Party,Prometheus,4,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,4,Passives active,Prying Mind; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,8,HP,33,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Prometheus,8,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -158,7 +158,7 @@ Party,Prometheus,8,Main / secondary stat,Intellect 18 / Mindfulness 10,PRESENT,E
 Party,Prometheus,8,Gates,World 4 / Hermes 2,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_STEPS,,
 Party,Prometheus,8,Skills (not spells),Fire Burst x0.7; Zephyr Dart x0.7; Caucasus Shard x0.7; Study; Hack; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: skills, required_level, ranks",,
 Party,Prometheus,8,Spells - Arena Mode,Fire Blast; Wind Shot; Rock Throw; Quicken; Burner; Wind Vacuum; Wind Swoon; Hermes Step; Hover; Invisibility; Growth; Mist Step,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: skills (Arena knows everything),,
-Party,Prometheus,8,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
+Party,Prometheus,8,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,8,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,11,HP,34,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Prometheus,11,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -169,7 +169,7 @@ Party,Prometheus,11,Main / secondary stat,Intellect 22 / Mindfulness 11,PRESENT,
 Party,Prometheus,11,Gates,World 4 / Hermes 3,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_STEPS,,
 Party,Prometheus,11,Skills (not spells),Fire Burst x0.7; Zephyr Dart x0.7; Caucasus Shard x0.7; Study; Hack; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: skills, required_level, ranks",,
 Party,Prometheus,11,Spells - Arena Mode,Fire Blast; Wind Shot; Rock Throw; Quicken; Burner; Fireball; Wind Vacuum; Wind Swoon; Hermes Step; Hover; Invisibility; Growth; Mist Step,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: skills (Arena knows everything),,
-Party,Prometheus,11,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
+Party,Prometheus,11,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,11,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,14,HP,36,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Prometheus,14,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -180,7 +180,7 @@ Party,Prometheus,14,Main / secondary stat,Intellect 25 / Mindfulness 13,PRESENT,
 Party,Prometheus,14,Gates,World 4 / Hermes 3 / Pandora 2,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_STEPS,,
 Party,Prometheus,14,Skills (not spells),Fire Burst x0.7; Zephyr Dart x0.7; Caucasus Shard x0.7; Study; Hack; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: skills, required_level, ranks",,
 Party,Prometheus,14,Spells - Arena Mode,InstaHack; Dispel Magic; Fire Blast; Wind Shot; Rock Throw; Quicken; Burner; Fireball; Wind Vacuum; Wind Swoon; Hermes Step; Hover; Invisibility; Growth; Mist Step; Kindled Hound,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: skills (Arena knows everything),,
-Party,Prometheus,14,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
+Party,Prometheus,14,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,14,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,16,HP,37,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Prometheus,16,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -191,7 +191,7 @@ Party,Prometheus,16,Main / secondary stat,Intellect 28 / Mindfulness 14,PRESENT,
 Party,Prometheus,16,Gates,World 4 / Hermes 3 / Pandora 2,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_STEPS,,
 Party,Prometheus,16,Skills (not spells),Fire Burst x0.7; Zephyr Dart x0.7; Caucasus Shard x0.7; Study; Hack; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: skills, required_level, ranks",,
 Party,Prometheus,16,Spells - Arena Mode,InstaHack; Dispel Magic; Fire Blast; Wind Shot; Rock Throw; Quicken; Burner; Wildfire; Fireball; Wind Vacuum; Crystalise; Wind Swoon; Hermes Step; Hover; Invisibility; Growth; Mist Step; Kindled Hound,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: skills (Arena knows everything),,
-Party,Prometheus,16,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
+Party,Prometheus,16,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,16,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Kindling II; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,18,HP,38,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Prometheus,18,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -202,7 +202,7 @@ Party,Prometheus,18,Main / secondary stat,Intellect 30 / Mindfulness 15,PRESENT,
 Party,Prometheus,18,Gates,World 4 / Hermes 3 / Pandora 3,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_STEPS,,
 Party,Prometheus,18,Skills (not spells),Fire Burst x0.7; Zephyr Dart x0.7; Caucasus Shard x0.7; Study; Hack; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: skills, required_level, ranks",,
 Party,Prometheus,18,Spells - Arena Mode,InstaHack; Dispel Magic; Fire Blast; Wind Shot; Rock Throw; Quicken; Burner; Wildfire; Fireball; Wind Vacuum; Crystalise; Wind Swoon; Hermes Step; Hover; Invisibility; Growth; Mist Step; Kindled Hound,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: skills (Arena knows everything),,
-Party,Prometheus,18,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
+Party,Prometheus,18,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,18,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Kindling II; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party (level-64 regression),Prometheus,64,HP,58,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party (level-64 regression),Prometheus,64,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
@@ -213,7 +213,7 @@ Party (level-64 regression),Prometheus,64,Main / secondary stat,Intellect 85 / M
 Party (level-64 regression),Prometheus,64,Gates,World 4 / Hermes 3 / Pandora 3 / Charon 3 / Tartarus 3 / Nemesis 2 / Sophia 2 / Ogdoad 1 / Gnosis 1 / Yaldabaoth 1,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_STEPS,,
 Party (level-64 regression),Prometheus,64,Skills (not spells),Fire Burst x0.7; Zephyr Dart x0.7; Caucasus Shard x0.7; Study; Hack; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: skills, required_level, ranks",,
 Party (level-64 regression),Prometheus,64,Spells - Arena Mode,InstaHack; Dispel Magic; Fire Blast; Wind Shot; Rock Throw; Quicken; Burner; Wildfire; Fireball; Wind Vacuum; Gust Blast; Crystalise; Wind Swoon; Hermes Step; Hover; Invisibility; Growth; Mist Step; Kindled Hound; Illusory Dragon; Tartarus Flame; Ire of Sophia; Gnostic Tempest; Stolen Sun,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: skills (Arena knows everything),,
-Party (level-64 regression),Prometheus,64,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
+Party (level-64 regression),Prometheus,64,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party (level-64 regression),Prometheus,64,Passives active,Prying Mind; Elemental Affinity I; Contest Insight I; Elemental Affinity II; Contest Insight II; Elemental Mastery; Kindling I; Kindling II; Kindling III; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Alithia,1,HP,75,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
 Party,Alithia,1,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)

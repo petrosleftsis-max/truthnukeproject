@@ -204,9 +204,6 @@ func describe_triggers() -> String:
 ## TARGET moves whoever is aimed at to a second tile, picked afterwards.
 enum TeleportWho { NOBODY, CASTER, TARGET }
 @export var teleports: TeleportWho = TeleportWho.NOBODY
-## A CASTER teleport that has to end in cover (Combat.in_cover) - Cyrus's Cover
-## Leap.
-@export var lands_in_cover: bool = false
 ## A TARGET teleport that is a throw (Hurl): the landing tile may have somebody
 ## on it - both are hurt by the skill's damage, and the thrown one lands beside
 ## it. Immune to being thrown (Immunity) is never picked up.

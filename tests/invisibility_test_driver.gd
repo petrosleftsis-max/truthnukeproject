@@ -40,8 +40,16 @@ func the_spell():
 		"before level 8 Iris isn't open, so Invisibility isn't offered outside a fight", "%s" % [Campaign.outside_spells("prometheus")])
 	Campaign.reset()
 	Campaign.set_party(["cyrus", "prometheus"], 8)
+	var definition: CombatantDefinition = CombatantDatabase.combatants["prometheus"]
+	ok(definition.starting_spells.has("invisibility") and Campaign.knows_spell("prometheus", "invisibility"),
+		"Prometheus knows it from the start, for now (the designer, 2026-10-31 - not so in the story mode to come)")
 	ok(Campaign.outside_spells("prometheus") == ["invisibility"] and Campaign.outside_spells("cyrus").is_empty(),
 		"only somebody who knows an Iris spell opens it", "%s" % [Campaign.outside_spells("prometheus")])
+	# A spell like his others: unknown, it is not offered.
+	definition.starting_spells.erase("invisibility")
+	ok(Campaign.outside_spells("prometheus").is_empty() and Campaign.outside_gates_most("prometheus")[1] == 0,
+		"  not known, it opens nothing - learned first, as any spell of his", "%s" % [Campaign.outside_spells("prometheus")])
+	definition.starting_spells.append("invisibility")
 	ok(Campaign.outside_gates_most("prometheus")[1] == 2 and Campaign.outside_gates_most("cyrus")[1] == 0,
 		"two castings at level 8, and none for Cyrus", "%s / %s" % [Campaign.outside_gates_most("prometheus"), Campaign.outside_gates_most("cyrus")])
 	ok(not Campaign.spend_outside_gate("prometheus", 1, 3) and Campaign.outside_gates_left("prometheus")[1] == 2,
@@ -223,7 +231,10 @@ func on_a_stealth_map():
 	var watch = await watch_it(m, out_of_sight_of(m, row(post)))
 	var bar: StealthBar = watch._bar
 	log_line("======== nobody here knows how ========")
-	ok(watch.invisibility_spell().is_empty() and not bar._invisible.visible, "Cyrus alone: no spell, no button")
+	var panel: OutsideMovesPanel = m.scene.moves_panel
+	panel.show_spells(true)
+	ok(watch.invisibility_spell().is_empty() and panel.button_for("invisibility") == null, "Cyrus alone: no spell, nothing on the Spells tab")
+	ok(bar.get("_invisible") == null, "  and the bar has no button of its own for it any more (the designer, 2026-10-31)")
 	ok(not watch.go_invisible() and not watch.anyone_unseen(), "and nothing happens")
 	log_line("")
 
@@ -240,7 +251,21 @@ func on_a_stealth_map():
 	ok(watch.invisibility_refusal().contains("needs 2"), "and with one, he can't hide both", watch.invisibility_refusal())
 	ok(watch.invisibility_refusal(["cyrus"]) == "", "but he can hide one of them")
 	await settle(2)
-	ok(bar._invisible.visible and not bar._invisible.disabled, "the bar offers it", bar._invisible.text)
+	var was_leading := Campaign.leader()
+	Campaign.set_leader("prometheus")
+	panel = m.scene.moves_panel
+	panel.show_spells(true)
+	panel.refresh(true)
+	await settle(2)
+	var iris: HBoxContainer = panel.shelves().shelf(1, true) if panel.shelves() != null else null
+	var button := panel.button_for("invisibility")
+	ok(iris != null and iris.find_child("invisibility", true, false) != null and button != null and not button.disabled,
+		"Prometheus leading: on his Spells tab, on the shelf of the Gates of Iris - one casting is one to hide",
+		OutsideMoves.refusal(m.scene, "prometheus", "invisibility"))
+	var tag: GateTag = iris.get_node_or_null("Tag") if iris != null else null
+	ok(tag != null and tag.iris and tag.uses() == Vector2i(1, 2), "  its tag: Iris, one of two left", "%s" % [tag.uses() if tag != null else null])
+	Campaign.set_leader(was_leading)
+	await settle(2)
 	log_line("")
 
 	log_line("======== G: choosing who ========")

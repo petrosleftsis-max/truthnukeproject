@@ -483,6 +483,7 @@ func add_member(key: String, at_front: bool = false) -> bool:
 	else:
 		party_order.append(key)
 	party_changed.emit()
+	member_joined.emit(key)
 	announce("[color=lightgreen]%s[/color] joins the party.
 " % display_name_of(key))
 	return true
@@ -510,6 +511,9 @@ func has_member(key: String) -> bool:
 ## Emitted whenever the roster changes, so anything showing the party (the
 ## exploration line, the portrait column) can redraw itself without polling.
 signal party_changed()
+## Somebody new in the party (add_member) - in co-op the map puts Party
+## Management up for who steers them (ExplorationScene).
+signal member_joined(key: String)
 
 ## Something worth saying in the log, wherever the log happens to be.
 ##
@@ -1008,6 +1012,10 @@ func outside_spells(key: String) -> Array:
 		if skill == null or skill.outside_gate <= 0 or found.has(skill_key):
 			continue
 		if skill.required_level > party_level or skill.outside_gate >= opened.size() or opened[skill.outside_gate] <= 0:
+			continue
+		# Learned, as any spell of theirs (Invisibility's book - the designer,
+		# 2026-10-31: a spell like the rest).
+		if not knows_spell(key, skill_key):
 			continue
 		found.append(skill_key)
 	return found

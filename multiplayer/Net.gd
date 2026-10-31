@@ -104,7 +104,7 @@ const DISCOVERY_PORT := 24701
 const BEACON := "MOT-HOST"
 ## What the two machines say to each other. Bumped whenever that changes; a
 ## joiner with another is turned away.
-const PROTOCOL := 4
+const PROTOCOL := 5
 const BEACON_SECONDS := 1.0
 ## How long a game goes unheard before the Join list forgets it.
 const FORGET_SECONDS := 4.0
@@ -726,6 +726,21 @@ func _chose(keys):
 	_change_steering(changes)
 	if changes.is_empty():
 		Coop.share_out_offered = Coop.party_shape()
+
+
+## The host: Party Management up on the joiner's screen as well as here, saying
+## `note` - somebody has just joined the party (ExplorationScene._manage_party).
+func manage_party_there(note: String):
+	if is_host():
+		for peer in _seated_peers():
+			_manage_party.rpc_id(peer, note)
+
+
+@rpc("authority", "reliable")
+func _manage_party(note):
+	var scene := _map()
+	if follows() and typeof(note) == TYPE_STRING and scene != null:
+		scene.open_players(note.left(200), true)
 
 
 ## --- Asking for a change ---
@@ -2697,6 +2712,10 @@ func forwards(event: InputEvent) -> bool:
 			_press.rpc_id(1, player, data)
 			return false
 	var the_hosts := HOSTS_PRESSES.any(func(action): return event.is_action_pressed(action))
+	# The familiar's key, while there is one out: a pad's is the Outside Spell
+	# button, which otherwise stays here.
+	if event.is_action_pressed(&"familiar") and scene.familiar_keeper != null and scene.familiar_keeper.familiar != null:
+		the_hosts = true
 	# The number keys put a disguise on, on a watched map.
 	if event is InputEventKey and event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_9 and scene.stealth != null:
 		the_hosts = true

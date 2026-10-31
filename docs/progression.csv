@@ -31,7 +31,6 @@ Enfina,Warden of Cover,41,5,Passive,Warden of Cover Tier 3,Subclass,,,,,,Stronge
 Enfina,Warden of Cover,54,6,Passive,Warden of Cover Tier 4,Subclass,,,,,,Late-tier specialization
 Enfina,Warden of Cover,64,7,Passive,Warden of Cover Capstone,Subclass,,,,,,Final evolution
 Cyrus,Base,1,0,Active,Basic Shot,DPS,1.0,,,,,Ranged attack
-Cyrus,Base,1,0,Active,Light Cover Leap,Mobility,,,,,+Speed when using cover,Moves between covers
 Cyrus,Base,1,0,Passive,Cover Runner I,Mobility,,,,,+2 Speed in cover,Bonus speed in cover
 Cyrus,Base,8,1,Active,Poison Strike,DoT/Debuff,1.0,0.2,3,,,"Poison DoT, disables reactions"
 Cyrus,Base,8,1,Passive,Agile I,Defense,,,,,,+5% DR/dodge in cover

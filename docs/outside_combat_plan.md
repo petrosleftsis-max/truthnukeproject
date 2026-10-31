@@ -103,10 +103,21 @@ As built (the numbers PROPOSAL test values, in `OutsideMoves.SECONDS`):
 - **The opener is free** (decided here, open for the designer): used before the
   first turn, paid for in the fight, the user's first turn untouched. A melee
   opener needs the guard within its reach; one that falls short is said so.
-- **Breakable walls** (`BreakableWall`): any damaging move breaks one - no
-  minimum damage or type yet - when no unaware guard is in reach. Loud: 8 tiles,
-  guards come to look. Kept broken in the flags.
-- A move with no gate (Intimidate, Cover Leap, Stealth, Snare...) waits 30 s
+- **A placed fight, struck first** (the designer, 2026-10-31: "I want to be able
+  to use them to either start a combat by hitting someone, or to be able to
+  break walls"): on any map, a damaging move with an EncounterInteractable in
+  its reach starts that fight with the move as its opener, no conversation
+  first. Struck before the fight began, it lands on the foe nearest whoever
+  struck, however far apart the fight puts them (PROPOSAL).
+- **Breakable walls** (`BreakableWall`): broken when no unaware guard or placed
+  fight is in reach - only by a spell, an item or Enfina (the designer,
+  2026-10-29). Loud: 8 tiles, guards come to look. Kept broken in the flags.
+- **The Spells tab** (the designer, 2026-10-31): laid out as the fight's - a
+  shelf per gate, its castings at its start - with a shelf for the Gates of Iris
+  first (Invisibility, and what Iris pays for first); only gates with a spell on
+  show. Invisibility is only there and on G; the stealth bar's button for it is
+  gone.
+- A move with no gate (Intimidate, Stealth, Snare...) waits 30 s
   before it can be used again out here.
 
 The plan as it was:
@@ -149,7 +160,7 @@ every move gets one of a few shared behaviours, built once.
 | Mend | heals a member's carried health | Heal, Light Heal, Communion, Restoration, Grace, Purification |
 | Revive | brings a fallen member back, as at a rest | Resuscitate |
 | Burst / Speed | a dash or a faster pace for some seconds | Run, Quicken |
-| Blink / Fly | a step of a few tiles, or over low obstacles for a while | Hermes Step, Mist Step, Cover Leap, Hover, Climb |
+| Blink / Fly | a step of a few tiles, or over low obstacles for a while | Hermes Step, Mist Step, Hover, Climb |
 | Blind / Scare / Confuse | a guard sees nothing, runs off, or wanders, for some seconds | Flash; Dread Visage, Intimidate; Bewilder |
 | Lure | a decoy or a sound guards go to look at | Phantom Body, Mass Mirage, Reality's Reflection, Kindled Hound |
 | Hiding spot | makes one where it is cast | Illusory Cover, Stealth |

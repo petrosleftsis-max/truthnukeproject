@@ -38,7 +38,11 @@ func _init():
 ##
 ## `flat` puts them all on one shelf with no gate tag - for skills, more of them
 ## than the action grid has buttons for (CombatUI._show_skills_for).
-func build(spells: Array, comb: Dictionary, template: Button, showing: String, flat: bool = false):
+##
+## `iris` (outside a fight - OutsideMovesPanel) is the spells paid through the
+## Gates of Iris, by Iris gate: a shelf each, first, tagged with comb's
+## "iris_left" and "iris_most" castings.
+func build(spells: Array, comb: Dictionary, template: Button, showing: String, flat: bool = false, iris: Dictionary = {}):
 	var keep_place := showing == _showing
 	var place := scroll_vertical
 	_showing = showing
@@ -56,40 +60,68 @@ func build(spells: Array, comb: Dictionary, template: Button, showing: String, f
 		by_gate[gate].append(key)
 	var gates := by_gate.keys()
 	gates.sort()
-	var left: Array = comb.get("spell_slots", [])
-	var most: Array = comb.get("max_spell_slots", [])
+	var iris_gates := iris.keys().filter(func(gate): return not iris[gate].is_empty())
+	iris_gates.sort()
+	for gate in iris_gates:
+		_shelf("Iris%d" % gate, iris[gate], template, gate, true)
 	for gate in gates:
-		var shelf := HBoxContainer.new()
-		shelf.name = "Gate%d" % gate
-		shelf.add_theme_constant_override("separation", SEPARATION)
-		_rows.add_child(shelf)
-		if gate > 0:
-			var tag := GateTag.new(true)
-			tag.name = "Tag"
-			tag.custom_minimum_size = Vector2(TAG_WIDTH, template.custom_minimum_size.y)
-			# At the top of its shelf, beside the first line of spells, however
-			# many lines the shelf runs to.
-			tag.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			tag.show_gate(gate, left[gate] if gate < left.size() else 0, most[gate] if gate < most.size() else 0)
-			shelf.add_child(tag)
-		var spread := HFlowContainer.new()
-		spread.name = "Spells"
-		spread.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		spread.add_theme_constant_override("h_separation", SEPARATION)
-		spread.add_theme_constant_override("v_separation", SEPARATION)
-		shelf.add_child(spread)
-		for key in by_gate[gate]:
-			var button: Button = template.duplicate(0)
-			button.name = key
-			spread.add_child(button)
-			_buttons.append(button)
-			_keys.append(key)
+		_shelf("Gate%d" % gate, by_gate[gate], template, gate, false)
+	show_counts(comb)
 	# The new rows are laid out on the next frame; the old place can only be
 	# gone back to once they have been.
 	if keep_place:
 		set_deferred("scroll_vertical", place)
 	else:
 		scroll_vertical = 0
+
+
+## A shelf of `spells` called `shelf_name`: tagged with `gate` (an Iris gate
+## when `of_iris`; none for 0).
+func _shelf(shelf_name: String, spells: Array, template: Button, gate: int, of_iris: bool):
+	var shelf := HBoxContainer.new()
+	shelf.name = shelf_name
+	shelf.add_theme_constant_override("separation", SEPARATION)
+	_rows.add_child(shelf)
+	if gate > 0:
+		var tag := GateTag.new(true)
+		tag.name = "Tag"
+		tag.iris = of_iris
+		tag.level = gate
+		tag.custom_minimum_size = Vector2(TAG_WIDTH, template.custom_minimum_size.y)
+		# At the top of its shelf, beside the first line of spells, however
+		# many lines the shelf runs to.
+		tag.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		shelf.add_child(tag)
+	var spread := HFlowContainer.new()
+	spread.name = "Spells"
+	spread.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spread.add_theme_constant_override("h_separation", SEPARATION)
+	spread.add_theme_constant_override("v_separation", SEPARATION)
+	shelf.add_child(spread)
+	for key in spells:
+		var button: Button = template.duplicate(0)
+		button.name = key
+		spread.add_child(button)
+		_buttons.append(button)
+		_keys.append(key)
+
+
+## Each shelf's tag told the castings left: comb's "spell_slots" and
+## "max_spell_slots", and for the Gates of Iris its "iris_left" and "iris_most".
+func show_counts(comb: Dictionary):
+	for shelf in _rows.get_children():
+		var tag = shelf.get_node_or_null("Tag")
+		if not tag is GateTag:
+			continue
+		var gate: int = tag.level
+		var left: Array = comb.get("iris_left" if tag.iris else "spell_slots", [])
+		var most: Array = comb.get("iris_most" if tag.iris else "max_spell_slots", [])
+		var have: int = left[gate] if gate < left.size() else 0
+		var could: int = most[gate] if gate < most.size() else 0
+		if tag.iris:
+			tag.show_iris(gate, have, could)
+		else:
+			tag.show_gate(gate, have, could)
 
 
 func buttons() -> Array[Button]:
@@ -100,9 +132,10 @@ func keys() -> Array[String]:
 	return _keys
 
 
-## The shelf for `gate`, or null when nothing on show is cast through it.
-func shelf(gate: int) -> HBoxContainer:
-	return _rows.get_node_or_null("Gate%d" % gate)
+## The shelf for `gate`, or null when nothing on show is cast through it - for
+## the Gates of Iris `gate` when `of_iris`.
+func shelf(gate: int, of_iris: bool = false) -> HBoxContainer:
+	return _rows.get_node_or_null(("Iris%d" if of_iris else "Gate%d") % gate)
 
 
 ## Slim, and in the HUD's blue - the engine's own is a grey slab.

@@ -408,6 +408,11 @@ func catch_off_guard(comb: Dictionary):
 ## "opened_on". Once everybody is placed and before the first turn, they use it
 ## on him - free, their own first turn untouched (a PROPOSAL, 2026-10-26: the
 ## designer left open whether it costs the action). Paid for as in any turn.
+##
+## A blow struck on a map at a placed fight (ExplorationScene.open_fight_with:
+## "anywhere" in the meta, nobody marked) was struck before the fight began: it
+## lands on the foe nearest whoever struck it, however far apart the fight has
+## put them - as a declared move lands, unrefused but for its target.
 
 ## The guard the opening blow is for, while it is still to land.
 var _opened_on: Dictionary = {}
@@ -429,11 +434,17 @@ func _open_the_ambush():
 		if comb.get("combatant_key", "") == opener.get("key", "") and comb.alive:
 			who = comb
 	var skill: SkillDefinition = SkillDatabase.skills.get(opener.get("move", ""))
+	var anywhere: bool = opener.get("anywhere", false)
+	if _opened_on.is_empty() and anywhere and not who.is_empty():
+		_opened_on = _nearest_foe_of(who)
 	if not who.is_empty() and skill != null and not _opened_on.is_empty() and _opened_on.alive:
 		var aim := nearest_tile_of(_opened_on, who.position)
-		if distance_to(who, aim) <= effective_max_range(who, skill) and distance_to(who, aim) >= skill.min_range:
+		# Struck before the fight began, it lands - unless it never could on them.
+		var lands: bool = (refusal_for(who, skill, aim) == "") if anywhere else \
+			(distance_to(who, aim) <= effective_max_range(who, skill) and distance_to(who, aim) >= skill.min_range)
+		if lands:
 			update_information.emit("[color=yellow]%s[/color] opens with %s!\n" % [who.name, skill.name])
-			await use_skill(opener.move, who, aim, false)
+			await use_skill(opener.move, who, aim, false, false, NO_AREA, anywhere)
 			if not still_running():
 				return
 			who.skill_used_this_turn = false
@@ -441,6 +452,21 @@ func _open_the_ambush():
 		else:
 			update_information.emit("[color=yellow]%s[/color]'s %s falls short.\n" % [who.name, skill.name])
 	start_first_turn()
+
+
+## The standing enemy nearest `who` - a thing on the map is nobody's foe - or {}.
+func _nearest_foe_of(who: Dictionary) -> Dictionary:
+	var best: Dictionary = {}
+	var best_gap := 1 << 30
+	for index in groups[Group.ENEMIES]:
+		var foe: Dictionary = combatants[index]
+		if not foe.alive or foe.get("illusion", false):
+			continue
+		var gap := distance_to(who, nearest_tile_of(foe, who.position))
+		if gap < best_gap:
+			best = foe
+			best_gap = gap
+	return best
 
 
 ## Sets the battle actually running. Separate from _ready because deployment
@@ -10234,9 +10260,6 @@ func refusal_for(attacker: Dictionary, skill: SkillDefinition, impact: Vector2i)
 		var why := draw_refusal(attacker)
 		if why != "":
 			return why
-	# A leap that has to end in cover (Cover Leap).
-	if skill.lands_in_cover and skill.teleports == SkillDefinition.TeleportWho.CASTER and not in_cover(attacker, impact):
-		return "No cover there to leap into"
 	# Commanding is for one's own summons, once a turn each (see "Summons").
 	if commands(skill):
 		var summoned := get_combatant_at(impact)

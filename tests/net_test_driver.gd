@@ -27,6 +27,8 @@ extends "res://StealthHarness.gd"
 ##   the host; E sends it to her shoulder, G lets it go
 ## - a hack the joiner's player sets going is played on their screen, and opens
 ##   the strongbox on the host; a quick time of theirs is played there too
+## - somebody joining the party puts Party Management up on both machines - Done
+##   pressed on it wherever it comes up, as a player would (_done_on_joins)
 ## - a conversation begun on the joiner: its lines pressed on through there, its
 ##   answer chosen on both - two different picks are both shown, and asked again;
 ##   the host's camera glides to the joiner's party meanwhile, and back after
@@ -90,6 +92,7 @@ func run_sections():
 	Campaign.controllers.clear()
 	Net.discovery_port = TEST_BEACON
 	Net.beacon_to = "127.0.0.1"
+	get_tree().process_frame.connect(_done_on_joins)
 	if joining_half():
 		await joiners_half()
 	else:
@@ -123,6 +126,28 @@ func heard_after(start: String) -> String:
 	return ""
 
 
+## --- Party Management, for whoever joins ---
+
+
+## The notes of each Party Management put up by somebody joining the party
+## (ExplorationScene._manage_party - on both machines over a network), closed
+## as soon as it is up, as a player pressing Done would, so the sections after
+## it go on. The joiner tells the host of each.
+var joins_managed: Array = []
+
+
+func _done_on_joins():
+	var scene := get_tree().current_scene as ExplorationScene
+	if scene == null or scene._sharing == null:
+		return
+	for panel in scene._sharing.find_children("*", "PlayersPanel", true, false):
+		if panel.management and panel.note.ends_with("Who steers them?"):
+			joins_managed.append(panel.note)
+			if joining_half():
+				say("managed:" + panel.note)
+			panel.close()
+
+
 ## --- A conversation, mirrored ---
 
 
@@ -134,10 +159,17 @@ func hosts_conversation():
 	var scene: ExplorationScene = get_tree().current_scene
 	# The map set its own cast, and Enfina may have fallen in the fight: Alithia,
 	# the joiner's and in no fight yet, joins so the joiner has a group to walk.
-	Campaign.add_member("alithia")
+	var managed := joins_managed.size()
+	_heard = _heard.filter(func(line): return not line.begins_with("managed:"))
+	var joins := Campaign.add_member("alithia")
 	Campaign.controllers["alithia"] = 1
 	ok(await until(func(): return scene.groups.has(1), 10.0), "the joiner has a group on the map again")
 	ok(await hear("group back"), "  there too")
+	if joins:
+		ok(await until(func(): return joins_managed.slice(managed).has("Alithia joins the party. Who steers them?"), 10.0),
+			"Alithia joins: Party Management comes up here, for who steers her", "%s" % [joins_managed.slice(managed)])
+		ok(await until(func(): return heard_after("managed:").begins_with("Alithia joins"), 10.0),
+			"  and on the joiner's screen too", heard_after("managed:"))
 	if not scene.groups.has(1):
 		return
 	apart(scene)
@@ -1266,6 +1298,14 @@ func hosts_half():
 	ok(Net.refusal_for(Net.PROTOCOL, "another build", [Coop.KEYBOARD]) != "", "  and another build")
 	ok(Net.refusal_for(Net.PROTOCOL, Net.build_key(), []) != "", "  and a hello naming nothing to play with")
 	ok(Net.refusal_for(Net.PROTOCOL, Net.build_key(), [Coop.KEYBOARD]) == "", "  and the same version is let in")
+	var hosting := PlayersPanel.new()
+	get_tree().root.add_child(hosting)
+	await settle()
+	var open_line: Label = hosting.get_node_or_null("Rows/Open2/Line/How/Else")
+	ok(open_line != null and open_line.visible and open_line.text.contains("over the network"),
+		"  Player 2's open slot says the other machine's player may take it", open_line.text if open_line != null else "none")
+	hosting.queue_free()
+	await settle()
 	MenuPause.hold(self)
 	ok(get_tree().paused, "hosting with nobody joined yet, a menu holds the game as it always has")
 	MenuPause.release(self)
@@ -1285,6 +1325,14 @@ func hosts_half():
 	shown.refresh()
 	ok(shown.get_node("Status").text.contains("203.0.113.5:%d" % TEST_PORT), "  and, opened, the address to give over the internet",
 		shown.get_node("Status").text)
+	# A button copying each address to give (the designer, 2026-10-31).
+	var copies: Array = shown.get_node("Copies").get_children()
+	var given: Array = NetPanel.addresses_to_give()
+	ok(given.has("203.0.113.5:%d" % TEST_PORT) and copies.size() == given.size()
+		and copies.all(func(button): return button is Button and button.text.begins_with("Copy ")),
+		"  a Copy button beside each address to give, the internet's among them", "%s" % [given])
+	copies.back().pressed.emit()
+	ok(shown.get_node("Said").text.contains("203.0.113.5:%d" % TEST_PORT), "  pressed: copied, and said so", shown.get_node("Said").text)
 	Net.router = Net.Router.CLOSED
 	shown.refresh()
 	ok(shown.get_node("Status").text.contains("Tailscale") and shown.get_node("Status").text.contains("ZeroTier"),
@@ -1540,7 +1588,7 @@ func hosts_half():
 		"  which opens the Players panel as Party Management")
 	if managing != null:
 		var their_row := managing.get_node_or_null("Rows/Player2")
-		ok(their_row != null and their_row.get_node_or_null("Kick") != null and their_row.get_node_or_null("Leave") == null,
+		ok(their_row != null and their_row.find_child("Kick", true, false) != null and their_row.find_child("Leave", true, false) == null,
 			"  where the host - who leads - can kick the joiner out")
 		managing.choose(wanted, 0)
 		ok(Coop.controller_of(wanted) == 1 and Net._request == null, "  and a character pressed there is asked for, not taken")

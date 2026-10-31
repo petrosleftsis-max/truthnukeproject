@@ -108,6 +108,13 @@ const EDITOR_EDGE := Color(0.4, 0.8, 1.0, 0.9)
 const EDITOR_HIDDEN := Color(0.75, 0.55, 1.0, 0.9)
 
 var _hovered := false
+## Whether the other player's pointer is on it - two on one screen (Pictures):
+## outlined as it is under the mouse.
+var pointed_by_other := false:
+	set(value):
+		if pointed_by_other != value:
+			pointed_by_other = value
+			queue_redraw()
 ## Whether a lens is over it right now - set by Pictures each frame.
 var lens_lit := false:
 	set(value):
@@ -260,7 +267,7 @@ func _draw():
 		draw_rect(box, LENS_EDGE, false, 3.0)
 	if hints != Picture.HoverHints.OUTLINE_AND_NAME:
 		return
-	if _hovered:
+	if _hovered or pointed_by_other:
 		draw_rect(box, SEEN_FILL if seen else HOVER_FILL)
 		draw_rect(box, SEEN_EDGE if seen else HOVER_EDGE, false, 4.0)
 	elif seen:

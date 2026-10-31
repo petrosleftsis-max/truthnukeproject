@@ -11,8 +11,9 @@ class_name OutsideMoves
 ## him in a spellbound mood, Read finds out his round, Switch Off Magic stills a
 ## ward or a sensor. A damaging move springs an ambush on an unaware guard in
 ## reach with itself as the opening blow (StealthWatch.ambush_with; paid in the
-## fight), or else knocks down a breakable wall in reach (ExplorationScene
-## .break_wall). Blink steps the party ahead, Fly lifts it over low things, a
+## fight); on any map it starts a placed fight in reach the same way
+## (ExplorationScene.open_fight_with - the designer, 2026-10-31); or else it
+## knocks down a breakable wall in reach (ExplorationScene.break_wall). Blink steps the party ahead, Fly lifts it over low things, a
 ## Lure draws guards to a shimmer ahead, a Hiding Spot is made where the leader
 ## stands, a Trap is laid there. Only a spell, an item or the move of somebody
 ## who Breaks Walls (Enfina) knocks a wall down (breaks_walls). Damaging items
@@ -45,7 +46,7 @@ const USE_NAMES := {
 	Use.CONFUSE: "Bewilders a guard",
 	Use.READ: "Learns a guard's round",
 	Use.SWITCH_OFF_MAGIC: "Stills a ward or a magic sensor",
-	Use.AMBUSH: "Springs an ambush with it, or breaks a wall",
+	Use.AMBUSH: "Starts a fight with it, or breaks a wall",
 	Use.BLINK: "Steps the party ahead, over anything",
 	Use.FLY: "Lifts the party over low things",
 	Use.LURE: "Leaves a lure for the guards",
@@ -329,7 +330,11 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 				return "On %s's shoulder already" % Campaign.display_name_of(keeper.caster) if keeper.perched() else ""
 			return scene.familiar_refusal() if scene != null and scene.has_method("familiar_refusal") else "Only on a map"
 		Use.INVISIBILITY:
-			return "Only on a watched map" if watch == null else watch.invisibility_refusal()
+			if watch == null:
+				return "Only on a watched map"
+			# Somebody to hide and a casting for them: who, its picker asks.
+			var could: Array = watch.could_go_invisible()
+			return watch.invisibility_refusal(could.slice(0, 1) if not could.is_empty() else [])
 	if not Campaign.is_alive(key):
 		return "%s is down" % Campaign.display_name_of(key)
 	if scene != null and scene.has_method("is_holding") and scene.is_holding():
@@ -363,11 +368,14 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 			if guard_for(watch, skill, kind) == null:
 				return "No ward or magic sensor in reach"
 		Use.AMBUSH:
+			# The fight pays for its opening blow - an ambush's, or a placed fight's.
 			if guard_for(watch, skill, kind) != null:
-				# The fight pays for its opening blow.
+				return ""
+			if scene != null and scene.has_method("fight_in_reach") and scene.fight_in_reach(skill.max_range) != null:
 				return ""
 			if scene == null or not scene.has_method("wall_in_reach") or scene.wall_in_reach(skill.max_range) == null:
-				return "Nobody unaware in reach to spring on, and no wall to break" if watch != null else "No wall in reach to break"
+				return "Nobody in reach to strike, unaware or waiting to fight, and no wall to break" if watch != null \
+					else "Nobody in reach waiting to fight, and no wall to break"
 			if not breaks_walls(key, skill):
 				return "Only a spell, an item or Enfina's strength knocks a wall down"
 		Use.BLINK, Use.FLY:
@@ -414,6 +422,9 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			var sprung := guard_for(watch, skill, kind)
 			if sprung != null:
 				return watch.ambush_with(sprung, key, move)
+			var placed = scene.fight_in_reach(skill.max_range) if scene.has_method("fight_in_reach") else null
+			if placed != null:
+				return scene.open_fight_with(placed, key, move)
 	var who := Campaign.display_name_of(key)
 	var said := ""
 	var target: Guard = guard_for(watch, skill, kind)

@@ -7,7 +7,13 @@ by UPnP), the designer's additions to it, the pictures, stores and dragging
 across the network, the placeholder projectiles, and everything in
 `docs/move_feel_proposals.md` but moves coming down from above or up from
 below - and then pictures searched together, stores shared, and the camera
-drawn to the other player's conversation. Steps 4 and 5 wait on the designer.
+drawn to the other player's conversation; then the designer's round of
+2026-10-31: co-op on one screen under the network's rules (a picture both
+players', a pointer each; the camera drawn to a conversation), Party
+Management for whoever joins and with portraits, the host's address copied with
+a button, the familiar's own key, attacking moves starting placed fights, the
+outside Spells tab as the fight's with the Gates of Iris, Invisibility only
+there, and Cover Leap gone. Steps 4 and 5 wait on the designer.
 
 ## How the designer works with Claude
 
@@ -80,6 +86,34 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's round of 2026-10-31** (ledger rows of that date; CLAUDE.md
+  "Co-op", "Network play", "Moves outside a fight", "Stealth maps"; suites
+  `coop`, `outside`, `invisibility`, `net`, `csv`):
+  - **Co-op on one screen follows the network's rules.** A picture or puzzle is
+    both players' whoever opened it: the keyboard's player keeps the mouse, the
+    other gets a pointer of their own (A, LB/RB, B; their own hand for the bag).
+    A conversation draws the one camera to whoever began it. A conversation cut
+    off by a scene change no longer leaves its starter with the focus for good -
+    likely why player 2's presses went unheard.
+  - **Party Management** comes up in co-op whenever somebody joins the party
+    (on both machines over a network), and shows each character's portrait.
+    Each player has a slot edged in their colour; Player 2's shows dashed
+    while nobody plays in it, saying how to join (the pad's button as printed -
+    Cross on a DualSense - and, hosting, "or from another machine"), so the
+    panel shows it is up to two players. The title screen's Players panel too.
+  - **Hosting:** a Copy button beside each address to give. Look for games needs
+    nothing typed - it hears hosts on the same network.
+  - **The familiar's own key:** R (a pad's L3) to it and back; Tab is who leads.
+  - **Attacking moves out of a fight** start a placed fight in reach, the move
+    its opening blow (walls: still spells, items and Enfina).
+  - **The Spells tab out of a fight** is the fight's (a shelf a gate, castings
+    at its start), with a shelf for the Gates of Iris first; Out Of Combat Only
+    drops the gates left empty. **Invisibility** is there, not on the stealth
+    bar; it is only offered to somebody who knows it (it had been offered to a
+    Prometheus who had not learned it), and Prometheus knows it from the start
+    for now - not so in story mode.
+  - **Cover Leap removed** (it was the progression sheet's "Light Cover Leap"),
+    and Lands In Cover with it. `PROTOCOL` 5.
 - **Pictures searched together, stores shared, the camera drawn to a
   conversation** (the designer, 2026-10-31; `docs/multiplayer_plan.md` "Added
   after Step 3", CLAUDE.md "Network play"; suite `net`):
@@ -245,8 +279,7 @@ holds the game for both).
    - the 30 s cooldown on gateless moves;
    - Iris paying first for marked spells;
    - heals landing on the worst hurt (no picker);
-   - the ambush opener being free;
-   - walls breaking to any damage;
+   - the ambush opener being free (and a placed fight's, struck first);
    - U / Share for Hide UI;
    - lures landing ahead (no aiming yet).
 2. **Moves not placed in the outside table yet:** Cleanse, Persuade, Deceive,
@@ -266,7 +299,11 @@ holds the game for both).
    changing one thing at the same moment - the first stands, the other is
    undone and told (a PROPOSAL rule, the ledger's "what the joiner changes");
    how fast the camera glides to a conversation (CAMERA_GLIDE 4,
-   CAMERA_BACK_SECONDS 1). The network itself is approved - see "Next to
+   CAMERA_BACK_SECONDS 1). On one screen (2026-10-31): the second pointer's
+   buttons (A, LB/RB, B) and the keyboard's player keeping the mouse; Party
+   Management for whoever joins only in co-op; the familiar's key (R, a pad's
+   L3); an opening blow at a placed fight landing wherever the fight puts
+   everybody, free. The network itself is approved - see "Next to
    build". **Itch is left alone** - nothing published, the page untouched -
    until the designer says (2026-10-30: more work on the game first); then the
    browser version comes off and the Mac and Linux builds go up. Shipping the
@@ -300,6 +337,10 @@ holds the game for both).
 
 ## Good to know
 
+- **For story mode, when it is made:** Prometheus knows Invisibility from the
+  start for now (`starting_spells`; the designer, 2026-10-31: "when we actually
+  start making the story mode, he won't know it here yet") - take it out, or
+  give it by the story, then. Its book is at the travelling merchant.
 - To try the familiar with guards: Stealth Stages, stage 8, The Familiar
   (Alithia and Cyrus at level 10; grates, an arcane ward, a cracked wall).
   It is built by `tools/build_stealth_stages.gd` (`stage_familiar`). Or use any

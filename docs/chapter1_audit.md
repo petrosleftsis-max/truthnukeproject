@@ -53,7 +53,7 @@ Health and Defense by level, with no armour worn. Health is EXISTING_BASELINE; D
 
 - **Kits at 18:**
   - **Enfina:** Greatsword Attack ×1.5 (the rank from 8); Light Swing, Shoving Strike and Hurl ×1.0; Blink Strike ×0.8; Fire Burst ×0.7; Battle Cry ×0.6 (from 16). Also Guard, Grab, Climb, Trailblaze and Intimidate. Passives: Measured Eye, Iron Hide I-II, Bulwark I.
-  - **Cyrus:** Rapier ×1.5; Gun ×1.0; Poison Dart ×0.9 (from 8); Burning Shot ×0.8 (from 16); Blink Strike ×0.8. Also Steal, Deceive, Stealth and Cover Leap. Passives: Light Footed, Quick Hands, Nade Juggler, Cat Burglar I, Agile I, DoT Master I, Elusive.
+  - **Cyrus:** Rapier ×1.5; Gun ×1.0; Poison Dart ×0.9 (from 8); Burning Shot ×0.8 (from 16); Blink Strike ×0.8. Also Steal, Deceive and Stealth (Cover Leap was removed, 2026-10-31). Passives: Light Footed, Quick Hands, Nade Juggler, Cat Burglar I, Agile I, DoT Master I, Elusive.
   - **Prometheus:** cantrips Fire Burst, Zephyr Dart and Caucasus Shard (×0.7); Hack. His spells:
 
     | Where | Spells |

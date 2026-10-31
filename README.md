@@ -66,8 +66,8 @@ it is not needed.
 | X (Square) / Y | take down, drag, put down / pick pockets | the skill panel / end the turn | |
 | LB / RB | listen / dash | the skill before / after; aiming or placing the party, the tile before / after | turn a dial back / on |
 | LT / RT | patience (held) / throw | danger view (held) / next skill tab | |
-| Left stick click | an outside spell (Invisibility, Find Familiar, or a heal or Resuscitate when it would do something); let the familiar go | the next floor up (Page Up / Page Down on a keyboard) | |
-| Right stick click | swap the leader; with a familiar out, switch between it and the party | out to the whole map and back | |
+| Left stick click | an outside spell (Invisibility, Find Familiar, or a heal or Resuscitate when it would do something); with a familiar out, switch between it and the party (R on a keyboard) | the next floor up (Page Up / Page Down on a keyboard) | |
+| Right stick click | swap the leader (Tab on a keyboard), familiar or not | out to the whole map and back | |
 | Share (Create, Mic, Capture) | hide the UI but the log and the conversation; again to bring it back (U on a keyboard) | | |
 
 **In a fight** the pointer sits on a tile, the cursor, and goes from tile to
@@ -103,14 +103,25 @@ and the button names; `tests/pad_test_driver.gd` plays every row above.
 
 **On one screen:** open **Players** on the title screen (or **Party
 Management** in the pause menu), press **A** on a second pad (or **Enter** on
-the keyboard) to join, and pick whom each player steers. Each walks their own
+the keyboard) to join, and pick whom each player steers - each character's
+portrait on their button. Each walks their own
 group, fights their own characters' turns and answers their own characters'
-questions; **Z** (a pad's Share) pings something for the other.
+questions; **Z** (a pad's Share) pings something for the other. A conversation
+draws the camera to whoever began it. A picture or a puzzle is both players':
+the keyboard and mouse (or, on two pads, the first player) has the mouse, and
+the other player a pointer of their own in their colour - either stick moves
+it, **A** looks, takes, turns a dial or carries a piece (put down where A is
+let go), **LB** / **RB** turn a dial, **B** puts down what their hand holds or
+goes back; each has their own hand for what they take from the bag. Whenever
+somebody joins the party, **Party Management** comes up to say who steers them
+(over a network too).
 
 **Over a network** (two machines on one network): one player opens **Players**
 and presses **Host a game**; the other opens **Players**, presses **Look for
-games** and joins the game that appears - or types the address the host's
-screen shows, which always works, a virtual LAN included. Coming in, the joiner
+games** and joins the game that appears - Look for games needs nothing typed:
+it hears the hosts on the same network - or types the address the host's
+screen shows, which always works, a virtual LAN included. The host's screen has
+a **Copy** button beside each address, to paste it to the other player. Coming in, the joiner
 chooses whom to play; the host keeps the rest. The host's machine decides: the
 joiner goes wherever the host goes and has the host's story, gold and bags -
 even into a fight under way, which it plays through quickly from its start
@@ -1284,8 +1295,7 @@ their power: Heal is 12 + 0.25 × Mindfulness + 0.3 × weapon base, Light Heal a
 Communion 8 + 0.15 + 0.2, Restoration half the target's health + 0.25 × Mindfulness,
 and the Summoner's Mend the Bound as Heal. Mercy I adds a tenth to all of it, never
 to the share of health; a Gate Nade keeps its own flat power. In
-cover means beside something that blocks sight. **Lands In Cover** keeps a leap
-to cover (Cover Leap).
+cover means beside something that blocks sight.
 
 ### Chapters, and the sheet's pages
 
@@ -1662,16 +1672,18 @@ only shows when there is something to do with it:
 - **F - ambush.** Within 2.5 tiles of a guard who has no idea he is there, F
   starts the fight on his terms: everybody who had not noticed anything loses
   their first turn (the Caught Off Guard condition).
-- **G - Invisibility** (pad: L3). With somebody on the map who knows it
-  (Prometheus), G opens the choice of who to hide - everybody lit to begin
+- **G - Invisibility** (pad: L3), or its button on the Spells tab's Iris
+  shelf. With somebody on the map who knows it (Prometheus - from the start, for
+  now; a spell like his others, so one he has not learned is not offered), G
+  opens the choice of who to hide - everybody lit to begin
   with - at one casting of the **Gates of Iris** each; with only one to choose,
   it just hides them. The game holds while you choose, and G again casts. Each
   is unseen for the spell's **Outside Seconds** (600 - ten minutes), on a clock
   of their own. Hounds still smell them. Whoever does something to a guard -
   takes him down, picks or plants in his pockets, darts him, has a word, springs
   an ambush, which is always the one leading - is seen again; the rest stay
-  hidden. The bar's button says what is left; its tooltip, and the status for
-  whoever leads, count down. With Find Familiar known too, G first asks which.
+  hidden. The spell's tooltip on the panel, and the status for whoever leads,
+  count down. With Find Familiar known too, G first asks which.
 - **G - Find Familiar** (Alithia; on any map, watched or not. The first casting
   after a long rest is free; after that a real **Gates of World** casting - it
   comes off the next fight's World castings, or straight off a dungeon's).
@@ -1679,9 +1691,11 @@ only shows when there is something to do with it:
   Form**: a rat (`data/familiars/rat.tres`, the default), a cat or a raven - and
   the player steers it with the walking keys and sees through its eyes (a
   violet frame round the screen) while the party waits where it stands, rooted,
-  the world going on. **Tab** switches between it and the party; **E**, while
-  steering it, sends it back to her shoulder, where it rides along until Tab
-  sends it off again; **G** lets it go. A map that is not a stealth map names its
+  the world going on. **R** (a pad's left stick click) switches between it and
+  the party - **Tab** is who leads, as ever; **E**, while
+  steering it, sends it back to her shoulder, where it rides along until R
+  sends it off again; **G** lets it go (on a pad, its button on the bar or the
+  panel). A map that is not a stealth map names its
   animal in its MapSetup's **Familiar Form**. It slips through **small gaps** nobody else fits through - a tile whose
   **Blocks** has **4** beside what it stops ([0, 4] is a wall to all but the
   small); a flying form goes over what stops only walkers (Blocks without 1).
@@ -1713,8 +1727,11 @@ only shows when there is something to do with it:
     and **InstaHack** still a ward or a magic sensor (60 s). A move lands on the
     guard the pointer is on, or the nearest in its reach;
   - anything that **deals damage** springs an ambush on an unaware guard in its
-    reach, the move landing first - free, before anybody's first turn - or, with
-    nobody to spring on, knocks down a **BreakableWall** in reach - but only a
+    reach, the move landing first - free, before anybody's first turn; on any
+    map it starts a **placed fight** in its reach (an EncounterInteractable) the
+    same way, landing on the nearest of them however far apart the fight puts
+    everybody, with no talking first; or, with
+    nobody to strike, it knocks down a **BreakableWall** in reach - but only a
     **spell**, an **item** (the panel's **Items** tab: bombs) or **Enfina**
     (**Breaks Walls** on her character) does that. Place one on a floor tile; it
     stays down, and it is loud. In a fight it is a **Cracked Wall** (an object:
@@ -1724,7 +1741,7 @@ only shows when there is something to do with it:
     their health, the alert up a level). Somebody who knows **InstaHack** gets a
     quick time event as it goes off; in time, the casting is hacked apart for
     its gate. That is the only thing InstaHack does out of a fight;
-  - **Hermes Step**, **Mist Step** and **Cover Leap** step the party ahead over
+  - **Hermes Step** and **Mist Step** step the party ahead over
     anything; **Hover** and **Climb** fly it over barrels and carts (20 s);
     **Phantom Body**, **Mass Mirage**, **Reality's Reflection** and **Kindled
     Hound** leave a lure ahead that guards come to look at; **Illusory Cover**
@@ -1733,7 +1750,11 @@ only shows when there is something to do with it:
   casting - off the next fight's gates, through its own gate or a deeper one;
   one the designer ticked **Out Of Combat** goes through the Gates of Iris first.
   **Out of combat only** on the Spells tab shows just those (and Invisibility and
-  Find Familiar). A move's **Noise** and **Noise Tiles** (SkillDefinition,
+  Find Familiar). The Spells tab is laid out as in a fight - a shelf for each
+  gate, its castings at its start - with a shelf for the **Gates of Iris** first:
+  Invisibility (only here now - the stealth bar has no button of its own for
+  it), and whatever Iris pays for first. A gate with nothing on show has no
+  shelf, so ticking Out of combat only leaves out the empty ones. A move's **Noise** and **Noise Tiles** (SkillDefinition,
   "Outside a fight") are heard by guards: Quiet turns them to the sound, Loud
   sends them to look. **G** casts the one spell that would do something -
   Invisibility, Find Familiar, a heal with somebody hurt, Resuscitate with

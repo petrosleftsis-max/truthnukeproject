@@ -304,6 +304,10 @@ func _input(event: InputEvent):
 		return
 	if not using_pad:
 		return
+	# Another player's pad, in co-op, while it is not theirs to point with - in a
+	# picture on one screen, the second player's own pointer's (Pictures).
+	if (event is InputEventJoypadButton or event is InputEventJoypadMotion) and not _may_point(event.device):
+		return
 	var now := mode()
 	if event.is_action(&"pointer_click"):
 		_on_click_button(event, now)

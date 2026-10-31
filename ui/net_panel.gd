@@ -12,6 +12,9 @@ const MUTED := Color("8296a9")
 const WARM := Color("e8c27a")
 
 var _status: Label = null
+## While hosting: a button for each address to give, copying it to the
+## clipboard (the designer, 2026-10-31).
+var _copies: HBoxContainer = null
 var _said: Label = null
 var _host: Button = null
 var _look: Button = null
@@ -32,6 +35,11 @@ func _ready():
 	heading.add_theme_color_override("font_color", INK)
 	add_child(heading)
 	_status = _line("Status", MUTED)
+	_copies = HBoxContainer.new()
+	_copies.name = "Copies"
+	_copies.alignment = BoxContainer.ALIGNMENT_CENTER
+	_copies.add_theme_constant_override("separation", 8)
+	add_child(_copies)
 	_said = _line("Said", WARM)
 	_host = _button("Host", "Host a game", func(): Net.host())
 	_look = _button("Look", "Look for games", _look_for_games)
@@ -115,6 +123,22 @@ func _on_told(text: String):
 	_said.text = text
 
 
+## The addresses the other player can join this machine by, as the status line
+## gives them: each of this machine's on its networks, and - once the router
+## has opened the game to the internet - the public one with its port.
+static func addresses_to_give() -> Array:
+	var given := Net.own_addresses()
+	if Net.router == Net.Router.OPEN and Net.public_address != "":
+		given.append("%s:%d" % [Net.public_address, Net.host_port])
+	return given
+
+
+## `address` on the clipboard, to paste wherever it is sent from.
+func copy(address: String):
+	DisplayServer.clipboard_set(address)
+	_said.text = "Copied %s - send it to the other player." % address
+
+
 func refresh():
 	if _status == null:
 		return
@@ -126,6 +150,18 @@ func refresh():
 	_typed.visible = idle
 	_games.visible = idle and Net.looking()
 	_leave.visible = not idle
+	for child in _copies.get_children():
+		_copies.remove_child(child)
+		child.queue_free()
+	_copies.visible = Net.is_host()
+	if Net.is_host():
+		for address in addresses_to_give():
+			var button := Button.new()
+			button.name = "Copy_" + address.replace(".", "_").replace(":", "_")
+			button.text = "Copy %s" % address
+			button.tooltip_text = "Puts %s on the clipboard, to paste to the other player" % address
+			button.pressed.connect(copy.bind(address))
+			_copies.add_child(button)
 	if Net.is_host():
 		_leave.text = "Stop hosting"
 		var addresses := Net.own_addresses()

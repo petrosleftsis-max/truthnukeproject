@@ -300,14 +300,6 @@ func run_test():
 		# somebody, there is nowhere for it to land.
 		if skill.teleports == SkillDefinition.TeleportWho.CASTER and skill.all_effects().is_empty():
 			aim = lane + Vector2i(3, 0)
-			# One that has to land in cover (Cover Leap): a free tile in reach that is.
-			if skill.lands_in_cover:
-				for dy in range(-skill.max_range, skill.max_range + 1):
-					for dx in range(-skill.max_range, skill.max_range + 1):
-						var spot: Vector2i = caster.position + Vector2i(dx, dy)
-						if combat.distance_to(caster, spot) <= skill.max_range and spot != caster.position \
-								and combat.can_land_on(caster, spot) and combat.in_cover(caster, spot):
-							aim = spot
 		var destination = Vector2i(-99999, -99999)
 		if skill.teleports == SkillDefinition.TeleportWho.TARGET:
 			destination = lane + Vector2i(3, 0)

@@ -42,7 +42,7 @@ so at that level.
 | CSV (level) | In the game |
 |---|---|
 | Basic Shot 1.0 (1) | **Gun**, 1.35 to 1.0 |
-| Light Cover Leap (1) | new secondary action, **Cover Leap**: up to 3 tiles, into cover, nothing reacts |
+| Light Cover Leap (1) | was a secondary action, **Cover Leap**: up to 3 tiles, into cover, nothing reacts - removed with its row (the designer, 2026-10-31) |
 | Cover Runner I (1) + Cat Burglar | **Cat Burglar I**: +2 movement on a turn he starts in cover |
 | Poison Strike 1.0, 0.2, 3 turns, no reactions (8) | **Poison Dart**, from 3 to 8, 0.9 (cyrus_damage_adjustments.csv), 0.2, 3 turns, and the poisoned cannot react |
 | Agile I (8) | new passive: 5% less damage while in cover |
@@ -116,7 +116,7 @@ so at that level.
 - A bonus to the stat in contests (Contest Insight).
 - More castings through the deepest gate (Reserved Power, Elemental Mastery).
 - Heals that lift a condition, or leave a ward (Mercy II, III); heals worth a share of health (Restoration, Grace); healing on the turn's start (Aura II).
-- Cover: standing beside something that blocks sight. Cat Burglar I, Agile I and II, Cover Leap.
+- Cover: standing beside something that blocks sight. Cat Burglar I, Agile I and II.
 - A skill only for somebody at half health or less (Finisher) - removed with it on 2026-10-25.
 
 ## Instead of Glass Cannon: Kindling

@@ -328,8 +328,13 @@ saved, cleared by `long_rest`), then `Campaign.spend_gate_outside` (a real gate,
 off the next fight). The `Familiar` (exploration/Familiar.gd) takes the
 StealthSetup's `familiar_form`, else the MapSetup's, else the rat (`FamiliarForm`,
 data/familiars/). Steering roots the party (`keep_party_rooted`) and moves the
-camera; ExplorationScene's `swap_leader` toggles it, its `interact` while steering
-is `perch` (onto the caster's shoulder, `Familiar.perched_on`, riding along), and
+camera; the `familiar` action toggles it (R; a pad's is L3, the Outside Spell
+button, heard first while one is out - the designer, 2026-10-31: Tab,
+`swap_leader`, is who leads, always, and does nothing while seeing through its
+eyes), its `interact` while steering
+is `perch` (onto the caster's shoulder, `Familiar.perched_on`, riding along -
+`FamiliarKeeper.keep_perched` puts it on the caster's new figure whenever the
+party is drawn again, from `_keep_stayers`), and
 StealthWatch's clicks wait while it is steered. It walks by `ExplorationScene.is_walkable_for` (small gaps -
 Blocks 4, `set_small_gap` - for Small and smaller; fliers by Blocks 1).
 `_watch_familiar` fills `familiar_doubt` per guard by `feels_familiar` (eyes
@@ -343,8 +348,8 @@ which when there is more than one). `familiar` and `outside` cover it.
 **Moves outside a fight** (`exploration/OutsideMoves.gd`, docs/outside_combat_plan.md
 Phase 1, the designer 2026-10-26): `moves_of(key)` is everything somebody has on a
 map; `use_of` reads what a move does out there off its effects (Mend, Revive,
-Speed, Invisibility, Familiar; NONE greys it - damaging moves wait for Phase 2's
-ambush and breakable walls); `refusal` / `use` are the one place both the panel
+Speed, Invisibility, Familiar; NONE greys it; a damaging move is Ambush: an
+ambush, a placed fight started or a wall broken); `refusal` / `use` are the one place both the panel
 and G ask. Spells pay `pay`: Iris first for a spell marked
 `SkillDefinition.out_of_combat` no deeper than Iris's match (`iris_gate_for`;
 `Campaign.outside_gates_most` opens Iris for them), then a real casting through
@@ -361,7 +366,14 @@ guard, else the nearest in the move's reach, Manhattan, clear line for one that
 respects blocking). Ambush: `ambush_with` sets `_opener`, `build_fight` writes the
 encounter's "opener" meta and the guard spawn's "opened_on", and Combat "An
 ambush's opening blow" (`opener_due`, `_open_the_ambush`, from `start_first_turn`)
-uses it free before the first turn; with no guard, a `BreakableWall`
+uses it free before the first turn. On any map, with no guard to spring on, a
+placed fight in reach - an `EncounterInteractable` standing
+(`ExplorationScene.fight_in_reach`) - is started with it (`open_fight_with`, on
+a copy of the encounter; the designer, 2026-10-31: start a combat by hitting
+someone): its opener is "anywhere", and lands on the foe nearest whoever struck
+(`_nearest_foe_of`) however far apart the fight puts them, through
+`use_skill(..., landing)` once `refusal_for` allows it; `leave_for_battle` off
+keeps a test on the map. With no guard and no fight, a `BreakableWall`
 (exploration/BreakableWall.gd, flag `broken:`) in reach is `break_wall` - only by a
 spell, an item (`items_of`, the panel's Items tab) or somebody with
 `CombatantDefinition.breaks_walls` (Enfina): `OutsideMoves.breaks_walls`, and in a
@@ -374,7 +386,16 @@ stepped on (`ExplorationScene._watch_traps`, `spring_trap`) is answered by
 `flying()`, down only over open ground), Lure an `OutsideMoves.Decoy` and
 `make_noise`, Hiding Spot `StealthWatch.add_hiding_spot`, Trap an
 `OutsideMoves.Trap` (`caught_in_trap`). The panel is `ui/outside_moves_panel.gd`, put in the action bar
-by `combat_ui.show_outside_moves`; G is `StealthBar.outside_spell` on a watched
+by `combat_ui.show_outside_moves`. Its Spells tab is the fight's Spells panel (the
+designer, 2026-10-31): `SpellShelves`, a shelf per gate with a `GateTag` at its
+start, and first a shelf per Gate of Iris (`build(..., iris)`; `_iris_of`: a
+spell's own `outside_gate`, Invisibility's, or the one `iris_gate_for` pays
+first; `GateTag.show_iris`) - only gates with a spell on show, so Out Of Combat
+Only drops the empty ones; `show_counts` keeps the tags' castings current, and
+the counters beside the tabs (GateTags, Iris among them) stand down while the
+shelves are up, as in a fight. Invisibility is only there (and G's): the stealth
+bar's button for it is gone, and the panel greys it only when nobody at all
+could be hidden - its picker chooses who. G is `StealthBar.outside_spell` on a watched
 map and `ExplorationScene.outside_spell` elsewhere (`ui/outside_spell_choice.gd`).
 Hurry is `ExplorationScene.hurry` and `ExplorationParty.hurry` (apart from
 `pace`). Hide UI (`hide_ui`, U / pad Share) is `ExplorationScene.set_ui_hidden`
@@ -440,10 +461,42 @@ group (`all_groups`, `_held_by_another`). The turn banner names whose turn
 `only_party`) to share it out again - once per change (`party_shape`,
 `share_out_offered`); the title screen and the pause menu have it too. Alithia's
 familiar is steered by one player (`FamiliarKeeper.steerer`, `Familiar.player`;
-their group is the one rooted). Tab is `swap_for(acting)`: her player takes it
+their group is the one rooted). Its key (R / L3, the `familiar` action) is
+`swap_for(acting)`: her player takes it
 or gives it back; the other player gives it back, or - while it is off her
 shoulder - asks her player for it (`request_control` -> `ui/familiar_request.gd`,
 theirs alone to answer). Only her player lets it go (`may_dismiss`).
+**The same rules as over a network, on one screen** (the designer, 2026-10-31):
+a conversation draws the one camera to whoever began it
+(`ExplorationScene._conversation_focus` - `Coop.conversation_starter` while
+`Coop.talking()` - and the glide of "The camera in another's conversation"). A
+conversation's hold on the focus is `Coop._talks` (a hold each, who began it),
+let go at its end or when its balloon leaves the tree without one
+(`_watch_balloon` - a scene changed under it once left the first player with
+the focus for good, the second's every press dropped). A picture is both
+players' (Pictures "Two on one screen"): `shared_here` lets both through the
+gate (`Coop.lets_through`) whoever has the focus, the keyboard's player (else
+the first) keeps the mouse (`first_pointer`, `Coop.pointer_device`; Pad leaves
+alone a pad not its own, `_may_point`), and the other has a pointer of their
+own (`second_pointer`, `_second`, `_move_second` by either stick; A at it -
+`_second_press`: a hotspot clicked as them, `_as_second` with a hand of their
+own, `_second_holding`; a dial turned, LB/RB too; a piece carried,
+`_second_piece`, put down on A's release; the bar's buttons; B puts down or goes
+back), outlining what it is over (`Hotspot.pointed_by_other`) with their name
+and its name beside it; a lens in their hand looks round it.
+**Party Management for whoever joins** (the designer, 2026-10-31): in co-op
+`Campaign.member_joined` (from `add_member`) sets the map's `_management_due`,
+and once nothing else is going on `_manage_party` puts Party Management up
+(`open_players(note, true)`) - over a network on the joiner's screen too
+(`Net.manage_party_there` -> `_manage_party`). Each character's button is their
+portrait over their name, edged in the steering player's colour
+(`PlayersPanel._pick`, `PICK_SIZE`). Each player's line is a slot edged in
+their colour (`_slot`, "Player%d" > "Line"), and every seat there is
+(`Coop.MAX_PLAYERS`) shows: one nobody plays in is dashed ("Open%d"), saying
+how to take it - only what is free, the pad's button as printed on the pads
+not playing (`how_to_join`, `join_button`), and while hosting that the other
+machine's player may (`_say_how_to_join`) ("its a way to show them that it's
+up to two players").
 **Pings** (`Pings` autoload, `multiplayer/Pings.gd`, action `ping`: Z, and in
 co-op a pad's Share - alone, Share is still Hide UI): a ring in the player's
 colour where they point (`aim_of`), what is there named (`label_at`), a sound,
@@ -604,7 +657,10 @@ the host's own deals `send_now`. **The camera in another's conversation**
 joiner's `_mirror_starter`, when on the other machine) glides
 `ExplorationScene`'s camera onto their leader (`_glide_camera`, `CAMERA_GLIDE`,
 `conversation_shot`) and back (`CAMERA_BACK_SECONDS`); meanwhile everything else
-that moves it aims the glide (`_aim_camera`, `_camera_aim`). `PROTOCOL` 4.
+that moves it aims the glide (`_aim_camera`, `_camera_aim`). The `familiar` key
+goes to the host while a familiar is out (`forwards`; a pad's is the Outside
+Spell button, which otherwise stays here), and Party Management for whoever
+joins comes up on both (`manage_party_there`). `PROTOCOL` 5.
 **A menu or a picture open on a machine keeps that
 machine's presses:** the joiner forwards none (`forwards`), and
 `ExplorationScene._unhandled_input` and `StealthBar._act` ignore a press from a
@@ -663,10 +719,14 @@ one who began it chooses. **Over the internet** (Step 3): hosting on every netwo
 (`bind_ip` "*") asks the router to open the port by UPnP on a thread
 (`_open_router`, `_ask_router`, `_router_answered`; `router`, `public_address`)
 and shuts it on leaving and as the game closes (`_close_router`); a host bound
-to one address never asks. The panel shows the address to give, or points at a
+to one address never asks. The panel shows the address to give, with a button
+copying each to the clipboard (`NetPanel.addresses_to_give`, `copy`; the
+designer, 2026-10-31), or points at a
 virtual LAN app. The Players panel's network half is
 `ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
-since listening (or hosting) is what makes Windows ask about its firewall.
+since listening (or hosting) is what makes Windows ask about its firewall. Look
+for games needs no address: it hears the beacons hosts on the same network send
+(`BEACON` to `beacon_to`, 255.255.255.255), whatever the address box holds.
 `net` plays two machines (twice into a fight, the second joined under way; a picture and a lock searched on both, one store both shop at, a conversation's picture and the camera drawn to it, the merge rules, a dragged body the joiner's): the suite hosts on 127.0.0.1:24790 and starts a second
 headless Godot (`--net-client`) on the same copy for the joiner's half, which
 logs to `net_joiner` (copied into `net`'s log, its FAILs counted) and its Godot
@@ -1320,6 +1380,10 @@ one section each, and every rule is a per-creature switch:
   rule.
 - **Invisibility on a stealth map** is per member: `StealthWatch._unseen` (key ->
   seconds), `go_invisible(keys)`, `unseen(key)` (the leader when not named).
+  Known only once learned, as any spell (`Campaign.outside_spells` asks
+  `knows_spell` - before 2026-10-31 an unlearned Prometheus was offered it).
+  Prometheus has it in `starting_spells` for now (the designer, 2026-10-31);
+  in the story mode to come he will not know it there yet.
   `ui/invisibility_picker.gd` chooses who, holding the game (MenuPause). It's read
   in `can_perceive` and `gaze_of` (hounds still smell), and `_seen_again()` ends
   it for whoever leads, from every action on a guard. A new action on a guard

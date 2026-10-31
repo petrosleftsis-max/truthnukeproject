@@ -440,6 +440,33 @@ same checksum; a conversation's choice made on the joiner is the one taken.
     glide, at the map's own zoom - and back once it ends (the designer,
     2026-10-31). How fast it glides is a PROPOSAL.
   - `PROTOCOL` is 4.
+- **Co-op on one screen under the same rules** (the designer, 2026-10-31:
+  "Player 2 (who was on controller) was unable to interact with the
+  environment in local co op. It should follow the some of the same rules as
+  network, such as the camera going to the player who triggered a
+  conversation, both players being able to affect a puzzle and picture
+  scene"). Built the same day:
+  - A picture is both players' whoever opened it or began its conversation: the
+    keyboard and mouse player (on two pads, the first) keeps the mouse, the
+    other gets a pointer of their own in their colour - either stick, A to look,
+    take, turn a dial or carry a piece, LB/RB to turn a dial, B to put down or
+    go back - and a hand of their own for the bag (the buttons a PROPOSAL).
+  - A conversation draws the one camera to whoever began it, as over a network.
+  - A conversation cut off by a scene change no longer leaves the focus with
+    its starter for good, which dropped the other player's every press.
+  - Somebody joining the party puts Party Management up in co-op - on both
+    machines over a network ("Whenever a character joins the party, have the
+    party go to the party management screen"); each character's button shows
+    their portrait ("On party management show the portraits of each player
+    character"). Each player has a slot, edged in their colour, and Player 2's
+    shows dashed while nobody plays in it, saying how to join ("show the slots
+    even when the second player hasn't joined. its a way to show them that it's
+    up to two players") - on the title screen's Players panel too.
+  - Hosting shows a Copy button beside each address ("Allow me to be able to
+    copy the address when hosting a game by simply clicking a button"); Look
+    for games needs no address typed - it hears the hosts on the network.
+  - The familiar's key is its own (R; a pad's L3), forwarded to the host while
+    one is out. `PROTOCOL` is 5.
 - **A dragged body, and creeping** (built 2026-10-31). Each group has its own
   pace: the one dragging a body walks at a body's pace, on its own machine
   too (the host says who drags), and each creeps on its own player's keys. The

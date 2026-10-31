@@ -46,7 +46,6 @@ const OWN_ICONS := {
 	# The progression's (docs/progression.csv) - placeholders, each its own.
 	"battle_cry": "battle_cry_skill.png",
 	"stunning_blow": "stunning_blow_skill.png",
-	"cover_leap": "cover_leap_skill.png",
 	"venom_fan": "venom_fan_skill.png",
 	"tartarus_flame": "tartarus_flame_skill.png", "ire_of_sophia": "ire_of_sophia_skill.png",
 	"gnostic_tempest": "gnostic_tempest_skill.png", "stolen_sun": "stolen_sun_skill.png",

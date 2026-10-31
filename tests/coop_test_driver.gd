@@ -5,7 +5,10 @@ extends "res://StealthHarness.gd"
 ## walking at once with one camera and a leash, a press acted out by whoever
 ## pressed it, the guards seeing everybody, a fight's turns given to their
 ## player, a reaction asked of the reactor's, menus and conversations held by
-## whoever began them, and the Players panel.
+## whoever began them, and the Players panel. And (the designer, 2026-10-31) a
+## picture both players' on one screen, each with a pointer; a conversation's
+## hold let go when its balloon goes; the camera drawn to whoever began one; and
+## Party Management, portraits and all, up for whoever joins the party.
 
 
 func suite() -> String:
@@ -27,6 +30,10 @@ func run_sections():
 	await pings()
 	await sharing_out()
 	await the_familiar_asked_for()
+	await a_picture_together()
+	await a_talk_let_go()
+	await the_camera_to_a_talk()
+	await someone_joins()
 	Coop.reset()
 	Campaign.controllers.clear()
 
@@ -335,9 +342,20 @@ func the_panel():
 	layer.add_child(panel)
 	await settle(3)
 	ok(Coop.players.size() == 1 and Coop.accepting_joins, "opened: whoever opened it is Player 1, and others may join")
+	var open := panel.get_node_or_null("Rows/Open2")
+	ok(panel._rows.get_child_count() == Coop.MAX_PLAYERS and panel.get_node_or_null("Rows/Player1") != null and open != null
+		and open.find_children("*", "Button", true, false).is_empty(),
+		"  a slot for each of the %d players there can be: Player 2's open" % Coop.MAX_PLAYERS)
+	var says: String = open.get_node("Line/How/Join").text if open != null else ""
+	var keyboard_taken: bool = Coop.players[0].device == Coop.KEYBOARD
+	ok(says.begins_with("Press %s on %s" % [PlayersPanel.join_button(), "a pad" if keyboard_taken else "another pad"])
+		and says.ends_with("to join") and says.contains("Enter on the keyboard") != keyboard_taken,
+		"  saying how to take it - naming only what nobody plays with yet", says)
 	panel._input(pad_button(2, JOY_BUTTON_A))
 	await settle(2)
 	ok(Coop.players.size() == 2 and Coop.players[1].device == 2, "pad 3's A: Player 2 joins with it")
+	ok(panel.get_node_or_null("Rows/Open2") == null and panel.get_node_or_null("Rows/Player2") != null
+		and panel._rows.get_child_count() == Coop.MAX_PLAYERS, "  into the open slot")
 	var row := panel.find_child("Player2", true, false)
 	var pick: Button = row.find_child("enfina", true, false) if row != null else null
 	ok(pick != null, "  a button for each character on their row")
@@ -466,3 +484,188 @@ func the_familiar_asked_for():
 	scene.dismiss_familiar()
 	await close_map(m)
 	Coop.reset()
+
+
+func a_picture_together():
+	log_line("======== a picture on one screen, both players' ========")
+	Campaign.set_party(["prometheus", "cyrus"], 8)
+	two_players(["cyrus"])
+	Coop.acting = 0
+	DialogueManager.dialogue_started.emit(null)
+	Coop.acting = Coop.ANYONE
+	ok(Coop.focus == 0, "Player 1 begins a conversation: the focus theirs")
+	Pictures.open("res://pictures/clues_desk.tscn")
+	await settle(3)
+	ok(Pictures.shared_here() and Pictures.first_pointer() == 0 and Pictures.second_pointer() == 1,
+		"its picture is both players': the keyboard's the mouse, pad 1 a pointer of its own")
+	ok(Coop.lets_through(pad_button(0, JOY_BUTTON_A)) and Coop.lets_through(key_event(KEY_E)), "  both get past the gate, the conversation's or not")
+	ok(Coop.pointer_device() == Coop.KEYBOARD, "  and Player 2's pad never moves the mouse")
+	var ledger: Hotspot = Pictures.current().find_child("LedgerSpot", true, false)
+	ok(ledger != null, "the ledger on the desk")
+	if ledger == null:
+		Pictures.close()
+		return
+	Pictures.point_second(ledger.get_global_rect().get_center())
+	var pointer = Pictures.find_child("SecondPointer", true, false)
+	ok(ledger.pointed_by_other and pointer != null and pointer.visible and pointer.label.begins_with("Player 2"),
+		"Player 2's pointer on it: outlined, and their name beside their pointer", pointer.label if pointer != null else "none")
+	Input.parse_input_event(pad_button(0, JOY_BUTTON_A))
+	await settle(2)
+	Input.parse_input_event(pad_button(0, JOY_BUTTON_A, false))
+	await settle(2)
+	ok(ledger.was_examined() and Pictures.caption() != "", "  A: they look at it, and what it says is said", Pictures.caption())
+	# Their own hand.
+	Campaign.give_item("prometheus", "magnifying_glass")
+	Pictures._refresh_bag()
+	await settle(2)
+	var glass: Button = Pictures.find_child("magnifying_glass", true, false)
+	ok(glass != null, "the magnifying glass in the bag")
+	if glass != null:
+		Pictures.point_second(glass.get_global_rect().get_center())
+		Input.parse_input_event(pad_button(0, JOY_BUTTON_A))
+		await settle(2)
+		Input.parse_input_event(pad_button(0, JOY_BUTTON_A, false))
+		await settle(2)
+		ok(Pictures.second_holding() == "magnifying_glass" and Pictures.holding() == "", "  A on it: in Player 2's hand, Player 1's empty",
+			"%s / %s" % [Pictures.second_holding(), Pictures.holding()])
+		Pictures.point_second(Pictures.current().get_global_rect().get_center())
+		await settle(2)
+		var ring: Control = Pictures._lens_ring
+		ok(ring != null and ring.visible and (ring.position + ring.size / 2.0).distance_to(Pictures.second_at()) < 2.0,
+			"  a lens in their hand looks round their pointer")
+		Input.parse_input_event(pad_button(0, JOY_BUTTON_B))
+		await settle(2)
+		ok(Pictures.second_holding() == "" and Pictures.is_open(), "  B: put down, the picture still up")
+	# A dial, with the shoulders.
+	Pictures.open("res://pictures/clues_cabinet.tscn")
+	await settle(3)
+	var dials := Pictures.current().find_children("*", "PuzzleDial", true, false)
+	ok(not dials.is_empty(), "the cabinet's lock, stacked on top")
+	if not dials.is_empty():
+		var dial: PuzzleDial = dials[0]
+		var was := dial.value()
+		Pictures.point_second(dial.get_global_rect().get_center())
+		Input.parse_input_event(pad_button(0, JOY_BUTTON_RIGHT_SHOULDER))
+		await settle(2)
+		ok(dial.value() != was, "  RB on a dial: Player 2 turns it on", "%s -> %s" % [was, dial.value()])
+		Input.parse_input_event(pad_button(0, JOY_BUTTON_LEFT_SHOULDER))
+		await settle(2)
+		ok(dial.value() == was, "  LB: and back")
+	Pictures.back()
+	await settle(2)
+	# A piece, carried and put down.
+	Pictures.open("res://pictures/clues_bin.tscn")
+	await settle(3)
+	var pieces := Pictures.current().find_children("*", "PuzzlePiece", true, false)
+	ok(not pieces.is_empty(), "the torn letter in the bin")
+	if not pieces.is_empty():
+		var piece: PuzzlePiece = pieces[0]
+		Pictures.point_second(piece.get_global_rect().get_center())
+		Input.parse_input_event(pad_button(0, JOY_BUTTON_A))
+		await settle(2)
+		var carried: PuzzlePiece = Pictures._second_piece
+		ok(carried != null, "  A on a piece: Player 2 picks it up")
+		if carried != null:
+			var slot: PuzzleSlot = carried.right_slot()
+			Pictures.point_second(slot.get_global_rect().get_center())
+			await settle(2)
+			Input.parse_input_event(pad_button(0, JOY_BUTTON_A, false))
+			await settle(2)
+			ok(carried.sits_in == slot, "  carried to its place and let go: it sits in it")
+	Pictures.close()
+	await settle(2)
+	ok(not Pictures.shared_here() and Coop.lets_through(key_event(KEY_E)) and not Coop.lets_through(pad_button(0, JOY_BUTTON_A)),
+		"closed: the conversation's focus is Player 1's again")
+	DialogueManager.dialogue_ended.emit(null)
+	ok(Coop.focus == Coop.ANYONE, "  and over, everybody's")
+	Coop.reset()
+	log_line("")
+
+
+func a_talk_let_go():
+	log_line("======== a conversation gone without a word ========")
+	two_players([])
+	Coop.acting = 1
+	DialogueManager.dialogue_started.emit(null)
+	Coop.acting = Coop.ANYONE
+	var balloon: Node = load("res://ui/dialogue_balloon.tscn").instantiate()
+	get_tree().root.add_child(balloon)
+	await settle(2)
+	ok(Coop.focus == 1 and Coop.talking() and Coop.conversation_starter == 1, "Player 2 begins one: theirs, and the balloon up")
+	balloon.queue_free()
+	await settle(2)
+	ok(Coop.focus == Coop.ANYONE and not Coop.talking() and Coop.conversation_starter == Coop.ANYONE,
+		"its balloon gone with no end said - the scene changed under it: everybody's again")
+	ok(Coop.lets_through(key_event(KEY_E)) and Coop.lets_through(pad_button(0, JOY_BUTTON_A)), "  both players' presses get through")
+	Coop.reset()
+	log_line("")
+
+
+func the_camera_to_a_talk():
+	log_line("======== the camera, to whoever began a conversation ========")
+	var m := await open_map()
+	for key in ["alithia", "prometheus"]:
+		if not Campaign.party_order.has(key):
+			Campaign.add_member(key)
+	await settle(2)
+	two_players(["cyrus"])
+	await settle(3)
+	var scene: ExplorationScene = m.scene
+	var theirs: ExplorationParty = scene.groups.get(1)
+	var main: ExplorationParty = scene._main_party
+	var from := tile_at(m, main.position_of_leader())
+	var far := find_tile(m, func(tile): return gap(tile, from) >= 8.0 and gap(tile, from) <= 9.0 and standable(m, tile))
+	if theirs == null or far == NOWHERE:
+		ok(false, "two groups, apart")
+		await close_map(m)
+		return
+	theirs.teleport(at(m, far))
+	await settle(3)
+	Coop.acting = 1
+	DialogueManager.dialogue_started.emit(null)
+	Coop.acting = Coop.ANYONE
+	for i in 90:
+		await get_tree().process_frame
+	ok(scene.conversation_shot == 1 and scene.camera.position.distance_to(theirs.leader.position) < Grid.tiles(1.0),
+		"Player 2 begins one: the camera glides onto their leader", "%s vs %s" % [scene.camera.position, theirs.leader.position])
+	DialogueManager.dialogue_ended.emit(null)
+	for i in 90:
+		await get_tree().process_frame
+	var middle: Vector2 = (main.leader.position + theirs.leader.position) / 2.0
+	ok(scene.conversation_shot == -1 and scene.camera.position.distance_to(middle) < Grid.tiles(1.0),
+		"  over: back to framing both", "%s vs %s" % [scene.camera.position, middle])
+	await close_map(m)
+	Coop.reset()
+
+
+func someone_joins():
+	log_line("======== somebody joins: Party Management ========")
+	var m := await open_map()
+	if Campaign.party_order.has("enfina"):
+		Campaign.remove_member("enfina")
+	if not Campaign.party_order.has("alithia"):
+		Campaign.add_member("alithia")
+	two_players(["alithia"])
+	await settle(3)
+	var scene: ExplorationScene = m.scene
+	ok(scene._sharing == null, "two players, the party shared out")
+	Campaign.add_member("enfina")
+	await settle(4)
+	var panel: PlayersPanel = scene._sharing.find_child("PlayersPanel", true, false) if scene._sharing != null else null
+	ok(panel != null and panel.management and panel.note.begins_with("Enfina joins"), "Enfina joins: Party Management comes up for who steers her",
+		panel.note if panel != null else "none")
+	var row: Node = panel.find_child("Player2", true, false) if panel != null else null
+	var pick: Button = row.find_child("enfina", true, false) if row != null else null
+	ok(pick != null and pick.icon != null, "  each of the party with their portrait")
+	if pick != null:
+		pick.pressed.emit()
+		ok(Coop.controller_of("enfina") == 1, "  pressed on Player 2's row: Enfina is theirs")
+		panel.close()
+	await settle(3)
+	Campaign.remove_member("enfina")
+	Coop.reset()
+	await settle(3)
+	Campaign.add_member("enfina")
+	await settle(4)
+	ok(scene._sharing == null, "playing alone, somebody joining puts nothing up")
+	await close_map(m)

@@ -246,6 +246,17 @@ func perch() -> bool:
 	return true
 
 
+## The party drawn again (a new leader - Tab - or somebody joining): riding on
+## its caster's old figure, it goes onto the new one rather than falling off.
+func keep_perched():
+	if familiar == null or familiar.perched_on == null or controlling:
+		return
+	var group = _group_of(caster_player())
+	var sprite = group.sprite_for(caster) if group != null and is_instance_valid(group) else null
+	if sprite != null and sprite != familiar.perched_on:
+		familiar.perch_on(sprite)
+
+
 ## Whether it is riding on its caster's shoulder.
 func perched() -> bool:
 	return familiar != null and familiar.perched_on != null
@@ -383,10 +394,12 @@ class _Eyes extends Control:
 	func refresh():
 		if _line == null or keeper == null or keeper.familiar == null:
 			return
+		# A pad's familiar button is its Outside Spell one: letting it go is then
+		# the bar's or the panel's to do, not a press here.
+		var lets_go := Pad.hint("Let it go", &"outside_spell") if Pad.key(&"outside_spell") != Pad.key(&"familiar") else ""
 		_line.text = "Through the %s's eyes    %s    %s    %s" % [keeper.familiar.form.name.to_lower(),
-			Pad.hint("Back to the party", &"swap_leader"),
-			Pad.hint("To %s's shoulder" % Campaign.display_name_of(keeper.caster), &"interact"),
-			Pad.hint("Let it go", &"outside_spell")]
+			Pad.hint("Back to the party", &"familiar"),
+			Pad.hint("To %s's shoulder" % Campaign.display_name_of(keeper.caster), &"interact"), lets_go]
 		queue_redraw()
 
 	func _process(_delta):
