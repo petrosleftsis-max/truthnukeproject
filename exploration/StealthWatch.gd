@@ -1015,7 +1015,10 @@ func ready_refusal(key: String, move: String, trigger: int, centre: Vector2i = N
 			return "Choose who to watch"
 		if not sight.clear(from, tile_of(watched.global_position)):
 			return "%s can't see %s" % [_display_name(key), _name_of(watched)]
-	if skill.spell_slot_level > 0 and OutsideMoves.use_of(skill) != OutsideMoves.Use.AMBUSH:
+	if skill.spell_slot_level > 0:
+		# An ambush's opener is paid in the fight, out of what that starts with.
+		if OutsideMoves.use_of(skill) == OutsideMoves.Use.AMBUSH:
+			return OutsideMoves.cannot_open_with(key, skill)
 		return OutsideMoves.cannot_pay(key, skill)
 	return ""
 

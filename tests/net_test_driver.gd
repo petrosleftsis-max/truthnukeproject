@@ -22,7 +22,7 @@ extends "res://StealthHarness.gd"
 ##   the host, out of the joiner's leader's bag; a press says which guard its
 ##   pointer was on, read on the host as that player's pointer; a click there
 ##   on a guard knocked out drags him on the host, and again puts him down
-## - Alithia's familiar called with G on the joiner, on the host's map: steered
+## - Alithia's familiar called from the joiner's Spells tab, on the host's map: steered
 ##   from the joiner, seen through there, walked there and put where it went on
 ##   the host; E sends it to her shoulder, G lets it go
 ## - a hack the joiner's player sets going is played on their screen, and opens
@@ -521,7 +521,7 @@ func hosts_familiar():
 	await settle(10)
 	log_where(scene)
 	say("call it")
-	ok(await until(func(): return keeper.familiar != null, 15.0), "G pressed on the joiner calls Alithia's familiar - here, on the host's map")
+	ok(await until(func(): return keeper.familiar != null, 15.0), "Find Familiar cast on the joiner's Spells tab calls Alithia's familiar - here, on the host's map")
 	if keeper.familiar == null:
 		return
 	ok(keeper.controlling and keeper.steerer == 1 and keeper.familiar.puppet,
@@ -556,8 +556,9 @@ func joiners_familiar():
 	# Steering nobody for a moment while whom it steers was asked and answered,
 	# it was offered the party to share out - a menu, whose presses are its own.
 	await close_offers()
-	get_viewport().push_input(key_event(KEY_G))
-	ok(await until(func(): return keeper.familiar != null, 15.0), "G pressed here: the host's map calls it, and it is here too")
+	# Cast as any spell is, from the Spells tab (the designer, 2026-10-31).
+	OutsideMoves.use(scene, "alithia", "find_familiar")
+	ok(await until(func(): return keeper.familiar != null, 15.0), "Find Familiar cast here, on the Spells tab: the host's map calls it, and it is here too")
 	if keeper.familiar == null:
 		return
 	ok(await until(func(): return keeper.controlling and keeper.steerer == 1 and not keeper.familiar.puppet, 10.0),

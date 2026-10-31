@@ -370,6 +370,13 @@ func _freshen(button: Button, key: String):
 					hidden.append("%s %s" % [Campaign.display_name_of(one), StealthBar.clock(watch.unseen_left(one))])
 			if not hidden.is_empty():
 				lines.append("Invisible: " + ", ".join(hidden))
+	if OutsideMoves.use_of(skill) == OutsideMoves.Use.FAMILIAR:
+		# What the stealth bar's own button for it said, before it was cast from
+		# here as any spell is (the designer, 2026-10-31).
+		if not Campaign.free_familiar_used:
+			lines.append("The first since a long rest is free")
+		lines.append("Once it is out, %s goes to it and back, and %s, steering it, sends it to %s's shoulder" % [
+			Pad.key(&"familiar"), Pad.key(&"interact"), Campaign.display_name_of(key)])
 	if skill.description != "":
 		lines.append("")
 		lines.append(skill.description)

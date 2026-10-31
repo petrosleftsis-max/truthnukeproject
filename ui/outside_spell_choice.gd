@@ -1,8 +1,10 @@
 extends PanelContainer
 ## The choice of which spell to cast on a map, when there is more than one to
-## cast: Find Familiar (Alithia), on a watched map Invisibility (Prometheus), and
-## anywhere the spells that would do something now (OutsideMoves.ready_spells
-## - a heal with somebody hurt, Resuscitate with somebody down). The Outside Spell key (G) opens it;
+## cast: on a watched map Invisibility (Prometheus), and anywhere the spells that
+## would do something now (OutsideMoves.ready_spells - a heal with somebody hurt,
+## Resuscitate with somebody down). Not Find Familiar, which is cast from the
+## Spells tab as the other spells are (the designer, 2026-10-31: "Casting the
+## familiar shouldn't have its own key"). The Outside Spell key (G) opens it;
 ## with only one, it goes straight to that one. Holds the game while it is up
 ## (MenuPause), as the invisibility picker does.
 
@@ -46,17 +48,6 @@ func _ready():
 		row.add_child(hide)
 		if not hide.disabled:
 			first = hide
-	if scene != null and not scene.familiar_spell().is_empty():
-		var call := Button.new()
-		call.name = "Familiar"
-		call.text = SkillDatabase.skills[scene.familiar_spell().skill].name
-		var refusal: String = scene.familiar_refusal()
-		call.disabled = refusal != ""
-		call.tooltip_text = refusal
-		call.pressed.connect(_call)
-		row.add_child(call)
-		if first == null and not call.disabled:
-			first = call
 	for ready in OutsideMoves.ready_spells(scene):
 		var skill: SkillDefinition = SkillDatabase.skills[ready.move]
 		var cast := Button.new()
@@ -91,12 +82,6 @@ func _hide():
 	close()
 	if bar != null:
 		bar.open_picker()
-
-
-## Calls the familiar.
-func _call():
-	close()
-	scene.summon_familiar()
 
 
 ## `key` casts `move` (OutsideMoves).

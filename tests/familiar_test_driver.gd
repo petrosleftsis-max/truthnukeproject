@@ -321,26 +321,47 @@ func caught_with_it_out():
 	await close_map(m)
 
 
+## Cast from the Spells tab, as the other spells are - no key of its own, nor a
+## button on the bar (the designer, 2026-10-31: "Casting the familiar shouldn't
+## have its own key, it hsould be used like how other spells are casted"). The
+## bar lets it go while it is out.
 func the_bar():
-	log_line("======== on the bar ========")
+	log_line("======== the Spells tab, and the bar ========")
 	var m := await with_alithia()
 	var watch: StealthWatch = m.watch
 	var bar: StealthBar = watch.get_node("StealthHud/StealthBar")
 	bar.refresh()
-	ok(bar._familiar.visible and bar._familiar.text.begins_with("Find Familiar (free)"), "a button for it: the first since a long rest free", bar._familiar.text)
-	Campaign.free_familiar_used = true
-	bar.refresh()
-	ok(bar._familiar.text.begins_with("Find Familiar (World 2"), "  then with its castings", bar._familiar.text)
+	ok(not bar._familiar.visible, "no button of its own on the bar")
 	bar.outside_spell()
-	ok(watch.familiar != null, "with only it known, the Outside Spell key calls it")
+	await settle(2)
+	ok(watch.familiar == null and not is_instance_valid(bar._choice), "  nor is it the Outside Spell key's: with only it known, G calls nothing")
+	Campaign.set_leader("alithia")
+	var panel: OutsideMovesPanel = m.scene.moves_panel
+	panel.show_spells(true)
+	panel.refresh(true)
+	await settle(2)
+	var call := panel.button_for("find_familiar")
+	ok(call != null and not call.disabled and call.tooltip_text.contains("The first since a long rest is free"),
+		"on her Spells tab, as any spell: the first since a long rest free", call.tooltip_text if call != null else "none")
+	ok(call != null and call.tooltip_text.contains("%s goes to it and back" % Pad.key(&"familiar")), "  and it says how to go to it once it is out")
+	Campaign.free_familiar_used = true
+	panel.refresh(true)
+	call = panel.button_for("find_familiar")
+	ok(call != null and not call.tooltip_text.contains("is free") and call.tooltip_text.contains("Paid through the Gates of World"),
+		"  then paid through the Gates of World", call.tooltip_text if call != null else "none")
+	if call != null:
+		call.pressed.emit()
+	await settle(2)
+	ok(watch.familiar != null, "  pressed: called")
 	bar.refresh()
-	ok(bar._familiar.text.begins_with("Let the rat go"), "  then lets it go", bar._familiar.text)
+	ok(bar._familiar.visible and bar._familiar.text.begins_with("Let the rat go"), "  and the bar has a button to let it go", bar._familiar.text)
 	press(bar, KEY_V)
 	ok(watch.familiar != null, "  the party's own keys do nothing meanwhile")
 	bar.outside_spell()
-	ok(watch.familiar == null, "  pressed again: let go")
+	ok(watch.familiar == null, "  G: let go")
 	await close_map(m)
-	# Prometheus too, past the Gates of Hermes: Invisibility as well - which?
+	# Prometheus too, past the Gates of Hermes: Invisibility the Outside Spell
+	# key's, Find Familiar still not.
 	m = await open_map()
 	Campaign.add_member("alithia")
 	Campaign.add_member("prometheus")
@@ -349,14 +370,17 @@ func the_bar():
 	watch = await watch_it(m, out_of_sight_of(m, [m.post]))
 	bar = watch.get_node("StealthHud/StealthBar")
 	ok(not watch.invisibility_spell().is_empty() and not watch.familiar_spell().is_empty(), "both known at 14")
+	var others := OutsideMoves.ready_spells(m.scene)
 	bar.outside_spell()
-	var choice = bar._choice
-	ok(is_instance_valid(choice) and choice.find_child("Invisibility", true, false) != null and choice.find_child("Familiar", true, false) != null,
-		"the key asks which")
-	if is_instance_valid(choice):
-		choice.find_child("Familiar", true, false).pressed.emit()
-		await settle(2)
-	ok(watch.familiar != null and not is_instance_valid(bar._choice), "  Find Familiar chosen: called")
-	watch.dismiss_familiar()
+	await settle(2)
+	if others.is_empty():
+		ok(not is_instance_valid(bar._choice), "G asks nothing: Invisibility alone is its")
+	else:
+		ok(is_instance_valid(bar._choice) and bar._choice.find_child("Familiar", true, false) == null, "G asks which - Find Familiar not among them")
+	ok(watch.familiar == null, "  and calls no familiar")
+	if is_instance_valid(bar._picker):
+		bar._picker.close()
+	if is_instance_valid(bar._choice):
+		bar._choice.close()
 	MenuPause.clear(get_tree())
 	await close_map(m)

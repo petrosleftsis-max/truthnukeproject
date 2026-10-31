@@ -28,6 +28,7 @@ func run_sections():
 	await on_guards()
 	await the_opening_blow()
 	await a_placed_fight_struck_first()
+	await a_placed_fight_struck_with_a_spell()
 	await walls_and_moving()
 	await lures_cover_traps()
 	await the_familiar_stage()
@@ -186,12 +187,18 @@ func on_a_plain_map():
 	var before: int = Campaign.party_state[other].hp
 	scene.outside_spell()
 	await settle(3)
-	ok(is_instance_valid(scene.spell_choice) and scene.spell_choice.find_child("Familiar", true, false) != null,
-		"  with Find Familiar too: which?")
-	if is_instance_valid(scene.spell_choice):
-		scene.spell_choice.find_child(ready[0].move, true, false).pressed.emit()
-		await settle(3)
-	ok(Campaign.party_state[other].hp > before, "  a mend chosen: cast")
+	# Not Find Familiar, cast from the Spells tab as the other spells are (the
+	# designer, 2026-10-31: "Casting the familiar shouldn't have its own key").
+	if ready.size() > 1:
+		ok(is_instance_valid(scene.spell_choice) and scene.spell_choice.find_child("Familiar", true, false) == null,
+			"  which of them? - and Find Familiar not among them")
+		if is_instance_valid(scene.spell_choice):
+			scene.spell_choice.find_child(ready[0].move, true, false).pressed.emit()
+			await settle(3)
+	else:
+		ok(not is_instance_valid(scene.spell_choice), "  the one, cast without asking - Find Familiar is not G's")
+	ok(Campaign.party_state[other].hp > before and (scene.familiar_keeper == null or scene.familiar_keeper.familiar == null),
+		"  a mend cast, and no familiar called")
 	MenuPause.clear(get_tree())
 	await close_map(m)
 
@@ -508,11 +515,9 @@ func the_opening_blow():
 
 ## An attacking move on a map nobody watches, at a placed fight (the designer,
 ## 2026-10-31: start a combat by hitting someone): the fight, opened with it.
-func a_placed_fight_struck_first():
-	log_line("======== a placed fight, struck first ========")
-	var m := await plain_map()
+## A fight waiting two or three tiles off the party, Alithia alone to fight it.
+func placed_fight(m: Dictionary, trigger: String) -> EncounterInteractable:
 	var scene: ExplorationScene = m.scene
-	scene.leave_for_battle = false
 	var from := tile_at(m, m.party.position_of_leader())
 	var near := find_tile(m, func(tile): return gap(tile, from) >= 2.0 and gap(tile, from) <= 3.0 and standable(m, tile))
 	var spot := EncounterInteractable.new()
@@ -521,10 +526,37 @@ func a_placed_fight_struck_first():
 	encounter.fighters.assign(["alithia"])
 	encounter.skip_deployment = true
 	spot.encounter = encounter
-	spot.trigger_id = "struck_first_test"
+	spot.trigger_id = trigger
 	m.map.add_child(spot)
 	spot.global_position = at(m, near)
 	scene._interactables.append(spot)
+	return spot
+
+
+## The fight `fight` from a map, played until its opening blow has landed or
+## fallen short: [the game, its Combat, what the log said].
+func open_the_fight(fight: EncounterDefinition) -> Array:
+	Campaign.set_party(["alithia"], 8)
+	Campaign.current_encounter = fight
+	var game = load("res://scenes/game.tscn").instantiate()
+	get_tree().root.add_child(game)
+	await settle(6)
+	var combat: Combat = game.get_node("VisualCombat")
+	var log_text: RichTextLabel = combat.game_ui.get_node("Actions/Information/Text")
+	await until(func(): return "opens with" in log_text.get_parsed_text() or "falls short" in log_text.get_parsed_text(), 10.0)
+	await wait(4.0)
+	return [game, combat, log_text.get_parsed_text()]
+
+
+func a_placed_fight_struck_first():
+	log_line("======== a placed fight, struck first ========")
+	var m := await plain_map()
+	var scene: ExplorationScene = m.scene
+	scene.leave_for_battle = false
+	var from := tile_at(m, m.party.position_of_leader())
+	var spot := placed_fight(m, "struck_first_test")
+	var near := tile_at(m, spot.global_position)
+	var encounter: EncounterDefinition = spot.encounter
 	var reach: int = skill("votive_flame").max_range
 	ok(scene.fight_in_reach(reach) == spot, "a fight waiting %d tiles off, in Votive Flame's reach of %d" % [roundi(gap(near, from)), reach])
 	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "", "  Votive Flame can be used on it", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
@@ -536,23 +568,63 @@ func a_placed_fight_struck_first():
 	ok(not encounter.has_meta("opener"), "  on a copy: the map's own fight is left as it was")
 	await close_map(m)
 	# The fight it opens: the blow lands on the nearest of them, however far.
-	Campaign.set_party(["alithia"], 8)
-	Campaign.current_encounter = fight
-	var game = load("res://scenes/game.tscn").instantiate()
-	get_tree().root.add_child(game)
-	await settle(6)
-	var combat: Combat = game.get_node("VisualCombat")
-	var log_text: RichTextLabel = combat.game_ui.get_node("Actions/Information/Text")
-	await until(func(): return "opens with" in log_text.get_parsed_text() or "falls short" in log_text.get_parsed_text(), 10.0)
-	await wait(4.0)
-	var said: String = log_text.get_parsed_text()
+	var opened: Array = await open_the_fight(fight)
+	var combat: Combat = opened[1]
+	var said: String = opened[2]
 	var hurt := false
 	for comb in combat.combatants:
 		if comb.side == 1 and comb.hp < comb.max_hp:
 			hurt = true
 	ok("opens with Votive Flame" in said and not "falls short" in said and hurt, "  in the fight: it opens with Votive Flame, and lands", said.right(300))
-	game.queue_free()
+	opened[0].queue_free()
 	await settle()
+	Campaign.set_party(["alithia"], 8)
+	log_line("")
+
+
+## A spell struck at a placed fight pays its gate as any casting does (the
+## designer, 2026-10-31: "Except if it is a spell that costs a gate, then the
+## gate is used like normal") - in the fight, which takes it out of what it
+## starts with; and with none of its gate or deeper left, it cannot be struck.
+func a_placed_fight_struck_with_a_spell():
+	log_line("======== a placed fight, struck with a spell ========")
+	var m := await plain_map(8)
+	var scene: ExplorationScene = m.scene
+	scene.leave_for_battle = false
+	placed_fight(m, "struck_with_a_spell_test")
+	var hermes: int = Campaign.gates_left_outside("alithia")[2]
+	ok(hermes > 0 and OutsideMoves.refusal(scene, "alithia", "holy_lance") == "",
+		"Holy Lance, through the Gates of Hermes, can strike it: %d castings left" % hermes, OutsideMoves.refusal(scene, "alithia", "holy_lance"))
+	ok(OutsideMoves.use(scene, "alithia", "holy_lance") and Campaign.gates_left_outside("alithia")[2] == hermes,
+		"  used: the fight begins, nothing paid yet - the fight pays it")
+	var fight: EncounterDefinition = Campaign.current_encounter
+	await close_map(m)
+	var opened: Array = await open_the_fight(fight)
+	var combat: Combat = opened[1]
+	var said: String = opened[2]
+	var her: Dictionary = {}
+	for comb in combat.combatants:
+		if comb.get("combatant_key", "") == "alithia":
+			her = comb
+	ok("opens with Holy Lance" in said and not her.is_empty() and her.spell_slots[2] == her.max_spell_slots[2] - 1,
+		"  in the fight: it opens with Holy Lance, and a casting of the Gates of Hermes is spent, as for any",
+		"%s of %s - %s" % [her.get("spell_slots", []), her.get("max_spell_slots", []), said.right(200)])
+	opened[0].queue_free()
+	await settle()
+	# None left: not struck.
+	m = await plain_map(8)
+	scene = m.scene
+	scene.leave_for_battle = false
+	placed_fight(m, "struck_with_no_spell_test")
+	while Campaign.spend_gate_outside("alithia", 2):
+		pass
+	var before: EncounterDefinition = Campaign.current_encounter
+	var why := OutsideMoves.refusal(scene, "alithia", "holy_lance")
+	ok(why.begins_with("Alithia has no castings of %s" % Stats.short_gate_name(2)), "no casting of the Gates of Hermes or deeper left: Holy Lance cannot strike it", why)
+	ok(not OutsideMoves.use(scene, "alithia", "holy_lance") and Campaign.current_encounter == before, "  nor is it used: no fight")
+	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "", "  a skill can, costing nothing", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
+	Campaign.gates_spent_outside.erase("alithia")
+	await close_map(m)
 	Campaign.set_party(["alithia"], 8)
 	log_line("")
 

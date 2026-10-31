@@ -104,8 +104,13 @@ holds the game for both).
   - **Hosting:** a Copy button beside each address to give. Look for games needs
     nothing typed - it hears hosts on the same network.
   - **The familiar's own key:** R (a pad's L3) to it and back; Tab is who leads.
+    **Find Familiar is cast from the Spells tab only**, as the other spells
+    are: G no longer casts it, and the stealth bar's button for it shows only
+    while one is out, to let it go (the designer: "Casting the familiar
+    shouldn't have its own key").
   - **Attacking moves out of a fight** start a placed fight in reach, the move
-    its opening blow (walls: still spells, items and Enfina).
+    its opening blow (walls: still spells, items and Enfina). The blow is free,
+    but a spell spends its gate as normal; with none left it cannot strike.
   - **The Spells tab out of a fight** is the fight's (a shelf a gate, castings
     at its start), with a shelf for the Gates of Iris first; Out Of Combat Only
     drops the gates left empty. **Invisibility** is there, not on the stealth
@@ -279,7 +284,7 @@ holds the game for both).
    - the 30 s cooldown on gateless moves;
    - Iris paying first for marked spells;
    - heals landing on the worst hurt (no picker);
-   - the ambush opener being free (and a placed fight's, struck first);
+   - (answered 2026-10-31: the opener is free, but a spell spends its gate);
    - U / Share for Hide UI;
    - lures landing ahead (no aiming yet).
 2. **Moves not placed in the outside table yet:** Cleanse, Persuade, Deceive,
@@ -299,11 +304,12 @@ holds the game for both).
    changing one thing at the same moment - the first stands, the other is
    undone and told (a PROPOSAL rule, the ledger's "what the joiner changes");
    how fast the camera glides to a conversation (CAMERA_GLIDE 4,
-   CAMERA_BACK_SECONDS 1). On one screen (2026-10-31): the second pointer's
-   buttons (A, LB/RB, B) and the keyboard's player keeping the mouse; Party
-   Management for whoever joins only in co-op; the familiar's key (R, a pad's
-   L3); an opening blow at a placed fight landing wherever the fight puts
-   everybody, free. The network itself is approved - see "Next to
+   CAMERA_BACK_SECONDS 1). On one screen (2026-10-31): the keyboard's player
+   keeping the mouse; the familiar's to-and-back key (R, a pad's L3). Answered
+   2026-10-31: the second pointer's buttons are to be tried (APPROVED_TRIAL);
+   Party Management for whoever joins only in multiplayer; an opening blow at
+   a placed fight lands wherever the fight puts everybody, free but for a
+   spell's gate. The network itself is approved - see "Next to
    build". **Itch is left alone** - nothing published, the page untouched -
    until the designer says (2026-10-30: more work on the game first); then the
    browser version comes off and the Mac and Linux builds go up. Shipping the

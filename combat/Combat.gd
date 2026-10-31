@@ -406,8 +406,11 @@ func catch_off_guard(comb: Dictionary):
 ## StealthWatch.ambush_with) opens with it: the encounter's "opener" meta names
 ## who and the move, and the spawn of the guard it was aimed at is marked
 ## "opened_on". Once everybody is placed and before the first turn, they use it
-## on him - free, their own first turn untouched (a PROPOSAL, 2026-10-26: the
-## designer left open whether it costs the action). Paid for as in any turn.
+## on him - free, their own first turn untouched - but paid for as in any turn:
+## a spell spends a casting of its gate, and without one it could not have been
+## struck (OutsideMoves.cannot_open_with; the designer, 2026-10-31: "Except if
+## it is a spell that costs a gate, then the gate is used like normal. outside
+## of that yes that is correct").
 ##
 ## A blow struck on a map at a placed fight (ExplorationScene.open_fight_with:
 ## "anywhere" in the meta, nobody marked) was struck before the fight began: it

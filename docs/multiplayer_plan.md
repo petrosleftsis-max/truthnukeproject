@@ -450,7 +450,8 @@ same checksum; a conversation's choice made on the joiner is the one taken.
     keyboard and mouse player (on two pads, the first) keeps the mouse, the
     other gets a pointer of their own in their colour - either stick, A to look,
     take, turn a dial or carry a piece, LB/RB to turn a dial, B to put down or
-    go back - and a hand of their own for the bag (the buttons a PROPOSAL).
+    go back - and a hand of their own for the bag (the buttons to be tried -
+    the designer, 2026-10-31: "Sure let's try those buttons").
   - A conversation draws the one camera to whoever began it, as over a network.
   - A conversation cut off by a scene change no longer leaves the focus with
     its starter for good, which dropped the other player's every press.
@@ -461,7 +462,9 @@ same checksum; a conversation's choice made on the joiner is the one taken.
     character"). Each player has a slot, edged in their colour, and Player 2's
     shows dashed while nobody plays in it, saying how to join ("show the slots
     even when the second player hasn't joined. its a way to show them that it's
-    up to two players") - on the title screen's Players panel too.
+    up to two players") - on the title screen's Players panel too. Only in
+    multiplayer: playing alone, nobody joining puts it up ("Yup, sounds right,
+    party management is only for multiplayer").
   - Hosting shows a Copy button beside each address ("Allow me to be able to
     copy the address when hosting a game by simply clicking a button"); Look
     for games needs no address typed - it hears the hosts on the network.

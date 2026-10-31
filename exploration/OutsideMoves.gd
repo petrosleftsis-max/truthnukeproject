@@ -269,6 +269,22 @@ static func cannot_pay(key: String, skill: SkillDefinition, exact: bool = false)
 		"" if exact or skill.spell_slot_level >= Stats.GATE_NAMES.size() - 1 else " or deeper"]
 
 
+## Why `key` could not open a fight with `skill`, or "": a spell with no casting
+## of its gate or deeper left for that fight, which spends one as it does any
+## casting there (Combat._pay_for_cast) - the Gates of Iris are for outside a
+## fight, not for that (the designer, 2026-10-31: "if it is a spell that costs a
+## gate, then the gate is used like normal").
+static func cannot_open_with(key: String, skill: SkillDefinition) -> String:
+	if not Combat.is_spell(skill) or skill.spell_slot_level <= 0:
+		return ""
+	var left := Campaign.gates_left_outside(key)
+	for gate in range(skill.spell_slot_level, left.size()):
+		if left[gate] > 0:
+			return ""
+	return "%s has no castings of %s%s left" % [Campaign.display_name_of(key), Stats.short_gate_name(skill.spell_slot_level),
+		"" if skill.spell_slot_level >= Stats.GATE_NAMES.size() - 1 else " or deeper"]
+
+
 ## --- Using them ---
 
 
@@ -370,9 +386,9 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 		Use.AMBUSH:
 			# The fight pays for its opening blow - an ambush's, or a placed fight's.
 			if guard_for(watch, skill, kind) != null:
-				return ""
+				return cannot_open_with(key, skill)
 			if scene != null and scene.has_method("fight_in_reach") and scene.fight_in_reach(skill.max_range) != null:
-				return ""
+				return cannot_open_with(key, skill)
 			if scene == null or not scene.has_method("wall_in_reach") or scene.wall_in_reach(skill.max_range) == null:
 				return "Nobody in reach to strike, unaware or waiting to fight, and no wall to break" if watch != null \
 					else "Nobody in reach waiting to fight, and no wall to break"
@@ -602,6 +618,12 @@ static func fire_readied(scene: Node, key: String, move: String, guard: Guard) -
 	var kind := use_of(skill)
 	if watch == null or skill == null or not fits(watch, skill, kind, guard):
 		return false
+	# A spell's gate spent since it was readied, there is nothing to open with.
+	var unpaid := cannot_open_with(key, skill) if kind == Use.AMBUSH else ""
+	if unpaid != "":
+		if scene.has_method("log_message"):
+			scene.log_message("[color=yellow]%s[/color]'s readied %s comes to nothing - %s.\n" % [Campaign.display_name_of(key), skill.name, unpaid])
+		return false
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color]'s readied %s goes off!\n" % [Campaign.display_name_of(key), skill.name])
 	if kind == Use.AMBUSH:
@@ -628,9 +650,11 @@ static func _entry_of(key: String) -> Dictionary:
 
 
 ## The spells anybody standing could cast to some purpose right now that need
-## somebody to land on (ON_G) - not Invisibility and Find Familiar, which G asks
-## about itself, nor what is always ready (a hurry, a blink), which would have
-## it ask "which?" every time: [{"key": caster, "move": spell}], leader first.
+## somebody to land on (ON_G) - not Invisibility, which G asks about itself, nor
+## Find Familiar, cast from the Spells tab as the other spells are (the
+## designer, 2026-10-31), nor what is always ready (a hurry, a blink), which
+## would have it ask "which?" every time: [{"key": caster, "move": spell}],
+## leader first.
 static func ready_spells(scene: Node) -> Array:
 	var found := []
 	var taken := {}

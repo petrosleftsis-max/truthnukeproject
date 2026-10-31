@@ -74,9 +74,11 @@ The plan as it was:
   Moves page while on a map ("Silent", "Loud: 6 tiles").
 - **First uses:** Mend (heal a member's carried health in `party_state`), Revive
   (Resuscitate, as at a rest), Burst / Speed (Run, Quicken).
-- **Fold in** Invisibility and Find Familiar: G (`StealthBar.outside_spell`,
-  `ui/outside_spell_choice.gd`) can stay as a shortcut, or go once the panel
-  casts them.
+- **Fold in** Invisibility and Find Familiar: both are on the Spells tab
+  (2026-10-31). G (`StealthBar.outside_spell`, `ui/outside_spell_choice.gd`)
+  stays a shortcut for Invisibility and the spells to some purpose now, but
+  not for Find Familiar (the designer: "Casting the familiar shouldn't have
+  its own key, it hsould be used like how other spells are casted").
 - **Hide the UI** with `hide_ui`, outside a fight only: the party portraits, the
   action panel, the stealth bar and the objectives go; the dialogue balloon
   (layer 30) and the information log stay; guard cones and meters, drawn in the
@@ -100,15 +102,18 @@ As built (the numbers PROPOSAL test values, in `OutsideMoves.SECONDS`):
   waits), Confuse 20 s (wanders 3 tiles, slowly) - spellbound moods nothing draws
   him out of. Read needs a guard with a round. Switch Off Magic 60 s, wards and
   sensors.
-- **The opener is free** (decided here, open for the designer): used before the
-  first turn, paid for in the fight, the user's first turn untouched. A melee
-  opener needs the guard within its reach; one that falls short is said so.
+- **The opener is free** (the designer, 2026-10-31: "Except if it is a spell
+  that costs a gate, then the gate is used like normal. outside of that yes
+  that is correct"): used before the first turn, the user's first turn
+  untouched; a spell spends its gate in the fight as any casting does, and with
+  none of its gate or deeper left it cannot be struck. A melee opener needs the
+  guard within its reach; one that falls short is said so.
 - **A placed fight, struck first** (the designer, 2026-10-31: "I want to be able
   to use them to either start a combat by hitting someone, or to be able to
   break walls"): on any map, a damaging move with an EncounterInteractable in
   its reach starts that fight with the move as its opener, no conversation
   first. Struck before the fight began, it lands on the foe nearest whoever
-  struck, however far apart the fight puts them (PROPOSAL).
+  struck, however far apart the fight puts them (approved 2026-10-31).
 - **Breakable walls** (`BreakableWall`): broken when no unaware guard or placed
   fight is in reach - only by a spell, an item or Enfina (the designer,
   2026-10-29). Loud: 8 tiles, guards come to look. Kept broken in the flags.
@@ -127,8 +132,8 @@ The plan as it was:
   known); Switch off magic (a sensor or ward, for some seconds).
 - **The ambush opener:** a damaging move at an unaware guard starts the fight as
   the ambush (F) does (`build_fight`, `surprised`), with that move used first.
-  *OPEN:* whether the opener is the leader's first action or a free one before
-  the first turn, and whether it may be aimed at anybody else caught.
+  Answered 2026-10-31: a free one before the first turn, a spell paying its
+  gate. *OPEN:* whether it may be aimed at anybody else caught.
 - **Breakable walls:** an `Interactable` that a damaging move breaks, opening its
   tiles the way an opened door does (`_shut`, `_world_version`). *OPEN:* whether
   some walls want a minimum damage or a damage type.

@@ -1730,8 +1730,10 @@ func open_fight_with(spot: EncounterInteractable, key: String, move: String) -> 
 
 
 ## The Outside Spell key on a map nobody watches: lets a familiar go while one
-## is out; otherwise the one spell to some purpose now cast - Find Familiar among
-## them - or the choice of which when there are more.
+## is out; otherwise the one spell to some purpose now cast, or the choice of
+## which when there are more. Find Familiar is not among them: it is cast from
+## the Spells tab, as the other spells are (the designer, 2026-10-31: "Casting
+## the familiar shouldn't have its own key").
 func outside_spell():
 	if is_instance_valid(spell_choice) or is_holding():
 		return
@@ -1740,14 +1742,11 @@ func outside_spell():
 		dismiss_familiar()
 		return
 	var ready := OutsideMoves.ready_spells(self)
-	var calls := familiar_refusal() == ""
-	if calls and ready.is_empty():
-		summon_familiar()
-	elif ready.size() == 1 and not calls:
+	if ready.size() == 1:
 		OutsideMoves.use(self, ready[0].key, ready[0].move)
 		if moves_panel != null:
 			moves_panel.refresh()
-	elif ready.size() + int(calls) > 1:
+	elif ready.size() > 1:
 		var layer := CanvasLayer.new()
 		layer.name = "SpellChoice"
 		layer.layer = 60

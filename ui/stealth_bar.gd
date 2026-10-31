@@ -48,7 +48,8 @@ var _hide: Button = null
 ## moves panel's Spells tab, on the Iris shelf (the designer, 2026-10-31), and
 ## the Outside Spell key's.
 var _picker = null
-## Calling the familiar, or letting it go (Find Familiar - StealthWatch "Familiar").
+## Letting the familiar go, while one is out (Find Familiar - StealthWatch
+## "Familiar"); it is called from the Spells tab.
 var _familiar: Button = null
 ## The choice of which spell, while it is open.
 var _choice = null
@@ -304,46 +305,29 @@ static func clock(seconds: float) -> String:
 	return "%d:%02d" % [whole / 60, whole % 60]
 
 
-## The familiar's button: calling it, with what that costs and what is left, or
-## letting it go while it is out.
+## The familiar's button, while one is out: letting it go. Calling it is the
+## Spells tab's, as for any spell (the designer, 2026-10-31: "Casting the
+## familiar shouldn't have its own key").
 func _refresh_familiar():
-	var spell: Dictionary = watch.familiar_spell()
-	_familiar.visible = not spell.is_empty() or watch.familiar != null
+	_familiar.visible = watch.familiar != null
 	if not _familiar.visible:
 		return
-	if watch.familiar != null:
-		var what: String = watch.familiar.form.name.to_lower()
-		_familiar.text = Pad.hint("Let the %s go" % what, &"outside_spell")
-		_familiar.disabled = false
-		_familiar.tooltip_text = "%s switches between the %s and the party; %s, while steering it, sends it to %s's shoulder." % [
-			Pad.key(&"familiar"), what, Pad.key(&"interact"), Campaign.display_name_of(watch.familiar_caster)]
-		return
-	var skill: SkillDefinition = SkillDatabase.skills[spell.skill]
-	var gate := skill.spell_slot_level
-	var left: int = Campaign.gates_left_outside(spell.caster)[gate]
-	# The first since a long rest is free (FamiliarKeeper.pay).
-	var cost := "free" if not Campaign.free_familiar_used else "%s %d" % [Stats.short_gate_name(gate), left]
-	_familiar.text = Pad.hint("%s (%s)" % [skill.name, cost], &"outside_spell")
-	_familiar.add_theme_color_override("font_color", Stats.gate_colour(gate))
-	var refusal: String = watch.familiar_refusal()
-	_familiar.disabled = refusal != ""
-	var form: FamiliarForm = watch.familiar_form()
-	_familiar.tooltip_text = refusal if refusal != "" else "%s calls a %s and sees through its eyes while the party waits - a casting of %s, off the next fight's (%d left). It slips through gaps nobody else fits through, and guards make it out only within %s tiles; but a magic sensor feels it. %s switches between it and the party." % [
-		Campaign.display_name_of(spell.caster), form.name.to_lower(), Stats.short_gate_name(gate), left,
-		CharacterSheet._figure(form.noticed_within), Pad.key(&"familiar")]
+	var what: String = watch.familiar.form.name.to_lower()
+	_familiar.text = Pad.hint("Let the %s go" % what, &"outside_spell")
+	_familiar.disabled = false
+	_familiar.tooltip_text = "%s switches between the %s and the party; %s, while steering it, sends it to %s's shoulder." % [
+		Pad.key(&"familiar"), what, Pad.key(&"interact"), Campaign.display_name_of(watch.familiar_caster)]
 
 
 func _on_familiar_pressed():
 	if watch.familiar != null:
 		watch.dismiss_familiar()
-	else:
-		watch.summon_familiar()
 
 
 ## The Outside Spell key: lets the familiar go while it is out; otherwise casts
-## the one spell there is to cast, or asks which - Invisibility and Find Familiar
-## when known, and any other spell that would do something now
-## (OutsideMoves.ready_spells).
+## the one spell there is to cast, or asks which - Invisibility when known, and
+## any other spell that would do something now (OutsideMoves.ready_spells). Not
+## Find Familiar, which is cast from the Spells tab as the other spells are.
 func outside_spell():
 	if watch == null or is_instance_valid(_picker) or is_instance_valid(_choice):
 		return
@@ -353,17 +337,14 @@ func outside_spell():
 		watch.dismiss_familiar()
 		return
 	var hides: bool = not watch.invisibility_spell().is_empty()
-	var calls: bool = not watch.familiar_spell().is_empty()
 	var others: Array = OutsideMoves.ready_spells(watch.scene)
-	if int(hides) + int(calls) + others.size() >= 2:
+	if int(hides) + others.size() >= 2:
 		if watch.spotted_by != null or (watch.scene != null and watch.scene.has_method("is_holding") and watch.scene.is_holding()):
 			return
 		_choice = OutsideSpellChoice.new()
 		_choice.watch = watch
 		_choice.bar = self
 		get_parent().add_child(_choice)
-	elif calls:
-		watch.summon_familiar()
 	elif not others.is_empty():
 		OutsideMoves.use(watch.scene, others[0].key, others[0].move)
 	else:

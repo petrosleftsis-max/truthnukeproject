@@ -341,9 +341,13 @@ Blocks 4, `set_small_gap` - for Small and smaller; fliers by Blocks 1).
 within Noticed Within, a dog's nose, a sensor's Sense Tiles; civilians never);
 `_familiar_found` dismisses it. `Guard.Kind.SENSOR` (appended) feels only magic:
 `can_perceive` is `unseen` for it, `_refresh_seen` is its radius, it never moves
-or fights. G is `StealthBar.outside_spell` on a watched map and
-`ExplorationScene.outside_spell` elsewhere (`ui/outside_spell_choice.gd` asks
-which when there is more than one). `familiar` and `outside` cover it.
+or fights. It is cast from the Spells tab only, as the other spells are (the
+designer, 2026-10-31: "Casting the familiar shouldn't have its own key"): G -
+`StealthBar.outside_spell` on a watched map, `ExplorationScene.outside_spell`
+elsewhere, `ui/outside_spell_choice.gd` asking which - only lets it go while it
+is out, and the stealth bar's `_familiar` button shows only then, to let it go.
+The tab's tooltip (`OutsideMovesPanel._freshen`) says the first since a long
+rest is free and how to go to it. `familiar` and `outside` cover it.
 
 **Moves outside a fight** (`exploration/OutsideMoves.gd`, docs/outside_combat_plan.md
 Phase 1, the designer 2026-10-26): `moves_of(key)` is everything somebody has on a
@@ -366,7 +370,12 @@ guard, else the nearest in the move's reach, Manhattan, clear line for one that
 respects blocking). Ambush: `ambush_with` sets `_opener`, `build_fight` writes the
 encounter's "opener" meta and the guard spawn's "opened_on", and Combat "An
 ambush's opening blow" (`opener_due`, `_open_the_ambush`, from `start_first_turn`)
-uses it free before the first turn. On any map, with no guard to spring on, a
+uses it free before the first turn - but a spell pays its gate there as any
+casting does (`_pay_for_cast`), and with no casting of its gate or deeper left
+for the fight it cannot be struck at all (`OutsideMoves.cannot_open_with`, in
+`refusal`, `StealthWatch.ready_refusal` and `fire_readied`; the designer,
+2026-10-31: "if it is a spell that costs a gate, then the gate is used like
+normal"). On any map, with no guard to spring on, a
 placed fight in reach - an `EncounterInteractable` standing
 (`ExplorationScene.fight_in_reach`) - is started with it (`open_fight_with`, on
 a copy of the encounter; the designer, 2026-10-31: start a combat by hitting
@@ -396,7 +405,8 @@ the counters beside the tabs (GateTags, Iris among them) stand down while the
 shelves are up, as in a fight. Invisibility is only there (and G's): the stealth
 bar's button for it is gone, and the panel greys it only when nobody at all
 could be hidden - its picker chooses who. G is `StealthBar.outside_spell` on a watched
-map and `ExplorationScene.outside_spell` elsewhere (`ui/outside_spell_choice.gd`).
+map and `ExplorationScene.outside_spell` elsewhere (`ui/outside_spell_choice.gd`);
+it casts Invisibility and the spells to some purpose now, never Find Familiar.
 Hurry is `ExplorationScene.hurry` and `ExplorationParty.hurry` (apart from
 `pace`). Hide UI (`hide_ui`, U / pad Share) is `ExplorationScene.set_ui_hidden`
 -> `combat_ui.set_ui_hidden` (all but the log) and `StealthWatch.set_ui_hidden`

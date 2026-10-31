@@ -66,7 +66,7 @@ it is not needed.
 | X (Square) / Y | take down, drag, put down / pick pockets | the skill panel / end the turn | |
 | LB / RB | listen / dash | the skill before / after; aiming or placing the party, the tile before / after | turn a dial back / on |
 | LT / RT | patience (held) / throw | danger view (held) / next skill tab | |
-| Left stick click | an outside spell (Invisibility, Find Familiar, or a heal or Resuscitate when it would do something); with a familiar out, switch between it and the party (R on a keyboard) | the next floor up (Page Up / Page Down on a keyboard) | |
+| Left stick click | an outside spell (Invisibility, or a heal or Resuscitate when it would do something - Find Familiar is cast from the Spells tab); with a familiar out, switch between it and the party (R on a keyboard) | the next floor up (Page Up / Page Down on a keyboard) | |
 | Right stick click | swap the leader (Tab on a keyboard), familiar or not | out to the whole map and back | |
 | Share (Create, Mic, Capture) | hide the UI but the log and the conversation; again to bring it back (U on a keyboard) | | |
 
@@ -1683,8 +1683,9 @@ only shows when there is something to do with it:
   takes him down, picks or plants in his pockets, darts him, has a word, springs
   an ambush, which is always the one leading - is seen again; the rest stay
   hidden. The spell's tooltip on the panel, and the status for whoever leads,
-  count down. With Find Familiar known too, G first asks which.
-- **G - Find Familiar** (Alithia; on any map, watched or not. The first casting
+  count down. With another spell that would do something now, G first asks which.
+- **Find Familiar** (Alithia; on any map, watched or not; cast from the Spells
+  tab, as the other spells are - no key of its own. The first casting
   after a long rest is free; after that a real **Gates of World** casting - it
   comes off the next fight's World castings, or straight off a dungeon's).
   A spirit takes the shape of the map's animal - the StealthSetup's **Familiar
@@ -1727,7 +1728,9 @@ only shows when there is something to do with it:
     and **InstaHack** still a ward or a magic sensor (60 s). A move lands on the
     guard the pointer is on, or the nearest in its reach;
   - anything that **deals damage** springs an ambush on an unaware guard in its
-    reach, the move landing first - free, before anybody's first turn; on any
+    reach, the move landing first - free, before anybody's first turn, except
+    that a spell spends its gate as any casting does (with none of its gate or
+    deeper left, it cannot strike); on any
     map it starts a **placed fight** in its reach (an EncounterInteractable) the
     same way, landing on the nearest of them however far apart the fight puts
     everybody, with no talking first; or, with
@@ -1757,9 +1760,10 @@ only shows when there is something to do with it:
   shelf, so ticking Out of combat only leaves out the empty ones. A move's **Noise** and **Noise Tiles** (SkillDefinition,
   "Outside a fight") are heard by guards: Quiet turns them to the sound, Loud
   sends them to look. **G** casts the one spell that would do something -
-  Invisibility, Find Familiar, a heal with somebody hurt, Resuscitate with
-  somebody down, a spell on a guard in reach - or asks which; what is always
-  ready (Quicken, a blink, a lure) is on the panel only.
+  Invisibility, a heal with somebody hurt, Resuscitate with somebody down, a
+  spell on a guard in reach - or asks which; what is always ready (Quicken, a
+  blink, a lure) and Find Familiar are on the panel only. With a familiar out,
+  G lets it go.
 - **U - Hide UI.** Everything but the log and the conversation goes - the
   portraits, the action bar, the stealth bar, the objectives, the prompts; the
   guards' cones and meters stay. U again brings it back.
