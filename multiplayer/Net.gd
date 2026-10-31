@@ -92,6 +92,11 @@ signal changed
 signal games_found
 ## Something to tell whoever is at this machine: joined, turned away, the host gone.
 signal told(text: String)
+## What a picture or a store on screen shows of Campaign - the bags, the purse,
+## the flags - was changed by the other machine: the host's state put on here,
+## or on the host what the joiner did (a deal, a picture's or a menu's
+## changes). An open store or picture draws itself again.
+signal campaign_changed
 
 const PORT := 24700
 const DISCOVERY_PORT := 24701
@@ -99,7 +104,7 @@ const DISCOVERY_PORT := 24701
 const BEACON := "MOT-HOST"
 ## What the two machines say to each other. Bumped whenever that changes; a
 ## joiner with another is turned away.
-const PROTOCOL := 3
+const PROTOCOL := 4
 const BEACON_SECONDS := 1.0
 ## How long a game goes unheard before the Join list forgets it.
 const FORGET_SECONDS := 4.0
@@ -430,9 +435,17 @@ func _close():
 	_end_catching_up()
 	if _picture_asked >= 0:
 		_picture_asked = -1
-		_before_the_picture = {}
 		Pictures.close()
 	_scene_wanted = ""
+	_pictures_out.clear()
+	_changes_out.clear()
+	_changes_sent = 0
+	_change_base = {}
+	_changes_taken.clear()
+	_menu_open = false
+	looking_there = {}
+	_looked_at = ""
+	parts_left.clear()
 	Coop.networked = false
 	Coop.local_peer = 0
 	if was_joiner:
@@ -460,6 +473,8 @@ func _on_peer_disconnected(peer: int):
 	var kicked: bool = _kicked_out.get(peer, false)
 	_kicked_out.erase(peer)
 	_choosing.erase(peer)
+	_changes_taken.erase(peer)
+	looking_there = {}
 	if not is_host():
 		return
 	var gone := false
@@ -925,6 +940,8 @@ func may_change_scene(path: String) -> bool:
 func scene_changing(path: String):
 	if follows():
 		return
+	# The dials and pieces left in this map's pictures stay with this map.
+	parts_left.clear()
 	var shared := is_host() and not _seated_peers().is_empty()
 	if path == FIGHT_SCENE and Campaign.current_encounter != null and shared:
 		var fight: EncounterDefinition = Campaign.current_encounter.duplicate()
@@ -941,7 +958,7 @@ func scene_changing(path: String):
 	if into_a_fight:
 		_fight_start_due = {"state": state}
 	if shared:
-		_follow.rpc(path, state, false)
+		_follow.rpc(path, _with_acks(state), false)
 
 
 ## On a joiner, whether the map coming up is one the host is already on, so its
@@ -982,7 +999,7 @@ func _welcome(peer: int):
 		# Where the host's party stands now, not where it came in.
 		state.return_position = scene.party_position()
 		state.return_to_position = true
-	_follow.rpc_id(peer, path, state, true)
+	_follow.rpc_id(peer, path, _with_acks(state), true)
 
 
 @rpc("authority", "reliable")
@@ -1048,11 +1065,12 @@ func _follow_now():
 	_follow_due = {}
 	_close_mirror()
 	# A picture played here for the host ends with the scene it was opened on -
-	# what it changed sent before the host's Campaign is put on.
+	# the last of what it changed sent before the host's Campaign is put on.
 	if _picture_asked >= 0:
 		_picture_done()
 		Pictures.close()
-	Campaign.apply(due.state)
+	parts_left.clear()
+	_put_on_state(due.state, false)
 	_arriving_as_it_stands = due.as_it_stands
 	_following = true
 	SceneTransition.change_scene(due.path)
@@ -1066,7 +1084,7 @@ func _state(state):
 	if SceneTransition.is_changing() or not _follow_due.is_empty():
 		_state_held = state
 		return
-	Campaign.apply(state, _kept_here())
+	_put_on_state(state)
 
 
 ## The Campaign keys a state from the host leaves as this machine has them now:
@@ -1078,24 +1096,29 @@ func _kept_here() -> Array:
 		kept.append("controllers")
 	if not _hack_costs.is_empty():
 		kept.append_array(HACK_KEYS)
-	# A picture played here for the host may change anything but who steers whom.
-	if _picture_asked >= 0:
-		for key in Campaign.SAVED:
-			if key != "controllers" and not kept.has(key):
-				kept.append(key)
 	return kept
 
 
 ## Campaign to the joiner, when it has changed since last sent - or anyway,
-## once in a while.
+## once in a while. Called straight away too, when what the joiner did has just
+## been taken here and it should see so at once.
 func _send_state():
-	var state := Campaign.net_state()
+	if not is_host() or _seated_peers().is_empty():
+		return
+	var state := _with_acks(Campaign.net_state())
 	var digest := hash(var_to_str(state))
 	if digest == _state_digest and _state_anyway > 0.0:
 		return
 	_state_digest = digest
 	_state_anyway = STATE_ANYWAY_SECONDS
 	_state.rpc(state)
+
+
+## `state` with the last change taken from each machine (`acked`, by peer), so
+## the joiner knows which of its own the host has.
+func _with_acks(state: Dictionary) -> Dictionary:
+	state["acked"] = _changes_taken.duplicate()
+	return state
 
 
 ## --- Fights, replayed ---
@@ -1551,27 +1574,38 @@ func _familiar_answer(asker, yes):
 
 ## --- Pictures and stores ---
 ##
-## A point-and-click picture or a store opened for the player on the other
-## machine is theirs, on their own screen: on the host, Pictures.open for the
-## joiner's player - their press at a PictureInteractable, or a conversation
-## they began (`player_now`) - is picture_afar, and a store asked for them is
-## store_afar. The joiner plays the picture (_picture_here) with the host's
-## Campaign kept from it meanwhile (_kept_here: all but who steers whom), and
-## once it is closed sends what it changed (_picture_done: a dictionary by its
-## entries, anything else whole) and the map a hotspot in it sent the party
-## to. The host takes that (_picture_changes), goes there, and whatever opened
-## the picture - a conversation - goes on. A store is a menu on the joiner:
-## what is bought and sold there goes to the host as it closes (_menu_changes).
-## Neither holds anything on the other machine; over a network a picture
-## stands only its own machine's party, as a menu does (Pictures holds
-## MenuPause).
+## A point-and-click picture is both players' to search (the designer,
+## 2026-10-31): each looks on their own screen, and what either finds, takes,
+## turns or solves in it is the other's too, as it happens. One opened for the
+## player on the other machine - their press at a PictureInteractable
+## (`player_now`) - is played there (picture_there -> _picture_here) and waited
+## for, as one here would be. One a conversation opens is both players': played
+## on both, and the player who began the conversation leads - their closing it
+## closes the other's (_close_picture), and the conversation goes on. What a
+## picture played on the joiner changes goes to the host as it is made
+## (_send_changes, "What the joiner changes"); where a hotspot in it sent the
+## party goes as it closes (_picture_done -> _picture_changes, which takes the
+## host there). Over a network a picture stands only its own machine's party,
+## as a menu does (Pictures holds MenuPause). How the two see each other in one
+## is "Looking together".
+##
+## A store is each player's own, on their own screen, and both may have the same
+## one open at once (the designer, 2026-10-31). The purse is the party's one
+## purse, so every deal is the host's to make - the joiner's are sent
+## (store_deal -> _store_deal) - and both stores are drawn again as it is made
+## (campaign_changed). Two buying the last of the gold at once: the first
+## buys, and the second is told there is not enough.
 
 ## The joiner: the number of the picture being played here for the host, or -1.
 var _picture_asked := -1
-## The joiner: Campaign as it stood when that picture opened.
-var _before_the_picture := {}
 ## The joiner: the scene something in that picture sent the party to, or "".
 var _scene_wanted := ""
+## The host: the pictures being played on the other machine, by number -
+## {peer, shared (a conversation's, played here too), lead_afar (the player
+## there leads it)}.
+var _pictures_out := {}
+## The joiner: how long until what the picture here has changed goes anyway.
+var _picture_clock := 0.0
 
 
 ## On the host: the player what is happening now is for - whoever began the
@@ -1582,23 +1616,55 @@ func player_now() -> int:
 	return Coop.acting
 
 
-## On the host: whether `picture` (a path, or a scene) opened now is the other
-## machine's player's, to be played there.
-func picture_goes_afar(picture) -> bool:
+## On the host, as Pictures.open opens `picture` (a path, or a scene) - `first`
+## when no picture is open here: whether it is played on the other machine -
+## for the player there alone (their press, whatever is open here), or for both
+## (a conversation's, opened first) - and if so, sent there. The number it goes
+## by, or -1 when it is this machine's alone.
+func picture_there(picture, first: bool) -> int:
 	var path: String = picture if picture is String else (picture.resource_path if picture is PackedScene else "")
-	return path.begins_with("res://") and plays_afar(player_now())
-
-
-## The host: `picture` played by the player it is for on their machine, and
-## waited for until they close it - what it changed taken here.
-func picture_afar(picture):
-	var path: String = picture if picture is String else picture.resource_path
+	if not is_host() or not with_another() or not path.begins_with("res://"):
+		return -1
+	var lead_afar := plays_afar(player_now())
+	var shared := first and _balloon != null and is_instance_valid(_balloon)
+	if not lead_afar and not shared:
+		return -1
+	var peer: int = Coop.player(player_now()).peer if lead_afar else _seated_peers()[0]
 	_afar_asked += 1
 	var asked := _afar_asked
-	_picture_here.rpc_id(Coop.player(player_now()).peer, asked, path)
+	_pictures_out[asked] = {"peer": peer, "shared": shared, "lead_afar": lead_afar}
+	_picture_here.rpc_id(peer, asked, path)
+	return asked
+
+
+## The host: whether the picture sent as `asked` is played here too - a
+## conversation's, both players'.
+func picture_shared(asked: int) -> bool:
+	return _pictures_out.get(asked, {}).get("shared", false)
+
+
+## The host: whether the player on the other machine leads the picture sent as
+## `asked` - it is theirs, or their conversation's.
+func picture_led_afar(asked: int) -> bool:
+	return _pictures_out.get(asked, {}).get("lead_afar", false)
+
+
+## The host: until the picture sent as `asked` is closed on the other machine -
+## and where a hotspot in it sent the party, gone to.
+func picture_closed_there(asked: int):
 	var answer = await _wait_from_afar(asked)
+	_pictures_out.erase(asked)
 	if answer is Dictionary:
 		_picture_changes(answer)
+
+
+## The host: the player who began the conversation here has closed its picture,
+## so the copy on the other machine (sent as `asked`) is closed too.
+func close_picture_there(asked: int):
+	var peer: int = _pictures_out.get(asked, {}).get("peer", 0)
+	if peer > 1:
+		_close_picture.rpc_id(peer, asked)
+	await picture_closed_there(asked)
 
 
 ## The joiner: a picture to play for the host.
@@ -1610,8 +1676,10 @@ func _picture_here(asked, path):
 		_from_afar.rpc_id(1, asked, {})
 		return
 	_picture_asked = asked
-	_before_the_picture = _campaign_part()
 	_scene_wanted = ""
+	_picture_clock = STATE_SECONDS
+	if _change_base.is_empty():
+		_keep_track()
 	await Pictures.open(path)
 	# Whatever closing it set going - a hotspot sending the party off - has
 	# asked for its scene by the next frame.
@@ -1619,74 +1687,76 @@ func _picture_here(asked, path):
 	_picture_done()
 
 
-## Everything of Campaign a picture may change: all that is saved but who
-## steers whom.
-func _campaign_part() -> Dictionary:
-	var part := {}
-	for key in Campaign.SAVED:
-		if key == "controllers":
-			continue
-		var value = Campaign.get(key)
-		part[key] = value.duplicate(true) if value is Dictionary or value is Array else value
-	return part
+## The joiner: the picture played here as `asked` is closed on the host - by
+## the player who began its conversation there.
+@rpc("authority", "reliable")
+func _close_picture(asked):
+	if follows() and typeof(asked) == TYPE_INT and asked == _picture_asked and Pictures.is_open():
+		Pictures.close()
 
 
-## The joiner: the picture played here for the host is over - what it changed,
-## and where it sent the party, to the host.
+## The joiner: what the picture played here has changed since it last went,
+## sent anyway now and then - every click sends it at once (picture_progressed).
+func _send_picture_changes(delta: float):
+	if _picture_asked < 0:
+		if not _menu_open and _changes_out.is_empty():
+			_change_base = {}
+		return
+	_picture_clock -= delta
+	if _picture_clock <= 0.0:
+		_picture_clock = STATE_SECONDS
+		_send_changes(_picture_keys())
+
+
+## A picture here did something - a click, an item used, two put together, a
+## puzzle solved: on the joiner what it changed goes to the host at once, and
+## on the host its state to the joiner.
+func picture_progressed():
+	if _picture_asked >= 0:
+		_send_changes(_picture_keys())
+	else:
+		send_now()
+
+
+## On the host: Campaign to the joiner now, rather than at the next look - after
+## something done here the other player should see at once (a store's deal).
+func send_now():
+	if is_host():
+		_send_state()
+
+
+## What a picture played on the joiner may change: everything saved but who
+## steers whom - and but what a menu open here keeps for itself meanwhile.
+func _picture_keys() -> Array:
+	var kept := _kept_here()
+	return Campaign.SAVED.filter(func(key): return key != "controllers" and not kept.has(key))
+
+
+## The joiner: the picture played here for the host is over - the last of what
+## it changed, and where it sent the party, to the host.
 func _picture_done():
 	if _picture_asked < 0:
 		return
 	var asked := _picture_asked
 	_picture_asked = -1
-	var now := _campaign_part()
-	var changes := {}
-	for key in now:
-		var was = _before_the_picture.get(key)
-		if var_to_str(now[key]) == var_to_str(was):
-			continue
-		if now[key] is Dictionary and was is Dictionary:
-			# By its entries, so what the host's player changed meanwhile in the
-			# rest of it - a flag, a bag - stands.
-			var entries := {}
-			for entry in now[key]:
-				if not was.has(entry) or var_to_str(now[key][entry]) != var_to_str(was[entry]):
-					entries[entry] = now[key][entry]
-			changes[key] = {"entries": entries, "gone": was.keys().filter(func(entry): return not now[key].has(entry))}
-		else:
-			changes[key] = {"whole": now[key]}
-	_before_the_picture = {}
-	var answer := {"changes": changes}
+	_send_changes(_picture_keys())
+	var answer := {}
 	if _scene_wanted != "":
-		answer["scene"] = _scene_wanted
-		answer["map"] = Campaign.current_map
-		answer["entry"] = Campaign.target_entry
+		answer = {"scene": _scene_wanted, "map": Campaign.current_map, "entry": Campaign.target_entry}
 		_scene_wanted = ""
 	_from_afar.rpc_id(1, asked, answer if is_plain(answer) else {})
 
 
-## The host: what a picture played on the joiner changed, taken here - and the
-## map a hotspot in it sent the party to, gone to.
+## The host: the map a hotspot in a picture played on the other machine sent the
+## party to - gone to, and any picture still open here closed first, since the
+## party has left what it was of.
 func _picture_changes(answer: Dictionary):
-	var changes = answer.get("changes", {})
-	if changes is Dictionary:
-		for key in changes:
-			var change = changes[key]
-			if not Campaign.SAVED.has(key) or key == "controllers" or not change is Dictionary:
-				continue
-			var mine = Campaign.get(key)
-			if change.has("whole"):
-				# Only what is already of that kind: a bag for a bag, a number for gold.
-				if typeof(change.whole) == typeof(mine):
-					Campaign.set(key, change.whole)
-			elif mine is Dictionary and change.get("entries") is Dictionary and change.get("gone") is Array:
-				for entry in change.entries:
-					mine[entry] = change.entries[entry]
-				for entry in change.gone:
-					mine.erase(entry)
 	var scene = answer.get("scene")
 	var map = answer.get("map")
 	if scene is String and scene == Campaign.EXPLORATION_SCENE and map is String and map.begins_with("res://") \
 			and ResourceLoader.exists(map):
+		if Pictures.is_open():
+			Pictures.close()
 		Campaign.travel_to_map(map, str(answer.get("entry", "")))
 		SceneTransition.change_scene(scene)
 
@@ -1701,6 +1771,156 @@ func store_afar(player: int, store: String):
 func _store_here(store):
 	if follows() and typeof(store) == TYPE_STRING and _map() != null:
 		Campaign.open_store(store)
+
+
+## The joiner: a deal in a store open here (StoreScreen) - "buy" `key`, or
+## "sell" one `key` out of `owner`'s bag ("" for the gear stash) - made on the
+## host for this machine's player, out of the party's one purse.
+func store_deal(store: String, deal: String, owner: String, key: String):
+	var mine := Coop.local_players()
+	if follows() and not mine.is_empty():
+		_store_deal.rpc_id(1, mine[0], store, deal, owner, key)
+
+
+@rpc("any_peer", "reliable")
+func _store_deal(id, store, deal, owner, key):
+	if not is_host() or typeof(id) != TYPE_INT or typeof(store) != TYPE_STRING or typeof(deal) != TYPE_STRING \
+			or typeof(owner) != TYPE_STRING or typeof(key) != TYPE_STRING or not _sent_by_whoever_plays(id):
+		return
+	var definition := StoreDefinition.named(store)
+	if definition == null or not deal in ["buy", "sell"]:
+		return
+	# As their player: what they buy goes into their own characters' bags first.
+	var before := Coop.acting
+	Coop.acting = id
+	var refusal := ""
+	if deal == "buy":
+		refusal = Campaign.buy(definition, key)
+	elif not (Campaign.sell_gear(definition, key) if owner == "" else Campaign.sell_item(definition, owner, key)):
+		refusal = "They have none of it left to sell."
+	Coop.acting = before
+	_send_state()
+	campaign_changed.emit()
+	if refusal != "":
+		_store_refused.rpc_id(multiplayer.get_remote_sender_id(), refusal)
+
+
+## The joiner: a deal it asked for did not go - the other player had just spent
+## the gold, or sold the thing - said on its store.
+@rpc("authority", "reliable")
+func _store_refused(why):
+	if not follows() or typeof(why) != TYPE_STRING:
+		return
+	for screen in get_tree().root.find_children("*", "StoreScreen", true, false):
+		screen.refused(why)
+
+
+## --- Looking together ---
+##
+## In a picture each player sees where the other points and what their clicks
+## say (the designer, 2026-10-31: so that they search it together). While a
+## picture is open on a machine its player's pointer goes to the other
+## (_looking, LOOKS_A_SECOND, unreliable): which picture, its title, the one the
+## pictures were opened on, and where in it, from 0 to 1 across and down
+## (Pictures.pointer_in_picture); out of one, that they are not, every
+## LOOK_ANYWAY_SECONDS. A machine showing the same picture draws the other's
+## pointer in their colour (Pictures), and its map shows them looking
+## (ExplorationScene). What a click says goes too (said_in_picture ->
+## _said_there), shown on the same picture there. A dial turned or a piece put
+## down (part_moved -> _moved_there) is laid on any copy of the same picture
+## open there, and kept on both (parts_left), so one opened later shows it as it
+## was left - until the party leaves the map.
+
+const LOOKS_A_SECOND := 15.0
+const LOOK_ANYWAY_SECONDS := 0.5
+## The other machine's player in a picture - {player, path, title, root, at,
+## msec} - or {} while they are in none.
+var looking_there := {}
+## Dials and pieces as they were last left in this map's pictures, by picture
+## and part ("picture::part") - what each shows.
+var parts_left := {}
+var _look_clock := 0.0
+var _looked_at := ""
+
+
+func _say_what_i_look_at(delta: float):
+	_look_clock -= delta
+	var picture: Picture = Pictures.current() if Pictures.is_open() else null
+	var path := picture.picture_id() if picture != null else ""
+	if _look_clock > 0.0 and path == _looked_at:
+		return
+	_look_clock = 1.0 / LOOKS_A_SECOND if path != "" else LOOK_ANYWAY_SECONDS
+	_looked_at = path
+	var mine := Coop.local_players()
+	if mine.is_empty():
+		return
+	var root: Picture = Pictures.first() if picture != null else null
+	_looking.rpc(mine[0], path, picture.title if picture != null else "", root.picture_id() if root != null else "",
+		Pictures.pointer_in_picture())
+
+
+@rpc("any_peer", "unreliable_ordered")
+func _looking(id, path, title, root, at):
+	if typeof(id) != TYPE_INT or typeof(path) != TYPE_STRING or typeof(title) != TYPE_STRING \
+			or typeof(root) != TYPE_STRING or typeof(at) != TYPE_VECTOR2 or not _sent_by_whoever_plays(id):
+		return
+	looking_there = {} if path == "" else {"player": id, "path": path, "title": title.left(80), "root": root,
+		"at": at, "msec": Time.get_ticks_msec()}
+
+
+## Whether player `id`, on the other machine, has a picture open - one opened on
+## `root`, when that is given.
+func looking_at_a_picture(id: int, root: String = "") -> bool:
+	return not looking_there.is_empty() and looking_there.player == id \
+		and Time.get_ticks_msec() - looking_there.msec < LOOK_ANYWAY_SECONDS * 4000.0 \
+		and (root == "" or looking_there.root == root)
+
+
+## A click in the picture on show here said `text`: to the other machine, for
+## the same picture there.
+func said_in_picture(text: String):
+	var picture: Picture = Pictures.current()
+	var mine := Coop.local_players()
+	if with_another() and picture != null and text != "" and not mine.is_empty():
+		_said_there.rpc(mine[0], picture.picture_id(), text.left(400))
+
+
+@rpc("any_peer", "reliable")
+func _said_there(id, path, text):
+	if typeof(id) == TYPE_INT and typeof(path) == TYPE_STRING and typeof(text) == TYPE_STRING and _sent_by_whoever_plays(id):
+		Pictures.said_there(id, path, text)
+
+
+## A dial turned or a piece put down in a picture here (Pictures.part_moved),
+## `completes` when that finished its puzzle here: kept, and to the other
+## machine, to be laid on its copy.
+func part_moved(path: String, part: String, state: Dictionary, completes: bool):
+	if not with_another() or not is_plain(state):
+		return
+	parts_left[path + "::" + part] = state
+	_moved_there.rpc(path, part, state, completes)
+
+
+@rpc("any_peer", "reliable")
+func _moved_there(path, part, state, completes):
+	var sender := multiplayer.get_remote_sender_id()
+	if typeof(path) != TYPE_STRING or typeof(part) != TYPE_STRING or typeof(state) != TYPE_DICTIONARY \
+			or typeof(completes) != TYPE_BOOL or not is_plain(state):
+		return
+	if (is_host() and not _seated_peers().has(sender)) or (not is_host() and (not follows() or sender != 1)):
+		return
+	parts_left[path + "::" + part] = state
+	Pictures.lay_part(path, part, state, completes)
+
+
+## The dials and pieces last left in the picture at `path` on this map, by
+## their place in it.
+func parts_of(path: String) -> Dictionary:
+	var found := {}
+	for key in parts_left:
+		if key.begins_with(path + "::"):
+			found[key.trim_prefix(path + "::")] = parts_left[key]
+	return found
 
 
 ## --- Catching up ---
@@ -1907,6 +2127,7 @@ func _line(character, text, answers, starter):
 	if _mirror == null or not is_instance_valid(_mirror):
 		_mirror = ConversationMirror.new()
 		get_tree().root.add_child(_mirror)
+	_mirror_starter = starter
 	_mirror.show_line(character, text, shown, Coop.is_local(starter))
 	_hold_for_conversation(true)
 
@@ -1920,7 +2141,24 @@ func _close_mirror():
 	if _mirror != null and is_instance_valid(_mirror):
 		_mirror.queue_free()
 	_mirror = null
+	_mirror_starter = -1
 	_hold_for_conversation(false)
+
+
+## The joiner: who began the conversation the mirror shows.
+var _mirror_starter := -1
+
+
+## The player whose conversation is on, when they play on the other machine -
+## this machine's map glides its camera to them while it lasts (the designer,
+## 2026-10-31; ExplorationScene "The camera in another's conversation") - or -1.
+func conversation_focus() -> int:
+	var starter := -1
+	if is_host() and _balloon != null and is_instance_valid(_balloon) and with_another():
+		starter = _starter
+	elif follows() and _mirror != null and is_instance_valid(_mirror):
+		starter = _mirror_starter
+	return starter if starter >= 0 and starter < Coop.players.size() and not Coop.is_local(starter) else -1
 
 
 ## A conversation on the host holds the joiner's own party too.
@@ -1972,17 +2210,19 @@ func _converse(choice):
 ## What a menu on the joiner changes - the bags, the gear, gold, spells
 ## learned, paths chosen (MENU_KEYS) - is the joiner's own doing: while one is
 ## open the host's Campaign goes on arriving but for those, which stay as the
-## joiner has them; once it closes, those of them it changed are sent to the
-## host (_menu_changes), which takes them and sends Campaign back to both. A
-## menu that changes none of them (the Players panel, the journal) sends
-## nothing. The host trusts the joiner with that much.
+## joiner has them; once it closes, what it changed of them goes to the host
+## (_send_changes), laid over whatever the host's player did meanwhile - so
+## bags sorted here while a store was bought from there keep both. A menu that
+## changes none of them (the Players panel, the journal) sends nothing. Two
+## menus keep nothing: a store, whose deals are the host's to make
+## (store_deal), and the pictures, whose changes go as they are made
+## (_a_menu_keeps). The host trusts the joiner with that much.
 
 const MENU_KEYS := ["inventories", "containers", "stacks", "equipped", "gear", "gold", "learned_spells",
 	"subclasses", "path_change_open"]
 
+## The joiner: whether a menu that keeps MENU_KEYS is open here.
 var _menu_open := false
-## The joiner: MENU_KEYS as they stood when a menu opened.
-var _before_the_menu := {}
 
 
 ## A menu opened or shut here (MenuPause): stood for at once rather than at the
@@ -1994,12 +2234,17 @@ func menus_changed():
 
 func _stand_for_menus():
 	var held := MenuPause.is_held()
-	if follows() and held != _menu_open:
-		if held:
-			_before_the_menu = _menu_part()
+	var keeping := held and _a_menu_keeps()
+	if follows() and keeping != _menu_open:
+		if keeping:
+			# What the picture here has changed goes first: from now on the menu
+			# keeps its keys for itself.
+			if _picture_asked >= 0:
+				_send_changes(_picture_keys())
+			_keep_track(MENU_KEYS if not _change_base.is_empty() else [])
 		else:
-			_send_what_the_menu_changed()
-	_menu_open = held
+			_send_changes(MENU_KEYS)
+	_menu_open = keeping
 	var scene := _map()
 	if scene == null:
 		return
@@ -2009,37 +2254,282 @@ func _stand_for_menus():
 			group.in_a_menu = held
 
 
-func _menu_part() -> Dictionary:
-	var part := {}
-	for key in MENU_KEYS:
-		var value = Campaign.get(key)
-		part[key] = value.duplicate(true) if value is Dictionary or value is Array else value
-	return part
+## Whether a menu open here keeps MENU_KEYS as this machine has them while it
+## is open: any but a store (its deals are the host's) and the pictures (their
+## changes go as they are made).
+func _a_menu_keeps() -> bool:
+	for holder in MenuPause.holders():
+		if not (holder is StoreScreen or holder == Pictures):
+			return true
+	return false
 
 
-func _send_what_the_menu_changed():
-	var now := _menu_part()
-	var changed_keys := {}
-	for key in MENU_KEYS:
-		if var_to_str(now[key]) != var_to_str(_before_the_menu.get(key)):
-			changed_keys[key] = now[key]
-	_before_the_menu = {}
-	if not changed_keys.is_empty() and is_plain(changed_keys):
-		_menu_changes.rpc_id(1, changed_keys)
+## --- What the joiner changes ---
+##
+## On a joiner Campaign is the host's, but a picture played here and a menu open
+## here change it here and at once, so that they answer at once - a picture
+## anything saved but who steers whom (_picture_keys), a menu MENU_KEYS. Those
+## changes go to the host (_send_changes): a picture's as they are made, a
+## menu's as it closes. Each goes with what it changed from, and the host lays
+## it over whatever its own player did meanwhile (_merged): a dictionary entry
+## by entry, a list place by place, gold by how far it went up or down. Where
+## the host's player changed the same thing first, the joiner's whole change is
+## dropped (_clashed) - so a seal both reached for at once is taken once. Until
+## the host's state says it has a change (`acked`), every state from it is put
+## on here with the changes still on their way laid back over it
+## (_put_on_state), so nothing done here jumps back meanwhile.
+
+## The joiner: the changes sent to the host that its state does not have yet -
+## [number, changes] each.
+var _changes_out: Array = []
+var _changes_sent := 0
+## The joiner: Campaign as the host has it, with the changes on their way laid
+## over it - what this machine's own changes are told against, by key. Empty
+## while nothing here changes Campaign.
+var _change_base := {}
+## The host: the last change taken from each machine, by peer.
+var _changes_taken := {}
+## What a picture or a store on screen shows of Campaign (campaign_changed).
+const SHOWN_KEYS := ["flags", "inventories", "stacks", "containers", "gear", "equipped", "gold", "party_state"]
 
 
-@rpc("any_peer", "reliable")
-func _menu_changes(changes):
-	if not is_host() or typeof(changes) != TYPE_DICTIONARY or not _seated_peers().has(multiplayer.get_remote_sender_id()):
+## The joiner: Campaign as it stands now taken as where this machine's changes
+## start from - `keys`, or everything saved but who steers whom.
+func _keep_track(keys: Array = []):
+	for key in (keys if not keys.is_empty() else Campaign.SAVED):
+		if key != "controllers":
+			var value = Campaign.get(key)
+			_change_base[key] = value.duplicate(true) if value is Dictionary or value is Array else value
+
+
+## The joiner: what has changed of `keys` here since _change_base - each
+## dictionary by its entries ([there, value] before and now), gold by how much,
+## the rest as it was and is.
+func _changes_since(keys: Array) -> Dictionary:
+	var changes := {}
+	if _change_base.is_empty():
+		return changes
+	for key in keys:
+		if not _change_base.has(key):
+			continue
+		var now = Campaign.get(key)
+		var was = _change_base[key]
+		if _same_value(now, was):
+			continue
+		if now is Dictionary and was is Dictionary:
+			var entries := {}
+			for entry in _keys_of(was, now):
+				var before := [was.has(entry), was.get(entry)]
+				var after := [now.has(entry), now.get(entry)]
+				if not _same(before, after):
+					entries[entry] = [before, after]
+			changes[key] = {"entries": entries}
+		elif key == "gold" and typeof(now) == TYPE_INT and typeof(was) == TYPE_INT:
+			changes[key] = {"by": now - was}
+		else:
+			changes[key] = {"was": was, "now": now}
+	return changes
+
+
+## The joiner: what has changed of `keys` here, to the host - and from now on
+## told against as the host's.
+func _send_changes(keys: Array):
+	if not follows():
+		return
+	var changes := _changes_since(keys)
+	if changes.is_empty() or not is_plain(changes):
 		return
 	for key in changes:
-		if not MENU_KEYS.has(key):
+		var now = Campaign.get(key)
+		_change_base[key] = now.duplicate(true) if now is Dictionary or now is Array else now
+	_changes_sent += 1
+	_changes_out.append([_changes_sent, changes])
+	_changes.rpc_id(1, _changes_sent, changes)
+
+
+## The host: a change made on the joiner (number `number`), laid over Campaign
+## here - all of it, or none of it where the host's player changed the same
+## thing first. Either way the joiner hears at once that it is taken.
+@rpc("any_peer", "reliable")
+func _changes(number, changes):
+	var peer := multiplayer.get_remote_sender_id()
+	if not is_host() or typeof(number) != TYPE_INT or typeof(changes) != TYPE_DICTIONARY or not _seated_peers().has(peer):
+		return
+	_changes_taken[peer] = maxi(number, int(_changes_taken.get(peer, 0)))
+	# A picture played there may change anything saved but who steers whom; a
+	# menu there, only what a menu does.
+	var picture_there := _pictures_out.values().any(func(out): return out.peer == peer)
+	var merged := {}
+	var clashed := false
+	for key in changes:
+		var allowed: bool = MENU_KEYS.has(key) or (picture_there and Campaign.SAVED.has(key) and key != "controllers")
+		var result: Array = _merged(Campaign.get(key), changes[key]) if allowed and changes[key] is Dictionary else [false]
+		if not result[0]:
+			clashed = true
+			break
+		merged[key] = result[1]
+	if clashed:
+		_clashed.rpc_id(peer)
+	else:
+		for key in merged:
+			Campaign.set(key, merged[key])
+		if merged.has("gold"):
+			Campaign.gold_changed.emit(Campaign.gold)
+		if merged.has("gear"):
+			Campaign.gear_changed.emit()
+		if merged.keys().any(func(key): return SHOWN_KEYS.has(key)):
+			campaign_changed.emit()
+	_send_state()
+
+
+## The joiner: what it last sent clashed with what the host's player did first,
+## and is undone - said where it was done.
+@rpc("authority", "reliable")
+func _clashed():
+	if not follows():
+		return
+	var mine := Coop.local_players()
+	var other := _other_than(mine[0] if not mine.is_empty() else 1)
+	var text := "%s got there first." % Coop.name_of(other)
+	if Pictures.is_open():
+		Pictures.got_there_first(text)
+	else:
+		told.emit(text)
+
+
+## `change` (one key's, from _changes_since) laid over `mine` - [true, what
+## comes of it], or [false] where the host's side changed the same thing
+## meanwhile.
+func _merged(mine, change: Dictionary) -> Array:
+	if change.has("by"):
+		if typeof(mine) != TYPE_INT or typeof(change.by) != TYPE_INT:
+			return [false]
+		return [true, maxi(mine + change.by, 0)]
+	if change.has("entries"):
+		if not mine is Dictionary or not change.entries is Dictionary:
+			return [false]
+		var merged: Dictionary = mine.duplicate(true)
+		for entry in change.entries:
+			var sides = change.entries[entry]
+			if not _two_sides(sides):
+				return [false]
+			var result := _merged_value([merged.has(entry), merged.get(entry)], sides[0], sides[1])
+			if not result[0]:
+				return [false]
+			if result[1][0]:
+				merged[entry] = result[1][1]
+			else:
+				merged.erase(entry)
+		return [true, merged]
+	if change.has("now"):
+		var result := _merged_value([true, mine], [true, change.get("was")], [true, change.now])
+		if not result[0] or not result[1][0] or typeof(result[1][1]) != typeof(mine):
+			return [false]
+		return [true, result[1][1]]
+	return [false]
+
+
+## Three ways, each [there, value]: what the host has (`mine`), and what the
+## joiner had (`was`) and has (`now`). The joiner's stands where the host's
+## side is still as the joiner found it; a list or a dictionary both sides
+## changed is gone through place by place; one thing both sides changed is a
+## clash ([false]) - even to the same, since two hands took it.
+func _merged_value(mine: Array, was: Array, now: Array) -> Array:
+	if _same(mine, was):
+		return [true, now]
+	if _same(was, now):
+		return [true, mine]
+	if not (mine[0] and was[0] and now[0]):
+		return [false]
+	var a = mine[1]
+	var b = was[1]
+	var c = now[1]
+	if a is Dictionary and b is Dictionary and c is Dictionary:
+		var merged: Dictionary = a.duplicate(true)
+		for key in _keys_of(b, c):
+			var result := _merged_value([a.has(key), a.get(key)], [b.has(key), b.get(key)], [c.has(key), c.get(key)])
+			if not result[0]:
+				return [false]
+			if result[1][0]:
+				merged[key] = result[1][1]
+			else:
+				merged.erase(key)
+		return [true, [true, merged]]
+	if a is Array and b is Array and c is Array and a.size() == b.size() and b.size() == c.size():
+		var merged: Array = a.duplicate(true)
+		for i in b.size():
+			var result := _merged_value([true, a[i]], [true, b[i]], [true, c[i]])
+			if not result[0] or not result[1][0]:
+				return [false]
+			merged[i] = result[1][1]
+		return [true, [true, merged]]
+	return [false]
+
+
+func _two_sides(sides) -> bool:
+	return sides is Array and sides.size() == 2 and sides.all(func(side): return side is Array and side.size() == 2 \
+		and typeof(side[0]) == TYPE_BOOL)
+
+
+## Both [there, value] the same: both absent, or both there with the same value.
+func _same(a: Array, b: Array) -> bool:
+	return a[0] == b[0] and (not a[0] or _same_value(a[1], b[1]))
+
+
+## The same value - a list typed or not, so long as what is in it is the same.
+## Two of different kinds are never the same (and never compared, which for a
+## bool and a String is an error).
+func _same_value(a, b) -> bool:
+	return typeof(a) == typeof(b) and a == b
+
+
+## Every key in either dictionary, once.
+func _keys_of(a: Dictionary, b: Dictionary) -> Array:
+	var keys := a.keys()
+	for key in b:
+		if not a.has(key):
+			keys.append(key)
+	return keys
+
+
+## The joiner: `changes` (from _changes_since) laid over Campaign here, as the
+## host will lay them - none of them, where one would clash.
+func _lay_over(changes: Dictionary):
+	var merged := {}
+	for key in changes:
+		if not Campaign.SAVED.has(key) or key == "controllers" or not changes[key] is Dictionary:
 			continue
-		var value = changes[key]
-		# Only what is already of that kind: a bag for a bag, a number for gold.
-		if typeof(value) != typeof(Campaign.get(key)):
-			continue
-		Campaign.set(key, value.duplicate(true) if value is Dictionary or value is Array else value)
+		var result := _merged(Campaign.get(key), changes[key])
+		if not result[0]:
+			return
+		merged[key] = result[1]
+	for key in merged:
+		Campaign.set(key, merged[key])
+
+
+## The joiner: Campaign from the host put on here - but for what an open menu
+## keeps (`keeping`), with this machine's changes on their way laid back over
+## it, and what was changed here since the last of them went laid over that.
+func _put_on_state(state: Dictionary, keeping: bool = true):
+	var acked = state.get("acked", {})
+	if acked is Dictionary:
+		var taken := int(acked.get(multiplayer.get_unique_id(), 0))
+		_changes_out = _changes_out.filter(func(out): return out[0] > taken)
+	var kept: Array = _kept_here() if keeping else []
+	var unsent := _changes_since(Campaign.SAVED.filter(func(key): return not kept.has(key)))
+	var shown_before := hash(var_to_str(_shown()))
+	Campaign.apply(state, kept)
+	for out in _changes_out:
+		_lay_over(out[1])
+	if not _change_base.is_empty():
+		_keep_track(Campaign.SAVED.filter(func(key): return not kept.has(key)))
+	_lay_over(unsent)
+	if hash(var_to_str(_shown())) != shown_before:
+		campaign_changed.emit()
+
+
+func _shown() -> Array:
+	return SHOWN_KEYS.map(func(key): return Campaign.get(key))
 
 
 ## --- Guards ---
@@ -2681,8 +3171,10 @@ func _process(delta: float):
 	if follows():
 		_follow_now()
 		if _state_held != null and _follow_due.is_empty() and not SceneTransition.is_changing():
-			Campaign.apply(_state_held, _kept_here())
+			var held: Dictionary = _state_held
 			_state_held = null
+			_put_on_state(held)
+		_send_picture_changes(delta)
 		# Out of the fight: who steers whom is the host's table's again.
 		if _controllers_after_fight != null and not in_a_shared_fight() and not _fight_coming:
 			Campaign.controllers = _controllers_after_fight
@@ -2692,6 +3184,7 @@ func _process(delta: float):
 		_keep_catching_up()
 	if with_another():
 		_say_where(delta)
+		_say_what_i_look_at(delta)
 		_stand_for_menus()
 		_play_moves()
 	if is_host() and not _seated_peers().is_empty():

@@ -76,9 +76,9 @@ being tested is timed.
 `net` is two machines: it starts a second headless Godot on the same copy
 (`--net-client`) for the joiner's half, and the two wait on each other with
 `say` / `hear`. It plays a map, a stealth stage and two fights - the second
-joined under way and caught up with - so its budget is 900 seconds. On the
-stage the joiner also drags a body while creeping, and opens a picture and a
-store from the host's map; a menu left open on the joiner keeps its presses,
+joined under way and caught up with - so its budget is 1140 seconds. On the
+stage the joiner also drags a body while creeping, and searches a picture and
+a lock with the host's player, both at one store; a menu left open on the joiner keeps its presses,
 so its half puts away any share-out offer (`close_offers`) before it presses
 something meant for the map. A driver
 that does not parse runs the main scene until that budget is spent, so check a

@@ -76,16 +76,16 @@ func examined_id() -> String:
 	return "%s::%s" % [at.picture_id(), at.get_path_to(self)]
 
 
-## Whether every part is where it should be. Called by the parts as they move.
-func check():
-	if _solved:
-		return
+## Whether every part is where it should be.
+func all_right() -> bool:
 	var parts := dials() + pieces()
-	if parts.is_empty():
+	return not parts.is_empty() and parts.all(func(part): return part.is_right())
+
+
+## Solved, if every part is where it should be. Called by the parts as they move.
+func check():
+	if _solved or not all_right():
 		return
-	for part in parts:
-		if not part.is_right():
-			return
 	_settle()
 	if solved_flag != "":
 		Campaign.set_flag(solved_flag)
@@ -93,6 +93,13 @@ func check():
 	if viewer != null:
 		viewer.puzzle_solved(self)
 	solved.emit()
+
+
+## Held still as solved, and nothing more: over a network, solved on the other
+## machine, whose flag and whatever it gives come from there (Pictures.lay_part).
+func settle():
+	if not _solved:
+		_settle()
 
 
 ## Puts every part where it belongs and holds it there - past answering the

@@ -75,6 +75,9 @@ func turn(step: int = 1):
 		viewer.nudge(self)
 	if owner_puzzle != null:
 		owner_puzzle.check()
+	# Over a network the other player sees it turn (Pictures.part_moved).
+	if viewer != null:
+		viewer.part_moved(self)
 
 
 func verb_name() -> String:

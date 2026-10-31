@@ -161,7 +161,8 @@ do Campaign.to_main_menu()
 	fi
 	if [ "$d" = "net" ]; then
 		# A line to press on through, then a question with two answers, each
-		# leaving its own flag - begun on one machine, chosen on both.
+		# leaving its own flag - begun on one machine, chosen on both. And a
+		# picture a conversation opens, both players'.
 		printf '~ start
 Cyrus: Hold on.
 Cyrus: Which way?
@@ -169,6 +170,11 @@ Cyrus: Which way?
 	do Campaign.set_flag("net_went_left")
 - Right
 	do Campaign.set_flag("net_went_right")
+=> END
+~ look
+Cyrus: Look at this.
+do Pictures.open("res://pictures/clues_desk.tscn")
+Cyrus: Seen enough.
 => END
 ' > "$DST/dialogue/_net_probe.dialogue"
 		"$GODOT" --headless --path "$DST" --import >/dev/null 2>&1
@@ -183,7 +189,7 @@ Cyrus: Which way?
 	# Every skill and item used once - more of them with every one added.
 	if [ "$d" = "everycast" ]; then budget=600; fi
 	# Two Godots, playing a map, a stealth stage and a whole fight between them.
-	if [ "$d" = "net" ]; then budget=900; fi
+	if [ "$d" = "net" ]; then budget=1140; fi
 	timeout $budget "$GODOT" --headless --path "$DST" >/dev/null 2>"$LOGS/_err.txt"
 	code=$?
 	# Godot's own errors went to _err.txt and were never looked at, so a script

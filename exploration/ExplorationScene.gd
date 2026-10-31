@@ -449,12 +449,151 @@ func _follow_camera(leader_position: Vector2):
 		return
 	if _frame_groups():
 		return
-	camera.position = leader_position
+	_aim_camera(leader_position)
+
+
+## Puts the camera on `at` (at `zoom_level`, when one is given) - or, while it
+## glides (The camera in another's conversation), aims the glide there.
+func _aim_camera(at: Vector2, zoom_level: float = 0.0):
+	if _camera_gliding():
+		var keep_zoom: float = _camera_aim[1] if not _camera_aim.is_empty() else camera.zoom.x
+		_camera_aim = [at, zoom_level if zoom_level > 0.0 else keep_zoom]
+		return
+	if zoom_level > 0.0:
+		camera.zoom = Vector2.ONE * zoom_level
+	camera.position = at
 	if camera.has_method("clamp_to_map"):
 		# The battle camera's clamping: the middle of the view stays on the
 		# map, so the leader is kept in the middle of the screen right up to
 		# its edge rather than pushed out towards the HUD there.
 		camera.clamp_to_map()
+
+
+## --- The camera in another's conversation ---
+##
+## Over a network, a conversation begun by the player on the other machine
+## draws this machine's camera to them (the designer, 2026-10-31): it glides
+## onto their leader at the map's own zoom while it lasts
+## (Net.conversation_focus), and back to whatever it would be framing once it is
+## over - for CAMERA_BACK_SECONDS, then it follows as ever.
+
+## How quickly the camera glides: the share of the way left covered in a second
+## is 1 - e^-CAMERA_GLIDE - a PROPOSAL value.
+const CAMERA_GLIDE := 4.0
+## How long the way back is glided before the camera follows as ever, seconds -
+## a PROPOSAL value.
+const CAMERA_BACK_SECONDS := 1.0
+
+## The player whose conversation the camera is on, or -1.
+var conversation_shot := -1
+## Gliding back from one: how long is left of it.
+var _gliding_back := 0.0
+## Where the camera would be meanwhile, by everything else that moves it:
+## [position, zoom] - empty when nothing has said.
+var _camera_aim := []
+
+
+func _camera_gliding() -> bool:
+	return conversation_shot >= 0 or _gliding_back > 0.0
+
+
+func _glide_camera(delta: float):
+	if camera == null:
+		return
+	var focus := Net.conversation_focus()
+	var group = groups.get(focus) if focus >= 0 else null
+	if group != null and is_instance_valid(group) and group.leader != null:
+		if conversation_shot < 0:
+			_camera_aim = [camera.position, camera.zoom.x]
+		conversation_shot = focus
+		_gliding_back = 0.0
+		_glide(group.leader.position, _coop_zoom if _coop_zoom > 0.0 else camera.zoom.x, delta)
+		return
+	if conversation_shot >= 0:
+		conversation_shot = -1
+		_gliding_back = CAMERA_BACK_SECONDS
+		# Where it would be now, everybody where they stand.
+		if _main_party != null and _main_party.leader != null:
+			_follow_camera(_main_party.position_of_leader())
+	if _gliding_back <= 0.0:
+		return
+	_gliding_back -= delta
+	if _camera_aim.is_empty():
+		_gliding_back = 0.0
+	elif _gliding_back > 0.0:
+		_glide(_camera_aim[0], _camera_aim[1], delta)
+	else:
+		var aim := _camera_aim
+		_camera_aim = []
+		_aim_camera(aim[0], aim[1])
+
+
+## The camera a step of the way to `at` at `zoom_level`, by CAMERA_GLIDE.
+func _glide(at: Vector2, zoom_level: float, delta: float):
+	var share := 1.0 - exp(-CAMERA_GLIDE * delta)
+	camera.position = camera.position.lerp(at, share)
+	camera.zoom = camera.zoom.lerp(Vector2.ONE * zoom_level, share)
+	if camera.has_method("clamp_to_map"):
+		camera.clamp_to_map()
+
+
+## --- Looking at a picture, over a network ---
+##
+## The other machine's player in a picture (Net.looking_at_a_picture): an eye
+## over their leader's head, in their colour, with the picture's name - so this
+## player knows to walk up and look too.
+
+var _looking_marks := {}
+
+
+func _mark_the_looking():
+	for id in groups:
+		var group = groups[id]
+		var mark = _looking_marks.get(id)
+		var looking: bool = is_instance_valid(group) and group.puppet and group.leader != null and Net.looking_at_a_picture(id)
+		if not looking:
+			if mark != null and is_instance_valid(mark):
+				mark.visible = false
+			continue
+		if mark == null or not is_instance_valid(mark):
+			mark = _LookingMark.new()
+			mark.name = "Looking"
+			mark.z_index = ExplorationParty.PARTY_Z_TOP + 5
+			group.add_child(mark)
+			_looking_marks[id] = mark
+		mark.visible = true
+		mark.global_position = group.leader.global_position
+		var title: String = Net.looking_there.get("title", "")
+		if mark.colour != Coop.colour_of(id) or mark.title != title:
+			mark.colour = Coop.colour_of(id)
+			mark.title = title
+			mark.queue_redraw()
+
+
+## An eye over a head, and what is being looked at.
+class _LookingMark extends Node2D:
+	var colour := Color.WHITE
+	var title := ""
+
+	## Sized by the tile, as the map is drawn: far out, a tile is a hand's
+	## breadth on screen.
+	func _draw():
+		var tile := float(Grid.TILE_SIZE)
+		var c := Vector2(0, -tile * 1.2)
+		var r := tile * 0.2
+		var line := tile * 0.035
+		draw_circle(c, r, Color(0.04, 0.05, 0.07, 0.85))
+		draw_arc(c, r, 0.0, TAU, 32, colour, line)
+		draw_arc(c + Vector2(0, r * 0.4), r * 0.68, PI * 1.2, PI * 1.8, 14, colour, line)
+		draw_arc(c - Vector2(0, r * 0.4), r * 0.68, PI * 0.2, PI * 0.8, 14, colour, line)
+		draw_circle(c, r * 0.2, colour)
+		if title != "":
+			var font := ThemeDB.fallback_font
+			var size := int(tile * 0.17)
+			var width := font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+			var at := c + Vector2(-width / 2.0, -r * 1.35)
+			draw_string_outline(font, at, title, HORIZONTAL_ALIGNMENT_LEFT, -1, size, int(tile * 0.04), Color(0, 0, 0, 0.85))
+			draw_string(font, at, title, HORIZONTAL_ALIGNMENT_LEFT, -1, size, colour)
 
 
 ## Doors and ambushes marked `automatic` fire by being walked into.
@@ -698,6 +837,15 @@ func _on_party_leveled(_level: int):
 
 
 func _process(delta):
+	# Over a network: the camera drawn to another's conversation, and the other
+	# player marked while they look at a picture - a conversation or not.
+	if Net.with_another():
+		_glide_camera(delta)
+		_mark_the_looking()
+	elif _camera_gliding():
+		conversation_shot = -1
+		_gliding_back = 0.0
+		_camera_aim = []
 	if picker != null or store_screen != null or is_holding() or get_tree().paused or SceneTransition.is_changing():
 		return
 	_hurry_on(delta)
@@ -1003,7 +1151,7 @@ func _frame_groups() -> bool:
 		leaders.append(familiar_keeper.familiar.position)
 	if leaders.size() < 2:
 		if _coop_zoom > 0.0:
-			camera.zoom = Vector2.ONE * _coop_zoom
+			_aim_camera(_camera_aim[0] if not _camera_aim.is_empty() else camera.position, _coop_zoom)
 			_coop_zoom = 0.0
 		return false
 	var box := Rect2(leaders[0], Vector2.ZERO)
@@ -1014,10 +1162,7 @@ func _frame_groups() -> bool:
 	var view: Vector2 = camera.get_viewport_rect().size
 	var room := box.size + Vector2.ONE * Grid.tiles(COOP_VIEW_ROOM)
 	var needed := minf(view.x / room.x, view.y / room.y)
-	camera.zoom = Vector2.ONE * clampf(needed, _coop_zoom * COOP_ZOOM_FLOOR, _coop_zoom)
-	camera.position = box.get_center()
-	if camera.has_method("clamp_to_map"):
-		camera.clamp_to_map()
+	_aim_camera(box.get_center(), clampf(needed, _coop_zoom * COOP_ZOOM_FLOOR, _coop_zoom))
 	return true
 
 

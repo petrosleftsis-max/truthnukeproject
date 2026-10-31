@@ -6,7 +6,8 @@ updated 2026-10-31, after Steps 2 and 3 of the network play (LAN, and online
 by UPnP), the designer's additions to it, the pictures, stores and dragging
 across the network, the placeholder projectiles, and everything in
 `docs/move_feel_proposals.md` but moves coming down from above or up from
-below. Steps 4 and 5 wait on the designer.
+below - and then pictures searched together, stores shared, and the camera
+drawn to the other player's conversation. Steps 4 and 5 wait on the designer.
 
 ## How the designer works with Claude
 
@@ -58,6 +59,8 @@ Steps 0-5 with what to change where and how to test it. In order:
    - the point-and-click pictures and stores, opened on the screen of whoever
      they are for, and a dragged body's pace and creeping on the joiner's own
      screen (2026-10-31);
+   - pictures both players search together, stores both shop at out of one
+     purse, and the camera drawn to the other's conversation (2026-10-31);
    - leaving mid-fight.
 
    Still to come: trying it on two real machines (the README's "Two players"
@@ -77,6 +80,27 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **Pictures searched together, stores shared, the camera drawn to a
+  conversation** (the designer, 2026-10-31; `docs/multiplayer_plan.md` "Added
+  after Step 3", CLAUDE.md "Network play"; suite `net`):
+  - Both players may have the same point-and-click picture open, each on their
+    own screen; the other walks up and opens it too (an eye over a player's
+    head on the other's map says they are looking). What either finds, takes,
+    turns or solves is the other's at once; each sees the other's pointer and
+    what their clicks say; dials and pieces move on both. Two reaching for one
+    thing at once: the first gets it, the other is told.
+  - A conversation's picture opens on both; whoever began the conversation
+    closes it for both.
+  - A store is each player's own and both may have the same one open; every
+    deal is made on the host out of the one purse, both stores redraw, and the
+    last of the gold is bought once.
+  - The joiner's changes - a picture's as they are made, a menu's as it closes -
+    are laid over the host's player's (flags and bags entry by entry, gold by
+    how much), so neither undoes the other. The Journal opens from a picture
+    over a network again.
+  - A conversation one player begins glides the other's camera to them, and
+    back once it ends (`CAMERA_GLIDE`, `CAMERA_BACK_SECONDS`: PROPOSAL).
+  - Not yet tried on two real machines.
 - **How moves are felt** (the designer, 2026-10-30: everything in
   `docs/move_feel_proposals.md` "except ... moves that come down from above
   (hammers, suns) or up from below (spikes)"; built 2026-10-31):
@@ -238,8 +262,12 @@ holds the game for both).
 6. **Multiplayer values:** local co-op is built with the plan's defaults
    (PROPOSAL) for its open questions. Also open: which pad button pings (none
    is free; Share for now in co-op), the 10-tile leash, the 12-tile cone, and
-   which enemies Protect Their Own. The network itself is approved - see "Next
-   to build". **Itch is left alone** - nothing published, the page untouched -
+   which enemies Protect Their Own. Over a network (2026-10-31): two players
+   changing one thing at the same moment - the first stands, the other is
+   undone and told (a PROPOSAL rule, the ledger's "what the joiner changes");
+   how fast the camera glides to a conversation (CAMERA_GLIDE 4,
+   CAMERA_BACK_SECONDS 1). The network itself is approved - see "Next to
+   build". **Itch is left alone** - nothing published, the page untouched -
    until the designer says (2026-10-30: more work on the game first); then the
    browser version comes off and the Mac and Linux builds go up. Shipping the
    music as Ogg Vorbis, and notarizing the Mac build (an Apple developer

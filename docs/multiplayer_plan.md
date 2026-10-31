@@ -63,8 +63,10 @@ leans on the one before.
   hands their characters to the other (`ui/net_panel.gd`,
   `ui/conversation_mirror.gd`, `ui/character_choice.gd`, `ui/steer_request.gd`;
   suite `net`, which plays the joiner in a second Godot). The point-and-click
-  pictures, stores and a dragged body's pace went across on 2026-10-31 (see
-  "Added after Step 3"). Not yet tried on two real machines.
+  pictures, stores and a dragged body's pace went across on 2026-10-31, and
+  then pictures searched together, stores shared and the camera drawn to the
+  other's conversation (see "Added after Step 3"). Not yet tried on two real
+  machines.
 - **Built: Step 3** (2026-10-30): hosting asks the router to open the game to
   the internet (UPnP), and the Players panel points at a virtual LAN app when
   it will not. Not yet tried against a real router.
@@ -400,14 +402,44 @@ same checksum; a conversation's choice made on the joiner is the one taken.
 
 - **Pictures and stores** (built 2026-10-31). A point-and-click picture or a
   store is opened for whoever it is for - the player who walked up to it, or
-  who began the conversation that opened it - on their own screen. The host's
-  Campaign is kept from a picture played on the joiner while it is open, and
-  what it changed goes back as it closes, by entries for flags and bags so
-  whatever the host's player changed meanwhile stands; a hotspot leading to
-  another map takes the host there. A store is a menu on the joiner, whose
-  changes go back as menus' do. Over a network a picture stops nothing: only
-  its own machine's party stands. While a menu or a picture is open on a
-  machine, that machine's presses are its own - none goes to the world.
+  who began the conversation that opened it - on their own screen; a hotspot
+  leading to another map takes the host there. Over a network a picture stops
+  nothing: only its own machine's party stands. While a menu or a picture is
+  open on a machine, that machine's presses are its own - none goes to the
+  world.
+- **Pictures searched together, stores shared** (the designer, 2026-10-31:
+  "Allow players to interact and see the progress on the same images. That way
+  they can search and explore together. Stores can stay independent, giving
+  both the ability to see the same store. Update the store on both ends when a
+  player buys or sells something. They share the gold."). Built the same day:
+  - Both may have the same picture open, each on their own screen; the other
+    walks up and opens it too, and an eye over a player's head on the other's
+    map says they are looking. What either does in it is the other's at once:
+    the joiner's changes go to the host as they are made, each with what it
+    changed from, and the host lays them over its own player's - flags and bags
+    entry by entry and place by place, gold by how much it went up or down. One
+    thing changed on both at the same moment (a seal both reached for) is a
+    clash: the first stands, the other is undone and told. The host's state is
+    put on the joiner with its changes still on their way laid over it, so
+    nothing jumps back meanwhile.
+  - On the same picture each sees the other's pointer in their colour, with
+    their name, and what the other's clicks say along the top. A dial turned or
+    a piece put down turns or moves on the other's copy too, and stays as it
+    was left until the party leaves the map; a lock both work on opens once,
+    where it was finished.
+  - A picture a conversation opens is both players': it opens on both screens,
+    and whoever began the conversation leads - their closing it closes the
+    other's, and the conversation goes on.
+  - A store is each player's own, and both may have the same one open. Every
+    deal is the host's to make, out of the party's one purse; both stores redraw
+    as it is made. Two reaching for the last of the gold buy once, and the
+    second is told there is not enough.
+  - What a menu on the joiner changed is now laid over what the host's player
+    did meanwhile too, rather than put in its place.
+  - A conversation one player begins draws the other's camera to them - a
+    glide, at the map's own zoom - and back once it ends (the designer,
+    2026-10-31). How fast it glides is a PROPOSAL.
+  - `PROTOCOL` is 4.
 - **A dragged body, and creeping** (built 2026-10-31). Each group has its own
   pace: the one dragging a body walks at a body's pace, on its own machine
   too (the host says who drags), and each creeps on its own player's keys. The

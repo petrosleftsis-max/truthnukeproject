@@ -204,8 +204,15 @@ func result_text() -> String:
 ## --- Building it ---
 
 
+## Whether a menu other than this one holds the game - the pictures aside,
+## which over a network hold it too and open this from their bar.
+func _another_menu_up() -> bool:
+	var pictures = get_node_or_null("/root/Pictures")
+	return MenuPause.holders().any(func(holder): return holder != self and holder != pictures)
+
+
 func _show():
-	if MenuPause.held_by_another(self):
+	if _another_menu_up():
 		# The pause menu, or the character sheet: not the moment. Asked from a
 		# conversation, it still has to answer, so it shows nothing.
 		if _mode == Mode.PRESENT:
@@ -531,7 +538,7 @@ func _input(event):
 func _unhandled_input(event):
 	if is_open() or not event.is_action_pressed(&"journal"):
 		return
-	if not _can_open_here() or MenuPause.held_by_another(self):
+	if not _can_open_here() or _another_menu_up():
 		return
 	get_viewport().set_input_as_handled()
 	open()
@@ -545,7 +552,7 @@ func pad_menu_order() -> int:
 
 
 func pad_menu_available() -> bool:
-	return _can_open_here() and not MenuPause.held_by_another(self)
+	return _can_open_here() and not _another_menu_up()
 
 
 func pad_menu_is_open() -> bool:

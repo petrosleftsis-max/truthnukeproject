@@ -100,6 +100,10 @@ func drop_at(at: Vector2):
 			viewer.play("put_down")
 	if owner_puzzle != null:
 		owner_puzzle.check()
+	# Over a network the other player sees it put down (Pictures.part_moved).
+	var told = _viewer()
+	if told != null:
+		told.part_moved(self)
 
 
 ## Whether another piece already sits in `candidate`.

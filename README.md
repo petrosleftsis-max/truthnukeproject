@@ -137,13 +137,24 @@ join the same network in it, and join by the address the app gives the host's
 machine, as on a LAN.
 
 What the joiner changes in a menu - the bags, gear, gold, spells, paths - is
-sent to the host when the menu closes. A point-and-click picture or a store
-opens on the screen of whoever it is for: the player who walked up to it, or
-who began the conversation that opened it. What the joiner does in one - looks
-at, picks up, buys - goes to the host as it closes, and a hotspot that leads to
-another map takes everybody there. While a menu or a picture is open, that
-player's presses are its own; the other player plays on. Dragging a body slows
-whoever drags it, on their own screen, and each player creeps on their own keys.
+sent to the host when the menu closes, laid over whatever the host's player did
+meanwhile. A point-and-click picture is both players' to search: it opens on
+the screen of whoever walked up to it, and the other can walk up and open it
+too - an eye over a player's head on the other's map says they are looking.
+What either finds, takes, turns or solves in it is the other's at once; on the
+same picture each sees the other's pointer, in their colour, and what their
+clicks say, and a dial turned or a piece moved by one moves for the other. One
+a conversation opens opens on both screens and closes for both when whoever
+began the conversation closes theirs. Two reaching for the same thing at the
+same moment: the first gets it, the other is told. A store is each player's
+own, and both can have the same one open: every deal comes out of the party's
+one purse, both stores show it at once, and two reaching for the last of the
+gold buy once - the second is told there is not enough. A hotspot that leads
+to another map takes everybody there. While a menu or a picture is open, that
+player's presses are its own; the other player plays on. A conversation one
+player begins draws the other's camera over to them, and back once it ends.
+Dragging a body slows whoever drags it, on their own screen, and each player
+creeps on their own keys.
 
 **Trying it on one PC:** in the Godot editor, Debug -> Customize Run Instances,
 turn on Enable Multiple Instances and set it to 2, then run the game. In one

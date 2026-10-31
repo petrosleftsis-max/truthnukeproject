@@ -8,6 +8,8 @@ class_name ConversationMirror
 ## picked here, it is sent and the answers wait for the other's pick; picked
 ## differently, they come back with what each chose (choose_again). While it is
 ## up nothing else here hears a press but Escape, which is the pause menu's.
+## While a picture the conversation opened is up here it steps aside, as the
+## host's balloon does, and hears nothing.
 
 const INK := Color("dce8f5")
 const MUTED := Color("8296a9")
@@ -117,8 +119,17 @@ func choose_again(text: String):
 			break
 
 
+func _process(_delta):
+	visible = not _picture_up()
+
+
+func _picture_up() -> bool:
+	var pictures = get_node_or_null("/root/Pictures")
+	return pictures != null and pictures.is_open()
+
+
 func _unhandled_input(event: InputEvent):
-	if not event.is_pressed() or event.is_echo():
+	if not event.is_pressed() or event.is_echo() or _picture_up():
 		return
 	if event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"pause"):
 		return

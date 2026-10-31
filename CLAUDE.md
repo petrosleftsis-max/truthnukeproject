@@ -555,19 +555,57 @@ a magic trap's answer and a conversation's `QuickTime.start` go through
 `quick_time_by` (the starter's: `conversation_starter`). Over a network neither
 pauses the tree: like a menu, only this machine's own party stands
 (`MenuPause.hold`). A joiner's map springs no traps (`_traps_gone_dark`).
-**Pictures and stores** (2026-10-31) are opened for whoever they are for
-(`player_now`: the conversation's starter, else `Coop.acting`): `Pictures.open`
-on the host for the joiner's player is `picture_afar` (`picture_goes_afar`; a
-PictureInteractable holds nothing over a network), played there as
-`_picture_here` with every saved key but `controllers` kept from the host's state
-(`_kept_here`), and `_picture_done` sends what it changed - a dictionary by its
-entries, the rest whole - and the map a hotspot sent the party to (a scene change
-asked for meanwhile, `may_change_scene` -> `_scene_wanted`), which
-`_picture_changes` takes and goes to. Following a scene change or leaving ends it
-there. Over a network a picture holds `MenuPause` (`_held_as_a_menu`), so only its
-own machine's party stands. A store asked for the joiner's player
-(`ExplorationScene._on_store_requested`) is `store_afar` -> `_store_here`, a menu
-there (`_menu_changes`). **A menu or a picture open on a machine keeps that
+**Pictures are both players'** (the designer, 2026-10-31: search and explore
+together). `Pictures.open` on the host asks `picture_there(picture, first)`:
+one for the joiner's player (`player_now`: the conversation's starter, else
+`Coop.acting`) is sent there whatever is open here (`_picture_here`) and waited
+for (`picture_closed_there`; a PictureInteractable holds nothing over a network);
+one a conversation opens first is `shared` - played on both, and whoever began
+the conversation leads (`picture_led_afar`; the host's closing it is
+`close_picture_there` -> `_close_picture`). `_pictures_out` keeps them by number
+on the host. What a picture on the joiner changes goes to the host as it is made
+("What the joiner changes": `Pictures._progressed` -> `picture_progressed`, and
+every `STATE_SECONDS` - `_send_picture_changes`); `_picture_done` sends the last
+of it and the map a hotspot sent the party to (`may_change_scene` ->
+`_scene_wanted`), which `_picture_changes` goes to, closing pictures here first.
+Following a scene change or leaving ends it there. **What the joiner changes**
+(a picture's, `_picture_keys`; a menu's MENU_KEYS as it closes) is
+`_send_changes`: per key since `_change_base` (`_changes_since` - a dictionary by
+its entries, each [there, value] before and now, gold `by`, the rest was/now),
+numbered, kept in `_changes_out` until the host's state `acked`s it
+(`_with_acks`); the host lays it over its own (`_changes` -> `_merged`, a
+three-way `_merged_value`: a list by its places, the joiner's wins where the
+host's is as the joiner found it, the same thing changed on both sides a clash -
+the whole change dropped, `_clashed` -> `Pictures.got_there_first`). The joiner
+puts each state on with `_put_on_state`: the pending changes laid back over
+(`_lay_over`), the base taken again, what was changed here since laid over that;
+`campaign_changed` when SHOWN_KEYS changed. Compare with `_same_value` (typed
+lists equal untyped ones; never `==` across kinds). **Looking together:** each
+machine sends its player's pointer in a picture (`_looking`, `LOOKS_A_SECOND`,
+`Pictures.pointer_in_picture` 0-1; `looking_there`, `looking_at_a_picture`), drawn
+by `Pictures._show_the_other` (`other_pointer`) and marked on the map
+(`ExplorationScene._mark_the_looking`); a click's line (`Pictures._tell` ->
+`said_in_picture` -> `said_there`, `other_said`); a dial or piece moved
+(`Pictures.part_moved` -> `_moved_there` -> `lay_part`; `parts_left`, laid on a
+picture shown later, cleared with the map): a move that finished the puzzle
+there (`completes`) only `settle`s it here, and one leaving it right with neither
+having finished it is solved by the host (`Puzzle.check`). Over a network a
+picture holds `MenuPause` (`_held_as_a_menu`), so only its own machine's party
+stands, and keeps nothing (`_a_menu_keeps`); the Journal opens over it
+(`Journal._another_menu_up`), and the joiner's ConversationMirror steps aside
+while one is up. **A store is each player's own** (the designer, 2026-10-31):
+one asked for the joiner's player (`ExplorationScene._on_store_requested`) is
+`store_afar` -> `_store_here`; both may have the same one open; on the joiner
+a deal is `store_deal` -> `_store_deal`, made on the host as that player, and
+`_store_refused` -> `StoreScreen.refused` when it would not go; every
+`StoreScreen` redraws on `campaign_changed`, keeping the keyboard on its row, and
+the host's own deals `send_now`. **The camera in another's conversation**
+(the designer, 2026-10-31): `Net.conversation_focus` (the host's `_starter`, the
+joiner's `_mirror_starter`, when on the other machine) glides
+`ExplorationScene`'s camera onto their leader (`_glide_camera`, `CAMERA_GLIDE`,
+`conversation_shot`) and back (`CAMERA_BACK_SECONDS`); meanwhile everything else
+that moves it aims the glide (`_aim_camera`, `_camera_aim`). `PROTOCOL` 4.
+**A menu or a picture open on a machine keeps that
 machine's presses:** the joiner forwards none (`forwards`), and
 `ExplorationScene._unhandled_input` and `StealthBar._act` ignore a press from a
 group `in_a_menu`. The share-out offer goes only to the stranded player's own
@@ -591,8 +629,9 @@ over a network** (the designer, 2026-10-29): while `Net.with_another()`,
 machine's own groups stand (`ExplorationParty.in_a_menu`, set by
 `_stand_for_menus`, every frame and at once as `MenuPause` holds or lets go - `menus_changed` - so a menu opened and shut within one frame still counts). What a menu on the joiner changes (`MENU_KEYS`: bags,
 gear, gold, spells, paths) stays the joiner's while it is open
-(`Campaign.apply(state, keeping)`) and goes to the host as it closes
-(`_menu_changes`). **Fights, replayed:** going into `FIGHT_SCENE` the host gives a copy of the
+(`Campaign.apply(state, keeping)`; `_menu_open` only for a menu that keeps,
+`_a_menu_keeps` - not a store or the pictures) and goes to the host as it closes
+(`_send_changes`), laid over what the host's player did meanwhile. **Fights, replayed:** going into `FIGHT_SCENE` the host gives a copy of the
 encounter a "seed" (`scene_changing`); both play the fight (`fight_begins`
 from `Combat._ready`). Whoever's character it is moves on their own machine,
 and each move is sent from where it is made - `CController.move_player`
@@ -628,7 +667,7 @@ to one address never asks. The panel shows the address to give, or points at a
 virtual LAN app. The Players panel's network half is
 `ui/net_panel.gd` (`make_panel`); it listens for games only on Look for games,
 since listening (or hosting) is what makes Windows ask about its firewall.
-`net` plays two machines (twice into a fight, the second joined under way; a picture, a store and a dragged body the joiner's): the suite hosts on 127.0.0.1:24790 and starts a second
+`net` plays two machines (twice into a fight, the second joined under way; a picture and a lock searched on both, one store both shop at, a conversation's picture and the camera drawn to it, the merge rules, a dragged body the joiner's): the suite hosts on 127.0.0.1:24790 and starts a second
 headless Godot (`--net-client`) on the same copy for the joiner's half, which
 logs to `net_joiner` (copied into `net`'s log, its FAILs counted) and its Godot
 output to `net_joiner_godot.log` (read for script errors); the halves wait on

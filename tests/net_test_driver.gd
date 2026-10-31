@@ -28,7 +28,25 @@ extends "res://StealthHarness.gd"
 ## - a hack the joiner's player sets going is played on their screen, and opens
 ##   the strongbox on the host; a quick time of theirs is played there too
 ## - a conversation begun on the joiner: its lines pressed on through there, its
-##   answer chosen on both - two different picks are both shown, and asked again
+##   answer chosen on both - two different picks are both shown, and asked again;
+##   the host's camera glides to the joiner's party meanwhile, and back after
+## - what a menu on the joiner changes is laid over what the host's player did
+##   meanwhile: gold by how much, a bag by its places
+## - what each side changed, laid together (Net._merged): a flag both set at once
+##   is a clash, a bag changed in two places keeps both, gold never below nothing
+## - a picture both search: opened on the joiner by its press, what it finds is
+##   on the host at once; the host's player opens it too and sees it found, the
+##   same "Noticed", each the other's pointer and what the other's click said;
+##   the joiner marked on the host's map meanwhile
+## - a lock turned on both: a dial the joiner turns turns on the host, the host
+##   turns the other two and it opens on both; the form the joiner takes out is
+##   gone from the host's copy and in the bag once
+## - one store, both at it: a deal on the joiner made on the host out of the one
+##   purse, each store showing what the other bought, the last of the gold bought
+##   once and the late one told why
+## - a conversation the host's player begins opens its picture on both, the
+##   joiner's camera drawn to the host's party; the host closing it closes the
+##   joiner's, and the conversation goes on
 ## - whom to steer, asked of the other player: refused, nothing changes; agreed,
 ##   it does - either way round, and from the pause menu's Party Management,
 ##   where the host can kick the joiner out
@@ -56,7 +74,7 @@ func suite() -> String:
 
 
 func time_limit() -> float:
-	return 840.0
+	return 1080.0
 
 
 static func joining_half() -> bool:
@@ -122,6 +140,7 @@ func hosts_conversation():
 	ok(await hear("group back"), "  there too")
 	if not scene.groups.has(1):
 		return
+	apart(scene)
 	var talk := DialogueInteractable.new()
 	talk.dialogue = load(PROBE)
 	scene.get_node("Map").add_child(talk)
@@ -130,6 +149,10 @@ func hosts_conversation():
 	say("talk up")
 	ok(await until(func(): return Coop.focus == 1, 15.0), "E pressed on the joiner starts a conversation here - its lines the joiner's to press on through",
 		"focus %d" % Coop.focus)
+	var theirs: ExplorationParty = scene.groups[1]
+	ok(await until(func(): return scene.conversation_shot == 1 and scene.camera.position.distance_to(within_view(scene, theirs.leader.position)) < 12.0, 8.0),
+		"  and the camera here glides over to the joiner's party, whose conversation it is",
+		"%s, theirs at %s" % [scene.camera.position, theirs.leader.position])
 	ok(await until(question_up, 20.0), "  pressed on there, the question comes up here")
 	ok(Coop.focus == Coop.ANYONE, "  and its answer is both players': neither is kept from choosing", "focus %d" % Coop.focus)
 	var balloon = Net._balloon
@@ -151,10 +174,118 @@ func hosts_conversation():
 	ok(not Campaign.flag("net_went_left"), "  and only that one")
 	ok(await until(func(): return Coop.focus == Coop.ANYONE and not scene.is_holding(), 10.0),
 		"  and with it over, nobody holds the map")
+	ok(await until(func(): return scene.conversation_shot == -1 and scene._gliding_back <= 0.0 \
+			and scene.camera.position.distance_to(between(scene)) < 12.0, 5.0),
+		"  and the camera glides back to framing both parties", "%s, between them %s" % [scene.camera.position, between(scene)])
 	ok(await hear("copy closed"), "  and the joiner's copy of it has closed")
 	# Out of the way of whatever the joiner presses E at next.
 	scene._interactables.erase(talk)
 	talk.queue_free()
+	log_line("")
+
+
+## The host's party put a few tiles from the joiner's, so that the middle of
+## the two, which the camera frames, is where neither stands.
+## Nothing to do while the host's player steers nobody on the map: the joiner's
+## party is the only one then.
+func apart(scene: ExplorationScene):
+	if not scene.groups.has(0) or not scene.groups.has(1) or scene.groups[0].leader == null or scene.groups[1].leader == null:
+		return
+	var theirs: Vector2 = scene.groups[1].leader.position
+	for tiles in [2.5, 2.0, 1.5]:
+		for way in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]:
+			var there: Vector2 = theirs + way * Grid.tiles(tiles)
+			if scene.is_walkable(there):
+				scene.groups[0].teleport(there)
+				scene._follow_camera(there)
+				return
+
+
+## The middle of every party's leader on `scene`'s map - where the camera frames
+## them - as far as the camera can go.
+func between(scene: ExplorationScene) -> Vector2:
+	var box := Rect2()
+	var first := true
+	for group in scene.all_groups():
+		if group.leader == null:
+			continue
+		box = Rect2(group.leader.position, Vector2.ZERO) if first else box.expand(group.leader.position)
+		first = false
+	return within_view(scene, box.get_center())
+
+
+## `at`, as near as the camera can come to it: its middle is kept on the map.
+func within_view(scene: ExplorationScene, at: Vector2) -> Vector2:
+	var rect: Rect2 = scene.camera.get_map_rect() if scene.camera.has_method("get_map_rect") else Rect2()
+	return at.clamp(rect.position, rect.end) if rect.has_area() else at
+
+
+## A conversation the host's player begins, which opens a picture: both
+## players', the joiner's camera drawn to them meanwhile.
+func hosts_look():
+	log_line("======== a conversation's picture, both players' ========")
+	var scene: ExplorationScene = get_tree().current_scene
+	apart(scene)
+	var talk := DialogueInteractable.new()
+	talk.dialogue = load(PROBE)
+	talk.dialogue_title = "look"
+	scene.get_node("Map").add_child(talk)
+	talk.global_position = scene.groups[0].leader.global_position
+	scene._interactables.append(talk)
+	say("look up")
+	ok(await hear("ready to look"), "the joiner is ready")
+	await settle(5)
+	get_viewport().push_input(key_event(KEY_E))
+	ok(await until(func(): return Net._balloon != null and is_instance_valid(Net._balloon), 10.0),
+		"E pressed here begins a conversation, this player's")
+	# Pressed on until its picture opens: a press may only finish a line typing out.
+	var tries := 0
+	while tries < 20 and not Pictures.is_open():
+		get_viewport().push_input(key_event(KEY_ENTER))
+		await wait(0.4)
+		tries += 1
+	ok(Pictures.is_open() and Pictures.current().picture_id() == DESK, "  pressed on, it opens a picture here")
+	ok(await hear("look there"), "  and on the joiner's screen too: both players'")
+	ok(scene.conversation_shot == -1, "  this machine's camera left as it was - it is this player's conversation")
+	await wait(0.5)
+	Pictures.close()
+	ok(await hear("closed with it", 15.0), "this player, who began it, closes it: the joiner's closes with it")
+	tries = 0
+	while tries < 20 and Net._balloon != null and is_instance_valid(Net._balloon):
+		get_viewport().push_input(key_event(KEY_ENTER))
+		await wait(0.4)
+		tries += 1
+	ok(Net._balloon == null or not is_instance_valid(Net._balloon), "  and the conversation goes on to its end")
+	ok(await hear("camera back"), "  the joiner's camera, drawn to this player's party for it, back again")
+	scene._interactables.erase(talk)
+	talk.queue_free()
+	log_line("")
+
+
+func joiners_look():
+	log_line("======== a conversation's picture, both players' ========")
+	var scene: ExplorationScene = get_tree().current_scene
+	await hear("look up")
+	await close_offers()
+	say("ready to look")
+	ok(await until(mirror_up, 15.0), "the host's player begins a conversation: shown here")
+	var theirs: ExplorationParty = scene.groups.get(0)
+	ok(theirs != null and await until(func(): return scene.conversation_shot == 0 \
+			and scene.camera.position.distance_to(within_view(scene, theirs.leader.position)) < 12.0, 8.0),
+		"  and the camera here glides over to that player's party, whose conversation it is",
+		"%s, theirs at %s" % [scene.camera.position, theirs.leader.position if theirs != null else Vector2.ZERO])
+	ok(await until(func(): return Pictures.is_open() and Pictures.current().picture_id() == DESK, 20.0),
+		"its picture opens here too - both players'")
+	ok(await until(func(): return mirror_up() and not Net._mirror.visible, 5.0), "  the conversation stepping aside while it is up")
+	say("look there")
+	ok(await until(func(): return not Pictures.is_open(), 15.0), "the host's player, who began it, closes theirs: closed here too")
+	ok(await until(func(): return mirror_up() and Net._mirror.visible, 10.0), "  and the conversation is back, going on")
+	say("closed with it")
+	ok(await until(func(): return not mirror_up(), 20.0), "the conversation over there, its copy here closes")
+	ok(await until(func(): return scene.conversation_shot == -1 and scene._gliding_back <= 0.0 \
+			and scene.camera.position.distance_to(between(scene)) < 12.0, 5.0),
+		"  and the camera glides back to framing both parties", "%s, between them %s" % [scene.camera.position, between(scene)])
+	say("camera back")
 	log_line("")
 
 
@@ -497,11 +628,76 @@ func played_here():
 	log_line("")
 
 
-## --- A picture and a store, the joiner's ---
+## --- Pictures and a store, both players' ---
+
+
+const DESK := "res://pictures/clues_desk.tscn"
+const CABINET := "res://pictures/clues_cabinet.tscn"
+
+
+## What each side changed, laid together on the host (Net._merged) - worked out
+## here, where the order of two machines cannot muddle it.
+func merge_rules():
+	log_line("======== what each side changed, laid together ========")
+	var took := Net._merged({"took_seal": true}, {"entries": {"took_seal": [[false, null], [true, true]]}})
+	ok(not took[0], "a flag set here and there at the same moment - the seal both reached for: a clash, so it is taken once")
+	var bag := Net._merged({"cyrus": ["a", "", ""]}, {"entries": {"cyrus": [[true, ["a", "b", ""]], [true, ["a", "b", "c"]]]}})
+	ok(bag[0] and bag[1].cyrus == ["a", "", "c"], "one bag changed on both sides, in different places: both kept", "%s" % [bag])
+	var same_place := Net._merged({"cyrus": ["a", "x", ""]}, {"entries": {"cyrus": [[true, ["a", "", ""]], [true, ["a", "y", ""]]]}})
+	ok(not same_place[0], "  in the same place: a clash")
+	var flags := Net._merged({"a": true}, {"entries": {"b": [[false, null], [true, true]]}})
+	ok(flags[0] and flags[1].has("a") and flags[1].has("b"), "a flag set there and another here: both", "%s" % [flags])
+	var gold := Net._merged(100, {"by": -30})
+	ok(gold[0] and gold[1] == 70, "gold goes by how far it went up or down there, over what was spent here", "%s" % [gold])
+	var broke := Net._merged(20, {"by": -30})
+	ok(broke[0] and broke[1] == 0, "  and never below nothing", "%s" % [broke])
+	var typed: Array[String] = ["a", ""]
+	var kinds := Net._merged({"cyrus": typed}, {"entries": {"cyrus": [[true, ["a", ""]], [true, ["a", "b"]]]}})
+	ok(kinds[0] and kinds[1].cyrus == ["a", "b"], "  a bag typed here is the same bag as the untyped one sent", "%s" % [kinds])
+	log_line("")
+
+
+## Room in the party's bags for `count` more things - whatever is at the back of
+## them taken out until there is - and the joiner told.
+func make_room(count: int):
+	var tries := 0
+	while _free_slots() < count and tries < 60:
+		tries += 1
+		for key in Campaign.living_party():
+			var held: Array = Campaign.inventory_of(key).filter(func(item): return item != "")
+			if not held.is_empty():
+				Campaign.take_item(key, held.back())
+				break
+	Net.send_now()
+
+
+func _free_slots() -> int:
+	var free := 0
+	for key in Campaign.living_party():
+		free += Campaign.inventory_of(key).count("")
+	return free
+
+
+## `thing` put on the map where the joiner's group stands, for its E to find.
+func beside_the_joiner(scene: ExplorationScene, thing: Interactable) -> Interactable:
+	scene.get_node("Map").add_child(thing)
+	thing.global_position = scene.groups[1].leader.global_position
+	scene._interactables.append(thing)
+	return thing
+
+
+## The first hotspot in `picture` that `wanted` says yes to, or null.
+func spot_in(picture: Picture, wanted: Callable) -> Hotspot:
+	if picture == null:
+		return null
+	for spot in picture.hotspots():
+		if wanted.call(spot):
+			return spot
+	return null
 
 
 func pictures_there():
-	log_line("======== a picture and a store, the joiner's to look at ========")
+	log_line("======== a picture, both players' to search ========")
 	var scene: ExplorationScene = get_tree().current_scene
 	if not scene.groups.has(1):
 		ok(false, "the joiner's group, to stand beside a picture")
@@ -511,39 +707,145 @@ func pictures_there():
 		if thing is ExamineInteractable and thing.sets_flag == "net_strongbox_open":
 			scene._interactables.erase(thing)
 			thing.queue_free()
+	# Room for what the pictures and the store hand over.
+	make_room(6)
 	var desk := PictureInteractable.new()
-	desk.picture = "res://pictures/clues_desk.tscn"
-	scene.get_node("Map").add_child(desk)
-	desk.global_position = scene.groups[1].leader.global_position
-	scene._interactables.append(desk)
+	desk.picture = DESK
+	beside_the_joiner(scene, desk)
 	var carried_before := _carried("magnifying_glass")
 	say("desk up")
 	ok(await hear("desk open"), "E pressed on the joiner beside a picture: it opens there, on its screen")
-	ok(not Pictures.is_open(), "  and not here - nothing to see on this screen")
+	ok(not Pictures.is_open(), "  and not here - this player may be busy elsewhere")
 	ok(not scene.is_holding() and not scene.groups[0].in_a_menu, "  and nothing here is held for it: this player walks on")
-	ok(await hear("desk closed", 30.0), "looked at and closed there")
-	ok(await until(func(): return _carried("magnifying_glass") > carried_before, 15.0),
-		"  what it gave there is in the bag here", "%d -> %d" % [carried_before, _carried("magnifying_glass")])
+	ok(await until(func(): return Net.looking_at_a_picture(1, DESK), 10.0), "  the joiner's player is known here to be looking at it",
+		"%s" % [Net.looking_there])
+	ok(await until(func(): return scene._looking_marks.has(1) and scene._looking_marks[1].visible, 5.0),
+		"  and shown so on the map here, an eye over their head")
+	ok(await until(func(): return heard_after("examined:") != "", 20.0), "something in it is clicked there")
 	var spot := heard_after("examined:")
-	ok(spot != "" and await until(func(): return Campaign.was_examined(spot), 10.0), "  and what was looked at there is looked at here", spot)
+	ok(await until(func(): return Campaign.was_examined(spot) and _carried("magnifying_glass") > carried_before, 10.0),
+		"  what it found and gave there is here at once, the picture still open there",
+		"%d -> %d" % [carried_before, _carried("magnifying_glass")])
+	# This machine's player looks too.
+	Coop.acting = 0
+	Pictures.open(DESK)
+	ok(Pictures.is_open() and Pictures.current().picture_id() == DESK, "this player opens the same picture here")
+	var glass := spot_in(Pictures.current(), func(each): return each.examined_id() == spot)
+	ok(glass != null and glass.was_examined(), "  and what the other found is marked seen here")
+	ok(await until(func(): return heard_after("progress:") != "", 10.0) and Pictures.progress_text() == heard_after("progress:"),
+		"  so it says it has been gone over as far as there", "%s / %s" % [Pictures.progress_text(), heard_after("progress:")])
+	var ledger := spot_in(Pictures.current(), func(each): return each.visible and not each.hidden_detail and not each.was_examined() \
+		and each.examine_text != "" and each.gives_item == "" and each.opens_picture == "" and each.goes_to_map == "" \
+		and each.hack == null and each.requires_flag == "" and each.dialogue == null)
+	ok(ledger != null, "  something still to look at in it")
+	if ledger != null:
+		Pictures.lens_point = ledger.get_global_rect().get_center()
+		say("ledger:%s" % Pictures.current().get_path_to(ledger))
+	say("looking too")
+	ok(await until(func(): return heard_after("pointing:") != "", 10.0), "the joiner's player points at something in it")
+	var pointed := spot_in(Pictures.current(), func(each): return String(Pictures.current().get_path_to(each)) == heard_after("pointing:"))
+	ok(pointed != null and await until(func(): return Pictures.other_pointer() != null \
+			and Pictures.other_pointer().at.distance_to(pointed.get_global_rect().get_center()) < 24.0, 10.0),
+		"  and their pointer is drawn here, over the same thing", "%s" % [Pictures.other_pointer()])
+	ok(Pictures.other_pointer() != null and Pictures.other_pointer().name == Coop.name_of(1), "  with their name")
+	ok(await hear("pointer seen"), "  as this player's is drawn there")
+	if ledger != null:
+		Pictures.click(ledger)
+		say("clicked:%s" % ledger.examined_id())
+	ok(await hear("seen there"), "this player clicks something: it is seen there at once, and what it said said there")
+	Pictures.lens_point = null
+	Pictures.close()
+	say("host closed desk")
+	ok(await hear("desk closed", 30.0), "looked at and closed there")
+	ok(await until(func(): return not Net.looking_at_a_picture(1) and scene._looking_marks.has(1) \
+			and not scene._looking_marks[1].visible, 5.0), "  and the eye over their head gone")
+	ok(_carried("magnifying_glass") == carried_before + 1, "  what it gave in the bag here once", "%d" % _carried("magnifying_glass"))
 	scene._interactables.erase(desk)
 	desk.queue_free()
 	await settle(5)
-	# A store, the same way: its purse and bags are the host's.
+
+	log_line("======== a lock, turned on both ========")
+	var forms := _carried("blank_requisition")
+	var cabinet := PictureInteractable.new()
+	cabinet.picture = CABINET
+	beside_the_joiner(scene, cabinet)
+	say("cabinet up")
+	ok(await hear("cabinet open"), "the joiner's player opens a cabinet with a lock on it there")
+	Coop.acting = 0
+	Pictures.open(CABINET)
+	var lock: Puzzle = Pictures.current().get_node_or_null("Lock") if Pictures.is_open() else null
+	ok(lock != null and not lock.is_solved(), "  and this player here: the lock still shut")
+	say("cabinet open here")
+	ok(await hear("first turned"), "the joiner's player turns its first dial there")
+	var first: PuzzleDial = lock.get_node("First") if lock != null else null
+	ok(first != null and await until(func(): return first.value() == first.answer, 10.0), "  and it turns here too",
+		first.value() if first != null else "")
+	if lock != null:
+		for dial_name in ["Second", "Third"]:
+			var dial: PuzzleDial = lock.get_node(dial_name)
+			var turns := 0
+			while dial.value() != dial.answer and turns < 20:
+				dial.turn()
+				turns += 1
+	ok(lock != null and lock.is_solved() and Campaign.flag("demo_cabinet_open"),
+		"this player turns the other two: the lock is open, the two having worked it out together")
+	say("unlocked here")
+	ok(await hear("opened there"), "  and open there")
+	ok(await hear("form taken"), "the joiner's player takes the form out of it there")
+	var form := spot_in(Pictures.current(), func(each): return each.gives_item == "blank_requisition")
+	ok(await until(func(): return Campaign.flag("demo_took_form") and _carried("blank_requisition") == forms + 1 \
+			and form != null and not form.visible, 10.0),
+		"  and here it is gone from the cabinet, and in the bag - once", "%d -> %d" % [forms, _carried("blank_requisition")])
+	Pictures.close()
+	say("host closed cabinet")
+	ok(await hear("cabinet closed", 20.0), "both closed")
+	scene._interactables.erase(cabinet)
+	cabinet.queue_free()
+	await settle(5)
+	await stores_there()
+
+
+func stores_there():
+	log_line("======== one store, both at it ========")
+	var scene: ExplorationScene = get_tree().current_scene
 	Campaign.gold = 500
+	Net.send_now()
+	var price := Campaign.price_of("cure_potion")
 	var potions := _carried("cure_potion")
 	var stall := StoreInteractable.new()
 	stall.store = "travelling_merchant"
-	scene.get_node("Map").add_child(stall)
-	stall.global_position = scene.groups[1].leader.global_position
-	scene._interactables.append(stall)
+	beside_the_joiner(scene, stall)
 	say("stall up")
 	ok(await hear("stall open"), "E pressed on the joiner beside a stall: the store opens there")
 	ok(scene.store_screen == null, "  and not here")
-	ok(await hear("stall closed", 30.0), "bought from and left there")
-	ok(await until(func(): return _carried("cure_potion") == potions + 1, 15.0), "  what was bought there is in the bag here",
-		"%d -> %d" % [potions, _carried("cure_potion")])
-	ok(Campaign.gold == 500 - Campaign.price_of("cure_potion"), "  paid for out of the purse here", "%d" % Campaign.gold)
+	Coop.acting = 0
+	scene._on_store_requested("travelling_merchant")
+	ok(await until(func(): return scene.store_screen != null, 10.0), "this player opens the same store here, a store of their own")
+	say("store here")
+	ok(await hear("bought there"), "the joiner's player buys a potion there")
+	ok(await until(func(): return _carried("cure_potion") == potions + 1 and Campaign.gold == 500 - price, 10.0),
+		"  bought here, by the host, out of the one purse and into the bag", "%d gold, %d potions" % [Campaign.gold, _carried("cure_potion")])
+	var screen: StoreScreen = scene.store_screen
+	ok(screen != null and screen._gold.text == "%d gold" % Campaign.gold, "  and the store here shows the purse it left",
+		screen._gold.text if screen != null else "")
+	if screen == null:
+		return
+	screen._on_buy("cure_potion")
+	ok(Campaign.gold == 500 - 2 * price, "this player buys one here too")
+	say("bought here:%d" % Campaign.gold)
+	ok(await hear("shown there"), "  and the store there shows it at once")
+	# The last of the gold, reached for on both: bought once.
+	Campaign.gold = price
+	Net.send_now()
+	say("one left")
+	ok(await hear("ready for the last"), "the purse down to one potion's worth, on both")
+	screen._on_buy("cure_potion")
+	say("spent")
+	ok(await hear("told why"), "this player buys it; the joiner's reaches for it a moment later: not bought, and told why there")
+	ok(Campaign.gold == 0 and _carried("cure_potion") == potions + 3, "  bought once - the purse empty, and never below",
+		"%d gold, %d potions" % [Campaign.gold, _carried("cure_potion")])
+	screen.closed.emit()
+	ok(await hear("stall closed", 30.0), "left on both")
 	scene._interactables.erase(stall)
 	stall.queue_free()
 	say("shopped")
@@ -551,7 +853,7 @@ func pictures_there():
 
 
 func pictures_here():
-	log_line("======== a picture and a store, its own to look at ========")
+	log_line("======== a picture, both players' to search ========")
 	var scene: ExplorationScene = get_tree().current_scene
 	await hear("desk up")
 	await close_offers()
@@ -560,29 +862,103 @@ func pictures_here():
 	var mine: ExplorationParty = scene.groups.get(1)
 	ok(mine != null and mine.in_a_menu, "  and this player's group stands while it is up, as for a menu")
 	say("desk open")
-	var glass: Hotspot = null
-	if Pictures.is_open():
-		for spot in Pictures.current().hotspots():
-			if spot.gives_item == "magnifying_glass":
-				glass = spot
+	var glass := spot_in(Pictures.current(), func(each): return each.gives_item == "magnifying_glass")
 	ok(glass != null, "  a hotspot in it that gives something")
 	if glass != null:
 		Pictures.click(glass)
 		ok(Campaign.was_examined(glass.examined_id()), "  clicked here: looked at")
+		say("progress:%s" % Pictures.progress_text())
 		say("examined:%s" % glass.examined_id())
-	# The host's state arriving meanwhile leaves what the picture did here alone.
-	await settle(30)
-	ok(glass == null or Campaign.was_examined(glass.examined_id()), "  and still so here as the host's Campaign goes on arriving")
+	var progress_then := Pictures.progress_text()
+	await hear("looking too")
+	var target := spot_in(Pictures.current(), func(each): return each != glass and each.visible)
+	ok(target != null, "  something else in it to point at")
+	if target != null:
+		Pictures.lens_point = target.get_global_rect().get_center()
+		say("pointing:%s" % Pictures.current().get_path_to(target))
+	var theirs := spot_in(Pictures.current(), func(each): return String(Pictures.current().get_path_to(each)) == heard_after("ledger:"))
+	ok(theirs != null and await until(func(): return Pictures.other_pointer() != null and Pictures.other_pointer().name == Coop.name_of(0) \
+			and Pictures.other_pointer().at.distance_to(theirs.get_global_rect().get_center()) < 24.0, 10.0),
+		"the host's player looks too: their pointer is drawn here, where they point", "%s" % [Pictures.other_pointer()])
+	say("pointer seen")
+	ok(await until(func(): return heard_after("clicked:") != "", 15.0), "the host's player clicks something there")
+	var clicked := heard_after("clicked:")
+	ok(await until(func(): return Pictures.other_said().begins_with(Coop.name_of(0) + ": "), 10.0)
+			and theirs != null and Pictures.other_said().contains(theirs.examine_text.left(20)),
+		"  what it said there is said here, theirs", Pictures.other_said())
+	ok(await until(func(): return Campaign.was_examined(clicked) and Pictures.progress_text() != progress_then, 10.0),
+		"  and it is seen here at once, the picture still open - gone over further",
+		"%s -> %s" % [progress_then, Pictures.progress_text()])
+	say("seen there")
+	await hear("host closed desk")
+	Pictures.lens_point = null
 	Pictures.close()
 	say("desk closed")
+
+	log_line("======== a lock, turned on both ========")
+	await hear("cabinet up")
+	await close_offers()
+	get_viewport().push_input(key_event(KEY_E))
+	ok(await until(func(): return Pictures.is_open() and Pictures.current().picture_id() == CABINET, 15.0),
+		"E pressed beside a cabinet: it opens here")
+	say("cabinet open")
+	await hear("cabinet open here")
+	var lock: Puzzle = Pictures.current().get_node_or_null("Lock") if Pictures.is_open() else null
+	var first: PuzzleDial = lock.get_node("First") if lock != null else null
+	var turns := 0
+	while first != null and first.value() != first.answer and turns < 20:
+		first.turn()
+		turns += 1
+	ok(first != null and first.is_right() and not lock.is_solved(), "this player turns its first dial right: the lock still shut")
+	say("first turned")
+	await hear("unlocked here")
+	ok(lock != null and await until(func(): return lock.is_solved() and Campaign.flag("demo_cabinet_open"), 10.0),
+		"the host's player turns the other two there: the lock is open here too")
+	var doors = Pictures.current().get_node_or_null("Doors") if Pictures.is_open() else null
+	ok(doors != null and not doors.visible, "  its doors drawn open")
+	say("opened there")
+	var form := spot_in(Pictures.current(), func(each): return each.gives_item == "blank_requisition")
+	ok(form != null and form.visible, "  and the form inside to take")
+	if form != null:
+		Pictures.click(form)
+	say("form taken")
+	await hear("host closed cabinet")
+	Pictures.close()
+	say("cabinet closed")
+	await stores_here()
+
+
+func stores_here():
+	log_line("======== one store, both at it ========")
+	var scene: ExplorationScene = get_tree().current_scene
 	await hear("stall up")
 	await settle(5)
 	get_viewport().push_input(key_event(KEY_E))
 	ok(await until(func(): return scene.store_screen != null, 15.0), "E pressed beside the host's stall: the store opens here")
 	say("stall open")
-	if scene.store_screen != null:
-		scene.store_screen._on_buy("cure_potion")
-		scene.store_screen.closed.emit()
+	await hear("store here")
+	var screen: StoreScreen = scene.store_screen
+	if screen == null:
+		return
+	var price := Campaign.price_of("cure_potion")
+	var gold := Campaign.gold
+	screen._on_buy("cure_potion")
+	ok(await until(func(): return Campaign.gold == gold - price and screen._gold.text == "%d gold" % (gold - price), 10.0),
+		"bought here: made on the host, and the store here shows the purse it left", screen._gold.text)
+	say("bought there")
+	ok(await until(func(): return heard_after("bought here:") != "" and screen._gold.text == "%s gold" % heard_after("bought here:"), 10.0),
+		"the host's player buys one there: the store here shows it at once", screen._gold.text)
+	say("shown there")
+	await hear("one left")
+	ok(await until(func(): return Campaign.gold == price, 10.0), "  the purse down to one potion's worth here too")
+	say("ready for the last")
+	await hear("spent")
+	screen._on_buy("cure_potion")
+	ok(await until(func(): return screen.note() != "", 10.0) and screen.note() == "Not enough gold",
+		"reaching for the last of the gold a moment after the other: not bought, and told why", screen.note())
+	ok(await until(func(): return Campaign.gold == 0 and screen._gold.text == "0 gold", 10.0), "  the purse empty here too")
+	say("told why")
+	screen.closed.emit()
 	say("stall closed")
 	await hear("shopped")
 	log_line("")
@@ -1096,10 +1472,24 @@ func hosts_half():
 
 	log_line("======== what a menu on the joiner changes ========")
 	var gold_before := Campaign.gold
+	var host_key: String = Coop.keys_of(0)[0] if not Coop.keys_of(0).is_empty() else Campaign.party_order[0]
+	var host_potions := Campaign.count_of(host_key, "cure_potion")
 	say("menu")
-	ok(await until(func(): return Campaign.gold == gold_before + 7, 15.0),
-		"gold the joiner's player spent in a menu there is spent here too", "%d -> %d" % [gold_before, Campaign.gold])
-	ok(await hear("menu back"), "  and stays so there once the host's Campaign comes back")
+	ok(await hear("menu open"), "a menu opens on the joiner")
+	# Meanwhile this player spends some and is handed something, as at a store.
+	Campaign.gold -= 5
+	var handed := Campaign.give_item(host_key, "cure_potion")
+	Net.send_now()
+	say("host spent")
+	ok(await until(func(): return Campaign.gold == gold_before - 5 + 7, 15.0),
+		"gold the joiner's player came by in a menu there is had here too - by as much, over what was spent here meanwhile",
+		"%d -> %d" % [gold_before, Campaign.gold])
+	ok(not handed or Campaign.count_of(host_key, "cure_potion") == host_potions + 1,
+		"  and what was put in a bag here meanwhile is still there", "%d -> %d" % [host_potions, Campaign.count_of(host_key, "cure_potion")])
+	var joiner_key := heard_after("joiner given:")
+	ok(joiner_key == "" or Campaign.count_of(joiner_key, "cure_potion") == int(heard_after("joiner has:")),
+		"  as is what the menu there put in one of its own", "%s: %d" % [joiner_key, Campaign.count_of(joiner_key, "cure_potion")])
+	ok(await hear("menu back"), "  and so it stands there once the host's Campaign comes back")
 	log_line("")
 
 	await hosts_fight()
@@ -1162,7 +1552,9 @@ func hosts_half():
 
 	await hosts_familiar()
 	await played_there()
+	merge_rules()
 	await pictures_there()
+	await hosts_look()
 
 	log_line("======== leaving mid-fight ========")
 	var combat := await into_the_fight("to the second fight")
@@ -1454,13 +1846,20 @@ func joiners_half():
 	var gold_before := Campaign.gold
 	MenuPause.hold(self)
 	await settle()
-	# As a store or the inventory would, while it is open.
+	say("menu open")
+	await hear("host spent")
+	# As the inventory or the character sheet would, while it is open.
 	Campaign.gold += 7
+	var mine_key: String = Coop.keys_of(1)[0] if not Coop.keys_of(1).is_empty() else ""
+	if mine_key != "" and Campaign.give_item(mine_key, "cure_potion"):
+		say("joiner has:%d" % Campaign.count_of(mine_key, "cure_potion"))
+		say("joiner given:%s" % mine_key)
 	await wait(0.6)
 	ok(Campaign.gold == gold_before + 7, "while a menu is open here, the host's Campaign does not undo what it does")
 	MenuPause.release(self)
-	await wait(1.0)
-	ok(Campaign.gold == gold_before + 7, "  and once it closes, what it did is the host's too", "%d -> %d" % [gold_before, Campaign.gold])
+	ok(await until(func(): return Campaign.gold == gold_before - 5 + 7, 10.0),
+		"  and once it closes, what it did is laid over what the host's player did meanwhile",
+		"%d -> %d" % [gold_before, Campaign.gold])
 	say("menu back")
 	log_line("")
 
@@ -1499,6 +1898,7 @@ func joiners_half():
 	await joiners_familiar()
 	await played_here()
 	await pictures_here()
+	await joiners_look()
 
 	log_line("======== leaving mid-fight ========")
 	await hear("to the second fight")

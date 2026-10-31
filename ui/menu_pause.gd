@@ -92,6 +92,11 @@ static func is_held() -> bool:
 	return not _live().is_empty()
 
 
+## The menus holding the game now.
+static func holders() -> Array:
+	return _live().map(func(id): return instance_from_id(id))
+
+
 static func _apply(tree: SceneTree) -> void:
 	if tree == null:
 		return

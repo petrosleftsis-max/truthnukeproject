@@ -7,6 +7,12 @@ class_name StoreScreen
 ##
 ## Bought items go into the bag of the first of the party with room, leader
 ## first; bought gear into the stash, to be put on from the character sheet.
+##
+## Over a network each player has a store of their own, and both may have the
+## same one open (the designer, 2026-10-31). The purse is the party's one: on a
+## joiner a deal is asked of the host (Net.store_deal), which makes it, and
+## every store open on either machine is drawn again as one is made
+## (Net.campaign_changed) - the joiner's told why when it did not go (refused).
 
 ## Leave was pressed.
 signal closed
@@ -15,9 +21,14 @@ const INK := Color("dce8f5")
 const MUTED := Color("8296a9")
 const GOLD := Color(1.0, 0.84, 0.35)
 const LIST_HEIGHT := 360
+## How long a deal that did not go is said for, seconds.
+const REFUSED_SECONDS := 3.0
 
 var store: StoreDefinition = null
 
+var _key := ""
+var _note: Label = null
+var _note_left := 0.0
 var _gold: Label = null
 var _buy_list: VBoxContainer = null
 var _sell_list: VBoxContainer = null
@@ -27,6 +38,7 @@ var _focus: FocusOnDemand = null
 
 ## Builds the store for `key`.
 func open_on(key: String):
+	_key = key
 	store = StoreDefinition.named(key)
 	set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -53,6 +65,12 @@ func open_on(key: String):
 	_gold.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_gold.add_theme_color_override("font_color", GOLD)
 	column.add_child(_gold)
+	_note = Label.new()
+	_note.name = "Note"
+	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_note.add_theme_color_override("font_color", Color(1.0, 0.55, 0.45))
+	_note.visible = false
+	column.add_child(_note)
 	var sides := HBoxContainer.new()
 	sides.add_theme_constant_override("separation", 18)
 	column.add_child(sides)
@@ -65,7 +83,28 @@ func open_on(key: String):
 	_leave.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_leave.pressed.connect(func(): closed.emit())
 	column.add_child(_leave)
+	# Over a network: a deal the other player makes, drawn here too.
+	Net.campaign_changed.connect(redraw)
 	redraw()
+
+
+## A deal asked of the host did not go (Net._store_refused): said for a moment.
+func refused(why: String):
+	_note.text = why
+	_note.visible = true
+	_note_left = REFUSED_SECONDS
+
+
+## What was last said of a deal that did not go, while it is up - or "".
+func note() -> String:
+	return _note.text if _note != null and _note.visible else ""
+
+
+func _process(delta):
+	if _note_left > 0.0:
+		_note_left -= delta
+		if _note_left <= 0.0:
+			_note.visible = false
 
 
 ## A heading and a scrolling list under it.
@@ -90,8 +129,15 @@ func _side(sides: HBoxContainer, heading: String) -> VBoxContainer:
 	return list
 
 
-## Everything worked out again - after anything is bought or sold.
+## Everything worked out again - after anything is bought or sold, here or by
+## the other player. The keyboard's place is kept, on the same row.
 func redraw():
+	if _gold == null:
+		return
+	var focused := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	var focused_row := ""
+	if focused != null and is_ancestor_of(focused) and focused.name == "Button":
+		focused_row = String(focused.get_parent().name)
 	_gold.text = "%d gold" % Campaign.gold
 	for list in [_buy_list, _sell_list]:
 		if list == null:
@@ -118,6 +164,17 @@ func redraw():
 		_focus = FocusOnDemand.attach(self, _first_button())
 	else:
 		_focus.remember(_first_button())
+	if focused_row != "":
+		var again := _button_on(focused_row)
+		(again if again != null and not again.disabled else _first_button()).grab_focus()
+
+
+## The button on the row called `row_name`, or null.
+func _button_on(row_name: String) -> Button:
+	for list in [_buy_list, _sell_list]:
+		if list != null and list.has_node(row_name):
+			return list.get_node(row_name).get_node_or_null("Button")
+	return null
 
 
 ## What the party could sell here: each item in each bag once, with how many,
@@ -191,16 +248,24 @@ func _reading_of(key: String) -> String:
 
 
 func _on_buy(key: String):
+	if Net.follows():
+		Net.store_deal(_key, "buy", "", key)
+		return
 	Campaign.buy(store, key)
 	redraw()
+	Net.send_now()
 
 
 func _on_sell(owner_key: String, key: String):
+	if Net.follows():
+		Net.store_deal(_key, "sell", owner_key, key)
+		return
 	if owner_key == "":
 		Campaign.sell_gear(store, key)
 	else:
 		Campaign.sell_item(store, owner_key, key)
 	redraw()
+	Net.send_now()
 
 
 func _first_button() -> Control:

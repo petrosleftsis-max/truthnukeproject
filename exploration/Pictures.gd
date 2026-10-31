@@ -17,6 +17,13 @@ extends Node
 ##
 ## How it all sounds, what the cursor shows and how much moves is
 ## res://pictures/feedback.tres (see PictureFeedback).
+##
+## Over a network a picture is both players' to search (Net "Pictures and
+## stores", "Looking together"): each on their own screen, and what either does
+## in it is the other's at once - Campaign comes back changed (campaign_changed
+## -> _on_campaign_changed), a dial or a piece the other moved is laid here
+## (lay_part), and on the same picture the other's pointer is drawn in their
+## colour and what their clicks say shown along the top (said_there).
 
 signal closed
 
@@ -37,9 +44,14 @@ const NO_COMBINATION := "Those don't go together."
 ## Off in tests, which want to see where a hotspot would send the party without
 ## the scene changing under them.
 var leave_for_map := true
-## Where a held lens is, when something other than the mouse says - tests, which
-## have no mouse to move. null: wherever the mouse is.
+## Where the pointer is, when something other than the mouse says - tests, which
+## have no mouse to move: where a held lens looks, and where the other machine
+## is told this player points. null: wherever the mouse is.
 var lens_point = null
+## How long the other player's line stays up along the top, seconds.
+const SAID_SECONDS := 5.0
+## How long the other player's pointer stays drawn unheard from, msec.
+const OTHER_FRESH_MS := 1500
 
 var _layer: CanvasLayer = null
 var _holder: Control = null
@@ -65,6 +77,10 @@ var _intro := 1.0
 var _intro_from := Rect2()
 ## Over a network: holding MenuPause, so only this machine's party stands.
 var _held_as_a_menu := false
+## Over a network: the other player's pointer, and their line along the top.
+var _other: _OtherPointer = null
+var _said: Label = null
+var _said_left := 0.0
 
 
 func _ready():
@@ -76,15 +92,20 @@ func _ready():
 ## stacks it on top, and returns straight away.
 func open(picture) -> void:
 	var first = _stack.is_empty()
-	# Over a network, one for the other machine's player is played there, on
-	# their screen (Net.picture_afar) - and waited for, as one here would be.
+	# Over a network the host plays one for the other machine's player there, on
+	# their screen - whatever is open here - and a conversation's on both
+	# (Net.picture_there).
 	var net = get_node_or_null("/root/Net")
-	if first and net != null and net.picture_goes_afar(picture):
-		await net.picture_afar(picture)
+	var there: int = net.picture_there(picture, first) if net != null else -1
+	if there >= 0 and not net.picture_shared(there):
+		# Theirs alone: waited for, as one here would be.
+		await net.picture_closed_there(there)
 		return
 	var scene: PackedScene = load(picture) if picture is String else picture
 	if scene == null:
 		push_warning("Pictures: there is no picture at '%s'." % [picture])
+		if there >= 0:
+			net.close_picture_there(there)
 		return
 	# Over a network a picture stops nothing: as a menu does, it stands only
 	# this machine's own party.
@@ -92,8 +113,19 @@ func open(picture) -> void:
 		MenuPause.hold(self)
 		_held_as_a_menu = true
 	show_picture(scene.instantiate())
-	if first:
-		await closed
+	if not first:
+		return
+	if there >= 0 and net.picture_led_afar(there):
+		# A conversation the other player began: theirs closing closes it here,
+		# and the conversation goes on.
+		await net.picture_closed_there(there)
+		if is_open():
+			close()
+		return
+	await closed
+	if there >= 0:
+		# This player began the conversation: closing theirs closes the other's.
+		net.close_picture_there(there)
 
 
 func is_open() -> bool:
@@ -103,6 +135,11 @@ func is_open() -> bool:
 ## The picture on show, or null.
 func current() -> Picture:
 	return _stack.back() if not _stack.is_empty() else null
+
+
+## The picture the rest were opened on - the bottom of the stack - or null.
+func first() -> Picture:
+	return _stack.front() if not _stack.is_empty() else null
 
 
 ## Puts `picture` (a Picture node, not yet in the tree) on top of the stack.
@@ -125,6 +162,12 @@ func show_picture(picture: Picture):
 	_holder.add_child(picture)
 	picture.size = design
 	picture.refresh()
+	# Over a network, the dials and pieces as either player last left them here.
+	var net = get_node_or_null("/root/Net")
+	if net != null and net.with_another():
+		var left: Dictionary = net.parts_of(picture.picture_id())
+		for part_path in left:
+			_lay(picture.get_node_or_null(NodePath(part_path)), picture, left[part_path])
 	_title.text = picture.title
 	_title.visible = picture.title != ""
 	_say("")
@@ -180,6 +223,11 @@ func close():
 		_layer.queue_free()
 		_layer = null
 		_players.clear()
+	# Gone with the layer.
+	_other = null
+	_said = null
+	_said_left = 0.0
+	_bag_drawn = ""
 	if _held_as_a_menu:
 		_held_as_a_menu = false
 		MenuPause.release(self)
@@ -227,8 +275,9 @@ func _combine(a: String, b: String):
 		return
 	var item: ItemDefinition = ItemDatabase.item(made)
 	var said = item.combine_text if item != null and item.combine_text != "" else "Put together: %s." % _item_name(made)
-	_say(said)
+	_tell(said)
 	play("combine_right")
+	_progressed()
 
 
 func _is_lens(item_key: String) -> bool:
@@ -256,9 +305,10 @@ func click(hotspot: Hotspot):
 		return
 	if hotspot.requires_flag != "" and not Campaign.flag(hotspot.requires_flag):
 		Campaign.mark_examined(hotspot.examined_id())
-		_say(hotspot.locked_text)
+		_tell(hotspot.locked_text)
 		play("locked", hotspot.click_sound)
 		_refresh_current()
+		_progressed()
 		return
 	if hotspot.gives_item != "" and Campaign.room_for_one() == "":
 		_say("There's no room left to carry that.")
@@ -273,7 +323,7 @@ func click(hotspot: Hotspot):
 	Campaign.mark_examined(hotspot.examined_id())
 	play(hotspot.verb_name(), hotspot.click_sound)
 	hotspot.play_click_animation()
-	_say(hotspot.examine_text)
+	_tell(hotspot.examine_text)
 	if hotspot.gives_item != "":
 		Campaign.give_item(Campaign.room_for_one(), hotspot.gives_item)
 		_refresh_bag()
@@ -283,6 +333,8 @@ func click(hotspot: Hotspot):
 		Campaign.set_flag(hotspot.sets_flag)
 	if hotspot.dialogue != null:
 		_talk(hotspot.dialogue, hotspot.dialogue_title)
+	# What it changed goes to the other player before anything leaves the picture.
+	_progressed()
 	if hotspot.opens_picture != "":
 		_intro_from = hotspot.get_global_rect()
 		open(hotspot.opens_picture)
@@ -295,7 +347,7 @@ func _use_item_on(hotspot: Hotspot):
 	var item_key = _holding
 	_holding = ""
 	if hotspot.takes_item == "" or hotspot.takes_item != item_key:
-		_say(hotspot.wrong_item_text)
+		_tell(hotspot.wrong_item_text)
 		play("use_wrong")
 		_refresh_bag()
 		_refresh_hover()
@@ -307,12 +359,13 @@ func _use_item_on(hotspot: Hotspot):
 				break
 	if hotspot.item_sets_flag != "":
 		Campaign.set_flag(hotspot.item_sets_flag)
-	_say(hotspot.item_text)
+	_tell(hotspot.item_text)
 	play("use_right")
 	if hotspot.dialogue != null and hotspot.item_dialogue_title != "":
 		_talk(hotspot.dialogue, hotspot.item_dialogue_title)
 	_refresh_bag()
 	_refresh_current()
+	_progressed()
 
 
 ## A Puzzle reports it is solved (Puzzle.check). It has set its own flag.
@@ -323,7 +376,7 @@ func puzzle_solved(puzzle: Puzzle):
 	play("solved")
 	nudge(puzzle, 1.05)
 	if puzzle.solved_text != "":
-		_say(puzzle.solved_text)
+		_tell(puzzle.solved_text)
 	if puzzle.gives_item != "":
 		var who = Campaign.room_for_one()
 		if who != "":
@@ -332,6 +385,7 @@ func puzzle_solved(puzzle: Puzzle):
 	if puzzle.gives_clue != "":
 		Campaign.learn_clue(puzzle.gives_clue)
 	_refresh_current()
+	_progressed()
 
 
 ## A quick swell and settle on `thing` - a dial turned, a piece snapped in, a
@@ -359,6 +413,7 @@ func _on_talk_ended(_resource = null):
 	_talking = false
 	_refresh_bag()
 	_refresh_current()
+	_progressed()
 
 
 ## Leaves the pictures for a map: the party arrives at `entry` (or the map's
@@ -382,6 +437,152 @@ func _say(text: String):
 	if _caption != null:
 		_caption.text = text
 		_caption.visible = text != ""
+
+
+## --- Over a network ---
+
+
+## Says `text` along the bottom - what a click came to - and on the other
+## player's copy of the same picture too (Net.said_in_picture).
+func _tell(text: String):
+	_say(text)
+	var net = get_node_or_null("/root/Net")
+	if net != null and text != "":
+		net.said_in_picture(text)
+
+
+## Something was done here that may have changed Campaign: over a network, to
+## the other machine at once (Net.picture_progressed).
+func _progressed():
+	var net = get_node_or_null("/root/Net")
+	if net != null and net.with_another():
+		net.picture_progressed()
+
+
+## Campaign changed on the other machine (Net.campaign_changed) - what the other
+## player found, took or used: everything on show worked out again.
+func _on_campaign_changed():
+	if _layer == null or _stack.is_empty():
+		return
+	# The item in hand used up there is not in hand here any more.
+	if _holding != "" and not _carried(_holding):
+		_holding = ""
+	# The bag drawn again only when what is in it changed, so a button the
+	# mouse is on stays under it.
+	var bag := var_to_str([Campaign.living_party().map(func(key): return Campaign.inventory_of(key)), _holding])
+	if bag != _bag_drawn:
+		_bag_drawn = bag
+		_refresh_bag()
+	_refresh_current()
+
+
+## What the bag held when Campaign last came back changed.
+var _bag_drawn := ""
+
+
+func _carried(item_key: String) -> bool:
+	for key in Campaign.living_party():
+		if Campaign.inventory_of(key).has(item_key):
+			return true
+	return false
+
+
+## What the other player's click said in the picture at `path` (Net): along the
+## top, in their colour, while this machine shows the same picture.
+func said_there(player: int, path: String, text: String):
+	var picture = current()
+	if not is_instance_valid(_said) or picture == null or picture.picture_id() != path:
+		return
+	_said.text = "%s: %s" % [Coop.name_of(player), text]
+	_said.add_theme_color_override("font_color", Coop.colour_of(player).lightened(0.4))
+	_said.get_parent().visible = true
+	_said_left = SAID_SECONDS
+
+
+## What was done here was done first by the other player, and is undone (Net).
+func got_there_first(text: String):
+	_say(text)
+	play("use_wrong")
+
+
+## Where the pointer is on the picture on show, from 0 to 1 across and down -
+## what the other machine is told - or (-1, -1) when it is off it.
+func pointer_in_picture() -> Vector2:
+	var picture = current()
+	if picture == null or not picture.is_inside_tree():
+		return Vector2(-1, -1)
+	var at: Vector2 = lens_point if lens_point != null else Pad.screen_point()
+	var design: Vector2 = picture.get_meta("design_size", picture.size)
+	var share: Vector2 = (picture.get_global_transform().affine_inverse() * at) / design
+	if share.x < 0.0 or share.y < 0.0 or share.x > 1.0 or share.y > 1.0:
+		return Vector2(-1, -1)
+	return share
+
+
+## A dial turned or a piece put down here (PuzzleDial, PuzzlePiece): over a
+## network the other machine is told, to lay it on its own copy (Net).
+func part_moved(part: Control):
+	var net = get_node_or_null("/root/Net")
+	var picture := _picture_of(part)
+	if net == null or picture == null or not net.with_another():
+		return
+	var state := {}
+	if part is PuzzleDial:
+		state = {"value": part.value()}
+	elif part is PuzzlePiece:
+		state = {"at": part.position, "slot": String(picture.get_path_to(part.sits_in)) if part.sits_in != null else ""}
+	var puzzle: Puzzle = part.puzzle()
+	net.part_moved(picture.picture_id(), String(picture.get_path_to(part)), state, puzzle != null and puzzle.is_solved())
+
+
+## The other player turned a dial or put a piece down in the picture at `path`
+## (Net): laid on every copy of it here. Where that leaves the puzzle right, it
+## was solved where it was finished (`completes`) - its flag and what it gives
+## come from there - and here it only settles; with neither machine having
+## finished it alone, the host solves it.
+func lay_part(path: String, part_path: String, state: Dictionary, completes: bool):
+	var net = get_node_or_null("/root/Net")
+	for picture in _stack.duplicate():
+		if not is_instance_valid(picture) or picture.picture_id() != path:
+			continue
+		var part = picture.get_node_or_null(NodePath(part_path))
+		if not _lay(part, picture, state):
+			continue
+		nudge(part)
+		var puzzle: Puzzle = part.puzzle()
+		if puzzle != null and not puzzle.is_solved() and puzzle.all_right():
+			if completes or net == null or not net.is_host():
+				puzzle.settle()
+			else:
+				puzzle.check()
+	_refresh_current()
+
+
+## Lays `state` (part_moved's) on `part` in `picture` - nothing for a puzzle
+## already solved. Whether it was a part to lay it on.
+func _lay(part, picture: Picture, state: Dictionary) -> bool:
+	if not (part is PuzzleDial or part is PuzzlePiece) or (part.puzzle() != null and part.puzzle().is_solved()):
+		return false
+	if part is PuzzleDial and state.get("value") is String:
+		part.show_value(state.value)
+		return true
+	if part is PuzzlePiece and state.get("at") is Vector2 and state.get("slot") is String:
+		var slot = picture.get_node_or_null(NodePath(state.slot)) if state.slot != "" else null
+		if slot is PuzzleSlot:
+			part.place_in(slot, false)
+		else:
+			part.position = state.at
+			part.sits_in = null
+		return true
+	return false
+
+
+## The Picture `node` is in, or null.
+func _picture_of(node: Node) -> Picture:
+	var at = node
+	while at != null and not (at is Picture):
+		at = at.get_parent()
+	return at
 
 
 ## --- Sound ---
@@ -499,6 +700,30 @@ func _build():
 	_hover_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hover_panel.add_child(_hover_label)
 	_layer.add_child(hover_panel)
+	# Over a network: the other player's pointer, and what their clicks say.
+	_other = _OtherPointer.new()
+	_other.name = "OtherPointer"
+	_other.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_other.visible = false
+	_layer.add_child(_other)
+	var said_panel := PanelContainer.new()
+	said_panel.name = "OtherSaid"
+	said_panel.theme_type_variation = &"TooltipPanel"
+	said_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	said_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	said_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	said_panel.offset_top = 84
+	said_panel.visible = false
+	_said = Label.new()
+	_said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_said.custom_minimum_size = Vector2(420, 0)
+	_said.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_said.add_theme_font_size_override("font_size", 18)
+	said_panel.add_child(_said)
+	_layer.add_child(said_panel)
+	var net = get_node_or_null("/root/Net")
+	if net != null and not net.campaign_changed.is_connected(_on_campaign_changed):
+		net.campaign_changed.connect(_on_campaign_changed)
 
 
 ## What to press for the journal and for Back, on their buttons - the keys, or
@@ -570,6 +795,7 @@ func _process(delta):
 	var mouse := Pad.screen_point()
 	var screen = _holder.get_viewport_rect().size
 	_update_lens(mouse)
+	_show_the_other(delta)
 	_badge.position = mouse + Vector2(14, 14)
 	var panel: Control = _hover_label.get_parent()
 	if panel.visible:
@@ -596,6 +822,39 @@ func _update_lens(mouse: Vector2):
 	for layer in picture.find_children("*", "PictureLayer", true, false):
 		if layer.hidden_detail:
 			layer.set_lens(at, LENS_RADIUS if on else 0.0)
+
+
+## Over a network: the other player's pointer, drawn where they point while
+## they look at the same picture, and their last line until it has been up
+## SAID_SECONDS.
+func _show_the_other(delta: float):
+	var net = get_node_or_null("/root/Net")
+	var picture = current()
+	var there: Dictionary = net.looking_there if net != null and net.with_another() else {}
+	var on: bool = picture != null and not there.is_empty() and there.path == picture.picture_id() \
+		and Time.get_ticks_msec() - there.msec < OTHER_FRESH_MS and there.at.x >= 0.0
+	_other.visible = on
+	if on:
+		var design: Vector2 = picture.get_meta("design_size", picture.size)
+		_other.position = picture.get_global_transform() * (there.at * design)
+		_other.colour = Coop.colour_of(there.player)
+		_other.label = Coop.name_of(there.player)
+		_other.queue_redraw()
+	if _said_left > 0.0:
+		_said_left -= delta
+		if _said_left <= 0.0:
+			_said.get_parent().visible = false
+
+
+## What the other player's pointer shows of them on screen, while it is drawn
+## (null when it is not): where, and whose.
+func other_pointer():
+	return {"at": _other.position, "name": _other.label} if is_instance_valid(_other) and _other.visible else null
+
+
+## The other player's line along the top, while it is up - or "".
+func other_said() -> String:
+	return _said.text if is_instance_valid(_said) and _said.get_parent().visible else ""
 
 
 ## Whether any of `box` lies within `radius` of `point`.
@@ -802,6 +1061,23 @@ class _Badge extends Control:
 					var tip: Vector2 = c + way * 9.0
 					var side: Vector2 = way.orthogonal() * 3.0
 					draw_polyline(PackedVector2Array([tip - way * 3.0 + side, tip, tip - way * 3.0 - side]), INK, 2.0)
+
+
+## The other player's pointer over a network: an arrow in their colour, and
+## their name beside it.
+class _OtherPointer extends Control:
+	var colour := Color.WHITE
+	var label := ""
+
+	func _draw():
+		var tip := Vector2.ZERO
+		var arrow := PackedVector2Array([tip, tip + Vector2(0, 26), tip + Vector2(7, 20), tip + Vector2(12, 31),
+			tip + Vector2(17, 29), tip + Vector2(12, 18), tip + Vector2(21, 18)])
+		draw_colored_polygon(arrow, colour)
+		draw_polyline(arrow + PackedVector2Array([tip]), Color(0, 0, 0, 0.8), 2.0)
+		var font := get_theme_default_font()
+		draw_string_outline(font, Vector2(24, 34), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Color(0, 0, 0, 0.85))
+		draw_string(font, Vector2(24, 34), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, colour)
 
 
 ## The ring a lens is drawn as, round the pointer.
