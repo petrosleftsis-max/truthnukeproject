@@ -1,8 +1,10 @@
-[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3 uid="uid://lbf7bddqjp8d"]
 
-[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="1_3t4tl"]
-[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="2_4615b"]
-[ext_resource type="PackedScene" path="res://maps/city_fight.tscn" id="3_e2lbh"]
+[ext_resource type="Script" uid="uid://bhapmqsfyfwc3" path="res://combat/resources/EncounterDefinition.gd" id="1_3t4tl"]
+[ext_resource type="Script" uid="uid://d3sq515l87q81" path="res://combat/resources/FloorDefinition.gd" id="1_e2lbh"]
+[ext_resource type="Script" uid="uid://b2unuolt6rsjg" path="res://combat/resources/SpawnDefinition.gd" id="2_4615b"]
+[ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="2_dbfw2"]
+[ext_resource type="PackedScene" uid="uid://bg6jpyiju3kft" path="res://maps/city_fight.tscn" id="3_e2lbh"]
 
 [sub_resource type="Resource" id="Resource_dbfw2"]
 script = ExtResource("2_4615b")
@@ -83,9 +85,9 @@ level = 14
 
 [resource]
 script = ExtResource("1_3t4tl")
-gold_reward = 45
 display_name = "Dungeon: The City"
 description = "The city fight, with fewer of them than before."
 terrain_scene = ExtResource("3_e2lbh")
+gold_reward = 45
 spawns = Array[ExtResource("2_4615b")]([SubResource("Resource_dbfw2"), SubResource("Resource_c6n1n"), SubResource("Resource_7dkvg"), SubResource("Resource_6a76x"), SubResource("Resource_3u6l7"), SubResource("Resource_6fnq1"), SubResource("Resource_tojav"), SubResource("Resource_g0qb7"), SubResource("Resource_6ld0n"), SubResource("Resource_2kuni"), SubResource("Resource_kk0vo")])
 music = "Luce_del_Desiderio"

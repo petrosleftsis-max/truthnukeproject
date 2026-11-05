@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_hover"]
 [ext_resource type="Texture2D" uid="uid://b362ot32yw1by" path="res://art/icons/hover_skill.png" id="2_hover"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_hover"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="3_teym4"]
 [ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="4_hover"]
 
 [sub_resource type="Resource" id="Effect_hover"]
@@ -15,9 +16,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("3_hover")
-impact_look = 26
 name = "Hover"
-outside_use = 11
 description = "Surround an ally in uplifting wind that allows them to fly across the field."
 max_range = 10
 icon = ExtResource("2_hover")
@@ -26,5 +25,7 @@ respects_blocking = true
 effects = Array[ExtResource("1_hover")]([SubResource("Effect_hover")])
 deals_damage = false
 sound = ExtResource("4_hover")
+impact_look = 26
 spell_slot_level = 2
+outside_use = 11
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

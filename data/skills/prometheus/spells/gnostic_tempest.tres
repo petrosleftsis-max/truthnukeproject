@@ -1,22 +1,22 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://byrpwj5h6us8j"]
 
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/gnostic_tempest_skill.png" id="2_icon"]
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
-[ext_resource type="AudioStream" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" uid="uid://dtip4hfe3n82m" path="res://art/icons/gnostic_tempest_skill.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="3_y36mu"]
+[ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [resource]
 script = ExtResource("3_skill")
-impact_look = 22
 name = "Gnostic Tempest"
 description = "A tempest of knowing over everything near where it lands."
-required_level = 54
 min_range = 1
 max_range = 15
+icon = ExtResource("2_icon")
+respects_blocking = true
 ability_modifier = 5.4
 damage_type = 7
-aoe_radius = 2
-respects_blocking = true
-spell_slot_level = 9
-icon = ExtResource("2_icon")
 sound = ExtResource("90_sfx")
+impact_look = 22
+spell_slot_level = 9
+aoe_radius = 2

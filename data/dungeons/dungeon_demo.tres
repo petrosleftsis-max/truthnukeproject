@@ -1,12 +1,12 @@
-[gd_resource type="Resource" script_class="DungeonDefinition" format=3]
+[gd_resource type="Resource" script_class="DungeonDefinition" format=3 uid="uid://ba87psmr4t8if"]
 
-[ext_resource type="Script" path="res://campaign/DungeonDefinition.gd" id="1_0j4ho"]
-[ext_resource type="Script" path="res://campaign/DungeonStage.gd" id="2_0kadc"]
-[ext_resource type="Resource" path="res://data/encounters/dungeon_demo/dungeon_1_sewer.tres" id="3_ka1it"]
-[ext_resource type="Resource" path="res://data/encounters/encounter_01_ambush.tres" id="4_tx6wk"]
-[ext_resource type="Resource" path="res://data/encounters/dungeon_demo/dungeon_2_lab.tres" id="5_ttsaa"]
-[ext_resource type="Resource" path="res://data/encounters/encounter_02_sappers.tres" id="6_tqa1u"]
-[ext_resource type="Resource" path="res://data/encounters/dungeon_demo/dungeon_3_city.tres" id="7_8bjtx"]
+[ext_resource type="Script" uid="uid://crs8e6ilmymrh" path="res://campaign/DungeonDefinition.gd" id="1_0j4ho"]
+[ext_resource type="Script" uid="uid://b772ra3juyefu" path="res://campaign/DungeonStage.gd" id="2_0kadc"]
+[ext_resource type="Resource" uid="uid://dge6ccsfpveb5" path="res://data/encounters/dungeon_demo/dungeon_1_sewer.tres" id="3_ka1it"]
+[ext_resource type="Resource" uid="uid://b24liue2xhn55" path="res://data/encounters/encounter_01_ambush.tres" id="4_tx6wk"]
+[ext_resource type="Resource" uid="uid://emplvxne2iqc" path="res://data/encounters/dungeon_demo/dungeon_2_lab.tres" id="5_ttsaa"]
+[ext_resource type="Resource" uid="uid://c3j4v4tmtl7gw" path="res://data/encounters/encounter_02_sappers.tres" id="6_tqa1u"]
+[ext_resource type="Resource" uid="uid://lbf7bddqjp8d" path="res://data/encounters/dungeon_demo/dungeon_3_city.tres" id="7_8bjtx"]
 
 [sub_resource type="Resource" id="Resource_ojrih"]
 script = ExtResource("2_0kadc")

@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bqajjqrvegmux"]
 
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/deceive_skill.png" id="2_icon"]
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" uid="uid://d0dj8fvsphggd" path="res://art/icons/deceive_skill.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="3_357ua"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
 
 [sub_resource type="Resource" id="Effect_summon"]
 script = ExtResource("1_effect")
@@ -12,17 +13,15 @@ with_summoners_attributes = true
 
 [resource]
 script = ExtResource("3_skill")
-impact_look = 33
 name = "Illusory Dragon"
 description = "Shadow drawn out of the Ogdoad and given a dragon's shape, anywhere in reach. It stands where it stands like a living thing, but every blow misses it and nothing harms it; the other side near it is gripped by fear. Commanded, it flies and breathes a cone of whatever it is told to - fire, frost, lightning, poison, acid or dread - as strong as your own mind. It lasts as long as its tether to you holds."
 min_range = 1
 max_range = 12
 icon = ExtResource("2_icon")
-required_level = 47
 can_be_copied = false
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_summon")])
 deals_damage = false
+impact_look = 33
 spell_slot_level = 8
 tethered = true
-tether_strength = 100
 tether_per_turn = 20

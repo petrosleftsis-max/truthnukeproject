@@ -27,7 +27,7 @@ position = Vector2(1917.3333, 890.6667)
 script = ExtResource("3_examine")
 text = "Who even leaves so many barrels around?"
 speaker = "Signpost"
-interaction_radius = 320
+interaction_radius = 320.0
 sprite_frames = ExtResource("4_go82g")
 
 [node name="Bones" type="Node2D" parent="." index="4" unique_id=1238560271]
@@ -35,7 +35,7 @@ position = Vector2(3076, 3330.6667)
 script = ExtResource("3_examine")
 text = "I still am surprised the city guards haven't taken these planks away. Is it mercy on the homeless of the sewers or just laziness?"
 repeatable = false
-interaction_radius = 320
+interaction_radius = 320.0
 sprite_frames = ExtResource("4_go82g")
 
 [node name="DialogueInteractable" type="Node2D" parent="." index="5" unique_id=1387684525]
@@ -43,7 +43,7 @@ position = Vector2(3940, -2428)
 script = ExtResource("8_e8hu0")
 dialogue = ExtResource("9_go82g")
 prompt = "Talk"
-interaction_radius = 160
+interaction_radius = 160.0
 sprite_frames = ExtResource("4_go82g")
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
 
@@ -54,23 +54,23 @@ point_name = "intro_sewer_alley_dest"
 metadata/_custom_type_script = "uid://tn5n7wtckj10"
 
 [node name="DialogueInteractable2" type="Node2D" parent="." index="7" unique_id=344194875]
-position = Vector2(6666.6667, 440)
+position = Vector2(6666.6665, 440)
 script = ExtResource("8_e8hu0")
 dialogue = ExtResource("11_5p2sx")
 only_once = true
 prompt = "Talk"
-interaction_radius = 320
+interaction_radius = 320.0
 sprite_frames = ExtResource("4_go82g")
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
 
 [node name="DialogueInteractable3" type="Node2D" parent="." index="8" unique_id=1694549548]
-position = Vector2(10809.3333, -3460)
+position = Vector2(10809.333, -3460)
 script = ExtResource("8_e8hu0")
 dialogue = ExtResource("9_e8hu0")
 encounter_after = ExtResource("9_25qp7")
 automatic = true
 prompt = "Talk"
-interaction_radius = 320
+interaction_radius = 320.0
 metadata/_custom_type_script = "uid://bx4mgbrftmp1c"
 
 [node name="MapSetup" type="Node" parent="." index="9" unique_id=649111327]

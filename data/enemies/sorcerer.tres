@@ -1,12 +1,14 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://dfulnpq8xjh7p"]
 
-[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_dgg7q"]
-[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="2_5r1kt"]
-[ext_resource type="SpriteFrames" path="res://art/enemies/caster/caster_frames.tres" id="3_n7ymf"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="1_dgg7q"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_w24l3"]
+[ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="2_5r1kt"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="2_vwa8j"]
+[ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="3_k13ff"]
+[ext_resource type="SpriteFrames" uid="uid://nlca2j2ewp4s" path="res://art/enemies/caster/caster_frames.tres" id="3_n7ymf"]
 
 [resource]
 script = ExtResource("2_5r1kt")
-skill_levels = {"burner": 5, "crystalise": 7, "gust_blast": 6, "wind_swoon": 6}
 name = "Sorcerer"
 class_t = 2
 max_hp = 28
@@ -17,7 +19,13 @@ movement = 6
 initiative = 4
 main_stat = 2
 sprite_frames = ExtResource("3_n7ymf")
-skills = Array[String](["burner", "fireball", "crystalise", "gust_blast", "wind_swoon", "run", "fire_burst", "fire_blast", "rock_throw", "wind_shot"])
+skills = Array[String](["burner", "wildfire", "crystalise", "gust_blast", "wind_swoon", "run", "fire_burst", "fire_blast", "rock_throw", "wind_shot"])
+skill_levels = {
+"burner": 5,
+"crystalise": 7,
+"gust_blast": 6,
+"wind_swoon": 6
+}
 resist_fire = 50
 resist_poison = -50
 ai_function = "ai_caster"

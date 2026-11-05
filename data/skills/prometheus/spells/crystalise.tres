@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_jk1kw"]
 [ext_resource type="Resource" uid="uid://ckup4ja1ars1i" path="res://data/conditions/crystallised.tres" id="2_v3tq0"]
 [ext_resource type="Texture2D" uid="uid://cqgk3uu7timel" path="res://art/icons/crystallise_skill.png" id="3_nxawm"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="4_ri2e8"]
 [ext_resource type="AudioStream" uid="uid://cqnubt85xto1y" path="res://audio/sfx/Debris_Scattering_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [sub_resource type="Resource" id="Resource_v3tq0"]
@@ -20,10 +21,8 @@ name = "Crystalise"
 description = "Cover an enemy in hindering stones."
 max_range = 15
 icon = ExtResource("3_nxawm")
-required_level = 16
 respects_blocking = true
 effects = Array[ExtResource("1_468qc")]([SubResource("Resource_v3tq0")])
-ability_modifier = 1.0
 scaling_stat = 2
 damage_type = 4
 uses_stat_contest = true

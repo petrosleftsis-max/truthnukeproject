@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://cw8aln1h2a8dd"]
 
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/growth_skill.png" id="2_icon"]
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
-[ext_resource type="AudioStream" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" uid="uid://b7jv0k5r7when" path="res://art/icons/growth_skill.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="3_jl22h"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
 
 [sub_resource type="Resource" id="Effect_grow"]
 script = ExtResource("1_effect")
@@ -13,7 +14,6 @@ duration = 3
 [resource]
 script = ExtResource("3_skill")
 name = "Growth"
-outside_use = 1
 description = "Swell an ally to a size bigger for three turns - a Human to a Large, covering four tiles and reaching from every edge of them; too big to be lifted by what could lift them before, and seeing over the bodies of the smaller. They need the room to grow into."
 max_range = 5
 icon = ExtResource("2_icon")
@@ -21,7 +21,7 @@ targets_ally = true
 respects_blocking = true
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_grow")])
 deals_damage = false
-required_level = 8
-spell_slot_level = 2
 sound = ExtResource("90_sfx")
 sound_volume_db = -6.0
+spell_slot_level = 2
+outside_use = 1

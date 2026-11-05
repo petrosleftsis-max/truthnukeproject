@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://wn3ngcx28clq"]
 
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/dread_visage_skill.png" id="2_icon"]
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
-[ext_resource type="Resource" path="res://data/conditions/fear.tres" id="4_cond"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" uid="uid://bcho5ojnyyqup" path="res://art/icons/dread_visage_skill.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="4_2c0ei"]
+[ext_resource type="Resource" uid="uid://b5ofo8i0bu3ep" path="res://data/conditions/fear.tres" id="4_cond"]
 
 [sub_resource type="Resource" id="Effect_0"]
 script = ExtResource("1_effect")
@@ -13,17 +14,21 @@ condition_duration = 2
 
 [resource]
 script = ExtResource("3_skill")
-impact_look = 13
 name = "Dread Visage"
-outside_use = 6
 description = "A face only the target sees, and cannot stop seeing."
-icon = ExtResource("2_icon")
 min_range = 1
 max_range = 6
+icon = ExtResource("2_icon")
 required_level = 7
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 deals_damage = false
+scaling_stat = 1
 uses_stat_contest = true
 contest_stat = 3
-scaling_stat = 1
-spell_slot_level = 2
-effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+impact_look = 13
+spell_slot_level = 3
+outside_use = 6
+tethered = true
+tether_strength = 200
+aoe_radius = 4
+aoe_shape = 2

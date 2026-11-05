@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://bdrlfcmntfhkb"]
 
-[ext_resource type="Script" path="res://demos/lab_sequence.gd" id="1_lab"]
-[ext_resource type="Resource" path="res://data/dungeons/lab_chapter1_sequence.tres" id="2_dungeon"]
+[ext_resource type="Script" uid="uid://b54qy8ha1hcpn" path="res://demos/lab_sequence.gd" id="1_lab"]
+[ext_resource type="Resource" uid="uid://bbmj18ef3rvc7" path="res://data/dungeons/lab_chapter1_sequence.tres" id="2_dungeon"]
 
-[node name="LabSequence" type="Node"]
+[node name="LabSequence" type="Node" unique_id=1870844215]
 script = ExtResource("1_lab")
 run_label = "erysichthon-conservation"
 dungeon = ExtResource("2_dungeon")

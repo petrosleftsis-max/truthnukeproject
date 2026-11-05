@@ -1,7 +1,11 @@
-[gd_resource type="Resource" script_class="BattleObjectDefinition" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="BattleObjectDefinition" format=3 uid="uid://c6niud5utmfka"]
 
-[ext_resource type="Script" path="res://combat/resources/BattleObjectDefinition.gd" id="1_wall"]
-[ext_resource type="Texture2D" path="res://art/terrain/first_area_tiles.png" id="2_tiles"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_rxkfu"]
+[ext_resource type="Script" uid="uid://uuir1227wuma" path="res://combat/resources/BattleObjectDefinition.gd" id="1_wall"]
+[ext_resource type="Texture2D" uid="uid://bp0kl5b00jjdv" path="res://art/terrain/first_area_tiles.png" id="2_tiles"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="3_7utln"]
+[ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="4_rw61t"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="5_jdypu"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_wall"]
 atlas = ExtResource("2_tiles")
