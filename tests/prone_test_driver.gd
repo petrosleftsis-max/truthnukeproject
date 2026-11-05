@@ -336,6 +336,8 @@ func undoing():
 	ok(controller.undo_move() and combat.is_prone(enfina) and enfina.position == start and controller.movement == 0, "taken back: where she lay, lying there")
 	# Walked, then down: both go back together.
 	stand_everybody()
+	enfina["walked_this_turn"] = 0
+	enfina.erase("moved_this_turn")
 	await their_turn(enfina)
 	walked_to = await walk_a_little(enfina)
 	var left: int = controller.movement
@@ -343,6 +345,8 @@ func undoing():
 	controller.toggle_prone()
 	ok(controller.can_undo_move() and controller.undo_move() and not combat.is_prone(enfina) and enfina.position == start and controller.movement == whole,
 		"walked and went down, taken back: where she began, on her feet, all her movement")
+	ok(enfina.get("walked_this_turn", 0) == 0 and not enfina.get("moved_this_turn", false),
+		"  and as if she never walked: no Charge from it, and the bonus for standing still is back")
 	# Once something else has happened, it stays happened.
 	stand_everybody()
 	await their_turn(enfina)
@@ -410,7 +414,8 @@ func enemies():
 	log_line("======== enemies ========")
 	var cyrus := who("cyrus")
 	var foe := first_foe()
-	ok(not foe.get("goes_prone", true), "no enemy goes prone by its nature unless it is ticked")
+	ok(load("res://data/enemies/ranger.tres").goes_prone and not load("res://data/enemies/priest.tres").goes_prone, "the Ranger goes prone by its nature; one not ticked does not")
+	foe["goes_prone"] = false
 	# Put down by something else, it gets up to walk.
 	foe.reaction_used = true
 	await their_turn(foe)

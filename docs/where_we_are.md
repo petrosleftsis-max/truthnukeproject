@@ -109,8 +109,8 @@ holds the game for both).
     the saves.
   - Prone: free to lie down, half movement to get up; half from ranged moves and
     areas, double from melee; Undo Move takes it back. Cyrus's Low Shot and the
-    Saboteur's Kip-Up. No enemy goes prone yet (the Goes Prone tick is unticked), and
-    Erysichthon never will: it is immune.
+    Saboteur's Kip-Up. The Ranger goes prone (the Goes Prone tick); Erysichthon never
+    will: it is immune. Undo Move no longer leaves a walk's bonuses behind.
   - **Suggested, not built, waiting on the designer:** title cards at the start and
     end of a fight, a more impactful entrance for enemies, showing deaths, and a
     shove prediction ("Waiting on the designer", item 9).

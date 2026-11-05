@@ -802,7 +802,7 @@ their getting up (the Saboteur's **Kip-Up**, from level 24).
 
 On an enemy's CombatantDefinition, **Goes Prone** has it lie down as its turn ends
 when nobody could reach it in melee next turn, and stay down while it has somebody
-to hit from there. Nobody has it ticked yet. An enemy without it gets up first thing
+to hit from there. The Ranger has it ticked. An enemy without it gets up first thing
 on its turn, from whatever put it down.
 
 It is drawn on its side for now. An animation called `prone` in somebody's

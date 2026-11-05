@@ -252,7 +252,7 @@ and `gets_up_free` (Kip-Up) on PassiveDefinition. `_lying_down` keeps it from
 as the fight move "prone" (`change_stance`). Undo: `board_fingerprint` leaves the
 walker's own lying down out, and `undo_move` puts it back (`_turn_start_prone`,
 `_turn_start_kept`, `_stance_changed`, `put_back_lying`). AI: `_ai_turn` gets up first unless
-`_ai_stays_down`; `goes_prone` (per creature, nobody ticked) lies down at its turn's
+`_ai_stays_down`; `goes_prone` (per creature, the Ranger's) lies down at its turn's
 end (`_ai_consider_lying_down`). Erysichthon is immune (`immune_to_conditions`).
 `CombatantSprite.set_lying` is a placeholder, with
 a `prone` animation as its slot. `prone` covers it, and `net` plays it across.

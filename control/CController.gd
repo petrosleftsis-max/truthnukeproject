@@ -1551,6 +1551,10 @@ var _turn_start_kept := -1
 ## Whether they have lain down or got up since then - down and straight up again
 ## leaves them as they were, but for the movement it took.
 var _stance_changed := false
+## How far they had walked there, and whether at all: what asks after a walk (Charge,
+## a bonus for standing still) goes by the walk that is left, not one taken back.
+var _turn_start_walked := 0
+var _turn_start_moved := false
 
 
 func _remember_turn_start(combatant: Dictionary):
@@ -1565,6 +1569,8 @@ func _remember_lying(combatant: Dictionary):
 	_turn_start_prone = combat != null and combat.is_prone(combatant)
 	_turn_start_kept = combatant.get("movement_left_when_down", -1)
 	_stance_changed = false
+	_turn_start_walked = combatant.get("walked_this_turn", 0)
+	_turn_start_moved = combatant.get("moved_this_turn", false)
 
 
 ## Moves the point a walk back returns to up to here and now, if anything has
@@ -1623,6 +1629,11 @@ func undo_move() -> bool:
 	_next_position = tile_map.map_to_local(_turn_start_position)
 	combat.put_back_lying(comb, _turn_start_prone, _turn_start_kept)
 	_stance_changed = false
+	comb["walked_this_turn"] = _turn_start_walked
+	if _turn_start_moved:
+		comb["moved_this_turn"] = true
+	else:
+		comb.erase("moved_this_turn")
 	set_movement(_turn_start_movement)
 	refresh_watched_tiles(comb)
 	combat.update_information.emit("[color=yellow]%s[/color] %s.\n" % [comb.name, "walks back" if from != _turn_start_position else "takes that back"])
