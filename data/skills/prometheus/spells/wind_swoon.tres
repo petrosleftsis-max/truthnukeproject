@@ -15,14 +15,22 @@ condition_duration = 5
 condition_dot_modifier = 0.1
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
+[sub_resource type="Resource" id="Effect_ground"]
+script = ExtResource("1_77oc1")
+type = 34
+zone_for = 2
+zone_turns = 3
+zone_blows_out = true
+zone_colour = Color(0.75, 0.92, 0.85, 0.28)
+
 [resource]
 script = ExtResource("2_ohx0v")
 name = "Wind Swoon"
-description = "Swoon them with the wind."
+description = "Swoon them with the wind, and leave it raging for three of his turns: anybody who starts or ends a turn in it is thrown out."
 max_range = 15
 icon = ExtResource("3_75462")
 respects_blocking = true
-effects = Array[ExtResource("1_77oc1")]([SubResource("Resource_feskj")])
+effects = Array[ExtResource("1_77oc1")]([SubResource("Resource_feskj"), SubResource("Effect_ground")])
 scaling_stat = 2
 damage_type = 3
 uses_stat_contest = true
@@ -30,4 +38,5 @@ contest_stat = 3
 sound = ExtResource("90_sfx")
 projectile_look = 9
 spell_slot_level = 2
+aoe_radius = 2
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

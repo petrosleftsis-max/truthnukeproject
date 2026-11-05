@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/flame_fan_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="90_sfx"]
+
+[resource]
+script = ExtResource("3_skill")
+name = "Flame Fan"
+description = "A short fan of flame from his hands, over everybody in front of him."
+icon = ExtResource("2_icon")
+min_range = 1
+max_range = 3
+ability_modifier = 1.0
+damage_type = 1
+sound = ExtResource("90_sfx")
+required_level = 24
+spell_slot_level = 1
+aoe_radius = 3
+aoe_shape = 2

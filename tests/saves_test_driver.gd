@@ -12,7 +12,7 @@ const AMBUSH := "res://data/encounters/encounter_01_ambush.tres"
 ## What Campaign keeps that is not a run's to save: the fight under way, a
 ## conversation's answer, a menu's note, the stealth map being watched.
 const NOT_SAVED := ["current_encounter", "return_position", "return_to_position", "target_entry",
-	"_pending_trigger", "stealth_watch", "stealth_checkpoint", "_encounter_answer", "asks_for_paths",
+	"_pending_trigger", "stealth_watch", "stealth_checkpoint", "_encounter_answer", "asks_for_paths", "asks_to_prepare",
 	"story_dialogue", "story_title", "story_next_scene", "_arena_return", "menu_opens_at", "menu_note",
 	# A list read from the enemies folder, not anything the run did.
 	"_codex_enemies",

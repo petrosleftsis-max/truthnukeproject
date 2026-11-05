@@ -774,6 +774,18 @@ no beast standing it calls another (Gates of World). Empowered, the beast hits
 harder than a barbarian; on its own it hits a little softer. Fell the Summoner
 and the beast goes with it.
 
+### Title cards, entrances and falls
+
+An encounter's Title Cards group has its opening, victory, defeat and escape words (a boss's own
+come first), a sound for them, and **Boss Reveal**: the view goes to whoever **Reveal Who** names, or
+the first boss, as a silhouette that lights up, does its entrance or a roar, and comes up with its
+name and a portrait (`BossDefinition.reveal_portrait`). Any press skips, and a retry is shorter. A
+creature's **Entrance Style** is how it comes in late; a spawn's **Warned By Flag** and **Warned By
+Reading** mark where it will come in, a turn ahead, for a party that has been told or that read
+whoever calls it. Somebody who falls is thrown back and collapses, by what killed them, with
+"dead_<element>" animations as the slot. **Last Words**, on a character or per encounter, are only
+said if you write them.
+
 ### Prone
 
 Anybody on the ground can lie down on their own turn, for nothing - **Go Prone**
@@ -807,6 +819,30 @@ on its turn, from whatever put it down.
 
 It is drawn on its side for now. An animation called `prone` in somebody's
 SpriteFrames takes its place.
+
+### Preparing spells
+
+Whoever casts goes into a fight with only the spells they have prepared: 5 at level 1, 35 at
+level 64, in a straight line. They choose at each long rest, and as the Dungeon Demo begins
+(`DungeonDefinition.prepares_spells`). A locked spell stays prepared through the next long rest;
+take the lock off at a long rest to let it go. Each player sees only the window for their own
+characters, and whoever has nothing to choose is told who they are waiting for; the character
+sheets and the glossary are open to both meanwhile. Once somebody has finished, what they
+prepared is on the Prepared page of their sheet. Arena Mode still knows everything.
+
+### Tethers and zones
+
+A tethered spell is held by its caster: the bar frays by Tether Per Turn as each of their turns
+starts and by Tether Per Damage as they are hurt, and when it goes, what the spell did ends. One
+to a character. Tick Held By Tether on a CONDITION or RESISTANCE effect and it lasts as long as
+the tether does, however long that is. A tether that has nothing left to hold lets go. On a map
+a tether frays by 5 a second. Every tethered spell says its size in its preview.
+
+A ZONE effect leaves the skill's area on the ground. Beside Zone Condition it can cost twice to
+walk (Zone Costly), hurt the other side or everybody at the start of a turn or at every step, leave
+what the skill leaves, mend its own side, follow its caster, be moved with the Move Cloud
+secondary action, carry anybody hit in melee to its edge, or blow out whoever starts or ends a turn
+in it. Zone Colour is its tint on the board for now.
 
 ### Immunities, turns and auras
 
@@ -953,6 +989,16 @@ part can **Regrow After** so many of their turns, or **When Eating**, and one
 that **Frees The Swallowed** lets them out when it breaks. A boss phase can add
 **Parts** (over old ones on the same tiles), raise **Holds At Once**, and have it
 **Eat Itself** when there is nothing else.
+
+### Hazards to set off
+
+Three to place, or copy and adjust. Each is a `BattleObjectDefinition` in `data/objects/` with
+Breakable ticked: its **Max Hp** is how much the party has to deal, **Blast Radius** and **Blast
+Damage** what it does as it goes. The Demolition Charge (60, 3, 120) catches everybody and
+everything in its area, whichever side, and sets off anything else in it. The Gale Urn (30, 3)
+throws them **Blast Push** tiles away from it instead, with **Blast Collision Damage** on what they
+hit. The Tar Cauldron (40) makes every step within **Costly Radius** (2) cost twice while it stands.
+Aiming at something that would throw people shows where they would land.
 
 ### Dealing with enemies
 

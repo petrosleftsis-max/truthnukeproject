@@ -43,7 +43,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 144 suites and takes a while. Each one boots the real game
+A full run is 152 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one. A second harness can run beside a
@@ -256,6 +256,94 @@ walker's own lying down out, and `undo_move` puts it back (`_turn_start_prone`,
 end (`_ai_consider_lying_down`). Erysichthon is immune (`immune_to_conditions`).
 `CombatantSprite.set_lying` is a placeholder, with
 a `prone` animation as its slot. `prone` covers it, and `net` plays it across.
+
+**Shoves, foreseen** (Combat "Shoves, foreseen"; `control/CController.gd` `_preview_shoves`,
+`_draw_shoves`; `combat_ui._shove_line`). One walk, `shove_walk`, does the shove and the
+preview, so they cannot disagree. `foresee_shoves` plays out on the positions everything the
+aim would shove - a PUSH or PULL, Push Extra, a rank's Splash Shove, Tremor, a River Flow's
+sweep, a Gale Urn it would set off - and puts everybody back; nothing rolled. Somebody the
+aimer cannot see is taken for empty air. The board draws a see-through figure, an arrow, a
+red burst at a collision, a ring round whoever holds and faint figures on a Windswept's
+possible tiles; the prompt has the damage, and the HP ghost counts it. A new thing that
+shoves needs an entry through `_foresee_one`. `shoveaim` covers it.
+
+**Spells and what they rest on** (the designer's lists of 2026-11-05; `enchant`, `spellstwo`,
+`outsidespells`). Numbers the designer did not give are PROPOSAL (ledger).
+- **Orders** (Combat "Orders"): a condition with `obeys_order` (Compelled): `_choose_order`
+  asks the caster as it lands, in `_use_skill` and `_land_reaction`, through
+  `reaction_prompt.pick`; the status entry carries `order` and `order_by`; `_advance_turn`
+  plays that turn by `_obey_order` and ends it, either side, like Confused. Compel.
+- **Tethers**: `EffectDefinition.held_by_tether` stores `HELD_BY_TETHER` instead of a count;
+  a tether holding nothing lets go (`_release_idle_tethers`, at a turn's edges, on a hurt and
+  when tied). A zone can be what it holds (`zone.tether_of`, `_zones_now`). Somebody knocked
+  down stays down when it goes. `comes_off_when_hurt` is Mesmerise's break;
+  `keeps_tether_when_hurt` (Composure, Shared Burden) keeps damage off the bar. Out of a
+  fight a tether frays `OutsideMoves.TETHER_PER_SECOND` (5) a second, so a tethered move lasts
+  its strength over that (`seconds_of`); `StealthWatch.tie_outside`, one to a character.
+  The tooltip (`_tether_line`), the sheet (`facts_of`) and the aim prompt say its size.
+- **Zones** grew, all on the ZONE effect: `zone_costly` (`hem_cost`), `zone_turn_damage`,
+  `zone_hurts_everybody`, `zone_hurts_each_step` (`zones_under_step`, from
+  `_handle_step_arrival`), `zone_leaves_conditions`, `zone_heals`, `zone_follows_caster`,
+  `zone_moves` (`move_zone`; the `move_cloud` secondary, reach from the zone,
+  `moves_zone` in `get_range_tiles` and `refusal_at`), `zone_melee_sweeps` (`_sweep_tiles`,
+  in `shove_walk`; `_swept_along`), `zone_blows_out` (`_blow_out_of_zone`, at a turn's start
+  and end), `zone_colour` for its placeholder tint. `zone_condition` may be null now, so
+  ask before reading it.
+- **In the dark** (Combat "In the dark"): a zone condition with `is_darkness` makes them
+  invisible through `_zone_invisibility`. `hidden_from(viewer, comb)` is what to ask when
+  somebody in particular is looking; the AI's looking about and aiming ask it, in place of
+  `is_hidden`. `sees_in_darkness` (passive or condition; Cyrus's Night Eyes) and
+  `sees_the_unseen` (condition). `unseen_by_party` is what the player can see at all:
+  whoever anybody of theirs standing sees is drawn faintly (`dress_for_hiding`,
+  `_redress_the_hidden`), though only they can aim at them. Stealth maps have their own
+  `is_dark` and lamps. `EffectType.UNVEIL` (`unveil`; Unveil, Votive Flame).
+- **Silence**: `prevents_spells`, in `can_afford_skill` (so the HUD, the AI and reactions all
+  follow), `wasted_on`, `ready_refusal`, `_fire_readied`. Whoever stands in it cannot cast;
+  a Gate Nade is thrown, and a spell from outside lands there.
+- `ConditionDefinition.immune_to_conditions` (Unafraid; `_lift_what_it_wards`),
+  `evades_hits` (Four Reflections; `images_left`, in `_evades`; single blows only),
+  `source_takes_share` (`_burden_share`), `climbs_anywhere`. `flees_from_caster` on the effect
+  (Terror; `_run_from_terror`, `ran_this_turn`, `movement_budget_of`). `chooses_element` on
+  a RESISTANCE effect (`_choose_element`). `answers_base_elements` on a reaction (Turn Aside;
+  `_answers_this_blow`). `never_in_a_fight` on a skill (`outside_only`).
+- **The Gates of Mnemosyne**: `Stats.OUTSIDE_GATES` index 2, matching the fifth gate; a spell
+  marked `out_of_combat` pays there first by `iris_gate_for`. Company Unseen
+  (`StealthWatch "The Company Unseen"`, `FamiliarKeeper._company_steerer`): everybody but
+  Cyrus `_unseen`, all steered by whoever plays him while it lasts, guards' eyes cut to
+  `COMPANY_SIGHT_TILES`, those on Stay Here called in (`call_in_stayers`), and the familiar the
+  other player's. Great Snare is a `Use.TRAP`
+  with `Trap.burst_tiles`: nothing has health on a map, so "a lot of damage" is everybody
+  within it down.
+
+**Preparing spells** (Campaign "Preparing spells", `ui/prepare_spells.gd`,
+`Stats.spells_prepared_at`; the designer, 2026-11-05): 5 at level 1 to 35 at 64, a straight
+line. `prepared_spells`, `locked_spells`, `last_prepared`, `spells_readied`, `prepare_due` are
+saved, and all but `prepare_due` (the host's to say) in `Net.MENU_KEYS`. No list yet means everything known, so nothing changes until
+they are first asked; and until they have been asked after a long rest, `is_prepared` lets what
+they had stand, so nobody loses a spell to a window they never saw (a rest right before a fight).
+`long_rest` keeps only what is locked (`_rest_prepared`); a dungeon with
+`prepares_spells` (the Dungeon Demo) asks as it starts. The map opens `PrepareSpells` when
+`prepare_due` and `asks_to_prepare` (off in the harness, with `asks_for_paths`). Each machine
+shows only its own player's casters; with none left it waits, naming who for, no longer a menu
+(`MenuPause.release`, `_root_own_groups`) so the other machine's changes arrive, and
+`Net.send_menu_changes` sends each finished list at once. `forget_unprepared` in
+`_deploy_party`; `OutsideMoves.moves_of`, `outside_spells`; the sheet's fourth page "Prepared"
+(`has_readied`, `_show_prepared`) and "not prepared" and "locked" badges. `preparespells`.
+
+**What opens and closes a fight** (`combat/FightCards.gd`; EncounterDefinition's and
+BossDefinition's "Title cards"; the designer, 2026-11-05). `opening` from `Combat._ready`
+before deployment, `closing` from `combat_finish` before `combat_finished`; `Combat.cards_playing`
+holds `Net._play_moves` back. Boss Reveal is a switch per encounter (ticked on `boss_*`): bars,
+silhouette, sting, entrance or roar, portrait (`BossDefinition.reveal_portrait`) and plate,
+shorter once flagged `reveal_seen:`. Then the screen freezes and shatters and the words slam in.
+Any press skips. Nothing is rolled; not while `Net.catching_up`; headless only with
+`FightCards.plays_headless`. `CombatantDefinition.entrance_style` (`FightCards.entrance`, from
+`_show_arrivals`, with `plate`). `SpawnDefinition.warned_by_flag` and `warned_by_reading`:
+`arrival_warnings`, drawn a turn ahead. **Falling**: `Combat._falls` -> `MoveFeel.falls` (flash,
+`camera.punch_in`, `CombatantSprite.fall`, by `comb.last_hurt`; a "dead_<element>" animation is
+the slot); one of the party: `slow_motion`, a crack across the portrait, `FightCards.fallen`, and
+last words only if written (`EncounterDefinition.last_words`, `CombatantDefinition.last_words`).
+`fightcards` covers it.
 
 **How moves are felt** (`combat/MoveFeel.gd`; `docs/move_feel_proposals.md`, built
 2026-10-31 but for moves coming down from above or up from below, which the
@@ -483,9 +571,12 @@ X / pad Touchpad, the panel's Stay; the designer 2026-10-29) is
 `ExplorationScene.stay_here`: the leader goes into `ExplorationParty.stayers`
 (out of the line, still in `sprite_for` and `_members`, so guards see them and
 `build_fight` places them) and `staying` (key -> spot); the next not staying
-leads, or nobody does and the leader keeps it. `_keep_stayers` puts them back
+leads, or nobody does and the leader keeps it, from where they stood with nobody moved
+(`_lead_from`, `_places_kept`, `ExplorationParty.keep_places`). `_keep_stayers` puts them back
 after every rebuild, `_pick_up_stayers` brings them along when the leader walks
-up, and `swap_leader` goes round past them (`_passing_lead`). **Readied out of
+up - only once the lead has been `LEFT_BEHIND_TILES` away (`_left_behind`), since whoever
+takes over starts within `PICK_UP_TILES` of them (the designer, 2026-11-05) - and
+`swap_leader` goes round past them (`_passing_lead`). **Readied out of
 a fight** (OutsideMoves / StealthWatch "Readied, out of a fight"; the panel's
 Ready box -> `ui/outside_ready_choice.gd`): what lands on a guard (`READYABLE`),
 for a guard stepping into reach, into a cone pointed with a click
@@ -708,7 +799,10 @@ host's is as the joiner found it, the same thing changed on both sides a clash -
 the whole change dropped, `_clashed` -> `Pictures.got_there_first`). The joiner
 puts each state on with `_put_on_state`: the pending changes laid back over
 (`_lay_over`), the base taken again, what was changed here since laid over that;
-`campaign_changed` when SHOWN_KEYS changed. Compare with `_same_value` (typed
+`campaign_changed` when SHOWN_KEYS changed. An entry of a menu's keys that the host has and this
+machine neither has nor started from comes in even while the menu keeps them
+(`_take_what_is_new`): somebody who joined meanwhile, whose bag would otherwise be made up here on
+first asking, clash with the host's and lose all the menu had changed. Compare with `_same_value` (typed
 lists equal untyped ones; never `==` across kinds). **Looking together:** each
 machine sends its player's pointer in a picture (`_looking`, `LOOKS_A_SECOND`,
 `Pictures.pointer_in_picture` 0-1; `looking_there`, `looking_at_a_picture`), drawn
@@ -736,8 +830,13 @@ joiner's `_mirror_starter`, when on the other machine) glides
 that moves it aims the glide (`_aim_camera`, `_camera_aim`). The `familiar` key
 goes to the host while a familiar is out (`forwards`; a pad's is the Outside
 Spell button, which otherwise stays here), and Party Management for whoever
-joins comes up on both (`manage_party_there`). `PROTOCOL` 5.
-**One player to a machine** (the designer's list of 2026-11-04; `PROTOCOL` 6):
+joins comes up on both (`manage_party_there`).
+**Join codes** (`Net.code_for`, `read_code`; the designer, 2026-11-05): an IPv4 address and
+port packed into base 32 with a check byte, 8 characters for the usual port and 12 with
+another. `Net.join` takes one for an address; the panel has a Copy Code beside each address
+to give. It does not hide the address, and the host must be reachable as for the address.
+`joincode` covers it. `PROTOCOL` is 7.
+**One player to a machine** (the designer's list of 2026-11-04):
 `Coop.player_here()` is this machine's player over a network, and any device here
 counts as them (`player_of_event`, `pointer_device`, `direction`). On a turn or a
 menu that is somebody else's, `Coop.lets_through` still passes what only looks
@@ -1269,7 +1368,10 @@ A new way of doing something to somebody needs its own check against
 entry and no turn order.** So nothing that counts a side - winning,
 watching, allies, `side_standing` - ever sees them, while targeting, occupancy
 and sight (which walk `combatants`) do. `combatant_die` sets them off and
-`_object_gone` removes them. A spawn of one is never a party tile, whatever its
+`_object_gone` removes them. `blast_push` and `blast_collision_damage` throw whoever a blast
+catches (Gale Urn; `_blast_throw`), `costly_radius` makes the ground dear (Tar Cauldron;
+`_thing_costs_double`, `costly_ground`, drawn by the board); Max Hp, Blast Radius and Blast
+Damage are the designer's to set per object. `hazards` covers them. A spawn of one is never a party tile, whatever its
 side. `_offer_interact` gives the party the `use` skill.
 
 **The turn order is `_base_queue` (everybody once, as it always was) spread into

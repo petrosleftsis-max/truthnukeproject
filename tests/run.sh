@@ -68,7 +68,10 @@ export MOT_TEST_LOG_DIR="$LOGS_FOR_GODOT"
 
 rm -rf "$DST"
 mkdir -p "$DST" "$LOGS"
-tar -C "$SRC" --exclude="./.git" --exclude="./export" --exclude="./tests" -cf - . | tar -C "$DST" -xf -
+# The designer's sounds not wired up yet (docs/sound_plan.md): over 3 GB nothing refers to, to
+# copy and import for every run. Take these out as they come into use.
+tar -C "$SRC" --exclude="./.git" --exclude="./export" --exclude="./tests" \
+	--exclude="./audio/ambience" --exclude="./audio/sfx/New folder" -cf - . | tar -C "$DST" -xf -
 
 # The drivers sit at the root of the copy, where an autoload path can reach
 # them. In the real project they live under tests/, which carries a .gdignore

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Reflections"
+tag = "Rl"
+description = "Copies stand where they stand: a blow at them alone strikes one instead, and it shatters."
+duration = 999
+evades_hits = 4

@@ -15,18 +15,28 @@ condition_duration = 5
 condition_dot_modifier = 0.1
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
+[sub_resource type="Resource" id="Resource_stones"]
+script = ExtResource("1_468qc")
+type = 34
+zone_for = 2
+zone_turns = 3
+zone_colour = Color(0.62, 0.72, 0.8, 0.35)
+zone_costly = true
+zone_cost_spares_fliers = true
+
 [resource]
 script = ExtResource("2_jk1kw")
 name = "Crystalise"
-description = "Cover an enemy in hindering stones."
+description = "Cover the ground and every enemy on it in hindering stones. For three of his turns each step across them costs twice."
 max_range = 15
 icon = ExtResource("3_nxawm")
 respects_blocking = true
-effects = Array[ExtResource("1_468qc")]([SubResource("Resource_v3tq0")])
+effects = Array[ExtResource("1_468qc")]([SubResource("Resource_v3tq0"), SubResource("Resource_stones")])
 scaling_stat = 2
 damage_type = 4
 uses_stat_contest = true
 contest_stat = 3
 sound = ExtResource("90_sfx")
 spell_slot_level = 2
+aoe_radius = 2
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

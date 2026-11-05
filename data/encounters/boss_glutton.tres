@@ -115,6 +115,7 @@ arrives_after_deaths = 3
 
 [resource]
 script = ExtResource("1_enc")
+boss_reveal = true
 display_name = "Erysichthon"
 description = "A boss: an undead glutton that smells out its prey, grabs it and swallows it whole - and eats whatever it finds in reach. Tear its Belly Hole open to free whoever it swallowed, taint the carrion before it eats it, and feed it the meat-wrapped keg. Gnawers come in waves: on round 3, when its Jaws first break, and once three of its side have fallen."
 terrain_scene = ExtResource("3_map")

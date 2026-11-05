@@ -35,6 +35,7 @@ func run_sections():
 	await magic_traps()
 	await walls_in_a_fight()
 	await staying_behind()
+	await stay_with_the_next_beside()
 	await readied_outside()
 
 
@@ -119,7 +120,10 @@ func paying():
 	ok(not OutsideMoves.pay("alithia", heal).is_empty() and Campaign.outside_gates_left("alithia")[1] == before - 1, "  one casting of it")
 	var deep := skill("resuscitate").duplicate()
 	deep.out_of_combat = true
-	ok(OutsideMoves.iris_gate_for(deep) == 0, "a marked Pandora spell is deeper than Iris: its own gates only")
+	ok(OutsideMoves.iris_gate_for(deep) == 2, "a marked Pandora spell is deeper than Iris: through Mnemosyne, which goes as deep as the fifth gate")
+	var deeper := skill("sanctuary_of_light").duplicate()
+	deeper.out_of_combat = true
+	ok(OutsideMoves.iris_gate_for(deeper) == 0, "and one deeper than that: its own gates only")
 	var hurting := skill("votive_flame").duplicate()
 	hurting.out_of_combat = true
 	ok(OutsideMoves.iris_gate_for(hurting) == 0, "a damaging one never goes through Iris, marked or not")
@@ -870,11 +874,116 @@ func staying_behind():
 	ok(not scene.stay_here() and Campaign.leader() == last, "  the last keeps the lead: nobody else to lead", Campaign.leader())
 	scene.swap_leader()
 	ok(Campaign.leader() == last, "  and Tab has nobody to pass it to", Campaign.leader())
+	# Gone off from her by now, as walking would say.
+	party.moved.emit(party.position_of_leader())
 	party.teleport(from)
 	party.moved.emit(party.position_of_leader())
 	await settle(2)
 	ok(not scene.staying.has("alithia") and party.followers.has(party.sprite_for("alithia")), "walked back up to her: she falls in behind")
 	ok(scene.staying.has(second), "  the other still where they stay")
+	await close_map(m)
+
+
+## Walks the line `tiles` tiles, as walking does: the way there is room. The way it went.
+func walk_line(party: ExplorationParty, tiles: float, way: Vector2 = Vector2.ZERO) -> Vector2:
+	var ways: Array = [way] if way != Vector2.ZERO else [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]
+	for each in ways:
+		var start: Vector2 = party.position_of_leader()
+		var last := start
+		while start.distance_to(party.position_of_leader()) < Grid.tiles(tiles):
+			if not party._step(each, 1.0 / 30.0) or party.position_of_leader() == last:
+				break
+			last = party.position_of_leader()
+		if start.distance_to(party.position_of_leader()) >= Grid.tiles(tiles):
+			return each
+		party.teleport(start)
+	return Vector2.ZERO
+
+
+func stay_with_the_next_beside():
+	log_line("======== staying, with whoever takes over right beside them ========")
+	var m := await plain_map(8)
+	for key in ["enfina", "cyrus"]:
+		if not Campaign.party_order.has(key):
+			Campaign.add_member(key)
+	Campaign.set_leader("alithia")
+	await settle(3)
+	var scene: ExplorationScene = m.scene
+	var party: ExplorationParty = scene.party
+	# Strung out, each where they walked to.
+	var way := walk_line(party, 4.0)
+	ok(way != Vector2.ZERO, "somewhere to walk")
+	var places := {}
+	for sprite in party._line():
+		places[sprite.get_meta("combatant_key", "")] = sprite.position
+	ok(scene.stay_here(), "Alithia stays")
+	await settle(2)
+	var next := Campaign.leader()
+	var third := ""
+	for key in places:
+		if key != "alithia" and key != next:
+			third = key
+	ok(places.alithia.distance_to(places[next]) < Grid.tiles(ExplorationScene.PICK_UP_TILES), "whoever takes over stood within reach of picking her up", "%.0f" % places.alithia.distance_to(places[next]))
+	ok(party.position_of_leader().distance_to(places[next]) < 1.0, "they lead from where they stood: nobody jumps to her", "%.0f" % party.position_of_leader().distance_to(places[next]))
+	ok(party.own_sprite_for(third).position.distance_to(places[third]) < 1.0, "and the one behind them stays where they were")
+	ok(party.own_sprite_for("alithia").position.distance_to(places.alithia) < 1.0, "and she where she was")
+	# Off, the way they were facing.
+	party._step(way, 1.0 / 30.0)
+	ok(scene.staying.has("alithia"), "the first step does not pick her up")
+	walk_line(party, 1.0, -way)
+	ok(scene.staying.has("alithia"), "nor does a step or two about, close by", "%.0f" % party.position_of_leader().distance_to(places.alithia))
+	# Further off, back the way the line came.
+	walk_line(party, 2.0, -way)
+	ok(scene.staying.has("alithia") and party.position_of_leader().distance_to(places.alithia) >= Grid.tiles(ExplorationScene.LEFT_BEHIND_TILES), "walking off leaves her there", "%.0f" % party.position_of_leader().distance_to(places.alithia))
+	# And back up to her.
+	var going: Vector2 = (places.alithia - party.position_of_leader()).normalized()
+	var steps := 0
+	while scene.staying.has("alithia") and steps < 400:
+		party._step(going, 1.0 / 30.0)
+		steps += 1
+	ok(not scene.staying.has("alithia") and party.followers.has(party.own_sprite_for("alithia")), "walked back up to her, she falls in behind", "%d steps" % steps)
+	ok(party.position_of_leader().distance_to(places.alithia) <= Grid.tiles(ExplorationScene.PICK_UP_TILES), "  at a tile's reach, no further")
+	# Stacked, as a line is right after it is drawn again.
+	Campaign.set_leader("alithia")
+	await settle(2)
+	var stacked_at: Vector2 = party.position_of_leader()
+	ok(scene.stay_here(), "again, the line just drawn, everybody on one spot")
+	await settle(2)
+	ok(party.position_of_leader().distance_to(stacked_at) < 1.0, "  whoever takes over starts on top of her")
+	walk_line(party, 1.0)
+	ok(scene.staying.has("alithia"), "  and walks off without her")
+	scene.call_in_stayers()
+	await settle(2)
+	# On one screen: within the one player's own line, the other's left alone.
+	Coop.join(Coop.KEYBOARD)
+	Coop.join(0)
+	Campaign.controllers = {"enfina": 1}
+	Coop.players_changed.emit()
+	await settle(3)
+	Coop.acting = 0
+	Campaign.set_leader("alithia")
+	await settle(3)
+	var mine: ExplorationParty = scene.groups[0]
+	var theirs: ExplorationParty = scene.groups[1]
+	var way_two := walk_line(mine, 3.0)
+	ok(way_two != Vector2.ZERO and mine.followers.size() >= 1, "two players: the first's line strung out", "%d following" % mine.followers.size())
+	var their_place: Vector2 = theirs.position_of_leader()
+	var next_two: String = mine.followers[0].get_meta("combatant_key", "")
+	var next_place: Vector2 = mine.followers[0].position
+	var her_place: Vector2 = mine.position_of_leader()
+	ok(scene.stay_here(), "  she stays")
+	await settle(2)
+	mine = scene.groups[0]
+	ok(mine.own_sprite_for(next_two) == mine.leader and mine.position_of_leader().distance_to(next_place) < 1.0, "  whoever takes over leads from where they stood", "%.0f" % mine.position_of_leader().distance_to(next_place))
+	ok(mine.own_sprite_for("alithia").position.distance_to(her_place) < 1.0 and scene.staying.has("alithia"), "  she is where she was")
+	ok(scene.groups[1].position_of_leader().distance_to(their_place) < 1.0, "  the other player's line has not moved")
+	mine._step(way_two, 1.0 / 30.0)
+	ok(scene.staying.has("alithia"), "  and the first step does not pick her up")
+	scene.call_in_stayers()
+	Coop.leave(1)
+	Coop.leave(0)
+	Coop.acting = -1
+	Campaign.controllers = {}
 	await close_map(m)
 
 

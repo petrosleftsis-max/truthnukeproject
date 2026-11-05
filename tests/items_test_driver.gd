@@ -95,7 +95,9 @@ func run_test():
 		"scented", "swallowed", "bile_soaked",
 		"blessed", "soothed", "bulwarked", "fortified", "sheltered",
 		"snared", "corroded", "veiled", "blurred", "phantom_body", "sanctified", "mirage", "accused", "recanted", "grand_design",
-		"reflected", "dazed", "disarmed", "deeply_corroded"]
+		"reflected", "dazed", "disarmed", "deeply_corroded",
+		# Alithia's enchantments, and what anybody can do lying down.
+		"prone", "compelled", "silenced", "unafraid", "braced", "burden_shared", "clear_sighted", "clinging", "composed", "in_darkness", "reflections"]
 	for condition in conditions:
 		if not_bottled.has(condition):
 			continue

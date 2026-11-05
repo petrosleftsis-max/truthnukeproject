@@ -104,7 +104,7 @@ const DISCOVERY_PORT := 24701
 const BEACON := "MOT-HOST"
 ## What the two machines say to each other. Bumped whenever that changes; a
 ## joiner with another is turned away.
-const PROTOCOL := 6
+const PROTOCOL := 7
 const BEACON_SECONDS := 1.0
 ## How long a game goes unheard before the Join list forgets it.
 const FORGET_SECONDS := 4.0
@@ -328,8 +328,94 @@ func host(port: int = PORT, bind_ip: String = "*") -> Error:
 	return OK
 
 
-## Joins the game hosted at `address` ("192.168.1.20", or with ":port").
+## --- Join codes ---
+##
+## An address and port packed into something to read out or paste, such as K7QF-2MXA (the
+## designer, 2026-11-05). No server: the code is the address, written another way - it
+## does not hide it, and the host must be reachable just as for the address. Base 32
+## without the letters people misread (I, L, O, U); 32 bits of IPv4, the port if it is not
+## the usual one, and a byte to catch a mistyped code. So 8 characters, or 12 with a port.
+
+const CODE_LETTERS := "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+
+
+## The code for `address` (IPv4, with or without ":port"), or "" for anything else.
+static func code_for(address: String, port: int = PORT) -> String:
+	var bits := address.strip_edges()
+	if bits.contains(":"):
+		var parts := bits.split(":")
+		if parts.size() != 2 or not parts[1].is_valid_int():
+			return ""
+		bits = parts[0]
+		port = parts[1].to_int()
+	if not bits.is_valid_ip_address() or bits.contains(":") or port < 1 or port > 65535:
+		return ""
+	var bytes := PackedByteArray()
+	for part in bits.split("."):
+		bytes.append(part.to_int())
+	if port != PORT:
+		bytes.append(port >> 8)
+		bytes.append(port & 255)
+	bytes.append(_code_check(bytes))
+	var letters := ""
+	var held := 0
+	var count := 0
+	for byte in bytes:
+		held = (held << 8) | byte
+		count += 8
+		while count >= 5:
+			count -= 5
+			letters += CODE_LETTERS[(held >> count) & 31]
+		held &= (1 << count) - 1
+	if count > 0:
+		letters += CODE_LETTERS[(held << (5 - count)) & 31]
+	return "%s-%s" % [letters.substr(0, letters.length() / 2), letters.substr(letters.length() / 2)]
+
+
+## What a code comes to: {"address", "port"} - or empty, for anything that is not one
+## (an address typed as it is, a mistyped code).
+static func read_code(code: String) -> Dictionary:
+	var letters := code.strip_edges().to_upper().replace("-", "").replace(" ", "")
+	letters = letters.replace("O", "0").replace("I", "1").replace("L", "1")
+	if letters.length() != 8 and letters.length() != 12:
+		return {}
+	var bytes := PackedByteArray()
+	var held := 0
+	var count := 0
+	for i in letters.length():
+		var value := CODE_LETTERS.find(letters[i])
+		if value < 0:
+			return {}
+		held = (held << 5) | value
+		count += 5
+		if count >= 8:
+			count -= 8
+			bytes.append((held >> count) & 255)
+		held &= (1 << count) - 1
+	if bytes.size() != 5 and bytes.size() != 7:
+		return {}
+	var check: int = bytes[bytes.size() - 1]
+	bytes.resize(bytes.size() - 1)
+	if _code_check(bytes) != check:
+		return {}
+	var port: int = (bytes[4] << 8) | bytes[5] if bytes.size() == 6 else PORT
+	return {"address": "%d.%d.%d.%d" % [bytes[0], bytes[1], bytes[2], bytes[3]], "port": port}
+
+
+static func _code_check(bytes: PackedByteArray) -> int:
+	var sum := 0x5A
+	for byte in bytes:
+		sum = ((sum * 31) + byte) & 255
+	return sum
+
+
+## Joins the game hosted at `address` ("192.168.1.20", or with ":port", or a join code).
 func join(address: String, port: int = PORT) -> Error:
+	# A join code, for an address.
+	var coded := read_code(address)
+	if not coded.is_empty():
+		address = coded.address
+		port = coded.port
 	if active():
 		return ERR_ALREADY_IN_USE
 	address = address.strip_edges()
@@ -1266,6 +1352,9 @@ func _play_moves():
 		return
 	var move: Array = _moves[0]
 	var combat := _fight
+	# Title cards still up on this machine: what follows them waits.
+	if combat.cards_playing:
+		return
 	if move[2] == "deployed":
 		if not combat.deployment_active:
 			return
@@ -2343,7 +2432,7 @@ func _converse(choice):
 ## (_a_menu_keeps). The host trusts the joiner with that much.
 
 const MENU_KEYS := ["inventories", "containers", "stacks", "equipped", "gear", "gold", "learned_spells",
-	"subclasses", "path_change_open"]
+	"subclasses", "path_change_open", "prepared_spells", "locked_spells", "last_prepared", "spells_readied"]
 
 ## The joiner: whether a menu that keeps MENU_KEYS is open here.
 var _menu_open := false
@@ -2453,6 +2542,13 @@ func _changes_since(keys: Array) -> Dictionary:
 		else:
 			changes[key] = {"was": was, "now": now}
 	return changes
+
+
+## The joiner: what a menu has changed so far goes now, not only as it closes (PrepareSpells,
+## which stays up while one of the two is still choosing).
+func send_menu_changes():
+	if follows() and not _change_base.is_empty():
+		_send_changes(MENU_KEYS)
 
 
 ## The joiner: what has changed of `keys` here, to the host - and from now on
@@ -2642,6 +2738,7 @@ func _put_on_state(state: Dictionary, keeping: bool = true):
 	var kept: Array = _kept_here() if keeping else []
 	var unsent := _changes_since(Campaign.SAVED.filter(func(key): return not kept.has(key)))
 	var shown_before := hash(var_to_str(_shown()))
+	_take_what_is_new(state, kept)
 	Campaign.apply(state, kept)
 	for out in _changes_out:
 		_lay_over(out[1])
@@ -2650,6 +2747,25 @@ func _put_on_state(state: Dictionary, keeping: bool = true):
 	_lay_over(unsent)
 	if hash(var_to_str(_shown())) != shown_before:
 		campaign_changed.emit()
+
+
+## The joiner: what an open menu keeps stays as it is here, but an entry the host has that
+## this machine neither has nor started from - the bags of somebody who has just joined - is
+## nobody's change. It comes in now, here and in what changes are told against: left out,
+## this machine makes up its own as soon as anything asks after them, and that clashes with
+## the host's as the menu closes, and everything the menu changed is lost with it.
+func _take_what_is_new(state: Dictionary, kept: Array):
+	for key in kept:
+		var theirs = state.get(key)
+		var here = Campaign.get(key) if MENU_KEYS.has(key) else null
+		var started = _change_base.get(key)
+		if not (theirs is Dictionary and here is Dictionary and started is Dictionary):
+			continue
+		for entry in theirs:
+			if not here.has(entry) and not started.has(entry):
+				var value = theirs[entry]
+				here[entry] = value.duplicate(true) if value is Dictionary or value is Array else value
+				started[entry] = value.duplicate(true) if value is Dictionary or value is Array else value
 
 
 func _shown() -> Array:

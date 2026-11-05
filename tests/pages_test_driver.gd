@@ -82,8 +82,8 @@ func run_test():
 	sheet.open()
 	await settle(2)
 	ok(sheet.is_open(), "the sheet opens on the map")
-	ok(sheet._tabs.get_child_count() == 3 and sheet._tabs.get_children().map(func(tab): return tab.text) == ["Sheet", "Moves", "Levels"],
-		"three pages: Sheet, Moves, Levels")
+	ok(sheet._tabs.get_children().filter(func(tab): return tab.visible).map(func(tab): return tab.text) == ["Sheet", "Moves", "Levels"],
+		"three pages: Sheet, Moves, Levels (a fourth, Prepared, only for whoever has prepared)")
 
 	log_line("======== Moves: Alithia's spells, a shelf a gate ========")
 	await turn_to(sheet, "alithia", 1)
@@ -124,35 +124,35 @@ func run_test():
 
 	log_line("======== Moves: Prometheus learns his ========")
 	await turn_to(sheet, "prometheus", 1)
-	var fireball := row_named(sheet, "Move_fireball")
-	ok(fireball != null and texts_under(fireball).any(func(text): return "not learned" in text), "Fireball is his, not learned yet",
-		"%s" % [texts_under(fireball) if fireball != null else "no row"])
-	ok(fireball != null and fireball.find_child("Learn_fireball", true, false) == null, "and with nothing to learn it from, no Learn button")
+	var wildfire := row_named(sheet, "Move_wildfire")
+	ok(wildfire != null and texts_under(wildfire).any(func(text): return "not learned" in text), "Wildfire is his, not learned yet",
+		"%s" % [texts_under(wildfire) if wildfire != null else "no row"])
+	ok(wildfire != null and wildfire.find_child("Learn_wildfire", true, false) == null, "and with nothing to learn it from, no Learn button")
 	var fire_blast := row_named(sheet, "Move_fire_blast")
 	ok(fire_blast != null and texts_under(fire_blast).any(func(text): return "known" in text and not "not" in text), "Fire Blast he starts with")
 	ok(Campaign.cannot_learn("prometheus", "communion") != "", "Communion no book can teach him", Campaign.cannot_learn("prometheus", "communion"))
 	ok(Campaign.cannot_learn("alithia", "heal") != "", "and Alithia learns nothing from books - she grows into hers")
-	Campaign.give_item("cyrus", "fireball_spellbook")
+	Campaign.give_item("cyrus", "wildfire_spellbook")
 	await turn_to(sheet, "prometheus", 1)
-	fireball = row_named(sheet, "Move_fireball")
-	var learn: Button = fireball.find_child("Learn_fireball", true, false) if fireball != null else null
-	ok(learn != null and "Fireball Spellbook" in learn.text, "with the book in Cyrus's bag, a Learn button names it",
+	wildfire = row_named(sheet, "Move_wildfire")
+	var learn: Button = wildfire.find_child("Learn_wildfire", true, false) if wildfire != null else null
+	ok(learn != null and "Wildfire Spellbook" in learn.text, "with the book in Cyrus's bag, a Learn button names it",
 		learn.text if learn != null else "none")
 	if learn != null:
 		learn.pressed.emit()
 		await settle(2)
-	ok(Campaign.knows_spell("prometheus", "fireball") and Campaign.count_of("cyrus", "fireball_spellbook") == 0,
-		"pressed, he knows Fireball and the book is used up")
-	fireball = row_named(sheet, "Move_fireball")
-	ok(fireball != null and texts_under(fireball).any(func(text): return text.ends_with("known") or ", known" in text), "and the page says so",
-		"%s" % [texts_under(fireball) if fireball != null else "no row"])
+	ok(Campaign.knows_spell("prometheus", "wildfire") and Campaign.count_of("cyrus", "wildfire_spellbook") == 0,
+		"pressed, he knows Wildfire and the book is used up")
+	wildfire = row_named(sheet, "Move_wildfire")
+	ok(wildfire != null and texts_under(wildfire).any(func(text): return text.ends_with("known") or ", known" in text), "and the page says so",
+		"%s" % [texts_under(wildfire) if wildfire != null else "no row"])
 	Campaign.give_item("enfina", "crystalise_gate_nade")
 	ok(Campaign.teachers_of("crystalise").size() == 1 and Campaign.learn_spell("prometheus", "crystalise") == ""
 		and Campaign.knows_spell("prometheus", "crystalise") and Campaign.count_of("enfina", "crystalise_gate_nade") == 0,
 		"a Gate Nade taken apart teaches its spell too")
-	var played := {"skill_list": ["fire_blast", "fireball", "kindled_hound", "hack"]}
+	var played := {"skill_list": ["fire_blast", "wildfire", "kindled_hound", "hack"]}
 	Campaign.forget_unlearned(played, "prometheus")
-	ok(played.skill_list == ["fire_blast", "fireball", "hack"], "fielded from the map, he has only what he has learned", "%s" % [played.skill_list])
+	ok(played.skill_list == ["fire_blast", "wildfire", "hack"], "fielded from the map, he has only what he has learned", "%s" % [played.skill_list])
 
 	log_line("======== Levels: veiled past ΛΗΘΗ ========")
 	await turn_to(sheet, "cyrus", 2)

@@ -314,6 +314,16 @@ static func moves() -> bool:
 	return DisplayServer.get_name() != "headless" or moves_headless
 
 
+## A short push in and back, for a killing blow, on real time.
+func punch_in(share: float = 1.1, seconds: float = 0.34):
+	if not moves():
+		return
+	var was := zoom
+	var punch := create_tween().set_ignore_time_scale(true)
+	punch.tween_property(self, "zoom", was * share, seconds * 0.35).set_ease(Tween.EASE_OUT)
+	punch.tween_property(self, "zoom", was, seconds * 0.65).set_ease(Tween.EASE_IN_OUT)
+
+
 ## Eases the view onto `at` - and to `zoom_level`, when one is given.
 func glide_to(at: Vector2, zoom_level: float = 0.0):
 	if not moves():

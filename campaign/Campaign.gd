@@ -278,6 +278,120 @@ func learn(key: String, spell: String):
 	spell_learned.emit(key, spell)
 
 
+## --- Preparing spells ---
+##
+## Whoever casts goes into a fight with only the spells they have prepared, so many by
+## their level (Stats.spells_prepared_at), chosen at each long rest (the designer,
+## 2026-11-05). What they locked stays prepared through the next long rest; the rest are
+## chosen again - the lock comes off, and the spell goes, only at a long rest, which is
+## when PrepareSpells is up. Nobody with no list yet has everything they know, so nothing
+## changes until they have first been asked. `prepare_due` is what puts the window up:
+## after a long rest, and as a dungeon with Prepares Spells begins. A fight walked into
+## strips what is not prepared (forget_unprepared); Arena Mode knows everything.
+
+## combatant key -> the spells they have prepared. No key: no list yet.
+var prepared_spells := {}
+## combatant key -> those of them that stay through a long rest.
+var locked_spells := {}
+## combatant key -> what they had before the last long rest, to prepare the same.
+var last_prepared := {}
+## combatant key -> true, for whoever has finished preparing for this rest.
+var spells_readied := {}
+## Whether the party has yet to prepare, for the map to ask.
+var prepare_due := false
+## Off in the test harness, as paths are (game/asks_for_paths).
+var asks_to_prepare: bool = ProjectSettings.get_setting("game/asks_for_paths", true)
+
+
+## How many spells somebody can have prepared now.
+func prepare_limit() -> int:
+	return Stats.spells_prepared_at(party_level)
+
+
+## The spells `key` could prepare: theirs and their path's, known, reached, and through
+## a gate open to them.
+func prepare_choices(key: String) -> Array:
+	var found := []
+	for spell in learnable_spells(key):
+		var skill: SkillDefinition = SkillDatabase.skills.get(spell)
+		if skill == null or skill is ItemDefinition or skill.required_level > party_level or not knows_spell(key, spell):
+			continue
+		if CharacterSheet.gate_opens_at(skill.spell_slot_level) > party_level:
+			continue
+		found.append(spell)
+	return found
+
+
+## Whoever of the party has spells to prepare.
+func casters_to_prepare() -> Array:
+	return Array(party_order).filter(func(key): return not prepare_choices(key).is_empty())
+
+
+## Those still to finish preparing for this rest.
+func preparing_left() -> Array:
+	return casters_to_prepare().filter(func(key): return not spells_readied.has(key))
+
+
+## What `key` has prepared, as far as there is a list.
+func prepared_list(key: String) -> Array:
+	return prepared_spells.get(key, [])
+
+
+## Whether `key` can cast `spell` as far as preparing goes: they have no list yet, or it
+## is on it - or they have not been asked since their last long rest (a rest right before a
+## fight, say), and it was on it then: nobody loses a spell to a window they never saw.
+func is_prepared(key: String, spell: String) -> bool:
+	if not prepared_spells.has(key) or prepared_spells[key].has(spell):
+		return true
+	return prepare_due and not spells_readied.has(key) and last_prepared.get(key, []).has(spell)
+
+
+## Whether `key` has finished preparing: the sheet has a page for it then.
+func has_readied(key: String) -> bool:
+	return prepared_spells.has(key) and spells_readied.has(key)
+
+
+## `key`'s spells from now on, as far as they are theirs to prepare: what is locked
+## first, and no more than they can have.
+func set_prepared(key: String, spells: Array, locks: Array):
+	var choices := prepare_choices(key)
+	var kept := []
+	var locked := []
+	for spell in locks:
+		if choices.has(spell) and not kept.has(spell) and kept.size() < prepare_limit():
+			kept.append(spell)
+			locked.append(spell)
+	for spell in spells:
+		if choices.has(spell) and not kept.has(spell) and kept.size() < prepare_limit():
+			kept.append(spell)
+	prepared_spells[key] = kept
+	locked_spells[key] = locked
+
+
+## `key` has finished; with nobody left, nothing is due.
+func finish_preparing(key: String):
+	spells_readied[key] = true
+	if preparing_left().is_empty():
+		prepare_due = false
+
+
+## A long rest: everything but what is locked is to be chosen again.
+func _rest_prepared():
+	for key in prepared_spells:
+		last_prepared[key] = prepared_spells[key].duplicate()
+		prepared_spells[key] = prepared_spells[key].filter(func(spell): return locked_spells.get(key, []).has(spell))
+	spells_readied.clear()
+	prepare_due = not casters_to_prepare().is_empty()
+
+
+## `comb`'s skill list, played as `key`, without the spells they have not prepared.
+func forget_unprepared(comb: Dictionary, key: String):
+	if not prepared_spells.has(key):
+		return
+	comb.skill_list = comb.skill_list.filter(func(skill_key):
+		return not Combat.is_spell(SkillDatabase.skills.get(skill_key)) or is_prepared(key, skill_key))
+
+
 ## `comb`'s skill list, played as `key`, without the spells they have not learned.
 func forget_unlearned(comb: Dictionary, key: String):
 	if not learns_spells(key):
@@ -766,7 +880,7 @@ func restart_stealth():
 const SAVED := ["party_level", "party_state", "subclasses", "path_change_open", "inventories", "gear", "equipped",
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
 	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks",
-	"controllers"]
+	"controllers", "prepared_spells", "locked_spells", "last_prepared", "spells_readied", "prepare_due"]
 
 
 ## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with
@@ -1056,8 +1170,8 @@ func outside_spells(key: String) -> Array:
 		if skill.required_level > party_level or skill.outside_gate >= opened.size() or opened[skill.outside_gate] <= 0:
 			continue
 		# Learned, as any spell of theirs (Invisibility's book - the designer,
-		# 2026-10-31: a spell like the rest).
-		if not knows_spell(key, skill_key):
+		# 2026-10-31: a spell like the rest), and prepared ("Preparing spells").
+		if not knows_spell(key, skill_key) or not is_prepared(key, skill_key):
 			continue
 		found.append(skill_key)
 	return found
@@ -1214,6 +1328,11 @@ func reset():
 	chapter = 1
 	levels_unveiled = false
 	learned_spells.clear()
+	prepared_spells.clear()
+	locked_spells.clear()
+	last_prepared.clear()
+	spells_readied.clear()
+	prepare_due = false
 	subclasses.clear()
 	path_change_open = false
 	gear.clear()
@@ -1469,6 +1588,8 @@ func start_dungeon(which: DungeonDefinition):
 		for item_id in which.kit.get(key, []):
 			if stow_item(key, str(item_id)) < 0:
 				push_warning("%s: no room in %s's bag for %s." % [which.display_name, key, item_id])
+	# Everybody chooses their spells before it begins (the designer, 2026-11-05).
+	prepare_due = which.prepares_spells and not casters_to_prepare().is_empty()
 	_go_to_dungeon_stage()
 
 
@@ -1623,6 +1744,8 @@ func long_rest():
 	gates_spent_outside.clear()
 	meditated.clear()
 	free_familiar_used = false
+	# And the spells to prepare again ("Preparing spells").
+	_rest_prepared()
 	# And the paths open to change until the next fight (path_change_open).
 	path_change_open = true
 	if living_party().any(func(key): return subclass_of(key) != ""):
@@ -1668,7 +1791,7 @@ func rest_gate_for(key: String) -> int:
 	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
 	if skill == null or definition == null or not party_state.get(key, {}).get("alive", true):
 		return 0
-	if not definition.skills.has(RESUSCITATE) or party_level < skill.required_level or not knows_spell(key, RESUSCITATE):
+	if not definition.skills.has(RESUSCITATE) or party_level < skill.required_level or not knows_spell(key, RESUSCITATE) or not is_prepared(key, RESUSCITATE):
 		return 0
 	var left := gates_left(key)
 	for gate in range(skill.spell_slot_level, left.size()):

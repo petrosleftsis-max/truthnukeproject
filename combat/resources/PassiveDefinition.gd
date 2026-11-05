@@ -82,6 +82,9 @@ var scales_every_skill_with: int = -1
 ## open air, beside something solid with standing room over it. Cyrus's Cat
 ## Burglar.
 @export var climbs_anywhere: bool = false
+## They see in the dark: anybody in darkness is in plain sight to them, and the player
+## sees them too while they stand (Combat "In the dark"). Cyrus's Night Eyes.
+@export var sees_in_darkness: bool = false
 ## Squeezes into room too small for them: folded a size narrower, a size
 ## shorter, or both - only as much as the room needs - while they are in there,
 ## each step in costing twice over (Combat "Squeezing"). Erysichthon's Hollow Frame.

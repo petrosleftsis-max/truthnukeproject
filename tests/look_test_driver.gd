@@ -64,7 +64,7 @@ func prompt_text(ui) -> String:
 
 func run_test():
 	Campaign.reset()
-	# At the city's level 14: Pandora open, and Fireball learned.
+	# At the city's level 14: Pandora open, and Wildfire learned.
 	var at_fourteen: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
 	for spawn in at_fourteen.spawns:
 		spawn.level = 14
@@ -89,17 +89,17 @@ func run_test():
 	for comb in combat.combatants:
 		comb.reaction_used = true
 	ok(cyrus.name == "Cyrus" and not prometheus.is_empty(), "Cyrus acting, Prometheus to look at", cyrus.name)
-	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
+	var wildfire: SkillDefinition = SkillDatabase.skills["wildfire"]
 
 	log_line("======== a teammate's spell, on Cyrus's turn ========")
-	# Somewhere Prometheus could land a Fireball and Cyrus could not see to.
+	# Somewhere Prometheus could land a Wildfire and Cyrus could not see to.
 	var spot = Vector2i(-99999, -99999)
 	for tile in controller.get_reachable_tiles(prometheus.position, prometheus.movement_class, 99):
 		var gap = combat.get_position_distance(prometheus.position, tile)
 		if spot.x == -99999 and gap >= 7 and gap <= 10 and combat.get_combatant_at(tile).is_empty() \
 				and combat.has_line_of_sight(prometheus.position, tile, prometheus.movement_class):
 			spot = tile
-	ok(spot.x > -99999, "somewhere in reach of his Fireball", "%s" % spot)
+	ok(spot.x > -99999, "somewhere in reach of his Wildfire", "%s" % spot)
 	combat.teleport_to(mark, spot)
 	mark.hp = 1
 	ui.view_combatant(prometheus)
@@ -110,9 +110,9 @@ func run_test():
 	await settle()
 	var button: Button = null
 	for i in ui.action_buttons().size():
-		if ui._shelves.keys()[i] == "fireball":
+		if ui._shelves.keys()[i] == "wildfire":
 			button = ui.action_buttons()[i]
-	ok(button != null and button.disabled, "his Fireball is on the shelves, greyed out - it is not his turn")
+	ok(button != null and button.disabled, "his Wildfire is on the shelves, greyed out - it is not his turn")
 	var slots_before = prometheus.spell_slots.duplicate()
 	var hp_before = mark.hp
 	# A click, as the button itself receives it - disabled, it will not press.
@@ -120,13 +120,13 @@ func run_test():
 	await settle()
 	ok(controller.is_look_only(), "pressing it anyway starts a look")
 	ok(controller.aiming_caster() == prometheus, "aimed from Prometheus, not Cyrus")
-	var reach = combat.get_range_tiles(fireball, prometheus.position, prometheus.movement_class, prometheus)
+	var reach = combat.get_range_tiles(wildfire, prometheus.position, prometheus.movement_class, prometheus)
 	ok(controller._range_preview_positions == reach, "showing his reach", "%d tiles" % reach.size())
 	ok(ui.get_node("Actions/SelectTargetMessage").visible
-		and ui.get_node("Actions/SelectTargetMessage/MarginContainer/Label").text.contains("Just looking at Prometheus's Fireball"),
+		and ui.get_node("Actions/SelectTargetMessage/MarginContainer/Label").text.contains("Just looking at Prometheus's Wildfire"),
 		"with a note saying it is only a look", ui.get_node("Actions/SelectTargetMessage/MarginContainer/Label").text)
 	controller._preview_hits(mark.position)
-	var said = combat.predict_hit(prometheus, mark, fireball)
+	var said = combat.predict_hit(prometheus, mark, wildfire)
 	var text = prompt_text(ui)
 	ok(text.contains("%d damage - lethal" % said.damage), "what it would do, in his hands - and that it would kill",
 		text)

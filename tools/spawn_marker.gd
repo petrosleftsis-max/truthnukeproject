@@ -67,6 +67,9 @@ class_name SpawnMarker
 	set(value):
 		arrives_after_deaths = value
 		queue_redraw()
+## SpawnDefinition.warned_by_flag and warned_by_reading.
+@export var warned_by_flag: String = ""
+@export var warned_by_reading: String = ""
 ## SpawnDefinition.arrives_on_cue - "broke:Jaws", "phase:Gorge" and the rest.
 @export var arrives_on_cue: String = "":
 	set(value):

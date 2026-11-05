@@ -14,22 +14,31 @@ condition_duration = 5
 condition_dot_modifier = 0.2
 metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
+[sub_resource type="Resource" id="Effect_ground"]
+script = ExtResource("1_vsgl5")
+type = 34
+zone_for = 2
+zone_turns = 3
+zone_melee_sweeps = true
+zone_colour = Color(0.2, 0.5, 0.95, 0.32)
+
 [resource]
 script = ExtResource("2_uvvmi")
 impact_look = 30
 ability_modifier = 1.4
 name = "River Flow"
-description = "Control water to freeze the target."
+description = "Control water to freeze whoever is there, and leave it running for three of her turns: anybody a melee blow lands on in it is carried to its edge, and any shove goes that much further."
 min_range = 1
 max_range = 15
 icon = ExtResource("3_0pa21")
 required_level = 8
 respects_blocking = true
-effects = Array[ExtResource("1_vsgl5")]([SubResource("Resource_3t3cr")])
+effects = Array[ExtResource("1_vsgl5")]([SubResource("Resource_3t3cr"), SubResource("Effect_ground")])
 scaling_stat = 1
 damage_type = 2
 uses_stat_contest = true
 contest_stat = 2
 sound = ExtResource("90_sfx")
 spell_slot_level = 2
+aoe_radius = 2
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

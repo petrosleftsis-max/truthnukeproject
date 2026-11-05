@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/four_reflections_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/reflections.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("4_cond")
+
+[resource]
+script = ExtResource("3_skill")
+name = "Four Reflections"
+description = "Four of her, on the one tile. A blow at her alone strikes one of them instead and it shatters; an area finds her all the same. It ends with the last of them."
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+max_range = 0
+required_level = 24
+targets_ally = true
+can_be_copied = false
+deals_damage = false
+impact_look = 19
+spell_slot_level = 2

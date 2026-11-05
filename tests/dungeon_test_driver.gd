@@ -110,7 +110,7 @@ func the_data():
 	var city: EncounterDefinition = dungeon.stages[2].encounter
 	var story_sewer: EncounterDefinition = load("res://data/encounters/encounter_01_ambush.tres")
 	var story_city: EncounterDefinition = load("res://data/encounters/encounter_03_watcher.tres")
-	ok(enemies_of(sewer).size() == enemies_of(story_sewer).size() + 2, "the sewer has two more enemies than the story's",
+	ok(enemies_of(sewer).size() == 5, "the sewer has five enemies, as the designer laid it out",
 		"%d against %d" % [enemies_of(sewer).size(), enemies_of(story_sewer).size()])
 	ok(enemies_of(city).size() == enemies_of(story_city).size() - 3, "the city three fewer",
 		"%d against %d" % [enemies_of(city).size(), enemies_of(story_city).size()])
@@ -198,14 +198,14 @@ func in_a_fight():
 	for comb in heroes:
 		defences[comb.combatant_key] = comb.stats.get("defense", -1)
 	ok(defences == own, "each standing on the tile with their own numbers", "%s" % [defences])
-	ok(foes.size() == 7 and foes.all(func(c): return c.level == 14), "against seven, at level 14", "%d" % foes.size())
+	ok(foes.size() == 5 and foes.all(func(c): return c.level == 14), "against five, at level 14", "%d" % foes.size())
 	ok(Campaign.inventory_of("cyrus").has("cure_potion"), "with what they carried in")
 	var prometheus := fighter(game, "prometheus")
 	ok(not prometheus.is_empty() and prometheus.spell_slots.slice(0, 4) == [0, 4, 3, 2], "Prometheus with every gate to start",
 		"%s" % [prometheus.get("spell_slots")])
 	# The demo hands him every spell of his (Knows Every Spell), where the story
 	# has him learn them from books.
-	ok(dungeon.knows_every_spell and not prometheus.is_empty() and prometheus.skill_list.has("fireball")
+	ok(dungeon.knows_every_spell and not prometheus.is_empty() and prometheus.skill_list.has("wildfire")
 		and prometheus.skill_list.has("kindled_hound") and prometheus.skill_list.has("illusory_dragon"),
 		"and every spell of his, none of them learned from a book", "%s" % [prometheus.get("skill_list")])
 	ok(Campaign.learned_spells.is_empty(), "knowing them without having learned them")

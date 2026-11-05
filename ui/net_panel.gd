@@ -54,7 +54,7 @@ func _ready():
 	add_child(_typed)
 	_address = LineEdit.new()
 	_address.name = "Address"
-	_address.placeholder_text = "Address, as the host's screen shows it"
+	_address.placeholder_text = "Code or address, as the host's screen shows it"
 	_address.custom_minimum_size = Vector2(320, 0)
 	_address.text_submitted.connect(func(_text): _join_typed())
 	_typed.add_child(_address)
@@ -173,6 +173,15 @@ func refresh():
 			button.tooltip_text = "Puts %s on the clipboard, to paste to the other player" % address
 			button.pressed.connect(copy.bind(address))
 			_copies.add_child(button)
+			# The same, packed (Net "Join codes").
+			var code := Net.code_for(address, Net.host_port)
+			if code != "":
+				var coded := Button.new()
+				coded.name = "Code_" + code.replace("-", "")
+				coded.text = "Copy code %s" % code
+				coded.tooltip_text = "The code for %s, to send to the other player. It is the address written another way: they still have to be able to reach it." % address
+				coded.pressed.connect(copy.bind(code))
+				_copies.add_child(coded)
 	if Net.is_host():
 		_leave.text = "Stop hosting"
 		var addresses := Net.own_addresses()

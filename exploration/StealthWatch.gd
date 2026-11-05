@@ -766,6 +766,126 @@ func _wear_off_invisibility(delta: float):
 				scene.log_message("[color=yellow]%s[/color]'s invisibility wears off.\n" % _display_name(key))
 
 
+## --- Tethers, out of a fight ---
+##
+## A tethered move used on a map frays by OutsideMoves.TETHER_PER_SECOND a second, and is
+## over when it has (the designer, 2026-11-05), which is what OutsideMoves.seconds_of
+## makes the move last. One to a character, as in a fight: tying another ends what they
+## held. Shown under their portrait (combat_ui.show_outside_tethers).
+
+## key -> {"name", "bar", "max", "ends"}.
+var outside_tethers := {}
+
+
+## `key` holds `skill` on a tether; `ends` undoes what it did, should they let it go early.
+func tie_outside(key: String, skill: SkillDefinition, ends: Callable):
+	var held: Dictionary = outside_tethers.get(key, {})
+	if not held.is_empty():
+		if held.ends.is_valid():
+			held.ends.call()
+		if scene.has_method("log_message"):
+			scene.log_message("[color=yellow]%s[/color] lets go of %s for %s.\n" % [_display_name(key), held.name, skill.name])
+	outside_tethers[key] = {"name": skill.name, "bar": float(skill.tether_strength), "max": float(skill.tether_strength), "ends": ends}
+	_show_outside_tethers()
+
+
+func _fray_outside(delta: float):
+	if outside_tethers.is_empty():
+		return
+	for key in outside_tethers.keys():
+		var held: Dictionary = outside_tethers[key]
+		held.bar -= OutsideMoves.TETHER_PER_SECOND * delta
+		if held.bar <= 0.0:
+			outside_tethers.erase(key)
+			if scene.has_method("log_message"):
+				scene.log_message("[color=yellow]%s[/color]'s tether to %s wears through.\n" % [_display_name(key), held.name])
+	_show_outside_tethers()
+
+
+func _show_outside_tethers():
+	var hud = scene.get("game_ui")
+	if hud != null and hud.has_method("show_outside_tethers"):
+		hud.show_outside_tethers(outside_tethers)
+
+
+## --- The Company Unseen ---
+##
+## Prometheus's spell through the Gates of Mnemosyne (the designer, 2026-11-05): for as
+## long as it lasts everybody but Cyrus is invisible (_unseen, so only a magic sensor or a
+## nose finds them), they all walk in his group, and guards' eyes reach no further than
+## COMPANY_SIGHT_TILES. In co-op whoever does not play Cyrus has the familiar, if it is
+## out or called meanwhile (FamiliarKeeper.steerer_now); who steers whom goes back as
+## it ends. PROPOSAL: the 60 seconds and the reach.
+
+const COMPANY_HEAD := "cyrus"
+const COMPANY_SIGHT_TILES := 6.0
+var company_left := 0.0
+## Who steered whom before it began, and whoever does not play Cyrus - who has the familiar.
+var _company_steering := {}
+var company_other := -1
+
+
+func company_on() -> bool:
+	return company_left > 0.0
+
+
+## Why it cannot be begun now, or "".
+func company_refusal() -> String:
+	if company_on():
+		return "It holds already"
+	if not Campaign.party_order.has(COMPANY_HEAD) or not Campaign.is_alive(COMPANY_HEAD):
+		return "They need Cyrus to follow"
+	return ""
+
+
+func begin_company(seconds: float):
+	company_left = seconds
+	for member in Campaign.party_members():
+		if member.key != COMPANY_HEAD:
+			_unseen[member.key] = seconds
+	# All of them, those told to stay put included.
+	if scene.has_method("call_in_stayers"):
+		scene.call_in_stayers()
+	Campaign.set_leader(COMPANY_HEAD)
+	company_other = -1
+	if Coop.on():
+		var theirs: int = Coop.controller_of(COMPANY_HEAD)
+		for id in Coop.players.size():
+			if id != theirs:
+				company_other = id
+		_company_steering = Campaign.controllers.duplicate()
+		for key in Campaign.party_order:
+			if theirs <= 0:
+				Campaign.controllers.erase(key)
+			else:
+				Campaign.controllers[key] = theirs
+		Coop.players_changed.emit()
+		# The familiar, if out, is the other player's now.
+		var keeper = scene.get("familiar_keeper")
+		if keeper != null and keeper.familiar != null and company_other >= 0:
+			keeper.take_control(true, company_other)
+	_world_version += 1
+	_seen_key.clear()
+
+
+func _company_goes_on(delta: float):
+	if company_left <= 0.0:
+		return
+	company_left -= delta
+	if company_left > 0.0:
+		return
+	company_left = 0.0
+	if Coop.on() and not _company_steering.is_empty():
+		Campaign.controllers = _company_steering.duplicate()
+		Coop.players_changed.emit()
+	_company_steering = {}
+	company_other = -1
+	_world_version += 1
+	_seen_key.clear()
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]The company[/color] goes its own ways again, and the guards' eyes clear.\n")
+
+
 ## `key` - whoever leads, who is who does things to guards, when not named -
 ## did something to a guard, and can be seen again.
 func _seen_again(key: String = ""):
@@ -4007,6 +4127,7 @@ func net_state() -> Dictionary:
 	# readied - for the joiner's screen to show as this one does.
 	state["ears"] = [_ears_left, _ears_cooldown]
 	state["unseen"] = _unseen.duplicate()
+	state["company"] = company_left
 	var readied := {}
 	for key in readied_outside:
 		readied[key] = [readied_outside[key].move, readied_outside[key].trigger, readied_outside[key].area.keys()]
@@ -4058,6 +4179,11 @@ func apply_net_state(state: Dictionary):
 	if ears is Array and ears.size() == 2:
 		_ears_left = maxf(float(ears[0]), 0.0)
 		_ears_cooldown = maxf(float(ears[1]), 0.0)
+	var company: float = state.get("company", 0.0)
+	if (company > 0.0) != (company_left > 0.0):
+		_world_version += 1
+		_seen_key.clear()
+	company_left = company
 	var unseen = state.get("unseen", {})
 	if unseen is Dictionary:
 		_unseen.clear()
@@ -4119,6 +4245,8 @@ func _process(delta):
 	_ears_cooldown = maxf(0.0, _ears_cooldown - delta)
 	_ears_left = maxf(0.0, _ears_left - delta)
 	_wear_off_invisibility(delta)
+	_fray_outside(delta)
+	_company_goes_on(delta)
 	_watch_readied()
 	if _changing_into != "":
 		_change_left -= delta
@@ -4543,6 +4671,13 @@ func _refresh_seen(guard: Guard):
 	_seen_key[guard] = key
 	var looking = Vector2.RIGHT.rotated(deg_to_rad(facing_step * FACING_STEP_DEGREES))
 	_seen[guard] = sight.seen_from(from, looking, guard.half_cone())
+	# The Company Unseen: his eyes reach only so far while it lasts.
+	if company_on():
+		var close := {}
+		for tile in _seen[guard]:
+			if Vector2(tile - from).length() <= COMPANY_SIGHT_TILES:
+				close[tile] = true
+		_seen[guard] = close
 	if is_dark():
 		# In the dark he makes somebody out only close up; on a lit tile, as far
 		# off as he sees anything.

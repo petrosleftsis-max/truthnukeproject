@@ -65,6 +65,24 @@ class_name EncounterDefinition
 ## which is what you want unless you have a reason otherwise.
 @export var playable_region: Rect2i = Rect2i()
 
+@export_group("Title cards")
+## What slams in as it opens. Empty: FightCards' "Conflict Endless", or a boss's own.
+@export var opening_card: String = ""
+## As it is won. Empty: "Will Subdued", or a boss's own.
+@export var victory_card: String = ""
+## As it is lost, and as somebody who must not get away gets away.
+@export var defeat_card: String = ""
+@export var fled_card: String = ""
+## Played under them, in place of the stand-in sting.
+@export var card_sound: AudioStream
+## Opens on whoever Reveal Who names (else the first boss on the field): the view goes to
+## them, a silhouette lights up, they do their entrance, their name and portrait come up -
+## shorter once it has been seen. A switch of its own, whoever is in the fight.
+@export var boss_reveal: bool = false
+@export var reveal_who: String = ""
+## What somebody says as they fall in this fight, by character key - only those you write.
+@export var last_words: Dictionary = {}
+
 @export_group("Who fights")
 ## Who fills the player tiles, in order, instead of the travelling party. Empty
 ## - which is every encounter written by hand - means the party. A stealth map

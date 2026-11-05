@@ -268,7 +268,11 @@ func the_rows():
 			modifier = rank.ability_modifier if rank.ability_modifier > 0.0 else modifier
 			strength = rank.condition_dot_modifier if rank.condition_dot_modifier > 0.0 else strength
 			lasts = rank.condition_duration if rank.condition_duration > 0 else lasts
-		if at != level:
+		# Prometheus learns his from books (Campaign "Spellbooks"), so since the
+		# designer took their levels off them (2026-11-05) a spell of his asks only for
+		# its gate: the book can come as soon as that opens.
+		var from_books: bool = definition.learns_spells and skill.spell_slot_level > 0 and skill.required_level == 1
+		if at != level and not from_books:
 			wrong.append("%s: level %d, the CSV's %d" % [id, at, level])
 		# Not before its gate opens, either.
 		if skill.spell_slot_level > 0 and CharacterSheet.gate_opens_at(skill.spell_slot_level) > level:

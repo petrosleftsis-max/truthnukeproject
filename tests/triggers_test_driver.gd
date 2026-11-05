@@ -525,6 +525,8 @@ func instahack():
 	var alithia = who("alithia")
 	var instahack: SkillDefinition = SkillDatabase.skills.get("instahack")
 	ok(instahack != null and prometheus.skill_list.has("instahack"), "Prometheus knows InstaHack")
+	# Turn Aside answers a blow as well, and this is about InstaHack (spellstwo plays it).
+	prometheus.skill_list.erase("turn_aside")
 	if instahack == null:
 		return
 	ok(instahack.reaction_only and instahack.reacts_when == Trigger.CASTS and instahack.spell_slot_level == 3,

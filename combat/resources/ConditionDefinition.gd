@@ -124,6 +124,18 @@ const DOT_STRENGTH_NAMES := {
 ## It comes off once they have made a weapon attack - their next one is the one
 ## it touches. Disarmed.
 @export var ends_after_weapon_attack: bool = false
+## Damage they take frays no tether of theirs while it is on them. Composure, and
+## whoever somebody else is taking a share for (Shared Burden).
+@export var keeps_tether_when_hurt: bool = false
+## Whoever put it on them takes this share of the damage they would have taken - and
+## it frays no tether of the one taking it (Combat "Shared Burden").
+@export_range(0.0, 0.9, 0.05) var source_takes_share: float = 0.0
+## They cast no spells while it is on them: nothing through a gate, as an action,
+## a reaction or something readied. A Gate Nade is thrown, not cast. Silenced.
+@export var prevents_spells: bool = false
+## Their next turn is not theirs: they do what they were ordered to as it landed,
+## and end it (Combat "Orders"). Compelled.
+@export var obeys_order: bool = false
 
 @export_group("Illusions and favours")
 ## The next attack that would hit them misses - an image takes it - and this
@@ -147,6 +159,23 @@ const DOT_STRENGTH_NAMES := {
 ## holds them is not beside them or is down, or either of them is teleported,
 ## shoved or thrown (Combat "Holding on"). One held at a time each.
 @export var holds: bool = false
+## The next this many blows at one tile that would hit them each strike an image of
+## them instead, and one image goes. It comes off with the last (Four Reflections).
+## An area finds them all the same.
+@export_range(0, 9) var evades_hits: int = 0
+## This is darkness (a zone's): anybody standing in it is invisible to whoever cannot
+## see in the dark, as Makes Invisible is, and acting against the other side gives them
+## away until their next turn (Combat "In the dark").
+@export var is_darkness: bool = false
+## They see in the dark: anybody in darkness is in plain sight to them. Clear Sight.
+@export var sees_in_darkness: bool = false
+## They see whoever is invisible or hidden as if they were not. Clear Sight.
+@export var sees_the_unseen: bool = false
+## They climb anywhere while it is on them, as Cat Burglar does. Cling.
+@export var climbs_anywhere: bool = false
+## They cannot be given these while it is on them, and any of them they have now
+## comes off as it lands. Unafraid (Steady Heart).
+@export var immune_to_conditions: Array[ConditionDefinition] = []
 
 @export_group("Forced movement")
 ## At the start of their turn they are blown this many tiles in a random
@@ -198,6 +227,26 @@ func describe() -> String:
 		parts.append("no secondary action")
 	if prevents_reactions:
 		parts.append("no reactions")
+	if prevents_spells:
+		parts.append("cannot cast spells")
+	if evades_hits > 0:
+		parts.append("the next %d single blows strike an image instead" % evades_hits)
+	if is_darkness:
+		parts.append("invisible to whoever cannot see in the dark")
+	if sees_in_darkness:
+		parts.append("sees in the dark")
+	if sees_the_unseen:
+		parts.append("sees the invisible and the hidden")
+	if climbs_anywhere:
+		parts.append("climbs anywhere")
+	if keeps_tether_when_hurt:
+		parts.append("damage frays no tether of theirs")
+	if source_takes_share > 0.0:
+		parts.append("whoever put this on them takes %d%% of what they would take" % roundi(source_takes_share * 100))
+	if obeys_order:
+		parts.append("their next turn goes as they were ordered")
+	if not immune_to_conditions.is_empty():
+		parts.append("immune to %s" % ", ".join(immune_to_conditions.map(func(each): return each.display_name if each != null else "?")))
 	if weapon_damage_change != 0.0:
 		parts.append("%s weapon attack %+d%% damage" % ["next" if ends_after_weapon_attack else "every", roundi(weapon_damage_change * 100)])
 	if drift_tiles > 0:

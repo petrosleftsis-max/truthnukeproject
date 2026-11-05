@@ -248,6 +248,8 @@ func _build_markers(tile_map: TileMap):
 		marker.arrives_on_round = spawn.arrives_on_round
 		marker.arrives_after_deaths = spawn.arrives_after_deaths
 		marker.arrives_on_cue = spawn.arrives_on_cue
+		marker.warned_by_flag = spawn.warned_by_flag
+		marker.warned_by_reading = spawn.warned_by_reading
 		marker.surprised = spawn.surprised
 		marker.invisible = spawn.invisible
 		marker.subclass = spawn.subclass
@@ -417,10 +419,10 @@ func _escape_tiles() -> Array:
 static func _fingerprint(spawns: Array) -> String:
 	var lines := PackedStringArray()
 	for spawn in spawns:
-		lines.append("%s|%d|%s|%s|%d|%s|%d|%d|%s|%s|%d|%d|%s|%s|%s" % [spawn.combatant_key, spawn.side, spawn.position,
+		lines.append("%s|%d|%s|%s|%d|%s|%d|%d|%s|%s|%d|%d|%s|%s|%s|%s|%s" % [spawn.combatant_key, spawn.side, spawn.position,
 			spawn.display_name, spawn.level, spawn.subclass, spawn.weapon_base, spawn.defense,
 			",".join(spawn.starting_items), ",".join(spawn.equipment), spawn.arrives_on_round, spawn.arrives_after_deaths, spawn.arrives_on_cue,
-			spawn.surprised, spawn.invisible])
+			spawn.surprised, spawn.invisible, spawn.warned_by_flag, spawn.warned_by_reading])
 	return "\n".join(lines)
 
 
@@ -441,6 +443,8 @@ func _spawn_from(marker: SpawnMarker) -> SpawnDefinition:
 	spawn.arrives_on_round = marker.arrives_on_round
 	spawn.arrives_after_deaths = marker.arrives_after_deaths
 	spawn.arrives_on_cue = marker.arrives_on_cue
+	spawn.warned_by_flag = marker.warned_by_flag
+	spawn.warned_by_reading = marker.warned_by_reading
 	spawn.surprised = marker.surprised
 	spawn.invisible = marker.invisible
 	spawn.subclass = marker.subclass

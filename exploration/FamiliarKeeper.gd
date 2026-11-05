@@ -95,7 +95,7 @@ func summon(by: String, form: FamiliarForm) -> Familiar:
 	familiar.setup(form, at, Callable(scene, "is_walkable_for"))
 	familiar.moved.connect(_on_moved)
 	caster = by
-	take_control(true, caster_player())
+	take_control(true, _company_steerer() if _company_steerer() >= 0 else caster_player())
 	return familiar
 
 
@@ -131,6 +131,15 @@ func take_control(to_it: bool, by: int = -1):
 	_show_sight(to_it and steered_here())
 
 
+## Whoever does not play Cyrus, while The Company Unseen holds - it is theirs to steer
+## then (StealthWatch "The Company Unseen"). -1 otherwise.
+func _company_steerer() -> int:
+	var watch = scene.get("stealth") if scene != null else null
+	if watch != null and is_instance_valid(watch) and watch.company_on():
+		return watch.company_other
+	return -1
+
+
 ## Whether its steerer - anybody, outside co-op - plays on this machine.
 func steered_here() -> bool:
 	return steerer < 0 or Coop.is_local(steerer)
@@ -163,7 +172,7 @@ func swap_for(player: int) -> bool:
 	if controlling and steerer == player:
 		take_control(false)
 		return true
-	if player == caster_player():
+	if player == caster_player() or player == _company_steerer():
 		take_control(true, player)
 		return true
 	return request_control(player)

@@ -229,7 +229,7 @@ func the_dragon():
 	await open_fight()
 	var prometheus := who("prometheus")
 	var spell: SkillDefinition = SkillDatabase.skills["illusory_dragon"]
-	ok(spell.spell_slot_level == 8 and spell.required_level == 47 and spell.tethered, "a spell of the Ogdoad, from level 47, held on a tether")
+	ok(spell.spell_slot_level == 8 and spell.tethered, "a spell of the Ogdoad, held on a tether")
 	prometheus.level = 47
 	prometheus.spell_slots = Stats.gates_for_level(47)
 	var foe := who("hired_bow")

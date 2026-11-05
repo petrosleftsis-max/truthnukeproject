@@ -66,6 +66,7 @@ defense = 20
 
 [resource]
 script = ExtResource("2_fhab5")
+boss_reveal = true
 display_name = "The Ash Warden"
 description = "A boss: two turns a round, an aura of choking ash, three phases, and a stagger bar. Blow the powder kegs under it."
 terrain_scene = ExtResource("4_x4df1")

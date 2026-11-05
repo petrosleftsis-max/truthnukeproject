@@ -145,6 +145,7 @@ func run_test():
 	log_line("")
 	log_line("======== using everything once ========")
 	var dead := []
+	var still_held := []
 	var refused := []
 	var worked := 0
 	for key in SkillDatabase.skills:
@@ -174,6 +175,9 @@ func run_test():
 		# plays it.
 		if Combat.loots(skill):
 			continue
+		# Moving a Storm Cloud wants one laid - the spellstwo suite plays it.
+		if Combat.moves_zone(skill):
+			continue
 		# Rummage wants a pouch with something in it - the containers suite plays it.
 		if Combat.draws(skill):
 			continue
@@ -202,6 +206,8 @@ func run_test():
 		if ItemDatabase.is_item(key):
 			Campaign.give_item(caster.get("combatant_key", ""), key)
 
+		# Nothing left on the ground by the last one: it would land on everybody again.
+		combat.zones.clear()
 		# Everyone back on their feet, where they were, with nothing on them.
 		for who in [caster, ally, foe]:
 			who.alive = true
@@ -292,6 +298,10 @@ func run_test():
 			# Intimidate, Persuade, Deceive: something on them to work with.
 			Campaign.set_flag(Campaign.LEVERAGE_PREFIX + mark.get("combatant_key", ""))
 		mark.erase("intent")
+		# Unveil wants somebody hidden to find; a blow that also reveals (Votive Flame) only
+		# wants somebody it can aim at.
+		if not skill.deals_damage and skill.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.UNVEIL):
+			combat.set_hidden(mark, true)
 		if skill.needs_read:
 			# Accusation, Recant: their next turn read by the caster, as Intuition reads it.
 			combat.read_intent(caster, mark)
@@ -320,6 +330,12 @@ func run_test():
 		for i in 3:
 			await get_tree().process_frame
 		combat.update_information.disconnect(listening)
+		# What it did, before the tether holding it is cut for the next one.
+		var moved = differences(before_caster, snapshot(caster))
+		var landed = differences(before_mark, snapshot(mark))
+		# Ground that only does something later (Restorative Aura) is something done too.
+		if not combat.zones.is_empty():
+			landed.append("something on the ground")
 		# An image put up would be standing on the lane for the next one - and so
 		# would anything called up, held on the caster's tether.
 		var commanded: bool = combat.is_commanding()
@@ -336,8 +352,12 @@ func run_test():
 
 		if contested_key != "" and mark["stats"].has(contested_key):
 			mark["stats"][contested_key] = contested_was
-		var moved = differences(before_caster, snapshot(caster))
-		var landed = differences(before_mark, snapshot(mark))
+		# Cut, what a tether held is gone - all of it but somebody it knocked down.
+		if skill.tethered:
+			var after_cut: Array = differences(before_caster, snapshot(caster)) + differences(before_mark, snapshot(mark))
+			log_line("  CUT   %-20s after the tether: %s" % [key, after_cut])
+			if key != "ecstasy" and after_cut.any(func(change): return change.begins_with("effects") or change.begins_with("hidden")):
+				still_held.append(key)
 		var said := []
 		for line in heard:
 			if line != "":
@@ -359,6 +379,7 @@ func run_test():
 			worked += 1
 	log_line("")
 	log_line("  NOTE  %d did something, %d did nothing" % [worked, dead.size()])
+	ok(still_held.is_empty(), "what a tether held goes when it is cut", "%s" % [still_held])
 	ok(dead.is_empty(), "every skill and every bottle does something when used",
 		"%s" % [dead])
 	finish(game)

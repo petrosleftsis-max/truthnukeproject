@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/great_snare_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 32
+trap_burst_radius = 3
+
+[resource]
+script = ExtResource("3_skill")
+name = "Great Snare"
+description = "Only out of a fight. A great magical trap on the ground where he stands: the first guard onto it sets it off, and everybody within three tiles of it is down. Not a sound as it is laid; everybody hears it go."
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+max_range = 0
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 3
+never_in_a_fight = true
+noise = 1
+outside_use = 14

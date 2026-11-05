@@ -91,6 +91,7 @@ weapon_base = 12
 
 [resource]
 script = ExtResource("2_jtxsr")
+boss_reveal = true
 display_name = "The Bellkeeper"
 description = "A small boss nothing can stun or move. Ring its bells to stagger it - then strike while it reels."
 terrain_scene = ExtResource("4_disig")

@@ -118,9 +118,12 @@ static func condition_helps(condition: ConditionDefinition) -> bool:
 		return false
 	if condition.dot_modifier > 0.0 or condition.dot_max > 0:
 		return false
-	if condition.skips_turn or condition.prevents_movement or condition.prevents_secondary:
+	if condition.skips_turn or condition.prevents_movement or condition.prevents_secondary or condition.prevents_spells or condition.obeys_order:
 		return false
-	return condition.movement_change > 0 or condition.accuracy_change > 0
+	return condition.movement_change > 0 or condition.accuracy_change > 0 or not condition.immune_to_conditions.is_empty() \
+		or condition.is_darkness or condition.makes_invisible or condition.evades_hits > 0 or condition.sees_in_darkness \
+		or condition.sees_the_unseen or condition.climbs_anywhere or condition.keeps_tether_when_hurt or condition.source_takes_share > 0.0 \
+		or condition.damage_taken_change < 0.0
 
 
 func _is_helpful(effect: Dictionary) -> bool:
@@ -212,6 +215,12 @@ func _describe_condition(comb: Dictionary, effect: Dictionary) -> String:
 		doing.append("no secondary action")
 	if condition.prevents_reactions:
 		doing.append("no reactions")
+	if condition.prevents_spells:
+		doing.append("cannot cast spells")
+	if condition.evades_hits > 0:
+		doing.append("%d images left" % effect.get("images_left", condition.evades_hits))
+	if condition.obeys_order and effect.has("order"):
+		doing.append("ordered: %s" % Combat.ORDER_LABELS[clampi(effect.order, 0, Combat.ORDER_LABELS.size() - 1)].to_lower())
 	if not doing.is_empty():
 		lines.append(", ".join(doing))
 	if condition.holds:
@@ -269,6 +278,13 @@ func _ticks_left(comb: Dictionary, effect: Dictionary) -> int:
 ## turn it goes at is the effect's own (Combat.turns_stored) - and worth saying,
 ## since it decides whether it is still there when they next act.
 func _wears_off(comb: Dictionary, effect: Dictionary) -> String:
+	# No count of its own: until it is ended.
+	if effect.get("held_by_tether", false) or (effect.has("zone_id") and effect.has("tether_of")):
+		return "For as long as the tether holds"
+	if effect.get("condition") != null and effect.condition.getting_up_share > 0.0:
+		return "Until they get up"
+	if effect.get("condition") != null and effect.condition.evades_hits > 0:
+		return "Until the last image is gone"
 	var acting = _combat != null and comb == _combat.get_current_combatant()
 	# Their turns still to come that it covers whole.
 	var ahead: int = effect.get("duration", 0) - (1 if acting else 0)

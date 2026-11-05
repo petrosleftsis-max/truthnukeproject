@@ -45,6 +45,8 @@ const RECIPES := {
 	"launch_throw": [[700, 1500, 0.09, "noise", 0.09]],
 	"launch_roar": [[120, 85, 0.28, "square", 0.08]],
 	"launch_puff": [[1400, 500, 0.12, "noise", 0.08]],
+	"card_sting": [[110, 55, 0.55, "square", 0.28], [660, 330, 0.4, "sine", 0.18]],
+	"card_fall": [[220, 70, 0.8, "sine", 0.3]],
 	# ...travelling...
 	"travel": [[700, 350, 0.26, "noise", 0.05]],
 	"travel_beam": [[220, 230, 0.3, "sine", 0.07]],

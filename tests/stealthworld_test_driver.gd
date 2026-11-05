@@ -80,6 +80,9 @@ func noisy_ground():
 	place(m, gravel, post + Vector2i.RIGHT * 2)
 	var watch = await watch_it(m, post + Vector2i.RIGHT * 4)
 	var party = m.party
+	# Walking openly this near, he would notice them anyway (StealthWatch "Stealth
+	# mode"), so unseen: all he has to go by is the ground.
+	watch._unseen[m.leader] = 999.0
 	log_line("======== gravel ========")
 	ok(watch.noisy_floor_at(post + Vector2i.RIGHT * 3) == gravel and watch.noisy_floor_at(post + Vector2i.RIGHT * 5) == null,
 		"the patch covers its tiles and no others")

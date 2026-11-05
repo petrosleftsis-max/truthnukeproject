@@ -14,15 +14,27 @@ condition = ExtResource("2_cop3u")
 condition_duration = 5
 condition_dot_modifier = 0.25
 
+[sub_resource type="Resource" id="Effect_ground"]
+script = ExtResource("1_r1ihj")
+type = 34
+zone_for = 2
+zone_turns = 3
+zone_turn_damage = 0.5
+damage_type = 1
+zone_hurts_everybody = true
+zone_hurts_each_step = true
+zone_leaves_conditions = true
+zone_colour = Color(0.95, 0.38, 0.1, 0.35)
+
 [resource]
 script = ExtResource("3_cop3u")
 name = "Burner"
-description = "Burn the target."
+description = "Set the ground and everybody on it alight. For three of his turns the fire stays: whoever steps in it or starts their turn in it is hurt and burned, and again for every tile they walk through it."
 min_range = 1
 max_range = 15
 icon = ExtResource("2_luh46")
 respects_blocking = true
-effects = Array[ExtResource("1_r1ihj")]([SubResource("Effect_curse")])
+effects = Array[ExtResource("1_r1ihj")]([SubResource("Effect_curse"), SubResource("Effect_ground")])
 ability_modifier = 1.7
 scaling_stat = 2
 damage_type = 1
@@ -31,3 +43,4 @@ contest_stat = 1
 sound = ExtResource("90_sfx")
 projectile_look = 17
 spell_slot_level = 2
+aoe_radius = 2

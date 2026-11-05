@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/steady_heart_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/unafraid.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("4_cond")
+condition_duration = 4
+
+[resource]
+script = ExtResource("3_skill")
+name = "Steady Heart"
+description = "A hand on the shoulder and the fear goes out of them. For four of their turns nothing can frighten them."
+max_range = 6
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+targets_ally = true
+can_be_copied = false
+deals_damage = false
+impact_look = 32
+spell_slot_level = 1

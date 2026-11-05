@@ -159,8 +159,12 @@ func whose_nade_it_is():
 	ok(combat.can_use_gate_nade(alithia, communion), "a Communion nade is Alithia's")
 	ok(not combat.can_use_gate_nade(prometheus, communion) and not combat.can_use_gate_nade(enfina, communion),
 		"not Prometheus's or Enfina's")
-	ok(combat.can_use_gate_nade(prometheus, nade("fireball_gate_nade")) and not combat.can_use_gate_nade(alithia, nade("fireball_gate_nade")),
-		"a Fireball nade is Prometheus's, not Alithia's")
+	ok(combat.can_use_gate_nade(prometheus, nade("crystalise_gate_nade")) and not combat.can_use_gate_nade(alithia, nade("crystalise_gate_nade")),
+		"a Crystalise nade is Prometheus's, not Alithia's")
+	# Fireball is no spell of anybody's since the designer took it off him (2026-11-05):
+	# only Nade Juggler can throw its nade.
+	ok(not combat.can_use_gate_nade(prometheus, nade("fireball_gate_nade")) and not combat.can_use_gate_nade(alithia, nade("fireball_gate_nade")),
+		"and a Fireball nade is nobody's now")
 	ok(not prometheus.skill_list.has("flame_edge") and combat.knows_or_can_learn(prometheus, "flame_edge")
 		and not combat.knows_or_can_learn(enfina, "flame_edge"),
 		"a spell only one of his paths teaches is one he could learn")
@@ -172,11 +176,11 @@ func whose_nade_it_is():
 		"and Cyrus, through Nade Juggler, can throw any of them")
 	log_line("")
 	log_line("======== on the panel ========")
-	Campaign.set_inventory("prometheus", ["communion_gate_nade", "fireball_gate_nade"])
+	Campaign.set_inventory("prometheus", ["communion_gate_nade", "crystalise_gate_nade"])
 	give_turn(prometheus)
 	var refused := items_button(prometheus, "communion_gate_nade")
 	ok(not refused[1] and refused[0].contains("Only somebody who knows Communion"), "Prometheus's Communion nade is greyed out, saying why")
-	ok(items_button(prometheus, "fireball_gate_nade")[1], "his Fireball nade is not")
+	ok(items_button(prometheus, "crystalise_gate_nade")[1], "his Crystalise nade is not")
 	log_line("")
 
 
@@ -210,9 +214,9 @@ func throwing_them():
 	await settle(1)
 	give_turn(prometheus)
 	prometheus.status_effects.append({"stat": "accuracy", "amount": 100, "duration": 99, "source_name": "test"})
-	await combat.use_skill("fireball_gate_nade", prometheus, foe.position, false)
+	await combat.use_skill("crystalise_gate_nade", prometheus, foe.position, false)
 	await settle(3)
-	ok(foe.hp < 999, "Prometheus's Fireball nade goes off", "%d" % foe.hp)
+	ok(foe.hp < 999, "Prometheus's Crystalise nade goes off", "%d" % foe.hp)
 	var priest: Dictionary = combat.create_combatant(CombatantDatabase.combatants.priest, "priest")
 	priest["side"] = 1
 	ok(combat._ai_plannable(priest, nade("fireball_gate_nade")) == false, "an enemy will not throw one whose spell is no part of theirs")
@@ -244,7 +248,7 @@ func the_juggler():
 	await combat.use_skill("fireball_gate_nade", cyrus, foe.position, false, ui._consumable_spends_secondary(cyrus, fireball))
 	await settle(3)
 	ok(foe.hp < 999 and cyrus.secondary_used_this_turn and not cyrus.skill_used_this_turn,
-		"he throws Prometheus's Fireball with his secondary action, his main still to come", "%d" % foe.hp)
+		"he throws a Fireball nobody else can with his secondary action, his main still to come", "%d" % foe.hp)
 	ok(items_button(cyrus, "communion_gate_nade")[1], "and Alithia's Communion nade is his to throw too")
 	cyrus.passives.append(quick_hands)
 	log_line("")

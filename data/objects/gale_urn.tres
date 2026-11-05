@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BattleObjectDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/objects/powder_keg_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://art/objects/powder_keg_sheet.png" id="4_sheet"]
+[ext_resource type="Script" path="res://combat/resources/BattleObjectDefinition.gd" id="6_object"]
+
+[resource]
+script = ExtResource("6_object")
+interactable = false
+breakable = true
+set_off_line = "The urn bursts, and the wind comes out of it!"
+blast_radius = 3
+blast_damage_type = 3
+blast_push = 3
+blast_collision_damage = 40
+max_hp = 30
+max_hp_level_20 = 30
+name = "Gale Urn"
+glossary_text = "An urn with a storm stoppered in it. Break it and everybody around it is thrown straight back, hurt if what they hit is solid or somebody."
+movement = 1
+icon = ExtResource("2_icon")
+map_sprite = ExtResource("4_sheet")
+tint = Color(0.62, 0.92, 1, 1)

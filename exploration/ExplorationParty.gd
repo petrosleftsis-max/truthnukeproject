@@ -385,6 +385,26 @@ func _line() -> Array:
 	return all
 
 
+## Everybody in the line back where they stood (`places`: key -> position), the trail laid
+## through them, so a lead passed in place moves nobody (Stay Here).
+func keep_places(places: Dictionary):
+	var line := _line()
+	var trail := []
+	var length := 0.0
+	var behind = null
+	for i in range(line.size() - 1, -1, -1):
+		var sprite = line[i]
+		var place: Vector2 = places.get(sprite.get_meta("combatant_key", ""), sprite.position)
+		sprite.position = place
+		if behind != null:
+			length += behind.distance_to(place)
+		trail.append({"position": place, "distance": length})
+		behind = place
+	if not trail.is_empty():
+		_trail = trail
+		_trail_length = length
+
+
 ## `sprite` stays at `at`, out of the line.
 func stay(sprite: CombatantSprite, at: Vector2):
 	if sprite == null or sprite == leader:

@@ -446,7 +446,8 @@ func set_alive():
 	rise.set_parallel(true)
 	rise.tween_property(self, "modulate", Color.WHITE, DEATH_SECONDS)
 	if drawn != null:
-		rise.tween_property(drawn, "position:y", size_offset.y, DEATH_SECONDS).set_ease(Tween.EASE_OUT)
+		rise.tween_property(drawn, "position", size_offset, DEATH_SECONDS).set_ease(Tween.EASE_OUT)
+		rise.tween_property(drawn, "rotation", 0.0, DEATH_SECONDS)
 
 
 func set_dead():
@@ -475,6 +476,42 @@ func set_dead():
 	fade.tween_property(self, "modulate", Color(0.6, 0.6, 0.6, DEATH_ALPHA), DEATH_SECONDS)
 	if drawn != null:
 		fade.tween_property(drawn, "position:y", drawn.position.y + DEATH_SINK, DEATH_SECONDS).set_ease(Tween.EASE_OUT)
+
+
+## Falls, seen (MoveFeel.falls): knocked back along `away`, then collapsing, ending as
+## set_dead does. `element` tints them - ash for fire - and a "dead_<element>" animation,
+## if they have one, plays in place of the rest.
+func fall(away: Vector2, element: int):
+	var drawn = _drawn()
+	var own: StringName = StringName("dead_%s" % Damage.type_name(element).to_lower()) if element >= 0 else &""
+	if drawn == null or (_animated != null and own != &"" and _animated.sprite_frames.has_animation(own)):
+		set_dead()
+		if drawn != null and _animated != null and own != &"" and _animated.sprite_frames.has_animation(own):
+			_animated.play(own)
+		return
+	set_dead()
+	var home: Vector2 = drawn.position
+	var tile := float(Grid.TILE_SIZE)
+	var flung := create_tween().set_ignore_time_scale(true)
+	flung.tween_property(drawn, "position", home + away * tile * FALL_THROWN - Vector2(0.0, tile * 0.08), FALL_THROWN_SECONDS).set_ease(Tween.EASE_OUT)
+	flung.tween_property(drawn, "position", home + away * tile * FALL_THROWN, FALL_THROWN_SECONDS * 0.6).set_ease(Tween.EASE_IN)
+	var side := 1.0 if away.x >= 0.0 else -1.0
+	flung.tween_property(drawn, "rotation", deg_to_rad(FALL_ANGLE) * side, FALL_COLLAPSE_SECONDS).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	match element:
+		Damage.Type.FIRE, Damage.Type.PLASMA:
+			var ash := create_tween().set_ignore_time_scale(true)
+			ash.tween_property(self, "modulate", Color(0.22, 0.21, 0.2, DEATH_ALPHA), DEATH_SECONDS)
+		Damage.Type.ICE, Damage.Type.METAL:
+			var gone := create_tween().set_ignore_time_scale(true)
+			gone.tween_property(self, "modulate:a", 0.12, DEATH_SECONDS * 0.6)
+
+
+## How far a fall throws them, as a share of a tile, and over how long; how far they
+## tip over as they go down, and how long that takes. PROPOSAL.
+const FALL_THROWN := 0.38
+const FALL_THROWN_SECONDS := 0.15
+const FALL_ANGLE := 82.0
+const FALL_COLLAPSE_SECONDS := 0.32
 
 
 ## --- Hops ---

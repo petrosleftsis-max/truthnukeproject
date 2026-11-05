@@ -208,6 +208,8 @@ func every_field_survives_save():
 	late.arrives_on_round = 3
 	late.arrives_after_deaths = 2
 	late.arrives_on_cue = "broke:Jaws"
+	late.warned_by_flag = "read_the_log"
+	late.warned_by_reading = "priest"
 	late.surprised = true
 	late.invisible = true
 	late.subclass = "saboteur"

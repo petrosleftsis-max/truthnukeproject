@@ -142,3 +142,11 @@ projectile
 openly
 combatview
 prone
+enchant
+shoveaim
+spellstwo
+outsidespells
+preparespells
+hazards
+fightcards
+joincode

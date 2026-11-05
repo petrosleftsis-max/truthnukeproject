@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Burden Shared"
+tag = "Bd"
+description = "Whoever put this on them takes half of what would hurt them, and neither of their tethers frays for it."
+duration = 1
+source_takes_share = 0.5
+keeps_tether_when_hurt = true

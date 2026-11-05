@@ -452,6 +452,8 @@ func in_a_fight():
 	log_line("======== hacking a foe's wind-up ========")
 	await open_fight()
 	var prometheus := who("prometheus")
+	# Turn Aside would ask whether to answer the blows here, and this is about hacking.
+	prometheus.skill_list.erase("turn_aside")
 	var cyrus := who("cyrus")
 	var ogre := who("ogre")
 	prometheus.max_hp = 500

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/restorative_aura_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 34
+zone_for = 0
+zone_turns = 20
+zone_colour = Color(0.35, 0.95, 0.55, 0.22)
+zone_heals = true
+heal_flat = 4.0
+heal_per_stat = 0.1
+heal_per_weapon = 0.1
+zone_follows_caster = true
+
+[resource]
+script = ExtResource("3_skill")
+name = "Restorative Aura"
+description = "A warmth that goes where she goes. Any ally who starts their turn within it mends a little, for as long as she holds the tether."
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+max_range = 0
+required_level = 14
+targets_ally = true
+can_be_copied = false
+deals_damage = false
+impact_look = 20
+spell_slot_level = 3
+tethered = true
+tether_strength = 200
+aoe_radius = 3

@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/ecstasy_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/prone.tres" id="4_prone"]
+[ext_resource type="Resource" path="res://data/conditions/stunned.tres" id="5_stunned"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("4_prone")
+
+[sub_resource type="Resource" id="Effect_1"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("5_stunned")
+held_by_tether = true
+
+[resource]
+script = ExtResource("3_skill")
+name = "Ecstasy"
+description = "It takes them all at once and their legs go. Down and helpless for as long as she holds the tether - and still down when she lets go."
+min_range = 1
+max_range = 6
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0"), SubResource("Effect_1")])
+deals_damage = false
+impact_look = 13
+spell_slot_level = 1
+tethered = true
+tether_strength = 50

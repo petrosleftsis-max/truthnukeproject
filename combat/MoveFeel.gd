@@ -349,6 +349,41 @@ static func shatter(combat: Combat, at: Vector2):
 	spawn(combat, &"shatter", at, {"colour": Color(0.8, 0.92, 1.0)})
 
 
+## `comb` falls (Combat._falls): the blow's flash and a push in, the sprite knocked back and
+## collapsing, and what it leaves by what hurt them last - ash for fire, shards for ice and
+## metal, a wash for water, a green rot for poison and acid, sparks for lightning, dust for
+## the rest. A SpriteFrames animation "dead_<element>" fills the slot.
+static func falls(combat: Combat, comb: Dictionary):
+	var sprite = comb.get("sprite")
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var at: Vector2 = middle_of(combat, comb)
+	var hurt: Dictionary = comb.get("last_hurt", {})
+	var element: int = hurt.get("element", -1)
+	var away := Vector2.ZERO
+	if hurt.get("from") is Vector2i:
+		away = Vector2(comb.position - hurt.from).normalized()
+	screen_flash(combat, Color(1.0, 0.95, 0.85, 0.28), 0.16)
+	if combat.camera != null and is_instance_valid(combat.camera) and combat.camera.has_method("punch_in"):
+		combat.camera.punch_in()
+	sound(combat, null, "impact_thud")
+	sprite.fall(away, element)
+	match element:
+		Damage.Type.FIRE, Damage.Type.PLASMA:
+			spawn(combat, &"motes", at, {"colour": Color(0.32, 0.3, 0.28), "on": comb, "on_offset": combat.drawing_offset(comb)})
+			spawn(combat, &"dust", at, {"colour": Color(0.25, 0.24, 0.22), "strength": 1.6})
+		Damage.Type.ICE, Damage.Type.METAL:
+			shatter(combat, at)
+		Damage.Type.WATER:
+			spawn(combat, &"dust", at, {"colour": Color(0.5, 0.72, 0.95), "strength": 1.4})
+		Damage.Type.POISON, Damage.Type.ACID:
+			spawn(combat, &"motes", at, {"colour": Color(0.55, 0.85, 0.3), "on": comb, "on_offset": combat.drawing_offset(comb)})
+		Damage.Type.LIGHTNING, Damage.Type.WIND:
+			spawn(combat, &"shockwave", at, {"colour": Color(0.75, 0.88, 1.0), "reach": Grid.TILE_SIZE * 0.9, "strength": 0.7})
+		_:
+			spawn(combat, &"dust", at, {"colour": Color(0.78, 0.7, 0.58), "strength": 1.3})
+
+
 ## Mended: motes rising off `target`.
 static func mended(combat: Combat, target: Dictionary):
 	spawn(combat, &"motes", middle_of(combat, target), {"colour": Projectile.MEND, "on": target,

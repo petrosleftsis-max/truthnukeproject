@@ -31,6 +31,9 @@ class_name DungeonDefinition
 ## "Spellbooks") knows every spell of theirs in here, their path's included,
 ## as in Arena Mode.
 @export var knows_every_spell: bool = false
+## Whether everybody chooses the spells they prepare before it begins (Campaign
+## "Preparing spells"). The Dungeon Demo.
+@export var prepares_spells: bool = false
 ## What each of them starts with, by character key: item keys, put away belt
 ## first (Campaign.stow_item). Their bags are emptied as the dungeon starts, so
 ## this is all they carry - and what they use is gone for the fights after.

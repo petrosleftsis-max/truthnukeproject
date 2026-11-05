@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/terror_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/fear.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("4_cond")
+held_by_tether = true
+flees_from_caster = true
+
+[resource]
+script = ExtResource("3_skill")
+name = "Terror"
+description = "Something behind her eyes shows itself, and every enemy in a long cone takes fright. As each of their turns starts they run from her as far as they can, then do what they can from there, for as long as she holds the tether."
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+min_range = 1
+max_range = 6
+required_level = 14
+deals_damage = false
+impact_look = 13
+spell_slot_level = 3
+tethered = true
+tether_strength = 200
+aoe_radius = 6
+aoe_shape = 2

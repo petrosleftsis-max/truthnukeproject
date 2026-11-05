@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/company_unseen_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[resource]
+script = ExtResource("3_skill")
+name = "Company Unseen"
+description = "Only out of a fight. Everybody but Cyrus is invisible and walks in his footsteps; only magic and noses find them, and the guards' eyes reach less far while it lasts. Whoever does not play Cyrus has the familiar."
+icon = ExtResource("2_icon")
+max_range = 0
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 5
+outside_seconds = 60
+never_in_a_fight = true
+out_of_combat = true
+noise = 1
+outside_use = 16

@@ -452,7 +452,7 @@ func _queue_tip(comb: Dictionary) -> String:
 	if not comb.get("alive", false):
 		return comb.name
 	var most = combat.get_effective_stat(comb, "max_hp")
-	if comb.side != 0 and combat.is_hidden(comb):
+	if combat.unseen_by_party(comb):
 		return "%s\nHidden - somewhere you cannot see" % comb.name
 	# Something declared, coming down at the start of their next turn.
 	var readying := ""
@@ -631,7 +631,7 @@ func _on_queue_input(event: InputEvent, comb: Dictionary):
 func _find_on_map(comb: Dictionary):
 	if combat == null or combat.camera == null or not comb.get("alive", false):
 		return
-	if comb.side != 0 and combat.is_hidden(comb):
+	if combat.unseen_by_party(comb):
 		return
 	if combat.camera.is_following():
 		return
@@ -1174,6 +1174,16 @@ func show_exploration_party(members: Array):
 	$Actions/StatusIcon.set_icon(members[0].icon)
 	$Actions/StatusIcon.set_name_text(members[0].name)
 	$Actions/StatusIcon.set_health(members[0].hp, members[0].max_hp)
+
+
+## A tether held on a map (StealthWatch "Tethers, out of a fight"): the bar under each
+## holder's portrait, as in a fight. `held` is key -> {"bar", "max"}.
+func show_outside_tethers(held: Dictionary):
+	for member in Campaign.party_members():
+		var icon = $Status.get_node_or_null(String(member.name).validate_node_name())
+		if icon != null and icon.has_method("set_tether"):
+			var tether: Dictionary = held.get(member.key, {})
+			icon.set_tether(tether.get("bar", 0.0), tether.get("max", 0.0))
 
 
 ## Shows what the party can interact with right now, reusing the same banner
@@ -2109,6 +2119,9 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	if combat != null and not holder.is_empty() and not (skill is ItemDefinition) and combat.spares_most(holder) > 0 \
 			and combat.active_passives(holder).any(func(passive): return passive.spare_casting_spells.has(SkillDatabase.skills.find_key(skill))):
 		lines.append("%s: %d of %d left, spent before a gate" % [combat.spares_name(holder), combat.spares_left(holder, skill), combat.spares_most(holder)])
+	# Held on a tether (Combat "Tethers"): how big, and how fast it goes.
+	if skill.tethered:
+		lines.append(_tether_line(skill))
 	lines.append("Range: %d-%d, %s" % [skill.min_range, skill.max_range, "melee" if skill.melee else "ranged"])
 	if skill.uses_stat_contest:
 		# A graze keeps the damage at half strength and drops everything else,
@@ -2177,6 +2190,18 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 				line += " (on yourself)"
 			lines.append(line)
 	return "\n".join(lines)
+
+
+## "Tether: 200 (frays 25 a turn, 8 turns if nothing hits the caster...)" - what the
+## tooltip says of a tethered spell.
+func _tether_line(skill: SkillDefinition) -> String:
+	var wear := "Tether: %d" % skill.tether_strength
+	if skill.tether_per_turn > 0:
+		var turns: int = ceili(float(skill.tether_strength) / float(skill.tether_per_turn))
+		wear += " - frays %d a turn, %d turn%s if nothing hits the caster" % [skill.tether_per_turn, turns, "" if turns == 1 else "s"]
+	if skill.tether_per_damage > 0.0:
+		wear += ", and %s for every 1%% of their health they lose" % String.num(skill.tether_per_damage, 2)
+	return wear + ". Only one at a time"
 
 
 ## Whether any of `skill`'s numbers are worked out from the caster's scaling
@@ -2329,6 +2354,11 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			# its own - those are allowed to differ now.
 			var how_long = _how_long(effect.condition_duration if effect.condition_duration > 0 else effect.condition.duration,
 				effect.condition.wears_off_at_start, effect.applies_to_caster)
+			# No count of its own: the tether's as long as it holds; down till they get up.
+			if effect.held_by_tether and skill != null and skill.tethered:
+				how_long = "for as long as the tether holds"
+			elif effect.condition.getting_up_share > 0.0:
+				how_long = "until they get up"
 			# A condition describes itself in words - "a strong DOT" - which says
 			# how it compares to other conditions but not what it costs you here.
 			# The number belongs beside it, worked out from whoever is holding
@@ -2395,8 +2425,33 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Ends what spells did to the one it lands on, theirs or the other side's - or a spell's zone, aimed at its ground. Cast through any gate from its own down: it reaches only what came through that gate or a shallower one"
 		EffectDefinition.EffectType.ZONE:
 			var whose: String = ["your side", "the other side", "anybody"][clampi(effect.zone_for, 0, 2)]
-			var held := effect.zone_condition.display_name.to_lower() if effect.zone_condition != null else "nothing"
-			return "Stays on the ground for %d of your turns: %s standing in it is %s" % [effect.zone_turns, whose, held]
+			var does := []
+			if effect.zone_condition != null:
+				does.append("%s standing in it is %s" % [whose, effect.zone_condition.display_name.to_lower()])
+			if effect.zone_costly:
+				does.append("every step in it costs twice" + (", but not for fliers" if effect.zone_cost_spares_fliers else ""))
+			if effect.zone_turn_damage > 0.0:
+				does.append("%s %s damage as their turn starts in it" % ["anybody takes" if effect.zone_hurts_everybody else "the other side take", Damage.type_name(effect.damage_type).to_lower()])
+			if effect.zone_heals:
+				does.append("your side are mended as their turn starts in it")
+			if effect.zone_hurts_each_step:
+				does.append("and at every step anybody takes in it")
+			if effect.zone_leaves_conditions:
+				does.append("what it hurts it leaves burning")
+			if effect.zone_melee_sweeps:
+				does.append("a melee blow on anybody in it carries them to its edge, and any shove goes that much further")
+			if effect.zone_blows_out:
+				does.append("anybody who starts or ends a turn in it is blown out")
+			if effect.zone_follows_caster:
+				does.append("it goes where you go")
+			if effect.zone_moves:
+				does.append("you can move it with a secondary action")
+			var how_long := "for as long as the tether holds" if skill != null and skill.tethered else "for %d of your turns" % effect.zone_turns
+			return "Stays on the ground %s: %s" % [how_long, ", ".join(does)]
+		EffectDefinition.EffectType.UNVEIL:
+			return "Whoever it lands on, invisible or hidden, is seen"
+		EffectDefinition.EffectType.MOVE_ZONE:
+			return "Moves what you laid, up to %d tiles from where it is" % (skill.max_range if skill != null else 0)
 		EffectDefinition.EffectType.CATALYST:
 			return "Every lingering condition of yours, on every enemy, goes off at once, x%s what it had left - then starts again" % String.num(effect.catalyst_times, 2)
 		EffectDefinition.EffectType.SWALLOW:
@@ -2437,6 +2492,8 @@ func update_combatants(combatants: Array):
 			var status = _icon_for($Status, comb)
 			if status != null:
 				status.set_health(comb.hp, effective_max_hp, comb.get("temp_hp", 0))
+				# Fallen: a crack across their portrait, until they are stood back up.
+				_set_crack(status, not comb.get("alive", true) and not comb.has("taken"))
 				# A spell held on a tether (Combat "Tethers").
 				var held: Dictionary = comb.get("tether", {})
 				status.set_tether(held.get("bar", 0.0), held.get("max", 0.0))
@@ -2853,21 +2910,41 @@ func show_hit_preview(skill_key: String, aim: Vector2i, cannot_get_there := ""):
 	for row in _hit_rows.get_children():
 		_hit_rows.remove_child(row)
 		row.queue_free()
-	var heading := _hit_label(skill.name, 13, TAB_OFF)
+	var heading := _hit_label(skill.name + ("  -  Tether %d" % skill.tether_strength if skill.tethered else ""), 13, TAB_OFF)
 	_hit_rows.add_child(heading)
 	if _looking_only():
 		_hit_rows.add_child(_hit_label("%s's - just looking, can't be used now" % caster.name, 12, TAB_OFF))
 	if cannot_get_there != "":
 		_hit_rows.add_child(_hit_label("%s - if it could get there:" % cannot_get_there, 12, HIT_PREVIEW_LOSES))
 	_clear_ghosts()
+	# What it would shove, and what running into something would cost (Combat "Shoves,
+	# foreseen"), however it comes about.
+	var shoves: Array = combat.foresee_shoves(caster, skill, targets)
+	var slammed := {}
+	for shove in shoves:
+		if not shove.into.is_empty() and shove.bump > 0:
+			slammed[shove.into.get("id", -1)] = slammed.get(shove.into.get("id", -1), 0) + shove.bump
 	for target in targets:
 		var hit = combat.predict_hit(caster, target, skill)
-		_hit_rows.add_child(_hit_row(caster, target, skill, hit))
-		_show_ghost(target, int(hit.heal) - int(hit.damage))
+		var shove := _shove_of(shoves, target)
+		var row := _hit_row(caster, target, skill, hit, not shove.is_empty())
+		_hit_rows.add_child(row)
+		var collided: int = shove.get("damage", 0) + slammed.get(target.get("id", -1), 0)
+		_show_ghost(target, int(hit.heal) - int(hit.damage) - collided)
+		if not shove.is_empty():
+			row.add_child(_shove_line(shove, int(hit.damage), target))
 		# Aimed at a part of somebody big: which, and what breaking it does.
 		var part: String = combat.part_note(target, aim) if combat.aims_at_parts(caster, skill) else ""
 		if part != "" and hit.deals_damage:
 			_hit_rows.add_child(_hit_label("Aimed at the %s" % part, 12, HIT_PREVIEW_WINS))
+	# Whoever else it would move, or who would be run into, not being aimed at.
+	for shove in shoves:
+		if not targets.has(shove.who):
+			_hit_rows.add_child(_bystander_row(caster, shove.who, _shove_line(shove, 0, shove.who)))
+			_show_ghost(shove.who, -shove.damage - slammed.get(shove.who.get("id", -1), 0))
+		if not shove.into.is_empty() and shove.bump > 0 and not targets.has(shove.into) and _shove_of(shoves, shove.into).is_empty():
+			_hit_rows.add_child(_bystander_row(caster, shove.into, _hit_label("Run into: %d damage" % shove.bump, 12, HIT_PREVIEW_LOSES)))
+			_show_ghost(shove.into, -shove.bump)
 	_hit_preview.visible = true
 	_hit_preview.reset_size()
 	_place_hit_preview()
@@ -2893,8 +2970,55 @@ func _place_hit_preview():
 	_hit_preview.global_position = at.clamp(Vector2.ZERO, (screen - size).max(Vector2.ZERO))
 
 
-## One target: who, what it does to them, and - for a contest - how it goes.
-func _hit_row(caster: Dictionary, target: Dictionary, skill: SkillDefinition, hit: Dictionary) -> Control:
+## `target`'s entry among `shoves`, or an empty one.
+func _shove_of(shoves: Array, target: Dictionary) -> Dictionary:
+	for shove in shoves:
+		if is_same(shove.who, target):
+			return shove
+	return {}
+
+
+## "Shoved 2 tiles, into a wall: 12 damage" - what the prompt says of one shove (option
+## A, the designer's), `already` being what the blow itself does to them.
+func _shove_line(shove: Dictionary, already: int, target: Dictionary) -> Label:
+	var said := ""
+	var colour := HIT_PREVIEW_WINS
+	if shove.stays != "":
+		said = "Stays put: %s" % shove.stays
+		colour = HIT_PREVIEW_LOSES
+	elif shove.steps > 0:
+		said = "%s %d tile%s" % ["Dragged" if shove.pulled else "Shoved", shove.steps, "" if shove.steps == 1 else "s"]
+	var ran_into := ""
+	if shove.wall:
+		ran_into = "a wall"
+	elif not shove.into.is_empty():
+		ran_into = shove.into.get("name", "somebody")
+	if ran_into != "":
+		said += (", into %s" % ran_into) if said != "" else "Shoved into %s" % ran_into
+		if shove.damage > 0:
+			said += ": %d damage" % shove.damage
+			if already + shove.damage >= target.get("hp", 0):
+				said += " - lethal"
+		if shove.dazes != "":
+			said += ", %s" % shove.dazes
+	if not shove.drift.is_empty():
+		said = (said + "; " if said != "" else "") + "blown off course from their next turn: any of the tiles marked"
+	return _hit_label(said, 12, colour)
+
+
+## Somebody it would move or be run into, though it is not aimed at them.
+func _bystander_row(caster: Dictionary, who: Dictionary, line: Label) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_hit_label(who.get("name", "?"), 13, HIT_PREVIEW_ALLY if who.get("side", -1) == caster.get("side", -2) else HIT_PREVIEW_ENEMY))
+	row.add_child(line)
+	return row
+
+
+## One target: who, what it does to them, and - for a contest - how it goes. `shoved`:
+## a line about that follows, so "no damage" needs no saying if that is all it does.
+func _hit_row(caster: Dictionary, target: Dictionary, skill: SkillDefinition, hit: Dictionary, shoved := false) -> Control:
 	var row := VBoxContainer.new()
 	row.add_theme_constant_override("separation", 0)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2903,7 +3027,9 @@ func _hit_row(caster: Dictionary, target: Dictionary, skill: SkillDefinition, hi
 	line.add_theme_constant_override("separation", 10)
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_child(_hit_label(target.name, 15, side_colour))
-	line.add_child(_hit_label(_what_it_does(hit), 15, HIT_PREVIEW_WINS))
+	var does := _what_it_does(hit)
+	if not (shoved and does == "no damage"):
+		line.add_child(_hit_label(does, 15, HIT_PREVIEW_WINS))
 	row.add_child(line)
 	if hit.contested:
 		var verdict: String

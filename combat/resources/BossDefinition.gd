@@ -15,6 +15,16 @@ class_name BossDefinition
 @export var music: String = ""
 ## Its stagger bar. Empty, it has none.
 @export var stagger: StaggerDefinition
+@export_group("Title cards")
+## In place of the fight's own words, while they are on the field (FightCards).
+@export var opening_card: String = ""
+@export var victory_card: String = ""
+@export var defeat_card: String = ""
+## The large picture that slides in as they are revealed. Empty: their icon, drawn large.
+@export var reveal_portrait: Texture2D
+## The sting as they light up. Empty: a stand-in.
+@export var reveal_sound: AudioStream
+@export_group("")
 ## In any order: each begins once its At Health is reached.
 @export var phases: Array[BossPhase] = []
 ## What the enemy codex's second page says about them, above their phases and

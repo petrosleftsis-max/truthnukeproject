@@ -44,5 +44,5 @@ skill_bonuses = {
 script = ExtResource("2_path")
 name = "Elemental Vanguard"
 description = "The blade. Prometheus closes in, quick on his feet, and fights with swords of fire, ice, storm and stone - each blow a spell."
-skills = Array[String](["flame_edge", "frost_edge", "storm_edge", "stone_edge"])
+skills = Array[String](["flame_edge", "frost_edge", "storm_edge", "stone_edge", "flame_fan"])
 passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_2"), SubResource("Passive_3")])

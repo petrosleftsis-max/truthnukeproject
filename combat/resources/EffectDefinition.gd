@@ -43,6 +43,8 @@ enum EffectType {
 	ZONE,              ## Leaves a lasting zone on the ground the skill covers: whoever stands in it has Zone Condition (Combat "Zones").
 	DISPEL_MAGIC,      ## Ends what spells cast through gates no deeper than its own did to the one it lands on - or a zone, aimed at its ground (Combat "Dispelling").
 	FAMILIAR,          ## Outside a fight only: calls a familiar in the map's animal form, to be steered and seen through - Alithia's Find Familiar (StealthWatch "Familiar").
+	UNVEIL,            ## The invisible and the hidden it lands on are seen again - Unveil, Votive Flame.
+	MOVE_ZONE,         ## Moves the zone its user laid that can be moved, up to its reach from where that is - the Storm Cloud (Combat "Zones").
 }
 
 enum DispelScope {
@@ -99,6 +101,16 @@ enum DispelScope {
 ## shorter version of a condition another skill also inflicts, rather than
 ## writing a second near-identical ConditionDefinition just to hold one number.
 @export_range(0, 20) var condition_duration: int = 0
+## On a Tethered skill: no count of turns - it stays on them for as long as the tether
+## holds, however long that turns out to be (Combat "Tethers"). The tether's size is
+## how long it lasts.
+@export var held_by_tether: bool = false
+## It comes off them the moment they are hurt, this once, whatever the condition does
+## otherwise. Mesmerise's stun.
+@export var comes_off_when_hurt: bool = false
+## At the start of each of their turns, before anything else, they go as far from
+## whoever put it on them as they can, and then carry on with the turn (Terror).
+@export var flees_from_caster: bool = false
 ## How hard the condition burns when THIS skill is what inflicted it, in place
 ## of the condition's own dot_modifier.
 ##
@@ -284,6 +296,39 @@ enum DispelScope {
 ## The other side does not know it is there: the board draws it only for its
 ## own side. Reality's Reflection.
 @export var zone_unseen: bool = false
+## Every step onto it costs twice its movement (Crystalise's stones, Ravenous Dark).
+@export var zone_costly: bool = false
+## ...but not for anybody flying over it.
+@export var zone_cost_spares_fliers: bool = false
+## Anybody of the other side who starts their turn in it is hurt, at this many times
+## its caster's power behind the skill, of this effect's Damage Type (Ravenous Dark,
+## the Storm Cloud). 0: not at all.
+@export_range(0.0, 5.0, 0.05) var zone_turn_damage: float = 0.0
+## Anybody of their own side who starts their turn in it is mended, by the Heal fields
+## here (Heal Flat, Heal Per Stat, Heal Per Weapon, Heal Modifier). Restorative Aura.
+@export var zone_heals: bool = false
+## It goes where its caster goes, the same size round them. Restorative Aura.
+@export var zone_follows_caster: bool = false
+## Its caster can move it, by the Move Cloud secondary action, while it lasts.
+@export var zone_moves: bool = false
+## What it hurts hurts its caster's own side as well: Burner's fire is anybody's.
+@export var zone_hurts_everybody: bool = false
+## Every step onto it hurts as starting a turn in it does, each tile again (Burner).
+@export var zone_hurts_each_step: bool = false
+## What hurts them there leaves on them what the skill's own effects leave: Burner's Burn.
+@export var zone_leaves_conditions: bool = false
+## Anybody a melee blow lands on while standing in it is carried to its edge, the way the
+## blow came - further by whatever the blow or a passive would have shoved them (River Flow).
+@export var zone_melee_sweeps: bool = false
+## Anybody who starts or ends a turn in it is blown out of it (Wind Swoon).
+@export var zone_blows_out: bool = false
+## How the board tints it. Left clear, by whose it is. A placeholder until there is art.
+@export var zone_colour: Color = Color(0, 0, 0, 0)
+
+@export_group("Resistance")
+## On a RESISTANCE effect: which base element is asked as it lands, in place of Damage
+## Type - the caster's to choose (Elemental Ward).
+@export var chooses_element: bool = false
 
 
 ## Which fields each effect type actually reads. Everything not listed for a
@@ -297,7 +342,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.PUSH: ["knockback_distance", "damage_type", "damage_modifier", "min_amount", "max_amount"],
 	EffectType.PULL: ["knockback_distance"],
 	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration", "wears_off_at_start"],
-	EffectType.CONDITION: ["condition", "condition_duration", "condition_dot_modifier"],
+	EffectType.CONDITION: ["condition", "condition_duration", "held_by_tether", "comes_off_when_hurt", "flees_from_caster", "condition_dot_modifier"],
 	# Nothing to configure but how long they have to use it - which element it
 	# becomes is the element's own business (see Damage.UPGRADES).
 	EffectType.UPGRADE_ELEMENT: ["duration", "wears_off_at_start"],
@@ -307,7 +352,7 @@ const FIELDS_BY_TYPE := {
 	# Nothing to configure: hiding lasts until somebody sees you, not a number
 	# of turns, so there is no duration to set either.
 	EffectType.HIDE: [],
-	EffectType.RESISTANCE: ["display_name", "damage_type", "modifier_amount", "duration", "wears_off_at_start"],
+	EffectType.RESISTANCE: ["display_name", "damage_type", "modifier_amount", "duration", "wears_off_at_start", "chooses_element", "held_by_tether"],
 	EffectType.REVIVE: ["revive_health", "revive_weakening"],
 	EffectType.STEAL: ["steal_count"],
 	# Nothing to configure: an image is one point of health and no turns.
@@ -335,10 +380,16 @@ const FIELDS_BY_TYPE := {
 	EffectType.DRAW: [],
 	EffectType.TRAP: ["trap_holds_with", "trap_burst_modifier", "trap_burst_radius", "trap_field_radius"],
 	EffectType.CATALYST: ["catalyst_times"],
-	EffectType.ZONE: ["zone_condition", "zone_for", "zone_turns", "zone_unseen"],
+	EffectType.ZONE: ["zone_condition", "zone_for", "zone_turns", "zone_unseen", "zone_costly", "zone_cost_spares_fliers", "zone_turn_damage", "damage_type",
+		"zone_heals", "heal_modifier", "heal_flat", "heal_per_stat", "heal_per_weapon", "zone_follows_caster", "zone_moves",
+		"zone_hurts_everybody", "zone_hurts_each_step", "zone_leaves_conditions", "zone_melee_sweeps", "zone_blows_out", "zone_colour"],
 	# Nothing to configure: how deep it reaches is the gate it is cast through.
 	EffectType.DISPEL_MAGIC: [],
 	EffectType.FAMILIAR: [],
+	# Nothing to configure: whoever it lands on is seen.
+	EffectType.UNVEIL: [],
+	# Nothing to configure: the skill's Max Range is how far, from where it is.
+	EffectType.MOVE_ZONE: [],
 }
 
 

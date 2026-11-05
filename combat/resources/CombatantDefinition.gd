@@ -16,6 +16,14 @@ class_name CombatantDefinition
 ## Kept next to everything else about them rather than in the glossary book, so
 ## there is one place a character is described.
 @export_multiline var glossary_text: String = ""
+## How they come into a fight late, or into a Boss Reveal (FightCards.entrance). Stored by
+## number: append.
+enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
+@export var entrance_style: EntranceStyle = EntranceStyle.AUTOMATIC
+## What they say as they fall, in any fight that has nothing of its own for them. Empty:
+## nothing (EncounterDefinition.last_words).
+@export_multiline var last_words: String = ""
+
 @export_group("Class")
 @export_enum("Melee", "Ranged", "Magic") var class_t = 0
 @export_enum("Ground", "Flying", "Mounted") var class_m = 0

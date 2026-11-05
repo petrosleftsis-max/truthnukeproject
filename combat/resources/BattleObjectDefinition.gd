@@ -77,3 +77,16 @@ class_name BattleObjectDefinition
 @export var blast_damage_type: Damage.Type = Damage.Type.PHYSICAL
 @export var blast_condition: ConditionDefinition
 @export var blast_hits: HazardDefinition.Hits = HazardDefinition.Hits.EVERYONE
+## Those it catches are thrown this many tiles straight away from it (Gale Urn). 0: stays
+## where they are. Blast Radius is how far it catches them.
+@export_range(0, 10, 1) var blast_push: int = 0
+## What each of them takes if that throw ends against something solid or somebody -
+## who takes it too - before defence and resistance, of Blast Damage Type.
+@export_range(0, 999, 1, "or_greater") var blast_collision_damage: int = 0
+
+@export_group("The ground around it")
+## While it stands, every step within this many tiles of it costs twice (Tar Cauldron).
+## 0: nothing. Break it, if it is Breakable, and the ground is as it was.
+@export_range(0, 10, 1) var costly_radius: int = 0
+## ...but not for anybody flying.
+@export var costly_spares_fliers: bool = true

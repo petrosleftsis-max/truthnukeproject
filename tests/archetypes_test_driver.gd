@@ -335,9 +335,9 @@ func healer():
 
 func caster():
 	log_line("======== a caster puts its blast where it catches the most ========")
-	# At 14, with a Pandora casting for Fireball: its Hermes spells - Burner, Wind
+	# At 14, with a Pandora casting for Wildfire: its Hermes spells - Burner, Wind
 	# Swoon, Crystalise - are single target since the condition proposal of
-	# 2026-10-25, so Fireball is its blast.
+	# 2026-10-25, so Wildfire is its blast (radius 3, the designer's 2026-11-05).
 	var cast = [["cyrus", 0, Vector2i(7, 2)], ["enfina", 0, Vector2i(7, 4)], ["prometheus", 0, Vector2i(11, 6)],
 		["sorcerer", 1, Vector2i(0, 3), 14]]
 	var combat = await start_fight(cast)
@@ -353,17 +353,17 @@ func caster():
 			for key in Stats.KEYS:
 				comb.stats[key] = 1
 		var marks = {}
-		for comb in [cyrus, enfina]:
+		for comb in [cyrus, enfina, prometheus]:
 			marks[comb.name] = [comb.hp, comb.status_effects.size()]
 		var gates_before = str(sorcerer.spell_slots)
 		await enemy_turn(combat, sorcerer)
 		ok(str(sorcerer.spell_slots) != gates_before, "it casts an area spell rather than walking up to swing",
 			"%s -> %s" % [gates_before, sorcerer.spell_slots])
 		var caught = []
-		for comb in [cyrus, enfina]:
+		for comb in [cyrus, enfina, prometheus]:
 			if was_touched(comb, marks[comb.name][0], marks[comb.name][1]):
 				caught.append(comb.name)
-		ok(caught.size() == 2, "the two players standing together are both caught", "%s" % [caught])
+		ok(caught.size() >= 2, "it catches as many of them as its blast can", "%s" % [caught])
 		ok(combat.distance_to_nearest_player(sorcerer.position) > 1, "and it does not end the turn beside anybody",
 			"%d tiles" % combat.distance_to_nearest_player(sorcerer.position))
 	await end_fight()

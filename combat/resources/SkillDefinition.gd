@@ -95,6 +95,9 @@ enum AoEShape {
 ## allies set off by an ally lands on them - a ward as they come close; a skill
 ## that hurts never lands on an ally, whoever set it off.
 @export_enum("Enemies", "Allies", "Either") var set_off_by: int = 0
+## A reaction that answers only a blow of a base element or Physical - not an upgraded
+## element, not Psychic, not Idol, and nothing that does no damage (Turn Aside).
+@export var answers_base_elements: bool = false
 ## Whether it can ONLY go off as a reaction, when Is Reactive is on: it is not
 ## there to be picked on its user's own turn (Combat.refusal_for), nor readied,
 ## and the AI never plans it - InstaHack, which only answers a spell being cast.
@@ -436,7 +439,7 @@ var spell_slot_level: int = 0 : set = _set_spell_slot_level
 ## sneaking about never costs the next fight anything; in a fight the spell is
 ## still paid through the gate above. Pick one as strong as that gate
 ## (Stats.OUTSIDE_GATES says which each one matches).
-@export_enum("None", "Gates of Iris") var outside_gate: int = 0
+@export_enum("None", "Gates of Iris", "Gates of Mnemosyne") var outside_gate: int = 0
 ## Outside a fight, how long what it does lasts, in seconds - Invisibility's
 ## time unseen. It ends sooner if anybody does something to a guard.
 @export_range(0, 3600, 1, "suffix:s") var outside_seconds: int = 0
@@ -447,6 +450,9 @@ var spell_slot_level: int = 0 : set = _set_spell_slot_level
 ## before its own gate (OutsideMoves). Only a move that deals no damage may be
 ## marked - the outside suite fails on one that does.
 @export var out_of_combat: bool = false
+## Cast only on a map, never in a fight: no part of anybody's kit there (Combat
+## .fighting_skills). The Great Snare, The Company Unseen.
+@export var never_in_a_fight: bool = false
 ## Stored by number: append, never insert.
 enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
 ## How loud using it outside a fight is, on a watched map (OutsideMoves.sound):
@@ -461,7 +467,7 @@ enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
 ## an ambush with it as the opening blow - or breaks a breakable wall. Anything
 ## else does nothing out there unless it is set here. Counter Trap answers a
 ## magical trap as it goes off (MagicTrap - InstaHack). Stored by number: append.
-@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap")
+@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen")
 var outside_use: int = 0
 
 @export_group("Tether")
@@ -568,7 +574,7 @@ var _own_damage: EffectDefinition = null
 ## Whether it is cast only outside a fight - Find Familiar - and so is no part
 ## of anybody's kit in one (Combat.create_combatant leaves it out).
 func outside_only() -> bool:
-	return effects.any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.FAMILIAR)
+	return never_in_a_fight or effects.any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.FAMILIAR)
 
 
 func damage_effect() -> EffectDefinition:

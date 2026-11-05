@@ -267,6 +267,10 @@ func _ready():
 	centre_on_party()
 	# Let the player arrange the party across the starting tiles before anyone
 	# takes a turn. Pointless with only one tile to stand on.
+	# What opens it: a boss's reveal, the screen shattering, the title (FightCards).
+	await FightCards.opening(self)
+	if not still_running():
+		return
 	if deployment_tiles.size() > 1 and groups[Group.PLAYERS].size() > 0 and not encounter.skip_deployment:
 		begin_deployment()
 	else:
@@ -325,6 +329,7 @@ func _deploy_party(tiles: Array, fallback_party: Array, loadouts: Array = []):
 			# Somebody who learns their spells has only those they have learned
 			# (Campaign "Spellbooks"); Arena Mode knows everything.
 			Campaign.forget_unlearned(comb, key)
+			Campaign.forget_unprepared(comb, key)
 		Campaign.apply_carried_state(comb, key)
 		# Gates opened outside the fight - for a hack's hint - stay opened.
 		Campaign.take_gates_spent_outside(comb, key)
@@ -596,6 +601,7 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		# When the AI readies a move ("Readying, for the AI").
 		"ai_readies" = definition.ai_readies,
 		"goes_prone" = definition.goes_prone,
+		"entrance_style" = definition.entrance_style,
 		# The side they belong to - see FactionDefinition.
 		"faction" = definition.faction,
 		# Which CombatantDatabase entry this came from. Campaign keys the
@@ -618,6 +624,8 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 	if definition is BattleObjectDefinition:
 		# Something on the battlefield, not anybody (see "Things on the map").
 		comb["object"] = definition
+		if definition.costly_radius > 0:
+			_costly_things = true
 		# Or something that is not there at all, save to the other side's mind
 		# (Illusory Cover - "Images").
 		if definition.illusion:
@@ -951,6 +959,9 @@ func secondary_grants(comb: Dictionary) -> Array:
 	# Anybody with a summon standing can command it (see "Summons").
 	if not granted.has("command") and not summons_of(comb).is_empty():
 		granted.append("command")
+	# And whoever laid something they can move can move it ("Zones").
+	if not granted.has(MOVE_ZONE_SKILL) and not movable_zone_of(comb).is_empty():
+		granted.append(MOVE_ZONE_SKILL)
 	# The party can go through the fallen of the other side (see "Loot").
 	if not granted.has("loot") and comb.get("side", 1) == Group.PLAYERS and not comb.has("summoner") \
 			and not comb.has("object") and any_body_to_loot(comb):
@@ -1096,11 +1107,19 @@ func gate_opened_for(comb: Dictionary, skill: SkillDefinition) -> bool:
 func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
 	if skill.spell_slot_level <= 0:
 		return true
+	# Nobody casts in a silence (ConditionDefinition.prevents_spells).
+	if cannot_cast_here(comb):
+		return false
 	if casts_without_gates(comb):
 		return true
 	if spares_left(comb, skill) > 0:
 		return true
 	return slot_available_for(comb, skill.spell_slot_level) > 0
+
+
+## Whether something on `comb` keeps them from casting at all: standing in Silence.
+func cannot_cast_here(comb: Dictionary) -> bool:
+	return has_restriction(comb, "prevents_spells")
 
 
 ## --- Spare castings ---
@@ -1308,7 +1327,7 @@ func threat_map(side: int = Group.PLAYERS) -> Dictionary:
 		# turn they would do it in. Anything else still on them is still on
 		# them when that turn comes round - a Blind included, which
 		# effective_max_range below holds them to.
-		var skills := [] if has_restriction(enemy, "skips_turn") else threat_skills(enemy)
+		var skills := [] if has_restriction(enemy, "skips_turn") or has_restriction(enemy, "obeys_order") else threat_skills(enemy)
 		if not skills.is_empty():
 			var standing: Array = controller.get_reachable_tiles(enemy.position, enemy.movement_class, movement_budget_of(enemy), enemy).keys()
 			if not standing.has(enemy.position):
@@ -1808,6 +1827,9 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 	# Something declared lands where it was declared, wherever its user has gone
 	# since - it was in reach when they called it.
 	var valid = landing or (distance <= effective_max_range(attacker, skill) and distance >= skill.min_range)
+	# Moving what they laid ("Zones"): its reach is from there, not from them.
+	if moves_zone(skill):
+		valid = get_range_tiles(skill, attacker.position, attacker.get("movement_class", 0), attacker).has(impact_position)
 	# Placed (an image, put down where aimed): whoever it is of can be anywhere of
 	# theirs, and where it goes is what has to be in reach.
 	if skill.placed_in_reach and not landing and destination != NO_AREA:
@@ -1830,9 +1852,12 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			await advance_turn()
 		return
 	if valid and not can_afford_skill(attacker, skill):
-		update_information.emit("[color=yellow]%s[/color] has no %s left for %s.\n" % [
-			attacker.name, Stats.short_gate_name(skill.spell_slot_level), skill.name
-		])
+		if skill.spell_slot_level > 0 and cannot_cast_here(attacker):
+			update_information.emit("[color=yellow]%s[/color] cannot cast %s here.\n" % [attacker.name, skill.name])
+		else:
+			update_information.emit("[color=yellow]%s[/color] has no %s left for %s.\n" % [
+				attacker.name, Stats.short_gate_name(skill.spell_slot_level), skill.name
+			])
 		if ai_plays(attacker) and end_turn_after:
 			await advance_turn()
 		return
@@ -1881,6 +1906,16 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		else:
 			attacker.skill_used_this_turn = true
 		draw_into_belt(attacker, drawn)
+		if game_ui != null and game_ui.has_method("refresh_action_buttons"):
+			game_ui.refresh_action_buttons()
+		return
+	# Moving what they laid: it goes, for the action ("Zones").
+	if valid and moves_zone(skill):
+		if as_secondary or skill.is_secondary:
+			attacker.secondary_used_this_turn = true
+		else:
+			attacker.skill_used_this_turn = true
+		move_zone(attacker, impact_position)
 		if game_ui != null and game_ui.has_method("refresh_action_buttons"):
 			game_ui.refresh_action_buttons()
 		return
@@ -2028,6 +2063,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				carried_before.append([other, other.get("status_effects", []).duplicate()])
 		# What it calls into the fight, on the tile aimed at ("Summons").
 		_summoned_now = []
+		_zones_now = []
 		var trapped_ground := false
 		for effect in skill.all_effects():
 			if effect != null and effect.type == EffectDefinition.EffectType.SUMMON and effect.summons != "":
@@ -2106,6 +2142,17 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			_lift_picks = await _choose_lifts(attacker, target, skill)
 			if not still_running():
 				return
+			# What they are ordered to do, for a spell that orders ("Orders"): the
+			# caster's to say, now that it has taken hold of them.
+			_order_given = Order.NOTHING
+			if not grazed:
+				_order_given = await _choose_order(attacker, target, skill)
+				if not still_running():
+					return
+				# Which element, for a ward its caster chooses ("Choosing an element").
+				_element_given = await _choose_element(attacker, target, skill)
+				if not still_running():
+					return
 			# Where it was aimed, for a part of somebody big (see "Body parts") -
 			# none for an area, which hits the whole of them.
 			_aimed_tile = _aim_from_inside(attacker, target, impact_position) if aims_at_parts(attacker, skill) else null
@@ -2163,7 +2210,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			update_information.emit("{0} hit nothing.\n".format([attacker.name]))
 		# Held on a tether from now on, if anything came of it: everything it
 		# put on anybody, and everything it called up, goes when that breaks.
-		if skill.tethered and attacker.alive and (connected or not _summoned_now.is_empty()):
+		if skill.tethered and attacker.alive and (connected or not _summoned_now.is_empty() or not _zones_now.is_empty()):
 			var tether_id := tie_tether(attacker, skill_key, skill)
 			for pair in carried_before:
 				var had: Array = pair[1]
@@ -2172,7 +2219,17 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 						entry["tether_of"] = tether_id
 			for called in _summoned_now:
 				called["tether_of"] = tether_id
+			for zone in _zones_now:
+				zone["tether_of"] = tether_id
+			# It may have taken hold of nobody after all (immune, say).
+			_release_idle_tethers()
+		elif skill.tethered:
+			# Nobody left to hold it: what would have stayed as long as the tether
+			# held has nothing to hold it.
+			for pair in carried_before:
+				pair[0]["status_effects"] = pair[0].get("status_effects", []).filter(func(entry): return not entry.get("held_by_tether", false))
 		_summoned_now = []
+		_zones_now = []
 		# What the paths make of a spell that landed (see "The paths"): a leap to
 		# one more (Chain), the whole of it again (Conduit), a share of it mended
 		# (Righteous).
@@ -2346,7 +2403,7 @@ func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_p
 		if has_restriction(reactor, "prevents_reactions"):
 			# Poisoned - too sick to seize the opening.
 			continue
-		if is_hidden(reactor) or is_hidden(mover):
+		if is_hidden(reactor) or hidden_from(reactor, mover):
 			# Nobody strikes at what they cannot see, and nobody hidden gives
 			# themselves away by striking.
 			continue
@@ -2478,7 +2535,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	await Projectile.fly(self, attacker, skill, target.position, [], target)
 	if not still_running() or not attacker.alive or not target.alive:
 		return
-	_land_reaction(attacker, skill, target)
+	await _land_reaction(attacker, skill, target)
 	Projectile.settle()
 
 
@@ -2503,6 +2560,15 @@ func _land_reaction(attacker: Dictionary, skill: SkillDefinition, target: Dictio
 			update_information.emit(_contest_lost_line(attacker, target, skill))
 		Projectile.verdict(target, Projectile.Verdict.GRAZED if grazed else Projectile.Verdict.HIT)
 		MoveFeel.impact(self, attacker, target, skill, flown, grazed)
+		# What they are ordered to do, for a spell that orders ("Orders").
+		_order_given = Order.NOTHING
+		if not grazed:
+			_order_given = await _choose_order(attacker, target, skill)
+			if not still_running():
+				return
+			_element_given = await _choose_element(attacker, target, skill)
+			if not still_running():
+				return
 		_grazing = grazed
 		for effect in skill.all_effects():
 			if grazed and effect.type != EffectDefinition.EffectType.DAMAGE:
@@ -2510,6 +2576,8 @@ func _land_reaction(attacker: Dictionary, skill: SkillDefinition, target: Dictio
 			apply_effect(attacker, target, effect, skill, mention_skill, 0.5 if grazed else 1.0)
 			mention_skill = false
 		_grazing = false
+		if not grazed:
+			_swept_along(attacker, target, skill)
 		if skill.deals_damage:
 			_note_struck(attacker, [target])
 			var opened: Array = attacker.get("opened_on", [])
@@ -2769,6 +2837,12 @@ func get_range_tiles(skill: SkillDefinition, caster_position: Vector2i, movement
 	# Inside somebody (Swallow), all there is to reach is them.
 	if not caster.is_empty() and is_inside(caster):
 		return tiles_of(swallower_of(caster))
+	# Moving what they laid ("Zones"): out from where it is, over anything.
+	if moves_zone(skill):
+		var laid := movable_zone_of(caster)
+		if laid.is_empty():
+			return []
+		return get_diamond_tiles(laid.centre, skill.max_range).filter(func(tile): return controller.is_on_map(tile) and tile != laid.centre)
 	var tiles = []
 	var reach = effective_max_range(caster, skill) if not caster.is_empty() else skill.max_range
 	var viewer: int = caster.get("size", Sizes.Size.HUMAN)
@@ -2906,7 +2980,8 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 	# whoever stands there (use_skill, "Summons").
 	if effect.type == EffectDefinition.EffectType.SUMMON or effect.type == EffectDefinition.EffectType.COMMAND \
 			or effect.type == EffectDefinition.EffectType.LOOT or effect.type == EffectDefinition.EffectType.DRAW \
-			or effect.type == EffectDefinition.EffectType.TRAP or effect.type == EffectDefinition.EffectType.ZONE:
+			or effect.type == EffectDefinition.EffectType.TRAP or effect.type == EffectDefinition.EffectType.ZONE \
+			or effect.type == EffectDefinition.EffectType.MOVE_ZONE:
 		return
 	# Everything of theirs lingering goes off at once (see "Catalyst").
 	if effect.type == EffectDefinition.EffectType.CATALYST:
@@ -3014,12 +3089,19 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 				push_warning("A CONDITION effect on %s has no condition assigned." % (skill.name if skill != null else "an unnamed skill"))
 			elif immune_to_condition(target, effect.condition):
 				shrug_off(target, effect.condition.display_name.to_lower(), true)
+			elif effect.condition.getting_up_share > 0.0 and lie_down_refusal(target) != "":
+				# In the air, or up on somebody, there is nothing to knock them down
+				# onto; already down, they stay there ("Prone").
+				if not is_prone(target):
+					update_information.emit("[color=red]%s[/color] stays up: %s.\n" % [target.name, lie_down_refusal(target)])
 			else:
 				var movement_before = get_effective_stat(target, "movement")
 				replace_matching_tick(target, "condition", effect.condition, 0)
-				var lasts: int = condition_turns(target, effect, rank_duration(attacker, skill)) \
+				# A tether's to keep, not a count of turns ("Tethers").
+				var held: bool = effect.held_by_tether and skill != null and skill.tethered
+				var lasts: int = HELD_BY_TETHER if held else condition_turns(target, effect, rank_duration(attacker, skill)) \
 					+ (lingering_turns(attacker) if _lingers(effect.condition) else 0) + _control_extra(attacker, effect)
-				target.status_effects.append({
+				var carried := {
 					"stat" = "condition",
 					"condition" = effect.condition,
 					"dot_base" = dot_base_damage(attacker, skill, dot_strength_of(attacker, skill, effect)) * (lingering_bonus(attacker) if _lingers(effect.condition) else 1.0),
@@ -3031,10 +3113,26 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 					"source_id" = attacker.get("id", -1),
 					"sound" = skill.sound if skill != null else null,
 					"sound_db" = skill.sound_volume_db if skill != null else 0.0,
-				})
+				}
+				if held:
+					carried["held_by_tether"] = true
+				if effect.comes_off_when_hurt:
+					carried["ends_when_hit"] = true
+				if effect.flees_from_caster:
+					carried["flees_from"] = attacker.get("id", -1)
+				# The order it lands with ("Orders").
+				if effect.condition.obeys_order:
+					carried["order"] = _order_given
+					carried["order_by"] = attacker.get("id", -1)
+				target.status_effects.append(carried)
 				_metric("condition", {"target": target, "condition": effect.condition, "by": attacker, "turns": lasts})
 				if effect.condition.movement_change != 0:
 					resync_live_movement(target, movement_before)
+				# Knocked down by it ("Prone").
+				if effect.condition.getting_up_share > 0.0:
+					_went_down(target)
+				# Warded against something they have now: it goes.
+				_lift_what_it_wards(target, effect.condition)
 				# Grappled (Holding on): one held at a time, and a way out.
 				if effect.condition.holds:
 					_got_hold(attacker, target)
@@ -3083,18 +3181,24 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 			if effect.modifier_amount < 0 and immune_to(target, Immunity.Kind.WEAKENED):
 				shrug_off(target, Immunity.name_of(Immunity.Kind.WEAKENED))
 				return
-			target.status_effects.append({
-				"stat" = Damage.resistance_key(effect.damage_type),
+			# Which element, for one its caster chooses; for as long as the tether holds.
+			var resisting: int = _element_given if effect.chooses_element else effect.damage_type
+			var kept: bool = effect.held_by_tether and skill != null and skill.tethered
+			var warding := {
+				"stat" = Damage.resistance_key(resisting),
 				"op" = "add",
 				"amount" = effect.modifier_amount,
-				"duration" = stored_duration(target, effect),
+				"duration" = HELD_BY_TETHER if kept else stored_duration(target, effect),
 				"ends_at_start" = effect.wears_off_at_start,
 				"source_name" = attacker.name
-			})
+			}
+			if kept:
+				warding["held_by_tether"] = true
+			target.status_effects.append(warding)
 			update_combatants.emit(combatants)
 			var direction = "harder" if effect.modifier_amount > 0 else "easier"
 			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
-				"%s to hurt with %s" % [direction, Damage.type_name(effect.damage_type).to_lower()]))
+				"%s to hurt with %s" % [direction, Damage.type_name(resisting).to_lower()]))
 		EffectDefinition.EffectType.INVISIBLE:
 			make_invisible(target)
 		EffectDefinition.EffectType.CANCEL_CASTING:
@@ -3119,6 +3223,8 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 " % target.name)
 		EffectDefinition.EffectType.DISPEL:
 			dispel_status_effects(attacker, target, effect)
+		EffectDefinition.EffectType.UNVEIL:
+			unveil(target, attacker)
 		EffectDefinition.EffectType.REVIVE:
 			revive(attacker, target, effect, skill)
 		EffectDefinition.EffectType.STEAL:
@@ -3330,13 +3436,27 @@ func prone_note(attacker: Dictionary, target: Dictionary, skill: SkillDefinition
 	return "Prone: takes x%s" % String.num(factor, 2).trim_suffix(".0")
 
 
-## Whether anybody on the other side could reach `comb` in melee next turn.
+## Whether anybody on the other side could reach `comb` in melee next turn: only
+## somebody with a melee move that hurts counts (the designer, 2026-11-05: "Only count
+## people with melee moves"), as far as their longest such move reaches once they
+## have walked.
 func _could_be_reached_in_melee(comb: Dictionary) -> bool:
 	for other in combatants:
-		if other.get("alive", false) and other.side != comb.side and not other.has("object") and not other.get("illusion", false) \
-				and distance_to(other, nearest_tile_of(comb, other.position)) <= _whole_movement(other) + 1:
+		if not other.get("alive", false) or other.side == comb.side or other.has("object") or other.get("illusion", false):
+			continue
+		var reach := _melee_reach_of(other)
+		if reach >= 0 and distance_to(other, nearest_tile_of(comb, other.position)) <= _whole_movement(other) + reach:
 			return true
 	return false
+
+
+## How far the longest melee move of `comb`'s that hurts reaches, or -1 with none.
+func _melee_reach_of(comb: Dictionary) -> int:
+	var reach := -1
+	for skill in threat_skills(comb):
+		if is_melee(skill) and skill.deals_damage:
+			reach = maxi(reach, effective_max_range(comb, skill))
+	return reach
 
 
 ## Whether `comb`, one that goes prone by nature, is better off where it lies:
@@ -3500,7 +3620,8 @@ func dress_for_hiding(comb: Dictionary):
 		return
 	var alpha := 1.0
 	if comb.get("hidden", false):
-		alpha = HIDDEN_ALLY_ALPHA if comb.side == Group.PLAYERS else HIDDEN_ENEMY_ALPHA
+		# Whoever anybody of the party can see, the player sees faintly ("In the dark").
+		alpha = HIDDEN_ALLY_ALPHA if comb.side == Group.PLAYERS or party_sees(comb) else HIDDEN_ENEMY_ALPHA
 	if sprite.has_method("set_hidden_alpha"):
 		sprite.set_hidden_alpha(alpha)
 	else:
@@ -4315,46 +4436,12 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 		update_information.emit("[color=yellow]%s[/color] holds the line, and does not give ground.\n" % target.name)
 		float_number(target, "Held", Color("cfd8e3"))
 		return
-	# Between the nearest tiles of the two, for anybody bigger than a tile.
-	var from_tile := nearest_tile_of(attacker, target.position)
-	var direction = get_octant_direction(from_tile, nearest_tile_of(target, from_tile))
-	if pulling:
-		direction = -direction
 	var old_position = target.position
-	var final_position = target.position
-	var hit_obstacle = false
+	var walk := shove_walk(attacker, target, effect.knockback_distance, pulling, skill)
+	var final_position: Vector2i = walk.to
+	var hit_obstacle: bool = walk.wall
 	## Whoever the shove ran into, if it ran into somebody rather than something.
-	var bumped: Dictionary = {}
-	var max_steps = effect.knockback_distance + (0 if pulling else push_extra_of(attacker))
-	if pulling:
-		# Chebyshev distance, since movement (and this) is 8-directional -
-		# stop one tile short of the attacker rather than travelling the
-		# full configured distance regardless of how close they already are.
-		var chebyshev_distance = maxi(absi(target.position.x - attacker.position.x), absi(target.position.y - attacker.position.y))
-		max_steps = mini(max_steps, chebyshev_distance - 1)
-	for step in range(1, max_steps + 1):
-		var candidate = old_position + direction * step
-		# Something bigger than a tile, or smaller: every tile it would cover
-		# has to fit (room_for), and what stops it is whoever is in the way
-		# there, or else the ground.
-		if footprint(target) != Vector2i.ONE or Sizes.shares(target.get("size", Sizes.Size.HUMAN)):
-			if room_for(target, candidate):
-				final_position = candidate
-				continue
-			bumped = _first_other_in(target, candidate)
-			hit_obstacle = bumped.is_empty()
-			break
-		if not controller.is_in_bounds(candidate):
-			hit_obstacle = true
-			break
-		if controller.is_tile_blocking(candidate, target.movement_class):
-			hit_obstacle = true
-			break
-		var occupant = get_combatant_at(candidate)
-		if occupant.size() > 0:
-			bumped = occupant
-			break
-		final_position = candidate
+	var bumped: Dictionary = walk.into
 	if final_position != old_position:
 		# Dust kicked up at every tile they are slid over (MoveFeel).
 		var slid_from: Vector2 = MoveFeel.middle_of(self, target)
@@ -4396,6 +4483,204 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 				"was slammed into by [color=red]%s[/color]" % target.name)
 
 
+## What `impact` comes to on `who`, once they have soaked and resisted it - one place,
+## for the slam and the preview of it.
+func _collision_hurts(shover: Dictionary, who: Dictionary, effect: EffectDefinition, impact: int) -> int:
+	return resisted_damage(who, effective_damage_type(shover, effect.damage_type),
+		Stats.final_damage(float(impact), 1.0, stat_of(who, Stats.Type.DEFENSE)))
+
+
+## Where a shove of `distance` tiles from `attacker` would take `target`, with nothing
+## moved: {"to", "direction", "wall", "into"} - where they stop, which way it was, and
+## whether a wall or the map's edge stopped them or somebody did. A push reaches further
+## by the shover's Push Extra; a pull stops short of the puller. The one walk: for the
+## shove itself (apply_knockback) and for what aiming shows of it (foresee_shoves), so
+## the two cannot disagree.
+func shove_walk(attacker: Dictionary, target: Dictionary, distance: int, pulling: bool, skill: SkillDefinition = null) -> Dictionary:
+	# Between the nearest tiles of the two, for anybody bigger than a tile.
+	var from_tile := nearest_tile_of(attacker, target.position)
+	var direction = get_octant_direction(from_tile, nearest_tile_of(target, from_tile))
+	if pulling:
+		direction = -direction
+	var old_position: Vector2i = target.position
+	var final_position: Vector2i = target.position
+	var hit_obstacle := false
+	var bumped: Dictionary = {}
+	var max_steps = distance + (0 if pulling else push_extra_of(attacker) + _sweep_tiles(target, direction, skill))
+	if pulling:
+		# Chebyshev distance, since movement (and this) is 8-directional -
+		# stop one tile short of the attacker rather than travelling the
+		# full configured distance regardless of how close they already are.
+		var chebyshev_distance = maxi(absi(target.position.x - attacker.position.x), absi(target.position.y - attacker.position.y))
+		max_steps = mini(max_steps, chebyshev_distance - 1)
+	for step in range(1, max_steps + 1):
+		var candidate = old_position + direction * step
+		# Something bigger than a tile, or smaller: every tile it would cover
+		# has to fit (room_for), and what stops it is whoever is in the way
+		# there, or else the ground.
+		if footprint(target) != Vector2i.ONE or Sizes.shares(target.get("size", Sizes.Size.HUMAN)):
+			if room_for(target, candidate):
+				final_position = candidate
+				continue
+			bumped = _first_other_in(target, candidate)
+			hit_obstacle = bumped.is_empty()
+			break
+		if not controller.is_in_bounds(candidate):
+			hit_obstacle = true
+			break
+		if controller.is_tile_blocking(candidate, target.movement_class):
+			hit_obstacle = true
+			break
+		var occupant = get_combatant_at(candidate)
+		if occupant.size() > 0:
+			bumped = occupant
+			break
+		final_position = candidate
+	return {"to": final_position, "direction": direction, "wall": hit_obstacle, "into": bumped}
+
+
+## --- Shoves, foreseen ---
+##
+## What using `skill` would shove, before it is used (the designer, 2026-11-05: "the
+## shoving prediction should also apply on attacks that don't normally push but push
+## because of another factor"). Whatever does it: the skill's own PUSH and PULL, the
+## Push Extra of whoever shoves, a rank's Splash Shove, Tremor's tile, on each they
+## would land on in the order they would land. It plays the shoves out one after
+## another, each tile moved for the next to see, and puts everybody back: nothing is
+## rolled and nothing is left changed. Somebody out of the aimer's sight is taken for
+## empty air, so it never gives away where they stand. Something that shoves by some
+## other path - a hazard, say - only needs an entry made the same way (_foresee_one).
+##
+## One entry each: {"who", "from", "to", "pulled", "steps", "stays" (why they do not
+## move, or ""), "wall", "into" (who stopped them, or {}), "at" (the tile they ran into),
+## "damage", "bump" (what the one they ran into takes), "dazes", "drift" (the tiles a
+## Windswept could blow them to, since which way is anybody's guess)}.
+func foresee_shoves(attacker: Dictionary, skill: SkillDefinition, targets: Array) -> Array:
+	var foreseen := []
+	if skill == null:
+		return foreseen
+	var moved := {}
+	# Whoever cannot be seen from the aimer's side, out of the way meanwhile.
+	for other in combatants:
+		if other.get("alive", false) and other.get("side", -1) != attacker.get("side", -2) and is_hidden(other) and not targets.has(other):
+			moved[other.get("id", -1)] = [other, other.position]
+			other.position = NO_AREA
+	for target in targets:
+		if not target.get("alive", false) or (skill.uses_stat_contest and not wins_contest(attacker, target, skill)):
+			continue
+		# Felled by the blow, nothing is left to shove - and it is no longer in the way.
+		var felled: bool = predict_hit(attacker, target, skill).lethal
+		# Carried along by the ground they stand on ("Zones"), though the blow shoves nobody.
+		if not felled and is_melee(skill) and skill.deals_damage and not skill.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.PUSH):
+			var from_tile := nearest_tile_of(attacker, target.position)
+			if _sweep_tiles(target, get_octant_direction(from_tile, nearest_tile_of(target, from_tile)), skill) > 0:
+				_foresee_one(attacker, target, 0, false, null, skill, foreseen, moved)
+		if not felled:
+			for effect in skill.all_effects():
+				if effect == null or effect.applies_to_caster:
+					continue
+				if effect.type == EffectDefinition.EffectType.PUSH or effect.type == EffectDefinition.EffectType.PULL:
+					_foresee_one(attacker, target, effect.knockback_distance, effect.type == EffectDefinition.EffectType.PULL, effect, skill, foreseen, moved)
+				elif effect.type == EffectDefinition.EffectType.CONDITION and effect.condition != null and effect.condition.drift_tiles > 0 \
+						and not immune_to_condition(target, effect.condition):
+					_entry_for(target, foreseen)["drift"] = drift_landings(target, effect.condition.drift_tiles)
+		# What spreads from them (_splash), even from somebody the blow felled.
+		if target.get("side", -1) != attacker.get("side", -2) and skill.deals_damage:
+			for each in _splash_caught(attacker, target, skill):
+				if each[2] > 0:
+					_foresee_one(attacker, each[0], each[2], false, null, skill, foreseen, moved)
+			if not felled and active_passives(attacker).any(func(passive): return passive.tremor_share > 0.0):
+				_foresee_one(attacker, target, 1, false, null, skill, foreseen, moved)
+		# Something on the map it would set off, that throws whoever is round it.
+		if target.has("object") and target.object.blast_push > 0 and target.object.blast_radius > 0 and (felled or (_interacts(skill) and target.object.used_becomes == null)):
+			var caught_by_it := _caught_by_blast(target, target.object.blast_hits)
+			caught_by_it.sort_custom(func(a, b): return distance_to(a, nearest_tile_of(target, a.position)) > distance_to(b, nearest_tile_of(target, b.position)))
+			var throw := _blast_throw(target.object)
+			for each in caught_by_it:
+				_foresee_one(target, each, target.object.blast_push, false, throw, null, foreseen, moved)
+		if felled and not moved.has(target.get("id", -1)):
+			moved[target.get("id", -1)] = [target, target.position]
+			target.position = NO_AREA
+	for id in moved:
+		moved[id][0].position = moved[id][1]
+	return foreseen
+
+
+## `who`'s entry in `foreseen`, made if they have none yet.
+func _entry_for(who: Dictionary, foreseen: Array) -> Dictionary:
+	for entry in foreseen:
+		if is_same(entry.who, who):
+			return entry
+	var made := {"who": who, "from": who.position, "to": who.position, "pulled": false, "steps": 0, "stays": "",
+		"wall": false, "into": {}, "at": NO_AREA, "damage": 0, "bump": 0, "dazes": "", "drift": []}
+	foreseen.append(made)
+	return made
+
+
+## One shove of `who`, played out on the positions (foresee_shoves). `effect` is the
+## skill's, or null for a shove that hurts nobody (a passive's).
+func _foresee_one(attacker: Dictionary, who: Dictionary, distance: int, pulling: bool, effect: EffectDefinition, skill: SkillDefinition, foreseen: Array, moved: Dictionary):
+	var entry := _entry_for(who, foreseen)
+	entry.pulled = pulling
+	var stays := shove_refusal(attacker, who, skill)
+	if stays != "":
+		entry.stays = stays
+		return
+	var walk := shove_walk(attacker, who, distance, pulling, skill)
+	var to: Vector2i = walk.to
+	if to != who.position:
+		if not moved.has(who.get("id", -1)):
+			moved[who.get("id", -1)] = [who, who.position]
+		entry.steps += get_position_distance(who.position, to)
+		who.position = to
+		entry.to = to
+	if pulling or (not walk.wall and walk.into.is_empty()):
+		return
+	entry.wall = walk.wall
+	entry.into = walk.into
+	entry.at = to + walk.direction
+	for passive in active_passives(attacker):
+		if passive.tremor_impact_condition != null and not immune_to_condition(who, passive.tremor_impact_condition):
+			entry.dazes = passive.tremor_impact_condition.display_name
+			break
+	if effect != null and effect.max_amount > 0:
+		# No skill behind it, a hazard's own figure: nothing rolled, for a preview.
+		var impact: int = collision_impact(attacker, effect, skill) if skill != null else effect.max_amount
+		entry.damage += _collision_hurts(attacker, who, effect, impact)
+		if not walk.into.is_empty():
+			entry.bump += _collision_hurts(attacker, walk.into, effect, impact)
+
+
+## Why a shove from `attacker` would leave `target` where they are, in words, or "".
+## The checks apply_knockback makes before it moves anybody.
+func shove_refusal(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> String:
+	if is_melee(skill) and attacker.get("riding", -1) == target.get("id", -2):
+		return "cannot be shifted from on top of it"
+	if target.position == attacker.position:
+		return "nowhere to shove them from"
+	if immune_to(target, Immunity.Kind.SHOVED):
+		return "immune to being shoved"
+	if target.get("side", -1) != attacker.get("side", -2) and _line_held(target):
+		return "holds the line"
+	return ""
+
+
+## The tiles a drift of `tiles` could leave `comb` on (apply_drift): the end of each
+## way the wind could blow them, none of them for certain.
+func drift_landings(comb: Dictionary, tiles: int) -> Array:
+	var found := []
+	for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN, Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]:
+		var landed: Vector2i = comb.position
+		for step in range(1, tiles + 1):
+			var candidate: Vector2i = comb.position + way * step
+			if not can_land_on(comb, candidate):
+				break
+			landed = candidate
+		if landed != comb.position and not found.has(landed):
+			found.append(landed)
+	return found
+
+
 ## What a shove from `attacker` is worth before anybody soaks it.
 ##
 ## The same base figure the action panel quotes for a swing, times the effect's
@@ -4413,8 +4698,7 @@ func collision_impact(attacker: Dictionary, effect: EffectDefinition, skill: Ski
 ## the three cannot drift apart.
 func _take_collision_damage(shover: Dictionary, who: Dictionary, effect: EffectDefinition, impact: int, what_happened: String):
 	var shove_element = effective_damage_type(shover, effect.damage_type)
-	var collision_damage = resisted_damage(who, shove_element,
-		Stats.final_damage(float(impact), 1.0, stat_of(who, Stats.Type.DEFENSE)))
+	var collision_damage = _burden_share(who, _collision_hurts(shover, who, effect, impact), shove_element, shover)
 	lose_hp(who, collision_damage, shove_element, shover)
 	show_damage(who, collision_damage, shove_element, true)
 	update_combatants.emit(combatants)
@@ -4563,6 +4847,7 @@ func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition, dot
 		return
 	var resistance = resistance_of(comb, condition.dot_type)
 	var amount = resisted_damage(comb, condition.dot_type, roundi(dot_tick(comb, dot_base, condition.dot_min, condition.dot_max) * times))
+	amount = _burden_share(comb, amount, condition.dot_type, by)
 	lose_hp(comb, amount, condition.dot_type, by, condition.display_name)
 	show_damage(comb, amount, condition.dot_type, true)
 	update_combatants.emit(combatants)
@@ -4785,6 +5070,33 @@ func _keep_for_showing(comb: Dictionary):
 	_to_show_coming.append(comb)
 
 
+## The tiles somebody will come in on, marked a turn ahead for a party that has earned the
+## warning (the designer, 2026-11-05: "if the player somehow gets the information, for
+## example intuition from someone who summons the reinforcement, or from a log they read
+## beforehand"): SpawnDefinition.warned_by_flag set, or the one named by warned_by_reading
+## read by Intuition. Somebody who comes by the round is marked in the round before it;
+## by a cue or by so many falling, for as long as they are coming.
+func arrival_warnings() -> Array:
+	var found := []
+	for spawn in _arriving:
+		if not _warned_of(spawn):
+			continue
+		if spawn.arrives_on_cue == "" and spawn.arrives_after_deaths <= 0 and spawn.arrives_on_round != round_number + 1:
+			continue
+		found.append(spawn.position)
+	return found
+
+
+func _warned_of(spawn: SpawnDefinition) -> bool:
+	if spawn.warned_by_flag != "" and Campaign.flag(spawn.warned_by_flag):
+		return true
+	if spawn.warned_by_reading != "":
+		for comb in combatants:
+			if comb.get("alive", false) and comb.get("combatant_key", "") == spawn.warned_by_reading and comb.has("intent"):
+				return true
+	return false
+
+
 ## Each of them in turn. The board is nobody's meanwhile.
 func _show_arrivals():
 	if _to_show_coming.is_empty():
@@ -4805,8 +5117,9 @@ func _show_arrivals():
 		if is_instance_valid(sprite):
 			var fade: Tween = sprite.create_tween()
 			fade.tween_property(sprite, "modulate:a", 1.0, ARRIVAL_FADE_SECONDS)
-		MoveFeel.dust(self, MoveFeel.middle_of(self, comb), 1.2)
-		MoveFeel.thud(self, MoveFeel.middle_of(self, comb))
+		# As they were given to come in, with their name and a sting (FightCards).
+		FightCards.entrance(self, comb)
+		FightCards.plate(self, comb)
 		shake_camera(ARRIVAL_SHAKE)
 		await get_tree().create_timer(ARRIVAL_STAY_SECONDS).timeout
 		if not still_running():
@@ -4881,6 +5194,8 @@ func _advance_turn():
 		ai_believes = false
 	if ending.alive:
 		end_of_turn_effects(ending)
+		_zones_at_turn_end(ending)
+		_release_idle_tethers()
 		_turncoat_turn_ends(ending)
 		# Their summons not commanded stand on guard (see "Summons").
 		_summons_turn_ends(ending)
@@ -4911,6 +5226,7 @@ func _advance_turn():
 		comb.secondary_used_this_turn = false
 		comb.reaction_used = false
 		comb.reactions_suppressed = false
+		comb.erase("ran_this_turn")
 		comb.erase("movement_left_when_grabbed")
 		comb.erase("movement_left_when_down")
 		# Not walked yet this turn (Momentum), and whether they start it in cover
@@ -4977,10 +5293,28 @@ func _advance_turn():
 		return
 	_pace_turn(comb)
 	apply_drift(comb)
+	_release_idle_tethers()
+	_redress_the_hidden()
 	_metric("turn", {"who": comb, "why": "",
-		"outcome": "confused" if has_restriction(comb, "confuses") else ("deceived" if has_restriction(comb, "turns_on_own_side") else "taken")})
+		"outcome": "compelled" if has_restriction(comb, "obeys_order") else ("confused" if has_restriction(comb, "confuses") else ("deceived" if has_restriction(comb, "turns_on_own_side") else "taken"))})
 	emit_signal("turn_advanced", comb)
 	emit_signal("update_combatants", combatants)
+	if comb.alive and has_restriction(comb, "obeys_order"):
+		# Under orders, whichever side: played for them, and nothing else with it.
+		drop_declared(comb, "compelled")
+		comb.erase("intent")
+		if comb.side == 0:
+			controller.player_turn = false
+		watch_combatant(comb)
+		await get_tree().create_timer(0.6).timeout
+		if not still_running():
+			return
+		await _summons_fend(comb)
+		if not still_running() or not comb.alive:
+			return
+		await _obey_order(comb)
+		stop_watching()
+		return
 	if comb.alive and has_restriction(comb, "confuses"):
 		# Confused, whichever side: the turn is played for them - and what they
 		# declared is lost with it.
@@ -5025,6 +5359,14 @@ func _advance_turn():
 				return
 		await land_declared(comb)
 		if not still_running():
+			return
+		if not comb.alive:
+			await advance_turn()
+			return
+	# Running from what terrified them, before anything else, and then on with the turn.
+	if comb.alive and not _terror_of(comb).is_empty():
+		await _run_from_terror(comb)
+		if not still_running() or combat_over:
 			return
 		if not comb.alive:
 			await advance_turn()
@@ -5142,6 +5484,17 @@ func combat_finish():
 	Campaign.record_party(combatants)
 	# And how it went, for the conversation after it (Campaign "The last fight").
 	Campaign.record_last_fight(combatants)
+	# The last blow slows and drains the colour, and the words come up (FightCards).
+	var kind := "victory"
+	if lost_because != "":
+		kind = "fled"
+	elif not players_alive and not enemies_alive:
+		kind = "draw"
+	elif enemies_alive:
+		kind = "defeat"
+	await FightCards.closing(self, kind)
+	if not is_inside_tree():
+		return
 	emit_signal("combat_finished")
 
 
@@ -5799,7 +6152,7 @@ func targets_if_aimed(caster: Dictionary, skill: SkillDefinition, aim: Vector2i)
 	var tiles = get_impact_tiles(skill, from, aim, terrain_class(caster), caster.get("size", Sizes.Size.HUMAN), caster)
 	var found := []
 	for target in get_targets_in_tiles(tiles, caster, skill.targets_ally, skill.affects_both_sides):
-		if target.side != caster.side and is_hidden(target):
+		if target.side != caster.side and hidden_from(caster, target):
 			continue
 		found.append(target)
 	return found
@@ -5810,7 +6163,7 @@ func targets_if_aimed(caster: Dictionary, skill: SkillDefinition, aim: Vector2i)
 ## blast from somewhere else would spread is not known - and nobody hidden.
 func targets_if_reached(caster: Dictionary, skill: SkillDefinition, aim: Vector2i) -> Array:
 	return get_targets_in_tiles([aim], caster, skill.targets_ally, skill.affects_both_sides).filter(
-		func(target): return target.side == caster.side or not is_hidden(target))
+		func(target): return target.side == caster.side or not hidden_from(caster, target))
 
 
 ## What `skill` would do to `target` if it connected:
@@ -5915,6 +6268,8 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 " % target.name)
 	# Somebody guarding them takes their share first (the Guardian's).
 	damage = _guard_share(target, damage)
+	# And whoever has taken up their burden (Shared Burden).
+	damage = _burden_share(target, damage, element, attacker)
 	# And a blow that would fell them stops short, somebody walling them (Last Wall).
 	damage = _last_wall(target, damage)
 	lose_hp(target, damage, element, attacker)
@@ -6039,9 +6394,7 @@ func combatant_die(combatant: Dictionary):
 	# Guarded the way every other sprite reach in this file is: create_combatant
 	# makes a combatant with no sprite on it, so the logic layer killing one of
 	# its own must not depend on there being something drawn.
-	var dying_sprite = combatant.get("sprite")
-	if dying_sprite != null and is_instance_valid(dying_sprite):
-		dying_sprite.set_dead()
+	_falls(combatant)
 	combatant_died.emit(combatant)
 	# Their tether snaps, and their summons go with them (see "Summons").
 	_summoner_gone(combatant)
@@ -6064,6 +6417,27 @@ func combatant_die(combatant: Dictionary):
 		combat_finish()
 
 
+
+
+## `comb` goes down, seen: the killing blow's flash and push in, knocked back and collapsing,
+## by what hurt them last (MoveFeel.falls). One of the party's own besides: slow motion, a
+## crack across their portrait, and their name across the screen, with any last words
+## (FightCards.fallen). The designer, 2026-11-05. None of it changes the fight.
+func _falls(comb: Dictionary):
+	var sprite = comb.get("sprite")
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	if not MoveFeel.shown():
+		sprite.set_dead()
+		return
+	MoveFeel.falls(self, comb)
+	if comb.get("side", 1) == Group.PLAYERS and not comb.has("summoner") and not comb.has("turncoat"):
+		slow_motion(PARTY_FALL_SLOW_SECONDS, PARTY_FALL_SLOW)
+		FightCards.fallen(self, comb)
+
+
+const PARTY_FALL_SLOW_SECONDS := 0.9
+const PARTY_FALL_SLOW := 0.3
 
 
 ## --- Coming back from the fallen ---
@@ -6405,6 +6779,8 @@ func lose_hp(target: Dictionary, amount: int, element: int = -1, by: Dictionary 
 	if absorbed > 0:
 		target.temp_hp = shield - absorbed
 	target.hp -= amount - absorbed
+	# What hurt them last, and from where, for how they fall (MoveFeel.falls).
+	target["last_hurt"] = {"element": element, "from": by.get("position", null)}
 	_metric("damage", {"target": target, "amount": amount - absorbed, "absorbed": absorbed, "element": element,
 		"during": combatants[current_combatant] if current_combatant >= 0 and current_combatant < combatants.size() else {},
 		"by": by, "lingering": lingering})
@@ -6413,6 +6789,12 @@ func lose_hp(target: Dictionary, amount: int, element: int = -1, by: Dictionary 
 	_after_hp_lost(target, amount - absorbed, element)
 	# What they were holding on a tether, frayed (see "Tethers").
 	_tether_hurt(target, amount - absorbed)
+	# Held only until they are hurt, by anything (Comes Off When Hurt - Mesmerise).
+	if amount - absorbed > 0 and target.get("status_effects", []).any(func(entry): return entry.get("ends_when_hit", false)):
+		target.status_effects = target.status_effects.filter(func(entry): return not entry.get("ends_when_hit", false))
+		update_information.emit("[color=red]%s[/color] is shaken out of it.\n" % target.get("name", "?"))
+		update_combatants.emit(combatants)
+		_release_idle_tethers()
 	return amount - absorbed
 
 
@@ -6522,6 +6904,8 @@ func _offer_ward(attacker: Dictionary, target: Dictionary, skill: SkillDefinitio
 func _after_landing(attacker: Dictionary, target: Dictionary, skill: SkillDefinition):
 	if not attacker.alive:
 		return
+	# Struck in melee on ground that sweeps them along ("Zones").
+	_swept_along(attacker, target, skill)
 	# The shock spreads even from somebody the blow felled (Titanfall, Tremor).
 	if target.get("side", -1) != attacker.side and skill.deals_damage:
 		_splash(attacker, target, skill)
@@ -6585,31 +6969,11 @@ func splash_tiles_of(attacker: Dictionary, skill: SkillDefinition, target: Dicti
 func _splash(attacker: Dictionary, target: Dictionary, skill: SkillDefinition):
 	if skill == null or not skill.deals_damage:
 		return
-	var rank: SkillRank = null
-	for reached in ranks_reached(attacker, skill):
-		if reached.splash_radius > 0:
-			rank = reached
 	var tremor := 0.0
 	for passive in active_passives(attacker):
 		tremor = maxf(tremor, passive.tremor_share)
-	if rank == null and tremor <= 0.0:
-		return
 	var modifier := modifier_of(attacker, skill)
-	var caught := []
-	for other in combatants:
-		if other == target or not other.get("alive", false) or other.get("side", -1) == attacker.get("side", -2) \
-				or other.has("object") or other.has("riding"):
-			continue
-		var hit := 0.0
-		var shove := 0
-		if rank != null and distance_to(other, nearest_tile_of(target, other.position)) <= rank.splash_radius:
-			hit = rank.splash_modifier
-			shove = rank.splash_shove
-		if tremor > 0.0 and _beside(other, target):
-			hit = maxf(hit, modifier * tremor)
-			shove = maxi(shove, 1)
-		if hit > 0.0:
-			caught.append([other, hit, shove])
+	var caught := _splash_caught(attacker, target, skill)
 	if not caught.is_empty():
 		update_information.emit("The shock of it spreads from [color=red]%s[/color].\n" % target.name)
 	for each in caught:
@@ -6625,6 +6989,39 @@ func _splash(attacker: Dictionary, target: Dictionary, skill: SkillDefinition):
 			if not thrown.has(target.get("id", -1)):
 				thrown.append(target.get("id", -1))
 			attacker["tremor_struck"] = thrown
+
+
+## Whoever the shock of a blow on `target` catches (_splash), each once: [them, how
+## hard, how many tiles it shoves them].
+func _splash_caught(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> Array:
+	var caught := []
+	if skill == null or not skill.deals_damage:
+		return caught
+	var rank: SkillRank = null
+	for reached in ranks_reached(attacker, skill):
+		if reached.splash_radius > 0:
+			rank = reached
+	var tremor := 0.0
+	for passive in active_passives(attacker):
+		tremor = maxf(tremor, passive.tremor_share)
+	if rank == null and tremor <= 0.0:
+		return caught
+	var modifier := modifier_of(attacker, skill)
+	for other in combatants:
+		if other == target or not other.get("alive", false) or other.get("side", -1) == attacker.get("side", -2) \
+				or other.has("object") or other.has("riding"):
+			continue
+		var hit := 0.0
+		var shove := 0
+		if rank != null and distance_to(other, nearest_tile_of(target, other.position)) <= rank.splash_radius:
+			hit = rank.splash_modifier
+			shove = rank.splash_shove
+		if tremor > 0.0 and _beside(other, target):
+			hit = maxf(hit, modifier * tremor)
+			shove = maxi(shove, 1)
+		if hit > 0.0:
+			caught.append([other, hit, shove])
+	return caught
 
 
 ## The tiles `comb` could step to after their Tremor threw somebody back
@@ -6741,6 +7138,105 @@ func settle_amplify(comb: Dictionary, skill: SkillDefinition) -> int:
 ## --- Confused ---
 
 
+## --- Orders ---
+##
+## A spell that lands a condition with Obeys Order (Compel): whoever loses its contest
+## is given an order by its caster, asked as it lands (_choose_order), and spends their
+## next turn on it and on nothing else - whichever side they are on (the designer,
+## 2026-11-05). To come at the caster or go from them with all the walking they have,
+## by the ordinary walk, so never into anybody; to fall prone; or to do nothing. An
+## order they cannot carry out - down already, rooted - is that much less done. What
+## they read in that turn (Intuition) or declared goes with it, as for Confused. Anybody
+## immune to the condition is asked nothing and never obeys.
+
+enum Order { APPROACH, GO_AWAY, FALL_PRONE, NOTHING }
+
+## The buttons, by Order.
+const ORDER_LABELS := ["Come to me", "Go away", "Fall prone", "Do nothing"]
+## How the log and the number over them say each, by Order.
+const ORDER_SAID := ["comes towards", "goes away from", "falls prone before", "stands idle before"]
+
+## The order the spell landing on somebody now carries.
+var _order_given: int = Order.NOTHING
+
+
+## The effect of `skill` that orders somebody about, or null.
+static func _ordering_effect(skill: SkillDefinition) -> EffectDefinition:
+	if skill == null:
+		return null
+	for effect in skill.effects:
+		if effect != null and effect.type == EffectDefinition.EffectType.CONDITION and effect.condition != null and effect.condition.obeys_order:
+			return effect
+	return null
+
+
+## Which order `attacker` gives `target` with `skill`, now it has taken hold of them:
+## the player's to say, the AI's to work out. Nothing for a skill that gives none, or
+## for somebody it will not stick to.
+func _choose_order(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> int:
+	var effect := _ordering_effect(skill)
+	if effect == null or immune_to_condition(target, effect.condition) or target.get("untouchable", false):
+		return Order.NOTHING
+	if plays_for_party(attacker) and reaction_prompt != null and reaction_prompt.has_method("pick"):
+		var picked: int = await reaction_prompt.pick("%s: %s" % [attacker.name, skill.name],
+			"%s is theirs to command. On their next turn they do this, and nothing else." % target.get("name", "They"), ORDER_LABELS)
+		return clampi(picked, 0, ORDER_LABELS.size() - 1)
+	return _ai_order(attacker, target)
+
+
+## An order that does the AI most good: down, with somebody of its own beside them to
+## make it pay; otherwise nothing at all.
+func _ai_order(attacker: Dictionary, target: Dictionary) -> int:
+	if lie_down_refusal(target) == "":
+		for other in combatants:
+			if other.get("alive", false) and other.get("side", -1) == attacker.get("side", -2) and not other.has("object") \
+					and _melee_reach_of(other) >= 0 and distance_to(other, nearest_tile_of(target, other.position)) <= _whole_movement(other) + _melee_reach_of(other):
+				return Order.FALL_PRONE
+	return Order.NOTHING
+
+
+## The entry on `comb` carrying their order, or an empty one.
+func _order_on(comb: Dictionary) -> Dictionary:
+	for entry in comb.get("status_effects", []):
+		if entry.has("order"):
+			return entry
+	return {}
+
+
+## `comb`'s turn, under orders: done, and the turn over.
+func _obey_order(comb: Dictionary):
+	var acting: int = current_combatant
+	var entry := _order_on(comb)
+	var order: int = entry.get("order", Order.NOTHING)
+	var giver := _combatant_by_id(entry.get("order_by", -1))
+	update_information.emit("[color=red]%s[/color] %s [color=yellow]%s[/color], as ordered.\n" % [
+		comb.name, ORDER_SAID[order], giver.get("name", "whoever ordered it")])
+	float_number(comb, ORDER_LABELS[order], Color("d8c8ff"))
+	match order:
+		Order.FALL_PRONE:
+			lie_down(comb)
+		Order.APPROACH, Order.GO_AWAY:
+			if not giver.is_empty():
+				await _walk_as_ordered(comb, giver, order == Order.APPROACH)
+	if still_running() and not combat_over and current_combatant == acting:
+		await advance_turn()
+
+
+## `comb` walks at or away from `giver` with all the walking they have: to the tile
+## nearest, or furthest, of all they can reach. Down, up first. The ordinary walk, so
+## it goes round people rather than into them; those it passes may react to it.
+func _walk_as_ordered(comb: Dictionary, giver: Dictionary, towards: bool):
+	if is_prone(comb):
+		get_up(comb)
+	if has_restriction(comb, "prevents_movement") or controller.movement <= 0:
+		return
+	var to := find_best_reachable_tile(comb, controller.movement, func(tile):
+		var gap := float(get_position_distance(tile, nearest_tile_of(giver, tile)))
+		return -gap if towards else gap)
+	if to != comb.position:
+		await controller.ai_move(to)
+
+
 ## A confused combatant's turn (ConditionDefinition.confuses), whichever side:
 ## at whoever is nearest - friend or foe - with the first thing they have that
 ## hurts and reaches, walking in first if it does not reach yet. Nothing else.
@@ -6820,7 +7316,7 @@ func _nearest_anybody(comb: Dictionary) -> Dictionary:
 	var nearest := {}
 	var best := INF
 	for other in combatants:
-		if other == comb or not other.alive or (other.side != comb.side and is_hidden(other)):
+		if other == comb or not other.alive or (other.side != comb.side and hidden_from(comb, other)):
 			continue
 		var distance = get_distance(comb, other)
 		if distance < best:
@@ -7125,6 +7621,7 @@ func _turn_begins_for(comb: Dictionary):
 		return
 	_auras_on(comb)
 	_ground_under(comb)
+	_zones_on_their_turn(comb)
 
 
 ## --- Immunities ---
@@ -7144,12 +7641,27 @@ func immune_to_condition(comb: Dictionary, condition: ConditionDefinition) -> bo
 		return true
 	if condition.resource_path in comb.get("immune_conditions", []):
 		return true
-	# A path's (Unstoppable's Grappled).
+	# A passive's: a path's (Unstoppable's Grappled), or one that grows with the levels.
 	if comb.has("passives"):
 		for passive in active_passives(comb):
 			if passive.immune_to_conditions.any(func(c): return c != null and c.resource_path == condition.resource_path):
 				return true
+	# Something on them warding it off (Steady Heart's Unafraid).
+	for held in conditions_of(comb):
+		if held.immune_to_conditions.any(func(c): return c != null and c.resource_path == condition.resource_path):
+			return true
 	return false
+
+
+## `warding` has just landed on `comb`: what it makes them immune to comes off them.
+func _lift_what_it_wards(comb: Dictionary, warding: ConditionDefinition):
+	if warding.immune_to_conditions.is_empty():
+		return
+	var kept: Array = comb.status_effects.filter(func(entry): return entry.get("condition") == null \
+		or not warding.immune_to_conditions.any(func(c): return c != null and c.resource_path == entry.condition.resource_path))
+	if kept.size() != comb.status_effects.size():
+		comb.status_effects = kept
+		update_information.emit("[color=yellow]%s[/color] shakes it off.\n" % comb.get("name", "They"))
 
 
 func immune_to(comb: Dictionary, kind: int) -> bool:
@@ -7653,7 +8165,7 @@ func hit_by_the_arena(target: Dictionary, damage: int, type: int, condition: Con
 		stagger_amount: float, source: String):
 	if damage > 0 and not (target.has("object") and not target.object.breakable):
 		var raw := Stats.final_damage(float(damage), damage_taken_multiplier(target), stat_of(target, Stats.Type.DEFENSE))
-		var amount := resisted_damage(target, type, raw)
+		var amount := _burden_share(target, resisted_damage(target, type, raw), type, {})
 		flash_target({}, target, Damage.type_colour(type), target.position)
 		lose_hp(target, amount, type)
 		show_damage(target, amount, type)
@@ -7776,18 +8288,79 @@ func set_off(thing: Dictionary, by: Dictionary = {}, backfire: bool = false):
 		for boss in living_bosses():
 			add_stagger(boss, object.stagger, "a thing on the map")
 	var hits: int = object.backfire_hits if backfire else object.blast_hits
-	if object.blast_radius > 0 and (object.blast_damage > 0 or object.blast_condition != null):
-		var blast := _tiles_within(thing, object.blast_radius)
+	if object.blast_radius > 0 and (object.blast_damage > 0 or object.blast_condition != null or object.blast_push > 0):
+		var caught_by_it := _caught_by_blast(thing, hits)
 		shake_camera(LEVEL_THREE_SHAKE * 0.5)
-		for comb in combatants.duplicate():
-			if comb == thing or not comb.alive:
-				continue
-			var caught: bool = hits == HazardDefinition.Hits.EVERYONE \
-				or (hits == HazardDefinition.Hits.THE_PARTY and comb.side == 0) \
-				or (hits == HazardDefinition.Hits.THE_ENEMIES and comb.side == 1)
-			if caught and tiles_of(comb).any(func(tile): return tile in blast):
-				hit_by_the_arena(comb, object.blast_damage, object.blast_damage_type, object.blast_condition, 0, 0.0, thing.name)
+		if object.blast_damage > 0 or object.blast_condition != null:
+			for comb in caught_by_it:
+				# Something else it set off may have felled them first.
+				if comb.alive:
+					hit_by_the_arena(comb, object.blast_damage, object.blast_damage_type, object.blast_condition, 0, 0.0, thing.name)
+		if object.blast_push > 0:
+			# The furthest first, so those nearer have room to go.
+			caught_by_it.sort_custom(func(a, b): return distance_to(a, nearest_tile_of(thing, a.position)) > distance_to(b, nearest_tile_of(thing, b.position)))
+			var throw := _blast_throw(object)
+			for comb in caught_by_it:
+				if comb.alive:
+					apply_knockback(thing, comb, throw, false, null)
 	update_combatants.emit(combatants)
+
+
+## Who a blast from `thing` catches: everybody and everything standing in it, of whichever
+## side `hits` says - other things on the map too, which may go off in turn.
+func _caught_by_blast(thing: Dictionary, hits: int) -> Array:
+	var blast := _tiles_within(thing, thing.object.blast_radius)
+	var caught := []
+	for comb in combatants:
+		if comb == thing or not comb.alive or not (hits == HazardDefinition.Hits.EVERYONE \
+				or (hits == HazardDefinition.Hits.THE_PARTY and comb.side == 0) \
+				or (hits == HazardDefinition.Hits.THE_ENEMIES and comb.side == 1)):
+			continue
+		if tiles_of(comb).any(func(tile): return tile in blast):
+			caught.append(comb)
+	return caught
+
+
+## The throw a Blast Push makes, as a shove has it: Blast Collision Damage into anything solid.
+static func _blast_throw(object: BattleObjectDefinition) -> EffectDefinition:
+	var throw := EffectDefinition.new()
+	throw.type = EffectDefinition.EffectType.PUSH
+	throw.knockback_distance = object.blast_push
+	throw.damage_type = object.blast_damage_type
+	throw.min_amount = object.blast_collision_damage
+	throw.max_amount = object.blast_collision_damage
+	return throw
+
+
+## Whether title cards are up (FightCards), for what comes over the wire to wait for them.
+var cards_playing := false
+
+
+## Whether anything on the map makes the ground round it dear to cross (costly_radius),
+## before going to look: asked for every tile of every walk anybody plans.
+var _costly_things := false
+
+
+## Whether a step onto `tile` costs `mover` twice for something standing near it.
+func _thing_costs_double(mover: Dictionary, tile: Vector2i) -> bool:
+	if not _costly_things:
+		return false
+	for thing in combatants:
+		if thing.get("alive", false) and thing.has("object") and thing.object.costly_radius > 0 \
+				and not (thing.object.costly_spares_fliers and mover.get("movement_class", 0) == 1) \
+				and rect_gap(rect_of(thing), Rect2i(tile, Vector2i.ONE)) <= thing.object.costly_radius:
+			return true
+	return false
+
+
+## The ground things on the map make dear to cross, for the board to draw.
+func costly_ground() -> Array:
+	var found := []
+	if _costly_things:
+		for thing in combatants:
+			if thing.get("alive", false) and thing.has("object") and thing.object.costly_radius > 0:
+				found.append_array(_tiles_within(thing, thing.object.costly_radius))
+	return found
 
 
 ## --- Hacking ---
@@ -8070,7 +8643,7 @@ func find_nearest_enemy_of(comb: Dictionary) -> Dictionary:
 		var candidate = combatants[index]
 		# Hidden is not "harder to hit" - it is not being there. Nor is up on
 		# somebody (Climb).
-		if not candidate.alive or is_hidden(candidate) or candidate.has("riding"):
+		if not candidate.alive or hidden_from(comb, candidate) or candidate.has("riding"):
 			continue
 		var distance = get_distance(comb, candidate)
 		if distance < best_distance:
@@ -8106,7 +8679,7 @@ func find_lowest_hp_enemy_of(comb: Dictionary) -> Dictionary:
 		# Hidden is not being there - see find_nearest_enemy_of. This did not
 		# ask, and while the Ranger chose its mark here it would aim at, and walk
 		# towards, somebody it could not see.
-		if not candidate.alive or is_hidden(candidate):
+		if not candidate.alive or hidden_from(comb, candidate):
 			continue
 		if candidate.hp < lowest_hp:
 			lowest_hp = candidate.hp
@@ -8254,6 +8827,8 @@ func only_gets_you_moving(skill: SkillDefinition) -> bool:
 func wasted_on(comb: Dictionary, skill: SkillDefinition) -> String:
 	if skill != null and skill.reaction_only:
 		return "%s only goes off as a reaction - when %s." % [skill.name, skill.describe_triggers()]
+	if skill != null and skill.spell_slot_level > 0 and cannot_cast_here(comb):
+		return "%s cannot cast spells here." % comb.get("name", "They")
 	if skill is GateNadeDefinition and not can_use_gate_nade(comb, skill):
 		return "Only somebody who knows %s, or could learn it, can use this - %s can't." % [
 			skill.cast.name if skill.cast != null else skill.spell, comb.get("name", "they")]
@@ -8275,6 +8850,9 @@ func wasted_on(comb: Dictionary, skill: SkillDefinition) -> String:
 func movement_budget_of(comb: Dictionary) -> int:
 	if has_restriction(comb, "prevents_movement"):
 		return 0
+	# Already run as far as a terror drove them this turn: what is left.
+	if comb.get("ran_this_turn", false) and comb == get_current_combatant() and controller != null:
+		return controller.movement
 	return get_effective_stat(comb, "movement")
 
 
@@ -8380,7 +8958,7 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 	if is_blast:
 		for index in groups[Group.PLAYERS]:
 			var p = combatants[index]
-			if not p.alive or is_hidden(p):
+			if not p.alive or hidden_from(caster, p):
 				continue
 			# Exactly what filter_tiles_by_line_of_sight would have dropped, and
 			# it has to stay exactly that or the AI writes off a target the
@@ -8413,7 +8991,7 @@ func find_best_aim_and_count(skill: SkillDefinition, caster_position: Vector2i, 
 				var tiles = get_impact_tiles(skill, nearest_from(caster, caster_position, aim), aim, movement_class, caster.get("size", Sizes.Size.HUMAN), caster)
 				for index in groups[Group.PLAYERS]:
 					var p = combatants[index]
-					if p.alive and not is_hidden(p) and p.position in tiles:
+					if p.alive and not hidden_from(caster, p) and p.position in tiles:
 						count += 1
 			if count > best_count:
 				best_count = count
@@ -8833,7 +9411,7 @@ func ally_nearest_the_enemy(comb: Dictionary) -> Dictionary:
 		for other in groups[1 - comb.side]:
 			var foe = combatants[other]
 			# Nobody is about to be hit by somebody the healer cannot see.
-			if not foe.alive or is_hidden(foe):
+			if not foe.alive or hidden_from(comb, foe):
 				continue
 			var gap = get_position_distance(mate.position, foe.position)
 			if gap < best:
@@ -9234,7 +9812,7 @@ func _ai_primary(comb: Dictionary, skill_key: String, standing: Vector2i, aim: V
 	var best := {}
 	var best_value := 0.0
 	for other in combatants:
-		if not other.alive or other.side == comb.side or is_hidden(other):
+		if not other.alive or other.side == comb.side or hidden_from(comb, other):
 			continue
 		var caught = other.position in tiles if not tiles.is_empty() \
 				else get_position_distance(aim, other.position) <= aoe_radius_of(comb, skill)
@@ -9355,7 +9933,7 @@ func _ai_most_wanted(comb: Dictionary, skill_keys: Array) -> Dictionary:
 		if not _ai_plannable(comb, skill):
 			continue
 		for other in combatants:
-			if not other.alive or other.side == comb.side or is_hidden(other):
+			if not other.alive or other.side == comb.side or hidden_from(comb, other):
 				continue
 			var value = ai_target_value(comb, other, skill)
 			if value > best_value:
@@ -9492,7 +10070,7 @@ func _ai_catch_scent(comb: Dictionary):
 	var marked := false
 	var weakest := {}
 	for other in combatants:
-		if not other.alive or other.get("side", -1) == comb.side or other.has("object") or other.has("riding") or is_hidden(other):
+		if not other.alive or other.get("side", -1) == comb.side or other.has("object") or other.has("riding") or hidden_from(comb, other):
 			continue
 		if conditions_of(other).has(SCENTED):
 			marked = true
@@ -9612,7 +10190,7 @@ func _ai_best_shot(comb: Dictionary, budget: int) -> Dictionary:
 		if not _ai_plannable(comb, skill) or skill.aoe_radius > 0:
 			continue
 		for other in combatants:
-			if not other.alive or other.side == comb.side or is_hidden(other):
+			if not other.alive or other.side == comb.side or hidden_from(comb, other):
 				continue
 			var value = ai_target_value(comb, other, skill)
 			if value <= 0.0:
@@ -10572,7 +11150,7 @@ func hemmed_tiles(mover: Dictionary) -> Dictionary:
 ## What each movement point stepping onto `tile` costs `mover`: 2 hemmed in, 1
 ## otherwise.
 func hem_cost(mover: Dictionary, tile: Vector2i) -> int:
-	return 2 if hemmed_tiles(mover).has(tile) else 1
+	return 2 if hemmed_tiles(mover).has(tile) or _zone_costs_double(mover, tile) or _thing_costs_double(mover, tile) else 1
 
 
 ## As `comb`'s turn ends: Exposed to anybody of the other side near them they
@@ -10698,15 +11276,21 @@ func has_leverage(target: Dictionary) -> bool:
 	return Campaign.has_leverage_on(target.get("combatant_key", ""), target.get("faction", ""), target.get("leverage_clues", []))
 
 
-## Conditions that come off the moment their bearer is hurt (ends_when_hit).
+## Conditions that come off the moment their bearer is hurt (ends_when_hit, or the
+## skill's Comes Off When Hurt). What a tether held comes off with it, and a tether with
+## nothing left to hold lets go.
 func _hurt_ends_conditions(target: Dictionary):
 	var i: int = target.get("status_effects", []).size() - 1
+	var any := false
 	while i >= 0:
 		var entry: Dictionary = target.status_effects[i]
-		if entry.get("stat", "") == "condition" and entry.condition != null and entry.condition.ends_when_hit:
+		if entry.get("stat", "") == "condition" and entry.condition != null and (entry.condition.ends_when_hit or entry.get("ends_when_hit", false)):
 			target.status_effects.remove_at(i)
+			any = true
 			update_information.emit("[color=red]%s[/color] is no longer %s.\n" % [target.name, entry.condition.display_name.to_lower()])
 		i -= 1
+	if any:
+		_release_idle_tethers()
 
 
 ## --- Nerve ---
@@ -10891,7 +11475,7 @@ func _taken(comb: Dictionary, how: String):
 		elif how == "surrendered":
 			sprite.modulate = Color(0.7, 0.7, 0.75, 0.75)
 		else:
-			sprite.set_dead()
+			_falls(comb)
 	combatant_died.emit(comb)
 	update_combatants.emit(combatants)
 	# Away: what comes of it is theirs to say (see "Getting away").
@@ -11305,7 +11889,7 @@ func _ai_hurl(comb: Dictionary) -> bool:
 		var best := {}
 		var most := 0
 		for foe in combatants:
-			if not foe.alive or foe.side == comb.side or foe.has("object") or is_hidden(foe) or foe.get("illusion", false):
+			if not foe.alive or foe.side == comb.side or foe.has("object") or hidden_from(comb, foe) or foe.get("illusion", false):
 				continue
 			var gap := distance_to(comb, foe.position)
 			if gap < skill.min_range or gap > effective_max_range(comb, skill):
@@ -12120,6 +12704,7 @@ static func _harmful(entry: Dictionary) -> bool:
 			if condition == null:
 				return false
 			return _lingers(condition) or condition.skips_turn or condition.prevents_movement or condition.prevents_secondary \
+				or condition.prevents_spells or condition.obeys_order \
 				or condition.prevents_reactions or condition.prevents_approach or condition.confuses or condition.more_from_source > 0.0 \
 				or condition.holds or condition.movement_change < 0 or condition.accuracy_change < 0 or condition.damage_taken_change > 0.0 \
 				or condition.defense_change < 0.0
@@ -12569,6 +13154,16 @@ func _evades(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -
 			update_combatants.emit(combatants)
 			update_information.emit("[color=yellow]%s[/color] strikes [color=yellow]%s[/color]'s phantom, and it passes through nothing.\n" % [attacker.name, target.name])
 			return true
+		# A reflection takes it, and is gone; an area finds them all the same.
+		if condition != null and condition.evades_hits > 0 and aoe_radius_of(attacker, skill) == 0:
+			var left: int = entry.get("images_left", condition.evades_hits) - 1
+			entry["images_left"] = left
+			if left <= 0:
+				target.status_effects.erase(entry)
+				_release_idle_tethers()
+			update_combatants.emit(combatants)
+			update_information.emit("[color=yellow]%s[/color] strikes a reflection of [color=yellow]%s[/color], and it shatters (%d left).\n" % [attacker.name, target.name, maxi(left, 0)])
+			return true
 	if not target.get("afterimage_spent", false) and in_cover(target) \
 			and active_passives(target).any(func(passive): return passive.afterimage):
 		target["afterimage_spent"] = true
@@ -12978,18 +13573,26 @@ var spreading_zones := {}
 var _next_zone_id := 1
 ## Whether a zone was ever laid this fight - before then, nothing to square up.
 var _zones_laid := false
+## The zones the skill being used has laid, for its tether (use_skill).
+var _zones_now: Array = []
 
 
 ## Leaves `effect`'s zone on `tiles`, the ground `skill` covered.
 func lay_zone(caster: Dictionary, effect: EffectDefinition, tiles: Array, skill: SkillDefinition):
-	if effect.zone_condition == null or tiles.is_empty():
+	if tiles.is_empty():
 		return
 	zones.append({"id": _next_zone_id, "tiles": tiles.duplicate(), "condition": effect.zone_condition,
 		"for": effect.zone_for, "turns": effect.zone_turns, "owner_id": caster.get("id", -1),
 		"side": caster.get("side", 0), "name": skill.name if skill != null else effect.zone_condition.display_name,
 		"unseen": effect.zone_unseen,
 		# The gate it came through, for Dispel Magic ("Dispelling") - 0, no spell's.
-		"gate": spell_gate_of(skill) if is_spell(skill) else 0})
+		"gate": spell_gate_of(skill) if is_spell(skill) else 0,
+		# What it does besides what it puts on whoever stands there.
+		"skill": skill, "effect": effect, "costly": effect.zone_costly, "spares_fliers": effect.zone_cost_spares_fliers,
+		# Where it is and how far it spreads, for one that goes anywhere.
+		"centre": _landing_at if _landing_at != NO_AREA else tiles[0], "radius": aoe_radius_of(caster, skill) if skill != null else 0,
+		"follows": effect.zone_follows_caster, "moves": effect.zone_moves, "colour": effect.zone_colour})
+	_zones_now.append(zones.back())
 	# Seen spreading out from where it came down (MoveFeel).
 	MoveFeel.zone_spreads(self, _next_zone_id, _landing_at if _landing_at != NO_AREA else tiles[0], tiles)
 	_next_zone_id += 1
@@ -13019,13 +13622,20 @@ func _zone_holds(zone: Dictionary, comb: Dictionary) -> bool:
 func sync_zones():
 	if not _zones_laid:
 		return
+	# One that goes with its caster (Restorative Aura) is round them now.
+	for zone in zones:
+		if zone.get("follows", false):
+			var owner := _combatant_by_id(zone.owner_id)
+			if owner.get("alive", false):
+				zone.tiles = _tiles_within(owner, zone.radius)
+				zone.centre = owner.position
 	var changed := false
 	for comb in combatants:
 		if not comb.has("status_effects"):
 			continue
 		var inside := {}
 		for zone in zones:
-			if _zone_holds(zone, comb) and not immune_to_condition(comb, zone.condition):
+			if zone.condition != null and _zone_holds(zone, comb) and not immune_to_condition(comb, zone.condition):
 				inside[zone.id] = zone
 		var before: int = comb.status_effects.size()
 		var movement_before = get_effective_stat(comb, "movement") if comb.has("movement") else 0
@@ -13045,6 +13655,7 @@ func sync_zones():
 		if changed and comb.has("movement") and get_effective_stat(comb, "movement") != movement_before:
 			resync_live_movement(comb, movement_before)
 		_zone_invisibility(comb)
+	_redress_the_hidden()
 	if changed:
 		update_combatants.emit(combatants)
 
@@ -13058,7 +13669,7 @@ func _zone_invisibility(comb: Dictionary):
 	if not comb.get("alive", false) or comb.get("illusion", false) or comb.has("object"):
 		return
 	var held: bool = comb.status_effects.any(func(entry): return entry.has("zone_id") and entry.get("condition") != null \
-		and entry.condition.makes_invisible)
+		and (entry.condition.makes_invisible or entry.condition.is_darkness))
 	if held:
 		if not is_invisible(comb) and not comb.get("shown_this_turn", false):
 			make_invisible(comb)
@@ -13068,7 +13679,7 @@ func _zone_invisibility(comb: Dictionary):
 		comb.erase("zone_invisible")
 		if is_invisible(comb):
 			set_hidden(comb, false)
-			update_information.emit("[color=yellow]%s[/color] steps out of the reflection, and can be seen again.\n" % comb.name)
+			update_information.emit("[color=yellow]%s[/color] steps out of it, and can be seen again.\n" % comb.name)
 
 
 ## As `comb`'s turn starts: their zones have a turn less, and go when they have
@@ -13077,7 +13688,8 @@ func _zones_at_turn_start(comb: Dictionary):
 	if not _zones_laid:
 		return
 	for zone in zones.duplicate():
-		if zone.owner_id == comb.get("id", -2):
+		# A tether's to keep as long as it holds, not a count of turns ("Tethers").
+		if zone.owner_id == comb.get("id", -2) and not zone.has("tether_of"):
 			zone.turns -= 1
 			if zone.turns <= 0:
 				_zone_fades(zone)
@@ -13105,6 +13717,11 @@ func _zone_fades(zone: Dictionary, how: String = "fades from the ground"):
 	update_information.emit("The %s %s.\n" % [zone.name, how])
 	if controller != null:
 		controller.queue_redraw()
+	# Gone by some other hand, its tether has nothing left to hold.
+	if zone.has("tether_of"):
+		var owner := _combatant_by_id(zone.owner_id)
+		if holds_tether(owner) and owner.tether.id == zone.tether_of:
+			snap_tether(owner, "what it held is gone")
 
 
 ## The zones' tiles, and whether each is the other side's to the party - for the
@@ -13112,7 +13729,8 @@ func _zone_fades(zone: Dictionary, how: String = "fades from the ground"):
 func zone_tiles() -> Array:
 	# One the other side keeps from them is not drawn for them (zone_unseen).
 	return zones.filter(func(zone): return zone.side == 0 or not zone.get("unseen", false)) \
-		.map(func(zone): return {"tiles": _spread_so_far(zone), "hostile": zone.side != 0})
+		.map(func(zone): return {"tiles": _spread_so_far(zone), "hostile": zone.side != 0, "colour": zone.get("colour", Color(0, 0, 0, 0)),
+			"cloud": zone.centre if zone.get("moves", false) else NO_AREA})
 
 
 ## As much of `zone` as has spread out from where it landed so far - all of it,
@@ -13124,6 +13742,366 @@ func _spread_so_far(zone: Dictionary) -> Array:
 	var steps := int(float(Time.get_ticks_msec() - spreading.since) / 1000.0 / MoveFeel.SPREAD_SECONDS_A_TILE)
 	var from: Vector2i = spreading.from
 	return zone.tiles.filter(func(tile): return absi(tile.x - from.x) + absi(tile.y - from.y) <= steps)
+
+
+## Whether a step onto `tile` costs `mover` twice, for a zone's sake (zone_costly).
+func _zone_costs_double(mover: Dictionary, tile: Vector2i) -> bool:
+	if not _zones_laid:
+		return false
+	for zone in zones:
+		if zone.get("costly", false) and tile in zone.tiles and not (zone.get("spares_fliers", false) and mover.get("movement_class", 0) == 1):
+			return true
+	return false
+
+
+## `comb`'s turn begins in whatever zones they are standing in: the other side's that
+## hurts hurts them, their own side's that mends mends them.
+func _zones_on_their_turn(comb: Dictionary):
+	if not _zones_laid or comb.has("object") or comb.get("illusion", false) or not comb.has("position"):
+		return
+	for zone in zones.duplicate():
+		if not comb.get("alive", false):
+			return
+		if not tiles_of(comb).any(func(tile): return tile in zone.tiles):
+			continue
+		var effect: EffectDefinition = zone.get("effect")
+		var skill: SkillDefinition = zone.get("skill")
+		var caster := _combatant_by_id(zone.owner_id)
+		if effect == null or skill == null or caster.is_empty():
+			continue
+		if effect.zone_turn_damage > 0.0 and (effect.zone_hurts_everybody or comb.get("side", -1) != zone.side):
+			_zone_strikes(zone, comb)
+		elif effect.zone_heals and comb.get("side", -1) == zone.side:
+			do_heal(caster, comb, effect, skill, false)
+		if comb.get("alive", false) and effect.zone_blows_out:
+			_blow_out_of_zone(comb, zone)
+
+
+## `comb` is hurt by `zone`: its damage, at its caster's power behind its skill, through
+## their defence and resistance, and what the skill leaves on them if it says so.
+func _zone_strikes(zone: Dictionary, comb: Dictionary):
+	var effect: EffectDefinition = zone.get("effect")
+	var skill: SkillDefinition = zone.get("skill")
+	var caster := _combatant_by_id(zone.owner_id)
+	if effect == null or skill == null or caster.is_empty() or not comb.get("alive", false):
+		return
+	var element: int = effect.damage_type
+	var raw := Stats.final_damage(power_behind(caster, skill) * effect.zone_turn_damage, damage_taken_multiplier(comb), stat_of(comb, Stats.Type.DEFENSE))
+	var amount := _burden_share(comb, resisted_damage(comb, element, raw), element, caster)
+	flash_target({}, comb, Damage.type_colour(element), comb.position)
+	lose_hp(comb, amount, element, caster, zone.name)
+	show_damage(comb, amount, element)
+	update_information.emit("The %s deals [color=%s]%d %s damage[/color] to [color=red]%s[/color].\n" % [
+		zone.name, damage_colour(element), amount, Damage.type_name(element).to_lower(), comb.name])
+	if effect.zone_leaves_conditions:
+		for leaving in skill.effects:
+			if leaving != null and leaving.type == EffectDefinition.EffectType.CONDITION and not leaving.applies_to_caster:
+				_apply_effect_by_type(caster, comb, leaving, skill, false, 1.0)
+	update_combatants.emit(combatants)
+	if comb.hp <= 0:
+		combatant_die(comb)
+
+
+## `mover` has just stepped onto `tile`: whatever hurts each step hurts them, again for
+## each one (the designer, 2026-11-05: "For each tile of movement inside the area, they
+## take the damage again"). CController._handle_step_arrival.
+func zones_under_step(mover: Dictionary, tile: Vector2i):
+	if not _zones_laid:
+		return
+	for zone in zones.duplicate():
+		var effect: EffectDefinition = zone.get("effect")
+		if effect != null and effect.zone_hurts_each_step and tile in zone.tiles and mover.get("alive", false) \
+				and (effect.zone_hurts_everybody or mover.get("side", -1) != zone.side):
+			_zone_strikes(zone, mover)
+
+
+## As `comb`'s turn ends in a zone that blows them out of it.
+func _zones_at_turn_end(comb: Dictionary):
+	if not _zones_laid or comb.has("object") or comb.get("illusion", false) or not comb.has("position"):
+		return
+	for zone in zones.duplicate():
+		var effect: EffectDefinition = zone.get("effect")
+		if effect != null and effect.zone_blows_out and comb.get("alive", false) and tiles_of(comb).any(func(tile): return tile in zone.tiles):
+			_blow_out_of_zone(comb, zone)
+
+
+## The wind has `comb`: out of `zone` by the way straight out from its middle, or the
+## nearest way that gets them out, stopped by nothing but what stands in the way. Hemmed
+## in, as far as there is. Not their own walking, so it provokes nothing and costs nothing.
+func _blow_out_of_zone(comb: Dictionary, zone: Dictionary):
+	if immune_to(comb, Immunity.Kind.SHOVED):
+		return
+	var from: Vector2i = comb.position
+	var ways := [Vector2i.RIGHT, Vector2i(1, 1), Vector2i.DOWN, Vector2i(-1, 1), Vector2i.LEFT, Vector2i(-1, -1), Vector2i.UP, Vector2i(1, -1)]
+	var first: Vector2i = get_octant_direction(zone.centre, from) if from != zone.centre else ways[rng.randi() % ways.size()]
+	var start: int = maxi(ways.find(first), 0)
+	var furthest := from
+	var landed := from
+	for offset in [0, 1, 7, 2, 6, 3, 5, 4]:
+		var way: Vector2i = ways[(start + offset) % ways.size()]
+		var at := from
+		var out := false
+		for step in range(1, 40):
+			var tile: Vector2i = from + way * step
+			if not can_land_on(comb, tile):
+				break
+			at = tile
+			if not tiles_of(comb, tile).any(func(each): return each in zone.tiles):
+				out = true
+				break
+		if out:
+			landed = at
+			break
+		if get_position_distance(from, at) > get_position_distance(from, furthest):
+			furthest = at
+	if landed == from:
+		landed = furthest
+	if landed == from:
+		return
+	comb.position = landed
+	comb.sprite.position = sprite_point(comb)
+	controller.reposition_combatant(from, landed)
+	MoveFeel.dust(self, MoveFeel.middle_of(self, comb), 0.8)
+	update_information.emit("The %s throws [color=red]%s[/color] out.\n" % [zone.name, comb.name])
+	_break_holds_on(comb)
+	sync_zones()
+
+
+## How many tiles a melee `skill` carries `target` further, going `direction`, for a zone
+## they stand in that sweeps them along (River Flow): to its edge. 0 otherwise.
+func _sweep_tiles(target: Dictionary, direction: Vector2i, skill: SkillDefinition) -> int:
+	if not _zones_laid or skill == null or not is_melee(skill) or direction == Vector2i.ZERO:
+		return 0
+	for zone in zones:
+		var effect: EffectDefinition = zone.get("effect")
+		if effect != null and effect.zone_melee_sweeps and target.position in zone.tiles:
+			var steps := 0
+			var tile: Vector2i = target.position + direction
+			while tile in zone.tiles:
+				steps += 1
+				tile += direction
+			return steps
+	return 0
+
+
+## A melee blow that shoves nobody of itself has landed on `target`: standing in a zone
+## that sweeps them along, they go to its edge (a blow that does shove goes that much
+## further, in shove_walk).
+func _swept_along(attacker: Dictionary, target: Dictionary, skill: SkillDefinition):
+	if skill == null or not target.get("alive", false) or not is_melee(skill) or not skill.deals_damage:
+		return
+	if skill.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.PUSH):
+		return
+	var from_tile := nearest_tile_of(attacker, target.position)
+	if _sweep_tiles(target, get_octant_direction(from_tile, nearest_tile_of(target, from_tile)), skill) <= 0:
+		return
+	var carried := EffectDefinition.new()
+	carried.type = EffectDefinition.EffectType.PUSH
+	carried.knockback_distance = 0
+	apply_effect(attacker, target, carried, skill, false)
+
+
+## The name of the skill that moves what somebody laid.
+const MOVE_ZONE_SKILL := "move_cloud"
+
+
+## Whether `skill` moves a zone (EffectType.MOVE_ZONE).
+static func moves_zone(skill: SkillDefinition) -> bool:
+	return skill != null and skill.effects.any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.MOVE_ZONE)
+
+
+## The zone `comb` laid that can be moved, or an empty one.
+func movable_zone_of(comb: Dictionary) -> Dictionary:
+	if not _zones_laid:
+		return {}
+	for zone in zones:
+		if zone.get("moves", false) and zone.owner_id == comb.get("id", -2):
+			return zone
+	return {}
+
+
+## What `comb` laid goes to `tile`: all of it round there now.
+func move_zone(comb: Dictionary, tile: Vector2i):
+	var zone := movable_zone_of(comb)
+	if zone.is_empty():
+		return
+	zone.centre = tile
+	zone.tiles = get_diamond_tiles(tile, zone.radius).filter(func(each): return controller.is_on_map(each))
+	update_information.emit("[color=yellow]%s[/color] moves the %s.\n" % [comb.name, zone.name])
+	sync_zones()
+	if controller != null:
+		controller.queue_redraw()
+
+
+## --- In the dark ---
+##
+## Anybody in darkness is invisible (the designer, 2026-11-05) - to whoever cannot see in
+## it: `comb.invisible`, through the zone's own (_zone_invisibility), so acting against
+## the other side gives them away until their next turn and the last of a side in sight
+## stays so, as for any invisibility. Whoever sees in the dark (PassiveDefinition or
+## ConditionDefinition .sees_in_darkness - Cyrus's Night Eyes, Clear Sight), and whoever
+## sees the unseen (sees_the_unseen - Clear Sight), has them in plain sight: hidden_from
+## is what to ask, with who is looking, in place of is_hidden. The player sees whoever
+## anybody of theirs still standing sees (unseen_by_party, dress_for_hiding): faintly, as
+## a hidden ally is drawn, though only they can be aimed at them. Ambient light on maps
+## is still to come: this much is the rule, and the zones that make it dark.
+
+## Whether `comb` is in darkness.
+func in_darkness(comb: Dictionary) -> bool:
+	return conditions_of(comb).any(func(condition): return condition.is_darkness)
+
+
+## Whether `viewer` sees in the dark.
+func sees_in_darkness(viewer: Dictionary) -> bool:
+	if conditions_of(viewer).any(func(condition): return condition.sees_in_darkness):
+		return true
+	return viewer.has("passives") and active_passives(viewer).any(func(passive): return passive.sees_in_darkness)
+
+
+## Whether `viewer` sees whoever is invisible or hidden.
+func sees_the_unseen(viewer: Dictionary) -> bool:
+	return conditions_of(viewer).any(func(condition): return condition.sees_the_unseen)
+
+
+## Whether `comb` is out of `viewer`'s sight: hidden, or invisible, and nothing about
+## them lets them see past that.
+func hidden_from(viewer: Dictionary, comb: Dictionary) -> bool:
+	if not is_hidden(comb):
+		return false
+	if viewer.is_empty() or sees_the_unseen(viewer):
+		return viewer.is_empty()
+	return not (comb.get("zone_invisible", false) and in_darkness(comb) and sees_in_darkness(viewer))
+
+
+## Whether anybody of the party standing sees `comb`, hidden as they are.
+func party_sees(comb: Dictionary) -> bool:
+	for index in groups[Group.PLAYERS]:
+		var other: Dictionary = combatants[index]
+		if other.get("alive", false) and not other.get("illusion", false) and not hidden_from(other, comb):
+			return true
+	return false
+
+
+## Whether `comb` is somebody of the other side that the player has no way of seeing.
+func unseen_by_party(comb: Dictionary) -> bool:
+	return comb.get("side", 0) != 0 and is_hidden(comb) and not party_sees(comb)
+
+
+## Everybody hidden drawn as who can see them now says.
+func _redress_the_hidden():
+	for comb in combatants:
+		if comb.get("alive", false) and comb.get("hidden", false):
+			dress_for_hiding(comb)
+
+
+## `target` is seen: whatever hid them, they are in sight until their next turn. What the
+## Unveil effect does (Unveil, Votive Flame).
+func unveil(target: Dictionary, by: Dictionary):
+	if not is_hidden(target):
+		return
+	var how := "invisible" if is_invisible(target) else "hidden"
+	set_hidden(target, false)
+	target["shown_this_turn"] = true
+	update_information.emit("[color=yellow]%s[/color] lays bare [color=red]%s[/color]: %s no longer.\n" % [by.get("name", "Something"), target.get("name", "somebody"), how])
+	float_number(target, "Revealed", Color("f4e7a1"))
+
+
+## --- Shared Burden ---
+##
+## Somebody with a condition whose Source Takes Share is set: whoever put it on them takes
+## that share of what would hurt them, and the taking frays no tether of theirs (the
+## designer, 2026-11-05). The condition's Keeps Tether When Hurt looks after the other's.
+
+## Set while a burden is being taken up, for _tether_hurt.
+var _bearing_a_burden := false
+
+
+## `damage` meant for `target`, less what somebody is taking for them.
+func _burden_share(target: Dictionary, damage: int, element: int, by: Dictionary) -> int:
+	if damage <= 0 or not target.has("status_effects"):
+		return damage
+	for entry in target.status_effects:
+		var condition = entry.get("condition")
+		if condition == null or condition.source_takes_share <= 0.0:
+			continue
+		var bearer := _combatant_by_id(entry.get("source_id", -1))
+		if bearer.is_empty() or not bearer.get("alive", false) or is_same(bearer, target):
+			continue
+		var taken := mini(damage, roundi(damage * condition.source_takes_share))
+		if taken <= 0:
+			continue
+		_bearing_a_burden = true
+		lose_hp(bearer, taken, element, by)
+		_bearing_a_burden = false
+		show_damage(bearer, taken, element, true)
+		update_information.emit("[color=yellow]%s[/color] takes %d of what was meant for [color=yellow]%s[/color].\n" % [bearer.name, taken, target.name])
+		update_combatants.emit(combatants)
+		if bearer.hp <= 0:
+			combatant_die(bearer)
+		return damage - taken
+	return damage
+
+
+## --- Choosing an element ---
+##
+## A RESISTANCE effect with Chooses Element (Elemental Ward): the caster picks one of the
+## five base elements as it lands.
+
+## The element chosen for the spell landing now.
+var _element_given: int = Damage.Type.FIRE
+
+const BASE_ELEMENTS := [Damage.Type.FIRE, Damage.Type.WATER, Damage.Type.WIND, Damage.Type.EARTH, Damage.Type.POISON]
+
+
+func _choose_element(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> int:
+	if skill == null or not skill.effects.any(func(effect): return effect != null and effect.chooses_element):
+		return _element_given
+	if plays_for_party(attacker) and reaction_prompt != null and reaction_prompt.has_method("pick"):
+		var picked: int = await reaction_prompt.pick("%s: %s" % [attacker.name, skill.name],
+			"Which element is %s to be warded against?" % target.get("name", "they"), BASE_ELEMENTS.map(func(type): return Damage.type_name(type)))
+		return BASE_ELEMENTS[clampi(picked, 0, BASE_ELEMENTS.size() - 1)]
+	return BASE_ELEMENTS[0]
+
+
+## --- Running from a terror ---
+##
+## Somebody with a condition put on by a skill with Flees From Caster (Terror): as each of
+## their turns begins they go as far from whoever put it on them as they can, by the
+## ordinary walk, and then their turn carries on with whatever walking they have left.
+
+## Whoever `comb` is running from, or an empty one.
+func _terror_of(comb: Dictionary) -> Dictionary:
+	for entry in comb.get("status_effects", []):
+		if entry.has("flees_from"):
+			var from := _combatant_by_id(entry.flees_from)
+			if from.get("alive", false):
+				return from
+	return {}
+
+
+func _run_from_terror(comb: Dictionary):
+	var from := _terror_of(comb)
+	var theirs: bool = controller.player_turn
+	controller.player_turn = false
+	update_information.emit("[color=red]%s[/color] runs from [color=yellow]%s[/color] in terror.\n" % [comb.name, from.get("name", "it")])
+	watch_combatant(comb)
+	await _walk_as_ordered(comb, from, false)
+	stop_watching()
+	comb["ran_this_turn"] = true
+	if still_running():
+		controller.player_turn = theirs
+		emit_signal("update_combatants", combatants)
+
+
+## Whether `reacting` answers `incoming` from `attacker`: anything does, but one that
+## answers only blows of a base element or Physical (answers_base_elements).
+func _answers_this_blow(reacting: SkillDefinition, attacker: Dictionary, incoming: SkillDefinition) -> bool:
+	if reacting == null or not reacting.answers_base_elements:
+		return true
+	if incoming == null or not incoming.deals_damage:
+		return false
+	var element: int = effective_damage_type(attacker, incoming.damage_type)
+	return element == Damage.Type.PHYSICAL or Damage.category_of(element) == Damage.Category.BASE
 
 
 ## --- Dispelling ---
@@ -13793,7 +14771,7 @@ func _nearest_threat_to(comb: Dictionary) -> Dictionary:
 	var best := {}
 	var nearest := 999999
 	for other in combatants:
-		if not other.get("alive", false) or other.side == comb.side or other.has("object") or is_hidden(other) \
+		if not other.get("alive", false) or other.side == comb.side or other.has("object") or hidden_from(comb, other) \
 				or other.get("illusion", false) or other.get("untouchable", false):
 			continue
 		var gap: int = get_distance(other, comb)
@@ -13894,7 +14872,7 @@ func _summon_spot(comb: Dictionary, skill: SkillDefinition) -> Vector2i:
 func _distance_to_nearest_foe(comb: Dictionary, tile: Vector2i) -> int:
 	var best := 999
 	for other in combatants:
-		if other.get("alive", false) and other.side != comb.side and not other.has("object") and not is_hidden(other):
+		if other.get("alive", false) and other.side != comb.side and not other.has("object") and not hidden_from(comb, other):
 			best = mini(best, get_position_distance(tile, nearest_tile_of(other, tile)))
 	return best
 
@@ -13908,8 +14886,15 @@ func _distance_to_nearest_foe(comb: Dictionary, tile: Vector2i) -> int:
 ## (_tether_turn), and by Tether Per Damage for every hundredth of their health
 ## they lose (lose_hp). Worn through, it snaps (snap_tether): everything the spell
 ## put on anybody comes off - each entry it added is marked `tether_of` its id
-## (use_skill) - and everything it summoned goes. One at a time: tethering
-## another lets go of the first. Out of the fight, it goes with them.
+## (use_skill) - and everything it summoned or laid on the ground goes, but for
+## somebody it knocked down, who stays down. One at a time: tethering another lets go
+## of the first. Out of the fight, it goes with them. A condition may have no count of
+## its own (EffectDefinition.held_by_tether), the tether's size being how long it
+## lasts: what the designer's Mesmerise and Ecstasy do, and Silence's ground.
+
+## What a condition held by its tether (EffectDefinition.held_by_tether) is stored
+## with: more turns than anybody will see, since the tether going is what ends it.
+const HELD_BY_TETHER := 999
 
 ## Counts the tethers tied, so each has an id of its own.
 var _next_tether_id := 1
@@ -13953,10 +14938,33 @@ func _tether_turn(comb: Dictionary):
 
 ## Health `comb` lost, off their tether.
 func _tether_hurt(comb: Dictionary, lost: int):
-	if not holds_tether(comb) or lost <= 0:
+	if not holds_tether(comb) or lost <= 0 or _bearing_a_burden or has_restriction(comb, "keeps_tether_when_hurt"):
 		return
 	var most := maxf(float(get_effective_stat(comb, "max_hp")), 1.0)
 	fray_tether(comb, 100.0 * float(lost) / most * comb.tether.per_damage, "torn by the pain")
+
+
+## Lets go of every tether that holds nothing any more: what it put on anybody has worn
+## off or been hurt off, those it held have fallen, what it called is gone (the designer,
+## 2026-11-05: "lose the tether as it no longer does anything"). Somebody it knocked down
+## and left lying is not held by it.
+func _release_idle_tethers():
+	for comb in combatants:
+		if holds_tether(comb) and not _tether_holds_anything(comb):
+			snap_tether(comb, "there is nothing left for it to hold")
+
+
+func _tether_holds_anything(comb: Dictionary) -> bool:
+	var id: int = comb.tether.id
+	for other in combatants:
+		if not other.get("alive", false):
+			continue
+		if other.get("tether_of", -1) == id:
+			return true
+		for entry in other.get("status_effects", []):
+			if entry.get("tether_of", -1) == id and not _lying_down(entry):
+				return true
+	return zones.any(func(zone): return zone.get("tether_of", -1) == id)
 
 
 ## `comb`'s tether snaps: what the spell it held put on anybody comes off, and
@@ -13969,7 +14977,9 @@ func snap_tether(comb: Dictionary, why: String):
 	update_information.emit("[color=yellow]%s[/color]'s tether to %s snaps - %s.\n" % [comb.get("name", "?"), held.name, why])
 	for other in combatants:
 		var effects: Array = other.get("status_effects", [])
-		var kept := effects.filter(func(eff): return eff.get("tether_of", -1) != held.id)
+		# Knocked down by it, they are still down when it goes: getting up is theirs
+		# to do ("Prone").
+		var kept := effects.filter(func(eff): return eff.get("tether_of", -1) != held.id or _lying_down(eff))
 		if kept.size() != effects.size():
 			other.status_effects = kept
 			resync_movement_class(other)
@@ -13977,6 +14987,14 @@ func snap_tether(comb: Dictionary, why: String):
 	for summoned in combatants.duplicate():
 		if summoned.get("alive", false) and summoned.get("tether_of", -1) == held.id:
 			_unsummon(summoned, "is gone with the tether that held it")
+	# And what it laid on the ground.
+	for zone in zones.duplicate():
+		if zone.get("tether_of", -1) == held.id:
+			zones.erase(zone)
+			update_information.emit("The %s fades with it.\n" % zone.name)
+			if controller != null:
+				controller.queue_redraw()
+	sync_zones()
 	update_combatants.emit(combatants)
 
 
@@ -14002,7 +15020,7 @@ func climbs_anywhere(comb: Dictionary) -> bool:
 	for passive in active_passives(comb):
 		if passive.climbs_anywhere:
 			return true
-	return false
+	return has_restriction(comb, "climbs_anywhere")
 
 
 ## Whether `comb` can squeeze (PassiveDefinition.squeezes).
@@ -14491,7 +15509,7 @@ func _react(trigger: int, source: Dictionary, why: String, protected_for: Callab
 		if is_same(reactor, source) or not _can_react(reactor):
 			continue
 		var ally: bool = reactor.get("side", -1) == source.get("side", -1)
-		if not ally and is_hidden(source):
+		if not ally and hidden_from(reactor, source):
 			# Nobody reacts to an enemy they cannot see.
 			continue
 		var protected: Dictionary = protected_for.call(reactor) if protected_for.is_valid() else (source if ally else reactor)
@@ -14668,11 +15686,11 @@ func _react_before(attacker: Dictionary, skill: SkillDefinition, skill_key: Stri
 	for victim in victims:
 		if not attacker.get("alive", false):
 			return
-		var only_them := func(reactor: Dictionary, _skill: SkillDefinition, _readied: Dictionary) -> bool:
-			return is_same(reactor, victim)
+		var only_them := func(reactor: Dictionary, reacting: SkillDefinition, _readied: Dictionary) -> bool:
+			return is_same(reactor, victim) and _answers_this_blow(reacting, attacker, skill)
 		await _react(Trigger.TARGETED, attacker, "%s is about to hit %s" % [attacker.name, victim.name], Callable(), only_them)
-	var not_them := func(reactor: Dictionary, _skill: SkillDefinition, _readied: Dictionary) -> bool:
-		return not victims.any(func(victim): return is_same(victim, reactor)) \
+	var not_them := func(reactor: Dictionary, reacting: SkillDefinition, _readied: Dictionary) -> bool:
+		return _answers_this_blow(reacting, attacker, skill) and not victims.any(func(victim): return is_same(victim, reactor)) \
 			and victims.any(func(victim): return victim.get("side", -1) == reactor.get("side", -1))
 	if attacker.get("alive", false):
 		await _react(Trigger.ALLY_ATTACKED, attacker, "%s is about to hit %s" % [attacker.name,
@@ -14765,6 +15783,8 @@ func ready_refusal(comb: Dictionary, skill_key: String, trigger: int, centre: Ve
 		return "%s goes off by itself - it can't be readied" % skill.name
 	if not meets_level_for(comb, skill):
 		return "%s has not learned %s yet" % [comb.name, skill.name]
+	if skill.spell_slot_level > 0 and cannot_cast_here(comb):
+		return "%s cannot cast spells here" % comb.name
 	if not can_afford_skill(comb, skill):
 		return "%s has no %s left for %s" % [comb.name, Stats.short_gate_name(skill.spell_slot_level), skill.name]
 	if not SkillDefinition.TRIGGER_NAMES.has(trigger):
@@ -14897,6 +15917,12 @@ func _fire_readied(reactor: Dictionary, target: Dictionary, why: String):
 	reactor.erase("readied")
 	var skill: SkillDefinition = SkillDatabase.skills[readied.skill]
 	reactor.reaction_used = true
+	# Standing in a silence now, what they readied dies on their lips; its gate is spent.
+	if skill.spell_slot_level > 0 and cannot_cast_here(reactor):
+		update_information.emit("[color=yellow]%s[/color]'s readied %s comes to nothing: no spell can be cast there.\n" % [reactor.name, skill.name])
+		if controller != null:
+			controller.queue_redraw()
+		return
 	update_information.emit("[color=yellow]%s[/color]'s readied %s goes off - %s!\n" % [reactor.name, skill.name, why])
 	if controller != null:
 		controller.queue_redraw()
@@ -14931,7 +15957,7 @@ func _fire_readied(reactor: Dictionary, target: Dictionary, why: String):
 		return
 	for victim in victims:
 		if victim.get("alive", false):
-			_land_reaction(reactor, skill, victim)
+			await _land_reaction(reactor, skill, victim)
 	Projectile.settle()
 
 
@@ -15087,7 +16113,7 @@ func _ai_can_strike_this_turn(comb: Dictionary) -> bool:
 		if skill == null or not _hostile(skill) or not _ai_plannable(comb, skill) or wasted_on(comb, skill) != "":
 			continue
 		for other in combatants:
-			if not other.alive or other.side == comb.side or is_hidden(other) or other.has("object") or other.get("illusion", false):
+			if not other.alive or other.side == comb.side or hidden_from(comb, other) or other.has("object") or other.get("illusion", false):
 				continue
 			if can_shoot_from_anywhere_reachable(comb, other.position, skill, budget):
 				return true
@@ -15102,14 +16128,14 @@ func _ai_foes_in_view(comb: Dictionary) -> Array:
 
 ## The other side's who are out of sight - hidden or invisible.
 func _ai_hidden_foes(comb: Dictionary) -> Array:
-	return combatants.filter(func(other): return other.get("alive", false) and other.get("side", -1) != comb.side and is_hidden(other))
+	return combatants.filter(func(other): return other.get("alive", false) and other.get("side", -1) != comb.side and hidden_from(comb, other))
 
 
 ## Everybody of the other side who casts through a gate, in `comb`'s sight.
 func _ai_casters_in_sight(comb: Dictionary) -> Array:
 	var found := []
 	for other in combatants:
-		if not other.alive or other.side == comb.side or is_hidden(other) or other.has("object"):
+		if not other.alive or other.side == comb.side or hidden_from(comb, other) or other.has("object"):
 			continue
 		if not other.get("spell_slots", []).any(func(count): return count > 0):
 			continue
@@ -15120,7 +16146,7 @@ func _ai_casters_in_sight(comb: Dictionary) -> Array:
 
 ## Whether somebody of the other side is out of sight - hidden or invisible.
 func _ai_somebody_hidden(comb: Dictionary) -> bool:
-	return combatants.any(func(other): return other.alive and other.side != comb.side and is_hidden(other))
+	return combatants.any(func(other): return other.alive and other.side != comb.side and hidden_from(comb, other))
 
 
 ## Which way `comb` would point a readied cone with `key` to catch the other

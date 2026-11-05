@@ -96,6 +96,12 @@ class_name SpawnDefinition
 ## come in at the end of the turn they are due in.
 @export var arrives_on_cue: String = ""
 
+## The party has been warned where they will come in, so the tiles are marked a turn ahead
+## (Combat.arrival_warnings): a flag set by something they found, a log read beforehand...
+@export var warned_by_flag: String = ""
+## ...or Intuition read on whoever calls them in, by their character key.
+@export var warned_by_reading: String = ""
+
 @export_group("Opening")
 ## Caught off guard: loses their first turn. A guard ambushed on a stealth map
 ## before he knew anybody was there.

@@ -47,5 +47,5 @@ guards_first_blow = true
 script = ExtResource("2_path")
 name = "Illusory Shepherd"
 description = "Protective illusions. Alithia makes cover where there is none, lays phantoms over her friends and fills the field with false targets - and her heals leave a veil behind."
-skills = Array[String](["illusory_cover", "phantom_body", "sanctuary_of_light", "mass_mirage", "realitys_reflection"])
+skills = Array[String](["illusory_cover", "phantom_body", "sanctuary_of_light", "mass_mirage", "realitys_reflection", "four_reflections"])
 passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_2"), SubResource("Passive_3"), SubResource("Passive_4")])

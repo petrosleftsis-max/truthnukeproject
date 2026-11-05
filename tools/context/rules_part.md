@@ -244,6 +244,12 @@ Spells are cast through ten **gates**. Each gate opens at a level and has so man
 - **Tethers:** a spell held on the caster's tether (summons, the dragon).
   - The tether frays each turn and with every hurt the caster takes.
   - When it snaps, the spell ends. Only one tethered spell is held at a time.
+  - A condition or resistance can be held by the tether with no count of its own, so the tether's size is how long it lasts.
+  - A tether with nothing left to hold lets go. Out of a fight it frays by 5 a second.
+- **Zones:** a skill's area left on the ground. Besides a condition it can cost twice to walk, hurt at a turn's start or at every step, mend its own side, follow its caster, be moved with a secondary action, carry anybody struck in melee to its edge, or blow out whoever starts or ends a turn in it.
+- **Darkness:** anybody in a dark zone is invisible to whoever cannot see in the dark. Map lighting is not in the game yet.
+- **Prepared spells:** casters fight with what they prepared, 5 at level 1 to 35 at level 64, chosen at each long rest; a locked spell stays prepared through it.
+- **Hazards to set off:** things on the map with their own health, area and damage: a blast, a throw with damage on collision, ground that costs twice.
 - **Quick time events:** a button press against the clock can make the party's own move land harder, or an enemy's land softer.
 
 ## 7. Conditions

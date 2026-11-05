@@ -509,6 +509,7 @@ func _unhandled_input(event):
 			_ally_target_position = null
 			_blocked_target_position = null
 			_aoe_preview_positions = []
+			_shove_preview = []
 			if _skill_selected:
 				var skill = SkillDatabase.skills[_selected_skill]
 				var caster = aiming_caster()
@@ -523,7 +524,7 @@ func _unhandled_input(event):
 				elif radius > 0:
 					_aoe_preview_positions = combat.get_impact_tiles(skill, Combat.nearest_tile_of(caster, mouse_position_i), mouse_position_i, caster.movement_class, caster.get("size", Sizes.Size.HUMAN), caster)
 					_aoe_preview_is_ally = skill.targets_ally
-				elif picking_a_landing_tile():
+				elif picking_a_landing_tile() or Combat.moves_zone(skill):
 					# Where the blink lands, or the image or what is called up
 					# stands (the designer, 2026-11-04: "Moves like misty step
 					# don't highlight tiles where the mouse hovers on").
@@ -535,6 +536,7 @@ func _unhandled_input(event):
 					else:
 						_attack_target_position = local_map
 						_preview_blast(caster, skill, comb)
+				_preview_shoves(caster, skill, mouse_position_i)
 				_preview_hits(mouse_position_i)
 			elif comb != null and comb.alive and comb.side == 1:
 				_attack_target_position = local_map
@@ -608,6 +610,20 @@ func _preview_blast(caster: Dictionary, skill: SkillDefinition, target: Dictiona
 	_aoe_preview_is_ally = false
 
 
+## What aiming `skill` at `tile` would shove, for the board to show (Combat "Shoves,
+## foreseen"; the designer, 2026-11-05, option A): a see-through figure where they would
+## land, an arrow there, and a red burst where they would run into something. Only for
+## an aim that would go - the prompt says the rest.
+func _preview_shoves(caster: Dictionary, skill: SkillDefinition, tile: Vector2i):
+	_shove_preview = []
+	if aimed_twice(skill) or skill.is_reactive and skill.reaction_only:
+		return
+	var comb = get_combatant_at_position(tile)
+	if refusal_at(tile, comb if comb != null else {}) != "":
+		return
+	_shove_preview = combat.foresee_shoves(caster, skill, combat.targets_if_aimed(caster, skill, tile))
+
+
 ## Asks the HUD to say what the skill being aimed would do to whoever the tile
 ## under the cursor would catch. A skill that picks somebody up and puts them
 ## down elsewhere is left out - the first click is choosing who, not hitting -
@@ -631,7 +647,7 @@ func _preview_hits(tile: Vector2i):
 		# they carry - out of reach or empty-handed too, saying why it cannot
 		# go. Not somebody hidden: that would say where they are.
 		if Combat.steals(skill) and comb != null and comb.side != aiming_caster().side \
-				and not combat.is_hidden(comb) and hud.has_method("show_carried"):
+				and not combat.hidden_from(aiming_caster(), comb) and hud.has_method("show_carried"):
 			hud.show_carried(_selected_skill, comb, refusal)
 		elif _only_cannot_get_there(refusal, skill, tile):
 			hud.show_hit_preview(_selected_skill, tile, refusal)
@@ -1061,7 +1077,7 @@ func _draw_ghosts():
 	var shown := shown_floor()
 	_drawn_floor = shown
 	for comb in combat.combatants:
-		if not comb.get("alive", false) or comb.has("object") or (comb.get("side", 0) != 0 and combat.is_hidden(comb)):
+		if not comb.get("alive", false) or comb.has("object") or combat.unseen_by_party(comb):
 			continue
 		var on: int = combat.floor_of(comb.position)
 		if on == shown or on < 0:
@@ -2034,6 +2050,8 @@ func _handle_step_arrival():
 	await combat.check_reactive_skills(mover, old_position, new_position)
 	# Into a zone or out of one (Combat "Zones").
 	combat.sync_zones()
+	# Onto ground that hurts whoever treads it, each step again.
+	combat.zones_under_step(mover, new_position)
 	# Onto a trap of the other side's (Combat "Traps"): held fast, and the walk is over.
 	if mover.alive and combat.spring_trap(mover, new_position):
 		movement = 0
@@ -2679,6 +2697,9 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 		if tile not in _range_preview_positions:
 			return OUT_OF_REACH
 		return combat.refusal_for(caster, skill, tile)
+	# Moving what they laid: any tile in its reach (Combat "Zones").
+	if Combat.moves_zone(skill):
+		return "" if tile in _range_preview_positions else OUT_OF_REACH
 	if radius == 0:
 		# Aimed at somebody, so it is the somebody who has to be right.
 		if comb.is_empty():
@@ -2734,7 +2755,7 @@ func aim_refusal(comb: Dictionary) -> String:
 	if not comb.get("alive", false):
 		return "%s has fallen" % comb.get("name", "They")
 	# Their face stays in the queue, but aiming at it would say where they are.
-	if comb.side != 0 and combat.is_hidden(comb):
+	if comb.side != 0 and combat.hidden_from(aiming_caster(), comb):
 		return "Hidden - somewhere you cannot see"
 	return refusal_at(face_aim_tile(comb), comb)
 
@@ -2758,7 +2779,7 @@ func preview_aim_at_combatant(comb: Dictionary):
 		return
 	_clear_aim_marks()
 	var hud = combat.game_ui
-	if comb.is_empty() or not comb.get("alive", false) or (comb.side != 0 and combat.is_hidden(comb)):
+	if comb.is_empty() or not comb.get("alive", false) or combat.unseen_by_party(comb):
 		# Nobody to mark - or somebody whose tile must not be.
 		if hud != null and hud.has_method("hide_hit_preview"):
 			hud.hide_hit_preview()
@@ -2778,6 +2799,7 @@ func preview_aim_at_combatant(comb: Dictionary):
 		else:
 			_attack_target_position = tile_map.map_to_local(aim)
 			_preview_blast(caster, skill, comb)
+		_preview_shoves(caster, skill, aim)
 		_preview_hits(aim)
 	queue_redraw()
 
@@ -2796,6 +2818,7 @@ func _clear_aim_marks():
 	_ally_target_position = null
 	_blocked_target_position = null
 	_aoe_preview_positions = []
+	_shove_preview = []
 
 
 ## Backs out of target selection (right-click or Escape) without spending
@@ -3066,7 +3089,7 @@ func _draw_tether():
 	for comb in combat.combatants:
 		if not comb.get("alive", false) or not Combat.holds_tether(comb) or comb.has("riding"):
 			continue
-		if comb.get("side", 0) != 0 and combat.is_hidden(comb):
+		if combat.unseen_by_party(comb):
 			continue
 		var square := combat.rect_of(comb)
 		var top_left := _tile_rect(square.position).position
@@ -3180,7 +3203,7 @@ var _highlight_tile = null
 
 
 func highlight_unit(comb: Dictionary):
-	var hidden = not comb.is_empty() and comb.get("side", 0) != 0 and combat.is_hidden(comb)
+	var hidden = not comb.is_empty() and combat.unseen_by_party(comb)
 	_highlight_tile = null if comb.is_empty() or not comb.get("alive", false) or hidden else combat.rect_of(comb)
 	queue_redraw()
 
@@ -3196,7 +3219,7 @@ func _card_for(comb):
 	var hud = combat.game_ui if combat != null else null
 	if hud == null or not hud.has_method("show_unit_card"):
 		return
-	if comb == null or comb.is_empty() or not comb.alive or (comb.side != 0 and combat.is_hidden(comb)):
+	if comb == null or comb.is_empty() or not comb.alive or combat.unseen_by_party(comb):
 		hud.hide_unit_card()
 	else:
 		hud.show_unit_card(comb)
@@ -3209,7 +3232,7 @@ func _draw():
 	# hidden from the player is given away.
 	if combat != null:
 		for comb in combat.combatants:
-			if not comb.get("alive", false) or (comb.get("side", 0) != 0 and combat.is_hidden(comb)):
+			if not comb.get("alive", false) or combat.unseen_by_party(comb):
 				continue
 			var tiles: Array = combat.tiles_of(comb)
 			if tiles.is_empty():
@@ -3231,11 +3254,26 @@ func _draw():
 		_draw_area(combat.hazard_warning_tiles(), HAZARD_WARNING_FILL, HAZARD_WARNING_EDGE)
 		# The party's own traps, which nobody else can see.
 		_draw_area(combat.trap_tiles(), TRAP_FILL, TRAP_EDGE)
+		# Where somebody will come in, for a party that has been warned.
+		_draw_area(combat.arrival_warnings(), HAZARD_WARNING_FILL, HAZARD_WARNING_EDGE)
+		# The ground something on the map makes dear to cross (Combat.costly_ground).
+		var costly: Array = combat.costly_ground()
+		if not costly.is_empty():
+			_draw_area(costly, Color(0.35, 0.25, 0.12, 0.38), Color(0.62, 0.48, 0.22, 0.8))
 		# Zones left on the ground: the party's in pale gold, the other side's in
 		# warning red.
 		for zone in combat.zone_tiles():
-			_draw_area(zone.tiles, ZONE_FOE_FILL if zone.hostile else ZONE_ALLY_FILL,
-				ZONE_FOE_EDGE if zone.hostile else ZONE_ALLY_EDGE)
+			# One with a look of its own (a placeholder: EffectDefinition.zone_colour).
+			if zone.colour.a > 0.0:
+				_draw_area(zone.tiles, zone.colour, Color(zone.colour.lightened(0.35), 0.9))
+			else:
+				_draw_area(zone.tiles, ZONE_FOE_FILL if zone.hostile else ZONE_ALLY_FILL,
+					ZONE_FOE_EDGE if zone.hostile else ZONE_ALLY_EDGE)
+			# A cloud that can be moved: a puff over where it hangs.
+			if zone.cloud != Combat.NO_AREA:
+				var over := _tile_rect(zone.cloud).get_center()
+				for puff in [Vector2(-0.3, 0.05), Vector2(0.0, -0.12), Vector2(0.3, 0.05)]:
+					draw_circle(over + puff * Grid.HALF_TILE.x * 2.0, Grid.HALF_TILE.x * 0.42, Color(0.28, 0.3, 0.42, 0.95))
 	# Where declared moves will come down (Combat.declare): the other side's in
 	# warning orange, the party's own in gold.
 	if combat != null:
@@ -3333,7 +3371,76 @@ func _draw():
 				_draw_area(_aoe_preview_positions, BLAST_FILL, BLAST_EDGE)
 		if _blocked_target_position != null:
 			_draw_tile_marker(_blocked_target_position)
+		_draw_shoves()
 	_draw_other_pointing()
+
+
+## What is shown of a shove while aiming (_preview_shoves).
+var _shove_preview: Array = []
+const SHOVE_ARROW := Color(1.0, 0.92, 0.55, 0.95)
+const SHOVE_ARROW_WIDTH := 5.0
+const SHOVE_GHOST_ALPHA := 0.5
+const SHOVE_BURST := Color(1.0, 0.2, 0.12, 0.95)
+const SHOVE_HOLDS := Color(0.75, 0.85, 1.0, 0.95)
+const SHOVE_DRIFT := Color(0.7, 0.9, 1.0, 0.5)
+
+
+## The middle of the square `comb` would cover with its anchor on `tile`.
+func _square_middle(comb: Dictionary, tile: Vector2i) -> Vector2:
+	var shape: Vector2i = combat.footprint(comb)
+	return (tile_map.map_to_local(tile) + tile_map.map_to_local(tile + shape - Vector2i.ONE)) / 2.0
+
+
+## Every shove the aim would do: a see-through figure where they would land, an arrow
+## from where they stand, a red burst where they would run into something. A faint
+## figure on each tile a Windswept might blow them to; a ring round somebody who holds.
+func _draw_shoves():
+	for entry in _shove_preview:
+		var who: Dictionary = entry.who
+		var from_point := _square_middle(who, entry.from)
+		var to_point := _square_middle(who, entry.to)
+		for tile in entry.drift:
+			_draw_shove_ghost(who, tile, 0.25)
+			draw_arc(_square_middle(who, tile), Grid.HALF_TILE.x * 0.55, 0.0, TAU, 20, SHOVE_DRIFT, 3.0)
+		if entry.stays != "":
+			draw_arc(from_point, Grid.HALF_TILE.x * 0.85, 0.0, TAU, 24, SHOVE_HOLDS, SHOVE_ARROW_WIDTH)
+		if entry.to != entry.from:
+			_draw_shove_ghost(who, entry.to, SHOVE_GHOST_ALPHA)
+			_draw_shove_arrow(from_point, to_point)
+		if entry.at != combat.NO_AREA:
+			_draw_shove_burst(to_point.lerp(_square_middle(who, entry.at), 0.5))
+
+
+func _draw_shove_arrow(from_point: Vector2, to_point: Vector2):
+	var along := (to_point - from_point).normalized()
+	var tip := to_point
+	var size := Grid.HALF_TILE.x * 0.5
+	draw_line(from_point, tip - along * size, SHOVE_ARROW, SHOVE_ARROW_WIDTH)
+	var across := along.orthogonal() * size * 0.65
+	draw_colored_polygon(PackedVector2Array([tip, tip - along * size + across, tip - along * size - across]), SHOVE_ARROW)
+
+
+## A red star where somebody would run into something.
+func _draw_shove_burst(at: Vector2):
+	var points := PackedVector2Array()
+	var outer := Grid.HALF_TILE.x * 0.6
+	for i in 16:
+		var angle := TAU * float(i) / 16.0
+		points.append(at + Vector2(cos(angle), sin(angle)) * (outer if i % 2 == 0 else outer * 0.45))
+	draw_colored_polygon(points, SHOVE_BURST)
+
+
+## The figure of `who`, see-through, on `tile`.
+func _draw_shove_ghost(who: Dictionary, tile: Vector2i, alpha: float):
+	var sprite = who.get("sprite")
+	if sprite == null or not is_instance_valid(sprite) or not sprite.has_method("current_frame"):
+		return
+	var frame: Dictionary = sprite.current_frame()
+	if frame.is_empty() or frame.texture == null:
+		return
+	var size: Vector2 = frame.region.size * Sizes.draw_scale(who.get("size", Sizes.Size.HUMAN))
+	var rect := Rect2(_square_middle(who, tile) - size / 2.0, size)
+	draw_texture_rect_region(frame.texture, rect, frame.region, Color(1, 1, 1, alpha))
 
 
 ## Whether this controller still belongs to a running battle.

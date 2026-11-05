@@ -194,6 +194,19 @@ static func short_gate_name(level: int) -> String:
 	return gate_name(level).trim_prefix("Gates of ")
 
 
+## --- Prepared spells ---
+##
+## How many spells somebody can have prepared at a level (Campaign "Preparing spells";
+## the designer, 2026-11-05): 5 at level 1 to 35 at the top, in a straight line.
+const PREPARED_AT_FIRST := 5
+const PREPARED_AT_LAST := 35
+
+
+static func spells_prepared_at(level: int) -> int:
+	var along := float(clampi(level, 1, MAX_LEVEL) - 1) / float(MAX_LEVEL - 1)
+	return roundi(lerpf(float(PREPARED_AT_FIRST), float(PREPARED_AT_LAST), along))
+
+
 ## --- Gates outside a fight ---
 ##
 ## Gates opened only outside a fight, each as strong as one on the ladder
@@ -201,11 +214,12 @@ static func short_gate_name(level: int) -> String:
 ## the next fight's gates. In a fight a spell of one is paid through the ladder
 ## gate it says (SkillDefinition.spell_slot_level), like any other.
 ##
-## Indexed like SkillDefinition.outside_gate, with nothing at 0. Mnemosyne is to
-## come, matching the fifth or sixth gate.
+## Indexed like SkillDefinition.outside_gate, with nothing at 0. Mnemosyne, the higher
+## one, matches the fifth (PROPOSAL: the designer said the fifth or sixth).
 const OUTSIDE_GATES := [
 	{},
 	{"name": "Gates of Iris", "matches": 2, "colour": Color("f2a7d8")},
+	{"name": "Gates of Mnemosyne", "matches": 5, "colour": Color("9fd8f2")},
 ]
 
 

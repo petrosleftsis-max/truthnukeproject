@@ -430,12 +430,17 @@ func enemies():
 	stand_everybody()
 	await their_turn(foe)
 	var far := NOWHERE
+	# Past the longest melee move anybody has, after the one tile they can walk.
+	var longest := 1
+	for comb in combat.combatants:
+		if comb.side == 0 and comb.alive:
+			longest = maxi(longest, combat._melee_reach_of(comb))
 	for tile in controller.get_reachable_tiles(foe.position, foe.movement_class, 40):
 		var gap := 999
 		for comb in combat.combatants:
 			if comb.side == 0 and comb.alive:
 				gap = mini(gap, combat.get_position_distance(tile, comb.position))
-		if gap >= 3 and gap <= 6 and combat.can_land_on(foe, tile):
+		if gap >= longest + 2 and gap <= longest + 5 and combat.can_land_on(foe, tile):
 			far = tile
 			break
 	ok(far != NOWHERE, "somewhere nobody can reach in a turn", "%s" % far)

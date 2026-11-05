@@ -46,6 +46,8 @@ var _current_target: Interactable = null
 var _blocking_interaction := false
 ## The guards' side of a stealth map, or null on any other map.
 var stealth: StealthWatch = null
+## The window choosing who has prepared what, while it is up.
+var preparing: PrepareSpells = null
 
 
 func _enter_tree():
@@ -145,12 +147,19 @@ func _on_party_changed():
 		return
 	var from := _lead_from if _lead_from != NOWHERE else party_position()
 	var leading := party
+	var places := _places_kept
 	_lead_from = NOWHERE
+	_places_kept = {}
 	if Coop.on():
 		_build_groups(leading, from)
 	else:
 		_main_party.setup(_party_textures(), from, is_walkable)
 	_keep_stayers()
+	# The line as it stood, for a lead passed by Stay Here: nobody jumps.
+	if not places.is_empty():
+		for group in all_groups():
+			if group.own_sprite_for(places.get("next", "")) != null:
+				group.keep_places(places)
 	_refresh_party_panel()
 
 
@@ -880,6 +889,15 @@ func _process(delta):
 		_camera_aim = []
 	if picker != null or store_screen != null or is_holding() or get_tree().paused or SceneTransition.is_changing():
 		return
+	# Spells to prepare: a long rest taken, or a dungeon begun (Campaign "Preparing spells").
+	if Campaign.prepare_due and Campaign.asks_to_prepare and not is_instance_valid(preparing):
+		if not Campaign.preparing_left().is_empty():
+			preparing = PrepareSpells.new()
+			add_child(preparing)
+			return
+		# Everybody has, by the time this map came to ask. Over a network that is the host's to say.
+		if not Net.follows():
+			Campaign.prepare_due = false
 	_hurry_on(delta)
 	# Over a network the host's map springs the traps, whoever steps on them;
 	# here, one sprung there goes dark (Net).
@@ -1270,6 +1288,9 @@ func _share_out_due() -> bool:
 ## only this machine's own: the other player is offered it on their screen, and
 ## a panel up here for them would only stand this player's party.
 func _stranded() -> Array:
+	# All following Cyrus (StealthWatch "The Company Unseen"), nobody is left out.
+	if stealth != null and is_instance_valid(stealth) and stealth.company_on():
+		return []
 	return Coop.stranded().filter(func(id): return not Net.choosing(id) and (not Net.with_another() or Coop.is_local(id)))
 
 
@@ -1358,6 +1379,13 @@ class _CoopRing extends Node2D:
 const NOWHERE := Vector2(-99999, -99999)
 ## How near the leader has to come to somebody staying for them to fall in.
 const PICK_UP_TILES := 1.0
+## How far the lead has to have gone from somebody staying before coming back picks them up.
+const LEFT_BEHIND_TILES := 2.5
+## Those staying whom the lead has walked away from since.
+var _left_behind := {}
+## Where everybody stood as Stay Here passed the lead (key -> place, and "next"), for the
+## rebuilt line (ExplorationParty.keep_places).
+var _places_kept := {}
 
 ## Who is staying, and where: combatant key -> world position.
 var staying := {}
@@ -1383,7 +1411,11 @@ func stay_here() -> bool:
 		log_message("Nobody else to lead - [color=yellow]%s[/color] keeps the lead.\n" % Campaign.display_name_of(leading))
 		return false
 	staying[leading] = party_position()
+	_left_behind.erase(leading)
 	_lead_from = party.own_sprite_for(next).global_position
+	_places_kept = {"next": next}
+	for sprite in party._line():
+		_places_kept[sprite.get_meta("combatant_key", "")] = sprite.position
 	Campaign.set_leader(next)
 	log_message("[color=yellow]%s[/color] stays where they are; [color=yellow]%s[/color] leads.\n" % [
 		Campaign.display_name_of(leading), Campaign.display_name_of(next)])
@@ -1411,8 +1443,18 @@ func _pick_up_stayers(leader_position: Vector2, group: ExplorationParty = null):
 		group = party
 	for key in staying.keys():
 		var sprite = group.own_sprite_for(key)
-		if sprite != null and group.stayers.has(sprite) and staying[key].distance_to(leader_position) <= Grid.tiles(PICK_UP_TILES):
+		if sprite == null or not group.stayers.has(sprite):
+			continue
+		var gap: float = staying[key].distance_to(leader_position)
+		# Whoever took over starts right beside them: only coming back counts, once the
+		# lead has been away (the designer, 2026-11-05).
+		if not _left_behind.has(key):
+			if gap >= Grid.tiles(LEFT_BEHIND_TILES):
+				_left_behind[key] = true
+			continue
+		if gap <= Grid.tiles(PICK_UP_TILES):
 			staying.erase(key)
+			_left_behind.erase(key)
 			group.rejoin(sprite)
 			log_message("[color=yellow]%s[/color] falls in behind.\n" % Campaign.display_name_of(key))
 
@@ -1424,6 +1466,17 @@ func _pick_up_stayers(leader_position: Vector2, group: ExplorationParty = null):
 ## it go.
 
 var familiar_keeper: FamiliarKeeper = null
+
+
+## Everybody staying falls in again, wherever they stand (The Company Unseen).
+func call_in_stayers():
+	for group in all_groups():
+		for key in staying.keys():
+			var sprite = group.own_sprite_for(key)
+			if sprite != null and group.stayers.has(sprite):
+				staying.erase(key)
+				_left_behind.erase(key)
+				group.rejoin(sprite)
 
 
 ## The animal a familiar takes here: the stealth setup's, or the map setup's, or

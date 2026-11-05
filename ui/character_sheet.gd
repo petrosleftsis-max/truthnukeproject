@@ -53,8 +53,9 @@ const SCROLL_STEP := 40
 const PAGE_OVERLAP := 60
 ## How fast a pad scrolls the numbers, in pixels a second at full tilt.
 const PAD_SCROLL_SPEED := 600.0
-## The sheet's pages (see "Pages"). Levels is the party's own only.
-const PAGES := ["Sheet", "Moves", "Levels"]
+## The sheet's pages (see "Pages"). Levels is the party's own only; Prepared only for
+## whoever has finished preparing their spells (Campaign "Preparing spells").
+const PAGES := ["Sheet", "Moves", "Levels", "Prepared"]
 ## How dark the world goes behind the sheet.
 const BACKDROP := Color(0.02, 0.03, 0.05, 0.8)
 ## How long a passive's one-line summary on its tag may run before it is cut.
@@ -580,6 +581,8 @@ func _show_entry():
 			_show_moves(entry)
 		2:
 			_show_levels(entry)
+		3:
+			_show_prepared(entry)
 		_:
 			_show_stats(entry)
 	_show_members()
@@ -1351,7 +1354,32 @@ func _has_levels(entry: Dictionary) -> bool:
 
 ## How many pages `entry` has.
 func _pages_of(entry: Dictionary) -> int:
-	return PAGES.size() if _has_levels(entry) else PAGES.size() - 1
+	if not _has_levels(entry):
+		return 2
+	return 4 if Campaign.has_readied(entry.get("key", "")) else 3
+
+
+## The Prepared page: the spells they go into a fight with, on a shelf per gate.
+func _show_prepared(entry: Dictionary):
+	_clear_rows()
+	var key: String = entry.get("key", "")
+	var path := SubclassDefinition.named(entry.get("subclass", ""))
+	var level: int = entry.get("level", 1)
+	var prepared: Array = Campaign.prepared_list(key)
+	_heading("Prepared", INK, "%d of %d, until the next long rest" % [prepared.size(), Campaign.prepare_limit()])
+	var shelves := {}
+	for spell in prepared:
+		var skill: SkillDefinition = SkillDatabase.skills.get(spell)
+		if skill != null:
+			if not shelves.has(skill.spell_slot_level):
+				shelves[skill.spell_slot_level] = []
+			shelves[skill.spell_slot_level].append(spell)
+	var gates: Array = shelves.keys()
+	gates.sort()
+	for gate in gates:
+		_heading(Stats.gate_name(gate), Stats.gate_colour(gate), "")
+		for spell in shelves[gate]:
+			_move_row(entry, spell, path, level)
 
 
 ## Turns to page `which` (PAGES) for whoever is on show.
@@ -1556,9 +1584,16 @@ static func facts_of(skill: SkillDefinition, comb: Dictionary) -> Array:
 			var turns := Combat.rank_duration(comb, skill)
 			if turns <= 0:
 				turns = shown.condition_duration if shown.condition_duration > 0 else shown.condition.duration
-			facts.append("%s %d turn%s" % [shown.condition.display_name, turns, "" if turns == 1 else "s"])
+			if shown.held_by_tether and skill.tethered:
+				facts.append("%s while tethered" % shown.condition.display_name)
+			elif shown.condition.getting_up_share > 0.0:
+				facts.append(shown.condition.display_name)
+			else:
+				facts.append("%s %d turn%s" % [shown.condition.display_name, turns, "" if turns == 1 else "s"])
 	if Combat.is_spell(skill):
 		facts.append(Stats.short_gate_name(skill.spell_slot_level))
+	if skill.tethered:
+		facts.append("Tether %d" % skill.tether_strength)
 	if skill.uses_per_short_rest > 0:
 		var uses := Combat.uses_a_rest(comb, skill)
 		facts.append("%d use%s a short rest" % [uses, "" if uses == 1 else "s"])
@@ -1779,6 +1814,13 @@ func _move_row(entry: Dictionary, move: String, path: SubclassDefinition, level:
 			badges.append(["not learned", BAD])
 			dim = true
 			teachers = Campaign.teachers_of(move)
+	# Spells they have chosen, and not (Campaign "Preparing spells").
+	if not entry.get("studied", false) and Combat.is_spell(skill) and key != "" and Campaign.prepared_spells.has(key):
+		if not Campaign.is_prepared(key, move):
+			badges.append(["not prepared", SOON])
+			dim = true
+		elif Campaign.locked_spells.get(key, []).has(move):
+			badges.append(["locked", ACCENT])
 	var live: bool = not subject.is_empty() and combat != null and is_instance_valid(combat)
 	if live and not dim and Combat.is_spell(skill) and not combat.can_afford_skill(subject, skill):
 		badges.append(["no castings left", BAD])

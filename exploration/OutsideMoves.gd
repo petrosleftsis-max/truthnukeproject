@@ -32,7 +32,7 @@ class_name OutsideMoves
 ## Unmarked plays as Silent.
 
 enum Use { NONE, MEND, REVIVE, SPEED, INVISIBILITY, FAMILIAR, BLIND, SCARE, CONFUSE, READ, SWITCH_OFF_MAGIC,
-	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP }
+	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY }
 
 const USE_NAMES := {
 	Use.NONE: "Only in a fight",
@@ -53,16 +53,21 @@ const USE_NAMES := {
 	Use.HIDING_SPOT: "Makes somewhere to hide",
 	Use.TRAP: "Lays a trap",
 	Use.COUNTER_TRAP: "Hacks a magical trap's casting apart as it goes off",
+	Use.COMPANY: "Hides everybody but Cyrus, who all follow him",
 }
 
 ## SkillDefinition.outside_use, as a Use - -1 for Automatic.
 const FROM_FIELD := [-1, Use.NONE, Use.MEND, Use.REVIVE, Use.SPEED, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ,
-	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP]
+	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP, Use.COMPANY]
 
 ## How long each lasts when the move gives no Outside Seconds - PROPOSAL test
 ## values, as are the rest below.
 const SECONDS := {Use.BLIND: 12, Use.SCARE: 15, Use.CONFUSE: 20, Use.SWITCH_OFF_MAGIC: 60, Use.FLY: 20,
 	Use.LURE: 10, Use.HIDING_SPOT: 60}
+## A tether out of a fight frays by this much a second (the designer, 2026-11-05), so a
+## tethered move lasts its Tether Strength over this, whatever else it says. One to a
+## character there too: tying another lets go of the first (StealthWatch "Tethers").
+const TETHER_PER_SECOND := 5.0
 ## How far a Blink goes when the move's reach says nothing, and at most.
 const BLINK_TILES := 3
 const BLINK_MOST := 6
@@ -102,7 +107,7 @@ static func moves_of(key: String) -> Array:
 		var skill: SkillDefinition = SkillDatabase.skills.get(move)
 		if skill == null or skill is ItemDefinition or skill.required_level > Campaign.party_level:
 			continue
-		if Combat.is_spell(skill) and not Campaign.knows_spell(key, move):
+		if Combat.is_spell(skill) and (not Campaign.knows_spell(key, move) or not Campaign.is_prepared(key, move)):
 			continue
 		found.append(move)
 	return found
@@ -141,7 +146,7 @@ static func breaks_walls(key: String, skill: SkillDefinition) -> bool:
 static func use_of(skill: SkillDefinition) -> int:
 	if skill == null:
 		return Use.NONE
-	if skill.outside_only():
+	if _has(skill, EffectDefinition.EffectType.FAMILIAR):
 		return Use.FAMILIAR
 	if skill.outside_gate > 0 and _has(skill, EffectDefinition.EffectType.INVISIBLE):
 		return Use.INVISIBILITY
@@ -306,6 +311,8 @@ static func mend_targets(skill: SkillDefinition) -> Array:
 
 ## How long what `skill` does out here lasts, as `kind`.
 static func seconds_of(skill: SkillDefinition, kind: int) -> int:
+	if skill.tethered:
+		return ceili(float(skill.tether_strength) / TETHER_PER_SECOND)
 	return skill.outside_seconds if skill.outside_seconds > 0 else SECONDS.get(kind, HURRY_SECONDS)
 
 
@@ -394,6 +401,12 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 					else "Nobody in reach waiting to fight, and no wall to break"
 			if not breaks_walls(key, skill):
 				return "Only a spell, an item or Enfina's strength knocks a wall down"
+		Use.COMPANY:
+			if watch == null:
+				return "Only where guards watch"
+			var refused: String = watch.company_refusal()
+			if refused != "":
+				return refused
 		Use.BLINK, Use.FLY:
 			if party != null and party.rooted:
 				return "Not while standing still for something"
@@ -528,6 +541,8 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			scene.add_child(lure)
 			lure.global_position = there
 			watch.make_noise(there, LURE_TILES, true)
+			if skill.tethered:
+				watch.tie_outside(key, skill, func(): if is_instance_valid(lure): lure.queue_free())
 			said = "[color=yellow]%s[/color] uses %s%s: something stirs ahead, and the guards near it go to look.\n" % [who, skill.name, paid_through(paid)]
 		Use.HIDING_SPOT:
 			var paid := pay(key, skill)
@@ -542,9 +557,20 @@ static func use(scene: Node, key: String, move: String) -> bool:
 				return false
 			var trap := Trap.new()
 			trap.watch = watch
+			# A great one catches everybody within reach of it as it goes off.
+			for effect in skill.all_effects():
+				if effect != null and effect.type == EffectDefinition.EffectType.TRAP:
+					trap.burst_tiles = effect.trap_burst_radius
 			scene.add_child(trap)
 			trap.global_position = _tile_centre(watch, at)
 			said = "[color=yellow]%s[/color] lays %s%s where they stand.\n" % [who, skill.name, paid_through(paid)]
+		Use.COMPANY:
+			var paid := pay(key, skill)
+			if paid.is_empty():
+				return false
+			var seconds := seconds_of(skill, kind)
+			watch.begin_company(seconds)
+			said = "[color=yellow]%s[/color] casts %s%s: for %d seconds everybody but Cyrus is unseen, and follows him.\n" % [who, skill.name, paid_through(paid), seconds]
 	if scene.has_method("log_message"):
 		scene.log_message(said)
 	# The portraits down the left read health off the party: drawn again.
@@ -562,6 +588,10 @@ static func _do_to(watch, key: String, skill: SkillDefinition, kind: int, target
 	match kind:
 		Use.BLIND, Use.SCARE, Use.CONFUSE:
 			var seconds := seconds_of(skill, kind)
+			# Letting go of what they held first: it may be this very guard.
+			if skill.tethered:
+				var bound: int = MOODS[kind]
+				watch.tie_outside(key, skill, func(): if is_instance_valid(target) and target.mood == bound: target.end_errand())
 			watch.spellbind(target, MOODS[kind], seconds, key)
 			said = "[color=yellow]%s[/color] uses %s%s on [color=yellow]%s[/color]: %s for %d seconds.\n" % [who, skill.name, paid_words,
 				watch._name_of(target), {Use.BLIND: "struck blind", Use.SCARE: "he runs", Use.CONFUSE: "bewildered"}[kind], seconds]
@@ -699,9 +729,13 @@ class Decoy extends Node2D:
 ## (StealthWatch.caught_in_trap). It stays until then, or the party leaves.
 class Trap extends Node2D:
 	var watch = null
+	## Above 0, everybody within this many tiles is caught as it goes off, not only the
+	## one who stepped on it. The Great Snare.
+	var burst_tiles := 0
 
 	const SPRINGS_WITHIN := 0.45
 	const COLOUR := Color(0.75, 0.62, 0.35, 0.85)
+	const GREAT_COLOUR := Color(0.72, 0.5, 1.0, 0.7)
 
 	func _ready():
 		z_as_relative = false
@@ -715,11 +749,17 @@ class Trap extends Node2D:
 			if is_instance_valid(guard) and not guard.knocked_out and guard.moves() \
 					and guard.global_position.distance_to(global_position) <= Grid.tiles(SPRINGS_WITHIN):
 				if watch.caught_in_trap(guard):
+					for other in watch.guards:
+						if burst_tiles > 0 and is_instance_valid(other) and other != guard \
+								and other.global_position.distance_to(global_position) <= Grid.tiles(float(burst_tiles)):
+							watch.caught_in_trap(other)
 					queue_free()
 					return
 
 	func _draw():
 		var tile := float(Grid.TILE_SIZE)
+		if burst_tiles > 0:
+			draw_arc(Vector2.ZERO, tile * float(burst_tiles), 0.0, TAU, 48, GREAT_COLOUR, 4.0)
 		draw_arc(Vector2.ZERO, tile * 0.22, 0.0, TAU, 16, COLOUR, 6.0)
 		for i in 8:
 			var a := TAU * i / 8.0

@@ -28,7 +28,7 @@ there, and Cover Leap gone. Steps 4 and 5 wait on the designer.
   designer as they/them.
 - Commit and push at the end of every piece of work. Kill processes by pid.
   Never shut down or restart the computer.
-- Tests: `tests/run.sh` (all 141 suites) or `tests/run.sh outside familiar`.
+- Tests: `tests/run.sh` (all 152 suites) or `tests/run.sh outside familiar`.
   In the cloud, five suites fail on untouched code too, for environment
   reasons: audio, encmusic (the music `.wav` files are not in git), gear,
   editor, sweep. Locally, with the music present, audio and encmusic may pass.
@@ -91,6 +91,23 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's lists of 2026-11-05** (ledger rows of that date; CLAUDE.md "Shoves, foreseen",
+  "Spells and what they rest on", "Preparing spells", "What opens and closes a fight", "Join
+  codes"; suites `enchant`, `spellstwo`, `outsidespells`, `preparespells`, `shoveaim`, `hazards`,
+  `fightcards`, `joincode`):
+  - Alithia's Compel, Steady Heart, Ecstasy, Silence, Mesmerise, Restorative Aura, Four Reflections
+    (Illusory Shepherd), Composure, Clear Sight, Terror, Elemental Ward, Shared Burden. Prometheus's
+    Turn Aside, Flame Fan (Elemental Vanguard), Storm Cloud (Elemental Conductor), Light Void, Ravenous
+    Dark, Unveil, Great Snare, Company Unseen (the new Gates of Mnemosyne), Cling, each with a book.
+    Burner, River Flow, Wind Swoon and Crystalise are areas that leave ground behind. Votive Flame
+    reveals. Cyrus's Night Eyes.
+  - Tethers: size in every preview, gone when they hold nothing, 5 a second on a map, a tether can hold
+    ground. Darkness is a rule now (zones only: map lighting is a proposal), with who sees in it.
+  - Preparing spells: 5 to 35 by level, at a long rest and as the Dungeon Demo begins, locks, a window per
+    player, and a Prepared page on the sheet.
+  - The shove preview (figure, arrow, burst, damage) for every shove. Title cards, the boss reveal in all
+    four parts, entrances and warning tiles, falls, the party's falls with an optional last word. Three
+    hazards: Demolition Charge, Gale Urn, Tar Cauldron. Packed join codes. `PROTOCOL` 7.
 - **The designer's long list of 2026-11-04, and two more on 2026-11-05** (ledger
   rows of those dates; CLAUDE.md "The fight's view", "What aiming shows", "Stealth
   mode", "Find Familiar", "One player to a machine", "What the other machine may
@@ -306,11 +323,7 @@ holds the game for both).
 
 ## Waiting on the designer
 
-0. **The designer's uncommitted editor changes** (saved 2026-10-31, 30 files:
-   Prometheus's skills, the demo dungeon's spawns, Sorcerer, required_level off 20
-   of his spells, and more): left unstaged by every commit since. Seven suites fail
-   on them alone - archetypes, look, dungeon, nades, summons, pages, csv. Theirs to
-   commit or not, and to say whether the tests should follow.
+
 1. **Outside moves, PROPOSAL values** (ledger):
    - durations: blind 12 s, scare 15, confuse 20, switch off 60, fly 20, cover
      60; hurry x1.5 for 20 s (Quicken 60);
@@ -373,14 +386,16 @@ holds the game for both).
    - Tripwire's burst;
    - Resuscitate's gate;
    - boss control resistance.
-9. **Suggestions of 2026-11-05, not built** (ledger rows of that date, ABSENT /
-   PROPOSAL): title cards ("Conflict Endless", "Will Subdued"), enemies' entrances,
-   deaths, and how to draw a shove's prediction (for every shove, whatever causes
-   it). The new round's values are all PROPOSAL too: END_TURN_HOLD_SECONDS 2,
-   WALKING_NOTICED_TILES 8, the camera's rates, ARRIVAL_* and OTHER_HOVER_SECONDS 6.
-   An optional join code for network games is on offer. Prone: which enemies go
-   prone or what knocks them down, melee swings with an area counting as melee, and
-   the levels and names of Low Shot and Kip-Up.
+9. **Waiting on the designer's go-ahead: the new sounds** (`docs/sound_plan.md`, for
+   `audio/sfx/New folder/`). Nothing is wired up yet, and that folder is not committed.
+
+10. **Waiting on the designer's choices, 2026-11-05** (`docs/proposals_2026-11-05.md` has the first
+   three, and more illusions to pick from): which conditions Alithia's growing
+   immunity passive covers and at which levels (the switch is there: a passive's Immune To
+   Conditions and Required Level); the map lighting proposal; the enemy AI suggestions; what the
+   Fireball book and nade should be now that nobody can learn Fireball; whether Ecstasy and
+   Terror should have a contest, and Mesmerise's other numbers (ledger rows of that date).
+
 
 ## Good to know
 

@@ -221,6 +221,8 @@ func condition_sources():
 				continue
 			var condition: ConditionDefinition = effect.condition
 			var duration: String = "%d (own %d)" % [effect.condition_duration, condition.duration] if effect.condition_duration > 0 else "%d (its own)" % condition.duration
+			if effect.held_by_tether:
+				duration = "while the tether holds (%d)" % skill.tether_strength
 			var dial: String = ""
 			if effect.condition_dot_modifier > 0.0 or condition.dot_modifier > 0.0:
 				dial = "dial %s" % (("%s (own %s)" % [effect.condition_dot_modifier, condition.dot_modifier]) if effect.condition_dot_modifier > 0.0 else ("%s (its own)" % condition.dot_modifier))

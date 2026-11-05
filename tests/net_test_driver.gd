@@ -685,6 +685,85 @@ func joiners_familiar():
 	log_line("")
 
 
+## Preparing spells, across (Campaign "Preparing spells"; the designer, 2026-11-05): each
+## machine sees only the window for its own player's casters, and waits named for the other.
+func hosts_preparing():
+	log_line("======== preparing spells, each their own ========")
+	var scene: ExplorationScene = get_tree().current_scene
+	# Alithia is the joiner's still; Prometheus is this player's.
+	Campaign.add_member("prometheus")
+	Campaign.controllers["alithia"] = 1
+	Campaign.controllers.erase("prometheus")
+	Coop.players_changed.emit()
+	Campaign.asks_to_prepare = true
+	say("prepare asked")
+	ok(await hear("ready to prepare"), "the joiner is ready")
+	Campaign.spells_readied.clear()
+	Campaign.prepare_due = true
+	ok(await until(func(): return is_instance_valid(scene.preparing), 10.0), "the window comes up here")
+	if not is_instance_valid(scene.preparing):
+		return
+	var panel: PrepareSpells = scene.preparing
+	ok(panel.preparing == "prometheus" and not panel._spell_buttons.has("heal"), "only for this player's own caster", panel.preparing)
+	panel._spell_buttons["fire_blast"].set_pressed(true)
+	panel._done.pressed.emit()
+	await settle()
+	while is_instance_valid(panel) and panel.preparing != "":
+		panel._done.pressed.emit()
+		await settle()
+	ok(is_instance_valid(panel) and panel.waiting, "done, it waits")
+	ok(panel._title.text.contains(Coop.name_of(1)), "named for the other player", panel._title.text)
+	ok(not MenuPause.is_held() and scene.groups[0].rooted, "with this machine's party standing, and no menu keeping what comes in")
+	say("host done")
+	ok(await until(func(): return not is_instance_valid(panel), 20.0), "and goes once the joiner has finished")
+	if is_instance_valid(panel):
+		log_preparing(panel)
+	ok(Campaign.has_readied("alithia") and Campaign.prepared_list("alithia").has("heal"), "what they prepared has reached here", "%s" % [Campaign.prepared_list("alithia")])
+	ok(not scene.groups[0].rooted, "and the party walks again")
+	ok(not Campaign.prepare_due, "and nothing is due")
+	say("seen prepared")
+	Campaign.asks_to_prepare = false
+	log_line("")
+
+
+func joiners_preparing():
+	log_line("======== preparing spells, each their own ========")
+	var scene: ExplorationScene = get_tree().current_scene
+	await hear("prepare asked")
+	Campaign.asks_to_prepare = true
+	await close_offers()
+	say("ready to prepare")
+	ok(await until(func(): return is_instance_valid(scene.preparing), 15.0), "the window comes up here too")
+	if not is_instance_valid(scene.preparing):
+		return
+	var panel: PrepareSpells = scene.preparing
+	ok(await until(func(): return is_instance_valid(panel) and panel.preparing == "alithia", 10.0) and not panel._spell_buttons.has("fire_blast"), "only for this player's own caster", panel.preparing)
+	panel._spell_buttons["heal"].set_pressed(true)
+	var told := []
+	var on_told := func(text): told.append(text)
+	Net.told.connect(on_told)
+	await hear("host done")
+	panel._done.pressed.emit()
+	ok(await until(func(): return not is_instance_valid(panel), 15.0), "done, and with the host done too, it goes")
+	if is_instance_valid(panel):
+		log_preparing(panel)
+	Net.told.disconnect(on_told)
+	ok(told.is_empty(), "and nothing the host did first got in its way", "%s" % [told])
+	ok(Campaign.has_readied("prometheus") and Campaign.prepared_list("prometheus").has("fire_blast"), "and what the host's player prepared is here", "%s" % [Campaign.prepared_list("prometheus")])
+	await hear("seen prepared")
+	Campaign.asks_to_prepare = false
+	log_line("")
+
+
+## How preparing stands here, into the log.
+func log_preparing(panel):
+	log_line("  panel %s; readied %s; prepared %s; locked %s; due %s; left %s; own %s; order %s; controllers %s; base empty %s; out %s; menu open %s" % [
+		"gone" if not is_instance_valid(panel) else ("preparing '%s', waiting %s" % [panel.preparing, panel.waiting]),
+		Campaign.spells_readied, Campaign.prepared_spells, Campaign.locked_spells, Campaign.prepare_due, Campaign.preparing_left(),
+		panel.own_left() if is_instance_valid(panel) else [], Array(Campaign.party_order), Campaign.controllers,
+		Net._change_base.is_empty(), Net._changes_out.size(), Net._menu_open])
+
+
 ## Where everybody stands on `scene`, into the log.
 func log_where(scene: ExplorationScene):
 	log_line("  where they stand: map %s, return %s %s, groups %s" % [Campaign.current_map, Campaign.return_to_position, Campaign.return_position, scene.groups.keys()])
@@ -765,7 +844,31 @@ const CABINET := "res://pictures/clues_cabinet.tscn"
 
 ## What each side changed, laid together on the host (Net._merged) - worked out
 ## here, where the order of two machines cannot muddle it.
+## Somebody joining while a menu is open on the joiner (Net._take_what_is_new). Under load, or
+## on a slow line, the window for preparing came up before the state with the new member in it:
+## asked after, their bags were made up here, the host's clashed with them, and all she had
+## prepared was lost.
+func new_while_a_menu_is_open():
+	var base_was: Dictionary = Net._change_base
+	var learned_was: Dictionary = Campaign.learned_spells
+	Campaign.learned_spells = {"cyrus": ["a"]}
+	Net._change_base = {"learned_spells": {"cyrus": ["a"]}}
+	Net._take_what_is_new({"learned_spells": {"cyrus": ["b"], "newcomer": ["x"]}, "controllers": {"newcomer": 1}}, ["learned_spells", "controllers"])
+	ok(Campaign.learned_spells.get("newcomer") == ["x"], "a menu open here, what is new from the host comes in all the same", "%s" % [Campaign.learned_spells])
+	ok(Campaign.learned_spells.cyrus == ["a"], "  and what the menu keeps it still keeps")
+	ok(Net._changes_since(["learned_spells"]).is_empty(), "  and it is nobody's change, so nothing clashes as the menu closes", "%s" % [Net._changes_since(["learned_spells"])])
+	Campaign.learned_spells.cyrus = ["a", "c"]
+	ok(Net._changes_since(["learned_spells"]).learned_spells.entries.keys() == ["cyrus"], "  what the menu did is still told")
+	Campaign.learned_spells = {"made_up": ["z"]}
+	Net._change_base = {"learned_spells": {}}
+	Net._take_what_is_new({"learned_spells": {"made_up": ["y"]}}, ["learned_spells"])
+	ok(Campaign.learned_spells.made_up == ["z"], "  but what was made here is not overwritten")
+	Campaign.learned_spells = learned_was
+	Net._change_base = base_was
+
+
 func merge_rules():
+	new_while_a_menu_is_open()
 	log_line("======== what each side changed, laid together ========")
 	var took := Net._merged({"took_seal": true}, {"entries": {"took_seal": [[false, null], [true, true]]}})
 	ok(not took[0], "a flag set here and there at the same moment - the seal both reached for: a clash, so it is taken once")
@@ -1442,13 +1545,19 @@ func hosts_half():
 	ok(shown.get_node("Status").text.contains("203.0.113.5:%d" % TEST_PORT), "  and, opened, the address to give over the internet",
 		shown.get_node("Status").text)
 	# A button copying each address to give (the designer, 2026-10-31).
-	var copies: Array = shown.get_node("Copies").get_children()
+	var all_copies: Array = shown.get_node("Copies").get_children()
+	var copies: Array = all_copies.filter(func(button): return String(button.name).begins_with("Copy_"))
+	var codes: Array = all_copies.filter(func(button): return String(button.name).begins_with("Code_"))
 	var given: Array = NetPanel.addresses_to_give()
 	ok(given.has("203.0.113.5:%d" % TEST_PORT) and copies.size() == given.size()
 		and copies.all(func(button): return button is Button and button.text.begins_with("Copy ")),
 		"  a Copy button beside each address to give, the internet's among them", "%s" % [given])
 	copies.back().pressed.emit()
 	ok(shown.get_node("Said").text.contains("203.0.113.5:%d" % TEST_PORT), "  pressed: copied, and said so", shown.get_node("Said").text)
+	# And the same, packed (Net "Join codes").
+	ok(codes.size() == given.size() and codes.back().text.contains(Net.code_for("203.0.113.5", TEST_PORT)), "  and a code beside each", codes.back().text if not codes.is_empty() else "")
+	codes.back().pressed.emit()
+	ok(shown.get_node("Said").text.contains(Net.code_for("203.0.113.5", TEST_PORT)), "  pressed: the code copied", shown.get_node("Said").text)
 	Net.router = Net.Router.CLOSED
 	shown.refresh()
 	ok(shown.get_node("Status").text.contains("Tailscale") and shown.get_node("Status").text.contains("ZeroTier"),
@@ -1717,6 +1826,7 @@ func hosts_half():
 	log_line("")
 
 	await hosts_familiar()
+	await hosts_preparing()
 	await played_there()
 	merge_rules()
 	await pictures_there()
@@ -2084,6 +2194,7 @@ func joiners_half():
 	log_line("")
 
 	await joiners_familiar()
+	await joiners_preparing()
 	await played_here()
 	await pictures_here()
 	await joiners_look()
@@ -2114,7 +2225,8 @@ func joiners_half():
 	log_line("======== joining a fight under way ========")
 	# Not a question for anybody: the host's fight asks none either.
 	get_tree().node_added.connect(_no_questions)
-	ok(Net.join("127.0.0.1", TEST_PORT) == OK and await until(func(): return Net.joined(), 20.0), "joins again, the host in the middle of the fight")
+	# By a join code (Net "Join codes"), as somebody would who was sent one.
+	ok(Net.join(Net.code_for("127.0.0.1", TEST_PORT)) == OK and await until(func(): return Net.joined(), 20.0), "joins again by a code, the host in the middle of the fight")
 	ok(await until(func(): return get_tree().current_scene is GameScene and not SceneTransition.is_changing(), 30.0),
 		"  and comes into it")
 	combat = get_tree().current_scene.combat
