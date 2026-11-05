@@ -305,6 +305,7 @@ func _pad_move_cursor(tile: Vector2i):
 		return
 	_pad_cursor = tile
 	_note_hover(tile)
+	_say_hover(tile)
 	_fresh_view()
 	var room := _pad_room()
 	var screen := _screen_of_tile(tile)
@@ -416,6 +417,10 @@ func reading_a_character_sheet() -> bool:
 func a_menu_is_over_the_map() -> bool:
 	if reading_a_character_sheet():
 		return true
+	# Party Management, a question from the other player... Over a network none
+	# of them holds the game, and this is what keeps the board out of it.
+	if MenuPause.is_held():
+		return true
 	var pause = get_node_or_null("../PauseUI")
 	if pause == null:
 		return false
@@ -427,6 +432,10 @@ func a_menu_is_over_the_map() -> bool:
 
 
 func _unhandled_input(event):
+	# The pointer on the board, for the other player to see (Net), whoever's turn
+	# it is, while the party is being placed too.
+	if event is InputEventMouseMotion and not a_menu_is_over_the_map():
+		_say_hover(tile_map.local_to_map(_pointed_at()))
 	# Held, not toggled: the danger view is a look taken while deciding, and it
 	# works while placing the party too, which is when it is most use.
 	if event.is_action(&"danger_view") and not event.is_echo():
@@ -445,9 +454,16 @@ func _unhandled_input(event):
 	if _stepping:
 		_handle_step_input(event)
 		return
-	if player_turn == false or action_locked:
-		return
 	if a_menu_is_over_the_map():
+		return
+	# Somebody else's turn: who is under the pointer, no more - not where the one
+	# acting would walk, which is theirs to work out.
+	if event is InputEventMouseMotion and not _board_is_theirs():
+		var looked_at := tile_map.local_to_map(_pointed_at())
+		_note_hover(looked_at)
+		_card_for(get_combatant_at_position(looked_at))
+		return
+	if player_turn == false or action_locked:
 		return
 
 	if _skill_selected and event.is_action_pressed("ui_cancel"):
@@ -507,8 +523,10 @@ func _unhandled_input(event):
 				elif radius > 0:
 					_aoe_preview_positions = combat.get_impact_tiles(skill, Combat.nearest_tile_of(caster, mouse_position_i), mouse_position_i, caster.movement_class, caster.get("size", Sizes.Size.HUMAN), caster)
 					_aoe_preview_is_ally = skill.targets_ally
-				elif (skill.placed_in_reach or Combat.summons_with(skill) != "") and picking_a_landing_tile():
-					# Where the image, or what is called up, would stand.
+				elif picking_a_landing_tile():
+					# Where the blink lands, or the image or what is called up
+					# stands (the designer, 2026-11-04: "Moves like misty step
+					# don't highlight tiles where the mouse hovers on").
 					_ally_target_position = local_map
 				elif comb != null:
 					# In reach and the right person - refusal_at has said so.
@@ -516,6 +534,7 @@ func _unhandled_input(event):
 						_ally_target_position = local_map
 					else:
 						_attack_target_position = local_map
+						_preview_blast(caster, skill, comb)
 				_preview_hits(mouse_position_i)
 			elif comb != null and comb.alive and comb.side == 1:
 				_attack_target_position = local_map
@@ -527,10 +546,76 @@ func _unhandled_input(event):
 				_blocked_target_position = null
 
 
+## Whether the board is this press's to play on: nobody has it alone, or the one
+## pressing does (Coop) - otherwise they are only looking.
+func _board_is_theirs() -> bool:
+	return not Coop.on() or Coop.focus == Coop.ANYONE or Coop.acting == Coop.focus
+
+
+## The tile the pointer is on, to the other machine (Net "The other player's
+## pointer"). Only when it changes tile.
+func _say_hover(tile: Vector2i):
+	if tile != _hover_said:
+		_hover_said = tile
+		Net.pointing_on_board(tile)
+
+
+## The tile this machine's pointer was last said to be on.
+var _hover_said := NO_TILE
+## Where the other machine's player is pointing, and how much longer that shows
+## with no word of it moving - a pointer left somewhere says nothing after that.
+var _other_hover := NO_TILE
+var _other_hover_player := 0
+var _other_hover_left := 0.0
+const OTHER_HOVER_SECONDS := 6.0
+
+
+## The other machine's player's pointer has come onto `tile` (Net).
+func show_other_pointing(player: int, tile: Vector2i):
+	_other_hover = tile
+	_other_hover_player = player
+	_other_hover_left = OTHER_HOVER_SECONDS
+	queue_redraw()
+
+
+func _keep_other_pointing(delta: float):
+	if _other_hover == NO_TILE:
+		return
+	_other_hover_left -= delta
+	if _other_hover_left <= 0.0:
+		_other_hover = NO_TILE
+		queue_redraw()
+
+
+## Their tile in their colour, with their name over it.
+func _draw_other_pointing():
+	if _other_hover == NO_TILE or not is_on_map(_other_hover):
+		return
+	var colour: Color = Coop.colour_of(_other_hover_player)
+	_draw_area([_other_hover], Color(colour, 0.2), colour)
+	var corner := _tile_rect(_other_hover).position + Vector2(4.0, -6.0)
+	var font := ThemeDB.fallback_font
+	var size := int(Grid.TILE_SIZE * 0.2)
+	draw_string_outline(font, corner, Coop.name_of(_other_hover_player), HORIZONTAL_ALIGNMENT_LEFT, -1, size, int(Grid.TILE_SIZE * 0.05), Color(0, 0, 0, 0.85))
+	draw_string(font, corner, Coop.name_of(_other_hover_player), HORIZONTAL_ALIGNMENT_LEFT, -1, size, colour)
+
+
+## Whose blow spreads from whoever it lands on shows how far, around them (the
+## designer, 2026-11-04: "Show blast range in Enfina when she has it (and others
+## if they ever get it)"; Combat.splash_tiles_of).
+func _preview_blast(caster: Dictionary, skill: SkillDefinition, target: Dictionary):
+	_aoe_preview_positions = combat.splash_tiles_of(caster, skill, target)
+	_aoe_preview_is_ally = false
+
+
 ## Asks the HUD to say what the skill being aimed would do to whoever the tile
 ## under the cursor would catch. A skill that picks somebody up and puts them
 ## down elsewhere is left out - the first click is choosing who, not hitting -
-## and so is anywhere a click would be refused: it promises nothing there.
+## and so is anywhere else a click would be refused: it promises nothing there.
+##
+## Somebody it only cannot get to is told all the same, saying so (the designer,
+## 2026-11-05: "not that they can be hit as is. but what damage would they take if
+## the player character could have reached them").
 func _preview_hits(tile: Vector2i):
 	var hud = combat.game_ui if combat != null else null
 	if hud == null or not hud.has_method("show_hit_preview"):
@@ -548,10 +633,23 @@ func _preview_hits(tile: Vector2i):
 		if Combat.steals(skill) and comb != null and comb.side != aiming_caster().side \
 				and not combat.is_hidden(comb) and hud.has_method("show_carried"):
 			hud.show_carried(_selected_skill, comb, refusal)
+		elif _only_cannot_get_there(refusal, skill, tile):
+			hud.show_hit_preview(_selected_skill, tile, refusal)
 		else:
 			hud.hide_hit_preview()
 		return
 	hud.show_hit_preview(_selected_skill, tile)
+
+
+## Whether `refusal` of `skill` at `tile` is only about getting there: past the end
+## of its reach, or no clear line - and not too close for it, which is no matter of
+## reaching them. Looting and traps are aimed at the ground and catch nobody.
+func _only_cannot_get_there(refusal: String, skill: SkillDefinition, tile: Vector2i) -> bool:
+	if refusal != OUT_OF_REACH and not refusal.begins_with(NO_CLEAR_LINE):
+		return false
+	if Combat.loots(skill) or Combat.sets_traps(skill):
+		return false
+	return combat.distance_to(aiming_caster(), tile) >= skill.min_range
 
 
 func get_combatant_at_position(target_position: Vector2i):
@@ -1400,8 +1498,9 @@ func set_controlled_combatant(combatant: Dictionary):
 	Coop.fight_turn(combat.player_of(combatant) if player_turn else Coop.ANYONE)
 	controlled_node = combatant.sprite
 	movement = maxi(combat.get_effective_stat(combatant, "movement"), 0)
-	if combat.has_restriction(combatant, "prevents_movement"):
+	if combat.has_restriction(combatant, "prevents_movement") or combat.is_prone(combatant):
 		# Crystallised - rooted for the turn, whatever their movement stat says.
+		# Lying down, nobody walks, whatever else lets them (Combat "Prone").
 		movement = 0
 	_skill_selected = false
 	_attack_target_position = null
@@ -1445,6 +1544,13 @@ var _turn_owner_id := -1
 var _turn_start_position := Vector2i.ZERO
 var _turn_start_movement := 0
 var _turn_start_board := ""
+## Whether they were lying down there, and what they kept to get up with (Combat
+## "Prone"): a walk back takes lying down or getting up back too.
+var _turn_start_prone := false
+var _turn_start_kept := -1
+## Whether they have lain down or got up since then - down and straight up again
+## leaves them as they were, but for the movement it took.
+var _stance_changed := false
 
 
 func _remember_turn_start(combatant: Dictionary):
@@ -1452,6 +1558,13 @@ func _remember_turn_start(combatant: Dictionary):
 	_turn_start_position = combatant.position
 	_turn_start_movement = movement
 	_turn_start_board = combat.board_fingerprint(combatant) if combat != null else ""
+	_remember_lying(combatant)
+
+
+func _remember_lying(combatant: Dictionary):
+	_turn_start_prone = combat != null and combat.is_prone(combatant)
+	_turn_start_kept = combatant.get("movement_left_when_down", -1)
+	_stance_changed = false
 
 
 ## Moves the point a walk back returns to up to here and now, if anything has
@@ -1471,15 +1584,16 @@ func settle_undo_point():
 	_turn_start_position = comb.position
 	_turn_start_movement = movement
 	_turn_start_board = board
+	_remember_lying(comb)
 
 
 ## Whether the player acting has walked anywhere since the point a walk back
-## would return them to.
+## would return them to - or lain down, or got up.
 func has_walked() -> bool:
 	if not player_turn or combat == null:
 		return false
 	var comb = combat.get_current_combatant()
-	return comb.get("id", -2) == _turn_owner_id and comb.position != _turn_start_position
+	return comb.get("id", -2) == _turn_owner_id and (comb.position != _turn_start_position or _stance_changed)
 
 
 ## Whether that walk can still be taken back: they are standing still, nothing
@@ -1507,13 +1621,53 @@ func undo_move() -> bool:
 	_position_id = 0
 	_previous_position = _turn_start_position
 	_next_position = tile_map.map_to_local(_turn_start_position)
+	combat.put_back_lying(comb, _turn_start_prone, _turn_start_kept)
+	_stance_changed = false
 	set_movement(_turn_start_movement)
 	refresh_watched_tiles(comb)
-	combat.update_information.emit("[color=yellow]%s[/color] walks back.\n" % comb.name)
+	combat.update_information.emit("[color=yellow]%s[/color] %s.\n" % [comb.name, "walks back" if from != _turn_start_position else "takes that back"])
 	game_ui_refresh()
 	queue_redraw()
 	# Over a network the other machine walks them back too (Net).
 	Net.fight_move(combat, "undo", [])
+	return true
+
+
+## --- Lying down (Combat "Prone") ---
+
+
+## Whether the player acting can lie down or get up right now: standing still,
+## nothing being aimed or resolved.
+func can_change_stance() -> bool:
+	if combat == null or not player_turn or _skill_selected or action_locked or not is_idle() or a_menu_is_over_the_map():
+		return false
+	var comb = combat.get_current_combatant()
+	return combat.plays_for_party(comb) and (not Coop.on() or Coop.is_local(combat.player_of(comb)))
+
+
+## The player acting lies down, or gets up. False, and nothing done, when they
+## cannot now. Over a network the other machine does the same (Net).
+func toggle_prone() -> bool:
+	if not can_change_stance():
+		return false
+	var going_down := not combat.is_prone(combat.get_current_combatant())
+	if not change_stance(going_down):
+		return false
+	Net.fight_move(combat, "prone", [going_down])
+	return true
+
+
+## The one acting lies down or gets up, and everything that shows it follows.
+func change_stance(going_down: bool) -> bool:
+	var comb = combat.get_current_combatant()
+	if not (combat.lie_down(comb) if going_down else combat.get_up(comb)):
+		return false
+	_stance_changed = true
+	_path = PackedVector2Array()
+	refresh_watched_tiles(comb)
+	game_ui_refresh()
+	queue_redraw()
+	check_turn_completion.call_deferred()
 	return true
 
 
@@ -1730,6 +1884,7 @@ const STEP_ARRIVAL_TIMEOUT = 15.0
 var _step_arrival_finished := false
 
 func _process(delta):
+	_keep_other_pointing(delta)
 	# The floor on the screen changed (the view moved): who is on another one is
 	# drawn afresh.
 	if combat != null and combat._floored and shown_floor() != _drawn_floor:
@@ -1960,7 +2115,7 @@ func set_movement(value):
 ## Combat.use_skill) - this covers the case of moving after already having
 ## used the skill.
 func check_turn_completion():
-	if player_turn and movement <= 0 and not combat.has_action_left(combat.get_current_combatant()):
+	if player_turn and not combat.can_still_walk(combat.get_current_combatant()) and not combat.has_action_left(combat.get_current_combatant()):
 		await combat.advance_turn()
 	elif player_turn:
 		# Still something to do, but the walk is over - re-enable the skill
@@ -2462,6 +2617,10 @@ func confirm_skill_target(position: Vector2i):
 
 ## Why the aimed skill could not be let go at `tile` - at `comb`, whoever stands
 ## there, or {} for nobody - or "" when it could.
+const OUT_OF_REACH := "Out of reach"
+const NO_CLEAR_LINE := "No clear line to "
+
+
 func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 	if not _skill_selected:
 		return "Nothing is being aimed"
@@ -2478,7 +2637,7 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 	# Aimed at a body, not anybody standing (Combat "Loot").
 	if Combat.loots(skill):
 		if tile not in _range_preview_positions:
-			return "Out of reach"
+			return OUT_OF_REACH
 		return combat.refusal_for(caster, skill, tile)
 	if skill.placed_in_reach:
 		# Who it is to be of: anybody of theirs standing, however far off - the
@@ -2502,12 +2661,12 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 	# A trap: bare ground in reach, not anybody (Combat "Traps").
 	if Combat.sets_traps(skill):
 		if tile not in _range_preview_positions:
-			return "Out of reach"
+			return OUT_OF_REACH
 		return combat.refusal_for(caster, skill, tile)
 	# Dispel Magic at bare ground: a zone there (Combat "Dispelling").
 	if Combat.dispels_magic(skill) and comb.is_empty():
 		if tile not in _range_preview_positions:
-			return "Out of reach"
+			return OUT_OF_REACH
 		return combat.refusal_for(caster, skill, tile)
 	if radius == 0:
 		# Aimed at somebody, so it is the somebody who has to be right.
@@ -2531,10 +2690,10 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 	if tile not in _range_preview_positions:
 		var distance = combat.distance_to(caster, tile)
 		if distance >= skill.min_range and distance <= combat.effective_max_range(caster, skill):
-			return "No clear line to %s" % there
-		return "Out of reach"
+			return NO_CLEAR_LINE + there
+		return OUT_OF_REACH
 	if radius == 0 and not is_valid_skill_target(comb, tile):
-		return "No clear line to %s" % there
+		return NO_CLEAR_LINE + there
 	return ""
 
 
@@ -2594,8 +2753,8 @@ func preview_aim_at_combatant(comb: Dictionary):
 			hud.hide_hit_preview()
 	elif aim_refusal(comb) != "":
 		_blocked_target_position = tile_map.map_to_local(face_aim_tile(comb))
-		if hud != null and hud.has_method("hide_hit_preview"):
-			hud.hide_hit_preview()
+		# Out of reach, still said what it would do - as on the map.
+		_preview_hits(face_aim_tile(comb))
 	else:
 		var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
 		var caster = aiming_caster()
@@ -2607,6 +2766,7 @@ func preview_aim_at_combatant(comb: Dictionary):
 			_ally_target_position = tile_map.map_to_local(aim)
 		else:
 			_attack_target_position = tile_map.map_to_local(aim)
+			_preview_blast(caster, skill, comb)
 		_preview_hits(aim)
 	queue_redraw()
 
@@ -3162,6 +3322,7 @@ func _draw():
 				_draw_area(_aoe_preview_positions, BLAST_FILL, BLAST_EDGE)
 		if _blocked_target_position != null:
 			_draw_tile_marker(_blocked_target_position)
+	_draw_other_pointing()
 
 
 ## Whether this controller still belongs to a running battle.

@@ -169,6 +169,16 @@ func local_players() -> Array:
 	return range(players.size()).filter(is_local)
 
 
+## Over a network, the one player on this machine: the keyboard, the mouse and
+## any pad here are all theirs, and what they look at, lead and open are theirs -
+## or ANYONE, on one screen or with two players on this machine.
+func player_here() -> int:
+	if not networked:
+		return ANYONE
+	var mine := local_players()
+	return mine[0] if mine.size() == 1 else ANYONE
+
+
 ## --- Whose characters ---
 
 
@@ -276,6 +286,11 @@ func player_of_event(event: InputEvent) -> int:
 		# Another machine's player: theirs, and never anybody here.
 		var id := device - REMOTE_DEVICE_BASE
 		return id if id < players.size() and not is_local(id) else ANYONE
+	# The one player on this machine: whatever is pressed here is theirs, whatever
+	# they happened to join with.
+	var here := player_here()
+	if here != ANYONE:
+		return here
 	for id in players.size():
 		if players[id].device == device and is_local(id):
 			return id
@@ -287,7 +302,7 @@ func player_of_event(event: InputEvent) -> int:
 ## the pad of whoever does. In a picture on one screen, the first pointer's -
 ## the other player has one of their own (Pictures "Two on one screen").
 func pointer_device() -> int:
-	if not on():
+	if not on() or player_here() != ANYONE:
 		return ANY_DEVICE
 	if _picture_shared():
 		return device_of_player(get_node("/root/Pictures").first_pointer())
@@ -337,6 +352,8 @@ func device_vector(device: int, left: StringName, right: StringName, up: StringN
 ## Which way player `id` is walking: their keys, all or nothing, or their stick
 ## (as Pad.direction, for them alone).
 func direction(id: int, left: StringName, right: StringName, up: StringName, down: StringName) -> Vector2:
+	if id == player_here():
+		return Pad.direction(left, right, up, down)
 	var device := device_of_player(id)
 	if device == KEYBOARD:
 		return Pad.key_direction(left, right, up, down)
@@ -494,7 +511,48 @@ func lets_through(event: InputEvent) -> bool:
 	# (Pictures "Two on one screen").
 	if _picture_shared():
 		return true
-	return focus == ANYONE or who == focus
+	if focus == ANYONE or who == focus:
+		return true
+	# Somebody else's turn. Pointing about is anybody's, on the map or a menu.
+	if event is InputEventMouseMotion:
+		return true
+	if player_here() != ANYONE:
+		# A menu or a conversation on this machine's screen is this player's,
+		# whoever's turn it is on the board (the designer, 2026-11-04: "Player 2
+		# also cannot respond to the party member change requests or the dialogue
+		# options").
+		var net = get_node_or_null("/root/Net")
+		if MenuPause.is_held() or (net != null and net.conversation_up_here()):
+			return true
+	elif MenuPause.is_held():
+		# On one screen a menu is whoever opened it's alone.
+		return false
+	return _only_looks(event)
+
+
+## What anybody may do on somebody else's turn, since it changes nothing: look -
+## the view, the sheets, the menu, the danger view (the designer, 2026-11-04:
+## "Cannot unzoom and zoom camera, and also cannot access the character and
+## monster sheets if it isn't my turn").
+const LOOKING: Array[StringName] = [&"pause", &"menus", &"journal", &"character_sheet", &"danger_view", &"zoom_toggle",
+	&"floor_up", &"floor_down", &"hide_ui"]
+## What the HUD has that anybody may click, in this group or under something in
+## it: the portraits, the turn queue, the log.
+const OPEN_TO_ALL := &"open_to_all"
+
+
+func _only_looks(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		match event.button_index:
+			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT, MOUSE_BUTTON_MIDDLE:
+				return true
+		var over: Control = get_viewport().gui_get_hovered_control()
+		while over != null:
+			if over.is_in_group(OPEN_TO_ALL):
+				return true
+			over = over.get_parent() as Control
+		return false
+	return LOOKING.any(func(action): return event.is_action(action))
 
 
 func _picture_shared() -> bool:

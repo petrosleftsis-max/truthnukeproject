@@ -68,6 +68,7 @@ func play(track: String, loop: bool = true):
 	_ensure_player()
 	if track == "":
 		return
+	Net.music_did("play", [track, loop])
 	if track == _current and _player.playing:
 		return
 	var stream = _load(track)
@@ -85,6 +86,7 @@ func play(track: String, loop: bool = true):
 ## starts it again rather than treating it as already playing.
 func stop():
 	_ensure_player()
+	Net.music_did("stop", [])
 	_cancel_fade()
 	_player.stop()
 	_current = ""
@@ -125,6 +127,7 @@ func current() -> String:
 ## scene that should end in quiet rather than be cut off.
 func fade_out(seconds: float = 1.5):
 	_ensure_player()
+	Net.music_did("fade_out", [seconds])
 	if not _player.playing:
 		return
 	_cancel_fade()

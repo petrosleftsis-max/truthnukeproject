@@ -5,6 +5,13 @@
 [ext_resource type="Script" uid="uid://b67hj6na14crg" path="res://combat/resources/SubclassDefinition.gd" id="2_path"]
 [ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="3_v24j4"]
 
+[sub_resource type="Resource" id="Passive_kip_up"]
+script = ExtResource("1_passive")
+name = "Kip-Up"
+description = "Back on his feet in one move: getting up from prone takes none of his movement."
+required_level = 24
+gets_up_free = true
+
 [sub_resource type="Resource" id="Passive_0"]
 script = ExtResource("1_passive")
 name = "Overload"
@@ -24,4 +31,4 @@ script = ExtResource("2_path")
 name = "Saboteur"
 description = "The ammunition. Cyrus loads rounds that chill and corrode, fires two at once, sets off what is already burning in them - and lets it spread."
 skills = Array[String](["frost_round", "corrosive_round", "combined_load"])
-passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1")])
+passives = Array[ExtResource("1_passive")]([SubResource("Passive_kip_up"), SubResource("Passive_0"), SubResource("Passive_1")])

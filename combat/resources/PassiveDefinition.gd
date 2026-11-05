@@ -321,6 +321,11 @@ var scales_every_skill_with: int = -1
 ## These skills of theirs go through all defence on anybody they have read.
 ## Final Judgment.
 @export var pierce_read_with: Array[String] = []
+## A foe lying prone gets no cover from their ranged moves: nothing off for it
+## (Combat "Prone"). Cyrus's Low Shot.
+@export var ignores_prone_cover: bool = false
+## Getting up from prone takes none of their movement. The Saboteur's Kip-Up.
+@export var gets_up_free: bool = false
 
 @export_subgroup("Empowered")
 ## While they suffer this condition - the Berserker's Burn - they are empowered:
@@ -563,6 +568,10 @@ func _describe_paths() -> Array:
 		lines.append("Their hits land %d%% harder on anybody they have read." % roundi(bonus_vs_read * 100))
 	if not pierce_read_with.is_empty():
 		lines.append("%s goes through all defence on anybody they have read." % _skill_names(pierce_read_with))
+	if ignores_prone_cover:
+		lines.append("A foe lying prone gets no cover from their ranged moves.")
+	if gets_up_free:
+		lines.append("Getting up from prone takes none of their movement.")
 	return lines
 
 

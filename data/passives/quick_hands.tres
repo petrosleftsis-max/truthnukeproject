@@ -5,5 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Quick Hands"
-description = "Items can be used as his secondary action as well as his main one, and he reaches for the secondary first - so he can drink a potion and still attack in the same turn."
+description = "Items can be used as his secondary action as well as his main one, and he reaches for the secondary first - so he can drink a potion and still attack in the same turn. Interact can be too."
+secondary_skills = Array[String](["use"])
 items_as_secondary = true

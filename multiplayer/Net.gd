@@ -104,7 +104,7 @@ const DISCOVERY_PORT := 24701
 const BEACON := "MOT-HOST"
 ## What the two machines say to each other. Bumped whenever that changes; a
 ## joiner with another is turned away.
-const PROTOCOL := 5
+const PROTOCOL := 6
 const BEACON_SECONDS := 1.0
 ## How long a game goes unheard before the Join list forgets it.
 const FORGET_SECONDS := 4.0
@@ -129,7 +129,7 @@ const WATCHES_A_SECOND := 10.0
 const FIGHT_SCENE := "res://scenes/game.tscn"
 ## The moves a fight sends - and "steer", who steers whom changing at that
 ## point of the fight (the host's alone to send).
-const FIGHT_MOVES := ["walk", "skill", "end_turn", "undo", "ready", "deployed", "steer"]
+const FIGHT_MOVES := ["walk", "skill", "end_turn", "undo", "ready", "deployed", "steer", "prone"]
 ## How much faster a fight joined under way is played through, catching up.
 const CATCH_UP_SPEED := 8.0
 ## The presses on a map that do something to the world, which on a joiner are
@@ -850,6 +850,34 @@ func _close_request():
 	_request = null
 
 
+## Whether the game is under way here - a map or a fight. Before it, on the title
+## screen's Players, whom each steers is simply chosen (pick_at_the_table); once
+## it is, a change is asked of the other player (ask_for).
+func in_the_game() -> bool:
+	var scene := get_tree().current_scene
+	return scene is ExplorationScene or scene is GameScene
+
+
+## On the title screen's Players: `key` is player `to`'s to steer (the designer,
+## 2026-11-04: "On network and LAN cannot choose character from the main menu,
+## but it works on local coop"). The host makes it, and the table goes round.
+func pick_at_the_table(key: String, to: int):
+	if is_host():
+		_change_steering({key: to})
+	elif follows():
+		_pick_at_the_table.rpc_id(1, key, to)
+
+
+@rpc("any_peer", "reliable")
+func _pick_at_the_table(key, to):
+	if not is_host() or in_the_game() or not _seated_peers().has(multiplayer.get_remote_sender_id()):
+		return
+	if typeof(key) != TYPE_STRING or typeof(to) != TYPE_INT or to < 0 or to >= Coop.players.size():
+		return
+	if PlayersPanel.characters().has(key):
+		_change_steering({key: to})
+
+
 ## The host: `changes` (key -> player) made - at once, or in a fight once both
 ## fights can take them (_steer_when_both_can).
 func _change_steering(changes: Dictionary):
@@ -1029,7 +1057,7 @@ func _waiting(why):
 func _follow(path, state, as_it_stands):
 	if not follows() or typeof(path) != TYPE_STRING or typeof(state) != TYPE_DICTIONARY:
 		return
-	if not path.begins_with("res://") or not path.ends_with(".tscn") or not ResourceLoader.exists(path):
+	if not path.ends_with(".tscn") or not in_the_game_files(path):
 		return
 	_follow_due = {"path": path, "state": state, "as_it_stands": as_it_stands == true}
 	_state_held = null
@@ -1287,6 +1315,9 @@ func _make(combat: Combat, kind: String, args: Array):
 			await combat.advance_turn()
 		"undo":
 			controller.undo_move()
+		"prone":
+			if args.size() == 1 and typeof(args[0]) == TYPE_BOOL:
+				controller.change_stance(args[0])
 		"ready":
 			if args.size() == 6 and typeof(args[0]) == TYPE_INT and typeof(args[1]) == TYPE_STRING \
 					and typeof(args[2]) == TYPE_INT and typeof(args[3]) == TYPE_VECTOR2I and typeof(args[4]) == TYPE_INT \
@@ -1353,7 +1384,10 @@ func in_a_fight() -> bool:
 func _answer(asked, answer):
 	if typeof(asked) != TYPE_INT or not is_plain(answer):
 		return
-	if (in_a_shared_fight() or (_fight_coming and multiplayer.get_remote_sender_id() == 1)):
+	var sender := multiplayer.get_remote_sender_id()
+	if (is_host() and not _seated_peers().has(sender)) or (follows() and sender != 1):
+		return
+	if (in_a_shared_fight() or (_fight_coming and sender == 1)):
 		_answers[asked] = answer
 
 
@@ -1687,7 +1721,7 @@ func close_picture_there(asked: int):
 func _picture_here(asked, path):
 	if not follows() or typeof(asked) != TYPE_INT or typeof(path) != TYPE_STRING:
 		return
-	if _picture_asked >= 0 or Pictures.is_open() or not path.begins_with("res://") or not ResourceLoader.exists(path):
+	if _picture_asked >= 0 or Pictures.is_open() or not in_the_game_files(path):
 		_from_afar.rpc_id(1, asked, {})
 		return
 	_picture_asked = asked
@@ -1768,8 +1802,7 @@ func _picture_done():
 func _picture_changes(answer: Dictionary):
 	var scene = answer.get("scene")
 	var map = answer.get("map")
-	if scene is String and scene == Campaign.EXPLORATION_SCENE and map is String and map.begins_with("res://") \
-			and ResourceLoader.exists(map):
+	if scene is String and scene == Campaign.EXPLORATION_SCENE and map is String and in_the_game_files(map):
 		if Pictures.is_open():
 			Pictures.close()
 		Campaign.travel_to_map(map, str(answer.get("entry", "")))
@@ -2055,7 +2088,7 @@ func conversation_line(balloon: Node):
 	# Choosing is both players', so neither's presses are kept from the
 	# answers; pressing on through a line is whoever began it.
 	Coop.focus = Coop.ANYONE if not answers.is_empty() else _starter
-	_line.rpc(str(line.character), str(line.text), answers, _starter)
+	_line.rpc(str(line.character), str(line.text), answers, _starter, Array(line.tags))
 
 
 func conversation_over(balloon: Node):
@@ -2131,9 +2164,9 @@ func _pick_again(text):
 
 
 @rpc("authority", "reliable")
-func _line(character, text, answers, starter):
+func _line(character, text, answers, starter, tags):
 	if not follows() or typeof(character) != TYPE_STRING or typeof(text) != TYPE_STRING \
-			or typeof(answers) != TYPE_ARRAY or typeof(starter) != TYPE_INT:
+			or typeof(answers) != TYPE_ARRAY or typeof(starter) != TYPE_INT or typeof(tags) != TYPE_ARRAY:
 		return
 	var shown := []
 	for answer in answers:
@@ -2143,7 +2176,7 @@ func _line(character, text, answers, starter):
 		_mirror = ConversationMirror.new()
 		get_tree().root.add_child(_mirror)
 	_mirror_starter = starter
-	_mirror.show_line(character, text, shown, Coop.is_local(starter))
+	_mirror.show_line(character, text, shown, Coop.is_local(starter), tags.filter(func(tag): return typeof(tag) == TYPE_STRING))
 	_hold_for_conversation(true)
 
 
@@ -2162,6 +2195,82 @@ func _close_mirror():
 
 ## The joiner: who began the conversation the mirror shows.
 var _mirror_starter := -1
+
+
+## Whether the conversation's copy is up on this machine's screen - its answers
+## this machine's player's, whoever's turn it is (Coop.lets_through).
+func conversation_up_here() -> bool:
+	return follows() and _mirror != null and is_instance_valid(_mirror) and _mirror.visible
+
+
+## --- What a conversation does on the map ---
+##
+## Both players see the same thing (the designer, 2026-11-04: "They also can't
+## see things like a character walking in frame. I want them both to see the
+## same thing"): what a conversation has people do on the map, and the music it
+## calls for, the host's Actors and Music do here and tell the joiner, whose own
+## do the same. Only those calls, and only plain arguments.
+
+const ACTORS_DOES := ["walk_behind", "enter_behind", "exit_behind", "place", "face"]
+const MUSIC_DOES := ["play", "stop", "fade_out"]
+
+
+## The host: `call` done by Actors just now.
+func actors_did(call: String, args: Array):
+	if is_host() and not _seated_peers().is_empty():
+		_actors_did.rpc(call, args)
+
+
+@rpc("authority", "reliable")
+func _actors_did(call, args):
+	if not follows() or typeof(call) != TYPE_STRING or not ACTORS_DOES.has(call) or typeof(args) != TYPE_ARRAY:
+		return
+	if args.size() < 2 or typeof(args[0]) != TYPE_STRING or not args.all(_plain_argument):
+		return
+	Actors.callv(call, args)
+
+
+## The host: `call` done by Music just now, for a conversation.
+func music_did(call: String, args: Array):
+	if is_host() and not _seated_peers().is_empty() and Coop.talking():
+		_music_did.rpc(call, args)
+
+
+@rpc("authority", "reliable")
+func _music_did(call, args):
+	if not follows() or typeof(call) != TYPE_STRING or not MUSIC_DOES.has(call) or typeof(args) != TYPE_ARRAY or not args.all(_plain_argument):
+		return
+	# A track by its name, from the game's own music - nothing that climbs out.
+	if call == "play" and (args.is_empty() or String(args[0]).contains("/") or String(args[0]).contains("\\") or String(args[0]).contains("..")):
+		return
+	Music.callv(call, args)
+
+
+func _plain_argument(value) -> bool:
+	return value == null or typeof(value) in [TYPE_STRING, TYPE_STRING_NAME, TYPE_INT, TYPE_FLOAT, TYPE_BOOL]
+
+
+## --- The other player's pointer ---
+##
+## Over a network, in a fight: the tile each player's pointer is on, drawn on the
+## other's board in their colour (the designer, 2026-11-04: "It would be cool to
+## show the tiles the other player hovers on"; CController.show_other_pointing).
+
+
+## This machine's pointer has come onto `tile`.
+func pointing_on_board(tile: Vector2i):
+	if not with_another() or not in_a_shared_fight():
+		return
+	var here := Coop.player_here()
+	if here != Coop.ANYONE:
+		_pointed_on_board.rpc(here, tile)
+
+
+@rpc("any_peer", "unreliable_ordered")
+func _pointed_on_board(id, tile):
+	if typeof(id) != TYPE_INT or typeof(tile) != TYPE_VECTOR2I or not _sent_by_whoever_plays(id) or not in_a_shared_fight():
+		return
+	_fight.controller.show_other_pointing(id, tile)
 
 
 ## The player whose conversation is on, when they play on the other machine -
@@ -2762,12 +2871,32 @@ func _press(id, data):
 			event = action
 	if event == null:
 		return
-	_pointing[id] = str(data.get("pointed", ""))
 	event.pressed = true
 	event.device = Coop.REMOTE_DEVICE_BASE + id
+	# Only what a joiner's press may be (forwards): a key or a button named by
+	# the other machine is never let press anything else here - the pause menu,
+	# or whatever button this machine's menu has the focus on.
+	if not _may_press_from_afar(event):
+		return
+	_pointing[id] = str(data.get("pointed", ""))
 	# Into the scene as any press is, through the gate - never into Input,
 	# which would think this machine's own keys were down.
 	get_viewport().push_input(event)
+
+
+## Whether `event`, sent by the other machine, is a press it may send: what the
+## host acts on for it (HOSTS_PRESSES, BOTH_PRESSES), the number keys on a watched
+## map, the familiar's while one is out.
+func _may_press_from_afar(event: InputEvent) -> bool:
+	for action in HOSTS_PRESSES + BOTH_PRESSES:
+		if event.is_action_pressed(action):
+			return true
+	var scene := _map()
+	if scene == null:
+		return false
+	if event.is_action_pressed(&"familiar") and scene.familiar_keeper != null and scene.familiar_keeper.familiar != null:
+		return true
+	return event is InputEventKey and event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_9 and scene.stealth != null
 
 
 ## On a joiner: `action`, done here by player `id` some other way than a press
@@ -2910,6 +3039,16 @@ func _ping(player, at, label):
 		Pings.show_ping(player, at, label.left(60))
 
 
+## --- Paths from the other machine ---
+
+
+## Whether `path`, sent by the other machine, is one of the game's own files:
+## under res://, with nothing that climbs out of it. A scene or a resource can
+## carry a script, so one loaded from anywhere else on the disk could run it.
+static func in_the_game_files(path: String) -> bool:
+	return path.begins_with("res://") and not path.contains("..") and not path.contains("\\") and ResourceLoader.exists(path)
+
+
 ## --- Resources as data ---
 
 
@@ -2959,7 +3098,7 @@ static func data_to_resource(data) -> Resource:
 	var made: Resource = null
 	var path := str(data.get("path", ""))
 	if path != "":
-		if not path.begins_with("res://") or not ResourceLoader.exists(path):
+		if not in_the_game_files(path):
 			return null
 		made = load(path)
 		if made != null and not Dictionary(data.get("meta", {})).is_empty():
@@ -2971,7 +3110,7 @@ static func data_to_resource(data) -> Resource:
 		var ours := false
 		for root in DATA_SCRIPTS:
 			ours = ours or script_path.begins_with(root)
-		if not ours or not script_path.ends_with(".gd") or not ResourceLoader.exists(script_path):
+		if not ours or not script_path.ends_with(".gd") or not in_the_game_files(script_path):
 			return null
 		var script = load(script_path)
 		# A resource's script, and nothing that is not one is ever made.

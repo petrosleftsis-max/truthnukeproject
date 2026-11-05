@@ -60,7 +60,8 @@ The plan as it was:
   queue, movement and End Turn and empties the skill grid
   (`set_skill_list([], true)`), leaving a Spells button and an empty grid. Fill
   that grid with the leader's moves (Skills / Secondary / Spells tabs, gate pips
-  as in a fight); Tab swaps the leader, so it shows the new one's. A move with no
+  as in a fight); Tab swaps the leader, so it shows the new one's (over a network,
+  this machine's player's own lead: `Campaign.lead_here`, 2026-11-05). A move with no
   outside use yet is greyed with "only in a fight".
 - **The toggle** on the panel, kept as left (a per-viewer setting, not saved
   state), shows only spells marked out of combat.

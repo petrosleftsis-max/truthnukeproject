@@ -612,22 +612,29 @@ const PORTRAIT_TAG = "portrait"
 
 ## The portrait for the line being shown, or null for none.
 func _portrait_for(line) -> Texture2D:
-	if line == null or line.character.is_empty():
+	if line == null:
 		return null
-	if line.has_tag(NO_PORTRAIT_TAG):
+	return portrait_of(line.character, line.tags)
+
+
+## The portrait of `character` saying a line tagged `tags` - also how the joiner's
+## copy of a conversation finds it (ConversationMirror).
+static func portrait_of(character: String, tags: Array) -> Texture2D:
+	if character.is_empty() or tags.has(NO_PORTRAIT_TAG):
 		return null
-	var who = _file_safe(line.character)
+	var who = _file_safe(character)
 	if who == "":
 		return null
 
 	# An explicit [#portrait=name] wins, then the first tag that names a file
 	# that exists, then the character's plain portrait.
 	var wanted: Array[String] = []
-	var named = line.get_tag_value(PORTRAIT_TAG)
-	if named != "":
-		wanted.append("%s_%s" % [who, _file_safe(named)])
-	for tag in line.tags:
-		if tag.contains("="):
+	for tag in tags:
+		if String(tag).begins_with(PORTRAIT_TAG + "="):
+			wanted.append("%s_%s" % [who, _file_safe(String(tag).trim_prefix(PORTRAIT_TAG + "="))])
+			break
+	for tag in tags:
+		if String(tag).contains("="):
 			continue
 		wanted.append("%s_%s" % [who, _file_safe(tag)])
 	wanted.append(who)
@@ -640,6 +647,7 @@ func _portrait_for(line) -> Texture2D:
 
 
 ## A character or expression name as it appears in a filename: lowercase, and
-## spaces joined up, so "Old Man" finds old_man.png.
-func _file_safe(text: String) -> String:
-	return text.strip_edges().to_lower().replace(" ", "_")
+## spaces joined up, so "Old Man" finds old_man.png. Nothing that would leave the
+## folder: over a network the name comes from the other machine.
+static func _file_safe(text: String) -> String:
+	return text.strip_edges().to_lower().replace(" ", "_").replace("/", "").replace("\\", "").replace("..", "")

@@ -49,6 +49,11 @@ const FAMILIAR_DOUBT := Color("b48cf0")
 
 ## How see-through anyone sneaking is drawn - combat's look for a hidden ally.
 const SNEAKING_ALPHA := 0.55
+## How near a guard somebody walking about openly - not in stealth mode, nor
+## invisible - is noticed, walls or no walls, as if seen (the designer, 2026-11-04:
+## "If the others walk in a big proximity, every guard starts getting alert"), in
+## tiles - a PROPOSAL value.
+const WALKING_NOTICED_TILES := 8.0
 
 ## --- Feeling watched ---
 ## How solid the amber round the screen's edges gets as the fullest meter fills,
@@ -1351,6 +1356,11 @@ func feels_familiar(guard: Guard, tile: Vector2i, near: float) -> bool:
 			return near <= guard.sense_tiles
 		Guard.Kind.DOG:
 			return near <= guard.smell_tiles
+	# Tucked into a hiding spot, as anybody can be (can_perceive): only from right
+	# beside it (the designer, 2026-11-04: "allow them to hide on the same spots
+	# Cyrus can").
+	if is_hiding_spot(tile) and near > REACH_TILES:
+		return false
 	return near <= maxf(familiar.form.noticed_within, REACH_TILES) and _seen.get(guard, {}).has(tile)
 
 
@@ -1362,6 +1372,7 @@ func _watch_familiar(delta: float):
 	# Theirs to steer, not the party's: kept where they stand while it is.
 	keeper.keep_party_rooted()
 	var tile := tile_of(familiar.global_position)
+	familiar.modulate.a = HIDDEN_ALPHA if is_hiding_spot(tile) else 1.0
 	for guard in guards:
 		if not is_instance_valid(guard):
 			continue
@@ -2541,7 +2552,7 @@ func _notification(what: int):
 		_hurry(false)
 
 
-## --- Noisy ground, and creeping (hold Ctrl) ---
+## --- Noisy ground, and creeping (Ctrl turns it on and off) ---
 ##
 ## Gravel, puddles and broken glass (see NoisyFloor) give away whoever walks
 ## across them at an ordinary pace: a noise every STEP_SECONDS, heard as far as
@@ -2556,7 +2567,8 @@ var _noisy := {}
 var _step_in := {}
 ## Where each of the party stood last frame, to tell walking from standing.
 var _stood := {}
-var _creep_kept := false
+## Who has creeping on - by player, -1 alone (toggle_creep).
+var _creep_on := {}
 
 
 func _collect_floors():
@@ -2573,35 +2585,93 @@ func noisy_floor_at(tile: Vector2i) -> NoisyFloor:
 	return _noisy.get(tile)
 
 
-## Whether the party is creeping: Ctrl held, the bar's Creep kept on, or the
-## stick pushed only a little way - in co-op, the group of whoever's press is
-## being handled (creeping_in).
+## Whether the party is creeping: turned on, or the stick pushed only a little
+## way - in co-op, the group of whoever's press is being handled (creeping_in).
 func creeping() -> bool:
 	return creeping_in(scene.get("party") if scene != null else null)
 
 
-## Whether `group` creeps: the bar's Creep kept on, Ctrl held - in co-op on its
-## player's own device - or its stick pushed only a little way. The other
+## Whether `group` creeps: turned on, by Ctrl or the bar's Creep (toggle_creep) -
+## each player's own, in co-op - or its stick pushed only a little way. The other
 ## machine's group, over a network, creeps as that machine says
 ## (ExplorationParty.creeping_there).
 func creeping_in(group) -> bool:
 	if group == null or not is_instance_valid(group):
-		return _creep_kept or Input.is_action_pressed(&"creep")
+		return _creep_on.has(-1)
 	if group.puppet:
 		return group.creeping_there
-	if _creep_kept:
+	if not _can_creep(group):
+		return false
+	return _creep_on.has(group.player) or group.light_touch()
+
+
+## --- Stealth mode ---
+##
+## Only somebody who can (CombatantDefinition.stealths - Cyrus), creeping, and
+## anybody invisible, go unnoticed by a guard who cannot see them; the familiar is
+## a matter of its own (feels_familiar). Everybody else walking near a guard is
+## noticed as if seen, through walls - and so is Cyrus when he is not creeping.
+## Standing still, nobody is (the designer, 2026-11-04: "Make only Cyrus and the
+## familiar able to go to stealth mode, or any invisible ally. If the others walk
+## in a big proximity, every guard starts getting alert similarly to being able
+## to see them while the others are walking. This is also true for Cyrus when he
+## isn't stealthing").
+
+## Who of the party walked this last frame.
+var _walking_now := {}
+
+
+## Whether `key` is in stealth mode now.
+func stealthing(key: String) -> bool:
+	if unseen(key):
 		return true
-	if Coop.on() and group.player >= 0:
-		if Coop.held(Coop.device_of_player(group.player), &"creep"):
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null or not definition.stealths:
+		return false
+	var group = _group_of(key)
+	return creeping_in(group) and not (group != null and is_instance_valid(group) and group.dashing)
+
+
+## Whether `guard` notices `someone` ({key, tile, hiding}) walking about openly
+## near him, whether he can see them or not. Somebody in a disguise walks about
+## as they are meant to, and somebody tucked into a hiding spot is not walking.
+func notices_walking(guard: Guard, someone: Dictionary) -> bool:
+	if guard.kind == Guard.Kind.SENSOR or guard.sees_nothing() or someone.get("hiding", false):
+		return false
+	if not _walking_now.has(someone.key) or stealthing(someone.key) or worn_by(someone.key) != "":
+		return false
+	return Vector2(someone.tile - tile_of(guard.global_position)).length() <= WALKING_NOTICED_TILES
+
+
+## Whether anybody in `group` could go to stealth mode: creeping is for them.
+func _can_creep(group) -> bool:
+	if group == null or not is_instance_valid(group):
+		return true
+	for sprite in group._members():
+		var key := String(sprite.get_meta("combatant_key", ""))
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+		if unseen(key) or (definition != null and definition.stealths):
 			return true
-	elif Input.is_action_pressed(&"creep"):
-		return true
-	return group.light_touch()
+	return false
 
 
-## Keeps creeping on, or lets it go - the bar's Creep, for playing with the mouse.
+## Whether the leader's group can creep at all - the bar's Creep.
+func can_creep_here() -> bool:
+	return _can_creep(scene.get("party") if scene != null else null)
+
+
+## Creeping on, or off again - Ctrl or the bar's Creep, for whoever pressed it (the
+## designer, 2026-11-05: "Make creep instead of holding a key, be toggle"). Not for
+## a group with nobody in it who could.
 func toggle_creep():
-	_creep_kept = not _creep_kept
+	var group = scene.get("party") if scene != null else null
+	if group != null and is_instance_valid(group) and not _can_creep(group):
+		return
+	var whose: int = group.player if group != null and is_instance_valid(group) else -1
+	if _creep_on.has(whose):
+		_creep_on.erase(whose)
+	else:
+		_creep_on[whose] = true
 	_set_pace()
 
 
@@ -2653,6 +2723,10 @@ func _listen_to_feet(delta: float):
 		var stride = _stood[someone.key].distance_to(at) if _stood.has(someone.key) else 0.0
 		var moved = stride > 0.5 and stride < Grid.tiles(1.0)
 		_stood[someone.key] = at
+		if moved:
+			_walking_now[someone.key] = true
+		else:
+			_walking_now.erase(someone.key)
 		var ground = noisy_floor_at(someone.tile)
 		var group = _group_of(someone.key)
 		var quiet: bool = creeping_in(group) and not (group != null and group.dashing)
@@ -4078,7 +4152,7 @@ func _process(delta):
 		var seen_disguised := false
 		var caught_at_it := false
 		for someone in standing:
-			if not can_perceive(guard, someone):
+			if not can_perceive(guard, someone) and not notices_walking(guard, someone):
 				continue
 			# Seen dragging a body, changing clothes or poisoning a supper, there
 			# is no doubt at all who he is - whatever he has on.
@@ -4404,10 +4478,10 @@ func looks_behind_cover(guard: Guard, tile: Vector2i) -> bool:
 	return Vector2(tile - tile_of(guard.last_seen)).length() <= SEARCH_SPOTS_TILES
 
 
-## Anyone sneaking is drawn half-there, the way combat draws a hidden ally, so
-## it reads at a glance that this is a map to be quiet on - and anyone in a
-## disguise is drawn solid, as whoever it copies, walking about openly. Every
-## frame, because the party's sprites are rebuilt whenever the roster changes.
+## Anyone in stealth mode is drawn half-there, the way combat draws a hidden ally,
+## so it reads at a glance who is going unnoticed - and anybody else is drawn
+## solid, walking about openly, in a disguise as whoever it copies. Every frame,
+## because the party's sprites are rebuilt whenever the roster changes.
 func _dress_the_party():
 	for someone in _party_standing():
 		var sprite = someone.sprite
@@ -4418,7 +4492,7 @@ func _dress_the_party():
 			looks_like = copied.sprite_frames if copied != null else null
 		if sprite.has_method("show_as"):
 			sprite.show_as(looks_like)
-		var alpha = 1.0 if worn != "" else SNEAKING_ALPHA
+		var alpha = SNEAKING_ALPHA if worn == "" and stealthing(someone.key) else 1.0
 		if someone.hiding or unseen(someone.key):
 			alpha = HIDDEN_ALPHA
 		if sprite.has_method("set_hidden_alpha") and sprite.hidden_alpha != alpha:

@@ -158,7 +158,12 @@ func _on_party_changed():
 ## make-up or order changes - on arrival, and after passing the lead.
 func _refresh_party_panel():
 	if game_ui != null and game_ui.has_method("show_exploration_party"):
+		# Over a network this machine's player's own lead comes first and is lit.
+		var before := Coop.acting
+		if Coop.player_here() != Coop.ANYONE:
+			Coop.acting = Coop.player_here()
 		game_ui.show_exploration_party(Campaign.party_members())
+		Coop.acting = before
 
 
 func map_path() -> String:
@@ -348,7 +353,7 @@ func _spawn_party():
 		_build_groups(_main_party, _main_party.position_of_leader())
 	if not Coop.players_changed.is_connected(_on_players_changed):
 		Coop.players_changed.connect(_on_players_changed)
-	_follow_camera(_main_party.position_of_leader())
+	_follow_camera(_camera_group().position_of_leader())
 
 
 ## What everyone still standing looks like, leader first - straight off the
@@ -528,8 +533,8 @@ func _glide_camera(delta: float):
 		conversation_shot = -1
 		_gliding_back = CAMERA_BACK_SECONDS
 		# Where it would be now, everybody where they stand.
-		if _main_party != null and _main_party.leader != null:
-			_follow_camera(_main_party.position_of_leader())
+		if _camera_group() != null and _camera_group().leader != null:
+			_follow_camera(_camera_group().position_of_leader())
 	if _gliding_back <= 0.0:
 		return
 	_gliding_back -= delta
@@ -749,10 +754,14 @@ func swap_leader():
 	if new_leader == "":
 		return
 	_passing_lead = true
-	var guard := Campaign.party_order.size()
-	while Campaign.leader() != new_leader and guard > 0:
-		Campaign.cycle_leader()
-		guard -= 1
+	if Coop.on():
+		# Round this player's own, the other's line left as it stands.
+		Campaign.lead_within(living, new_leader)
+	else:
+		var guard := Campaign.party_order.size()
+		while Campaign.leader() != new_leader and guard > 0:
+			Campaign.cycle_leader()
+			guard -= 1
 	_passing_lead = false
 	party.setup(_textures_for(party), standing_at, is_walkable)
 	_keep_stayers()
@@ -1023,6 +1032,15 @@ var _coop_zoom := 0.0
 func _acting_group() -> ExplorationParty:
 	if not groups.is_empty() and groups.has(Coop.acting) and is_instance_valid(groups[Coop.acting]):
 		return groups[Coop.acting]
+	return _camera_group()
+
+
+## The group this machine's camera goes with: over a network its own player's,
+## or watching, the first's. On one screen the camera frames them all (_frame_groups).
+func _camera_group() -> ExplorationParty:
+	var here := Coop.player_here()
+	if here != Coop.ANYONE and groups.has(here) and is_instance_valid(groups[here]):
+		return groups[here]
 	return _main_party
 
 
@@ -1114,7 +1132,9 @@ func _build_groups(leading: ExplorationParty, from: Vector2):
 		groups[id] = group
 	for group in groups.values():
 		group.companions = groups.values()
-		group.leash = _within_leash
+		# Only on one screen, with one camera to keep them all in (the designer,
+		# 2026-11-04: "Still on leash, only want for local co op").
+		group.leash = _within_leash if not Coop.networked else Callable()
 		_ring(group)
 	_frame_groups()
 
@@ -1146,7 +1166,9 @@ func _ring(group: ExplorationParty):
 func _group_moved(leader_position: Vector2, group: ExplorationParty):
 	var before := Coop.acting
 	Coop.acting = group.player
-	_follow_camera(leader_position)
+	# Over a network the camera is this machine's player's, wherever the other walks.
+	if not Coop.networked or group == _camera_group():
+		_follow_camera(leader_position)
 	_check_contact_triggers(leader_position)
 	_pick_up_stayers(leader_position, group)
 	Coop.acting = before
@@ -1166,6 +1188,10 @@ func _on_players_changed():
 ## Keeps everybody in view - true while there is more than one group to frame.
 func _frame_groups() -> bool:
 	if camera == null:
+		return false
+	# On one screen, everybody. Over a network each machine has a camera of its
+	# own, and the other player may be anywhere.
+	if Coop.networked:
 		return false
 	var leaders := []
 	for group in all_groups():

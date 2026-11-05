@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="6_effect"]
 [ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="7_frames"]
 [ext_resource type="Resource" path="res://data/conditions/bile_soaked.tres" id="8_bile"]
+[ext_resource type="Resource" path="res://data/conditions/prone.tres" id="11_prone"]
 [ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="9_passive"]
 [ext_resource type="Resource" path="res://data/passives/hollow_frame.tres" id="10_hollow"]
 
@@ -114,6 +115,7 @@ skills = Array[String](["ravenous_bite", "grab", "devour", "catch_the_scent", "r
 passives = Array[ExtResource("9_passive")]([ExtResource("10_hollow")])
 resist_fire = -25
 immune_to = Array[int]([9, 10, 12])
+immune_to_conditions = Array[ExtResource("3_g0h36")]([ExtResource("11_prone")])
 boss = SubResource("Boss")
 parts = Array[ExtResource("4_part")]([SubResource("Part_jaws"), SubResource("Part_belly"), SubResource("Part_legs")])
 eats = 3

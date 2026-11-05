@@ -115,6 +115,7 @@ func walk(actor: String, where, y = null) -> void:
 ## can cross the scene at once this way, and a line can be spoken while someone
 ## is still on their way.
 func walk_behind(actor: String, where, y = null) -> void:
+	Net.actors_did("walk_behind", [actor, where, y])
 	var sprite = _actor(actor)
 	if sprite == null:
 		return
@@ -135,6 +136,7 @@ func enter(actor: String, where, y = null) -> void:
 
 
 func enter_behind(actor: String, where, y = null) -> void:
+	Net.actors_did("enter_behind", [actor, where, y])
 	var to = _point(where, y)
 	if to == null:
 		push_warning("Actors.enter('%s', ...): no waypoint or tile called '%s' on this map." % [actor, where])
@@ -159,6 +161,7 @@ func exit(actor: String, where = null, y = null) -> void:
 
 
 func exit_behind(actor: String, where = null, y = null) -> void:
+	Net.actors_did("exit_behind", [actor, where, y])
 	var sprite = _actor(actor, false)
 	if sprite == null:
 		return
@@ -178,6 +181,7 @@ func exit_behind(actor: String, where = null, y = null) -> void:
 ## Puts `actor` somewhere with no walking, for setting a scene up rather than
 ## playing it out.
 func place(actor: String, where, y = null) -> void:
+	Net.actors_did("place", [actor, where, y])
 	var sprite = _actor(actor)
 	var to = _point(where, y)
 	if sprite == null or to == null:
@@ -190,6 +194,7 @@ func place(actor: String, where, y = null) -> void:
 
 ## Turns `actor` to face "left", "right", another actor, or a waypoint.
 func face(actor: String, towards) -> void:
+	Net.actors_did("face", [actor, towards])
 	var sprite = _actor(actor, false)
 	if sprite == null:
 		return
@@ -216,6 +221,16 @@ func face(actor: String, towards) -> void:
 ## Whether `actor` is still on their way somewhere.
 func is_walking(actor: String) -> bool:
 	return _jobs.has(actor.to_lower())
+
+
+## Whether `sprite` is being walked somewhere now, whoever it is.
+func is_moving(sprite: Node2D) -> bool:
+	if _jobs.is_empty():
+		return false
+	for key in _jobs:
+		if _jobs[key].sprite == sprite:
+			return true
+	return false
 
 
 ## Waits for a walk started with one of the `_behind` calls, so a scene can

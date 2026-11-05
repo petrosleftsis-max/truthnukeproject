@@ -148,6 +148,82 @@ func _done_on_joins():
 			panel.close()
 
 
+## --- Each their own (the designer, 2026-11-04) ---
+
+
+func hosts_each_their_own(scene: ExplorationScene, m: Dictionary, spot: Vector2i):
+	log_line("======== each their own ========")
+	ok(not scene.groups[0].leash.is_valid() and not scene.groups[1].leash.is_valid(), "no leash over a network: only on one screen")
+	# The camera is this machine's player's, wherever the other walks.
+	scene._follow_camera(scene.groups[0].position_of_leader())
+	var kept: Vector2 = scene.camera.position
+	var theirs_was: Vector2 = scene.groups[1].position_of_leader()
+	say("walk off")
+	ok(await until(func(): return scene.groups[1].position_of_leader().distance_to(theirs_was) > Grid.tiles(0.5), 10.0), "the joiner walks off")
+	ok(scene.camera.position == kept, "  and the camera here does not go with them", "%s, %s" % [scene.camera.position, kept])
+	# A press from there is only ever what a press from there may be.
+	var escape := InputEventKey.new()
+	escape.physical_keycode = KEY_ESCAPE
+	escape.keycode = KEY_ESCAPE
+	escape.pressed = true
+	var enter := InputEventKey.new()
+	enter.physical_keycode = KEY_ENTER
+	enter.keycode = KEY_ENTER
+	enter.pressed = true
+	var interact := InputEventKey.new()
+	interact.physical_keycode = KEY_E
+	interact.keycode = KEY_E
+	interact.pressed = true
+	ok(not Net._may_press_from_afar(escape) and not Net._may_press_from_afar(enter), "the other machine cannot press Escape or Enter here")
+	ok(Net._may_press_from_afar(interact), "  only what is theirs to press: E")
+	var hosts_lead: String = Coop.keys_of(0)[0] if not Coop.keys_of(0).is_empty() else ""
+	var theirs_lead: String = Coop.keys_of(1)[0] if not Coop.keys_of(1).is_empty() else ""
+	say("lead:%s" % theirs_lead)
+	if Coop.keys_of(1).size() >= 2:
+		ok(await until(func(): return Coop.keys_of(1)[0] != theirs_lead, 10.0), "Tab on the joiner passes their lead here", "%s" % [Coop.keys_of(1)])
+		ok(Coop.keys_of(0).is_empty() or Coop.keys_of(0)[0] == hosts_lead, "  and leaves this player's as it was", "%s" % [Coop.keys_of(0)])
+		ok(await hear("lead passed"), "  and it shows there")
+	# What a conversation has somebody do on the map is done there too.
+	Actors.place("barbarian", spot.x, spot.y)
+	say("actor at:%d,%d" % [spot.x, spot.y])
+	ok(await hear("saw the actor"), "somebody put on the map by a conversation shows on the joiner's too")
+	Actors.exit_behind("barbarian")
+	log_line("")
+
+
+func joiners_each_their_own(scene: ExplorationScene, m: Dictionary):
+	log_line("======== each their own ========")
+	await hear("walk off")
+	var mine: ExplorationParty = scene.groups[1]
+	ok(not mine.leash.is_valid(), "no leash here either")
+	for way in [Vector2.DOWN, Vector2.UP, Vector2.LEFT, Vector2.RIGHT]:
+		if scene.is_walkable(mine.position_of_leader() + way * Grid.tiles(1.0)):
+			mine.teleport(mine.position_of_leader() + way * Grid.tiles(1.0))
+			# What a walk says as it goes, which is what the camera follows.
+			mine.moved.emit(mine.position_of_leader())
+			break
+	await until(func(): return heard_after("lead:") != "", 15.0)
+	var lead := heard_after("lead:")
+	ok(Campaign.lead_here() == lead, "this player's own lead, not the host's", "%s, %s" % [Campaign.lead_here(), lead])
+	ok(scene.moves_panel.who() == lead, "  their moves on the panel", scene.moves_panel.who())
+	var lit := Campaign.party_members().filter(func(member): return member.is_leader).map(func(member): return member.key)
+	ok(lit == [lead], "  and theirs the portrait lit", "%s" % [lit])
+	ok(scene.camera.position.distance_to(own_party(scene)) < Grid.tiles(1.5), "  the camera on their own party", "%s, %s" % [scene.camera.position, own_party(scene)])
+	if Coop.keys_of(1).size() >= 2:
+		get_viewport().push_input(key_event(KEY_TAB))
+		ok(await until(func(): return Campaign.lead_here() != lead, 10.0), "Tab: the lead passes, and it shows here", Campaign.lead_here())
+		ok(scene.moves_panel.who() == Campaign.lead_here(), "  the panel with it")
+		say("lead passed")
+	await until(func(): return heard_after("actor at:") != "", 15.0)
+	ok(await until(func(): return Actors._spawned.has("barbarian"), 10.0), "somebody the conversation put on the map is here too")
+	if Actors._spawned.has("barbarian"):
+		var where := heard_after("actor at:")
+		var tile := Vector2i(int(where.get_slice(",", 0)), int(where.get_slice(",", 1)))
+		ok(Actors._spawned["barbarian"].position.distance_to(scene._tile_map.map_to_local(tile)) < 2.0, "  in the same place")
+	say("saw the actor")
+	log_line("")
+
+
 ## --- A conversation, mirrored ---
 
 
@@ -207,8 +283,8 @@ func hosts_conversation():
 	ok(await until(func(): return Coop.focus == Coop.ANYONE and not scene.is_holding(), 10.0),
 		"  and with it over, nobody holds the map")
 	ok(await until(func(): return scene.conversation_shot == -1 and scene._gliding_back <= 0.0 \
-			and scene.camera.position.distance_to(between(scene)) < 12.0, 5.0),
-		"  and the camera glides back to framing both parties", "%s, between them %s" % [scene.camera.position, between(scene)])
+			and scene.camera.position.distance_to(own_party(scene)) < 12.0, 5.0),
+		"  and the camera glides back to this player's own party", "%s, theirs at %s" % [scene.camera.position, own_party(scene)])
 	ok(await hear("copy closed"), "  and the joiner's copy of it has closed")
 	# Out of the way of whatever the joiner presses E at next.
 	scene._interactables.erase(talk)
@@ -235,6 +311,10 @@ func apart(scene: ExplorationScene):
 
 ## The middle of every party's leader on `scene`'s map - where the camera frames
 ## them - as far as the camera can go.
+func own_party(scene: ExplorationScene) -> Vector2:
+	return within_view(scene, scene._camera_group().leader.position)
+
+
 func between(scene: ExplorationScene) -> Vector2:
 	var box := Rect2()
 	var first := true
@@ -315,8 +395,8 @@ func joiners_look():
 	say("closed with it")
 	ok(await until(func(): return not mirror_up(), 20.0), "the conversation over there, its copy here closes")
 	ok(await until(func(): return scene.conversation_shot == -1 and scene._gliding_back <= 0.0 \
-			and scene.camera.position.distance_to(between(scene)) < 12.0, 5.0),
-		"  and the camera glides back to framing both parties", "%s, between them %s" % [scene.camera.position, between(scene)])
+			and scene.camera.position.distance_to(own_party(scene)) < 12.0, 5.0),
+		"  and the camera glides back to this player's own party", "%s, theirs at %s" % [scene.camera.position, own_party(scene)])
 	say("camera back")
 	log_line("")
 
@@ -340,6 +420,15 @@ func joiners_conversation():
 	get_viewport().push_input(key_event(KEY_E))
 	ok(await until(func(): return mirror_up() and Net._mirror.mine and Net._mirror._answers.get_child_count() == 0, 15.0),
 		"the host's conversation is shown here - begun here, its lines this machine's player's to press on through")
+	if mirror_up():
+		var named: Color = Net._mirror._name.get_theme_color(&"default_color")
+		ok(named.is_equal_approx(ConversationMirror.NAME_COLOUR), "  the name in the balloon's colour", "%s" % named)
+		Net._mirror.show_line("Cyrus Rowe", "A line.", [], true, [])
+		ok(Net._mirror._portrait.visible and Net._mirror._portrait.texture != null, "  whoever has a portrait shows it")
+		Net._mirror.show_line("Cyrus Rowe", "A line.", [], true, ["noportrait"])
+		ok(not Net._mirror._portrait.visible, "  unless the line says not")
+		Net._mirror.show_line("Nobody", "A line.", [], true, [])
+		ok(not Net._mirror._portrait.visible, "  and nobody with no picture does")
 	ok(scene.is_holding(), "  and holds the party here meanwhile")
 	# Enter, pressed until the question comes: the first press may only finish
 	# the line typing out there.
@@ -496,11 +585,17 @@ func aimed_here(scene: ExplorationScene, watch: StealthWatch):
 	await hear("dragging")
 	ok(await until(func(): return is_equal_approx(mine.pace, StealthWatch.DRAG_PACE), 10.0),
 		"dragging a body there, its own group walks at a body's pace here, where it walks", "%s" % mine.pace)
+	# Only somebody who stealths can creep (StealthWatch "Stealth mode"): this
+	# player's is, for now, on this machine.
+	var creeper: CombatantDefinition = CombatantDatabase.combatants.get(Coop.keys_of(1)[0])
+	var stealthed_before := creeper.stealths
+	creeper.stealths = true
 	watch.toggle_creep()
 	ok(is_equal_approx(mine.pace, StealthWatch.DRAG_PACE * StealthWatch.CREEP_PACE), "  and creeping, slower still", "%s" % mine.pace)
 	say("creeping")
 	await hear("heard creeping")
 	watch.toggle_creep()
+	creeper.stealths = stealthed_before
 	watch._click_on_guard(click)
 	await hear("put down")
 	ok(await until(func(): return is_equal_approx(mine.pace, 1.0), 10.0), "  put down, back to its own pace", "%s" % mine.pace)
@@ -1162,6 +1257,10 @@ func joiners_fight():
 	log_line("")
 
 
+## Whether this machine's player has tried lying down in the fight (move_on_the_board).
+var _tried_lying_down := false
+
+
 ## Plays this machine's player's turns in `combat` - through the board, as a
 ## player's clicks would go, so the other machine is sent each move - until
 ## the fight is over. How many it played.
@@ -1188,6 +1287,22 @@ func my_turn(combat: Combat) -> bool:
 ## the turn ended with the End Turn button.
 func move_on_the_board(combat: Combat, comb: Dictionary):
 	var controller: CController = combat.controller
+	# Lying down, getting up and taking it back are moves like any other (Combat
+	# "Prone"): once on each machine, down and the turn ended there - which the next
+	# turn's check has to find the same on both - and up on the next turn.
+	if combat.is_prone(comb):
+		ok(controller.toggle_prone() and not combat.is_prone(comb), "%s gets up again" % comb.name)
+	elif not _tried_lying_down:
+		_tried_lying_down = true
+		var whole: int = controller.movement
+		ok(controller.toggle_prone() and combat.is_prone(comb), "%s goes prone on the board" % comb.name)
+		ok(controller.toggle_prone() and not combat.is_prone(comb), "  gets up")
+		ok(controller.undo_move() and combat.is_prone(comb) == false and controller.movement == whole, "  takes it all back", "%d" % controller.movement)
+		ok(controller.toggle_prone() and combat.is_prone(comb), "  goes prone again, and ends the turn there")
+		await settle()
+		combat.game_ui._on_end_turn_button_pressed()
+		await settle()
+		return
 	var foe := nearest_foe(combat, comb)
 	if not foe.is_empty() and attack_for(combat, comb, foe) == "":
 		controller.find_path(combat.nearest_tile_of(foe, comb.position))
@@ -1412,6 +1527,8 @@ func hosts_half():
 	ok(wall != NOWHERE and scene.groups[1].position_of_leader().distance_to(at(m, wall)) > Grid.tiles(0.5),
 		"  and the host does not put it there", "%s %s" % [wall, joiners_place])
 	log_line("")
+
+	await hosts_each_their_own(scene, m, theirs)
 
 	log_line("======== a press on the joiner, done here ========")
 	var sign := ExamineInteractable.new()
@@ -1669,15 +1786,33 @@ func hosts_half():
 	await settle(20)
 	var share := get_tree().current_scene.find_children("*", "PlayersPanel", true, false)
 	ok(share.is_empty() and Coop.keys_of(1).is_empty(), "  and nobody is offered the party to share out for it")
+	# Before the game is under way whom each steers is chosen, not asked (the
+	# designer, 2026-11-04: "On network and LAN cannot choose character from the
+	# main menu"). The title screen, with both there.
+	SceneTransition.change_scene(Campaign.MAIN_MENU)
+	ok(await until(func(): return get_tree().current_scene != null and not Net.in_the_game() and not SceneTransition.is_changing(), 15.0), "back on the title screen, both of them")
+	say("on the title")
+	ok(await hear("chose at the table", 20.0), "the joiner picks whom they steer on the title screen's Players")
+	ok(Coop.controller_of("cyrus") == 1, "  and it is theirs, asking nobody", "%s" % [Campaign.controllers])
 	Net.leave()
 	ok(not Net.active() and not Coop.networked and Coop.players.size() == 1 and Coop.players[0].peer == 0,
 		"stopping, the host plays on alone", "%s" % [Coop.players])
-	ok(get_tree().current_scene is ExplorationScene, "  on its map")
 	log_line("")
 	await joiner_finished()
 
 
 func resources_as_data():
+	log_line("======== paths from the other machine ========")
+	ok(Net.in_the_game_files(TERRAIN), "one of the game's own files, yes")
+	ok(not Net.in_the_game_files("res://data/../../somewhere/else.tscn") and not Net.in_the_game_files("res://..\\..\\else.tscn")
+		and not Net.in_the_game_files("C:/somewhere/else.tscn"), "anything that climbs out of the game's folder, no")
+	ok(Net.data_to_resource({"path": "res://data/../../else.tres"}) == null, "  no resource from there")
+	ok(Net.data_to_resource({"script": "res://data/../../else.gd", "props": {}}) == null, "  nor one made by a script from there")
+	var map_before := Campaign.current_map
+	Campaign.apply({"current_map": "res://maps/../../else.tscn"}, Campaign.SAVED)
+	ok(Campaign.current_map == map_before, "  nor a map to walk onto", Campaign.current_map)
+	log_line("")
+
 	log_line("======== resources as data ========")
 	var fight := EncounterDefinition.new()
 	fight.display_name = "Caught at the crossroads"
@@ -1806,6 +1941,10 @@ func joiners_half():
 	Net._walked.rpc_id(1, 1, at(m, wall), false, false, false)
 	say("claimed the wall")
 	log_line("")
+
+	await joiners_each_their_own(scene, m)
+	# Built afresh, the lead having passed.
+	mine = scene.groups.get(1)
 
 	log_line("======== a press on the joiner, done on the host ========")
 	await hear("sign up")
@@ -2025,6 +2164,16 @@ func joiners_half():
 	ok(Coop.keys_of(1).is_empty() and get_tree().current_scene.find_children("*", "PlayersPanel", true, false).is_empty(),
 		"choosing nobody, it watches - not offered the party to share out for it")
 	say("watching")
+	await hear("on the title", 20.0)
+	ok(await on_the_title_screen(), "the host goes to the title screen: so does this machine, still joined")
+	var players := PlayersPanel.new()
+	get_tree().current_scene.add_child(players)
+	await settle(2)
+	ok(not players._hint.text.contains("ask for"), "  where whom each steers is chosen, not asked", players._hint.text)
+	players.choose("cyrus", 1)
+	ok(await until(func(): return Coop.controller_of("cyrus") == 1, 10.0), "  Cyrus pressed on this player's row: theirs", "%s" % [Campaign.controllers])
+	players.queue_free()
+	say("chose at the table")
 	ok(await until(func(): return not Net.active(), 20.0), "the host leaves")
 	ok(await on_the_title_screen(), "  and that sends it to the title screen")
 	log_line("")

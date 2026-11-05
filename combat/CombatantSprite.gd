@@ -166,6 +166,10 @@ func _align_feet_to_tile():
 
 ## Stands whatever is playing on the tile's floor, by its own frame height.
 func _fit_feet():
+	# On their side (set_lying), drawn about their middle: on their own tile.
+	if lying and not _animated.sprite_frames.has_animation(LYING_ANIMATION):
+		_animated.offset.y = 0.0
+		return
 	var height = _height_of(_animated.animation)
 	if height <= 0.0:
 		height = _frame_height
@@ -203,8 +207,50 @@ func _get_reference_frame_height() -> float:
 
 
 func play_idle():
-	if _animated and _animated.sprite_frames.has_animation("idle"):
+	if lying and _animated and _animated.sprite_frames.has_animation(LYING_ANIMATION):
+		_animated.play(LYING_ANIMATION)
+	elif _animated and _animated.sprite_frames.has_animation("idle"):
 		_animated.play("idle")
+
+
+## --- Lying down (Combat "Prone") ---
+##
+## A placeholder until there is art: whoever lies down is drawn on their side. An
+## animation called "prone" in their SpriteFrames takes its place, when they have one.
+
+const LYING_ANIMATION := &"prone"
+const LYING_SECONDS := 0.18
+
+var lying := false
+var _lying_tween: Tween = null
+
+
+func set_lying(on: bool):
+	if lying == on:
+		return
+	lying = on
+	if _animated and _animated.sprite_frames.has_animation(LYING_ANIMATION):
+		play_idle()
+		return
+	var drawn := _drawn()
+	if drawn == null:
+		return
+	if _lying_tween != null and _lying_tween.is_valid():
+		_lying_tween.kill()
+	_lying_tween = create_tween().set_parallel(true)
+	_lying_tween.tween_property(drawn, "rotation", _lying_angle() if on else 0.0, LYING_SECONDS).set_ease(Tween.EASE_OUT)
+	if _animated != null:
+		var from: float = _animated.offset.y
+		_fit_feet()
+		var to: float = _animated.offset.y
+		_animated.offset.y = from
+		_lying_tween.tween_property(_animated, "offset:y", to, LYING_SECONDS).set_ease(Tween.EASE_OUT)
+
+
+## On their side, their head the way they face.
+func _lying_angle() -> float:
+	var flipped: bool = _animated.flip_h if _animated != null else (_static != null and _static.flip_h)
+	return -PI / 2.0 if flipped else PI / 2.0
 
 
 func play_walk():
@@ -382,6 +428,8 @@ func set_facing(flip: bool):
 		_animated.flip_h = flip
 	elif _static != null:
 		_static.flip_h = flip
+	if lying and _drawn() != null and not (_animated != null and _animated.sprite_frames.has_animation(LYING_ANIMATION)):
+		_drawn().rotation = _lying_angle()
 
 
 ## Stands somebody back up after set_dead - a guard on a stealth map, woken by
@@ -389,6 +437,7 @@ func set_facing(flip: bool):
 func set_alive():
 	if _flash_tween != null and _flash_tween.is_valid():
 		_flash_tween.kill()
+	set_lying(false)
 	if _static != null:
 		_static.frame = 0
 	play_idle()

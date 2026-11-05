@@ -435,7 +435,7 @@ func hiding():
 	ok(m.party.leader.hidden_alpha == StealthWatch.HIDDEN_ALPHA, "and he is drawn fainter still", "%.2f" % m.party.leader.hidden_alpha)
 	m.party.teleport(at(m, post + Vector2i.RIGHT * 2))
 	await wait(0.15)
-	ok(watch.suspicion[guard] > 0.0 and bar._status.text == "Sneaking", "a step out of it, he is", "%.2f" % watch.suspicion[guard])
+	ok(watch.suspicion[guard] > 0.0 and bar._status.text == "Walking openly", "a step out of it, he is", "%.2f" % watch.suspicion[guard])
 	settle_guard(watch, guard)
 	m.party.teleport(at(m, spot_near))
 	await wait(0.15)

@@ -49,6 +49,18 @@ var puppet := false
 ## A puppet: whether its machine says it creeps (StealthWatch.creeping_in), so
 ## its steps are not heard here either.
 var creeping_there := false
+## A puppet: where its machine last said it is (walk_to), which it eases to, and
+## whether it said it was walking. The words come a score of times a second at
+## best, and not evenly - put there each time, it stuttered along in jumps.
+var _said_at := Vector2.ZERO
+var _said_walking := false
+var _said_anything := false
+## How quickly a puppet closes on where it was said to be: the share of the way
+## left covered in a second is 1 - e^-this. Quick enough to be no more than a
+## fraction of a tile behind, slow enough to hide the gaps between the words.
+const PUPPET_EASE := 14.0
+## Nearer than this it is there, in pixels.
+const PUPPET_THERE := 1.0
 ## Asked of every step in co-op: Callable(group, to) -> bool, false where the
 ## group would leave the others too far behind (ExplorationScene._within_leash).
 var leash: Callable = Callable()
@@ -84,6 +96,7 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 	stayers.clear()
 	_trail.clear()
 	_trail_length = 0.0
+	_said_anything = false
 	for i in members.size():
 		# The same CombatantSprite battles use, so the party walks with the
 		# animation set it fights with rather than sliding along as a still. It
@@ -253,6 +266,9 @@ func light_touch() -> bool:
 
 func _process(delta):
 	if _scripted:
+		return
+	if puppet:
+		_ease_to_where_said(delta)
 		return
 	if leader == null or frozen or rooted or in_a_menu or _held_by_another():
 		dashing = false
@@ -465,6 +481,7 @@ func _trail_position(distance_back: float) -> Vector2:
 func teleport(to: Vector2):
 	vaulting = false
 	dashing = false
+	_said_at = to
 	_trail.clear()
 	_trail_length = 0.0
 	_trail.append({"position": to, "distance": 0.0})
@@ -474,24 +491,46 @@ func teleport(to: Vector2):
 		follower.position = to
 
 
-## A puppet's leader put at `to`, the rest trailing after as if walked there -
-## where another machine says its player has walked (Net).
+## Where another machine says its player has walked (Net): a puppet's leader
+## goes there, the rest trailing after as if walked - eased there frame by frame
+## (_ease_to_where_said), or at once from too far to have walked: a door, a blink.
 func walk_to(to: Vector2, facing_left: bool, walking: bool, creeping: bool = false):
 	creeping_there = creeping
 	if leader == null:
 		return
-	var before := leader.position
-	if before.distance_to(to) > Grid.tiles(3.0):
-		# Too far to have walked - a door, a blink: there at once.
+	_set_facing(facing_left)
+	_said_at = to
+	_said_walking = walking
+	_said_anything = true
+	if leader.position.distance_to(to) > Grid.tiles(3.0):
 		teleport(to)
-	else:
+		_set_walking(walking)
+		moved.emit(to)
+
+
+## A puppet, every frame: a step of the way to where it was last said to be, its
+## walk playing for as long as it is on its way or was said to be walking.
+func _ease_to_where_said(delta: float):
+	if leader == null or not _said_anything:
+		_set_walking(false)
+		return
+	# Walked by a conversation just now, which has the last word (Actors).
+	if Actors.is_moving(leader):
+		return
+	var before := leader.position
+	var gap := before.distance_to(_said_at)
+	if gap > PUPPET_THERE:
+		var to := before.lerp(_said_at, 1.0 - exp(-PUPPET_EASE * delta))
 		leader.position = to
 		_record_trail(before, to)
 		_place_followers()
-	_set_facing(facing_left)
-	_set_walking(walking)
-	if before != to:
 		moved.emit(to)
+	elif gap > 0.0:
+		leader.position = _said_at
+		_record_trail(before, _said_at)
+		_place_followers()
+		moved.emit(_said_at)
+	_set_walking(_said_walking or gap > Grid.tiles(0.1))
 
 
 func position_of_leader() -> Vector2:

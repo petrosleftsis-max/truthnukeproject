@@ -92,6 +92,7 @@ func _ready():
 	_apply_log_state()
 	_build_undo_button()
 	_build_ready_button()
+	_build_prone_button()
 	_style_turn_buttons()
 	_pips = ActionPips.new()
 	$Actions.add_child(_pips)
@@ -111,6 +112,9 @@ func _ready():
 	add_child(_boss_banner)
 	_build_danger_legend()
 	_set_up_turn_queue()
+	# What anybody may click on somebody else's turn, since it only looks (Coop).
+	for open in [$Status, $TurnQueue, $Actions/SkillPanelTabs, $Actions/SpellsToggle, $Actions/LogToggle, $Actions/Information]:
+		open.add_to_group(Coop.OPEN_TO_ALL)
 	# The label says what the number is, rather than leaving a lone "4" to
 	# be worked out.
 	$Actions/Movement.offset_left = MOVE_LABEL_LEFT
@@ -130,7 +134,7 @@ func _ready():
 ## Only there once they have walked; greyed out, saying why, once something on
 ## the way has made it too late.
 
-const UNDO_TIP := "Walk back to where this turn began - or to just after the last skill, item or reaction - with the movement you had there"
+const UNDO_TIP := "Walk back to where this turn began - or to just after the last skill, item or reaction - with the movement you had there. Takes back lying down or getting up too"
 const UNDO_TOO_LATE := "Too late to walk back: something happened on the way - a reaction, a skill or item, or somebody's state changed"
 
 var _undo_button: Button = null
@@ -147,6 +151,60 @@ func _build_undo_button():
 	$Actions.add_child(_undo_button)
 	_undo_button.position = end_turn.position - Vector2(0, end_turn.size.y + 5)
 	_undo_button.pressed.connect(_on_undo_pressed)
+
+
+## --- Lying down (Combat "Prone") ---
+##
+## A button over Ready, and Ctrl: the one acting lies down, for nothing, or gets up,
+## for half their movement. Undo Move takes either back.
+
+const PRONE_TIP := "Lie flat, for nothing: half damage from ranged moves and areas, double from melee, and no walking until you get up"
+const GET_UP_TIP := "Get up, for %d of your movement, and walk again"
+
+var _prone_button: Button = null
+
+
+func _build_prone_button():
+	var end_turn = $Actions/EndTurnButton
+	_prone_button = end_turn.duplicate(0)
+	_prone_button.name = "ProneButton"
+	_prone_button.text = "Go Prone"
+	_prone_button.visible = false
+	$Actions.add_child(_prone_button)
+	_prone_button.position = end_turn.position - Vector2(0, (end_turn.size.y + 5) * 3)
+	_prone_button.pressed.connect(_on_prone_pressed)
+
+
+func _on_prone_pressed():
+	close_pad_panel()
+	if controller != null and controller.has_method("toggle_prone"):
+		controller.toggle_prone()
+
+
+## "Go Prone" or "Get Up (3)", whichever it is, for whoever is acting and whoever
+## plays them; greyed out, saying why, when they cannot.
+func _refresh_prone():
+	if _prone_button == null:
+		return
+	var comb: Dictionary = combat.get_current_combatant() if combat != null else {}
+	var can_show: bool = combat != null and controller != null and not exploration_mode and not _deployment_mode \
+		and not is_viewing_other() and not comb.is_empty() and combat.plays_for_party(comb) and controller.player_turn \
+		and not controller.is_skill_selected() and (not Coop.on() or Coop.is_local(combat.player_of(comb)))
+	_prone_button.visible = can_show
+	if not can_show:
+		return
+	var down: bool = combat.is_prone(comb)
+	var why: String = combat.get_up_refusal(comb) if down else combat.lie_down_refusal(comb)
+	_prone_button.text = "Get Up (%d)" % combat.get_up_cost(comb) if down else "Go Prone"
+	_prone_button.disabled = why != "" or not controller.can_change_stance()
+	_prone_button.tooltip_text = why if why != "" else Pad.hint(GET_UP_TIP % combat.get_up_cost(comb) if down else PRONE_TIP, &"prone")
+
+
+## What the counter says: their movement, and that they are down.
+func _movement_text(comb: Dictionary, value: int) -> String:
+	if combat != null and not comb.is_empty() and combat.is_prone(comb):
+		return "Prone - Move %d" % value
+	return "Move %d" % value
 
 
 ## --- Ready (Combat "Ready") ---
@@ -261,8 +319,8 @@ func keys_hint() -> String:
 			Pad.key(&"danger_view"), Pad.key(&"menus"), Pad.key(&"pause"),
 			Pad.key(&"pointer_click"), Pad.key(&"ui_cancel")]
 	return ("End this character's turn (%s)\n1-9: pick a skill    %s: next tab\n"
-		+ "%s: undo a walk    %s: see where enemies could strike\n%s: character sheet    %s: menu") % [
-		Pad.key(&"end_turn"), Pad.key(&"skill_tab"), Pad.key(&"undo_move"), Pad.key(&"danger_view"),
+		+ "%s: undo a walk    %s: go prone or get up\n%s: see where enemies could strike\n%s: character sheet    %s: menu") % [
+		Pad.key(&"end_turn"), Pad.key(&"skill_tab"), Pad.key(&"undo_move"), Pad.key(&"prone"), Pad.key(&"danger_view"),
 		Pad.key(&"character_sheet"), Pad.key(&"pause")]
 
 
@@ -302,7 +360,7 @@ func _style_turn_buttons():
 	end_turn.add_theme_color_override("font_color", Color("eef4fb"))
 	end_turn.add_theme_color_override("font_hover_color", Color.WHITE)
 	end_turn.add_theme_color_override("font_pressed_color", Color.WHITE)
-	for button in [_undo_button]:
+	for button in [_undo_button, _prone_button]:
 		if button == null:
 			continue
 		for style in ["normal", "hover", "pressed", "disabled", "focus"]:
@@ -1062,6 +1120,7 @@ func _show_skills_for(comb: Dictionary):
 		$Actions/EndTurnButton.disabled = not controller.is_idle() or is_viewing_other()
 	_refresh_undo()
 	_refresh_ready()
+	_refresh_prone()
 	if _pips != null:
 		_pips.show_for(comb, combat)
 
@@ -1351,9 +1410,9 @@ func _show_whoever_is_shown():
 	# What they would have to walk with on their turn, or what the one acting
 	# has left of theirs.
 	if is_viewing_other():
-		$Actions/Movement.text = "Move %d" % combat.get_effective_stat(comb, "movement")
+		$Actions/Movement.text = _movement_text(comb, combat.get_effective_stat(comb, "movement"))
 	elif controller != null:
-		$Actions/Movement.text = "Move %d" % controller.movement
+		$Actions/Movement.text = _movement_text(comb, controller.movement)
 	showing_spells = false
 	set_skill_panel(SkillPanel.MAIN)
 	_refresh_portraits()
@@ -1407,6 +1466,7 @@ func show_combatant_status_main(comb: Dictionary):
 	_refresh_portraits()
 	hide_unit_card()
 	_announce_turn(comb)
+	_hold_end_turn(comb)
 	if comb.side == 0:
 		$Actions/StatusIcon.set_icon(comb.icon)
 		$Actions/StatusIcon.set_name_text(comb.name)
@@ -1472,6 +1532,61 @@ func set_deployment_mode(active: bool):
 		# banner would only have been in the way. Now it is the turn.
 		if combat != null and not combat.combatants.is_empty():
 			_announce_turn(combat.get_current_combatant())
+			_hold_end_turn(combat.get_current_combatant())
+
+
+## --- A moment before End Turn ---
+##
+## A turn of the party's opens with End Turn out of reach for a moment, counting
+## down on the button, so a press meant for the turn before - Space held on, a
+## second click - does not throw this one away (the designer, 2026-11-04: "Give a
+## few seconds where the player cannot end turn when a player character turn
+## starts"). Everything else is theirs at once. Only for whoever plays it: over a
+## network the other machine's End Turn is not a press here.
+
+## How long, in seconds - a PROPOSAL value.
+const END_TURN_HOLD_SECONDS := 2.0
+## With no screen to see it on it holds nothing, so the suites that play turns
+## need not wait - unless a test wants it to.
+static var holds_headless := false
+var _end_turn_hold := 0.0
+
+
+func _hold_end_turn(comb: Dictionary):
+	_end_turn_hold = 0.0
+	if comb.is_empty() or comb.get("side", 1) != 0 or controller == null or not controller.player_turn or combat == null:
+		return
+	if DisplayServer.get_name() == "headless" and not holds_headless:
+		return
+	if _deployment_mode or Net.catching_up() or (Net.with_another() and not Coop.is_local(combat.player_of(comb))):
+		return
+	if _end_turn_default_text == "":
+		_end_turn_default_text = $Actions/EndTurnButton.text
+	_end_turn_hold = END_TURN_HOLD_SECONDS
+
+
+## Whether End Turn is out of reach for the moment.
+func end_turn_held() -> bool:
+	return _end_turn_hold > 0.0
+
+
+func _process(delta):
+	if _end_turn_hold <= 0.0:
+		return
+	# The button is Begin Battle for now: nothing to hold.
+	if _deployment_mode:
+		_end_turn_hold = 0.0
+		return
+	_end_turn_hold -= delta
+	var button: Button = $Actions/EndTurnButton
+	if _end_turn_hold > 0.0:
+		button.disabled = true
+		button.text = "%s (%d)" % [_end_turn_default_text, ceili(_end_turn_hold)]
+		return
+	_end_turn_hold = 0.0
+	button.text = _end_turn_default_text
+	if controller != null and not _deployment_mode:
+		button.disabled = not controller.player_turn or not controller.is_idle() or is_viewing_other()
 
 
 ## Space (Y on a pad) ends the turn, the same as pressing the button.
@@ -1512,6 +1627,13 @@ func _unhandled_input(event):
 		if done:
 			get_viewport().set_input_as_handled()
 		return
+	if Pad.went_down(event, &"prone"):
+		# Ctrl lies them down or gets them up, where the button would.
+		if exploration_mode or _deployment_mode or combat == null or controller == null:
+			return
+		if controller.has_method("toggle_prone") and controller.toggle_prone():
+			get_viewport().set_input_as_handled()
+		return
 	if Pad.went_down(event, &"undo_move"):
 		# Backspace walks back, where the button would - and refuses whatever it
 		# would refuse, can_undo_move being the one judge of both.
@@ -1533,7 +1655,7 @@ func _unhandled_input(event):
 		return
 	if controller.has_method("a_menu_is_over_the_map") and controller.a_menu_is_over_the_map():
 		return
-	if $Actions/EndTurnButton.disabled or not $Actions/EndTurnButton.visible:
+	if $Actions/EndTurnButton.disabled or not $Actions/EndTurnButton.visible or end_turn_held():
 		return
 	get_viewport().set_input_as_handled()
 	_on_end_turn_button_pressed()
@@ -1572,6 +1694,8 @@ func _pad_input(event: InputEvent) -> bool:
 
 
 func _on_end_turn_button_pressed():
+	if end_turn_held():
+		return
 	close_pad_panel()
 	# The same refusal the keyboard makes, in the one place every route to
 	# ending a turn passes through - greying the button out is what the player
@@ -2034,6 +2158,10 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 		lines.append("Area: %s" % describe_aoe_shape(skill, radius, shape))
 		if radius != skill.aoe_radius:
 			lines.append("(%s by their size)" % ("grown" if radius > skill.aoe_radius else "shrunk"))
+	# What spreads from whoever it lands on (Combat.splash_reach_of).
+	var blast: int = combat.splash_reach_of(_caster(), skill) if combat != null and not _caster().is_empty() else 0
+	if blast > 0:
+		lines.append("Blast: Radius %d round whoever it lands on" % blast)
 	if skill.respects_blocking:
 		lines.append("Requires a clear line of sight")
 	if skill.is_reactive:
@@ -2421,7 +2549,7 @@ func _hang_summons(holder: Control, summons: Array, size: float, beside: bool):
 
 
 func set_movement(movement):
-	$Actions/Movement.text = "Move %d" % movement
+	$Actions/Movement.text = _movement_text(combat.get_current_combatant() if combat != null else {}, movement)
 
 
 ## While a skill is being aimed, everything but the party portraits and the
@@ -2466,6 +2594,8 @@ func _set_aiming(aiming: bool):
 		_apply_log_state()
 		# Nor Undo Move, which is only there once somebody has walked.
 		_refresh_undo()
+		# Nor Go Prone, which is only there for whoever plays the one acting.
+		_refresh_prone()
 		# Nor Spells, which is only there for somebody who casts something -
 		# switched back on with the rest, it offered a swordsman a button that
 		# vanished the moment it was pressed.
@@ -2581,6 +2711,8 @@ func _pad_panel_buttons() -> Array:
 				found.append(slot)
 		if _undo_button != null and _undo_button.is_visible_in_tree() and not _undo_button.disabled:
 			found.append(_undo_button)
+		if _prone_button != null and _prone_button.is_visible_in_tree() and not _prone_button.disabled:
+			found.append(_prone_button)
 	var end_turn: Button = $Actions/EndTurnButton
 	if end_turn.is_visible_in_tree() and not end_turn.disabled:
 		found.append(end_turn)
@@ -2700,7 +2832,10 @@ func _build_hit_preview():
 
 ## Shows what `skill_key`, aimed at `aim` by whoever is acting, would do to
 ## everyone it would catch. Hidden when it would catch nobody.
-func show_hit_preview(skill_key: String, aim: Vector2i):
+##
+## `cannot_get_there` is why it cannot reach them, when it cannot (CController
+## _preview_hits): what it would do to whoever is on `aim`, under a line saying so.
+func show_hit_preview(skill_key: String, aim: Vector2i, cannot_get_there := ""):
 	if combat == null or exploration_mode or not SkillDatabase.skills.has(skill_key):
 		hide_hit_preview()
 		return
@@ -2711,7 +2846,7 @@ func show_hit_preview(skill_key: String, aim: Vector2i):
 	var caster = controller.aiming_caster() if controller != null and controller.has_method("aiming_caster") \
 			else combat.get_current_combatant()
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
-	var targets = combat.targets_if_aimed(caster, skill, aim)
+	var targets = combat.targets_if_aimed(caster, skill, aim) if cannot_get_there == "" else combat.targets_if_reached(caster, skill, aim)
 	if targets.is_empty():
 		hide_hit_preview()
 		return
@@ -2722,6 +2857,8 @@ func show_hit_preview(skill_key: String, aim: Vector2i):
 	_hit_rows.add_child(heading)
 	if _looking_only():
 		_hit_rows.add_child(_hit_label("%s's - just looking, can't be used now" % caster.name, 12, TAB_OFF))
+	if cannot_get_there != "":
+		_hit_rows.add_child(_hit_label("%s - if it could get there:" % cannot_get_there, 12, HIT_PREVIEW_LOSES))
 	_clear_ghosts()
 	for target in targets:
 		var hit = combat.predict_hit(caster, target, skill)
@@ -2786,6 +2923,9 @@ func _hit_row(caster: Dictionary, target: Dictionary, skill: SkillDefinition, hi
 			row.add_child(_hit_label("Loses: %s" % ", ".join(hit.dropped), 12, HIT_PREVIEW_LOSES))
 	elif hit.hit_chance < 100:
 		row.add_child(_hit_label("%d%% to hit" % hit.hit_chance, 12, TAB_OFF))
+	# Lying down, what that does to this one.
+	if hit.prone != "":
+		row.add_child(_hit_label(hit.prone, 12, HIT_PREVIEW_WINS))
 	# Aiming a Steal: what there is to take.
 	if Combat.steals(skill) and target.side != caster.side:
 		row.add_child(_carried_line(target))

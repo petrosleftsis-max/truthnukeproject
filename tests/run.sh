@@ -26,6 +26,9 @@ if [ ! -x "$GODOT" ]; then
 fi
 
 WORK="${MOT_TEST_WORK:-${TMPDIR:-/tmp}/mot-test-harness}"
+# Two runs at once need a work folder (MOT_TEST_WORK) and a user:// of their own
+# (MOT_TEST_USER_DIR), and not the net suite in both: it has fixed ports.
+USER_DIR="${MOT_TEST_USER_DIR:-Messengers of Truth test harness}"
 DST="$WORK/copy"
 LOGS="$WORK/logs"
 
@@ -95,7 +98,7 @@ sed -i 's|run/main_scene="[^"]*"|run/main_scene="res://scenes/game.tscn"|' "$DST
 # to the player's own save folder: suites were writing settings.cfg and leaving
 # files behind in it, and a headless run holding one made the editor fail to
 # read its own config. The harness gets a user:// of its own.
-awk '{print} /^config\/name=/{print "config/use_custom_user_dir=true"; print "config/custom_user_dir_name=\"Messengers of Truth test harness\""}' "$DST/project.godot" > "$DST/project.godot.new"
+awk -v dir="$USER_DIR" '{print} /^config\/name=/{print "config/use_custom_user_dir=true"; print "config/custom_user_dir_name=\"" dir "\""}' "$DST/project.godot" > "$DST/project.godot.new"
 mv "$DST/project.godot.new" "$DST/project.godot"
 
 # The copy carries the real project's .godot, whose class cache can still name
@@ -113,9 +116,9 @@ cp "$DST/project.godot" "$WORK/_project_base.godot"
 # above), which outlasts a run. Cleared before every suite, so autosaves left
 # by one - every fight begun from a map writes one - never put a Continue on
 # the title screen of the next.
-SAVES_DIRS=("$HOME/.local/share/Messengers of Truth test harness/saves")
+SAVES_DIRS=("$HOME/.local/share/$USER_DIR/saves")
 if command -v cygpath >/dev/null 2>&1 && [ -n "${APPDATA:-}" ]; then
-	SAVES_DIRS+=("$(cygpath -u "$APPDATA")/Messengers of Truth test harness/saves")
+	SAVES_DIRS+=("$(cygpath -u "$APPDATA")/$USER_DIR/saves")
 fi
 
 overall=0

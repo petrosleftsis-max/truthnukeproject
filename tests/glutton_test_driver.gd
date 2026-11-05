@@ -115,6 +115,9 @@ func run_test():
 	var alithia := who("alithia")
 	var enfina := who("enfina")
 	ok(not glutton.is_empty() and glutton.name == "Erysichthon" and combat.is_boss(glutton), "Erysichthon is here, a boss")
+	ok(combat.immune_to_condition(glutton, Combat.PRONE) and not combat.lie_down(glutton)
+		and not combat.put_condition(glutton, Combat.PRONE, 999, "the test", true) and not combat.is_prone(glutton),
+		"nothing puts it down: immune to Prone", combat.lie_down_refusal(glutton))
 	ok(glutton.get("size", 0) == Sizes.Size.ENORMOUS and glutton.span == 4 and glutton.level == 22 and cyrus.level == 22,
 		"Enormous, four tiles a side, and the fight is at level 22", "%d" % glutton.level)
 	ok(glutton.parts.size() == 3 and glutton.eats == 3 and glutton.ai_function == "ai_glutton",

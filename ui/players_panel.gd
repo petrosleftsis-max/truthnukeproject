@@ -47,6 +47,11 @@ func _ready():
 	name = "PlayersPanel"
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	alignment = BoxContainer.ALIGNMENT_CENTER
+	# Over the whole screen, and what it does not take is nobody's: a container
+	# only passes a click on, and with nothing under it to stop one the click went
+	# through to the map and the HUD behind (the designer, 2026-11-04: "Party
+	# management menu doesn't disable clicks on maps and other interfaces").
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	add_theme_constant_override("separation", 14)
 	var title := Label.new()
 	title.name = "Title"
@@ -154,7 +159,7 @@ func refresh():
 
 func _hint_text() -> String:
 	var net := _net()
-	if net != null and net.with_another():
+	if net != null and net.with_another() and net.in_the_game():
 		return "Press one of the other player's characters to ask for them, or one of yours in their row to offer them. It changes once they agree - in a fight, as soon as the fight allows."
 	if only_party:
 		return "Each player picks who they steer of the party as it stands; anybody nobody picks is Player 1's."
@@ -390,7 +395,11 @@ func _kick(id: int):
 func choose(key: String, id: int):
 	var net := _net()
 	if net != null and net.with_another():
-		if Coop.controller_of(key) != id:
+		if not net.in_the_game():
+			# Nothing has begun: chosen outright, as on one screen.
+			if Coop.controller_of(key) != id:
+				net.pick_at_the_table(key, id)
+		elif Coop.controller_of(key) != id:
 			net.ask_for(key, id)
 		refresh()
 		return

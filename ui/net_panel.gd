@@ -101,7 +101,12 @@ func _button(called: String, text: String, does: Callable) -> Button:
 	return button
 
 
+## Whether nothing was going on as this last drew itself.
+var _was_idle := true
+
+
 func _look_for_games():
+	_said.text = ""
 	var err := Net.look_for_games()
 	if err != OK:
 		_said.text = "Could not listen for games on this network: %s." % error_string(err)
@@ -143,6 +148,12 @@ func refresh():
 	if _status == null:
 		return
 	var idle := not Net.active()
+	# Trying again: what the last try came to is old news (the designer,
+	# 2026-11-04: "'No answer for network.' This message stays despite attempting
+	# again").
+	if _was_idle and not idle:
+		_said.text = ""
+	_was_idle = idle
 	_host.visible = idle
 	_look.visible = idle
 	_look.disabled = Net.looking()

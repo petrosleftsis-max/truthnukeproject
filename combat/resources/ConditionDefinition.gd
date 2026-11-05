@@ -155,6 +155,16 @@ const DOT_STRENGTH_NAMES := {
 ## no reactive skills, because they aren't choosing to go.
 @export var drift_tiles: int = 0
 
+@export_group("Lying down")
+## Above 0, this is somebody lying down (Combat "Prone"): they do not walk until
+## they get up, which takes this share of their movement, rounded up. Nothing lifts
+## it for them - no heal, cleanse or dispel - since it is no harm done.
+@export_range(0.0, 1.0, 0.05) var getting_up_share: float = 0.0
+## They take this share less from whatever is not melee: ranged moves and areas.
+@export_range(0.0, 0.9, 0.05) var less_from_ranged: float = 0.0
+## They take this share more from melee: 1 is double.
+@export_range(0.0, 3.0, 0.05) var more_from_melee: float = 0.0
+
 
 ## One line for the tooltip and the status icon. Uses `description` when one is
 ## written, otherwise says what the settings actually do.
@@ -174,8 +184,14 @@ func describe() -> String:
 		parts.append("%+d accuracy" % accuracy_change)
 	if defense_change != 0.0:
 		parts.append("%+d%% defense" % roundi(defense_change * 100))
-	if prevents_movement:
+	if getting_up_share > 0.0:
+		parts.append("getting up takes %d%% of their movement" % roundi(getting_up_share * 100))
+	elif prevents_movement:
 		parts.append("cannot move")
+	if less_from_ranged > 0.0:
+		parts.append("%d%% less from ranged moves and areas" % roundi(less_from_ranged * 100))
+	if more_from_melee > 0.0:
+		parts.append("%d%% more from melee" % roundi(more_from_melee * 100))
 	if prevents_approach:
 		parts.append("cannot advance on enemies")
 	if prevents_secondary:

@@ -2,7 +2,8 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-10-31, after Steps 2 and 3 of the network play (LAN, and online
+updated 2026-11-05, after the designer's long list of 2026-11-04 (see "Done
+recently"); before that 2026-10-31, after Steps 2 and 3 of the network play (LAN, and online
 by UPnP), the designer's additions to it, the pictures, stores and dragging
 across the network, the placeholder projectiles, and everything in
 `docs/move_feel_proposals.md` but moves coming down from above or up from
@@ -67,6 +68,10 @@ Steps 0-5 with what to change where and how to test it. In order:
      screen (2026-10-31);
    - pictures both players search together, stores both shop at out of one
      purse, and the camera drawn to the other's conversation (2026-10-31);
+   - one player to a machine, on any device; their own lead and camera, no leash;
+     zoom, sheets and faces open on anybody's turn; the other's character walking
+     smoothly; the same conversation on both; each other's tile in a fight
+     (`PROTOCOL` 6, 2026-11-05);
    - leaving mid-fight.
 
    Still to come: trying it on two real machines (the README's "Two players"
@@ -86,6 +91,29 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's long list of 2026-11-04, and two more on 2026-11-05** (ledger
+  rows of those dates; CLAUDE.md "The fight's view", "What aiming shows", "Stealth
+  mode", "Find Familiar", "One player to a machine", "What the other machine may
+  send"; suites `openly`, `combatview`, and new sections in `coop`, `net`, `saves`,
+  `hitpreview`):
+  - Cyrus can Interact as a secondary action (Quick Hands).
+  - The camera frames a blow, leans after what flies, kicks as it lands and glides
+    to the start of a player's own turn; late arrivals are shown one at a time.
+  - A blink's tile lights up; a blast's range shows while aiming and on the tooltip
+    (Titanfall, Tremor); a prediction shows on anybody a skill only cannot get to.
+  - End Turn holds for 2 seconds as a player's turn opens.
+  - Stealth mode: only Cyrus creeping, anybody invisible and the familiar slip by
+    unseen; anybody else walking within 8 tiles of a guard is noticed. Creep is a
+    toggle. The familiar shows its true sight and hides on Cyrus's spots.
+  - Every multiplayer error on the list, and a security pass over the network and
+    the saves.
+  - Prone: free to lie down, half movement to get up; half from ranged moves and
+    areas, double from melee; Undo Move takes it back. Cyrus's Low Shot and the
+    Saboteur's Kip-Up. No enemy goes prone yet (the Goes Prone tick is unticked), and
+    Erysichthon never will: it is immune.
+  - **Suggested, not built, waiting on the designer:** title cards at the start and
+    end of a fight, a more impactful entrance for enemies, showing deaths, and a
+    shove prediction ("Waiting on the designer", item 9).
 - **The designer's round of 2026-10-31** (ledger rows of that date; CLAUDE.md
   "Co-op", "Network play", "Moves outside a fight", "Stealth maps"; suites
   `coop`, `outside`, `invisibility`, `net`, `csv`):
@@ -278,6 +306,11 @@ holds the game for both).
 
 ## Waiting on the designer
 
+0. **The designer's uncommitted editor changes** (saved 2026-10-31, 30 files:
+   Prometheus's skills, the demo dungeon's spawns, Sorcerer, required_level off 20
+   of his spells, and more): left unstaged by every commit since. Seven suites fail
+   on them alone - archetypes, look, dungeon, nades, summons, pages, csv. Theirs to
+   commit or not, and to say whether the tests should follow.
 1. **Outside moves, PROPOSAL values** (ledger):
    - durations: blind 12 s, scare 15, confuse 20, switch off 60, fly 20, cover
      60; hurry x1.5 for 20 s (Quicken 60);
@@ -340,6 +373,14 @@ holds the game for both).
    - Tripwire's burst;
    - Resuscitate's gate;
    - boss control resistance.
+9. **Suggestions of 2026-11-05, not built** (ledger rows of that date, ABSENT /
+   PROPOSAL): title cards ("Conflict Endless", "Will Subdued"), enemies' entrances,
+   deaths, and how to draw a shove's prediction (for every shove, whatever causes
+   it). The new round's values are all PROPOSAL too: END_TURN_HOLD_SECONDS 2,
+   WALKING_NOTICED_TILES 8, the camera's rates, ARRIVAL_* and OTHER_HOVER_SECONDS 6.
+   An optional join code for network games is on offer. Prone: which enemies go
+   prone or what knocks them down, melee swings with an area counting as melee, and
+   the levels and names of Low Shot and Kip-Up.
 
 ## Good to know
 

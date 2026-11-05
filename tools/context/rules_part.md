@@ -201,6 +201,7 @@ Spells are cast through ten **gates**. Each gate opens at a level and has so man
 | **Steal** | Empties one container. |
 | **Summon Decoy** | Makes an image of an ally. |
 | **Interact** | Uses a thing on the map. |
+| **Go Prone / Get Up** | Free to lie down; getting up takes half one's movement. Half from ranged moves and areas, double from melee, and no walking until up. |
 | **Hack** | Cancels a declared move through a minigame. |
 | **Read Intent** | Alithia's Intuition. |
 | **Shake** | Shakes an enemy's nerve. |

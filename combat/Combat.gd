@@ -494,6 +494,7 @@ func start_first_turn():
 		update_information.emit("[color=red]%s[/color] is %s and loses their turn.\n" % [first.name, _why_turn_lost(first)])
 		advance_turn.call_deferred()
 		return
+	_glide_to_turn(first)
 	if combatants[current_combatant].side == 1:
 		# An enemy rolled the highest initiative, so the battle opens on their
 		# turn - and nothing has run it. advance_turn() only drives the AI for
@@ -594,6 +595,7 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 		"ai_function" = definition.ai_function,
 		# When the AI readies a move ("Readying, for the AI").
 		"ai_readies" = definition.ai_readies,
+		"goes_prone" = definition.goes_prone,
 		# The side they belong to - see FactionDefinition.
 		"faction" = definition.faction,
 		# Which CombatantDatabase entry this came from. Campaign keys the
@@ -1025,6 +1027,9 @@ func secondary_skills_of(comb: Dictionary) -> Array:
 		if not SkillDatabase.skills.has(key) or found.has(key):
 			continue
 		if SkillDatabase.skills[key].spell_slot_level > 0:
+			continue
+		# Interact, granted (Quick Hands): only with something on the map to use.
+		if key == INTERACT_SKILL and not comb.skill_list.has(key):
 			continue
 		if not meets_level_for(comb, SkillDatabase.skills[key]):
 			continue
@@ -1655,7 +1660,9 @@ func board_fingerprint(walker: Dictionary) -> String:
 		parts.append([
 			comb.get("id", -1), comb.get("alive", false), comb.get("hp", 0), comb.get("hidden", false),
 			null if comb.get("id", -1) == walker.get("id", -2) else comb.get("position"),
-			comb.get("status_effects", []), comb.get("reaction_used", false),
+			# Lying down or getting up, a walker can take back too ("Prone").
+			comb.get("status_effects", []).filter(func(entry): return not _lying_down(entry)) if comb.get("id", -1) == walker.get("id", -2) else comb.get("status_effects", []),
+			comb.get("reaction_used", false),
 			comb.get("reactions_suppressed", false), comb.get("skill_used_this_turn", false),
 			comb.get("secondary_used_this_turn", false), comb.get("spell_slots", []),
 			comb.get("studied", false), comb.get("studied_by", []), comb.get("movement_class", 0),
@@ -1787,6 +1794,7 @@ func use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2
 	ai_believes = false
 	await _use_skill(skill_key, attacker, impact_position, end_turn_after, as_secondary, destination, landing)
 	ai_believes = believed
+	_end_the_frame()
 
 
 func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector2i, end_turn_after: bool, as_secondary: bool, destination: Vector2i, landing: bool):
@@ -1911,6 +1919,10 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 	if valid:
 		controller.action_locked = true
 		game_ui.lock_action_buttons()
+		# Whoever strikes, where it is going and what flies between them, in view.
+		await _frame_the_blow(attacker, skill, impact_position)
+		if not still_running():
+			return
 		# Moved before the animation plays, so a blink-and-strike is seen landing
 		# and then swinging rather than swinging and then arriving. An area skill
 		# that moves its caster therefore bursts from where they end up.
@@ -2257,7 +2269,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				await advance_turn()
 			# else: the AI behavior that called this will act further and
 			# end the turn itself when it's actually done.
-		elif controller.movement <= 0 and not has_action_left(attacker):
+		elif not can_still_walk(attacker) and not has_action_left(attacker):
 			# No movement and neither action slot left - nothing more this turn
 			# can do.
 			await advance_turn()
@@ -2451,6 +2463,9 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	MoveFeel.exclaim(self, attacker)
 	controller.action_locked = true
 	game_ui.lock_action_buttons()
+	await _frame_the_blow(attacker, skill, target.get("position", trigger_position))
+	if not still_running():
+		return
 	await attacker.sprite.play_skill_and_wait(skill.animation)
 	if not still_running():
 		return
@@ -3128,6 +3143,212 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 			apply_knockback(attacker, target, effect, false, skill)
 		EffectDefinition.EffectType.PULL:
 			apply_knockback(attacker, target, effect, true, skill)
+
+
+## --- Prone ---
+##
+## Anybody may lie down on their own turn, for nothing; until they get up, which
+## takes half their movement, they do not walk (the designer, 2026-11-05: "They need
+## to use half their movement to get up and be able to move again, but they can fall
+## prone for free"). Lying there they take half from ranged moves and areas, double
+## from melee: a melee swing with an area is melee, and the shock spreading from a
+## blow (_splash) an area. What has no skill behind it - a burn, a wall they are
+## shoved into - is as it ever was.
+##
+## The numbers are on the condition (data/conditions/prone.tres); a skill can knock
+## somebody down by a CONDITION effect of it, and anybody immune to it
+## (CombatantDefinition.immune_to_conditions) stays on their feet.
+##
+## While they lie there controller.movement is 0, as for anybody rooted, so nothing
+## walks them: movement_left_when_down keeps what they had when they went down in
+## their own turn, and with none kept they have the whole of it. Undo Move takes
+## lying down and getting up back too (board_fingerprint, CController.undo_move).
+
+const PRONE := preload("res://data/conditions/prone.tres")
+
+## A blow's shock spreading from whoever it landed on is being dealt (_splash): an
+## area, whatever the blow was.
+var _splashing := false
+
+
+## Whether a status entry is somebody lying down.
+static func _lying_down(entry: Dictionary) -> bool:
+	var condition = entry.get("condition")
+	return condition != null and condition.getting_up_share > 0.0
+
+
+## What has `comb` lying down, or null.
+func prone_of(comb: Dictionary) -> ConditionDefinition:
+	for condition in conditions_of(comb):
+		if condition.getting_up_share > 0.0:
+			return condition
+	return null
+
+
+func is_prone(comb: Dictionary) -> bool:
+	return prone_of(comb) != null
+
+
+## Why `comb` cannot lie down, or "".
+func lie_down_refusal(comb: Dictionary) -> String:
+	var called: String = comb.get("name", "They")
+	if is_prone(comb):
+		return "%s is already down" % called
+	if comb.has("object") or comb.get("illusion", false) or immune_to_condition(comb, PRONE):
+		return "%s cannot lie down" % called
+	if comb.get("movement_class", 0) != 0:
+		return "%s is not on the ground" % called
+	if comb.has("riding") or is_inside(comb):
+		return "Nowhere for %s to lie down" % called
+	return ""
+
+
+## `comb` lies down, for nothing. False, and nothing done, when they cannot.
+func lie_down(comb: Dictionary) -> bool:
+	if lie_down_refusal(comb) != "":
+		return false
+	put_condition(comb, PRONE, turns_stored(PRONE.duration, PRONE.wears_off_at_start, on_whoever_acts(comb)), comb.get("name", ""))
+	update_information.emit("[color=yellow]%s[/color] drops prone.\n" % comb.name)
+	float_number(comb, PRONE.display_name, Color("cfd8e3"))
+	return true
+
+
+## Somebody just went down: drawn so, and in their own turn, what they had left to
+## walk kept for when they get up.
+func _went_down(comb: Dictionary):
+	if comb == get_current_combatant() and controller != null:
+		comb["movement_left_when_down"] = controller.movement
+		controller.set_movement(0)
+	_draw_lying(comb, true)
+
+
+func _draw_lying(comb: Dictionary, on: bool):
+	var sprite = comb.get("sprite")
+	if sprite != null and is_instance_valid(sprite) and sprite.has_method("set_lying"):
+		sprite.set_lying(on)
+
+
+## What getting up takes out of `comb`'s movement: a share of the whole of it,
+## rounded up - or nothing, for whoever gets up for nothing (Kip-Up).
+func get_up_cost(comb: Dictionary) -> int:
+	var prone := prone_of(comb)
+	if prone == null or active_passives(comb).any(func(passive): return passive.gets_up_free):
+		return 0
+	return ceili(_whole_movement(comb) * prone.getting_up_share)
+
+
+## Their movement, whatever is holding them where they are.
+func _whole_movement(comb: Dictionary) -> int:
+	return maxi(fold_stat_changes(comb, "movement", comb.get("movement", 0)), 0)
+
+
+## What `comb` has to get up and walk with.
+func movement_if_up(comb: Dictionary) -> int:
+	return comb.get("movement_left_when_down", _whole_movement(comb))
+
+
+## Why `comb` cannot get up, or "": held down by something else, or not enough
+## movement left for it.
+func get_up_refusal(comb: Dictionary) -> String:
+	if not is_prone(comb):
+		return "%s is on their feet" % comb.get("name", "They")
+	if not unstoppable(comb):
+		for condition in conditions_of(comb):
+			if condition.prevents_movement and condition.getting_up_share <= 0.0:
+				return "%s cannot get up while %s" % [comb.get("name", "They"), condition.display_name]
+	if movement_if_up(comb) < get_up_cost(comb):
+		return "Getting up takes %d movement, and %s has %d left" % [get_up_cost(comb), comb.get("name", "they"), movement_if_up(comb)]
+	return ""
+
+
+## `comb` gets up, paying for it, and has what is left to walk with. False, and
+## nothing done, when they cannot.
+func get_up(comb: Dictionary) -> bool:
+	if get_up_refusal(comb) != "":
+		return false
+	var left := movement_if_up(comb) - get_up_cost(comb)
+	_stand(comb)
+	if comb == get_current_combatant() and controller != null:
+		controller.set_movement(left)
+	update_information.emit("[color=yellow]%s[/color] gets up.\n" % comb.name)
+	update_combatants.emit(combatants)
+	return true
+
+
+func _stand(comb: Dictionary):
+	comb.status_effects = comb.status_effects.filter(func(entry): return not _lying_down(entry))
+	comb.erase("movement_left_when_down")
+	_draw_lying(comb, false)
+
+
+## `comb` back as they were before lying down or getting up, for nothing (Undo Move).
+## `kept` is the movement_left_when_down they had then, -1 for none; what they have
+## to walk with now is the controller's to put back.
+func put_back_lying(comb: Dictionary, down: bool, kept: int):
+	if down and not is_prone(comb):
+		put_condition(comb, PRONE, turns_stored(PRONE.duration, PRONE.wears_off_at_start, on_whoever_acts(comb)), comb.get("name", ""), true)
+	elif not down and is_prone(comb):
+		_stand(comb)
+	comb.erase("movement_left_when_down")
+	if kept >= 0:
+		comb["movement_left_when_down"] = kept
+	update_combatants.emit(combatants)
+
+
+## Whether `comb`'s feet have anything left this turn: movement, or lying down with
+## enough of it to get up. A turn runs out by itself only without.
+func can_still_walk(comb: Dictionary) -> bool:
+	return controller.movement > 0 or (is_prone(comb) and get_up_refusal(comb) == "")
+
+
+## How `target` lying down changes a blow of `skill`'s from `attacker`: more from
+## melee, less from anything else - but not from somebody whose ranged moves it
+## gives no cover from (Low Shot), when they are a foe. 1 standing, or with no skill
+## behind it. One place, read by damage_dealt_multiplier, so the hit that lands and
+## the prompt that promised it agree.
+func prone_damage_factor(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> float:
+	if skill == null or not target.has("status_effects"):
+		return 1.0
+	var prone := prone_of(target)
+	if prone == null:
+		return 1.0
+	if is_melee(skill) and not _splashing:
+		return 1.0 + prone.more_from_melee
+	if target.get("side", -1) != attacker.get("side", -2) and attacker.has("passives") \
+			and active_passives(attacker).any(func(passive): return passive.ignores_prone_cover):
+		return 1.0
+	return 1.0 - prone.less_from_ranged
+
+
+## The prompt's line for a blow at somebody lying down, or "".
+func prone_note(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> String:
+	if not target.has("status_effects") or not is_prone(target):
+		return ""
+	var factor := prone_damage_factor(attacker, target, skill)
+	if is_equal_approx(factor, 1.0):
+		return "Prone: no cover from this"
+	return "Prone: takes x%s" % String.num(factor, 2).trim_suffix(".0")
+
+
+## Whether anybody on the other side could reach `comb` in melee next turn.
+func _could_be_reached_in_melee(comb: Dictionary) -> bool:
+	for other in combatants:
+		if other.get("alive", false) and other.side != comb.side and not other.has("object") and not other.get("illusion", false) \
+				and distance_to(other, nearest_tile_of(comb, other.position)) <= _whole_movement(other) + 1:
+			return true
+	return false
+
+
+## Whether `comb`, one that goes prone by nature, is better off where it lies:
+## something to hit from there, and nobody coming for it.
+func _ai_stays_down(comb: Dictionary) -> bool:
+	return comb.get("goes_prone", false) and not _could_be_reached_in_melee(comb) and _ai_can_strike_this_turn(comb)
+
+
+## One that goes prone by nature lies down as its turn ends, with nobody coming.
+func _ai_consider_lying_down(comb: Dictionary):
+	if comb.get("goes_prone", false) and comb.get("alive", false) and lie_down_refusal(comb) == "" and not _could_be_reached_in_melee(comb):
+		lie_down(comb)
 
 
 ## --- Hiding ---
@@ -3809,6 +4030,9 @@ func _movement_after_lift(comb: Dictionary, was_held: bool, movement_before: int
 
 
 func should_dispel(status_effect: Dictionary, dispel_effect: EffectDefinition, keeps_boons: bool = false) -> bool:
+	# Lying down is nothing to lift ("Prone").
+	if _lying_down(status_effect):
+		return false
 	if dispel_effect.dispel_stat != "" and status_effect.stat != dispel_effect.dispel_stat:
 		return false
 	if dispel_effect.dispel_scope == EffectDefinition.DispelScope.BOTH and not keeps_boons:
@@ -4518,6 +4742,8 @@ func _bring_in_arrivals(mid_round: bool = false):
 		update_information.emit("[color=red]%s[/color] joins the fight.\n" % joined.name)
 		if spawn.invisible:
 			make_invisible(joined)
+		elif not joined.has("object"):
+			_keep_for_showing(joined)
 		# And whatever they bring with them ("Summons").
 		_bring_own_summon(joined)
 		# A boss arriving late is announced as it comes.
@@ -4534,6 +4760,59 @@ func _bring_in_arrivals(mid_round: bool = false):
 ## Spawns still waiting to arrive, and the round each comes on.
 func arriving() -> Array:
 	return _arriving
+
+
+## Those who have just arrived are in the fight at once, but seen coming only one
+## at a time, once the turn that brought them is over: the view glides onto each
+## and they come in (the designer, 2026-11-04: "Show enemies that appear by
+## smoothly putting the camera on them and showing them enter one by one").
+## Nothing here is rolled or changes the fight.
+
+## Arrived, and not shown coming yet.
+var _to_show_coming: Array = []
+## How long the view is on one before they come in, and after.
+const ARRIVAL_LOOK_SECONDS := 0.45
+const ARRIVAL_STAY_SECONDS := 0.55
+const ARRIVAL_FADE_SECONDS := 0.3
+const ARRIVAL_SHAKE := 6.0
+
+
+func _keep_for_showing(comb: Dictionary):
+	var sprite = comb.get("sprite")
+	if not _view_moves() or sprite == null or not is_instance_valid(sprite):
+		return
+	sprite.modulate.a = 0.0
+	_to_show_coming.append(comb)
+
+
+## Each of them in turn. The board is nobody's meanwhile.
+func _show_arrivals():
+	if _to_show_coming.is_empty():
+		return
+	var showing := _to_show_coming
+	_to_show_coming = []
+	controller.action_locked = true
+	game_ui.lock_action_buttons()
+	var back: Vector2 = camera.position
+	for comb in showing:
+		var sprite = comb.get("sprite")
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		camera.glide_to(sprite_point(comb) + drawing_offset(comb))
+		await get_tree().create_timer(ARRIVAL_LOOK_SECONDS).timeout
+		if not still_running():
+			return
+		if is_instance_valid(sprite):
+			var fade: Tween = sprite.create_tween()
+			fade.tween_property(sprite, "modulate:a", 1.0, ARRIVAL_FADE_SECONDS)
+		MoveFeel.dust(self, MoveFeel.middle_of(self, comb), 1.2)
+		MoveFeel.thud(self, MoveFeel.middle_of(self, comb))
+		shake_camera(ARRIVAL_SHAKE)
+		await get_tree().create_timer(ARRIVAL_STAY_SECONDS).timeout
+		if not still_running():
+			return
+	camera.glide_to(back)
+	controller.action_locked = false
 
 
 ## The free tile nearest `wanted` that something moving by `movement_class`
@@ -4598,6 +4877,7 @@ func _advance_turn():
 		ai_believes = true
 		_believer_side = ending.get("side", Group.ENEMIES)
 		_ai_consider_ready(ending)
+		_ai_consider_lying_down(ending)
 		ai_believes = false
 	if ending.alive:
 		end_of_turn_effects(ending)
@@ -4632,6 +4912,7 @@ func _advance_turn():
 		comb.reaction_used = false
 		comb.reactions_suppressed = false
 		comb.erase("movement_left_when_grabbed")
+		comb.erase("movement_left_when_down")
 		# Not walked yet this turn (Momentum), and whether they start it in cover
 		# (Cat Burglar I) - "Progression".
 		comb.erase("moved_this_turn")
@@ -4690,6 +4971,10 @@ func _advance_turn():
 			comb = combatants[current_combatant]
 			continue
 		break
+	# Whoever came, seen coming, before anybody's turn begins.
+	await _show_arrivals()
+	if not still_running():
+		return
 	_pace_turn(comb)
 	apply_drift(comb)
 	_metric("turn", {"who": comb, "why": "",
@@ -4754,6 +5039,8 @@ func _advance_turn():
 			return
 		await ai_process(comb)
 		stop_watching()
+	else:
+		_glide_to_turn(comb)
 
 
 ## Blows a windswept combatant across the map at the start of their turn.
@@ -5324,6 +5611,8 @@ func damage_dealt_multiplier(attacker: Dictionary, target: Dictionary, skill: Sk
 	multiplier *= progression_damage_bonus(attacker, target, skill)
 	# Disarmed, a weapon attack lands for less ("Disarmed").
 	multiplier *= weapon_damage_factor(attacker, skill)
+	# Lying down, less from afar and more from close to ("Prone").
+	multiplier *= prone_damage_factor(attacker, target, skill)
 	return multiplier
 
 
@@ -5516,6 +5805,14 @@ func targets_if_aimed(caster: Dictionary, skill: SkillDefinition, aim: Vector2i)
 	return found
 
 
+## Who a `skill` that cannot get to `aim` would be for, there: whoever stands on
+## that one tile, if the skill is for them - not the rest of a blast, since where a
+## blast from somewhere else would spread is not known - and nobody hidden.
+func targets_if_reached(caster: Dictionary, skill: SkillDefinition, aim: Vector2i) -> Array:
+	return get_targets_in_tiles([aim], caster, skill.targets_ally, skill.affects_both_sides).filter(
+		func(target): return target.side == caster.side or not is_hidden(target))
+
+
 ## What `skill` would do to `target` if it connected:
 ##
 ##   hit_chance   the roll it has to make, or 100 for a contested skill, which
@@ -5530,12 +5827,13 @@ func targets_if_aimed(caster: Dictionary, skill: SkillDefinition, aim: Vector2i)
 ##   lethal       whether the damage alone would finish them
 ##   also         the conditions that would land with it
 ##   dropped      what a graze keeps from landing
+##   prone        what their lying down does to it, for the prompt, or ""
 func predict_hit(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> Dictionary:
 	var result := {
 		"hit_chance": 100, "contested": skill.uses_stat_contest, "wins": true,
 		"their_stat": 0, "their_stat_name": "", "our_stat": 0, "our_stat_name": "",
 		"damage": 0, "heal": 0, "lethal": false, "deals_damage": false,
-		"also": [], "dropped": [],
+		"also": [], "dropped": [], "prone": "",
 	}
 	var power := 1.0
 	if skill.uses_stat_contest:
@@ -5582,6 +5880,8 @@ func predict_hit(attacker: Dictionary, target: Dictionary, skill: SkillDefinitio
 				if not result.wins:
 					result.dropped.append(effect.display_name if effect.display_name != "" else "the rest")
 	result.lethal = result.damage >= target.hp
+	if result.deals_damage:
+		result.prone = prone_note(attacker, target, skill)
 	return result
 
 
@@ -6251,6 +6551,29 @@ func _after_landing(attacker: Dictionary, target: Dictionary, skill: SkillDefini
 		_spellstrike(attacker, target, skill)
 
 
+## How far `skill` in `attacker`'s hands spreads from whoever it lands on, in
+## tiles: a rank's Splash Radius, or beside them for Tremor - 0 when it does not.
+func splash_reach_of(attacker: Dictionary, skill: SkillDefinition) -> int:
+	if skill == null or not skill.deals_damage:
+		return 0
+	var reach := 0
+	for rank in ranks_reached(attacker, skill):
+		if rank.splash_radius > 0:
+			reach = rank.splash_radius
+	for passive in active_passives(attacker):
+		if passive.tremor_share > 0.0:
+			reach = maxi(reach, 1)
+	return reach
+
+
+## The tiles it spreads to, around `target` (_splash) - what aiming it shows.
+func splash_tiles_of(attacker: Dictionary, skill: SkillDefinition, target: Dictionary) -> Array:
+	var reach := splash_reach_of(attacker, skill)
+	if reach <= 0 or target.is_empty():
+		return []
+	return _tiles_within(target, reach)
+
+
 ## The blow that landed on `target` catching others too: a rank that splashes
 ## (SkillRank.splash_radius - Greatsword Attack's Titanfall) at its own modifier
 ## within its reach, and Tremor (PassiveDefinition.tremor_share) at a share of
@@ -6290,7 +6613,9 @@ func _splash(attacker: Dictionary, target: Dictionary, skill: SkillDefinition):
 	if not caught.is_empty():
 		update_information.emit("The shock of it spreads from [color=red]%s[/color].\n" % target.name)
 	for each in caught:
+		_splashing = true
 		apply_effect(attacker, each[0], skill.damage_effect(), skill, false, each[1] / maxf(modifier, 0.01), target.position)
+		_splashing = false
 		_shove(attacker, each[0], each[2], skill)
 	if tremor > 0.0:
 		_shove(attacker, target, 1, skill)
@@ -6861,6 +7186,7 @@ func put_condition(target: Dictionary, condition: ConditionDefinition, stored: i
 			shrug_off(target, condition.display_name.to_lower(), true)
 		return false
 	var movement_before = get_effective_stat(target, "movement")
+	var was_down := is_prone(target)
 	replace_matching_tick(target, "condition", condition, 0)
 	target.status_effects.append({
 		"stat" = "condition",
@@ -6874,6 +7200,8 @@ func put_condition(target: Dictionary, condition: ConditionDefinition, stored: i
 	_metric("condition", {"target": target, "condition": condition, "by": combatant_with_id(source_id) if source_id >= 0 else {}, "by_name": source, "turns": stored})
 	if condition.movement_change != 0:
 		resync_live_movement(target, movement_before)
+	if condition.getting_up_share > 0.0 and not was_down:
+		_went_down(target)
 	update_combatants.emit(combatants)
 	return true
 
@@ -7589,7 +7917,7 @@ func _hack_spends_action(attacker: Dictionary, as_secondary: bool, end_turn_afte
 	if ai_plays(attacker):
 		if end_turn_after:
 			await advance_turn()
-	elif controller.movement <= 0 and not has_action_left(attacker):
+	elif not can_still_walk(attacker) and not has_action_left(attacker):
 		await advance_turn()
 	else:
 		if controller.has_method("settle_undo_point"):
@@ -7648,6 +7976,9 @@ func ai_process(comb: Dictionary):
 
 
 func _ai_turn(comb: Dictionary):
+	# Down ("Prone"): up first, unless it likes it there.
+	if is_prone(comb) and not _ai_stays_down(comb):
+		get_up(comb)
 	# The main action already spent on something declared last turn, landing
 	# now (land_declared): what is left is the secondary and their feet.
 	if comb.get("skill_used_this_turn", false):
@@ -9603,6 +9934,50 @@ func _contest_lost_line(attacker: Dictionary, target: Dictionary, skill: SkillDe
 	if holding_condition(skill) != null:
 		return "[color=red]%s[/color] twists out of [color=yellow]%s[/color]'s grab.\n" % [target.name, attacker.name]
 	return "[color=red]%s[/color] shrugs off the worst of %s.\n" % [target.name, skill.name]
+
+
+## --- The view, for what happens ---
+##
+## Nothing here is rolled and nothing changes what happens: over a network each
+## machine's view goes its own way (CameraController "Moved for the player").
+
+## How long the view has to come round before a blow it had to move for goes off.
+const FRAME_LEAD_SECONDS := 0.32
+
+
+## Whether the view moves here now: never while a fight is played through to catch
+## up with it (Net), and with no camera, never.
+func _view_moves() -> bool:
+	return camera != null and is_instance_valid(camera) and CameraController.moves() and not Net.catching_up()
+
+
+## `attacker`'s `skill` going off at `aim`: them, it and all it covers in view,
+## waited for if the view had to move.
+func _frame_the_blow(attacker: Dictionary, skill: SkillDefinition, aim: Vector2i):
+	if not _view_moves() or game_ui == null or not game_ui.has_method("map_view_rect"):
+		return
+	var points := [sprite_point(attacker) + drawing_offset(attacker), Grid.tile_to_world(aim)]
+	var radius: int = aoe_radius_of(attacker, skill)
+	if radius > 0:
+		for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]:
+			points.append(Grid.tile_to_world(aim + way * radius))
+	if camera.frame(points, game_ui.map_view_rect()):
+		await get_tree().create_timer(FRAME_LEAD_SECONDS).timeout
+
+
+func _end_the_frame():
+	if _view_moves():
+		camera.end_frame()
+
+
+## A turn beginning that is this machine's player's to play: the view glides onto
+## whoever is up. The other machine's player's is theirs to look at or not.
+func _glide_to_turn(comb: Dictionary):
+	if not _view_moves() or not plays_for_party(comb):
+		return
+	if Net.with_another() and not Coop.is_local(player_of(comb)):
+		return
+	camera.glide_to(sprite_point(comb) + drawing_offset(comb))
 
 
 ## Locks the view onto whoever is acting for the length of an AI turn.
@@ -11734,6 +12109,9 @@ static func _lingers(condition: ConditionDefinition) -> bool:
 
 ## Whether a status entry is something its bearer would rather not have.
 static func _harmful(entry: Dictionary) -> bool:
+	# Lying down is nothing to lift ("Prone").
+	if _lying_down(entry):
+		return false
 	match entry.get("stat", ""):
 		"dot":
 			return true

@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://data/passives/light_footed.tres" id="3_c5lo7"]
 [ext_resource type="Resource" path="res://data/passives/quick_hands.tres" id="4_bdido"]
 [ext_resource type="Resource" path="res://data/passives/nade_juggler.tres" id="9_nades"]
+[ext_resource type="Resource" path="res://data/passives/low_shot.tres" id="p_low_shot"]
 [ext_resource type="Resource" path="res://data/passives/cat_burglar.tres" id="10_cat"]
 [ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="5_l5ron"]
 [ext_resource type="SpriteFrames" path="res://art/characters/cyrus/cyrus_frames.tres" id="6_3bhox"]
@@ -44,11 +45,12 @@ defense_by_level = {
 movement = 6
 initiative = 8
 main_stat = 3
+stealths = true
 secondary_stat = 0
 icon = ExtResource("1_xppq2")
 map_sprite = ExtResource("1_xppq2")
 sprite_frames = ExtResource("6_3bhox")
 skills = Array[String](["rapier", "blink_strike", "gun", "poison_dart", "warning_shot", "burning_shot", "steal", "deceive", "stealth", "slip_past", "run", "venom_fan", "catalyst"])
-passives = Array[ExtResource("2_icggr")]([ExtResource("3_c5lo7"), ExtResource("4_bdido"), ExtResource("9_nades"), ExtResource("10_cat"), ExtResource("p_cat_burglar_i"), ExtResource("p_agile"), ExtResource("p_dot_master"), ExtResource("p_agile_ii"), ExtResource("p_dot_master_ii"), ExtResource("p_synergy"), ExtResource("p_synergy_ii"), ExtResource("p_elusive")])
+passives = Array[ExtResource("2_icggr")]([ExtResource("3_c5lo7"), ExtResource("4_bdido"), ExtResource("9_nades"), ExtResource("p_low_shot"), ExtResource("10_cat"), ExtResource("p_cat_burglar_i"), ExtResource("p_agile"), ExtResource("p_dot_master"), ExtResource("p_agile_ii"), ExtResource("p_dot_master_ii"), ExtResource("p_synergy"), ExtResource("p_synergy_ii"), ExtResource("p_elusive")])
 subclasses = Array[String](["skirmisher", "saboteur", "trapper"])
 starting_items = Array[String](["cure_potion", "tiny_bomb", "poison_bottle", "medicine"])

@@ -145,12 +145,16 @@ func _ready():
 	column.add_child(_empty)
 	if not Campaign.party_changed.is_connected(_on_party_changed):
 		Campaign.party_changed.connect(_on_party_changed)
+	if not Coop.players_changed.is_connected(_on_party_changed):
+		Coop.players_changed.connect(_on_party_changed)
 	refresh(true)
 
 
 func _exit_tree():
 	if Campaign.party_changed.is_connected(_on_party_changed):
 		Campaign.party_changed.disconnect(_on_party_changed)
+	if Coop.players_changed.is_connected(_on_party_changed):
+		Coop.players_changed.disconnect(_on_party_changed)
 
 
 func _notification(what: int):
@@ -199,9 +203,10 @@ func set_out_of_combat_only(on: bool):
 	refresh(true)
 
 
-## Whose moves these are: the leader.
+## Whose moves these are: the leader - over a network, this machine's player's
+## own (the designer, 2026-11-04: "Shows host's skills on other player").
 func who() -> String:
-	return Campaign.leader()
+	return Campaign.lead_here()
 
 
 ## The moves on show, by key: the leader's skills, or spells by gate - narrowed

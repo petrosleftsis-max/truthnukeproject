@@ -274,6 +274,10 @@ class_name CombatantDefinition
 ## (BreakableWall), on a map or in a fight. Anybody's damaging spell or item
 ## does; only the strong break one with a blade or a fist. Enfina does.
 @export var breaks_walls: bool = false
+## Can go to stealth mode on a watched map: creeping (Ctrl), they walk unnoticed
+## by anybody who cannot see them (StealthWatch.stealthing). Anybody else walking
+## near a guard is noticed, walls or no walls - Cyrus alone has this.
+@export var stealths: bool = false
 ## What they say when the party changes a turn they foresaw (Intuition) - one
 ## of these, at random, over their head and in the log. Empty says nothing.
 @export var future_changed_lines: Array[String] = []
@@ -300,6 +304,10 @@ class_name CombatantDefinition
 @export var faction: String = ""
 
 @export_group("AI (enemies only - ignored for player-controlled units)")
+## Lies down as its turn ends when nobody could reach it in melee next turn, and
+## stays down while it has somebody to hit from there (Combat "Prone"). Off, it only
+## gets up from wherever something else put it down.
+@export var goes_prone: bool = false
 ## Which Combat.gd function drives this enemy's turn. Built-in options:
 ## "ai_melee_rush" (default - rushes the nearest enemy and melees it),
 ## "ai_hit_and_explode", "ai_ranger", "ai_healer", "ai_caster",

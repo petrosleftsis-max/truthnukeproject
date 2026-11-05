@@ -128,6 +128,7 @@ func take_control(to_it: bool, by: int = -1):
 		scene._follow_camera(familiar.global_position if to_it and familiar != null else leading.position_of_leader())
 	# Seeing through its eyes is for whoever's screen that is.
 	_show_eyes(to_it and steered_here())
+	_show_sight(to_it and steered_here())
 
 
 ## Whether its steerer - anybody, outside co-op - plays on this machine.
@@ -296,6 +297,95 @@ func keep_party_rooted():
 func _on_moved(at: Vector2):
 	if controlling and steered_here() and scene.has_method("_follow_camera"):
 		scene._follow_camera(at)
+	if _fog != null and is_instance_valid(_fog):
+		_fog.look_from(at)
+
+
+## --- What it truly sees ---
+##
+## Seeing through its eyes, whatever it has no line of sight to - the same walk
+## over the same walls that a guard's eyes go by (StealthSight) - is dark (the
+## designer, 2026-11-04: "Show the line of sight that familiars truly have").
+
+var _fog: _Sight = null
+var _own_sight: StealthSight = null
+
+
+func _show_sight(on: bool):
+	if not on or familiar == null:
+		if _fog != null and is_instance_valid(_fog):
+			_fog.queue_free()
+		_fog = null
+		return
+	if _fog == null or not is_instance_valid(_fog):
+		_fog = _Sight.new()
+		_fog.name = "FamiliarSight"
+		_fog.tile_map = scene.get("_tile_map")
+		_fog.sight = _sight_on_this_map()
+		scene.add_child(_fog)
+	_fog.look_from(familiar.global_position)
+
+
+## A watched map's sight knows its doors and lamps; any other map, the walls.
+func _sight_on_this_map() -> StealthSight:
+	var watch = scene.get("stealth")
+	if watch != null and is_instance_valid(watch) and watch.sight != null:
+		return watch.sight
+	if _own_sight == null:
+		_own_sight = StealthSight.new(scene.get("_tile_map"))
+	return _own_sight
+
+
+## The dark over what it cannot see, within so many tiles of it and everywhere
+## past them. Worked out as it comes onto a tile: a line of sight to every tile
+## around it is too much for every frame.
+class _Sight extends Node2D:
+	## How far round it this looks, in tiles.
+	const REACH := 18
+	const DARK := Color(0.02, 0.015, 0.06, 0.66)
+	## Past the tiles looked at, as far as anybody can pull the view back.
+	const BEYOND_TILES := 400.0
+
+	var tile_map: TileMap = null
+	var sight: StealthSight = null
+	var _from := Vector2i(-99999, -99999)
+	var _hidden: Array = []
+
+	func _ready():
+		z_as_relative = false
+		z_index = ExplorationParty.PARTY_Z_TOP + 6
+
+	func look_from(at: Vector2):
+		if tile_map == null or sight == null:
+			return
+		var tile := tile_map.local_to_map(tile_map.to_local(at))
+		if tile == _from:
+			return
+		_from = tile
+		_hidden.clear()
+		for dx in range(-REACH, REACH + 1):
+			for dy in range(-REACH, REACH + 1):
+				var other := tile + Vector2i(dx, dy)
+				# Nothing in the way - the face of a wall counts, as far as it goes.
+				if not sight.clear(tile, other):
+					_hidden.append(other)
+		queue_redraw()
+
+	func _draw():
+		if tile_map == null:
+			return
+		var size := Vector2(tile_map.tile_set.tile_size) if tile_map.tile_set != null else Vector2(Grid.HALF_TILE) * 2.0
+		for tile in _hidden:
+			var middle := to_local(tile_map.to_global(tile_map.map_to_local(tile)))
+			draw_rect(Rect2(middle - size / 2.0, size), DARK)
+		# Everything past what was looked at, four great bars round it.
+		var near := to_local(tile_map.to_global(tile_map.map_to_local(_from)))
+		var span := size * (REACH + 0.5)
+		var far := size * BEYOND_TILES
+		draw_rect(Rect2(near.x - far.x, near.y - far.y, far.x * 2.0, far.y - span.y), DARK)
+		draw_rect(Rect2(near.x - far.x, near.y + span.y, far.x * 2.0, far.y - span.y), DARK)
+		draw_rect(Rect2(near.x - far.x, near.y - span.y, far.x - span.x, span.y * 2.0), DARK)
+		draw_rect(Rect2(near.x + span.x, near.y - span.y, far.x - span.x, span.y * 2.0), DARK)
 
 
 ## --- Over a network ---

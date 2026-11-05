@@ -108,6 +108,10 @@ static func read(slot: String) -> Dictionary:
 	if not FileAccess.file_exists(path_of(slot)):
 		return {}
 	var text := FileAccess.get_file_as_string(path_of(slot))
+	# A save is plain data. Asked to, str_to_var would build an object and run its
+	# script - so a save somebody passed on could do anything: not read at all.
+	if text.contains("Object(") or text.contains("Resource("):
+		return {}
 	var data = str_to_var(text)
 	if not data is Dictionary or data.get("version", 0) != VERSION or not data.get("state") is Dictionary:
 		return {}

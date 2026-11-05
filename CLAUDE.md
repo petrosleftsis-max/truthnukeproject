@@ -43,10 +43,13 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 141 suites and takes a while. Each one boots the real game
+A full run is 144 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
-has the details, including how to add one.
+has the details, including how to add one. A second harness can run beside a
+full one: `MOT_TEST_WORK=<a folder> MOT_TEST_USER_DIR="MoT harness 2" tests/run.sh
+<suites>` - never `net` in both at once, since its ports are fixed, and never edit
+`tests/run.sh` during a run, since bash reads it as it goes.
 
 Godot is found by `tools/find_godot.sh`, which every script that runs it
 shares: `$GODOT` if set, then `godot` on PATH, then the places it has been
@@ -207,6 +210,53 @@ a line's and a cone's as it passes, an area's rippling out from where it lands;
 Headless it lands at once unless `Projectile.plays_headless` - so no other suite
 pays for it. `projectile` covers it.
 
+**The fight's view** (`control/CameraController.gd` "Moved for the player", `Combat`
+"The view, for what happens"; the designer, 2026-11-04). Nothing here is rolled
+and nothing changes what happens, so over a network each machine's view goes its
+own way. A blow has its attacker, where it is aimed and all of a blast in view
+while it goes off (`_frame_the_blow` -> `camera.frame`, `_end_the_frame`;
+`FRAME_LEAD_SECONDS`, `FRAME_ROOM_TILES`, `FRAME_HOLD_SECONDS`). What flies leans
+the view after it by its style and kicks it as it lands (`Projectile.LEAN_SHARES`,
+`KICK_PIXELS`; `lean_after`, `kick`). A turn this machine's player plays glides the
+view onto whoever is up (`_glide_to_turn`, `glide_to`, `GLIDE_RATE`). The pan keys
+or the wheel take the view back from any of it (`_take_back`); it never moves while
+a fight is played through to catch up, nor headless unless
+`CameraController.moves_headless`. Whoever comes in late is shown one at a time
+before the next turn (`_keep_for_showing`, `_show_arrivals`, `ARRIVAL_*`). End Turn
+is out of reach for `END_TURN_HOLD_SECONDS` as a turn of this player's opens
+(`combat_ui._hold_end_turn`, counted down on the button; `holds_headless`).
+`combatview` covers it. All the numbers are PROPOSAL.
+
+**What aiming shows** besides the prompt (`control/CController.gd`, 2026-11-04 and
+05): a blast that spreads from whoever a blow lands on shows round them
+(`_preview_blast`, `Combat.splash_tiles_of`; Titanfall, Tremor; the tooltip's
+"Blast" line); the tile a blink or a summon would take lights up
+(`picking_a_landing_tile`); and somebody the skill only cannot get to - past its
+reach, or no clear line, not too close - is still told in the prompt, under a line
+saying so, the click still refused (`_only_cannot_get_there`,
+`Combat.targets_if_reached`, `show_hit_preview`'s `cannot_get_there`) - whoever is
+on that one tile, not the rest of a blast, and nobody hidden. `hitpreview` covers it.
+
+**Prone** (Combat "Prone", `data/conditions/prone.tres`; the designer, 2026-11-05).
+Free to lie down on one's own turn (`lie_down`, `lie_down_refusal`); getting up takes
+`getting_up_share` of their movement, rounded up (`get_up`, `get_up_cost`,
+`get_up_refusal`). `prevents_movement` makes every walker and AI treat them as rooted;
+`controller.movement` is 0 meanwhile and `movement_left_when_down` keeps what they
+had, absent when it is all of it (`movement_if_up`). `can_still_walk` is what the
+turn's running out asks, since 0 is not spent. Damage: `prone_damage_factor`, in
+`damage_dealt_multiplier`, so prompt and blow agree - `is_melee` is more, anything
+else less, `_splashing` an area, no skill unchanged; `ignores_prone_cover` (Low Shot)
+and `gets_up_free` (Kip-Up) on PassiveDefinition. `_lying_down` keeps it from
+`_harmful` and `should_dispel`. The player's way in is `CController.toggle_prone` (the
+`prone` action, Ctrl, and `combat_ui`'s `_prone_button`), told to the other machine
+as the fight move "prone" (`change_stance`). Undo: `board_fingerprint` leaves the
+walker's own lying down out, and `undo_move` puts it back (`_turn_start_prone`,
+`_turn_start_kept`, `_stance_changed`, `put_back_lying`). AI: `_ai_turn` gets up first unless
+`_ai_stays_down`; `goes_prone` (per creature, nobody ticked) lies down at its turn's
+end (`_ai_consider_lying_down`). Erysichthon is immune (`immune_to_conditions`).
+`CombatantSprite.set_lying` is a placeholder, with
+a `prone` animation as its slot. `prone` covers it, and `net` plays it across.
+
 **How moves are felt** (`combat/MoveFeel.gd`; `docs/move_feel_proposals.md`, built
 2026-10-31 but for moves coming down from above or up from below, which the
 designer did not want). All of it is placeholder art and sound behind slots - the
@@ -347,7 +397,23 @@ designer, 2026-10-31: "Casting the familiar shouldn't have its own key"): G -
 elsewhere, `ui/outside_spell_choice.gd` asking which - only lets it go while it
 is out, and the stealth bar's `_familiar` button shows only then, to let it go.
 The tab's tooltip (`OutsideMovesPanel._freshen`) says the first since a long
-rest is free and how to go to it. `familiar` and `outside` cover it.
+rest is free and how to go to it. `familiar` and `outside` cover it. It hides on
+the same spots Cyrus does - a guard feels it there only from within `REACH_TILES`
+(`feels_familiar`, `_watch_familiar`) - and what it truly sees is drawn while it
+is steered: every tile its `sight.clear` says it cannot see is dimmed, out to
+`REACH` tiles (`FamiliarKeeper._show_sight`, `_Sight`; the designer, 2026-11-04).
+
+**Stealth mode** (StealthWatch "Stealth mode"; the designer, 2026-11-04 and 05: "Make
+only Cyrus and the familiar able to go to stealth mode, or any invisible ally").
+Only someone with `CombatantDefinition.stealths` (Cyrus) creeping, and anybody
+invisible, are `stealthing`, and the familiar has its own rules: a guard who cannot
+see them does not notice them. Anybody else walking within `WALKING_NOTICED_TILES`
+of a guard, walls or no walls, is noticed as if seen (`notices_walking`,
+`_walking_now`), and so is Cyrus when not creeping; standing still, nobody is. Creep
+is a toggle (Ctrl or the bar's button: `toggle_creep`, `_creep_on` by player; a
+light push of a pad's stick creeps while it lasts), only for a group with somebody
+who can (`_can_creep`, `can_creep_here`; the bar's button greys otherwise), and only
+those stealthing are drawn half-there (`_dress_the_party`). `openly` covers it.
 
 **Moves outside a fight** (`exploration/OutsideMoves.gd`, docs/outside_combat_plan.md
 Phase 1, the designer 2026-10-26): `moves_of(key)` is everything somebody has on a
@@ -671,6 +737,45 @@ that moves it aims the glide (`_aim_camera`, `_camera_aim`). The `familiar` key
 goes to the host while a familiar is out (`forwards`; a pad's is the Outside
 Spell button, which otherwise stays here), and Party Management for whoever
 joins comes up on both (`manage_party_there`). `PROTOCOL` 5.
+**One player to a machine** (the designer's list of 2026-11-04; `PROTOCOL` 6):
+`Coop.player_here()` is this machine's player over a network, and any device here
+counts as them (`player_of_event`, `pointer_device`, `direction`). On a turn or a
+menu that is somebody else's, `Coop.lets_through` still passes what only looks
+(`LOOKING`, `_only_looks`: zoom, the wheel, the sheets; a click only over a control
+in `Coop.OPEN_TO_ALL` - the HUD's faces and tabs) and, with a menu or a conversation
+up on this machine, every press (`MenuPause.is_held`, `Net.conversation_up_here`).
+Each player has their own lead (`Campaign.lead_here`, `is_leading`, `lead_within`,
+which turns only that player's keys in their places in `party_order`): it is who
+the portraits highlight, whose moves the bar shows (`OutsideMovesPanel.who`) and
+who Tab changes (`swap_leader`). The camera follows this machine's own group
+(`_camera_group`, `_group_moved`; `_frame_groups` is false) and the leash is only
+for one screen. The other player's character walks by `_ease_to_where_said`
+(`PUPPET_EASE`, `PUPPET_THERE`, teleported past 3 tiles; left alone while
+`Actors.is_moving` it), its animation from what the walk says. A conversation is the
+same on both: `ConversationMirror` is built as `ui/dialogue_balloon.tscn` is - the
+portrait by `DialogueBalloon.portrait_of`, the name in its colour, the text typed
+out, the answers both may press (`Net._line`'s `tags`, `_on_balloon_input`) - and
+what a conversation's mutations do to the world is done on both (`Actors` ->
+`Net.actors_did`, `ACTORS_DOES`; `Music` -> `Net.music_did`, `MUSIC_DOES`). In a
+fight each sees the tile the other points at, in their colour with their name
+(`pointing_on_board` -> `CController.show_other_pointing`, `OTHER_HOVER_SECONDS`, on
+the unreliable channel; nothing changes a replayed fight, and `battle_party` no
+longer reads `Coop.acting`, which differs). On the title screen a pick is made, not
+asked for (`pick_at_the_table`, `in_the_game`; `players_panel.choose`). The panel's
+stale "No answer" clears as a new attempt starts (`net_panel._was_idle`). Party
+Management's panel is `MOUSE_FILTER_STOP`, and `CController.a_menu_is_over_the_map`
+asks `MenuPause.is_held` - a Container's default PASS with no STOP above it lets a
+click fall through to `_unhandled_input`.
+**What the other machine may send** (security review, 2026-11-05):
+`Net.in_the_game_files(path)` - under res://, nothing climbing out, no backslash -
+guards every path that crosses (`data_to_resource`, `_follow`, `_picture_here`,
+`_picture_changes`, `Campaign.apply`), since a scene or a resource can carry a script;
+`_may_press_from_afar` lets the host act only on `HOSTS_PRESSES` and `BOTH_PRESSES`,
+the familiar's while one is out and the number keys on a watched map; `_answer`
+checks its sender; a track or portrait name cannot climb out either
+(`_music_did`, `DialogueBalloon._file_safe`); `SaveGame.read` refuses text with
+`Object(` or `Resource(` in it, since `str_to_var` would build one. Objects never
+decode over the wire. `net` ("paths from the other machine") and `saves` cover it.
 **A menu or a picture open on a machine keeps that
 machine's presses:** the joiner forwards none (`forwards`), and
 `ExplorationScene._unhandled_input` and `StealthBar._act` ignore a press from a

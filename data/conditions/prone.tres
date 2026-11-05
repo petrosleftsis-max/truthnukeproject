@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Prone"
+description = "Lying flat: half the damage from ranged moves and areas, double from melee. Going down costs nothing; getting up takes half their movement, and until then they do not walk."
+duration = 999
+prevents_movement = true
+getting_up_share = 0.5
+less_from_ranged = 0.5
+more_from_melee = 1.0

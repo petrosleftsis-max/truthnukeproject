@@ -395,6 +395,7 @@ func _process(delta: float):
 		var at := _head(t)
 		_trail.append([at, _clock])
 		_leave_behind(at, delta)
+		_lean_the_view(at)
 		if art != null:
 			var going: Vector2 = at - art.position
 			art.position = at
@@ -455,6 +456,7 @@ func _land():
 	if combat == null or not is_instance_valid(combat) or skill == null:
 		return
 	var at := _end()
+	_kick_the_view(at)
 	var mend := colour == MEND
 	match _verdict:
 		Verdict.MISSED:
@@ -480,6 +482,39 @@ func _land():
 		MoveFeel.spawn(combat, &"settle", at)
 	if leads:
 		MoveFeel.sound(combat, skill.impact_sound, MoveFeel._impact_sound_of(skill, element, grazed), target)
+
+
+## The view goes a little with it, the leading one of them, each way of going its
+## own (the designer, 2026-11-04: "Move the camera slightly depending on how the
+## projectile does it"): a bolt draws it along, a streak further, an arc up and
+## over as it rises and falls, a beam or a spray only a push the way it goes - a
+## share of the way from the middle of the view to where it is (LEAN_SHARES).
+const LEAN_SHARES := {
+	SkillDefinition.ProjectileStyle.ARC: 0.26,
+	SkillDefinition.ProjectileStyle.STREAK: 0.3,
+	SkillDefinition.ProjectileStyle.BEAM: 0.12,
+	SkillDefinition.ProjectileStyle.SPRAY: 0.1,
+	SkillDefinition.ProjectileStyle.FAN: 0.1,
+	SkillDefinition.ProjectileStyle.BACK_TO_USER: 0.2,
+}
+const LEAN_SHARE_BOLT := 0.18
+## The shove as it lands, in screen pixels: harder for what lands hard.
+const KICK_PIXELS := 14.0
+const KICK_PIXELS_HEAVY := 26.0
+
+
+func _lean_the_view(at: Vector2):
+	if leads and combat != null and is_instance_valid(combat) and combat.camera != null and is_instance_valid(combat.camera):
+		combat.camera.lean_after(at, LEAN_SHARES.get(style, LEAN_SHARE_BOLT))
+
+
+func _kick_the_view(at: Vector2):
+	if not leads or combat.camera == null or not is_instance_valid(combat.camera):
+		return
+	combat.camera.lean_off()
+	if _verdict == Verdict.MISSED or _verdict == Verdict.IMAGE:
+		return
+	combat.camera.kick(at - from, KICK_PIXELS_HEAVY if skill.spell_slot_level >= 3 or look == SkillDefinition.ProjectileLook.ROCK else KICK_PIXELS)
 
 
 ## What it leaves behind as it goes: embers, frost, drips off a special round;

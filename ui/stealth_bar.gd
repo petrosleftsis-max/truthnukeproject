@@ -37,6 +37,7 @@ var _other_keys: Array = []
 var _ears: Button = null
 var _dash: Button = null
 var _creep: Button = null
+var _creep_tip := ""
 var _patience: Button = null
 var _vault: Button = null
 var _takedown: Button = null
@@ -109,8 +110,8 @@ func _ready():
 ## The buttons that never change but for what to press: the keys, or a pad's.
 func _name_keys():
 	_creep.text = Pad.hint("Creep", &"creep")
-	_creep.tooltip_text = "Walk slowly, without a sound - across gravel, puddles and broken glass too. %s, or click to keep creeping." % (
-		"Push the stick only a little way" if Pad.using_pad else "Hold %s" % Pad.key(&"creep"))
+	_creep_tip = "Stealth mode: walk slowly, without a sound, and no guard who cannot see you notices you - across gravel, puddles and broken glass too. Walking without it near a guard, he does, walls or no walls. %s." % (
+		"Push the stick only a little way, or click to keep it on" if Pad.using_pad else "%s, or click, turns it on and off" % Pad.key(&"creep"))
 	_patience.text = Pad.hint("Patience", &"patience")
 	_patience.tooltip_text = "Hold it (or %s) and time runs twice as fast - for waiting out a patrol. Let go and it is back to normal." % Pad.key(&"patience")
 	_vault.text = Pad.hint("Vault", &"vault")
@@ -176,7 +177,7 @@ func refresh():
 	elif watch.leader_hiding():
 		_status.text = "Hidden"
 	else:
-		_status.text = "Creeping" if watch.creeping() else "Sneaking"
+		_status.text = "Creeping" if watch.creeping() else "Walking openly"
 		if watch.leader_in_shadow():
 			_status.text += " in the dark"
 	_creep.set_pressed_no_signal(watch.creeping())
@@ -297,6 +298,9 @@ func refresh():
 		# What nothing else sets each frame, put back.
 		for button in [_throw, _creep] + _other_throws:
 			button.disabled = false
+		# Stealth mode is for whoever can (StealthWatch.stealthing).
+		_creep.disabled = not watch.can_creep_here()
+		_creep.tooltip_text = "Only Cyrus, or somebody invisible, can go unnoticed: anybody else walking near a guard is noticed, walls or no walls. Standing still, nobody is." if _creep.disabled else _creep_tip
 
 
 ## Minutes and seconds - "9:58".
@@ -531,6 +535,8 @@ func _act(event: InputEvent):
 		watch.listen()
 	elif Pad.went_down(event, &"vault"):
 		watch.vault()
+	elif Pad.went_down(event, &"creep"):
+		watch.toggle_creep()
 	elif Pad.went_down(event, &"outside_spell"):
 		outside_spell()
 	elif Pad.went_down(event, &"ambush"):

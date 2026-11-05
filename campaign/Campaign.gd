@@ -415,6 +415,43 @@ func leader() -> String:
 	return living[0] if not living.is_empty() else ""
 
 
+## Who leads for whoever is at this machine: over a network its own player's
+## first (the designer, 2026-11-04: "Let them see and change their lead"); else
+## leader(). Whatever the press being handled now.
+func lead_here() -> String:
+	var here := Coop.player_here()
+	if here != Coop.ANYONE and Coop.on():
+		var mine := Coop.keys_of(here)
+		if not mine.is_empty():
+			return mine[0]
+	return leader()
+
+
+## Whether `key` is shown leading: over a network this machine's player's lead,
+## on one screen each player's, and alone the one lead.
+func is_leading(key: String) -> bool:
+	if Coop.on() and Coop.player_here() == Coop.ANYONE:
+		var theirs := Coop.keys_of(Coop.controller_of(key))
+		return not theirs.is_empty() and theirs[0] == key
+	return key == lead_here()
+
+
+## `keys` - one player's, in marching order - turned round so `new_leader` comes
+## first, in the places in the marching order they already have: the rest of the
+## party keeps its own order and its own lead.
+func lead_within(keys: Array, new_leader: String):
+	var at := keys.find(new_leader)
+	if at <= 0:
+		return
+	var turned: Array = keys.slice(at) + keys.slice(0, at)
+	var next := 0
+	for i in party_order.size():
+		if keys.has(party_order[i]):
+			party_order[i] = turned[next]
+			next += 1
+	party_changed.emit()
+
+
 ## Moves `key` to the front of the marching order. Ignored for someone who
 ## isn't in the party, or who is dead - a corpse can't lead.
 func set_leader(key: String) -> bool:
@@ -452,7 +489,9 @@ func cycle_leader() -> String:
 ## the party walks the map and shows in the portraits, but is left out here.
 func battle_party() -> Array:
 	var fighters: Array = []
-	for key in living_party():
+	# The marching order as it stands, not with whoever pressed last first: over
+	# a network both machines' fights have to begin the same (Net).
+	for key in Array(party_order).filter(is_alive):
 		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
 		if definition != null and definition.can_fight:
 			fighters.append(key)
@@ -568,7 +607,7 @@ func party_members() -> Array:
 			"sprite_frames": definition.sprite_frames,
 			"hp": hp,
 			"max_hp": max_hp,
-			"is_leader": key == leader(),
+			"is_leader": is_leading(key),
 		})
 	return members
 
@@ -809,7 +848,10 @@ func apply(state: Dictionary, keeping: Array = []):
 		if state.has(key) and not keeping.has(key):
 			var value = state[key]
 			set(key, value.duplicate(true) if value is Dictionary or value is Array else value)
-	current_map = str(state.get("current_map", current_map))
+	# Only the game's own files (Net.in_the_game_files): a map can carry a script.
+	var map := str(state.get("current_map", current_map))
+	if map == "" or Net.in_the_game_files(map):
+		current_map = map
 	if state.get("return_position") is Vector2:
 		return_position = state.return_position
 	return_to_position = bool(state.get("return_to_position", return_to_position))
@@ -817,7 +859,7 @@ func apply(state: Dictionary, keeping: Array = []):
 	if state.get("stealth_checkpoint") is Dictionary:
 		stealth_checkpoint = state.stealth_checkpoint.duplicate(true)
 	var dungeon_path := str(state.get("dungeon", ""))
-	dungeon = load(dungeon_path) if dungeon_path.begins_with("res://") and ResourceLoader.exists(dungeon_path) else null
+	dungeon = load(dungeon_path) if Net.in_the_game_files(dungeon_path) else null
 	current_encounter = Net.data_to_resource(state.get("encounter")) as EncounterDefinition
 	if Array(party_order) != party_before:
 		party_changed.emit()

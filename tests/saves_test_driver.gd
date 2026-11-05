@@ -53,6 +53,7 @@ func _ready():
 	await where_it_can_be_saved()
 	await automatic_saves()
 	await the_buttons()
+	a_save_passed_on()
 	wipe()
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
@@ -110,6 +111,19 @@ func everything_is_saved():
 ## Kept by Campaign, and neither saved nor said not to be.
 func unaccounted_for(property: String) -> bool:
 	return not Campaign.SAVED.has(property) and not NOT_SAVED.has(property) and not SAVED_ITS_OWN_WAY.has(property)
+
+
+## A save is plain data: one somebody handed over, with an object written into it
+## to build and a script to run, is not read at all.
+func a_save_passed_on():
+	log_line("======== a save somebody passed on ========")
+	DirAccess.make_dir_recursive_absolute(SaveGame.path_of("passed_on").get_base_dir())
+	var file := FileAccess.open(SaveGame.path_of("passed_on"), FileAccess.WRITE)
+	file.store_string("{ \"version\": %d, \"state\": { \"gold\": Object(RefCounted,\"script\":null) } }" % SaveGame.VERSION)
+	file.close()
+	ok(SaveGame.read("passed_on").is_empty(), "an object in it: not read")
+	DirAccess.remove_absolute(SaveGame.path_of("passed_on"))
+	log_line("")
 
 
 func save_and_load():

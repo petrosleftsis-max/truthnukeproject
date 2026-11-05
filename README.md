@@ -37,13 +37,22 @@ its reach, its area and what it would do - including a teammate's, from their
 portrait - without using it. While a skill is aimed, a portrait or a face in
 the queue can be clicked in place of the person on the map; hovering one that
 it cannot be used on says why. A click outside the blue reach, on the map or a
-face, does nothing and aiming carries on.
+face, does nothing and aiming carries on - but hovering somebody it cannot get
+to still says what it would do to them, under a line saying it could not. A
+blast that spreads from whoever a blow lands on shows round them while aiming,
+and the tile a blink or a summon would take lights up. As a turn of yours opens,
+End Turn holds for two seconds, counting down on its button. **Ctrl**, or the
+button over Ready, lies the one acting down or gets them up (see Prone).
 
 The tiles everybody stands on are lightly tinted: blue for the party and whoever
 fights for it, red for enemies, pale gold for things on the battlefield. On an
 enemy's turn the view centres on the middle of the tiles it stands on, and pulls
 back until it fits if it is bigger than the screen; the view goes back to where
-it was zoomed afterwards.
+it was zoomed afterwards. A blow keeps whoever throws it, whoever it is thrown
+at and all of a blast in view; what flies leans the view after it and kicks it as
+it lands; a turn of yours glides the view onto whoever is up; whoever arrives in
+the middle of a fight is shown coming in, one at a time. The pan keys or the
+wheel take the view back from any of it.
 
 ### With a controller
 
@@ -166,6 +175,17 @@ player's presses are its own; the other player plays on. A conversation one
 player begins draws the other's camera over to them, and back once it ends.
 Dragging a body slows whoever drags it, on their own screen, and each player
 creeps on their own keys.
+
+Each machine has one player, who may use any keyboard, mouse or pad on it, and
+each has their own view and their own lead: Tab changes it, and it is the one
+the portraits highlight and whose moves the bar shows. The leash is only for one
+screen. Looking never waits for a turn: zooming, the character and monster
+sheets, anybody's portrait and the faces in the queue are open whoever's turn it
+is. In a fight each sees the tile the other is pointing at, in their colour with
+their name. A conversation is the same on both screens - portraits, names in
+their colours, whoever walks in - and either may press through it where it is
+theirs. On the title screen each picks their own character. Both need the same
+build: `Net.PROTOCOL` refuses any other.
 
 **Trying it on one PC:** in the Godot editor, Debug -> Customize Run Instances,
 turn on Enable Multiple Instances and set it to 2, then run the game. In one
@@ -422,7 +442,7 @@ Skills** instead, name and description written out in full.
 The Mimic's `data/passives/mimicry.tres` is the example: always active, and it is
 what lets the Mimic cast a copied spell without opening a gate. Cyrus has two
 more: `light_footed.tres` lets him use Stealth, Slip Past and Run as a secondary
-action too, and `quick_hands.tres` does the same for items. Those skills still
+action too, and `quick_hands.tres` does the same for items and Interact. Those skills still
 show on his Secondary tab, and their previews say which passive allows it. With
 both of his actions still there, using an item asks which one to spend.
 `nade_juggler.tres` lets him throw any Gate Nade, and as a secondary action (below).
@@ -753,6 +773,40 @@ Physical and Defense for two turns), and then commands it in, recklessly. With
 no beast standing it calls another (Gates of World). Empowered, the beast hits
 harder than a barbarian; on its own it hits a little softer. Fell the Summoner
 and the beast goes with it.
+
+### Prone
+
+Anybody on the ground can lie down on their own turn, for nothing - **Go Prone**
+over Ready on the panel, or **Ctrl** - and get up again for half their movement,
+rounded up. Until they do they do not walk. With less movement left than getting
+up takes, or held by something else, they stay down; next turn they have all of it
+again. It takes no action either way, and they can swing, shoot or cast from down
+there. **Undo Move** takes back lying down and getting up as it does a walk, until
+something happens that cannot be taken back.
+
+Lying down they take half the damage from ranged moves and areas, and double from
+melee, and the aim prompt says so. A melee swing with an area counts as melee; the
+shock spreading from a blow counts as an area. What has no skill behind it - a burn
+ticking, a wall they are shoved into - is as it ever was.
+
+The numbers are on `data/conditions/prone.tres`: **Getting Up Share**, **Less From
+Ranged** and **More From Melee**. Any skill can knock somebody down with a CONDITION
+effect pointing at it. Somebody with it among their **Immune To Conditions** stays
+on their feet, as Erysichthon does, and nobody in the air or riding somebody can
+lie down. It is no harm
+done, so no heal, cleanse or dispel lifts it.
+
+On a passive, **Ignores Prone Cover** takes the half away from the bearer's ranged
+moves at a foe (Cyrus's **Low Shot**) and **Gets Up Free** takes the cost away from
+their getting up (the Saboteur's **Kip-Up**, from level 24).
+
+On an enemy's CombatantDefinition, **Goes Prone** has it lie down as its turn ends
+when nobody could reach it in melee next turn, and stay down while it has somebody
+to hit from there. Nobody has it ticked yet. An enemy without it gets up first thing
+on its turn, from whatever put it down.
+
+It is drawn on its side for now. An animation called `prone` in somebody's
+SpriteFrames takes its place.
 
 ### Immunities, turns and auras
 
@@ -1662,7 +1716,13 @@ only shows when there is something to do with it:
   drawn while listening, or with the pointer on him - but only once it has been
   found out: set his **Route Known Flag** from whatever tells it (a duty roster
   to read, a pocket, a conversation).
-- **Ctrl - creep.** Held (or kept on with the bar's button), the party walks at
+- **Stealth mode.** Only somebody with **Stealths** ticked on their
+  CombatantDefinition (Cyrus) while creeping, and anybody invisible, go unnoticed by
+  a guard who cannot see them; a familiar has its own rules, below. Anybody else
+  walking within 8 tiles of a guard is noticed as if seen, walls or no walls, and
+  so is Cyrus when he is not creeping. Standing still, nobody is.
+- **Ctrl - creep.** Turns on and off (so does the bar's button, greyed when nobody
+  can; on a pad, a light push of the stick creeps while it lasts), the party walks at
   45% pace without a sound. A **NoisyFloor** patch - gravel, puddles, broken
   glass - is heard at every step otherwise: guards turn to gravel and puddles,
   and come to look at glass.
@@ -1700,6 +1760,9 @@ only shows when there is something to do with it:
   animal in its MapSetup's **Familiar Form**. It slips through **small gaps** nobody else fits through - a tile whose
   **Blocks** has **4** beside what it stops ([0, 4] is a wall to all but the
   small); a flying form goes over what stops only walkers (Blocks without 1).
+  What it truly sees shows while it is steered, everything else dimmed, and it
+  hides on the same spots Cyrus does: a guard makes it out there only from right
+  beside it.
   A watchman, captain or ward makes it out only within the form's **Noticed
   Within** (2 tiles for the rat) and turns to look; a hound smells it; a
   bystander pays an animal no mind. Sure of it (a violet "?"), a guard kicks out

@@ -139,3 +139,6 @@ coop
 rolls
 net
 projectile
+openly
+combatview
+prone

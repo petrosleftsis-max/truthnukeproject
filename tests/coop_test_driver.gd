@@ -34,6 +34,9 @@ func run_sections():
 	await a_talk_let_go()
 	await the_camera_to_a_talk()
 	await someone_joins()
+	one_player_to_a_machine()
+	await a_puppet_eases()
+	each_their_own_lead()
 	Coop.reset()
 	Campaign.controllers.clear()
 
@@ -62,6 +65,142 @@ func two_players(theirs: Array):
 	for key in theirs:
 		Campaign.controllers[key] = 1
 	Coop.players_changed.emit()
+
+
+## Over a network each machine has one player: everything pressed there is theirs,
+## and on somebody else's turn looking is still anybody's (the designer, 2026-11-04).
+func one_player_to_a_machine():
+	log_line("======== one player to a machine ========")
+	Coop.reset()
+	Coop.join(Coop.KEYBOARD)
+	Coop.join(2)
+	ok(Coop.player_here() == Coop.ANYONE, "two on one screen: nobody in particular")
+	Coop.players[0].peer = 1
+	Coop.players[1].peer = 5
+	Coop.local_peer = 5
+	Coop.networked = true
+	ok(Coop.player_here() == 1, "over a network, one on this machine: them")
+	ok(Coop.player_of_event(key_event(KEY_E)) == 1 and Coop.player_of_event(pad_button(0, JOY_BUTTON_A)) == 1,
+		"  the keyboard and any pad here are theirs - joined with pad 3, clicking with the mouse")
+	ok(Coop.pointer_device() == Coop.ANY_DEVICE, "  and any pad here points")
+	Coop.focus = 0
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	var middle := InputEventMouseButton.new()
+	middle.button_index = MOUSE_BUTTON_MIDDLE
+	middle.pressed = true
+	ok(not Coop.lets_through(click) and not Coop.lets_through(key_event(KEY_E)), "the other's turn: a click on the board, and a press, are dropped")
+	ok(Coop.lets_through(InputEventMouseMotion.new()), "  the pointer goes about")
+	ok(Coop.lets_through(wheel) and Coop.lets_through(middle), "  the view zooms and pans")
+	for action in [&"character_sheet", &"pause", &"danger_view", &"zoom_toggle"]:
+		var pressed := InputEventAction.new()
+		pressed.action = action
+		pressed.pressed = true
+		ok(Coop.lets_through(pressed), "  %s is theirs" % action)
+	var end_turn := InputEventAction.new()
+	end_turn.action = &"end_turn"
+	end_turn.pressed = true
+	ok(not Coop.lets_through(end_turn), "  End Turn is not")
+	var holder := Node.new()
+	add_child(holder)
+	MenuPause.hold(holder)
+	ok(Coop.lets_through(click), "a menu or a question open on this machine: its clicks get through, whoever's turn it is")
+	MenuPause.release(holder)
+	holder.queue_free()
+	ok(not Coop.lets_through(click), "  shut, they do not")
+	Coop.focus = Coop.ANYONE
+	Coop.networked = false
+	Coop.local_peer = 0
+	# On one screen a menu is whoever opened it's alone, as it was.
+	Coop.reset()
+	Coop.join(Coop.KEYBOARD)
+	Coop.join(0)
+	Coop.focus = 0
+	var theirs := Node.new()
+	add_child(theirs)
+	MenuPause.hold(theirs)
+	ok(not Coop.lets_through(pad_button(0, JOY_BUTTON_A)), "on one screen a menu held by Player 1 is theirs alone")
+	MenuPause.release(theirs)
+	theirs.queue_free()
+	Coop.focus = Coop.ANYONE
+	Coop.reset()
+	log_line("")
+
+
+## Another machine's group: eased to where it is said to be, walking as it goes -
+## not put there in jumps with no walk (the designer, 2026-11-04: "No walking
+## animation and very jittery when LAN or metwork player walks").
+func a_puppet_eases():
+	log_line("======== another machine's group ========")
+	var m := await open_map()
+	two_players(["cyrus"])
+	await settle(3)
+	var scene: ExplorationScene = m.scene
+	# Whoever joined has Party Management up, which holds the game on one screen.
+	if scene._sharing != null:
+		(scene._sharing.find_child("PlayersPanel", true, false) as PlayersPanel).close()
+		await settle(3)
+	var theirs: ExplorationParty = scene.groups[1]
+	theirs.puppet = true
+	var from := theirs.position_of_leader()
+	var to := from + Vector2.RIGHT * Grid.tiles(1.0)
+	theirs.walk_to(to, false, true)
+	ok(theirs.position_of_leader() == from, "said to be a tile on: not there at once")
+	await settle(2)
+	ok(theirs._walking, "  its walk plays")
+	var along := theirs.position_of_leader()
+	ok(along != from and along.distance_to(to) < from.distance_to(to), "  on its way", "%s" % along)
+	await settle(3)
+	ok(theirs._walking, "  the frames between the words too")
+	await wait(0.8)
+	ok(theirs.position_of_leader().distance_to(to) <= 1.0, "  and it gets there", "%s, %s" % [theirs.position_of_leader(), to])
+	theirs.walk_to(to, false, false)
+	await settle(3)
+	ok(not theirs._walking, "said to stand: stands")
+	var door := from + Vector2.RIGHT * Grid.tiles(8.0)
+	theirs.walk_to(door, true, false)
+	ok(theirs.position_of_leader() == door and theirs.facing_left(), "too far to have walked - a door, a blink: there at once")
+	theirs.puppet = false
+	await close_map(m)
+	Coop.reset()
+
+
+## Whose lead is whose (the designer, 2026-11-04: "Let them see and change their
+## lead"), and a fight's party the same however it is asked (Net).
+func each_their_own_lead():
+	log_line("======== each their own lead ========")
+	Coop.reset()
+	Campaign.reset()
+	Campaign.set_party(["alithia", "cyrus", "enfina", "prometheus"], 8)
+	Coop.join(Coop.KEYBOARD)
+	Coop.join(0)
+	Campaign.controllers = {"cyrus": 1, "prometheus": 1}
+	ok(Campaign.is_leading("alithia") and Campaign.is_leading("cyrus") and not Campaign.is_leading("enfina"), "on one screen each player's lead is lit")
+	Campaign.lead_within(Coop.keys_of(1), "prometheus")
+	ok(Coop.keys_of(1)[0] == "prometheus" and Coop.keys_of(0)[0] == "alithia", "the lead passed round one player's: the other's stands", "%s" % [Campaign.party_order])
+	Campaign.lead_within(Coop.keys_of(1), "cyrus")
+	ok(Array(Campaign.party_order) == ["alithia", "cyrus", "enfina", "prometheus"], "  and back", "%s" % [Campaign.party_order])
+	Coop.acting = 1
+	var with_them_acting: Array = Campaign.battle_party()
+	Coop.acting = 0
+	ok(Campaign.battle_party() == with_them_acting and with_them_acting == ["alithia", "cyrus", "enfina", "prometheus"],
+		"who fights, in the marching order, whoever pressed last: both machines' fights begin the same", "%s" % [with_them_acting])
+	Coop.acting = Coop.ANYONE
+	Coop.players[0].peer = 1
+	Coop.players[1].peer = 5
+	Coop.local_peer = 5
+	Coop.networked = true
+	ok(Campaign.lead_here() == "cyrus" and Campaign.is_leading("cyrus") and not Campaign.is_leading("alithia"),
+		"over a network: this machine's player's lead, lit - not the host's", Campaign.lead_here())
+	Coop.networked = false
+	Coop.local_peer = 0
+	Campaign.controllers.clear()
+	Coop.reset()
+	log_line("")
 
 
 func players_and_devices():

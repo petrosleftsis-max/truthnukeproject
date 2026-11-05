@@ -53,6 +53,71 @@ func open_tile_near(combat: Combat, from: Dictionary, mover: Dictionary, near: i
 	return Vector2i(-99999, -99999)
 
 
+## The designer, 2026-11-05: "allow the damage prediciton to be shown even if the
+## mouse is hovered on enemies beyond range. not that they can be hit as is. but
+## what damage would they take if the player character could have reached them".
+func beyond_reach(combat: Combat, ui, controller, shooter: Dictionary, mark: Dictionary):
+	combat.current_combatant = combat.combatants.find(shooter)
+	shooter.skill_used_this_turn = false
+	var gun: SkillDefinition = SkillDatabase.skills["gun"]
+	var far = Vector2i(-99999, -99999)
+	for tile in controller.get_reachable_tiles(shooter.position, shooter.movement_class, 99):
+		if far.x == -99999 and combat.distance_to(shooter, tile) > combat.effective_max_range(shooter, gun) and combat.can_land_on(mark, tile):
+			far = tile
+	ok(far.x > -99999, "somewhere past the end of Gun's reach", "%s" % far)
+	combat.teleport_to(mark, far)
+	controller.set_controlled_combatant(shooter)
+	controller.set_selected_skill("gun")
+	controller.begin_target_selection()
+	var said = combat.predict_hit(shooter, mark, gun)
+	ok(controller.refusal_at(far, mark) == CController.OUT_OF_REACH, "they cannot be hit from here", controller.refusal_at(far, mark))
+	controller._preview_hits(far)
+	var text = prompt_text(ui)
+	ok(ui._hit_preview.visible and text.contains(mark.name) and text.contains("%d damage" % said.damage),
+		"the prompt says what it would do to them all the same", text)
+	ok(text.contains("Out of reach"), "and that it cannot get there")
+	var hp_before = mark.hp
+	ok(not controller.aim_click(far) and not shooter.skill_used_this_turn and mark.hp == hp_before,
+		"and a click still does nothing")
+	# As from their face.
+	controller.clear_aim_preview()
+	controller.preview_aim_at_combatant(mark)
+	ok(prompt_text(ui).contains("%d damage" % said.damage) and prompt_text(ui).contains("Out of reach"),
+		"hovering their face says the same", prompt_text(ui))
+	ok(controller._attack_target_position == null and controller._blocked_target_position != null,
+		"  and their tile stays marked as one this cannot go to")
+	controller.clear_aim_preview()
+	# Nobody there, or somebody it is not for: nothing.
+	controller._preview_hits(shooter.position + Vector2i(99, 0))
+	ok(not ui._hit_preview.visible, "bare ground past its reach: no prompt")
+	# Hidden, they are not given away.
+	combat.set_hidden(mark, true)
+	controller._preview_hits(far)
+	ok(not prompt_text(ui).contains(mark.name), "somebody hidden out there is never named", prompt_text(ui))
+	combat.set_hidden(mark, false)
+	# Too close is not out of reach.
+	if gun.min_range > 1:
+		var beside = Vector2i(-99999, -99999)
+		for step in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if beside.x == -99999 and combat.can_land_on(mark, shooter.position + step):
+				beside = shooter.position + step
+		if beside.x > -99999:
+			combat.teleport_to(mark, beside)
+			controller._preview_hits(beside)
+			ok(not ui._hit_preview.visible, "too close for it: no prompt, as before")
+	controller.cancel_skill_selection()
+	await get_tree().process_frame
+	# In reach, the prompt promises and says nothing about reach.
+	var spot = open_tile_near(combat, shooter, mark, 3)
+	combat.teleport_to(mark, spot)
+	controller.set_selected_skill("gun")
+	controller.begin_target_selection()
+	controller._preview_hits(spot)
+	ok(prompt_text(ui).contains(mark.name) and not prompt_text(ui).contains("Out of reach"), "in reach: the plain prompt", prompt_text(ui))
+	controller.cancel_skill_selection()
+	await get_tree().process_frame
+
+
 func run_test():
 	Campaign.reset()
 	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
@@ -176,6 +241,10 @@ func run_test():
 	var screen = ui.get_viewport_rect().size
 	var box = Rect2(ui._hit_preview.global_position, ui._hit_preview.get_combined_minimum_size())
 	ok(Rect2(Vector2.ZERO, screen).encloses(box), "it was kept on the screen", "%s in %s" % [box, screen])
+	log_line("")
+
+	log_line("======== somebody it cannot get to ========")
+	await beyond_reach(combat, ui, controller, shooter, mark)
 	log_line("")
 
 	game.queue_free()

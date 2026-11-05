@@ -470,6 +470,35 @@ same checksum; a conversation's choice made on the joiner is the one taken.
     for games needs no address typed - it hears the hosts on the network.
   - The familiar's key is its own (R; a pad's L3), forwarded to the host while
     one is out. `PROTOCOL` is 5.
+- **One player to a machine** (the designer's list of 2026-11-04: "Despite these
+  network, lan and local co op play does work"). Built 2026-11-05:
+  - Any device on a machine is its one player, so a joiner's own keys, mouse and
+    pad all work; zooming, the sheets, the faces and the tabs are open on anybody's
+    turn; a menu or a conversation up on a machine takes that machine's every press
+    (which is what stopped player 2 answering requests and dialogue, and clicking
+    the menu to change members mid-fight).
+  - Their own lead, seen, changed and highlighted, whose moves the bar shows; the
+    camera their own; no leash over a network ("Still on leash, only want for local
+    co op").
+  - The other player's character eases to where it is said to be, animated, instead
+    of jumping idle every frame ("No walking animation and very jittery").
+  - The same conversation on both: the joiner's copy built as the balloon is (portrait,
+    colour, typing), and actors and music moved by it on both ("I want them both to see
+    the same thing"). The camera is still drawn to whoever began it.
+  - Each sees the other's tile in a fight ("It would be cool to show the tiles the other
+    player hovers on"); in a fight only so far.
+  - Picks on the title screen are made, not asked for ("On network and LAN cannot
+    choose character from the main menu"); "No answer" clears on a new attempt; Party
+    Management stops clicks reaching the map.
+  - **Security** ("Is there any security risk with the current online system?"), fixed:
+    paths from the other machine could climb out of res://, a joiner's any key was
+    pressed on the host, a shared save could build objects, `_answer` did not check
+    its sender. Left as they are, known: no password (first come takes the one seat;
+    the host can kick), UPnP opens UDP 24700 while hosting, traffic is unencrypted game
+    state, each player sees the other's address (the hosting panel shows the public
+    one), the LAN beacon says the computer's name, a modified joiner can cheat and the
+    host is trusted. An optional join code is on offer. `PROTOCOL` is 6.
+  - Lying down, getting up and taking it back are fight moves ("prone", "undo").
 - **A dragged body, and creeping** (built 2026-10-31). Each group has its own
   pace: the one dragging a body walks at a body's pace, on its own machine
   too (the host says who drags), and each creeps on its own player's keys. The

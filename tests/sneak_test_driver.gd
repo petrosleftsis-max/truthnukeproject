@@ -124,7 +124,7 @@ func on_the_map():
 	ok(watch != null and watch.guards.has(guard), "the watch knows its guard")
 	watch.leave_for_battle = false
 	await settle()
-	ok(party.leader.hidden_alpha == StealthWatch.SNEAKING_ALPHA, "the party is drawn half-there, sneaking",
+	ok(is_equal_approx(party.leader.hidden_alpha, 1.0), "the party is drawn solid, walking about openly",
 		"%.2f" % party.leader.hidden_alpha)
 	# The wheel zooms here, where an ordinary map holds one framing.
 	var camera = scene.camera
@@ -358,7 +358,7 @@ func in_disguise():
 	await settle()
 	ok(bar != null and bar._buttons.size() == 1 and bar._buttons[0].text.contains("1  Priest Robes"),
 		"the stealth bar offers it, on the 1 key", bar._buttons[0].text if bar and not bar._buttons.is_empty() else "none")
-	ok(bar._status.text == "Sneaking" and bar._hide.disabled, "sneaking already, so there is nothing to Hide from",
+	ok(bar._status.text == "Walking openly" and bar._hide.disabled, "not in a disguise, so there is nothing to Hide from",
 		"'%s', hide: %s" % [bar._status.text, bar._hide.tooltip_text])
 
 	log_line("======== putting it on takes a while ========")
@@ -424,8 +424,7 @@ func in_disguise():
 	bar._unhandled_key_input(hide_key)
 	await settle()
 	ok(watch.worn_by(leader_key) == "", "H takes the robes off")
-	ok(party.leader.showing() != priest.sprite_frames and party.leader.hidden_alpha == StealthWatch.SNEAKING_ALPHA,
-		"and he is himself again, sneaking")
+	ok(party.leader.showing() != priest.sprite_frames, "and he is himself again")
 	ok(Campaign.count_of(leader_key, "priest_robes") == 1, "the robes back in the bag, to wear again")
 	scene.queue_free()
 	await settle()
