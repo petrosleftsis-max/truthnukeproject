@@ -2143,7 +2143,7 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	else:
 		lines.append("Hit chance: %d%%" % skill.accuracy)
 	# Which attribute the numbers on this skill are worked out from, so the
-	# panel says why the same Fireball is worth more in one pair of hands than
+	# panel says why the same Wildfire is worth more in one pair of hands than
 	# another - and which stat to raise if you want it to hurt more.
 	#
 	# Only when something on it actually scales: every skill carries a scaling
@@ -2399,6 +2399,8 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.HIDE:
 			return "Slips out of sight, if no enemy can see them - until one can"
 		EffectDefinition.EffectType.INVISIBLE:
+			if effect.unnoticed_until_acting:
+				return "Nobody notices them, even in plain view, until they do anything at all - or nobody on their side is left in sight"
 			return "Turns them invisible, even in plain view - until they do something to an enemy, or nobody on their side is left in sight"
 		EffectDefinition.EffectType.CANCEL_CASTING:
 			return "Cancels the spell they are casting: none of it happens, and their gate is spent all the same"
@@ -2406,6 +2408,12 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Makes them a size bigger %s, if there is room" % ("for the rest of the fight" if effect.duration <= 0 else "for %d turn%s" % [effect.duration, "" if effect.duration == 1 else "s"])
 		EffectDefinition.EffectType.SUMMON:
 			var called: CombatantDefinition = CombatantDatabase.combatants.get(effect.summons)
+			var named: String = called.name if called != null else effect.summons
+			if effect.summon_across > 0:
+				return "Puts up a %s %d tiles long across where it is aimed: only the other side believes in it" % [named, effect.summon_across * 2 + 1]
+			if effect.summon_as_images:
+				return "Puts %d images of a %s round where it is aimed: the other side takes them for real, one hit shatters each%s" % [
+					effect.summon_count, named, ", and whoever sees them arrive loses some nerve" if effect.summon_shakes > 0 else ""]
 			return "Calls up %s on the tile aimed at, to fight on your turn%s" % [
 				called.name if called != null else effect.summons, " - as strong as you" if effect.with_summoners_attributes else ""]
 		EffectDefinition.EffectType.COMMAND:
@@ -2426,6 +2434,8 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.ZONE:
 			var whose: String = ["your side", "the other side", "anybody"][clampi(effect.zone_for, 0, 2)]
 			var does := []
+			if effect.zone_false_ground:
+				does.append("the other side takes it for deadly and will not step on it, though it does nothing")
 			if effect.zone_condition != null:
 				does.append("%s standing in it is %s" % [whose, effect.zone_condition.display_name.to_lower()])
 			if effect.zone_costly:
@@ -2452,6 +2462,10 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Whoever it lands on, invisible or hidden, is seen"
 		EffectDefinition.EffectType.MOVE_ZONE:
 			return "Moves what you laid, up to %d tiles from where it is" % (skill.max_range if skill != null else 0)
+		EffectDefinition.EffectType.MOVE_IMAGE:
+			return "Sends the double they made there"
+		EffectDefinition.EffectType.DISGUISE:
+			return "Puts on a disguise that fits, and walks in plain sight"
 		EffectDefinition.EffectType.CATALYST:
 			return "Every lingering condition of yours, on every enemy, goes off at once, x%s what it had left - then starts again" % String.num(effect.catalyst_times, 2)
 		EffectDefinition.EffectType.SWALLOW:
@@ -2462,6 +2476,8 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Brings back a fallen ally with %d%% of their health - everything about them but their movement %d%% lower until a long rest, and lower again each time" % [
 				roundi(effect.revive_health * 100.0), roundi(effect.revive_weakening * 100.0)]
 		EffectDefinition.EffectType.SUMMON_DECOY:
+			if effect.image_moves:
+				return "Leaves a double of them where you point, which you can send about with a secondary action. It stays until it is hit or dispelled"
 			return "Puts an image of them beside them: one point of health, no turns - the enemy goes for it as it would for them"
 		EffectDefinition.EffectType.INTERACT:
 			return "Uses the thing beside you - rings the bell, pulls the lever, drops the chandelier"

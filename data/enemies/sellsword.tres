@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_who")
+ai_self_preservation = 1.5
 name = "Sellsword"
 glossary_text = "A blade for hire. Loyal to the purse - anybody's purse."
 max_hp = 75

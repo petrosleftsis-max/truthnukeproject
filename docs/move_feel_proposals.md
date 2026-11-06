@@ -200,7 +200,7 @@ moves the game has:
 
 ### Prometheus
 
-- **Fireball.** A bigger orb with a flickering core, a big burst, and a scorch
+- **Fireball (removed from the game 2026-11-06; Wildfire has this look).** A bigger orb with a flickering core, a big burst, and a scorch
   left behind.
 - **Burner, Fire Blast.** A short jet of flame; a ring going out.
 - **Wildfire.** The burst lighting the tiles around it one after another.

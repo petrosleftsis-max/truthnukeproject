@@ -342,7 +342,7 @@ func run_test():
 			"and gives up anything it would have to stand back for", too_far)
 	else:
 		log_line("  (no skill in the game has a minimum range above one to give up)")
-	var aim = combat.find_best_aim_and_count(SkillDatabase.skills["fireball"], enemy.position, enemy.movement_class, enemy)
+	var aim = combat.find_best_aim_and_count(SkillDatabase.skills["wildfire"], enemy.position, enemy.movement_class, enemy)
 	ok(combat.get_position_distance(enemy.position, aim.position) <= 1,
 		"its aim search is capped too", "aimed %d tiles away" % combat.get_position_distance(enemy.position, aim.position))
 	enemy.status_effects.clear()

@@ -3,7 +3,7 @@ class_name Stats
 ## the arithmetic that turns them into damage.
 ##
 ## Everything a skill does scales off exactly one of these, chosen per skill
-## (see SkillDefinition.scaling_stat), so the same Fireball hits harder in the
+## (see SkillDefinition.scaling_stat), so the same Wildfire hits harder in the
 ## hands of a better mind without any per-character numbers to maintain.
 
 

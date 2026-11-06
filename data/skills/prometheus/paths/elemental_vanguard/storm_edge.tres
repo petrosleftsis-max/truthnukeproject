@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
 [ext_resource type="Texture2D" path="res://art/icons/storm_edge_skill.png" id="2_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/heavy_electric_damage.wav" id="sfx_impact_sound"]
 
 [sub_resource type="Resource" id="Effect_0"]
 script = ExtResource("1_effect")
@@ -11,12 +12,12 @@ knockback_distance = 2
 
 [resource]
 script = ExtResource("3_skill")
+impact_sound = ExtResource("sfx_impact_sound")
 impact_look = 39
 name = "Storm Edge"
 description = "A blade of lightning that throws its target back."
 icon = ExtResource("2_icon")
 max_range = 1
-required_level = 32
 respects_blocking = true
 ability_modifier = 2.2
 scaling_stat = 2

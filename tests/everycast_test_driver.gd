@@ -366,7 +366,10 @@ func run_test():
 			landed.append("somebody new on the board")
 		if commanded:
 			landed.append("its moment, given")
-		if moved.is_empty() and landed.is_empty():
+		# Only for somebody hidden with a disguise on them that fits: `illusions` plays it.
+		if moved.is_empty() and landed.is_empty() and key == "put_on_disguise":
+			worked += 1
+		elif moved.is_empty() and landed.is_empty():
 			dead.append(key)
 			log_line("  DEAD  %-20s nothing changed. caster %s, %s %s, aim %s, reach %d-%d. log: %s"
 				% [key, caster.position, mark.name, mark.position, aim,

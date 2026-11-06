@@ -1,6 +1,18 @@
 [gd_resource type="Resource" script_class="PictureFeedback" format=3]
 
 [ext_resource type="Script" path="res://exploration/PictureFeedback.gd" id="1_feedback"]
+[ext_resource type="AudioStream" path="res://audio/sfx/menus/glossary_page.wav" id="sfx_journal"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/eerie_revelation_1.wav" id="sfx_deduction"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/puzzle_success.wav" id="sfx_solved"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/mechanism_activation.wav" id="sfx_use_right"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/mechanism_interact.wav" id="sfx_snap"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/mechanism_interact.wav" id="sfx_dial"]
 
 [resource]
 script = ExtResource("1_feedback")
+journal = ExtResource("sfx_journal")
+deduction = ExtResource("sfx_deduction")
+solved = ExtResource("sfx_solved")
+use_right = ExtResource("sfx_use_right")
+snap = ExtResource("sfx_snap")
+dial = ExtResource("sfx_dial")

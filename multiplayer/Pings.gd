@@ -103,7 +103,7 @@ func show_ping(player: int, at: Vector2, label: String) -> Dictionary:
 		pings.erase(theirs.pop_front())
 	var made := {"player": player, "at": at, "label": label, "left": PING_SECONDS}
 	pings.append(made)
-	_sound.stream = PlaceholderSounds.make("ping")
+	_sound.stream = GameSounds.stream(&"ping") if GameSounds.stream(&"ping") != null else PlaceholderSounds.make("ping")
 	_sound.play()
 	var scene := _map()
 	var said := "[color=#%s]%s[/color] pings %s.\n" % [Coop.colour_of(player).to_html(false), Coop.name_of(player), label]

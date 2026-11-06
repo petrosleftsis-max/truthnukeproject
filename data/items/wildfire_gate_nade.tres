@@ -5,7 +5,7 @@
 
 [resource]
 script = ExtResource("1_nade")
-spell = "fireball"
+spell = "wildfire"
 item_power = 50
 price = 150
 icon = ExtResource("2_icon")

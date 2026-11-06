@@ -6,6 +6,9 @@
 
 [resource]
 script = ExtResource("2_wdrhp")
+ai_smarts = 2
+ai_caution = 1.4
+ai_self_preservation = 1.3
 skill_levels = {"river_flow": 7}
 name = "Priest"
 class_t = 2

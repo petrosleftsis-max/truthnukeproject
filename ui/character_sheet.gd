@@ -214,6 +214,7 @@ func _build():
 		tab.focus_mode = Control.FOCUS_NONE
 		tab.add_theme_font_size_override("font_size", 13)
 		tab.pressed.connect(_show_page.bind(i))
+		GameSounds.quiet(tab)
 		_tabs.add_child(tab)
 
 	_toolbar = HBoxContainer.new()
@@ -1384,6 +1385,8 @@ func _show_prepared(entry: Dictionary):
 
 ## Turns to page `which` (PAGES) for whoever is on show.
 func _show_page(which: int):
+	if which != _page:
+		GameSounds.play(&"page")
 	_page = which
 	_show_entry()
 
@@ -1728,7 +1731,7 @@ func _show_moves(entry: Dictionary):
 		_toolbar_toggle("All", _move_filter == "", _filter_moves.bind(""))
 		for role in shown_roles:
 			_toolbar_toggle(role, _move_filter == role, _filter_moves.bind(role))
-	var by_level := func(a, b): return SkillDatabase.skills[a].required_level < SkillDatabase.skills[b].required_level
+	var by_level := func(a, b): return comes_in(SkillDatabase.skills[a]) < comes_in(SkillDatabase.skills[b])
 	if not skills.is_empty():
 		_heading("Skills", INK, "a main action")
 		skills.sort_custom(by_level)
@@ -2433,6 +2436,7 @@ func _veil_line() -> Control:
 ## view following them down to ΑΛΗΘΕΙΑ.
 func _unveil(rows: Array, veil: Control, lethe_row: Control):
 	Campaign.levels_unveiled = true
+	GameSounds.play(&"levels_unveiled")
 	for row in rows:
 		row.modulate.a = 0.0
 	_unveiling = create_tween()

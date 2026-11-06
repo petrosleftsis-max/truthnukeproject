@@ -232,6 +232,134 @@ func _build_map():
 	# Dialogue can walk people about this map now, and anything it was walking
 	# on the last one is gone with it.
 	Actors.use_scene(self, _tile_map)
+	_begin_light()
+
+
+## --- Light ---
+##
+## How lit the map is (Light, LightMap): MapSetup's ambient light at the hour, what is placed on it,
+## what the watch says is lit (lamps and painted torches), and any lantern in a Baldric. StealthWatch
+## makes what its guards see of it. Drawn by LightView.
+
+var light := LightMap.new()
+var light_view: LightView = null
+var _light_sight: StealthSight = null
+## Seconds into this time of day, for a map whose hours pass by themselves.
+var _hour_clock := 0.0
+## Each lantern carrier's tile when last lit, so a step lights it anew only when it has to.
+var _lantern_tiles := {}
+
+
+func _begin_light():
+	var setup := _map_setup()
+	Campaign.map_ambient = setup.ambient if setup != null else Light.Ambient.OUTDOORS
+	Campaign.map_no_moon = setup != null and setup.no_moon
+	if setup != null and setup.time_of_day >= 0 and not Net.follows():
+		Campaign.set_time_of_day(setup.time_of_day)
+	CombatantSprite.set_shadows(Light.shadow_of(Campaign.map_ambient, Campaign.time_of_day))
+	if _tile_map == null:
+		return
+	_light_sight = null
+	if LightView.shown():
+		light_view = LightView.new()
+		_tile_map.add_child(light_view)
+		light_view.start(light, _tile_map, _tile_map.get_used_rect())
+		light_view.set_tone(Light.tone(Campaign.map_ambient, Campaign.time_of_day), true)
+	if not Campaign.time_of_day_changed.is_connected(_hour_changed):
+		Campaign.time_of_day_changed.connect(_hour_changed)
+	relight_map()
+
+
+func _hour_changed():
+	CombatantSprite.set_shadows(Light.shadow_of(Campaign.map_ambient, Campaign.time_of_day))
+	if is_inside_tree() and _tile_map != null:
+		if light_view != null:
+			light_view.set_tone(Light.tone(Campaign.map_ambient, Campaign.time_of_day))
+		relight_map()
+		if stealth != null and is_instance_valid(stealth):
+			stealth.lights_changed()
+
+
+## Works out afresh what is lit. `watch`, a StealthWatch relighting itself as it starts up.
+func relight_map(watch = null):
+	if watch == null and stealth != null and is_instance_valid(stealth):
+		watch = stealth
+	var map = get_node_or_null(MAP_NODE)
+	if map == null or _tile_map == null:
+		return
+	var time: int = Campaign.time_of_day
+	var base: int = Light.base_level(Campaign.map_ambient, time, Campaign.map_no_moon)
+	if watch != null and watch.setup != null and watch.setup.dark:
+		base = Light.Level.DARK
+	var gathered := Light.gather(map, _tile_map, time, Campaign.map_no_moon)
+	if base == Light.Level.BRIGHT and gathered.areas.is_empty():
+		if light.varies or not light.glow.is_empty():
+			light.clear()
+			_light_map_shown()
+		return
+	var sources: Array = gathered.sources
+	if watch != null:
+		sources.append_array(watch.lights_for_the_map())
+	sources.append_array(_lanterns_lit())
+	var blocks: Callable
+	if watch != null and watch.sight != null:
+		blocks = watch.sight.stops_sight
+	else:
+		if _light_sight == null:
+			_light_sight = StealthSight.new(_tile_map)
+		blocks = _light_sight.stops_sight
+	light.rebuild(base, gathered.areas, sources, [], blocks)
+	_light_map_shown()
+
+
+func _light_map_shown():
+	if light_view != null:
+		light_view.refresh()
+
+
+## The light of whoever has a lantern in their Baldric.
+func _lanterns_lit() -> Array:
+	var found := []
+	_lantern_tiles = {}
+	for member in Campaign.party_members():
+		for key in Campaign.contents_of(member.key, "belt"):
+			var item: ItemDefinition = ItemDatabase.item(key)
+			if item != null and item.light_tiles > 0.0:
+				var sprite = party.sprite_for(member.key) if party != null else null
+				if sprite != null:
+					var tile := _tile_map.local_to_map(_tile_map.to_local(sprite.global_position))
+					_lantern_tiles[member.key] = tile
+					found.append({"tile": tile, "bright": item.light_tiles / 2.0, "dim": item.light_tiles,
+						"colour": Color(1.0, 0.78, 0.5), "flickers": true})
+				break
+	return found
+
+
+## Every frame: whoever carries a light has moved it; the hours pass, on a map where they do;
+## figures are drawn as lit as where they stand; whoever leads sees as they see.
+func _light_goes_on(delta: float):
+	var setup := _map_setup()
+	if setup != null and setup.seconds_per_time_of_day > 0.0 and not Net.follows() and not is_holding():
+		_hour_clock += delta
+		if _hour_clock >= setup.seconds_per_time_of_day:
+			_hour_clock = 0.0
+			Campaign.pass_time()
+	if not light.varies:
+		return
+	for key in _lantern_tiles:
+		var sprite = party.sprite_for(key) if party != null else null
+		if sprite != null and _tile_map.local_to_map(_tile_map.to_local(sprite.global_position)) != _lantern_tiles[key]:
+			relight_map()
+			break
+	# A guard's torch, walking.
+	if stealth != null and is_instance_valid(stealth) and stealth.carried_lights_moved():
+		relight_map()
+		stealth.lights_changed()
+	for group in all_groups():
+		for sprite in group._members():
+			sprite.set_light(Light.FIGURE_TINTS[light.level_at(_tile_map.local_to_map(_tile_map.to_local(sprite.global_position)))])
+	if light_view != null:
+		light_view.night_eyes = Campaign.sees_in_darkness(Campaign.leader())
 
 
 ## Switches off any grid overlay the map brought with it, wherever it sits -
@@ -889,6 +1017,7 @@ func _process(delta):
 		_camera_aim = []
 	if picker != null or store_screen != null or is_holding() or get_tree().paused or SceneTransition.is_changing():
 		return
+	_light_goes_on(delta)
 	# Spells to prepare: a long rest taken, or a dungeon begun (Campaign "Preparing spells").
 	if Campaign.prepare_due and Campaign.asks_to_prepare and not is_instance_valid(preparing):
 		if not Campaign.preparing_left().is_empty():
@@ -1656,6 +1785,7 @@ func spring_trap(trap: MagicTrap, who: String):
 		return
 	springing = trap
 	trap.armed = false
+	GameSounds.play(&"mechanism_opened")
 	Campaign.set_flag(trap.flag_for(map_path()))
 	var answer := trap_answer()
 	var hacked := false

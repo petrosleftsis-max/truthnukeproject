@@ -342,7 +342,7 @@ func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 	_prompt.watch = self
 	layer.add_child(_prompt)
 	_heart = _player("Heartbeat", setup.heartbeat_sound if setup.heartbeat_sound != null else StealthWatch.heartbeat_placeholder())
-	_sting = _player("Sting", setup.caught_sound if setup.caught_sound != null else StealthWatch.sting_placeholder())
+	_sting = _player("Sting", setup.caught_sound if setup.caught_sound != null else (GameSounds.stream(&"caught") if GameSounds.stream(&"caught") != null else StealthWatch.sting_placeholder()))
 	_add_muffle()
 	_bar = StealthBar.new()
 	_bar.watch = self
@@ -511,12 +511,68 @@ func disguises() -> Array:
 
 ## What `key` has on, as an item key, or "".
 func worn_by(key: String) -> String:
+	# A spell's look, over anything they have on (Seeming).
+	if _seeming.has(key):
+		return SEEMING
 	var item_key: String = _worn.get(key, "")
 	# Given away or used up since, and so no longer on them.
 	if item_key != "" and Campaign.count_of(key, item_key) == 0:
 		_worn.erase(key)
 		return ""
 	return item_key
+
+
+## What a thing worn by that name is, for a guard to see through or not.
+func _worn_item(worn: String) -> ItemDefinition:
+	if worn != SEEMING:
+		return ItemDatabase.item(worn)
+	if _seeming_guise == null:
+		_seeming_guise = ItemDefinition.new()
+		_seeming_guise.name = "Seeming"
+		# Nobody's own role, so it passes whoever knows their own by sight.
+		_seeming_guise.disguise_as = SEEMING
+	return _seeming_guise
+
+
+## --- Seeming ---
+##
+## A spell's disguise (OutsideMoves Use.SEEMING): everybody of the party standing looks like the guards
+## here for its Outside Seconds. It passes as a disguise does (Guard.sees_through: not a nose, a charm or
+## somebody who sees through any disguise); Hide takes it off the leader, like any other.
+
+const SEEMING := "seeming"
+var _seeming_guise: ItemDefinition = null
+## Party member key -> seconds they have left looking like somebody else.
+var _seeming := {}
+
+
+func begin_seeming(seconds: int):
+	for someone in _party_standing():
+		_seeming[someone.key] = float(seconds)
+
+
+func _wear_off_seeming(delta: float):
+	for key in _seeming.keys():
+		_seeming[key] -= delta
+		if _seeming[key] <= 0.0:
+			_seeming.erase(key)
+			if scene.has_method("log_message"):
+				scene.log_message("[color=yellow]%s[/color] looks like themselves again.\n" % _display_name(key))
+
+
+## How somebody under Seeming is drawn: as the first guard here who is anybody.
+func _seeming_look() -> SpriteFrames:
+	for guard in guards:
+		if is_instance_valid(guard):
+			var copied = CombatantDatabase.combatants.get(guard.combatant_key)
+			if copied != null and copied.sprite_frames != null:
+				return copied.sprite_frames
+	return null
+
+
+## `key` is invisible for `seconds`, by no gate of Iris (Mislead paid its own way).
+func slip_unseen(key: String, seconds: int):
+	_unseen[key] = float(seconds)
 
 
 ## Starts putting on `item_key`, if the leader is carrying it and it is a
@@ -644,6 +700,7 @@ func hide_again() -> bool:
 	if spotted_by != null or hide_refusal() != "":
 		return false
 	_worn.erase(leader_key())
+	_seeming.erase(leader_key())
 	return true
 
 
@@ -1741,7 +1798,8 @@ func make_noise(at: Vector2, tiles: float, go_look: bool):
 ## the door, lights the lamp, pulls the body out.
 
 ## How dark the dark is drawn, where no light reaches.
-const DARK_ALPHA := 0.62
+## A lamp's Dim reaches this much further than its Bright (Light).
+const LAMP_DIM_SHARE := 1.4
 ## The wall torch in the laboratory tileset - see StagePainter.
 const TORCH_TILE := Vector2i(2, 4)
 ## How near a guard has to be to notice something gone from where it stood,
@@ -1761,7 +1819,6 @@ var _world_version := 0
 ## Things out of place: [{node, what, near, by, alarmed}] - `by` the guard on
 ## his way to look, `alarmed` once noticing it has put the map up.
 var _oddities: Array = []
-var _dark: Node2D = null
 
 
 func _collect_world():
@@ -1779,16 +1836,14 @@ func _collect_world():
 		for wall in scene.walls():
 			if is_instance_valid(wall) and not wall.broken:
 				sight.set_shut(tile_of(wall.global_position), true)
-	_dark = _Dark.new()
-	_dark.watch = self
-	_dark.z_index = -1
-	add_child(_dark)
 	_relight()
 
 
 ## Whether this map is dark but for its lights.
 func is_dark() -> bool:
-	return setup != null and setup.dark
+	if setup != null and setup.dark:
+		return true
+	return scene != null and scene.get("light") != null and scene.light.base == Light.Level.DARK
 
 
 ## How lit `tile` is, 0 to 1. Everywhere is lit on a map that is not dark.
@@ -1804,29 +1859,62 @@ func leader_in_shadow() -> bool:
 	return lit_at(tile_of(party.leader.global_position)) <= 0.0
 
 
-## Works out afresh what every lamp and torch lights.
+## Works out afresh what every lamp and torch lights: the map does (ExplorationScene "Light"), and
+## what is left here is which tiles that makes lit for a guard looking.
 func _relight():
 	_lit = {}
 	_world_version += 1
-	if _dark != null:
-		_dark.queue_redraw()
-	if not is_dark() or sight == null:
+	if scene != null and scene.has_method("relight_map"):
+		scene.relight_map(self)
+	if not is_dark() or sight == null or scene == null or scene.get("light") == null:
 		return
+	for tile in scene.light.levels:
+		if scene.light.levels[tile] == Light.Level.BRIGHT:
+			_lit[tile] = scene.light.amount_at(tile)
+
+
+## The hour has changed: what guards can see has too.
+func lights_changed():
+	_world_version += 1
+	_seen_key.clear()
+	_lit = {}
+	if is_dark() and scene != null and scene.get("light") != null:
+		for tile in scene.light.levels:
+			if scene.light.levels[tile] == Light.Level.BRIGHT:
+				_lit[tile] = scene.light.amount_at(tile)
+
+
+## Every lamp and painted torch, as the map's light wants them.
+func lights_for_the_map() -> Array:
+	var found := []
 	for source in _light_sources():
-		var from: Vector2i = source[0]
-		var reach: float = source[1]
-		var r = ceili(reach)
-		for dx in range(-r, r + 1):
-			for dy in range(-r, r + 1):
-				var tile = from + Vector2i(dx, dy)
-				var d = Vector2(dx, dy).length()
-				if d > reach or not sight.region().has_point(tile):
-					continue
-				if tile != from and not sight.clear(from, tile):
-					continue
-				# Brightest at the flame, fading towards the edge.
-				var bright = 1.0 - 0.6 * pow(d / maxf(reach, 0.01), 2.0)
-				_lit[tile] = maxf(_lit.get(tile, 0.0), bright)
+		found.append({"tile": source[0], "bright": source[1], "dim": source[1] * LAMP_DIM_SHARE,
+			"colour": Lamp.GLOW, "flickers": true})
+	_carried_light_tiles.clear()
+	for guard in guards:
+		if is_instance_valid(guard) and not guard.knocked_out and guard.carries_light_tiles > 0.0:
+			var tile: Vector2i = tile_of(guard.global_position)
+			_carried_light_tiles[guard] = tile
+			found.append({"tile": tile, "bright": guard.carries_light_tiles / 2.0, "dim": guard.carries_light_tiles,
+				"colour": Lamp.GLOW, "flickers": true})
+	return found
+
+
+## Where each guard carrying a light last lit the map from.
+var _carried_light_tiles := {}
+
+
+## Whether any guard's light is somewhere else now, or out.
+func carried_lights_moved() -> bool:
+	for guard in guards:
+		if not is_instance_valid(guard) or guard.carries_light_tiles <= 0.0:
+			continue
+		if guard.knocked_out:
+			if _carried_light_tiles.has(guard):
+				return true
+		elif _carried_light_tiles.get(guard) != tile_of(guard.global_position):
+			return true
+	return false
 
 
 ## [tile, reach] for every lit lamp, and every torch on the walls.
@@ -1855,6 +1943,7 @@ func set_door(door: StealthDoor, open: bool, by_hand: bool = false, shut_by: Nod
 	door.set_open(open)
 	_apply_door(door)
 	if by_hand:
+		GameSounds.play(&"mechanism_opened")
 		if open != door.starts_open:
 			_add_oddity(door, "door", INF)
 		else:
@@ -3801,7 +3890,7 @@ func _can_reassure(guard) -> bool:
 	if guard.sees_nothing() or suspicion.get(guard, 0.0) > 0.0 or not guard.is_free():
 		return false
 	var worn = worn_by(leader_key())
-	return worn != "" and not guard.sees_through(ItemDatabase.item(worn))
+	return worn != "" and not guard.sees_through(_worn_item(worn))
 
 
 ## Who a word would be had with right now - `preferred`, if it can be - or null.
@@ -4061,7 +4150,7 @@ func gaze_of(guard: Guard, leader_in: String = "") -> int:
 		var worn: String = leader_in if leader_in != "" and someone.key == leader_key() else worn_by(someone.key)
 		if worn == "":
 			return Gaze.SEES
-		if guard.sees_through(ItemDatabase.item(worn)):
+		if guard.sees_through(_worn_item(worn)):
 			if guard.questions != null and not guard.questioned:
 				asks = true
 			else:
@@ -4127,6 +4216,7 @@ func net_state() -> Dictionary:
 	# readied - for the joiner's screen to show as this one does.
 	state["ears"] = [_ears_left, _ears_cooldown]
 	state["unseen"] = _unseen.duplicate()
+	state["seeming"] = _seeming.duplicate()
 	state["company"] = company_left
 	var readied := {}
 	for key in readied_outside:
@@ -4190,6 +4280,12 @@ func apply_net_state(state: Dictionary):
 		for key in unseen:
 			if typeof(key) == TYPE_STRING:
 				_unseen[key] = float(unseen[key])
+	var seeming = state.get("seeming", {})
+	if seeming is Dictionary:
+		_seeming.clear()
+		for key in seeming:
+			if typeof(key) == TYPE_STRING:
+				_seeming[key] = float(seeming[key])
 	var readied = state.get("readied", {})
 	if readied is Dictionary:
 		var shown := {}
@@ -4245,6 +4341,7 @@ func _process(delta):
 	_ears_cooldown = maxf(0.0, _ears_cooldown - delta)
 	_ears_left = maxf(0.0, _ears_left - delta)
 	_wear_off_invisibility(delta)
+	_wear_off_seeming(delta)
 	_fray_outside(delta)
 	_company_goes_on(delta)
 	_watch_readied()
@@ -4290,7 +4387,7 @@ func _process(delta):
 				break
 			# In plain view, but in a disguise this guard takes at face value.
 			var worn = worn_by(someone.key)
-			if worn != "" and not guard.sees_through(ItemDatabase.item(worn)):
+			if worn != "" and not guard.sees_through(_worn_item(worn)):
 				continue
 			var this_rate = fill_rate(Vector2(someone.tile - from).length(), dashing) * (1.0 + ALERT_FILL * alert)
 			if worn != "":
@@ -4615,7 +4712,9 @@ func _dress_the_party():
 		var sprite = someone.sprite
 		var worn = worn_by(someone.key)
 		var looks_like: SpriteFrames = null
-		if worn != "":
+		if worn == SEEMING:
+			looks_like = _seeming_look()
+		elif worn != "":
 			var copied = CombatantDatabase.combatants.get(ItemDatabase.item(worn).disguise_as)
 			looks_like = copied.sprite_frames if copied != null else null
 		if sprite.has_method("show_as"):
@@ -4678,13 +4777,15 @@ func _refresh_seen(guard: Guard):
 			if Vector2(tile - from).length() <= COMPANY_SIGHT_TILES:
 				close[tile] = true
 		_seen[guard] = close
-	if is_dark():
-		# In the dark he makes somebody out only close up; on a lit tile, as far
-		# off as he sees anything.
-		var near = setup.dark_sight_tiles
+	var map_light = scene.get("light") if scene != null else null
+	if map_light != null and map_light.varies and setup != null:
+		# In the dark he makes somebody out only close up; in Dim light not as far as
+		# he sees; on a Bright tile, as far off as he sees anything.
 		var made_out := {}
 		for tile in _seen[guard]:
-			if _lit.has(tile) or Vector2(tile - from).length() <= near:
+			var level: int = map_light.level_at(tile)
+			var gap := Vector2(tile - from).length()
+			if level == Light.Level.BRIGHT or gap <= (setup.dim_sight_tiles if level == Light.Level.DIM else setup.dark_sight_tiles):
 				made_out[tile] = true
 		_seen[guard] = made_out
 
@@ -5428,26 +5529,6 @@ class _Prompt extends PanelContainer:
 		var world = anchor - Vector2(0.0, Grid.HALF_TILE.y + head + Grid.tiles(0.2))
 		var screen = get_viewport().get_canvas_transform() * world
 		position = (screen - Vector2(size.x / 2.0, size.y)).round()
-
-
-## The dark on a dark map: every tile no light reaches drawn over in shadow,
-## and the edges of the light fading into it. Under what the guards can see.
-class _Dark extends Node2D:
-	var watch: StealthWatch = null
-
-	func _draw():
-		if watch == null or not watch.is_dark() or watch.sight == null:
-			return
-		var region: Rect2i = watch.sight.region()
-		var half := Vector2(Grid.HALF_TILE)
-		for x in range(region.position.x, region.end.x):
-			for y in range(region.position.y, region.end.y):
-				var tile := Vector2i(x, y)
-				var shade = StealthWatch.DARK_ALPHA * (1.0 - watch.lit_at(tile))
-				if shade <= 0.01:
-					continue
-				var centre = to_local(watch._tile_map.to_global(watch._tile_map.map_to_local(tile)))
-				draw_rect(Rect2(centre - half, half * 2.0), Color(0.02, 0.03, 0.08, shade))
 
 
 ## What there is to do besides getting out, under the bar - ticked off as it

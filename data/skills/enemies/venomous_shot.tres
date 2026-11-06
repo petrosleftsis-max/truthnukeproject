@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_it2bi"]
 [ext_resource type="Resource" uid="uid://ttc70ufjw2r2" path="res://data/conditions/poisoned.tres" id="2_nuew7"]
 [ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://art/icons/greatsword_skill.png" id="3_oaouy"]
-[ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="4_sound"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/cyrus_pistol.wav" id="sfx_sound"]
 
 [sub_resource type="Resource" id="Resource_nuew7"]
 script = ExtResource("1_nfl8k")
@@ -16,6 +16,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_it2bi")
+sound = ExtResource("sfx_sound")
 impact_look = 37
 projectile_look = 4
 projectile_style = 3
@@ -27,5 +28,4 @@ icon = ExtResource("3_oaouy")
 respects_blocking = true
 effects = Array[ExtResource("1_nfl8k")]([SubResource("Resource_nuew7")])
 ability_modifier = 0.8
-sound = ExtResource("4_sound")
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

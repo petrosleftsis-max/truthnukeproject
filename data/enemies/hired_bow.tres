@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_who")
+ai_caution = 1.3
 name = "Hired Bow"
 glossary_text = "An archer who fights for whoever pays, and runs the moment the pay stops being worth it."
 class_t = 1

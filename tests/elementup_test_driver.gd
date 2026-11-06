@@ -39,7 +39,7 @@ func run_test():
 		"RESISTANCE": 12, "UPGRADE_ELEMENT": 13, "REVIVE": 14, "STEAL": 15, "SUMMON_DECOY": 16,
 		"INTERACT": 17, "HACK": 18, "READ_INTENT": 19, "SHAKE": 20, "CLIMB": 21, "BRIBE": 22, "BREAK_FREE": 23, "INVISIBLE": 24, "CANCEL_CASTING": 25, "SWALLOW": 26, "GROW": 27, "SUMMON": 28, "COMMAND": 29, "LOOT": 30, "DRAW": 31,
 		"TRAP": 32, "CATALYST": 33, "ZONE": 34, "DISPEL_MAGIC": 35,
-		"FAMILIAR": 36, "UNVEIL": 37, "MOVE_ZONE": 38,
+		"FAMILIAR": 36, "UNVEIL": 37, "MOVE_ZONE": 38, "MOVE_IMAGE": 39, "DISGUISE": 40,
 	}
 	var moved := []
 	for name in frozen:
@@ -97,23 +97,23 @@ func run_test():
 	ok(not caster.is_empty() and not victim.is_empty(), "somebody to cast and somebody to burn")
 
 	log_line("======== fire goes off as plasma, once ========")
-	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
-	ok(fireball.damage_type == Damage.Type.FIRE, "Fireball is written as fire",
-		Damage.type_name(fireball.damage_type))
+	var wildfire: SkillDefinition = SkillDatabase.skills["wildfire"]
+	ok(wildfire.damage_type == Damage.Type.FIRE, "Wildfire is written as fire",
+		Damage.type_name(wildfire.damage_type))
 	ok(Damage.upgraded_form(Damage.Type.FIRE) == Damage.Type.PLASMA,
 		"and fire raises to plasma")
 	combat.apply_effect(caster, caster, carried, raiser, false)
 	await get_tree().process_frame
 	ok(combat.has_element_upgrade(caster), "the charge is held")
 
-	combat.spend_element_upgrade(caster, fireball)
-	ok(caster.get("element_upgraded_cast", false), "casting Fireball spends it")
+	combat.spend_element_upgrade(caster, wildfire)
+	ok(caster.get("element_upgraded_cast", false), "casting Wildfire spends it")
 	ok(not combat.has_element_upgrade(caster), "and it is gone afterwards")
 	ok(combat.effective_damage_type(caster, Damage.Type.FIRE) == Damage.Type.PLASMA,
 		"so the hit lands as plasma",
 		Damage.type_name(combat.effective_damage_type(caster, Damage.Type.FIRE)))
 	# The next spell is an ordinary one again.
-	combat.spend_element_upgrade(caster, fireball)
+	combat.spend_element_upgrade(caster, wildfire)
 	ok(not caster.get("element_upgraded_cast", false), "the spell after it is fire again")
 	ok(combat.effective_damage_type(caster, Damage.Type.FIRE) == Damage.Type.FIRE,
 		"and lands as fire")
@@ -145,7 +145,7 @@ func run_test():
 	# take the raised element, and it should cost the one charge.
 	caster.status_effects.clear()
 	combat.apply_effect(caster, caster, carried, raiser, false)
-	combat.spend_element_upgrade(caster, fireball)
+	combat.spend_element_upgrade(caster, wildfire)
 	var raised_for_all := true
 	for i in 3:
 		if combat.effective_damage_type(caster, Damage.Type.FIRE) != Damage.Type.PLASMA:

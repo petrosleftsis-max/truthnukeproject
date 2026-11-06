@@ -209,8 +209,8 @@ character, a skill, a fight or a conversation needs no scripting.
 | Conditions | `data/conditions/*.tres` | poisons, stuns, buffs and what they do |
 | Conversations | `dialogue/*.dialogue` | Dialogue Manager scripts |
 
-A file's name is its key - `data/skills/prometheus/spells/fireball.tres` is
-`"fireball"` - and saving one in its folder is all it takes to add it: the
+A file's name is its key - `data/skills/prometheus/spells/wildfire.tres` is
+`"wildfire"` - and saving one in its folder is all it takes to add it: the
 databases read their folders, and every folder inside them, when the game
 starts, so there is no list to fill in.
 
@@ -228,7 +228,7 @@ skill is in, only that no two skills anywhere share a file name:
 | `unused/` | Skills nobody has right now |
 
 When who uses a skill changes, move it - nothing points at the folder. They are
-autoloads, so `SkillDatabase.skills["fireball"]`, `ItemDatabase.item("pebble")`
+autoloads, so `SkillDatabase.skills["wildfire"]`, `ItemDatabase.item("pebble")`
 and `CombatantDatabase.combatants["cyrus"]` work from anywhere.
 
 ### Where things are
@@ -457,7 +457,7 @@ Communion Gate Nade is Alithia's to throw, not Prometheus's or Enfina's. On
 anybody else's panel it is greyed out, saying why.
 
 To add one, right-click `data/items/` → **New Resource** → `GateNadeDefinition`
-and name its **Spell** by key (`fireball`). When the game starts the nade takes
+and name its **Spell** by key (`wildfire`). When the game starts the nade takes
 on that spell's whole shape: its reach, area, effects, damage type, the action
 it costs, and its sound. It keeps its own:
 - **name** and **description**, made up from the spell if left empty
@@ -475,7 +475,7 @@ Two passive switches change that:
 
 Cyrus's **Nade Juggler** has both.
 
-The examples are the Fireball, Heal, Crystalise and Communion Gate Nades,
+The examples are the Wildfire, Heal, Crystalise and Communion Gate Nades,
 which the travelling merchant sells. Their power and prices are placeholders. Like every
 consumable they wear the consumable icon, told apart by their letter badges.
 
@@ -842,7 +842,53 @@ A ZONE effect leaves the skill's area on the ground. Beside Zone Condition it ca
 walk (Zone Costly), hurt the other side or everybody at the start of a turn or at every step, leave
 what the skill leaves, mend its own side, follow its caster, be moved with the Move Cloud
 secondary action, carry anybody hit in melee to its edge, or blow out whoever starts or ends a turn
-in it. Zone Colour is its tint on the board for now.
+in it. Zone Colour is its tint on the board for now. **Zone False Ground** makes it ground the other
+side takes for deadly: whoever the AI plays will not step on it, and if one of them ends up on it some
+other way it is seen for what it is and gone.
+
+### Illusions
+
+Each of these is a switch on an effect, so any skill can use one:
+
+- **Summon** can call up several (**Summon Count**), a wall across where it is aimed (**Summon
+  Across**), images rather than creatures (**Summon As Images**: one hit shatters each, nothing to
+  command), and shake whoever sees them arrive (**Summon Shakes**). Phantom Wall and Phantom Company.
+- **Invisible** can end on anything they do, not only what they do to the other side (**Unnoticed
+  Until Acting**). Seeming.
+- **Summon Decoy** can make a double its maker sends about with the Move Double secondary action, which
+  stays until it is hit or dispelled (**Image Moves**). A skill's **Image Of Self** skips asking who it
+  is of. Mislead.
+- **Condition** can send them towards where it was aimed as their next turn starts (**Drawn To
+  Aim**). Phantom Noise.
+- On a condition: **Looks Dead** (invisible, lying down, and a step or a move gives it away; Fallen
+  Friend) and **Doubt Each Turn** (they contest it again as each turn starts, a little stronger every
+  time; Phantom Killer).
+
+**A disguise in a fight.** Somebody who **Stealths**, while hidden, with a disguise in their bags that
+copies somebody on the other side, has Put On Disguise as a main or a secondary action. They walk in
+plain sight until they do something to the other side, and keep the disguise. Tick **Sees Through
+Disguises** on a creature no disguise fools.
+
+### Light
+
+Tiles are Bright, Dim or Dark. Dark tiles hide whoever stands on them from anybody who cannot see in the
+dark, beyond the tile right beside them. In Dim light somebody who `stealths` can hide, and a guard sees
+only so far (**Dim Sight Tiles** on the StealthSetup).
+
+- **On a map or an encounter:** **Ambient** (Outdoors, Interior, Underground, or as the map says) and
+  **Time Of Day**. **No Moon** makes night Dark outdoors. **Seconds Per Time Of Day** on the MapSetup
+  makes the hours pass; a long rest brings Dawn; `do Campaign.pass_time()` works from a conversation.
+- **Things that light:** a **LightSource** node (Bright Tiles, Dim Tiles, Colour, Flickers, Opening for
+  a window or a door to outside, which goes with the hour). An **AmbientArea** node makes a part of a map
+  different. **Light Tiles** on a Burn-like condition, an object (a Brazier), an item carried (a
+  Lantern) or a zone (Zone Light Tiles).
+- **A guard's torch:** **Carries Light Tiles** on a Guard: it lights the ground round him as he walks.
+- **Seeing in the dark** is a passive or a condition (**Sees In Darkness**), per creature.
+
+Figures' shadows lean with the hour outdoors. They are drawn in code until there is a picture at
+`art/fx/figure_shadow.png`.
+
+The look is placeholder: soft filtered shade over the tiles, and a colour for the hour.
 
 ### Immunities, turns and auras
 
@@ -999,6 +1045,20 @@ everything in its area, whichever side, and sets off anything else in it. The Ga
 throws them **Blast Push** tiles away from it instead, with **Blast Collision Damage** on what they
 hit. The Tar Cauldron (40) makes every step within **Costly Radius** (2) cost twice while it stands.
 Aiming at something that would throw people shows where they would land.
+
+### How an enemy thinks
+
+Each creature's **AI Mind** group:
+
+- **AI Smarts:** Instinct goes for whoever is nearest and weighs nothing else. Trained, the default,
+  knows the ground, steps off telegraphs, keeps from hazards, uses shoves and searches the dark. Cunning
+  also sets off hazards, goes for tether holders, wakes allies, avoids the party's reach, spreads out,
+  hems in, triages, saves its gates and falls back. Mastermind also sets things up and blocks the way.
+- **AI Also Knows** and **AI Never Knows** change that for one creature.
+- **AI Aggression, Caution, Focus, Self Preservation:** dials, 1 as the plain constants.
+
+An encounter's **AI Leaves Hazards** makes the enemy leave things that go off alone, for a fight where
+they are the players' mechanic.
 
 ### Dealing with enemies
 
@@ -1422,7 +1482,7 @@ shows a **Learn** button beside a spell when something in the party's bags
 teaches it, and uses that up. Only his own spells can be learned at all - no book
 teaches him Communion. In a fight walked into from the map he has what he has
 learned; Arena Mode gives him everything. A conversation can teach one outright:
-`do Campaign.learn("prometheus", "fireball")`.
+`do Campaign.learn("prometheus", "wildfire")`.
 
 ### Speeds
 
@@ -2139,6 +2199,11 @@ refuses. That needs no script at all.
 Drop tracks into `audio/music/` and name them in an encounter's **Music** field
 or from dialogue. `.ogg` and `.mp3` are the formats to prefer: they stream, they
 are a fraction of the size, and they import in moments.
+
+The designer's sound effects are not in the repository: `docs/sound_plan.md` says what is heard where,
+what to back up, and how `tools/place_sfx.ps1` puts them back on another machine. A clone without them
+plays on in silence. Everything that is not a move's or a condition's own sound is a slot in
+`audio/sound_bank.tres`.
 
 A skill's **Sound** plays as it lands, and again each time a lingering wound or
 condition it left ticks. Those ticks land one at a time as the sufferer's turn

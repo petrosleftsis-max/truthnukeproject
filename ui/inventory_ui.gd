@@ -254,6 +254,8 @@ func _on_container_pressed(key: String, kind: String):
 		why = "A %s swaps for a %s, not a %s" % [from.kind, from.kind, kind]
 	else:
 		why = Campaign.swap_containers(from.key, key, kind)
+	if why == "":
+		GameSounds.play(&"item_moved")
 	_said.text = why
 	_rebuild()
 
@@ -370,6 +372,7 @@ func _on_slot_pressed(key: String, index: int):
 	# ItemDefinition.made_from).
 	if Campaign.combine_slots(from_key, from_slot, key, index) == "":
 		Campaign.move_item(from_key, from_slot, key, index)
+	GameSounds.play(&"item_moved")
 	_rebuild()
 
 
@@ -393,6 +396,8 @@ func open():
 	if _said != null:
 		_said.text = ""
 	_rebuild()
+	if not visible:
+		GameSounds.play(&"bag_open")
 	visible = true
 
 

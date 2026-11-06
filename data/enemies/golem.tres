@@ -30,6 +30,7 @@ when_broken = 2
 
 [resource]
 script = ExtResource("1_who")
+ai_smarts = 0
 name = "Stone Golem"
 glossary_text = "Clay and stone with words cut into it, made to answer to whoever cut them. It feels nothing and fears nothing - but the words can be rewritten."
 max_hp = 108

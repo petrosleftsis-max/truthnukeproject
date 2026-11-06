@@ -8,6 +8,8 @@
 
 [resource]
 script = ExtResource("3_def")
+ai_aggression = 1.2
+ai_focus = 1.3
 skill_levels = {"follow_up_attack": 12}
 name = "Pit Champion"
 glossary_text = "A fighter of the pits who has never once let anybody walk past them to somebody easier. Stand near and you fight them, or pay for it."

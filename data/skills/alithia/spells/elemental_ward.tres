@@ -18,7 +18,6 @@ description = "An ally of hers, and one base element she chooses as it lands: ha
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 max_range = 6
-required_level = 14
 targets_ally = true
 can_be_copied = false
 deals_damage = false

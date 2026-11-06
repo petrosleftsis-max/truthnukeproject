@@ -529,6 +529,12 @@ func _unhandled_input(event):
 					# stands (the designer, 2026-11-04: "Moves like misty step
 					# don't highlight tiles where the mouse hovers on").
 					_ally_target_position = local_map
+					# A wall: all of it (Combat.wall_tiles).
+					if skill is SkillDefinition and Combat.summons_with(skill) != "":
+						var wall: Array = combat.wall_tiles_of(caster, skill, local_map)
+						if not wall.is_empty():
+							_aoe_preview_positions = wall
+							_aoe_preview_is_ally = true
 				elif comb != null:
 					# In reach and the right person - refusal_at has said so.
 					if skill.targets_ally:
@@ -897,6 +903,7 @@ func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: 
 	]
 	# Twice as dear near anybody hemming them in (Combat "Hemmed In and Exposed").
 	var hemmed: Dictionary = combat.hemmed_tiles(mover) if combat != null else {}
+	var refused: Dictionary = combat.false_ground_for(mover) if combat != null else {}
 	var costs = {start: 0}
 	var frontier = [start]
 	while frontier.size() > 0:
@@ -917,6 +924,8 @@ func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: 
 			if is_tile_blocking(neighbor, movement_class):
 				continue
 			if neighbor != start and neighbor in _occupied_spaces:
+				continue
+			if refused.has(neighbor):
 				continue
 			if neighbor != start and _astargrid.is_point_solid(neighbor):
 				# Whatever the pathfinder currently refuses to route through -
@@ -969,6 +978,8 @@ var _up_tiles := {}
 ## The tiles that cost whoever _height_search is walking for twice, hemmed in
 ## (Combat "Hemmed In and Exposed") - set as it starts, read by _add_step.
 var _hemmed := {}
+## And what they will not step on at all, read the same way (Combat "False Ground").
+var _refused := {}
 ## How raised whoever stands on each tile is, where it is more than nothing:
 ## up on high ground counts one, and every size above Human one more (Combat
 ## "Heights" - somebody bigger than the barrels sees over them, and gets no cover
@@ -1267,6 +1278,8 @@ func _height_steps(tile: Vector2i, movement_class: int, start: Vector2i, mover: 
 ## ground, for anybody a tile big who cannot step over it, only `may_climb`. The
 ## shape they stand in there goes into `stances`.
 func _add_step(found: Array, next: Vector2i, mover: Dictionary, start: Vector2i, movement_class: int, stances: Dictionary, may_climb: bool):
+	if _refused.has(next):
+		return
 	var shape := _stance(mover, next, start, movement_class)
 	if shape == Vector2i.ZERO:
 		return
@@ -1291,6 +1304,7 @@ func _add_step(found: Array, next: Vector2i, mover: Dictionary, start: Vector2i,
 func _height_search(start: Vector2i, movement_class: int, budget: int, parents: Dictionary = {}, goal: Vector2i = Vector2i(-99999, -99999), mover: Dictionary = {}) -> Dictionary:
 	# Twice as dear near anybody hemming them in - read by _add_step.
 	_hemmed = combat.hemmed_tiles(mover) if combat != null else {}
+	_refused = combat.false_ground_for(mover) if combat != null else {}
 	var costs := {start: 0}
 	var lengths := {start: 0.0}
 	var high := {}
@@ -1797,6 +1811,7 @@ func update_points_weight():
 	elif Sizes.shares(current_comb.get("size", Sizes.Size.HUMAN)):
 		_fit_points_to_small(current_comb)
 	_apply_fear_restrictions(current_comb)
+	_apply_false_ground(current_comb)
 	_weigh_hemmed_tiles(current_comb)
 
 
@@ -1812,6 +1827,20 @@ func _weigh_hemmed_tiles(current_comb: Dictionary):
 		if is_in_bounds(tile) and not _astargrid.is_point_solid(tile):
 			_astargrid.set_point_weight_scale(tile, 2)
 			_hem_weighted.append(tile)
+
+
+## Closes off the ground they take for deadly (Combat "False Ground"), as Fear closes tiles off: the
+## anchors from which any tile of theirs would be on it.
+func _apply_false_ground(current_comb: Dictionary):
+	var shape: Vector2i = Combat.footprint(current_comb)
+	for tile in combat.false_ground_for(current_comb):
+		for dy in shape.y:
+			for dx in shape.x:
+				var anchor: Vector2i = tile - Vector2i(dx, dy)
+				if is_in_bounds(anchor) and anchor != current_comb.position and not _astargrid.is_point_solid(anchor):
+					_astargrid.set_point_weight_scale(anchor, INF)
+					_astargrid.set_point_solid(anchor, true)
+					_fear_blocked.append(anchor)
 
 
 ## Closes off every tile nearer to the current combatant's nearest enemy than
@@ -2052,6 +2081,8 @@ func _handle_step_arrival():
 	combat.sync_zones()
 	# Onto ground that hurts whoever treads it, each step again.
 	combat.zones_under_step(mover, new_position)
+	# Somebody who looks dead, walking (Combat "Unnoticed until they act").
+	combat.step_gives_away(mover)
 	# Onto a trap of the other side's (Combat "Traps"): held fast, and the walk is over.
 	if mover.alive and combat.spring_trap(mover, new_position):
 		movement = 0
@@ -2442,7 +2473,7 @@ func set_selected_skill(skill: String, as_secondary: bool = false):
 ## a teammate's on a turn that is not theirs - can still be aimed, to see its
 ## reach, where it would land and what it would do to whoever it caught. Nothing
 ## happens on a click: it is a look, from wherever its owner is standing and
-## with their numbers, so the question "would Prometheus's Fireball finish him
+## with their numbers, so the question "would Prometheus's Wildfire finish him
 ## off?" can be answered before Cyrus decides what to do.
 
 var _aim_caster: Dictionary = {}
@@ -2496,6 +2527,10 @@ func begin_target_selection():
 	elif Combat.sets_traps(skill) and Combat.trap_field_of(skill) == 0:
 		# A trap goes on bare ground (Combat "Traps"); a field anywhere in reach.
 		_range_preview_positions = _range_preview_positions.filter(func(tile): return combat.trap_fits(tile))
+	elif skill.image_of_self:
+		# Of themselves, so there is no asking who: on to where it goes.
+		_teleport_subject = caster.position
+		_range_preview_positions = landable_tiles(_range_preview_positions, caster)
 	target_selection_started.emit()
 	queue_redraw()
 
@@ -3254,6 +3289,10 @@ func _draw():
 		_draw_area(combat.hazard_warning_tiles(), HAZARD_WARNING_FILL, HAZARD_WARNING_EDGE)
 		# The party's own traps, which nobody else can see.
 		_draw_area(combat.trap_tiles(), TRAP_FILL, TRAP_EDGE)
+		# How lit the ground is, plainly, while the danger view is up (Light).
+		if _showing_danger:
+			_draw_area(combat.tiles_at_light(Light.Level.DARK), Color(0.1, 0.12, 0.34, 0.42), Color(0.42, 0.5, 0.95, 0.75))
+			_draw_area(combat.tiles_at_light(Light.Level.DIM), Color(0.3, 0.3, 0.5, 0.2), Color(0.6, 0.62, 0.85, 0.4))
 		# Where somebody will come in, for a party that has been warned.
 		_draw_area(combat.arrival_warnings(), HAZARD_WARNING_FILL, HAZARD_WARNING_EDGE)
 		# The ground something on the map makes dear to cross (Combat.costly_ground).
@@ -3586,6 +3625,7 @@ func _reachable_by_size(mover: Dictionary, start: Vector2i, budget: int) -> Dict
 		Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)
 	]
 	var hemmed: Dictionary = combat.hemmed_tiles(mover)
+	var refused: Dictionary = combat.false_ground_for(mover)
 	var costs := {start: 0}
 	var frontier := [start]
 	while not frontier.is_empty():
@@ -3598,6 +3638,8 @@ func _reachable_by_size(mover: Dictionary, start: Vector2i, budget: int) -> Dict
 		for offset in NEIGHBOR_OFFSETS:
 			var neighbor: Vector2i = current + offset
 			if not combat.room_for(mover, neighbor):
+				continue
+			if not refused.is_empty() and Combat.tiles_of(mover, neighbor).any(func(tile): return refused.has(tile)):
 				continue
 			var cost: int = costs[current] + get_tile_cost_for_class(neighbor, Combat.terrain_class(mover)) * (2 if hemmed.has(neighbor) else 1)
 			if cost > budget:

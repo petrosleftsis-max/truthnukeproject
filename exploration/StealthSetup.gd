@@ -34,6 +34,8 @@ class_name StealthSetup
 ## but on a lit tile as far off as he sees anything.
 @export var dark: bool = false
 @export var dark_sight_tiles: float = 2.5
+## And on a Dim tile (Light), so long as he sees that far at all.
+@export var dim_sight_tiles: float = 6.0
 ## How far the torches painted on the walls light, in tiles. Zero: they give
 ## no light.
 @export var torch_light_tiles: float = 3.0

@@ -142,7 +142,7 @@ static func what_it_brings(path: SubclassDefinition) -> Array:
 	for skill_key in path.skills:
 		var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
 		if skill != null:
-			lines.append("%s - level %d" % [skill.name, maxi(skill.required_level, Stats.SUBCLASS_LEVEL)])
+			lines.append("%s - level %d" % [skill.name, maxi(CharacterSheet.comes_in(skill), Stats.SUBCLASS_LEVEL)])
 	for passive in path.passives:
 		if passive != null:
 			lines.append("%s (passive) - level %d" % [passive.name, maxi(passive.required_level, Stats.SUBCLASS_LEVEL)])

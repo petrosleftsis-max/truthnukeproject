@@ -17,7 +17,7 @@ class_name GateNadeDefinition
 ## them, whatever spell is in it (PassiveDefinition.any_gate_nade), and with the
 ## secondary action (gate_nades_as_secondary).
 
-## The spell inside, by key: a skill in data/skills/ with a gate - "fireball".
+## The spell inside, by key: a skill in data/skills/ with a gate - "wildfire".
 ## A key that is not one is reported when the game starts.
 @export var spell: String = ""
 

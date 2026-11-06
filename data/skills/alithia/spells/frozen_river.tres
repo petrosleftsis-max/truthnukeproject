@@ -4,7 +4,7 @@
 [ext_resource type="Resource" path="res://data/conditions/frozen.tres" id="2_frozen"]
 [ext_resource type="Texture2D" path="res://art/icons/frozen_river_skill.png" id="3_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="4_skill"]
-[ext_resource type="AudioStream" path="res://audio/sfx/SciFi_Water_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/medium_ice_attack.wav" id="sfx_sound"]
 
 [sub_resource type="Resource" id="Effect_frozen"]
 script = ExtResource("1_effect")
@@ -15,6 +15,7 @@ condition_dot_modifier = 0.3
 
 [resource]
 script = ExtResource("4_skill")
+sound = ExtResource("sfx_sound")
 impact_look = 31
 ability_modifier = 1.8
 name = "Frozen River"
@@ -22,13 +23,11 @@ description = "A whole river of it, freezing as it comes down on them."
 min_range = 1
 max_range = 15
 icon = ExtResource("3_icon")
-required_level = 16
 respects_blocking = true
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_frozen")])
 scaling_stat = 1
 damage_type = 2
 uses_stat_contest = true
 contest_stat = 2
-sound = ExtResource("90_sfx")
 spell_slot_level = 3
 aoe_radius = 2

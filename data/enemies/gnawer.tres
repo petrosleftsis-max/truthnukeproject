@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_who")
+ai_smarts = 0
 name = "Gnawer"
 glossary_text = "A sewer rat that died and kept eating. They come in waves to the glutton's call - and it eats them too, when they fall."
 max_hp = 25

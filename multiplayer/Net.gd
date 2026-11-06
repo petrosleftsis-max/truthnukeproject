@@ -104,7 +104,7 @@ const DISCOVERY_PORT := 24701
 const BEACON := "MOT-HOST"
 ## What the two machines say to each other. Bumped whenever that changes; a
 ## joiner with another is turned away.
-const PROTOCOL := 7
+const PROTOCOL := 8
 const BEACON_SECONDS := 1.0
 ## How long a game goes unheard before the Join list forgets it.
 const FORGET_SECONDS := 4.0

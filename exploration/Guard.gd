@@ -55,6 +55,10 @@ enum Kind {
 ## be taken down from any side.
 @export var asleep: bool = false
 
+## A torch or a lantern in their hand, this many tiles of light (Bright for half of it): they light the
+## ground round them as they walk, and can be seen coming on a dark map. Knocked out, it goes out.
+@export_range(0.0, 12.0, 0.5, "suffix:tiles") var carries_light_tiles: float = 0.0
+
 ## Which disguises they see through. Stored by number, so a new one goes on
 ## the end.
 enum Recognises {

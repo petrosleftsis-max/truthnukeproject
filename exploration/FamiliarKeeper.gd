@@ -58,7 +58,7 @@ static func spell_among(keys: Array) -> Dictionary:
 			known.append_array(path.skills)
 		for skill_key in known:
 			var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
-			if skill != null and skill.outside_only() and skill.required_level <= Campaign.party_level \
+			if skill != null and skill.outside_only() and CharacterSheet.comes_in(skill) <= Campaign.party_level \
 					and Campaign.gates_most(key)[skill.spell_slot_level] > 0:
 				return {"skill": skill_key, "caster": key}
 	return {}

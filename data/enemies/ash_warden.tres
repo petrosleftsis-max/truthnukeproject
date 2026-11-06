@@ -74,6 +74,7 @@ stagger = 60.0
 
 [resource]
 script = ExtResource("10_2qv81")
+ai_smarts = 3
 name = "Ash Warden"
 glossary_text = "A giant in black iron, full of fire. It cannot be stunned, confused, shoved or moved - until its armour cracks."
 max_hp = 300

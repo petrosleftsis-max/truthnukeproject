@@ -339,7 +339,7 @@ func spellcasting_stat():
 	var prometheus := who("prometheus")
 	var alithia := who("alithia")
 	var quicken: SkillDefinition = SkillDatabase.skills["quicken"]
-	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
+	var wildfire: SkillDefinition = SkillDatabase.skills["wildfire"]
 	var dart: SkillDefinition = SkillDatabase.skills["zephyr_dart"]
 	ok(prometheus.spellcasting_stat == Stats.Type.INTELLECT and alithia.spellcasting_stat == Stats.Type.MINDFULNESS,
 		"Prometheus casts with his Intellect, Alithia with her Mindfulness")
@@ -348,9 +348,9 @@ func spellcasting_stat():
 	ok(dart.spell_slot_level > 0 or combat.scaling_stat_of(prometheus, dart) == dart.scaling_stat, "a skill that costs no gate keeps its own")
 	prometheus.spellcasting_stat = Stats.Type.SELF
 	prometheus.stats[Stats.stat_key(Stats.Type.SELF)] = 77
-	var worth: float = combat.power_behind(prometheus, fireball)
+	var worth: float = combat.power_behind(prometheus, wildfire)
 	ok(is_equal_approx(worth, Stats.base_damage(combat.stat_of(prometheus, Stats.Type.SELF), prometheus.get("weapon_base", Stats.WEAPON_BASE))),
-		"his spellcasting stat changed to Self: his Fireball is worked out from Self", "%.1f" % worth)
+		"his spellcasting stat changed to Self: his Wildfire is worked out from Self", "%.1f" % worth)
 	log_line("")
 	game.queue_free()
 	await settle(3)

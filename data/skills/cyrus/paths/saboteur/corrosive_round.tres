@@ -3,10 +3,10 @@
 [ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
 [ext_resource type="Texture2D" path="res://art/icons/corrosive_round_skill.png" id="2_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
-[ext_resource type="AudioStream" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
 [ext_resource type="Resource" path="res://data/conditions/corroded.tres" id="4_cond"]
 [ext_resource type="Script" path="res://combat/resources/SkillRank.gd" id="5_rank"]
 [ext_resource type="Resource" path="res://data/conditions/deeply_corroded.tres" id="6_deep"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/cyrus_pistol.wav" id="sfx_sound"]
 
 [sub_resource type="Resource" id="Effect_1"]
 script = ExtResource("1_effect")
@@ -24,6 +24,7 @@ condition = ExtResource("6_deep")
 
 [resource]
 script = ExtResource("3_skill")
+sound = ExtResource("sfx_sound")
 projectile_look = 2
 ranks = Array[ExtResource("5_rank")]([SubResource("Rank_41")])
 name = "Corrosive Round"
@@ -37,5 +38,4 @@ ability_modifier = 0.8
 scaling_stat = 3
 damage_type = 11
 icon = ExtResource("2_icon")
-sound = ExtResource("90_sfx")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_1")])

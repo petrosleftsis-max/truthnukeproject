@@ -185,10 +185,10 @@ func what_it_does_to_a_blow():
 	var foe := first_foe()
 	foe.hp = 9999
 	foe.max_hp = 9999
-	var ranged: SkillDefinition = SkillDatabase.skills["fireball"]
+	var ranged: SkillDefinition = SkillDatabase.skills["wildfire"]
 	var melee: SkillDefinition = SkillDatabase.skills["greatsword_attack"]
 	var sweep: SkillDefinition = SkillDatabase.skills["sweep_strike"]
-	ok(not Combat.is_melee(ranged) and ranged.aoe_radius > 0, "Fireball: an area, sent across the room")
+	ok(not Combat.is_melee(ranged) and ranged.aoe_radius > 0, "Wildfire: an area, sent across the room")
 	ok(Combat.is_melee(melee) and melee.aoe_radius == 0, "Greatsword: melee")
 	ok(combat.prone_damage_factor(alithia, foe, ranged) == 1.0 and combat.prone_damage_factor(enfina, foe, melee) == 1.0, "standing: nothing changes")
 	var full_melee: int = combat.skill_damage(enfina, foe, melee)
@@ -232,14 +232,14 @@ func low_shot():
 	var foe := first_foe()
 	var gun: SkillDefinition = SkillDatabase.skills["gun"]
 	var rapier: SkillDefinition = SkillDatabase.skills["rapier"]
-	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
+	var wildfire: SkillDefinition = SkillDatabase.skills["wildfire"]
 	ok(combat.active_passives(cyrus).any(func(passive): return passive.ignores_prone_cover), "he has it, from the start")
 	ok(not Combat.is_melee(gun), "Gun is a ranged move")
 	combat.lie_down(foe)
 	ok(combat.prone_damage_factor(cyrus, foe, gun) == 1.0, "his Gun at a foe lying down: nothing off", combat.prone_note(cyrus, foe, gun))
 	ok(combat.prone_note(cyrus, foe, gun).contains("no cover"), "  and the prompt says so")
 	ok(combat.prone_damage_factor(cyrus, foe, rapier) == 2.0, "his Rapier: still double")
-	ok(combat.prone_damage_factor(alithia, foe, fireball) == 0.5, "anybody else's: still half")
+	ok(combat.prone_damage_factor(alithia, foe, wildfire) == 0.5, "anybody else's: still half")
 	combat.lie_down(enfina)
 	ok(combat.prone_damage_factor(cyrus, enfina, gun) == 0.5, "and it is for enemies: at somebody of his own, still half")
 	stand_everybody()

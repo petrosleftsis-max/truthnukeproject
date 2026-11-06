@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
 [ext_resource type="Texture2D" path="res://art/icons/frost_edge_skill.png" id="2_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/medium_ice_attack.wav" id="sfx_sound"]
 
 [sub_resource type="Resource" id="Effect_0"]
 script = ExtResource("1_effect")
@@ -14,12 +15,12 @@ display_name = "Frostbitten"
 
 [resource]
 script = ExtResource("3_skill")
+sound = ExtResource("sfx_sound")
 impact_look = 39
 name = "Frost Edge"
 description = "A blade of ice. Whoever it cuts is slow to follow."
 icon = ExtResource("2_icon")
 max_range = 1
-required_level = 32
 respects_blocking = true
 ability_modifier = 1.8
 scaling_stat = 2

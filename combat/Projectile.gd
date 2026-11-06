@@ -278,7 +278,10 @@ static func fly(combat: Combat, user: Dictionary, skill: SkillDefinition, aim: V
 			travel = "travel_beam"
 		SkillDefinition.ProjectileStyle.SPRAY:
 			travel = "travel_spray"
-	MoveFeel.sound(combat, skill.travel_sound, travel, user, -6.0)
+	var flying_sound: AudioStream = skill.travel_sound
+	if flying_sound == null and travel == "travel":
+		flying_sound = GameSounds.stream(&"travel")
+	MoveFeel.sound(combat, flying_sound, travel, user, -6.0)
 	# All of them in: the first to land is as good as any, they fly together.
 	for flying in made:
 		if is_instance_valid(flying) and not flying._arrived:

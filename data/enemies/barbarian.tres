@@ -6,6 +6,8 @@
 
 [resource]
 script = ExtResource("2_o4bgq")
+ai_aggression = 1.3
+ai_caution = 0.6
 skill_levels = {"follow_up_attack": 12, "sweep_strike": 3}
 name = "Barbarian"
 max_hp = 102

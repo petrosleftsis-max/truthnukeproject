@@ -33,9 +33,10 @@ func run_test():
 		ok(item.icon != null, "  and has an icon")
 		ok(String(key) == item.name.to_lower().replace(" ", "_"),
 			"  its key is its name", item.name.to_lower().replace(" ", "_"))
-		# A disguise is taken off again rather than used up.
-		ok(item.consumed_on_use != item.is_disguise(),
-			"  and goes away when used" if not item.is_disguise() else "  and, being a disguise, is kept")
+		# A disguise is taken off again rather than used up, and a lantern lights the way for as long as it is carried.
+		var kept: bool = item.is_disguise() or item.light_tiles > 0.0
+		ok(item.consumed_on_use != kept,
+			"  and goes away when used" if not kept else "  and, being a disguise or a light, is kept")
 		ok(SkillDatabase.skills.get(key) == item,
 			"  and resolves through the same lookup skills do")
 	log_line("")
@@ -97,7 +98,9 @@ func run_test():
 		"snared", "corroded", "veiled", "blurred", "phantom_body", "sanctified", "mirage", "accused", "recanted", "grand_design",
 		"reflected", "dazed", "disarmed", "deeply_corroded",
 		# Alithia's enchantments, and what anybody can do lying down.
-		"prone", "compelled", "silenced", "unafraid", "braced", "burden_shared", "clear_sighted", "clinging", "composed", "in_darkness", "reflections"]
+		"prone", "compelled", "silenced", "unafraid", "braced", "burden_shared", "clear_sighted", "clinging", "composed", "in_darkness", "reflections",
+		# The illusions'.
+		"distracted", "dread", "looks_dead", "phantom_wound"]
 	for condition in conditions:
 		if not_bottled.has(condition):
 			continue

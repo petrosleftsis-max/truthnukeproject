@@ -51,6 +51,10 @@ class_name ItemDefinition
 ## to a slot (Campaign "Containers").
 @export var bomb: bool = false
 
+@export_group("Light")
+## Lights the way from the Baldric, this many tiles out, the nearer half Bright. In a pouch or a backpack it gives none.
+@export var light_tiles: float = 0.0
+
 @export_group("Disguise")
 ## Makes this a disguise rather than something to use: on a stealth map, the
 ## one sneaking can wear it and pass for this combatant (a key into
@@ -136,10 +140,10 @@ func is_poison() -> bool:
 
 ## Whether this only has a use on a stealth map - worn, thrown or slipped into
 ## somebody's supper there - or none in a fight at all, and so is left out of
-## every fight.
+## every fight. A lantern lights the way by being carried, with nothing to use.
 func stealth_only() -> bool:
 	return is_disguise() or is_distraction() or is_poison() or keepsake or frames or reveals_hidden_details \
-		or teaches != ""
+		or teaches != "" or light_tiles > 0.0
 
 
 ## An item scales off itself, so the attribute a skill would read would only

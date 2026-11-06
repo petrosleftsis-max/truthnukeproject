@@ -3,8 +3,8 @@
 [ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
 [ext_resource type="Texture2D" path="res://art/icons/glacial_tide_skill.png" id="2_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
-[ext_resource type="AudioStream" path="res://audio/sfx/SciFi_Water_-_Free_Sound_Effect.wav" id="90_sfx"]
 [ext_resource type="Resource" path="res://data/conditions/frozen.tres" id="5_cond"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/heavy_ice_attack.wav" id="sfx_sound"]
 
 [sub_resource type="Resource" id="Effect_1"]
 script = ExtResource("1_effect")
@@ -15,10 +15,10 @@ condition_dot_modifier = 0.25
 
 [resource]
 script = ExtResource("3_skill")
+sound = ExtResource("sfx_sound")
 impact_look = 31
 name = "Glacial Tide"
 description = "A wave of freezing water over everything near where it lands: frozen for two turns."
-required_level = 41
 min_range = 1
 max_range = 15
 ability_modifier = 2.2
@@ -28,5 +28,4 @@ respects_blocking = true
 scaling_stat = 1
 spell_slot_level = 7
 icon = ExtResource("2_icon")
-sound = ExtResource("90_sfx")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_1")])

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Looks Dead"
+tag = "Ld"
+description = "To the other side they have fallen: nobody aims at them. Anything they do gives it away, a step included."
+duration = 999
+looks_dead = true

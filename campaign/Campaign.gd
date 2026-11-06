@@ -262,11 +262,12 @@ func learn_spell(key: String, spell: String) -> String:
 		return "Nothing in the party's bags teaches %s" % SkillDatabase.skills[spell].name
 	take_item(teachers[0].holder, teachers[0].item)
 	learn(key, spell)
+	GameSounds.play(&"learned_spell")
 	return ""
 
 
 ## `key` knows `spell` from now on, whatever taught it - for the story's own
-## teaching too: `do Campaign.learn("prometheus", "fireball")`.
+## teaching too: `do Campaign.learn("prometheus", "wildfire")`.
 func learn(key: String, spell: String):
 	if not learned_spells.has(key):
 		learned_spells[key] = []
@@ -276,6 +277,42 @@ func learn(key: String, spell: String):
 	var skill: SkillDefinition = SkillDatabase.skills.get(spell)
 	announce("[color=lightgreen]%s learns %s.[/color]\n" % [display_name_of(key), skill.name if skill != null else spell])
 	spell_learned.emit(key, spell)
+
+
+## --- The hour ---
+##
+## Day, dusk, night or dawn (Light.Hour): saved, and it can change during play, by a conversation's
+## `do Campaign.set_time_of_day("night")`, by a map's Seconds Per Time Of Day, or a long rest, which
+## ends at dawn. Whatever is lit by it hears time_of_day_changed. The map's ambient light is here
+## too, for the fight walked into from it.
+
+signal time_of_day_changed
+
+var time_of_day: int = Light.Hour.DAY
+var map_ambient: int = Light.Ambient.OUTDOORS
+var map_no_moon := false
+
+
+## To `hour`: a Light.Hour, or its name ("night").
+func set_time_of_day(hour):
+	var wanted: int = hour if hour is int else Light.TIME_NAMES.find(String(hour).to_lower())
+	if wanted < 0 or wanted >= Light.TIME_NAMES.size() or wanted == time_of_day:
+		return
+	time_of_day = wanted
+	time_of_day_changed.emit()
+
+
+## On to the next of them.
+func pass_time():
+	set_time_of_day((time_of_day + 1) % Light.TIME_NAMES.size())
+
+
+## Whether `key` sees in the dark, as far as their passives go (Cyrus's Night Eyes).
+func sees_in_darkness(key: String) -> bool:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null:
+		return false
+	return definition.passives.any(func(passive): return passive != null and passive.sees_in_darkness and party_level >= passive.required_level)
 
 
 ## --- Preparing spells ---
@@ -314,9 +351,7 @@ func prepare_choices(key: String) -> Array:
 	var found := []
 	for spell in learnable_spells(key):
 		var skill: SkillDefinition = SkillDatabase.skills.get(spell)
-		if skill == null or skill is ItemDefinition or skill.required_level > party_level or not knows_spell(key, spell):
-			continue
-		if CharacterSheet.gate_opens_at(skill.spell_slot_level) > party_level:
+		if skill == null or skill is ItemDefinition or CharacterSheet.comes_in(skill) > party_level or not knows_spell(key, spell):
 			continue
 		found.append(spell)
 	return found
@@ -880,7 +915,8 @@ func restart_stealth():
 const SAVED := ["party_level", "party_state", "subclasses", "path_change_open", "inventories", "gear", "equipped",
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
 	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks",
-	"controllers", "prepared_spells", "locked_spells", "last_prepared", "spells_readied", "prepare_due"]
+	"controllers", "prepared_spells", "locked_spells", "last_prepared", "spells_readied", "prepare_due",
+	"time_of_day", "map_ambient", "map_no_moon"]
 
 
 ## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with
@@ -954,6 +990,7 @@ func net_state() -> Dictionary:
 
 ## `keeping`: SAVED keys left as they are here (Net: what an open menu changes).
 func apply(state: Dictionary, keeping: Array = []):
+	var light_before := [time_of_day, map_ambient, map_no_moon]
 	# A copy: Array() of an array is that same array, and would change with it.
 	var party_before := party_order.duplicate()
 	if state.get("party_order") is Array:
@@ -977,6 +1014,8 @@ func apply(state: Dictionary, keeping: Array = []):
 	current_encounter = Net.data_to_resource(state.get("encounter")) as EncounterDefinition
 	if Array(party_order) != party_before:
 		party_changed.emit()
+	if light_before != [time_of_day, map_ambient, map_no_moon]:
+		time_of_day_changed.emit()
 
 
 func is_trigger_cleared(trigger_id: String) -> bool:
@@ -1167,7 +1206,7 @@ func outside_spells(key: String) -> Array:
 		var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
 		if skill == null or skill.outside_gate <= 0 or found.has(skill_key):
 			continue
-		if skill.required_level > party_level or skill.outside_gate >= opened.size() or opened[skill.outside_gate] <= 0:
+		if CharacterSheet.comes_in(skill) > party_level or skill.outside_gate >= opened.size() or opened[skill.outside_gate] <= 0:
 			continue
 		# Learned, as any spell of theirs (Invisibility's book - the designer,
 		# 2026-10-31: a spell like the rest), and prepared ("Preparing spells").
@@ -1309,6 +1348,9 @@ func take_encounter_answer() -> EncounterAnswer:
 
 
 func reset():
+	time_of_day = Light.Hour.DAY
+	map_ambient = Light.Ambient.OUTDOORS
+	map_no_moon = false
 	_arena_return = {}
 	dungeon = null
 	dungeon_stage = 0
@@ -1744,6 +1786,8 @@ func long_rest():
 	gates_spent_outside.clear()
 	meditated.clear()
 	free_familiar_used = false
+	# Waking to a new day.
+	set_time_of_day(Light.Hour.DAWN)
 	# And the spells to prepare again ("Preparing spells").
 	_rest_prepared()
 	# And the paths open to change until the next fight (path_change_open).
@@ -1791,7 +1835,7 @@ func rest_gate_for(key: String) -> int:
 	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
 	if skill == null or definition == null or not party_state.get(key, {}).get("alive", true):
 		return 0
-	if not definition.skills.has(RESUSCITATE) or party_level < skill.required_level or not knows_spell(key, RESUSCITATE) or not is_prepared(key, RESUSCITATE):
+	if not definition.skills.has(RESUSCITATE) or party_level < CharacterSheet.comes_in(skill) or not knows_spell(key, RESUSCITATE) or not is_prepared(key, RESUSCITATE):
 		return 0
 	var left := gates_left(key)
 	for gate in range(skill.spell_slot_level, left.size()):

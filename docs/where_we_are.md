@@ -2,7 +2,7 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-11-05, after the designer's long list of 2026-11-04 (see "Done
+updated 2026-11-06, after the designer's message of that day (see "Done
 recently"); before that 2026-10-31, after Steps 2 and 3 of the network play (LAN, and online
 by UPnP), the designer's additions to it, the pictures, stores and dragging
 across the network, the placeholder projectiles, and everything in
@@ -28,7 +28,7 @@ there, and Cover Leap gone. Steps 4 and 5 wait on the designer.
   designer as they/them.
 - Commit and push at the end of every piece of work. Kill processes by pid.
   Never shut down or restart the computer.
-- Tests: `tests/run.sh` (all 152 suites) or `tests/run.sh outside familiar`.
+- Tests: `tests/run.sh` (all 155 suites) or `tests/run.sh outside familiar`.
   In the cloud, five suites fail on untouched code too, for environment
   reasons: audio, encmusic (the music `.wav` files are not in git), gear,
   editor, sweep. Locally, with the music present, audio and encmusic may pass.
@@ -91,6 +91,14 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's message of 2026-11-06** (ledger rows of that date; CLAUDE.md "Illusions", "The AI's mind",
+  "Light", "Sounds", "Spells have no levels"; suites `illusions`, `aimind`, `light`, `audio`):
+  - Sounds: all of `docs/sound_plan.md`, placed as they are and kept off GitHub.
+  - Light: Bright, Dim, Dark; Ambient; time of day changing during play; lamps, braziers, lanterns, Burn.
+  - Nine illusions on the Illusory Shepherd's path: Phantom Noise, Phantom Wall, Seeming, False Ground, Phantom
+    Killer, Fallen Friend, Phantom Company, Mislead, Weird. Cyrus can put on a fitting disguise while hidden.
+  - The enemy's mind: all 14 ideas, four levels of smarts, and four dials per creature.
+  - Mindfulness contests on Ecstasy and Terror. Fireball gone, Wildfire in its place. Spells have no levels.
 - **The designer's lists of 2026-11-05** (ledger rows of that date; CLAUDE.md "Shoves, foreseen",
   "Spells and what they rest on", "Preparing spells", "What opens and closes a fight", "Join
   codes"; suites `enchant`, `spellstwo`, `outsidespells`, `preparespells`, `shoveaim`, `hazards`,
@@ -386,15 +394,14 @@ holds the game for both).
    - Tripwire's burst;
    - Resuscitate's gate;
    - boss control resistance.
-9. **Waiting on the designer's go-ahead: the new sounds** (`docs/sound_plan.md`, for
-   `audio/sfx/New folder/`). Nothing is wired up yet, and that folder is not committed.
+9. **Sounds:** the designer's "sword" sound goes on Sweep Strike, Chain Hook and Disarm when it comes.
+   Not placed, no answer yet: `frog`, `train_passby`, `funny_boing_1` and `_2`. No ambience slot yet.
 
-10. **Waiting on the designer's choices, 2026-11-05** (`docs/proposals_2026-11-05.md` has the first
-   three, and more illusions to pick from): which conditions Alithia's growing
-   immunity passive covers and at which levels (the switch is there: a passive's Immune To
-   Conditions and Required Level); the map lighting proposal; the enemy AI suggestions; what the
-   Fireball book and nade should be now that nobody can learn Fireball; whether Ecstasy and
-   Terror should have a contest, and Mesmerise's other numbers (ledger rows of that date).
+10. **Waiting on the designer's choices, 2026-11-06:** which conditions Alithia's growing immunity passive
+   covers and at which levels (the switch is there: a passive's Immune To Conditions and Required Level;
+   they asked to be reminded of seven conditions first); whether Phantom Noise is strong enough for Iris;
+   who gets which enchantment and divination spell from the table; which lighting look to build; every
+   illusion's and every AI dial's number, to test by feel.
 
 
 ## Good to know

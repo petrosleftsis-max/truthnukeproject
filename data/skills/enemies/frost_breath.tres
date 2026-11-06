@@ -2,9 +2,11 @@
 
 [ext_resource type="Texture2D" path="res://art/icons/fire_icon.png" id="1_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/medium_ice_attack.wav" id="sfx_sound"]
 
 [resource]
 script = ExtResource("2_skill")
+sound = ExtResource("sfx_sound")
 projectile_style = 7
 name = "Frost Breath"
 description = "A storm of frost rolls out of it, over everybody in a cone - half to whoever's mind sees through it. Made of its caster's mind: as strong as their Intellect."

@@ -20,12 +20,14 @@ held_by_tether = true
 [resource]
 script = ExtResource("3_skill")
 name = "Ecstasy"
-description = "It takes them all at once and their legs go. Down and helpless for as long as she holds the tether - and still down when she lets go."
+description = "It takes them all at once and their legs go. Whoever loses to her Mindfulness is down and helpless for as long as she holds the tether - and still down when she lets go."
 min_range = 1
 max_range = 6
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0"), SubResource("Effect_1")])
 deals_damage = false
+uses_stat_contest = true
+contest_stat = 1
 impact_look = 13
 spell_slot_level = 1
 tethered = true

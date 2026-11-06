@@ -209,7 +209,7 @@ func _build():
 		var by_level := {}
 		for s in c.skills:
 			var skill: SkillDefinition = skills.get(s)
-			var lvl: int = skill.required_level if skill != null else 0
+			var lvl: int = CharacterSheet.comes_in(skill) if skill != null else 0
 			if not by_level.has(lvl):
 				by_level[lvl] = []
 			by_level[lvl].append(skill.name if skill != null else s)
@@ -241,7 +241,7 @@ func _build():
 		for s in path.skills:
 			var skill: SkillDefinition = skills.get(s)
 			if skill != null:
-				w("- Skill, level %d: **%s** (see its entry under Skills)" % [skill.required_level, skill.name])
+				w("- Skill, level %d: **%s** (see its entry under Skills)" % [maxi(CharacterSheet.comes_in(skill), Stats.SUBCLASS_LEVEL), skill.name])
 		for passive in path.passives:
 			w("- Passive, %s: **%s** - %s" % [passive.describe_when(), passive.name, _passive_text(passive)])
 		w("")
@@ -365,7 +365,7 @@ func _heal_text(skill: SkillDefinition) -> String:
 func _skill_entry(key: String, skill: SkillDefinition):
 	var head := "**%s** (`%s`)" % [skill.name, key]
 	var bits := []
-	bits.append("level %d" % skill.required_level)
+	bits.append("level %d" % CharacterSheet.comes_in(skill))
 	if skill.spell_slot_level > 0:
 		bits.append("spell, %s" % Stats.gate_name(skill.spell_slot_level))
 	bits.append("secondary action" if skill.is_secondary else ("reaction" if skill.reaction_only else "main action"))

@@ -158,48 +158,50 @@ func run_test():
 	log_line("")
 
 	log_line("======== a contest: who wins, and what that leaves ========")
-	# Fireball is contested, blast and all. Its caster is stood a clear shot away
+	# Wildfire is contested, blast and all. Its caster is stood a clear shot away
 	# and outside the blast - it catches both sides, its caster included, which
 	# is a thing the prompt says too - and given the gates to throw it twice.
 	var caster = {}
 	for comb in combat.combatants:
 		if comb.get("combatant_key", "") == "prometheus":
 			caster = comb
-	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
-	ok(fireball.uses_stat_contest, "Fireball is decided by a contest")
+	var wildfire: SkillDefinition = SkillDatabase.skills["wildfire"]
+	ok(wildfire.uses_stat_contest, "Wildfire is decided by a contest")
 	caster.spell_slots = [0, 9, 9, 9]
 	# Far enough along to have learned it, whatever level the fight is at.
-	caster.level = maxi(caster.level, fireball.required_level)
+	caster.level = maxi(caster.level, wildfire.required_level)
 	caster.skill_used_this_turn = false
-	var clear = open_tile_near(combat, mark, caster, fireball.aoe_radius + 2)
+	var clear = open_tile_near(combat, mark, caster, wildfire.aoe_radius + 2)
 	ok(clear.x > -99999, "somewhere to throw it from outside its own blast", "%s" % clear)
 	combat.teleport_to(caster, clear)
 	# Stood inside it, the caster is among those it would catch.
-	var inside = combat.targets_if_aimed(caster, fireball, caster.position + Vector2i(1, 0))
+	var catches_all: SkillDefinition = wildfire.duplicate()
+	catches_all.affects_both_sides = true
+	var inside = combat.targets_if_aimed(caster, catches_all, caster.position + Vector2i(1, 0))
 	ok(inside.has(caster), "aimed at their own feet, it would catch the caster too, and says so")
-	var contest_key = Stats.stat_key(fireball.contest_stat)
+	var contest_key = Stats.stat_key(wildfire.contest_stat)
 	# Beaten: their number below the caster's. Enough health to take two of
 	# them, since the first has to leave somebody for the second to hit.
 	mark.hp = 999
 	mark.stats[contest_key] = 1
-	said = combat.predict_hit(caster, mark, fireball)
-	ok(said.contested and said.wins, "with their %s at 1, it lands in full" % Stats.stat_name(fireball.contest_stat),
+	said = combat.predict_hit(caster, mark, wildfire)
+	ok(said.contested and said.wins, "with their %s at 1, it lands in full" % Stats.stat_name(wildfire.contest_stat),
 		"theirs %d vs %d" % [said.their_stat, said.our_stat])
 	before = mark.hp
-	await combat.use_skill("fireball", caster, mark.position, false)
+	await combat.use_skill("wildfire", caster, mark.position, false)
 	ok(before - mark.hp == said.damage, "for exactly the damage it promised",
 		"promised %d, dealt %d" % [said.damage, before - mark.hp])
 	var full = said.damage
 	# Shrugged off: their number above.
 	mark.stats[contest_key] = 99
 	caster.skill_used_this_turn = false
-	said = combat.predict_hit(caster, mark, fireball)
+	said = combat.predict_hit(caster, mark, wildfire)
 	ok(said.contested and not said.wins, "with it at 99, it is shrugged off", "theirs %d vs %d" % [said.their_stat, said.our_stat])
 	ok(said.damage < full, "for less than the full hit", "%d against %d" % [said.damage, full])
 	ok(said.also.is_empty(), "and nothing else lands with it", "%s" % [said.also])
 	var had = mark.status_effects.size()
 	before = mark.hp
-	await combat.use_skill("fireball", caster, mark.position, false)
+	await combat.use_skill("wildfire", caster, mark.position, false)
 	ok(before - mark.hp == said.damage, "which is again exactly what it does",
 		"promised %d, dealt %d" % [said.damage, before - mark.hp])
 	ok(mark.status_effects.size() <= had, "and what it said would not land, did not")
@@ -209,12 +211,12 @@ func run_test():
 	mark.stats[contest_key] = 1
 	combat.current_combatant = combat.combatants.find(caster)
 	caster.skill_used_this_turn = false
-	controller.set_selected_skill("fireball")
+	controller.set_selected_skill("wildfire")
 	controller.begin_target_selection()
 	controller._preview_hits(mark.position)
 	ok(ui._hit_preview != null and ui._hit_preview.visible, "aiming at them brings the prompt up")
 	var text = prompt_text(ui)
-	said = combat.predict_hit(caster, mark, fireball)
+	said = combat.predict_hit(caster, mark, wildfire)
 	ok(text.contains(mark.name) and text.contains("%d damage" % said.damage), "naming them and the damage",
 		text)
 	ok(text.contains("Their %s %d vs your %s %d" % [said.their_stat_name, said.their_stat, said.our_stat_name, said.our_stat]),

@@ -148,7 +148,7 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
     - In the first run the party healed 8 and the enemies 182, 119 of it from the Rangers.
   - **Items:** 7 of the kit's 16 used.
     - Lab A: Cyrus 2 Small Bombs and the Blinding Bomb; Enfina a Medicine; Alithia both Gate Nades. Lab B: Cyrus's Mediocre Cure Potion, on Enfina.
-    - Left unused when the party fell: Enfina 2 Mediocre Cure Potions and a Cure Potion; Prometheus 2 Medicines, a Mediocre Cure Potion and the Fireball Gate Nade; Alithia a Mediocre Cure Potion and a Medicine.
+    - Left unused when the party fell: Enfina 2 Mediocre Cure Potions and a Cure Potion; Prometheus 2 Medicines, a Mediocre Cure Potion and the Gate Nade (Fireball's, in that run; Wildfire's since 2026-11-06); Alithia a Mediocre Cure Potion and a Medicine.
     - Enfina fell twice still holding three healing potions. Prometheus used nothing in either fight. The first run had no items.
   - **Gates spent:**
     - Lab A: Alithia Pandora 1, Hermes 1, World 2; Prometheus Hermes 2, Pandora 1; Priest 1 World 3; Priest 2 World 2; the Rangers none. In the first run the Rangers spent 7 (World 6, Hermes 1), Prometheus 5 and Alithia 2.
@@ -173,7 +173,7 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
 - **A kit** (PROPOSAL test values, tier II for a party at 18) fills every Simple Baldric, 4 slots each. It is all the party has for the three fights: what is used is gone.
   - **Enfina:** 2 Mediocre Cure Potions, a Cure Potion, a Medicine.
   - **Cyrus:** a Small Bomb, Smelling Salts (since 2026-10-25, in place of his second Small Bomb), a Blinding Bomb, a Mediocre Cure Potion.
-  - **Prometheus:** 2 Medicines, a Mediocre Cure Potion, a Fireball Gate Nade.
+  - **Prometheus:** 2 Medicines, a Mediocre Cure Potion, a Wildfire Gate Nade.
   - **Alithia:** a Communion Gate Nade, a Heal Gate Nade, a Mediocre Cure Potion, a Medicine.
 - **Half casters** (APPROVED_TRIAL): a half caster gets the gates of a full caster at half its level, rounded up, like a D&D paladin.
   - The Ranger is one. At 16 it has World 4 and Hermes 2, where a full caster has World 4, Hermes 3 and Pandora 2. At 64 it has a full caster's gates of 32.
@@ -358,7 +358,6 @@ Spells that are close to copies of each other. They are candidates to make more 
 7. **The Burn line:**
    - Burner (8, Hermes): single target, x1.7, Burn 5 turns at 0.25 (was radius 2, x1.4, 3 turns at 0.2).
    - Wildfire (16, Pandora): radius 2, x2.1, Burn 5 turns at 0.35 (was 3 turns at 0.4).
-   - Fireball (9, Pandora) is close in power: radius 5, x2.0, hits both sides.
 8. **Wind Swoon and Gust Blast:**
    - Wind Swoon (8, Hermes): single target, x1.0, Windswept 5 turns at 0.10 (was radius 2, x0.8).
    - Gust Blast (24, Hermes): single target, x1.2, a 3-tile shove, Windswept 5 turns at 0.10.
@@ -383,7 +382,7 @@ These are OPEN: no sheet documents them, or documents them only in part. The val
 - **Resistances:** none, beyond those from passives.
 - **What gear gives:** weapons give a base of 7-11, armour 12/20/28, charms one small passive. No tier III-IV gear exists; the economy sheet prices it but doesn't say what it gives.
 - **The paths' contents:** their moves and numbers, except the Illusory Shepherd, which has its own sheet. The progression sheet names the tiers only.
-- **Spells the progression sheet doesn't list:** Fireball, Wind Swoon, Gust Blast, Crystalise, the Edges and others.
+- **Spells the progression sheet doesn't list:** Wind Swoon, Gust Blast, Crystalise, the Edges and others.
 - **Which gate each spell uses, and castings per gate:** the gate table is D&D's, stretched to 64.
 - **Kindling:** +5% per spell cast, capped at 15/30/45%.
 - **Catalyst:** settled (APPROVED_DESIGN, 2026-10-24) - every enemy, Cyrus's own conditions only, as the rule in Part 1 says.
@@ -404,7 +403,7 @@ These are OPEN: no sheet documents them, or documents them only in part. The val
 
 **Items and money**
 - **Condition bottles:** their strength and their price, 120 each.
-- **Gate Nades:** power Heal 30, Crystalise 40, Fireball 50, Communion 50; price 60 for a gate 1-2 spell, 150 for gate 3.
+- **Gate Nades:** power Heal 30, Crystalise 40, Wildfire 50, Communion 50; price 60 for a gate 1-2 spell, 150 for gate 3.
 - **Spellbook prices:** 150/375/750/1500/2000 by gate depth. The consumables sheet prices only scrolls.
 - **Containers:** slots and prices.
 - **Stealth tools** (darts, drugs, pebbles, robes): unpriced.
@@ -437,7 +436,7 @@ These are OPEN: no sheet documents them, or documents them only in part. The val
   - One option is to scale the party's level-64 health by the same factor enemies get: about Enfina 600, Cyrus and Alithia 350, Prometheus 140. That would bring back about 3 swings at 64.
   - The player sheet (player_hp_defense_progression.csv) keeps the same health and raises Defense to 28 from level 17.
     - That takes a level-64 Titanfall on Cyrus from 143 to 126: still more than his 115 health.
-    - It takes a Fireball on Prometheus from 95 to 84: still more than his 58.
+    - It took a Fireball on Prometheus from 95 to 84, still more than his 58. Fireball has since gone from the game (2026-11-06).
 - **Durations:** settled (2026-10-24). "N turns" is N of the target's own turns - Warning Shot's slow is 2 of theirs, a 3-turn Burn ticks 3 times. Only on whoever is acting does the rest of the current turn come on top (Run 1: this turn and the next) - kept by the designer.
 - **Enemy turns at level 64** take about 2 seconds each to plan with a full kit (10 enemies in about 21 s). The goal has been under a second.
 - **The other near-twins above** - kept for now (the designer's call, 2026-10-23).

@@ -33,6 +33,16 @@ export.zip
 audio/music/*.wav
 audio/music/*.wav.import
 
+# The designer's sounds and the ambience: kept on their own drive, over 3 GB of them. tools/place_sfx.ps1 puts
+# them where the game uses them. Their .import files stay tracked, with how each is imported. A clone
+# without them plays on in silence (SkillDatabase: set_abort_on_missing_resources).
+audio/sfx/New folder/
+audio/sfx/fights/*.wav
+audio/sfx/moves/*.wav
+audio/sfx/world/*.wav
+audio/sfx/menus/*.wav
+audio/ambience/
+
 # A local backup of the audio, kept beside the project. 177 MB, and the whole
 # point of ignoring the music is not to carry it around.
 audio.zip

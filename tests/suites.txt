@@ -150,3 +150,6 @@ preparespells
 hazards
 fightcards
 joincode
+light
+illusions
+aimind

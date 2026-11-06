@@ -144,6 +144,10 @@ func _draw():
 		draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.85, 0.3, 0.8))
 
 
+@export_group("Sound")
+## Heard as it is used. Empty: nothing, or a mechanism opening for something that had to be hacked.
+@export var use_sound: AudioStream
+
 @export_group("Flags")
 ## Set on Campaign when this is used - the whole of what a button has to say to
 ## open a door somewhere else. Left empty for anything that changes nothing.
@@ -213,6 +217,11 @@ func use(scene: Node):
 		var outcome: Dictionary = await hacking.run(hack, hack_id())
 		if outcome.get("result", "") != "success":
 			return
+	if use_sound != null:
+		GameSounds.play_stream(use_sound)
+	elif hack != null:
+		# Something that had to be hacked open comes open.
+		GameSounds.play(&"mechanism_opened")
 	interact(scene)
 	# Once means once however it was reached. Walking into an automatic one
 	# marks it before getting here, but pressing the key marked nothing at all -

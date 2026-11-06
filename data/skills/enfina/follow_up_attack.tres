@@ -3,10 +3,11 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_o0rjh"]
 [ext_resource type="Texture2D" uid="uid://c52qnmo30cnrc" path="res://art/icons/followupattack_skill.png" id="2_i0q61"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_730sk"]
-[ext_resource type="AudioStream" uid="uid://dbsosvwpb00a6" path="res://audio/sfx/Metal_Strike_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/rapier.wav" id="sfx_sound"]
 
 [resource]
 script = ExtResource("3_730sk")
+sound = ExtResource("sfx_sound")
 name = "Follow Up Attack"
 description = "Move the greatsword with such ease that your strikers are endless."
 min_range = 1
@@ -15,6 +16,5 @@ icon = ExtResource("2_i0q61")
 required_level = 32
 is_secondary = true
 ability_modifier = 1.5
-sound = ExtResource("90_sfx")
 sound_volume_db = -6.0
 melee = true

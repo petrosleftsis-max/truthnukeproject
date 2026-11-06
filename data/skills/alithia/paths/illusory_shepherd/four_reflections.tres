@@ -17,7 +17,6 @@ description = "Four of her, on the one tile. A blow at her alone strikes one of 
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 max_range = 0
-required_level = 24
 targets_ally = true
 can_be_copied = false
 deals_damage = false

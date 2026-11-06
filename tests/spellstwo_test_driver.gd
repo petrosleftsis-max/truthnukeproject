@@ -414,14 +414,21 @@ func light_void():
 	if combat.distance_to(cyrus, foe.position) <= combat.effective_max_range(cyrus, gun_reach):
 		ok(combat.targets_if_aimed(cyrus, gun_reach, foe.position).has(foe), "Cyrus does")
 	# And without Cyrus, nobody sees them.
-	cyrus.alive = false
-	ok(combat.unseen_by_party(foe), "with him down, the player cannot see them either")
-	cyrus.alive = true
+	var standing: Array = combat.groups[0].map(func(index): return combat.combatants[index]).filter(func(comb): return comb.alive and not is_same(comb, prometheus))
+	for comb in standing:
+		comb.alive = false
+	ok(combat.unseen_by_party(foe), "with him down, the player cannot see them either", "%s and %s; hidden %s, by the dark %s, gap %d" % [prometheus.position, foe.position, combat.is_hidden(foe), combat._hidden_by_the_dark(foe), Combat.rect_gap(combat.rect_of(prometheus), combat.rect_of(foe))])
+	for comb in standing:
+		comb.alive = true
 	# The enemy's own: whoever of theirs sees in the dark finds the party there.
-	combat.teleport_to(enfina, tile_away(foe.position, 1, enfina))
+	combat.teleport_to(enfina, tile_away(foe.position, 2, enfina))
 	combat.sync_zones()
 	ok(combat.is_invisible(enfina), "the party's are invisible in it too")
-	ok(combat.hidden_from(foe, enfina), "to an enemy who cannot see in it")
+	ok(combat.hidden_from(foe, enfina), "to an enemy who cannot see in it", "%s and %s; hidden %s, by the dark %s, zone_invisible %s, in darkness %s, foe's eyes %s" % [enfina.position, foe.position, combat.is_hidden(enfina), combat._hidden_by_the_dark(enfina), enfina.get("zone_invisible", false), combat.in_darkness(enfina), combat.sees_in_darkness(foe)])
+	# But everybody sees right beside them (the designer, 2026-11-06).
+	combat.teleport_to(enfina, tile_away(foe.position, 1, enfina))
+	combat.sync_zones()
+	ok(not combat.hidden_from(foe, enfina) and not combat.hidden_from(enfina, foe), "right beside each other, they do see each other")
 	var dark_eyes := PassiveDefinition.new()
 	dark_eyes.sees_in_darkness = true
 	foe.passives.append(dark_eyes)
@@ -581,7 +588,7 @@ func four_reflections():
 	var blow: SkillDefinition = SkillDatabase.skills.greatsword_attack
 	for i in 3:
 		ok(combat._evades(foe, alithia, blow), "a blow at her alone strikes a copy (%d)" % (i + 1))
-	var area: SkillDefinition = SkillDatabase.skills.fireball
+	var area: SkillDefinition = SkillDatabase.skills.wildfire
 	ok(not combat._evades(foe, alithia, area), "an area finds her all the same")
 	ok(combat.conditions_of(alithia).any(func(condition): return condition.evades_hits == 4), "one left")
 	ok(combat._evades(foe, alithia, blow), "the last")

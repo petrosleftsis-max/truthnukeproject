@@ -4,10 +4,11 @@
 [ext_resource type="Texture2D" uid="uid://ddh14awxuyy74" path="res://art/icons/ire_of_sophia_skill.png" id="2_icon"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
 [ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="3_x3ex7"]
-[ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/heavy_electric_damage.wav" id="sfx_impact_sound"]
 
 [resource]
 script = ExtResource("3_skill")
+impact_sound = ExtResource("sfx_impact_sound")
 name = "Ire of Sophia"
 description = "Wisdom's anger as a burst of lightning around where it lands."
 min_range = 1
@@ -16,6 +17,5 @@ icon = ExtResource("2_icon")
 respects_blocking = true
 ability_modifier = 4.2
 damage_type = 9
-sound = ExtResource("90_sfx")
 spell_slot_level = 7
 aoe_radius = 1

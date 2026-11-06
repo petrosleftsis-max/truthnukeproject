@@ -497,7 +497,7 @@ func whole_kit():
 
 func own_side():
 	log_line("======== a caster keeps its own side out of it ========")
-	# An ally stood between two players. Fireball would catch all three; the
+	# An ally stood between two players. Wildfire would catch all three; the
 	# smaller blasts reach both players and cannot touch an ally at all.
 	var cast = [["cyrus", 0, Vector2i(8, 1)], ["enfina", 0, Vector2i(8, 5)], ["prometheus", 0, Vector2i(11, 0)],
 		["sorcerer", 1, Vector2i(0, 3), 14], ["barbarian", 1, Vector2i(8, 3)]]
@@ -511,8 +511,8 @@ func own_side():
 			for key in Stats.KEYS:
 				comb.stats[key] = 1
 			comb.hp = 999
-		ok(SkillDatabase.skills["fireball"].affects_both_sides, "Fireball burns both sides")
-		ok(combat.can_afford_skill(sorcerer, SkillDatabase.skills["fireball"]), "and the Sorcerer can cast it")
+		ok(SkillDatabase.skills["gust_blast"].affects_both_sides, "Gust Blast catches both sides")
+		ok(combat.can_afford_skill(sorcerer, SkillDatabase.skills["gust_blast"]), "and the Sorcerer can cast it")
 		var ally_hp = ally.hp
 		var marks = {}
 		for comb in combat.combatants:
@@ -527,7 +527,7 @@ func own_side():
 		ok(ally.hp == ally_hp, "without burning the ally standing among them", "%d -> %d" % [ally_hp, ally.hp])
 	await end_fight()
 
-	# Standing close enough to be inside its own Fireball: it steps out of the
+	# Standing close enough to be inside its own Wildfire: it steps out of the
 	# blast before throwing it, rather than throwing it anyway.
 	cast = [["cyrus", 0, Vector2i(6, 2)], ["enfina", 0, Vector2i(6, 4)], ["sorcerer", 1, Vector2i(4, 3)]]
 	combat = await start_fight(cast)

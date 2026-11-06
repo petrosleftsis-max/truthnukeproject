@@ -247,7 +247,9 @@ Spells are cast through ten **gates**. Each gate opens at a level and has so man
   - A condition or resistance can be held by the tether with no count of its own, so the tether's size is how long it lasts.
   - A tether with nothing left to hold lets go. Out of a fight it frays by 5 a second.
 - **Zones:** a skill's area left on the ground. Besides a condition it can cost twice to walk, hurt at a turn's start or at every step, mend its own side, follow its caster, be moved with a secondary action, carry anybody struck in melee to its edge, or blow out whoever starts or ends a turn in it.
-- **Darkness:** anybody in a dark zone is invisible to whoever cannot see in the dark. Map lighting is not in the game yet.
+- **Light:** tiles are Bright, Dim or Dark, from the map's Ambient, the time of day and what lights them. Anybody on a Dark tile or in a dark zone is invisible to whoever cannot see in the dark, beyond the tile right beside them. In Dim light somebody who sneaks can hide.
+- **How enemies think:** per creature: Instinct (whoever is nearest), Trained (knows the ground, telegraphs, hazards, shoves, searches the dark), Cunning (also sets off hazards, goes for tether holders, avoids reach, triages, saves gates, falls back), Mastermind (also sets things up and blocks), with dials for aggression, caution, focus and self-preservation.
+- **Spells have no levels:** a spell comes when its gate opens.
 - **Prepared spells:** casters fight with what they prepared, 5 at level 1 to 35 at level 64, chosen at each long rest; a locked spell stays prepared through it.
 - **Hazards to set off:** things on the map with their own health, area and damage: a blast, a throw with damage on collision, ground that costs twice.
 - **Quick time events:** a button press against the clock can make the party's own move land harder, or an enemy's land softer.
@@ -827,20 +829,16 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
 - Gates: level 1 World 2; level 24 World 4, Hermes 3, Pandora 3, Charon 2; level 64 World 4, Hermes 3, Pandora 3, Charon 3, Tartarus 3, Nemesis 2, Sophia 2, Ogdoad 1, Gnosis 1, Yaldabaoth 1
 - Paths (chosen at 24): Battle Chaplain, Illusory Shepherd, Inquisitor
 - Skills and spells, by the level they come at:
-  - 1: Votive Flame, Water Spike, Sass Club, Heal, Cleanse, Intuition, Persuade, Slip Past, Run, Find Familiar, Compel, Steady Heart, Ecstasy
-  - 3: Light Heal
-  - 5: Holy Lance
-  - 6: Flash
-  - 7: Dread Visage
-  - 8: River Flow, Holy Splash, Silence, Composure, Clear Sight, Shared Burden
-  - 9: Resuscitate, Bewilder
-  - 14: Mesmerise, Restorative Aura, Terror, Elemental Ward
-  - 16: Frozen River, Communion
-  - 24: Piercing Light
-  - 32: Judgment
-  - 41: Glacial Tide, Purification
-  - 54: Divine Verdict, Restoration
-  - 64: Revelation, Grace
+  - 1: Votive Flame, Water Spike, Sass Club, Heal, Light Heal, Cleanse, Intuition, Persuade, Slip Past, Run, Find Familiar, Compel, Steady Heart, Ecstasy
+  - 8: Holy Lance, Flash, River Flow, Holy Splash, Bewilder, Silence, Composure, Clear Sight, Shared Burden
+  - 14: Frozen River, Resuscitate, Communion, Dread Visage, Mesmerise, Restorative Aura, Terror, Elemental Ward
+  - 21: Piercing Light
+  - 28: Judgment
+  - 34: Purification
+  - 41: Glacial Tide
+  - 47: Restoration
+  - 54: Divine Verdict
+  - 61: Revelation, Grace
 - Passives:
   - **Mercy I** (Always active): Her heals mend a tenth more. [Heals mend 10% more.]
   - **Aura I** (Always active, from level 8): Allies within two tiles of her are blessed: a tenth less damage. [Aura: their own side within 2 tiles are blessed.]
@@ -915,7 +913,14 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
 - Gates: level 1 World 2; level 24 World 4, Hermes 3, Pandora 3, Charon 2; level 64 World 4, Hermes 3, Pandora 3, Charon 3, Tartarus 3, Nemesis 2, Sophia 2, Ogdoad 1, Gnosis 1, Yaldabaoth 1
 - Paths (chosen at 24): Elemental Vanguard, Elemental Tactician, Elemental Conductor
 - Skills and spells, by the level they come at:
-  - 1: Fire Burst, Zephyr Dart, Caucasus Shard, Study, Hack, InstaHack, Dispel Magic, Fire Blast, Wind Shot, Rock Throw, Quicken, Burner, Wildfire, Wind Vacuum, Gust Blast, Crystalise, Wind Swoon, Hermes Step, Hover, Cling, Slip Past, Invisibility, Growth, Mist Step, Kindled Hound, Illusory Dragon, Run, Tartarus Flame, Ire of Sophia, Gnostic Tempest, Stolen Sun, Turn Aside, Light Void, Ravenous Dark, Unveil, Great Snare, Company Unseen
+  - 1: Fire Burst, Zephyr Dart, Caucasus Shard, Study, Hack, Fire Blast, Wind Shot, Rock Throw, Quicken, Slip Past, Run, Turn Aside, Unveil
+  - 8: Burner, Wind Vacuum, Gust Blast, Crystalise, Wind Swoon, Hermes Step, Hover, Cling, Invisibility, Growth, Mist Step, Light Void
+  - 14: InstaHack, Dispel Magic, Wildfire, Kindled Hound, Ravenous Dark, Great Snare
+  - 28: Tartarus Flame, Company Unseen
+  - 41: Ire of Sophia
+  - 47: Illusory Dragon
+  - 54: Gnostic Tempest
+  - 61: Stolen Sun
 - Passives:
   - **Prying Mind** (Always active): He can hack: wards and seals, machines and locks, and the spell a foe is winding up. The sharper his Intellect, the more tries he gets, and the less each retry costs him. [Can hack wards, machines and the spells others are winding up - more tries, and cheaper ones, the higher their Intellect.]
   - **Elemental Affinity I** (Always active, from level 8): He knows what each element undoes: a tenth more damage on anybody weak to the element. [10% more damage on anybody weak to the hit's element.]
@@ -936,8 +941,8 @@ Generated from the game's resource files (data/). Every value here is PRESENT: w
 Holy weapons. Alithia takes the fight to them with spear, sweep and hammer of light - and what she deals, her friends are mended by.
 
 - Skill, level 24: **Holy Spear** (see its entry under Skills)
-- Skill, level 32: **Censure** (see its entry under Skills)
-- Skill, level 41: **Judgement Hammer** (see its entry under Skills)
+- Skill, level 28: **Censure** (see its entry under Skills)
+- Skill, level 34: **Judgement Hammer** (see its entry under Skills)
 - Passive, Always active, from level 54: **Righteous** - Her damaging spells heal the most hurt of her side within two tiles of her for a fifth of the damage they did. [Their damaging spells heal the most hurt ally within 2 for 20% of the damage.]
 - Passive, Always active, from level 64: **Crusade** - Allies within two tiles of her hit 15% harder. [Allies within 2 of them hit 15% harder.]
 
@@ -966,10 +971,10 @@ The ward. Prometheus shapes the fight rather than ending it: shielding his frien
 
 The blade. Prometheus closes in, quick on his feet, and fights with swords of fire, ice, storm and stone - each blow a spell.
 
-- Skill, level 32: **Flame Edge** (see its entry under Skills)
-- Skill, level 32: **Frost Edge** (see its entry under Skills)
-- Skill, level 32: **Storm Edge** (see its entry under Skills)
-- Skill, level 32: **Stone Edge** (see its entry under Skills)
+- Skill, level 24: **Flame Edge** (see its entry under Skills)
+- Skill, level 24: **Frost Edge** (see its entry under Skills)
+- Skill, level 24: **Storm Edge** (see its entry under Skills)
+- Skill, level 24: **Stone Edge** (see its entry under Skills)
 - Skill, level 24: **Flame Fan** (see its entry under Skills)
 - Passive, Always active, from level 24: **Fleet Blade** - Light on his feet: two more tiles of movement - and he can Slip Past as a secondary action as well as a main one. [Can use Slip Past as a secondary action as well as a main one. +2 movement.]
 - Passive, Always active, from level 41: **Spellstrike** - An Edge that lands strikes again with its element - his cantrip of it, x0.7 - and costs nothing more. [Flame Edge, Frost Edge, Storm Edge and Stone Edge that lands strikes again with its element, x0.7, free.]
@@ -981,11 +986,20 @@ The blade. Prometheus closes in, quick on his feet, and fights with swords of fi
 Protective illusions. Alithia makes cover where there is none, lays phantoms over her friends and fills the field with false targets - and her heals leave a veil behind.
 
 - Skill, level 24: **Illusory Cover** (see its entry under Skills)
-- Skill, level 32: **Phantom Body** (see its entry under Skills)
-- Skill, level 41: **Sanctuary of Light** (see its entry under Skills)
-- Skill, level 54: **Mass Mirage** (see its entry under Skills)
-- Skill, level 64: **Reality's Reflection** (see its entry under Skills)
+- Skill, level 24: **Phantom Body** (see its entry under Skills)
+- Skill, level 34: **Sanctuary of Light** (see its entry under Skills)
+- Skill, level 47: **Mass Mirage** (see its entry under Skills)
+- Skill, level 61: **Reality's Reflection** (see its entry under Skills)
 - Skill, level 24: **Four Reflections** (see its entry under Skills)
+- Skill, level 24: **Phantom Noise** (see its entry under Skills)
+- Skill, level 24: **Phantom Wall** (see its entry under Skills)
+- Skill, level 24: **Seeming** (see its entry under Skills)
+- Skill, level 24: **False Ground** (see its entry under Skills)
+- Skill, level 24: **Phantom Killer** (see its entry under Skills)
+- Skill, level 24: **Fallen Friend** (see its entry under Skills)
+- Skill, level 24: **Phantom Company** (see its entry under Skills)
+- Skill, level 28: **Mislead** (see its entry under Skills)
+- Skill, level 61: **Weird** (see its entry under Skills)
 - Passive, Always active, from level 24: **Veil of Mercy I** - Whoever she heals is veiled: the next blow on them lands 15% softer. [Whoever they heal is veiled.]
 - Passive, Always active, from level 32: **Veil of Mercy II** - Whoever she heals is veiled - the next blow on them lands 15% softer - and blurred: a fifth less from anything thrown or shot from more than a tile away, until their next turn. [Whoever they heal is blurred.]
 - Passive, Always active, from level 41: **Guiding Phantasm** - An image goes ahead of whoever she heals, showing them the way: two more tiles of movement until the end of their next turn. [Whoever they heal moves 2 tiles further until the end of their next turn.]
@@ -996,7 +1010,7 @@ Protective illusions. Alithia makes cover where there is none, lays phantoms ove
 
 Reading them. Alithia sees what they will do, says so before everybody - and passes sentence on it, or simply forbids it.
 
-- Skill, level 32: **Accusation** (see its entry under Skills)
+- Skill, level 24: **Accusation** (see its entry under Skills)
 - Skill, level 54: **Recant** (see its entry under Skills)
 - Passive, Always active, from level 24: **Inquest** - Reading somebody's next turn studies them too, the way Study does: what they are weak to, and what they are made of. [Reading an enemy's next turn also does something to them: Reveal.]
 - Passive, Always active, from level 41: **Sentence** - Her hits land a quarter harder on anybody whose next turn she has read. [Their hits land 25% harder on anybody they have read.]
@@ -1096,15 +1110,15 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: alithia/paths/battle_chaplain
 
-- **Censure** (`censure`) - level 32; spell, Gates of Tartarus; main action; range 1-4; ranged; area: Cone 3; damage x2.4 Idol
+- **Censure** (`censure`) - level 28; spell, Gates of Tartarus; main action; range 1-4; ranged; area: Cone 3; damage x2.4 Idol
   - Who has it: Battle Chaplain path
   - Says: A wide sweep of judgement, spreading from her hands.
   - Settings: projectile_style: Spray
-- **Holy Spear** (`holy_spear`) - level 24; spell, Gates of Pandora; main action; range 1-6; ranged; area: Line 6; damage x1.6 Idol
+- **Holy Spear** (`holy_spear`) - level 14; spell, Gates of Pandora; main action; range 1-6; ranged; area: Line 6; damage x1.6 Idol
   - Who has it: Battle Chaplain path
   - Says: A spear of Idol light thrown straight through a line of them.
   - Settings: projectile_style: Beam
-- **Judgement Hammer** (`judgement_hammer`) - level 41; spell, Gates of Nemesis; main action; range 1-8; ranged; area: Diamond 1; damage x3.0 Idol
+- **Judgement Hammer** (`judgement_hammer`) - level 34; spell, Gates of Nemesis; main action; range 1-8; ranged; area: Diamond 1; damage x3.0 Idol
   - Who has it: Battle Chaplain path
   - Says: A hammer of light brought down on a crowd, throwing them back.
   - Effect: {type: Push}
@@ -1112,41 +1126,88 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: alithia/paths/illusory_shepherd
 
-- **Four Reflections** (`four_reflections`) - level 24; spell, Gates of Hermes; main action; range 0-0; ranged; single target; aimed at allies; no damage
+- **Fallen Friend** (`fallen_friend`) - level 21; spell, Gates of Charon; main action; range 0-8; ranged; single target; aimed at allies; no damage
+  - Who has it: Illusory Shepherd path
+  - Says: An ally looks dead to the other side, and nobody aims at them, for as long as she holds the tether and they do nothing. A step or a move gives it away.
+  - Effect: {type: Condition; condition: Looks Dead (looks_dead); held_by_tether: true}
+  - Settings: can_be_copied: false; impact_look: Shards Gather; tethered: true; tether_strength: 200
+- **False Ground** (`false_ground`) - level 14; spell, Gates of Pandora; main action; range 1-8; ranged; area: Diamond 3; no damage
+  - Who has it: Illusory Shepherd path
+  - Says: The ground where she points looks deadly to the other side, and they will not step on it. Whoever stands there already walks off it. It does nothing at all, and if one of them ends up on it some other way, shoved or thrown, they see it for what it is and it is gone. It lasts as long as she holds the tether.
+  - Effect: {type: Zone; zone_for: The other side; zone_turns: 20; zone_colour: (0.62, 0.3, 0.75, 0.32); zone_false_ground: true}
+  - Settings: impact_look: Shards Gather; tethered: true; tether_strength: 200
+- **Four Reflections** (`four_reflections`) - level 8; spell, Gates of Hermes; main action; range 0-0; ranged; single target; aimed at allies; no damage
   - Who has it: Illusory Shepherd path
   - Says: Four of her, on the one tile. A blow at her alone strikes one of them instead and it shatters; an area finds her all the same. It ends with the last of them.
   - Effect: {type: Condition; condition: Reflections (reflections)}
   - Settings: can_be_copied: false; impact_look: Shards Gather
-- **Illusory Cover** (`illusory_cover`) - level 24; spell, Gates of Pandora; main action; range 1-6; ranged; single target; no damage
+- **Illusory Cover** (`illusory_cover`) - level 14; spell, Gates of Pandora; main action; range 1-6; ranged; single target; no damage
   - Who has it: Illusory Shepherd path
   - Says: Cover that is not there, on a bare tile within six, for three of her turns. The other side takes it for a real barricade - it blocks their sight, whoever stands beside it is in cover to them, and they plan around it - but shots and blasts go straight through it, and they never learn it.
   - Effect: {type: Summon; summons: "illusory_cover"}
   - Settings: can_be_copied: false; impact_look: Shards Gather; outside_use: Hiding Spot
-- **Mass Mirage** (`mass_mirage`) - level 54; spell, Gates of Ogdoad; main action; range 0-6; ranged; area: Diamond 3; aimed at allies; no damage
+- **Mass Mirage** (`mass_mirage`) - level 47; spell, Gates of Ogdoad; main action; range 0-6; ranged; area: Diamond 3; aimed at allies; no damage
   - Who has it: Illusory Shepherd path
   - Says: A mirage on the ground, three tiles round where she puts it within six, until her next turn: her side standing in it takes a quarter less from every blow, and one attack in four at them misses outright.
   - Effect: {type: Zone; zone_condition: Mirage (mirage); zone_turns: 1}
   - Settings: can_be_copied: false; impact_look: Shards Gather; outside_use: Lure
-- **Phantom Body** (`phantom_body`) - level 32; spell, Gates of Charon; main action; range 0-6; ranged; single target; aimed at allies; no damage
+- **Mislead** (`mislead`) - level 28; spell, Gates of Tartarus; main action; range 0-6; ranged; single target; aimed at allies; no damage
+  - Who has it: Illusory Shepherd path
+  - Says: She fades from sight and a double of her stands where she points, for the other side to go after, and she can send it about with a secondary action. The invisibility ends when she does something to an enemy. The double stays until it is hit or dispelled. On a map: unseen for two minutes, with a double going on ahead for the guards to look at.
+  - Effect: {type: Summon Decoy; image_moves: true}
+  - Effect: {type: Invisible}
+  - Settings: placed_in_reach: true; image_of_self: true; can_be_copied: false; impact_look: Shards Gather; outside_seconds: 120; out_of_combat: true; outside_use: Mislead
+- **Phantom Body** (`phantom_body`) - level 21; spell, Gates of Charon; main action; range 0-6; ranged; single target; aimed at allies; no damage
   - Who has it: Illusory Shepherd path
   - Says: An image laid over an ally within six: the next attack that would hit them strikes it instead, and misses. It lasts three of their turns, or one blow.
   - Effect: {type: Condition; condition: Phantom Body (phantom_body)}
   - Settings: can_be_copied: false; impact_look: Shards Gather; outside_use: Lure
-- **Reality's Reflection** (`realitys_reflection`) - level 64; spell, Gates of Yaldabaoth; main action; range 0-8; ranged; area: Diamond 3; aimed at allies; no damage
+- **Phantom Company** (`phantom_company`) - level 21; spell, Gates of Charon; main action; range 1-8; ranged; single target; no damage
+  - Who has it: Illusory Shepherd path
+  - Says: Three soldiers who are not there, around where she points. The other side takes them for real, goes for them, and any of them who can see them loses a little of their nerve. One hit shatters each, and they last as long as she holds the tether.
+  - Effect: {type: Summon; summons: "phantom_soldier"; summon_count: 3; summon_as_images: true; summon_shakes: 15}
+  - Settings: can_be_copied: false; impact_look: Shards Gather; tethered: true; tether_strength: 200
+- **Phantom Killer** (`phantom_killer`) - level 14; spell, Gates of Pandora; main action; range 1-8; ranged; single target; no damage; contested against Mindfulness
+  - Who has it: Illusory Shepherd path
+  - Says: An enemy who loses to her Mindfulness believes something is killing them: a psychic wound each turn. As each turn starts they weigh it again, doubting it a little more every time, and once their Mindfulness beats hers they stop believing. It lasts no longer than she holds the tether.
+  - Effect: {type: Condition; condition: Phantom Wound (phantom_wound); held_by_tether: true}
+  - Settings: impact_look: Ripples; tethered: true; tether_strength: 200
+- **Phantom Noise** (`phantom_noise`) - level 8; spell, Gates of Hermes; main action; range 1-10; ranged; area: Diamond 4; no damage; contested against Mindfulness
+  - Who has it: Illusory Shepherd path
+  - Says: A sound out of nowhere, where she points. In a fight, every enemy there who loses to her Mindfulness turns aside as their next turn starts and walks towards it as far as they can, then carries on. On a map, every guard within ten tiles of it goes to look.
+  - Effect: {type: Condition; condition: Distracted (distracted); drawn_to_aim: true}
+  - Settings: impact_look: Ripples; out_of_combat: true; lure_tiles: 10.0; outside_use: Lure
+- **Phantom Wall** (`phantom_wall`) - level 8; spell, Gates of Hermes; main action; range 1-8; ranged; single target; no damage
+  - Who has it: Illusory Shepherd path
+  - Says: A wall five tiles long across where she points, that only the other side believes in: they cannot see past it or walk through it. Her side shoots straight through it, though they have to walk round it too. It lasts as long as she holds the tether.
+  - Effect: {type: Summon; summons: "phantom_wall"; summon_across: 2}
+  - Settings: can_be_copied: false; impact_look: Shards Gather; tethered: true
+- **Reality's Reflection** (`realitys_reflection`) - level 61; spell, Gates of Yaldabaoth; main action; range 0-8; ranged; area: Diamond 3; aimed at allies; no damage
   - Who has it: Illusory Shepherd path
   - Says: A reflection of the world on the ground, three tiles round where she puts it within eight, for two of her turns - and the other side never knows it is there. Her side standing in it is invisible, and an image of each of them caught as she casts it stands beside them for the other side to go for. Acting against an enemy gives one away until their next turn.
   - Effect: {type: Summon Decoy}
   - Effect: {type: Zone; zone_condition: Reflected (reflected); zone_unseen: true}
   - Settings: can_be_copied: false; impact_look: Shards Gather; outside_use: Lure
-- **Sanctuary of Light** (`sanctuary_of_light`) - level 41; spell, Gates of Nemesis; main action; range 0-6; ranged; area: Diamond 2; aimed at allies; no damage
+- **Sanctuary of Light** (`sanctuary_of_light`) - level 34; spell, Gates of Nemesis; main action; range 0-6; ranged; area: Diamond 2; aimed at allies; no damage
   - Who has it: Illusory Shepherd path
   - Says: A sanctuary on the ground, two tiles round where she puts it within six, for two of her turns: her side standing in it takes 15% less from every blow, and one attack in four at them strikes a copy and misses.
   - Effect: {type: Zone; zone_condition: Sanctified (sanctified)}
   - Settings: can_be_copied: false; impact_look: Dome
+- **Seeming** (`seeming`) - level 8; spell, Gates of Hermes; main action; range 0-6; ranged; single target; aimed at allies; no damage
+  - Who has it: Illusory Shepherd path
+  - Says: An ally looks like one of the enemy. In a fight nobody notices them, wherever they walk, until they do anything at all. On a map the whole party looks like the guards there for five minutes, and passes as any disguise does.
+  - Effect: {type: Invisible; unnoticed_until_acting: true}
+  - Settings: can_be_copied: false; impact_look: Shards Gather; outside_seconds: 300; outside_use: Seeming
+- **Weird** (`weird`) - level 61; spell, Gates of Yaldabaoth; main action; range 1-10; ranged; area: Diamond 4; no damage; contested against Mindfulness
+  - Who has it: Illusory Shepherd path
+  - Says: Everybody's worst fear, at once. Every enemy in a wide area who loses to her Mindfulness runs from her as each of their turns starts, and takes psychic damage as it does, for as long as she holds the tether.
+  - Effect: {type: Condition; condition: Fear (fear); held_by_tether: true; flees_from_caster: true}
+  - Effect: {type: Condition; condition: Dread (dread); held_by_tether: true}
+  - Settings: impact_look: Ripples; tethered: true; tether_strength: 400
 
 ### Folder: alithia/paths/inquisitor
 
-- **Accusation** (`accusation`) - level 32; spell, Gates of Charon; main action; range 0-15; ranged; single target; damage x1.5 Idol
+- **Accusation** (`accusation`) - level 21; spell, Gates of Charon; main action; range 0-15; ranged; single target; damage x1.5 Idol
   - Who has it: Inquisitor path
   - Says: Spoken at somebody whose next turn she has read: x1.5, and until their next turn they take 15% more from everybody.
   - Effect: {type: Condition; condition: Accused (accused)}
@@ -1159,7 +1220,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: alithia/spells
 
-- **Bewilder** (`bewilder`) - level 9; spell, Gates of Hermes; main action; range 1-6; ranged; single target; no damage; contested against Self
+- **Bewilder** (`bewilder`) - level 8; spell, Gates of Hermes; main action; range 1-6; ranged; single target; no damage; contested against Self
   - Who has it: Alithia
   - Says: Twists what the target sees until friend and foe are one. Confused, they go for whoever is nearest.
   - Effect: {type: Condition; condition: Confused (confused); condition_duration: 1}
@@ -1173,7 +1234,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: Her eyes are opened. For ten of her turns she sees in the dark, and sees whoever is invisible or hidden.
   - Effect: {type: Condition; condition: Clear-Sighted (clear_sighted)}
   - Settings: can_be_copied: false; impact_look: Eye
-- **Communion** (`communion`) - level 16; spell, Gates of Pandora; main action; range 0-10; ranged; area: Diamond 2; aimed at allies; no damage; heals 8 + 0.15 x the healer's healing stat + 0.2 x weapon base (no defence, no randomness; the effect's min and max amount are unused)
+- **Communion** (`communion`) - level 14; spell, Gates of Pandora; main action; range 0-10; ranged; area: Diamond 2; aimed at allies; no damage; heals 8 + 0.15 x the healer's healing stat + 0.2 x weapon base (no defence, no randomness; the effect's min and max amount are unused)
   - Who has it: Alithia, Priest
   - Says: The idol's mercy on everyone near where it lands: every ally there is healed.
   - Effect: {type: Heal; heal_flat: 8.0; heal_per_stat: 0.15; heal_per_weapon: 0.2}
@@ -1191,14 +1252,14 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia
   - Says: Judgment from on high on everything near where it lands: half their defence counts for nothing.
   - Settings: respects_blocking: true
-- **Dread Visage** (`dread_visage`) - level 7; spell, Gates of Pandora; main action; range 1-6; ranged; area: Cone 4; no damage; contested against Self
+- **Dread Visage** (`dread_visage`) - level 14; spell, Gates of Pandora; main action; range 1-6; ranged; area: Cone 4; no damage; contested against Self
   - Who has it: Alithia
   - Says: A face only the target sees, and cannot stop seeing.
   - Effect: {type: Condition; condition: Fear (fear); condition_duration: 2}
   - Settings: impact_look: Ripples; outside_use: Scare; tethered: true; tether_strength: 200
-- **Ecstasy** (`ecstasy`) - level 1; spell, Gates of World; main action; range 1-6; ranged; single target; no damage
+- **Ecstasy** (`ecstasy`) - level 1; spell, Gates of World; main action; range 1-6; ranged; single target; no damage; contested against Mindfulness
   - Who has it: Alithia
-  - Says: It takes them all at once and their legs go. Down and helpless for as long as she holds the tether - and still down when she lets go.
+  - Says: It takes them all at once and their legs go. Whoever loses to her Mindfulness is down and helpless for as long as she holds the tether - and still down when she lets go.
   - Effect: {type: Condition; condition: Prone (prone)}
   - Effect: {type: Condition; condition: Stunned (stunned); held_by_tether: true}
   - Settings: impact_look: Ripples; tethered: true; tether_strength: 50
@@ -1211,12 +1272,12 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia
   - Says: Outside a fight: a spirit takes the shape of whatever animal belongs where she is - a rat in the sewers, a cat in the streets, a raven out of doors - and she sees through its eyes and steers it while the party waits. It slips through gaps nobody else fits through, and a guard makes it out only close up; but it is magic, and a magic sensor knows it for what it is.
   - Effect: {type: Familiar}
-- **Flash** (`flash`) - level 6; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; no damage; contested against Mindfulness
+- **Flash** (`flash`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; no damage; contested against Mindfulness
   - Who has it: Alithia
   - Says: A burst of light enough to blind anyone.
   - Effect: {type: Condition; condition: Blind (blind); condition_duration: 5}
   - Settings: respects_blocking: true; impact_look: Flash; outside_use: Blind
-- **Frozen River** (`frozen_river`) - level 16; spell, Gates of Pandora; main action; range 1-15; ranged; area: Diamond 2; damage x1.8 Water; contested against Intellect
+- **Frozen River** (`frozen_river`) - level 14; spell, Gates of Pandora; main action; range 1-15; ranged; area: Diamond 2; damage x1.8 Water; contested against Intellect
   - Who has it: Alithia
   - Says: A whole river of it, freezing as it comes down on them.
   - Effect: {type: Condition; condition: Frozen (frozen); condition_duration: 5; condition_dot_modifier: 0.3}
@@ -1226,7 +1287,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: A wave of freezing water over everything near where it lands: frozen for two turns.
   - Effect: {type: Condition; condition: Frozen (frozen); condition_duration: 2; condition_dot_modifier: 0.25}
   - Settings: respects_blocking: true; impact_look: Ice Spread
-- **Grace** (`grace`) - level 64; spell, Gates of Yaldabaoth; main action; range 0-10; ranged; area: Diamond 3; aimed at allies; no damage; heals (weapon base + 0.7 x the caster's spellcasting stat) x 0.7 + 100% of the target's max health (no defence, no randomness; the effect's min and max amount are unused)
+- **Grace** (`grace`) - level 61; spell, Gates of Yaldabaoth; main action; range 0-10; ranged; area: Diamond 3; aimed at allies; no damage; heals (weapon base + 0.7 x the caster's spellcasting stat) x 0.7 + 100% of the target's max health (no defence, no randomness; the effect's min and max amount are unused)
   - Who has it: Alithia
   - Says: Every ally near where it lands, back to full health.
   - Effect: {type: Heal; heal_share_of_health: 1.0}
@@ -1234,7 +1295,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia, Priest, Ranger
   - Says: Recover one's vitality.
   - Effect: {type: Heal; heal_flat: 12.0; heal_per_stat: 0.25; heal_per_weapon: 0.3; min_amount: 4; max_amount: 8}
-- **Holy Lance** (`holy_lance`) - level 5; spell, Gates of Hermes; main action; range 1-10; ranged; area: Line 10 wide 3; damage x1.2 Idol; contested against Self
+- **Holy Lance** (`holy_lance`) - level 8; spell, Gates of Hermes; main action; range 1-10; ranged; area: Line 10 wide 3; damage x1.2 Idol; contested against Self
   - Who has it: Alithia
   - Says: Blast a line of pure Idol energy.
   - Settings: projectile_style: Beam
@@ -1242,11 +1303,11 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Alithia
   - Says: A splash of the idol's light over a small area.
   - Settings: respects_blocking: true; projectile_look: Droplets
-- **Judgment** (`judgment`) - level 32; spell, Gates of Tartarus; main action; range 1-15; ranged; single target; damage x3.4 Idol; ignores 50% defence
+- **Judgment** (`judgment`) - level 28; spell, Gates of Tartarus; main action; range 1-15; ranged; single target; damage x3.4 Idol; ignores 50% defence
   - Who has it: Alithia
   - Says: The idol's verdict on one enemy: half their defence counts for nothing.
   - Settings: respects_blocking: true
-- **Light Heal** (`light_heal`) - level 3; spell, Gates of World; secondary action; range 0-5; ranged; single target; aimed at allies; no damage; heals 8 + 0.15 x the healer's healing stat + 0.2 x weapon base (no defence, no randomness; the effect's min and max amount are unused)
+- **Light Heal** (`light_heal`) - level 1; spell, Gates of World; secondary action; range 0-5; ranged; single target; aimed at allies; no damage; heals 8 + 0.15 x the healer's healing stat + 0.2 x weapon base (no defence, no randomness; the effect's min and max amount are unused)
   - Who has it: Alithia
   - Says: Swiftly recover one's vitality.
   - Effect: {type: Heal; heal_flat: 8.0; heal_per_stat: 0.15; heal_per_weapon: 0.2; min_amount: 3; max_amount: 6}
@@ -1255,17 +1316,17 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: A slow turning of light in the air. Every enemy there who loses to her Mindfulness stands and stares, for as long as she holds the tether.
   - Effect: {type: Condition; condition: Stunned (stunned); held_by_tether: true; comes_off_when_hurt: true}
   - Settings: impact_look: Ripples; tethered: true; tether_strength: 200
-- **Piercing Light** (`piercing_light`) - level 24; spell, Gates of Charon; main action; range 1-15; ranged; single target; damage x2.2 Idol; ignores 25% defence
+- **Piercing Light** (`piercing_light`) - level 21; spell, Gates of Charon; main action; range 1-15; ranged; single target; damage x2.2 Idol; ignores 25% defence
   - Who has it: Alithia
   - Says: A spear of light that finds the gaps in armour: a quarter of their defence counts for nothing.
   - Settings: respects_blocking: true; projectile_style: Beam
-- **Purification** (`purification`) - level 41; spell, Gates of Nemesis; main action; range 0-5; ranged; single target; aimed at allies; no damage; heals (weapon base + 0.7 x the caster's spellcasting stat) x 0.7 (no defence, no randomness; the effect's min and max amount are unused)
+- **Purification** (`purification`) - level 34; spell, Gates of Nemesis; main action; range 0-5; ranged; single target; aimed at allies; no damage; heals (weapon base + 0.7 x the caster's spellcasting stat) x 0.7 (no defence, no randomness; the effect's min and max amount are unused)
   - Who has it: Alithia
   - Says: Mends an ally and lifts every harmful condition from them.
   - Effect: {type: Heal}
   - Effect: {type: Dispel; dispel_scope: Debuffs Only}
   - Settings: impact_look: Wash
-- **Restoration** (`restoration`) - level 54; spell, Gates of Ogdoad; main action; range 0-5; ranged; single target; aimed at allies; no damage; heals 0.25 x the healer's healing stat + 50% of the target's max health (no defence, no randomness; the effect's min and max amount are unused)
+- **Restoration** (`restoration`) - level 47; spell, Gates of Ogdoad; main action; range 0-5; ranged; single target; aimed at allies; no damage; heals 0.25 x the healer's healing stat + 50% of the target's max health (no defence, no randomness; the effect's min and max amount are unused)
   - Who has it: Alithia
   - Says: Half of an ally's health back, and more besides.
   - Effect: {type: Heal; heal_share_of_health: 0.5; heal_per_stat: 0.25}
@@ -1274,12 +1335,12 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: A warmth that goes where she goes. Any ally who starts their turn within it mends a little, for as long as she holds the tether.
   - Effect: {type: Zone; heal_flat: 4.0; heal_per_stat: 0.1; heal_per_weapon: 0.1; zone_turns: 20; zone_heals: true; zone_follows_caster: true; zone_colour: (0.35, 0.95, 0.55, 0.22)}
   - Settings: can_be_copied: false; impact_look: Dome; tethered: true; tether_strength: 200
-- **Resuscitate** (`resuscitate`) - level 9; spell, Gates of Pandora; main action; range 1-1; melee; single target; aimed at allies; no damage
+- **Resuscitate** (`resuscitate`) - level 14; spell, Gates of Pandora; main action; range 1-1; melee; single target; aimed at allies; no damage
   - Who has it: Alithia
   - Says: Bring a fallen ally back into the fight with half their health. It costs them: everything about them but how far they can walk is a tenth less afterwards - until a long rest, and a tenth less again each time.
   - Effect: {type: Revive; revive_health: 0.5; revive_weakening: 0.1}
   - Settings: targets_fallen: true; can_be_copied: false
-- **Revelation** (`revelation`) - level 64; spell, Gates of Yaldabaoth; main action; range 1-15; ranged; area: Diamond 1; damage x5.0 Idol; ignores 75% defence
+- **Revelation** (`revelation`) - level 61; spell, Gates of Yaldabaoth; main action; range 1-15; ranged; area: Diamond 1; damage x5.0 Idol; ignores 75% defence
   - Who has it: Alithia
   - Says: The truth unhidden, burning through everything near where it lands: three quarters of their defence count for nothing.
   - Settings: respects_blocking: true; impact_look: Rays
@@ -1304,9 +1365,9 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: A hand on the shoulder and the fear goes out of them. For four of their turns nothing can frighten them.
   - Effect: {type: Condition; condition: Unafraid (unafraid); condition_duration: 4}
   - Settings: can_be_copied: false; impact_look: Rays
-- **Terror** (`terror`) - level 14; spell, Gates of Pandora; main action; range 1-6; ranged; area: Cone 6; no damage
+- **Terror** (`terror`) - level 14; spell, Gates of Pandora; main action; range 1-6; ranged; area: Cone 6; no damage; contested against Mindfulness
   - Who has it: Alithia
-  - Says: Something behind her eyes shows itself, and every enemy in a long cone takes fright. As each of their turns starts they run from her as far as they can, then do what they can from there, for as long as she holds the tether.
+  - Says: Something behind her eyes shows itself, and every enemy in a long cone who loses to her Mindfulness takes fright. As each of their turns starts they run from her as far as they can, then do what they can from there, for as long as she holds the tether.
   - Effect: {type: Condition; condition: Fear (fear); held_by_tether: true; flees_from_caster: true}
   - Settings: impact_look: Ripples; tethered: true; tether_strength: 200
 
@@ -1342,6 +1403,14 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Move Cloud** (`move_cloud`) - level 1; secondary action; range 1-6; ranged; single target; no damage
   - Says: Send the cloud he holds up to six tiles.
   - Effect: {type: Move Zone}
+  - Settings: can_be_copied: false
+- **Move Double** (`move_double`) - level 1; secondary action; range 1-6; ranged; single target; no damage
+  - Says: Send the double she made up to six tiles.
+  - Effect: {type: Move Image}
+  - Settings: can_be_copied: false
+- **Put On Disguise** (`put_on_disguise`) - level 1; main action; range 0-0; ranged; single target; aimed at allies; no damage
+  - Says: Only while hidden, and only with a disguise on him that would pass among those he fights. He walks in plain sight, taken for one of them, until he does something to them. A main action, or a secondary one.
+  - Effect: {type: Disguise}
   - Settings: can_be_copied: false
 - **Rummage** (`rummage`) - level 1; main action; range 0-0; ranged; single target; aimed at allies; no damage
   - Says: Take one thing out of your pouch and put it on your baldric, ready to use. Handling an item: a main action, or a secondary one for whoever uses items with it.
@@ -1677,7 +1746,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: prometheus/paths/elemental_conductor
 
-- **Storm Cloud** (`storm_cloud`) - level 24; spell, Gates of Pandora; main action; range 1-12; ranged; area: Diamond 2; damage x1.5 Lightning
+- **Storm Cloud** (`storm_cloud`) - level 14; spell, Gates of Pandora; main action; range 1-12; ranged; area: Diamond 2; damage x1.5 Lightning
   - Who has it: Elemental Conductor path
   - Says: A small black cloud, a tile across, over where he points. Lightning falls round it on every enemy as it forms, and on any who start their turn beneath it; with a secondary action he can send it up to six tiles.
   - Effect: {type: Zone; damage_type: Lightning; zone_for: The other side; zone_turns: 20; zone_turn_damage: 0.7; zone_moves: true; zone_colour: (0.45, 0.55, 0.95, 0.25)}
@@ -1693,25 +1762,25 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: prometheus/paths/elemental_vanguard
 
-- **Flame Edge** (`flame_edge`) - level 32; spell, Gates of Pandora; main action; range 0-1; melee; single target; damage x1.8 Fire
+- **Flame Edge** (`flame_edge`) - level 14; spell, Gates of Pandora; main action; range 0-1; melee; single target; damage x1.8 Fire
   - Who has it: Elemental Vanguard path
   - Says: A blade of fire, swung close. It leaves the wound burning.
   - Effect: {type: Condition; condition: Burn (burn); condition_duration: 2}
   - Settings: respects_blocking: true; impact_look: Edge
-- **Flame Fan** (`flame_fan`) - level 24; spell, Gates of World; main action; range 1-3; ranged; area: Cone 3; damage x1.0 Fire
+- **Flame Fan** (`flame_fan`) - level 1; spell, Gates of World; main action; range 1-3; ranged; area: Cone 3; damage x1.0 Fire
   - Who has it: Elemental Vanguard path
   - Says: A short fan of flame from his hands, over everybody in front of him.
-- **Frost Edge** (`frost_edge`) - level 32; spell, Gates of Pandora; main action; range 0-1; melee; single target; damage x1.8 Ice
+- **Frost Edge** (`frost_edge`) - level 14; spell, Gates of Pandora; main action; range 0-1; melee; single target; damage x1.8 Ice
   - Who has it: Elemental Vanguard path
   - Says: A blade of ice. Whoever it cuts is slow to follow.
   - Effect: {type: Stat Modifier; display_name: "Frostbitten"; modifier_amount: -2}
   - Settings: respects_blocking: true; impact_look: Edge
-- **Stone Edge** (`stone_edge`) - level 32; spell, Gates of Charon; main action; range 0-1; melee; single target; damage x2.2 Earth
+- **Stone Edge** (`stone_edge`) - level 21; spell, Gates of Charon; main action; range 0-1; melee; single target; damage x2.2 Earth
   - Who has it: Elemental Vanguard path
   - Says: A blade of rock, heavy enough to crack armour.
   - Effect: {type: Stat Modifier; display_name: "Cracked Armour"; stat: "defense"; modifier_amount: -10}
   - Settings: respects_blocking: true; impact_look: Edge
-- **Storm Edge** (`storm_edge`) - level 32; spell, Gates of Charon; main action; range 0-1; melee; single target; damage x2.2 Lightning
+- **Storm Edge** (`storm_edge`) - level 21; spell, Gates of Charon; main action; range 0-1; melee; single target; damage x2.2 Lightning
   - Who has it: Elemental Vanguard path
   - Says: A blade of lightning that throws its target back.
   - Effect: {type: Push; knockback_distance: 2}
@@ -1719,28 +1788,28 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: prometheus/spells
 
-- **Burner** (`burner`) - level 1; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; damage x1.7 Fire; contested against Mindfulness
+- **Burner** (`burner`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; area: Diamond 2; damage x1.7 Fire; contested against Mindfulness
   - Who has it: Prometheus, Sorcerer
   - Says: Set the ground and everybody on it alight. For three of his turns the fire stays: whoever steps in it or starts their turn in it is hurt and burned, and again for every tile they walk through it.
   - Effect: {type: Condition; condition: Burn (burn); condition_duration: 5; condition_dot_modifier: 0.25}
-  - Effect: {type: Zone; damage_type: Fire; zone_for: Everybody; zone_turns: 3; zone_turn_damage: 0.5; zone_hurts_everybody: true; zone_hurts_each_step: true; zone_leaves_conditions: true; zone_colour: (0.95, 0.38, 0.1, 0.35)}
+  - Effect: {type: Zone; damage_type: Fire; zone_for: Everybody; zone_turns: 3; zone_turn_damage: 0.5; zone_hurts_everybody: true; zone_hurts_each_step: true; zone_leaves_conditions: true; zone_light_tiles: 5.0; zone_colour: (0.95, 0.38, 0.1, 0.35)}
   - Settings: respects_blocking: true; projectile_look: Jet
-- **Cling** (`cling`) - level 1; spell, Gates of Hermes; main action; range 0-6; ranged; single target; aimed at allies; no damage
+- **Cling** (`cling`) - level 8; spell, Gates of Hermes; main action; range 0-6; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: An ally climbs as Cyrus does: walls, pillars and the floor above, for five of their turns.
   - Effect: {type: Condition; condition: Clinging (clinging)}
   - Settings: can_be_copied: false
-- **Company Unseen** (`company_unseen`) - level 1; spell, Gates of Tartarus; main action; range 0-0; ranged; single target; no damage
+- **Company Unseen** (`company_unseen`) - level 28; spell, Gates of Tartarus; main action; range 0-0; ranged; single target; no damage
   - Who has it: Prometheus
   - Says: Only out of a fight. Everybody but Cyrus is invisible and walks in his footsteps; only magic and noses find them, and the guards' eyes reach less far while it lasts. Whoever does not play Cyrus has the familiar.
   - Settings: can_be_copied: false; outside_seconds: 60; out_of_combat: true; never_in_a_fight: true; noise: Silent; outside_use: The Company Unseen
-- **Crystalise** (`crystalise`) - level 1; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x1.0 Earth; contested against Self
+- **Crystalise** (`crystalise`) - level 8; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x1.0 Earth; contested against Self
   - Who has it: Prometheus, Sorcerer
   - Says: Cover the ground and every enemy on it in hindering stones. For three of his turns each step across them costs twice.
   - Effect: {type: Condition; condition: Crystallised (crystallised); condition_duration: 5; condition_dot_modifier: 0.1}
   - Effect: {type: Zone; zone_for: Everybody; zone_turns: 3; zone_costly: true; zone_cost_spares_fliers: true; zone_colour: (0.62, 0.72, 0.8, 0.35)}
   - Settings: respects_blocking: true
-- **Dispel Magic** (`dispel_magic`) - level 1; spell, Gates of Pandora; main action; range 0-10; ranged; single target; no damage
+- **Dispel Magic** (`dispel_magic`) - level 14; spell, Gates of Pandora; main action; range 0-10; ranged; single target; no damage
   - Who has it: Prometheus
   - Says: Undo magic: everything spells did to the one it lands on - theirs or the other side's, blessing or curse - or a spell's zone, aimed at its ground. Cast through Pandora's gate it reaches what came through Pandora's or a shallower one; cast through a deeper gate, deeper. Something a spell called up or made is undone with it.
   - Effect: {type: Dispel Magic}
@@ -1749,68 +1818,65 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Prometheus, Sorcerer
   - Says: Shoot a flaming laser onto the target.
   - Settings: respects_blocking: true; impact_look: Fire Ring
-- **Fireball** (`fireball`) - level 9; spell, Gates of Pandora; main action; range 1-15; ranged; area: Diamond 5; damage x2.0 Fire; contested against Physical
-  - Says: Fire engulfs everyone around where it lands, unless a wall shelters them.
-  - Settings: affects_both_sides: true; respects_blocking: true; projectile_look: Great Orb
-- **Gnostic Tempest** (`gnostic_tempest`) - level 1; spell, Gates of Gnosis; main action; range 1-15; ranged; area: Diamond 2; damage x5.4 Plasma
+- **Gnostic Tempest** (`gnostic_tempest`) - level 54; spell, Gates of Gnosis; main action; range 1-15; ranged; area: Diamond 2; damage x5.4 Plasma
   - Who has it: Prometheus
   - Says: A tempest of knowing over everything near where it lands.
   - Settings: respects_blocking: true; impact_look: Storm
-- **Great Snare** (`great_snare`) - level 1; spell, Gates of Pandora; main action; range 0-0; ranged; single target; no damage
+- **Great Snare** (`great_snare`) - level 14; spell, Gates of Pandora; main action; range 0-0; ranged; single target; no damage
   - Who has it: Prometheus
   - Says: Only out of a fight. A great magical trap on the ground where he stands: the first guard onto it sets it off, and everybody within three tiles of it is down. Not a sound as it is laid; everybody hears it go.
   - Effect: {type: Trap; trap_burst_radius: 3}
   - Settings: can_be_copied: false; never_in_a_fight: true; noise: Silent; outside_use: Trap
-- **Growth** (`growth`) - level 1; spell, Gates of Hermes; main action; range 0-5; ranged; single target; aimed at allies; no damage
+- **Growth** (`growth`) - level 8; spell, Gates of Hermes; main action; range 0-5; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: Swell an ally to a size bigger for three turns - a Human to a Large, covering four tiles and reaching from every edge of them; too big to be lifted by what could lift them before, and seeing over the bodies of the smaller. They need the room to grow into.
   - Effect: {type: Grow; duration: 3}
   - Settings: respects_blocking: true; outside_use: None
-- **Gust Blast** (`gust_blast`) - level 1; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.2 Wind; contested against Physical
+- **Gust Blast** (`gust_blast`) - level 8; spell, Gates of Hermes; main action; range 1-15; ranged; single target; damage x1.2 Wind; contested against Physical
   - Who has it: Prometheus, Sorcerer
   - Says: Blast a powerful gust that pushes the target.
   - Effect: {type: Push; min_amount: 2; max_amount: 4; knockback_distance: 3}
   - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 5; condition_dot_modifier: 0.1}
   - Settings: affects_both_sides: true; respects_blocking: true; projectile_look: Swirl
-- **Hermes Step** (`hermes_step`) - level 1; spell, Gates of Hermes; main action; range 0-6; ranged; single target; aimed at allies; no damage
+- **Hermes Step** (`hermes_step`) - level 8; spell, Gates of Hermes; main action; range 0-6; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: Pick an ally, then pick where they should be. They are simply there. Click them first, then the tile.
   - Settings: teleports: Target; hand_look: None; outside_use: Blink
-- **Hover** (`hover`) - level 1; spell, Gates of Hermes; main action; range 0-10; ranged; single target; aimed at allies; no damage
+- **Hover** (`hover`) - level 8; spell, Gates of Hermes; main action; range 0-10; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: Surround an ally in uplifting wind that allows them to fly across the field.
   - Effect: {type: Movement Class; display_name: "Hovering"; movement_class: Flying; duration: 5}
   - Settings: respects_blocking: true; impact_look: Lift; outside_use: Fly
-- **Illusory Dragon** (`illusory_dragon`) - level 1; spell, Gates of Ogdoad; main action; range 1-12; ranged; single target; no damage
+- **Illusory Dragon** (`illusory_dragon`) - level 47; spell, Gates of Ogdoad; main action; range 1-12; ranged; single target; no damage
   - Who has it: Prometheus
   - Says: Shadow drawn out of the Ogdoad and given a dragon's shape, anywhere in reach. It stands where it stands like a living thing, but every blow misses it and nothing harms it; the other side near it is gripped by fear. Commanded, it flies and breathes a cone of whatever it is told to - fire, frost, lightning, poison, acid or dread - as strong as your own mind. It lasts as long as its tether to you holds.
   - Effect: {type: Summon; summons: "illusory_dragon"; with_summoners_attributes: true}
   - Settings: can_be_copied: false; impact_look: Wing; tethered: true; tether_per_turn: 20
-- **InstaHack** (`instahack`) - level 1; spell, Gates of Pandora; reaction; reacts: an enemy casts a spell; range 1-6; ranged; single target; no damage
+- **InstaHack** (`instahack`) - level 14; spell, Gates of Pandora; reaction; reacts: an enemy casts a spell; range 1-6; ranged; single target; no damage
   - Who has it: Prometheus
   - Says: Tear a spell apart the instant a foe in reach casts it - no minigame, no second chance for them. It comes to nothing, and their gate is spent all the same. Only ever a reaction, through the Gates of Pandora.
   - Effect: {type: Cancel Casting}
   - Settings: respects_blocking: true; can_be_copied: false; projectile_look: Code; impact_look: Code Scatter; outside_use: Counter Trap
-- **Invisibility** (`invisibility`) - level 1; spell, Gates of Hermes; main action; range 0-10; ranged; single target; aimed at allies; no damage
+- **Invisibility** (`invisibility`) - level 8; spell, Gates of Hermes; main action; range 0-10; ranged; single target; aimed at allies; no damage
   - Who has it: Prometheus
   - Says: Turn yourself or an ally invisible - even while the enemy is watching. It lasts until they do anything to an enemy. On a stealth map it hides whoever you choose for ten minutes, through the Gates of Iris, at one casting each.
   - Effect: {type: Invisible}
   - Settings: respects_blocking: true; impact_look: Shimmer; outside_gate: Gates of Iris; outside_seconds: 600
-- **Ire of Sophia** (`ire_of_sophia`) - level 1; spell, Gates of Sophia; main action; range 1-15; ranged; area: Diamond 1; damage x4.2 Lightning
+- **Ire of Sophia** (`ire_of_sophia`) - level 41; spell, Gates of Sophia; main action; range 1-15; ranged; area: Diamond 1; damage x4.2 Lightning
   - Who has it: Prometheus
   - Says: Wisdom's anger as a burst of lightning around where it lands.
   - Settings: respects_blocking: true
-- **Kindled Hound** (`kindled_hound`) - level 1; spell, Gates of Pandora; main action; range 1-5; ranged; single target; no damage
+- **Kindled Hound** (`kindled_hound`) - level 14; spell, Gates of Pandora; main action; range 1-5; ranged; single target; no damage
   - Who has it: Prometheus
   - Says: A hound of embers, called up on a tile in reach to fight for you. Commanded, it runs and bites with fire; otherwise it stands on guard. It lasts as long as its tether to you holds.
   - Effect: {type: Summon; summons: "kindled_hound"}
   - Settings: can_be_copied: false; outside_use: Lure; tethered: true; tether_per_damage: 1.5
-- **Light Void** (`light_void`) - level 1; spell, Gates of Hermes; main action; range 0-10; ranged; area: Diamond 3; no damage
+- **Light Void** (`light_void`) - level 8; spell, Gates of Hermes; main action; range 0-10; ranged; area: Diamond 3; no damage
   - Who has it: Prometheus
   - Says: The light goes out of the ground he points at. Anybody in the dark is invisible to whoever cannot see in it, for as long as he holds the tether.
   - Effect: {type: Zone; zone_condition: In Darkness (in_darkness); zone_for: Everybody; zone_turns: 20; zone_colour: (0.02, 0.02, 0.06, 0.62)}
   - Settings: can_be_copied: false; tethered: true; tether_strength: 200
-- **Mist Step** (`mist_step`) - level 1; spell, Gates of Hermes; secondary action; range 0-6; ranged; single target; no damage
+- **Mist Step** (`mist_step`) - level 8; spell, Gates of Hermes; secondary action; range 0-6; ranged; single target; no damage
   - Who has it: Prometheus
   - Says: Gone in a breath of silver mist, and there again on any free tile within six - walls, cover and all between are nothing to it. A secondary action, so the main one is still yours.
   - Settings: teleports: Caster; hand_look: None; outside_use: Blink
@@ -1819,7 +1885,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: Grant an ally extra speed
   - Effect: {type: Stat Modifier; modifier_amount: 2; duration: 5}
   - Settings: respects_blocking: true; impact_look: Speed Lines; outside_seconds: 60
-- **Ravenous Dark** (`ravenous_dark`) - level 1; spell, Gates of Pandora; main action; range 1-12; ranged; area: Diamond 3; damage x1.2 Psychic
+- **Ravenous Dark** (`ravenous_dark`) - level 14; spell, Gates of Pandora; main action; range 1-12; ranged; area: Diamond 3; damage x1.2 Psychic
   - Who has it: Prometheus
   - Says: A dark that feeds. It bites as it comes down and at the start of each of the enemies' turns inside it; every step in it costs twice, and anybody in it is invisible to whoever cannot see in the dark.
   - Effect: {type: Zone; damage_type: Psychic; zone_condition: In Darkness (in_darkness); zone_for: Everybody; zone_turns: 3; zone_costly: true; zone_turn_damage: 0.8; zone_colour: (0.08, 0.0, 0.08, 0.66)}
@@ -1828,11 +1894,11 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Who has it: Prometheus, Sorcerer
   - Says: Create a stone that throws itself at high velocity.
   - Settings: respects_blocking: true; projectile_look: Rock
-- **Stolen Sun** (`stolen_sun`) - level 1; spell, Gates of Yaldabaoth; main action; range 1-15; ranged; area: Diamond 2; damage x6.0 Fire
+- **Stolen Sun** (`stolen_sun`) - level 61; spell, Gates of Yaldabaoth; main action; range 1-15; ranged; area: Diamond 2; damage x6.0 Fire
   - Who has it: Prometheus
   - Says: The fire he stole from the gods, let go at once: a sun on the battlefield.
   - Settings: respects_blocking: true
-- **Tartarus Flame** (`tartarus_flame`) - level 1; spell, Gates of Tartarus; main action; range 1-15; ranged; single target; damage x3.1 Fire
+- **Tartarus Flame** (`tartarus_flame`) - level 28; spell, Gates of Tartarus; main action; range 1-15; ranged; single target; damage x3.1 Fire
   - Who has it: Prometheus
   - Says: Fire from the deepest pit, poured on one enemy.
   - Settings: respects_blocking: true
@@ -1846,22 +1912,22 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Says: A flare only the unseen flinch from. Every enemy there who is invisible or hidden is seen.
   - Effect: {type: Unveil}
   - Settings: can_be_copied: false; impact_look: Eye
-- **Wildfire** (`wildfire`) - level 1; spell, Gates of Pandora; main action; range 1-15; ranged; area: Diamond 3; damage x2.1 Fire; contested against Mindfulness
+- **Wildfire** (`wildfire`) - level 14; spell, Gates of Pandora; main action; range 1-15; ranged; area: Diamond 3; damage x2.1 Fire; contested against Mindfulness
   - Who has it: Prometheus, Sorcerer
   - Says: A fire that runs through all of them, and keeps burning.
   - Effect: {type: Condition; condition: Burn (burn); condition_duration: 5; condition_dot_modifier: 0.35}
-  - Settings: respects_blocking: true; impact_look: Wildfire; noise: Loud
+  - Settings: respects_blocking: true; projectile_look: Great Orb; impact_look: Wildfire; noise: Loud
 - **Wind Shot** (`wind_shot`) - level 1; spell, Gates of World; main action; range 0-20; ranged; single target; damage x1.2 Wind
   - Who has it: Prometheus, Sorcerer
   - Says: Conjure wind on your fingertips before leading it to the target.
   - Settings: respects_blocking: true; projectile_look: Swirl
-- **Wind Swoon** (`wind_swoon`) - level 1; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x1.0 Wind; contested against Self
+- **Wind Swoon** (`wind_swoon`) - level 8; spell, Gates of Hermes; main action; range 0-15; ranged; area: Diamond 2; damage x1.0 Wind; contested against Self
   - Who has it: Prometheus, Sorcerer
   - Says: Swoon them with the wind, and leave it raging for three of his turns: anybody who starts or ends a turn in it is thrown out.
   - Effect: {type: Condition; condition: Windswept (windswept); condition_duration: 5; condition_dot_modifier: 0.1}
   - Effect: {type: Zone; zone_for: Everybody; zone_turns: 3; zone_blows_out: true; zone_colour: (0.75, 0.92, 0.85, 0.28)}
   - Settings: respects_blocking: true; projectile_look: Swirl
-- **Wind Vacuum** (`wind_vacuum`) - level 1; spell, Gates of Hermes; main action; range 2-15; ranged; single target; damage x0.2 Wind; contested against Physical
+- **Wind Vacuum** (`wind_vacuum`) - level 8; spell, Gates of Hermes; main action; range 2-15; ranged; single target; damage x0.2 Wind; contested against Physical
   - Who has it: Prometheus
   - Says: Suck a target closer to you.
   - Effect: {type: Pull; knockback_distance: 3}
@@ -1869,17 +1935,17 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Folder: unused
 
-- **Element Up** (`element_up`) - level 4; spell, Gates of World; secondary action; range 0-0; ranged; single target; aimed at allies; no damage
+- **Element Up** (`element_up`) - level 1; spell, Gates of World; secondary action; range 0-0; ranged; single target; aimed at allies; no damage
   - Says: Through the study of Idology, upgrade the element of the next spell you cast.
   - Effect: {type: Upgrade Element; duration: 3}
-- **Lightning Bolt** (`lightning_bolt`) - level 1; spell, Gates of Hermes; main action; range 1-10; ranged; area: Line 4; damage x1.0 Lightning
+- **Lightning Bolt** (`lightning_bolt`) - level 8; spell, Gates of Hermes; main action; range 1-10; ranged; area: Line 4; damage x1.0 Lightning
   - Says: A crackling beam that can be aimed in any direction, including diagonally.
   - Settings: respects_blocking: true
-- **Mirror Image** (`mirror_image`) - level 5; spell, Gates of World; main action; range 0-6; ranged; single target; aimed at allies; no damage
+- **Mirror Image** (`mirror_image`) - level 1; spell, Gates of World; main action; range 0-6; ranged; single target; aimed at allies; no damage
   - Says: An image of an ally - any of them, near or far - set down anywhere in reach. The enemy takes it for them: goes for it as it would for them, and plans around it as it would around them. It has one point of health, stops nothing, and is gone at the first touch.
   - Effect: {type: Summon Decoy}
   - Settings: placed_in_reach: true; can_be_copied: false
-- **Revitalizer** (`revitalizer`) - level 9; spell, Gates of Pandora; main action; range 0-20; ranged; area: Diamond 3; aimed at allies; no damage; heals (weapon base + 0.7 x the caster's spellcasting stat) x 1.3 (no defence, no randomness; the effect's min and max amount are unused)
+- **Revitalizer** (`revitalizer`) - level 14; spell, Gates of Pandora; main action; range 0-20; ranged; area: Diamond 3; aimed at allies; no damage; heals (weapon base + 0.7 x the caster's spellcasting stat) x 1.3 (no defence, no randomness; the effect's min and max amount are unused)
   - Says: Heal everyone back to shape.
   - Effect: {type: Heal}
 
@@ -1944,7 +2010,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Braced** (`braced`, tag Bc): The next blow lands at half its strength. | settings: duration: 1; wears_off_at_start: true; damage_taken_change: -0.5; ends_when_hit: true
 - **Bulwarked** (`bulwarked`, tag Bw): Behind Enfina's guard: takes less damage. | settings: duration: 1; damage_taken_change: -0.1
 - **Burden Shared** (`burden_shared`, tag Bd): Whoever put this on them takes half of what would hurt them, and neither of their tethers frays for it. | settings: duration: 1; keeps_tether_when_hurt: true; source_takes_share: 0.5
-- **Burn** (`burn`, tag ): A strong DOT that also increases the speed by 2. | settings: duration: 5; dot_type: Fire; dot_strength: Powerful; dot_modifier: 1.0; dot_min: 4; dot_max: 5; movement_change: 2
+- **Burn** (`burn`, tag ): A strong DOT that also increases the speed by 2. | settings: duration: 5; dot_type: Fire; dot_strength: Powerful; dot_modifier: 1.0; dot_min: 4; dot_max: 5; light_tiles: 3.0; movement_change: 2
 - **Choking Ash** (`choking_ash`, tag ): Ash in the throat and eyes: everything they do is less likely to land. | settings: duration: 1; accuracy_change: -15
 - **Clear-Sighted** (`clear_sighted`, tag Ce): They see in the dark, and see whoever is invisible or hidden. | settings: duration: 10; sees_in_darkness: true; sees_the_unseen: true
 - **Clinging** (`clinging`, tag Cl): They climb anywhere: walls, pillars and the floor above. | settings: duration: 5; climbs_anywhere: true
@@ -1959,6 +2025,8 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Deceived** (`deceived`, tag Dc): Sure one of their own has sold them out: their next turn goes on the nearest of their own side. | settings: duration: 2; turns_on_own_side: true
 - **Deeply Corroded** (`deeply_corroded`, tag DC): Eaten through by something caustic: it burns a little every turn, and their armour is a fifth worse while it does. | settings: duration: 5; dot_type: Acid; dot_modifier: 0.25; dot_min: 1; dot_max: 2; defense_change: -0.2
 - **Disarmed** (`disarmed`, tag ): Their grip knocked loose: their next weapon attack deals half damage. | settings: duration: 2; weapon_damage_change: -0.5; ends_after_weapon_attack: true
+- **Distracted** (`distracted`, tag Ds): They heard something: as their next turn starts they walk towards it as far as they can, then carry on. | settings: duration: 1
+- **Dread** (`dread`, tag Dr): Their worst fear, walking beside them: psychic damage as each turn starts, for as long as it is held. | settings: duration: 999; dot_type: Psychic; dot_strength: Strong; dot_modifier: 1.0
 - **Exposed** (`exposed`, tag Ex): Turned their back on a champion standing close: takes a fifth more from that champion until their next turn starts. | settings: duration: 1; wears_off_at_start: true; more_from_source: 0.2
 - **Fear** (`fear`, tag ): Too afraid to advance and can barely aim. | settings: accuracy_change: -20; prevents_approach: true
 - **Fortified** (`fortified`, tag Fo): Within Enfina's reach: takes a tenth less damage. | settings: duration: 1; damage_taken_change: -0.1
@@ -1967,8 +2035,10 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Grappled** (`grappled`, tag Gp): Held fast by whoever grabbed them: no moving until they break free, which takes their main action. Teleported, shoved or thrown - either of them - and the grip is gone; so it is if whoever holds them is not beside them any more. | settings: duration: 999; prevents_movement: true; holds: true
 - **Hesitating** (`hesitating`, tag ): Talked into standing down: they lose their next turn - unless somebody hurts them first. | settings: duration: 2; skips_turn: true; ends_when_hit: true
 - **In Darkness** (`in_darkness`, tag Dk): Standing in the dark: invisible to whoever cannot see in it, until they act against the other side. | settings: duration: 1; is_darkness: true
+- **Looks Dead** (`looks_dead`, tag Ld): To the other side they have fallen: nobody aims at them. Anything they do gives it away, a step included. | settings: duration: 999; looks_dead: true
 - **Mirage** (`mirage`, tag Mi): Cloaked in illusions: a quarter less from every blow, and one in four misses outright, while they stand in the mirage. | settings: duration: 1; wears_off_at_start: true; damage_taken_change: -0.25; miss_chance: 25
 - **Phantom Body** (`phantom_body`, tag Ph): An image laid over them: the next attack that would hit them strikes it instead, and misses. | settings: evades_next_hit: true
+- **Phantom Wound** (`phantom_wound`, tag Pw): A psychic wound they believe in, each turn. They weigh it again as each turn starts, with more doubt every time, and stop believing once their Mindfulness beats the caster's. | settings: duration: 999; dot_type: Psychic; dot_strength: Medium; dot_modifier: 0.6; doubt_each_turn: 3
 - **Poisoned** (`poisoned`, tag ): Venom works through them. Too sick to react to anything. | settings: duration: 5; dot_type: Poison; dot_strength: Strong; dot_modifier: 1.0; dot_min: 3; dot_max: 4; prevents_reactions: true
 - **Prone** (`prone`, tag ): Lying flat: half the damage from ranged moves and areas, double from melee. Going down costs nothing; getting up takes half their movement, and until then they do not walk. | settings: duration: 999; prevents_movement: true; getting_up_share: 0.5; less_from_ranged: 0.5; more_from_melee: 1.0
 - **Recanted** (`recanted`, tag Rc): The future that was read of them will not happen: they lose their next turn. | settings: duration: 1; skips_turn: true
@@ -2008,8 +2078,6 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Emetic Powder** (`emetic_powder`): Stir it into something left out for a guard to eat or drink (stand beside it, E). A few seconds after he has had it, he is off to be sick for five minutes, seeing nothing. | poison: Emetic; targets_ally: true; deals_damage: false
 - **Fever Dart** (`fever_dart`): Throw it at a guard (T, then click him). He is too unwell to stand, and whoever is nearest comes to see to him. Both watch half as wide. | poison: Disease; poison_onset: Instant; poison_shootable: true; targets_ally: true; deals_damage: false
 - **Fever Tincture** (`fever_tincture`): Into somebody's food or drink. A quarter of a minute after, they are too unwell to stand - and whoever is nearest comes to see to them. Both watch half as wide. | poison: Disease; poison_onset: Delayed; targets_ally: true; deals_damage: false
-- **Fireball Gate Nade** (`fireball_gate_nade`): Fireball, sealed in a shell: throw it and the spell goes off with no gate of your own opened - if you know the spell or could learn it. Gone once thrown. | spell: "fireball"; item_power: 50; price: 150; min_range: 1; max_range: 15; affects_both_sides: true; respects_blocking: true; can_be_copied: false; ability_modifier: 2.0; scaling_stat: Intellect; damage_type: Fire; uses_stat_contest: true; projectile_look: Great Orb; aoe_radius: 5
-- **Fireball Spellbook** (`fireball_spellbook`): A spellbook of Fireball. Prometheus can learn Fireball from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 375; teaches: "fireball"; can_be_copied: false; deals_damage: false
 - **Flame Edge Spellbook** (`flame_edge_spellbook`): A spellbook of Flame Edge. Prometheus can learn Flame Edge from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 375; teaches: "flame_edge"; can_be_copied: false; deals_damage: false
 - **Flame Fan Spellbook** (`flame_fan_spellbook`): A spellbook of Flame Fan. Prometheus can learn Flame Fan from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 150; teaches: "flame_fan"; can_be_copied: false; deals_damage: false
 - **Forged Letter** (`forged_letter`): A letter in the captain's own hand - or near enough. Left somewhere it will be found, it will cause a great deal of trouble for somebody. | keepsake: true; targets_ally: true; deals_damage: false
@@ -2029,6 +2097,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Ire of Sophia Spellbook** (`ire_of_sophia_spellbook`): A spellbook of Ire of Sophia. Prometheus can learn Ire of Sophia from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 1500; teaches: "ire_of_sophia"; can_be_copied: false; deals_damage: false
 - **Kindled Hound Spellbook** (`kindled_hound_spellbook`): A spellbook of Kindled Hound. Prometheus can learn Kindled Hound from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 375; teaches: "kindled_hound"; can_be_copied: false; deals_damage: false
 - **Knockout Drops** (`knockout_drops`): Into somebody's food or drink. The moment he has had it he is out cold where he stands - right beside his supper, a body to be found. | poison: Sedative; poison_onset: Instant; targets_ally: true; deals_damage: false
+- **Lantern** (`lantern`): A shuttered lantern. In the Baldric it lights the way, four tiles out and brightly for two - in a fight and on a map. Guards can see it too. In a pouch or a backpack it gives no light. | consumed_on_use: false; price: 30; light_tiles: 4.0; can_be_copied: false; deals_damage: false
 - **Light Void Spellbook** (`light_void_spellbook`): A spellbook of Light Void. Prometheus can learn Light Void from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 150; teaches: "light_void"; can_be_copied: false; deals_damage: false
 - **Magnifying Glass** (`magnifying_glass`): Brass and a good lens. Hold it over a picture to see what is too faint or too small to see without it. | keepsake: true; reveals_hidden_details: true; targets_ally: true; deals_damage: false
 - **Medicine** (`medicine`): Restores minor health and lifts whatever went wrong most recently. | item_power: 47; price: 40; max_range: 2; targets_ally: true; effects: [{type: Heal; heal_modifier: 0.5; min_amount: 15; max_amount: 15}, {type: Dispel; dispel_scope: Debuffs Only; dispel_count: 1}]; deals_damage: false | heals item power 47 x 0.5 (no defence, no randomness; the effect's min and max amount are unused)
@@ -2058,6 +2127,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 - **Tiny Bomb** (`tiny_bomb`): Hopefully they won't appear inside someone's dinner. | item_power: 10; price: 45; bomb: true; max_range: 5; affects_both_sides: true; ability_modifier: 2.0; uses_stat_contest: true; aoe_radius: 1
 - **Turn Aside Spellbook** (`turn_aside_spellbook`): A spellbook of Turn Aside. Prometheus can learn Turn Aside from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 150; teaches: "turn_aside"; can_be_copied: false; deals_damage: false
 - **Unveil Spellbook** (`unveil_spellbook`): A spellbook of Unveil. Prometheus can learn Unveil from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 150; teaches: "unveil"; can_be_copied: false; deals_damage: false
+- **Wildfire Gate Nade** (`wildfire_gate_nade`): Wildfire, sealed in a shell: throw it and the spell goes off with no gate of your own opened - if you know the spell or could learn it. Gone once thrown. | spell: "wildfire"; item_power: 50; price: 150; min_range: 1; max_range: 15; respects_blocking: true; can_be_copied: false; effects: [{type: Condition; condition: Burn (burn); condition_duration: 5; condition_dot_modifier: 0.35}]; ability_modifier: 2.1; scaling_stat: Intellect; damage_type: Fire; uses_stat_contest: true; contest_stat: Mindfulness; projectile_look: Great Orb; impact_look: Wildfire; noise: Loud; aoe_radius: 3
 - **Wildfire Spellbook** (`wildfire_spellbook`): A spellbook of Wildfire. Prometheus can learn Wildfire from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 375; teaches: "wildfire"; can_be_copied: false; deals_damage: false
 - **Wind Swoon Spellbook** (`wind_swoon_spellbook`): A spellbook of Wind Swoon. Prometheus can learn Wind Swoon from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 150; teaches: "wind_swoon"; can_be_copied: false; deals_damage: false
 - **Wind Vacuum Spellbook** (`wind_vacuum_spellbook`): A spellbook of Wind Vacuum. Prometheus can learn Wind Vacuum from it - on the Moves page of his character sheet, between fights - and it is used up as he does. | price: 150; teaches: "wind_vacuum"; can_be_copied: false; deals_damage: false
@@ -2091,75 +2161,75 @@ Sorted the way the game's folders sort them: common to the party, each character
 - Main stat Intellect, secondary Mindfulness; health 32 at level 1, 90 at 64; movement 6
 - Skills: Rapier, Run
 - Passive **Bandolier**: Everything it carries is to hand: an item can be its secondary action as well as its main one, and it throws any Gate Nade, whatever spell is sealed in it. [Can use items as a secondary action as well as a main one. Can throw Gate Nades as a secondary action as well as a main one. Can throw any Gate Nade, whatever spell is in it.]
-- Settings: glossary_text: "Hung about with bottles, bombs and Gate Nades, and quick with all of them: it mends whoever of its side is worst hurt and throws the rest at you, two things a turn. Take it down and what it did not use is yours."; class_t: Ranged; max_hp: 32; max_hp_level_20: 90; defense: 5; defense_level_64: 30; initiative: 4; pocket_size: 12; ai_function: "ai_alchemist"
+- Settings: glossary_text: "Hung about with bottles, bombs and Gate Nades, and quick with all of them: it mends whoever of its side is worst hurt and throws the rest at you, two things a turn. Take it down and what it did not use is yours."; class_t: Ranged; max_hp: 32; max_hp_level_20: 90; defense: 5; defense_level_64: 30; initiative: 4; pocket_size: 12; ai_function: "ai_alchemist"; ai_smarts: Cunning; ai_caution: 1.2
 
 ### Ash Warden (`ash_warden`)
 
 - Main stat Physical, secondary Mindfulness; health 300 at level 1, 1500 at 64; movement 6
 - Skills: Greatsword Attack, Ground Pound
 - Passive **Ash Presence**: Ash pours off it. Anybody of the other side who starts a turn within two tiles of it chokes on it. [Aura: the other side within 2 tiles are choking ash.]
-- Settings: glossary_text: "A giant in black iron, full of fire. It cannot be stunned, confused, shoved or moved - until its armour cracks."; max_hp: 300; max_hp_level_20: 1500; size: Large; initiative: 4; resist_fire: 50; immune_to_conditions: [Stunned (stunned), Confused (confused)]; immune_to: [0, 1, 9]; turns_per_round: 2; boss: {title: "Warden of the Ash Gate"; stagger: {hint: "Hit it hard - twice as hard while it winds up a Ground Pound. Stuns it shrugs off still count. So do the powder kegs, and its own ash."; max_value: 120.0; per_blocked_condition: 20.0; while_readying: 2.0}; phases: [The Ash Rises {name: "The Ash Rises"; at_health: 0.66; message: "Its armour splits, and burning ash pours out of it."; skills_added: ["rockfall"]; hazards: [{display_name: "Burning ash falls"; description: "Every other round, burning ash comes down where the party stands - marked a round ahead."; every_rounds: 2; count: 2; damage: 20; damage_type: Fire; condition: Choking Ash (choking_ash); stagger: 30.0}]}, Cinders and Fury {name: "Cinders and Fury"; at_health: 0.33; message: "It burns brighter as it breaks - and its cracked armour can no longer keep a stun out."; stagger: {hint: "It drains fast now: only a burst of damage in one round will stagger it."; max_value: 90.0; per_damage: 1.2; drain_per_round: 45.0}; clears_conditions: true; immunities_lost: [Stunned (stunned)]; summons: ["imp", "imp"]}]}; parts: [Ash Vents {name: "Ash Vents"; tiles: [(0, 0), (1, 0)]; health_share: 0.15; when_broken: Staggered; stagger: 60.0}]
+- Settings: glossary_text: "A giant in black iron, full of fire. It cannot be stunned, confused, shoved or moved - until its armour cracks."; max_hp: 300; max_hp_level_20: 1500; size: Large; initiative: 4; resist_fire: 50; immune_to_conditions: [Stunned (stunned), Confused (confused)]; immune_to: [0, 1, 9]; turns_per_round: 2; boss: {title: "Warden of the Ash Gate"; stagger: {hint: "Hit it hard - twice as hard while it winds up a Ground Pound. Stuns it shrugs off still count. So do the powder kegs, and its own ash."; max_value: 120.0; per_blocked_condition: 20.0; while_readying: 2.0}; phases: [The Ash Rises {name: "The Ash Rises"; at_health: 0.66; message: "Its armour splits, and burning ash pours out of it."; skills_added: ["rockfall"]; hazards: [{display_name: "Burning ash falls"; description: "Every other round, burning ash comes down where the party stands - marked a round ahead."; every_rounds: 2; count: 2; damage: 20; damage_type: Fire; condition: Choking Ash (choking_ash); stagger: 30.0}]}, Cinders and Fury {name: "Cinders and Fury"; at_health: 0.33; message: "It burns brighter as it breaks - and its cracked armour can no longer keep a stun out."; stagger: {hint: "It drains fast now: only a burst of damage in one round will stagger it."; max_value: 90.0; per_damage: 1.2; drain_per_round: 45.0}; clears_conditions: true; immunities_lost: [Stunned (stunned)]; summons: ["imp", "imp"]}]}; parts: [Ash Vents {name: "Ash Vents"; tiles: [(0, 0), (1, 0)]; health_share: 0.15; when_broken: Staggered; stagger: 60.0}]; ai_smarts: Mastermind
 
 ### Barbarian (`barbarian`)
 
 - Main stat Physical, secondary Self; health 102 at level 1, 265 at 64; movement 7
 - Skills: Greatsword Attack, Follow Up Attack, Sweep Strike, Hurl, Grab, Run
-- Settings: max_hp: 102; max_hp_level_20: 265; defense: 18; defense_level_64: 65; initiative: 3; skill_levels: { "follow_up_attack": 12, "sweep_strike": 3 }; resist_fire: -50; resist_earth: 50; ai_readies: Waits For The Hidden
+- Settings: max_hp: 102; max_hp_level_20: 265; defense: 18; defense_level_64: 65; initiative: 3; skill_levels: { "follow_up_attack": 12, "sweep_strike": 3 }; resist_fire: -50; resist_earth: 50; ai_readies: Waits For The Hidden; ai_aggression: 1.3; ai_caution: 0.6
 
 ### Behemoth (`behemoth`)
 
 - Main stat Physical, secondary Mindfulness; health 120 at level 1, 700 at 64; movement 6
 - Skills: Greatsword Attack, Ground Pound, Rockfall
-- Settings: max_hp: 120; max_hp_level_20: 700; size: Monstrous; initiative: 3; parts: [Legs {name: "Legs"; tiles: [(0, 7), (1, 7), (2, 7), (3, 7), (4, 7), (5, 7), (6, 7), (7, 7)]; health_share: 0.2}, Tusks {name: "Tusks"; tiles: [(3, 0), (4, 0)]; health_share: 0.15; when_broken: Disarmed; disarms: ["ground_pound"]}, Soft Hide {name: "Soft Hide"; tiles: [(3, 3), (4, 3), (3, 4), (4, 4)]; health_share: 0.25; when_broken: Exposed}]
+- Settings: max_hp: 120; max_hp_level_20: 700; size: Monstrous; initiative: 3; parts: [Legs {name: "Legs"; tiles: [(0, 7), (1, 7), (2, 7), (3, 7), (4, 7), (5, 7), (6, 7), (7, 7)]; health_share: 0.2}, Tusks {name: "Tusks"; tiles: [(3, 0), (4, 0)]; health_share: 0.15; when_broken: Disarmed; disarms: ["ground_pound"]}, Soft Hide {name: "Soft Hide"; tiles: [(3, 3), (4, 3), (3, 4), (4, 4)]; health_share: 0.25; when_broken: Exposed}]; ai_smarts: Instinct
 
 ### The Bellkeeper (`bellkeeper`)
 
 - Main stat Intellect, secondary Mindfulness; health 160 at level 1, 900 at 64; movement 7
 - Skills: Fire Burst, Sass Club, Rockfall
-- Settings: glossary_text: "Small, quick, and deaf to everything you throw at it. Nothing stuns, confuses, freezes or moves it. Only its own bells reach it."; max_hp: 160; max_hp_level_20: 900; size: Small; initiative: 5; immune_to_conditions: [Stunned (stunned), Confused (confused), Frozen (frozen), Crystallised (crystallised)]; immune_to: [0, 1, 2, 9]; turns_per_round: 2; boss: {title: "Keeper of the Silent Bells"; stagger: {hint: "Nothing you do to it fills this. Ring the bells."; per_damage: 0.0; turns_lost: 2}; phases: [The Last Toll {name: "The Last Toll"; message: "It tears the clapper from its own throat, and the floor itself begins to ring."; stagger: {hint: "The bells are spent. Strike it hard, all at once."; max_value: 80.0; drain_per_round: 40.0}; summons: ["rat", "rat", "rat"]; hazards: [{display_name: "The stones ring"; description: "The floor where the party stands rings like a struck bell - whoever starts a turn there is shaken by it."; kind: Ground; every_rounds: 2; count: 2; hits: The Party; damage: 12; damage_type: Lightning}]}]}; ai_function: "ai_caster"
+- Settings: glossary_text: "Small, quick, and deaf to everything you throw at it. Nothing stuns, confuses, freezes or moves it. Only its own bells reach it."; max_hp: 160; max_hp_level_20: 900; size: Small; initiative: 5; immune_to_conditions: [Stunned (stunned), Confused (confused), Frozen (frozen), Crystallised (crystallised)]; immune_to: [0, 1, 2, 9]; turns_per_round: 2; boss: {title: "Keeper of the Silent Bells"; stagger: {hint: "Nothing you do to it fills this. Ring the bells."; per_damage: 0.0; turns_lost: 2}; phases: [The Last Toll {name: "The Last Toll"; message: "It tears the clapper from its own throat, and the floor itself begins to ring."; stagger: {hint: "The bells are spent. Strike it hard, all at once."; max_value: 80.0; drain_per_round: 40.0}; summons: ["rat", "rat", "rat"]; hazards: [{display_name: "The stones ring"; description: "The floor where the party stands rings like a struck bell - whoever starts a turn there is shaken by it."; kind: Ground; every_rounds: 2; count: 2; hits: The Party; damage: 12; damage_type: Lightning}]}]}; ai_function: "ai_caster"; ai_smarts: Cunning
 
 ### Bomber (`bomber`)
 
 - Main stat Mindfulness, secondary Physical; health 28 at level 1, 85 at 64; movement 6
 - Skills: Self Destruct, Run
-- Settings: max_hp: 28; max_hp_level_20: 85; defense: 5; defense_level_64: 30; initiative: 3; resist_plasma: -50; resist_ice: -50; resist_lightning: -50; resist_metal: -50; resist_acid: -50; ai_function: "ai_hit_and_explode"
+- Settings: max_hp: 28; max_hp_level_20: 85; defense: 5; defense_level_64: 30; initiative: 3; resist_plasma: -50; resist_ice: -50; resist_lightning: -50; resist_metal: -50; resist_acid: -50; ai_function: "ai_hit_and_explode"; ai_aggression: 1.4; ai_caution: 0.3
 
 ### Bound Beast (`bound_beast`)
 
 - Main stat Physical, secondary Defense; health 70 at level 1, 200 at 64; movement 9
 - Skills: Savage Bite, Run
-- Settings: glossary_text: "A beast bound to a Summoner: it fights on its master's turn, recklessly, and is gone the moment its master is. Mended and empowered, it hits harder than a barbarian."; max_hp: 70; max_hp_level_20: 200; defense_level_64: 60; resist_fire: -25; resist_poison: 25
+- Settings: glossary_text: "A beast bound to a Summoner: it fights on its master's turn, recklessly, and is gone the moment its master is. Mended and empowered, it hits harder than a barbarian."; max_hp: 70; max_hp_level_20: 200; defense_level_64: 60; resist_fire: -25; resist_poison: 25; ai_smarts: Instinct
 
 ### Colossus (`colossus`)
 
 - Main stat Physical, secondary Mindfulness; health 200 at level 1, 1200 at 64; movement 4
 - Skills: Ground Pound, Rockfall
-- Settings: max_hp: 200; max_hp_level_20: 1200; size: Gigantic; initiative: 3
+- Settings: max_hp: 200; max_hp_level_20: 1200; size: Gigantic; initiative: 3; ai_smarts: Instinct
 
 ### Erysichthon (`glutton`)
 
 - Main stat Physical, secondary Mindfulness; health 300 at level 1, 2100 at 64; movement 7
 - Skills: Ravenous Bite, Grab, Devour, Catch the Scent, Rending Claws
 - Passive **Hollow Frame**: There is little left of it but bone and hunger. It folds itself to fit a gap - only the way the gap is too small: long and thin, tall and narrow, or down to a single tile - slowly, at twice the movement a step, and opens out again once there is room. [Folds itself a size narrower or shorter, or both, to fit where it is too big, at twice the movement a step.]
-- Settings: glossary_text: "An undead wolf grown to an abomination, that never stops eating and is never full: whatever it swallows falls out through the hole in its belly. It catches the scent of its prey, grabs it, and swallows it whole - and it eats anything it finds in reach, even its own."; max_hp: 300; max_hp_level_20: 2100; size: Enormous; initiative: 4; resist_fire: -25; immune_to_conditions: [Prone (prone)]; immune_to: [9, 10, 12]; boss: {title: "The Hunger That Ate Itself"; stagger: {hint: "Feed it what it should not eat, and hit it hard. Staggered, it heaves up whoever it has swallowed."; max_value: 150.0; per_damage: 0.6; per_blocked_condition: 15.0}; phases: [Gorge {name: "Gorge"; at_health: 0.66; message: "A second head tears its way out of its shoulder, snapping - now it can hold two."; parts_added: [Second Head {name: "Second Head"; tiles: [(2, 0), (3, 0), (2, 1), (3, 1)]; health_share: 0.1; when_broken: Weakened; regrows_after: 3; regrows_when_eating: true}]; holds_at_once: 2}, The Hollow {name: "The Hollow"; at_health: 0.33; message: "Its ribs split into mouths - and with nothing left in reach, it starts on itself."; skills_added: ["rib_maws"]; parts_added: [Rib Maws {name: "Rib Maws"; tiles: [(2, 2), (3, 2), (2, 3), (3, 3)]; health_share: 0.1; when_broken: Disarmed; disarms: ["rib_maws"]; regrows_after: 2; regrows_when_eating: true}]; eats_itself: 0.04}]; codex_second_page: "It never stops eating, and nothing it eats stays in it: there is a hole through its belly, gnawed by its own teeth. Whoever it swallows falls through that hole in the end - alive, if the hole is torn open first."}; parts: [Jaws {name: "Jaws"; tiles: [(0, 0), (1, 0), (2, 0), (3, 0), (0, 1), (1, 1), (2, 1), (3, 1)]; health_share: 0.12; when_broken: Disarmed; disarms: ["ravenous_bite", "devour"]; regrows_after: 3; regrows_when_eating: true}, Belly Hole {name: "Belly Hole"; tiles: [(0, 2), (1, 2), (0, 3), (1, 3)]; health_share: 0.1; when_broken: Exposed; regrows_after: 2; regrows_when_eating: true; frees_the_swallowed: true}, Hind Legs {name: "Hind Legs"; tiles: [(2, 2), (3, 2), (2, 3), (3, 3)]; health_share: 0.1; regrows_after: 3; regrows_when_eating: true}]; eats: Food On The Map|Its Own Fallen; meal_heals: 0.06; fed_effects: [{type: Stat Modifier; display_name: "Gorged"; stat: "physical"; modifier_amount: 4; duration: 3}]; spat_out_with: Bile-Soaked (bile_soaked); ai_function: "ai_glutton"
+- Settings: glossary_text: "An undead wolf grown to an abomination, that never stops eating and is never full: whatever it swallows falls out through the hole in its belly. It catches the scent of its prey, grabs it, and swallows it whole - and it eats anything it finds in reach, even its own."; max_hp: 300; max_hp_level_20: 2100; size: Enormous; initiative: 4; resist_fire: -25; immune_to_conditions: [Prone (prone)]; immune_to: [9, 10, 12]; boss: {title: "The Hunger That Ate Itself"; stagger: {hint: "Feed it what it should not eat, and hit it hard. Staggered, it heaves up whoever it has swallowed."; max_value: 150.0; per_damage: 0.6; per_blocked_condition: 15.0}; phases: [Gorge {name: "Gorge"; at_health: 0.66; message: "A second head tears its way out of its shoulder, snapping - now it can hold two."; parts_added: [Second Head {name: "Second Head"; tiles: [(2, 0), (3, 0), (2, 1), (3, 1)]; health_share: 0.1; when_broken: Weakened; regrows_after: 3; regrows_when_eating: true}]; holds_at_once: 2}, The Hollow {name: "The Hollow"; at_health: 0.33; message: "Its ribs split into mouths - and with nothing left in reach, it starts on itself."; skills_added: ["rib_maws"]; parts_added: [Rib Maws {name: "Rib Maws"; tiles: [(2, 2), (3, 2), (2, 3), (3, 3)]; health_share: 0.1; when_broken: Disarmed; disarms: ["rib_maws"]; regrows_after: 2; regrows_when_eating: true}]; eats_itself: 0.04}]; codex_second_page: "It never stops eating, and nothing it eats stays in it: there is a hole through its belly, gnawed by its own teeth. Whoever it swallows falls through that hole in the end - alive, if the hole is torn open first."}; parts: [Jaws {name: "Jaws"; tiles: [(0, 0), (1, 0), (2, 0), (3, 0), (0, 1), (1, 1), (2, 1), (3, 1)]; health_share: 0.12; when_broken: Disarmed; disarms: ["ravenous_bite", "devour"]; regrows_after: 3; regrows_when_eating: true}, Belly Hole {name: "Belly Hole"; tiles: [(0, 2), (1, 2), (0, 3), (1, 3)]; health_share: 0.1; when_broken: Exposed; regrows_after: 2; regrows_when_eating: true; frees_the_swallowed: true}, Hind Legs {name: "Hind Legs"; tiles: [(2, 2), (3, 2), (2, 3), (3, 3)]; health_share: 0.1; regrows_after: 3; regrows_when_eating: true}]; eats: Food On The Map|Its Own Fallen; meal_heals: 0.06; fed_effects: [{type: Stat Modifier; display_name: "Gorged"; stat: "physical"; modifier_amount: 4; duration: 3}]; spat_out_with: Bile-Soaked (bile_soaked); ai_function: "ai_glutton"; ai_never_knows: Keeps From Hazards
 
 ### Gnawer (`gnawer`)
 
 - Main stat Physical, secondary Mindfulness; health 25 at level 1, 81 at 64; movement 7
 - Skills: Ravenous Bite
-- Settings: glossary_text: "A sewer rat that died and kept eating. They come in waves to the glutton's call - and it eats them too, when they fall."; max_hp: 25; max_hp_level_20: 81; defense: 5; defense_level_64: 30; size: Tiny; initiative: 3; immune_to: [9, 10]
+- Settings: glossary_text: "A sewer rat that died and kept eating. They come in waves to the glutton's call - and it eats them too, when they fall."; max_hp: 25; max_hp_level_20: 81; defense: 5; defense_level_64: 30; size: Tiny; initiative: 3; immune_to: [9, 10]; ai_smarts: Instinct
 
 ### Stone Golem (`golem`)
 
 - Main stat Physical, secondary Mindfulness; health 108 at level 1, 280 at 64; movement 4
 - Skills: Greatsword Attack, Rockfall
-- Settings: glossary_text: "Clay and stone with words cut into it, made to answer to whoever cut them. It feels nothing and fears nothing - but the words can be rewritten."; max_hp: 108; max_hp_level_20: 280; defense: 18; defense_level_64: 65; size: Enormous; initiative: 3; resist_earth: 50; immune_to_conditions: [Poisoned (poisoned)]; immune_to: [0, 9, 10, 11]; bound_to: "its master"; rebind_hack: golem_binding; rebind_turns: 3; parts: [Legs {name: "Legs"; tiles: [(0, 3), (1, 3), (2, 3), (3, 3)]; health_share: 0.25}, Arms {name: "Arms"; tiles: [(0, 1), (0, 2), (3, 1), (3, 2)]; health_share: 0.25; when_broken: Weakened}, Core Plate {name: "Core Plate"; tiles: [(1, 1), (2, 1), (1, 2), (2, 2)]; when_broken: Exposed}]
+- Settings: glossary_text: "Clay and stone with words cut into it, made to answer to whoever cut them. It feels nothing and fears nothing - but the words can be rewritten."; max_hp: 108; max_hp_level_20: 280; defense: 18; defense_level_64: 65; size: Enormous; initiative: 3; resist_earth: 50; immune_to_conditions: [Poisoned (poisoned)]; immune_to: [0, 9, 10, 11]; bound_to: "its master"; rebind_hack: golem_binding; rebind_turns: 3; parts: [Legs {name: "Legs"; tiles: [(0, 3), (1, 3), (2, 3), (3, 3)]; health_share: 0.25}, Arms {name: "Arms"; tiles: [(0, 1), (0, 2), (3, 1), (3, 2)]; health_share: 0.25; when_broken: Weakened}, Core Plate {name: "Core Plate"; tiles: [(1, 1), (2, 1), (1, 2), (2, 2)]; when_broken: Exposed}]; ai_smarts: Instinct
 
 ### Hired Bow (`hired_bow`)
 
 - Main stat Physical, secondary Mindfulness; health 60 at level 1, 190 at 64; movement 7
 - Skills: Nail Projectile, Venomous Shot, Run
-- Settings: glossary_text: "An archer who fights for whoever pays, and runs the moment the pay stops being worth it."; class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; nerve: 40; when_fled: Comes back; brings_back: ["sellsword"]; fled_flag: "hired_bow_got_away"; bribe_price: 40; leverage_clues: ["sellsword_contract"]; interrogation_gold: 20; ai_function: "ai_ranger"; ai_readies: Covers The Approach|Protects Its Own
+- Settings: glossary_text: "An archer who fights for whoever pays, and runs the moment the pay stops being worth it."; class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; nerve: 40; when_fled: Comes back; brings_back: ["sellsword"]; fled_flag: "hired_bow_got_away"; bribe_price: 40; leverage_clues: ["sellsword_contract"]; interrogation_gold: 20; ai_function: "ai_ranger"; ai_readies: Covers The Approach|Protects Its Own; ai_caution: 1.3
 
 ### Illusory Dragon (`illusory_dragon`)
 
@@ -2172,7 +2242,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 - Main stat Intellect, secondary Mindfulness; health 26 at level 1, 82 at 64; movement 7
 - Skills: Fire Burst, Sass Club
-- Settings: max_hp: 26; max_hp_level_20: 82; defense: 5; defense_level_64: 30; size: Small; initiative: 3
+- Settings: max_hp: 26; max_hp_level_20: 82; defense: 5; defense_level_64: 30; size: Small; initiative: 3; ai_smarts: Instinct
 
 ### Kindled Hound (`kindled_hound`)
 
@@ -2191,7 +2261,13 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 - Main stat Physical, secondary Mindfulness; health 100 at level 1, 262 at 64; movement 6
 - Skills: Greatsword Attack, Ground Pound
-- Settings: max_hp: 100; max_hp_level_20: 262; defense: 18; defense_level_64: 65; size: Large; initiative: 3
+- Settings: max_hp: 100; max_hp_level_20: 262; defense: 18; defense_level_64: 65; size: Large; initiative: 3; ai_smarts: Instinct
+
+### Phantom Soldier (`phantom_soldier`)
+
+- Main stat Physical, secondary Mindfulness; health 1 at level 1, 1 at 64; movement 0
+- Skills: 
+- Settings: glossary_text: "A soldier who is not there: one of Alithia's illusions. One hit shatters it."; max_hp_level_20: 1
 
 ### Pit Champion (`pit_champion`)
 
@@ -2199,43 +2275,43 @@ Sorted the way the game's folders sort them: common to the party, each character
 - Skills: Greatsword Attack, Follow Up Attack, Hurl, Run
 - Passive **Hemmed In**: Nobody walks past a champion of the pits for free: every tile within two of them costs the other side twice the movement. [Tiles within 2 of them cost the other side twice the movement.]
 - Passive **Exposed**: Turn away from a champion at your peril: anybody of the other side who ends a turn within two tiles of them without hurting them is Exposed - a fifth more from the champion until their next turn. [Anybody of the other side ending a turn within 2 of them without hurting them is exposed.]
-- Settings: glossary_text: "A fighter of the pits who has never once let anybody walk past them to somebody easier. Stand near and you fight them, or pay for it."; max_hp: 108; max_hp_level_20: 280; defense: 18; defense_level_64: 65; initiative: 4; skill_levels: { "follow_up_attack": 12 }; resist_physical: 20; leads: true; leverage_clues: ["sellsword_contract"]
+- Settings: glossary_text: "A fighter of the pits who has never once let anybody walk past them to somebody easier. Stand near and you fight them, or pay for it."; max_hp: 108; max_hp_level_20: 280; defense: 18; defense_level_64: 65; initiative: 4; skill_levels: { "follow_up_attack": 12 }; resist_physical: 20; leads: true; leverage_clues: ["sellsword_contract"]; ai_aggression: 1.2; ai_focus: 1.3
 
 ### Priest (`priest`)
 
 - Main stat Mindfulness, secondary Self; health 60 at level 1, 190 at 64; movement 6
 - Skills: Rapier, Water Spike, Heal, Cleanse, River Flow, Communion, Run
-- Settings: class_t: Magic; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 3; spellcasting_stat: Mindfulness; skill_levels: { "river_flow": 7 }; resist_water: 50; resist_earth: -50; ai_function: "ai_healer"
+- Settings: class_t: Magic; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 3; spellcasting_stat: Mindfulness; skill_levels: { "river_flow": 7 }; resist_water: 50; resist_earth: -50; ai_function: "ai_healer"; ai_smarts: Cunning; ai_caution: 1.4; ai_self_preservation: 1.3
 
 ### Ranger (`ranger`)
 
 - Main stat Physical, secondary Mindfulness; health 60 at level 1, 190 at 64; movement 7
 - Skills: Heal, Nail Projectile, Venomous Shot, Flammable Limb, Run
-- Settings: class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; spellcasting_stat: Mindfulness; half_caster: true; resist_wind: -50; resist_poison: 50; goes_prone: true; ai_function: "ai_ranger"; ai_readies: Covers The Approach|Waits For The Hidden|Protects Its Own
+- Settings: class_t: Ranged; max_hp: 60; max_hp_level_20: 190; defense_level_64: 60; initiative: 4; spellcasting_stat: Mindfulness; half_caster: true; resist_wind: -50; resist_poison: 50; goes_prone: true; ai_function: "ai_ranger"; ai_readies: Covers The Approach|Waits For The Hidden|Protects Its Own; ai_smarts: Cunning; ai_caution: 1.3; ai_focus: 1.3
 
 ### Rat (`rat`)
 
 - Main stat Physical, secondary Mindfulness; health 25 at level 1, 81 at 64; movement 7
 - Skills: Sass Club
-- Settings: max_hp: 25; max_hp_level_20: 81; defense: 5; defense_level_64: 30; size: Tiny; initiative: 3; ai_readies: Guards Its Post
+- Settings: max_hp: 25; max_hp_level_20: 81; defense: 5; defense_level_64: 30; size: Tiny; initiative: 3; ai_readies: Guards Its Post; ai_smarts: Instinct
 
 ### Sellsword (`sellsword`)
 
 - Main stat Physical, secondary Self; health 75 at level 1, 200 at 64; movement 7
 - Skills: Greatsword Attack, Hurl, Run
-- Settings: glossary_text: "A blade for hire. Loyal to the purse - anybody's purse."; max_hp: 75; max_hp_level_20: 200; defense_level_64: 60; initiative: 3; nerve: 50; when_broken: Surrenders; bribe_price: 50; leverage_clues: ["sellsword_contract"]; interrogation_clues: ["sellsword_contract"]; interrogation_gold: 30
+- Settings: glossary_text: "A blade for hire. Loyal to the purse - anybody's purse."; max_hp: 75; max_hp_level_20: 200; defense_level_64: 60; initiative: 3; nerve: 50; when_broken: Surrenders; bribe_price: 50; leverage_clues: ["sellsword_contract"]; interrogation_clues: ["sellsword_contract"]; interrogation_gold: 30; ai_self_preservation: 1.5
 
 ### Sorcerer (`sorcerer`)
 
 - Main stat Intellect, secondary Mindfulness; health 28 at level 1, 85 at 64; movement 6
 - Skills: Burner, Wildfire, Crystalise, Gust Blast, Wind Swoon, Run, Fire Burst, Fire Blast, Rock Throw, Wind Shot
-- Settings: class_t: Magic; max_hp: 28; max_hp_level_20: 85; defense: 5; defense_level_64: 30; initiative: 4; skill_levels: { "burner": 5, "crystalise": 7, "gust_blast": 6, "wind_swoon": 6 }; resist_fire: 50; resist_poison: -50; ai_function: "ai_caster"; ai_readies: Counters Casters
+- Settings: class_t: Magic; max_hp: 28; max_hp_level_20: 85; defense: 5; defense_level_64: 30; initiative: 4; skill_levels: { "burner": 5, "crystalise": 7, "gust_blast": 6, "wind_swoon": 6 }; resist_fire: 50; resist_poison: -50; ai_function: "ai_caster"; ai_readies: Counters Casters; ai_smarts: Cunning; ai_caution: 1.3
 
 ### Summoner (`summoner`)
 
 - Main stat Mindfulness, secondary Intellect; health 27 at level 1, 84 at 64; movement 6
 - Skills: Mend the Bound, Empower the Bound, Call the Bound, Water Spike, Run
-- Settings: glossary_text: "Frailer even than a sorcerer, and it knows it: it keeps out of reach and lets its Bound Beast do the fighting - mending it, empowering it, and sending it in. Fell the Summoner and the beast goes with it."; class_t: Magic; max_hp: 27; max_hp_level_20: 84; defense: 5; defense_level_64: 30; initiative: 4; spellcasting_stat: Mindfulness; resist_poison: -25; summon_at_start: "bound_beast"; ai_function: "ai_summoner"
+- Settings: glossary_text: "Frailer even than a sorcerer, and it knows it: it keeps out of reach and lets its Bound Beast do the fighting - mending it, empowering it, and sending it in. Fell the Summoner and the beast goes with it."; class_t: Magic; max_hp: 27; max_hp_level_20: 84; defense: 5; defense_level_64: 30; initiative: 4; spellcasting_stat: Mindfulness; resist_poison: -25; summon_at_start: "bound_beast"; ai_function: "ai_summoner"; ai_smarts: Cunning
 
 ## Things on the map (objects)
 
@@ -2246,6 +2322,10 @@ Sorted the way the game's folders sort them: common to the party, each character
 ### Bell (`bell`)
 
 - Settings: set_off_line: "The bell tolls!"; stagger: 40.0; blast_radius: 2; blast_condition: Deafened (deafened); blast_hits: The Enemies; glossary_text: "An old iron bell. Use it from beside it: its toll staggers the Bellkeeper, and leaves its own side deafened. It rings once."; max_hp: 10; max_hp_level_20: 10
+
+### Brazier (`brazier`)
+
+- Settings: interactable: false; breakable: true; light_tiles: 6.0; set_off_line: "The brazier goes over, and its light with it."; glossary_text: "A brazier on a stand: it lights six tiles round it, brightly for three. Knock it over and that light is gone."; max_hp: 20; max_hp_level_20: 20
 
 ### Cracked Wall (`breakable_wall`)
 
@@ -2266,6 +2346,10 @@ Sorted the way the game's folders sort them: common to the party, each character
 ### Illusory Cover (`illusory_cover`)
 
 - Settings: interactable: false; breakable: true; lasts_turns: 3; illusion: true; glossary_text: "Cover that is not there: Alithia's illusion of a barricade. The other side takes it for the real thing - it blocks their sight and they plan around it - but shots and blasts go straight through it. It fades after three of her turns."; max_hp_level_20: 1
+
+### Phantom Wall (`phantom_wall`)
+
+- Settings: interactable: false; breakable: true; wall: true; illusion: true; glossary_text: "A wall that is not there: Alithia's illusion. The other side cannot see past it or walk through it, and nothing can hit it. Her own side shoots through it. Dispel Magic ends it."; max_hp_level_20: 1
 
 ### Powder Keg (`powder_keg`)
 
@@ -2428,7 +2512,7 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
     - In the first run the party healed 8 and the enemies 182, 119 of it from the Rangers.
   - **Items:** 7 of the kit's 16 used.
     - Lab A: Cyrus 2 Small Bombs and the Blinding Bomb; Enfina a Medicine; Alithia both Gate Nades. Lab B: Cyrus's Mediocre Cure Potion, on Enfina.
-    - Left unused when the party fell: Enfina 2 Mediocre Cure Potions and a Cure Potion; Prometheus 2 Medicines, a Mediocre Cure Potion and the Fireball Gate Nade; Alithia a Mediocre Cure Potion and a Medicine.
+    - Left unused when the party fell: Enfina 2 Mediocre Cure Potions and a Cure Potion; Prometheus 2 Medicines, a Mediocre Cure Potion and the Gate Nade (Fireball's, in that run; Wildfire's since 2026-11-06); Alithia a Mediocre Cure Potion and a Medicine.
     - Enfina fell twice still holding three healing potions. Prometheus used nothing in either fight. The first run had no items.
   - **Gates spent:**
     - Lab A: Alithia Pandora 1, Hermes 1, World 2; Prometheus Hermes 2, Pandora 1; Priest 1 World 3; Priest 2 World 2; the Rangers none. In the first run the Rangers spent 7 (World 6, Hermes 1), Prometheus 5 and Alithia 2.
@@ -2453,7 +2537,7 @@ The audit: `docs/per_fight_audit.md`. The ledger has a row for each item below.
 - **A kit** (PROPOSAL test values, tier II for a party at 18) fills every Simple Baldric, 4 slots each. It is all the party has for the three fights: what is used is gone.
   - **Enfina:** 2 Mediocre Cure Potions, a Cure Potion, a Medicine.
   - **Cyrus:** a Small Bomb, Smelling Salts (since 2026-10-25, in place of his second Small Bomb), a Blinding Bomb, a Mediocre Cure Potion.
-  - **Prometheus:** 2 Medicines, a Mediocre Cure Potion, a Fireball Gate Nade.
+  - **Prometheus:** 2 Medicines, a Mediocre Cure Potion, a Wildfire Gate Nade.
   - **Alithia:** a Communion Gate Nade, a Heal Gate Nade, a Mediocre Cure Potion, a Medicine.
 - **Half casters** (APPROVED_TRIAL): a half caster gets the gates of a full caster at half its level, rounded up, like a D&D paladin.
   - The Ranger is one. At 16 it has World 4 and Hermes 2, where a full caster has World 4, Hermes 3 and Pandora 2. At 64 it has a full caster's gates of 32.
@@ -2638,7 +2722,6 @@ Spells that are close to copies of each other. They are candidates to make more 
 7. **The Burn line:**
    - Burner (8, Hermes): single target, x1.7, Burn 5 turns at 0.25 (was radius 2, x1.4, 3 turns at 0.2).
    - Wildfire (16, Pandora): radius 2, x2.1, Burn 5 turns at 0.35 (was 3 turns at 0.4).
-   - Fireball (9, Pandora) is close in power: radius 5, x2.0, hits both sides.
 8. **Wind Swoon and Gust Blast:**
    - Wind Swoon (8, Hermes): single target, x1.0, Windswept 5 turns at 0.10 (was radius 2, x0.8).
    - Gust Blast (24, Hermes): single target, x1.2, a 3-tile shove, Windswept 5 turns at 0.10.
@@ -2663,7 +2746,7 @@ These are OPEN: no sheet documents them, or documents them only in part. The val
 - **Resistances:** none, beyond those from passives.
 - **What gear gives:** weapons give a base of 7-11, armour 12/20/28, charms one small passive. No tier III-IV gear exists; the economy sheet prices it but doesn't say what it gives.
 - **The paths' contents:** their moves and numbers, except the Illusory Shepherd, which has its own sheet. The progression sheet names the tiers only.
-- **Spells the progression sheet doesn't list:** Fireball, Wind Swoon, Gust Blast, Crystalise, the Edges and others.
+- **Spells the progression sheet doesn't list:** Wind Swoon, Gust Blast, Crystalise, the Edges and others.
 - **Which gate each spell uses, and castings per gate:** the gate table is D&D's, stretched to 64.
 - **Kindling:** +5% per spell cast, capped at 15/30/45%.
 - **Catalyst:** settled (APPROVED_DESIGN, 2026-10-24) - every enemy, Cyrus's own conditions only, as the rule in Part 1 says.
@@ -2684,7 +2767,7 @@ These are OPEN: no sheet documents them, or documents them only in part. The val
 
 **Items and money**
 - **Condition bottles:** their strength and their price, 120 each.
-- **Gate Nades:** power Heal 30, Crystalise 40, Fireball 50, Communion 50; price 60 for a gate 1-2 spell, 150 for gate 3.
+- **Gate Nades:** power Heal 30, Crystalise 40, Wildfire 50, Communion 50; price 60 for a gate 1-2 spell, 150 for gate 3.
 - **Spellbook prices:** 150/375/750/1500/2000 by gate depth. The consumables sheet prices only scrolls.
 - **Containers:** slots and prices.
 - **Stealth tools** (darts, drugs, pebbles, robes): unpriced.
@@ -2717,7 +2800,7 @@ These are OPEN: no sheet documents them, or documents them only in part. The val
   - One option is to scale the party's level-64 health by the same factor enemies get: about Enfina 600, Cyrus and Alithia 350, Prometheus 140. That would bring back about 3 swings at 64.
   - The player sheet (player_hp_defense_progression.csv) keeps the same health and raises Defense to 28 from level 17.
     - That takes a level-64 Titanfall on Cyrus from 143 to 126: still more than his 115 health.
-    - It takes a Fireball on Prometheus from 95 to 84: still more than his 58.
+    - It took a Fireball on Prometheus from 95 to 84, still more than his 58. Fireball has since gone from the game (2026-11-06).
 - **Durations:** settled (2026-10-24). "N turns" is N of the target's own turns - Warning Shot's slow is 2 of theirs, a 3-turn Burn ticks 3 times. Only on whoever is acting does the rest of the current turn come on top (Run 1: this turn and the next) - kept by the designer.
 - **Enemy turns at level 64** take about 2 seconds each to plan with a full kit (10 enemies in about 21 s). The goal has been under a second.
 - **The other near-twins above** - kept for now (the designer's call, 2026-10-23).

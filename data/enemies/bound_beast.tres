@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_comb")
+ai_smarts = 0
 name = "Bound Beast"
 glossary_text = "A beast bound to a Summoner: it fights on its master's turn, recklessly, and is gone the moment its master is. Mended and empowered, it hits harder than a barbarian."
 max_hp = 70

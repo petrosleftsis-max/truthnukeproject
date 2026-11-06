@@ -247,7 +247,9 @@ Spells are cast through ten **gates**. Each gate opens at a level and has so man
   - A condition or resistance can be held by the tether with no count of its own, so the tether's size is how long it lasts.
   - A tether with nothing left to hold lets go. Out of a fight it frays by 5 a second.
 - **Zones:** a skill's area left on the ground. Besides a condition it can cost twice to walk, hurt at a turn's start or at every step, mend its own side, follow its caster, be moved with a secondary action, carry anybody struck in melee to its edge, or blow out whoever starts or ends a turn in it.
-- **Darkness:** anybody in a dark zone is invisible to whoever cannot see in the dark. Map lighting is not in the game yet.
+- **Light:** tiles are Bright, Dim or Dark, from the map's Ambient, the time of day and what lights them. Anybody on a Dark tile or in a dark zone is invisible to whoever cannot see in the dark, beyond the tile right beside them. In Dim light somebody who sneaks can hide.
+- **How enemies think:** per creature: Instinct (whoever is nearest), Trained (knows the ground, telegraphs, hazards, shoves, searches the dark), Cunning (also sets off hazards, goes for tether holders, avoids reach, triages, saves gates, falls back), Mastermind (also sets things up and blocks), with dials for aggression, caution, focus and self-preservation.
+- **Spells have no levels:** a spell comes when its gate opens.
 - **Prepared spells:** casters fight with what they prepared, 5 at level 1 to 35 at level 64, chosen at each long rest; a locked spell stays prepared through it.
 - **Hazards to set off:** things on the map with their own health, area and damage: a blast, a throw with damage on collision, ground that costs twice.
 - **Quick time events:** a button press against the clock can make the party's own move land harder, or an enemy's land softer.

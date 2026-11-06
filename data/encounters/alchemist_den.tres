@@ -43,7 +43,7 @@ side = 1
 position = Vector2i(55, -22)
 level = 14
 weapon_base = 8
-starting_items = Array[String](["potent_cure_potion", "heal_gate_nade", "heal_gate_nade", "communion_gate_nade", "fireball_gate_nade", "crystalise_gate_nade", "medium_bomb", "big_bomb", "small_bomb", "burn_bottle", "frost_bottle", "medicine", "kindled_hound_spellbook"])
+starting_items = Array[String](["potent_cure_potion", "heal_gate_nade", "heal_gate_nade", "communion_gate_nade", "wildfire_gate_nade", "crystalise_gate_nade", "medium_bomb", "big_bomb", "small_bomb", "burn_bottle", "frost_bottle", "medicine", "kindled_hound_spellbook"])
 equipment = Array[String](["padded_jacket", "feather_charm"])
 
 [sub_resource type="Resource" id="Spawn_sellsword"]

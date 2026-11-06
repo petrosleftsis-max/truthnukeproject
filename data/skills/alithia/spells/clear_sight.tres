@@ -17,7 +17,6 @@ description = "Her eyes are opened. For ten of her turns she sees in the dark, a
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 max_range = 0
-required_level = 8
 is_secondary = true
 targets_ally = true
 can_be_copied = false

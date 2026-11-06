@@ -274,7 +274,7 @@ func feel_data():
 		"stunning_blow": {"impact_look": SkillDefinition.ImpactLook.SHIELD_STARS},
 		"chain_hook": {"projectile_look": SkillDefinition.ProjectileLook.CHAIN},
 		"battle_cry": {"projectile_style": SkillDefinition.ProjectileStyle.SPRAY, "hand_look": SkillDefinition.HandLook.ROAR},
-		"fireball": {"projectile_look": SkillDefinition.ProjectileLook.GREAT_ORB},
+		"wildfire": {"projectile_look": SkillDefinition.ProjectileLook.GREAT_ORB},
 		"wind_vacuum": {"projectile_look": SkillDefinition.ProjectileLook.VACUUM},
 		"gnostic_tempest": {"impact_look": SkillDefinition.ImpactLook.STORM},
 		"holy_lance": {"projectile_style": SkillDefinition.ProjectileStyle.BEAM},
@@ -458,7 +458,7 @@ func every_feel():
 		"%d of %d" % [made.size(), MoveFeel.SECONDS.size() + Damage.Type.size()])
 	ok(await until(func(): return made.all(func(feel): return not is_instance_valid(feel)), 4.0), "  and each is gone once it has played")
 	# A mark on the ground: until two rounds have gone by.
-	var skill: SkillDefinition = SkillDatabase.skills.get("fireball")
+	var skill: SkillDefinition = SkillDatabase.skills.get("wildfire")
 	MoveFeel.mark_ground(combat, user, skill, [foe.position, foe.position + Vector2i(1, 0)])
 	# On the ground: among the map's own children, under everybody.
 	var marks := _feels(board.get_parent(), &"mark")
@@ -472,7 +472,7 @@ func every_feel():
 	ok(marks.all(func(mark): return not is_instance_valid(mark)), "  and gone two rounds on")
 	combat.round_number -= 2
 	# A declared move's glyphs: there while it is.
-	user["declared"] = {"skill": "fireball", "tiles": [foe.position], "waiting": [foe.get("id", -1)]}
+	user["declared"] = {"skill": "wildfire", "tiles": [foe.position], "waiting": [foe.get("id", -1)]}
 	MoveFeel.declared(combat, user)
 	var glyphs := _feels(board.get_parent(), &"declared")
 	await get_tree().process_frame
@@ -603,7 +603,7 @@ func fills_and_sounds():
 		if stream == null or stream.data.size() < 200 or not PlaceholderSounds.RECIPES.has(called):
 			silent.append(called)
 	ok(silent.is_empty(), "a move sounds in three - leaving, travelling, landing - each a stand-in while its slot is empty", "%s" % [silent])
-	ok(MoveFeel._impact_sound_of(SkillDatabase.skills.get("fireball"), Damage.Type.FIRE, false) == "impact_fire"
+	ok(MoveFeel._impact_sound_of(SkillDatabase.skills.get("wildfire"), Damage.Type.FIRE, false) == "impact_fire"
 		and MoveFeel._impact_sound_of(SkillDatabase.skills.get("heal"), Damage.Type.PHYSICAL, false) == "impact_mend",
 		"  landing by its element, or a mend's")
 	log_line("")

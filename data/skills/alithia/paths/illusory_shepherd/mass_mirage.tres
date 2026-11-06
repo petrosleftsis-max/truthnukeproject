@@ -18,7 +18,6 @@ name = "Mass Mirage"
 outside_use = 12
 description = "A mirage on the ground, three tiles round where she puts it within six, until her next turn: her side standing in it takes a quarter less from every blow, and one attack in four at them misses outright."
 max_range = 6
-required_level = 54
 targets_ally = true
 can_be_copied = false
 deals_damage = false

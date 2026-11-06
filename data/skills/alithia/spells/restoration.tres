@@ -14,7 +14,6 @@ heal_per_stat = 0.25
 script = ExtResource("3_skill")
 name = "Restoration"
 description = "Half of an ally's health back, and more besides."
-required_level = 54
 max_range = 5
 ability_modifier = 0.7
 targets_ally = true

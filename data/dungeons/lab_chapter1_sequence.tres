@@ -29,7 +29,7 @@ kit = {
 "alithia": ["communion_gate_nade", "heal_gate_nade", "mediocre_cure_potion", "medicine"],
 "cyrus": ["small_bomb", "smelling_salts", "blinding_bomb", "mediocre_cure_potion"],
 "enfina": ["mediocre_cure_potion", "mediocre_cure_potion", "cure_potion", "medicine"],
-"prometheus": ["medicine", "medicine", "mediocre_cure_potion", "fireball_gate_nade"]
+"prometheus": ["medicine", "medicine", "mediocre_cure_potion", "wildfire_gate_nade"]
 }
 stages = Array[ExtResource("2_stage")]([SubResource("Stage_a"), SubResource("Stage_b"), SubResource("Stage_c")])
 short_rests = true

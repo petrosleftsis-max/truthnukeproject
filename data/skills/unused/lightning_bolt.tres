@@ -3,9 +3,11 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_qifkp"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://art/icons/fire_icon.png" id="2_0q3yc"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_k8562"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/heavy_electric_damage.wav" id="sfx_impact_sound"]
 
 [resource]
 script = ExtResource("3_k8562")
+impact_sound = ExtResource("sfx_impact_sound")
 name = "Lightning Bolt"
 description = "A crackling beam that can be aimed in any direction, including diagonally."
 min_range = 1

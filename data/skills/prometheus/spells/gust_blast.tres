@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://ma50wkaamoql" path="res://art/icons/gustblast_skill.png" id="2_jhtu7"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_2orsb"]
 [ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="4_efh4j"]
-[ext_resource type="AudioStream" uid="uid://dxv3xcdn4w7ot" path="res://audio/sfx/Wind_Howl_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/weak_wind_damage.wav" id="sfx_impact_sound"]
 
 [sub_resource type="Resource" id="Effect_repel_push"]
 script = ExtResource("1_530t1")
@@ -23,6 +23,7 @@ condition_dot_modifier = 0.1
 
 [resource]
 script = ExtResource("3_2orsb")
+impact_sound = ExtResource("sfx_impact_sound")
 name = "Gust Blast"
 description = "Blast a powerful gust that pushes the target."
 min_range = 1
@@ -35,6 +36,5 @@ ability_modifier = 1.2
 scaling_stat = 2
 damage_type = 3
 uses_stat_contest = true
-sound = ExtResource("90_sfx")
 projectile_look = 9
 spell_slot_level = 2

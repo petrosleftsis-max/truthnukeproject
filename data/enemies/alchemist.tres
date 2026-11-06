@@ -7,6 +7,8 @@
 
 [resource]
 script = ExtResource("1_comb")
+ai_smarts = 2
+ai_caution = 1.2
 name = "Alchemist"
 glossary_text = "Hung about with bottles, bombs and Gate Nades, and quick with all of them: it mends whoever of its side is worst hurt and throws the rest at you, two things a turn. Take it down and what it did not use is yours."
 class_t = 1

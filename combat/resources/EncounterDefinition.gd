@@ -73,6 +73,12 @@ class_name EncounterDefinition
 ## As it is lost, and as somebody who must not get away gets away.
 @export var defeat_card: String = ""
 @export var fled_card: String = ""
+## Light (Light): As The Map takes the ambient light of the map it was walked into from.
+@export_enum("As The Map:0", "Outdoors:1", "Interior:2", "Underground:3") var ambient: int = 0
+## The hour: As It Stands is the campaign's.
+@export_enum("As It Stands:-1", "Day:0", "Dusk:1", "Night:2", "Dawn:3") var time_of_day: int = -1
+## A night with no moon, which is Dark and not Dim.
+@export var no_moon: bool = false
 ## Played under them, in place of the stand-in sting.
 @export var card_sound: AudioStream
 ## Opens on whoever Reveal Who names (else the first boss on the field): the view goes to
@@ -98,6 +104,9 @@ class_name EncounterDefinition
 ## What the arena does by itself from the start - rocks falling, the floor
 ## burning (HazardDefinition). A boss's phase can start more.
 @export var hazards: Array[HazardDefinition] = []
+## The enemy neither sets off the things on the map that go off nor keeps away from them, for a fight
+## where they are the players' mechanic.
+@export var ai_leaves_hazards: bool = false
 ## The ways out, as tiles: somebody broken and running gets away once they stand
 ## on one, and does all they can to reach one - walking, and their skills for
 ## getting about (Combat "Getting away"). Place them in the encounter editor.

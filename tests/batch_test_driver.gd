@@ -377,7 +377,7 @@ func run_test():
 	# With a skill behind it, as every condition in the game has: a tick with no
 	# caster falls back to a flat random roll, which is a different number every
 	# time anything asks for it.
-	var burner: SkillDefinition = SkillDatabase.skills["fireball"]
+	var burner: SkillDefinition = SkillDatabase.skills["wildfire"]
 	combat.apply_effect(enemies()[0], victim, condition_effect, burner)
 	ok(victim.status_effects.size() > 0, "the condition is on them", "%d effects" % victim.status_effects.size())
 	combat.update_combatants.emit(combat.combatants)

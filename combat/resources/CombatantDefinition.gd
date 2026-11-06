@@ -286,6 +286,9 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ## by anybody who cannot see them (StealthWatch.stealthing). Anybody else walking
 ## near a guard is noticed, walls or no walls - Cyrus alone has this.
 @export var stealths: bool = false
+## No disguise fools them in a fight (Combat "Disguises"): a nose, say. Whoever wears one is in plain
+## sight to them.
+@export var sees_through_disguises: bool = false
 ## What they say when the party changes a turn they foresaw (Intuition) - one
 ## of these, at random, over their head and in the log. Empty says nothing.
 @export var future_changed_lines: Array[String] = []
@@ -324,6 +327,7 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ## it ends by either using a skill or calling advance_turn() itself) and
 ## type its name here. An unrecognised name falls back to ai_melee_rush.
 @export var ai_function: String = "ai_melee_rush"
+
 ## When the AI readies a move ("Ready" - Combat "Readying, for the AI"), if at
 ## all: only with nothing it could hit this turn, and never with its last
 ## casting of a gate.
@@ -340,6 +344,28 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ##     hits them is hit back (appended; the designer's "smarter readies",
 ##     2026-10-29 - PROPOSAL).
 @export_flags("Covers The Approach", "Guards Its Post", "Counters Casters", "Waits For The Hidden", "Protects Its Own") var ai_readies: int = 0
+
+@export_group("AI Mind")
+## How much this creature thinks (Combat "The AI's mind"). Instinct goes for whoever is nearest, weighs
+## no kills and knows nothing below. Trained is the ordinary soldier. Cunning and Mastermind know
+## more. Stored by number: append.
+enum AiSmarts { INSTINCT, TRAINED, CUNNING, MASTERMIND }
+@export var ai_smarts: AiSmarts = AiSmarts.TRAINED
+## What it might know, on top of what its Smarts already give (Also Knows) or taken away from it
+## (Never Knows). Stored by number: append.
+enum AiKnows { GROUND = 1, TELEGRAPHS = 2, KEEPS_FROM_HAZARDS = 4, SETS_OFF_HAZARDS = 8, SHOVES = 16, TETHERS = 32, WAKES_ALLIES = 64,
+	AVOIDS_REACH = 128, SPREADS_OUT = 256, SET_UPS = 512, HEMS = 1024, BLOCKS = 2048, TRIAGE = 4096, GATES = 8192, DARK = 16384, FALLS_BACK = 32768 }
+@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back") var ai_also_knows: int = 0
+@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back") var ai_never_knows: int = 0
+## How much a blow is worth to it: above 1 it trades safety for blood, below 1 it would rather live.
+@export_range(0.0, 3.0, 0.05) var ai_aggression: float = 1.0
+## How much it minds bad ground, a hazard, the party's reach and standing bunched up.
+@export_range(0.0, 3.0, 0.05) var ai_caution: float = 1.0
+## How hard it is drawn to whoever is already hurt, and whoever its side last went for.
+@export_range(0.0, 3.0, 0.05) var ai_focus: float = 1.0
+## How soon it drinks what it carries, and falls back to a healer.
+@export_range(0.0, 3.0, 0.05) var ai_self_preservation: float = 1.0
+
 
 
 ## Health at `level`: Max Hp at level 1, Max Hp Level 20 at the top level, and the

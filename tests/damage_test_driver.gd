@@ -166,7 +166,7 @@ func run_test():
 	# Only the two skills whose names still name their element. Everything else
 	# is checked against what the skill itself says, just below, so repurposing
 	# one is not something a test should object to.
-	for pair in [["fireball", Damage.Type.FIRE], ["greatsword_attack", Damage.Type.PHYSICAL]]:
+	for pair in [["wildfire", Damage.Type.FIRE], ["greatsword_attack", Damage.Type.PHYSICAL]]:
 		var skill: SkillDefinition = SkillDatabase.skills[pair[0]]
 		var found = -1
 		for effect in skill.all_effects():

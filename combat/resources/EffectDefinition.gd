@@ -45,6 +45,8 @@ enum EffectType {
 	FAMILIAR,          ## Outside a fight only: calls a familiar in the map's animal form, to be steered and seen through - Alithia's Find Familiar (StealthWatch "Familiar").
 	UNVEIL,            ## The invisible and the hidden it lands on are seen again - Unveil, Votive Flame.
 	MOVE_ZONE,         ## Moves the zone its user laid that can be moved, up to its reach from where that is - the Storm Cloud (Combat "Zones").
+	MOVE_IMAGE,        ## Moves the double its user made (Effect's Image Moves), up to its reach from where that is - Move Double.
+	DISGUISE,          ## Its user slips into a disguise they carry that fits those they fight, while hidden - Put On Disguise (Combat "Disguises").
 }
 
 enum DispelScope {
@@ -111,6 +113,9 @@ enum DispelScope {
 ## At the start of each of their turns, before anything else, they go as far from
 ## whoever put it on them as they can, and then carry on with the turn (Terror).
 @export var flees_from_caster: bool = false
+## As their next turn starts they walk towards where this was aimed, as far as they can, and then
+## carry on with their turn. Phantom Noise.
+@export var drawn_to_aim: bool = false
 ## How hard the condition burns when THIS skill is what inflicted it, in place
 ## of the condition's own dot_modifier.
 ##
@@ -261,6 +266,22 @@ enum DispelScope {
 ## It is as strong as whoever called it: their five attributes rather than its
 ## own. For something made of its caster's mind - Prometheus's Illusory Dragon.
 @export var with_summoners_attributes: bool = false
+## How many it calls up, each on the nearest free tile to where it was aimed. Phantom Company.
+@export_range(1, 12) var summon_count: int = 1
+## Called up as a wall: this many tiles to each side of where it was aimed, across the line from
+## the caster. A tile with no room is left out. Phantom Wall.
+@export_range(0, 10) var summon_across: int = 0
+## What it calls up are images, not creatures: one hit shatters each, nothing to command and no turns,
+## and the other side takes them for the real thing (Combat "Images"). Phantom Company.
+@export var summon_as_images: bool = false
+## Everybody of the other side within sight of it is this much shaken as they arrive (Combat "Nerve").
+@export_range(0, 100) var summon_shakes: int = 0
+## Used when type is SUMMON_DECOY: the one who made it can send it about with a secondary action
+## (Move Double), and it stays until it is hit or dispelled. Mislead.
+@export var image_moves: bool = false
+## Used when type is INVISIBLE: anything at all they do gives them away, not only what they do to
+## the other side (a step does not). Seeming.
+@export var unnoticed_until_acting: bool = false
 
 @export_group("Trap")
 ## Used when type is TRAP. What whoever of the other side steps onto it is held
@@ -323,7 +344,13 @@ enum DispelScope {
 ## Anybody who starts or ends a turn in it is blown out of it (Wind Swoon).
 @export var zone_blows_out: bool = false
 ## How the board tints it. Left clear, by whose it is. A placeholder until there is art.
+## A zone that gives light from its middle, this many tiles out, the nearer half Bright (Burner's ground).
+@export var zone_light_tiles: float = 0.0
 @export var zone_colour: Color = Color(0, 0, 0, 0)
+## Ground the other side takes for deadly: whoever the AI plays will not step on it, and whoever
+## already stands there leaves it. It does nothing at all. If anybody of the other side ends up on it
+## by any other way (shoved, thrown), they see it for what it is and it is gone (Combat "False Ground").
+@export var zone_false_ground: bool = false
 
 @export_group("Resistance")
 ## On a RESISTANCE effect: which base element is asked as it lands, in place of Damage
@@ -342,7 +369,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.PUSH: ["knockback_distance", "damage_type", "damage_modifier", "min_amount", "max_amount"],
 	EffectType.PULL: ["knockback_distance"],
 	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration", "wears_off_at_start"],
-	EffectType.CONDITION: ["condition", "condition_duration", "held_by_tether", "comes_off_when_hurt", "flees_from_caster", "condition_dot_modifier"],
+	EffectType.CONDITION: ["condition", "condition_duration", "held_by_tether", "comes_off_when_hurt", "flees_from_caster", "drawn_to_aim", "condition_dot_modifier"],
 	# Nothing to configure but how long they have to use it - which element it
 	# becomes is the element's own business (see Damage.UPGRADES).
 	EffectType.UPGRADE_ELEMENT: ["duration", "wears_off_at_start"],
@@ -356,14 +383,14 @@ const FIELDS_BY_TYPE := {
 	EffectType.REVIVE: ["revive_health", "revive_weakening"],
 	EffectType.STEAL: ["steal_count"],
 	# Nothing to configure: an image is one point of health and no turns.
-	EffectType.SUMMON_DECOY: [],
+	EffectType.SUMMON_DECOY: ["image_moves"],
 	# Nothing to configure: what happens is the object's own business.
 	EffectType.INTERACT: [],
 	# Nothing to configure: the hack is the skill's own (SkillDefinition.hack).
 	EffectType.HACK: [],
 	# Nothing to configure: it lasts until they act against an enemy. Outside a
 	# fight it lasts the skill's own Outside Seconds.
-	EffectType.INVISIBLE: [],
+	EffectType.INVISIBLE: ["unnoticed_until_acting"],
 	# Nothing to configure: whatever they are casting comes to nothing.
 	EffectType.CANCEL_CASTING: [],
 	# Condition: what they suffer inside (Swallowed - a stomach eating them).
@@ -372,7 +399,7 @@ const FIELDS_BY_TYPE := {
 	# One size bigger for Duration of their turns (0: the rest of the fight).
 	EffectType.GROW: ["duration", "wears_off_at_start"],
 	# Who, and whether it takes on its caller's attributes.
-	EffectType.SUMMON: ["summons", "with_summoners_attributes"],
+	EffectType.SUMMON: ["summons", "with_summoners_attributes", "summon_count", "summon_across", "summon_as_images", "summon_shakes"],
 	# Nothing to configure: the summon it is aimed at acts, now.
 	EffectType.COMMAND: [],
 	# Nothing to configure: everything on the body comes off it.
@@ -382,7 +409,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.CATALYST: ["catalyst_times"],
 	EffectType.ZONE: ["zone_condition", "zone_for", "zone_turns", "zone_unseen", "zone_costly", "zone_cost_spares_fliers", "zone_turn_damage", "damage_type",
 		"zone_heals", "heal_modifier", "heal_flat", "heal_per_stat", "heal_per_weapon", "zone_follows_caster", "zone_moves",
-		"zone_hurts_everybody", "zone_hurts_each_step", "zone_leaves_conditions", "zone_melee_sweeps", "zone_blows_out", "zone_colour"],
+		"zone_hurts_everybody", "zone_hurts_each_step", "zone_leaves_conditions", "zone_melee_sweeps", "zone_blows_out", "zone_colour", "zone_light_tiles", "zone_false_ground"],
 	# Nothing to configure: how deep it reaches is the gate it is cast through.
 	EffectType.DISPEL_MAGIC: [],
 	EffectType.FAMILIAR: [],
@@ -390,6 +417,9 @@ const FIELDS_BY_TYPE := {
 	EffectType.UNVEIL: [],
 	# Nothing to configure: the skill's Max Range is how far, from where it is.
 	EffectType.MOVE_ZONE: [],
+	EffectType.MOVE_IMAGE: [],
+	# Nothing to configure: which disguise is what they carry (Combat "Disguises").
+	EffectType.DISGUISE: [],
 }
 
 

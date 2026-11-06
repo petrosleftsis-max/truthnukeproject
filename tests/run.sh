@@ -191,6 +191,7 @@ Cyrus: Seen enough.
 	# The sweep plays every encounter out, and everycast uses every skill there
 	# is; the rest are quick by comparison.
 	budget=300
+	if [ "$d" = "aicompare" ]; then budget=3000; fi
 	if [ "$d" = "sweep" ]; then budget=1560; fi
 	# Every skill and item used once - more of them with every one added.
 	if [ "$d" = "everycast" ]; then budget=600; fi

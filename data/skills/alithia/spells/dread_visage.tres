@@ -19,7 +19,6 @@ description = "A face only the target sees, and cannot stop seeing."
 min_range = 1
 max_range = 6
 icon = ExtResource("2_icon")
-required_level = 7
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 deals_damage = false
 scaling_stat = 1

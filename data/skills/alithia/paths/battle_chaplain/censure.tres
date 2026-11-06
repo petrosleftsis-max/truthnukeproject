@@ -3,16 +3,17 @@
 [ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
 [ext_resource type="Texture2D" path="res://art/icons/censure_skill.png" id="2_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/medium_idol_damage.wav" id="sfx_impact_sound"]
 
 [resource]
 script = ExtResource("3_skill")
+impact_sound = ExtResource("sfx_impact_sound")
 projectile_style = 7
 name = "Censure"
 description = "A wide sweep of judgement, spreading from her hands."
 icon = ExtResource("2_icon")
 min_range = 1
 max_range = 4
-required_level = 32
 ability_modifier = 2.4
 scaling_stat = 1
 damage_type = 12

@@ -23,7 +23,6 @@ description = "A warmth that goes where she goes. Any ally who starts their turn
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 max_range = 0
-required_level = 14
 targets_ally = true
 can_be_copied = false
 deals_damage = false

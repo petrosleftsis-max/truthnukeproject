@@ -3,10 +3,11 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_4jf3n"]
 [ext_resource type="Texture2D" uid="uid://csoaq2dlwsjja" path="res://art/icons/fire_icon.png" id="2_ak3j8"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_qhl6x"]
-[ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/weak_fire_damage.wav" id="sfx_impact_sound"]
 
 [resource]
 script = ExtResource("3_qhl6x")
+impact_sound = ExtResource("sfx_impact_sound")
 name = "Fire Burst"
 description = "A weak outburst of flames."
 min_range = 1
@@ -16,4 +17,3 @@ respects_blocking = true
 ability_modifier = 0.7
 scaling_stat = 2
 damage_type = 1
-sound = ExtResource("90_sfx")

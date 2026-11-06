@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="SoundBank" format=3]
+
+[ext_resource type="Script" path="res://audio/SoundBank.gd" id="1_bank"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/bass_drop_and_downer_fast.wav" id="2_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/bass_drop_and_downer_medium.wav" id="3_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/bass_drop_and_downer_slow.wav" id="4_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/bass_jump_start_drop.wav" id="5_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/bass_rattling.wav" id="6_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/bass_tone_downer_reverb.wav" id="7_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/eerie_revelation_2.wav" id="8_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/enemy_die.wav" id="9_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/flatline.wav" id="10_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/menus/bag_open.wav" id="11_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/menus/coin.wav" id="12_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/menus/glossary_page.wav" id="13_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/menus/interface_interact.wav" id="14_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/menus/inventory_shuffle.wav" id="15_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/menus/ping_down.wav" id="16_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/menus/rummage_through_suitcase.wav" id="17_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/projectile.wav" id="18_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/turn_paper.wav" id="19_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/clock_sound.wav" id="20_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/clock_sound_urgent.wav" id="21_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/glitch_corrupted_data.wav" id="22_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/mechanism_activation.wav" id="23_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/mechanism_interact.wav" id="24_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/puzzle_success.wav" id="25_sfx"]
+
+[resource]
+script = ExtResource("1_bank")
+bag_open = ExtResource("11_sfx")
+boss_falls = ExtResource("7_sfx")
+boss_reveal = ExtResource("6_sfx")
+card_defeat = ExtResource("4_sfx")
+card_fled = ExtResource("3_sfx")
+card_opening = ExtResource("5_sfx")
+card_victory = ExtResource("2_sfx")
+caught = ExtResource("3_sfx")
+coin = ExtResource("12_sfx")
+enemy_falls = ExtResource("9_sfx")
+hack_clock = ExtResource("20_sfx")
+hack_clock_urgent = ExtResource("21_sfx")
+hack_failed = ExtResource("22_sfx")
+item_moved = ExtResource("15_sfx")
+learned_spell = ExtResource("19_sfx")
+levels_unveiled = ExtResource("8_sfx")
+mechanism_opened = ExtResource("23_sfx")
+mechanism_used = ExtResource("24_sfx")
+menu_press = ExtResource("14_sfx")
+page = ExtResource("13_sfx")
+party_falls = ExtResource("10_sfx")
+ping = ExtResource("16_sfx")
+rummage = ExtResource("17_sfx")
+solved = ExtResource("25_sfx")
+travel = ExtResource("18_sfx")

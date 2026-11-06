@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ItemDefinition.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://art/icons/consumable__skill.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+name = "Lantern"
+description = "A shuttered lantern. In the Baldric it lights the way, four tiles out and brightly for two - in a fight and on a map. Guards can see it too. In a pouch or a backpack it gives no light."
+icon = ExtResource("2_icon")
+can_be_copied = false
+consumed_on_use = false
+deals_damage = false
+price = 30
+light_tiles = 4.0

@@ -4,7 +4,7 @@
 [ext_resource type="Resource" uid="uid://1ld4g4lgfheh" path="res://data/conditions/burn.tres" id="2_e7sel"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_umyqf"]
 [ext_resource type="Texture2D" uid="uid://ub055rejfrs8" path="res://art/icons/greatsword_skill.png" id="3_3g1yd"]
-[ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="4_sound"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/weak_fire_damage.wav" id="sfx_impact_sound"]
 
 [sub_resource type="Resource" id="Resource_e7sel"]
 script = ExtResource("1_k76nq")
@@ -16,6 +16,7 @@ metadata/_custom_type_script = "uid://dehsr7dduivu1"
 
 [resource]
 script = ExtResource("2_umyqf")
+impact_sound = ExtResource("sfx_impact_sound")
 projectile_look = 7
 projectile_style = 3
 name = "Flammable Limb"
@@ -26,5 +27,4 @@ icon = ExtResource("3_3g1yd")
 required_level = 14
 respects_blocking = true
 effects = Array[ExtResource("1_k76nq")]([SubResource("Resource_e7sel")])
-sound = ExtResource("4_sound")
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

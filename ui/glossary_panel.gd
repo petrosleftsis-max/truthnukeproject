@@ -258,8 +258,8 @@ func _page_for_skill(skill: SkillDefinition):
 		lines.append("Only ever a reaction: it is never used on your own turn.")
 	else:
 		lines.append("Spent from the %s action." % ("secondary" if skill.is_secondary else "main"))
-	if skill.required_level > 1:
-		lines.append("Learned at level %d." % skill.required_level)
+	if CharacterSheet.comes_in(skill) > 1:
+		lines.append("Comes at level %d." % CharacterSheet.comes_in(skill))
 	if skill.uses_stat_contest:
 		lines.append("Never misses: it lands in full on anyone whose %s it beats, and as a graze on anyone it does not." % Stats.stat_name(skill.contest_stat))
 	else:
@@ -471,6 +471,7 @@ func _read(heading: String, text: String):
 ## Goes somewhere and remembers where from, so Back always means "where I was".
 func _go_to(view: Callable):
 	_trail.append(view)
+	GameSounds.play(&"page")
 	view.call()
 
 

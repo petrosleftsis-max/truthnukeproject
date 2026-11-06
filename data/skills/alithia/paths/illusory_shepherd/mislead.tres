@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/mislead_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 16
+image_moves = true
+
+[sub_resource type="Resource" id="Effect_1"]
+script = ExtResource("1_effect")
+type = 24
+
+[resource]
+script = ExtResource("3_skill")
+name = "Mislead"
+description = "She fades from sight and a double of her stands where she points, for the other side to go after, and she can send it about with a secondary action. The invisibility ends when she does something to an enemy. The double stays until it is hit or dispelled. On a map: unseen for two minutes, with a double going on ahead for the guards to look at."
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0"), SubResource("Effect_1")])
+impact_look = 19
+max_range = 6
+targets_ally = true
+placed_in_reach = true
+image_of_self = true
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 5
+out_of_combat = true
+outside_use = 18
+outside_seconds = 120

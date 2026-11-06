@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" path="res://art/icons/accusation_skill.png" id="2_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
 [ext_resource type="Resource" path="res://data/conditions/accused.tres" id="4_cond"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/weak_idol_damage.wav" id="sfx_impact_sound"]
 
 [sub_resource type="Resource" id="Effect_1"]
 script = ExtResource("1_effect")
@@ -12,12 +13,12 @@ condition = ExtResource("4_cond")
 
 [resource]
 script = ExtResource("3_skill")
+impact_sound = ExtResource("sfx_impact_sound")
 impact_look = 15
 projectile_style = 6
 name = "Accusation"
 description = "Spoken at somebody whose next turn she has read: x1.5, and until their next turn they take 15% more from everybody."
 max_range = 15
-required_level = 32
 respects_blocking = true
 ability_modifier = 1.5
 damage_type = 12

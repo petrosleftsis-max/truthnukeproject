@@ -106,11 +106,11 @@ func run_test():
 		player["passives"] = []
 	ok(not mimic.is_empty(), "the encounter fields a Mimic")
 	ok(not player.is_empty(), "and somebody on the player's side")
-	var spell: SkillDefinition = SkillDatabase.skills["fireball"]
-	ok(spell.spell_slot_level == 3, "Fireball is cast through the deepest gate", "%d" % spell.spell_slot_level)
+	var spell: SkillDefinition = SkillDatabase.skills["wildfire"]
+	ok(spell.spell_slot_level == 3, "Wildfire is cast through the deepest gate", "%d" % spell.spell_slot_level)
 	ok(mimic.get("passives", []).has(mimicry), "the Mimic in the fight carries it")
 	mimic.spell_slots = [0, 0, 0, 0]
-	ok(combat.can_afford_skill(mimic, spell), "with no gates at all it can still pay for Fireball")
+	ok(combat.can_afford_skill(mimic, spell), "with no gates at all it can still pay for Wildfire")
 	ok(combat.spend_slot_for(mimic, spell) == 0, "and pays nothing", "%s" % [mimic.spell_slots])
 	var player_slots = player.spell_slots.duplicate()
 	player.spell_slots = [0, 0, 0, 0]

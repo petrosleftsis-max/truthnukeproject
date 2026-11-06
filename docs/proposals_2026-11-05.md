@@ -6,6 +6,8 @@ is a starting point for the designer to change.
 
 ## 1. Light on the maps
 
+**Built 2026-11-06:** the proposed Dim, option A, time of day changing during play. A lantern is an item; no map has its ambient set yet.
+
 **What exists now.** Stealth maps have a dark switch, lamps and `dark_sight_tiles` (guards see
 2.5 tiles in the dark). In fights, the darkness rule is built but only zones make it dark
 (Light Void, Ravenous Dark): whoever stands in one is invisible to anybody who cannot see in the
@@ -100,6 +102,8 @@ ground round himself, so Cyrus sees him coming, and a lamp put out is already an
 
 ## 2. The enemy AI
 
+**All built, 2026-11-06:** CLAUDE.md "The AI's mind".
+
 **What it does now.** `ai_plan_attack` tries every usable skill from every reachable tile and scores
 it by predicted damage, chance to hit, kills, new conditions, hurt targets and focus fire. Prone
 already counts, because `predict_hit` includes it. The ideas below are what it does not see yet.
@@ -138,6 +142,9 @@ Each would be a per-creature switch or dial.
 `archetypes` and `lab` would measure each one.
 
 ## 3. Illusions
+
+**Built 2026-11-06:** Phantom Noise, Phantom Wall, Seeming, False Ground, Phantom Killer, Fallen Friend,
+Phantom Company, Mislead, Weird. Not chosen: Displacement, Mistaken Ally, Project Image.
 
 ### So far
 

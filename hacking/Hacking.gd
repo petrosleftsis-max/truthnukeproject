@@ -55,6 +55,8 @@ var _tries_left := 0
 var _retry_cost := 0.0
 var _failed_once := false
 var _time_left := 0.0
+## From here on the clock is heard as urgent.
+const CLOCK_URGENT_SECONDS := 10.0
 var _running := false
 var _done := false
 var _rng := RandomNumberGenerator.new()
@@ -253,6 +255,8 @@ func _begin_try(first: bool):
 	else:
 		_board.reset_try(_rng)
 	_time_left = float(_hack.time_limit)
+	if _hack.time_limit > 0:
+		GameSounds.loop(&"hack_clock_urgent" if _time_left <= CLOCK_URGENT_SECONDS else &"hack_clock")
 	_refresh()
 	_focus_board.call_deferred()
 
@@ -262,12 +266,15 @@ func _on_solved():
 		return
 	_message.text = "Access granted." if _hack.look == HackDefinition.Look.TERMINAL else "It answers to him now."
 	_message.add_theme_color_override("font_color", _palette().good)
+	GameSounds.stop_loop()
+	GameSounds.play(&"solved")
 	_finish({"result": "success"})
 
 
 func _on_failed_try(reason: String):
 	if _done:
 		return
+	GameSounds.play(&"hack_failed")
 	_failed_once = true
 	_tries_left -= 1
 	if _tries_left <= 0:
@@ -371,6 +378,7 @@ func walk_away():
 
 func _finish(outcome: Dictionary):
 	_done = true
+	GameSounds.stop_loop()
 	_refresh()
 	if outcome.result == "failed":
 		outcome["set_off"] = _hack.sets_off
@@ -428,6 +436,8 @@ func _process(delta: float):
 		return
 	if _hack.time_limit > 0:
 		_time_left -= delta
+		if _time_left <= CLOCK_URGENT_SECONDS and _time_left > 0.0:
+			GameSounds.loop(&"hack_clock_urgent")
 		if _clock != null:
 			_clock.value = maxf(_time_left, 0.0)
 		if _time_left <= 0.0:

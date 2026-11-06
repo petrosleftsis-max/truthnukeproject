@@ -51,6 +51,8 @@ const DOT_STRENGTH_NAMES := {
 @export var wears_off_at_start: bool = false
 
 @export_group("Damage over time")
+## What each tick sounds like. Empty: the sound of the move that put it on.
+@export var tick_sound: AudioStream
 ## Rolled fresh at the start of each of the afflicted's turns. Leave at 0 for a
 ## condition that doesn't burn away at them.
 ## What kind of damage the tick deals - Burn is fire, Poisoned is poison - so
@@ -73,6 +75,10 @@ const DOT_STRENGTH_NAMES := {
 ## reads these.
 @export var dot_min: int = 0
 @export var dot_max: int = 0
+
+@export_group("Light")
+## Whoever has this on them gives light, this many tiles out, the nearer half of it Bright (Burn).
+@export var light_tiles: float = 0.0
 
 @export_group("Stat changes")
 ## Added to movement while this is active - negative slows, positive hurries.
@@ -154,6 +160,13 @@ const DOT_STRENGTH_NAMES := {
 ## (Combat "Zones"), again as each of their turns starts if they gave themselves
 ## away, and seen again once they step out. Reflected (Reality's Reflection).
 @export var makes_invisible: bool = false
+## They look dead: invisible for as long as they have it, lying where they are, and anything they do
+## gives it away - a step or a move (Combat "Unnoticed until they act"). Looks Dead (Fallen Friend).
+@export var looks_dead: bool = false
+## A thing believed in, weighed again: as each of their turns starts they contest the spell that put
+## it on them once more, their stat counting this much more for every time they have, and winning
+## shakes it off before it ticks. 0, never. Phantom Wound (Phantom Killer).
+@export_range(0, 20) var doubt_each_turn: int = 0
 ## Grappled: held by whoever put it on, for as long as that one keeps hold.
 ## It lasts until they break free (Break Free, their main action), whoever
 ## holds them is not beside them or is down, or either of them is teleported,

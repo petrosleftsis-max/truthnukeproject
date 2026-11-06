@@ -17,6 +17,7 @@ func run_sections():
 	await tether_out_here()
 	await great_snare()
 	await the_company()
+	await illusions_on_a_map()
 
 
 func tether_out_here():
@@ -163,4 +164,45 @@ func the_company_for_two():
 	Coop.leave(1)
 	Coop.leave(0)
 	Campaign.controllers = {}
+	await close_map(m)
+
+
+func illusions_on_a_map():
+	log_line("======== the illusions on a map ========")
+	var m = await open_map()
+	Campaign.set_party(["alithia", "cyrus"], 64)
+	Campaign.choose_subclass("alithia", "illusory_shepherd")
+	await settle()
+	var near := add_guard(m, "Near", m.post + Vector2i.RIGHT * 8, 180.0)
+	var far := add_guard(m, "Far", m.post + Vector2i.RIGHT * 24, 180.0)
+	var watch = await watch_it(m, m.post)
+	var scene = m.scene
+	# Phantom Noise: Iris first, and heard further than a Lure.
+	var noise: SkillDefinition = SkillDatabase.skills.phantom_noise
+	ok(OutsideMoves.use_of(noise) == OutsideMoves.Use.LURE, "Phantom Noise is a lure", "%d" % OutsideMoves.use_of(noise))
+	ok(noise.lure_tiles > OutsideMoves.LURE_TILES, "heard further than a plain one", "%s" % noise.lure_tiles)
+	ok(OutsideMoves.payment("alithia", noise).get("iris", 0) == 1, "paid through Iris", "%s" % [OutsideMoves.payment("alithia", noise)])
+	var iris: int = Campaign.outside_gates_left("alithia")[1]
+	ok(OutsideMoves.use(scene, "alithia", "phantom_noise"), "she casts it", OutsideMoves.refusal(scene, "alithia", "phantom_noise"))
+	ok(Campaign.outside_gates_left("alithia")[1] == iris - 1, "a casting of Iris")
+	ok(near.mood == Guard.Mood.INVESTIGATING, "the guard near it goes to look")
+	# Seeming: a disguise, for the party, without a thing in the bags.
+	var seeming: SkillDefinition = SkillDatabase.skills.seeming
+	ok(OutsideMoves.use_of(seeming) == OutsideMoves.Use.SEEMING, "Seeming is its own")
+	ok(watch.gaze_of(far) == watch.Gaze.SEES, "before it they are seen")
+	ok(OutsideMoves.use(scene, "alithia", "seeming"), "she casts it", OutsideMoves.refusal(scene, "alithia", "seeming"))
+	ok(watch.worn_by("alithia") == watch.SEEMING and watch.worn_by("cyrus") == watch.SEEMING, "all of them")
+	ok(watch.gaze_of(far) == watch.Gaze.FOOLED, "and a guard takes them for his own", "%d" % watch.gaze_of(far))
+	far.recognises = Guard.Recognises.ANY_DISGUISE
+	ok(watch.gaze_of(far) == watch.Gaze.SEES, "but not one nothing fools")
+	far.recognises = Guard.Recognises.OWN_ROLE
+	watch._wear_off_seeming(1000.0)
+	ok(watch.worn_by("alithia") == "", "and it wears off")
+	# Mislead: Mnemosyne first; unseen, with a double ahead.
+	var mislead: SkillDefinition = SkillDatabase.skills.mislead
+	ok(OutsideMoves.use_of(mislead) == OutsideMoves.Use.MISLEAD, "Mislead is its own")
+	ok(OutsideMoves.payment("alithia", mislead).get("iris", 0) == 2, "paid through Mnemosyne", "%s" % [OutsideMoves.payment("alithia", mislead)])
+	ok(OutsideMoves.use(scene, "alithia", "mislead"), "she casts it", OutsideMoves.refusal(scene, "alithia", "mislead"))
+	ok(watch.unseen("alithia"), "she is unseen")
+	ok(not watch.unseen("cyrus"), "and nobody else")
 	await close_map(m)

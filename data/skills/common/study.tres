@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
 [ext_resource type="Texture2D" uid="uid://5gweh321f5xi" path="res://art/icons/study_skill.png" id="2_icon"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/flicking_through_pages.wav" id="sfx_sound"]
 
 [sub_resource type="Resource" id="Effect_study_reveal"]
 script = ExtResource("1_effect")
@@ -10,6 +11,7 @@ type = 9
 
 [resource]
 script = ExtResource("3_skill")
+sound = ExtResource("sfx_sound")
 name = "Study"
 outside_use = 8
 description = "Take the measure of an enemy: their health, attributes, movement, what they resist, what they are weak to, and everything they can do. Read it all on the character sheet, under C. What is learned lasts the battle."

@@ -4,7 +4,7 @@
 [ext_resource type="Resource" uid="uid://ttc70ufjw2r2" path="res://data/conditions/poisoned.tres" id="2_mm41o"]
 [ext_resource type="Texture2D" uid="uid://cl3p3g3vifvxn" path="res://art/icons/poisondart_skill.png" id="2_v0ngf"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_mm41o"]
-[ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/cyrus_pistol.wav" id="sfx_sound"]
 
 [sub_resource type="Resource" id="Effect_poison_dot"]
 script = ExtResource("1_mcofx")
@@ -15,6 +15,7 @@ condition_dot_modifier = 0.2
 
 [resource]
 script = ExtResource("3_mm41o")
+sound = ExtResource("sfx_sound")
 impact_look = 37
 projectile_look = 4
 projectile_style = 3
@@ -29,4 +30,3 @@ is_ammo = true
 effects = Array[ExtResource("1_mcofx")]([SubResource("Effect_poison_dot")])
 ability_modifier = 0.9
 scaling_stat = 3
-sound = ExtResource("90_sfx")

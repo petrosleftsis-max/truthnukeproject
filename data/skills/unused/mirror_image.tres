@@ -14,7 +14,6 @@ name = "Mirror Image"
 description = "An image of an ally - any of them, near or far - set down anywhere in reach. The enemy takes it for them: goes for it as it would for them, and plans around it as it would around them. It has one point of health, stops nothing, and is gone at the first touch."
 icon = ExtResource("2_icon")
 max_range = 6
-required_level = 5
 targets_ally = true
 placed_in_reach = true
 can_be_copied = false

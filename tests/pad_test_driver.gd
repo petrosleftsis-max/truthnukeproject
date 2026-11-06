@@ -758,14 +758,14 @@ func on_the_board():
 			moved = moved or controller.pad_cursor() != was
 		ok(moved and aimed.has(controller.pad_cursor()), "the D-pad jumps from one to the next, over the tiles between")
 	controller.cancel_skill_selection()
-	controller.set_selected_skill("fireball")
+	controller.set_selected_skill("wildfire")
 	controller.begin_target_selection()
 	await settle(3)
 	var area: Array = controller.pad_tiles()
 	var could_go: Array = controller._range_preview_positions.filter(func(tile):
 		var comb = controller.get_combatant_at_position(tile)
 		return controller.refusal_at(tile, comb if comb != null else {}) == "")
-	ok(not area.is_empty() and area.size() == could_go.size(), "a fireball: every tile it could land on",
+	ok(not area.is_empty() and area.size() == could_go.size(), "a wildfire: every tile it could land on",
 		"%d of %d" % [area.size(), could_go.size()])
 	controller.cancel_skill_selection()
 	controller.set_selected_skill("greatsword_attack")

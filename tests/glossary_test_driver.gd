@@ -187,12 +187,12 @@ func run_test():
 		if ItemDatabase.items[key].name in skills:
 			carried.append(key)
 	ok(carried.is_empty(), "consumables are not filed as skills", "%s" % [carried])
-	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
-	if press(panel, fireball.name):
+	var wildfire: SkillDefinition = SkillDatabase.skills["wildfire"]
+	if press(panel, wildfire.name):
 		await get_tree().process_frame
 		var text = panel._body.text
-		ok(Stats.gate_name(fireball.spell_slot_level) in text,
-			"a spell says which gate it costs", Stats.gate_name(fireball.spell_slot_level))
+		ok(Stats.gate_name(wildfire.spell_slot_level) in text,
+			"a spell says which gate it costs", Stats.gate_name(wildfire.spell_slot_level))
 		ok("Reaches" in text, "and how far it goes")
 		panel._go_back()
 		await get_tree().process_frame

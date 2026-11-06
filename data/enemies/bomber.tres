@@ -6,6 +6,8 @@
 
 [resource]
 script = ExtResource("2_exju2")
+ai_aggression = 1.4
+ai_caution = 0.3
 name = "Bomber"
 max_hp = 28
 max_hp_level_20 = 85

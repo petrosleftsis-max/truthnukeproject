@@ -178,7 +178,9 @@ func _reveal(subject: Dictionary):
 			_put_lights_back()
 			_bars_out()
 			return
-		_sting(boss.reveal_sound if boss != null else null)
+		_sting(boss.reveal_sound if boss != null and boss.reveal_sound != null else GameSounds.stream(&"boss_reveal"))
+		if boss != null and boss.reveal_second_sound != null:
+			combat.play_stream(boss.reveal_second_sound)
 		combat.shake_camera(16.0)
 		if sprite != null and is_instance_valid(sprite):
 			var light: Tween = sprite.create_tween().set_ignore_time_scale(true)
@@ -266,7 +268,7 @@ func _shatter_and_title():
 		return
 	_bars_in()
 	var title := _title(saying, INK)
-	_sting(encounter.card_sound)
+	_sting(encounter.card_sound if encounter.card_sound != null else GameSounds.stream(&"card_opening"))
 	combat.shake_camera(14.0)
 	await _wait(TITLE_HOLD_SECONDS)
 	_fade_out(title)
@@ -368,7 +370,10 @@ func _play_closing(kind: String):
 	if combat.still_running():
 		_bars_in()
 		_title(saying, BAD_INK if kind in ["defeat", "fled"] else GOOD_INK)
-		_sting(combat.encounter.card_sound if combat.encounter != null else null)
+		var heard: AudioStream = combat.encounter.card_sound if combat.encounter != null else null
+		if heard == null:
+			heard = GameSounds.stream({"victory": &"card_victory", "defeat": &"card_defeat"}.get(kind, &"card_fled"))
+		_sting(heard)
 		await _wait(CLOSING_HOLD_SECONDS)
 	Engine.time_scale = 1.0
 
@@ -414,7 +419,8 @@ func _show_fallen(comb: Dictionary):
 		said.position = Vector2(0.0, screen.y * 0.3 + 62.0)
 		said.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		layer.add_child(said)
-	_sting(PlaceholderSounds.make("card_fall"))
+	var heard: AudioStream = GameSounds.stream(&"party_falls")
+	_sting(heard if heard != null else PlaceholderSounds.make("card_fall"))
 	await get_tree().create_timer(2.0, true, false, true).timeout
 	queue_free()
 

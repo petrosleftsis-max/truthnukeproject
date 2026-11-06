@@ -4,10 +4,11 @@
 [ext_resource type="Texture2D" uid="uid://56wt3kikac4c" path="res://art/icons/stolen_sun_skill.png" id="2_icon"]
 [ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="3_0sycp"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
-[ext_resource type="AudioStream" uid="uid://dpf5swddxgino" path="res://audio/sfx/Gas_Fire_Swoosh_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/medium_fire_damage.wav" id="sfx_impact_sound"]
 
 [resource]
 script = ExtResource("3_skill")
+impact_sound = ExtResource("sfx_impact_sound")
 name = "Stolen Sun"
 description = "The fire he stole from the gods, let go at once: a sun on the battlefield."
 min_range = 1
@@ -16,6 +17,5 @@ icon = ExtResource("2_icon")
 respects_blocking = true
 ability_modifier = 6.0
 damage_type = 1
-sound = ExtResource("90_sfx")
 spell_slot_level = 10
 aoe_radius = 2

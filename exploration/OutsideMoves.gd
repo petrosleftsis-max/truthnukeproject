@@ -32,7 +32,7 @@ class_name OutsideMoves
 ## Unmarked plays as Silent.
 
 enum Use { NONE, MEND, REVIVE, SPEED, INVISIBILITY, FAMILIAR, BLIND, SCARE, CONFUSE, READ, SWITCH_OFF_MAGIC,
-	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY }
+	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD }
 
 const USE_NAMES := {
 	Use.NONE: "Only in a fight",
@@ -54,11 +54,13 @@ const USE_NAMES := {
 	Use.TRAP: "Lays a trap",
 	Use.COUNTER_TRAP: "Hacks a magical trap's casting apart as it goes off",
 	Use.COMPANY: "Hides everybody but Cyrus, who all follow him",
+	Use.SEEMING: "Makes the party look like the guards here",
+	Use.MISLEAD: "Hides them, and sends a double off for the guards to chase",
 }
 
 ## SkillDefinition.outside_use, as a Use - -1 for Automatic.
 const FROM_FIELD := [-1, Use.NONE, Use.MEND, Use.REVIVE, Use.SPEED, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ,
-	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP, Use.COMPANY]
+	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP, Use.COMPANY, Use.SEEMING, Use.MISLEAD]
 
 ## How long each lasts when the move gives no Outside Seconds - PROPOSAL test
 ## values, as are the rest below.
@@ -105,7 +107,7 @@ static func moves_of(key: String) -> Array:
 	var found := []
 	for move in known:
 		var skill: SkillDefinition = SkillDatabase.skills.get(move)
-		if skill == null or skill is ItemDefinition or skill.required_level > Campaign.party_level:
+		if skill == null or skill is ItemDefinition or CharacterSheet.comes_in(skill) > Campaign.party_level:
 			continue
 		if Combat.is_spell(skill) and (not Campaign.knows_spell(key, move) or not Campaign.is_prepared(key, move)):
 			continue
@@ -412,7 +414,7 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 				return "Not while standing still for something"
 			if kind == Use.FLY and scene != null and scene.has_method("flying") and scene.flying():
 				return "Already flying"
-		Use.LURE, Use.TRAP:
+		Use.LURE, Use.TRAP, Use.SEEMING, Use.MISLEAD:
 			if watch == null:
 				return "Only where guards watch"
 		Use.HIDING_SPOT:
@@ -532,7 +534,9 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			var way: Vector2 = party.held_direction()
 			if way == Vector2.ZERO:
 				way = Vector2.LEFT if party.facing_left() else Vector2.RIGHT
-			var there: Vector2 = watch._ground_toward(at, way, mini(skill.max_range if skill.max_range > 0 else LURE_AHEAD, LURE_AHEAD))
+			# One with a hearing of its own (Phantom Noise) goes as far as its reach.
+			var ahead: int = skill.max_range if skill.lure_tiles > 0.0 and skill.max_range > 0 else mini(skill.max_range if skill.max_range > 0 else LURE_AHEAD, LURE_AHEAD)
+			var there: Vector2 = watch._ground_toward(at, way, ahead)
 			var paid := pay(key, skill)
 			if paid.is_empty():
 				return false
@@ -540,10 +544,33 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			lure.left = seconds_of(skill, kind)
 			scene.add_child(lure)
 			lure.global_position = there
-			watch.make_noise(there, LURE_TILES, true)
+			watch.make_noise(there, skill.lure_tiles if skill.lure_tiles > 0.0 else LURE_TILES, true)
 			if skill.tethered:
 				watch.tie_outside(key, skill, func(): if is_instance_valid(lure): lure.queue_free())
 			said = "[color=yellow]%s[/color] uses %s%s: something stirs ahead, and the guards near it go to look.\n" % [who, skill.name, paid_through(paid)]
+		Use.SEEMING:
+			var paid := pay(key, skill)
+			if paid.is_empty():
+				return false
+			var seconds := seconds_of(skill, kind)
+			watch.begin_seeming(seconds)
+			said = "[color=yellow]%s[/color] casts %s%s: for %d seconds the party looks like the guards here.\n" % [who, skill.name, paid_through(paid), seconds]
+		Use.MISLEAD:
+			var way: Vector2 = party.held_direction()
+			if way == Vector2.ZERO:
+				way = Vector2.LEFT if party.facing_left() else Vector2.RIGHT
+			var there: Vector2 = watch._ground_toward(at, way, LURE_AHEAD)
+			var paid := pay(key, skill)
+			if paid.is_empty():
+				return false
+			var seconds := seconds_of(skill, kind)
+			var double := Decoy.new()
+			double.left = seconds
+			scene.add_child(double)
+			double.global_position = there
+			watch.make_noise(there, LURE_TILES, true)
+			watch.slip_unseen(key, seconds)
+			said = "[color=yellow]%s[/color] casts %s%s: unseen for %d seconds, and a double of them goes on ahead.\n" % [who, skill.name, paid_through(paid), seconds]
 		Use.HIDING_SPOT:
 			var paid := pay(key, skill)
 			if paid.is_empty():

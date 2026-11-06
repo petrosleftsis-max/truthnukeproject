@@ -3,10 +3,11 @@
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_egj04"]
 [ext_resource type="Texture2D" uid="uid://c8qj50fi3qrso" path="res://art/icons/gun_skill.png" id="2_2u77k"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_hu7ck"]
-[ext_resource type="AudioStream" uid="uid://cvpdw7utkbbl6" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/cyrus_pistol.wav" id="sfx_sound"]
 
 [resource]
 script = ExtResource("3_hu7ck")
+sound = ExtResource("sfx_sound")
 projectile_look = 2
 name = "Gun"
 description = "Cyrus uses gun."
@@ -17,4 +18,3 @@ respects_blocking = true
 animation = "attack"
 ability_modifier = 1.0
 scaling_stat = 3
-sound = ExtResource("90_sfx")

@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_comb")
+ai_smarts = 2
 name = "Summoner"
 glossary_text = "Frailer even than a sorcerer, and it knows it: it keeps out of reach and lets its Bound Beast do the fighting - mending it, empowering it, and sending it in. Fell the Summoner and the beast goes with it."
 class_t = 2

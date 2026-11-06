@@ -50,6 +50,8 @@ enum AoEShape {
 ## SUMMON_DECOY - Alithia's Mirror Image): an image of whoever was chosen, set
 ## down where she likes. Off, an image goes on a tile beside them.
 @export var placed_in_reach: bool = false
+## Placed In Reach, and only ever of the one using it: there is no asking who (Mislead).
+@export var image_of_self: bool = false
 ## If true, this skill doesn't care whose side anyone is on: an area hits every
 ## living combatant inside it, friend and foe alike, and a single-target one can
 ## be aimed at either side. Use it for a shockwave that knocks back whoever it
@@ -61,7 +63,7 @@ enum AoEShape {
 ## blocks the caster's own movement class (the same "Blocks" tile data
 ## movement already respects) blocks this skill too, and hides anything
 ## behind it. If false (default), the skill ignores blocking tiles entirely -
-## useful for something that arcs over obstacles (a lobbed fireball) versus
+## useful for something that arcs over obstacles (a lobbed bottle) versus
 ## something that needs a clear shot (a straight arrow).
 @export var respects_blocking: bool = false
 ## If true, anyone with this skill in their skill_list can use it as a
@@ -341,7 +343,7 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 ##
 ## On: no roll. The skill lands in full on anyone whose contest_stat is below
 ## the caster's scaling_stat, and merely grazes anyone whose is equal or
-## higher - half damage, and none of the skill's other effects. So a Fireball
+## higher - half damage, and none of the skill's other effects. So a Wildfire
 ## scaling from Intellect and contesting Physical burns everyone frailer than
 ## the caster is clever, and only singes the rest.
 @export var uses_stat_contest: bool = false : set = _set_uses_stat_contest
@@ -461,13 +463,16 @@ enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
 ## move still unmarked.
 @export var noise: Loudness = Loudness.UNMARKED
 @export_range(0.0, 20.0, 0.5, "suffix:tiles") var noise_tiles: float = 0.0
+## As a Lure: how far off guards hear what it leaves, and it may be thrown as far as Max Range says.
+## 0: the plain Lure's (OutsideMoves.LURE_TILES, LURE_AHEAD). Phantom Noise.
+@export_range(0.0, 30.0, 0.5, "suffix:tiles") var lure_tiles: float = 0.0
 ## What it does on a map (OutsideMoves). Automatic reads it off what it does in
 ## a fight: a heal mends, a revive brings back, a boost to walking quickens,
 ## Invisibility and Find Familiar as ever, and anything that deals damage springs
 ## an ambush with it as the opening blow - or breaks a breakable wall. Anything
 ## else does nothing out there unless it is set here. Counter Trap answers a
 ## magical trap as it goes off (MagicTrap - InstaHack). Stored by number: append.
-@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen")
+@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen", "Seeming", "Mislead")
 var outside_use: int = 0
 
 @export_group("Tether")

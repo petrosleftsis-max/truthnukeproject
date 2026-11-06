@@ -10,7 +10,7 @@ combatant_key = "prometheus"
 position = Vector2i(4, 2)
 level = 64
 subclass = "elemental_conductor"
-starting_items = Array[String](["potent_cure_potion", "fireball_gate_nade", "big_bomb", "medicine"])
+starting_items = Array[String](["potent_cure_potion", "wildfire_gate_nade", "big_bomb", "medicine"])
 equipment = Array[String](["rowan_staff"])
 
 [sub_resource type="Resource" id="Party_alithia"]

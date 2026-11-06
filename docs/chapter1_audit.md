@@ -59,7 +59,7 @@ Health and Defense by level, with no armour worn. Health is EXISTING_BASELINE; D
     | Where | Spells |
     |---|---|
     | In the story | Fire Blast, Wind Shot, Rock Throw, Quicken |
-    | In Arena Mode | Also InstaHack, Dispel Magic, Burner, Wildfire, Fireball, Wind Vacuum, Crystalise, Wind Swoon, Hermes Step, Hover, Invisibility, Growth, Mist Step, Kindled Hound |
+    | In Arena Mode | Also InstaHack, Dispel Magic, Burner, Wildfire, Wind Vacuum, Crystalise, Wind Swoon, Hermes Step, Hover, Invisibility, Growth, Mist Step, Kindled Hound |
 
     Passives: Prying Mind, Elemental Affinity I, Kindling I-II.
   - **Alithia:** the same in the story and Arena Mode. Votive Flame and Water Spike ×0.7, Sass Club ×1.5, Intuition. Spells: Heal, Light Heal, Holy Lance, Flash, River Flow, Frozen River (from 16), Resuscitate, Cleanse, Holy Splash, Communion (from 16), Dread Visage, Bewilder. Passives: Mercy I-II, Aura I.
@@ -127,7 +127,7 @@ The snapshot is `docs/perplexity_combat_context.md` as it was sent. The reposito
 | Topic | Snapshot says | Repository does | Action taken |
 |---|---|---|---|
 | Cyrus's movement | "Cyrus walks 8 from level 8"; Cat Burglar's +2 "from level 8" (Part 1, and the README) | Cat Burglar I gives +2 on a turn started in cover, from level 1. Cat Burglar II gives +2 always and climbing anywhere, from **24**. So Cyrus has 6 (8 in cover) up to 23, and 8 (10 in cover) from 24. | Documentation corrected. |
-| Gate Nade power | Part 4: "Gate Nades: power 50" | Heal 30, Crystalise 40, Fireball 50, Communion 50 | Part 4 corrected. |
+| Gate Nade power | Part 4: "Gate Nades: power 50" | Heal 30, Crystalise 40, Wildfire 50, Communion 50 | Part 4 corrected. |
 | Catalyst scope | `EffectDefinition`'s comment: "on the one it lands on" | `Combat.catalyst()` sets off every lingering *condition* of Cyrus's on **every** enemy, for one tick's damage × (ticks left × 2), resisted once, then restarts each at full length. Bare damage-over-time wounds (not conditions) are left out. The README describes all enemies. | **Resolved:** the designer keeps every enemy (2026-10-24). The comments, the skill text and the preview now match the code; the exact rule is in the ledger, and the `ammo` suite checks it. Code unchanged. |
 | Durations | Earlier snapshots: an effect wearing off at a turn's end lasts one turn longer than written | Since 2026-10-24 (the designer's rule), "N turns" is N of the target's turns. An effect that lands on whoever is acting also gets the rest of that turn. | Snapshot rules updated. |
 | Corrosive Round | A separate ×0.9 Defense effect beside Corroded (Part 3 of older snapshots) | −10% Defense carried by the Corroded condition itself (`defense_change`): it refreshes, never stacks, and is cleansed with Corroded | Done before the handoff and **outside the trial's scope**. See section 8. |
@@ -370,7 +370,7 @@ Erysichthon's other blows at 18 down nobody in one. Its best, Ravenous Bite, doe
 |---|---|---|---|
 | **Self Destruct** (Bomber) | Lab Fight L8, City Fight L14, Dungeon Demo L14, lab stage A L16 | Prometheus (37 against his 33 at L8; 47 against 36 at L14) | Flagged as an UNFAIR candidate: the Bomber walks up and explodes on its own turn (×3.0, radius 3, and it dies too), and the only warning is the danger view. Its answers are killing it first (2 blows at L8), or keeping further than its walk plus 3 tiles away, which the danger view shows. **Kept as it is by the designer (2026-10-24): it teaches the player to read enemy moves.** |
 | Titanfall (Barbarian, Pit Champion) | Sixty-Four, L64 | Prometheus, **Alithia, Cyrus** | UNFAIR candidate, at 64 only: the level-64 regression. |
-| Follow Up Attack, Sweep Strike, Burner, Fireball | Sixty-Four, L64 | Prometheus | UNFAIR candidate, at 64 only. |
+| Follow Up Attack, Sweep Strike, Burner (and Fireball, removed 2026-11-06) | Sixty-Four, L64 | Prometheus | UNFAIR candidate, at 64 only. |
 
 Prometheus at the Defense of 28 has 58 health at 64, and these are ordinary blows.
 

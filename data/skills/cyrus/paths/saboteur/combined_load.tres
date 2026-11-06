@@ -3,10 +3,11 @@
 [ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
 [ext_resource type="Texture2D" path="res://art/icons/combined_load_skill.png" id="2_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
-[ext_resource type="AudioStream" path="res://audio/sfx/Small_Gun_Shot_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/cyrus_pistol.wav" id="sfx_sound"]
 
 [resource]
 script = ExtResource("3_skill")
+sound = ExtResource("sfx_sound")
 projectile_look = 3
 name = "Combined Load"
 description = "Two loads at once: pick two of your ammunition, and fire them as one shot."
@@ -18,4 +19,3 @@ respects_blocking = true
 combines_ammo = true
 scaling_stat = 3
 can_be_copied = false
-sound = ExtResource("90_sfx")

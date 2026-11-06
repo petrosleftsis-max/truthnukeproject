@@ -2,7 +2,7 @@
 
 A grid tactical RPG in Godot 4.7.2. `project.godot` sits at the repo root, so
 every folder here is inside the Godot project - including `tests/`, which
-carries a `.gdignore` to keep the editor from parsing 127 test drivers on every
+carries a `.gdignore` to keep the editor from parsing every test driver on every
 start and shipping them in builds.
 
 **Where the work stands, and what waits on the designer: `docs/where_we_are.md`.**
@@ -43,7 +43,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 152 suites and takes a while. Each one boots the real game
+A full run is 155 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one. A second harness can run beside a
@@ -267,6 +267,10 @@ red burst at a collision, a ring round whoever holds and faint figures on a Wind
 possible tiles; the prompt has the damage, and the HP ghost counts it. A new thing that
 shoves needs an entry through `_foresee_one`. `shoveaim` covers it.
 
+**Spells have no levels** (the designer, 2026-11-06): a spell comes when its gate opens, and nothing else
+(`required_level` is gone from every spell; `Combat.meets_level_for` asks `_gate_is_open_to`;
+`CharacterSheet.comes_in`). `docs/progression.csv` still lists levels for spells, and the game ignores them.
+
 **Spells and what they rest on** (the designer's lists of 2026-11-05; `enchant`, `spellstwo`,
 `outsidespells`). Numbers the designer did not give are PROPOSAL (ledger).
 - **Orders** (Combat "Orders"): a condition with `obeys_order` (Compelled): `_choose_order`
@@ -314,6 +318,52 @@ shoves needs an entry through `_foresee_one`. `shoveaim` covers it.
   other player's. Great Snare is a `Use.TRAP`
   with `Trap.burst_tiles`: nothing has health on a map, so "a lot of damage" is everybody
   within it down.
+
+**Illusions, from the designer's list of 2026-11-06** (Combat "Unnoticed until they act", "Disguises",
+"Illusions that are called up", "Going to look", "False Ground"; `illusions`, and `outsidespells` on a map).
+All on the Illusory Shepherd's path; numbers PROPOSAL. Phantom Noise: `drawn_to_aim` (`_noise_they_heard`,
+`_go_and_look`, from `_advance_turn` after a terror's run); on a map a Lure with `lure_tiles`. Phantom Wall:
+`summon_across` (`_summon_all`, `summon(..., only_there)`), a `wall` object with `illusion`: a wall to the
+believer's sight only, no wall to aim at, no light stopped. Phantom Company: `summon_count`, `summon_as_images`,
+`summon_shakes`. Seeming: `unnoticed_until_acting`: `until_acting`, `looks_like`, `_gives_themselves_away` in
+`_use_skill` (`was_unnoticed`); on a map `StealthWatch "Seeming"`, `SEEMING` as what is worn (`_worn_item`).
+Fallen Friend: condition `looks_dead` held by a tether (`_begin_looking_dead`, `step_gives_away`,
+`_keep_up_appearances` from `sync_zones`). Phantom Killer: `doubt_each_turn` (`_doubts_it_away`, in
+`start_of_turn_effects`; `wins_contest(..., doubt)`). False Ground: `zone_false_ground`, `false_ground_for` in
+every walk (`_apply_false_ground`, `get_reachable_tiles`, `_reachable_by_size`, `_add_step`), `zone.caught`,
+`_false_ground_holds`. Mislead: `image_of_self`, `image_moves` (`double_of`, `move_double`, `MOVE_IMAGE`, the
+`move_double` secondary), no tether; on a map `Use.MISLEAD`. Weird is data. `_seen_for_who_they_are`, from
+`set_hidden(comb, false)`, takes off every look. **A disguise in a fight:** `disguise_refusal`, `fitting_disguise`,
+`wear_disguise`, `DISGUISE_SKILL` in `main_skills_of` and `secondary_grants`, `hidden_from` asks
+`sees_through_disguises`.
+
+**The AI's mind** (Combat "The AI's mind"; `aimind`; the designer, 2026-11-06). Per creature:
+`CombatantDefinition.ai_smarts` (`AI_KNOWN_BY`), `ai_also_knows`, `ai_never_knows` make `comb.ai_knows`
+(`AiKnows` flags; ask `_ai_knows`), and the dials `ai_aggression`, `ai_caution`, `ai_focus`,
+`ai_self_preservation`. Numbers PROPOSAL. A place: `_ai_read_the_field` (`_ai_mind`, `_ai_ground_map`) then
+`_ai_tile_worth`, in `ai_plan_attack` and in `score_tile_safety` for `_ai_thinker`. A target: `ai_target_value`.
+A plan: gates and `_ai_shove_worth` in `ai_plan_attack`. First things first: `_ai_mind_takes_over`, from
+`_ai_turn`: `_ai_search_the_dark` (`_ai_seen`, `_ai_note_sightings`), `_ai_slap_awake`, `_ai_leave_bad_ground`,
+`_ai_set_off_a_hazard` (`_ai_shooting_thing` lets a blow through at something of its own side's), `_ai_fall_back`.
+A healer: `_ai_patient`, `_ai_most_afflicted`, `_ai_dispel_a_zone`. Nothing here reads a clock or rolls, so a
+replayed fight agrees. `EncounterDefinition.ai_leaves_hazards` is the fight's own switch.
+
+**Light** (`combat/Light.gd`, `LightMap.gd`, `LightView.gd`; `exploration/LightSource.gd`, `AmbientArea.gd`; Combat
+"Light", ExplorationScene "Light"; `light`; the designer, 2026-11-06). Levels DARK, DIM, BRIGHT per tile in a
+`LightMap`; `Light.gather` reads sources, `relight` from `sync_zones`. A Dark tile is the pseudo-zone `MAP_DARK`:
+anybody on it `lost_in_the_dark`, seen only by `sees_in_darkness` or within `SEEN_IN_THE_DARK_TILES` (option A).
+`hidden_from` is what to ask with somebody looking. Dim: `_hides_in_dim`, `dim_sight_tiles`. Time of day
+(`Campaign.time_of_day`, `Light.Hour`, `set_time_of_day`, `pass_time`) changes during play on a map
+(`_light_goes_on`). `LightView` is view only, a shade and a glow sprite at a pixel a tile; nothing it does
+rolls or decides. `StealthWatch` reads the same map (`lights_for_the_map`), a guard's `carries_light_tiles` among
+them (`carried_lights_moved`). A figure's shadow is `CombatantSprite._Shadow`, as `Light.shadow_of` says, set for
+all at once by `set_shadows`; a picture at `art/fx/figure_shadow.png` takes its place.
+
+**Sounds** (`audio/GameSounds.gd`, `audio/SoundBank.gd`, `audio/sound_bank.tres`; `audio`; `docs/sound_plan.md`).
+Everything that is not a move's or a condition's own is a slot in the bank: `GameSounds.play(slot)`, `loop`,
+`play_slice`. `GameSounds.listen` makes every button click, unless `quiet`. The wavs are kept off GitHub
+(`tools/place_sfx.ps1`, `tools/sfx_list.txt`), and `SkillDatabase` first turns off aborting on a missing
+resource, so a clone without them loads silent.
 
 **Preparing spells** (Campaign "Preparing spells", `ui/prepare_spells.gd`,
 `Stats.spells_prepared_at`; the designer, 2026-11-05): 5 at level 1 to 35 at 64, a straight
@@ -835,7 +885,7 @@ joins comes up on both (`manage_party_there`).
 port packed into base 32 with a check byte, 8 characters for the usual port and 12 with
 another. `Net.join` takes one for an address; the panel has a Copy Code beside each address
 to give. It does not hide the address, and the host must be reachable as for the address.
-`joincode` covers it. `PROTOCOL` is 7.
+`joincode` covers it. `PROTOCOL` is 8.
 **One player to a machine** (the designer's list of 2026-11-04):
 `Coop.player_here()` is this machine's player over a network, and any device here
 counts as them (`player_of_event`, `pointer_device`, `direction`). On a turn or a

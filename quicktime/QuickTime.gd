@@ -126,7 +126,9 @@ func run(definition: QuickTimeDefinition) -> bool:
 		get_tree().paused = true
 		_paused_here = true
 	_build()
+	GameSounds.loop(&"hack_clock_urgent")
 	var done_in_time: bool = await finished
+	GameSounds.stop_loop()
 	_close()
 	if as_a_menu:
 		MenuPause.release(self)

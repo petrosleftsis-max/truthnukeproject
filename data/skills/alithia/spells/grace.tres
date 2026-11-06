@@ -13,7 +13,6 @@ heal_share_of_health = 1.0
 script = ExtResource("3_skill")
 name = "Grace"
 description = "Every ally near where it lands, back to full health."
-required_level = 64
 max_range = 10
 ability_modifier = 0.7
 aoe_radius = 3

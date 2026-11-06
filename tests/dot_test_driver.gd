@@ -162,20 +162,20 @@ func run_test():
 	var burn_effect := EffectDefinition.new()
 	burn_effect.type = EffectDefinition.EffectType.CONDITION
 	burn_effect.condition = burn
-	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
+	var wildfire: SkillDefinition = SkillDatabase.skills["wildfire"]
 
-	acting.stats[Stats.stat_key(fireball.scaling_stat)] = 10
+	acting.stats[Stats.stat_key(wildfire.scaling_stat)] = 10
 	target.stats["defense"] = 10
 	revive(target)
 	target.status_effects.clear()
-	combat.apply_effect(acting, target, burn_effect, fireball, false)
+	combat.apply_effect(acting, target, burn_effect, wildfire, false)
 	hp = target.hp
 	combat.process_status_effects(target)
 	var weak_burn = hp - target.hp
-	acting.stats[Stats.stat_key(fireball.scaling_stat)] = 90
+	acting.stats[Stats.stat_key(wildfire.scaling_stat)] = 90
 	revive(target)
 	target.status_effects.clear()
-	combat.apply_effect(acting, target, burn_effect, fireball, false)
+	combat.apply_effect(acting, target, burn_effect, wildfire, false)
 	hp = target.hp
 	combat.process_status_effects(target)
 	var strong_burn = hp - target.hp
@@ -363,12 +363,12 @@ func run_test():
 	gentle.type = EffectDefinition.EffectType.CONDITION
 	gentle.condition = burn
 	gentle.condition_dot_modifier = maxf(burn.dot_modifier * 0.25, 0.05)
-	acting.stats[Stats.stat_key(fireball.scaling_stat)] = 40
+	acting.stats[Stats.stat_key(wildfire.scaling_stat)] = 40
 	var took := {}
 	for pair in [["fierce", blank], ["gentle", gentle]]:
 		revive(target)
 		target.status_effects.clear()
-		combat.apply_effect(acting, target, pair[1], fireball, false)
+		combat.apply_effect(acting, target, pair[1], wildfire, false)
 		hp = target.hp
 		combat.process_status_effects(target)
 		took[pair[0]] = hp - target.hp
@@ -380,8 +380,8 @@ func run_test():
 		burn.describe_dot())
 
 	# The preview has to agree with the battle, or the number is a lie.
-	var fierce_said = ui.describe_effect(blank, fireball)
-	var gentle_said = ui.describe_effect(gentle, fireball)
+	var fierce_said = ui.describe_effect(blank, wildfire)
+	var gentle_said = ui.describe_effect(gentle, wildfire)
 	ok(fierce_said != gentle_said,
 		"and the preview quotes each skill's own version",
 		"%s | %s" % [fierce_said, gentle_said])
@@ -439,23 +439,23 @@ func run_test():
 	armed_spawn.weapon_base = Stats.WEAPON_BASE * 2
 	var plain = combat.create_combatant(CombatantDatabase.combatants["cyrus"], "cyrus", "", plain_spawn)
 	var armed = combat.create_combatant(CombatantDatabase.combatants["cyrus"], "cyrus", "", armed_spawn)
-	var plain_tick = combat.dot_base_damage(plain, fireball, burn.dot_modifier)
-	var armed_tick = combat.dot_base_damage(armed, fireball, burn.dot_modifier)
+	var plain_tick = combat.dot_base_damage(plain, wildfire, burn.dot_modifier)
+	var armed_tick = combat.dot_base_damage(armed, wildfire, burn.dot_modifier)
 	ok(armed_tick > plain_tick, "the better-armed caster burns harder",
 		"%.1f against %.1f" % [armed_tick, plain_tick])
 	# From the same base the direct hit is built on - the caster's stat and the
 	# weapon in their hand - but not the skill's own ability_modifier, which
 	# sizes the blow and is deliberately kept out of what the blow leaves
 	# behind, so the two can be tuned apart.
-	var by_the_book = Stats.base_damage(combat.stat_of(armed, fireball.scaling_stat),
+	var by_the_book = Stats.base_damage(combat.stat_of(armed, wildfire.scaling_stat),
 		armed.weapon_base) * burn.dot_modifier
 	ok(is_equal_approx(armed_tick, by_the_book),
 		"from the same base the swing is worked out from, and its own dial alone",
 		"%.2f against %.2f" % [armed_tick, by_the_book])
 	# The whole point of the fix: the two halves of one attack now agree about
 	# what the caster is carrying.
-	var plain_swing = combat.base_skill_damage(plain, fireball)
-	var armed_swing = combat.base_skill_damage(armed, fireball)
+	var plain_swing = combat.base_skill_damage(plain, wildfire)
+	var armed_swing = combat.base_skill_damage(armed, wildfire)
 	ok(armed_swing > plain_swing and armed_tick > plain_tick,
 		"so a heavier weapon moves the swing and the burn together",
 		"swing %d->%d, tick %.1f->%.1f" % [plain_swing, armed_swing, plain_tick, armed_tick])
@@ -470,8 +470,8 @@ func run_test():
 	var fresh_burn := EffectDefinition.new()
 	fresh_burn.type = EffectDefinition.EffectType.CONDITION
 	fresh_burn.condition = burn
-	acting.stats[Stats.stat_key(fireball.scaling_stat)] = 10
-	combat.apply_effect(acting, target, fresh_burn, fireball, false)
+	acting.stats[Stats.stat_key(wildfire.scaling_stat)] = 10
+	combat.apply_effect(acting, target, fresh_burn, wildfire, false)
 	var burns_on_them = func():
 		var n = 0
 		for eff in target.status_effects:
@@ -485,8 +485,8 @@ func run_test():
 			first_strength = eff.get("dot_base", 0.0)
 	# A stronger caster sets the second one, so which of the two survived is
 	# visible rather than a matter of trust.
-	acting.stats[Stats.stat_key(fireball.scaling_stat)] = 90
-	combat.apply_effect(acting, target, fresh_burn, fireball, false)
+	acting.stats[Stats.stat_key(wildfire.scaling_stat)] = 90
+	combat.apply_effect(acting, target, fresh_burn, wildfire, false)
 	ok(burns_on_them.call() == 1, "and still one after a second", "%d" % burns_on_them.call())
 	var surviving = 0.0
 	for eff in target.status_effects:
@@ -499,7 +499,7 @@ func run_test():
 	var poison_effect := EffectDefinition.new()
 	poison_effect.type = EffectDefinition.EffectType.CONDITION
 	poison_effect.condition = load("res://data/conditions/poisoned.tres")
-	combat.apply_effect(acting, target, poison_effect, fireball, false)
+	combat.apply_effect(acting, target, poison_effect, wildfire, false)
 	ok(burns_on_them.call() == 1 and combat.conditions_of(target).size() == 2,
 		"while a different one lands beside it rather than replacing it",
 		"%d conditions" % combat.conditions_of(target).size())
@@ -520,11 +520,11 @@ func run_test():
 	revive(target)
 	target.status_effects.clear()
 	for laid in [fresh_burn, poison_effect]:
-		combat.apply_effect(acting, target, laid, fireball, false)
+		combat.apply_effect(acting, target, laid, wildfire, false)
 	var frost := EffectDefinition.new()
 	frost.type = EffectDefinition.EffectType.CONDITION
 	frost.condition = load("res://data/conditions/frozen.tres")
-	combat.apply_effect(acting, target, frost, fireball, false)
+	combat.apply_effect(acting, target, frost, wildfire, false)
 	ok(combat.conditions_of(target).size() == 3, "three different afflictions on them",
 		"%d" % combat.conditions_of(target).size())
 	var cure: SkillDefinition = SkillDatabase.skills["cleanse"]
@@ -545,7 +545,7 @@ func run_test():
 	# Aimed outward the panel cannot know whose defence it will meet, so it
 	# promises the base the same way the Base Damage line does. Turned on the
 	# caster it knows exactly, so it says what it will cost.
-	acting.stats[Stats.stat_key(fireball.scaling_stat)] = 40
+	acting.stats[Stats.stat_key(wildfire.scaling_stat)] = 40
 	acting.stats["defense"] = 30
 	var outward = ui.build_skill_tooltip(SkillDatabase.skills["burning_shot"], acting)
 	var promised = 0
@@ -607,14 +607,14 @@ func run_test():
 	self_hit.type = EffectDefinition.EffectType.DAMAGE
 	self_hit.applies_to_caster = true
 	self_hit.damage_type = Damage.Type.FIRE
-	var said_of_self = ui.describe_effect(self_hit, fireball)
+	var said_of_self = ui.describe_effect(self_hit, wildfire)
 	ok(said_of_self.begins_with("Damage:"), "a hit on yourself is quoted as damage, not base damage",
 		said_of_self)
 	var outward_hit := EffectDefinition.new()
 	outward_hit.type = EffectDefinition.EffectType.DAMAGE
 	outward_hit.damage_type = Damage.Type.FIRE
-	ok(ui.describe_effect(outward_hit, fireball).begins_with("Base Damage:"),
-		"while one aimed outward still promises the base", ui.describe_effect(outward_hit, fireball))
+	ok(ui.describe_effect(outward_hit, wildfire).begins_with("Base Damage:"),
+		"while one aimed outward still promises the base", ui.describe_effect(outward_hit, wildfire))
 	log_line("")
 
 	log_line("======== a buffed attribute reaches the arithmetic that reads it ========")
@@ -659,11 +659,11 @@ func run_test():
 			blow.type = EffectDefinition.EffectType.DAMAGE
 			blow.damage_type = Damage.Type.PHYSICAL
 			target.hp = 500
-			combat.do_damage(acting, target, blow, fireball, false)
+			combat.do_damage(acting, target, blow, wildfire, false)
 			var took_guarded = 500 - target.hp
 			target.status_effects.clear()
 			target.hp = 500
-			combat.do_damage(acting, target, blow, fireball, false)
+			combat.do_damage(acting, target, blow, wildfire, false)
 			var took_bare = 500 - target.hp
 			ok(took_guarded < took_bare, "and the same swing hurts less while it holds",
 				"%d taken guarded, %d without" % [took_guarded, took_bare])
@@ -671,13 +671,13 @@ func run_test():
 	# The same hole let a caster's own attribute go unbuffed.
 	var sharpen := EffectDefinition.new()
 	sharpen.type = EffectDefinition.EffectType.STAT_MULTIPLIER
-	sharpen.stat = Stats.stat_key(fireball.scaling_stat)
+	sharpen.stat = Stats.stat_key(wildfire.scaling_stat)
 	sharpen.stat_multiplier = 2.0
 	sharpen.duration = 2
 	acting.status_effects.clear()
-	var dull_swing = combat.base_skill_damage(acting, fireball)
-	combat.apply_effect(acting, acting, sharpen, fireball, false)
-	var keen_swing = combat.base_skill_damage(acting, fireball)
+	var dull_swing = combat.base_skill_damage(acting, wildfire)
+	combat.apply_effect(acting, acting, sharpen, wildfire, false)
+	var keen_swing = combat.base_skill_damage(acting, wildfire)
 	ok(keen_swing > dull_swing, "and doubling a caster's own stat doubles what they throw",
 		"%d became %d" % [dull_swing, keen_swing])
 	acting.status_effects.clear()

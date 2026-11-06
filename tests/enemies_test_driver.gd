@@ -1175,7 +1175,7 @@ func melee_and_ranged():
 	var not_melee: Array = hers.filter(func(key): return key != "fire_burst" and SkillDatabase.skills.has(key) and not Combat.is_melee(SkillDatabase.skills[key]))
 	ok(not_melee.is_empty(), "and everything Enfina has, her paths' too", "%s" % [not_melee])
 	ok(not Combat.is_melee(SkillDatabase.skills.fire_burst), "but Fire Burst")
-	ok(not Combat.is_melee(SkillDatabase.skills.gun) and not Combat.is_melee(SkillDatabase.skills.fireball), "and a shot or a spell is ranged")
+	ok(not Combat.is_melee(SkillDatabase.skills.gun) and not Combat.is_melee(SkillDatabase.skills.wildfire), "and a shot or a spell is ranged")
 	log_line("")
 
 

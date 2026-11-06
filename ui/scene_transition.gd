@@ -40,6 +40,8 @@ func _ready():
 	# The first autoload with anything to show, so the fonts are on the theme
 	# before any screen is built. See GameFonts for why it is done here.
 	GameFonts.apply()
+	GameSounds.listen(get_tree())
+	Campaign.gold_changed.connect(func(_gold): GameSounds.play(&"coin"))
 	layer = LAYER
 	# Keeps fading while the tree is paused - the pause menu is a Control like
 	# any other and can start a scene change.

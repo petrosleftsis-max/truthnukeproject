@@ -1,0 +1,53 @@
+# The designer's sounds and where the game uses them (tools/place_sfx.ps1):
+# <original> <copy, under audio/sfx> [raise]
+# Where each one is heard is docs/sound_plan.md. Add a line for a new one and run the tool with -Only.
+
+# Fights opening and closing
+bass_jump_start_drop.wav fights/bass_jump_start_drop.wav
+bass_drop_and_downer_fast.wav fights/bass_drop_and_downer_fast.wav
+bass_drop_and_downer_slow.wav fights/bass_drop_and_downer_slow.wav
+bass_drop_and_downer_medium.wav fights/bass_drop_and_downer_medium.wav
+bass_rattling.wav fights/bass_rattling.wav
+bass_tone_downer_reverb.wav fights/bass_tone_downer_reverb.wav
+erysichtonGrowl.wav fights/erysichthon_growl.wav
+eerie_revelation_2.wav fights/eerie_revelation_2.wav
+tiny_bells.wav fights/tiny_bells.wav raise
+flatline.wav fights/flatline.wav
+enemyDie.wav fights/enemy_die.wav
+
+# Moves
+weak_fire_damage.wav moves/weak_fire_damage.wav
+medium_fire_damage.wav moves/medium_fire_damage.wav
+weak_ice_attack.wav moves/weak_ice_attack.wav
+medium_ice_attack.wav moves/medium_ice_attack.wav
+heavy_ice_attack.wav moves/heavy_ice_attack.wav
+medium_water_damage.wav moves/medium_water_damage.wav
+weak_wind_damage.wav moves/weak_wind_damage.wav raise
+heavy_electric_damage.wav moves/heavy_electric_damage.wav
+weak_idol_damage.wav moves/weak_idol_damage.wav
+medium_idol_damage.wav moves/medium_idol_damage.wav
+heavy_idol_damage.wav moves/heavy_idol_damage.wav
+seismic_slam.wav moves/seismic_slam.wav
+cyrus_pistol.wav moves/cyrus_pistol.wav
+rapier.wav moves/rapier.wav
+projectile.wav moves/projectile.wav
+flicking_through_pages.wav moves/flicking_through_pages.wav raise
+turnPaper.wav moves/turn_paper.wav raise
+
+# Hacks, puzzles and the world
+glitch_corrupted_data.wav world/glitch_corrupted_data.wav
+clock_sound.wav world/clock_sound.wav
+clock_sound_urgent.wav world/clock_sound_urgent.wav
+puzzle_success.wav world/puzzle_success.wav
+mechanism_interact.wav world/mechanism_interact.wav
+mechanism_activation.wav world/mechanism_activation.wav
+eerie_revelation_1.wav world/eerie_revelation_1.wav
+
+# Menus
+interface_interact.wav menus/interface_interact.wav
+sci-fi_ping_down.wav menus/ping_down.wav
+bag_open.wav menus/bag_open.wav
+inventoryShuffle.wav menus/inventory_shuffle.wav
+rumage_through_suitcase.wav menus/rummage_through_suitcase.wav
+coin.wav menus/coin.wav
+glossaryPage.wav menus/glossary_page.wav raise

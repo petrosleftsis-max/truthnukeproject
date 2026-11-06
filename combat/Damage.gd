@@ -33,7 +33,7 @@ enum Type {
 ## What kind of thing a type is.
 ##
 ## BASE are the five elements. Each has an UPGRADED form it can be raised into -
-## Prometheus upgrading his Fireball makes it deal Plasma rather than Fire - and
+## Prometheus upgrading his Wildfire makes it deal Plasma rather than Fire - and
 ## an upgraded type is its own element for resistance, not a stronger version of
 ## the one it came from. SPECIAL are the three that are nobody's element and
 ## cannot be upgraded into or out of.

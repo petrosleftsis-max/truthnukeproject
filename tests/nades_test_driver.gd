@@ -131,21 +131,21 @@ func items_button(comb: Dictionary, key: String) -> Array:
 
 func the_nade_is_its_spell():
 	log_line("======== a nade is its spell ========")
-	var fireball_nade := nade("fireball_gate_nade")
-	var fireball: SkillDefinition = SkillDatabase.skills.fireball
-	ok(fireball_nade != null and fireball_nade.cast == fireball, "the Fireball Gate Nade holds Fireball")
-	ok(fireball_nade.name == "Fireball Gate Nade" and fireball_nade.description.contains("Fireball"), "named for it", fireball_nade.name)
-	ok(fireball_nade.aoe_radius == fireball.aoe_radius and fireball_nade.max_range == fireball.max_range
-		and fireball_nade.effects == fireball.effects and fireball_nade.ability_modifier == fireball.ability_modifier
-		and fireball_nade.damage_type == fireball.damage_type,
+	var wildfire_nade := nade("wildfire_gate_nade")
+	var wildfire: SkillDefinition = SkillDatabase.skills.wildfire
+	ok(wildfire_nade != null and wildfire_nade.cast == wildfire, "the Wildfire Gate Nade holds Wildfire")
+	ok(wildfire_nade.name == "Wildfire Gate Nade" and wildfire_nade.description.contains("Wildfire"), "named for it", wildfire_nade.name)
+	ok(wildfire_nade.aoe_radius == wildfire.aoe_radius and wildfire_nade.max_range == wildfire.max_range
+		and wildfire_nade.effects == wildfire.effects and wildfire_nade.ability_modifier == wildfire.ability_modifier
+		and wildfire_nade.damage_type == wildfire.damage_type,
 		"it takes the spell's whole shape: reach, area, effects, how hard and of what")
-	ok(fireball_nade.spell_slot_level == 0 and fireball.spell_slot_level > 0, "but opens no gate")
-	ok(fireball_nade.required_level == 1 and fireball.required_level > 1, "and needs no level", "Fireball needs %d" % fireball.required_level)
-	ok(fireball_nade.icon != null and fireball_nade.sound == fireball.sound, "with the consumables' picture and the spell's sound")
-	ok(fireball_nade.item_power == 50 and fireball_nade.price > 0, "its power and price its own", "%d, %d gold" % [fireball_nade.item_power, fireball_nade.price])
+	ok(wildfire_nade.spell_slot_level == 0 and wildfire.spell_slot_level > 0, "but opens no gate")
+	ok(wildfire_nade.required_level == 1, "and needs no level")
+	ok(wildfire_nade.icon != null and wildfire_nade.sound == wildfire.sound, "with the consumables' picture and the spell's sound")
+	ok(wildfire_nade.item_power == 50 and wildfire_nade.price > 0, "its power and price its own", "%d, %d gold" % [wildfire_nade.item_power, wildfire_nade.price])
 	ok(nade("communion_gate_nade").targets_ally, "a Communion nade is thrown at friends")
 	var merchant: StoreDefinition = load("res://data/stores/travelling_merchant.tres")
-	ok(merchant.stock.has("fireball_gate_nade") and merchant.stock.has("communion_gate_nade"), "the travelling merchant sells them")
+	ok(merchant.stock.has("wildfire_gate_nade") and merchant.stock.has("communion_gate_nade"), "the travelling merchant sells them")
 	log_line("")
 
 
@@ -161,10 +161,8 @@ func whose_nade_it_is():
 		"not Prometheus's or Enfina's")
 	ok(combat.can_use_gate_nade(prometheus, nade("crystalise_gate_nade")) and not combat.can_use_gate_nade(alithia, nade("crystalise_gate_nade")),
 		"a Crystalise nade is Prometheus's, not Alithia's")
-	# Fireball is no spell of anybody's since the designer took it off him (2026-11-05):
-	# only Nade Juggler can throw its nade.
-	ok(not combat.can_use_gate_nade(prometheus, nade("fireball_gate_nade")) and not combat.can_use_gate_nade(alithia, nade("fireball_gate_nade")),
-		"and a Fireball nade is nobody's now")
+	ok(combat.can_use_gate_nade(prometheus, nade("wildfire_gate_nade")) and not combat.can_use_gate_nade(alithia, nade("wildfire_gate_nade")),
+		"and a Wildfire nade is Prometheus's")
 	ok(not prometheus.skill_list.has("flame_edge") and combat.knows_or_can_learn(prometheus, "flame_edge")
 		and not combat.knows_or_can_learn(enfina, "flame_edge"),
 		"a spell only one of his paths teaches is one he could learn")
@@ -172,7 +170,7 @@ func whose_nade_it_is():
 	young["side"] = 0
 	ok(not combat.meets_level_for(young, SkillDatabase.skills.communion) and combat.can_use_gate_nade(young, communion),
 		"a spell she is not old enough for yet is one she could learn")
-	ok(combat.can_use_gate_nade(cyrus, communion) and combat.can_use_gate_nade(cyrus, nade("fireball_gate_nade")),
+	ok(combat.can_use_gate_nade(cyrus, communion) and combat.can_use_gate_nade(cyrus, nade("wildfire_gate_nade")),
 		"and Cyrus, through Nade Juggler, can throw any of them")
 	log_line("")
 	log_line("======== on the panel ========")
@@ -219,7 +217,7 @@ func throwing_them():
 	ok(foe.hp < 999, "Prometheus's Crystalise nade goes off", "%d" % foe.hp)
 	var priest: Dictionary = combat.create_combatant(CombatantDatabase.combatants.priest, "priest")
 	priest["side"] = 1
-	ok(combat._ai_plannable(priest, nade("fireball_gate_nade")) == false, "an enemy will not throw one whose spell is no part of theirs")
+	ok(combat._ai_plannable(priest, nade("wildfire_gate_nade")) == false, "an enemy will not throw one whose spell is no part of theirs")
 	log_line("")
 
 
@@ -236,19 +234,19 @@ func the_juggler():
 	# see Nade Juggler do it on its own.
 	var quick_hands: PassiveDefinition = load("res://data/passives/quick_hands.tres")
 	cyrus.passives.erase(quick_hands)
-	var fireball: SkillDefinition = nade("fireball_gate_nade")
-	ok(ui._consumable_spends_secondary(cyrus, fireball), "a nade goes from his secondary action")
+	var wildfire: SkillDefinition = nade("wildfire_gate_nade")
+	ok(ui._consumable_spends_secondary(cyrus, wildfire), "a nade goes from his secondary action")
 	ok(not ui._consumable_spends_secondary(cyrus, SkillDatabase.skills.small_bomb), "a bomb, without Quick Hands, does not")
-	ok(ui.build_skill_tooltip(fireball, cyrus).contains("Secondary through Nade Juggler"), "and the nade's preview says whose doing that is")
-	Campaign.set_inventory("cyrus", ["fireball_gate_nade", "communion_gate_nade"])
+	ok(ui.build_skill_tooltip(wildfire, cyrus).contains("Secondary through Nade Juggler"), "and the nade's preview says whose doing that is")
+	Campaign.set_inventory("cyrus", ["wildfire_gate_nade", "communion_gate_nade"])
 	combat.teleport_to(cyrus, within(cyrus, foe, 6))
 	await settle(1)
 	give_turn(cyrus)
 	cyrus.status_effects.append({"stat": "accuracy", "amount": 100, "duration": 99, "source_name": "test"})
-	await combat.use_skill("fireball_gate_nade", cyrus, foe.position, false, ui._consumable_spends_secondary(cyrus, fireball))
+	await combat.use_skill("wildfire_gate_nade", cyrus, foe.position, false, ui._consumable_spends_secondary(cyrus, wildfire))
 	await settle(3)
 	ok(foe.hp < 999 and cyrus.secondary_used_this_turn and not cyrus.skill_used_this_turn,
-		"he throws a Fireball nobody else can with his secondary action, his main still to come", "%d" % foe.hp)
+		"he throws a Wildfire nobody else can with his secondary action, his main still to come", "%d" % foe.hp)
 	ok(items_button(cyrus, "communion_gate_nade")[1], "and Alithia's Communion nade is his to throw too")
 	cyrus.passives.append(quick_hands)
 	log_line("")

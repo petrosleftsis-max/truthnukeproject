@@ -248,6 +248,7 @@ func _reading_of(key: String) -> String:
 
 
 func _on_buy(key: String):
+	GameSounds.play(&"coin")
 	if Net.follows():
 		Net.store_deal(_key, "buy", "", key)
 		return
@@ -257,6 +258,7 @@ func _on_buy(key: String):
 
 
 func _on_sell(owner_key: String, key: String):
+	GameSounds.play(&"coin")
 	if Net.follows():
 		Net.store_deal(_key, "sell", owner_key, key)
 		return

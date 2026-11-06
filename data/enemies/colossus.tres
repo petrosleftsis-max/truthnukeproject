@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_who")
+ai_smarts = 0
 name = "Colossus"
 max_hp = 200
 max_hp_level_20 = 1200

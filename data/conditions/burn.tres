@@ -1,10 +1,13 @@
 [gd_resource type="Resource" script_class="ConditionDefinition" format=3 uid="uid://1ld4g4lgfheh"]
 
 [ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/weak_fire_damage.wav" id="sfx_tick_sound"]
 
 [resource]
 script = ExtResource("1_cond")
+tick_sound = ExtResource("sfx_tick_sound")
 display_name = "Burn"
+light_tiles = 3.0
 description = "A strong DOT that also increases the speed by 2."
 duration = 5
 dot_type = 1

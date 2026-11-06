@@ -19,7 +19,6 @@ description = "A slow turning of light in the air. Every enemy there who loses t
 min_range = 1
 max_range = 8
 icon = ExtResource("2_icon")
-required_level = 14
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 deals_damage = false
 uses_stat_contest = true

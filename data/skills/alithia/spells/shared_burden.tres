@@ -19,7 +19,6 @@ icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 min_range = 1
 max_range = 6
-required_level = 8
 targets_ally = true
 can_be_copied = false
 deals_damage = false

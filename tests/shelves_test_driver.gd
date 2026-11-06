@@ -83,7 +83,7 @@ func run_test():
 	log_line("")
 
 	Campaign.reset()
-	# At the city's level 14: Pandora open, and Fireball learned.
+	# At the city's level 14: Pandora open, and Wildfire learned.
 	var at_fourteen: EncounterDefinition = load("res://data/encounters/encounter_02_sappers.tres").duplicate(true)
 	for spawn in at_fourteen.spawns:
 		spawn.level = 14

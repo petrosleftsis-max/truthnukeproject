@@ -66,7 +66,65 @@ func set_hidden_alpha(alpha: float):
 	hidden_alpha = alpha
 	for sprite in [_animated, _static]:
 		if sprite != null and is_instance_valid(sprite):
-			sprite.self_modulate = Color(tint, alpha)
+			sprite.self_modulate = Color(tint * lit_by, alpha)
+
+
+## --- A shadow under them ---
+##
+## View only, as Light.shadow_of says: how far every figure's leans and how dark it is, set for all of
+## them at once as the place or the hour changes (set_shadows). A placeholder drawn in code, behind a
+## slot: a picture at SHADOW_PICTURE is drawn in its place.
+
+const SHADOW_PICTURE := "res://art/fx/figure_shadow.png"
+static var shadow_lean := 0.12
+static var shadow_strength := 0.35
+## Counts changes, for each shadow to see that it has to draw itself again.
+static var shadow_version := 0
+
+
+static func set_shadows(lying: Dictionary):
+	shadow_lean = lying.lean
+	shadow_strength = lying.strength
+	shadow_version += 1
+
+
+class _Shadow extends Node2D:
+	var picture: Texture2D = null
+	var seen := -1
+	var alpha_seen := 1.0
+
+	func _ready():
+		if ResourceLoader.exists(CombatantSprite.SHADOW_PICTURE):
+			picture = load(CombatantSprite.SHADOW_PICTURE)
+
+	func _process(_delta):
+		var alpha: float = get_parent().hidden_alpha
+		if seen != CombatantSprite.shadow_version or alpha_seen != alpha:
+			seen = CombatantSprite.shadow_version
+			alpha_seen = alpha
+			queue_redraw()
+
+	func _draw():
+		var tile := float(Grid.TILE_SIZE)
+		var at := Vector2(CombatantSprite.shadow_lean * tile * 0.3, tile * 0.42)
+		var stretch := 1.0 + absf(CombatantSprite.shadow_lean)
+		var colour := Color(0.0, 0.0, 0.0, CombatantSprite.shadow_strength * alpha_seen)
+		if picture != null:
+			var size := Vector2(tile * 0.8 * stretch, tile * 0.24)
+			draw_texture_rect(picture, Rect2(at - size / 2.0, size), false, colour)
+			return
+		draw_set_transform(at, 0.0, Vector2(stretch, 0.3))
+		draw_circle(Vector2.ZERO, tile * 0.3, colour)
+
+
+## How the light where they stand colours them (Light.FIGURE_TINTS).
+var lit_by := Color.WHITE
+
+
+func set_light(colour: Color):
+	if colour != lit_by:
+		lit_by = colour
+		set_hidden_alpha(hidden_alpha)
 
 
 ## Tints them `colour` - white for as drawn.
@@ -88,6 +146,9 @@ var _frame_height := 0.0
 
 
 func setup(combatant_sprite_frames: SpriteFrames, map_sprite: Texture2D, facing_flip: bool):
+	# Under everything else of theirs.
+	if LightView.shown():
+		add_child(_Shadow.new())
 	if combatant_sprite_frames != null:
 		_animated = AnimatedSprite2D.new()
 		_animated.sprite_frames = combatant_sprite_frames

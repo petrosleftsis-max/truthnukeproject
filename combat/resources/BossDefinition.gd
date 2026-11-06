@@ -22,8 +22,12 @@ class_name BossDefinition
 @export var defeat_card: String = ""
 ## The large picture that slides in as they are revealed. Empty: their icon, drawn large.
 @export var reveal_portrait: Texture2D
-## The sting as they light up. Empty: a stand-in.
+## The sting as they light up. Empty: the bank's Boss Reveal (audio/sound_bank.tres).
 @export var reveal_sound: AudioStream
+## A second sound under the first, for one whose reveal needs both.
+@export var reveal_second_sound: AudioStream
+## Heard as each of their phases begins. Empty: nothing.
+@export var phase_sound: AudioStream
 @export_group("")
 ## In any order: each begins once its At Health is reached.
 @export var phases: Array[BossPhase] = []

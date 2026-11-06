@@ -13,6 +13,9 @@
 [ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="9_passive"]
 [ext_resource type="Resource" path="res://data/passives/hollow_frame.tres" id="10_hollow"]
 [ext_resource type="Resource" path="res://data/conditions/prone.tres" id="11_prone"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/erysichthon_growl.wav" id="sfx_reveal_sound"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/eerie_revelation_2.wav" id="sfx_reveal_second_sound"]
+[ext_resource type="AudioStream" path="res://audio/sfx/fights/erysichthon_growl.wav" id="sfx_phase_sound"]
 
 [sub_resource type="Resource" id="Part_second_head"]
 script = ExtResource("4_part")
@@ -59,6 +62,9 @@ per_blocked_condition = 15.0
 
 [sub_resource type="Resource" id="Boss"]
 script = ExtResource("3_boss")
+phase_sound = ExtResource("sfx_phase_sound")
+reveal_second_sound = ExtResource("sfx_reveal_second_sound")
+reveal_sound = ExtResource("sfx_reveal_sound")
 title = "The Hunger That Ate Itself"
 stagger = SubResource("Stagger_bar")
 phases = Array[ExtResource("1_phase")]([SubResource("Phase_gorge"), SubResource("Phase_hollow")])
@@ -102,6 +108,7 @@ regrows_when_eating = true
 
 [resource]
 script = ExtResource("5_comb")
+ai_never_knows = 4
 name = "Erysichthon"
 glossary_text = "An undead wolf grown to an abomination, that never stops eating and is never full: whatever it swallows falls out through the hole in its belly. It catches the scent of its prey, grabs it, and swallows it whole - and it eats anything it finds in reach, even its own."
 max_hp = 300

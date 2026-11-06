@@ -192,7 +192,7 @@ func run_test():
 
 	log_line("======== a skill says which attribute it is worked out from ========")
 	# The panel now names the scaling stat, so a player can see why the same
-	# Fireball is worth more in one pair of hands - and which attribute to
+	# Wildfire is worth more in one pair of hands - and which attribute to
 	# raise. Only where something actually scales off it, though: every skill
 	# carries the field whether it uses it or not.
 	var silent := []

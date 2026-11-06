@@ -39,6 +39,18 @@ class_name MapSetup
 ## the rat when empty. A stealth map's StealthSetup says it there.
 @export var familiar_form: FamiliarForm
 
+@export_group("Light")
+## How lit the map is by itself (Light). Outdoors goes by the sun; Interior is Dim; Underground is Dark,
+## with only what is placed on it for light (LightSource, Lamp).
+@export_enum("Outdoors:1", "Interior:2", "Underground:3") var ambient: int = 1
+## The hour on arriving. As It Stands is whatever it is by now; it can change while here too
+## (`do Campaign.set_time_of_day("night")`, or Seconds Per Time Of Day).
+@export_enum("As It Stands:-1", "Day:0", "Dusk:1", "Night:2", "Dawn:3") var time_of_day: int = -1
+## A night with no moon, which is Dark and not Dim.
+@export var no_moon: bool = false
+## How long each of day, dusk, night and dawn lasts while walking here. Zero: it stays until told.
+@export var seconds_per_time_of_day: float = 0.0
+
 @export_group("Sound")
 ## What plays while the party is here. Named rather than a path - the file's own
 ## name without its extension, so "Scott Buckley - Filaments" finds

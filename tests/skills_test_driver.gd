@@ -264,7 +264,7 @@ func run_test():
 			if comb.alive and comb.side == 0:
 				caster = comb
 				break
-		var coin: SkillDefinition = SkillDatabase.skills["fireball"].duplicate(true)
+		var coin: SkillDefinition = SkillDatabase.skills["wildfire"].duplicate(true)
 		coin.resource_name = "Coin Blast"
 		# Nothing standing between the caster and casting it: no gate to pay,
 		# no level to have reached, and it is their turn.
@@ -275,13 +275,13 @@ func run_test():
 		if not "_coin_blast" in caster.skill_list:
 			caster.skill_list.append("_coin_blast")
 		coin.uses_stat_contest = false
-		# Enemies only. Fireball catches both sides, and at radius 5 the caster
+		# Enemies only. Wildfire catches both sides, and at radius 5 the caster
 		# standing four tiles off is inside his own blast - so over sixty casts
 		# he killed himself, and every cast after that landed on nobody, which
 		# reads exactly like one roll for the pair.
 		coin.affects_both_sides = false
-		# Rolls are what is being measured, not cover. Borrowed from Fireball,
-		# it respects walls as Fireball does, and wherever this map puts a wall
+		# Rolls are what is being measured, not cover. Borrowed from Wildfire,
+		# it respects walls as Wildfire does, and wherever this map puts a wall
 		# between the caster and the pair it never reached them at all.
 		coin.respects_blocking = false
 		# hit_chance is the skill's accuracy PLUS the caster's own, clamped to

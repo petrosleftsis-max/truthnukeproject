@@ -15,7 +15,6 @@ heal_per_weapon = 0.2
 script = ExtResource("3_skill")
 name = "Communion"
 description = "The idol's mercy on everyone near where it lands: every ally there is healed."
-required_level = 16
 max_range = 10
 ability_modifier = 0.6
 aoe_radius = 2

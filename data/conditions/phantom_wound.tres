@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Phantom Wound"
+tag = "Pw"
+description = "A psychic wound they believe in, each turn. They weigh it again as each turn starts, with more doubt every time, and stop believing once their Mindfulness beats the caster's."
+duration = 999
+dot_type = 6
+dot_strength = 2
+dot_modifier = 0.6
+doubt_each_turn = 3

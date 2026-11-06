@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/phantom_company_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 28
+summons = "phantom_soldier"
+summon_count = 3
+summon_as_images = true
+summon_shakes = 15
+
+[resource]
+script = ExtResource("3_skill")
+name = "Phantom Company"
+description = "Three soldiers who are not there, around where she points. The other side takes them for real, goes for them, and any of them who can see them loses a little of their nerve. One hit shatters each, and they last as long as she holds the tether."
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+impact_look = 19
+min_range = 1
+max_range = 8
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 4
+tethered = true
+tether_strength = 200

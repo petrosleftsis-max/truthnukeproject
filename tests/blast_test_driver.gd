@@ -46,12 +46,12 @@ func run_test():
 			and skill.aoe_shape == SkillDefinition.AoEShape.DIAMOND:
 			blasts.append("%s (radius %d)" % [skill.name, skill.aoe_radius])
 	log_line("  NOTE  blasts that respect cover: %s" % [blasts])
-	# Fireball is one of them. It used to be the one that ignored cover, and
+	# Wildfire is one of them. It used to be the one that ignored cover, and
 	# said so - "even behind cover" - so its description has to have changed
 	# with it, or the tooltip promises what the blast no longer does.
-	var fireball: SkillDefinition = SkillDatabase.skills["fireball"]
-	ok(fireball.respects_blocking and not fireball.description.contains("behind cover"),
-		"Fireball respects cover, and its description no longer says otherwise", fireball.description)
+	var wildfire: SkillDefinition = SkillDatabase.skills["wildfire"]
+	ok(wildfire.respects_blocking and not wildfire.description.contains("behind cover"),
+		"Wildfire respects cover, and its description no longer says otherwise", wildfire.description)
 	log_line("")
 
 	log_line("======== a blast is measured from where it lands ========")
@@ -153,7 +153,7 @@ func run_test():
 	var landing = Vector2i(30, 17)
 	for named in [Vector2i(30, 19), Vector2i(27, 12), Vector2i(28, 12)]:
 		log_line("  %s is %d tiles from where it lands" % [named, combat.get_position_distance(landing, named)])
-	for key in ["burner", "wind_swoon", "fireball"]:
+	for key in ["burner", "wind_swoon", "wildfire"]:
 		var skill: SkillDefinition = SkillDatabase.skills[key]
 		var caught = combat.get_impact_tiles(skill, caster_tile, landing, 0)
 		var says := []
