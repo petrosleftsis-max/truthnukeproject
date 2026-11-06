@@ -311,6 +311,9 @@ shoves needs an entry through `_foresee_one`. `shoveaim` covers it.
 - **Silence**: `prevents_spells`, in `can_afford_skill` (so the HUD, the AI and reactions all
   follow), `wasted_on`, `ready_refusal`, `_fire_readied`. Whoever stands in it cannot cast;
   a Gate Nade is thrown, and a spell from outside lands there.
+- **Unbowed I-VII**, Alithia's (`data/passives/unbowed*.tres`; `newspells`; the designer, 2026-11-07): one passive in ranks,
+  each a passive's Immune To Conditions: Fear at 1, Confused 8, Compelled 16, Blind and Deafened 24, Dazed 33, Choking Ash
+  46, Stunned 56.
 - `ConditionDefinition.immune_to_conditions` (Unafraid; `_lift_what_it_wards`),
   `evades_hits` (Four Reflections; `images_left`, in `_evades`; single blows only),
   `source_takes_share` (`_burden_share`), `climbs_anywhere`. `flees_from_caster` on the effect
@@ -343,7 +346,9 @@ blocks, and the tile marks show which tiles it takes. `_draw_wall_to_be` shows t
 walks through it; see "Seen through, one by one" below. Phantom Company: `summon_count`, `summon_as_images`,
 `summon_shakes`. Seeming: `unnoticed_until_acting`: `until_acting`, `looks_like`, `_gives_themselves_away` in
 `_use_skill` (`was_unnoticed`); on a map `StealthWatch "Seeming"`, `SEEMING` as what is worn (`_worn_item`).
-Fallen Friend: condition `looks_dead` held by a tether (`_begin_looking_dead`, `step_gives_away`,
+Fallen Friend: a reaction only (Combat "A blow that would fell them", `Trigger.WOULD_FALL`: `_falls_instead`, in `_use_skill`'s
+targets loop and `_land_reaction`, by `_blow_would_fell`; the blow never lands; a tethered reaction is tied in
+`use_reactive_skill`), condition `looks_dead` held by a tether (`_begin_looking_dead`, `step_gives_away`,
 `_keep_up_appearances` from `sync_zones`). Phantom Killer: `doubt_each_turn` (`_doubts_it_away`, in
 `start_of_turn_effects`; `wins_contest(..., doubt)`). False Ground: `zone_false_ground`, `false_ground_for` in
 every walk (`_apply_false_ground`, `get_reachable_tiles`, `_reachable_by_size`, `_add_step`), `zone.caught`,
@@ -365,7 +370,8 @@ tether holds, a zone, so the next one fools them again. Ask `sees_through` and `
 `_believer`, set wherever `ai_believes` is: `ai_process`, `plan_intent`, `threat_map`, the readying as a turn ends. A
 believer shoved onto False Ground still ends it for everybody. `get_combatant_at` prefers somebody real to an illusion on
 their tile. `board_fingerprint` counts what has been seen through, so a walk cannot be taken back past it, and
-`settle_undo_point` never leaves the way back inside one.
+`settle_undo_point` never leaves the way back inside one. Nobody notices who can see nothing (`_sees_nothing`): Blind, or
+in darkness without `sees_in_darkness`.
 
 **The AI's mind** (Combat "The AI's mind"; `aimind`; the designer, 2026-11-06). Per creature:
 `CombatantDefinition.ai_smarts` (`AI_KNOWN_BY`), `ai_also_knows`, `ai_never_knows` make `comb.ai_knows`

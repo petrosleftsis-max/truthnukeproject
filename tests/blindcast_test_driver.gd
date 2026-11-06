@@ -121,7 +121,8 @@ func run_test():
 	# tile anyway.
 	var reactive: SkillDefinition = null
 	for key in SkillDatabase.skills:
-		if SkillDatabase.skills[key].is_reactive:
+		# One set off by somebody leaving its reach, as this is about (Fallen Friend, say, waits for a blow).
+		if SkillDatabase.skills[key].is_reactive and SkillDatabase.skills[key].reacts_when & SkillDefinition.Trigger.LEAVES_REACH:
 			reactive = SkillDatabase.skills[key]
 			break
 	ok(reactive != null, "there is a reactive skill", reactive.name if reactive else "none")

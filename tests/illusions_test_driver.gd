@@ -58,6 +58,8 @@ func _ready():
 	await open_fight()
 	await fallen_friend()
 	await open_fight()
+	await fallen_friend_not_offered()
+	await open_fight()
 	await phantom_company()
 	await open_fight()
 	await mislead()
@@ -141,13 +143,17 @@ func their_turn(comb: Dictionary):
 
 
 var _answering := false
+## What is said to whatever is asked, and how many times anything has been.
+var _saying_yes := false
+var _asked := 0
 
 
 ## Nobody at the keyboard: anything asked while a turn plays out is answered no.
 func _keep_answering():
 	while _answering and is_inside_tree():
 		if prompt != null and is_instance_valid(prompt) and prompt._waiting:
-			prompt._answer_with(false)
+			_asked += 1
+			prompt._answer_with(_saying_yes)
 		await get_tree().process_frame
 
 
@@ -520,7 +526,31 @@ func seen_through_one_by_one():
 	ok(enfina.position == c + Vector2i(1, 0), "unseen, through", "%s" % enfina.position)
 	ok(not combat.sees_through(saw, second) and not combat.sees_through(trained, second), "and nobody is any the wiser")
 	combat.set_hidden(enfina, false)
-	# Nor anybody stunned or asleep.
+	# Blind, or in the dark without the eyes for it, nobody notices (the designer, 2026-11-07).
+	combat.snap_tether(alithia, "test")
+	await their_turn(alithia)
+	await combat.use_skill("phantom_wall", alithia, c + Vector2i(0, -1), false, false, c + Vector2i(0, 1))
+	await settle()
+	var third: Dictionary = combat.get_combatant_at(c)
+	var night_eyes: PassiveDefinition = load("res://data/passives/night_eyes.tres")
+	saw["ai_smarts"] = CombatantDefinition.AiSmarts.TRAINED
+	missed["ai_smarts"] = CombatantDefinition.AiSmarts.TRAINED
+	combat.put_condition(trained, load("res://data/conditions/blind.tres"), 9, "test", true)
+	combat.put_condition(saw, Combat.IN_DARKNESS, 9, "test", true)
+	combat.put_condition(missed, Combat.IN_DARKNESS, 9, "test", true)
+	missed.passives.append(night_eyes)
+	combat.teleport_to(enfina, c + Vector2i(-1, 0))
+	await their_turn(enfina)
+	await walk_to(c + Vector2i(1, 0))
+	ok(enfina.position == c + Vector2i(1, 0), "through again", "%s" % enfina.position)
+	ok(not combat.sees_through(trained, third), "blind, they notice nothing, however sharp")
+	ok(not combat.sees_through(saw, third), "in the dark without the eyes for it, nor do they")
+	ok(combat.sees_through(missed, third), "with the eyes for it, they do")
+	missed.passives.erase(night_eyes)
+	for each in [saw, missed, trained]:
+		each.status_effects = []
+	saw["ai_smarts"] = INSTINCT
+	missed["ai_smarts"] = INSTINCT
 	combat.snap_tether(alithia, "test")
 	log_line("  -- the floor")
 	await their_turn(alithia)
@@ -724,41 +754,126 @@ func phantom_killer():
 	log_line("")
 
 
+## `foe` swings at `target`, sure to connect, and `yes` is said to whatever is asked.
+func a_blow(foe: Dictionary, target: Dictionary, yes: bool):
+	foe["accuracy"] = 200
+	# Her Illusory Guardian takes the first blow of a fight on anybody: this is not that.
+	target["first_blow_missed"] = true
+	_saying_yes = yes
+	_asked = 0
+	_answering = true
+	_keep_answering()
+	await their_turn(foe)
+	await combat.use_skill("greatsword_attack", foe, target.position, false)
+	await settle(4)
+	_answering = false
+	_saying_yes = false
+	await settle()
+
+
+## Enfina about to fall to `foe`, and Alithia able to do something about it: down she goes, looking dead.
+func down_she_goes(foe: Dictionary, enfina: Dictionary, alithia: Dictionary):
+	combat.teleport_to(foe, tile_away(enfina.position, 1, foe))
+	enfina.hp = 1
+	alithia.reaction_used = false
+	await a_blow(foe, enfina, true)
+
+
+## As a reaction, when a blow would fell an ally (the designer, 2026-11-07: "I like A for fallen friend").
 func fallen_friend():
 	log_line("======== Fallen Friend ========")
 	var alithia := who("alithia")
 	var enfina := who("enfina")
 	var foe: Dictionary = foes()[0]
-	await their_turn(alithia)
-	await combat.use_skill("fallen_friend", alithia, enfina.position, false)
-	await settle()
-	ok(enfina.get("looks_dead", false) and combat.is_invisible(enfina), "she looks dead")
-	ok(combat.hidden_from(foe, enfina), "and the enemy ignores her")
-	ok(enfina.sprite.lying, "lying where she stands")
-	ok(alithia.tether.max == 200, "for as long as the tether holds")
+	var spell: SkillDefinition = SkillDatabase.skills.fallen_friend
+	ok(spell.is_reactive and spell.reaction_only and spell.reacts_to(SkillDefinition.Trigger.WOULD_FALL), "a reaction, and nothing else")
+	ok(combat.refusal_for(alithia, spell, enfina.position) != "", "nothing to cast on her turn")
+	ok(spell.spell_slot_level == 4 and spell.tethered and spell.tether_strength == 200, "the same gate and the same tether")
+	combat.teleport_to(foe, tile_away(enfina.position, 1, foe))
+	# A blow she can take: nobody is asked.
+	alithia.reaction_used = false
+	enfina.hp = 900
+	await a_blow(foe, enfina, true)
+	ok(_asked == 0 and not enfina.get("looks_dead", false) and enfina.hp < 900, "a blow they can take: nobody is asked", "%d" % enfina.hp)
+	ok(not alithia.reaction_used, "and nothing spent")
+	# One that would fell her.
+	var gates: int = alithia.spell_slots.reduce(func(sum, count): return sum + count, 0)
+	await down_she_goes(foe, enfina, alithia)
+	ok(_asked == 1, "one that would fell them: she is asked", "%d" % _asked)
+	ok(enfina.alive and enfina.hp == 1, "the blow never lands", "%d" % enfina.hp)
+	ok(enfina.get("looks_dead", false) and combat.is_invisible(enfina), "they go down looking dead")
+	ok(combat.hidden_from(foe, enfina), "and nobody aims at them")
+	ok(enfina.sprite.lying, "lying where they stood")
+	ok(combat.holds_tether(alithia) and alithia.tether.max == 200 and alithia.tether.name == spell.name, "for as long as the tether holds")
+	ok(alithia.reaction_used, "her reaction spent")
+	ok(alithia.spell_slots.reduce(func(sum, count): return sum + count, 0) == gates - 1, "and a casting")
+	# Their first blow comes from hiding: nobody who could answer it sees it coming.
+	var foe_hp: int = foe.hp
+	enfina["accuracy"] = 200
+	ok(combat.hidden_from(foe, enfina), "unseen as their first blow comes, so nobody can react to it")
+	await their_turn(enfina)
+	await combat.use_skill("greatsword_attack", enfina, foe.position, false)
+	await settle(4)
+	ok(foe.hp < foe_hp, "their first blow lands", "%d" % foe.hp)
+	ok(not enfina.get("looks_dead", false) and not combat.is_invisible(enfina), "and gives them away")
+	ok(not enfina.sprite.lying, "and they are up")
+	ok(not combat.conditions_of(enfina).any(func(condition): return condition.looks_dead), "the look gone")
 	# A step gives it away.
+	combat.snap_tether(alithia, "test")
+	await down_she_goes(foe, enfina, alithia)
+	ok(enfina.get("looks_dead", false), "again")
 	combat.step_gives_away(enfina)
 	await settle()
 	ok(not combat.is_invisible(enfina) and not enfina.get("looks_dead", false), "a step gives it away")
-	ok(not enfina.sprite.lying, "and she is up")
-	ok(not combat.conditions_of(enfina).any(func(condition): return condition.looks_dead), "the look gone")
 	# The tether snapping does too, and so does a move.
-	await their_turn(alithia)
-	alithia.skill_used_this_turn = false
 	combat.snap_tether(alithia, "test")
-	await combat.use_skill("fallen_friend", alithia, enfina.position, false)
-	await settle()
-	ok(enfina.get("looks_dead", false), "again")
+	await down_she_goes(foe, enfina, alithia)
+	ok(enfina.get("looks_dead", false), "and again")
 	combat.snap_tether(alithia, "test")
 	await settle()
 	ok(not enfina.get("looks_dead", false) and not combat.is_invisible(enfina), "the tether gone, so is the look")
-	await their_turn(alithia)
-	await combat.use_skill("fallen_friend", alithia, enfina.position, false)
-	await settle()
+	await down_she_goes(foe, enfina, alithia)
 	await their_turn(enfina)
 	await combat.use_skill("run", enfina, enfina.position, false)
 	await settle()
 	ok(not enfina.get("looks_dead", false), "a move gives it away")
+	# Caught by another blow as they lie there, the look is not asked for twice.
+	combat.snap_tether(alithia, "test")
+	await down_she_goes(foe, enfina, alithia)
+	alithia.reaction_used = false
+	await a_blow(foe, enfina, true)
+	ok(_asked == 0, "looking dead already, nobody is asked again", "%d" % _asked)
+	log_line("")
+
+
+## Who it is not for, and when it is not there to be had.
+func fallen_friend_not_offered():
+	log_line("======== Fallen Friend, not offered ========")
+	var alithia := who("alithia")
+	var foe: Dictionary = foes()[0]
+	# Told no, the blow lands.
+	var cyrus := who("cyrus")
+	combat.teleport_to(cyrus, tile_away(alithia.position, 2, cyrus))
+	combat.teleport_to(foe, tile_away(cyrus.position, 1, foe))
+	alithia.reaction_used = false
+	cyrus.hp = 1
+	await a_blow(foe, cyrus, false)
+	ok(_asked == 1 and not cyrus.alive, "told no, the blow lands", "%d" % _asked)
+	ok(not alithia.reaction_used, "and her reaction is still there")
+	# Out of her reach.
+	var prometheus := who("prometheus")
+	var far: Vector2i = tile_away(prometheus.position, 12, alithia)
+	combat.teleport_to(alithia, far)
+	combat.teleport_to(foe, tile_away(prometheus.position, 1, foe))
+	prometheus.hp = 1
+	await a_blow(foe, prometheus, true)
+	ok(_asked == 0 and not prometheus.alive, "out of her reach, she is not asked", "%d" % _asked)
+	# Holding something, she is told it goes.
+	# Not for herself.
+	combat.teleport_to(foe, tile_away(alithia.position, 1, foe))
+	alithia.hp = 1
+	await a_blow(foe, alithia, true)
+	ok(_asked == 0 and not alithia.alive, "not for herself", "%d" % _asked)
 	log_line("")
 
 

@@ -125,10 +125,13 @@ func who_is_what():
 	var c: Dictionary = CombatantDatabase.combatants
 	ok(c.glutton.ai_smarts == S.CUNNING, "Erysichthon is cunning")
 	ok(c.bomber.ai_smarts == S.INSTINCT, "the Bomber goes on instinct")
-	ok(c.ash_warden.ai_smarts == S.MASTERMIND and Combat._ai_knows_of(c.ash_warden) & K.KITS == 0, "the Ash Warden is a mastermind, and knows nobody's kit")
-	var knowing: CombatantDefinition = c.ash_warden.duplicate()
-	knowing.ai_smarts = S.ALL_KNOWING
-	ok(Combat._ai_knows_of(knowing) & K.KITS != 0 and Combat._ai_knows_of(knowing) & K.SET_UPS != 0, "All Knowing knows that as well as all the rest")
+	ok(c.ash_warden.ai_smarts == S.ALL_KNOWING, "the Ash Warden is All Knowing")
+	ok(S.ALL_KNOWING == S.values().max(), "the highest there is")
+	ok(Combat._ai_knows_of(c.ash_warden) & K.KITS != 0 and Combat._ai_knows_of(c.ash_warden) & K.SET_UPS != 0, "and knows the party's kits as well as all the rest")
+	var mastermind: CombatantDefinition = c.ash_warden.duplicate()
+	mastermind.ai_smarts = S.MASTERMIND
+	ok(Combat._ai_knows_of(mastermind) & K.KITS == 0, "a mastermind knows nobody's kit")
+	ok(c.sorcerer.ai_commands_tiles == 0 and c.sorcerer.ai_learns, "the Sorcerer commands nobody, and learns")
 	ok(c.pit_champion.ai_commands_tiles > 0, "the Pit Champion commands")
 	ok(c.barbarian.ai_grudge > 0.0, "the Barbarian holds a grudge")
 	ok(c.ranger.ai_hunter, "the Ranger hunts")

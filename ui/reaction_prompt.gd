@@ -47,10 +47,12 @@ func ask(reactor: Dictionary, target: Dictionary, skill: SkillDefinition, happen
 			"%s is leaving range. Use %s on them?\nThis spends %s's one reaction until their next turn." % [
 				target.name, skill.name, reactor.name])
 	var aimed := "" if is_same(target, reactor) else " on %s" % target.name
+	# A tethered one takes the place of whatever their tether holds now.
+	var lets_go := "\nIt lets go of %s." % reactor.tether.name if skill.tethered and Combat.holds_tether(reactor) else ""
 	return await ask_about("%s can react" % reactor.name,
-		"%s. Use %s%s?\nThis spends %s's one reaction until their next turn." % [
+		"%s. Use %s%s?\nThis spends %s's one reaction until their next turn.%s" % [
 			happening[0].to_upper() + happening.substr(1),
-			label if label != "" else skill.name, aimed, reactor.name])
+			label if label != "" else skill.name, aimed, reactor.name, lets_go])
 
 
 ## Which of `skills` to use on `target` as they leave `reactor`'s reach - a

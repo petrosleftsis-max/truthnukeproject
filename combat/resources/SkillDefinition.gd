@@ -88,9 +88,10 @@ enum AoEShape {
 ##   Casts - somebody they can see casts through a gate: before it lands.
 ##   Declares - somebody calls a declared move.
 ##   Foreseen Blow - the move Intuition read comes, as foreseen: before it lands.
+##   Would Fall - an enemy's blow has connected and would fell one of theirs: it can still be stopped.
 ## Who the "somebody" may be is Set Off By.
 @export_flags("Leaves Reach", "Enters Reach", "Targeted", "Struck", "Ally Attacked", "Casts",
-	"Declares", "Foreseen Blow") var reacts_when: int = 1
+	"Declares", "Foreseen Blow", "Would Fall:1024") var reacts_when: int = 1
 ## Who sets it off, for the triggers somebody of either side can (Leaves and
 ## Enters Reach, Casts, Declares, and Ready's area): an enemy, an ally, or
 ## either. The rest are an enemy's doing whatever this says. A skill aimed at
@@ -122,6 +123,8 @@ enum Trigger {
 	ENTERS_AREA = 256,
 	## Ready's own: somebody chosen, in sight, is hit (Combat "Ready").
 	HIT_IN_SIGHT = 512,
+	## A blow has connected and would fell one of theirs (Combat "A blow that would fell them").
+	WOULD_FALL = 1024,
 }
 
 ## The triggers somebody of either side can set off (set_off_by); the rest are
@@ -141,6 +144,7 @@ const TRIGGER_NAMES := {
 	Trigger.FORESEEN_BLOW: "the blow Intuition foresaw comes",
 	Trigger.ENTERS_AREA: "%s steps into the watched cone",
 	Trigger.HIT_IN_SIGHT: "the one they watch is hit",
+	Trigger.WOULD_FALL: "an enemy's blow would fell an ally",
 }
 const WHO_NAMES := ["an enemy", "an ally", "anybody"]
 

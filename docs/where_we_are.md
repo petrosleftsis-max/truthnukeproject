@@ -97,13 +97,16 @@ holds the game for both).
   - Damaging moves and traps on a map are aimed (MapAim). A hit starts the fight and whoever it hit takes it before
     anybody's turn. A wall takes no fight. The Great Snare is aimed, and a trap that bursts starts a fight.
   - A right click on what a tether holds ends it, at any point. Another player's needs them to agree.
-  - A fifth level of smarts, All Knowing, reads the party's kits and prepared spells. Nobody has it yet.
+  - A fifth level of smarts, All Knowing, reads the party's kits and prepared spells. The Ash Warden has it.
   - Commanders, grudges, hunters, bodyguards, packs, fears, learning, greed, moods by phase, per creature.
   - Alithia: Sleep, Calm, Suggestion, Detect Magic, Arcane Eye. Prometheus can learn Mesmerise.
   - All the light ideas, projectiles giving light, illusions stopping or giving light, a clock and a calendar, time
     seen going by, and a stage to look at all of it.
   - Phantom Wall is placed by two points, along eight directions, up to its length of five, and is drawn along
     the line it was placed on, a diagonal corner to corner.
+  - Fallen Friend is a reaction now: a blow that would fell an ally never lands, and they go down looking dead.
+  - Alithia has Unbowed I-VII: Fear at 1, Confused 8, Compelled 16, Blind and Deafened 24, Dazed 33, Choking Ash 46,
+    Stunned 56.
   - Illusions are seen through one by one: her side walks through a Phantom Wall or across False Ground, and whoever
     of the other side sees that, and anybody Trained or smarter, ignores that illusion from then on (Combat "Seen
     through, one by one").
@@ -416,9 +419,8 @@ holds the game for both).
 9. **Sounds:** the designer's "sword" sound goes on Sweep Strike, Chain Hook and Disarm when it comes.
    Not placed, no answer yet: `frog`, `train_passby`, `funny_boing_1` and `_2`. No ambience slot yet.
 
-10. **Waiting on the designer's choices, 2026-11-07:** `docs/proposals_2026-11-07.md`: what to do with Fallen Friend;
-   the immunity passive's ladder (Hesitating, Deceived, Recanted and Accused are out, the switch is there); who
-   is All Knowing. Whether Phantom Noise is strong enough for Iris. Every illusion's and every AI dial's number,
+10. **Waiting on the designer's choices, 2026-11-07:** `docs/proposals_2026-11-07.md`, which the designer is reading:
+   everything not yet chosen there, Enfina's depth and Prometheus's new schools included. Whether Phantom Noise is strong enough for Iris. Every illusion's and every AI dial's number,
    to test by feel. The Great Snare's x1.2 and hold. Which creature has which way of its own.
 
 

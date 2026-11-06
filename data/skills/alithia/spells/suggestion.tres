@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("3_skill")
 name = "Suggestion"
-description = "Only out of a fight. A word put into a guard's head from afar: for thirty seconds he walks off to the far end of the place on some errand he cannot quite remember being given, his mind on it."
+description = "Only out of a fight. A word put into a guard's head from afar: for five minutes he walks off to the far end of the place on some errand he cannot quite remember being given, his mind on it."
 max_range = 8
 icon = ExtResource("2_icon")
 can_be_copied = false
@@ -16,4 +16,4 @@ never_in_a_fight = true
 out_of_combat = true
 noise = 1
 outside_use = 19
-outside_seconds = 30
+outside_seconds = 300

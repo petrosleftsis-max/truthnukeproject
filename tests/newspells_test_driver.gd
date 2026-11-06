@@ -13,6 +13,7 @@ func time_limit() -> float:
 
 func run_sections():
 	whose_they_are()
+	await the_immunity_ladder()
 	await sleep_and_calm()
 	await suggestion_on_a_map()
 	await detect_magic_on_a_map()
@@ -28,6 +29,7 @@ func whose_they_are():
 	ok(SkillDatabase.skills.suggestion.outside_only() and OutsideMoves.iris_gate_for(SkillDatabase.skills.suggestion) == 1, "Suggestion through Iris, with nothing in a fight")
 	ok(SkillDatabase.skills.detect_magic.spell_slot_level == 1 and OutsideMoves.iris_gate_for(SkillDatabase.skills.detect_magic) == 0, "Detect Magic through the Gates of the World")
 	ok(SkillDatabase.skills.detect_magic.outside_seconds == 300, "for five minutes")
+	ok(SkillDatabase.skills.suggestion.outside_seconds == 300, "and Suggestion for five minutes")
 	ok(SkillDatabase.skills.arcane_eye.outside_only() and OutsideMoves.iris_gate_for(SkillDatabase.skills.arcane_eye) == 2, "Arcane Eye through Mnemosyne")
 	ok(Combat.fighting_skills(["suggestion", "arcane_eye", "calm", "sleep", "detect_magic"]) == ["calm", "sleep", "detect_magic"], "and only those three are for a fight")
 	var prometheus: CombatantDefinition = CombatantDatabase.combatants.prometheus
@@ -37,6 +39,39 @@ func whose_they_are():
 	ok(store.stock.has("mesmerise_spellbook"), "at the travelling merchant")
 	# The designer's own marks on what they changed by hand, paying through what it says.
 	ok(OutsideMoves.iris_gate_for(SkillDatabase.skills.seeming) == 1, "Seeming, marked Iris, is paid through Iris")
+	log_line("")
+
+
+## Alithia's (the designer, 2026-11-07: "Do the ladder of immunities to Alithia according to your new recommendation,
+## reduce all the required levels by 8 (fear will be at level 1)").
+func the_immunity_ladder():
+	log_line("======== Unbowed ========")
+	Campaign.reset()
+	Campaign.set_party(["enfina", "cyrus", "prometheus", "alithia"], 1)
+	Campaign.current_map = "res://maps/crossroads_explore.tscn"
+	Campaign.return_to_position = true
+	Campaign.current_encounter = load("res://data/encounters/encounter_03_watcher.tres")
+	var game = load("res://scenes/game.tscn").instantiate()
+	get_tree().root.add_child(game)
+	await settle(6)
+	var combat: Combat = game.get_node("VisualCombat")
+	var definition: CombatantDefinition = CombatantDatabase.combatants.alithia
+	var ladder := {"fear": 1, "confused": 8, "compelled": 16, "blind": 24, "deafened": 24, "dazed": 33, "choking_ash": 46, "stunned": 56}
+	for key in ladder:
+		var condition: ConditionDefinition = load("res://data/conditions/%s.tres" % key)
+		var at: int = ladder[key]
+		var then: Dictionary = combat.create_combatant(definition, "alithia", "", null, at)
+		ok(combat.immune_to_condition(then, condition), "%s: immune at level %d" % [key, at])
+		if at > 1:
+			var before: Dictionary = combat.create_combatant(definition, "alithia", "", null, at - 1)
+			ok(not combat.immune_to_condition(before, condition), "  but not at %d" % (at - 1))
+		var other: Dictionary = combat.create_combatant(CombatantDatabase.combatants.prometheus, "prometheus", "", null, 64)
+		ok(not combat.immune_to_condition(other, condition), "  and nobody else has it")
+	var ranks: Array = CharacterSheet.passive_families(definition.passives).filter(func(family): return Combat.passive_family(family[0]) == "Unbowed")
+	ok(ranks.size() == 1 and ranks[0].size() == 7, "one passive in seven ranks", "%d" % ranks.size())
+	ok(CharacterSheet.shown_rank(ranks[0], 40).name == "Unbowed V", "the sheet shows the highest she has")
+	game.queue_free()
+	await settle(3)
 	log_line("")
 
 

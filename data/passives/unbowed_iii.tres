@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="2_condition"]
+[ext_resource type="Resource" path="res://data/conditions/compelled.tres" id="3_compelled"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Unbowed III"
+description = "She does not bend: she cannot be afraid, confused or compelled."
+required_level = 16
+immune_to_conditions = Array[ExtResource("2_condition")]([ExtResource("3_compelled")])

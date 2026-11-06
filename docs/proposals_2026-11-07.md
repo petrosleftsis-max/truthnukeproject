@@ -1,10 +1,12 @@
 # Proposals, 2026-11-07
 
-Nothing here is built. Everything here is a PROPOSAL until the designer picks it.
+Nothing here is built unless it says so. Everything here is a PROPOSAL until the designer picks it.
 
 ## 1. Fallen Friend
 
-As built it is worse than Seeming: a deeper gate, and a step ends it. Ways to make it its own thing:
+**Chosen and built, 2026-11-07: A.** The rest are kept for the record.
+
+As it was built first it was worse than Seeming: a deeper gate, and a step ends it. Ways to make it its own thing:
 
 | Idea | What it does |
 | --- | --- |
@@ -14,6 +16,9 @@ As built it is worse than Seeming: a deeper gate, and a step ends it. Ways to ma
 | **D. Going to look** | The body draws those of the other side who see it: they walk over to look at it, as Phantom Noise draws them, and whoever looks dead strikes first as they arrive. A trap, with an ally as the bait. |
 
 ## 2. The immunity passive, updated
+
+**Chosen and built, 2026-11-07: Closing the gap, every level 8 lower, with Fear at level 1.** Alithia's Unbowed I-VII: Fear 1,
+Confused 8, Compelled 16, Blind and Deafened 24, Dazed 33, Choking Ash 46, Stunned 56.
 
 Hesitating, Deceived, Recanted and Accused are out, as asked. That leaves level 16 empty, so here is the ladder as it
 now stands, and one way of closing the gap:
@@ -30,7 +35,7 @@ now stands, and one way of closing the gap:
 
 ## 3. Who could be All Knowing
 
-Nobody is yet: it is a level for the designer to give. It reads the party's prepared spells and what castings are
+**Chosen 2026-11-07: the Ash Warden has it.** It is the highest of the five levels. It reads the party's prepared spells and what castings are
 left, so it is most felt on a boss with several turns and a choice of targets. The Ash Warden and Sixty-Four would
 show it best.
 
@@ -295,3 +300,117 @@ place looks changes at four moments only (5:00, 8:00, 17:00, 20:00), each eased 
 
 **Recommendation:** the three smoother ones first, because they change no rule and most of the jumps go with them. Then
 the weather and each day's own sunrise and sunset, which add the most variance for the work.
+
+## 15. Enfina: more depth and personality
+
+**Why Trailblaze works.** It is the one thing she has that asks a question: health now, for speed now. Most of her kit is
+numbers that are simply on (Iron Hide, Bulwark, Momentum). She has no gates, no items to weigh and no pool to manage, so a
+turn is often just "hit the thing". Cyrus, Alithia and Prometheus each decide something on every turn.
+
+Trailblaze also fits her story better than anything else she has. She has no rank and nobody rewards her. She raises her
+sword for everybody else, and she pays the price for it. So everything below is one idea: **she pays, so that others don't
+have to, and she knows how you fight.**
+
+Levels are from `docs/progression.csv`'s tiers and numbers are PROPOSAL, pitched at her sheet (Taunting Shout 0.6 at 16,
+Double Strike 1.5 at 32, AOE Sweep 1.4 at 54).
+
+### Fire she pays for: Trailblaze grown
+
+| Idea | Level | What it does | The question it asks | Rests on |
+| --- | --- | --- | --- | --- |
+| **Blazed Path** (recommended first) | 8 | While she burns, the tiles she walks stay lit until her next turn. Allies on them walk one tile further and pay no hemming, and foes stepping there catch Burn | Which way does she open up for the others? | Burner's zone laid each step, `zone_light_tiles`, `hem_cost` |
+| **Flashover** (recommended first) | 16 | Secondary. Ends her Burn at once in a blast round her: x0.6, plus x0.15 for each Burn turn left | How long does she burn? | A self area, the Burn's turns left |
+| **Cauterise** | 24 | Secondary. Ends her Burn and mends a flat amount for each turn left, taking off Poison or Corroded | Spend it on damage, or on staying up? | `heals_flat` (the healing policy's way), `_lift_conditions` |
+| **Share the Fire** | 32 | Trailblaze on an ally: they get the speed, and the Burn's damage lands on her | Who gets the speed this turn? | `source_takes_share` (Shared Burden) |
+| **Through the Fire** | 41 | While burning she walks through fire unharmed, thaws at once, and Fear can't take hold | Light up before going in? | A condition's `immune_to_conditions` |
+| **Burning Titanfall** | 64 | Titanfall while she burns leaves the ground it shoved them off burning | When to save the big one? | Titanfall's splash, a zone |
+
+### Knowing how you fight: "trained to perfectly respond"
+
+| Idea | Level | What it does | Rests on |
+| --- | --- | --- | --- |
+| **Drills** (recommended first) | 8, more at 24 and 41 | At the end of her turn, free, she picks what she is ready for: Hold (strike whoever leaves her reach, as now), Step In (take a blow for an ally beside her) or Riposte (strike whoever hits her). Each costs her one reaction as usual. It turns her best-known move into a choice, and players can read a fight by which one to pick | `reacts_when`, Ready's machinery, her reactive Greatsword |
+| **Called Opening** | 16 | Secondary, on somebody she has studied: the next ally to hit them gets her studier's edge | `studied`, `damage_dealt_multiplier` |
+| **Reads the Form** | 32 | Against somebody studied, her first reaction each round doesn't spend her reaction | `_can_react` |
+| **Field Notes** (recommended first) | 1 | The enemy codex becomes her notebook, each page with a line in her own voice. A kind she has studied in an earlier fight gives her a small edge from the first blow (+5%, PROPOSAL). It rewards filling the book, and it's where she can be funny or doubtful without a cutscene | `Campaign.codex_pages`, `ui/codex_page.gd` |
+
+### A city guard's tricks
+
+| Idea | What it does | Rests on |
+| --- | --- | --- |
+| **Throw a Friend** (recommended first) | Hurl, aimed at a willing ally: they land up to 3 tiles away, ready to act. It's funny and tactical, and a joy for two players | `_hurl`, `throw_destinations` |
+| **Anything Is a Weapon** | Hurl picks up a barrel or a keg as well, and a Gale Urn or Tar Cauldron goes off where it lands | `_hurl`, objects' `blast_radius` |
+| **Arrest** | A contested order on somebody whose nerve is nearly gone: they surrender and can be questioned after. The guard's way of winning | "Nerve", `prisoners` |
+| **Show the Badge** (on a map) | City guards take her word once per map: one who is suspicious stands down. Cyrus goes round, and Enfina knocks at the front door | `Gaze.ASKS`, Talking in disguise |
+| **Carries Them** (on a map) | She drags a body or a fallen ally at full pace | `ExplorationParty.pace` |
+
+### Her story in play
+
+- **Commendations:** a quiet tally of the blows she took for others and of who she kept standing. Nobody says anything for
+  a long time. Then, at story beats you choose, somebody finally does. It would give a real payoff to "nobody recognises
+  her", and a title on her sheet could change with it. All writing and flags, no new rules.
+- **Lines of her own:** when she studies somebody she says what she sees ("Favours the left."), and when she burns she says
+  something short and stubborn. It only needs a slot per move, like the barks in `docs/proposals_2026-11-06.md`.
+
+**Recommendation:** Blazed Path and Flashover first, since they make the move players already love the centre of a whole
+style of play. Then Drills, which gives her a real decision every turn. Throw a Friend and Field Notes are cheap, and
+they're where people will start to remember her.
+
+## 16. Prometheus: transmutation, conjuration, necromancy
+
+He has elements in depth and a little of the rest. These fill the gaps, and all of them lean towards what makes him
+different: he changes the board rather than the people on it. Gates and tethers are suggestions. Gates open at 1, 8, 14,
+21, 28, 34, 41, 47, 54, 61, as spells have no levels of their own.
+
+### Transmutation: what things are
+
+| Spell | Gate | Tether | What it does | Rests on |
+| --- | --- | --- | --- | --- |
+| **Transmute Ground** (recommended first) | Hermes | none | Turns a zone of his to another element: fire to ice, ice to mud. A burn laid last turn becomes a freeze on this one. Nobody else has this, and it fits his area play | A zone's fields, `Catalyst` |
+| **Stone to Mud** | Hermes | 100 | An area of ground is slow going for whoever crosses it. On a map, it softens a breakable wall silently | `zone_costly`, `break_wall` |
+| **Shrink** | Hermes | 100 | A size smaller. A foe loses reach and grip, and an ally on a map fits through grates and small gaps | `size_wanted`, `SmallGap`, the counterpart of Growth |
+| **Heat Metal** | Pandora | 100 | Somebody's gear heats up: Burn each turn, and they must let go (Disarmed) or keep burning | `weapon_damage_change`, a DoT |
+| **Flesh to Stone** | Charon | 200 | Contested. They stand as stone, taking little from anything, until one heavy blow shatters it for double | Crystallised, `damage_taken_change` |
+| **Polymorph** | Tartarus | 300 | Contested. They become a rat, with its movement and its bite, until enough damage breaks it. Bosses immune by a per-creature switch | `CombatantSprite.show_as`, a skill swap |
+| **Gaseous Form** (on a map) | Pandora | none | Somebody drifts through doors and grates for a time, and can do nothing else | `is_walkable_for`, map-only like Arcane Eye |
+
+### Conjuration: bringing things here
+
+| Spell | Gate | Tether | What it does | Rests on |
+| --- | --- | --- | --- | --- |
+| **Singularity** (recommended first) | Sophia | none | Everybody within 5 of a point is dragged to it, in a shove the board previews. The best set-up an area damager could ask for | PULL, "Shoves, foreseen" |
+| **Transposition** (recommended first) | Pandora | none | Two people in reach swap places, contested if unwilling. A foe into his own fire, or an ally out of danger | Teleports, `can_land_on` |
+| **Grease** | World | none | Ground that knocks down whoever walks it (contested), and burns if fire touches it | `getting_up_share`, a zone |
+| **Web** | Hermes | 100 | An area of Snared, flammable too | `zone_leaves_conditions` |
+| **Wall of Stone** | Pandora | 200 | Placed by two clicks like Phantom Wall, but real: it stops both sides and can be broken | `summon_across`, `breaks_wall` |
+| **Fetch** | World | none | A small thing within 8 comes to his hand: a key off a table, an item off a body, a lever pulled. On a map as well as in a fight | Loot, `Interactable` |
+| **Create Pit** | Pandora | none | Whoever stands there drops a floor, or loses their turn climbing out | Floors, `climb_tiles` |
+| **Conjure Elemental** | Tartarus | 300 | A big elemental of the element he chooses, between the Hound and the Dragon | Summons, `chooses_element` |
+| **Arms of the Deep** | Tartarus | 200 | An area where things grab whoever is there each turn | `holds`, `zone_turn_damage` |
+
+### Necromancy, and where it could go
+
+| Spell | Gate | Tether | What it does | Rests on |
+| --- | --- | --- | --- | --- |
+| **Speak with the Dead** (recommended first, on a map) | World | none | Asks a body one question: a guard's route, what they carried, a clue. Very much the kind of utility nobody else has | `learn_route`, clues |
+| **False Life** | World | none | Health on top of his own for a while. His 30 to 58 could use it | `overheal` |
+| **Withering Touch** | World | none | A weak blow, and they can't be mended until their next turn. Good against priests | A new `prevents_healing` |
+| **Blight** | Pandora | 100 | An area where everything standing rots: Corroded, and heals do less | `Corroded`, a zone |
+| **Marionette** (recommended first) | Charon | 200 | Somebody fallen on the other side gets up and fights for him, on a share of its health. The fallen are knocked out here, not dead, so what it does to them is a real question for the story | `targets_fallen`, Summons |
+| **Proxy of Flesh** | Nemesis | 300 | Contested. A share of what he takes lands on them instead | `source_takes_share` turned round |
+| **Death Knell** | Tartarus | none | Everybody in an area below a quarter of their health falls. Bosses immune by a per-creature switch | A health threshold on a zone's area |
+| **Borrowed Time** | Sophia | none | A reaction: somebody about to fall keeps fighting at 1 health for 2 more of their turns, and then falls unless mended. The dark twin of Fallen Friend, using its trigger | `Trigger.WOULD_FALL` |
+
+**Where necromancy could go:**
+
+- **Forbidden books for Prometheus (recommended).** He already learns from books, and these could be rare, found late and
+  hidden in the story. Each casting could cost him health, which matters a great deal on a body like his. It also ties into
+  the research he won't speak of. Alithia, as a cleric of the Holy Order, would have something to say when he uses them,
+  through a flag the conversations can read.
+- **Taken from enemies.** It first appears in the hands of somebody the party fights, and once he has Studied them it can
+  be copied into a book. It shows the player what it does before they own it.
+- **A fourth path for him.** The fullest version, but also the most work, and his three paths are all elemental.
+- **Enemy-only.** The cheapest. It keeps it frightening, and he never gets it.
+
+**Recommendation:** Transmute Ground, Singularity and Transposition first, since they make him more himself. For
+necromancy, Speak with the Dead and Marionette in forbidden books.

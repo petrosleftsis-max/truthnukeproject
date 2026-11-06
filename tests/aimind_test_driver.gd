@@ -164,7 +164,7 @@ func smarts_table():
 	ok(Combat._ai_knows_of(barbarian) & K.TETHERS == 0, "not what a tether is")
 	ok(sorcerer.ai_smarts == CombatantDefinition.AiSmarts.CUNNING and Combat._ai_knows_of(sorcerer) & K.TETHERS != 0, "a sorcerer is cunning: she does")
 	ok(Combat._ai_knows_of(sorcerer) & K.SET_UPS == 0, "not set-ups")
-	ok(warden.ai_smarts == CombatantDefinition.AiSmarts.MASTERMIND and Combat._ai_knows_of(warden) & K.SET_UPS != 0, "the Ash Warden has everything", "%d" % Combat._ai_knows_of(warden))
+	ok(warden.ai_smarts == CombatantDefinition.AiSmarts.ALL_KNOWING and Combat._ai_knows_of(warden) & K.KITS != 0, "the Ash Warden has everything, kits too", "%d" % Combat._ai_knows_of(warden))
 	var tweaked: CombatantDefinition = rat.duplicate()
 	tweaked.ai_also_knows = K.GROUND
 	ok(Combat._ai_knows_of(tweaked) == K.GROUND, "one creature can know more than its smarts")

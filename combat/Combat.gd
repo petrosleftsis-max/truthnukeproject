@@ -2244,6 +2244,12 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			var warded: float = await _offer_ward(attacker, target, skill)
 			if not still_running():
 				return
+			# A blow that would fell them, and somebody of theirs to see that it never lands (Fallen Friend).
+			var falling: bool = await _falls_instead(attacker, target, skill, warded * (quick if quick_time_governs(skill, target) else 1.0))
+			if not still_running():
+				return
+			if falling:
+				continue
 			# Which of their containers a Steal empties ("Stealing").
 			if steals(skill):
 				_steal_from = await _choose_container(attacker, target)
@@ -2649,8 +2655,30 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	await Projectile.fly(self, attacker, skill, target.position, [], target)
 	if not still_running() or not attacker.alive or not target.alive:
 		return
+	var carried_before := []
+	if skill.tethered:
+		for other in combatants:
+			carried_before.append([other, other.get("status_effects", []).duplicate()])
 	await _land_reaction(attacker, skill, target)
+	if skill.tethered:
+		_hold_reaction_on_tether(attacker, skill_key, skill, carried_before)
 	Projectile.settle()
+
+
+## A tethered reaction has landed: whatever it put on anybody is held on a tether, as on a turn ("Tethers").
+func _hold_reaction_on_tether(attacker: Dictionary, skill_key: String, skill: SkillDefinition, carried_before: Array):
+	var took_hold := []
+	for pair in carried_before:
+		var had: Array = pair[1]
+		for entry in pair[0].get("status_effects", []):
+			if not had.any(func(old): return is_same(old, entry)):
+				took_hold.append(entry)
+	if took_hold.is_empty() or not attacker.get("alive", false):
+		return
+	var tether_id := tie_tether(attacker, skill_key, skill)
+	for entry in took_hold:
+		entry["tether_of"] = tether_id
+	_release_idle_tethers()
 
 
 ## A reaction's skill landing on `target`: the roll (or the contest), and what
@@ -2674,6 +2702,13 @@ func _land_reaction(attacker: Dictionary, skill: SkillDefinition, target: Dictio
 			update_information.emit(_contest_lost_line(attacker, target, skill))
 		Projectile.verdict(target, Projectile.Verdict.GRAZED if grazed else Projectile.Verdict.HIT)
 		MoveFeel.impact(self, attacker, target, skill, flown, grazed)
+		# A blow that would fell them, and somebody of theirs to see that it never lands (Fallen Friend).
+		var falling: bool = await _falls_instead(attacker, target, skill)
+		if not still_running():
+			return
+		if falling:
+			_weapon_attack_made(attacker, skill)
+			return
 		# What they are ordered to do, for a spell that orders ("Orders").
 		_order_given = Order.NOTHING
 		if not grazed:
@@ -3858,7 +3893,7 @@ func _invisibility_refusal(skill: SkillDefinition, target: Dictionary) -> String
 	return ""
 
 
-func make_invisible(comb: Dictionary):
+func make_invisible(comb: Dictionary, how: String = "fades from sight"):
 	if is_invisible(comb):
 		return
 	if not is_hidden(comb) and last_in_sight(comb):
@@ -3869,7 +3904,7 @@ func make_invisible(comb: Dictionary):
 		update_combatants.emit(combatants)
 	else:
 		set_hidden(comb, true)
-	update_information.emit("[color=yellow]%s[/color] fades from sight.\n" % comb.name)
+	update_information.emit("[color=yellow]%s[/color] %s.\n" % [comb.name, how])
 
 
 ## They did something to the other side, and can be seen again.
@@ -3940,7 +3975,7 @@ func _dress_as(comb: Dictionary, frames: SpriteFrames):
 ## Fallen Friend has just landed: they lie where they are and look dead to the other side. Nobody left
 ## in sight to draw the eye and it comes to nothing, as invisibility does.
 func _begin_looking_dead(comb: Dictionary):
-	make_invisible(comb)
+	make_invisible(comb, "goes down, and looks dead to the other side")
 	if not is_invisible(comb):
 		comb.status_effects = comb.status_effects.filter(func(entry): return entry.get("condition") == null or not entry.condition.looks_dead)
 		return
@@ -8021,7 +8056,7 @@ func party_believes() -> bool:
 ## stop on one, since somebody is there as far as the board goes. Going through one in front of the other side gives
 ## it away (_gives_away; from the controller's step, illusions_stepped_through, or a step on false ground,
 ## _false_ground_holds): to each who sees it happen, by their own sight and as they believe it, and to anybody
-## Trained or smarter (SEES_THROUGH_FROM), wherever they stand. Somebody hidden from them gives nothing away, nor does anybody going over
+## Trained or smarter (SEES_THROUGH_FROM), wherever they stand, unless they can see nothing (_sees_nothing). Somebody hidden from them gives nothing away, nor does anybody going over
 ## it in the air. It is that illusion, for that creature (comb.sees_through, by _illusion_key: a wall is all of its
 ## pieces, what a tether holds all it holds, and the next one fools them again). From then on it is nothing to them:
 ## they see past it, walk through it, and leave it alone (not_fooled_by, believes_illusion through _believer). They give
@@ -8088,11 +8123,15 @@ func illusions_stepped_through(walker: Dictionary):
 				_gives_away(thing, walker, tile)
 
 
+## Whether `comb` can see nothing at all to notice: Blind, or in the dark without the eyes for it (the designer,
+## 2026-11-07: "Have the blind also not noticed. Whoever is in dark and doesn't have the passive that allows them to see
+## in darkness like Cyrus, is blinded.").
+func _sees_nothing(comb: Dictionary) -> bool:
+	return condition_range_cap(comb) > 0 or (in_darkness(comb) and not sees_in_darkness(comb))
+
+
 ## Whether `comb` sees what happens on `tile`, as they believe things to be: the rest of a wall still stops their eyes.
 func _sees_it_happen(comb: Dictionary, tile: Vector2i, walker: Dictionary) -> bool:
-	var cap: int = condition_range_cap(comb)
-	if cap > 0 and distance_to(comb, tile) > cap:
-		return false
 	var believed := ai_believes
 	var side := _believer_side
 	var mind := _believer
@@ -8117,8 +8156,8 @@ func _gives_away(illusion: Dictionary, walker: Dictionary, tile: Vector2i):
 			continue
 		if comb.get("side", -1) == illusion.get("side", -1) or not ai_plays(comb) or comb.get("sees_through", {}).has(key) or _seen_through.get(comb.get("side", -1), false):
 			continue
-		# Hidden from them, there was nothing to see. Stunned or asleep, nobody is looking.
-		if hidden_from(comb, walker) or has_restriction(comb, "skips_turn"):
+		# Hidden from them, there was nothing to see. Stunned or asleep, nobody is looking. Blind, nobody can.
+		if hidden_from(comb, walker) or has_restriction(comb, "skips_turn") or _sees_nothing(comb):
 			continue
 		var sharp: bool = comb.get("ai_smarts", CombatantDefinition.AiSmarts.TRAINED) >= SEES_THROUGH_FROM
 		if not sharp and not _sees_it_happen(comb, tile, walker):
@@ -14967,24 +15006,62 @@ func _line_held(target: Dictionary) -> bool:
 ## for the target.
 func _last_wall(target: Dictionary, damage: int) -> int:
 	var standing: int = target.get("hp", 0) + target.get("temp_hp", 0)
-	if damage < standing or not target.has("side") or target.has("object") or target.get("illusion", false):
+	if damage < standing:
 		return damage
+	var wall := _who_walls(target)
+	if wall.is_empty():
+		return damage
+	var kept := maxi(standing - 1, 0)
+	var rest := damage - kept
+	lose_hp(wall, rest)
+	show_damage(wall, rest, Damage.Type.PHYSICAL, true)
+	update_information.emit("[color=yellow]%s[/color] throws herself in the way: %d of the blow that would have felled [color=yellow]%s[/color] is hers.\n" % [
+		wall.name, rest, target.name])
+	if wall.hp <= 0:
+		combatant_die(wall)
+	return kept
+
+
+## Whoever of `target`'s side is walling them against a blow that would fell them (Last Wall), or {}.
+func _who_walls(target: Dictionary) -> Dictionary:
+	if not target.has("side") or target.has("object") or target.get("illusion", false):
+		return {}
 	for wall in combatants:
 		if wall == target or not wall.get("alive", false) or wall.get("side", -1) != target.side or wall.get("illusion", false):
 			continue
 		for passive in active_passives(wall):
-			if passive.last_wall <= 0 or distance_to(wall, nearest_tile_of(target, wall.position)) > passive.last_wall:
-				continue
-			var kept := maxi(standing - 1, 0)
-			var rest := damage - kept
-			lose_hp(wall, rest)
-			show_damage(wall, rest, Damage.Type.PHYSICAL, true)
-			update_information.emit("[color=yellow]%s[/color] throws herself in the way: %d of the blow that would have felled [color=yellow]%s[/color] is hers.\n" % [
-				wall.name, rest, target.name])
-			if wall.hp <= 0:
-				combatant_die(wall)
-			return kept
-	return damage
+			if passive.last_wall > 0 and distance_to(wall, nearest_tile_of(target, wall.position)) <= passive.last_wall:
+				return wall
+	return {}
+
+
+## --- A blow that would fell them ---
+##
+## Fallen Friend (the designer, 2026-11-07: "I like A for fallen friend": "As a reaction, when a blow would down an
+## ally. The blow never lands, and they fall down looking dead. Nobody aims at them while the tether holds. Their first
+## blow from there counts as from hiding."). Asked in the targets loop once the blow has connected (_use_skill,
+## _land_reaction): the last moment it can be stopped, and one where a question can be waited for. What a skill does
+## is not rolled, so predict_hit is what it would do. Whoever looks dead is hidden and invisible, so a first blow from
+## there is one nobody can react to (_react), which is all that coming from hiding means in a fight.
+
+## Whether `attacker`'s `skill`, at `power` of what it would do, would fell `target`.
+func _blow_would_fell(attacker: Dictionary, target: Dictionary, skill: SkillDefinition, power: float = 1.0) -> bool:
+	if not _hostile(skill) or attacker.get("side", -1) == target.get("side", -1) or target.has("object") or target.get("illusion", false) or not target.get("alive", false):
+		return false
+	var standing: int = target.get("hp", 0) + target.get("temp_hp", 0)
+	return float(predict_hit(attacker, target, skill).damage) * power >= float(standing) and _who_walls(target).is_empty()
+
+
+## `attacker`'s blow is about to fell `target`: anybody of theirs who can stop it is asked. True when it never lands.
+func _falls_instead(attacker: Dictionary, target: Dictionary, skill: SkillDefinition, power: float = 1.0) -> bool:
+	if target.get("looks_dead", false) or not _blow_would_fell(attacker, target, skill, power):
+		return false
+	var an_ally := func(reactor: Dictionary, _reacting: SkillDefinition, _readied: Dictionary) -> bool:
+		return not is_same(reactor, target) and reactor.get("side", -1) == target.get("side", -2)
+	var them := func(_reactor: Dictionary) -> Dictionary:
+		return target
+	await _react(SkillDefinition.Trigger.WOULD_FALL, attacker, "%s's %s would fell %s" % [attacker.name, skill.name, target.name], them, an_ally)
+	return target.get("looks_dead", false)
 
 
 ## Whether `attacker`'s hit on `target`, rolled to land, misses after all: the

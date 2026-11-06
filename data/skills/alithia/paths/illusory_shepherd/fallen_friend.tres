@@ -14,7 +14,7 @@ held_by_tether = true
 [resource]
 script = ExtResource("3_skill")
 name = "Fallen Friend"
-description = "An ally looks dead to the other side, and nobody aims at them, for as long as she holds the tether and they do nothing. A step or a move gives it away."
+description = "A reaction, when an enemy's blow would fell an ally in reach: it never lands. They go down and look dead to the other side, and nobody aims at them, for as long as she holds the tether and they do nothing. A step or a move gives it away, though a first blow from there comes from hiding, with nobody able to react to it."
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 impact_look = 19
@@ -25,3 +25,6 @@ deals_damage = false
 spell_slot_level = 4
 tethered = true
 tether_strength = 200
+is_reactive = true
+reacts_when = 1024
+reaction_only = true
