@@ -189,6 +189,8 @@ const DOT_STRENGTH_NAMES := {
 ## They cannot be given these while it is on them, and any of them they have now
 ## comes off as it lands. Unafraid (Steady Heart).
 @export var immune_to_conditions: Array[ConditionDefinition] = []
+## Whoever has it shows the whole party the other side's unseen ground and unseen traps (Detect Magic).
+@export var sees_magic: bool = false
 
 @export_group("Forced movement")
 ## At the start of their turn they are blown this many tiles in a random

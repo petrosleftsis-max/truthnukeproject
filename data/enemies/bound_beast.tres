@@ -20,3 +20,4 @@ tint = Color(0.55, 0.7, 0.45, 1)
 skills = Array[String](["savage_bite", "run"])
 resist_poison = 25
 resist_fire = -25
+ai_fears = Array[int]([1])

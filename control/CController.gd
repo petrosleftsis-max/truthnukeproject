@@ -456,6 +456,14 @@ func _unhandled_input(event):
 		return
 	if a_menu_is_over_the_map():
 		return
+	# A right click on what a tether holds, whoever's turn it is (Combat "Letting go of a tether").
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and not _skill_selected \
+			and combat != null:
+		if event.is_released() and combat.offer_letting_go(tile_map.local_to_map(_pointed_at()), Coop.player_of_event(event), event.position):
+			get_viewport().set_input_as_handled()
+			return
+		if not _board_is_theirs():
+			return
 	# Somebody else's turn: who is under the pointer, no more - not where the one
 	# acting would walk, which is theirs to work out.
 	if event is InputEventMouseMotion and not _board_is_theirs():
@@ -513,6 +521,10 @@ func _unhandled_input(event):
 			if _skill_selected:
 				var skill = SkillDatabase.skills[_selected_skill]
 				var caster = aiming_caster()
+				# A wall's far end: the pointer pulled onto the nearest straight line.
+				if aiming_a_walls_end():
+					mouse_position_i = wall_end_at(mouse_position_i)
+					local_map = tile_map.map_to_local(mouse_position_i)
 				# A melee blow's area grows and shrinks with its user (Combat.aoe_radius_of).
 				var radius: int = combat.aoe_radius_of(caster, skill)
 				if refusal_at(mouse_position_i, comb if comb != null else {}) != "":
@@ -529,12 +541,11 @@ func _unhandled_input(event):
 					# stands (the designer, 2026-11-04: "Moves like misty step
 					# don't highlight tiles where the mouse hovers on").
 					_ally_target_position = local_map
-					# A wall: all of it (Combat.wall_tiles).
-					if skill is SkillDefinition and Combat.summons_with(skill) != "":
-						var wall: Array = combat.wall_tiles_of(caster, skill, local_map)
-						if not wall.is_empty():
-							_aoe_preview_positions = wall
-							_aoe_preview_is_ally = true
+					# A wall: all of it, from where it starts to here (Combat.wall_tiles).
+					if aiming_a_walls_end():
+						# Only where a piece will stand: nothing goes up on somebody, or on a barrel.
+						_aoe_preview_positions = landable_tiles(combat.wall_tiles_of(caster, skill, _teleport_subject, mouse_position_i), combat.summon_probe(skill, caster.get("side", 0)))
+						_aoe_preview_is_ally = true
 				elif comb != null:
 					# In reach and the right person - refusal_at has said so.
 					if skill.targets_ally:
@@ -552,6 +563,12 @@ func _unhandled_input(event):
 				_blocked_target_position = local_map
 			else:
 				_blocked_target_position = null
+
+
+## Whether a tether of the party's has hold of what is under the pointer (Coop lets that click through,
+## whoever's turn it is).
+func tether_under_pointer() -> bool:
+	return combat != null and not combat.tethers_at(tile_map.local_to_map(_pointed_at())).is_empty()
 
 
 ## Whether the board is this press's to play on: nobody has it alone, or the one
@@ -1397,6 +1414,7 @@ func _step_cost(tile: Vector2i) -> int:
 
 
 func _ready():
+	add_to_group(&"tether_board")
 	tile_map = get_node("../Terrain/TileMap")
 	# The board a pad's pointer moves over - see Pad.
 	add_to_group(&"pad_board")
@@ -2564,16 +2582,32 @@ func picking_a_landing_tile() -> bool:
 
 ## Whether `skill` is aimed twice - at who, then at where: a teleport that moves
 ## somebody else, or a skill Placed In Reach (an image of an ally, put down
-## where the caster likes).
+## where the caster likes); or where it starts, then where it ends: a wall.
 static func aimed_twice(skill: SkillDefinition) -> bool:
-	return skill.teleports == SkillDefinition.TeleportWho.TARGET or skill.placed_in_reach
+	return skill.teleports == SkillDefinition.TeleportWho.TARGET or skill.placed_in_reach or Combat.places_a_wall(skill)
+
+
+## Whether the far end of a wall is what is being aimed now.
+func aiming_a_walls_end() -> bool:
+	return _skill_selected and waiting_for_destination() and Combat.places_a_wall(SkillDatabase.skills[_selected_skill])
+
+
+## Where a click on `tile` would end the wall being aimed.
+func wall_end_at(tile: Vector2i) -> Vector2i:
+	var start: Vector2i = _teleport_subject
+	var end: Vector2i = Combat.wall_end_for(Combat.wall_effect_of(SkillDatabase.skills[_selected_skill]), start, tile)
+	# Pointing past the edge of the map, it goes as far as the edge.
+	var way := Vector2i(signi(end.x - start.x), signi(end.y - start.y))
+	while end != start and end not in _range_preview_positions:
+		end -= way
+	return end
 
 
 ## Whoever the aimed teleport would move - or whoever an image is to be of - so
 ## we can ask whether they fit.
 func travelling_combatant() -> Dictionary:
 	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
-	if aimed_twice(skill):
+	if aimed_twice(skill) and not Combat.places_a_wall(skill):
 		return combat.get_combatant_at(_teleport_subject)
 	# What it calls up, as big as it is (Combat "Summons").
 	if Combat.summons_with(skill) != "":
@@ -2633,6 +2667,11 @@ func confirm_skill_target(position: Vector2i):
 		# First click chose who travels - or whose image it is. Stay in aiming
 		# mode: the next one says where to, and until then nothing has been spent.
 		_teleport_subject = position
+		# A wall: from there, in a straight line, as far as it goes.
+		if Combat.places_a_wall(skill):
+			_range_preview_positions = Combat.wall_ends_from(Combat.wall_effect_of(skill), position).filter(is_on_map)
+			queue_redraw()
+			return
 		# Now that we know who is travelling, narrow the marked tiles to the
 		# ones they could be set down on.
 		var subject_comb = combat.get_combatant_at(position)
@@ -2690,6 +2729,9 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 		return "Nothing is being aimed"
 	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
 	var caster = aiming_caster()
+	# The far end of a wall: anywhere along a straight line from where it starts.
+	if aiming_a_walls_end():
+		return "" if tile in _range_preview_positions else "%s goes in a straight line, up to %d tiles" % [skill.name, Combat.wall_length(Combat.wall_effect_of(skill))]
 	if picking_a_landing_tile():
 		if tile in _range_preview_positions and is_valid_landing_tile(tile):
 			return ""
@@ -2775,6 +2817,8 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 ## somebody right for it for the rest. Anywhere else, aiming goes on. True when
 ## it went.
 func aim_click(tile: Vector2i) -> bool:
+	if aiming_a_walls_end():
+		tile = wall_end_at(tile)
 	var comb = aim_subject_at(tile)
 	if _look_only or refusal_at(tile, comb) != "":
 		return false
@@ -3020,6 +3064,8 @@ const STANDING_ALLY_FILL := Color(0.35, 0.6, 1.0, 0.14)
 const STANDING_ALLY_EDGE := Color(0.45, 0.7, 1.0, 0.35)
 const STANDING_FOE_FILL := Color(1.0, 0.3, 0.3, 0.14)
 const STANDING_FOE_EDGE := Color(1.0, 0.4, 0.4, 0.35)
+## Roughly the colour the Phantom Wall is drawn in, faint: a wall about to go up (_draw_wall_to_be).
+const WALL_TO_BE_COLOUR := Color(0.25, 0.32, 0.5, 0.45)
 const STANDING_NEUTRAL_FILL := Color(0.9, 0.85, 0.6, 0.12)
 const STANDING_NEUTRAL_EDGE := Color(0.95, 0.9, 0.65, 0.3)
 ## An aura's reach: faint, since it is on the map for the whole fight.
@@ -3119,6 +3165,18 @@ func _note_hover(tile: Vector2i):
 ## of it: a thin violet bar along the bottom of their square - for the
 ## other side's casters too, whose portraits are not on the HUD.
 const TETHER_COLOUR := Color("9d7fe0")
+
+## A wall about to go up: how it will run, over the tiles it will take, up to the far edges of its ends as it is drawn.
+func _draw_wall_to_be():
+	if not aiming_a_walls_end() or _ally_target_position == null:
+		return
+	var from: Vector2 = tile_map.map_to_local(_teleport_subject)
+	var line: Vector2 = _ally_target_position - from
+	if line.length() < 1.0:
+		return
+	var way := Vector2(signf(line.x), signf(line.y)) * Grid.HALF_TILE
+	draw_line(from - way, _ally_target_position + way, WALL_TO_BE_COLOUR, Grid.TILE_SIZE * 0.5)
+
 
 func _draw_tether():
 	for comb in combat.combatants:
@@ -3408,6 +3466,7 @@ func _draw():
 				_draw_area(_aoe_preview_positions, HELP_FILL, HELP_EDGE)
 			else:
 				_draw_area(_aoe_preview_positions, BLAST_FILL, BLAST_EDGE)
+		_draw_wall_to_be()
 		if _blocked_target_position != null:
 			_draw_tile_marker(_blocked_target_position)
 		_draw_shoves()

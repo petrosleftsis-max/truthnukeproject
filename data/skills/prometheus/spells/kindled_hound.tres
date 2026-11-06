@@ -23,4 +23,5 @@ deals_damage = false
 spell_slot_level = 3
 outside_use = 12
 tethered = true
+tether_strength = 200
 tether_per_damage = 1.5

@@ -28,6 +28,8 @@ class_name FamiliarForm
 ## How close a guard has to be to make it out at all, in tiles - however far
 ## he can see anybody else.
 @export_range(0.5, 10.0, 0.25) var noticed_within: float = 2.0
+## Nothing notices it at all: no eye, no nose, no magic sensor (Arcane Eye).
+@export var nothing_notices: bool = false
 
 @export_group("Look")
 ## Its walking animation, when it has one ("walk" and "idle")...

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="FamiliarForm" format=3]
+
+[ext_resource type="Script" path="res://exploration/FamiliarForm.gd" id="1_form"]
+
+[resource]
+script = ExtResource("1_form")
+name = "Arcane Eye"
+description = "An eye of nothing but will, that flies where she sends it. Nothing can see, smell or sense it, and it touches nothing."
+size = 0
+movement_class = 1
+speed = 1.3
+noticed_within = 0.5
+nothing_notices = true
+colour = Color(0.72, 0.5, 1, 1)

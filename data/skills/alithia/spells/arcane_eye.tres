@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/icons/arcane_eye_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[resource]
+script = ExtResource("3_skill")
+name = "Arcane Eye"
+description = "Only out of a fight. An eye that she steers and sees through as she would a familiar. It flies, and nothing can see, smell or sense it, a magic sensor included. It touches nothing, and goes to her shoulder when she sends it."
+icon = ExtResource("2_icon")
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 5
+never_in_a_fight = true
+out_of_combat = true
+noise = 1
+outside_use = 21

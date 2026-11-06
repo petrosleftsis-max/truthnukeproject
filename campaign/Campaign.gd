@@ -204,8 +204,8 @@ func learnable_spells(key: String) -> Array:
 func knows_spell(key: String, spell: String) -> bool:
 	if not learns_spells(key):
 		return true
-	# A dungeon can hand them the lot (DungeonDefinition.knows_every_spell).
-	if dungeon != null and dungeon.knows_every_spell:
+	# A dungeon can hand them the lot (DungeonDefinition.knows_every_spell), and a stage (MapSetup).
+	if knows_every_spell_here or (dungeon != null and dungeon.knows_every_spell):
 		return true
 	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
 	return definition.starting_spells.has(spell) or learned_spells.get(key, []).has(spell)
@@ -293,18 +293,141 @@ var map_ambient: int = Light.Ambient.OUTDOORS
 var map_no_moon := false
 
 
-## To `hour`: a Light.Hour, or its name ("night").
+## To `hour`: a Light.Hour, or its name ("night"): the next time it comes round, by the clock.
 func set_time_of_day(hour):
 	var wanted: int = hour if hour is int else Light.TIME_NAMES.find(String(hour).to_lower())
 	if wanted < 0 or wanted >= Light.TIME_NAMES.size() or wanted == time_of_day:
 		return
-	time_of_day = wanted
-	time_of_day_changed.emit()
+	var ahead: int = posmod(Light.HOUR_STARTS[wanted] - minute_of_day(), Light.MINUTES_A_DAY)
+	clock_to(calendar_minutes + ahead)
 
 
 ## On to the next of them.
 func pass_time():
 	set_time_of_day((time_of_day + 1) % Light.TIME_NAMES.size())
+
+
+## --- The clock and the calendar ---
+##
+## (The designer, 2026-11-07: "Sometimes in the story the story will go from one time to another (for
+## example from monring to night or efven from one day to after 3 days), allow the smooth transition as
+## we see time pass faster from one point to another, but not necessarily always. add a calendar and
+## time thing as well".) One number, calendar_minutes, saved: minutes since the midnight before the
+## story's first day. Which part of the day it is, the date (CalendarDefinition) and what the light looks
+## like (Light.tone_at) all follow from it. It stands still unless told. In a conversation:
+##     do Campaign.advance_clock(8)              eight hours on, in a cut
+##     do Campaign.advance_clock(0, 3)           three days on, in a cut
+##     do Campaign.set_clock(21, 30)             the next time it is half past nine at night
+##     do Campaign.watch_time_pass(8)            eight hours on, seen going by, in five seconds
+##     do Campaign.watch_time_pass(0, 3, 9.0)    three days on, seen going by, in nine seconds
+## A long rest ends at the next dawn, a short rest takes SHORT_REST_HOURS, and a map's Seconds Per
+## Time Of Day runs it while walking there.
+
+signal clock_moved
+
+const CALENDAR := "res://data/calendar.tres"
+const SHORT_REST_HOURS := 1.0
+
+var calendar_minutes: int = 480
+## Whether time is being watched going by: everybody stands while it does.
+var time_passing := false
+## Set by a map played on its own (MapSetup.knows_every_spell). Not saved.
+var knows_every_spell_here := false
+var _clock_part := 0.0
+var _calendar: CalendarDefinition = null
+
+
+func calendar() -> CalendarDefinition:
+	if _calendar == null:
+		_calendar = load(CALENDAR)
+	return _calendar
+
+
+## The day it is, where the story began on day 1.
+func day_number() -> int:
+	return calendar_minutes / Light.MINUTES_A_DAY + 1
+
+
+## Minutes since midnight.
+func minute_of_day() -> int:
+	return calendar_minutes % Light.MINUTES_A_DAY
+
+
+## "14:20".
+func clock_text() -> String:
+	var minute := minute_of_day()
+	return "%02d:%02d" % [minute / 60, minute % 60]
+
+
+func date_text() -> String:
+	return calendar().date_text(day_number())
+
+
+## The clock to `minutes`: never backwards.
+func clock_to(minutes: int):
+	if minutes == calendar_minutes:
+		return
+	calendar_minutes = maxi(minutes, calendar_minutes)
+	clock_moved.emit()
+	var hour: int = Light.hour_at(minute_of_day())
+	if hour != time_of_day:
+		time_of_day = hour
+		time_of_day_changed.emit()
+
+
+## `minutes` go by, and there may be parts of one.
+func tick_clock(minutes: float):
+	_clock_part += minutes
+	var whole := floori(_clock_part)
+	if whole > 0:
+		_clock_part -= float(whole)
+		clock_to(calendar_minutes + whole)
+
+
+## So many hours and days on, in a cut.
+func advance_clock(hours: float, days: int = 0):
+	clock_to(calendar_minutes + roundi(hours * 60.0) + days * Light.MINUTES_A_DAY)
+
+
+## The next time the clock reads `hour`:`minute`.
+func set_clock(hour: int, minute: int = 0):
+	var ahead: int = posmod(hour * 60 + minute - minute_of_day(), Light.MINUTES_A_DAY)
+	clock_to(calendar_minutes + ahead)
+
+
+## So many hours and days on, seen going by in `seconds` (TimePassing). With nobody to see it, or
+## with no seconds to do it in, it is a cut.
+func watch_time_pass(hours: float, days: int = 0, seconds: float = 5.0):
+	var minutes: int = roundi(hours * 60.0) + days * Light.MINUTES_A_DAY
+	if minutes <= 0:
+		return
+	if seconds <= 0.0 or not LightView.shown():
+		clock_to(calendar_minutes + minutes)
+		return
+	Net.time_passes(minutes, seconds)
+	await play_time_passing(minutes, seconds)
+
+
+## A night with no moon on this map, or with one.
+func set_no_moon(on: bool):
+	if on != map_no_moon:
+		map_no_moon = on
+		time_of_day_changed.emit()
+
+
+## The shade drawn with a dithered edge, for pixel art (LightView), or not.
+func set_dithered_light(on: bool):
+	LightView.dithered = on
+	time_of_day_changed.emit()
+
+
+## It is seen going by here.
+func play_time_passing(minutes: int, seconds: float):
+	var show := TimePassing.new()
+	show.minutes = minutes
+	show.seconds = seconds
+	get_tree().root.add_child(show)
+	await show.finished
 
 
 ## Whether `key` sees in the dark, as far as their passives go (Cyrus's Night Eyes).
@@ -916,7 +1039,7 @@ const SAVED := ["party_level", "party_state", "subclasses", "path_change_open", 
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
 	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks",
 	"controllers", "prepared_spells", "locked_spells", "last_prepared", "spells_readied", "prepare_due",
-	"time_of_day", "map_ambient", "map_no_moon"]
+	"time_of_day", "map_ambient", "map_no_moon", "calendar_minutes"]
 
 
 ## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with
@@ -991,6 +1114,7 @@ func net_state() -> Dictionary:
 ## `keeping`: SAVED keys left as they are here (Net: what an open menu changes).
 func apply(state: Dictionary, keeping: Array = []):
 	var light_before := [time_of_day, map_ambient, map_no_moon]
+	var clock_before := calendar_minutes
 	# A copy: Array() of an array is that same array, and would change with it.
 	var party_before := party_order.duplicate()
 	if state.get("party_order") is Array:
@@ -1014,6 +1138,11 @@ func apply(state: Dictionary, keeping: Array = []):
 	current_encounter = Net.data_to_resource(state.get("encounter")) as EncounterDefinition
 	if Array(party_order) != party_before:
 		party_changed.emit()
+	# Saved before there was a clock: the first day, at that part of it.
+	if not state.has("calendar_minutes") and state.has("time_of_day") and not keeping.has("time_of_day"):
+		calendar_minutes = Light.HOUR_STARTS[clampi(time_of_day, 0, Light.HOUR_STARTS.size() - 1)]
+	if clock_before != calendar_minutes:
+		clock_moved.emit()
 	if light_before != [time_of_day, map_ambient, map_no_moon]:
 		time_of_day_changed.emit()
 
@@ -1348,7 +1477,11 @@ func take_encounter_answer() -> EncounterAnswer:
 
 
 func reset():
-	time_of_day = Light.Hour.DAY
+	knows_every_spell_here = false
+	calendar_minutes = calendar().first_hour * 60
+	time_of_day = Light.hour_at(calendar_minutes)
+	_clock_part = 0.0
+	time_passing = false
 	map_ambient = Light.Ambient.OUTDOORS
 	map_no_moon = false
 	_arena_return = {}
@@ -1743,6 +1876,7 @@ const SHORT_REST_MENDS := 0.5
 
 
 func short_rest():
+	advance_clock(SHORT_REST_HOURS)
 	for key in party_state:
 		var state: Dictionary = party_state[key]
 		var spare: int = state.get("spent_until_rest", {}).get("spare_spent", 0)
@@ -1786,8 +1920,9 @@ func long_rest():
 	gates_spent_outside.clear()
 	meditated.clear()
 	free_familiar_used = false
-	# Waking to a new day.
-	set_time_of_day(Light.Hour.DAWN)
+	# Waking to a new day: the next dawn, even from this one.
+	var to_dawn: int = posmod(Light.HOUR_STARTS[Light.Hour.DAWN] - minute_of_day(), Light.MINUTES_A_DAY)
+	clock_to(calendar_minutes + (to_dawn if to_dawn > 0 else Light.MINUTES_A_DAY))
 	# And the spells to prepare again ("Preparing spells").
 	_rest_prepared()
 	# And the paths open to change until the next fight (path_change_open).

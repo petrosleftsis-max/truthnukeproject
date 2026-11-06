@@ -16,8 +16,12 @@ var glow := {}
 var varies := false
 ## Whether any source here flickers, for drawing.
 var flickers := false
+## What is lighting it, as given, for drawing; and what says a tile stops light.
+var sources: Array = []
+var blocks_light: Callable = Callable()
 
 var _blocked := {}
+var _ambient := {}
 
 
 func level_at(tile: Vector2i) -> int:
@@ -28,6 +32,11 @@ func amount_at(tile: Vector2i) -> float:
 	return amounts.get(tile, Light.AMOUNTS[base])
 
 
+## How lit `tile` would be with nothing lighting it: the map, and any ambient area it is in.
+func ambient_amount_at(tile: Vector2i) -> float:
+	return Light.AMOUNTS[_ambient.get(tile, base)]
+
+
 func clear():
 	base = Light.Level.BRIGHT
 	levels = {}
@@ -35,14 +44,18 @@ func clear():
 	glow = {}
 	varies = false
 	flickers = false
+	sources = []
+	_ambient = {}
 
 
 ## Lights it all: `base_level`; `areas`, each {"rect", "level"}; `sources`, each {"tile", "bright", "dim",
 ## "colour", "flickers"} in tiles; `dark_tiles`, forced dark whatever lights them (Light Void);
 ## `blocks` says whether a tile stops light.
-func rebuild(base_level: int, areas: Array, sources: Array, dark_tiles: Array, blocks: Callable):
+func rebuild(base_level: int, areas: Array, lit_by: Array, dark_tiles: Array, blocks: Callable):
 	clear()
 	base = base_level
+	sources = lit_by
+	blocks_light = blocks
 	_blocked = {}
 	for area in areas:
 		var rect: Rect2i = area.rect
@@ -51,6 +64,7 @@ func rebuild(base_level: int, areas: Array, sources: Array, dark_tiles: Array, b
 				var tile := Vector2i(x, y)
 				levels[tile] = area.level
 				amounts[tile] = Light.AMOUNTS[area.level]
+				_ambient[tile] = area.level
 	for source in sources:
 		_shine(source, blocks)
 	for tile in dark_tiles:

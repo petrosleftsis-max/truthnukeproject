@@ -56,7 +56,7 @@ var _items_tab: Button = null
 var readying := false
 var _ready_box: CheckBox = null
 var _only: CheckBox = null
-var _gates: HBoxContainer = null
+var _gates: HFlowContainer = null
 var _scroll: ScrollContainer = null
 var _grid: GridContainer = null
 ## The Spells tab's shelves, and the button they are made from.
@@ -64,6 +64,7 @@ var _shelves: SpellShelves = null
 var _template: Button = null
 var _empty: Label = null
 var _since := 0.0
+var _home_y := -1.0
 ## Whose moves, on which tab, the buttons were last built for.
 var _built_for := ""
 
@@ -113,9 +114,12 @@ func _ready():
 		scene.stay_here()
 		Net.pressed_here(&"stay_here", Coop.controller_of(who())))
 	top.add_child(stay)
-	_gates = HBoxContainer.new()
+	# Wrapping, or at high levels they run off past the panel and over the log.
+	_gates = HFlowContainer.new()
 	_gates.name = "Gates"
-	_gates.add_theme_constant_override("separation", 6)
+	_gates.add_theme_constant_override("h_separation", 6)
+	_gates.add_theme_constant_override("v_separation", 3)
+	_gates.custom_minimum_size = Vector2(COLUMNS * BUTTON_SIZE.x + (COLUMNS - 1) * 4, 0)
 	column.add_child(_gates)
 	_scroll = ScrollContainer.new()
 	_scroll.custom_minimum_size = Vector2(COLUMNS * BUTTON_SIZE.x + (COLUMNS - 1) * 4, SCROLL_HEIGHT)
@@ -178,6 +182,17 @@ func _process(delta):
 	_since += delta
 	if _since >= REFRESH_SECONDS:
 		refresh()
+	_keep_on_the_screen()
+
+
+## Where it stands, and off the bottom of the screen it grows upwards instead: at high levels the
+## gates' tags take more than one line.
+func _keep_on_the_screen():
+	if _home_y < 0.0:
+		_home_y = global_position.y
+	# No taller than what is on it now, whose gates may have been more a moment ago.
+	size.y = get_combined_minimum_size().y
+	global_position.y = minf(_home_y, get_viewport_rect().size.y - size.y - 4.0)
 
 
 func _on_party_changed():
@@ -358,7 +373,7 @@ func _freshen(button: Button, key: String):
 		why = "Only where guards watch" if watch == null else watch.ready_refusal(key, move, SkillDefinition.Trigger.ENTERS_REACH)
 	button.disabled = why != ""
 	var lines := [skill.name, OutsideMoves.USE_NAMES[OutsideMoves.use_of(skill)], "Noise: " + OutsideMoves.noise_fact(skill)]
-	if skill.outside_gate > 0:
+	if OutsideMoves.use_of(skill) == OutsideMoves.Use.INVISIBILITY:
 		# Invisibility: through Iris alone, a casting for each it hides.
 		lines.append("Paid through the %s, a casting for each it hides" % Stats.outside_gate_name(skill.outside_gate))
 	elif skill.spell_slot_level > 0:

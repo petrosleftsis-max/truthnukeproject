@@ -44,6 +44,8 @@ func _ready():
 	await open_fight()
 	await phantom_wall()
 	await open_fight()
+	await a_wall_by_two_clicks()
+	await open_fight()
 	await seeming()
 	await open_fight()
 	await false_ground()
@@ -259,6 +261,100 @@ func phantom_wall():
 	await settle()
 	ok(pieces.all(func(piece): return not piece.alive), "the tether gone, so is the wall")
 	log_line("")
+
+
+## Where it starts, then where it ends (the designer, 2026-11-07).
+func a_wall_by_two_clicks():
+	log_line("======== Phantom Wall, by two clicks ========")
+	var skill: SkillDefinition = SkillDatabase.skills.phantom_wall
+	var effect: EffectDefinition = Combat.wall_effect_of(skill)
+	var o := Vector2i(10, 10)
+	ok(Combat.places_a_wall(skill) and CController.aimed_twice(skill), "aimed twice")
+	ok(Combat.wall_line(effect, o, o + Vector2i(3, 0)) == [o, o + Vector2i(1, 0), o + Vector2i(2, 0), o + Vector2i(3, 0)], "along a row")
+	ok(Combat.wall_line(effect, o, o + Vector2i(0, -2)) == [o, o + Vector2i(0, -1), o + Vector2i(0, -2)], "or a column")
+	ok(Combat.wall_line(effect, o, o) == [o], "one tile, if that is all it is asked for")
+	ok(Combat.wall_line(effect, o, o + Vector2i(40, 0)).size() == Combat.wall_length(effect), "no longer than it ever was", "%d" % Combat.wall_length(effect))
+	ok(Combat.wall_end_for(effect, o, o + Vector2i(3, 1)) == o + Vector2i(3, 0), "pointing just off the row, along the row")
+	ok(Combat.wall_end_for(effect, o, o + Vector2i(2, 3)) == o + Vector2i(3, 3), "or nearer the diagonal, along the diagonal")
+	var slant: Array = Combat.wall_line(effect, o, o + Vector2i(2, 2))
+	ok(slant == [o, o + Vector2i(1, 0), o + Vector2i(1, 1), o + Vector2i(2, 1), o + Vector2i(2, 2)], "a diagonal fills its corners, so nobody slips through", "%s" % [slant])
+	var alithia := who("alithia")
+	await their_turn(alithia)
+	# Clear ground in a row, in reach.
+	var start: Vector2i = alithia.position
+	for gap in range(2, 7):
+		for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+			var there: Vector2i = alithia.position + way * gap
+			var along: Vector2i = Vector2i(way.y, way.x)
+			var clear := true
+			for step in range(0, 4):
+				var tile: Vector2i = there + along * step
+				if not combat.get_combatant_at(tile).is_empty() or not controller.is_on_map(tile) or controller.is_tile_blocking(tile, 0):
+					clear = false
+			if clear and start == alithia.position:
+				start = there
+				_wall_along = along
+	ok(start != alithia.position, "there is room to try it", "%s" % start)
+	var gates: Array = alithia.spell_slots.duplicate()
+	controller.set_selected_skill("phantom_wall")
+	controller.begin_target_selection()
+	await settle()
+	ok(controller.aim_click(start), "the first click says where it starts")
+	await settle()
+	ok(controller.waiting_for_destination() and controller.aiming_a_walls_end(), "and it waits for the second")
+	ok(controller._range_preview_positions.all(func(tile): return controller.is_on_map(tile)), "nothing off the map is offered")
+	var region: Rect2i = controller._astargrid.region
+	var far_left := Vector2i(region.position.x - 40, start.y)
+	ok(controller.wall_end_at(far_left) == Vector2i(maxi(start.x - 4, region.position.x), start.y), "pointing past the edge, it stops at the edge", "%s" % controller.wall_end_at(far_left))
+	ok(alithia.spell_slots == gates and not combat.holds_tether(alithia), "with nothing spent yet")
+	ok(controller.refusal_at(start + _wall_along * 2 + Vector2i(_wall_along.y, _wall_along.x), {}) != "", "off the straight lines is no end for it")
+	ok(controller.wall_end_at(start + _wall_along * 3 + Vector2i(_wall_along.y, _wall_along.x)) == start + _wall_along * 3, "and a click there is pulled onto the nearest")
+	ok(controller.aim_click(start + _wall_along * 3), "the second says where it ends")
+	# It plays out at its own pace.
+	await get_tree().create_timer(5.0).timeout
+	var pieces: Array = combat.combatants.filter(func(comb): return comb.get("alive", false) and comb.has("object") and comb.object.name == "Phantom Wall")
+	ok(pieces.size() == 4, "four tiles, as chosen", "%d" % pieces.size())
+	ok(pieces.any(func(piece): return piece.position == start) and pieces.any(func(piece): return piece.position == start + _wall_along * 3), "from one to the other")
+	ok(combat.holds_tether(alithia) and pieces.all(func(piece): return piece.get("tether_of", -1) == alithia.tether.id), "on her tether")
+	var straight: float = Vector2(_wall_along).angle() - PI / 2.0
+	ok(pieces.all(func(piece): return absf(angle_difference(piece.sprite._drawn().rotation, straight)) < 0.01 and is_equal_approx(piece.sprite._drawn().scale.y, 1.0)), "each drawn along the wall, tile to tile")
+	# On a diagonal, the wall is drawn on the diagonal, and what fills its corners only blocks.
+	combat.snap_tether(alithia, "test")
+	await their_turn(alithia)
+	var probe: Dictionary = combat.summon_probe(skill, 0)
+	var reach: Array = combat.get_range_tiles(skill, alithia.position, alithia.movement_class, alithia)
+	var slope := Vector2i.ZERO
+	var from_tile := Vector2i.ZERO
+	for tile in reach:
+		for way in [Vector2i(1, 1), Vector2i(1, -1)]:
+			if slope == Vector2i.ZERO and Combat.wall_line(effect, tile, tile + way * 2).all(func(there): return combat.can_land_on(probe, there)):
+				slope = way
+				from_tile = tile
+	ok(slope != Vector2i.ZERO, "there is room for a diagonal too", "%s" % from_tile)
+	await combat.use_skill("phantom_wall", alithia, from_tile, false, false, from_tile + slope * 2)
+	await settle()
+	var slanted: Array = combat.combatants.filter(func(comb): return comb.get("alive", false) and comb.has("object") and comb.object.name == "Phantom Wall")
+	var on_it: Array = slanted.filter(func(piece): return absi(piece.position.x - from_tile.x) == absi(piece.position.y - from_tile.y))
+	var corners: Array = slanted.filter(func(piece): return not on_it.has(piece))
+	ok(on_it.size() == 3 and corners.size() == 2, "three on the diagonal, two filling its corners", "%d, %d" % [on_it.size(), corners.size()])
+	var diagonal: float = Vector2(slope).angle() - PI / 2.0
+	ok(on_it.all(func(piece): return piece.sprite._drawn().visible and absf(angle_difference(piece.sprite._drawn().rotation, diagonal)) < 0.01), "those on it lie along it")
+	ok(on_it.all(func(piece): return is_equal_approx(piece.sprite._drawn().scale.y * piece.sprite._drawn().texture.get_height(), Grid.TILE_SIZE * Vector2(slope).length())), "reaching corner to corner, so they join")
+	ok(corners.all(func(piece): return not piece.sprite._drawn().visible), "those filling the corners draw nothing")
+	ok(corners.all(func(piece): return not combat.can_land_on(probe, piece.position)), "and still block")
+	# Called off between the two.
+	combat.snap_tether(alithia, "test")
+	await their_turn(alithia)
+	controller.set_selected_skill("phantom_wall")
+	controller.begin_target_selection()
+	await settle()
+	controller.aim_click(start)
+	controller.cancel_skill_selection()
+	ok(not controller.waiting_for_destination(), "called off between the two, nothing is left waiting")
+	log_line("")
+
+
+var _wall_along := Vector2i.ZERO
 
 
 func seeming():

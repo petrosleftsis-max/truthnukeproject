@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/sleep_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/stunned.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("4_cond")
+held_by_tether = true
+comes_off_when_hurt = true
+
+[resource]
+script = ExtResource("3_skill")
+name = "Sleep"
+description = "An area falls asleep where it stands, those with the least Mindfulness first, until theirs adds up to twice hers. Any hurt wakes them, and so does losing the tether."
+min_range = 1
+max_range = 8
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+deals_damage = false
+contest_stat = 1
+impact_look = 13
+spell_slot_level = 2
+tethered = true
+tether_strength = 200
+aoe_radius = 3
+up_to_a_total = 2.0

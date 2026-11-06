@@ -472,7 +472,7 @@ enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
 ## an ambush with it as the opening blow - or breaks a breakable wall. Anything
 ## else does nothing out there unless it is set here. Counter Trap answers a
 ## magical trap as it goes off (MagicTrap - InstaHack). Stored by number: append.
-@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen", "Seeming", "Mislead")
+@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen", "Seeming", "Mislead", "Suggestion", "Detect Magic", "Arcane Eye")
 var outside_use: int = 0
 
 @export_group("Tether")
@@ -497,7 +497,13 @@ var outside_use: int = 0
 ## 0 = single tile only (classic single-target). Any higher number gives this
 ## skill an area: for DIAMOND it's the radius around the clicked tile; for
 ## LINE and CONE it's how many tiles the shape reaches out from the caster.
+## How many tiles of light its projectile carries as it flies, to look at only (Projectile). 0 is Automatic:
+## by its element, and a little for any spell. Below zero it takes light away.
+@export_range(-8.0, 8.0, 0.5) var projectile_light_tiles: float = 0.0
 @export var aoe_radius: int = 0 : set = _set_aoe_radius
+## With an area, it reaches only so many: those with the least of its Contest Stat first, until theirs
+## adds up to its user's times this (Sleep). 0: everybody in it.
+@export_range(0.0, 10.0, 0.25) var up_to_a_total: float = 0.0
 @export var aoe_shape: AoEShape = AoEShape.DIAMOND : set = _set_aoe_shape
 ## Only used when aoe_shape is LINE. How many tiles wide the beam is,
 ## centred on the line (e.g. 3 = one tile either side of the centre).

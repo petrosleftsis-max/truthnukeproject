@@ -22,3 +22,4 @@ skills = Array[String](["greatsword_attack", "follow_up_attack", "sweep_strike",
 resist_fire = -50
 resist_earth = 50
 ai_readies = 8
+ai_grudge = 1.0

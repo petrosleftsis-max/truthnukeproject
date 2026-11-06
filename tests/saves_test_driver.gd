@@ -17,7 +17,11 @@ const NOT_SAVED := ["current_encounter", "return_position", "return_to_position"
 	# A list read from the enemies folder, not anything the run did.
 	"_codex_enemies",
 	# How the fight just over went, for the conversation straight after it.
-	"last_fight"]
+	"last_fight",
+	# The clock's own workings: it is saved as calendar_minutes.
+	"time_passing", "_clock_part", "_calendar",
+	# Set again by the map on arriving.
+	"knows_every_spell_here"]
 ## Saved, but not as they are kept (Campaign.snapshot names them itself).
 const SAVED_ITS_OWN_WAY := ["party_order", "dungeon", "current_map"]
 

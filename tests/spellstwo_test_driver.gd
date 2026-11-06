@@ -219,6 +219,10 @@ func tether_rules():
 	ok(combat.has_restriction(two, "skips_turn") and Combat.holds_tether(alithia), "the other is still stunned, so the tether holds")
 	combat.do_damage(who("enfina"), two, SkillDatabase.skills.greatsword_attack.damage_effect(), SkillDatabase.skills.greatsword_attack)
 	ok(not combat.has_restriction(two, "skips_turn"), "hurt, the second too")
+	# And whoever else its area took in.
+	for other in the_foes:
+		if other.get("alive", false) and combat.has_restriction(other, "skips_turn"):
+			combat.do_damage(who("enfina"), other, SkillDatabase.skills.greatsword_attack.damage_effect(), SkillDatabase.skills.greatsword_attack)
 	ok(not Combat.holds_tether(alithia), "and with nobody left stunned, the tether is gone")
 	# By anything that hurts: a burn's tick, say.
 	await their_turn(alithia)

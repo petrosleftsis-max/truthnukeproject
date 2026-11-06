@@ -176,6 +176,14 @@ func _taken(party: Array, at_first: Dictionary) -> int:
 func _knows_nothing(comb: Dictionary):
 	comb["ai_knows"] = 0
 	comb["ai_smarts"] = CombatantDefinition.AiSmarts.TRAINED
+	comb["ai_commands_tiles"] = 0
+	comb["ai_grudge"] = 0.0
+	comb["ai_hunter"] = false
+	comb["ai_guards"] = ""
+	comb["ai_pack"] = 0
+	comb["ai_fears"] = []
+	comb["ai_learns"] = false
+	comb["ai_greedy"] = false
 	for dial in ["ai_aggression", "ai_caution", "ai_focus", "ai_self_preservation"]:
 		comb[dial] = 1.0
 

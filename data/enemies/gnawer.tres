@@ -20,3 +20,5 @@ sprite_frames = ExtResource("2_frames")
 tint = Color(0.6, 0.68, 0.55, 1)
 skills = Array[String](["ravenous_bite"])
 immune_to = Array[int]([9, 10])
+ai_pack = 2
+ai_fears = Array[int]([1])

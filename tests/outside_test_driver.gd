@@ -110,7 +110,8 @@ func paying():
 	ok(OutsideMoves.payment("alithia", skill("find_familiar"), true).is_empty()
 		and OutsideMoves.cannot_pay("alithia", skill("find_familiar"), true) == "Alithia has no castings of World left",
 		"  but Find Familiar only ever its own World", OutsideMoves.cannot_pay("alithia", skill("find_familiar"), true))
-	# Marked Out Of Combat: the Gates of Iris first.
+	# Marked Out Of Combat: the Gates of Iris first. (Suggestion, marked already, stands aside for this.)
+	skill("suggestion").out_of_combat = false
 	heal.out_of_combat = true
 	ok(OutsideMoves.iris_gate_for(heal) == 1, "marked, Heal may be paid through Iris (World is no deeper than the Hermes it matches)")
 	ok(Campaign.outside_gates_most("alithia")[1] == most[2], "  which Alithia now has, as many as her Hermes",
@@ -129,6 +130,7 @@ func paying():
 	ok(OutsideMoves.iris_gate_for(hurting) == 0, "a damaging one never goes through Iris, marked or not")
 	heal.out_of_combat = false
 	ok(Campaign.outside_gates_most("alithia")[1] == 0, "unmarked again: no Iris for her", "%s" % [Campaign.outside_gates_most("alithia")])
+	skill("suggestion").out_of_combat = true
 	log_line("")
 
 
@@ -155,8 +157,8 @@ func on_a_plain_map():
 	panel.show_spells(false)
 	ok(panel.button_for("run") != null and panel.button_for("votive_flame") != null, "her skills on it, Run and Votive Flame")
 	ok(panel.button_for("run").disabled, "  Run greyed: no sprinting out of a fight")
-	ok(panel.button_for("votive_flame").disabled and OutsideMoves.refusal(scene, "alithia", "votive_flame") == "Nobody in reach waiting to fight, and no wall to break",
-		"  a damaging one greyed with no fight or wall in reach", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
+	ok(panel.button_for("votive_flame").disabled and OutsideMoves.refusal(scene, "alithia", "votive_flame") == "Nothing on this map to strike",
+		"  a damaging one greyed with no fight or wall on the map", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
 	panel.show_spells(true)
 	ok(panel.button_for("heal") != null and panel.button_for("find_familiar") != null, "her spells, on the Spells tab")
 	ok(panel.button_for("heal").disabled and OutsideMoves.refusal(scene, "alithia", "heal") == "Nobody is hurt", "  Heal greyed with nobody hurt")
@@ -475,7 +477,9 @@ func on_guards():
 	guard.end_errand()
 	await settle()
 	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "", "Votive Flame at an unaware watchman", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
-	ok(OutsideMoves.use(scene, "alithia", "votive_flame") and watch.spotted_by == guard, "  springs an ambush")
+	ok(OutsideMoves.use(scene, "alithia", "votive_flame") and scene.map_aim != null and watch.spotted_by == null, "  picked, it only takes aim")
+	scene.put_aim_away()
+	ok(OutsideMoves.fire_at(scene, "alithia", "votive_flame", watch.tile_of(guard.global_position)) and watch.spotted_by == guard, "  let go at him, it springs an ambush")
 	var fight: EncounterDefinition = Campaign.current_encounter
 	ok(fight != null and fight.has_meta("opener") and fight.get_meta("opener").move == "votive_flame", "  with it as the opening blow")
 	var marked := fight.spawns.filter(func(spawn): return spawn.has_meta("opened_on")) if fight != null else []
@@ -564,7 +568,7 @@ func a_placed_fight_struck_first():
 	var reach: int = skill("votive_flame").max_range
 	ok(scene.fight_in_reach(reach) == spot, "a fight waiting %d tiles off, in Votive Flame's reach of %d" % [roundi(gap(near, from)), reach])
 	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "", "  Votive Flame can be used on it", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
-	ok(OutsideMoves.use(scene, "alithia", "votive_flame"), "  used: the fight begins")
+	ok(OutsideMoves.fire_at(scene, "alithia", "votive_flame", near), "  used: the fight begins")
 	var fight: EncounterDefinition = Campaign.current_encounter
 	var opener: Dictionary = fight.get_meta("opener", {}) if fight != null else {}
 	ok(opener.get("key", "") == "alithia" and opener.get("move", "") == "votive_flame" and opener.get("anywhere", false),
@@ -595,11 +599,11 @@ func a_placed_fight_struck_with_a_spell():
 	var m := await plain_map(8)
 	var scene: ExplorationScene = m.scene
 	scene.leave_for_battle = false
-	placed_fight(m, "struck_with_a_spell_test")
+	var waiting := placed_fight(m, "struck_with_a_spell_test")
 	var hermes: int = Campaign.gates_left_outside("alithia")[2]
 	ok(hermes > 0 and OutsideMoves.refusal(scene, "alithia", "holy_lance") == "",
 		"Holy Lance, through the Gates of Hermes, can strike it: %d castings left" % hermes, OutsideMoves.refusal(scene, "alithia", "holy_lance"))
-	ok(OutsideMoves.use(scene, "alithia", "holy_lance") and Campaign.gates_left_outside("alithia")[2] == hermes,
+	ok(OutsideMoves.fire_at(scene, "alithia", "holy_lance", tile_at(m, waiting.global_position)) and Campaign.gates_left_outside("alithia")[2] == hermes,
 		"  used: the fight begins, nothing paid yet - the fight pays it")
 	var fight: EncounterDefinition = Campaign.current_encounter
 	await close_map(m)
@@ -647,19 +651,21 @@ func walls_and_moving():
 	wall.global_position = at(m, spot)
 	scene._collect_walls(m.map)
 	ok(not scene.is_walkable(at(m, spot)), "a breakable wall: nobody walks through it")
-	ok(OutsideMoves.refusal(scene, "alithia", "votive_flame") == "Only a spell, an item or Enfina's strength knocks a wall down",
-		"  not Votive Flame, a skill of hers", OutsideMoves.refusal(scene, "alithia", "votive_flame"))
-	ok(OutsideMoves.refusal(scene, "alithia", "holy_lance") == "", "  but Holy Lance, a spell", OutsideMoves.refusal(scene, "alithia", "holy_lance"))
-	ok(OutsideMoves.refusal(scene, "cyrus", "rapier") == "Only a spell, an item or Enfina's strength knocks a wall down",
-		"  not Cyrus's rapier", OutsideMoves.refusal(scene, "cyrus", "rapier"))
-	ok(OutsideMoves.refusal(scene, "enfina", "greatsword_attack") == "", "  but Enfina's greatsword", OutsideMoves.refusal(scene, "enfina", "greatsword_attack"))
+	ok(OutsideMoves.aim_refusal(scene, "alithia", skill("sass_club"), spot) == "Only a spell, an item or Enfina's strength knocks a wall down",
+		"  not her club, a skill of hers", OutsideMoves.aim_refusal(scene, "alithia", skill("sass_club"), spot))
+	ok(OutsideMoves.aim_refusal(scene, "alithia", skill("holy_lance"), spot) == "", "  but Holy Lance, a spell", OutsideMoves.aim_refusal(scene, "alithia", skill("holy_lance"), spot))
+	ok(OutsideMoves.aim_refusal(scene, "cyrus", skill("rapier"), spot) == "Only a spell, an item or Enfina's strength knocks a wall down",
+		"  not Cyrus's rapier", OutsideMoves.aim_refusal(scene, "cyrus", skill("rapier"), spot))
+	ok(OutsideMoves.aim_refusal(scene, "enfina", skill("greatsword_attack"), spot) == "", "  but Enfina's greatsword", OutsideMoves.aim_refusal(scene, "enfina", skill("greatsword_attack"), spot))
 	Campaign.give_item("alithia", "tiny_bomb")
 	m.scene.moves_panel.show_tab(OutsideMovesPanel.Tab.ITEMS)
 	ok(m.scene.moves_panel.button_for("tiny_bomb") != null, "  a bomb she carries, on the panel's Items")
-	ok(OutsideMoves.refusal(scene, "alithia", "tiny_bomb") == "", "  which could do it too", OutsideMoves.refusal(scene, "alithia", "tiny_bomb"))
+	ok(OutsideMoves.aim_refusal(scene, "alithia", OutsideMoves.definition_of("tiny_bomb"), spot) == "", "  which could do it too", OutsideMoves.aim_refusal(scene, "alithia", OutsideMoves.definition_of("tiny_bomb"), spot))
 	m.scene.moves_panel.show_tab(OutsideMovesPanel.Tab.SKILLS)
 	ok(Actors._grid.is_point_solid(spot), "  nor walk a route through it - guards neither")
-	ok(OutsideMoves.use(scene, "alithia", "holy_lance") and wall.broken and scene.is_walkable(at(m, spot)), "  Holy Lance brings it down")
+	var fights_before := Campaign.current_encounter
+	ok(OutsideMoves.fire_at(scene, "alithia", "holy_lance", spot) and wall.broken and scene.is_walkable(at(m, spot)), "  Holy Lance brings it down")
+	ok(Campaign.current_encounter == fights_before, "  and no fight comes of a wall")
 	ok(not Actors._grid.is_point_solid(spot), "  and the routes go through where it stood")
 	ok(Campaign.flag(wall.flag_for(scene.map_path())), "  for good: kept in the flags")
 	var before: Vector2 = m.party.position_of_leader()
@@ -686,9 +692,12 @@ func lures_cover_traps():
 	ok(not watch._ripples.is_empty() and is_equal_approx(watch._ripples.back()[2], OutsideMoves.LURE_TILES), "  heard %d tiles about" % OutsideMoves.LURE_TILES)
 	ok(not watch.leader_hiding() and OutsideMoves.use(scene, "cyrus", "stealth") and watch.leader_hiding(), "Stealth: cover where she stands, and she is hidden in it",
 		OutsideMoves.refusal(scene, "cyrus", "stealth"))
-	ok(OutsideMoves.use(scene, "cyrus", "snare"), "Snare: a trap laid", OutsideMoves.refusal(scene, "cyrus", "snare"))
+	ok(OutsideMoves.use(scene, "cyrus", "snare") and scene.map_aim != null, "Snare: taken up to aim", OutsideMoves.refusal(scene, "cyrus", "snare"))
+	scene.put_aim_away()
+	var snare_at: Array = OutsideMoves.reach_tiles(scene, "cyrus", skill("snare"))
+	ok(not snare_at.is_empty() and OutsideMoves.fire_at(scene, "cyrus", "snare", snare_at[0]), "  and laid where it is aimed")
 	var traps := scene.get_children().filter(func(node): return node is OutsideMoves.Trap)
-	ok(traps.size() == 1, "  where she stands")
+	ok(traps.size() == 1 and not traps[0].bursts, "  a quiet one")
 	if not traps.is_empty() and m.walker != null:
 		m.walker.global_position = traps[0].global_position
 		await settle(3)

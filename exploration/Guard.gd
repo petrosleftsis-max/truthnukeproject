@@ -58,6 +58,8 @@ enum Kind {
 ## A torch or a lantern in their hand, this many tiles of light (Bright for half of it): they light the
 ## ground round them as they walk, and can be seen coming on a dark map. Knocked out, it goes out.
 @export_range(0.0, 12.0, 0.5, "suffix:tiles") var carries_light_tiles: float = 0.0
+## Walks his round and notices nothing, whoever is there: somebody on a stage to be looked at.
+@export var minds_his_own_business: bool = false
 
 ## Which disguises they see through. Stored by number, so a new one goes on
 ## the end.
@@ -317,7 +319,7 @@ func is_awake() -> bool:
 ## Whether they see nothing whatever right now: out cold, asleep, being sick,
 ## under a spell (SPELLBOUND), or - a ward or a sensor - switched off.
 func sees_nothing() -> bool:
-	return knocked_out or mood == Mood.ASLEEP or mood == Mood.RETCHING or mood in SPELLBOUND or switched_off()
+	return minds_his_own_business or knocked_out or mood == Mood.ASLEEP or mood == Mood.RETCHING or mood in SPELLBOUND or switched_off()
 
 
 ## --- Switched off ---

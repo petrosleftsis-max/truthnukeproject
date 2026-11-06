@@ -14,7 +14,7 @@
 [ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="11_omeb0"]
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="11_ymf1h"]
 [ext_resource type="SpriteFrames" uid="uid://nlca2j2ewp4s" path="res://art/enemies/caster/caster_frames.tres" id="12_u63wg"]
-[ext_resource type="AudioStream" path="res://audio/sfx/fights/tiny_bells.wav" id="sfx_reveal_sound"]
+[ext_resource type="AudioStream" uid="uid://dnjsav66lp3oa" path="res://audio/sfx/fights/tiny_bells.wav" id="sfx_reveal_sound"]
 
 [sub_resource type="Resource" id="Resource_ir0ey"]
 script = ExtResource("2_omeb0")
@@ -40,6 +40,8 @@ message = "It tears the clapper from its own throat, and the floor itself begins
 stagger = SubResource("Resource_omeb0")
 summons = Array[String](["rat", "rat", "rat"])
 hazards = Array[ExtResource("2_omeb0")]([SubResource("Resource_ir0ey")])
+ai_aggression = 1.4
+ai_caution = 0.5
 
 [sub_resource type="Resource" id="Resource_1decp"]
 script = ExtResource("5_4eeyp")
@@ -49,14 +51,13 @@ turns_lost = 2
 
 [sub_resource type="Resource" id="Resource_4eeyp"]
 script = ExtResource("6_6ji7l")
-reveal_sound = ExtResource("sfx_reveal_sound")
 title = "Keeper of the Silent Bells"
 stagger = SubResource("Resource_1decp")
+reveal_sound = ExtResource("sfx_reveal_sound")
 phases = Array[ExtResource("1_ir0ey")]([SubResource("Resource_plvun")])
 
 [resource]
 script = ExtResource("11_ymf1h")
-ai_smarts = 2
 name = "The Bellkeeper"
 glossary_text = "Small, quick, and deaf to everything you throw at it. Nothing stuns, confuses, freezes or moves it. Only its own bells reach it."
 max_hp = 160
@@ -72,3 +73,6 @@ immune_to = Array[int]([0, 1, 2, 9])
 turns_per_round = 2
 boss = SubResource("Resource_4eeyp")
 ai_function = "ai_caster"
+ai_smarts = 2
+ai_commands_tiles = 8
+ai_learns = true

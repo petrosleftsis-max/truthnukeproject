@@ -17,3 +17,4 @@ initiative = 3
 main_stat = 0
 sprite_frames = ExtResource("2_frames")
 skills = Array[String](["greatsword_attack", "ground_pound"])
+ai_grudge = 1.0

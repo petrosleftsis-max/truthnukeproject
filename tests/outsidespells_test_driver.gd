@@ -1,6 +1,6 @@
 extends "res://StealthHarness.gd"
 ## New spells out of a fight (the designer, 2026-11-05): a tether frays by 5 a second on a
-## map and one is held at a time; The Great Snare downs everybody round it; The Company
+## map and one is held at a time; The Great Snare starts a fight with everybody round it in it; The Company
 ## Unseen hides everybody but Cyrus behind him, shortens the guards' eyes and hands the
 ## familiar to whoever does not play him.
 
@@ -63,17 +63,21 @@ func great_snare():
 	var watch = await watch_it(m, m.post + Vector2i.RIGHT * 6 + Vector2i.DOWN * 8)
 	var scene = m.scene
 	ok(OutsideMoves.refusal(scene, "prometheus", "great_snare") == "", "he can lay it", OutsideMoves.refusal(scene, "prometheus", "great_snare"))
-	ok(OutsideMoves.use(scene, "prometheus", "great_snare"), "he does")
+	ok(OutsideMoves.use(scene, "prometheus", "great_snare") and scene.map_aim != null, "taken up, it waits to be aimed")
+	scene.put_aim_away()
+	var from: Vector2i = OutsideMoves.member_tile(scene, "prometheus")
+	ok(OutsideMoves.aim_refusal(scene, "prometheus", snare, from + Vector2i.UP * 7) == "Out of reach", "seven tiles off is out of reach")
+	ok(OutsideMoves.fire_at(scene, "prometheus", "great_snare", OutsideMoves.reach_tiles(scene, "prometheus", snare)[0]), "he lays it where he aims")
 	var trap = null
 	for child in scene.get_children():
 		if child is OutsideMoves.Trap:
 			trap = child
-	ok(trap != null and trap.burst_tiles == 3, "a great one", "%s" % [trap.burst_tiles if trap != null else "none"])
+	ok(trap != null and trap.burst_tiles == 3 and trap.bursts, "a great one", "%s" % [trap.burst_tiles if trap != null else "none"])
 	trap.global_position = near.global_position
 	await settle(4)
-	ok(near.knocked_out, "the first onto it is down")
-	ok(by.knocked_out, "and everybody round it")
-	ok(not far.knocked_out, "not those far off")
+	ok(watch.spotted_by == near and not near.knocked_out, "the first onto it starts a fight", "%s" % [watch.spotted_by])
+	var opener: Dictionary = Campaign.current_encounter.get_meta("opener", {})
+	ok(opener.get("trap", false) and opener.get("move", "") == "great_snare", "and it opens the fight, already paid for", "%s" % [opener])
 	ok(not is_instance_valid(trap) or trap.is_queued_for_deletion(), "and it is spent")
 	await close_map(m)
 

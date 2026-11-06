@@ -24,3 +24,4 @@ skills = Array[String](["mend_the_bound", "empower_the_bound", "call_the_bound",
 resist_poison = -25
 ai_function = "ai_summoner"
 summon_at_start = "bound_beast"
+ai_commands_tiles = 6

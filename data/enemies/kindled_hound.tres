@@ -16,3 +16,5 @@ tint = Color(1, 0.55, 0.25, 1)
 skills = Array[String](["kindled_bite", "run"])
 resist_fire = 100
 resist_water = -50
+light_tiles = 3.0
+light_colour = Color(1, 0.6, 0.3, 1)

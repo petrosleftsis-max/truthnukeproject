@@ -40,9 +40,8 @@ class_name BattleObjectDefinition
 @export var illusion: bool = false
 
 @export_group("Light")
-## Gives light from where it stands, this many tiles out, the nearer half Bright. Destroyed, it goes.
-@export var light_tiles: float = 0.0
-@export var light_colour: Color = Color(1.0, 0.74, 0.42)
+## An illusion with Wall ticked stops light as a real wall does, for both sides (Phantom Wall).
+@export var illusion_stops_light: bool = false
 
 @export_group("Food")
 ## Eaten by whoever eats food on the map (CombatantDefinition.eats) once they

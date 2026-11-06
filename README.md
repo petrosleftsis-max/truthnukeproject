@@ -2032,7 +2032,7 @@ Most of the numbers - reach, throw range, how long the ears last, how much
 each alert level adds - are constants at the top of
 `exploration/StealthWatch.gd`.
 
-**Stealth stages.** **Stealth Stages** on the title screen lists eight short
+**Stealth stages.** **Stealth Stages** on the title screen lists nine short
 maps to play on their own: 1 has the tools (throwing, hiding, pockets, a
 takedown), 2 the ward, the hound and the captain, 3 getting Enfina out, 4
 disguises and a checkpoint that asks questions, 5 a dark archive (lamps, doors,

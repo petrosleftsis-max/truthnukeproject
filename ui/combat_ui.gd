@@ -70,6 +70,7 @@ const PORTRAIT_ASIDE := Color(0.62, 0.62, 0.62)
 
 
 func _ready():
+	_put_up_the_clock()
 	_build_talk_tab()
 	for panel in PANEL_TABS:
 		var tab := _tab(panel)
@@ -1176,6 +1177,22 @@ func show_exploration_party(members: Array):
 	$Actions/StatusIcon.set_health(members[0].hp, members[0].max_hp)
 
 
+## The clock and the day (ClockFace), by the top of the screen, in a fight and on a map.
+const CLOCK_AT := Vector2(0.5, 0.0)
+
+
+func _put_up_the_clock():
+	var clock := ClockFace.new()
+	clock.anchor_left = CLOCK_AT.x
+	clock.anchor_right = CLOCK_AT.x
+	clock.anchor_top = CLOCK_AT.y
+	clock.anchor_bottom = CLOCK_AT.y
+	clock.offset_left = -ClockFace.SIZE.x / 2.0
+	clock.offset_right = ClockFace.SIZE.x / 2.0
+	clock.offset_top = ClockFace.TOP_GAP
+	add_child(clock)
+
+
 ## A tether held on a map (StealthWatch "Tethers, out of a fight"): the bar under each
 ## holder's portrait, as in a fight. `held` is key -> {"bar", "max"}.
 func show_outside_tethers(held: Dictionary):
@@ -2119,6 +2136,9 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	if combat != null and not holder.is_empty() and not (skill is ItemDefinition) and combat.spares_most(holder) > 0 \
 			and combat.active_passives(holder).any(func(passive): return passive.spare_casting_spells.has(SkillDatabase.skills.find_key(skill))):
 		lines.append("%s: %d of %d left, spent before a gate" % [combat.spares_name(holder), combat.spares_left(holder, skill), combat.spares_most(holder)])
+	# Reaching only so many (Sleep).
+	if skill.up_to_a_total > 0.0:
+		lines.append("Those with the least %s first, until theirs adds up to %s times its user's" % [Stats.stat_name(skill.contest_stat), String.num(skill.up_to_a_total, 2)])
 	# Held on a tether (Combat "Tethers"): how big, and how fast it goes.
 	if skill.tethered:
 		lines.append(_tether_line(skill))
@@ -2201,7 +2221,7 @@ func _tether_line(skill: SkillDefinition) -> String:
 		wear += " - frays %d a turn, %d turn%s if nothing hits the caster" % [skill.tether_per_turn, turns, "" if turns == 1 else "s"]
 	if skill.tether_per_damage > 0.0:
 		wear += ", and %s for every 1%% of their health they lose" % String.num(skill.tether_per_damage, 2)
-	return wear + ". Only one at a time"
+	return wear + ". Only one at a time. Right click what it holds to end it"
 
 
 ## Whether any of `skill`'s numbers are worked out from the caster's scaling
@@ -2410,7 +2430,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			var called: CombatantDefinition = CombatantDatabase.combatants.get(effect.summons)
 			var named: String = called.name if called != null else effect.summons
 			if effect.summon_across > 0:
-				return "Puts up a %s %d tiles long across where it is aimed: only the other side believes in it" % [named, effect.summon_across * 2 + 1]
+				return "Puts up a %s up to %d tiles long, from where you click to where you click next, straight or diagonal: only the other side believes in it" % [named, effect.summon_across * 2 + 1]
 			if effect.summon_as_images:
 				return "Puts %d images of a %s round where it is aimed: the other side takes them for real, one hit shatters each%s" % [
 					effect.summon_count, named, ", and whoever sees them arrive loses some nerve" if effect.summon_shakes > 0 else ""]

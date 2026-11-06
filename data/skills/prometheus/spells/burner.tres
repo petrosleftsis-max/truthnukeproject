@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://lqaofb4mo0ys" path="res://art/icons/burner_skill.png" id="2_luh46"]
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_cop3u"]
 [ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="4_xa127"]
-[ext_resource type="AudioStream" path="res://audio/sfx/moves/medium_fire_damage.wav" id="sfx_impact_sound"]
+[ext_resource type="AudioStream" uid="uid://bkei07pm8rltg" path="res://audio/sfx/moves/medium_fire_damage.wav" id="sfx_impact_sound"]
 
 [sub_resource type="Resource" id="Effect_curse"]
 script = ExtResource("1_r1ihj")
@@ -17,19 +17,18 @@ condition_dot_modifier = 0.25
 [sub_resource type="Resource" id="Effect_ground"]
 script = ExtResource("1_r1ihj")
 type = 34
+damage_type = 1
 zone_for = 2
 zone_turns = 3
 zone_turn_damage = 0.5
-damage_type = 1
 zone_hurts_everybody = true
 zone_hurts_each_step = true
 zone_leaves_conditions = true
-zone_colour = Color(0.95, 0.38, 0.1, 0.35)
 zone_light_tiles = 5.0
+zone_colour = Color(0.95, 0.38, 0.1, 0.35)
 
 [resource]
 script = ExtResource("3_cop3u")
-impact_sound = ExtResource("sfx_impact_sound")
 name = "Burner"
 description = "Set the ground and everybody on it alight. For three of his turns the fire stays: whoever steps in it or starts their turn in it is hurt and burned, and again for every tile they walk through it."
 min_range = 1
@@ -42,6 +41,7 @@ scaling_stat = 2
 damage_type = 1
 uses_stat_contest = true
 contest_stat = 1
+impact_sound = ExtResource("sfx_impact_sound")
 projectile_look = 17
 spell_slot_level = 2
 aoe_radius = 2

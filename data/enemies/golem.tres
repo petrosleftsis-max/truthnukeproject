@@ -30,7 +30,6 @@ when_broken = 2
 
 [resource]
 script = ExtResource("1_who")
-ai_smarts = 0
 name = "Stone Golem"
 glossary_text = "Clay and stone with words cut into it, made to answer to whoever cut them. It feels nothing and fears nothing - but the words can be rewritten."
 max_hp = 108
@@ -49,3 +48,5 @@ bound_to = "its master"
 rebind_hack = ExtResource("5_binding")
 rebind_turns = 3
 parts = Array[ExtResource("4_part")]([SubResource("Part_legs"), SubResource("Part_arms"), SubResource("Part_core")])
+ai_smarts = 0
+ai_guards = "sorcerer"

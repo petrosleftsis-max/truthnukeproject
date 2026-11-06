@@ -80,6 +80,10 @@ static var shadow_lean := 0.12
 static var shadow_strength := 0.35
 ## Counts changes, for each shadow to see that it has to draw itself again.
 static var shadow_version := 0
+## Each light here: [where it is, how far it reaches], for a shadow to point away from (LightView).
+static var light_points: Array = []
+## How much further a shadow goes, at its strongest, from a light close by.
+const AWAY_FROM_A_LIGHT := 0.55
 
 
 static func set_shadows(lying: Dictionary):
@@ -99,22 +103,120 @@ class _Shadow extends Node2D:
 
 	func _process(_delta):
 		var alpha: float = get_parent().hidden_alpha
-		if seen != CombatantSprite.shadow_version or alpha_seen != alpha:
+		# With a light about, it turns as they move.
+		if seen != CombatantSprite.shadow_version or alpha_seen != alpha or not CombatantSprite.light_points.is_empty():
 			seen = CombatantSprite.shadow_version
 			alpha_seen = alpha
 			queue_redraw()
 
+	## Which way from a light close enough to matter, and how much it does, or nothing.
+	func _away_from_a_light() -> Vector2:
+		var best := Vector2.ZERO
+		var best_strength := 0.0
+		for point in CombatantSprite.light_points:
+			var from: Vector2 = global_position - point[0]
+			var strength: float = 1.0 - from.length() / maxf(point[1], 1.0)
+			if strength > best_strength and from.length() > 1.0:
+				best_strength = strength
+				best = from.normalized() * strength
+		return best
+
 	func _draw():
 		var tile := float(Grid.TILE_SIZE)
-		var at := Vector2(CombatantSprite.shadow_lean * tile * 0.3, tile * 0.42)
-		var stretch := 1.0 + absf(CombatantSprite.shadow_lean)
-		var colour := Color(0.0, 0.0, 0.0, CombatantSprite.shadow_strength * alpha_seen)
+		var away := _away_from_a_light()
+		var strength: float = CombatantSprite.shadow_strength
+		var way := Vector2(CombatantSprite.shadow_lean, 0.0)
+		if away != Vector2.ZERO:
+			way = away * CombatantSprite.AWAY_FROM_A_LIGHT * 2.0
+			strength = maxf(strength, 0.3)
+		var at: Vector2 = Vector2(0.0, tile * 0.42) + way * tile * 0.3
+		var stretch := 1.0 + way.length()
+		var colour := Color(0.0, 0.0, 0.0, strength * alpha_seen)
 		if picture != null:
 			var size := Vector2(tile * 0.8 * stretch, tile * 0.24)
-			draw_texture_rect(picture, Rect2(at - size / 2.0, size), false, colour)
+			draw_set_transform(at, way.angle() if way != Vector2.ZERO else 0.0)
+			draw_texture_rect(picture, Rect2(-size / 2.0, size), false, colour)
 			return
-		draw_set_transform(at, 0.0, Vector2(stretch, 0.3))
-		draw_circle(Vector2.ZERO, tile * 0.3, colour)
+		# Soft at the edge: what lights things round, in black.
+		draw_set_transform(at, way.angle() if way != Vector2.ZERO else 0.0, Vector2(stretch, 0.3))
+		var across := tile * 0.5
+		draw_texture_rect(LightView.light_picture(), Rect2(-across, -across, across * 2.0, across * 2.0), false, Color(colour, minf(colour.a * 1.6, 1.0)))
+
+
+## --- Against the dark ---
+##
+## Whoever stands in the Dark has a faint rim, so a figure is still there to look at, and those who see
+## in it have eyes that glow. To look at only. Slots: a picture at EYES_PICTURE is drawn for the eyes.
+
+const EYES_PICTURE := "res://art/fx/glowing_eyes.png"
+const RIM_SHADER := """
+shader_type canvas_item;
+uniform vec4 rim : source_color = vec4(0.5, 0.62, 1.0, 0.8);
+uniform float width = 4.0;
+void fragment() {
+	vec4 own = texture(TEXTURE, UV) * COLOR;
+	vec2 step_by = TEXTURE_PIXEL_SIZE * width;
+	float near = texture(TEXTURE, UV + vec2(step_by.x, 0.0)).a + texture(TEXTURE, UV - vec2(step_by.x, 0.0)).a
+		+ texture(TEXTURE, UV + vec2(0.0, step_by.y)).a + texture(TEXTURE, UV - vec2(0.0, step_by.y)).a;
+	float edge = clamp(near, 0.0, 1.0) * (1.0 - clamp(own.a * 4.0, 0.0, 1.0));
+	COLOR = mix(own, vec4(rim.rgb, rim.a * COLOR.a), edge);
+}
+"""
+static var _rim_material: ShaderMaterial = null
+var _in_the_dark := false
+var _sees_in_it := false
+var _eyes: Node2D = null
+
+
+func set_in_the_dark(dark: bool, sees: bool = false):
+	if dark == _in_the_dark and sees == _sees_in_it:
+		return
+	_in_the_dark = dark
+	_sees_in_it = sees
+	if not LightView.shown():
+		return
+	if _rim_material == null:
+		var shader := Shader.new()
+		shader.code = RIM_SHADER
+		_rim_material = ShaderMaterial.new()
+		_rim_material.shader = shader
+	for sprite in [_animated, _static]:
+		if sprite != null and is_instance_valid(sprite):
+			sprite.material = _rim_material if dark else null
+	if dark and sees and _eyes == null:
+		_eyes = _Eyes.new()
+		add_child(_eyes)
+	if _eyes != null:
+		_eyes.visible = dark and sees
+
+
+class _Eyes extends Node2D:
+	var picture: Texture2D = null
+
+	func _ready():
+		z_index = 1
+		light_mask = 0
+		var add := CanvasItemMaterial.new()
+		add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		add.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+		material = add
+		if ResourceLoader.exists(CombatantSprite.EYES_PICTURE):
+			picture = load(CombatantSprite.EYES_PICTURE)
+
+	func _process(_delta):
+		var parent := get_parent() as CombatantSprite
+		position = Vector2(0.0, -parent.head_height() - float(Grid.TILE_SIZE) * 0.18)
+		modulate.a = parent.hidden_alpha
+
+	func _draw():
+		var tile := float(Grid.TILE_SIZE)
+		if picture != null:
+			draw_texture(picture, -picture.get_size() / 2.0)
+			return
+		for side in [-1.0, 1.0]:
+			var at := Vector2(side * tile * 0.05, 0.0)
+			draw_circle(at, tile * 0.028, Color(1.0, 0.85, 0.35, 0.5))
+			draw_circle(at, tile * 0.012, Color(1.0, 0.95, 0.7, 1.0))
 
 
 ## How the light where they stand colours them (Light.FIGURE_TINTS).
@@ -227,6 +329,8 @@ func _align_feet_to_tile():
 
 ## Stands whatever is playing on the tile's floor, by its own frame height.
 func _fit_feet():
+	if laid:
+		return
 	# On their side (set_lying), drawn about their middle: on their own tile.
 	if lying and not _animated.sprite_frames.has_animation(LYING_ANIMATION):
 		_animated.offset.y = 0.0
@@ -416,6 +520,40 @@ func _drawn() -> Node2D:
 	return _animated if _animated != null else _static
 
 
+## --- A piece of a wall ---
+##
+## A piece of a wall called up along a line (the designer, 2026-11-07: "on diagonal placement, make the wall look
+## diagonal too"). It does not stand up on its tile as a figure does: its picture lies along `way`, one of the eight
+## steps, end to end with the next piece, corner to corner on a diagonal. A `filler` is there only to close a
+## diagonal's corner (Combat.wall_line): it blocks like the rest and draws nothing, the wall running past it.
+## Whatever picture the wall is given is drawn this way, so a slot filled later needs no more than that.
+func lay_along(way: Vector2i, filler: bool = false):
+	var drawn := _drawn()
+	if drawn == null or way == Vector2i.ZERO:
+		return
+	for child in get_children():
+		if child is _Shadow:
+			child.visible = false
+	if filler:
+		drawn.visible = false
+		return
+	laid = true
+	var frame_height: float = _static.texture.get_height() if _static != null and _static.texture != null else _frame_height
+	if frame_height <= 0.0:
+		frame_height = Grid.TILE_SIZE
+	drawn.rotation = Vector2(way).angle() - PI / 2.0
+	_rest_scale = Vector2(1.0, Grid.TILE_SIZE * Vector2(way).length() / frame_height)
+	drawn.scale = _rest_scale
+	if _animated != null:
+		_animated.offset = Vector2.ZERO
+
+
+## Whether this is a piece of a wall, lying along it (lay_along).
+var laid := false
+## The picture's size when nothing is happening to it: other than 1 for a piece of a wall.
+var _rest_scale := Vector2.ONE
+
+
 ## Flashes this combatant to show something landed on them: red from the other
 ## side, green from their own. Colour rather than a wince animation because it
 ## works for every combatant, animated or static, without any art existing for
@@ -531,7 +669,7 @@ func set_dead():
 		_shape_tween.kill()
 	var drawn = _drawn()
 	if drawn != null:
-		drawn.scale = Vector2.ONE
+		drawn.scale = _rest_scale
 	var fade = create_tween()
 	fade.set_parallel(true)
 	fade.tween_property(self, "modulate", Color(0.6, 0.6, 0.6, DEATH_ALPHA), DEATH_SECONDS)

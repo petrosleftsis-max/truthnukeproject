@@ -1,31 +1,32 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bo46l17r84f67"]
 
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/storm_cloud_skill.png" id="2_icon"]
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
-[ext_resource type="AudioStream" path="res://audio/sfx/moves/heavy_electric_damage.wav" id="sfx_impact_sound"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" uid="uid://d308ffdmp3gso" path="res://art/icons/storm_cloud_skill.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="4_cteln"]
+[ext_resource type="AudioStream" uid="uid://k5vgrjmdamj" path="res://audio/sfx/moves/heavy_electric_damage.wav" id="sfx_impact_sound"]
 
 [sub_resource type="Resource" id="Effect_0"]
 script = ExtResource("1_effect")
 type = 34
+damage_type = 9
 zone_for = 1
 zone_turns = 20
-zone_colour = Color(0.45, 0.55, 0.95, 0.25)
 zone_turn_damage = 0.7
-damage_type = 9
 zone_moves = true
+zone_colour = Color(0.45, 0.55, 0.95, 0.25)
 
 [resource]
 script = ExtResource("3_skill")
-impact_sound = ExtResource("sfx_impact_sound")
 name = "Storm Cloud"
 description = "A small black cloud, a tile across, over where he points. Lightning falls round it on every enemy as it forms, and on any who start their turn beneath it; with a secondary action he can send it up to six tiles."
-icon = ExtResource("2_icon")
-effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 min_range = 1
 max_range = 12
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 ability_modifier = 1.5
 damage_type = 9
+impact_sound = ExtResource("sfx_impact_sound")
 spell_slot_level = 3
 tethered = true
 tether_strength = 200

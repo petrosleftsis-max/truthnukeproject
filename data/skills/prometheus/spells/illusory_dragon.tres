@@ -24,4 +24,4 @@ deals_damage = false
 impact_look = 33
 spell_slot_level = 8
 tethered = true
-tether_per_turn = 20
+tether_strength = 200

@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://cl2rd0wu4ur0a"]
 
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/phantom_wall_skill.png" id="2_icon"]
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" uid="uid://3735grufp2as" path="res://art/icons/phantom_wall_skill.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="3_7l0mb"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
 
 [sub_resource type="Resource" id="Effect_0"]
 script = ExtResource("1_effect")
@@ -13,14 +14,13 @@ summon_across = 2
 [resource]
 script = ExtResource("3_skill")
 name = "Phantom Wall"
-description = "A wall five tiles long across where she points, that only the other side believes in: they cannot see past it or walk through it. Her side shoots straight through it, though they have to walk round it too. It lasts as long as she holds the tether."
-icon = ExtResource("2_icon")
-effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
-impact_look = 19
+description = "A wall up to five tiles long, from where she points first to where she points next, straight or diagonal, that only the other side believes in: they cannot see past it or walk through it. Her side shoots straight through it, though they have to walk round it too. It lasts as long as she holds the tether."
 min_range = 1
 max_range = 8
+icon = ExtResource("2_icon")
 can_be_copied = false
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 deals_damage = false
+impact_look = 19
 spell_slot_level = 2
 tethered = true
-tether_strength = 100

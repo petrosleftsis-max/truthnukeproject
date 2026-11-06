@@ -56,6 +56,8 @@ enum DispelScope {
 }
 
 @export var type: EffectType = EffectType.DAMAGE : set = _set_type
+## Who it is for, on something that catches both sides (Calm). Stored by number.
+@export_enum("Whoever It Catches", "Its Own Side", "The Other Side") var lands_on: int = 0
 ## Lands on whoever used the skill rather than on what it was aimed at.
 ##
 ## So one skill can hurt an enemy and do something to its own caster - a swing
@@ -225,6 +227,8 @@ enum DispelScope {
 ## stat. Otherwise only removes status effects on this exact stat (e.g.
 ## "movement" to cure a slow specifically). Use "dot" to target only
 ## damage-over-time effects.
+## Conditions that come off whoever it lands on, as it lands (Calm).
+@export var lifts: Array[ConditionDefinition] = []
 @export var dispel_stat: String = ""
 @export var dispel_scope: DispelScope = DispelScope.BOTH
 
@@ -369,7 +373,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.PUSH: ["knockback_distance", "damage_type", "damage_modifier", "min_amount", "max_amount"],
 	EffectType.PULL: ["knockback_distance"],
 	EffectType.STAT_MULTIPLIER: ["display_name", "stat", "stat_multiplier", "duration", "wears_off_at_start"],
-	EffectType.CONDITION: ["condition", "condition_duration", "held_by_tether", "comes_off_when_hurt", "flees_from_caster", "drawn_to_aim", "condition_dot_modifier"],
+	EffectType.CONDITION: ["condition", "condition_duration", "held_by_tether", "comes_off_when_hurt", "flees_from_caster", "drawn_to_aim", "condition_dot_modifier", "lifts"],
 	# Nothing to configure but how long they have to use it - which element it
 	# becomes is the element's own business (see Damage.UPGRADES).
 	EffectType.UPGRADE_ELEMENT: ["duration", "wears_off_at_start"],

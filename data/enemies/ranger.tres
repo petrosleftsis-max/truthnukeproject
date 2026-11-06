@@ -26,3 +26,4 @@ resist_poison = 50
 ai_function = "ai_ranger"
 goes_prone = true
 ai_readies = 25
+ai_hunter = true

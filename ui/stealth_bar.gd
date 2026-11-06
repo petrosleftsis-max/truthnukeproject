@@ -137,6 +137,8 @@ func _button(pressed: Callable, into: HBoxContainer = null) -> Button:
 
 
 func _process(_delta):
+	if not is_in_group(&"stealth_bar"):
+		add_to_group(&"stealth_bar")
 	refresh()
 	# Centred along the top by hand rather than by anchors, which resolve
 	# against nothing under a bare CanvasLayer - it sat at the left edge with

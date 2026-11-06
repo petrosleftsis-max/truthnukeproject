@@ -104,7 +104,7 @@ const DISCOVERY_PORT := 24701
 const BEACON := "MOT-HOST"
 ## What the two machines say to each other. Bumped whenever that changes; a
 ## joiner with another is turned away.
-const PROTOCOL := 8
+const PROTOCOL := 9
 const BEACON_SECONDS := 1.0
 ## How long a game goes unheard before the Join list forgets it.
 const FORGET_SECONDS := 4.0
@@ -129,7 +129,7 @@ const WATCHES_A_SECOND := 10.0
 const FIGHT_SCENE := "res://scenes/game.tscn"
 ## The moves a fight sends - and "steer", who steers whom changing at that
 ## point of the fight (the host's alone to send).
-const FIGHT_MOVES := ["walk", "skill", "end_turn", "undo", "ready", "deployed", "steer", "prone"]
+const FIGHT_MOVES := ["walk", "skill", "end_turn", "undo", "ready", "deployed", "steer", "prone", "let_go"]
 ## How much faster a fight joined under way is played through, catching up.
 const CATCH_UP_SPEED := 8.0
 ## The presses on a map that do something to the world, which on a joiner are
@@ -1367,6 +1367,11 @@ func _play_moves():
 			return
 		if move[0] == fight_turn and combat.controller.player_turn and (not combat.controller.is_idle() or combat.controller.action_locked):
 			return
+	elif move[2] == "let_go" and move[3].size() == 3 and move[3][2] == true:
+		# A tether let go as a turn began, with nobody else playing then (Combat "Letting go of a
+		# tether"): played through by whoever joined later, as that turn begins.
+		if move[0] > fight_turn or combat.deployment_active:
+			return
 	else:
 		if move[0] != fight_turn or combat.deployment_active:
 			return
@@ -1404,6 +1409,9 @@ func _make(combat: Combat, kind: String, args: Array):
 			await combat.advance_turn()
 		"undo":
 			controller.undo_move()
+		"let_go":
+			if args.size() == 3 and typeof(args[0]) == TYPE_INT and typeof(args[1]) == TYPE_INT:
+				combat.let_go_now(args[0], args[1])
 		"prone":
 			if args.size() == 1 and typeof(args[0]) == TYPE_BOOL:
 				controller.change_stance(args[0])
@@ -1427,6 +1435,106 @@ func _make(combat: Combat, kind: String, args: Array):
 				_steering_noted = Campaign.controllers.duplicate()
 				Coop.fight_turn(combat.player_of(comb) if controller.player_turn else Coop.ANYONE)
 				Coop.players_changed.emit()
+
+
+## --- Letting go of a tether ---
+##
+## Combat "Letting go of a tether" and StealthWatch "Tethers, out of a fight". `what` says which: ["fight",
+## holder's id, tether's id] or ["map", key]. Whoever plays it is asked on their own machine, and what
+## they agree to goes from there. Once agreed, both fights know it is due, and whichever machine the
+## fight next stands waiting on makes it a move.
+
+
+## Time seen going by on the host (Campaign.watch_time_pass): on the joiner too.
+func time_passes(minutes: int, seconds: float):
+	if is_host() and with_another():
+		_time_passes.rpc(minutes, seconds)
+
+
+@rpc("authority", "reliable")
+func _time_passes(minutes, seconds):
+	if follows() and typeof(minutes) == TYPE_INT and typeof(seconds) == TYPE_FLOAT and minutes > 0 and seconds > 0.0 and seconds <= 60.0:
+		Campaign.play_time_passing(minutes, seconds)
+
+
+## Whether a move of the other machine's is being played here just now.
+func playing_a_move() -> bool:
+	return _playing_move
+
+
+## The other machine's fight: this tether is to go as soon as it can.
+func let_go_due(holder_id: int, tether_id: int):
+	if in_a_shared_fight() and not _replaying:
+		_let_go_told.rpc(holder_id, tether_id)
+
+
+@rpc("any_peer", "reliable")
+func _let_go_told(holder_id, tether_id):
+	if typeof(holder_id) != TYPE_INT or typeof(tether_id) != TYPE_INT or not in_a_shared_fight():
+		return
+	var holder: Dictionary = _fight._combatant_by_id(holder_id)
+	if holder.is_empty() or holder.get("side", 1) != 0:
+		return
+	# Only from the machine of whoever plays them - or anybody, for one the AI plays.
+	if _fight.plays_for_party(holder):
+		var id: int = _fight.player_of(holder)
+		if id < 0 or id >= Coop.players.size() or (Coop.players[id].peer != multiplayer.get_remote_sender_id() and not (follows() and multiplayer.get_remote_sender_id() == 1)):
+			return
+	_fight.note_let_go(holder_id, tether_id)
+
+
+## This machine's player `asker` asks player `asked`, on the other machine, to end what `what` says.
+func ask_to_let_go(what: Array, holder_name: String, spell: String, asker: int, asked: int):
+	if not with_another():
+		return
+	var to: int = 1 if follows() else Coop.player(asked).peer
+	_tether_asked.rpc_id(to, what, holder_name, spell, asker)
+
+
+@rpc("any_peer", "reliable")
+func _tether_asked(what, holder_name, spell, asker):
+	if typeof(what) != TYPE_ARRAY or not is_plain(what) or what.is_empty() or typeof(holder_name) != TYPE_STRING \
+			or typeof(spell) != TYPE_STRING or typeof(asker) != TYPE_INT or asker < 0 or asker >= Coop.players.size():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if (is_host() and not _seated_peers().has(sender)) or (follows() and sender != 1) or Coop.local_players().is_empty():
+		return
+	var request := TetherRequest.new()
+	request.asker = asker
+	request.asked = Coop.local_players()[0]
+	request.holder_name = holder_name.left(60)
+	request.spell_name = spell.left(60)
+	var asked: int = request.asked
+	request.answered.connect(func(yes: bool):
+		if yes:
+			_agreed_to_let_go(what)
+		_tether_answered.rpc_id(sender, spell, asked, yes))
+	get_tree().root.add_child(request)
+
+
+## What this machine's player has agreed to end.
+func _agreed_to_let_go(what: Array):
+	if what[0] == "fight" and what.size() == 3 and typeof(what[1]) == TYPE_INT and typeof(what[2]) == TYPE_INT:
+		if in_a_shared_fight():
+			_fight.let_go_of_tether(what[1], what[2])
+	elif what[0] == "map" and what.size() == 2 and typeof(what[1]) == TYPE_STRING:
+		var scene := _map()
+		if scene == null:
+			return
+		if follows():
+			do_on_host("let_go", [what[1]])
+		elif scene.stealth != null and is_instance_valid(scene.stealth):
+			scene.stealth.let_go_outside(what[1])
+
+
+@rpc("any_peer", "reliable")
+func _tether_answered(spell, asked, yes):
+	if typeof(spell) != TYPE_STRING or typeof(asked) != TYPE_INT or typeof(yes) != TYPE_BOOL:
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if (is_host() and not _seated_peers().has(sender)) or (follows() and sender != 1):
+		return
+	say_in_game(("[color=lightgreen]%s agrees[/color] to end %s.\n" if yes else "%s keeps %s up.\n") % [Coop.name_of(asked), spell.left(60)])
 
 
 ## What `who` decides - `deciding` called on their machine (a question put
@@ -3057,7 +3165,7 @@ func _use_move(key, move, pointed):
 ## machine's own.
 
 ## What may be done on the host this way.
-const DONE_AFAR := ["throw", "click", "ready", "invisible", "summon_familiar", "dismiss_familiar"]
+const DONE_AFAR := ["throw", "click", "ready", "invisible", "summon_familiar", "dismiss_familiar", "strike", "let_go"]
 
 ## The host: the guard each other machine's player last pointed at, by player.
 var _pointing := {}
@@ -3134,6 +3242,14 @@ func _done_afar(id, what, args, pointed):
 		"invisible":
 			if watch != null and args.size() == 1 and args[0] is Array:
 				watch.go_invisible(args[0].filter(func(key): return typeof(key) == TYPE_STRING))
+		"let_go":
+			# Theirs to end, or agreed by whoever plays it, who sends this.
+			if watch != null and args.size() == 1 and typeof(args[0]) == TYPE_STRING and Coop.controller_of(args[0]) == id:
+				watch.let_go_outside(args[0])
+		"strike":
+			if args.size() == 3 and typeof(args[0]) == TYPE_STRING and typeof(args[1]) == TYPE_STRING and typeof(args[2]) == TYPE_VECTOR2I \
+					and Coop.controller_of(args[0]) == id:
+				OutsideMoves.fire_at(scene, args[0], args[1], args[2])
 		"summon_familiar":
 			scene.summon_familiar()
 		"dismiss_familiar":

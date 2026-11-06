@@ -1,0 +1,82 @@
+[gd_resource type="Resource" script_class="EncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/FloorDefinition.gd" id="1_m0kko"]
+[ext_resource type="Script" path="res://combat/resources/HazardDefinition.gd" id="2_lckya"]
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="3_q44uw"]
+[ext_resource type="Script" path="res://combat/resources/SpawnDefinition.gd" id="4_1xe84"]
+[ext_resource type="PackedScene" path="res://maps/stealth_stages/stealth_9_fight_terrain.tscn" id="5_yr2ri"]
+
+[sub_resource type="Resource" id="Resource_oibs4"]
+script = ExtResource("4_1xe84")
+combatant_key = "cyrus"
+position = Vector2i(3, 5)
+level = 64
+
+[sub_resource type="Resource" id="Resource_iitao"]
+script = ExtResource("4_1xe84")
+combatant_key = "alithia"
+position = Vector2i(3, 7)
+level = 64
+
+[sub_resource type="Resource" id="Resource_qfrmq"]
+script = ExtResource("4_1xe84")
+combatant_key = "prometheus"
+position = Vector2i(4, 9)
+level = 64
+
+[sub_resource type="Resource" id="Resource_c73b1"]
+script = ExtResource("4_1xe84")
+combatant_key = "enfina"
+position = Vector2i(3, 11)
+level = 64
+
+[sub_resource type="Resource" id="Resource_4usry"]
+script = ExtResource("4_1xe84")
+combatant_key = "rat"
+side = 1
+position = Vector2i(15, 5)
+level = 30
+
+[sub_resource type="Resource" id="Resource_ge8ln"]
+script = ExtResource("4_1xe84")
+combatant_key = "rat"
+side = 1
+position = Vector2i(16, 6)
+level = 30
+
+[sub_resource type="Resource" id="Resource_hpj60"]
+script = ExtResource("4_1xe84")
+combatant_key = "sorcerer"
+side = 1
+position = Vector2i(17, 9)
+level = 30
+
+[sub_resource type="Resource" id="Resource_symhk"]
+script = ExtResource("4_1xe84")
+combatant_key = "barbarian"
+side = 1
+position = Vector2i(15, 12)
+level = 30
+
+[sub_resource type="Resource" id="Resource_5c0gg"]
+script = ExtResource("4_1xe84")
+combatant_key = "brazier"
+side = 1
+position = Vector2i(10, 8)
+level = 30
+
+[sub_resource type="Resource" id="Resource_iv0k0"]
+script = ExtResource("4_1xe84")
+combatant_key = "powder_keg"
+side = 1
+position = Vector2i(13, 9)
+level = 30
+
+[resource]
+script = ExtResource("3_q44uw")
+display_name = "A Fight in the Dark"
+terrain_scene = ExtResource("5_yr2ri")
+spawns = Array[ExtResource("4_1xe84")]([SubResource("Resource_oibs4"), SubResource("Resource_iitao"), SubResource("Resource_qfrmq"), SubResource("Resource_c73b1"), SubResource("Resource_4usry"), SubResource("Resource_ge8ln"), SubResource("Resource_hpj60"), SubResource("Resource_symhk"), SubResource("Resource_5c0gg"), SubResource("Resource_iv0k0")])
+ambient = 3
+fighters = Array[String](["cyrus", "alithia", "prometheus", "enfina"])
+skip_deployment = true

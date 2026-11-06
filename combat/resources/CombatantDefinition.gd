@@ -345,18 +345,25 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ##     2026-10-29 - PROPOSAL).
 @export_flags("Covers The Approach", "Guards Its Post", "Counters Casters", "Waits For The Hidden", "Protects Its Own") var ai_readies: int = 0
 
+@export_group("Giving Light")
+## Gives off light by being what it is, this many tiles of it (Bright for half), real or an illusion:
+## a burning thing, an illusion of one (Light). 0: none.
+@export_range(0.0, 12.0, 0.5, "suffix:tiles") var light_tiles: float = 0.0
+@export var light_colour: Color = Color(1.0, 0.74, 0.42)
+
 @export_group("AI Mind")
 ## How much this creature thinks (Combat "The AI's mind"). Instinct goes for whoever is nearest, weighs
 ## no kills and knows nothing below. Trained is the ordinary soldier. Cunning and Mastermind know
-## more. Stored by number: append.
-enum AiSmarts { INSTINCT, TRAINED, CUNNING, MASTERMIND }
+## more. All Knowing knows the party's kits as well: what each could do next turn, who has what
+## reaction ready, which spells are prepared and what castings are left. Stored by number: append.
+enum AiSmarts { INSTINCT, TRAINED, CUNNING, MASTERMIND, ALL_KNOWING }
 @export var ai_smarts: AiSmarts = AiSmarts.TRAINED
 ## What it might know, on top of what its Smarts already give (Also Knows) or taken away from it
 ## (Never Knows). Stored by number: append.
 enum AiKnows { GROUND = 1, TELEGRAPHS = 2, KEEPS_FROM_HAZARDS = 4, SETS_OFF_HAZARDS = 8, SHOVES = 16, TETHERS = 32, WAKES_ALLIES = 64,
-	AVOIDS_REACH = 128, SPREADS_OUT = 256, SET_UPS = 512, HEMS = 1024, BLOCKS = 2048, TRIAGE = 4096, GATES = 8192, DARK = 16384, FALLS_BACK = 32768 }
-@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back") var ai_also_knows: int = 0
-@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back") var ai_never_knows: int = 0
+	AVOIDS_REACH = 128, SPREADS_OUT = 256, SET_UPS = 512, HEMS = 1024, BLOCKS = 2048, TRIAGE = 4096, GATES = 8192, DARK = 16384, FALLS_BACK = 32768, KITS = 65536 }
+@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back", "Knows The Party's Kits") var ai_also_knows: int = 0
+@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back", "Knows The Party's Kits") var ai_never_knows: int = 0
 ## How much a blow is worth to it: above 1 it trades safety for blood, below 1 it would rather live.
 @export_range(0.0, 3.0, 0.05) var ai_aggression: float = 1.0
 ## How much it minds bad ground, a hazard, the party's reach and standing bunched up.
@@ -365,6 +372,28 @@ enum AiKnows { GROUND = 1, TELEGRAPHS = 2, KEEPS_FROM_HAZARDS = 4, SETS_OFF_HAZA
 @export_range(0.0, 3.0, 0.05) var ai_focus: float = 1.0
 ## How soon it drinks what it carries, and falls back to a healer.
 @export_range(0.0, 3.0, 0.05) var ai_self_preservation: float = 1.0
+@export_subgroup("Ways Of Its Own")
+## Those of its side within this many tiles think a level higher while it stands and is awake, up to
+## Mastermind. Bring it down and they think for themselves again. 0: it commands nobody.
+@export_range(0, 30, 1, "suffix:tiles") var ai_commands_tiles: int = 0
+## How hard it goes for whoever last hurt it. 0: it holds no grudge.
+@export_range(0.0, 3.0, 0.05) var ai_grudge: float = 0.0
+## Picks somebody out at its first turn, and goes for nobody else until they fall or it loses sight of them.
+@export var ai_hunter: bool = false
+## A combatant key, for one in the same fight: it keeps within Guards Within of them, and steps in
+## front of a blow at one of them, with its reaction.
+@export var ai_guards: String = ""
+@export_range(1, 12, 1, "suffix:tiles") var ai_guards_within: int = 3
+## Holds back until this many of those with a pack of their own, itself among them, can reach the same
+## target. 0: no pack.
+@export_range(0, 6) var ai_pack: int = 0
+## Elements it will not walk on or beside: ground that burns, somebody burning, a flame on the map.
+@export var ai_fears: Array[Damage.Type] = []
+## Once an image has shattered in front of it, its whole side stops being fooled by illusions.
+@export var ai_learns: bool = false
+## Goes for whoever carries the most, and once it has stolen something, leaves with it. It needs a
+## Steal in its skills to do the second.
+@export var ai_greedy: bool = false
 
 
 

@@ -267,6 +267,7 @@ func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 	puppet = Net.follows()
 	# Aiming a throw from a pad keeps its pointer up - see wants_pad_pointer.
 	add_to_group(&"pad_pointer")
+	add_to_group(&"tether_board")
 	Campaign.stealth_watch = self
 	setup = the_setup
 	_tile_map = tile_map
@@ -828,26 +829,112 @@ func _wear_off_invisibility(delta: float):
 ## A tethered move used on a map frays by OutsideMoves.TETHER_PER_SECOND a second, and is
 ## over when it has (the designer, 2026-11-05), which is what OutsideMoves.seconds_of
 ## makes the move last. One to a character, as in a fight: tying another ends what they
-## held. Shown under their portrait (combat_ui.show_outside_tethers).
+## held. Shown under their portrait (combat_ui.show_outside_tethers). A right click on what it holds, or
+## on whoever holds it, ends it, as in a fight (Combat "Letting go of a tether"): another player's only
+## if they agree.
 
-## key -> {"name", "bar", "max", "ends"}.
+## key -> {"name", "bar", "max", "ends", "where"} - on a joiner's map, as the host says, "tile" for "where".
 var outside_tethers := {}
 
 
-## `key` holds `skill` on a tether; `ends` undoes what it did, should they let it go early.
-func tie_outside(key: String, skill: SkillDefinition, ends: Callable):
+## `key` holds `skill` on a tether; `ends` undoes what it did, should they let it go early, and `where`
+## is the Node2D it holds on the map.
+func tie_outside(key: String, skill: SkillDefinition, ends: Callable, where: Node2D = null):
 	var held: Dictionary = outside_tethers.get(key, {})
 	if not held.is_empty():
 		if held.ends.is_valid():
 			held.ends.call()
 		if scene.has_method("log_message"):
 			scene.log_message("[color=yellow]%s[/color] lets go of %s for %s.\n" % [_display_name(key), held.name, skill.name])
-	outside_tethers[key] = {"name": skill.name, "bar": float(skill.tether_strength), "max": float(skill.tether_strength), "ends": ends}
+	outside_tethers[key] = {"name": skill.name, "bar": float(skill.tether_strength), "max": float(skill.tether_strength), "ends": ends, "where": where}
+	_show_outside_tethers()
+
+
+## The tile what `key` holds is on, or NO_TILE.
+func _tether_tile(key: String) -> Vector2i:
+	var held: Dictionary = outside_tethers.get(key, {})
+	if held.has("tile"):
+		return held.tile
+	var where = held.get("where")
+	return tile_of(where.global_position) if where != null and is_instance_valid(where) else NO_TILE
+
+
+## Whoever holds something on a tether that is on `tile`, or who stands there themselves.
+func tethers_on(tile: Vector2i) -> Array:
+	var found := []
+	var party = scene.get("party")
+	for key in outside_tethers:
+		var sprite = party.sprite_for(key) if party != null else null
+		if _tether_tile(key) == tile or (sprite != null and tile_of(sprite.global_position) == tile):
+			found.append(key)
+	return found
+
+
+## Whether a tether has hold of what the pointer is on (Coop lets that click through).
+func tether_under_pointer() -> bool:
+	return not tethers_on(tile_of(get_global_mouse_position())).is_empty()
+
+
+## A right click from `player` on `tile`. True when there was something there to end.
+func offer_letting_go(tile: Vector2i, player: int, at: Vector2) -> bool:
+	var keys := tethers_on(tile)
+	if keys.is_empty():
+		return false
+	var choice := TetherChoice.new()
+	choice.at = at
+	choice.player = player if Coop.on() and not Coop.networked else -1
+	for key in keys:
+		var asks: bool = Coop.on() and player >= 0 and Coop.controller_of(key) != player
+		choice.entries.append(("Ask %s to end %s" % [Coop.name_of(Coop.controller_of(key)), outside_tethers[key].name]) if asks else "End %s" % outside_tethers[key].name)
+	choice.chosen.connect(func(index: int): ask_to_let_go_outside(keys[index], player))
+	add_child(choice)
+	return true
+
+
+## `player` wants what `key` holds ended: at once if it is theirs, or else put to whoever it is.
+func ask_to_let_go_outside(key: String, player: int):
+	if not outside_tethers.has(key):
+		return
+	var asked := Coop.controller_of(key)
+	var spell: String = outside_tethers[key].name
+	if not Coop.on() or player < 0 or asked == player:
+		if puppet:
+			Net.do_on_host("let_go", [key])
+		else:
+			let_go_outside(key)
+		return
+	if not Coop.is_local(asked):
+		Net.ask_to_let_go(["map", key], _display_name(key), spell, player, asked)
+		return
+	var request := TetherRequest.new()
+	request.asker = player
+	request.asked = asked
+	request.holder_name = _display_name(key)
+	request.spell_name = spell
+	request.answered.connect(func(yes: bool):
+		if scene.has_method("log_message"):
+			scene.log_message(("[color=lightgreen]%s agrees[/color] to end %s.\n" if yes else "%s keeps %s up.\n") % [Coop.name_of(asked), spell])
+		if yes:
+			let_go_outside(key))
+	add_child(request)
+
+
+## What `key` holds on a tether ends now.
+func let_go_outside(key: String):
+	var held: Dictionary = outside_tethers.get(key, {})
+	if held.is_empty():
+		return
+	outside_tethers.erase(key)
+	if held.get("ends", Callable()).is_valid():
+		held.ends.call()
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] lets go of %s.\n" % [_display_name(key), held.name])
 	_show_outside_tethers()
 
 
 func _fray_outside(delta: float):
-	if outside_tethers.is_empty():
+	# On a joiner the host says how they stand.
+	if outside_tethers.is_empty() or puppet:
 		return
 	for key in outside_tethers.keys():
 		var held: Dictionary = outside_tethers[key]
@@ -987,8 +1074,8 @@ func set_ui_hidden(on: bool):
 ## (across plus along), with a clear line for a move that needs one. Blind, Scare
 ## and Confuse put him in a spellbound mood (Guard.SPELLBOUND) - seeing nothing,
 ## drawn off by nothing - for its seconds; Read finds out his round; Switch Off
-## Magic stills a ward or a sensor (Guard.switch_off). A damaging move springs an
-## ambush with itself as the opening blow (ambush_with, build_fight's "opener").
+## Magic stills a ward or a sensor (Guard.switch_off). A damaging move is aimed, and
+## if it catches anybody the fight opens with it (strike, build_fight's "opener").
 ## The designer, 2026-10-26; the numbers are PROPOSAL test values.
 
 ## How far a scared guard runs, and how fast; how far a bewildered one wanders,
@@ -1088,6 +1175,66 @@ func _ground_toward(at: Vector2, way: Vector2, tiles: float) -> Vector2:
 	return at
 
 
+## A word put into `guard`'s head (Suggestion): off to the far end of the place, his mind on it.
+func suggest_to(guard: Guard, seconds: float):
+	_seen_again()
+	guard.send_on_errand(Guard.Mood.REPORTING, _march_point([guard]), seconds)
+	_seen_key.erase(guard)
+
+
+## --- Detect Magic ---
+##
+## Alithia's (the designer, 2026-11-07: "detect magic (make the duration 5 minutes)"): for its seconds
+## every ward, magic sensor and magical trap on the map is on show, walls or not, with a ring round it.
+## In a fight it is the condition's (ConditionDefinition.sees_magic).
+
+const MAGIC_RING := Color(0.72, 0.5, 1.0, 0.85)
+var detect_magic_left := 0.0
+var _magic_seen: Node2D = null
+
+
+func begin_detecting(seconds: float):
+	detect_magic_left = maxf(detect_magic_left, seconds)
+	_show_the_magic()
+
+
+func _show_the_magic():
+	if _magic_seen != null and is_instance_valid(_magic_seen):
+		return
+	_magic_seen = _MagicSeen.new()
+	_magic_seen.watch = self
+	add_child(_magic_seen)
+
+
+class _MagicSeen extends Node2D:
+	var watch = null
+
+	func _ready():
+		z_as_relative = false
+		z_index = ExplorationParty.PARTY_Z_TOP
+
+	func _process(delta):
+		if watch == null or not is_instance_valid(watch) or watch.detect_magic_left <= 0.0:
+			queue_free()
+			return
+		if not watch.puppet:
+			watch.detect_magic_left -= delta
+		queue_redraw()
+
+	func _draw():
+		var breath := 0.75 + 0.25 * sin(Time.get_ticks_msec() / 1000.0 * 3.0)
+		var colour: Color = Color(MAGIC_RING, MAGIC_RING.a * breath)
+		var tile := float(Grid.TILE_SIZE)
+		for guard in watch.guards:
+			if is_instance_valid(guard) and (guard.kind == Guard.Kind.WARD or guard.kind == Guard.Kind.SENSOR):
+				draw_arc(to_local(guard.global_position), tile * 0.5, 0.0, TAU, 32, colour, 5.0)
+		var traps = watch.scene.get("_traps")
+		if traps != null:
+			for trap in traps:
+				if is_instance_valid(trap) and trap.armed:
+					draw_arc(to_local(trap.global_position), tile * 0.5, 0.0, TAU, 32, colour, 5.0)
+
+
 ## The party has found out `guard`'s round (Read).
 func learn_route(guard: Guard):
 	Campaign.set_flag(ROUTE_TOLD + _id_of(guard))
@@ -1100,23 +1247,58 @@ func still(guard: Guard, seconds: float):
 	_seen_key.erase(guard)
 
 
-## Whether a damaging move could open an ambush on `guard`: one who fights and
+## Whether a readied damaging move could go off at `guard`: one who fights and
 ## has no idea anybody is about.
 func can_open_on(guard) -> bool:
-	return is_instance_valid(guard) and not guard.knocked_out and guard.fights() \
-		and CombatantDatabase.combatants.has(guard.combatant_key) and _unaware(guard)
+	return can_be_struck(guard) and _unaware(guard)
 
 
-## Springs an ambush on `guard` with `key`'s `move` as its opening blow: the
-## fight starts as an ambush does (F), and before the first turn `key` uses it on
-## him (Combat "An ambush's opening blow"). False, and nothing done, when it can't be.
-func ambush_with(guard: Guard, key: String, move: String) -> bool:
-	if not can_open_on(guard) or ambush_refusal() != "" or (scene.has_method("is_holding") and scene.is_holding()):
+## Whether something aimed could catch `guard`: somebody who would fight, standing up and to be got at.
+func can_be_struck(guard) -> bool:
+	return is_instance_valid(guard) and not guard.knocked_out and guard.fights() and not _stashed.has(guard) \
+		and CombatantDatabase.combatants.has(guard.combatant_key)
+
+
+## `key`'s `move`, aimed at `aim`, has caught `struck` (the first of them is who the fight is sprung on):
+## the fight starts as an ambush does (F), with every one of them in it from the start, and before the
+## first turn it lands on them (Combat "An ambush's opening blow"). Whoever had noticed nothing loses
+## their first turn too. False, and nothing done, when it can't be.
+func strike(struck: Array, key: String, move: String, aim: Vector2i) -> bool:
+	if struck.is_empty() or ambush_refusal() != "" or (scene.has_method("is_holding") and scene.is_holding()):
 		return false
-	_opener = {"key": key, "move": move, "guard": _id_of(guard)}
+	_opener = {"key": key, "move": move, "guard": _id_of(struck[0]), "aim_offset": aim - tile_of(struck[0].global_position), "hit": struck.map(func(guard): return _id_of(guard))}
 	_seen_again()
-	_caught_by(guard, true)
+	_caught_by(struck[0], true)
 	return true
+
+
+## A trap that bursts (OutsideMoves.Trap) has gone off under `stepper`. With anybody in the burst who
+## fights, the fight starts and it lands on them first. With nobody, whoever stepped on it is only
+## down. False if it is too late for anything.
+func trap_goes_off(trap, stepper) -> bool:
+	if spotted_by != null:
+		return false
+	var at: Vector2i = tile_of(trap.global_position)
+	var caught := []
+	if can_be_struck(stepper):
+		caught.append(stepper)
+	for guard in guards:
+		if guard != stepper and can_be_struck(guard):
+			var tile: Vector2i = tile_of(guard.global_position)
+			if absi(tile.x - at.x) + absi(tile.y - at.y) <= trap.burst_tiles and (not sight.stops_sight(tile)) and sight.clear(at, tile):
+				caught.append(guard)
+	if caught.is_empty():
+		return caught_in_trap(stepper)
+	_opener = {"key": trap.key, "move": trap.move, "guard": _id_of(caught[0]), "aim_offset": at - tile_of(caught[0].global_position), "hit": caught.map(func(guard): return _id_of(guard)), "trap": true}
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] walks on to %s!\n" % [_name_of(stepper), OutsideMoves.definition_of(trap.move).name])
+	_caught_by(caught[0], true)
+	return true
+
+
+## The middle of `tile`, on the map.
+func _tile_centre_of(tile: Vector2i) -> Vector2:
+	return _tile_map.to_global(_tile_map.map_to_local(tile))
 
 
 ## A hiding spot made by a spell (Illusory Cover), for `seconds`: hidden in like
@@ -1525,6 +1707,8 @@ func controlling_familiar() -> bool:
 ## mind.
 func feels_familiar(guard: Guard, tile: Vector2i, near: float) -> bool:
 	if familiar == null or guard.knocked_out or guard.sees_nothing():
+		return false
+	if familiar.form.nothing_notices:
 		return false
 	match guard.kind:
 		Guard.Kind.CIVILIAN:
@@ -3339,6 +3523,8 @@ func guard_shown(guard: Guard) -> bool:
 		return false
 	if not hides_guards() or _ears_left > 0.0 or suspicion.get(guard, 0.0) > 0.0 or spotted_by == guard:
 		return true
+	if detect_magic_left > 0.0 and (guard.kind == Guard.Kind.WARD or guard.kind == Guard.Kind.SENSOR):
+		return true
 	var party = scene.get("party")
 	if party == null or party.leader == null:
 		return true
@@ -3399,6 +3585,10 @@ func _click_on_guard(event):
 	if spotted_by != null or _lacing != null or (scene.has_method("is_holding") and scene.is_holding()):
 		return
 	var tile = tile_of(_world_at(event.position))
+	# A right click on what a tether holds: that first, before anybody's pockets.
+	if event.button_index == MOUSE_BUTTON_RIGHT and offer_letting_go(tile, Coop.player_of_event(event), event.position):
+		get_viewport().set_input_as_handled()
+		return
 	# On a puppet the click is the host's to act on, as this machine's player's
 	# (Net) - whatever it comes to there.
 	if puppet:
@@ -4141,7 +4331,7 @@ func gaze_of(guard: Guard, leader_in: String = "") -> int:
 	# A magic sensor: danger only to a working spell - the familiar, anybody
 	# invisible. To everybody else it is nothing.
 	if guard.kind == Guard.Kind.SENSOR:
-		return Gaze.SEES if familiar != null or standing.any(func(someone): return unseen(someone.key)) else Gaze.FOOLED
+		return Gaze.SEES if (familiar != null and not familiar.form.nothing_notices) or standing.any(func(someone): return unseen(someone.key)) else Gaze.FOOLED
 	var asks := false
 	for someone in standing:
 		# Somebody invisible is nothing to his eyes - though not to a nose.
@@ -4218,6 +4408,11 @@ func net_state() -> Dictionary:
 	state["unseen"] = _unseen.duplicate()
 	state["seeming"] = _seeming.duplicate()
 	state["company"] = company_left
+	state["detect"] = detect_magic_left
+	var tethers := {}
+	for key in outside_tethers:
+		tethers[key] = [outside_tethers[key].name, outside_tethers[key].bar, outside_tethers[key].max, _tether_tile(key)]
+	state["tethers"] = tethers
 	var readied := {}
 	for key in readied_outside:
 		readied[key] = [readied_outside[key].move, readied_outside[key].trigger, readied_outside[key].area.keys()]
@@ -4280,6 +4475,17 @@ func apply_net_state(state: Dictionary):
 		for key in unseen:
 			if typeof(key) == TYPE_STRING:
 				_unseen[key] = float(unseen[key])
+	detect_magic_left = maxf(float(state.get("detect", 0.0)), 0.0)
+	if detect_magic_left > 0.0:
+		_show_the_magic()
+	var tethers = state.get("tethers", {})
+	if tethers is Dictionary:
+		outside_tethers.clear()
+		for key in tethers:
+			var said = tethers[key]
+			if typeof(key) == TYPE_STRING and said is Array and said.size() == 4 and typeof(said[0]) == TYPE_STRING and typeof(said[3]) == TYPE_VECTOR2I:
+				outside_tethers[key] = {"name": said[0], "bar": float(said[1]), "max": float(said[2]), "tile": said[3]}
+		_show_outside_tethers()
 	var seeming = state.get("seeming", {})
 	if seeming is Dictionary:
 		_seeming.clear()
@@ -4795,6 +5001,10 @@ func _refresh_seen(guard: Guard):
 ## of anything - he sprang on `guard` (see ambush), and whoever had not noticed
 ## him loses their first turn.
 func _caught_by(guard: Guard, ambushed: bool = false):
+	# A ward or a sensor fights nobody: with nobody left who would, there is no fight to have.
+	if not _anybody_to_fight(guard):
+		_nobody_to_answer(guard)
+		return
 	# No animal in the fight: the familiar is let go, and the party is theirs.
 	if familiar != null:
 		dismiss_familiar("[color=yellow]%s[/color]'s familiar slips away.\n" % _display_name(familiar_caster))
@@ -4864,6 +5074,44 @@ func _caught_by(guard: Guard, ambushed: bool = false):
 	await get_tree().create_timer(CAUGHT_PAUSE, true, false, true).timeout
 	if is_inside_tree():
 		SceneTransition.change_scene(scene.battle_scene)
+
+
+## Whether a fight now would have anybody in it, as build_fight goes about it: somebody who fights, near
+## enough or who will come in time, or anybody sent for.
+func _anybody_to_fight(caught_by: Guard) -> bool:
+	if setup != null and not setup.reinforcements.is_empty():
+		return true
+	# Whoever caught them, if they would fight, whether or not the watch has them on its list yet.
+	if caught_by != null and caught_by.fights() and not caught_by.knocked_out and caught_by.mood != Guard.Mood.RETCHING:
+		return true
+	var near: float = setup.joins_within_tiles if setup != null else 0.0
+	var per_round: float = setup.tiles_per_late_round if setup != null else 0.0
+	var party = scene.get("party")
+	var party_at: Vector2i = tile_of(party.leader.global_position) if party != null and party.leader != null else Vector2i.ZERO
+	for other in guards:
+		if not is_instance_valid(other) or not CombatantDatabase.combatants.has(other.combatant_key) or other.knocked_out \
+				or not other.fights() or other.mood == Guard.Mood.RETCHING:
+			continue
+		if other == caught_by or near <= 0.0 or per_round > 0.0 or _called.has(other):
+			return true
+		if Vector2(tile_of(other.global_position) - party_at).length() <= near or threatens(other, [party_at]):
+			return true
+	return false
+
+
+## `guard` is sure, and there is nobody to fight: the alert goes up, once, and it goes back to looking.
+func _nobody_to_answer(guard: Guard):
+	suspicion[guard] = 0.0
+	if _answered_by_nobody.has(guard):
+		return
+	_answered_by_nobody[guard] = true
+	raise_alert_level()
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] gives the alarm, and nobody is left to answer it.\n" % _name_of(guard))
+
+
+## Those who have raised an alarm nobody came to, so that it is said once.
+var _answered_by_nobody := {}
 
 
 ## --- An ambush (F) ---
@@ -4974,7 +5222,12 @@ func build_fight(ambushed: bool = false) -> EncounterDefinition:
 	_opener = {}
 	var fight := EncounterDefinition.new()
 	if not opener.is_empty():
-		fight.set_meta("opener", {"key": opener.key, "move": opener.move})
+		var said := {"key": opener.key, "move": opener.move}
+		if opener.has("aim_offset"):
+			said["aim_offset"] = opener.aim_offset
+		if opener.get("trap", false):
+			said["trap"] = true
+		fight.set_meta("opener", said)
 	fight.display_name = setup.fight_name if setup != null else "Caught"
 	fight.terrain_scene = setup.battle_terrain if setup != null else null
 	fight.skip_deployment = true
@@ -5037,7 +5290,7 @@ func build_fight(ambushed: bool = false) -> EncounterDefinition:
 		# Near enough to hit somebody on his first turn, he is there from the
 		# start however far that is - nobody within a turn of the party waits.
 		if near > 0.0 and gap > near and guard != spotted_by and not _called.has(guard) \
-				and not threatens(guard, party_tiles):
+				and not opener.get("hit", []).has(_id_of(guard)) and not threatens(guard, party_tiles):
 			if per_round <= 0.0:
 				continue
 			arrives = 1 + ceili((gap - near) / per_round)
@@ -5052,6 +5305,8 @@ func build_fight(ambushed: bool = false) -> EncounterDefinition:
 		spawn.surprised = ambushed and arrives == 1 and _unaware(guard)
 		if not opener.is_empty() and opener.guard == _id_of(guard):
 			spawn.set_meta("opened_on", true)
+		if opener.get("hit", []).has(_id_of(guard)):
+			spawn.set_meta("struck_first", true)
 		spawns.append(spawn)
 	_send_for_reinforcements(spawns, taken, caught_at)
 	# Breakable walls still standing stand in the fight too, and one broken there

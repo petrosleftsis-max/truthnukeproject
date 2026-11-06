@@ -165,10 +165,10 @@ func her_kit():
 	var skills: Dictionary = SkillDatabase.skills
 	ok(skills.compel.spell_slot_level == 1 and skills.compel.uses_stat_contest and skills.compel.contest_stat == Stats.Type.MINDFULNESS, "Compel: World, a contest of Mindfulness")
 	ok(skills.steady_heart.spell_slot_level == 1 and skills.steady_heart.targets_ally and skills.steady_heart.effects[0].condition_duration == 4, "Steady Heart: World, on an ally, 4 turns")
-	ok(skills.ecstasy.spell_slot_level == 1 and skills.ecstasy.tether_strength == 50 and skills.ecstasy.tethered, "Ecstasy: World, tether 50")
+	ok(skills.ecstasy.spell_slot_level == 1 and skills.ecstasy.tether_strength == 200 and skills.ecstasy.tethered, "Ecstasy: World, tether 200")
 	ok(skills.silence.spell_slot_level == 2 and skills.silence.tether_strength == 400 and skills.silence.tethered, "Silence: Hermes, tether 400")
-	ok(skills.mesmerise.spell_slot_level == 3 and skills.mesmerise.tether_strength == 200 and skills.mesmerise.tethered and skills.mesmerise.contest_stat == Stats.Type.MINDFULNESS and skills.mesmerise.aoe_radius > 0,
-		"Mesmerise: Pandora, an area contesting Mindfulness, tether 200")
+	ok(skills.mesmerise.spell_slot_level == 3 and skills.mesmerise.tether_strength == 200 and skills.mesmerise.tethered and skills.mesmerise.contest_stat == Stats.Type.INTELLECT and skills.mesmerise.aoe_radius > 0,
+		"Mesmerise: Pandora, an area contesting Intellect, tether 200")
 	log_line("")
 
 
@@ -326,7 +326,8 @@ func mesmerise():
 	var the_foes := foes()
 	var strong: Dictionary = the_foes[1]
 	var weak: Dictionary = the_foes[0]
-	strong.stats["mindfulness"] = 999
+	strong.stats["intellect"] = 999
+	weak.stats["intellect"] = 1
 	combat.teleport_to(weak, tile_away(alithia.position, 4, weak))
 	var beside := tile_away(weak.position, 1, strong)
 	combat.teleport_to(strong, beside)
@@ -334,7 +335,7 @@ func mesmerise():
 	alithia.spell_slots[3] = 2
 	await combat.use_skill("mesmerise", alithia, weak.position, false)
 	await settle()
-	ok(combat.has_restriction(weak, "skips_turn"), "who loses to her Mindfulness is stunned")
+	ok(combat.has_restriction(weak, "skips_turn"), "who loses to her Intellect is stunned")
 	ok(not combat.has_restriction(strong, "skips_turn"), "who beats it is not")
 	ok(Combat.holds_tether(alithia) and alithia.tether.max == 200.0, "held on a tether of 200", "%s" % [alithia.get("tether")])
 	# It lasts as long as the tether does, not a count of turns.
@@ -358,15 +359,16 @@ func ecstasy():
 	await settle()
 	ok(combat.is_prone(foe), "down")
 	ok(combat.has_restriction(foe, "skips_turn"), "and stunned")
-	ok(alithia.tether.max == 50.0, "on a tether of 50")
+	ok(alithia.tether.max == 200.0, "on a tether of 200")
 	var from: Vector2i = foe.position
 	await real_turn(alithia, foe)
 	ok(foe.position == from and combat.is_prone(foe) and combat.has_restriction(foe, "skips_turn"), "its turn comes and goes, and it lies there")
-	# Fifty, at 25 a turn of hers: gone as her second turn begins. That turn of its
+	# Two hundred, at 25 a turn of hers: gone as her eighth turn begins. That turn of its
 	# was followed by her first.
-	ok(Combat.holds_tether(alithia) and alithia.tether.bar == 25.0, "one of her turns: it holds, with 25 left", "%s" % [alithia.get("tether")])
-	combat._tether_turn(alithia)
-	ok(not Combat.holds_tether(alithia), "two: worn through")
+	ok(Combat.holds_tether(alithia) and alithia.tether.bar == 175.0, "one of her turns: it holds, with 175 left", "%s" % [alithia.get("tether")])
+	for turn in 7:
+		combat._tether_turn(alithia)
+	ok(not Combat.holds_tether(alithia), "eight: worn through")
 	ok(not combat.has_restriction(foe, "skips_turn"), "the stun goes with it")
 	ok(combat.is_prone(foe), "and it is still down: getting up is its own to do")
 	# Somebody immune to Prone is only stunned (Erysichthon).
@@ -455,7 +457,7 @@ func the_preview():
 	await their_turn(alithia)
 	var skills: Dictionary = SkillDatabase.skills
 	var said: String = ui.build_skill_tooltip(skills.ecstasy, alithia)
-	ok(said.contains("Tether: 50"), "Ecstasy's tooltip says 50", said)
+	ok(said.contains("Tether: 200"), "Ecstasy's tooltip says 200", said)
 	ok(said.contains("for as long as the tether holds"), "and how long what it does lasts")
 	ok(said.contains("until they get up"), "and that the Prone lasts till they get up")
 	ok(ui.build_skill_tooltip(skills.silence, alithia).contains("Tether: 400"), "Silence's says 400")
@@ -473,7 +475,7 @@ func the_preview():
 	var found := []
 	for label in ui._hit_preview.find_children("*", "Label", true, false):
 		found.append(label.text)
-	ok(" / ".join(found).contains("Tether 50"), "and so does the prompt while aiming", " / ".join(found))
+	ok(" / ".join(found).contains("Tether 200"), "and so does the prompt while aiming", " / ".join(found))
 	ui.hide_hit_preview()
 	controller._selected_skill = ""
 	log_line("")

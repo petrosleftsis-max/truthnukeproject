@@ -25,6 +25,11 @@ class_name Projectile
 ## game's, so a fast enemy turn, or a fight being caught up with, plays it fast
 ## too.
 ##
+## It gives light as it flies, and flares as it lands (the designer, 2026-11-07: "can we have the
+## projectiles interact with light?"): a real light, stopped by walls as any is (LightView), in its
+## colour, for a move whose Projectile Light says so; one that makes darkness takes light away
+## instead. To look at, as the rest of it is: what is lit by the rule does not change for it.
+##
 ## A slot to fill (the designer's placeholder-with-slot way): a move's
 ## Projectile Texture flies in place of what is drawn, trail and all; its
 ## Projectile Scene in place of everything drawn here; its Travel Sound plays
@@ -335,8 +340,53 @@ static func _fan_ends(combat: Combat, start: Vector2, aim: Vector2i, tiles: Arra
 	return [far[0], start + (middle - start).normalized() * reach, far[far.size() - 1]]
 
 
+## How far it lights, and how strongly, in flight and for the flare as it lands, by day and in the dark.
+const LIGHT_ENERGY := 0.85
+const LIGHT_ENERGY_BY_DAY := 0.3
+const FLARE := 1.6
+const FLARE_SECONDS := 0.3
+## What gives light unless a move says otherwise, by element.
+const GIVES_LIGHT := {Damage.Type.FIRE: 3.0, Damage.Type.PLASMA: 3.5, Damage.Type.LIGHTNING: 3.5, Damage.Type.ICE: 2.0, Damage.Type.PSYCHIC: 1.5}
+
+var _light: PointLight2D = null
+
+
+## How many tiles of light `skill` carries as it flies: its own say, or by its element and whether it is
+## a spell. Below zero, it takes that much away.
+static func light_tiles_of(skill: SkillDefinition) -> float:
+	if skill == null:
+		return 0.0
+	if skill.projectile_light_tiles != 0.0:
+		return skill.projectile_light_tiles
+	for effect in skill.all_effects():
+		if effect != null and effect.type == EffectDefinition.EffectType.ZONE and effect.zone_condition != null and effect.zone_condition.is_darkness:
+			return -3.0
+	return GIVES_LIGHT.get(skill.damage_type, 0.0) if skill.deals_damage else (1.5 if skill.spell_slot_level > 0 else 0.0)
+
+
+func _carry_a_light():
+	if not LightView.shown() or skill == null:
+		return
+	var tiles := light_tiles_of(skill)
+	if tiles == 0.0:
+		return
+	_light = PointLight2D.new()
+	_light.texture = LightView.light_picture()
+	_light.texture_scale = LightView.light_scale(absf(tiles))
+	_light.color = colour if tiles > 0.0 else Color(0.7, 0.7, 0.85)
+	_light.blend_mode = Light2D.BLEND_MODE_ADD if tiles > 0.0 else Light2D.BLEND_MODE_SUB
+	_light.shadow_enabled = true
+	_light.range_z_max = 4096
+	_light.range_z_min = -4096
+	var dark: bool = combat != null and is_instance_valid(combat) and combat.light.varies
+	_light.energy = LIGHT_ENERGY if dark else LIGHT_ENERGY_BY_DAY
+	_light.position = from
+	add_child(_light)
+
+
 func _ready():
 	_rng.seed = hash([from.round(), to.round(), look])
+	_carry_a_light()
 	var tiles := from.distance_to(to) / float(Grid.TILE_SIZE)
 	_seconds = clampf(BASE_SECONDS + SECONDS_A_TILE * tiles, LEAST_SECONDS, MOST_SECONDS) * LOOK_PACE.get(look, 1.0)
 	match style:
@@ -456,6 +506,12 @@ func _land():
 	_settled = true
 	if _verdict == Verdict.NONE:
 		_verdict = Verdict.HIT
+	# It flares where it lands, if it landed.
+	if _light != null and is_instance_valid(_light) and _verdict != Verdict.MISSED:
+		_light.position = _end()
+		var flare := create_tween()
+		flare.tween_property(_light, "energy", _light.energy * FLARE, FLARE_SECONDS * 0.25)
+		flare.tween_property(_light, "energy", 0.0, FLARE_SECONDS)
 	if combat == null or not is_instance_valid(combat) or skill == null:
 		return
 	var at := _end()

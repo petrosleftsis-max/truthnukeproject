@@ -1,24 +1,117 @@
 extends Node2D
 class_name LightView
-## How light looks (Light, LightMap): a placeholder drawn in code, none of it deciding anything.
-## Two soft layers laid over the tiles and under the figures. One is the shade, heaviest where no
-## light reaches; the other the warm glow of whatever is lit, added on top. One pixel to a tile,
-## filtered, so light fades across the tiles where the rule steps from one level to the next. Over
-## everything but the HUD goes a tone, by the hour. Whoever sees in the dark sees it as a grey-blue
-## half-light (night_eyes). The art will replace all of this; the rule is LightMap's.
+## How light looks (Light, LightMap): placeholders drawn in code, none of it deciding anything, and
+## nothing in it rolls from Combat.rng. The rule is LightMap's. The designer, 2026-11-07: "do all the
+## light improvement ideas".
+##
+## Under the figures:
+## - the shade, one pixel to a tile and filtered, so light fades across the tiles where the rule steps
+##   from one level to the next. It drains what is under it of colour as well as darkening it, a little
+##   in Dim and much more in Dark (SHADE_SHADER), and a change eases over EASE_SECONDS rather than
+##   snapping, however it came about (a lamp broken, a door opened, somebody burning);
+## - fog, drifting slowly over the Dark (FOG_SHADER).
+## Over everything but the HUD:
+## - a real light on each source, in its colour, breathing where it is a flame (_sync_lights), easing on
+##   and off, gliding after a light that is carried, and stopped by walls: the Blocks tiles are made into
+##   occluders (_build_occluders), so walls, pillars and a Phantom Wall cast shadows across the floor;
+## - what hangs in the air: embers round a flame, dust in other light, shafts of light from an opening;
+## - the tone and the grade of the hour, by the clock (Light.tone_at, Light.grade_at): gold at dusk, blue
+##   at night, grey at dawn.
+## Slots: a picture at art/fx/ember.png, dust.png or light_shaft.png is used in place of what is
+## drawn here. dithered gives the shade a dithered edge, for if the art ends up pixel art.
 
 ## How heavy the shade is where no light reaches at all, and how blue.
 const SHADE_MOST := 0.86
-const NIGHT_EYES_MOST := 0.42
+const NIGHT_EYES_MOST := 0.52
 const SHADE_COLOUR := Color(0.015, 0.02, 0.06)
 const NIGHT_EYES_COLOUR := Color(0.1, 0.14, 0.24)
 const TONE_SECONDS := 1.2
-## How far the glow breathes, and how fast, where a flame is the light.
+## How long the shade takes to change, and a light to come on or go out.
+const EASE_SECONDS := 0.35
+## How much colour goes from what is under the shade, at its heaviest.
+const DRAIN := 0.9
+## How strong a light is, and how far it breathes and how fast, where a flame is the light.
+const ENERGY := 0.5
+const OPENING_ENERGY := 0.34
+## How much a light is lost in what is lit already, in full sun.
+const LOST_IN_THE_SUN := 0.65
 const FLICKER := 0.09
+## How strong the fog is, and how strong for whoever sees in the dark (the designer, 2026-11-07: "i'd like it
+## to still be somewhat visible when cyrus plays"): it goes by how heavy the shade is, which is lighter
+## for them, so this is about half as strong on the screen.
+const FOG_STRENGTH := 0.24
+const FOG_WITH_NIGHT_EYES := 0.8
 const FLICKER_RATE := 7.0
+const GLIDE_RATE := 9.0
+## How far a light may have gone and still be taken for the same one, between one look and the next.
+const SAME_LIGHT_TILES := 2.5
+const LIGHT_TEXTURE_SIZE := 256
+
+const EMBER_PICTURE := "res://art/fx/ember.png"
+const DUST_PICTURE := "res://art/fx/dust.png"
+const SHAFT_PICTURE := "res://art/fx/light_shaft.png"
+
+const SHADE_SHADER := """
+shader_type canvas_item;
+render_mode unshaded;
+uniform sampler2D screen : hint_screen_texture, filter_linear, repeat_disable;
+uniform sampler2D previous : filter_linear, repeat_disable;
+uniform float blend = 1.0;
+uniform float drain = 0.9;
+uniform float most = 0.86;
+uniform float dither = 0.0;
+void fragment() {
+	vec4 shade = mix(texture(previous, UV), texture(TEXTURE, UV), blend);
+	float amount = shade.a;
+	if (dither > 0.0) {
+		int x = int(FRAGCOORD.x / dither) % 4;
+		int y = int(FRAGCOORD.y / dither) % 4;
+		float threshold = float((x * 2 + y * 3 + x * y) % 16) / 16.0 - 0.5;
+		amount = clamp(amount + threshold * 0.14, 0.0, 1.0);
+	}
+	vec3 under = texture(screen, SCREEN_UV).rgb;
+	float grey = dot(under, vec3(0.299, 0.587, 0.114));
+	vec3 drained = mix(under, vec3(grey), clamp(amount / most, 0.0, 1.0) * drain);
+	COLOR = vec4(mix(drained, shade.rgb, amount), 1.0);
+}
+"""
+
+const FOG_SHADER := """
+shader_type canvas_item;
+render_mode unshaded;
+uniform sampler2D noise : repeat_enable, filter_linear;
+uniform vec2 tiles = vec2(16.0, 16.0);
+uniform float strength = 0.24;
+void fragment() {
+	float dark = texture(TEXTURE, UV).a;
+	vec2 at = UV * tiles / 6.0;
+	float one = texture(noise, at + vec2(TIME * 0.012, TIME * 0.005)).r;
+	float two = texture(noise, at * 1.7 - vec2(TIME * 0.008, TIME * 0.011)).r;
+	COLOR = vec4(0.55, 0.62, 0.78, smoothstep(0.35, 0.9, (one + two) * 0.5) * dark * dark * strength);
+}
+"""
+
+const GRADE_SHADER := """
+shader_type canvas_item;
+render_mode unshaded;
+uniform sampler2D screen : hint_screen_texture, filter_linear, repeat_disable;
+uniform float saturation = 1.0;
+uniform float contrast = 1.0;
+void fragment() {
+	vec3 under = texture(screen, SCREEN_UV).rgb;
+	float grey = dot(under, vec3(0.299, 0.587, 0.114));
+	vec3 graded = (mix(vec3(grey), under, saturation) - 0.5) * contrast + 0.5;
+	COLOR = vec4(graded, 1.0);
+}
+"""
 
 ## Whether to draw any of it: not headless, unless a test asks.
 static var plays_headless := false
+## A dithered edge on the shade, for pixel art.
+static var dithered := false
+## Whether embers, dust, fog and shafts of light are drawn.
+static var air_on := true
+static var _light_picture: Texture2D = null
 
 var light: LightMap = null
 var night_eyes := false : set = _set_night_eyes
@@ -26,13 +119,43 @@ var night_eyes := false : set = _set_night_eyes
 var _tile_map: TileMap = null
 var _region := Rect2i()
 var _shade: Sprite2D = null
-var _glow: Sprite2D = null
+var _fog: Sprite2D = null
+var _grade: ColorRect = null
+var _grade_copy: BackBufferCopy = null
 var _tone: CanvasModulate = null
+var _occluders: Node2D = null
+var _occluder_key := 0
 var _clock := 0.0
+## {"node": PointLight2D, "source", "at": where it is going, "energy": how strong it should be, "phase"}.
+var _lights: Array = []
+var _shade_easing: Tween = null
 
 
 static func shown() -> bool:
 	return plays_headless or DisplayServer.get_name() != "headless"
+
+
+## A soft round light, for anything that wants one (Projectile too).
+static func light_picture() -> Texture2D:
+	if _light_picture == null:
+		var gradient := Gradient.new()
+		gradient.set_color(0, Color(1, 1, 1, 0.8))
+		gradient.set_color(1, Color(1, 1, 1, 0))
+		gradient.add_point(0.45, Color(1, 1, 1, 0.34))
+		var round_one := GradientTexture2D.new()
+		round_one.gradient = gradient
+		round_one.fill = GradientTexture2D.FILL_RADIAL
+		round_one.fill_from = Vector2(0.5, 0.5)
+		round_one.fill_to = Vector2(1.0, 0.5)
+		round_one.width = LIGHT_TEXTURE_SIZE
+		round_one.height = LIGHT_TEXTURE_SIZE
+		_light_picture = round_one
+	return _light_picture
+
+
+## How far a light of `tiles` tiles has to be scaled to reach that far.
+static func light_scale(tiles: float) -> float:
+	return tiles * 2.0 * float(Grid.TILE_SIZE) / float(LIGHT_TEXTURE_SIZE)
 
 
 ## Starts drawing `map` over `tile_map`, from `region`'s tiles.
@@ -41,8 +164,53 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_tile_map = tile_map
 	_region = region
 	name = "LightView"
-	_shade = _layer("Shade", false)
-	_glow = _layer("Glow", true)
+	_shade = Sprite2D.new()
+	_shade.name = "Shade"
+	_shade.centered = false
+	_shade.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_shade.light_mask = 0
+	_shade.material = _material(SHADE_SHADER)
+	_shade.material.set_shader_parameter("drain", DRAIN)
+	add_child(_shade)
+	_fog = Sprite2D.new()
+	_fog.name = "Fog"
+	_fog.centered = false
+	_fog.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_fog.light_mask = 0
+	_fog.material = _material(FOG_SHADER)
+	var noise := NoiseTexture2D.new()
+	noise.seamless = true
+	noise.width = 256
+	noise.height = 256
+	var pattern := FastNoiseLite.new()
+	pattern.frequency = 0.012
+	pattern.seed = 7
+	noise.noise = pattern
+	_fog.material.set_shader_parameter("noise", noise)
+	_fog.material.set_shader_parameter("tiles", Vector2(region.size))
+	_fog.visible = false
+	add_child(_fog)
+	_occluders = Node2D.new()
+	_occluders.name = "Occluders"
+	add_child(_occluders)
+	# A shader reading the screen only sees what was there the first time anything read it (the shade,
+	# under the figures), unless it is copied again just before.
+	_grade_copy = BackBufferCopy.new()
+	_grade_copy.name = "GradeCopy"
+	_grade_copy.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
+	_grade_copy.z_as_relative = false
+	_grade_copy.z_index = 3999
+	_grade_copy.visible = false
+	add_child(_grade_copy)
+	_grade = ColorRect.new()
+	_grade.name = "Grade"
+	_grade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_grade.z_as_relative = false
+	_grade.z_index = 4000
+	_grade.light_mask = 0
+	_grade.material = _material(GRADE_SHADER)
+	_grade.visible = false
+	add_child(_grade)
 	_tone = CanvasModulate.new()
 	_tone.name = "Tone"
 	_tone.color = Color.WHITE
@@ -50,17 +218,12 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	refresh()
 
 
-func _layer(called: String, adds: bool) -> Sprite2D:
-	var sprite := Sprite2D.new()
-	sprite.name = called
-	sprite.centered = false
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	if adds:
-		var material := CanvasItemMaterial.new()
-		material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-		sprite.material = material
-	add_child(sprite)
-	return sprite
+func _material(code: String) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = code
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	return material
 
 
 func _set_night_eyes(value: bool):
@@ -74,29 +237,281 @@ func refresh():
 	if light == null or _tile_map == null or _region.size.x <= 0 or _region.size.y <= 0:
 		return
 	visible = light.varies or not light.glow.is_empty()
+	_sync_lights()
 	if not visible:
 		return
 	var shade := Image.create(_region.size.x, _region.size.y, false, Image.FORMAT_RGBA8)
-	var glow := Image.create(_region.size.x, _region.size.y, false, Image.FORMAT_RGBA8)
 	var most := NIGHT_EYES_MOST if night_eyes else SHADE_MOST
 	var colour := NIGHT_EYES_COLOUR if night_eyes else SHADE_COLOUR
+	var any_dark := false
 	for x in _region.size.x:
 		for y in _region.size.y:
 			var tile := _region.position + Vector2i(x, y)
 			var amount := light.amount_at(tile)
+			any_dark = any_dark or amount <= 0.02
 			shade.set_pixel(x, y, Color(colour, most * pow(1.0 - amount, 1.3)))
-			var lit: Color = light.glow.get(tile, Color(0, 0, 0, 0))
-			glow.set_pixel(x, y, Color(lit.r * lit.a, lit.g * lit.a, lit.b * lit.a, 1.0))
-	_put_on(_shade, shade)
-	_put_on(_glow, glow)
-	_glow.visible = not light.glow.is_empty()
+	_put_on_the_shade(shade, most)
+	_fog.visible = air_on and any_dark
+	_fog.material.set_shader_parameter("strength", FOG_WITH_NIGHT_EYES if night_eyes else FOG_STRENGTH)
+	_build_occluders()
 
 
-func _put_on(sprite: Sprite2D, image: Image):
-	sprite.texture = ImageTexture.create_from_image(image)
+## The shade's new picture, eased into from the one it replaces.
+func _put_on_the_shade(image: Image, most: float):
+	var old: Texture2D = _shade.texture
+	var picture := ImageTexture.create_from_image(image)
+	_shade.texture = picture
+	_fog.texture = picture
 	var tile_size := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE)
-	sprite.scale = tile_size
-	sprite.position = to_local(_tile_map.to_global(_tile_map.map_to_local(_region.position))) - tile_size / 2.0
+	for sprite in [_shade, _fog]:
+		sprite.scale = tile_size
+		sprite.position = to_local(_tile_map.to_global(_tile_map.map_to_local(_region.position))) - tile_size / 2.0
+	var material: ShaderMaterial = _shade.material
+	material.set_shader_parameter("most", most)
+	material.set_shader_parameter("dither", 12.0 if dithered else 0.0)
+	material.set_shader_parameter("previous", old if old != null else picture)
+	if _shade_easing != null and _shade_easing.is_valid():
+		_shade_easing.kill()
+	if old == null or not is_inside_tree():
+		material.set_shader_parameter("blend", 1.0)
+		return
+	material.set_shader_parameter("blend", 0.0)
+	_shade_easing = create_tween()
+	_shade_easing.tween_method(func(value: float): material.set_shader_parameter("blend", value), 0.0, 1.0, EASE_SECONDS)
+
+
+## --- Real lights ---
+
+
+## A light for each source there is now: the same one as last time where it can be taken for it, so
+## one that is carried glides there; those no longer wanted go out slowly.
+func _sync_lights():
+	var wanted: Array = light.sources if visible else []
+	var left := _lights.duplicate()
+	var kept := []
+	for source in wanted:
+		var at := to_local(_tile_map.to_global(_tile_map.map_to_local(source.tile)))
+		var entry = _same_light_in(left, source, at)
+		if entry == null:
+			entry = _new_light(source, at)
+		else:
+			left.erase(entry)
+		entry.source = source
+		entry.at = at
+		entry.energy = _energy_of(source)
+		entry.node.color = source.get("colour", Color.WHITE)
+		entry.node.texture_scale = light_scale(maxf(source.dim, source.bright))
+		kept.append(entry)
+	for entry in left:
+		_put_out(entry)
+	_lights = kept
+	_tell_the_shadows()
+
+
+## How strong it is for how lit it would be without it: a torch is little by day.
+func _energy_of(source: Dictionary) -> float:
+	var strength: float = OPENING_ENERGY if source.get("opening", false) else ENERGY
+	return strength * (1.0 - LOST_IN_THE_SUN * light.ambient_amount_at(source.tile))
+
+
+func _same_light_in(entries: Array, source: Dictionary, at: Vector2):
+	for entry in entries:
+		if entry.source.get("colour") == source.get("colour") and entry.source.get("opening", false) == source.get("opening", false) \
+				and entry.at.distance_to(at) <= float(Grid.TILE_SIZE) * SAME_LIGHT_TILES:
+			return entry
+	return null
+
+
+func _new_light(source: Dictionary, at: Vector2) -> Dictionary:
+	var node := PointLight2D.new()
+	node.texture = light_picture()
+	node.blend_mode = Light2D.BLEND_MODE_ADD
+	node.shadow_enabled = true
+	node.shadow_filter = Light2D.SHADOW_FILTER_PCF5
+	node.shadow_filter_smooth = 3.0
+	node.range_z_max = 4096
+	node.range_z_min = -4096
+	node.energy = 0.0
+	# Above the ground, for a normal map to have somewhere to catch it from (docs/light_on_maps.md).
+	node.height = float(Grid.TILE_SIZE) * 0.5
+	node.position = at
+	add_child(node)
+	if air_on:
+		_add_what_hangs_in_the_air(node, source)
+	return {"node": node, "source": source, "at": at, "energy": _energy_of(source), "phase": float(source.tile.x * 13 + source.tile.y * 7) * 0.37}
+
+
+func _put_out(entry: Dictionary):
+	var node: PointLight2D = entry.node
+	if not is_inside_tree():
+		node.queue_free()
+		return
+	var going := create_tween()
+	going.tween_property(node, "energy", 0.0, EASE_SECONDS)
+	going.tween_callback(node.queue_free)
+	for child in node.get_children():
+		if child is CPUParticles2D:
+			child.emitting = false
+
+
+## Where each light is and how far it reaches, for the figures' shadows to point away from.
+func _tell_the_shadows():
+	var points := []
+	for entry in _lights:
+		points.append([to_global(entry.at), maxf(entry.source.dim, entry.source.bright) * float(Grid.TILE_SIZE)])
+	CombatantSprite.light_points = points
+
+
+## --- What stops them ---
+
+
+## The Blocks tiles, and whatever else stops light, as occluders, merged into as few rectangles as
+## they go into. Only when that has changed.
+func _build_occluders():
+	if light.blocks_light == null or not light.blocks_light.is_valid() or not light.varies:
+		return
+	var rows := {}
+	var key := 17
+	for y in range(_region.position.y, _region.end.y):
+		var run_start := -99999
+		for x in range(_region.position.x, _region.end.x + 1):
+			var blocked: bool = x < _region.end.x and light.blocks_light.call(Vector2i(x, y))
+			if blocked:
+				key = (key * 31 + x * 7919 + y) & 0x7FFFFFFF
+				if run_start == -99999:
+					run_start = x
+			elif run_start != -99999:
+				var run := Vector2i(run_start, x)
+				if not rows.has(run):
+					rows[run] = []
+				rows[run].append(y)
+				run_start = -99999
+	if key == _occluder_key:
+		return
+	_occluder_key = key
+	for child in _occluders.get_children():
+		child.queue_free()
+	var tile := float(Grid.TILE_SIZE)
+	var half := Vector2(tile, tile) / 2.0
+	for run in rows:
+		var ys: Array = rows[run]
+		var first: int = ys[0]
+		for i in ys.size():
+			var ended: bool = i == ys.size() - 1 or ys[i + 1] != ys[i] + 1
+			if not ended:
+				continue
+			var top_left := to_local(_tile_map.to_global(_tile_map.map_to_local(Vector2i(run.x, first)))) - half
+			var bottom_right := to_local(_tile_map.to_global(_tile_map.map_to_local(Vector2i(run.y - 1, ys[i])))) + half
+			var polygon := OccluderPolygon2D.new()
+			polygon.cull_mode = OccluderPolygon2D.CULL_DISABLED
+			polygon.polygon = PackedVector2Array([top_left, Vector2(bottom_right.x, top_left.y), bottom_right, Vector2(top_left.x, bottom_right.y)])
+			var occluder := LightOccluder2D.new()
+			occluder.occluder = polygon
+			_occluders.add_child(occluder)
+			if i < ys.size() - 1:
+				first = ys[i + 1]
+
+
+## --- What hangs in the air ---
+
+
+func _add_what_hangs_in_the_air(node: PointLight2D, source: Dictionary):
+	if source.get("opening", false):
+		var shaft := _Shaft.new()
+		shaft.reach = maxf(source.dim, source.bright)
+		node.add_child(shaft)
+		return
+	var tile := float(Grid.TILE_SIZE)
+	var flame: bool = source.get("flickers", false)
+	var bits := CPUParticles2D.new()
+	bits.name = "Embers" if flame else "Dust"
+	bits.local_coords = false
+	bits.light_mask = 0
+	bits.z_as_relative = false
+	bits.z_index = ExplorationParty.PARTY_Z_TOP
+	var picture_at: String = EMBER_PICTURE if flame else DUST_PICTURE
+	if ResourceLoader.exists(picture_at):
+		bits.texture = load(picture_at)
+	var fade := Gradient.new()
+	if flame:
+		bits.amount = 6
+		bits.lifetime = 1.5
+		bits.direction = Vector2.UP
+		bits.spread = 25.0
+		bits.gravity = Vector2(0.0, -tile * 0.12)
+		bits.initial_velocity_min = tile * 0.08
+		bits.initial_velocity_max = tile * 0.25
+		bits.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+		bits.emission_sphere_radius = tile * 0.08
+		bits.scale_amount_min = tile * 0.012
+		bits.scale_amount_max = tile * 0.028
+		fade.set_color(0, Color(1.0, 0.75, 0.3, 0.95))
+		fade.set_color(1, Color(0.9, 0.25, 0.05, 0.0))
+	else:
+		bits.amount = 8
+		bits.lifetime = 5.0
+		bits.preprocess = 3.0
+		bits.direction = Vector2.UP
+		bits.spread = 180.0
+		bits.gravity = Vector2.ZERO
+		bits.initial_velocity_min = tile * 0.01
+		bits.initial_velocity_max = tile * 0.05
+		bits.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+		bits.emission_sphere_radius = tile * maxf(source.bright, 1.0) * 0.7
+		bits.scale_amount_min = tile * 0.008
+		bits.scale_amount_max = tile * 0.016
+		fade.set_color(0, Color(1.0, 0.95, 0.85, 0.0))
+		fade.add_point(0.5, Color(1.0, 0.95, 0.85, 0.28))
+		fade.set_color(fade.get_point_count() - 1, Color(1.0, 0.95, 0.85, 0.0))
+	bits.color_ramp = fade
+	node.add_child(bits)
+
+
+## Shafts of light slanting in from an opening, leaning with the hour.
+class _Shaft extends Node2D:
+	var reach := 4.0
+	var picture: Texture2D = null
+
+	func _ready():
+		z_as_relative = false
+		z_index = ExplorationParty.PARTY_Z_TOP
+		light_mask = 0
+		var add := CanvasItemMaterial.new()
+		add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		add.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+		material = add
+		if ResourceLoader.exists(LightView.SHAFT_PICTURE):
+			picture = load(LightView.SHAFT_PICTURE)
+
+	func _process(_delta):
+		queue_redraw()
+
+	func _draw():
+		var tile := float(Grid.TILE_SIZE)
+		var parent_light := get_parent() as PointLight2D
+		var strength: float = 0.14 * clampf(parent_light.energy / LightView.OPENING_ENERGY, 0.0, 1.0) if parent_light != null else 0.14
+		var lean: float = CombatantSprite.shadow_lean
+		var time := Time.get_ticks_msec() / 1000.0
+		for i in 3:
+			var across := (float(i) - 1.0) * tile * 0.32
+			var breath := 0.8 + 0.2 * sin(time * 0.7 + float(i) * 1.9)
+			var top := Vector2(across, 0.0)
+			var foot := top + Vector2(lean * tile * reach * 0.5, tile * reach * 0.8)
+			var width := tile * 0.13
+			var near := Color(1.0, 0.96, 0.85, strength * breath)
+			var far := Color(1.0, 0.96, 0.85, 0.0)
+			if picture != null:
+				draw_texture_rect(picture, Rect2(top - Vector2(width, 0.0), Vector2(width * 2.0, foot.y)), false, near)
+				continue
+			# Fading in from nothing at the top, and out again at the foot.
+			var waist: Vector2 = top.lerp(foot, 0.22)
+			draw_polygon(PackedVector2Array([top - Vector2(width, 0.0), top + Vector2(width, 0.0), waist + Vector2(width * 1.1, 0.0), waist - Vector2(width * 1.1, 0.0)]),
+				PackedColorArray([far, far, near, near]))
+			draw_polygon(PackedVector2Array([waist - Vector2(width * 1.1, 0.0), waist + Vector2(width * 1.1, 0.0), foot + Vector2(width * 1.5, 0.0), foot - Vector2(width * 1.5, 0.0)]),
+				PackedColorArray([near, near, far, far]))
+
+
+## --- The hour ---
 
 
 ## The colour over everything: at once, or easing there.
@@ -110,9 +525,37 @@ func set_tone(colour: Color, at_once: bool = false):
 	easing.tween_property(_tone, "color", colour, TONE_SECONDS)
 
 
+## The tone and the grade of `minute` of the day, in `ambient`.
+func show_hour(ambient: int, minute: int, at_once: bool = false):
+	set_tone(Light.tone_at(ambient, minute), at_once)
+	var grade := Light.grade_at(ambient, minute)
+	if _grade != null:
+		_grade.material.set_shader_parameter("saturation", grade.saturation)
+		_grade.material.set_shader_parameter("contrast", grade.contrast)
+		_grade.visible = not (is_equal_approx(grade.saturation, 1.0) and is_equal_approx(grade.contrast, 1.0))
+		_grade_copy.visible = _grade.visible
+
+
 func _process(delta: float):
-	if _glow == null or light == null or not light.flickers:
+	_keep_the_grade_on_the_screen()
+	if light == null:
 		return
 	_clock += delta
-	var wobble := sin(_clock * FLICKER_RATE) * 0.55 + sin(_clock * FLICKER_RATE * 2.3 + 1.3) * 0.45
-	_glow.modulate = Color(1.0 + wobble * FLICKER, 1.0 + wobble * FLICKER, 1.0 + wobble * FLICKER, 1.0)
+	for entry in _lights:
+		var node: PointLight2D = entry.node
+		if not is_instance_valid(node):
+			continue
+		node.position = node.position.lerp(entry.at, minf(GLIDE_RATE * delta, 1.0))
+		var wobble := 0.0
+		if entry.source.get("flickers", false):
+			wobble = sin(_clock * FLICKER_RATE + entry.phase) * 0.55 + sin(_clock * FLICKER_RATE * 2.3 + 1.3 + entry.phase) * 0.45
+		var wanted: float = entry.energy * (1.0 + wobble * FLICKER)
+		node.energy = move_toward(node.energy, wanted, entry.energy / EASE_SECONDS * delta) if node.energy < wanted - entry.energy * FLICKER * 2.0 else wanted
+
+
+func _keep_the_grade_on_the_screen():
+	if _grade == null or not _grade.visible:
+		return
+	var from_screen := get_canvas_transform().affine_inverse()
+	_grade.global_position = from_screen * Vector2.ZERO
+	_grade.size = get_viewport_rect().size * from_screen.get_scale()

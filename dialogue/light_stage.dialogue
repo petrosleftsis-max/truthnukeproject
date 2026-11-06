@@ -1,0 +1,31 @@
+~ sundial
+Sundial: {{Campaign.clock_text()}} on day {{Campaign.day_number()}}. {{Campaign.date_text()}}.
+- Watch a whole day go round (twelve seconds)
+	do Campaign.watch_time_pass(24.0, 0, 12.0)
+- Watch eight hours go by (five seconds)
+	do Campaign.watch_time_pass(8.0)
+- Watch three days go by (nine seconds)
+	do Campaign.watch_time_pass(0.0, 3, 9.0)
+- Cut to a time of day
+	=> cut
+- Cut three days on
+	do Campaign.advance_clock(0.0, 3)
+- The night has no moon, or has one again
+	do Campaign.set_no_moon(not Campaign.map_no_moon)
+- The shade with a dithered edge, or not
+	do Campaign.set_dithered_light(not LightView.dithered)
+- Leave it
+=> END
+
+~ cut
+Sundial: {{Campaign.clock_text()}}. Which hour?
+- Noon
+	do Campaign.set_clock(12)
+- Dusk
+	do Campaign.set_clock(18, 30)
+- Night
+	do Campaign.set_clock(22)
+- Dawn
+	do Campaign.set_clock(6, 30)
+- Leave it
+=> END

@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://bmwjl8qdv8oq7"]
 
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/cling_skill.png" id="2_icon"]
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" uid="uid://do4kffl6hv73i" path="res://art/icons/cling_skill.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
 [ext_resource type="Resource" path="res://data/conditions/clinging.tres" id="4_cond"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="4_jbuwl"]
 
 [sub_resource type="Resource" id="Effect_0"]
 script = ExtResource("1_effect")
@@ -14,10 +15,10 @@ condition = ExtResource("4_cond")
 script = ExtResource("3_skill")
 name = "Cling"
 description = "An ally climbs as Cyrus does: walls, pillars and the floor above, for five of their turns."
-icon = ExtResource("2_icon")
-effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 max_range = 6
+icon = ExtResource("2_icon")
 targets_ally = true
 can_be_copied = false
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 deals_damage = false
 spell_slot_level = 2

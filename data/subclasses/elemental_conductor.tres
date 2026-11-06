@@ -47,6 +47,6 @@ conduit = true
 [resource]
 script = ExtResource("2_path")
 name = "Elemental Conductor"
-skills = Array[String](["storm_cloud"])
 description = "The overcharge. Prometheus pushes every spell past where it should stop: through deeper gates, from one enemy to the next, and once, twice over."
+skills = Array[String](["storm_cloud"])
 passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_2"), SubResource("Passive_3"), SubResource("Passive_4")])

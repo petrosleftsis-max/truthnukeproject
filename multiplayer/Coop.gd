@@ -527,6 +527,9 @@ func lets_through(event: InputEvent) -> bool:
 	elif MenuPause.is_held():
 		# On one screen a menu is whoever opened it's alone.
 		return false
+	# A right click on what a tether holds is for whenever (Combat "Letting go of a tether").
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and tether_under_pointer():
+		return true
 	return _only_looks(event)
 
 
@@ -539,6 +542,14 @@ const LOOKING: Array[StringName] = [&"pause", &"menus", &"journal", &"character_
 ## What the HUD has that anybody may click, in this group or under something in
 ## it: the portraits, the turn queue, the log.
 const OPEN_TO_ALL := &"open_to_all"
+
+
+## Whether a tether has hold of what the pointer is on, in a fight or on a map.
+func tether_under_pointer() -> bool:
+	for node in get_tree().get_nodes_in_group(&"tether_board"):
+		if node.tether_under_pointer():
+			return true
+	return false
 
 
 func _only_looks(event: InputEvent) -> bool:

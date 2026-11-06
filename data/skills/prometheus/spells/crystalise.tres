@@ -20,9 +20,9 @@ script = ExtResource("1_468qc")
 type = 34
 zone_for = 2
 zone_turns = 3
-zone_colour = Color(0.62, 0.72, 0.8, 0.35)
 zone_costly = true
 zone_cost_spares_fliers = true
+zone_colour = Color(0.62, 0.72, 0.8, 0.35)
 
 [resource]
 script = ExtResource("2_jk1kw")

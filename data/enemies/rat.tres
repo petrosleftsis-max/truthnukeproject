@@ -18,3 +18,5 @@ main_stat = 0
 sprite_frames = ExtResource("2_frames")
 skills = Array[String](["sass_club"])
 ai_readies = 2
+ai_pack = 2
+ai_fears = Array[int]([1])

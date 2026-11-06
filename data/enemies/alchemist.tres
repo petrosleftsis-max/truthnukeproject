@@ -26,3 +26,5 @@ skills = Array[String](["rapier", "run"])
 passives = Array[ExtResource("3_passive")]([ExtResource("4_bandolier")])
 ai_function = "ai_alchemist"
 pocket_size = 12
+ai_commands_tiles = 6
+ai_learns = true

@@ -26,3 +26,5 @@ passives = Array[ExtResource("1_passive")]([ExtResource("2_hemmed"), ExtResource
 leads = true
 leverage_clues = Array[String](["sellsword_contract"])
 resist_physical = 20
+ai_commands_tiles = 8
+ai_grudge = 0.7

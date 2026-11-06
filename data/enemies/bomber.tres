@@ -25,3 +25,4 @@ resist_lightning = -50
 resist_metal = -50
 resist_acid = -50
 ai_function = "ai_hit_and_explode"
+ai_smarts = 0

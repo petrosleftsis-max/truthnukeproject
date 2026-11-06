@@ -10,7 +10,7 @@ const TALK := "res://dialogue/stealth_stages.dialogue"
 const BALLOON := "res://ui/dialogue_balloon.tscn"
 const STAGES := ["res://maps/stealth_stages/stealth_1.tscn", "res://maps/stealth_stages/stealth_2.tscn", "res://maps/stealth_stages/stealth_3.tscn", "res://maps/stealth_stages/stealth_4.tscn",
 	"res://maps/stealth_stages/stealth_5.tscn", "res://maps/stealth_stages/stealth_6.tscn", "res://maps/stealth_stages/stealth_7.tscn",
-	"res://maps/stealth_stages/stealth_8.tscn"]
+	"res://maps/stealth_stages/stealth_8.tscn", "res://maps/stealth_stages/stealth_9.tscn"]
 
 var _log: FileAccess = null
 var _fail = 0
@@ -45,7 +45,7 @@ func settle(frames: int = 3):
 func run_test():
 	log_line("======== the title screen lists every stage ========")
 	var on_title: Array = MainMenu.STEALTH_STAGES.map(func(s): return s.map)
-	ok(on_title == STAGES, "all eight, in order", "%s" % [on_title])
+	ok(on_title == STAGES, "all nine, in order", "%s" % [on_title])
 	for stage in MainMenu.STEALTH_STAGES:
 		ok(ResourceLoader.exists(stage.map) and stage.name != "" and stage.description != "", "%s is there, and says what it is" % stage.name)
 	var listed: Array = load(MENU.replace(".tscn", ".gd")).stages().map(func(s): return s.map)
@@ -340,7 +340,8 @@ func check_stage(n: int, talk, script_text: String):
 	ok(bad.is_empty() and fight.spawns.size() > 1, "caught at the start, everybody in the fight is on floor", "%s" % [bad])
 
 	log_line("  -- what it is there to show")
-	ok(watch.hides_guards(), "guards are seen only when he could see them, so there is something to listen for")
+	# Stage 9 is there to look at the light: nobody is hidden from you but as the dark hides them.
+	ok(watch.hides_guards() == (n != 9), "guards are seen only when he could see them, so there is something to listen for")
 	var kinds := {}
 	for guard in watch.guards:
 		kinds[guard.kind] = guard

@@ -22,6 +22,7 @@ const TILESET := "res://maps/tilesets/terrain_tileset.tres"
 const GRID := "res://maps/grid_overlay.gd"
 const SPARKLE := "res://art/interactables/sparkle/sparkle_frames.tres"
 const TALK := "res://dialogue/stealth_stages.dialogue"
+const LIGHT_TALK := "res://dialogue/light_stage.dialogue"
 const ATLAS := "res://art/terrain/first_area_tiles.png"
 const OUT := "res://maps/stealth_stages/"
 
@@ -36,6 +37,7 @@ func _ready():
 	stage_supper()
 	stage_checkpoint()
 	stage_familiar()
+	stage_light()
 	print("Stealth stages built.")
 	get_tree().quit()
 
@@ -298,7 +300,198 @@ func objective(root: Node, called: String, kind: StealthObjective.Kind, descript
 	goal.owner = root
 
 
+func light_source(root: Node, tile: Vector2i, called: String, bright: float, dim: float, colour: Color, flickers: bool = true, opening: bool = false) -> LightSource:
+	var source := LightSource.new()
+	source.bright_tiles = bright
+	source.dim_tiles = dim
+	source.colour = colour
+	source.flickers = flickers
+	source.opening = opening
+	place(root, source, called, tile)
+	return source
+
+
+func ambient_area(root: Node, tile: Vector2i, called: String, size: Vector2i, ambient: int) -> AmbientArea:
+	var area := AmbientArea.new()
+	area.size_tiles = size
+	area.ambient = ambient
+	place(root, area, called, tile)
+	# Its corner is the corner of the tile, not the middle of it.
+	area.position = Vector2(tile) * Grid.TILE_SIZE
+	return area
+
+
+## A sign that says what something is and how to make one. Read as often as anybody likes.
+func light_sign(root: Node, called: String, tile: Vector2i, text: String) -> Node2D:
+	var node := Node2D.new()
+	node.set_script(load("res://exploration/ExamineInteractable.gd"))
+	node.set("text", text)
+	node.set("prompt", "Read")
+	node.set("repeatable", true)
+	node.set("interaction_radius", Grid.tiles(1.25))
+	node.set("sprite_frames", load(SPARKLE))
+	return place(root, node, called, tile)
+
+
 ## --- The stages ---
+
+
+## 9. Light (the designer, 2026-11-07: "Make a stage where I can see all the light capabilities and
+## feature"): nothing to solve, and nobody who minds being looked at. The yard goes by the sun, and a
+## sundial runs the clock; the hall has a roof and windows; the cellar is dark but for what is
+## brought into it. A fight down there is for what only happens in a fight.
+func stage_light():
+	var c := Carve.new(50, 30)
+	c.room(1, 8, 17, 22)            # the yard
+	c.room(18, 15, 18, 15)          # into the hall
+	c.room(19, 8, 31, 22)           # the hall
+	c.room(32, 15, 32, 15)          # down to the cellar
+	c.room(33, 4, 48, 26)           # the cellar
+	for pillar in [[6, 11, "b"], [12, 11, "b"], [6, 19, "b"], [12, 19, "b"],
+			[24, 12, "b"], [27, 12, "o"], [24, 18, "o"], [27, 18, "b"],
+			[37, 10, "b"], [41, 10, "o"], [45, 10, "b"], [37, 15, "o"], [41, 15, "b"], [45, 15, "o"], [37, 20, "b"], [41, 20, "o"], [45, 20, "b"]]:
+		c.put(pillar[0], pillar[1], pillar[2])
+	var terrain = make_terrain("stealth_9", c)
+	_light_the_stage(terrain)
+	var root = begin_stage(terrain, "Stage9Light")
+	entry(root, Vector2i(3, 15))
+	map_setup(root, ["alithia", "cyrus", "prometheus", "enfina"], [], 64)
+	var party_setup: Node = root.get_node("MapSetup")
+	party_setup.set("paths", {"alithia": "illusory_shepherd"})
+	party_setup.set("knows_every_spell", true)
+	var setup = stealth_setup(root, terrain, "A fight on the Light stage")
+	setup.guards_seen_only_in_sight = false
+	# The yard: the sun, and the clock.
+	var dial := Node2D.new()
+	dial.set_script(load("res://exploration/DialogueInteractable.gd"))
+	dial.set("dialogue", load(LIGHT_TALK))
+	dial.set("dialogue_title", "sundial")
+	dial.set("only_once", false)
+	dial.set("prompt", "Look at the sundial")
+	dial.set("interaction_radius", Grid.tiles(1.5))
+	dial.set("sprite_frames", load(SPARKLE))
+	place(root, dial, "Sundial", Vector2i(9, 15))
+	light_sign(root, "SignOutdoors", Vector2i(5, 9), "THE SUN. A map's MapSetup says what it is by itself: its Ambient (Outdoors, Interior, Underground) and, for Outdoors, its Time Of Day and No Moon. By day everything is Bright; at dusk and dawn Dim; at night Dim under a moon and Dark without one. The colour of the whole picture goes round with the clock: gold at dusk, blue at night, grey at dawn. Watch the shadows under the party lean as it does. The sundial runs the clock.")
+	light_sign(root, "SignLamp", Vector2i(13, 9), "A LAMP (a Lamp node on a watched map): it can be put out, with E beside it, and guards notice that. Its Light Tiles are how far it reaches. Best seen after dark: ask the sundial for night.")
+	lamp(root, Vector2i(14, 12), "YardLamp", 5.0)
+	light_sign(root, "SignColours", Vector2i(5, 21), "LIGHT SOURCES (a LightSource node): Bright Tiles and Dim Tiles, a Colour, Flickers or steady, and whether it is lit to begin with. Each is a real light with real shadows: these two, after dark, either side of a post. Walls and barrels stop them, because a tile's Blocks says so.")
+	# The hall: a roof, and windows in it.
+	light_sign(root, "SignRoof", Vector2i(20, 14), "A ROOF (an AmbientArea node): part of a map with an Ambient of its own. Its corner is where the node stands, and it reaches Size Tiles right and down. This one is Interior: Dim, whatever the hour, unless something lights it.")
+	light_sign(root, "SignWindows", Vector2i(21, 9), "WINDOWS (a LightSource with Opening ticked): it lets in only what the sun gives. All of it by day, only the Dim at dusk and dawn, nothing at night. Shafts of light slant in from it, leaning with the hour. Ask the sundial for a day going round from in here.")
+	light_sign(root, "SignFire", Vector2i(23, 16), "A FLAME: it flickers, embers go up from it, and dust hangs in other light. Stand the party round it and each figure's shadow points away from it. The barrels throw shadows across the floor, and any light eases on and off rather than snapping.")
+	# The cellar: dark, but for what is brought into it.
+	light_sign(root, "SignDark", Vector2i(34, 15), "THE DARK (an AmbientArea, or a whole map, set Underground). Colours drain away, fog drifts, and whoever stands in it has only a faint rim. Anybody in it is invisible to whoever cannot see in the dark, unless right beside them. Tab to Cyrus, who has Night Eyes: he sees the dark as a grey half-light, and his eyes glow.")
+	pickup(root, Vector2i(35, 17), "Lantern", "lantern", "stage9_lantern")
+	light_sign(root, "SignLantern", Vector2i(34, 18), "A LANTERN, on the floor here: whoever has one in their Baldric lights the way as they go, and is seen coming. It is no item to use in a fight, and it lights up a fight just the same.")
+	light_sign(root, "SignColour2", Vector2i(41, 5), "Two more colours among the pillars, to show how the shadows cross: one steady, one flickering.")
+	for point in [["round_a", Vector2i(35, 12)], ["round_b", Vector2i(47, 12)], ["round_c", Vector2i(47, 24)], ["round_d", Vector2i(35, 24)]]:
+		waypoint(root, point[0], point[1])
+	var torch = guard(root, "TorchBearer", "barbarian", Vector2i(35, 12), 0.0, ["round_a", "round_b", "round_c", "round_d"])
+	torch.display_name = "Torch Bearer"
+	torch.back_and_forth = false
+	torch.level = 64
+	torch.carries_light_tiles = 7.0
+	torch.minds_his_own_business = true
+	torch.can_be_taken_down = false
+	light_sign(root, "SignTorch", Vector2i(34, 11), "A GUARD WITH A TORCH (a Guard's Carries Light Tiles): it lights the ground round him as he walks, and the light glides after him. This one is set to Minds His Own Business, so he can be looked at; knock an ordinary one out and it goes out.")
+	var ward = guard(root, "Ward", "mimic", Vector2i(46, 25))
+	ward.kind = Guard.Kind.WARD
+	ward.display_name = "A Ward"
+	ward.can_be_taken_down = false
+	# Here to be looked at: alone, they would raise an alarm nobody came to.
+	ward.minds_his_own_business = true
+	var sensor = guard(root, "Sensor", "mimic", Vector2i(44, 25))
+	sensor.kind = Guard.Kind.SENSOR
+	sensor.display_name = "A Sensor"
+	sensor.sense_tiles = 0.5
+	sensor.can_be_taken_down = false
+	sensor.minds_his_own_business = true
+	var trap := MagicTrap.new()
+	trap.flag = "stage9_glyph"
+	place(root, trap, "Glyph", Vector2i(42, 25))
+	light_sign(root, "SignMagic", Vector2i(43, 23), "Alithia's DETECT MAGIC, from the panel (Spells): for five minutes every ward, magic sensor and magical trap on the map has a ring round it, wherever it is. Her ARCANE EYE, through the Gates of Mnemosyne, is an eye to steer that nothing notices. Mind the glyph: it fires.")
+	# The fight.
+	var fight_ground = make_terrain("stealth_9_fight", _light_fight_layout())
+	var fight_terrain := _light_fight_terrain(fight_ground)
+	var fight := EncounterDefinition.new()
+	fight.display_name = "A Fight in the Dark"
+	fight.terrain_scene = fight_terrain
+	fight.ambient = Light.Ambient.UNDERGROUND
+	fight.skip_deployment = true
+	var spawns: Array[SpawnDefinition] = []
+	var at := [Vector2i(3, 5), Vector2i(3, 7), Vector2i(4, 9), Vector2i(3, 11)]
+	var who := ["cyrus", "alithia", "prometheus", "enfina"]
+	for i in who.size():
+		var one := SpawnDefinition.new()
+		one.combatant_key = who[i]
+		one.position = at[i]
+		one.level = 64
+		spawns.append(one)
+	for foe in [["rat", Vector2i(15, 5)], ["rat", Vector2i(16, 6)], ["sorcerer", Vector2i(17, 9)], ["barbarian", Vector2i(15, 12)], ["brazier", Vector2i(10, 8)], ["powder_keg", Vector2i(13, 9)]]:
+		var one := SpawnDefinition.new()
+		one.combatant_key = foe[0]
+		one.side = 1
+		one.position = foe[1]
+		one.level = 30
+		spawns.append(one)
+	fight.spawns = spawns
+	fight.fighters.assign(who)
+	var fight_path := OUT + "stealth_9_fight.tres"
+	ResourceSaver.save(fight, fight_path)
+	var marker := EncounterInteractable.new()
+	marker.encounter = load(fight_path)
+	marker.trigger_id = ""
+	marker.set("prompt", "Start the fight in the dark")
+	marker.set("interaction_radius", Grid.tiles(1.5))
+	marker.set("sprite_frames", load(SPARKLE))
+	place(root, marker, "FightMarker", Vector2i(47, 5))
+	light_sign(root, "SignFight", Vector2i(46, 6), "A FIGHT, Underground, for what only happens in one. Fire and lightning light the way as they fly, and flare where they land. Somebody burning gives light, as does burning ground. Prometheus's Light Void and Alithia's Phantom Wall take it away: a Phantom Wall stops light as a wall does. His Illusory Dragon gives light, though it is not there. Break the brazier and watch its light ease out. Rats will not walk beside fire. Prometheus knows every spell here, and Alithia has the Illusory Shepherd's. Right click what a tether holds to end it.")
+	goal(root, Vector2i(2, 9), 9, "s9_goal")
+	finish_stage(root, OUT + "stealth_9.tscn")
+
+
+## What lights the stage, on its terrain: the map and a fight walked into from it are lit the same.
+func _light_the_stage(terrain_path: String):
+	var base: PackedScene = ResourceLoader.load(terrain_path, "", ResourceLoader.CACHE_MODE_REPLACE)
+	var root = base.instantiate()
+	var flame := Color(1.0, 0.74, 0.42)
+	light_source(root, Vector2i(3, 19), "RedLight", 1.5, 5.0, Color(1.0, 0.3, 0.25), true)
+	light_source(root, Vector2i(9, 19), "BlueLight", 1.5, 5.0, Color(0.35, 0.55, 1.0), false)
+	ambient_area(root, Vector2i(19, 7), "HallRoof", Vector2i(13, 17), Light.Ambient.INTERIOR)
+	light_source(root, Vector2i(23, 8), "WindowWest", 2.0, 5.0, Color(1.0, 0.95, 0.82), false, true)
+	light_source(root, Vector2i(28, 8), "WindowEast", 2.0, 5.0, Color(1.0, 0.95, 0.82), false, true)
+	light_source(root, Vector2i(25, 15), "HallFire", 2.0, 6.0, flame, true)
+	ambient_area(root, Vector2i(33, 3), "CellarRock", Vector2i(17, 25), Light.Ambient.UNDERGROUND)
+	light_source(root, Vector2i(39, 6), "GreenLight", 1.5, 4.5, Color(0.35, 1.0, 0.5), false)
+	light_source(root, Vector2i(43, 6), "VioletLight", 1.5, 4.5, Color(0.72, 0.42, 1.0), true)
+	_save(root, terrain_path)
+
+
+func _light_fight_layout() -> Carve:
+	var c := Carve.new(22, 16)
+	c.room(1, 1, 20, 14)
+	for pillar in [[7, 4, "b"], [7, 11, "b"], [12, 3, "o"], [12, 12, "o"]]:
+		c.put(pillar[0], pillar[1], pillar[2])
+	return c
+
+
+## The fight's ground, with something lighting it. Saved over the bare terrain.
+func _light_fight_terrain(bare_path: String) -> PackedScene:
+	var base: PackedScene = ResourceLoader.load(bare_path, "", ResourceLoader.CACHE_MODE_REPLACE)
+	var root = base.instantiate()
+	var flame := LightSource.new()
+	flame.bright_tiles = 2.0
+	flame.dim_tiles = 5.0
+	flame.colour = Color(1.0, 0.74, 0.42)
+	place(root, flame, "FightFlame", Vector2i(5, 8))
+	var cold := LightSource.new()
+	cold.bright_tiles = 1.5
+	cold.dim_tiles = 4.0
+	cold.colour = Color(0.45, 0.65, 1.0)
+	cold.flickers = false
+	place(root, cold, "ColdLight", Vector2i(18, 3))
+	_save(root, bare_path)
+	return ResourceLoader.load(bare_path, "", ResourceLoader.CACHE_MODE_REPLACE)
 
 
 ## 1. The tools: pebbles to throw, hiding spots, a guard with the keys in his

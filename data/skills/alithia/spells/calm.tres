@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/calm_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="4_condition_script"]
+[ext_resource type="Resource" path="res://data/conditions/calmed.tres" id="5_calmed"]
+[ext_resource type="Resource" path="res://data/conditions/fear.tres" id="6_fear"]
+[ext_resource type="Resource" path="res://data/conditions/confused.tres" id="7_confused"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("5_calmed")
+held_by_tether = true
+lifts = Array[ExtResource("4_condition_script")]([ExtResource("6_fear"), ExtResource("7_confused")])
+lands_on = 1
+
+[sub_resource type="Resource" id="Effect_1"]
+script = ExtResource("1_effect")
+type = 4
+dispel_scope = 1
+lands_on = 2
+
+[resource]
+script = ExtResource("3_skill")
+name = "Calm"
+description = "An area: fear and confusion come off her side, and cannot come back while she holds the tether. Whatever the other side there has worked itself up with comes off them."
+min_range = 0
+max_range = 8
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0"), SubResource("Effect_1")])
+deals_damage = false
+affects_both_sides = true
+impact_look = 13
+spell_slot_level = 2
+tethered = true
+tether_strength = 200
+aoe_radius = 3

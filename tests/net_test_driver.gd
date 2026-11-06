@@ -1296,6 +1296,8 @@ func hosts_fight():
 	ok(not shown, "a question for the joiner's player is never put up here")
 	ok(not said.is_empty() and said[0] == true, "  and the answer given there is the one taken here", "%s" % [said])
 
+	_a_tether_to_hold(combat)
+	_ask_about_the_tether(combat)
 	combat.finish_deployment()
 	ok(not combat.deployment_active, "the host places the party and begins")
 	var turns := await play_my_turns(combat)
@@ -1336,6 +1338,7 @@ func joiners_fight():
 	for comb in combat.combatants:
 		comb["accuracy"] = comb.get("accuracy", 0) - UNSURE_AIM
 	GameSettings._enemy_speed = GameSettings.ENEMY_SPEEDS.size() - 2
+	_a_tether_to_hold(combat)
 	combat.finish_deployment()
 	ok(combat.deployment_active, "  and its own Begin does not begin it")
 	say("in the fight")
@@ -1362,6 +1365,48 @@ func joiners_fight():
 
 ## Whether this machine's player has tried lying down in the fight (move_on_the_board).
 var _tried_lying_down := false
+## Whether the joiner's player has held a tether, to be asked to end it.
+var _tethered_once := false
+
+
+## Enfina can hold something on a tether in this fight: the same on both machines.
+func _a_tether_to_hold(combat: Combat):
+	var enfina := party_member(combat, "enfina")
+	enfina.skill_list.append("light_void")
+	for gate in range(1, enfina.spell_slots.size()):
+		enfina.spell_slots[gate] = 2
+		enfina.max_spell_slots[gate] = 2
+
+
+## The host's player, once the joiner's holds a tether: asks them to end it, on their own screen.
+func _ask_about_the_tether(combat: Combat):
+	if not await until(func(): return combat.combat_over or heard_after("tether up:") != "", 300.0) or combat.combat_over:
+		return
+	var holder := combat._combatant_by_id(int(heard_after("tether up:")))
+	var mine: int = Coop.local_players()[0]
+	ok(combat.holds_tether(holder) and combat._has_to_ask(holder, mine), "the joiner's player holds a tether: the host's has to ask")
+	combat.ask_to_let_go(holder, mine)
+	ok(combat.holds_tether(holder), "  and until they say, it holds")
+	ok(await until(func(): return not combat.holds_tether(holder), 30.0), "  they agree: it ends here too, as one of their moves")
+
+
+## The joiner's player puts something on a tether, answers the host's asking to end it, and sees it go.
+func _hold_and_be_asked(combat: Combat, comb: Dictionary, foe: Dictionary):
+	var controller: CController = combat.controller
+	var aim: Vector2i = combat.nearest_tile_of(foe, comb.position)
+	var skill: SkillDefinition = SkillDatabase.skills.light_void
+	if combat.distance_to(comb, aim) > combat.effective_max_range(comb, skill) or combat.refusal_for(comb, skill, aim) != "":
+		return
+	_tethered_once = true
+	controller.set_selected_skill("light_void")
+	await controller.confirm_skill_target(aim)
+	ok(combat.holds_tether(comb), "%s holds Light Void on a tether" % comb.name)
+	say("tether up:%d" % comb.id)
+	var asked := await until(func(): return get_tree().root.get_node_or_null("TetherRequest") != null, 20.0)
+	ok(asked, "  the host's player asks to end it: the question comes up here")
+	if asked:
+		get_tree().root.get_node("TetherRequest").answer(true)
+	ok(await until(func(): return not combat.holds_tether(comb), 15.0), "  agreed, it ends")
 
 
 ## Plays this machine's player's turns in `combat` - through the board, as a
@@ -1412,7 +1457,10 @@ func move_on_the_board(combat: Combat, comb: Dictionary):
 		controller.move_player()
 		await until(func(): return controller.is_idle() or not is_same(combat.get_current_combatant(), comb), 15.0)
 	foe = nearest_foe(combat, comb)
-	if is_same(combat.get_current_combatant(), comb) and not foe.is_empty():
+	if Net.follows() and not _tethered_once and comb.get("combatant_key", "") == "enfina" and is_same(combat.get_current_combatant(), comb) and not foe.is_empty():
+		await _hold_and_be_asked(combat, comb, foe)
+	foe = nearest_foe(combat, comb)
+	if is_same(combat.get_current_combatant(), comb) and not foe.is_empty() and not comb.get("skill_used_this_turn", false):
 		var key := attack_for(combat, comb, foe)
 		if key != "":
 			controller.set_selected_skill(key)

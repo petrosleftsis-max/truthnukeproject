@@ -16,4 +16,5 @@ movement = 7
 initiative = 3
 main_stat = 2
 sprite_frames = ExtResource("2_frames")
-skills = Array[String](["fire_burst", "sass_club"])
+skills = Array[String](["fire_burst", "sass_club", "steal"])
+ai_greedy = true

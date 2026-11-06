@@ -329,6 +329,16 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
 - **Local co-op, two players**: whom each steers is saved; a group each, one camera, a 10-tile leash (PROPOSAL); turns, menus and conversations go to whoever's they are; a player left steering nobody is offered the party to share out. **Pings** for the other player.
 - **Approved, not built yet** (docs/multiplayer_plan.md): download only (no browser build); a seeded fight RNG so a networked fight replays alike on both machines; LAN; online by ENet + UPnP with a virtual LAN app as the fallback; WebRTC on desktop; Steam once the game is there.
 
+## Light, the enemy's mind and moves on a map (2026-11-06 and 07; implemented)
+
+- **Light:** every tile is Bright, Dim or Dark, from the map's ambient light, the hour, and whatever lights it. Walls stop light. Dark hides anybody from whoever cannot see in it, unless they are right beside them. Dim lets somebody who stealths hide without cover.
+- **The clock:** a real clock and calendar. Story scenes can cut forward, or show the time going by. A long rest ends at the next dawn, and a short rest takes an hour (the hour is a proposal).
+- **Spells have no levels:** a spell comes when its gate opens.
+- **Damaging moves on a map are aimed.** A hit starts the fight, and everybody hit takes it before anybody's turn. A wall takes no fight, though its noise may bring guards. A trap that bursts does the same as it goes off.
+- **A tether can be ended at any point,** for nothing, with a right click on what it holds. Another player's only if they agree.
+- **The enemy's mind:** five levels of smarts per creature, Instinct, Trained, Cunning, Mastermind and All Knowing, which also reads the party's kits, prepared spells and castings left. Nobody has All Knowing yet. Four dials per creature, and ways of its own: commanders, grudges, hunters, bodyguards, packs, fears, learning, greed, moods by a boss's phase.
+- **Everybody's numbers in all of this are proposals,** for the designer to test by feel.
+
 ## Known near-twins among the spells
 
 Spells that are close to copies of each other. They are candidates to make more distinct, or to keep on purpose:

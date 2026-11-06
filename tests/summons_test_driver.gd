@@ -136,13 +136,13 @@ func tether_and_command():
 	var faces: Array = ui._queue_faces_for(prometheus)
 	ok(not faces.is_empty() and faces[0].get_node_or_null("Summons/Summon%d" % hound.id) != null,
 		"and in the corner of his face in the turn queue")
-	ok(Combat.holds_tether(prometheus) and is_equal_approx(prometheus.tether.bar, 100.0), "his tether holds it: a full bar")
+	ok(Combat.holds_tether(prometheus) and is_equal_approx(prometheus.tether.bar, float(hound_spell.tether_strength)), "his tether holds it: a full bar")
 	ok(hound.get("tether_of", -1) == prometheus.tether.id, "and the hound is the tether's")
 	ok(combat.secondary_skills_of(prometheus).has("command"), "Command on his secondary panel, with a summon standing")
 	var most: int = combat.get_effective_stat(prometheus, "max_hp")
 	combat.lose_hp(prometheus, most / 4)
 	var after_hit: float = prometheus.tether.bar
-	ok(absf(after_hit - (100.0 - 25.0 * hound_spell.tether_per_damage)) < 1.5, "a quarter of his health lost: a quarter of the bar, times its weight",
+	ok(absf(after_hit - (float(hound_spell.tether_strength) - 25.0 * hound_spell.tether_per_damage)) < 1.5, "a quarter of his health lost: a quarter of the bar, times its weight",
 		"%.1f" % after_hit)
 	combat._tether_turn(prometheus)
 	ok(absf(prometheus.tether.bar - (after_hit - hound_spell.tether_per_turn)) < 0.01, "a turn of his: Tether Per Turn more",

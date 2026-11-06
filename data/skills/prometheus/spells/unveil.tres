@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://sfbm5y7odq76"]
 
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/unveil_skill.png" id="2_icon"]
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" uid="uid://bskv4cx4o61ed" path="res://art/icons/unveil_skill.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="3_gm2xu"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
 
 [sub_resource type="Resource" id="Effect_0"]
 script = ExtResource("1_effect")
@@ -12,10 +13,10 @@ type = 37
 script = ExtResource("3_skill")
 name = "Unveil"
 description = "A flare only the unseen flinch from. Every enemy there who is invisible or hidden is seen."
-icon = ExtResource("2_icon")
-effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 max_range = 10
+icon = ExtResource("2_icon")
 can_be_copied = false
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 deals_damage = false
 impact_look = 29
 spell_slot_level = 1

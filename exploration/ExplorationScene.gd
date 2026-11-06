@@ -73,6 +73,9 @@ func _ready():
 		pass
 	elif setup != null and setup.is_set():
 		Campaign.set_party(setup.members, setup.level)
+		for key in setup.paths:
+			Campaign.choose_subclass(key, setup.paths[key])
+		Campaign.knows_every_spell_here = setup.knows_every_spell
 	else:
 		Campaign.seed_party(starting_party)
 	# Back from a fight on this map, the party walks in with what it left with.
@@ -256,7 +259,8 @@ func _begin_light():
 	Campaign.map_no_moon = setup != null and setup.no_moon
 	if setup != null and setup.time_of_day >= 0 and not Net.follows():
 		Campaign.set_time_of_day(setup.time_of_day)
-	CombatantSprite.set_shadows(Light.shadow_of(Campaign.map_ambient, Campaign.time_of_day))
+	CombatantSprite.light_points = []
+	CombatantSprite.set_shadows(Light.shadow_at(Campaign.map_ambient, Campaign.minute_of_day()))
 	if _tile_map == null:
 		return
 	_light_sight = null
@@ -264,17 +268,23 @@ func _begin_light():
 		light_view = LightView.new()
 		_tile_map.add_child(light_view)
 		light_view.start(light, _tile_map, _tile_map.get_used_rect())
-		light_view.set_tone(Light.tone(Campaign.map_ambient, Campaign.time_of_day), true)
+		light_view.show_hour(Campaign.map_ambient, Campaign.minute_of_day(), true)
 	if not Campaign.time_of_day_changed.is_connected(_hour_changed):
 		Campaign.time_of_day_changed.connect(_hour_changed)
+	if not Campaign.clock_moved.is_connected(_clock_moved):
+		Campaign.clock_moved.connect(_clock_moved)
 	relight_map()
 
 
+## The clock has moved on: how it looks moves with it. What is lit only changes with the part of the day.
+func _clock_moved():
+	CombatantSprite.set_shadows(Light.shadow_at(Campaign.map_ambient, Campaign.minute_of_day()))
+	if is_inside_tree() and light_view != null:
+		light_view.show_hour(Campaign.map_ambient, Campaign.minute_of_day(), true)
+
+
 func _hour_changed():
-	CombatantSprite.set_shadows(Light.shadow_of(Campaign.map_ambient, Campaign.time_of_day))
 	if is_inside_tree() and _tile_map != null:
-		if light_view != null:
-			light_view.set_tone(Light.tone(Campaign.map_ambient, Campaign.time_of_day))
 		relight_map()
 		if stealth != null and is_instance_valid(stealth):
 			stealth.lights_changed()
@@ -339,11 +349,9 @@ func _lanterns_lit() -> Array:
 ## figures are drawn as lit as where they stand; whoever leads sees as they see.
 func _light_goes_on(delta: float):
 	var setup := _map_setup()
+	# Each part of the day takes Seconds Per Time Of Day, however long it is by the clock.
 	if setup != null and setup.seconds_per_time_of_day > 0.0 and not Net.follows() and not is_holding():
-		_hour_clock += delta
-		if _hour_clock >= setup.seconds_per_time_of_day:
-			_hour_clock = 0.0
-			Campaign.pass_time()
+		Campaign.tick_clock(float(Light.hour_length(Campaign.time_of_day)) * delta / setup.seconds_per_time_of_day)
 	if not light.varies:
 		return
 	for key in _lantern_tiles:
@@ -357,7 +365,15 @@ func _light_goes_on(delta: float):
 		stealth.lights_changed()
 	for group in all_groups():
 		for sprite in group._members():
-			sprite.set_light(Light.FIGURE_TINTS[light.level_at(_tile_map.local_to_map(_tile_map.to_local(sprite.global_position)))])
+			var level := light.level_at(_tile_map.local_to_map(_tile_map.to_local(sprite.global_position)))
+			sprite.set_light(Light.FIGURE_TINTS[level])
+			sprite.set_in_the_dark(level == Light.Level.DARK, Campaign.sees_in_darkness(sprite.get_meta("combatant_key", "")))
+	if stealth != null and is_instance_valid(stealth):
+		for guard in stealth.guards:
+			if is_instance_valid(guard) and guard.sprite != null and is_instance_valid(guard.sprite):
+				var level := light.level_at(_tile_map.local_to_map(_tile_map.to_local(guard.global_position)))
+				guard.sprite.set_light(Light.FIGURE_TINTS[level])
+				guard.sprite.set_in_the_dark(level == Light.Level.DARK, false)
 	if light_view != null:
 		light_view.night_eyes = Campaign.sees_in_darkness(Campaign.leader())
 
@@ -975,7 +991,7 @@ func begin_stealth():
 ## Whether something else has the party held right now - a conversation, a
 ## menu. The guards stand still for it too: nobody is caught mid-sentence.
 func is_holding() -> bool:
-	if _blocking_interaction:
+	if _blocking_interaction or Campaign.time_passing:
 		return true
 	for group in all_groups():
 		if group.frozen:
@@ -1897,6 +1913,94 @@ const WALL_NOISE_TILES := 8.0
 ## Off in tests, which want to see the fight set up without the scene changing
 ## under them (as StealthWatch.leave_for_battle).
 var leave_for_battle := true
+## The move being aimed (MapAim), or null.
+var map_aim: MapAim = null
+
+
+## `key` takes up `move` to aim it. True: nothing is spent until it goes.
+func take_aim(key: String, move: String) -> bool:
+	put_aim_away()
+	map_aim = MapAim.new()
+	map_aim.scene = self
+	map_aim.key = key
+	map_aim.move = move
+	add_child(map_aim)
+	return true
+
+
+func put_aim_away():
+	if map_aim != null and is_instance_valid(map_aim):
+		map_aim.queue_free()
+	map_aim = null
+
+
+## What says whether a tile stops sight, here.
+func map_sight() -> StealthSight:
+	if stealth != null and is_instance_valid(stealth) and stealth.sight != null:
+		return stealth.sight
+	if _light_sight == null:
+		_light_sight = StealthSight.new(_tile_map)
+	return _light_sight
+
+
+## Every placed fight still to be had on this map.
+func placed_fights() -> Array:
+	return _interactables.filter(func(spot): return spot is EncounterInteractable and is_instance_valid(spot) \
+		and spot.encounter != null and spot.visible and spot.is_available())
+
+
+## The placed fight whose marker stands on one of `tiles`, or null.
+func placed_fight_on(tiles: Array) -> EncounterInteractable:
+	if _tile_map == null:
+		return null
+	for spot in placed_fights():
+		if _tile_map.local_to_map(_tile_map.to_local(spot.global_position)) in tiles:
+			return spot
+	return null
+
+
+## The standing walls on `tiles`.
+func walls_on(tiles: Array) -> Array:
+	if _tile_map == null:
+		return []
+	return _walls.filter(func(wall): return is_instance_valid(wall) and not wall.broken \
+		and _tile_map.local_to_map(_tile_map.to_local(wall.global_position)) in tiles)
+
+
+## Something going off on `tiles`, for a moment: a placeholder with no say in anything.
+func show_burst(tiles: Array, colour: Color):
+	if _tile_map == null or not LightView.shown():
+		return
+	var burst := _Burst.new()
+	burst.colour = colour
+	for tile in tiles:
+		burst.spots.append(_tile_map.to_global(_tile_map.map_to_local(tile)))
+	add_child(burst)
+
+
+class _Burst extends Node2D:
+	const SECONDS := 0.4
+	var spots: Array = []
+	var colour := Color.WHITE
+	var _left := SECONDS
+
+	func _ready():
+		z_as_relative = false
+		z_index = ExplorationParty.PARTY_Z_TOP
+
+	func _process(delta):
+		_left -= delta
+		queue_redraw()
+		if _left <= 0.0:
+			queue_free()
+
+	func _draw():
+		var size := float(Grid.TILE_SIZE)
+		var strength := clampf(_left / SECONDS, 0.0, 1.0)
+		for spot in spots:
+			var middle := to_local(spot)
+			var side := size * (1.0 + 0.2 * (1.0 - strength))
+			draw_rect(Rect2(middle - Vector2(side, side) / 2.0, Vector2(side, side)), Color(colour, 0.55 * strength))
 
 
 ## The placed fight nearest the leader within `reach` tiles (the fight's count),

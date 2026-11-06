@@ -28,7 +28,7 @@ there, and Cover Leap gone. Steps 4 and 5 wait on the designer.
   designer as they/them.
 - Commit and push at the end of every piece of work. Kill processes by pid.
   Never shut down or restart the computer.
-- Tests: `tests/run.sh` (all 155 suites) or `tests/run.sh outside familiar`.
+- Tests: `tests/run.sh` (all 160 suites) or `tests/run.sh outside familiar`.
   In the cloud, five suites fail on untouched code too, for environment
   reasons: audio, encmusic (the music `.wav` files are not in git), gear,
   editor, sweep. Locally, with the music present, audio and encmusic may pass.
@@ -91,6 +91,22 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's message of 2026-11-07** (ledger rows of that date; CLAUDE.md "Aimed on a map", "Letting go of a
+  tether", "Ways of its own", "All Knowing", "Light", "The clock and the calendar"; `docs/light_on_maps.md`;
+  suites `aimed`, `letgo`, `ways`, `newspells`, `clock`; stage 9):
+  - Damaging moves and traps on a map are aimed (MapAim). A hit starts the fight and whoever it hit takes it before
+    anybody's turn. A wall takes no fight. The Great Snare is aimed, and a trap that bursts starts a fight.
+  - A right click on what a tether holds ends it, at any point. Another player's needs them to agree.
+  - A fifth level of smarts, All Knowing, reads the party's kits and prepared spells. Nobody has it yet.
+  - Commanders, grudges, hunters, bodyguards, packs, fears, learning, greed, moods by phase, per creature.
+  - Alithia: Sleep, Calm, Suggestion, Detect Magic, Arcane Eye. Prometheus can learn Mesmerise.
+  - All the light ideas, projectiles giving light, illusions stopping or giving light, a clock and a calendar, time
+    seen going by, and a stage to look at all of it.
+  - Phantom Wall is placed by two points, along eight directions, up to its length of five, and is drawn along
+    the line it was placed on, a diagonal corner to corner.
+  - A fight with nobody in it no longer starts: a ward that is sure, with nobody left who would fight, raises the
+    alert once instead.
+  - Going without tiles: three sizes of it in `docs/proposals_2026-11-07.md` section 13. Nothing built.
 - **The designer's message of 2026-11-06** (ledger rows of that date; CLAUDE.md "Illusions", "The AI's mind",
   "Light", "Sounds", "Spells have no levels"; suites `illusions`, `aimind`, `light`, `audio`):
   - Sounds: all of `docs/sound_plan.md`, placed as they are and kept off GitHub.
@@ -397,11 +413,10 @@ holds the game for both).
 9. **Sounds:** the designer's "sword" sound goes on Sweep Strike, Chain Hook and Disarm when it comes.
    Not placed, no answer yet: `frog`, `train_passby`, `funny_boing_1` and `_2`. No ambience slot yet.
 
-10. **Waiting on the designer's choices, 2026-11-06:** which conditions Alithia's growing immunity passive
-   covers and at which levels (the switch is there: a passive's Immune To Conditions and Required Level;
-   they asked to be reminded of seven conditions first); whether Phantom Noise is strong enough for Iris;
-   who gets which enchantment and divination spell from the table; which lighting look to build; every
-   illusion's and every AI dial's number, to test by feel.
+10. **Waiting on the designer's choices, 2026-11-07:** `docs/proposals_2026-11-07.md`: what to do with Fallen Friend;
+   the immunity passive's ladder (Hesitating, Deceived, Recanted and Accused are out, the switch is there); who
+   is All Knowing. Whether Phantom Noise is strong enough for Iris. Every illusion's and every AI dial's number,
+   to test by feel. The Great Snare's x1.2 and hold. Which creature has which way of its own.
 
 
 ## Good to know

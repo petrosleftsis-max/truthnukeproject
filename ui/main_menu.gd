@@ -131,6 +131,11 @@ const STEALTH_STAGES := [
 		"map": "res://maps/stealth_stages/stealth_8.tscn",
 		"description": "Alithia's familiar (G) slips through grates nobody else fits through - scout the archive from the crawlspace, and mind the arcane ward, which feels magic through walls. Tab swaps back to the party, E sends it to her shoulder. Break the cracked wall with a spell or Cyrus's bomb - loudly. A glyph guards the archive door: let Prometheus learn InstaHack from his book first.",
 	},
+	{
+		"name": "Light",
+		"map": "res://maps/stealth_stages/stealth_9.tscn",
+		"description": "Not a puzzle: everything light can do, to walk round and look at. A sundial runs the clock and the calendar, signs say what each thing is and how it is placed, and there is a fight in the dark to try projectiles, fire, a Phantom Wall and the rest in.",
+	},
 ]
 ## The panel a stage's way out comes back to - see StealthGoal.ends_at_menu.
 const STEALTH_PANEL := "stealth"

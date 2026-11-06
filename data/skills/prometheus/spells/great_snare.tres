@@ -3,20 +3,24 @@
 [ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
 [ext_resource type="Texture2D" path="res://art/icons/great_snare_skill.png" id="2_icon"]
 [ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/snared.tres" id="4_cond"]
 
 [sub_resource type="Resource" id="Effect_0"]
 script = ExtResource("1_effect")
 type = 32
+trap_holds_with = ExtResource("4_cond")
+trap_burst_modifier = 1.2
 trap_burst_radius = 3
 
 [resource]
 script = ExtResource("3_skill")
 name = "Great Snare"
-description = "Only out of a fight. A great magical trap on the ground where he stands: the first guard onto it sets it off, and everybody within three tiles of it is down. Not a sound as it is laid; everybody hears it go."
+description = "Only out of a fight. A great magical trap wherever he aims it, within six tiles. The first guard onto it, or standing there, sets it off: a fight starts, and before anybody's turn it hits everybody within three tiles of it for x1.2, and holds the one who stepped on it fast. Not a sound as it is laid; everybody hears it go."
+max_range = 6
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
-max_range = 0
 can_be_copied = false
+ability_modifier = 1.2
 deals_damage = false
 spell_slot_level = 3
 never_in_a_fight = true

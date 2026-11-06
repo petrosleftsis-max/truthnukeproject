@@ -43,7 +43,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 155 suites and takes a while. Each one boots the real game
+A full run is 160 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one. A second harness can run beside a
@@ -277,6 +277,13 @@ shoves needs an entry through `_foresee_one`. `shoveaim` covers it.
   asks the caster as it lands, in `_use_skill` and `_land_reaction`, through
   `reaction_prompt.pick`; the status entry carries `order` and `order_by`; `_advance_turn`
   plays that turn by `_obey_order` and ends it, either side, like Confused. Compel.
+- **Letting go of a tether** (Combat "Letting go of a tether"; `letgo`; the designer, 2026-11-07): a right click on
+  what it holds (`tethers_at`; CController, whoever's turn it is, `Coop.tether_under_pointer` letting it past the gate)
+  opens `TetherChoice`, which asks if they are sure. Another player's goes to `TetherRequest`, on their machine
+  (`Net.ask_to_let_go`). Then `let_go_of_tether`: due on both machines (`_let_goes_due`, `Net.let_go_due`), and
+  it goes while the fight stands waiting for a player, as a "let_go" fight move from that player's machine
+  (`_let_go_if_it_can`), or with nobody else playing as the next turn begins (`_let_go_as_a_turn_begins`, a move
+  marked so). On a map: `StealthWatch.offer_letting_go`, `tie_outside`'s `where`, `let_go_outside`, "tethers" in `net_state`.
 - **Tethers**: `EffectDefinition.held_by_tether` stores `HELD_BY_TETHER` instead of a count;
   a tether holding nothing lets go (`_release_idle_tethers`, at a turn's edges, on a hurt and
   when tied). A zone can be what it holds (`zone.tether_of`, `_zones_now`). Somebody knocked
@@ -324,7 +331,15 @@ shoves needs an entry through `_foresee_one`. `shoveaim` covers it.
 All on the Illusory Shepherd's path; numbers PROPOSAL. Phantom Noise: `drawn_to_aim` (`_noise_they_heard`,
 `_go_and_look`, from `_advance_turn` after a terror's run); on a map a Lure with `lure_tiles`. Phantom Wall:
 `summon_across` (`_summon_all`, `summon(..., only_there)`), a `wall` object with `illusion`: a wall to the
-believer's sight only, no wall to aim at, no light stopped. Phantom Company: `summon_count`, `summon_as_images`,
+believer's sight only, no wall to aim at, no light stopped unless `illusion_stops_light`. It is placed by two
+points: `CController.aimed_twice` is true for it, the first click is where it starts, and the second, snapped
+to the nearest of eight directions and held to `Combat.wall_length` (`2 * summon_across + 1`), is where it ends
+(`wall_end_for`, `wall_ends_from`, `aiming_a_walls_end`, `wall_end_at`). `wall_line` fills the corners of a
+diagonal, since walking and sight cut them, and those fillers don't count towards the length. The end goes
+as the move's destination (`_wall_ends_at`); with no end, `wall_tiles` is the old "across" for the AI or a
+script. Each piece is drawn along the wall (`_lay_wall_piece` -> `CombatantSprite.lay_along`): its picture turned
+to the line and, on a diagonal, stretched corner to corner, so the pieces join; a filler draws nothing and still
+blocks, and the tile marks show which tiles it takes. `_draw_wall_to_be` shows the same line while aiming. Phantom Company: `summon_count`, `summon_as_images`,
 `summon_shakes`. Seeming: `unnoticed_until_acting`: `until_acting`, `looks_like`, `_gives_themselves_away` in
 `_use_skill` (`was_unnoticed`); on a map `StealthWatch "Seeming"`, `SEEMING` as what is worn (`_worn_item`).
 Fallen Friend: condition `looks_dead` held by a tether (`_begin_looking_dead`, `step_gives_away`,
@@ -348,16 +363,50 @@ A plan: gates and `_ai_shove_worth` in `ai_plan_attack`. First things first: `_a
 A healer: `_ai_patient`, `_ai_most_afflicted`, `_ai_dispel_a_zone`. Nothing here reads a clock or rolls, so a
 replayed fight agrees. `EncounterDefinition.ai_leaves_hazards` is the fight's own switch.
 
+**Ways of its own** (Combat "Ways of its own"; `ways`; the designer, 2026-11-07). Switches on the creature's AI Mind
+group, all per creature and PROPOSAL as to who has what: `ai_commands_tiles` (`_ai_take_orders`, as each begins to
+think: a level higher near a commander awake, up to Mastermind), `ai_grudge` (`hurt_by`, from `lose_hp`), `ai_hunter`
+(`_ai_pick_a_mark`, `_ai_mark_in_sight`, read by `ai_worth_table` and `_ai_most_wanted`), `ai_guards` and
+`ai_guards_within` (`_ai_ward_of`; `_ai_tile_worth`; `_bodyguards_step_in` in `_use_skill`), `ai_pack`
+(`_ai_holds_back`), `ai_fears` (`_ai_feared_tiles`, refused through `false_ground_for`), `ai_learns` (`_they_learn_from`
+in `_shatter`; `_seen_through` by side, read by `believes_illusion`, `hidden_from`, `ai_worth_table`, False Ground),
+`ai_greedy` (`_ai_greed_for`; `steal` sets `fleeing`; it needs a Steal in its skills). `_ai_ways_of_its_own` is first in
+`_ai_mind_takes_over`. A mood is `BossPhase.ai_aggression` and the rest, below zero keeping it. **All Knowing**
+(`AiSmarts.ALL_KNOWING`, `AiKnows.KITS`): `_ai_read_kit` reads each foe's skill list, so only spells prepared, and
+`can_afford_skill`, so only castings left, into `_ai_mind.kits`; used by `ai_target_value` (`_ai_kit_denied_by`,
+`_ai_weigh_their_kit`), `_ai_read_the_field` (reach and how much it would hurt, spreading before an area is seen,
+Ready's area as a telegraph) and `ai_plan_attack` (gates dearer with a counter ready).
+
 **Light** (`combat/Light.gd`, `LightMap.gd`, `LightView.gd`; `exploration/LightSource.gd`, `AmbientArea.gd`; Combat
 "Light", ExplorationScene "Light"; `light`; the designer, 2026-11-06). Levels DARK, DIM, BRIGHT per tile in a
 `LightMap`; `Light.gather` reads sources, `relight` from `sync_zones`. A Dark tile is the pseudo-zone `MAP_DARK`:
 anybody on it `lost_in_the_dark`, seen only by `sees_in_darkness` or within `SEEN_IN_THE_DARK_TILES` (option A).
 `hidden_from` is what to ask with somebody looking. Dim: `_hides_in_dim`, `dim_sight_tiles`. Time of day
 (`Campaign.time_of_day`, `Light.Hour`, `set_time_of_day`, `pass_time`) changes during play on a map
-(`_light_goes_on`). `LightView` is view only, a shade and a glow sprite at a pixel a tile; nothing it does
-rolls or decides. `StealthWatch` reads the same map (`lights_for_the_map`), a guard's `carries_light_tiles` among
-them (`carried_lights_moved`). A figure's shadow is `CombatantSprite._Shadow`, as `Light.shadow_of` says, set for
-all at once by `set_shadows`; a picture at `art/fx/figure_shadow.png` takes its place.
+(`_light_goes_on`). `StealthWatch` reads the same map (`lights_for_the_map`), a guard's `carries_light_tiles` among
+them (`carried_lights_moved`). An illusion can have a say: `BattleObjectDefinition.illusion_stops_light` (Phantom
+Wall), and any creature's `light_tiles` and `light_colour`, real or not. `docs/light_on_maps.md` says how to put light on
+a map, and stage 9 shows all of it (`tools/build_stealth_stages.gd` `stage_light`, `dialogue/light_stage.dialogue`).
+
+**How light looks** (`LightView`; `clock`; the designer, 2026-11-07). View only: nothing in it rolls or decides, and
+a test wanting it sets `plays_headless`. A shade at a pixel a tile, under the figures (`SHADE_SHADER`: drains colour,
+crossfades over `EASE_SECONDS`, dithers if `dithered`). Fog over the Dark (`FOG_SHADER`). A `PointLight2D` per
+`LightMap.sources` (`_sync_lights`: the same light if near enough, gliding after one carried, easing on and off;
+`_energy_of`, lost in what is lit already), embers and dust (`CPUParticles2D`), `_Shaft` from an Opening.
+`_build_occluders` makes `LightMap.blocks_light` into `LightOccluder2D`s, only when that has changed. `Grade`
+(`GRADE_SHADER`) with `Light.grade_at`, and a `CanvasModulate` with `Light.tone_at`. Godot gives a screen-reading shader
+only what was on the screen the first time anything read it, and the shade reads it first: anything later needs
+its own `BackBufferCopy` (`_grade_copy`, FightCards' drain). `CombatantSprite`: `_Shadow` points away from the nearest
+of `light_points`, or leans by `Light.shadow_at`; `set_in_the_dark` gives a rim (`RIM_SHADER`) and `_Eyes`.
+`Projectile` carries a `PointLight2D` (`light_tiles_of`, `SkillDefinition.projectile_light_tiles`), and flares on landing.
+
+**The clock and the calendar** (Campaign "The clock and the calendar", `campaign/CalendarDefinition.gd`,
+`data/calendar.tres`, `ui/clock_face.gd`, `ui/time_passing.gd`; `clock`; the designer, 2026-11-07).
+`calendar_minutes`, saved, is the one number. `time_of_day` follows it (`Light.hour_at`), and `clock_to` is the only
+way it moves, never backwards, saying `clock_moved` always and `time_of_day_changed` when the part changes. For a
+conversation: `advance_clock`, `set_clock`, `set_time_of_day`, `watch_time_pass` (a coroutine; `time_passing` holds
+everybody; `Net.time_passes` shows it on the joiner). A long rest ends at the next dawn; a short rest takes
+`SHORT_REST_HOURS` (PROPOSAL). Light's rule only changes with the part of the day; how it looks goes by the minute.
 
 **Sounds** (`audio/GameSounds.gd`, `audio/SoundBank.gd`, `audio/sound_bank.tres`; `audio`; `docs/sound_plan.md`).
 Everything that is not a move's or a condition's own is a slot in the bank: `GameSounds.play(slot)`, `loop`,
@@ -556,9 +605,14 @@ those stealthing are drawn half-there (`_dress_the_party`). `openly` covers it.
 **Moves outside a fight** (`exploration/OutsideMoves.gd`, docs/outside_combat_plan.md
 Phase 1, the designer 2026-10-26): `moves_of(key)` is everything somebody has on a
 map; `use_of` reads what a move does out there off its effects (Mend, Revive,
-Speed, Invisibility, Familiar; NONE greys it; a damaging move is Ambush: an
-ambush, a placed fight started or a wall broken); `refusal` / `use` are the one place both the panel
-and G ask. Spells pay `pay`: Iris first for a spell marked
+Speed, Invisibility, Familiar; NONE greys it; a damaging move is Ambush); `refusal` / `use` are the one place both the panel
+and G ask. **Aimed on a map** (OutsideMoves "Aimed on a map", `exploration/MapAim.gd`; `aimed`; the designer,
+2026-11-07): `use` of an Ambush or a Trap only takes aim (`ExplorationScene.take_aim`); `fire_at` lets it go (`aim_refusal`,
+`in_reach`, `struck_at`). Anybody who fights caught: `StealthWatch.strike`, with "aim_offset" in the opener and
+"struck_first" on every spawn it caught, all of whom take it before the first turn, wherever the fight puts them. A
+placed fight's marker caught: `open_fight_with`. Otherwise spent there: a wall comes down with no fight, its noise
+bringing whoever hears. A trap that bursts (`Trap.bursts`) calls `trap_goes_off`, and the opener is marked "trap"
+(`_spring_the_trap_from_the_map`), paid for already. Spells pay `pay`: Iris first for a spell marked
 `SkillDefinition.out_of_combat` no deeper than Iris's match (`iris_gate_for`;
 `Campaign.outside_gates_most` opens Iris for them), then a real casting through
 its gate or deeper; Find Familiar exactly its own. `noise` (`Loudness`, appended)
@@ -885,7 +939,7 @@ joins comes up on both (`manage_party_there`).
 port packed into base 32 with a check byte, 8 characters for the usual port and 12 with
 another. `Net.join` takes one for an address; the panel has a Copy Code beside each address
 to give. It does not hide the address, and the host must be reachable as for the address.
-`joincode` covers it. `PROTOCOL` is 8.
+`joincode` covers it. `PROTOCOL` is 9.
 **One player to a machine** (the designer's list of 2026-11-04):
 `Coop.player_here()` is this machine's player over a network, and any device here
 counts as them (`player_of_event`, `pointer_device`, `direction`). On a turn or a

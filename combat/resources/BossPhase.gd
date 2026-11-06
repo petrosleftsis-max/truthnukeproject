@@ -44,6 +44,15 @@ class_name BossPhase
 ## nothing back. 0: it never does.
 @export_range(0.0, 0.5, 0.01) var eats_itself: float = 0.0
 
+@export_subgroup("Its Mood")
+## Its dials (CombatantDefinition's AI Mind) from now on, careful at first and reckless when hurt, say.
+## Below zero keeps it.
+@export_range(-1.0, 3.0, 0.05) var ai_aggression: float = -1.0
+@export_range(-1.0, 3.0, 0.05) var ai_caution: float = -1.0
+@export_range(-1.0, 3.0, 0.05) var ai_focus: float = -1.0
+@export_range(-1.0, 3.0, 0.05) var ai_self_preservation: float = -1.0
+@export_range(-1.0, 3.0, 0.05) var ai_grudge: float = -1.0
+
 @export_subgroup("Immunities")
 @export var immunities_gained: Array[ConditionDefinition] = []
 @export var immunities_lost: Array[ConditionDefinition] = []

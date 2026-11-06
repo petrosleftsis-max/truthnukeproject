@@ -1,7 +1,12 @@
 # Proposals, 2026-11-06
 
-Suggestions the designer asked for on 2026-11-06. Nothing here is built. Gates and tethers are
-suggestions, and everything here is a PROPOSAL until the designer picks it.
+Suggestions the designer asked for on 2026-11-06. Gates and tethers are suggestions, and everything here is a
+PROPOSAL until the designer picks it.
+
+Built on 2026-11-07, and so no longer proposals: Sleep, Calm, Suggestion (Iris, map only), Detect Magic (five minutes),
+Arcane Eye (Mnemosyne), Mesmerise for Prometheus, all of section 4 but normal maps (`docs/light_on_maps.md` says
+what those are), and from section 3 commanders, grudges, hunters, bodyguards, packs, fears, learning, greed and moods
+by phase. The rest stays here for when the higher levels are revisited.
 
 ## 1. Enchantment
 

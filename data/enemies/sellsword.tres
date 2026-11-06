@@ -23,3 +23,4 @@ bribe_price = 50
 leverage_clues = Array[String](["sellsword_contract"])
 interrogation_clues = Array[String](["sellsword_contract"])
 interrogation_gold = 30
+ai_guards = "alchemist"

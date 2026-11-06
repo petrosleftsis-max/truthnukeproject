@@ -23,3 +23,5 @@ tint = Color(0.35, 0.25, 0.55, 0.8)
 skills = Array[String](["fire_breath", "frost_breath", "lightning_breath", "venom_breath", "acid_breath", "dread_breath"])
 passives = Array[ExtResource("3_passive")]([ExtResource("4_dread")])
 untouchable = true
+light_tiles = 4.0
+light_colour = Color(1, 0.55, 0.25, 1)

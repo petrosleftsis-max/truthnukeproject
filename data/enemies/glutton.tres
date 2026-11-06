@@ -13,9 +13,8 @@
 [ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="9_passive"]
 [ext_resource type="Resource" path="res://data/passives/hollow_frame.tres" id="10_hollow"]
 [ext_resource type="Resource" path="res://data/conditions/prone.tres" id="11_prone"]
-[ext_resource type="AudioStream" path="res://audio/sfx/fights/erysichthon_growl.wav" id="sfx_reveal_sound"]
-[ext_resource type="AudioStream" path="res://audio/sfx/fights/eerie_revelation_2.wav" id="sfx_reveal_second_sound"]
-[ext_resource type="AudioStream" path="res://audio/sfx/fights/erysichthon_growl.wav" id="sfx_phase_sound"]
+[ext_resource type="AudioStream" uid="uid://5sewqeiwj8k1" path="res://audio/sfx/fights/erysichthon_growl.wav" id="sfx_phase_sound"]
+[ext_resource type="AudioStream" uid="uid://d02yh5xpdu38n" path="res://audio/sfx/fights/eerie_revelation_2.wav" id="sfx_reveal_second_sound"]
 
 [sub_resource type="Resource" id="Part_second_head"]
 script = ExtResource("4_part")
@@ -33,6 +32,7 @@ at_health = 0.66
 message = "A second head tears its way out of its shoulder, snapping - now it can hold two."
 parts_added = Array[ExtResource("4_part")]([SubResource("Part_second_head")])
 holds_at_once = 2
+ai_aggression = 1.3
 
 [sub_resource type="Resource" id="Part_rib_maws"]
 script = ExtResource("4_part")
@@ -52,6 +52,9 @@ message = "Its ribs split into mouths - and with nothing left in reach, it start
 skills_added = Array[String](["rib_maws"])
 parts_added = Array[ExtResource("4_part")]([SubResource("Part_rib_maws")])
 eats_itself = 0.04
+ai_aggression = 1.6
+ai_caution = 0.3
+ai_focus = 1.5
 
 [sub_resource type="Resource" id="Stagger_bar"]
 script = ExtResource("2_stagger")
@@ -62,11 +65,11 @@ per_blocked_condition = 15.0
 
 [sub_resource type="Resource" id="Boss"]
 script = ExtResource("3_boss")
-phase_sound = ExtResource("sfx_phase_sound")
-reveal_second_sound = ExtResource("sfx_reveal_second_sound")
-reveal_sound = ExtResource("sfx_reveal_sound")
 title = "The Hunger That Ate Itself"
 stagger = SubResource("Stagger_bar")
+reveal_sound = ExtResource("sfx_phase_sound")
+reveal_second_sound = ExtResource("sfx_reveal_second_sound")
+phase_sound = ExtResource("sfx_phase_sound")
 phases = Array[ExtResource("1_phase")]([SubResource("Phase_gorge"), SubResource("Phase_hollow")])
 codex_second_page = "It never stops eating, and nothing it eats stays in it: there is a hole through its belly, gnawed by its own teeth. Whoever it swallows falls through that hole in the end - alive, if the hole is torn open first."
 
@@ -108,7 +111,6 @@ regrows_when_eating = true
 
 [resource]
 script = ExtResource("5_comb")
-ai_never_knows = 4
 name = "Erysichthon"
 glossary_text = "An undead wolf grown to an abomination, that never stops eating and is never full: whatever it swallows falls out through the hole in its belly. It catches the scent of its prey, grabs it, and swallows it whole - and it eats anything it finds in reach, even its own."
 max_hp = 300
@@ -130,3 +132,5 @@ meal_heals = 0.06
 fed_effects = Array[ExtResource("6_effect")]([SubResource("Effect_gorged")])
 spat_out_with = ExtResource("8_bile")
 ai_function = "ai_glutton"
+ai_never_knows = 4
+ai_smarts = 2

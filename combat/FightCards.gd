@@ -362,6 +362,11 @@ func _play_closing(kind: String):
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	drain.material = material
+	# Whatever read the screen first this frame (the shade, under the figures) leaves the old picture for
+	# anything after it, unless it is copied again.
+	var fresh := BackBufferCopy.new()
+	fresh.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
+	layer.add_child(fresh)
 	layer.add_child(drain)
 	var draining := drain.create_tween().set_ignore_time_scale(true)
 	draining.tween_method(func(value): material.set_shader_parameter("amount", value), 0.0, 1.0, DRAIN_SECONDS)

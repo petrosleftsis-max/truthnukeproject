@@ -32,3 +32,5 @@ resist_fire = 50
 resist_poison = -50
 ai_function = "ai_caster"
 ai_readies = 4
+ai_commands_tiles = 6
+ai_learns = true

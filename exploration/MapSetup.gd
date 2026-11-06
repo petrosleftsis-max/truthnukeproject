@@ -38,6 +38,10 @@ class_name MapSetup
 ## The animal a familiar takes on this map (Find Familiar - FamiliarKeeper);
 ## the rat when empty. A stealth map's StealthSetup says it there.
 @export var familiar_form: FamiliarForm
+## Whose path is whose on this map, by key: for a map played on its own (a stage). Empty leaves them be.
+@export var paths: Dictionary = {}
+## Whoever learns their spells knows every one of theirs while here: for a map played on its own.
+@export var knows_every_spell: bool = false
 
 @export_group("Light")
 ## How lit the map is by itself (Light). Outdoors goes by the sun; Interior is Dim; Underground is Dark,

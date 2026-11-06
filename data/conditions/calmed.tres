@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+[ext_resource type="Resource" path="res://data/conditions/fear.tres" id="2_fear"]
+[ext_resource type="Resource" path="res://data/conditions/confused.tres" id="3_confused"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Calmed"
+tag = "Cn"
+description = "Nothing frightens or confuses them while the tether holds."
+duration = 4
+immune_to_conditions = Array[ExtResource("1_cond")]([ExtResource("2_fear"), ExtResource("3_confused")])

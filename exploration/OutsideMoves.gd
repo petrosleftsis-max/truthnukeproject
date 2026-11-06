@@ -9,13 +9,13 @@ class_name OutsideMoves
 ## On guards (a watched map), a move lands on the one the pointer is on or the
 ## nearest in its reach (StealthWatch.move_target): Blind, Scare and Confuse put
 ## him in a spellbound mood, Read finds out his round, Switch Off Magic stills a
-## ward or a sensor. A damaging move springs an ambush on an unaware guard in
-## reach with itself as the opening blow (StealthWatch.ambush_with; paid in the
-## fight); on any map it starts a placed fight in reach the same way
-## (ExplorationScene.open_fight_with - the designer, 2026-10-31); or else it
-## knocks down a breakable wall in reach (ExplorationScene.break_wall). Blink steps the party ahead, Fly lifts it over low things, a
+## ward or a sensor. A damaging move, or a trap, is aimed (MapAim, "Aimed on a map"
+## below): if what it covers catches a guard, or a placed fight, the fight starts and
+## they take it before anybody's turn (StealthWatch.strike, ExplorationScene.open_fight_with,
+## paid in the fight); a wall in it comes down (ExplorationScene.break_wall); nobody
+## there and it is simply spent. Blink steps the party ahead, Fly lifts it over low things, a
 ## Lure draws guards to a shimmer ahead, a Hiding Spot is made where the leader
-## stands, a Trap is laid there. Only a spell, an item or the move of somebody
+## stands. Only a spell, an item or the move of somebody
 ## who Breaks Walls (Enfina) knocks a wall down (breaks_walls). Damaging items
 ## carried are on the panel too (items_of).
 ##
@@ -32,7 +32,7 @@ class_name OutsideMoves
 ## Unmarked plays as Silent.
 
 enum Use { NONE, MEND, REVIVE, SPEED, INVISIBILITY, FAMILIAR, BLIND, SCARE, CONFUSE, READ, SWITCH_OFF_MAGIC,
-	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD }
+	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD, SUGGEST, DETECT_MAGIC, ARCANE_EYE }
 
 const USE_NAMES := {
 	Use.NONE: "Only in a fight",
@@ -46,21 +46,25 @@ const USE_NAMES := {
 	Use.CONFUSE: "Bewilders a guard",
 	Use.READ: "Learns a guard's round",
 	Use.SWITCH_OFF_MAGIC: "Stills a ward or a magic sensor",
-	Use.AMBUSH: "Starts a fight with it, or breaks a wall",
+	Use.AMBUSH: "Aimed: a hit starts a fight, and whoever it hit takes it first. Or it breaks a wall",
 	Use.BLINK: "Steps the party ahead, over anything",
 	Use.FLY: "Lifts the party over low things",
 	Use.LURE: "Leaves a lure for the guards",
 	Use.HIDING_SPOT: "Makes somewhere to hide",
-	Use.TRAP: "Lays a trap",
+	Use.TRAP: "Aimed: lays a trap there",
 	Use.COUNTER_TRAP: "Hacks a magical trap's casting apart as it goes off",
 	Use.COMPANY: "Hides everybody but Cyrus, who all follow him",
 	Use.SEEMING: "Makes the party look like the guards here",
 	Use.MISLEAD: "Hides them, and sends a double off for the guards to chase",
+	Use.SUGGEST: "Sends a guard off on an errand",
+	Use.DETECT_MAGIC: "Shows every ward, magic sensor and magical trap",
+	Use.ARCANE_EYE: "An eye to steer that nothing notices",
 }
 
 ## SkillDefinition.outside_use, as a Use - -1 for Automatic.
 const FROM_FIELD := [-1, Use.NONE, Use.MEND, Use.REVIVE, Use.SPEED, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ,
-	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP, Use.COMPANY, Use.SEEMING, Use.MISLEAD]
+	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP, Use.COMPANY, Use.SEEMING, Use.MISLEAD,
+	Use.SUGGEST, Use.DETECT_MAGIC, Use.ARCANE_EYE]
 
 ## How long each lasts when the move gives no Outside Seconds - PROPOSAL test
 ## values, as are the rest below.
@@ -78,10 +82,12 @@ const LURE_AHEAD := 4
 const LURE_TILES := 6.0
 ## What the Outside Spell key offers: what needs somebody to land on, so it is
 ## to some purpose only now and then.
-const ON_G := [Use.MEND, Use.REVIVE, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC]
+const ON_G := [Use.MEND, Use.REVIVE, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.SUGGEST]
 ## The moods Blind, Scare and Confuse put a guard in.
 const MOODS := {Use.BLIND: Guard.Mood.BLINDED, Use.SCARE: Guard.Mood.FRIGHTENED, Use.CONFUSE: Guard.Mood.BEWILDERED}
 
+## What Arcane Eye looks like, and who notices it (nobody).
+const ARCANE_EYE_FORM := "res://data/familiars/arcane_eye.tres"
 ## How much faster the party walks while hurried (Use.SPEED), and for how long
 ## when the move gives no Outside Seconds - PROPOSAL test values.
 const HURRY := 1.5
@@ -148,12 +154,13 @@ static func breaks_walls(key: String, skill: SkillDefinition) -> bool:
 static func use_of(skill: SkillDefinition) -> int:
 	if skill == null:
 		return Use.NONE
+	# What it says first: a gate of its own is no reason to take it for Invisibility (Seeming).
+	if skill.outside_use > 0 and skill.outside_use < FROM_FIELD.size():
+		return FROM_FIELD[skill.outside_use]
 	if _has(skill, EffectDefinition.EffectType.FAMILIAR):
 		return Use.FAMILIAR
 	if skill.outside_gate > 0 and _has(skill, EffectDefinition.EffectType.INVISIBLE):
 		return Use.INVISIBILITY
-	if skill.outside_use > 0 and skill.outside_use < FROM_FIELD.size():
-		return FROM_FIELD[skill.outside_use]
 	if skill.deals_damage:
 		return Use.AMBUSH
 	if _has(skill, EffectDefinition.EffectType.REVIVE):
@@ -222,7 +229,12 @@ static func sound(scene: Node, key: String, skill: SkillDefinition):
 ## The Iris gate a marked `skill` may be paid through, or 0: the shallowest one
 ## matching a gate at least as deep as the spell's.
 static func iris_gate_for(skill: SkillDefinition) -> int:
-	if skill == null or not skill.out_of_combat or skill.deals_damage or skill.spell_slot_level <= 0:
+	if skill == null or skill.deals_damage or skill.spell_slot_level <= 0:
+		return 0
+	# The one written on it, or else the shallowest that matches, for one marked Out Of Combat.
+	if skill.outside_gate > 0:
+		return skill.outside_gate
+	if not skill.out_of_combat:
 		return 0
 	for gate in range(1, Stats.OUTSIDE_GATES.size()):
 		if skill.spell_slot_level <= Stats.OUTSIDE_GATES[gate].matches:
@@ -323,7 +335,7 @@ static func guard_for(watch, skill: SkillDefinition, kind: int) -> Guard:
 	if watch == null:
 		return null
 	match kind:
-		Use.BLIND, Use.SCARE, Use.CONFUSE:
+		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SUGGEST:
 			return watch.move_target(skill, watch.can_spellbind)
 		Use.READ:
 			return watch.move_target(skill, func(guard): return not guard.patrol_points().is_empty() and not watch.route_known(guard))
@@ -360,6 +372,12 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 			# Somebody to hide and a casting for them: who, its picker asks.
 			var could: Array = watch.could_go_invisible()
 			return watch.invisibility_refusal(could.slice(0, 1) if not could.is_empty() else [])
+		Use.ARCANE_EYE:
+			var keeper = scene.get("familiar_keeper") if scene != null else null
+			if keeper == null:
+				return "Only on a map"
+			if keeper.familiar != null:
+				return "A familiar is out already"
 	if not Campaign.is_alive(key):
 		return "%s is down" % Campaign.display_name_of(key)
 	if scene != null and scene.has_method("is_holding") and scene.is_holding():
@@ -377,11 +395,14 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 		Use.SPEED:
 			if scene != null and scene.has_method("hurried") and scene.hurried():
 				return "Already hurrying"
-		Use.BLIND, Use.SCARE, Use.CONFUSE:
+		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SUGGEST:
 			if watch == null:
 				return "Only where guards watch"
 			if guard_for(watch, skill, kind) == null:
 				return "Nobody in reach it could take hold of"
+		Use.DETECT_MAGIC:
+			if watch == null:
+				return "Only where guards watch"
 		Use.READ:
 			if watch == null:
 				return "Only where guards watch"
@@ -393,16 +414,9 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 			if guard_for(watch, skill, kind) == null:
 				return "No ward or magic sensor in reach"
 		Use.AMBUSH:
-			# The fight pays for its opening blow - an ambush's, or a placed fight's.
-			if guard_for(watch, skill, kind) != null:
-				return cannot_open_with(key, skill)
-			if scene != null and scene.has_method("fight_in_reach") and scene.fight_in_reach(skill.max_range) != null:
-				return cannot_open_with(key, skill)
-			if scene == null or not scene.has_method("wall_in_reach") or scene.wall_in_reach(skill.max_range) == null:
-				return "Nobody in reach to strike, unaware or waiting to fight, and no wall to break" if watch != null \
-					else "Nobody in reach waiting to fight, and no wall to break"
-			if not breaks_walls(key, skill):
-				return "Only a spell, an item or Enfina's strength knocks a wall down"
+			# What it lands on is chosen as it is aimed (MapAim), and the fight pays for
+			# its opening blow - an ambush's, or a placed fight's.
+			return cannot_open_with(key, skill) if _something_to_strike(scene) else "Nothing on this map to strike"
 		Use.COMPANY:
 			if watch == null:
 				return "Only where guards watch"
@@ -435,6 +449,9 @@ static func use(scene: Node, key: String, move: String) -> bool:
 	var watch = scene.get("stealth")
 	if watch != null and not is_instance_valid(watch):
 		watch = null
+	# Aimed first, on this machine's own screen, whichever machine this is.
+	if kind == Use.AMBUSH or kind == Use.TRAP:
+		return scene.take_aim(key, move)
 	# On a joiner the host's map is where it is used, as this player's - but for
 	# whom it hides, chosen here (Net; the picker's choice goes there too).
 	var net = scene.get_node_or_null("/root/Net")
@@ -449,13 +466,6 @@ static func use(scene: Node, key: String, move: String) -> bool:
 		Use.INVISIBILITY:
 			watch.stealth_bar().open_picker()
 			return true
-		Use.AMBUSH:
-			var sprung := guard_for(watch, skill, kind)
-			if sprung != null:
-				return watch.ambush_with(sprung, key, move)
-			var placed = scene.fight_in_reach(skill.max_range) if scene.has_method("fight_in_reach") else null
-			if placed != null:
-				return scene.open_fight_with(placed, key, move)
 	var who := Campaign.display_name_of(key)
 	var said := ""
 	var target: Guard = guard_for(watch, skill, kind)
@@ -501,20 +511,24 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			var seconds := skill.outside_seconds if skill.outside_seconds > 0 else HURRY_SECONDS
 			scene.hurry(HURRY, seconds)
 			said = "[color=yellow]%s[/color] uses %s%s: the party hurries on for %d seconds.\n" % [who, skill.name, paid_through(paid), seconds]
-		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC:
+		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.SUGGEST:
 			var paid := pay(key, skill)
 			if paid.is_empty():
 				return false
 			said = _do_to(watch, key, skill, kind, target, paid_through(paid))
-		Use.AMBUSH:
-			var wall: BreakableWall = scene.wall_in_reach(skill.max_range)
+		Use.DETECT_MAGIC:
 			var paid := pay(key, skill)
 			if paid.is_empty():
 				return false
-			if skill is ItemDefinition:
-				Campaign.take_item(key, move)
-			scene.break_wall(wall)
-			said = "[color=yellow]%s[/color] uses %s%s: the wall comes down.\n" % [who, skill.name, paid_through(paid)]
+			var seconds := seconds_of(skill, kind)
+			watch.begin_detecting(seconds)
+			said = "[color=yellow]%s[/color] casts %s%s: for %d seconds every ward, sensor and magical trap here shows.\n" % [who, skill.name, paid_through(paid), seconds]
+		Use.ARCANE_EYE:
+			var paid := pay(key, skill)
+			if paid.is_empty():
+				return false
+			scene.familiar_keeper.summon(key, load(ARCANE_EYE_FORM))
+			said = "[color=yellow]%s[/color] casts %s%s: she sees through it, and nothing sees it.\n" % [who, skill.name, paid_through(paid)]
 		Use.BLINK:
 			var reach := mini(skill.max_range if skill.max_range > 0 else BLINK_TILES, BLINK_MOST)
 			if not scene.blink(reach):
@@ -546,7 +560,7 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			lure.global_position = there
 			watch.make_noise(there, skill.lure_tiles if skill.lure_tiles > 0.0 else LURE_TILES, true)
 			if skill.tethered:
-				watch.tie_outside(key, skill, func(): if is_instance_valid(lure): lure.queue_free())
+				watch.tie_outside(key, skill, func(): if is_instance_valid(lure): lure.queue_free(), lure)
 			said = "[color=yellow]%s[/color] uses %s%s: something stirs ahead, and the guards near it go to look.\n" % [who, skill.name, paid_through(paid)]
 		Use.SEEMING:
 			var paid := pay(key, skill)
@@ -578,19 +592,6 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			var seconds := seconds_of(skill, kind)
 			watch.add_hiding_spot(HidingSpot.new(), _tile_centre(watch, at), seconds)
 			said = "[color=yellow]%s[/color] uses %s%s: cover, where there was none, for %d seconds.\n" % [who, skill.name, paid_through(paid), seconds]
-		Use.TRAP:
-			var paid := pay(key, skill)
-			if paid.is_empty():
-				return false
-			var trap := Trap.new()
-			trap.watch = watch
-			# A great one catches everybody within reach of it as it goes off.
-			for effect in skill.all_effects():
-				if effect != null and effect.type == EffectDefinition.EffectType.TRAP:
-					trap.burst_tiles = effect.trap_burst_radius
-			scene.add_child(trap)
-			trap.global_position = _tile_centre(watch, at)
-			said = "[color=yellow]%s[/color] lays %s%s where they stand.\n" % [who, skill.name, paid_through(paid)]
 		Use.COMPANY:
 			var paid := pay(key, skill)
 			if paid.is_empty():
@@ -601,6 +602,220 @@ static func use(scene: Node, key: String, move: String) -> bool:
 	if scene.has_method("log_message"):
 		scene.log_message(said)
 	# The portraits down the left read health off the party: drawn again.
+	if scene.has_method("_refresh_party_panel"):
+		scene._refresh_party_panel()
+	sound(scene, key, skill)
+	return true
+
+
+## --- Aimed on a map ---
+##
+## A damaging move, or a trap, needs somewhere to go (the designer, 2026-11-07; MapAim shows it). What
+## it covers, by the fight's count from whoever uses it, is what struck_at says: guards who would fight,
+## a placed fight's marker, walls. If it catches anybody who fights the fight starts, and in it the
+## move lands where it was aimed before anybody's turn (Combat "An ambush's opening blow"), paid there
+## as any casting is. Otherwise it is spent out here, and no fight comes of it (the designer, 2026-11-07:
+## "if a damaging spell hits a wall, no need to start a combat, except if its enough for the guards to
+## notice the party"): a wall in it comes down if it can, and the noise brings guards to look, who may
+## then notice the party as they notice anybody. With nobody there it lands where it lands, heard
+## from there. Only something that covers an area can be let go at nobody; a blow at one somebody
+## needs that somebody.
+
+const NOWHERE := Vector2i(-99999, -99999)
+
+
+## Whether anything on `scene`'s map could ever be struck.
+static func _something_to_strike(scene: Node) -> bool:
+	if scene == null:
+		return false
+	var watch = scene.get("stealth")
+	if watch != null and is_instance_valid(watch) and watch.guards.any(func(guard): return watch.can_be_struck(guard)):
+		return true
+	if scene.has_method("placed_fights") and not scene.placed_fights().is_empty():
+		return true
+	return scene.has_method("walls") and scene.walls().any(func(wall): return is_instance_valid(wall) and not wall.broken)
+
+
+## The tile `key` stands on, on `scene`'s map.
+static func member_tile(scene: Node, key: String) -> Vector2i:
+	var tile_map: TileMap = scene.get("_tile_map")
+	var party = scene.get("party")
+	var sprite = party.sprite_for(key) if party != null else null
+	var at: Vector2 = sprite.global_position if sprite != null else scene.party_position()
+	return tile_map.local_to_map(tile_map.to_local(at))
+
+
+## Whether `skill` bursts round whoever uses it, with nowhere to aim it.
+static func bursts_round_them(skill: SkillDefinition) -> bool:
+	return skill.max_range <= 0 and skill.aoe_radius > 0
+
+
+## Where it actually goes, pointed at `pointed` from `from`.
+static func aim_from(skill: SkillDefinition, from: Vector2i, pointed: Vector2i) -> Vector2i:
+	return from if bursts_round_them(skill) else pointed
+
+
+## The trap's burst of `skill`, in tiles, for one that has one.
+static func trap_effect_of(skill: SkillDefinition) -> EffectDefinition:
+	for effect in skill.all_effects():
+		if effect != null and effect.type == EffectDefinition.EffectType.TRAP:
+			return effect
+	return null
+
+
+## Whether `aim` is in `key`'s reach with `skill`: the fight's count, and a clear line if it needs one.
+static func in_reach(scene: Node, key: String, skill: SkillDefinition, aim: Vector2i) -> bool:
+	var from := member_tile(scene, key)
+	if bursts_round_them(skill):
+		return aim == from
+	var gap := absi(aim.x - from.x) + absi(aim.y - from.y)
+	if gap > maxi(skill.max_range, 1) or gap < skill.min_range:
+		return false
+	return not skill.respects_blocking or gap <= 1 or scene.map_sight().clear(from, aim)
+
+
+## Every tile `key` could aim `skill` at from where they stand.
+static func reach_tiles(scene: Node, key: String, skill: SkillDefinition) -> Array:
+	var from := member_tile(scene, key)
+	var found := []
+	var reach: int = 0 if bursts_round_them(skill) else maxi(skill.max_range, 1)
+	var sight = scene.map_sight()
+	for dx in range(-reach, reach + 1):
+		var left: int = reach - absi(dx)
+		for dy in range(-left, left + 1):
+			var tile := from + Vector2i(dx, dy)
+			if not sight.stops_sight(tile) and in_reach(scene, key, skill, tile):
+				found.append(tile)
+	return found
+
+
+## What `skill` used by `key` covers, aimed at `aim`: as in a fight (Combat.get_impact_tiles), and a
+## trap's burst for a trap.
+static func strike_tiles(scene: Node, key: String, skill: SkillDefinition, aim: Vector2i) -> Array:
+	var from := member_tile(scene, key)
+	var tiles := _strike_shape(from, skill, aim)
+	var trap := trap_effect_of(skill)
+	if trap == null and not skill.respects_blocking:
+		return tiles
+	var sight = scene.map_sight()
+	var round_the_aim: bool = trap != null or skill.aoe_radius <= 0 or skill.aoe_shape == SkillDefinition.AoEShape.DIAMOND
+	var seen_from: Vector2i = aim if round_the_aim else from
+	return tiles.filter(func(tile): return tile == seen_from or (not sight.stops_sight(tile) and sight.clear(seen_from, tile)))
+
+
+## The shape of it, whatever is in the way.
+static func _strike_shape(from: Vector2i, skill: SkillDefinition, aim: Vector2i) -> Array:
+	var radius: int = skill.aoe_radius
+	var shape: int = skill.aoe_shape
+	var trap := trap_effect_of(skill)
+	if trap != null:
+		radius = trap.trap_burst_radius
+		shape = SkillDefinition.AoEShape.DIAMOND
+	if radius <= 0:
+		return [aim]
+	match shape:
+		SkillDefinition.AoEShape.LINE:
+			return Combat.get_line_tiles(from, aim, radius, skill.aoe_width)
+		SkillDefinition.AoEShape.CONE:
+			return Combat.get_cone_tiles(from, aim, radius)
+	return Combat.get_diamond_tiles(aim, radius)
+
+
+## What `skill` used by `key` and aimed at `aim` catches: {"tiles", "guards", "placed", "walls"}.
+static func struck_at(scene: Node, key: String, skill: SkillDefinition, aim: Vector2i) -> Dictionary:
+	var tiles := strike_tiles(scene, key, skill, aim)
+	var found := {"tiles": tiles, "guards": [], "placed": null, "walls": []}
+	var watch = scene.get("stealth")
+	if watch != null and is_instance_valid(watch):
+		for guard in watch.guards:
+			if watch.can_be_struck(guard) and watch.tile_of(guard.global_position) in tiles:
+				found.guards.append(guard)
+	if scene.has_method("placed_fight_on"):
+		found.placed = scene.placed_fight_on(tiles)
+	# A wall is what stops the rest: whatever the shape of it touches is hit.
+	if scene.has_method("walls_on"):
+		found.walls = scene.walls_on(_strike_shape(member_tile(scene, key), skill, aim))
+	return found
+
+
+## Why `key` could not let `skill` go at `aim`, or "". Nothing spent by asking.
+static func aim_refusal(scene: Node, key: String, skill: SkillDefinition, aim: Vector2i) -> String:
+	if not in_reach(scene, key, skill, aim):
+		return "Out of reach"
+	if use_of(skill) == Use.TRAP:
+		return "" if not scene.map_sight().stops_sight(aim) else "Not there"
+	var struck := struck_at(scene, key, skill, aim)
+	if not struck.guards.is_empty() or struck.placed != null:
+		return ""
+	if not struck.walls.is_empty():
+		return "" if breaks_walls(key, skill) else "Only a spell, an item or Enfina's strength knocks a wall down"
+	return "" if skill.aoe_radius > 0 else "Nobody there to hit"
+
+
+## `key` lets `move` go at `aim`. False, and nothing spent, when they cannot.
+static func fire_at(scene: Node, key: String, move: String, aim: Vector2i) -> bool:
+	if refusal(scene, key, move) != "":
+		return false
+	var skill: SkillDefinition = definition_of(move)
+	if skill == null or aim_refusal(scene, key, skill, aim) != "":
+		return false
+	var kind := use_of(skill)
+	var watch = scene.get("stealth")
+	if watch != null and not is_instance_valid(watch):
+		watch = null
+	if kind == Use.TRAP:
+		return _lay_trap(scene, watch, key, move, skill, aim)
+	if kind != Use.AMBUSH:
+		return false
+	var struck := struck_at(scene, key, skill, aim)
+	if not struck.guards.is_empty():
+		return watch.strike(struck.guards, key, move, aim)
+	if struck.placed != null:
+		return scene.open_fight_with(struck.placed, key, move)
+	# Nobody caught: spent out here.
+	var paid := pay(key, skill)
+	if paid.is_empty():
+		return false
+	if skill is ItemDefinition:
+		Campaign.take_item(key, move)
+	var who := Campaign.display_name_of(key)
+	var broke := 0
+	if breaks_walls(key, skill):
+		for wall in struck.walls:
+			scene.break_wall(wall)
+			broke += 1
+	if scene.has_method("show_burst"):
+		scene.show_burst(struck.tiles, Damage.type_colour(skill.damage_type))
+	if scene.has_method("log_message"):
+		scene.log_message(("[color=yellow]%s[/color] uses %s%s: the wall comes down.\n" if broke > 0 else "[color=yellow]%s[/color] uses %s%s, and it lands on nobody.\n") % [who, skill.name, paid_through(paid)])
+	# Heard from where it lands, not from whoever let it go.
+	if watch != null:
+		if skill.noise_tiles > 0.0 and (skill.noise == SkillDefinition.Loudness.QUIET or skill.noise == SkillDefinition.Loudness.LOUD):
+			watch.make_noise(watch._tile_centre_of(aim), skill.noise_tiles, skill.noise == SkillDefinition.Loudness.LOUD)
+	if scene.has_method("_refresh_party_panel"):
+		scene._refresh_party_panel()
+	return true
+
+
+## A trap laid at `aim`, its gate spent. One that bursts (Tripwire, the Great Snare) starts a fight as it
+## goes off, and hurts everybody in it first (StealthWatch.trap_goes_off); one that does not is a
+## quiet takedown for whoever walks on to it.
+static func _lay_trap(scene: Node, watch, key: String, move: String, skill: SkillDefinition, aim: Vector2i) -> bool:
+	var paid := pay(key, skill)
+	if paid.is_empty():
+		return false
+	var trap := Trap.new()
+	trap.watch = watch
+	trap.key = key
+	trap.move = move
+	var effect := trap_effect_of(skill)
+	if effect != null:
+		trap.burst_tiles = effect.trap_burst_radius
+		trap.bursts = effect.trap_burst_modifier > 0.0
+	scene.add_child(trap)
+	trap.global_position = watch._tile_centre_of(aim)
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] lays %s%s.\n" % [Campaign.display_name_of(key), skill.name, paid_through(paid)])
 	if scene.has_method("_refresh_party_panel"):
 		scene._refresh_party_panel()
 	sound(scene, key, skill)
@@ -618,13 +833,17 @@ static func _do_to(watch, key: String, skill: SkillDefinition, kind: int, target
 			# Letting go of what they held first: it may be this very guard.
 			if skill.tethered:
 				var bound: int = MOODS[kind]
-				watch.tie_outside(key, skill, func(): if is_instance_valid(target) and target.mood == bound: target.end_errand())
+				watch.tie_outside(key, skill, func(): if is_instance_valid(target) and target.mood == bound: target.end_errand(), target)
 			watch.spellbind(target, MOODS[kind], seconds, key)
 			said = "[color=yellow]%s[/color] uses %s%s on [color=yellow]%s[/color]: %s for %d seconds.\n" % [who, skill.name, paid_words,
 				watch._name_of(target), {Use.BLIND: "struck blind", Use.SCARE: "he runs", Use.CONFUSE: "bewildered"}[kind], seconds]
 		Use.READ:
 			watch.learn_route(target)
 			said = "[color=yellow]%s[/color] uses %s%s: [color=yellow]%s[/color]'s round is known.\n" % [who, skill.name, paid_words, watch._name_of(target)]
+		Use.SUGGEST:
+			var seconds := seconds_of(skill, kind)
+			watch.suggest_to(target, seconds)
+			said = "[color=yellow]%s[/color] casts %s%s on [color=yellow]%s[/color]: off he goes on some errand, for %d seconds.\n" % [who, skill.name, paid_words, watch._name_of(target), seconds]
 		Use.SWITCH_OFF_MAGIC:
 			var seconds := seconds_of(skill, kind)
 			watch.still(target, seconds)
@@ -644,7 +863,7 @@ static func _do_to(watch, key: String, skill: SkillDefinition, kind: int, target
 ## the guard watched - or it is lost (StealthWatch "Readied, out of a fight").
 
 ## What can be readied out here: what lands on a guard.
-const READYABLE := [Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.AMBUSH]
+const READYABLE := [Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.AMBUSH, Use.SUGGEST]
 ## The triggers out here.
 const READY_TRIGGERS := [SkillDefinition.Trigger.ENTERS_REACH, SkillDefinition.Trigger.ENTERS_AREA, SkillDefinition.Trigger.HIT_IN_SIGHT]
 
@@ -657,7 +876,7 @@ static func can_ready(skill: SkillDefinition) -> bool:
 ## Whether `guard` is somebody `skill` (as `kind`) could do something to.
 static func fits(watch, skill: SkillDefinition, kind: int, guard) -> bool:
 	match kind:
-		Use.BLIND, Use.SCARE, Use.CONFUSE:
+		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SUGGEST:
 			return watch.can_spellbind(guard)
 		Use.READ:
 			return is_instance_valid(guard) and not guard.knocked_out and not guard.patrol_points().is_empty() and not watch.route_known(guard)
@@ -684,7 +903,9 @@ static func fire_readied(scene: Node, key: String, move: String, guard: Guard) -
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color]'s readied %s goes off!\n" % [Campaign.display_name_of(key), skill.name])
 	if kind == Use.AMBUSH:
-		return watch.ambush_with(guard, key, move)
+		var aim: Vector2i = watch.tile_of(guard.global_position)
+		var struck := struck_at(scene, key, skill, aim)
+		return watch.strike(struck.guards if guard in struck.guards else [guard] + struck.guards, key, move, aim)
 	var said := _do_to(watch, key, skill, kind, guard, "")
 	if scene.has_method("log_message"):
 		scene.log_message(said)
@@ -752,13 +973,18 @@ class Decoy extends Node2D:
 			Vector2(tile * 0.1, -tile * 0.28), Vector2(-tile * 0.1, -tile * 0.28)]), colour)
 
 
-## A trap laid on a map (Trap): the first guard to walk onto it is down
-## (StealthWatch.caught_in_trap). It stays until then, or the party leaves.
+## A trap laid on a map (Trap): the first guard to walk onto it - or standing there as it is laid -
+## sets it off. One that does not burst leaves him down, and nobody the wiser but those who hear it
+## (StealthWatch.caught_in_trap). One that does starts a fight, with everybody in its burst hurt before
+## anybody's turn (StealthWatch.trap_goes_off). It stays until then, or the party leaves.
 class Trap extends Node2D:
 	var watch = null
-	## Above 0, everybody within this many tiles is caught as it goes off, not only the
-	## one who stepped on it. The Great Snare.
+	## Whose it is, and which of their moves.
+	var key := ""
+	var move := ""
+	## How far its burst reaches, in tiles, and whether it has one that hurts.
 	var burst_tiles := 0
+	var bursts := false
 
 	const SPRINGS_WITHIN := 0.45
 	const COLOUR := Color(0.75, 0.62, 0.35, 0.85)
@@ -775,11 +1001,7 @@ class Trap extends Node2D:
 		for guard in watch.guards:
 			if is_instance_valid(guard) and not guard.knocked_out and guard.moves() \
 					and guard.global_position.distance_to(global_position) <= Grid.tiles(SPRINGS_WITHIN):
-				if watch.caught_in_trap(guard):
-					for other in watch.guards:
-						if burst_tiles > 0 and is_instance_valid(other) and other != guard \
-								and other.global_position.distance_to(global_position) <= Grid.tiles(float(burst_tiles)):
-							watch.caught_in_trap(other)
+				if watch.trap_goes_off(self, guard) if bursts else watch.caught_in_trap(guard):
 					queue_free()
 					return
 
