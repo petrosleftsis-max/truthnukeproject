@@ -46,6 +46,8 @@ func _ready():
 	await open_fight()
 	await a_wall_by_two_clicks()
 	await open_fight()
+	await seen_through_one_by_one()
+	await open_fight()
 	await seeming()
 	await open_fight()
 	await false_ground()
@@ -355,6 +357,250 @@ func a_wall_by_two_clicks():
 
 
 var _wall_along := Vector2i.ZERO
+
+
+## Walks the one acting to `tile`, through the same calls a click makes, and waits for them to get there.
+func walk_to(tile: Vector2i):
+	controller.find_path(tile)
+	controller.move_player()
+	var frames := 0
+	await get_tree().process_frame
+	while not controller.is_idle() and frames < 3000:
+		await get_tree().process_frame
+		frames += 1
+	await settle()
+
+
+## Where a wall can run up and down through the returned tile, with room on all sides for those watching it.
+func room_to_watch_a_wall() -> Vector2i:
+	var skill: SkillDefinition = SkillDatabase.skills.phantom_wall
+	var probe: Dictionary = combat.summon_probe(skill, 0)
+	var region: Rect2i = controller._astargrid.region
+	for y in range(region.position.y + 3, region.end.y - 3):
+		for x in range(region.position.x + 3, region.end.x - 3):
+			var there := Vector2i(x, y)
+			var needed := []
+			for dx in range(-3, 4):
+				needed.append(there + Vector2i(dx, 0))
+			for dy in range(-3, 4):
+				needed.append(there + Vector2i(0, dy))
+			needed.append(there + Vector2i(-1, -1))
+			needed.append(there + Vector2i(1, 1))
+			if needed.all(func(tile): return controller.is_on_map(tile) and combat.can_land_on(probe, tile)):
+				return there
+	return Combat.NO_AREA
+
+
+## Their mind, a moment: what `check` says as `viewer` sees it.
+func in_the_mind_of(viewer: Dictionary, check: Callable):
+	var believed: bool = combat.ai_believes
+	combat.ai_believes = true
+	combat._believer_side = viewer.side
+	combat._believer = viewer
+	var said = check.call()
+	combat.ai_believes = believed
+	combat._believer = {}
+	return said
+
+
+## ("if a player character passes by them, whoever enemy "saw that" by having it happen in their line of sight, or if
+## they are cunning or higher smarts, have those enemies "see through" the illusion and ignore it"; "other illusions
+## like the floor illusion should also work like that"; "lets lower the smarts requirment to trained".)
+func seen_through_one_by_one():
+	log_line("======== Seen through, one by one ========")
+	var INSTINCT: int = CombatantDefinition.AiSmarts.INSTINCT
+	var alithia := who("alithia")
+	var enfina := who("enfina")
+	var they := foes()
+	ok(they.size() >= 3, "three to watch", "%d" % they.size())
+	var saw: Dictionary = they[0]
+	var missed: Dictionary = they[1]
+	var trained: Dictionary = they[2]
+	var c := room_to_watch_a_wall()
+	ok(c != Combat.NO_AREA, "there is room", "%s" % c)
+	combat.teleport_to(alithia, c + Vector2i(3, 0))
+	# The rest, out of the way of the watching.
+	for other in they.slice(3):
+		other.alive = false
+	saw["ai_smarts"] = INSTINCT
+	missed["ai_smarts"] = INSTINCT
+	trained["ai_smarts"] = CombatantDefinition.AiSmarts.TRAINED
+	combat.teleport_to(saw, c + Vector2i(-3, 0))
+	combat.teleport_to(missed, c + Vector2i(0, -3))
+	combat.teleport_to(trained, c + Vector2i(0, 3))
+	await their_turn(alithia)
+	await combat.use_skill("phantom_wall", alithia, c + Vector2i(0, -1), false, false, c + Vector2i(0, 1))
+	await settle()
+	var wall_at: Dictionary = combat.get_combatant_at(c)
+	ok(wall_at.has("object") and wall_at.get("illusion", false), "up it goes")
+	combat.teleport_to(enfina, c + Vector2i(-1, 0))
+	await their_turn(enfina)
+	# Her own side walks through it, and stops on the far side of it.
+	var reach: Dictionary = controller.get_reachable_tiles(enfina.position, enfina.movement_class, 2, enfina)
+	ok(reach.has(c + Vector2i(1, 0)), "her side can walk through it", "%s" % [reach.keys()])
+	ok(not reach.has(c) and not reach.has(c + Vector2i(0, 1)), "but not stop on it")
+	ok(controller.get_grid_path(enfina.position, c + Vector2i(1, 0)).size() == 3, "straight through")
+	controller.find_path(c)
+	ok(controller.tile_map.local_to_map(controller._path[controller._path.size() - 1]) != c, "pointing at it, the walk ends short of it")
+	# Movement for only the wall tile: they stay where they are.
+	var had: int = controller.get_movement()
+	controller.set_movement(1)
+	await walk_to(c + Vector2i(1, 0))
+	ok(enfina.position == c + Vector2i(-1, 0), "with only the movement to get into it, they do not start")
+	controller.set_movement(had)
+	# Nobody has any reason to doubt it yet.
+	ok(not combat.sees_through(saw, wall_at) and in_the_mind_of(saw, func(): return combat.believes_illusion(wall_at)), "they believe it")
+	ok(combat.illusions_to_pass(saw).is_empty(), "and it stops them")
+	ok(in_the_mind_of(saw, func(): return controller.blocks_sight(c)), "and their eyes")
+	await walk_to(c + Vector2i(1, 0))
+	ok(enfina.position == c + Vector2i(1, 0), "through", "%s" % enfina.position)
+	ok(combat.sees_through(saw, wall_at), "whoever saw that sees through it")
+	ok(not combat.sees_through(missed, wall_at), "the rest of the wall hid it from whoever had only instinct to go on")
+	ok(combat.sees_through(trained, wall_at), "and anybody trained works it out, in sight or not")
+	ok(saw.sprite != null, "said over their heads")
+	# It is nothing to them now.
+	ok(not in_the_mind_of(saw, func(): return combat.believes_illusion(wall_at)), "in their mind it is not there")
+	ok(not in_the_mind_of(saw, func(): return controller.blocks_sight(c)), "they see past it")
+	ok(in_the_mind_of(missed, func(): return controller.blocks_sight(c)), "the one who missed it does not")
+	var passable: Dictionary = combat.illusions_to_pass(saw)
+	ok(passable.has(c + Vector2i(0, -1)) and passable.has(c) and passable.has(c + Vector2i(0, 1)), "all of the wall, not only where it was crossed")
+	ok(combat.illusions_to_pass(missed).is_empty(), "and it still stops the one who missed it")
+	# And they walk through it.
+	combat.teleport_to(saw, c + Vector2i(-1, 0))
+	var their_reach: Dictionary = controller.get_reachable_tiles(saw.position, saw.movement_class, 2, saw)
+	ok(their_reach.has(c + Vector2i(2, 0)) == false and not their_reach.has(c), "not stopping on it either")
+	await their_turn(saw)
+	ok(controller.get_grid_path(saw.position, c + Vector2i(2, 0)).size() == 4, "their way goes through it", "%s" % [controller.get_grid_path(saw.position, c + Vector2i(2, 0))])
+	combat.teleport_to(saw, c + Vector2i(-3, 0))
+	combat.teleport_to(missed, c + Vector2i(-1, 0))
+	await their_turn(missed)
+	ok(controller.get_grid_path(missed.position, c + Vector2i(2, 0)).size() > 4, "the other's goes round", "%s" % [controller.get_grid_path(missed.position, c + Vector2i(2, 0))])
+	combat.teleport_to(missed, c + Vector2i(0, -3))
+	# Reading the board as each of them would.
+	ok(combat.threat_map().has("threat"), "the danger view reads it, each as they see it")
+	ok(combat._believer.is_empty(), "and leaves nobody's mind behind")
+	# One of their own seen walking through it gives it away as well, and the AI's own walk does it.
+	combat.teleport_to(saw, c + Vector2i(-1, 0))
+	combat.teleport_to(missed, c + Vector2i(-3, 0))
+	ok(not combat.sees_through(missed, wall_at), "one still fooled, watching")
+	await their_turn(saw)
+	controller.set_movement(2)
+	await controller.ai_move(c + Vector2i(1, 1))
+	await settle()
+	ok(saw.position == c + Vector2i(1, 1), "the AI's own walk goes through it", "%s" % saw.position)
+	ok(combat.sees_through(missed, wall_at), "and one of their own seen doing that gives it away too")
+	# And a whole turn of theirs, thought through as they see it, ends on nothing of it.
+	await their_turn(enfina)
+	await real_turn(enfina, saw)
+	ok(combat.combatants_at(c).size() == 1 and combat.combatants_at(c + Vector2i(0, 1)).size() == 1 and combat.combatants_at(c + Vector2i(0, -1)).size() == 1, "a whole turn of theirs ends on nothing of it", "%s" % saw.position)
+	combat.teleport_to(saw, c + Vector2i(1, 1))
+	# Whatever they saw, they saw: a walk back stops at the far side of it.
+	await their_turn(enfina)
+	controller.set_movement(6)
+	ok(controller._turn_start_position != c, "no walk back ends inside it")
+	# Somebody stopped partway through is who is there, not the wall.
+	var was: Vector2i = enfina.position
+	enfina.position = c
+	controller.refresh_occupancy()
+	ok(combat.get_combatant_at(c).get("id", -1) == enfina.id, "somebody caught inside it is who is there")
+	enfina.position = was
+	controller.refresh_occupancy()
+	# The next one fools them again, and somebody unseen gives nothing away.
+	combat.snap_tether(alithia, "test")
+	await their_turn(alithia)
+	await combat.use_skill("phantom_wall", alithia, c + Vector2i(0, -1), false, false, c + Vector2i(0, 1))
+	await settle()
+	var second: Dictionary = combat.get_combatant_at(c)
+	ok(second.has("object") and not combat.sees_through(saw, second) and not combat.sees_through(trained, second), "a new wall fools them again")
+	combat.teleport_to(enfina, c + Vector2i(-1, 0))
+	await their_turn(enfina)
+	combat.set_hidden(enfina, true)
+	enfina["invisible"] = true
+	await walk_to(c + Vector2i(1, 0))
+	ok(enfina.position == c + Vector2i(1, 0), "unseen, through", "%s" % enfina.position)
+	ok(not combat.sees_through(saw, second) and not combat.sees_through(trained, second), "and nobody is any the wiser")
+	combat.set_hidden(enfina, false)
+	# Nor anybody stunned or asleep.
+	combat.snap_tether(alithia, "test")
+	log_line("  -- the floor")
+	await their_turn(alithia)
+	saw.erase("sees_through")
+	trained.erase("sees_through")
+	missed.erase("sees_through")
+	var prometheus := who("prometheus")
+	combat.teleport_to(prometheus, c + Vector2i(0, 1))
+	combat.teleport_to(enfina, c + Vector2i(-3, -1))
+	combat.teleport_to(missed, c + Vector2i(0, -3))
+	# Well away from the floor, out of its radius of three.
+	await combat.use_skill("false_ground", alithia, c, false)
+	await settle()
+	ok(combat.zones.size() == 1, "laid", "%d" % combat.zones.size())
+	if combat.zones.is_empty():
+		log_line("")
+		return
+	var zone: Dictionary = combat.zones[0]
+	# Whoever stands on it as it is laid gives nothing away by standing there.
+	combat.sync_zones()
+	ok(not combat.sees_through(trained, zone) and not combat.sees_through(saw, zone), "standing on it as it lands gives nothing away")
+	# Everybody off it but whoever is about to walk on, each where they are wanted.
+	var outside: Array = []
+	var region: Rect2i = controller._astargrid.region
+	for y in range(region.position.y, region.end.y):
+		for x in range(region.position.x, region.end.x):
+			var tile := Vector2i(x, y)
+			if not tile in zone.tiles and controller.is_on_map(tile) and combat.can_land_on(saw, tile):
+				outside.append(tile)
+	ok(outside.size() > 4, "room round it", "%d" % outside.size())
+	var edge: Vector2i = Combat.NO_AREA
+	var step_on: Vector2i = Combat.NO_AREA
+	for tile in outside:
+		for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]:
+			if edge == Combat.NO_AREA and (tile + way) in zone.tiles and combat.get_combatant_at(tile + way).is_empty():
+				edge = tile
+				step_on = tile + way
+	ok(edge != Combat.NO_AREA, "a way on to it", "%s" % edge)
+	combat.teleport_to(enfina, edge)
+	# One who sees that step and one who, with only instinct, does not: anywhere out of sight of it, as the map has it.
+	var unseen_from: Vector2i = Combat.NO_AREA
+	var seen_from: Vector2i = Combat.NO_AREA
+	for tile in outside:
+		if tile == edge:
+			continue
+		var clear: bool = combat.has_line_of_sight(tile, step_on, 0)
+		if clear and seen_from == Combat.NO_AREA and combat.get_position_distance(tile, step_on) <= 8:
+			seen_from = tile
+		elif not clear and unseen_from == Combat.NO_AREA:
+			unseen_from = tile
+	ok(seen_from != Combat.NO_AREA, "somewhere to see it from", "%s" % seen_from)
+	combat.teleport_to(saw, seen_from)
+	if unseen_from != Combat.NO_AREA:
+		combat.teleport_to(missed, unseen_from)
+	else:
+		missed.alive = false
+	var other_tile: Vector2i = outside.filter(func(tile): return tile != edge and tile != seen_from and tile != unseen_from)[0]
+	combat.teleport_to(trained, other_tile)
+	combat.sync_zones()
+	ok(combat.false_ground_for(saw).has(step_on), "they will not step on it")
+	await their_turn(enfina)
+	await walk_to(step_on)
+	ok(enfina.position == step_on, "on to it, unharmed", "%s" % enfina.position)
+	ok(combat.sees_through(saw, zone), "whoever saw that sees through it")
+	ok(combat.sees_through(trained, zone), "and anybody trained works it out")
+	if missed.alive:
+		ok(not combat.sees_through(missed, zone), "the one out of sight, with only instinct, does not")
+		ok(combat.false_ground_for(missed).has(step_on), "and it still keeps them off")
+		ok(combat.on_false_ground(missed, step_on), "and still counts as deadly to them")
+	ok(not combat.false_ground_for(saw).has(step_on), "it no longer keeps them off")
+	ok(not combat.on_false_ground(saw, step_on), "and it is no ground to fear")
+	ok(combat.zones.has(zone), "and it is still there for anybody it still fools")
+	# One who knows, stepping on it: it is not gone for the rest.
+	var free_on_it: Array = zone.tiles.filter(func(tile): return combat.get_combatant_at(tile).is_empty() and combat.can_land_on(saw, tile))
+	ok(not free_on_it.is_empty(), "room on it")
+	if not free_on_it.is_empty():
+		combat.teleport_to(saw, free_on_it[0])
+		combat.sync_zones()
+		ok(combat.zones.has(zone), "one who knows, standing on it, does not end it")
+	log_line("")
 
 
 func seeming():

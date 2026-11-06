@@ -339,7 +339,8 @@ diagonal, since walking and sight cut them, and those fillers don't count toward
 as the move's destination (`_wall_ends_at`); with no end, `wall_tiles` is the old "across" for the AI or a
 script. Each piece is drawn along the wall (`_lay_wall_piece` -> `CombatantSprite.lay_along`): its picture turned
 to the line and, on a diagonal, stretched corner to corner, so the pieces join; a filler draws nothing and still
-blocks, and the tile marks show which tiles it takes. `_draw_wall_to_be` shows the same line while aiming. Phantom Company: `summon_count`, `summon_as_images`,
+blocks, and the tile marks show which tiles it takes. `_draw_wall_to_be` shows the same line while aiming. Her side
+walks through it; see "Seen through, one by one" below. Phantom Company: `summon_count`, `summon_as_images`,
 `summon_shakes`. Seeming: `unnoticed_until_acting`: `until_acting`, `looks_like`, `_gives_themselves_away` in
 `_use_skill` (`was_unnoticed`); on a map `StealthWatch "Seeming"`, `SEEMING` as what is worn (`_worn_item`).
 Fallen Friend: condition `looks_dead` held by a tether (`_begin_looking_dead`, `step_gives_away`,
@@ -351,6 +352,20 @@ every walk (`_apply_false_ground`, `get_reachable_tiles`, `_reachable_by_size`, 
 `set_hidden(comb, false)`, takes off every look. **A disguise in a fight:** `disguise_refusal`, `fitting_disguise`,
 `wear_disguise`, `DISGUISE_SKILL` in `main_skills_of` and `secondary_grants`, `hidden_from` asks
 `sees_through_disguises`.
+
+**Seen through, one by one** (Combat section of that name; `illusions`; the designer, 2026-11-07). An illusion stops
+nobody of its own side: they walk through it, and nobody can stop on it (`illusions_to_pass`, read by
+`update_points_weight`, `get_reachable_tiles`, `_reachable_by_size`, `_height_search` through `_passing`, `_fit_points_to_big`
+and `_small`, `room_for`'s `passing`; `find_path` and `_stop_short_of_illusions` keep a walk from ending on one). A step
+through (`illusions_stepped_through` from `_handle_step_arrival`; on False Ground `_false_ground_holds` by `zone.stood`) is
+`_gives_away`: each of the other side who sees it (`_sees_it_happen`, as they believe things, so the rest of the wall stops
+their eyes), and anybody at `SEES_THROUGH_FROM` (Trained) or smarter wherever they are, unless the walker is hidden from
+them or they skip their turn. It goes into `comb.sees_through` by `_illusion_key`: a whole wall (`one_illusion`), all a
+tether holds, a zone, so the next one fools them again. Ask `sees_through` and `not_fooled_by`. `believes_illusion` reads
+`_believer`, set wherever `ai_believes` is: `ai_process`, `plan_intent`, `threat_map`, the readying as a turn ends. A
+believer shoved onto False Ground still ends it for everybody. `get_combatant_at` prefers somebody real to an illusion on
+their tile. `board_fingerprint` counts what has been seen through, so a walk cannot be taken back past it, and
+`settle_undo_point` never leaves the way back inside one.
 
 **The AI's mind** (Combat "The AI's mind"; `aimind`; the designer, 2026-11-06). Per creature:
 `CombatantDefinition.ai_smarts` (`AI_KNOWN_BY`), `ai_also_knows`, `ai_never_knows` make `comb.ai_knows`

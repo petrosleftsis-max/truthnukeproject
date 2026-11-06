@@ -693,10 +693,8 @@ func _only_cannot_get_there(refusal: String, skill: SkillDefinition, tile: Vecto
 
 func get_combatant_at_position(target_position: Vector2i):
 	# Whoever covers the tile - somebody bigger than a tile covers several.
-	for comb in combat.combatants:
-		if comb.alive and combat.covers(comb, target_position):
-			return comb
-	return null
+	var there: Dictionary = combat.get_combatant_at(target_position)
+	return null if there.is_empty() else there
 
 ## Every tile somebody is standing on. A Dictionary because line of sight asks
 ## it once per tile walked, and this is the most-called question in the game -
@@ -909,7 +907,12 @@ func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: 
 	# High ground and floors, and squeezing: up only from a climb tile, down from
 	# anywhere, wherever they fit - squeezed, if they can.
 	if _height_pathing(movement_class, mover):
-		return _height_search(start, movement_class, movement_budget, {}, Vector2i(-99999, -99999), mover)
+		var found: Dictionary = _height_search(start, movement_class, movement_budget, {}, Vector2i(-99999, -99999), mover)
+		var through: Dictionary = combat.illusions_to_pass(mover) if combat != null else {}
+		for anchor in found.keys():
+			if anchor != start and _in_an_illusion(mover, anchor, through):
+				found.erase(anchor)
+		return found
 	# Somebody bigger or smaller than a tile: where they fit, not where one
 	# tile's worth of floor is free.
 	if not mover.is_empty() and (Combat.footprint(mover) != Vector2i.ONE or Sizes.shares(mover.get("size", Sizes.Size.HUMAN))):
@@ -921,6 +924,8 @@ func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: 
 	# Twice as dear near anybody hemming them in (Combat "Hemmed In and Exposed").
 	var hemmed: Dictionary = combat.hemmed_tiles(mover) if combat != null else {}
 	var refused: Dictionary = combat.false_ground_for(mover) if combat != null else {}
+	# Walked through, not stopped on (Combat "Seen through, one by one").
+	var passing: Dictionary = combat.illusions_to_pass(mover) if combat != null else {}
 	var costs = {start: 0}
 	var frontier = [start]
 	while frontier.size() > 0:
@@ -940,11 +945,11 @@ func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: 
 				continue
 			if is_tile_blocking(neighbor, movement_class):
 				continue
-			if neighbor != start and neighbor in _occupied_spaces:
+			if neighbor != start and neighbor in _occupied_spaces and not passing.has(neighbor):
 				continue
 			if refused.has(neighbor):
 				continue
-			if neighbor != start and _astargrid.is_point_solid(neighbor):
+			if neighbor != start and _astargrid.is_point_solid(neighbor) and not passing.has(neighbor):
 				# Whatever the pathfinder currently refuses to route through -
 				# which includes tiles Fear has closed off - isn't somewhere the
 				# AI should be offered either, or it picks a destination its own
@@ -956,7 +961,41 @@ func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: 
 			if not costs.has(neighbor) or new_cost < costs[neighbor]:
 				costs[neighbor] = new_cost
 				frontier.append(neighbor)
+	for tile in passing:
+		if tile != start:
+			costs.erase(tile)
 	return costs
+
+
+## Whether `mover` anchored at `anchor` would be standing on any of `passing` (Combat.illusions_to_pass).
+func _in_an_illusion(mover: Dictionary, anchor: Vector2i, passing: Dictionary) -> bool:
+	if passing.is_empty():
+		return false
+	if mover.is_empty():
+		return passing.has(anchor)
+	return Combat.tiles_of(mover, anchor).any(func(tile): return passing.has(tile))
+
+
+## A walk that would end on an illusion they are only going through, or run out of movement on one, stops at
+## the last tile before it (Combat "Seen through, one by one"). Worked out the same on both machines.
+func _stop_short_of_illusions():
+	if _path.size() < 2 or combat == null:
+		return
+	var walker: Dictionary = combat.get_current_combatant()
+	var passing: Dictionary = combat.illusions_to_pass(walker)
+	if passing.is_empty():
+		return
+	var left: int = movement
+	var last := 0
+	for i in range(1, _path.size()):
+		var cost: int = _step_cost(tile_map.local_to_map(_path[i]))
+		if cost > left:
+			break
+		left -= cost
+		last = i
+	while last > 0 and _in_an_illusion(walker, tile_map.local_to_map(_path[last]), passing):
+		last -= 1
+	_path = _path.slice(0, last + 1)
 
 
 ## The actual sequence of grid tiles AStarGrid2D would walk to get from
@@ -997,6 +1036,8 @@ var _up_tiles := {}
 var _hemmed := {}
 ## And what they will not step on at all, read the same way (Combat "False Ground").
 var _refused := {}
+## And what they may walk through but not stop on, while a walk is being searched (Combat "Seen through, one by one").
+var _passing := {}
 ## How raised whoever stands on each tile is, where it is more than nothing:
 ## up on high ground counts one, and every size above Human one more (Combat
 ## "Heights" - somebody bigger than the barrels sees over them, and gets no cover
@@ -1207,7 +1248,7 @@ func _fits_as(mover: Dictionary, anchor: Vector2i, size: int, shape: Vector2i, s
 		for dy in shape.y:
 			for dx in shape.x:
 				var tile: Vector2i = anchor + Vector2i(dx, dy)
-				if _occupied_spaces.has(tile) and (mover.is_empty() or not combat.covers(mover, tile)):
+				if _occupied_spaces.has(tile) and (mover.is_empty() or not combat.covers(mover, tile)) and not _passing.has(tile):
 					return false
 		return true
 	# Small enough to share: as many as fit, of their own side.
@@ -1215,7 +1256,7 @@ func _fits_as(mover: Dictionary, anchor: Vector2i, size: int, shape: Vector2i, s
 	var was_span: int = mover.get("span", 1)
 	mover.size = size
 	mover.span = 1
-	var room: bool = combat.room_for(mover, anchor, false)
+	var room: bool = combat.room_for(mover, anchor, false, _passing)
 	mover.size = was_size
 	mover.span = was_span
 	return room
@@ -1322,6 +1363,7 @@ func _height_search(start: Vector2i, movement_class: int, budget: int, parents: 
 	# Twice as dear near anybody hemming them in - read by _add_step.
 	_hemmed = combat.hemmed_tiles(mover) if combat != null else {}
 	_refused = combat.false_ground_for(mover) if combat != null else {}
+	_passing = combat.illusions_to_pass(mover) if combat != null else {}
 	var costs := {start: 0}
 	var lengths := {start: 0.0}
 	var high := {}
@@ -1337,6 +1379,7 @@ func _height_search(start: Vector2i, movement_class: int, budget: int, parents: 
 				continue
 			settled[current] = true
 			if current == goal:
+				_passing = {}
 				return costs
 			for step in _height_steps(current, movement_class, start, mover, stances):
 				var cost: int = at + step[1]
@@ -1358,6 +1401,7 @@ func _height_search(start: Vector2i, movement_class: int, budget: int, parents: 
 					buckets.append([])
 				buckets[cost].append(step[0])
 		at += 1
+	_passing = {}
 	return costs
 
 
@@ -1384,14 +1428,17 @@ func _looks_longer(from: Vector2i, to: Vector2i, high: Dictionary) -> float:
 ## cannot be stood on (somebody there). Just [from] when nowhere near can be.
 func _height_path(from: Vector2i, to: Vector2i, movement_class: int, mover: Dictionary = {}) -> Array:
 	var parents := {}
-	var costs := _height_search(from, movement_class, 999, parents, to, mover)
+	# Nobody stops on an illusion they can walk through: as for a tile with somebody on it.
+	var through: Dictionary = combat.illusions_to_pass(mover) if combat != null else {}
+	var stops_there: bool = not _in_an_illusion(mover, to, through)
+	var costs := _height_search(from, movement_class, 999, parents, to if stops_there else Vector2i(-99999, -99999), mover)
 	var end := to
-	if not costs.has(end):
+	if not costs.has(end) or not stops_there:
 		end = from
 		var cheapest := 999999
 		for way in _EIGHT_WAYS:
 			var beside: Vector2i = to + way
-			if costs.has(beside) and costs[beside] < cheapest:
+			if costs.has(beside) and costs[beside] < cheapest and not _in_an_illusion(mover, beside, through):
 				cheapest = costs[beside]
 				end = beside
 	var tiles: Array = [end]
@@ -1635,6 +1682,9 @@ func settle_undo_point():
 	var board = combat.board_fingerprint(comb)
 	if board == _turn_start_board:
 		return
+	# Partway through an illusion is no place to walk back to: the next step will do.
+	if combat.illusions_to_pass(comb).has(comb.position):
+		return
 	_turn_start_position = comb.position
 	_turn_start_movement = movement
 	_turn_start_board = board
@@ -1792,6 +1842,8 @@ func update_points_weight():
 				_astargrid.set_point_solid(Vector2i(x, y), false)
 				_astargrid.set_point_weight_scale(Vector2i(x, y), 1)
 		_big_fitted = false
+	# What is nothing to them they walk through (Combat "Seen through, one by one").
+	var passing: Dictionary = combat.illusions_to_pass(current_comb)
 	#Update occupied spaces for flying units
 	for point in _occupied_spaces:
 		if point == current_comb.position:
@@ -1800,7 +1852,7 @@ func update_points_weight():
 			# path can ever be found at all.
 			_astargrid.set_point_weight_scale(point, 1)
 			_astargrid.set_point_solid(point, false)
-		elif current_comb.movement_class == 1:
+		elif current_comb.movement_class == 1 or passing.has(point):
 			_astargrid.set_point_weight_scale(point, 1)
 			_astargrid.set_point_solid(point, false)
 		else:
@@ -2097,6 +2149,8 @@ func _handle_step_arrival():
 	await combat.check_reactive_skills(mover, old_position, new_position)
 	# Into a zone or out of one (Combat "Zones").
 	combat.sync_zones()
+	# Through an illusion, in front of whoever is looking (Combat "Seen through, one by one").
+	combat.illusions_stepped_through(mover)
 	# Onto ground that hurts whoever treads it, each step again.
 	combat.zones_under_step(mover, new_position)
 	# Somebody who looks dead, walking (Combat "Unnoticed until they act").
@@ -2284,7 +2338,7 @@ func find_path(tile_position: Vector2i):
 			func(tile): return tile_map.map_to_local(tile)))
 		queue_redraw()
 		return
-	if _astargrid.get_point_weight_scale(tile_position) > 999999:
+	if _astargrid.get_point_weight_scale(tile_position) > 999999 or (combat != null and combat.illusions_to_pass(walker).has(tile_position)):
 		# The destination is occupied or blocked (e.g. clicking directly on
 		# a combatant to move adjacent to them instead) - step back one tile
 		# from it, along the actual direction from current_position, rather
@@ -2441,6 +2495,7 @@ func hop_for(mover: Dictionary, from: Vector2i, to: Vector2i) -> int:
 
 
 func move_on_path(current_position):
+	_stop_short_of_illusions()
 	if _path.size() >= 2 and not can_move_to(tile_map.local_to_map(_path[_path.size() - 1])):
 		# Feared, and this move would close the distance. Enforced here rather
 		# than at the player's click so the AI is held to it too.
@@ -3633,6 +3688,7 @@ func _fit_points_to_big(comb: Dictionary):
 	# A flier passes over others; something only too big for the walls does not.
 	var flier: bool = comb.movement_class == 1
 	var ground: int = Combat.terrain_class(comb)
+	var passing: Dictionary = combat.illusions_to_pass(comb)
 	# blocked[y][x] in a flat array, then summed so any square's count is four
 	# reads.
 	var sums := PackedInt32Array()
@@ -3643,7 +3699,7 @@ func _fit_points_to_big(comb: Dictionary):
 			var tile := region.position + Vector2i(x, y)
 			# High ground underfoot is no wall to somebody big enough to step over it.
 			var blocked: bool = is_tile_blocking(tile, ground) and combat.blocks_for(comb, tile)
-			if not blocked and not flier and _occupied_spaces.has(tile) and not combat.covers(comb, tile):
+			if not blocked and not flier and _occupied_spaces.has(tile) and not combat.covers(comb, tile) and not passing.has(tile):
 				blocked = true
 			row += 1 if blocked else 0
 			sums[(y + 1) * (width + 1) + x + 1] = sums[y * (width + 1) + x + 1] + row
@@ -3667,10 +3723,11 @@ func _fit_points_to_big(comb: Dictionary):
 func _fit_points_to_small(comb: Dictionary):
 	if comb.movement_class == 1:
 		return
+	var passing: Dictionary = combat.illusions_to_pass(comb)
 	for tile in _occupied_spaces:
 		if tile == comb.position or is_tile_blocking(tile, comb.movement_class):
 			continue
-		var fits := combat.room_for(comb, tile)
+		var fits: bool = passing.has(tile) or combat.room_for(comb, tile)
 		_astargrid.set_point_solid(tile, not fits)
 		_astargrid.set_point_weight_scale(tile, 1 if fits else INF)
 
@@ -3685,6 +3742,7 @@ func _reachable_by_size(mover: Dictionary, start: Vector2i, budget: int) -> Dict
 	]
 	var hemmed: Dictionary = combat.hemmed_tiles(mover)
 	var refused: Dictionary = combat.false_ground_for(mover)
+	var passing: Dictionary = combat.illusions_to_pass(mover)
 	var costs := {start: 0}
 	var frontier := [start]
 	while not frontier.is_empty():
@@ -3696,7 +3754,7 @@ func _reachable_by_size(mover: Dictionary, start: Vector2i, budget: int) -> Dict
 		frontier.remove_at(best)
 		for offset in NEIGHBOR_OFFSETS:
 			var neighbor: Vector2i = current + offset
-			if not combat.room_for(mover, neighbor):
+			if not combat.room_for(mover, neighbor, true, passing):
 				continue
 			if not refused.is_empty() and Combat.tiles_of(mover, neighbor).any(func(tile): return refused.has(tile)):
 				continue
@@ -3706,4 +3764,7 @@ func _reachable_by_size(mover: Dictionary, start: Vector2i, budget: int) -> Dict
 			if not costs.has(neighbor) or cost < costs[neighbor]:
 				costs[neighbor] = cost
 				frontier.append(neighbor)
+	for anchor in costs.keys():
+		if anchor != start and _in_an_illusion(mover, anchor, passing):
+			costs.erase(anchor)
 	return costs

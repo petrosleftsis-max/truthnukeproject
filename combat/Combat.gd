@@ -1387,6 +1387,8 @@ func threat_map(side: int = Group.PLAYERS) -> Dictionary:
 	var believed := ai_believes
 	ai_believes = true
 	_believer_side = Group.ENEMIES if side == Group.PLAYERS else Group.PLAYERS
+	var mind_was := _believer
+	_believer = {}
 	var threat := {}
 	var reaction := {}
 	var across := {}
@@ -1394,6 +1396,7 @@ func threat_map(side: int = Group.PLAYERS) -> Dictionary:
 	for enemy in combatants:
 		if not enemy.alive or enemy.side == side or is_hidden(enemy):
 			continue
+		_believer = enemy
 		# Their turn is judged as they will be when it comes: anything set to
 		# wear off as it starts, with nothing left, is left out - a Run still on
 		# them from their last turn does not double this one, and a Blind about
@@ -1425,6 +1428,10 @@ func threat_map(side: int = Group.PLAYERS) -> Dictionary:
 			# go twenty tiles - and the sight lines are the expensive part.
 			var aimed := {}
 			sight.stand_aside(enemy)
+			# What they have seen through stops nothing, for them.
+			var seen_past := _illusions_seen_through_by(enemy)
+			for thing in seen_past:
+				sight.stand_aside(thing)
 			for skill in skills:
 				var far = maxi(effective_max_range(enemy, skill), 0)
 				var near = skill.min_range if skill.respects_blocking else 0
@@ -1448,6 +1455,10 @@ func threat_map(side: int = Group.PLAYERS) -> Dictionary:
 						landing = landing.merged(_spread(standing, radius))
 				theirs.merge(landing)
 			sight.stand_back(enemy)
+			_believer = {}
+			for thing in seen_past:
+				sight.stand_back(thing)
+			_believer = enemy
 			var own := floor_of(enemy.position)
 			for tile in theirs:
 				threat[tile] = threat.get(tile, 0) + 1
@@ -1505,6 +1516,7 @@ func threat_map(side: int = Group.PLAYERS) -> Dictionary:
 			for tile in _reach_across_floors(enemy, skill, far):
 				reaction[tile] = true
 	ai_believes = believed
+	_believer = mind_was
 	return {"threat": threat, "reaction": reaction, "across": across}
 
 
@@ -1768,6 +1780,8 @@ func board_fingerprint(walker: Dictionary) -> String:
 			comb.get("secondary_used_this_turn", false), comb.get("spell_slots", []),
 			comb.get("studied", false), comb.get("studied_by", []), comb.get("movement_class", 0),
 			working,
+			# What somebody saw through as they walked, they saw: no walking that back.
+			comb.get("sees_through", {}).size(),
 		])
 	return str(parts)
 
@@ -4003,8 +4017,16 @@ func wear_disguise(comb: Dictionary):
 func _summon_all(caster: Dictionary, effect: EffectDefinition, tile: Vector2i, skill: SkillDefinition):
 	if effect.summon_across > 0:
 		var tiles: Array = wall_tiles(caster, effect, tile, _wall_ends_at)
+		var first := -1
 		for there in tiles:
-			_lay_wall_piece(summon(caster, effect, there, skill, true), tiles, there)
+			var piece := summon(caster, effect, there, skill, true)
+			if piece.is_empty():
+				continue
+			# One wall, however many tiles: seen through whole ("Seen through, one by one").
+			if first < 0:
+				first = piece.get("id", -1)
+			piece["one_illusion"] = first
+			_lay_wall_piece(piece, tiles, there)
 	else:
 		for each in effect.summon_count:
 			summon(caster, effect, tile, skill)
@@ -4192,7 +4214,7 @@ func false_ground_for(mover: Dictionary) -> Dictionary:
 	if not _zones_laid or terrain_class(mover) == 1 or _seen_through.get(mover.side, false):
 		return tiles
 	for zone in zones:
-		if zone.get("false_ground", false) and zone.side != mover.side and not zone.caught.has(mover.get("id", -1)):
+		if zone.get("false_ground", false) and zone.side != mover.side and not zone.caught.has(mover.get("id", -1)) and not sees_through(mover, zone):
 			for tile in zone.tiles:
 				tiles[tile] = true
 	return tiles
@@ -4203,7 +4225,7 @@ func on_false_ground(comb: Dictionary, tile: Vector2i) -> bool:
 	if not _zones_laid or comb.is_empty() or terrain_class(comb) == 1 or _seen_through.get(comb.get("side", -1), false):
 		return false
 	for zone in zones:
-		if zone.get("false_ground", false) and zone.side != comb.get("side", -1) and tile in zone.tiles:
+		if zone.get("false_ground", false) and zone.side != comb.get("side", -1) and tile in zone.tiles and not sees_through(comb, zone):
 			return true
 	return false
 
@@ -4216,9 +4238,19 @@ func _false_ground_holds():
 			var there := _combatant_by_id(id)
 			return there.get("alive", false) and tiles_of(there).any(func(tile): return tile in zone.tiles))
 		for comb in combatants:
-			if comb.get("alive", false) and comb.has("position") and not comb.has("object") and not comb.get("illusion", false) \
-					and comb.get("side", -1) != zone.side and terrain_class(comb) != 1 and not zone.caught.has(comb.get("id", -1)) \
-					and tiles_of(comb).any(func(tile): return tile in zone.tiles):
+			if not comb.get("alive", false) or not comb.has("position") or comb.has("object") or comb.get("illusion", false) or terrain_class(comb) == 1:
+				continue
+			var id: int = comb.get("id", -1)
+			if not tiles_of(comb).any(func(tile): return tile in zone.tiles):
+				zone.stood.erase(id)
+				continue
+			# Each step onto it, or across it, gives it away afresh, to whoever can see that step.
+			var stepped: bool = zone.stood.get(id, NO_AREA) != comb.position
+			zone.stood[id] = comb.position
+			if comb.get("side", -1) == zone.side or sees_through(comb, zone):
+				if stepped:
+					_gives_away(zone, comb, comb.position)
+			elif not zone.caught.has(id):
 				update_information.emit("[color=red]%s[/color] stands on the false ground, unharmed.\n" % comb.name)
 				_zone_fades(zone, "is seen for what it is")
 				break
@@ -4705,10 +4737,15 @@ func _up_to_a_total(attacker: Dictionary, skill: SkillDefinition, targets: Array
 ## The living combatant standing on `position`, or an empty Dictionary if
 ## the tile is unoccupied.
 func get_combatant_at(position: Vector2i) -> Dictionary:
+	var illusion := {}
 	for comb in combatants:
 		if comb.alive and covers(comb, position):
+			# Somebody caught partway through a Phantom Wall is who is there, not the wall.
+			if comb.has("object") and comb.get("illusion", false):
+				illusion = comb
+				continue
 			return comb
-	return {}
+	return illusion
 
 
 ## --- Size and room ---
@@ -4809,7 +4846,7 @@ static func rect_gap(a: Rect2i, b: Rect2i) -> int:
 ##
 ## `ground` false leaves the ground out of it, asking only about others - for an
 ## encounter's own spawns, which its editor has already checked the ground for.
-func room_for(comb: Dictionary, anchor: Vector2i, ground: bool = true) -> bool:
+func room_for(comb: Dictionary, anchor: Vector2i, ground: bool = true, passing: Dictionary = {}) -> bool:
 	var sharing := Sizes.shares(comb.get("size", Sizes.Size.HUMAN))
 	var here: int = floor_of(anchor) if _floored else -1
 	for tile in tiles_of(comb, anchor):
@@ -4818,6 +4855,9 @@ func room_for(comb: Dictionary, anchor: Vector2i, ground: bool = true) -> bool:
 		# A square on one floor, not straddling the gap to the next.
 		if ground and here >= 0 and floor_of(tile) != here:
 			return false
+		# Only going through it, an illusion that is nothing to them takes no room (illusions_to_pass).
+		if passing.has(tile):
+			continue
 		var used := 0
 		for other in combatants_at(tile):
 			if other == comb:
@@ -5738,9 +5778,11 @@ func _advance_turn():
 		# Still their mind being made up (ai_believes).
 		ai_believes = true
 		_believer_side = ending.get("side", Group.ENEMIES)
+		_believer = ending
 		_ai_consider_ready(ending)
 		_ai_consider_lying_down(ending)
 		ai_believes = false
+		_believer = {}
 	if ending.alive:
 		end_of_turn_effects(ending)
 		_zones_at_turn_end(ending)
@@ -7956,6 +7998,8 @@ var ai_believes := false
 ## Whose mind it is, while ai_believes: the side deciding. An illusion is real
 ## to the other side of whoever made it, never to its own (believes_illusion).
 var _believer_side: int = Group.ENEMIES
+## And who, where it is somebody in particular: what they have seen through is nothing to them.
+var _believer: Dictionary = {}
 
 
 ## Whether the party's mind is being made up - the player aiming a skill
@@ -7966,12 +8010,136 @@ func party_believes() -> bool:
 		and controller._skill_selected and controller.player_turn
 
 
+## --- Seen through, one by one ---
+##
+## ("if a player character passes by them, whoever enemy "saw that" by having it happen in their line of sight, or
+## if they are cunning or higher smarts, have those enemies "see through" the illusion and ignore it"; "by them i
+## mean the phantom wall, but other illusions like the floor illusion should also work like that"; "lets lower the
+## smarts requirment to trained"; the designer, 2026-11-07.)
+##
+## An illusion stops nobody of the side that made it: they walk through it (illusions_to_pass), though nobody can
+## stop on one, since somebody is there as far as the board goes. Going through one in front of the other side gives
+## it away (_gives_away; from the controller's step, illusions_stepped_through, or a step on false ground,
+## _false_ground_holds): to each who sees it happen, by their own sight and as they believe it, and to anybody
+## Trained or smarter (SEES_THROUGH_FROM), wherever they stand. Somebody hidden from them gives nothing away, nor does anybody going over
+## it in the air. It is that illusion, for that creature (comb.sees_through, by _illusion_key: a wall is all of its
+## pieces, what a tether holds all it holds, and the next one fools them again). From then on it is nothing to them:
+## they see past it, walk through it, and leave it alone (not_fooled_by, believes_illusion through _believer). They give
+## it away by walking through it, too. None of it is rolled, so a replayed fight agrees.
+
+## How smart somebody has to be to work it out, whether or not they saw it.
+const SEES_THROUGH_FROM := CombatantDefinition.AiSmarts.TRAINED
+
+
+## What it is, for whoever has seen through it: a false ground's zone, a wall, what one tether holds, or itself.
+static func _illusion_key(illusion: Dictionary) -> String:
+	if illusion.has("false_ground"):
+		return "zone%d" % illusion.get("id", -1)
+	if illusion.has("one_illusion"):
+		return "wall%d" % illusion.one_illusion
+	if illusion.has("tether_of"):
+		return "tether%d" % illusion.tether_of
+	return "thing%d" % illusion.get("id", -1)
+
+
+## Whether `viewer` in particular has seen through `illusion`.
+func sees_through(viewer: Dictionary, illusion: Dictionary) -> bool:
+	var seen: Dictionary = viewer.get("sees_through", {})
+	return not seen.is_empty() and seen.has(_illusion_key(illusion))
+
+
+## Whether `illusion` is nothing to `viewer`: their own side's, or seen for what it is.
+func not_fooled_by(viewer: Dictionary, illusion: Dictionary) -> bool:
+	return illusion.get("side", -1) == viewer.get("side", -2) or _seen_through.get(viewer.get("side", -1), false) or sees_through(viewer, illusion)
+
+
+## The illusions on the board `viewer` has seen through themselves.
+func _illusions_seen_through_by(viewer: Dictionary) -> Array:
+	if viewer.get("sees_through", {}).is_empty():
+		return []
+	return combatants.filter(func(thing): return thing.get("alive", false) and thing.get("illusion", false) and sees_through(viewer, thing))
+
+
+## The tiles `mover` can walk through but not stop on: an illusion that is nothing to them there, and nobody real.
+func illusions_to_pass(mover: Dictionary) -> Dictionary:
+	var tiles := {}
+	if mover.is_empty() or not mover.has("side"):
+		return tiles
+	for thing in combatants:
+		if thing.get("alive", false) and thing.get("illusion", false) and not is_same(thing, mover) and not_fooled_by(mover, thing):
+			for tile in tiles_of(thing):
+				tiles[tile] = true
+	if tiles.is_empty():
+		return tiles
+	for other in combatants:
+		if other.get("alive", false) and not is_same(other, mover) and not (other.get("illusion", false) and not_fooled_by(mover, other)):
+			for tile in tiles_of(other):
+				tiles.erase(tile)
+	return tiles
+
+
+## `walker` has stepped on `tile` (CController._handle_step_arrival): any illusion there is given away.
+func illusions_stepped_through(walker: Dictionary):
+	if terrain_class(walker) == 1:
+		return
+	for tile in tiles_of(walker):
+		for thing in combatants_at(tile):
+			if thing.get("illusion", false) and not is_same(thing, walker):
+				_gives_away(thing, walker, tile)
+
+
+## Whether `comb` sees what happens on `tile`, as they believe things to be: the rest of a wall still stops their eyes.
+func _sees_it_happen(comb: Dictionary, tile: Vector2i, walker: Dictionary) -> bool:
+	var cap: int = condition_range_cap(comb)
+	if cap > 0 and distance_to(comb, tile) > cap:
+		return false
+	var believed := ai_believes
+	var side := _believer_side
+	var mind := _believer
+	ai_believes = true
+	_believer_side = comb.get("side", Group.ENEMIES)
+	_believer = comb
+	var sees := sees_tile(comb, tile, walker)
+	ai_believes = believed
+	_believer_side = side
+	_believer = mind
+	return sees
+
+
+## `walker` goes through `illusion` at `tile`: whoever sees it, and whoever is sharp enough, stops believing in it.
+func _gives_away(illusion: Dictionary, walker: Dictionary, tile: Vector2i):
+	var key := _illusion_key(illusion)
+	var called: String = illusion.name if illusion.has("false_ground") else (illusion.object.name if illusion.has("object") else illusion.get("base_name", illusion.get("name", "it")))
+	# Said once, for all of them.
+	var names: Array = []
+	for comb in combatants:
+		if not comb.get("alive", false) or comb.has("object") or comb.get("illusion", false) or not comb.has("position") or is_same(comb, walker):
+			continue
+		if comb.get("side", -1) == illusion.get("side", -1) or not ai_plays(comb) or comb.get("sees_through", {}).has(key) or _seen_through.get(comb.get("side", -1), false):
+			continue
+		# Hidden from them, there was nothing to see. Stunned or asleep, nobody is looking.
+		if hidden_from(comb, walker) or has_restriction(comb, "skips_turn"):
+			continue
+		var sharp: bool = comb.get("ai_smarts", CombatantDefinition.AiSmarts.TRAINED) >= SEES_THROUGH_FROM
+		if not sharp and not _sees_it_happen(comb, tile, walker):
+			continue
+		var seen: Dictionary = comb.get("sees_through", {})
+		seen[key] = true
+		comb["sees_through"] = seen
+		if not unseen_by_party(comb):
+			names.append(comb.name)
+			float_number(comb, "Sees through it", Color("f4e7a1"))
+	if not names.is_empty():
+		update_information.emit("[color=red]%s[/color] %s through the [color=lightgreen]%s[/color].\n" % [", ".join(names), "sees" if names.size() == 1 else "see", called])
+
+
 ## Whether `thing` - an image, Illusory Cover - is real to whoever's mind is
 ## being made up just now: the other side's, never its own. When nobody's is
 ## (something happening), it stops nothing.
 func believes_illusion(thing: Dictionary) -> bool:
 	if ai_believes:
-		return thing.get("side", -1) != _believer_side and not _seen_through.get(_believer_side, false)
+		return thing.get("side", -1) != _believer_side and not _seen_through.get(_believer_side, false) \
+			and not sees_through(_believer, thing)
 	if party_believes():
 		return thing.get("side", -1) != Group.PLAYERS
 	return false
@@ -9142,6 +9310,8 @@ func ai_process(comb: Dictionary):
 	var believed := ai_believes
 	ai_believes = true
 	_believer_side = comb.get("side", Group.ENEMIES)
+	var mind_was := _believer
+	_believer = comb
 	var thinking := _ai_thinker
 	_ai_thinker = comb
 	_ai_take_orders(comb)
@@ -9151,6 +9321,7 @@ func ai_process(comb: Dictionary):
 	await _ai_turn(comb)
 	_ai_thinker = thinking
 	ai_believes = believed
+	_believer = mind_was
 
 
 func _ai_turn(comb: Dictionary):
@@ -9251,7 +9422,7 @@ func find_nearest_enemy_of(comb: Dictionary) -> Dictionary:
 		# Hidden is not "harder to hit" - it is not being there. Nor is up on
 		# somebody (Climb). Nor an image, to whoever has seen through them.
 		if not candidate.alive or hidden_from(comb, candidate) or candidate.has("riding") \
-				or (candidate.get("illusion", false) and _seen_through.get(comb.get("side", -1), false)):
+				or (candidate.get("illusion", false) and not_fooled_by(comb, candidate)):
 			continue
 		var distance = get_distance(comb, candidate)
 		if distance < best_distance:
@@ -10193,8 +10364,8 @@ func ai_worth_table(comb: Dictionary, skill: SkillDefinition) -> Dictionary:
 	for other in combatants:
 		if not other.alive:
 			continue
-		# Seen through, an image is nothing to aim at ("Ways of its own").
-		if saw_through and other.get("illusion", false) and other.get("side", -1) != comb.get("side", -2):
+		# Seen through, an image is nothing to aim at ("Ways of its own", "Seen through, one by one").
+		if other.get("illusion", false) and other.get("side", -1) != comb.get("side", -2) and (saw_through or sees_through(comb, other)):
 			continue
 		# Up on somebody (Climb), nobody can reach them.
 		if other.has("riding"):
@@ -10614,7 +10785,7 @@ func _ai_most_wanted(comb: Dictionary, skill_keys: Array) -> Dictionary:
 		if not _ai_plannable(comb, skill):
 			continue
 		for other in combatants:
-			if not other.alive or other.side == comb.side or hidden_from(comb, other) or (saw_through and other.get("illusion", false)):
+			if not other.alive or other.side == comb.side or hidden_from(comb, other) or (other.get("illusion", false) and (saw_through or sees_through(comb, other))):
 				continue
 			var value = ai_target_value(comb, other, skill)
 			if value > best_value:
@@ -11595,8 +11766,11 @@ func plan_intent(comb: Dictionary) -> Dictionary:
 	var believed := ai_believes
 	ai_believes = true
 	_believer_side = comb.get("side", Group.ENEMIES)
+	var mind_was := _believer
+	_believer = comb
 	var plan := _plan_intent(comb)
 	ai_believes = believed
+	_believer = mind_was
 	return plan
 
 
@@ -12054,7 +12228,7 @@ func _ai_ground_map(comb: Dictionary) -> Dictionary:
 		for zone in zones:
 			# Deadly, to whoever believes it: that takes no knowing.
 			if zone.get("false_ground", false):
-				if zone.side != side and terrain_class(comb) != 1 and not _seen_through.get(side, false):
+				if zone.side != side and terrain_class(comb) != 1 and not _seen_through.get(side, false) and not sees_through(comb, zone):
 					for tile in zone.tiles:
 						map[tile] = map.get(tile, 0.0) - AI_BAD_GROUND * 2.0
 				continue
@@ -15284,6 +15458,8 @@ func lay_zone(caster: Dictionary, effect: EffectDefinition, tiles: Array, skill:
 		"follows": effect.zone_follows_caster, "moves": effect.zone_moves, "colour": effect.zone_colour,
 		# Ground the other side takes for deadly ("False Ground"), and who stood there already.
 		"false_ground": effect.zone_false_ground, "caught": _standing_on(tiles, caster)})
+	if effect.zone_false_ground:
+		zones.back()["stood"] = _where_they_stand_on(tiles)
 	_zones_now.append(zones.back())
 	# Seen spreading out from where it came down (MoveFeel).
 	MoveFeel.zone_spreads(self, _next_zone_id, _landing_at if _landing_at != NO_AREA else tiles[0], tiles)
@@ -15296,6 +15472,15 @@ func lay_zone(caster: Dictionary, effect: EffectDefinition, tiles: Array, skill:
 
 
 ## The ids of everybody of the other side from `caster` standing on `tiles`.
+## Who stands on `tiles` now, and where: {id: tile}. Standing where they stood gives nothing away.
+func _where_they_stand_on(tiles: Array) -> Dictionary:
+	var found := {}
+	for comb in combatants:
+		if comb.get("alive", false) and comb.has("position") and tiles_of(comb).any(func(tile): return tile in tiles):
+			found[comb.get("id", -1)] = comb.position
+	return found
+
+
 func _standing_on(tiles: Array, caster: Dictionary) -> Array:
 	var found := []
 	for comb in combatants:

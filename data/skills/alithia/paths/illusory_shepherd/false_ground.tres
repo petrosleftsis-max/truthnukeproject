@@ -15,7 +15,7 @@ zone_colour = Color(0.62, 0.3, 0.75, 0.32)
 [resource]
 script = ExtResource("3_skill")
 name = "False Ground"
-description = "The ground where she points looks deadly to the other side, and they will not step on it. Whoever stands there already walks off it. It does nothing at all, and if one of them ends up on it some other way, shoved or thrown, they see it for what it is and it is gone. It lasts as long as she holds the tether."
+description = "The ground where she points looks deadly to the other side, and they will not step on it. Whoever stands there already walks off it. It does nothing at all. Her side walks on it freely, and whoever of the other side sees that happen sees through it and ignores it from then on, as does anybody with more than instinct to go on, wherever they are. If one of them ends up on it some other way, shoved or thrown, they all see it for what it is and it is gone. It lasts as long as she holds the tether."
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 impact_look = 19

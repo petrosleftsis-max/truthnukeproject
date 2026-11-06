@@ -1133,7 +1133,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Settings: can_be_copied: false; impact_look: Shards Gather; tethered: true; tether_strength: 200
 - **False Ground** (`false_ground`) - level 14; spell, Gates of Pandora; main action; range 1-8; ranged; area: Diamond 3; no damage
   - Who has it: Illusory Shepherd path
-  - Says: The ground where she points looks deadly to the other side, and they will not step on it. Whoever stands there already walks off it. It does nothing at all, and if one of them ends up on it some other way, shoved or thrown, they see it for what it is and it is gone. It lasts as long as she holds the tether.
+  - Says: The ground where she points looks deadly to the other side, and they will not step on it. Whoever stands there already walks off it. It does nothing at all. Her side walks on it freely, and whoever of the other side sees that happen sees through it and ignores it from then on, as does anybody with more than instinct to go on, wherever they are. If one of them ends up on it some other way, shoved or thrown, they all see it for what it is and it is gone. It lasts as long as she holds the tether.
   - Effect: {type: Zone; zone_for: The other side; zone_turns: 20; zone_colour: (0.62, 0.3, 0.75, 0.32); zone_false_ground: true}
   - Settings: impact_look: Shards Gather; tethered: true; tether_strength: 200
 - **Four Reflections** (`four_reflections`) - level 8; spell, Gates of Hermes; main action; range 0-0; ranged; single target; aimed at allies; no damage
@@ -1179,7 +1179,7 @@ Sorted the way the game's folders sort them: common to the party, each character
   - Settings: impact_look: Ripples; outside_gate: Gates of Iris; out_of_combat: true; lure_tiles: 10.0; outside_use: Lure
 - **Phantom Wall** (`phantom_wall`) - level 8; spell, Gates of Hermes; main action; range 1-8; ranged; single target; no damage
   - Who has it: Illusory Shepherd path
-  - Says: A wall up to five tiles long, from where she points first to where she points next, straight or diagonal, that only the other side believes in: they cannot see past it or walk through it. Her side shoots straight through it, though they have to walk round it too. It lasts as long as she holds the tether.
+  - Says: A wall up to five tiles long, from where she points first to where she points next, straight or diagonal, that only the other side believes in: they cannot see past it or walk through it. Her side shoots and walks straight through it, though nobody can stop on it. Whoever of the other side sees that happen sees through the wall and ignores it from then on, and so does anybody with more than instinct to go on, wherever they are. It lasts as long as she holds the tether.
   - Effect: {type: Summon; summons: "phantom_wall"; summon_across: 2}
   - Settings: can_be_copied: false; impact_look: Shards Gather; tethered: true
 - **Reality's Reflection** (`realitys_reflection`) - level 61; spell, Gates of Yaldabaoth; main action; range 0-8; ranged; area: Diamond 3; aimed at allies; no damage
@@ -2376,7 +2376,7 @@ Sorted the way the game's folders sort them: common to the party, each character
 
 ### Phantom Wall (`phantom_wall`)
 
-- Settings: interactable: false; breakable: true; wall: true; illusion: true; illusion_stops_light: true; glossary_text: "A wall that is not there: Alithia's illusion. The other side cannot see past it or walk through it, and nothing can hit it. Her own side shoots through it. Dispel Magic ends it."; max_hp_level_20: 1
+- Settings: interactable: false; breakable: true; wall: true; illusion: true; illusion_stops_light: true; glossary_text: "A wall that is not there: Alithia's illusion. The other side cannot see past it or walk through it, and nothing can hit it. Her own side shoots and walks through it, and whoever of the other side sees that sees through it. Dispel Magic ends it."; max_hp_level_20: 1
 
 ### Powder Keg (`powder_keg`)
 
@@ -2427,6 +2427,7 @@ These are settled; suggestions should work within them.
 **Illusions, zones and dispelling**
 
 - **Illusions work for both sides.** An enemy's images and zones fool the party as the party's fool them.
+- **Seen through, one by one (2026-11-07):** an illusion's own side walks through it, though nobody can stop on a wall. Going through one, a Phantom Wall or False Ground, gives it away to each of the other side who sees it, and to anybody Trained or smarter wherever they are. They then ignore that one illusion. The next one fools them again.
 - **Images:** while one of the party's images and its maker stand, everybody in the party can be invisible at once. The last image breaking reveals the maker. The maker falling reveals everybody.
 - **Unseen zones:** the invisibility zone (Reality's Reflection) is unseen by the other side, and does not vanish when somebody in it is revealed.
 - **Dispel Magic** reaches only what came through its own gate or a shallower one. Summons such as the Kindled Hound are dispellable, because a spell made them.

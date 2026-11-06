@@ -36,6 +36,7 @@ These are settled; suggestions should work within them.
 **Illusions, zones and dispelling**
 
 - **Illusions work for both sides.** An enemy's images and zones fool the party as the party's fool them.
+- **Seen through, one by one (2026-11-07):** an illusion's own side walks through it, though nobody can stop on a wall. Going through one, a Phantom Wall or False Ground, gives it away to each of the other side who sees it, and to anybody Trained or smarter wherever they are. They then ignore that one illusion. The next one fools them again.
 - **Images:** while one of the party's images and its maker stand, everybody in the party can be invisible at once. The last image breaking reveals the maker. The maker falling reveals everybody.
 - **Unseen zones:** the invisibility zone (Reality's Reflection) is unseen by the other side, and does not vanish when somebody in it is revealed.
 - **Dispel Magic** reaches only what came through its own gate or a shallower one. Summons such as the Kindled Hound are dispellable, because a spell made them.

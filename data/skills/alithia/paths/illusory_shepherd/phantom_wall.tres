@@ -14,7 +14,7 @@ summon_across = 2
 [resource]
 script = ExtResource("3_skill")
 name = "Phantom Wall"
-description = "A wall up to five tiles long, from where she points first to where she points next, straight or diagonal, that only the other side believes in: they cannot see past it or walk through it. Her side shoots straight through it, though they have to walk round it too. It lasts as long as she holds the tether."
+description = "A wall up to five tiles long, from where she points first to where she points next, straight or diagonal, that only the other side believes in: they cannot see past it or walk through it. Her side shoots and walks straight through it, though nobody can stop on it. Whoever of the other side sees that happen sees through the wall and ignores it from then on, and so does anybody with more than instinct to go on, wherever they are. It lasts as long as she holds the tether."
 min_range = 1
 max_range = 8
 icon = ExtResource("2_icon")

@@ -104,6 +104,9 @@ holds the game for both).
     seen going by, and a stage to look at all of it.
   - Phantom Wall is placed by two points, along eight directions, up to its length of five, and is drawn along
     the line it was placed on, a diagonal corner to corner.
+  - Illusions are seen through one by one: her side walks through a Phantom Wall or across False Ground, and whoever
+    of the other side sees that, and anybody Trained or smarter, ignores that illusion from then on (Combat "Seen
+    through, one by one").
   - A fight with nobody in it no longer starts: a ward that is sure, with nobody left who would fight, raises the
     alert once instead.
   - Going without tiles: three sizes of it in `docs/proposals_2026-11-07.md` section 13. Nothing built.
