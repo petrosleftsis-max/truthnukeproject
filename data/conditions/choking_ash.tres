@@ -8,3 +8,6 @@ display_name = "Choking Ash"
 description = "Ash in the throat and eyes: everything they do is less likely to land."
 duration = 1
 accuracy_change = -15
+figure_tint = Color(0.55, 0.55, 0.55, 0.3)
+figure_priority = 2
+arrival_word = "Choking!"

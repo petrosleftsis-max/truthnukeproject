@@ -104,7 +104,7 @@ const DISCOVERY_PORT := 24701
 const BEACON := "MOT-HOST"
 ## What the two machines say to each other. Bumped whenever that changes; a
 ## joiner with another is turned away.
-const PROTOCOL := 9
+const PROTOCOL := 10
 const BEACON_SECONDS := 1.0
 ## How long a game goes unheard before the Join list forgets it.
 const FORGET_SECONDS := 4.0
@@ -1455,6 +1455,21 @@ func time_passes(minutes: int, seconds: float):
 func _time_passes(minutes, seconds):
 	if follows() and typeof(minutes) == TYPE_INT and typeof(seconds) == TYPE_FLOAT and minutes > 0 and seconds > 0.0 and seconds <= 60.0:
 		Campaign.play_time_passing(minutes, seconds)
+
+
+## A flare has gone up on the host's map (ExplorationScene.flare_up): on the other machine's too.
+func flare_there(at: Vector2, seconds: float):
+	if is_host() and with_another():
+		_flare_there.rpc(at, seconds)
+
+
+@rpc("authority", "reliable")
+func _flare_there(at, seconds):
+	if not follows() or typeof(at) != TYPE_VECTOR2 or typeof(seconds) != TYPE_FLOAT or seconds <= 0.0 or seconds > 600.0:
+		return
+	var scene = get_tree().current_scene
+	if scene != null and scene.has_method("flare_up"):
+		scene.flare_up(at, seconds)
 
 
 ## Whether a move of the other machine's is being played here just now.

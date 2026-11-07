@@ -8,3 +8,5 @@ display_name = "Distracted"
 tag = "Ds"
 description = "They heard something: as their next turn starts they walk towards it as far as they can, then carry on."
 duration = 1
+round_them = 9
+figure_priority = 2

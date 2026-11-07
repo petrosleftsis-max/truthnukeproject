@@ -10,3 +10,5 @@ description = "Every gate open at once: this turn his spells cost no gate, and c
 duration = 1
 wears_off_at_start = true
 casts_freely = true
+off_them = 5
+figure_priority = 3

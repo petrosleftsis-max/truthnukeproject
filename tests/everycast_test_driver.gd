@@ -186,6 +186,9 @@ func run_test():
 		# them.
 		if Combat.sets_traps(skill) or skill.effects.any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.CATALYST):
 			continue
+		# Shadow Step wants the dark, and this lane is lit - the lightspells suite plays it.
+		if skill.only_in_shadow:
+			continue
 		# Dispel Magic undoes what spells left, and here nobody has anything on
 		# them - the dispel suite plays it.
 		if Combat.dispels_magic(skill):

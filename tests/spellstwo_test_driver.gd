@@ -92,7 +92,7 @@ func open_fight(paths: Dictionary = {}):
 		Campaign.choose_subclass(key, paths[key])
 	Campaign.current_map = "res://maps/crossroads_explore.tscn"
 	Campaign.return_to_position = true
-	Campaign.learned_spells = {"prometheus": ["turn_aside", "flame_fan", "storm_cloud", "light_void", "ravenous_dark", "unveil", "cling", "crystalise"]}
+	Campaign.learned_spells = {"prometheus": ["turn_aside", "flame_fan", "storm_cloud", "light_void", "ravenous_dark", "flare", "cling", "crystalise"]}
 	Campaign.current_encounter = load(WATCHER)
 	game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
@@ -479,8 +479,15 @@ func ravenous_dark():
 	log_line("")
 
 
+## Nowhere to Hide stops anybody going invisible in her sight, in a bright place. These are about the rest.
+func without_nowhere_to_hide():
+	var alithia := who("alithia")
+	alithia.passives = alithia.passives.filter(func(passive): return not passive.nowhere_to_hide_tiles > 0)
+
+
 func unveiling():
-	log_line("======== Unveil and Votive Flame ========")
+	log_line("======== Flare and Votive Flame ========")
+	without_nowhere_to_hide()
 	var prometheus := who("prometheus")
 	var the_foes := foes()
 	var unseen: Dictionary = the_foes[0]
@@ -491,9 +498,9 @@ func unveiling():
 	combat.set_hidden(hidden, true)
 	ok(combat.is_invisible(unseen) and combat.is_hidden(hidden), "one invisible, one hidden")
 	await their_turn(prometheus)
-	await combat.use_skill("unveil", prometheus, unseen.position, false)
+	await combat.use_skill("flare", prometheus, unseen.position, false)
 	await settle()
-	ok(not combat.is_hidden(unseen) and not combat.is_invisible(unseen), "Unveil: the invisible is seen")
+	ok(not combat.is_hidden(unseen) and not combat.is_invisible(unseen), "Flare: the invisible is seen")
 	ok(not combat.is_hidden(hidden), "and the hidden")
 	# Votive Flame reveals whoever it hits.
 	var alithia := who("alithia")
@@ -632,6 +639,7 @@ func composure_and_sight():
 	# Clear Sight.
 	var spell: SkillDefinition = SkillDatabase.skills.clear_sight
 	ok(spell.is_secondary and spell.spell_slot_level == 2, "Clear Sight: Hermes, a secondary action")
+	without_nowhere_to_hide()
 	combat.make_invisible(foe)
 	ok(combat.is_invisible(foe) and combat.hidden_from(alithia, foe), "she cannot see somebody invisible")
 	await their_turn(alithia)

@@ -10,3 +10,5 @@ description = "Accused before everybody: 15% more from every blow, until their n
 duration = 1
 wears_off_at_start = true
 damage_taken_change = 0.15
+round_them = 8
+figure_priority = 2

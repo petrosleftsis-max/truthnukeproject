@@ -13,3 +13,7 @@ dot_min = 3
 dot_max = 4
 prevents_reactions = true
 duration = 5
+figure_tint = Color(0.5, 0.9, 0.35, 0.35)
+off_them = 2
+figure_priority = 3
+arrival_word = "Poisoned!"

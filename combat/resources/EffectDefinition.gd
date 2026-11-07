@@ -350,6 +350,20 @@ enum DispelScope {
 ## How the board tints it. Left clear, by whose it is. A placeholder until there is art.
 ## A zone that gives light from its middle, this many tiles out, the nearer half Bright (Burner's ground).
 @export var zone_light_tiles: float = 0.0
+## How many lights, spread about its middle (Dancing Lights).
+@export var zone_lights: int = 1
+## The colour of its light. No colour at all: by its element.
+@export var zone_light_colour: Color = Color(0, 0, 0, 0)
+## A steady light, not a flame.
+@export var zone_light_steady: bool = false
+## Its light wins over darkness where it lies. Nothing else does: a dark zone is dark whatever lights it (Daylight).
+@export var zone_beats_darkness: bool = false
+## Aimed at somebody of their own side, it goes on their weapon, and goes where they go (Daylight).
+@export var zone_on_a_weapon: bool = false
+## Nothing drawn on the board for its tiles: only its light shows.
+@export var zone_bare: bool = false
+## The secondary action that moves it, if it moves. Empty: Move Cloud.
+@export var zone_moved_by: String = ""
 @export var zone_colour: Color = Color(0, 0, 0, 0)
 ## Ground the other side takes for deadly: whoever the AI plays will not step on it, and whoever
 ## already stands there leaves it. It does nothing at all. If anybody of the other side ends up on it
@@ -413,7 +427,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.CATALYST: ["catalyst_times"],
 	EffectType.ZONE: ["zone_condition", "zone_for", "zone_turns", "zone_unseen", "zone_costly", "zone_cost_spares_fliers", "zone_turn_damage", "damage_type",
 		"zone_heals", "heal_modifier", "heal_flat", "heal_per_stat", "heal_per_weapon", "zone_follows_caster", "zone_moves",
-		"zone_hurts_everybody", "zone_hurts_each_step", "zone_leaves_conditions", "zone_melee_sweeps", "zone_blows_out", "zone_colour", "zone_light_tiles", "zone_false_ground"],
+		"zone_hurts_everybody", "zone_hurts_each_step", "zone_leaves_conditions", "zone_melee_sweeps", "zone_blows_out", "zone_colour", "zone_light_tiles", "zone_lights", "zone_light_colour", "zone_light_steady", "zone_beats_darkness", "zone_on_a_weapon", "zone_bare", "zone_moved_by", "zone_false_ground"],
 	# Nothing to configure: how deep it reaches is the gate it is cast through.
 	EffectType.DISPEL_MAGIC: [],
 	EffectType.FAMILIAR: [],

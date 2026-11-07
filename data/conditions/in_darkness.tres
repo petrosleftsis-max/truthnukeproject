@@ -9,3 +9,4 @@ tag = "Dk"
 description = "Standing in the dark: invisible to whoever cannot see in it, until they act against the other side."
 duration = 1
 is_darkness = true
+figure_no_ring = true

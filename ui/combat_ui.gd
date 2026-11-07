@@ -79,6 +79,9 @@ func _ready():
 	var spells := _spells_toggle()
 	if spells != null:
 		spells.pressed.connect(toggle_spells)
+		# On the same line as the tabs it belongs with.
+		spells.offset_top = $Actions/SkillPanelTabs.offset_top
+		spells.offset_bottom = $Actions/SkillPanelTabs.offset_bottom
 		# Amplify, beside it: the Demolitionist's (Combat.settle_amplify).
 		amplify_toggle = Button.new()
 		amplify_toggle.name = "AmplifyToggle"
@@ -94,7 +97,9 @@ func _ready():
 	_build_undo_button()
 	_build_ready_button()
 	_build_prone_button()
+	_build_turn_block()
 	_style_turn_buttons()
+	_build_grid_button()
 	_pips = ActionPips.new()
 	$Actions.add_child(_pips)
 	_pips.position = PIPS_AT
@@ -126,6 +131,195 @@ func _ready():
 	# the one thing on screen in a battle and on a map alike.
 	if not Campaign.announced.is_connected(update_information):
 		Campaign.announced.connect(update_information)
+	add_to_group(&"ui_scaled")
+	if not is_equal_approx(GameSettings.ui_scale(), 1.0):
+		apply_ui_scale()
+
+
+## --- The buttons for a turn, in one block ---
+##
+## Ready, Go Prone, Undo Move and End Turn were four buttons on their own beside the action panel (the designer's pick of 2026-11-07).
+## A panel behind them makes them one thing. The action grid shows only as many slots as are full; more than it holds go on a shelf
+## that scrolls, as before.
+
+var _turn_block: Panel = null
+
+
+func _build_turn_block():
+	var end_turn: Button = $Actions/EndTurnButton
+	_turn_block = Panel.new()
+	_turn_block.name = "TurnBlock"
+	_turn_block.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := get_theme_stylebox("panel", "PanelContainer")
+	if style != null:
+		_turn_block.add_theme_stylebox_override("panel", style)
+	var top: float = _prone_button.position.y - 8.0
+	_turn_block.position = Vector2(end_turn.position.x - 8.0, top)
+	_turn_block.size = Vector2(end_turn.size.x + 16.0, end_turn.position.y + end_turn.size.y + 8.0 - top)
+	$Actions.add_child(_turn_block)
+	$Actions.move_child(_turn_block, 0)
+
+
+## --- The grid, for anybody who likes to count ---
+##
+## A small button beside the clock in a fight: the lines stay up, faintly, rather than fading away (CController "The board without its
+## squares"). Kept between runs.
+
+var _grid_button: Button = null
+
+
+func _build_grid_button():
+	_grid_button = Button.new()
+	_grid_button.name = "GridButton"
+	_grid_button.text = "Grid"
+	_grid_button.toggle_mode = true
+	_grid_button.focus_mode = Control.FOCUS_NONE
+	_grid_button.button_pressed = GameSettings.grid_always()
+	_grid_button.tooltip_text = "Keep the grid lines up. Off, they show only near the pointer while moving or aiming"
+	_grid_button.add_theme_font_size_override("font_size", 12)
+	_grid_button.anchor_left = CLOCK_AT.x
+	_grid_button.anchor_right = CLOCK_AT.x
+	_grid_button.offset_left = ClockFace.SIZE.x / 2.0 + 6.0
+	_grid_button.offset_right = ClockFace.SIZE.x / 2.0 + 48.0
+	_grid_button.offset_top = ClockFace.TOP_GAP
+	_grid_button.toggled.connect(GameSettings.set_grid_always)
+	_grid_button.add_to_group(Coop.OPEN_TO_ALL)
+	add_child(_grid_button)
+
+
+## --- What is round the turn queue ---
+##
+## "Round 3" over it, since each round starts at its top, and hovering a figure lights their face as hovering a face lights the figure
+## (the designer's pick of 2026-11-07).
+
+var _round_mark: Label = null
+var _lit_face_id := -1
+
+
+func _refresh_round_mark():
+	if _round_mark == null:
+		_round_mark = Label.new()
+		_round_mark.name = "RoundMark"
+		_round_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_round_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_round_mark.add_theme_font_size_override("font_size", 11)
+		_round_mark.add_theme_color_override("font_color", Color("b8c6d6"))
+		add_child(_round_mark)
+	var box: Control = $TurnQueue
+	_round_mark.visible = combat != null and not exploration_mode and not _deployment_mode and not ui_hidden and box.visible and combat.round_number > 0
+	if _round_mark.visible:
+		_round_mark.text = "Round %d" % combat.round_number
+		_round_mark.size = Vector2(box.size.x * box.scale.x, 14.0)
+		_round_mark.position = box.position - Vector2(0.0, 15.0)
+
+
+## Lights the face of `comb`, or none with an empty one, for the pointer being on them on the map (CController._note_hover).
+func light_face_of(comb: Dictionary):
+	var id: int = comb.get("id", -1) if not comb.is_empty() else -1
+	if id == _lit_face_id:
+		return
+	_lit_face_id = id
+	for face in $TurnQueue/Queue.get_children():
+		if face.has_method("set_hovered"):
+			face.set_hovered(id >= 0 and face.get_meta("combatant_id", -2) == id)
+
+
+## --- The moves panel on a map ---
+##
+## Most walking needs none of it, so it stays out of the way until the pointer is at the bottom of the screen, or the key says
+## (`moves_panel`; the designer's pick of 2026-11-07). A pad has no pointer to bring it up with, so while one is in use it stays.
+## Headless it is simply there, for what tests press on it.
+
+const MOVES_COMES_UP_BELOW := 0.68
+const MOVES_FADE_RATE := 6.0
+var moves_held_up := false
+var _moves_hint: Label = null
+
+
+func _tuck_moves_panel(delta: float):
+	var panel = outside_moves
+	if panel == null or not is_instance_valid(panel) or ui_hidden or not LightView.shown():
+		return
+	var wanted: bool = moves_held_up or Pad.using_pad or panel.readying or moves_panel_wanted_here(Pad.screen_point().y)
+	panel.modulate.a = move_toward(panel.modulate.a, 1.0 if wanted else 0.0, delta * MOVES_FADE_RATE)
+	panel.visible = panel.modulate.a > 0.01
+	if _moves_hint == null:
+		_moves_hint = Label.new()
+		_moves_hint.name = "MovesHint"
+		_moves_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_moves_hint.add_theme_font_size_override("font_size", 13)
+		_moves_hint.add_theme_color_override("font_color", Color("b8c6d6"))
+		$Actions.add_child(_moves_hint)
+		_moves_hint.position = OUTSIDE_MOVES_AT + Vector2(4.0, 130.0)
+	_moves_hint.visible = not panel.visible
+	_moves_hint.text = Pad.hint("Moves", &"moves_panel")
+
+
+## Whether the pointer is low enough on the screen to bring the panel up.
+func moves_panel_wanted_here(pointer_y: float) -> bool:
+	return pointer_y > get_viewport_rect().size.y * MOVES_COMES_UP_BELOW
+
+
+## --- The size of it all ---
+##
+## GameSettings.ui_scale, from the Options of the title screen and the pause menu: the HUD of a fight and of a map, bigger or smaller,
+## for a big screen, a small one or a pad from a sofa. Each part keeps to its own corner, and at the biggest the log gets narrower
+## to fit beside the action bar. Conversations and menus keep their size.
+
+var _ui_scale := 1.0
+var _ui_defaults := {}
+var _clock_face: Control = null
+const SCREEN_MARGIN := 8.0
+
+
+func apply_ui_scale():
+	var scale_now: float = GameSettings.ui_scale()
+	_ui_scale = scale_now
+	var actions: Control = $Actions
+	var status: Control = $Status
+	var log_panel: Control = actions.get_node_or_null("Information")
+	var toggle: Control = actions.get_node_or_null("LogToggle")
+	if _ui_defaults.is_empty():
+		_ui_defaults = {"actions": actions.position, "status": status.position,
+			"log": [log_panel.offset_left, log_panel.offset_right], "toggle": [toggle.offset_left, toggle.offset_right]}
+		status.minimum_size_changed.connect(_seat_status)
+	actions.scale = Vector2(scale_now, scale_now)
+	status.scale = Vector2(scale_now, scale_now)
+	if is_equal_approx(scale_now, 1.0):
+		actions.position = _ui_defaults.actions
+		status.position = _ui_defaults.status
+		log_panel.offset_left = _ui_defaults.log[0]
+		log_panel.offset_right = _ui_defaults.log[1]
+		toggle.offset_left = _ui_defaults.toggle[0]
+		toggle.offset_right = _ui_defaults.toggle[1]
+	else:
+		var screen := get_viewport_rect().size
+		var left_edge: float = status.position.x + status.size.x * scale_now + 10.0
+		actions.position = Vector2(left_edge - MOVE_LABEL_LEFT * scale_now, screen.y - 10.0 - 191.0 * scale_now)
+		var right: float = (screen.x - SCREEN_MARGIN - actions.position.x) / scale_now
+		log_panel.offset_right = right
+		log_panel.offset_left = maxf(right - (_ui_defaults.log[1] - _ui_defaults.log[0]), 540.0)
+		toggle.offset_right = right - 5.0
+		toggle.offset_left = right - 31.0
+		_seat_status()
+	if _clock_face != null:
+		_clock_face.pivot_offset = Vector2(ClockFace.SIZE.x / 2.0, 0.0)
+		_clock_face.scale = Vector2(scale_now, scale_now)
+		if _grid_button != null:
+			_grid_button.offset_left = ClockFace.SIZE.x * scale_now / 2.0 + 6.0
+			_grid_button.offset_right = _grid_button.offset_left + 42.0
+	if _hit_preview != null:
+		_hit_preview.scale = Vector2(scale_now, scale_now)
+	if _unit_card != null:
+		_unit_card.scale = Vector2(scale_now, scale_now)
+	_fit_turn_queue()
+
+
+func _seat_status():
+	if is_equal_approx(_ui_scale, 1.0):
+		return
+	var status: Control = $Status
+	status.position.y = get_viewport_rect().size.y - SCREEN_MARGIN - status.get_combined_minimum_size().y * _ui_scale
 
 
 ## --- Taking a walk back ---
@@ -546,9 +740,10 @@ func _fit_turn_queue():
 	var panel := box.get_theme_stylebox("panel")
 	var frame: Vector2 = panel.get_minimum_size() if panel != null else Vector2.ZERO
 	var screen := get_viewport_rect().size
-	var height := minf(faces.y + frame.y, maxf(queue_floor() - QUEUE_TOP, QUEUE_WIDTH))
+	var height := minf(faces.y + frame.y, maxf((queue_floor() - QUEUE_TOP) / _ui_scale, QUEUE_WIDTH))
 	box.size = Vector2(faces.x + frame.x, height)
-	box.position = Vector2(screen.x - box.size.x - QUEUE_EDGE, QUEUE_TOP)
+	box.scale = Vector2(_ui_scale, _ui_scale)
+	box.position = Vector2(screen.x - box.size.x * _ui_scale - QUEUE_EDGE, QUEUE_TOP)
 
 
 ## How far down the queue may reach: to just above where the combat log goes -
@@ -1191,6 +1386,7 @@ func _put_up_the_clock():
 	clock.offset_right = ClockFace.SIZE.x / 2.0
 	clock.offset_top = ClockFace.TOP_GAP
 	add_child(clock)
+	_clock_face = clock
 
 
 ## A tether held on a map (StealthWatch "Tethers, out of a fight"): the bar under each
@@ -1598,6 +1794,12 @@ func end_turn_held() -> bool:
 
 
 func _process(delta):
+	_tuck_moves_panel(delta)
+	if _turn_block != null:
+		_turn_block.visible = not exploration_mode and not _deployment_mode and not ui_hidden
+	if _grid_button != null:
+		_grid_button.visible = not exploration_mode and not _deployment_mode and not ui_hidden
+	_refresh_round_mark()
 	if _end_turn_hold <= 0.0:
 		return
 	# The button is Begin Battle for now: nothing to hold.
@@ -1625,6 +1827,10 @@ func _process(delta):
 ## it cannot end a turn the button would not.
 func _unhandled_input(event):
 	if not event.is_pressed() or event.is_echo():
+		return
+	if event.is_action_pressed(&"moves_panel") and exploration_mode:
+		moves_held_up = not moves_held_up
+		get_viewport().set_input_as_handled()
 		return
 	if not exploration_mode and combat != null and controller != null and _pad_input(event):
 		get_viewport().set_input_as_handled()
@@ -1739,7 +1945,42 @@ func _on_end_turn_button_pressed():
 
 
 func update_information(info: String):
-	$Actions/Information/Text.append_text(info)
+	$Actions/Information/Text.append_text(_by_side(info))
+
+
+## In the log, yellow is the party's side and red the other, whoever is doing what to whom: going by who a name is, not by where
+## in the line it fell. Before this, "Cyrus is blessed by Alithia's presence" had Alithia in red.
+var _named_in_colour: RegEx = null
+
+
+func _by_side(info: String) -> String:
+	if combat == null or not ("[color=yellow]" in info or "[color=red]" in info):
+		return info
+	if _named_in_colour == null:
+		_named_in_colour = RegEx.create_from_string(r"\[color=(yellow|red)\](.+?)\[/color\]")
+	var said := info
+	var found := _named_in_colour.search_all(info)
+	for i in range(found.size() - 1, -1, -1):
+		var hit: RegExMatch = found[i]
+		var side := _side_named(hit.get_string(2))
+		if side < 0:
+			continue
+		var colour := "yellow" if side == Combat.Group.PLAYERS else "red"
+		if colour != hit.get_string(1):
+			said = said.substr(0, hit.get_start()) + "[color=%s]%s[/color]" % [colour, hit.get_string(2)] + said.substr(hit.get_end())
+	return said
+
+
+## The side of whoever is called `who`, the standing first, or -1 for nobody by that name.
+func _side_named(who: String) -> int:
+	var fallen := -1
+	for comb in combat.combatants:
+		if comb.get("name", "") != who or comb.has("object"):
+			continue
+		if comb.get("alive", false):
+			return comb.get("side", -1)
+		fallen = comb.get("side", -1)
+	return fallen
 
 
 ## Force-disables every action button, including End Turn - used right
@@ -1818,6 +2059,7 @@ func set_skill_list(skill_list: Array, skill_used: bool = false, as_secondary: b
 ## The grid and the spell shelves both fill their buttons through this, so the
 ## two can never disagree about when a skill is available.
 func _fill_action(action: Button, skill_key: String, skill_used: bool, as_secondary: bool, tag: String = ""):
+	action.visible = true
 	# There is no CController while exploring - no turn is in progress and
 	# nothing could resolve a skill - so every action button stays disabled.
 	var player_turn = controller.player_turn if controller != null else false
@@ -1903,6 +2145,8 @@ func _empty_action(action: Button, skill_used: bool = true):
 		key_mark.visible = false
 	clear_action_button_connections(action)
 	action.set_meta(SKILL_META, "")
+	# Only as many slots as are full: an empty one looks like something missing.
+	action.visible = false
 
 
 func _finish_action_panel():
@@ -1984,6 +2228,7 @@ func _build_shelves():
 	SkillLook.decorate(_slot_template, null)
 	_slot_template.icon = null
 	_slot_template.tooltip_text = ""
+	_slot_template.visible = true
 	_shelves = SpellShelves.new()
 	# Exactly the grid's size, so the panel does not change shape when the
 	# switch is pressed; what does not fit scrolls.
@@ -2050,6 +2295,8 @@ func _update_spell_slots(comb):
 		for level in wanted:
 			var tag := GateTag.new()
 			tag.name = "Gate%d" % level
+			# Past a few, a letter and its marks, and the name on hovering: at the top levels the row once ran off behind the log.
+			tag.compact = wanted.size() > GATES_NAMED_IN_FULL
 			row.add_child(tag)
 	for tag in row.get_children():
 		if tag is GateTag:
@@ -2058,6 +2305,21 @@ func _update_spell_slots(comb):
 	# A shelf of skills too many for the grid carries no gate tags, so the
 	# counters stay.
 	row.visible = not wanted.is_empty() and not (showing_shelves() and not _shelved_flat)
+	_seat_gate_row.call_deferred()
+
+
+## How many gates still say their names in full.
+const GATES_NAMED_IN_FULL := 5
+## Where the row's foot stays, so that a second line goes up rather than down over the tabs.
+const GATE_ROW_FOOT := 32.0
+
+
+func _seat_gate_row():
+	if not is_inside_tree():
+		return
+	var row: Control = $Actions/SpellSlots
+	row.offset_top = GATE_ROW_FOOT - row.get_combined_minimum_size().y
+	row.offset_bottom = GATE_ROW_FOOT
 
 
 func clear_action_button_connections(action: Button):
@@ -2997,7 +3259,7 @@ func hide_hit_preview():
 func _place_hit_preview():
 	var screen = get_viewport_rect().size
 	var mouse = Pad.screen_point()
-	var size = _hit_preview.get_combined_minimum_size()
+	var size = _hit_preview.get_combined_minimum_size() * _ui_scale
 	var at = mouse + HIT_PREVIEW_OFFSET
 	if at.x + size.x > screen.x:
 		at.x = mouse.x - HIT_PREVIEW_OFFSET.x - size.x

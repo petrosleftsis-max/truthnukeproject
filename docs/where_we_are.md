@@ -28,7 +28,7 @@ there, and Cover Leap gone. Steps 4 and 5 wait on the designer.
   designer as they/them.
 - Commit and push at the end of every piece of work. Kill processes by pid.
   Never shut down or restart the computer.
-- Tests: `tests/run.sh` (all 160 suites) or `tests/run.sh outside familiar`.
+- Tests: `tests/run.sh` (all 161 suites) or `tests/run.sh outside familiar`.
   In the cloud, five suites fail on untouched code too, for environment
   reasons: audio, encmusic (the music `.wav` files are not in git), gear,
   editor, sweep. Locally, with the music present, audio and encmusic may pass.
@@ -91,6 +91,15 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's later messages of 2026-11-07** (ledger rows of that date; CLAUDE.md "Spells that make light", "How light falls on a
+  figure", "The board without its squares", "The fight's interface"; suites `lightspells`, `figures`, `hudlook`):
+  - Fallen Friend is a reaction only. Unbowed I-VII on Alithia. The Ash Warden is All Knowing.
+  - Dancing Lights, Flare in place of Unveil, Votive Flame's mark, Daylight (on the ground or a weapon), Light Void over all but what says it wins.
+  - Cyrus: his Gun shoots out lights, Shadow Step, Silhouette, Ink Bottle, In Plain Darkness. Alithia: Calling Out, Blessed in the Light, Nowhere to Hide.
+  - What is on somebody shows on them, with no icons over the head. Figures are lit by what is near them, and throw shadows in their own shape.
+  - The board hides its tiles (option A). The interface picks of section 11 but "Less over the map" and "End Turn".
+  - `docs/chatgpt_party_characters.md`: the four characters, for the designer to give ChatGPT.
+
 - **The designer's message of 2026-11-07** (ledger rows of that date; CLAUDE.md "Aimed on a map", "Letting go of a
   tether", "Ways of its own", "All Knowing", "Light", "The clock and the calendar"; `docs/light_on_maps.md`;
   suites `aimed`, `letgo`, `ways`, `newspells`, `clock`; stage 9):
@@ -104,6 +113,8 @@ holds the game for both).
     seen going by, and a stage to look at all of it.
   - Phantom Wall is placed by two points, along eight directions, up to its length of five, and is drawn along
     the line it was placed on, a diagonal corner to corner.
+  - Light spells from the proposals: Dancing Lights with no tether, Flare in place of Unveil, Votive Flame marking whoever it
+    hits for 8 of their turns, Daylight on the ground or on a weapon, and Light Void winning over every light but Daylight.
   - Fallen Friend is a reaction now: a blow that would fell an ally never lands, and they go down looking dead.
   - Alithia has Unbowed I-VII: Fear at 1, Confused 8, Compelled 16, Blind and Deafened 24, Dazed 33, Choking Ash 46,
     Stunned 56.

@@ -158,3 +158,6 @@ letgo
 ways
 newspells
 clock
+lightspells
+figures
+hudlook

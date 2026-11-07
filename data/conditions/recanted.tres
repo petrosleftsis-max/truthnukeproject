@@ -9,3 +9,5 @@ tag = "Rc"
 description = "The future that was read of them will not happen: they lose their next turn."
 duration = 1
 skips_turn = true
+round_them = 9
+figure_priority = 2

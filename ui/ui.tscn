@@ -213,14 +213,15 @@ offset_bottom = 65.0
 focus_mode = 0
 text = "Spells"
 
-[node name="SpellSlots" type="HBoxContainer" parent="Actions" unique_id=798568565]
+[node name="SpellSlots" type="HFlowContainer" parent="Actions" unique_id=798568565]
 visible = false
 layout_mode = 0
 offset_left = 84.0
 offset_top = 8.0
-offset_right = 407.0
+offset_right = 552.0
 offset_bottom = 32.0
-theme_override_constants/separation = 6
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 3
 
 [node name="Movement" type="Label" parent="Actions" unique_id=571617693]
 layout_mode = 0

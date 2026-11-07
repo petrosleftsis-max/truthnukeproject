@@ -833,6 +833,7 @@ func reposition_combatant(_old_position: Vector2i, _new_position: Vector2i):
 func refresh_occupancy():
 	if combat == null:
 		return
+	_occupancy_version += 1
 	var now := {}
 	var heights: bool = combat.heights_in_play()
 	_up_tiles.clear()
@@ -1463,6 +1464,7 @@ func _step_cost(tile: Vector2i) -> int:
 func _ready():
 	add_to_group(&"tether_board")
 	tile_map = get_node("../Terrain/TileMap")
+	_set_up_soft_board()
 	# The board a pad's pointer moves over - see Pad.
 	add_to_group(&"pad_board")
 #	controlled_node = tile_map.get_node("Steve")
@@ -2011,6 +2013,7 @@ var _step_arrival_finished := false
 
 func _process(delta):
 	_keep_other_pointing(delta)
+	_fade_the_grid(delta)
 	# The floor on the screen changed (the view moved): who is on another one is
 	# drawn afresh.
 	if combat != null and combat._floored and shown_floor() != _drawn_floor:
@@ -2040,10 +2043,30 @@ func _process(delta):
 				_hop_hold = FLOOR_HOP_SECONDS
 				return
 		_face_along_the_walk()
-		controlled_node.position = advance_towards(controlled_node.position, _next_position, delta * move_speed)
+		_walk_the_step(delta)
 		if controlled_node.position.distance_to(_next_position) < 1:
 			_processing_step = true
 			_run_step_arrival_with_timeout()
+
+
+## A frame of the walk. Straight along the line from tile to tile, as far as anything that counts is concerned; on the screen, on a
+## curve through those tiles (_walk_curve), which comes to each tile as the straight line does. Headless, or catching up, only the line.
+var _step_straight := Vector2.ZERO
+var _step_began := -1
+
+
+func _walk_the_step(delta: float):
+	var piece: int = _position_id - 1
+	if not MoveFeel.shown() or piece < 0 or _position_id >= _path.size() or _path[_position_id] != _next_position:
+		controlled_node.position = advance_towards(controlled_node.position, _next_position, delta * move_speed)
+		return
+	if _step_began != _position_id or _step_straight.distance_to(_path[piece]) > _path[piece].distance_to(_next_position):
+		_step_began = _position_id
+		_step_straight = _path[piece]
+	_step_straight = advance_towards(_step_straight, _next_position, delta * move_speed)
+	var whole: float = maxf(_path[piece].distance_to(_next_position), 1.0)
+	var t: float = clampf(_path[piece].distance_to(_step_straight) / whole, 0.0, 1.0)
+	controlled_node.position = _next_position if t >= 1.0 else _walk_curve(piece, t)
 
 
 ## One frame of walking along the line to the next waypoint, never overshooting
@@ -2594,6 +2617,8 @@ func begin_target_selection():
 		# A blink is aimed at somewhere to stand, so only offer the tiles it
 		# could actually stand on.
 		_range_preview_positions = landable_tiles(_range_preview_positions, caster)
+		if skill.only_in_shadow:
+			_range_preview_positions = _range_preview_positions.filter(func(tile): return combat.tile_in_shadow(tile))
 	elif Combat.summons_with(skill) != "":
 		# So is calling something up: where it would fit (Combat "Summons").
 		_range_preview_positions = landable_tiles(_range_preview_positions, combat.summon_probe(skill, caster.get("side", 0)))
@@ -2833,6 +2858,10 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 	if Combat.moves_zone(skill):
 		return "" if tile in _range_preview_positions else OUT_OF_REACH
 	if radius == 0:
+		# Aimed at a light (Cyrus's Gun): any in reach.
+		if skill.shoots_out_lights and not combat.light_to_shoot_at(tile).is_empty():
+			if tile in _range_preview_positions:
+				return ""
 		# Aimed at somebody, so it is the somebody who has to be right.
 		if comb.is_empty():
 			return "Nobody there"
@@ -3059,7 +3088,7 @@ func _draw_tile_marker(centre: Vector2, colour: Color = Color.WHITE):
 ## it covered, and hid the very map it was being aimed across. Each thing has
 ## its own colour, so none is mistaken for another - red is kept for danger.
 
-const RANGE_FILL := Color(0.45, 0.68, 1.0, 0.24)
+const RANGE_FILL := Color(0.45, 0.68, 1.0, 0.09)
 const RANGE_EDGE := Color(0.55, 0.78, 1.0, 0.85)
 const DECLARED_ENEMY_FILL := Color(1.0, 0.42, 0.1, 0.26)
 const DECLARED_ENEMY_EDGE := Color(1.0, 0.5, 0.15, 0.9)
@@ -3124,10 +3153,10 @@ const WALL_TO_BE_COLOUR := Color(0.25, 0.32, 0.5, 0.45)
 const STANDING_NEUTRAL_FILL := Color(0.9, 0.85, 0.6, 0.12)
 const STANDING_NEUTRAL_EDGE := Color(0.95, 0.9, 0.65, 0.3)
 ## An aura's reach: faint, since it is on the map for the whole fight.
-const AURA_FOE_FILL := Color(0.6, 0.3, 0.9, 0.1)
-const AURA_FOE_EDGE := Color(0.7, 0.45, 1.0, 0.45)
-const AURA_ALLY_FILL := Color(0.35, 0.75, 1.0, 0.08)
-const AURA_ALLY_EDGE := Color(0.45, 0.8, 1.0, 0.4)
+const AURA_FOE_FILL := Color(0.6, 0.3, 0.9, 0.06)
+const AURA_FOE_EDGE := Color(0.7, 0.45, 1.0, 0.22)
+const AURA_ALLY_FILL := Color(0.35, 0.75, 1.0, 0.04)
+const AURA_ALLY_EDGE := Color(0.45, 0.8, 1.0, 0.16)
 const BLAST_FILL := Color(1.0, 0.45, 0.2, 0.42)
 const BLAST_EDGE := Color(1.0, 0.62, 0.3, 0.95)
 const HELP_FILL := Color(0.4, 0.9, 0.45, 0.35)
@@ -3178,7 +3207,12 @@ func shatter_future(tiles: Array):
 
 ## `tiles` as one area: each filled, and the outline drawn only where the area
 ## ends, so it reads as a shape rather than a grid of squares.
-func _draw_area(tiles: Array, fill: Color, edge: Color, width: float = EDGE_WIDTH):
+func _draw_area(tiles: Array, fill: Color, edge: Color, width: float = EDGE_WIDTH, pattern: int = SoftAreas.Pattern.PLAIN):
+	if tiles.is_empty():
+		return
+	if _soft_fills != null:
+		_soft_list.append({"tiles": tiles, "fill": fill, "edge": edge, "width": width, "pattern": pattern, "at": _corner_of_tile})
+		return
 	var inside := {}
 	for tile in tiles:
 		inside[tile] = true
@@ -3204,8 +3238,13 @@ var _hover_tile := Vector2i(-99999, -99999)
 func _note_hover(tile: Vector2i):
 	if tile == _hover_tile:
 		return
+	var was_on_somebody: bool = _hover_tile != NO_HOVER and combat != null and _soft_fills != null and not combat.combatants_at(_hover_tile).is_empty()
 	_hover_tile = tile
-	if combat != null and not combat.part_marks().is_empty():
+	_light_their_face(tile)
+	if combat != null and _soft_fills != null and (was_on_somebody or not combat.combatants_at(tile).is_empty()):
+		# Their health shows while the pointer is on them (_draw_health).
+		queue_redraw()
+	elif combat != null and not combat.part_marks().is_empty():
 		queue_redraw()
 	elif combat != null and combat.game_ui != null and combat.game_ui.get("_ready_marking") is Dictionary \
 			and not combat.game_ui.get("_ready_marking").is_empty():
@@ -3220,6 +3259,8 @@ func _note_hover(tile: Vector2i):
 ## of it: a thin violet bar along the bottom of their square - for the
 ## other side's casters too, whose portraits are not on the HUD.
 const TETHER_COLOUR := Color("9d7fe0")
+const TETHER_THREAD_THINNEST := 2.0
+const TETHER_THREAD_THICKEST := 9.0
 
 ## A wall about to go up: how it will run, over the tiles it will take, up to the far edges of its ends as it is drawn.
 func _draw_wall_to_be():
@@ -3243,11 +3284,51 @@ func _draw_tether():
 		var top_left := _tile_rect(square.position).position
 		var bottom_right := _tile_rect(square.end - Vector2i.ONE).end
 		var width := bottom_right.x - top_left.x
-		var under := Rect2(Vector2(top_left.x + width * 0.1, bottom_right.y - 10.0), Vector2(width * 0.8, 6.0))
+		var under := Rect2(Vector2(top_left.x + width * 0.1, bottom_right.y - 7.0), Vector2(width * 0.8, 6.0))
 		draw_rect(under, Color(0.08, 0.06, 0.12, 0.85))
 		var held: Dictionary = comb.tether
 		var share := clampf(held.bar / maxf(held.max, 1.0), 0.0, 1.0)
 		draw_rect(Rect2(under.position, Vector2(under.size.x * share, under.size.y)), TETHER_COLOUR)
+		# A thread to what it holds, in the colour of its gate, thinning as the bar wears: who is doing this to
+		# whom, and where to right click (the designer, 2026-11-07).
+		var spell: SkillDefinition = SkillDatabase.skills.get(held.get("skill", ""))
+		var thread: Color = Stats.gate_colour(spell.spell_slot_level) if spell != null and spell.spell_slot_level > 0 else TETHER_COLOUR
+		var from := (top_left + bottom_right) / 2.0
+		for tile in combat.what_a_tether_holds(comb):
+			draw_line(from, _tile_rect(tile).get_center(), Color(thread, 0.35 + 0.35 * share), lerpf(TETHER_THREAD_THINNEST, TETHER_THREAD_THICKEST, share))
+
+
+## A small bar under somebody while they are hurt or the pointer is on them, or all of them while the danger key is held (the
+## designer's pick of 2026-11-07). Overhealth in pale on the end of it. Nobody hidden from the player is given away.
+const HEALTH_BAR_HEIGHT := 12.0
+const HEALTH_BAR_BACK := Color(0.05, 0.05, 0.08, 0.85)
+const HEALTH_BAR_ALLY := Color(0.42, 0.85, 0.5)
+const HEALTH_BAR_FOE := Color(0.92, 0.36, 0.32)
+const HEALTH_BAR_OVER := Color(0.85, 0.92, 1.0)
+
+
+func _draw_health():
+	if _soft_fills == null:
+		return
+	for comb in combat.combatants:
+		if not comb.get("alive", false) or comb.has("object") or comb.has("riding") or not comb.has("hp") or combat.unseen_by_party(comb):
+			continue
+		var hurt: bool = comb.hp < comb.get("max_hp", comb.hp)
+		if not hurt and not _showing_danger and not (_hover_tile != NO_HOVER and combat.covers(comb, _hover_tile)):
+			continue
+		var square := combat.rect_of(comb)
+		var left := _tile_rect(square.position).position.x
+		var right := _tile_rect(square.end - Vector2i.ONE).end.x
+		var bottom := _tile_rect(square.end - Vector2i.ONE).end.y
+		var whole := Rect2(Vector2(left + (right - left) * 0.14, bottom - 7.0 - HEALTH_BAR_HEIGHT - 2.0), Vector2((right - left) * 0.72, HEALTH_BAR_HEIGHT))
+		draw_rect(whole.grow(2.0), HEALTH_BAR_BACK)
+		var most: float = maxf(float(comb.get("max_hp", 1)), 1.0)
+		var share: float = clampf(float(comb.hp) / most, 0.0, 1.0)
+		draw_rect(Rect2(whole.position, Vector2(whole.size.x * share, whole.size.y)), HEALTH_BAR_ALLY if comb.get("side", 0) == 0 else HEALTH_BAR_FOE)
+		var over: float = float(comb.get("temp_hp", 0))
+		if over > 0.0:
+			var over_share: float = clampf(over / most, 0.0, 1.0 - share)
+			draw_rect(Rect2(whole.position + Vector2(whole.size.x * share, 0.0), Vector2(whole.size.x * over_share, whole.size.y)), HEALTH_BAR_OVER)
 
 
 func _draw_parts():
@@ -3330,16 +3411,30 @@ func _notification(what):
 
 func _draw_danger():
 	var threat: Dictionary = _danger.get("threat", {})
+	# Soft, striped, and a touch stronger as more of them could reach it, in steps.
+	var by_how_many := {}
 	for tile in threat:
 		# The walls themselves say nothing - nobody stands in one.
 		if _blocking_lookup[0].has(tile):
 			continue
-		var many: int = threat[tile]
-		draw_rect(_tile_rect(tile), Color(DANGER_FILL, clampf(0.16 + 0.1 * float(many - 1), 0.16, 0.5)))
+		var many: int = mini(threat[tile], 4)
+		if not by_how_many.has(many):
+			by_how_many[many] = []
+		by_how_many[many].append(tile)
+	for many in by_how_many:
+		if _soft_fills != null:
+			_draw_area(by_how_many[many], Color(DANGER_FILL, clampf(0.2 + 0.1 * float(many - 1), 0.2, 0.5)), Color(DANGER_FILL, 0.6), EDGE_WIDTH * 0.7, SoftAreas.Pattern.STRIPES)
+		else:
+			for tile in by_how_many[many]:
+				draw_rect(_tile_rect(tile), Color(DANGER_FILL, clampf(0.16 + 0.1 * float(many - 1), 0.16, 0.5)))
 	for tile in _danger.get("reaction", {}):
 		if _blocking_lookup[0].has(tile):
 			continue
-		draw_rect(_tile_rect(tile).grow(-12.0), REACTION_EDGE, false, 8.0)
+		if _soft_fills != null:
+			# A reaction waits there: a ring, not a colour alone.
+			draw_arc(_tile_rect(tile).get_center(), float(Grid.TILE_SIZE) * 0.3, 0.0, TAU, 28, REACTION_EDGE, 8.0, true)
+		else:
+			draw_rect(_tile_rect(tile).grow(-12.0), REACTION_EDGE, false, 8.0)
 
 
 ## --- Pointing somebody out ---
@@ -3373,7 +3468,189 @@ func _card_for(comb):
 		hud.show_unit_card(comb)
 
 
+## --- The board without its squares ---
+##
+## The designer's "A" of 2026-11-07 (docs/proposals_2026-11-07.md section 13). The rules stay on tiles. What changes is what shows:
+## areas are soft patches (SoftAreas), and how far somebody can walk is one outline, the path a curve of dots that ends on a tile
+## and walking follows a curve through the tiles (_walk_curve). The grid lines fade away but near the pointer while moving or aiming
+## (_fade_the_grid), and GameSettings.grid_always keeps them up for anybody who likes to count. All numbers PROPOSAL. None of it is
+## made headless.
+
+var _soft_fills: SoftAreas = null
+var _soft_edges: SoftAreas = null
+var _soft_list: Array = []
+var _grid: GridOverlay = null
+
+
+func _set_up_soft_board():
+	if not LightView.shown() or _soft_fills != null:
+		return
+	_soft_fills = SoftAreas.new(false)
+	_soft_edges = SoftAreas.new(true)
+	_soft_fills.light_mask = light_mask
+	_soft_edges.light_mask = light_mask
+	add_child(_soft_fills)
+	add_child(_soft_edges)
+	_grid = _find_grid(get_node_or_null("../Terrain"))
+	if _grid != null:
+		_grid.fades = true
+
+
+func _find_grid(node: Node) -> GridOverlay:
+	if node == null:
+		return null
+	for child in node.get_children():
+		if child is GridOverlay:
+			return child
+		var found := _find_grid(child)
+		if found != null:
+			return found
+	return null
+
+
+## The pointer on somebody lights their face in the turn queue (combat_ui.light_face_of).
+func _light_their_face(tile: Vector2i):
+	var hud = combat.game_ui if combat != null else null
+	if hud == null or not hud.has_method("light_face_of"):
+		return
+	for comb in combat.combatants_at(tile):
+		if comb.get("alive", false) and not comb.has("object") and not combat.unseen_by_party(comb):
+			hud.light_face_of(comb)
+			return
+	hud.light_face_of({})
+
+
+func _board_changed(_list: Array = []):
+	queue_redraw()
+
+
+func _corner_of_tile(tile: Vector2i) -> Vector2:
+	return tile_map.map_to_local(tile) - Grid.HALF_TILE
+
+
+## How strongly the grid shows now: everywhere, and near the pointer. Eases towards it.
+## Where the grid takes the pointer to be, for looking at it without moving the mouse (a screenshot driver).
+var grid_pointer_at := Vector2.INF
+const GRID_RESTING := [0.0, 0.0]
+const GRID_MOVING := [0.06, 0.34]
+const GRID_AIMING := [0.12, 0.42]
+const GRID_ALWAYS := [0.3, 0.42]
+## How far round the pointer it shows, in tiles.
+const GRID_NEAR_TILES := 5.0
+const GRID_EASE := 6.0
+
+
+func _fade_the_grid(delta: float):
+	if _grid == null or not is_instance_valid(_grid):
+		return
+	var wanted: Array = GRID_RESTING
+	if GameSettings.grid_always():
+		wanted = GRID_ALWAYS
+	elif player_turn == true and _skill_selected:
+		wanted = GRID_AIMING
+	elif player_turn == true and (_arrived == false or _hover_tile != NO_HOVER):
+		wanted = GRID_MOVING
+	var ease_by: float = minf(delta * GRID_EASE, 1.0)
+	_grid.whole = lerpf(_grid.whole, wanted[0], ease_by)
+	_grid.near = lerpf(_grid.near, wanted[1], ease_by)
+	_grid.pointer = grid_pointer_at if grid_pointer_at != Vector2.INF else _grid.get_global_mouse_position()
+	_grid.near_reach = GRID_NEAR_TILES * float(Grid.TILE_SIZE)
+	_grid.apply()
+
+
+const NO_HOVER := Vector2i(-99999, -99999)
+const MOVE_FILL := Color(0.5, 0.75, 1.0, 0.07)
+const MOVE_EDGE := Color(0.62, 0.84, 1.0, 0.6)
+## How far they can walk from here, worked out only when something it goes by has changed.
+var _walk_reach: Array = []
+var _walk_reach_key := []
+## Goes up whenever who stands where is worked out again.
+var _occupancy_version := 0
+
+
+func _walk_reach_now(walker: Dictionary) -> Array:
+	var key := [walker.get("id", -1), walker.position, movement, combat.round_number, _occupancy_version]
+	if key != _walk_reach_key:
+		_walk_reach_key = key
+		_walk_reach = get_reachable_tiles(walker.position, combat.terrain_class(walker), movement, walker).keys()
+	return _walk_reach
+
+
+## Where a walk would go: a curve through the tiles, a dot on each, the last one a ring. Solid while there is movement for it, and
+## hollow past that, so it isn't colour alone that tells them apart.
+func _draw_walk_path():
+	var walker = combat.get_current_combatant()
+	var left: int = movement
+	var tile := float(Grid.TILE_SIZE)
+	if _path.size() >= 2:
+		var line := PackedVector2Array()
+		for i in range(_path.size() - 1):
+			for step in 8:
+				line.append(_walk_curve(i, float(step) / 8.0))
+		line.append(_path[_path.size() - 1])
+		draw_polyline(line, Color(0.75, 0.88, 1.0, 0.55), tile * 0.018, true)
+	for i in range(_path.size()):
+		var point: Vector2 = _path[i]
+		if i > 0:
+			left -= get_tile_cost_at_point(point) * combat.drag_cost(walker) * combat.hem_cost(walker, tile_map.local_to_map(point))
+		var can: bool = left >= 0
+		if i == _path.size() - 1 and i > 0:
+			draw_arc(point, tile * 0.16, 0.0, TAU, 32, Color(0.62, 0.8, 1.0, 0.95) if can else Color(1.0, 1.0, 1.0, 0.85), tile * 0.026, true)
+		elif i > 0:
+			if can:
+				draw_circle(point, tile * 0.05, Color(0.62, 0.8, 1.0, 0.95))
+			else:
+				draw_arc(point, tile * 0.05, 0.0, TAU, 16, Color(1.0, 1.0, 1.0, 0.8), tile * 0.016, true)
+
+
+## Point `t` of the way along the walk's piece from `_path[i]` to the next: a curve through every tile on the way, so a walk leans
+## round its corners and still stands on each tile as it comes to it. A jump between floors keeps nothing of its neighbours.
+func _walk_curve(i: int, t: float) -> Vector2:
+	var from: Vector2 = _path[i]
+	var to: Vector2 = _path[i + 1]
+	var longest: float = float(Grid.TILE_SIZE) * 2.0
+	if from.distance_to(to) > longest:
+		return from.lerp(to, t)
+	var before: Vector2 = _path[i - 1] if i > 0 else from - (to - from)
+	var after: Vector2 = _path[i + 2] if i + 2 < _path.size() else to + (to - from)
+	if before.distance_to(from) > longest:
+		before = from - (to - from)
+	if after.distance_to(to) > longest:
+		after = to + (to - from)
+	# Catmull-Rom, a little tighter than its usual tension, so it doesn't swing wide of a corner.
+	var tension := 0.38
+	var m0: Vector2 = (to - before) * tension
+	var m1: Vector2 = (after - from) * tension
+	var t2: float = t * t
+	var t3: float = t2 * t
+	return from * (2.0 * t3 - 3.0 * t2 + 1.0) + m0 * (t3 - 2.0 * t2 + t) + to * (-2.0 * t3 + 3.0 * t2) + m1 * (t3 - t2)
+
+
+## A mark on one tile, by what it is for: round, and not told apart by colour alone.
+func _draw_aim_mark(centre: Vector2, colour: Color, crossed: bool = false, cross_hairs: bool = false):
+	var tile := float(Grid.TILE_SIZE)
+	draw_arc(centre, tile * 0.36, 0.0, TAU, 40, colour, tile * 0.024, true)
+	if cross_hairs:
+		for way in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+			draw_line(centre + way * tile * 0.26, centre + way * tile * 0.44, colour, tile * 0.024, true)
+	if crossed:
+		var reach := tile * 0.2
+		draw_line(centre + Vector2(-reach, -reach), centre + Vector2(reach, reach), colour, tile * 0.024, true)
+		draw_line(centre + Vector2(-reach, reach), centre + Vector2(reach, -reach), colour, tile * 0.024, true)
+
+
 func _draw():
+	_soft_list = []
+	# Whoever is hurt shows it as it happens.
+	if _soft_fills != null and combat != null and not combat.update_combatants.is_connected(_board_changed):
+		combat.update_combatants.connect(_board_changed)
+	_draw_board()
+	if _soft_fills != null:
+		_soft_fills.show_list(_soft_list)
+		_soft_edges.show_list(_soft_list)
+
+
+func _draw_board():
 	# Where everybody stands, under everything: blue for the party's side, red
 	# for the other, pale gold for things on the battlefield - each one its own
 	# shape, so two side by side, or one big, read as what they are. Nobody
@@ -3415,8 +3692,11 @@ func _draw():
 		# Zones left on the ground: the party's in pale gold, the other side's in
 		# warning red.
 		for zone in combat.zone_tiles():
+			# Only its light shows (Flare, Dancing Lights).
+			if zone.bare:
+				pass
 			# One with a look of its own (a placeholder: EffectDefinition.zone_colour).
-			if zone.colour.a > 0.0:
+			elif zone.colour.a > 0.0:
 				_draw_area(zone.tiles, zone.colour, Color(zone.colour.lightened(0.35), 0.9))
 			else:
 				_draw_area(zone.tiles, ZONE_FOE_FILL if zone.hostile else ZONE_ALLY_FILL,
@@ -3426,6 +3706,11 @@ func _draw():
 				var over := _tile_rect(zone.cloud).get_center()
 				for puff in [Vector2(-0.3, 0.05), Vector2(0.0, -0.12), Vector2(0.3, 0.05)]:
 					draw_circle(over + puff * Grid.HALF_TILE.x * 2.0, Grid.HALF_TILE.x * 0.42, Color(0.28, 0.3, 0.42, 0.95))
+			# Lights set dancing: a small orb over each. A placeholder.
+			for at in zone.lights:
+				var over := _tile_rect(at).get_center()
+				draw_circle(over, Grid.HALF_TILE.x * 0.24, Color(1.0, 0.92, 0.65, 0.3))
+				draw_circle(over, Grid.HALF_TILE.x * 0.11, Color(1.0, 0.97, 0.85, 0.95))
 	# Where declared moves will come down (Combat.declare): the other side's in
 	# warning orange, the party's own in gold.
 	if combat != null:
@@ -3472,6 +3757,7 @@ func _draw():
 	if combat != null:
 		_draw_parts()
 		_draw_tether()
+		_draw_health()
 	# Where to climb, and who is on another floor (Combat "Heights").
 	if combat != null and combat.heights_in_play():
 		_draw_ladders()
@@ -3484,10 +3770,9 @@ func _draw():
 		draw_rect(whole.grow(-6.0), HIGHLIGHT_EDGE, false, 10.0)
 	if _deployment_active:
 		# Where the party may stand, and which of them is currently picked up.
-		for tile in _deployment_tiles:
-			_draw_tile_marker(tile_map.map_to_local(tile), Color(Color.GOLD, 0.45))
+		_draw_area(_deployment_tiles, Color(Color.GOLD, 0.14), Color(Color.GOLD, 0.65))
 		if _deployment_selection != null:
-			_draw_tile_marker(tile_map.map_to_local(_deployment_selection.position), Color(Color.WHITE, 0.85))
+			_draw_aim_mark(tile_map.map_to_local(_deployment_selection.position), Color(Color.WHITE, 0.85))
 		return
 	if _stepping:
 		# Where a step after striking could go (choose_step).
@@ -3502,28 +3787,33 @@ func _draw():
 		if _skill_selected:
 			_draw_area(_range_preview_positions, RANGE_FILL, RANGE_EDGE)
 		else:
-			var path_length = movement
-			for i in range(_path.size()):
-				var point = _path[i]
-				if i > 0:
-					var walker = combat.get_current_combatant()
-					path_length -= get_tile_cost_at_point(point) * combat.drag_cost(walker) * combat.hem_cost(walker, tile_map.local_to_map(point))
-				var draw_color = Color.WHITE
-				if path_length >= 0:
-					draw_color = Color.ROYAL_BLUE
-				_draw_tile_marker(point, draw_color)
+			var walker = combat.get_current_combatant()
+			if _soft_fills != null and movement > 0 and walker != null and not walker.is_empty() and combat.plays_for_party(walker):
+				_draw_area(_walk_reach_now(walker), MOVE_FILL, MOVE_EDGE, EDGE_WIDTH)
+			if _soft_fills != null:
+				_draw_walk_path()
+			else:
+				var path_length = movement
+				for i in range(_path.size()):
+					var point = _path[i]
+					if i > 0:
+						path_length -= get_tile_cost_at_point(point) * combat.drag_cost(walker) * combat.hem_cost(walker, tile_map.local_to_map(point))
+					var draw_color = Color.WHITE
+					if path_length >= 0:
+						draw_color = Color.ROYAL_BLUE
+					_draw_tile_marker(point, draw_color)
 		if _attack_target_position != null:
-			_draw_tile_marker(_attack_target_position, Color.CRIMSON)
+			_draw_aim_mark(_attack_target_position, Color.CRIMSON, false, true)
 		if _ally_target_position != null:
-			_draw_tile_marker(_ally_target_position, Color.LIME_GREEN)
+			_draw_aim_mark(_ally_target_position, Color.LIME_GREEN)
 		if not _aoe_preview_positions.is_empty():
 			if _aoe_preview_is_ally:
-				_draw_area(_aoe_preview_positions, HELP_FILL, HELP_EDGE)
+				_draw_area(_aoe_preview_positions, HELP_FILL, HELP_EDGE, EDGE_WIDTH, SoftAreas.Pattern.CROSSES)
 			else:
-				_draw_area(_aoe_preview_positions, BLAST_FILL, BLAST_EDGE)
+				_draw_area(_aoe_preview_positions, BLAST_FILL, BLAST_EDGE, EDGE_WIDTH, SoftAreas.Pattern.STRIPES)
 		_draw_wall_to_be()
 		if _blocked_target_position != null:
-			_draw_tile_marker(_blocked_target_position)
+			_draw_aim_mark(_blocked_target_position, Color.WHITE, true)
 		_draw_shoves()
 	_draw_other_pointing()
 

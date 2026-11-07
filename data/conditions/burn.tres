@@ -16,3 +16,7 @@ dot_modifier = 1.0
 dot_min = 4
 dot_max = 5
 movement_change = 2
+figure_tint = Color(1, 0.55, 0.2, 0.4)
+off_them = 1
+figure_priority = 4
+arrival_word = "Burning!"

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_eff"]
+[ext_resource type="Script" path="res://combat/resources/ItemDefinition.gd" id="2_item"]
+[ext_resource type="Resource" path="res://data/conditions/in_darkness.tres" id="3_dark"]
+[ext_resource type="Texture2D" path="res://art/icons/consumable__skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_ink"]
+script = ExtResource("1_eff")
+type = 34
+zone_condition = ExtResource("3_dark")
+zone_for = 2
+zone_turns = 3
+zone_colour = Color(0.02, 0.02, 0.06, 0.62)
+
+[resource]
+script = ExtResource("2_item")
+name = "Ink Bottle"
+description = "Light Void in a bottle: the ground it breaks on is Dark for three of the thrower's turns, and no ordinary light shines in it. Anybody there is invisible to whoever cannot see in the dark."
+max_range = 5
+aoe_radius = 2
+icon = ExtResource("4_icon")
+effects = Array[ExtResource("1_eff")]([SubResource("Effect_ink")])
+deals_damage = false
+price = 120

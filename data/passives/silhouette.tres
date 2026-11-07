@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Silhouette"
+description = "The archer in the shadows, shooting into the firelight: somebody standing in Bright, shot from the Dark, takes a fifth more."
+required_level = 8
+silhouette_bonus = 0.2

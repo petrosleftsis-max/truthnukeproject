@@ -11,3 +11,4 @@ prevents_movement = true
 getting_up_share = 0.5
 less_from_ranged = 0.5
 more_from_melee = 1.0
+figure_no_ring = true

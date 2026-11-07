@@ -10,3 +10,6 @@ duration = 1
 movement_change = -2
 prevents_secondary = true
 prevents_reactions = true
+round_them = 1
+figure_priority = 3
+arrival_word = "Dazed!"

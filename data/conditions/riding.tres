@@ -8,3 +8,4 @@ display_name = "Riding"
 description = "Up on somebody enormous: carried wherever they go, out of everybody's reach, and every blow on them lands - and harder. No walking until they climb down or are thrown off."
 duration = 999
 prevents_movement = true
+figure_no_ring = true

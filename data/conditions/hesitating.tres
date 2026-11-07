@@ -9,3 +9,5 @@ description = "Talked into standing down: they lose their next turn - unless som
 duration = 2
 skips_turn = true
 ends_when_hit = true
+round_them = 4
+figure_priority = 2

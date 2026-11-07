@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Resource" path="res://data/conditions/called_out.tres" id="3_cond"]
+[ext_resource type="Texture2D" path="res://art/icons/calling_out_skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("3_cond")
+condition_duration = 99
+
+[resource]
+script = ExtResource("2_skill")
+name = "Calling Out"
+description = "A secondary action. She names somebody she can see, hidden or lost in the dark as they may be: her whole side can see them and aim at them until her next turn. Her eyes become everybody's."
+max_range = 20
+icon = ExtResource("4_icon")
+respects_blocking = true
+is_secondary = true
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+deals_damage = false
+can_be_copied = false
+required_level = 8
+noise = 1
+outside_use = 1

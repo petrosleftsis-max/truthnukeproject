@@ -66,103 +66,386 @@ func set_hidden_alpha(alpha: float):
 	hidden_alpha = alpha
 	for sprite in [_animated, _static]:
 		if sprite != null and is_instance_valid(sprite):
-			sprite.self_modulate = Color(tint * lit_by, alpha)
+			var lit: Color = Color.WHITE if _figure_material != null and sprite.material == _figure_material and shade_map != null else lit_by
+			sprite.self_modulate = Color(tint * lit * condition_tint, alpha)
+
+
+## --- What is on them, on them (ConditionLook) ---
+
+## The colour over them for what is on them, breathing: white for none.
+var condition_tint := Color.WHITE
+var _condition_look: ConditionLook = null
+## What was on them the last time it was said, by condition, so that what is new can pop up as it lands.
+var conditions_on_show := {}
+
+
+func set_condition_tint(colour: Color):
+	if colour != condition_tint:
+		condition_tint = colour
+		set_hidden_alpha(hidden_alpha)
+
+
+## What is on them: [{"condition", "helps", "ends_soon"}].
+func show_conditions(entries: Array):
+	if _condition_look == null:
+		if entries.is_empty():
+			return
+		_condition_look = ConditionLook.new()
+		add_child(_condition_look)
+	_condition_look.show_entries(entries)
+
+
+## The animation they stand in, in place of idle, while it is wanted (ConditionLook). None by that name, and they stand idle.
+var pose: StringName = &""
+
+
+func set_pose(wanted: StringName):
+	if wanted == pose:
+		return
+	var was: StringName = pose
+	pose = wanted
+	if _animated != null and (_animated.animation == &"idle" or _animated.animation == was):
+		play_idle()
 
 
 ## --- A shadow under them ---
 ##
-## View only, as Light.shadow_of says: how far every figure's leans and how dark it is, set for all of
-## them at once as the place or the hour changes (set_shadows). A placeholder drawn in code, behind a
-## slot: a picture at SHADOW_PICTURE is drawn in its place.
+## View only (the designer, 2026-11-07, docs/proposals_2026-11-07.md section 10). Their own shape, the frame they are showing, black
+## and laid along the ground away from whatever lights them: one for each of the nearest lights, up to MOST_SHADOWS, each as
+## strong as its light, long when the light is far and short when it is close, and blurring and fading towards its far end. A wall
+## stops it. With no light near them, the sun's or the moon's: its lean and length go with the hour, and its colour too
+## (Light.shadow_at). A dark patch where they stand, unless they are off the ground, when it is all smaller, fainter and further off.
+## A picture at SHADOW_PICTURE is drawn for that patch, in place of the soft round light in black.
 
 const SHADOW_PICTURE := "res://art/fx/figure_shadow.png"
 static var shadow_lean := 0.12
 static var shadow_strength := 0.35
+static var shadow_colour := Color.BLACK
 ## Counts changes, for each shadow to see that it has to draw itself again.
 static var shadow_version := 0
-## Each light here: [where it is, how far it reaches], for a shadow to point away from (LightView).
+## Each light here: {"at", "reach", "colour", "node", "energy"}: for shadows to point away from, and the figures' colour (LightView).
 static var light_points: Array = []
-## How much further a shadow goes, at its strongest, from a light close by.
-const AWAY_FROM_A_LIGHT := 0.55
+## Whether something at a place on the map stops a shadow (LightView), or nothing to ask.
+static var stops_shadow: Callable = Callable()
+const MOST_SHADOWS := 3
+## How far a shadow goes, in figure heights: from a light close by, from one at the end of its reach, and at most from the sun.
+const SHADOW_CLOSE := 0.3
+const SHADOW_FAR := 1.15
+const SUN_SHADOW_MOST := 1.2
+## How much a shadow slants down the screen, whichever way the sun leans it.
+const SUN_SLANT := 0.35
+## How much the floor's slant shortens what lies along the screen's height.
+const FLOOR_SLANT := 0.6
+## How soft a shadow is at their feet and at its far end, as shares of the frame.
+const SHADOW_SHARP := 0.004
+const SHADOW_SOFT := 0.045
+## Their shape, from the alpha only, blurred more the further along it is. The vertex colour's red says how far along it is
+## (the shadow's own colour is a uniform: only the sun's has one) and its alpha how strong.
+const SHADOW_SHADER := """
+shader_type canvas_item;
+uniform vec3 shade_colour = vec3(0.0);
+uniform vec2 sharp = vec2(0.001);
+uniform vec2 soft = vec2(0.02);
+varying vec4 tint;
+void vertex() {
+	tint = COLOR;
+}
+void fragment() {
+	vec2 reach = mix(sharp, soft, tint.r);
+	float sum = texture(TEXTURE, UV).a * 2.0;
+	sum += texture(TEXTURE, UV + reach * vec2(1.0, 0.0)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(-1.0, 0.0)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(0.0, 1.0)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(0.0, -1.0)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(0.7, 0.7)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(-0.7, 0.7)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(0.7, -0.7)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(-0.7, -0.7)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(0.4, 0.0)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(-0.4, 0.0)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(0.0, 0.4)).a;
+	sum += texture(TEXTURE, UV + reach * vec2(0.0, -0.4)).a;
+	COLOR = vec4(shade_colour, tint.a * sum / 14.0);
+}
+"""
+static var _shadow_shader: Shader = null
+## Off the ground: how big, how strong, and how much further down the screen.
+const OFF_GROUND_SCALE := 0.7
+const OFF_GROUND_STRENGTH := 0.6
+const OFF_GROUND_DROP := 0.28
+
+
+## A new place: nothing of the last one's light is left to read.
+static func forget_the_light():
+	light_points = []
+	figures_lit = false
+	stops_shadow = Callable()
+	shade_map = null
 
 
 static func set_shadows(lying: Dictionary):
 	shadow_lean = lying.lean
 	shadow_strength = lying.strength
+	shadow_colour = lying.get("colour", Color.BLACK)
 	shadow_version += 1
+
+
+## Whether they are off the ground (a flier), for their shadow (Combat, as the light is seen).
+var off_ground := false
 
 
 class _Shadow extends Node2D:
 	var picture: Texture2D = null
 	var seen := -1
 	var alpha_seen := 1.0
+	var frame_seen: Variant = null
+
+	var casting: _Casting = null
 
 	func _ready():
 		if ResourceLoader.exists(CombatantSprite.SHADOW_PICTURE):
 			picture = load(CombatantSprite.SHADOW_PICTURE)
+		casting = _Casting.new()
+		add_child(casting)
 
 	func _process(_delta):
-		var alpha: float = get_parent().hidden_alpha
-		# With a light about, it turns as they move.
-		if seen != CombatantSprite.shadow_version or alpha_seen != alpha or not CombatantSprite.light_points.is_empty():
+		var figure: CombatantSprite = get_parent()
+		var alpha: float = figure.hidden_alpha
+		var frame: Variant = figure.frame_stamp()
+		# With a light about, it turns as they move, and it walks as they do.
+		if seen != CombatantSprite.shadow_version or alpha_seen != alpha or frame != frame_seen or not CombatantSprite.light_points.is_empty():
 			seen = CombatantSprite.shadow_version
 			alpha_seen = alpha
+			frame_seen = frame
 			queue_redraw()
+			casting.queue_redraw()
 
-	## Which way from a light close enough to matter, and how much it does, or nothing.
-	func _away_from_a_light() -> Vector2:
-		var best := Vector2.ZERO
-		var best_strength := 0.0
+	## What is throwing a shadow from them: {"way", "length", "strength", "colour"}, the strongest first.
+	func _casts(feet: Vector2) -> Array:
+		var found := []
 		for point in CombatantSprite.light_points:
-			var from: Vector2 = global_position - point[0]
-			var strength: float = 1.0 - from.length() / maxf(point[1], 1.0)
-			if strength > best_strength and from.length() > 1.0:
-				best_strength = strength
-				best = from.normalized() * strength
-		return best
+			var node = point.get("node")
+			var from_it: Vector2 = global_position + feet - (node.global_position if node != null and is_instance_valid(node) else point.at)
+			var gap: float = from_it.length()
+			var closeness: float = 1.0 - gap / maxf(point.reach, 1.0)
+			if closeness <= 0.0 or gap < 1.0:
+				continue
+			var lit: float = clampf(float(node.energy) / maxf(point.get("energy", 1.0), 0.01), 0.0, 1.5) if node != null and is_instance_valid(node) else 1.0
+			found.append({"way": from_it / gap, "length": lerpf(CombatantSprite.SHADOW_CLOSE, CombatantSprite.SHADOW_FAR, 1.0 - closeness),
+				"strength": clampf(0.2 + 0.5 * closeness, 0.0, 0.65) * lit, "colour": Color.BLACK})
+		if found.is_empty():
+			var strength: float = CombatantSprite.shadow_strength
+			if strength <= 0.01:
+				return []
+			var lean: float = CombatantSprite.shadow_lean
+			var way := Vector2(lean, CombatantSprite.SUN_SLANT).normalized()
+			return [{"way": way, "length": minf(absf(lean) * 1.4 + 0.25, CombatantSprite.SUN_SHADOW_MOST), "strength": strength, "colour": CombatantSprite.shadow_colour}]
+		found.sort_custom(func(one, other): return one.strength > other.strength)
+		return found.slice(0, CombatantSprite.MOST_SHADOWS)
+
+	func feet_at() -> Vector2:
+		var figure: CombatantSprite = get_parent()
+		var feet := Vector2(0.0, float(Grid.TILE_SIZE) * 0.42)
+		if figure.off_ground:
+			feet.y += float(Grid.TILE_SIZE) * CombatantSprite.OFF_GROUND_DROP
+		return feet
 
 	func _draw():
-		var tile := float(Grid.TILE_SIZE)
-		var away := _away_from_a_light()
-		var strength: float = CombatantSprite.shadow_strength
-		var way := Vector2(CombatantSprite.shadow_lean, 0.0)
-		if away != Vector2.ZERO:
-			way = away * CombatantSprite.AWAY_FROM_A_LIGHT * 2.0
-			strength = maxf(strength, 0.3)
-		var at: Vector2 = Vector2(0.0, tile * 0.42) + way * tile * 0.3
-		var stretch := 1.0 + way.length()
-		var colour := Color(0.0, 0.0, 0.0, strength * alpha_seen)
+		var figure: CombatantSprite = get_parent()
+		# Where they stand, a dark patch: on the ground, and only then.
+		if not figure.off_ground:
+			_draw_patch(feet_at(), float(Grid.TILE_SIZE), 0.3 * alpha_seen)
+
+	func _draw_patch(feet: Vector2, tile: float, alpha: float):
 		if picture != null:
-			var size := Vector2(tile * 0.8 * stretch, tile * 0.24)
-			draw_set_transform(at, way.angle() if way != Vector2.ZERO else 0.0)
-			draw_texture_rect(picture, Rect2(-size / 2.0, size), false, colour)
+			var size := Vector2(tile * 0.5, tile * 0.16)
+			draw_texture_rect(picture, Rect2(feet - size / 2.0, size), false, Color(0, 0, 0, alpha))
 			return
-		# Soft at the edge: what lights things round, in black.
-		draw_set_transform(at, way.angle() if way != Vector2.ZERO else 0.0, Vector2(stretch, 0.3))
-		var across := tile * 0.5
-		draw_texture_rect(LightView.light_picture(), Rect2(-across, -across, across * 2.0, across * 2.0), false, Color(colour, minf(colour.a * 1.6, 1.0)))
+		draw_set_transform(feet, 0.0, Vector2(1.0, 0.28))
+		var across := tile * 0.3
+		draw_texture_rect(LightView.light_picture(), Rect2(-across, -across, across * 2.0, across * 2.0), false, Color(0, 0, 0, minf(alpha * 1.6, 1.0)))
+		draw_set_transform(Vector2.ZERO)
+
+	## What is throwing a shadow from them: {"way", "length", "strength", "colour"}, the strongest first.
+	func casts(feet: Vector2) -> Array:
+		return _casts(feet)
+
+	## How far along `way` a shadow of `length` goes before something stops it (the designer's wish: it ends at a wall).
+	func as_far_as_a_wall(feet: Vector2, way: Vector2, length: float) -> float:
+		var stops: Callable = CombatantSprite.stops_shadow
+		if not stops.is_valid():
+			return length
+		var step := float(Grid.TILE_SIZE) * 0.5
+		var went := step
+		while went < length:
+			if stops.call(global_position + feet + way * went):
+				return went
+			went += step
+		return length
 
 
-## --- Against the dark ---
+## Their frame laid along the ground away from each light, through SHADOW_SHADER. A node of its own, for the material: the patch is drawn plain.
+class _Casting extends Node2D:
+	var _material: ShaderMaterial = null
+
+	func _ready():
+		if CombatantSprite._shadow_shader == null:
+			CombatantSprite._shadow_shader = Shader.new()
+			CombatantSprite._shadow_shader.code = CombatantSprite.SHADOW_SHADER
+		_material = ShaderMaterial.new()
+		_material.shader = CombatantSprite._shadow_shader
+		material = _material
+
+	func _draw():
+		var shadow: _Shadow = get_parent()
+		var figure: CombatantSprite = shadow.get_parent()
+		if figure.lying:
+			return
+		var frame: Dictionary = figure.current_frame()
+		if frame.is_empty():
+			return
+		var size_share: float = CombatantSprite.OFF_GROUND_SCALE if figure.off_ground else 1.0
+		var strength_share: float = CombatantSprite.OFF_GROUND_STRENGTH if figure.off_ground else 1.0
+		var feet: Vector2 = shadow.feet_at()
+		for cast in shadow.casts(feet):
+			_draw_cast(figure, shadow, frame, feet, cast, size_share, strength_share * shadow.alpha_seen)
+
+	func _draw_cast(figure: CombatantSprite, shadow: _Shadow, frame: Dictionary, feet: Vector2, cast: Dictionary, size_share: float, strength_share: float):
+		var texture: Texture2D = frame.texture
+		var region: Rect2 = frame.region
+		var drawn: Node2D = figure._drawn()
+		var scale_of: Vector2 = drawn.scale if drawn != null else Vector2.ONE
+		var height: float = region.size.y * absf(scale_of.y) * size_share
+		var width: float = region.size.x * absf(scale_of.x) * size_share
+		var way: Vector2 = cast.way
+		# The floor is seen at a slant: a shadow coming down the screen looks shorter, one going across it flatter.
+		var whole: float = height * cast.length * lerpf(1.0, CombatantSprite.FLOOR_SLANT, absf(way.y))
+		var length: float = shadow.as_far_as_a_wall(feet, way, whole)
+		if length <= 1.0:
+			return
+		var share: float = length / whole
+		var across := Vector2(-way.y, way.x * CombatantSprite.FLOOR_SLANT)
+		var half: Vector2 = across * width * 0.5
+		var far_end: Vector2 = feet + way * length
+		# The picture's own corners: an atlas's are its part of the whole.
+		var source: Texture2D = texture
+		var origin: Vector2 = region.position
+		if texture is AtlasTexture:
+			source = texture.atlas
+			origin += texture.region.position
+		if source == null:
+			return
+		var whole_size: Vector2 = source.get_size()
+		var left: float = origin.x / whole_size.x
+		var right: float = (origin.x + region.size.x) / whole_size.x
+		var top: float = origin.y / whole_size.y
+		var bottom: float = (origin.y + region.size.y) / whole_size.y
+		if frame.get("flip", false):
+			var swapped := left
+			left = right
+			right = swapped
+		var far_v: float = lerpf(bottom, top, share)
+		var uvs := PackedVector2Array([Vector2(left, bottom), Vector2(right, bottom), Vector2(right, far_v), Vector2(left, far_v)])
+		var c: Color = cast.colour
+		_material.set_shader_parameter("shade_colour", Vector3(c.r, c.g, c.b))
+		var frame_uv := region.size / whole_size
+		_material.set_shader_parameter("sharp", frame_uv * CombatantSprite.SHADOW_SHARP)
+		_material.set_shader_parameter("soft", frame_uv * CombatantSprite.SHADOW_SOFT)
+		var near_alpha: float = cast.strength * strength_share
+		# Red says how far along it is: see SHADOW_SHADER.
+		var near := Color(0.0, 0.0, 0.0, near_alpha)
+		var far := Color(share, 0.0, 0.0, near_alpha * lerpf(1.0, 0.2, share))
+		draw_polygon(PackedVector2Array([feet - half, feet + half, far_end + half, far_end - half]),
+			PackedColorArray([near, near, far, far]), uvs, source)
+
+
+## Something that changes as they animate, for the shadow to see.
+func frame_stamp() -> Variant:
+	if _animated != null:
+		return [_animated.animation, _animated.frame, _animated.flip_h]
+	return null
+
+
+## --- How light falls on them ---
 ##
-## Whoever stands in the Dark has a faint rim, so a figure is still there to look at, and those who see
-## in it have eyes that glow. To look at only. Slots: a picture at EYES_PICTURE is drawn for the eyes.
+## View only (the same section 10): one shader on the figure, its uniforms set here each frame from the lights near them. The colour of
+## the nearest lights, mixed by how close, breathing as a flame does. The edge of the figure facing the light lit in its colour, and the far side
+## darker. Lit from below by a fire on the floor, or from above by the sun. Back lit, with the light behind them from where
+## we look: the front goes dark, and only the rim shows. And half in the dark: each pixel reads how dark it is where that pixel is, so
+## somebody stepping out of a doorway is lit on one half. In the Dark, a faint rim, so a figure is still there to look at. Those who see
+## in it have eyes that glow: a picture at EYES_PICTURE is drawn for the eyes.
 
 const EYES_PICTURE := "res://art/fx/glowing_eyes.png"
-const RIM_SHADER := """
+const FIGURE_SHADER := """
 shader_type canvas_item;
 uniform vec4 rim : source_color = vec4(0.5, 0.62, 1.0, 0.8);
-uniform float width = 4.0;
+uniform float rim_on = 0.0;
+uniform float figure_alpha = 1.0;
+uniform vec3 lit_colour = vec3(1.0);
+uniform float lit_strength = 0.0;
+uniform vec2 light_way = vec2(0.0);
+uniform float side_strength = 0.0;
+uniform float far_dark = 0.0;
+uniform float from_above = 0.0;
+uniform float back_lit = 0.0;
+uniform float feet_y = 128.0;
+uniform float figure_height = 256.0;
+uniform sampler2D shade_map : filter_linear, repeat_disable;
+uniform vec4 shade_rect = vec4(0.0, 0.0, 1.0, 1.0);
+uniform float shade_on = 0.0;
+varying vec2 world;
+varying float up;
+void vertex() {
+	world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+	up = clamp((feet_y - VERTEX.y) / max(figure_height, 1.0), 0.0, 1.0);
+}
 void fragment() {
-	vec4 own = texture(TEXTURE, UV) * COLOR;
-	vec2 step_by = TEXTURE_PIXEL_SIZE * width;
-	float near = texture(TEXTURE, UV + vec2(step_by.x, 0.0)).a + texture(TEXTURE, UV - vec2(step_by.x, 0.0)).a
-		+ texture(TEXTURE, UV + vec2(0.0, step_by.y)).a + texture(TEXTURE, UV - vec2(0.0, step_by.y)).a;
-	float edge = clamp(near, 0.0, 1.0) * (1.0 - clamp(own.a * 4.0, 0.0, 1.0));
-	COLOR = mix(own, vec4(rim.rgb, rim.a * COLOR.a), edge);
+	vec4 base = COLOR;
+	float here = texture(TEXTURE, UV).a;
+	vec2 pixel = TEXTURE_PIXEL_SIZE;
+	vec3 rgb = base.rgb;
+	rgb = mix(rgb, rgb * lit_colour * 1.5, lit_strength);
+	if (side_strength > 0.001) {
+		vec2 reach = pixel * 10.0;
+		float towards = texture(TEXTURE, UV + light_way * reach).a;
+		float away = texture(TEXTURE, UV - light_way * reach).a;
+		rgb += lit_colour * clamp(here - towards, 0.0, 1.0) * side_strength;
+		rgb *= 1.0 - clamp(here - away, 0.0, 1.0) * far_dark;
+	}
+	rgb *= 1.0 + from_above * (up - 0.5);
+	if (back_lit > 0.001) {
+		vec2 reach = pixel * 6.0;
+		float round_edge = 4.0 - (texture(TEXTURE, UV + vec2(reach.x, 0.0)).a + texture(TEXTURE, UV - vec2(reach.x, 0.0)).a
+			+ texture(TEXTURE, UV + vec2(0.0, reach.y)).a + texture(TEXTURE, UV - vec2(0.0, reach.y)).a);
+		rgb = mix(rgb, rgb * 0.45 + lit_colour * clamp(round_edge, 0.0, 1.0) * 0.6, back_lit);
+	}
+	if (shade_on > 0.5) {
+		float dark = texture(shade_map, (world - shade_rect.xy) / shade_rect.zw).a;
+		rgb *= 1.0 - clamp(dark, 0.0, 1.0) * 0.55;
+	}
+	COLOR = vec4(rgb, base.a);
+	if (rim_on > 0.5) {
+		vec2 step_by = pixel * 4.0;
+		float near = texture(TEXTURE, UV + vec2(step_by.x, 0.0)).a + texture(TEXTURE, UV - vec2(step_by.x, 0.0)).a
+			+ texture(TEXTURE, UV + vec2(0.0, step_by.y)).a + texture(TEXTURE, UV - vec2(0.0, step_by.y)).a;
+		float edge = clamp(near, 0.0, 1.0) * (1.0 - clamp(here * 4.0, 0.0, 1.0));
+		COLOR = mix(COLOR, vec4(rim.rgb, rim.a * figure_alpha), edge);
+	}
 }
 """
-static var _rim_material: ShaderMaterial = null
+## Everything that is on from when a place is lit at all (LightView, Combat, the map): off, the figures are as drawn.
+static var figures_lit := false
+## How dark each tile is, for half in the dark: the shade's own picture, and where it lies.
+static var shade_map: Texture2D = null
+static var shade_rect := Rect2()
+const SIDE_MOST := 0.9
+const FAR_DARK_MOST := 0.4
+const FROM_BELOW_MOST := 0.5
+const SUN_ABOVE := 0.25
+const SUN_SIDE := 0.3
+const BACK_LIT_MOST := 0.65
+static var _figure_shader: Shader = null
+var _figure_material: ShaderMaterial = null
 var _in_the_dark := false
 var _sees_in_it := false
 var _eyes: Node2D = null
@@ -175,19 +458,98 @@ func set_in_the_dark(dark: bool, sees: bool = false):
 	_sees_in_it = sees
 	if not LightView.shown():
 		return
-	if _rim_material == null:
-		var shader := Shader.new()
-		shader.code = RIM_SHADER
-		_rim_material = ShaderMaterial.new()
-		_rim_material.shader = shader
-	for sprite in [_animated, _static]:
-		if sprite != null and is_instance_valid(sprite):
-			sprite.material = _rim_material if dark else null
 	if dark and sees and _eyes == null:
 		_eyes = _Eyes.new()
 		add_child(_eyes)
 	if _eyes != null:
 		_eyes.visible = dark and sees
+
+
+## Puts the light on them as it falls this frame.
+func _fall_of_light():
+	var drawn := _drawn()
+	if drawn == null:
+		return
+	if _figure_material == null:
+		if _figure_shader == null:
+			_figure_shader = Shader.new()
+			_figure_shader.code = FIGURE_SHADER
+		_figure_material = ShaderMaterial.new()
+		_figure_material.shader = _figure_shader
+	if drawn.material != _figure_material:
+		drawn.material = _figure_material
+		# Half in the dark does what the tint did, pixel by pixel.
+		set_hidden_alpha(hidden_alpha)
+	var mixed := Color(0, 0, 0)
+	var weight := 0.0
+	var way := Vector2.ZERO
+	var here: Vector2 = global_position
+	for point in light_points:
+		var node = point.get("node")
+		var lit_at: Vector2 = node.global_position if node != null and is_instance_valid(node) else point.at
+		var towards: Vector2 = lit_at - here
+		var closeness: float = 1.0 - towards.length() / maxf(point.reach, 1.0)
+		if closeness <= 0.0:
+			continue
+		# Breathing as it does: how bright it is this moment, for what it is at its steadiest.
+		var breath: float = float(node.energy) / maxf(point.get("energy", 1.0), 0.01) if node != null and is_instance_valid(node) else 1.0
+		var strength: float = closeness * closeness * clampf(breath, 0.0, 1.5)
+		mixed += Color(point.colour.r, point.colour.g, point.colour.b) * strength
+		weight += strength
+		if towards.length() > 1.0:
+			way += towards.normalized() * strength
+	var material := _figure_material
+	var colour := Color.WHITE
+	var strength: float = clampf(weight, 0.0, 1.0)
+	var side := 0.0
+	var above := 0.0
+	var behind := 0.0
+	var lit_from := Vector2.ZERO
+	if weight > 0.001:
+		colour = Color(mixed.r / weight, mixed.g / weight, mixed.b / weight)
+		lit_from = way.normalized() if way.length() > 0.001 else Vector2.ZERO
+		side = strength * SIDE_MOST
+		# A fire on the floor lights the feet more than the head.
+		above = -strength * FROM_BELOW_MOST
+		# The light behind them, from where we look.
+		behind = clampf(-lit_from.y, 0.0, 1.0) * strength * BACK_LIT_MOST
+	else:
+		# The sun: from the other side from where their shadows lean, and from above.
+		var sun: float = clampf(shadow_strength / 0.35, 0.0, 1.0)
+		lit_from = Vector2(-signf(shadow_lean), -0.5).normalized() if absf(shadow_lean) > 0.01 else Vector2(0.0, -1.0)
+		side = sun * SUN_SIDE * absf(shadow_lean)
+		above = sun * SUN_ABOVE * (1.0 if absf(shadow_lean) > 0.01 else 0.0)
+		strength = 0.0
+	# A flipped frame reads its picture the other way.
+	var flipped: bool = _animated.flip_h if _animated != null else (_static != null and _static.flip_h)
+	var in_picture := Vector2(-lit_from.x if flipped else lit_from.x, lit_from.y)
+	material.set_shader_parameter("lit_colour", Vector3(colour.r, colour.g, colour.b))
+	material.set_shader_parameter("lit_strength", strength * 0.5)
+	material.set_shader_parameter("light_way", in_picture)
+	material.set_shader_parameter("side_strength", side)
+	material.set_shader_parameter("far_dark", side * (FAR_DARK_MOST / SIDE_MOST))
+	material.set_shader_parameter("from_above", above)
+	material.set_shader_parameter("back_lit", behind)
+	material.set_shader_parameter("rim_on", 1.0 if _in_the_dark else 0.0)
+	material.set_shader_parameter("figure_alpha", hidden_alpha)
+	var height: float = _frame_height if _frame_height > 0.0 else float(Grid.TILE_SIZE)
+	if _animated != null:
+		material.set_shader_parameter("feet_y", _animated.offset.y + height * 0.5)
+	else:
+		material.set_shader_parameter("feet_y", height * 0.5)
+	material.set_shader_parameter("figure_height", height)
+	material.set_shader_parameter("shade_on", 1.0 if shade_map != null else 0.0)
+	if shade_map != null:
+		material.set_shader_parameter("shade_map", shade_map)
+		material.set_shader_parameter("shade_rect", Vector4(shade_rect.position.x, shade_rect.position.y, shade_rect.size.x, shade_rect.size.y))
+
+
+func _process(_delta):
+	if figures_lit and not laid:
+		_fall_of_light()
+	elif _figure_material != null and _drawn() != null and _drawn().material == _figure_material:
+		_drawn().material = null
+		set_hidden_alpha(hidden_alpha)
 
 
 class _Eyes extends Node2D:
@@ -251,6 +613,8 @@ func setup(combatant_sprite_frames: SpriteFrames, map_sprite: Texture2D, facing_
 	# Under everything else of theirs.
 	if LightView.shown():
 		add_child(_Shadow.new())
+	else:
+		set_process(false)
 	if combatant_sprite_frames != null:
 		_animated = AnimatedSprite2D.new()
 		_animated.sprite_frames = combatant_sprite_frames
@@ -374,6 +738,8 @@ func _get_reference_frame_height() -> float:
 func play_idle():
 	if lying and _animated and _animated.sprite_frames.has_animation(LYING_ANIMATION):
 		_animated.play(LYING_ANIMATION)
+	elif pose != &"" and _animated and _animated.sprite_frames.has_animation(pose):
+		_animated.play(pose)
 	elif _animated and _animated.sprite_frames.has_animation("idle"):
 		_animated.play("idle")
 

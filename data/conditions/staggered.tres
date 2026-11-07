@@ -9,3 +9,7 @@ tag = "Sg"
 description = "Reeling from a full stagger bar: loses their turn, and is hit harder until it is over."
 duration = 1
 skips_turn = true
+round_them = 1
+figure_pose = &"stunned"
+figure_priority = 6
+arrival_word = "Staggered!"

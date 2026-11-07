@@ -9,3 +9,4 @@ tag = "DM"
 description = "The other side's unseen ground and unseen traps show to the whole party."
 duration = 10
 sees_magic = true
+figure_no_ring = true

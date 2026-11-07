@@ -251,6 +251,7 @@ func refresh():
 			any_dark = any_dark or amount <= 0.02
 			shade.set_pixel(x, y, Color(colour, most * pow(1.0 - amount, 1.3)))
 	_put_on_the_shade(shade, most)
+	_tell_the_shadows()
 	_fog.visible = air_on and any_dark
 	_fog.material.set_shader_parameter("strength", FOG_WITH_NIGHT_EYES if night_eyes else FOG_STRENGTH)
 	_build_occluders()
@@ -358,8 +359,25 @@ func _put_out(entry: Dictionary):
 func _tell_the_shadows():
 	var points := []
 	for entry in _lights:
-		points.append([to_global(entry.at), maxf(entry.source.dim, entry.source.bright) * float(Grid.TILE_SIZE)])
+		points.append({"at": to_global(entry.at), "reach": maxf(entry.source.dim, entry.source.bright) * float(Grid.TILE_SIZE),
+			"colour": entry.source.get("colour", Color.WHITE), "node": entry.node, "energy": maxf(entry.energy, 0.01)})
 	CombatantSprite.light_points = points
+	CombatantSprite.figures_lit = shown()
+	CombatantSprite.stops_shadow = _stops_a_shadow if light != null and light.blocks_light != null and light.blocks_light.is_valid() else Callable()
+	if _shade != null and _shade.texture != null and visible:
+		CombatantSprite.shade_map = _shade.texture
+		var at: Vector2 = _shade.global_position
+		var size: Vector2 = _shade.texture.get_size() * _shade.global_scale
+		CombatantSprite.shade_rect = Rect2(at, size)
+	else:
+		CombatantSprite.shade_map = null
+
+
+## Whether something at a place on the map stops a figure's shadow: what stops light.
+func _stops_a_shadow(at: Vector2) -> bool:
+	if light == null or _tile_map == null or light.blocks_light == null or not light.blocks_light.is_valid():
+		return false
+	return light.blocks_light.call(_tile_map.local_to_map(_tile_map.to_local(at)))
 
 
 ## --- What stops them ---

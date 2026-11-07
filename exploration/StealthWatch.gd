@@ -3656,6 +3656,12 @@ func takedown_target(preferred = null) -> Guard:
 ## Knocks out whoever is unaware beside the leader - `preferred`, if he is.
 ## They drop where they stand and stay there - until another guard's view
 ## falls on them.
+## Whether `at` is on a Dark tile: a takedown there is not heard, and a body there is not found.
+func _in_plain_darkness(at: Vector2) -> bool:
+	var light = scene.get("light") if scene != null else null
+	return light != null and light.level_at(tile_of(at)) == Light.Level.DARK
+
+
 func take_down(preferred = null) -> bool:
 	var guard = takedown_target(preferred)
 	if guard == null or spotted_by != null:
@@ -3669,8 +3675,9 @@ func take_down(preferred = null) -> bool:
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color] is out cold.\n" % _name_of(guard))
 	guard_hit(guard, leader_key())
-	# Not quietly: anybody near enough comes to see what that was.
-	make_noise(guard.global_position, TAKEDOWN_NOISE_TILES, true)
+	# Not quietly: anybody near enough comes to see what that was. But for in the dark.
+	if not _in_plain_darkness(guard.global_position):
+		make_noise(guard.global_position, TAKEDOWN_NOISE_TILES, true)
 	# And seen by somebody who is nobody's guard, they run to tell.
 	var party = scene.get("party")
 	if party != null and party.leader != null:
@@ -3938,6 +3945,9 @@ func _look_for_bodies(finder: Guard):
 		return
 	for body in _bodies.keys():
 		if _bodies[body] or not is_instance_valid(body):
+			continue
+		# In plain darkness (the designer, 2026-11-07): nobody finds a body on a Dark tile. A guard's torch lights it.
+		if _in_plain_darkness(body.global_position):
 			continue
 		if _seen.get(finder, {}).has(tile_of(body.global_position)):
 			_found(body, finder)

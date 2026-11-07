@@ -139,6 +139,7 @@ func _state_value(value) -> String:
 
 func _ready():
 	emit_signal("register_combat", self)
+	update_combatants.connect(_show_conditions_on_figures)
 	seed_rolls(_seed_wanted())
 	# Played on another machine too, it is told of every turn (Net).
 	Net.fight_begins(self)
@@ -1036,8 +1037,10 @@ func secondary_grants(comb: Dictionary) -> Array:
 	if not granted.has("command") and not summons_of(comb).is_empty():
 		granted.append("command")
 	# And whoever laid something they can move can move it ("Zones").
-	if not granted.has(MOVE_ZONE_SKILL) and not movable_zone_of(comb).is_empty():
-		granted.append(MOVE_ZONE_SKILL)
+	if _zones_laid:
+		for zone in zones:
+			if zone.get("moves", false) and zone.owner_id == comb.get("id", -2) and not granted.has(zone.moved_by):
+				granted.append(zone.moved_by)
 	# The party can go through the fallen of the other side (see "Loot").
 	if not granted.has("loot") and comb.get("side", 1) == Group.PLAYERS and not comb.has("summoner") \
 			and not comb.has("object") and any_body_to_loot(comb):
@@ -2016,7 +2019,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		if moves_image(skill):
 			move_double(attacker, impact_position)
 		else:
-			move_zone(attacker, impact_position)
+			move_zone(attacker, impact_position, skill)
 		if game_ui != null and game_ui.has_method("refresh_action_buttons"):
 			game_ui.refresh_action_buttons()
 		return
@@ -2206,6 +2209,9 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		#
 		# A contested skill still does not roll: it lands on everyone, in full on
 		# those it beats and as a graze on those it does not.
+		# A shot at a light (Cyrus's Gun).
+		if skill.shoots_out_lights and shoot_out_light_at(attacker, impact_position):
+			trapped_ground = true
 		var connected = false
 		# A quick time event on the skill, once for the whole use (see "Quick time").
 		var quick := await quick_time_power(attacker, targets, skill)
@@ -2993,7 +2999,7 @@ func get_range_tiles(skill: SkillDefinition, caster_position: Vector2i, movement
 			return []
 		return get_diamond_tiles(double.position, skill.max_range).filter(func(tile): return controller.is_on_map(tile) and tile != double.position and can_land_on(double, tile))
 	if moves_zone(skill):
-		var laid := movable_zone_of(caster)
+		var laid := movable_zone_of(caster, skill)
 		if laid.is_empty():
 			return []
 		return get_diamond_tiles(laid.centre, skill.max_range).filter(func(tile): return controller.is_on_map(tile) and tile != laid.centre)
@@ -3289,6 +3295,13 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 				if effect.condition.obeys_order:
 					carried["order"] = _order_given
 					carried["order_by"] = attacker.get("id", -1)
+				# A cantrip's, that Dispel Magic takes off all the same ("Dispelling").
+				if effect.condition.dispellable:
+					carried["spell_gate"] = 0
+				# Named out loud: told to the caller's own, until the caller's next turn (Calling Out).
+				if effect.condition.called_out:
+					carried["called_by"] = attacker.get("id", -1)
+					carried["called_by_side"] = attacker.get("side", -1)
 				target.status_effects.append(carried)
 				if effect.condition.looks_dead:
 					_begin_looking_dead(target)
@@ -3386,6 +3399,10 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 			elif last_in_sight(target):
 				update_information.emit("[color=yellow]%s[/color] is the last of their side in sight - there is nobody else to draw the eye.
 " % target.name)
+			elif has_restriction(target, "cannot_hide"):
+				update_information.emit("[color=yellow]%s[/color] is marked, and cannot slip away.\n" % target.name)
+			elif _tried_to_hide_in_the_light(target):
+				pass
 			elif is_seen_by_opponents(target):
 				update_information.emit("[color=yellow]%s[/color] cannot slip away while they are being watched.
 " % target.name)
@@ -3775,6 +3792,9 @@ func _after_image_gone(image: Dictionary):
 ## Hides or reveals `comb`, and dresses them for it. Revealed, they are not
 ## invisible either.
 func set_hidden(comb: Dictionary, hidden: bool):
+	# Marked (Votive Flame), or in the light of somebody it is no use hiding from: there is no hiding.
+	if hidden and (has_restriction(comb, "cannot_hide") or not _whose_light_they_are_in(comb).is_empty()):
+		return
 	if not hidden:
 		comb.erase("invisible")
 		_seen_for_who_they_are(comb)
@@ -3883,6 +3903,8 @@ func _invisibility_refusal(skill: SkillDefinition, target: Dictionary) -> String
 	if target.is_empty() or not skill.all_effects().any(func(effect): return effect != null and (effect.type == EffectDefinition.EffectType.INVISIBLE \
 			or (effect.type == EffectDefinition.EffectType.CONDITION and effect.condition != null and effect.condition.looks_dead))):
 		return ""
+	if has_restriction(target, "cannot_hide"):
+		return "%s is marked, and cannot go unseen" % target.name
 	if is_invisible(target):
 		return "%s is invisible already" % target.name
 	# It leaves something behind to draw the eye (Mislead's double, "Images, and hiding").
@@ -3895,6 +3917,11 @@ func _invisibility_refusal(skill: SkillDefinition, target: Dictionary) -> String
 
 func make_invisible(comb: Dictionary, how: String = "fades from sight"):
 	if is_invisible(comb):
+		return
+	if has_restriction(comb, "cannot_hide"):
+		update_information.emit("[color=yellow]%s[/color] is marked, and cannot go unseen.\n" % comb.name)
+		return
+	if _tried_to_hide_in_the_light(comb):
 		return
 	if not is_hidden(comb) and last_in_sight(comb):
 		update_information.emit("[color=yellow]%s[/color] is the last of their side in sight - there is nobody else to draw the eye.\n" % comb.name)
@@ -4053,6 +4080,8 @@ func _summon_all(caster: Dictionary, effect: EffectDefinition, tile: Vector2i, s
 	if effect.summon_across > 0:
 		var tiles: Array = wall_tiles(caster, effect, tile, _wall_ends_at)
 		var first := -1
+		var called := ""
+		_quiet_summons = true
 		for there in tiles:
 			var piece := summon(caster, effect, there, skill, true)
 			if piece.is_empty():
@@ -4060,8 +4089,13 @@ func _summon_all(caster: Dictionary, effect: EffectDefinition, tile: Vector2i, s
 			# One wall, however many tiles: seen through whole ("Seen through, one by one").
 			if first < 0:
 				first = piece.get("id", -1)
+				called = _name_of_a_wall(piece)
 			piece["one_illusion"] = first
 			_lay_wall_piece(piece, tiles, there)
+		_quiet_summons = false
+		# One line for all of it, however many pieces (the designer's pick of 2026-11-07).
+		if first >= 0:
+			update_information.emit("[color=yellow]%s[/color] calls up [color=lightgreen]%s[/color] into the fight.\n" % [caster.name, called])
 	else:
 		for each in effect.summon_count:
 			summon(caster, effect, tile, skill)
@@ -4070,6 +4104,17 @@ func _summon_all(caster: Dictionary, effect: EffectDefinition, tile: Vector2i, s
 			if other.get("alive", false) and other.get("side", -1) != caster.get("side", -2) and not other.has("object") \
 					and not other.get("illusion", false) and sees_tile(other, tile):
 				shake(caster, other, effect.summon_shakes)
+
+
+## While the pieces of a wall are called up: no line for each.
+var _quiet_summons := false
+## The last wall said to be gone with its tether, so its other pieces aren't.
+var _wall_said_gone := -1
+
+
+## What a piece of a wall is called, without its number.
+func _name_of_a_wall(piece: Dictionary) -> String:
+	return String(piece.get("name", "")).rstrip("0123456789 ")
 
 
 ## Where a wall being called up ends, while it is (_use_skill): where the second click said.
@@ -6863,7 +6908,7 @@ func predict_hit(attacker: Dictionary, target: Dictionary, skill: SkillDefinitio
 				result.damage += resisted_damage(target, element, skill_damage(attacker, target, skill, power))
 			EffectDefinition.EffectType.HEAL:
 				if result.wins:
-					result.heal += (0 if effect.heals_share_only else heal_amount(attacker, skill, effect)) + heal_share_from(attacker, target, skill, effect)
+					result.heal += roundi(float((0 if effect.heals_share_only else heal_amount(attacker, skill, effect)) + heal_share_from(attacker, target, skill, effect)) * _blessed_factor(attacker, target))
 				else:
 					result.dropped.append("the heal")
 			EffectDefinition.EffectType.CONDITION:
@@ -6958,6 +7003,7 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	if effect.heals_share_only:
 		amount = 0
 	amount += heal_share_from(attacker, target, skill, effect)
+	amount = roundi(float(amount) * _blessed_factor(attacker, target))
 	var before_heal: int = target.hp
 	target.hp = mini(target.hp + amount, get_effective_stat(target, "max_hp"))
 	_metric("heal", {"who": attacker, "target": target, "amount": target.hp - before_heal, "skill": skill})
@@ -8412,6 +8458,7 @@ func _turn_begins_for(comb: Dictionary):
 	for other in combatants:
 		if other.has("declared"):
 			other.declared.get("waiting", []).erase(comb.get("id", -1))
+	_calling_out_ends(comb)
 	if not comb.alive:
 		return
 	_auras_on(comb)
@@ -9645,6 +9692,8 @@ func only_gets_you_moving(skill: SkillDefinition) -> bool:
 func wasted_on(comb: Dictionary, skill: SkillDefinition) -> String:
 	if skill != null and skill.reaction_only:
 		return "%s only goes off as a reaction - when %s." % [skill.name, skill.describe_triggers()]
+	if skill != null and skill.only_in_shadow and comb.has("position") and not tile_in_shadow(comb.position):
+		return "%s only goes from the Dim or the Dark." % skill.name
 	if skill != null and skill.spell_slot_level > 0 and cannot_cast_here(comb):
 		return "%s cannot cast spells here." % comb.get("name", "They")
 	if skill is GateNadeDefinition and not can_use_gate_nade(comb, skill):
@@ -13075,6 +13124,11 @@ func refusal_for(attacker: Dictionary, skill: SkillDefinition, impact: Vector2i)
 		return ""
 	if skill.reaction_only:
 		return "%s only goes off as a reaction" % skill.name
+	if skill.only_in_shadow:
+		if not tile_in_shadow(attacker.position):
+			return "%s only goes from the Dim or the Dark" % skill.name
+		if not tile_in_shadow(impact):
+			return "%s only goes to the Dim or the Dark" % skill.name
 	if skill.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.DISGUISE):
 		return disguise_refusal(attacker)
 	# A standing breakable wall is a wall: nothing is done to it but knocking it
@@ -14599,7 +14653,7 @@ static func _harmful(entry: Dictionary) -> bool:
 			return _lingers(condition) or condition.skips_turn or condition.prevents_movement or condition.prevents_secondary \
 				or condition.prevents_spells or condition.obeys_order \
 				or condition.prevents_reactions or condition.prevents_approach or condition.confuses or condition.more_from_source > 0.0 \
-				or condition.holds or condition.movement_change < 0 or condition.accuracy_change < 0 or condition.damage_taken_change > 0.0 \
+				or condition.cannot_hide or condition.holds or condition.movement_change < 0 or condition.accuracy_change < 0 or condition.damage_taken_change > 0.0 \
 				or condition.defense_change < 0.0
 		"element_up", "movement_class", "size":
 			return false
@@ -14878,6 +14932,14 @@ func _path_hit_bonus(attacker: Dictionary, target: Dictionary, skill: SkillDefin
 			bonus += passive.repeat_bonus
 		if passive.bonus_vs_read > 0.0 and foe and has_read(attacker, target):
 			bonus += passive.bonus_vs_read
+		# The archer in the shadows, shooting into the firelight (Silhouette).
+		if passive.silhouette_bonus > 0.0 and foe and not is_melee(skill) and attacker.has("position") and target.has("position") \
+				and light_level_of(attacker) == Light.Level.DARK and light_level_of(target) == Light.Level.BRIGHT:
+			bonus += passive.silhouette_bonus
+		# Blessed in the Light: her Idol damage on somebody standing in Bright.
+		if passive.blessed_in_bright > 0.0 and foe and target.has("position") and light_level_of(target) == Light.Level.BRIGHT \
+				and effective_damage_type(attacker, skill.damage_type) == Damage.Type.IDOL:
+			bonus += passive.blessed_in_bright
 		if passive.bonus_vs_trapped > 0.0 and foe and _trapped_by(target, attacker):
 			bonus += passive.bonus_vs_trapped
 		if passive.skill_bonuses.has(key):
@@ -15057,7 +15119,7 @@ func _falls_instead(attacker: Dictionary, target: Dictionary, skill: SkillDefini
 	if target.get("looks_dead", false) or not _blow_would_fell(attacker, target, skill, power):
 		return false
 	var an_ally := func(reactor: Dictionary, _reacting: SkillDefinition, _readied: Dictionary) -> bool:
-		return not is_same(reactor, target) and reactor.get("side", -1) == target.get("side", -2)
+		return not is_same(reactor, target) and reactor.get("side", -1) == target.get("side", -2) and not has_restriction(target, "cannot_hide")
 	var them := func(_reactor: Dictionary) -> Dictionary:
 		return target
 	await _react(SkillDefinition.Trigger.WOULD_FALL, attacker, "%s's %s would fell %s" % [attacker.name, skill.name, target.name], them, an_ally)
@@ -15533,10 +15595,19 @@ func lay_zone(caster: Dictionary, effect: EffectDefinition, tiles: Array, skill:
 		# Where it is and how far it spreads, for one that goes anywhere.
 		"centre": _landing_at if _landing_at != NO_AREA else tiles[0], "radius": aoe_radius_of(caster, skill) if skill != null else 0,
 		"follows": effect.zone_follows_caster, "moves": effect.zone_moves, "colour": effect.zone_colour,
+		"moved_by": effect.zone_moved_by if effect.zone_moved_by != "" else MOVE_ZONE_SKILL,
 		# Ground the other side takes for deadly ("False Ground"), and who stood there already.
 		"false_ground": effect.zone_false_ground, "caught": _standing_on(tiles, caster)})
 	if effect.zone_false_ground:
 		zones.back()["stood"] = _where_they_stand_on(tiles)
+	# On the weapon of somebody of theirs, if it was aimed at them (Daylight): it goes where they go.
+	if effect.zone_on_a_weapon and _landing_at != NO_AREA:
+		var bearer := get_combatant_at(_landing_at)
+		if not bearer.is_empty() and bearer.get("side", -1) == caster.get("side", -2) and not bearer.has("object") and not bearer.get("illusion", false):
+			zones.back()["follows"] = true
+			zones.back()["follows_id"] = bearer.get("id", -1)
+			zones.back().radius = aoe_radius_of(caster, skill)
+			update_information.emit("[color=yellow]%s[/color] carries it on their weapon.\n" % bearer.name)
 	_zones_now.append(zones.back())
 	# Seen spreading out from where it came down (MoveFeel).
 	MoveFeel.zone_spreads(self, _next_zone_id, _landing_at if _landing_at != NO_AREA else tiles[0], tiles)
@@ -15578,24 +15649,27 @@ func _zone_holds(zone: Dictionary, comb: Dictionary) -> bool:
 		1:
 			if comb.get("side", -1) == zone.side:
 				return false
+	# Darkness holds only where nothing has won from it (Daylight).
+	if zone.condition != null and zone.condition.is_darkness and not _won_from_the_dark.is_empty():
+		return tiles_of(comb).any(func(tile): return tile in zone.tiles and not _won_from_the_dark.has(tile))
 	return tiles_of(comb).any(func(tile): return tile in zone.tiles)
 
 
 ## Everybody has the conditions of the zones they stand in, and none of those
 ## they do not.
 func sync_zones():
+	# One that goes with its caster (Restorative Aura), or on somebody's weapon (Daylight), is round them now.
+	for zone in zones:
+		if zone.get("follows", false):
+			var owner := _combatant_by_id(zone.get("follows_id", zone.owner_id))
+			if owner.get("alive", false):
+				zone.tiles = _tiles_within(owner, zone.radius)
+				zone.centre = owner.position
 	relight()
 	_keep_up_appearances()
 	if not _zones_laid and not light.varies:
 		return
 	_false_ground_holds()
-	# One that goes with its caster (Restorative Aura) is round them now.
-	for zone in zones:
-		if zone.get("follows", false):
-			var owner := _combatant_by_id(zone.owner_id)
-			if owner.get("alive", false):
-				zone.tiles = _tiles_within(owner, zone.radius)
-				zone.centre = owner.position
 	var changed := false
 	for comb in combatants:
 		if not comb.has("status_effects"):
@@ -15706,8 +15780,16 @@ func zone_tiles() -> Array:
 	# One the other side keeps from them is not drawn for them (zone_unseen) - but for Detect Magic.
 	var sees_magic := party_sees_magic()
 	return zones.filter(func(zone): return zone.side == 0 or sees_magic or not zone.get("unseen", false)) \
-		.map(func(zone): return {"tiles": _spread_so_far(zone), "hostile": zone.side != 0, "colour": zone.get("colour", Color(0, 0, 0, 0)),
-			"cloud": zone.centre if zone.get("moves", false) else NO_AREA})
+		.map(func(zone):
+			var effect: EffectDefinition = zone.get("effect")
+			var lights: bool = effect != null and effect.zone_lights > 1
+			var tiles: Array = _spread_so_far(zone)
+			# Darkness is not drawn where it has lost (Daylight).
+			if zone.condition != null and zone.condition.is_darkness and not _won_from_the_dark.is_empty():
+				tiles = tiles.filter(func(tile): return not _won_from_the_dark.has(tile))
+			return {"tiles": tiles, "hostile": zone.side != 0, "colour": zone.get("colour", Color(0, 0, 0, 0)),
+				"cloud": zone.centre if zone.get("moves", false) and not lights else NO_AREA,
+				"bare": effect != null and effect.zone_bare, "lights": zone_light_points(zone) if lights else []})
 
 
 ## As much of `zone` as has spread out from where it landed so far - all of it,
@@ -15888,18 +15970,19 @@ static func moves_zone(skill: SkillDefinition) -> bool:
 
 
 ## The zone `comb` laid that can be moved, or an empty one.
-func movable_zone_of(comb: Dictionary) -> Dictionary:
+func movable_zone_of(comb: Dictionary, skill: SkillDefinition = null) -> Dictionary:
 	if not _zones_laid:
 		return {}
+	var moved_by := skill_key_of(skill) if skill != null else ""
 	for zone in zones:
-		if zone.get("moves", false) and zone.owner_id == comb.get("id", -2):
+		if zone.get("moves", false) and zone.owner_id == comb.get("id", -2) and (moved_by == "" or zone.moved_by == moved_by):
 			return zone
 	return {}
 
 
 ## What `comb` laid goes to `tile`: all of it round there now.
-func move_zone(comb: Dictionary, tile: Vector2i):
-	var zone := movable_zone_of(comb)
+func move_zone(comb: Dictionary, tile: Vector2i, skill: SkillDefinition = null):
+	var zone := movable_zone_of(comb, skill)
 	if zone.is_empty():
 		return
 	zone.centre = tile
@@ -15936,6 +16019,8 @@ func _hidden_by_the_dark(comb: Dictionary) -> bool:
 
 ## `comb` is lost in the dark, quietly: it happens to everybody who walks into it.
 func _fade_into_the_dark(comb: Dictionary):
+	if has_restriction(comb, "cannot_hide"):
+		return
 	comb["invisible"] = true
 	comb["lost_in_the_dark"] = true
 	if is_hidden(comb):
@@ -15968,6 +16053,9 @@ func hidden_from(viewer: Dictionary, comb: Dictionary) -> bool:
 		return false
 	if viewer.is_empty() or sees_the_unseen(viewer):
 		return viewer.is_empty()
+	# Named out loud by one of their own (Calling Out).
+	if _called_out_to(viewer, comb):
+		return false
 	# No disguise fools a nose ("Disguises").
 	if comb.has("disguised_as") and viewer.get("sees_through_disguises", false):
 		return false
@@ -16046,7 +16134,7 @@ func _begin_light():
 	_light_time = encounter.time_of_day if encounter != null and encounter.time_of_day >= 0 else Campaign.time_of_day
 	var no_moon: bool = (encounter != null and encounter.no_moon) or Campaign.map_no_moon
 	_light_base = Light.base_level(_light_ambient, _light_time, no_moon)
-	CombatantSprite.light_points = []
+	CombatantSprite.forget_the_light()
 	CombatantSprite.set_shadows(Light.shadow_at(_light_ambient, _light_minute()))
 	var gathered := Light.gather(terrain, tile_map, _light_time, no_moon)
 	_placed_lights = gathered.sources
@@ -16090,13 +16178,25 @@ func relight():
 		return
 	var sources: Array = _placed_lights.duplicate()
 	var dark_tiles := []
+	_won_from_the_dark = {}
 	if _zones_laid:
 		for zone in zones:
+			var beating: EffectDefinition = zone.get("effect")
+			if beating != null and beating.zone_beats_darkness:
+				for tile in zone.tiles:
+					_won_from_the_dark[tile] = true
+		for zone in zones:
+			# Dark whatever lights it, but for a light that says it wins (the designer, 2026-11-07: "make light void win
+			# over any light source, outside of spells that specify that can win over it").
 			if zone.condition != null and zone.condition.is_darkness:
-				dark_tiles.append_array(zone.tiles)
+				dark_tiles.append_array(zone.tiles.filter(func(tile): return not _won_from_the_dark.has(tile)))
 			var effect: EffectDefinition = zone.get("effect")
 			if effect != null and effect.zone_light_tiles > 0.0:
-				sources.append(_light_from(zone.centre, effect.zone_light_tiles, Damage.type_colour(effect.damage_type)))
+				var colour: Color = effect.zone_light_colour if effect.zone_light_colour.a > 0.0 else Damage.type_colour(effect.damage_type)
+				for at in zone_light_points(zone):
+					var source := _light_from(at, effect.zone_light_tiles, colour)
+					source["flickers"] = not effect.zone_light_steady
+					sources.append(source)
 	# All Bright, and nothing to darken it: nothing has any say at all.
 	if _light_base == Light.Level.BRIGHT and _ambient_areas.is_empty() and dark_tiles.is_empty():
 		if light.varies or not light.glow.is_empty():
@@ -16113,7 +16213,7 @@ func relight():
 			for tile in tiles_of(comb):
 				_wall_tiles_for_light[tile] = true
 		if comb.has("object"):
-			if comb.object.light_tiles > 0.0:
+			if comb.object.light_tiles > 0.0 and not comb.get("light_out", false):
 				sources.append(_light_from(comb.position, comb.object.light_tiles, comb.object.light_colour))
 			continue
 		# Whoever gives off light by being what they are, real or not.
@@ -16133,6 +16233,175 @@ func relight():
 				break
 	light.rebuild(_light_base, _ambient_areas, sources, dark_tiles, _blocks_light)
 	_light_shown()
+
+
+## --- What is on them, on them ---
+##
+## View only (ConditionLook), so never headless and never while catching up (MoveFeel.shown). Each figure is told what is on it
+## whenever anything changes. What has just landed flashes and says so; what goes fades by itself. Nobody the player cannot see shows anything.
+func _show_conditions_on_figures(_list: Array = []):
+	if not MoveFeel.shown():
+		return
+	for comb in combatants:
+		var sprite = comb.get("sprite")
+		if sprite == null or not is_instance_valid(sprite) or not sprite.has_method("show_conditions") or comb.has("object"):
+			continue
+		var entries := []
+		var now := {}
+		if comb.get("alive", false) and not comb.get("illusion", false) and not unseen_by_party(comb):
+			for entry in comb.get("status_effects", []):
+				var condition = entry.get("condition") if entry.get("stat", "") == "condition" else null
+				if condition is ConditionDefinition:
+					entries.append({"condition": condition, "helps": ConditionStrip.condition_helps(condition), "ends_soon": int(entry.get("duration", 99)) <= 1})
+					now[condition.resource_path] = condition
+		for path in now:
+			if not sprite.conditions_on_show.has(path):
+				_condition_lands(comb, sprite, now[path])
+		sprite.conditions_on_show = now
+		sprite.show_conditions(entries)
+
+
+## `condition` has just landed on `comb`: a flash, and its word over them.
+func _condition_lands(comb: Dictionary, sprite: CombatantSprite, condition: ConditionDefinition):
+	var helps: bool = ConditionStrip.condition_helps(condition)
+	var word: String = condition.arrival_word if condition.arrival_word != "" else condition.display_name
+	# The dark and such are places, not things done to anybody: nothing to say.
+	if condition.figure_no_ring:
+		return
+	float_number(comb, word, ConditionLook.RING_HELPS if helps else ConditionLook.RING_HURTS)
+	sprite.flash_hit(not helps, condition.figure_tint if condition.figure_tint.a > 0.0 else null)
+
+
+## Where what `holder`'s tether holds is: everybody it has anything on, whatever it called up, the middle of a zone. Tiles.
+func what_a_tether_holds(holder: Dictionary) -> Array:
+	var points := []
+	if not holds_tether(holder):
+		return points
+	var id: int = holder.tether.id
+	for comb in combatants:
+		if not comb.get("alive", false) or not comb.has("position") or is_same(comb, holder) or unseen_by_party(comb):
+			continue
+		if comb.get("tether_of", -1) == id or comb.get("status_effects", []).any(func(entry): return entry.get("tether_of", -1) == id):
+			points.append(comb.position)
+	for zone in zones:
+		if zone.get("tether_of", -1) == id and (zone.side == Group.PLAYERS or not zone.get("unseen", false)):
+			points.append(zone.centre)
+	return points
+
+
+## --- Cyrus and the dark, Alithia and the light ---
+##
+## From the designer's picks of 2026-11-07. Shooting out lights: SkillDefinition.shoots_out_lights, Cyrus's Gun, here for a fight and
+## in OutsideMoves.fire_at on a map. Shadow Step: only_in_shadow. Silhouette, Blessed in the Light, Nowhere to Hide: passives' switches.
+## Calling Out: a condition, called_out, on somebody the caller can see; their whole side can then see them too, until the
+## caller's next turn (_turn_begins_for). All numbers PROPOSAL.
+
+## The light at `tile` that a shot could put out: a thing on the map that gives light, or one placed there, or {}.
+func light_to_shoot_at(tile: Vector2i) -> Dictionary:
+	for comb in combatants_at(tile):
+		if comb.has("object") and comb.object.light_tiles > 0.0 and not comb.get("light_out", false):
+			return comb
+	for source in _placed_lights:
+		if source.tile == tile and not source.get("opening", false):
+			return source
+	return {}
+
+
+## A shot lands on `tile`: whatever light is there goes out, quietly. Whether there was one.
+func shoot_out_light_at(attacker: Dictionary, tile: Vector2i) -> bool:
+	var found := light_to_shoot_at(tile)
+	if found.is_empty():
+		return false
+	if found.has("object"):
+		found["light_out"] = true
+	else:
+		_placed_lights.erase(found)
+		var node = found.get("node")
+		if node != null and is_instance_valid(node):
+			node.lit = false
+			node.queue_redraw()
+	update_information.emit("[color=yellow]%s[/color] shoots out the light.\n" % attacker.name)
+	sync_zones()
+	if controller != null:
+		controller.queue_redraw()
+	return true
+
+
+## Whether `tile` is Dim or Dark, as Shadow Step wants.
+func tile_in_shadow(tile: Vector2i) -> bool:
+	return light.level_at(tile) != Light.Level.BRIGHT
+
+
+## Whoever of the other side has `comb` in their light (Nowhere to Hide), or {}.
+func _whose_light_they_are_in(comb: Dictionary) -> Dictionary:
+	if not comb.has("position") or not comb.get("alive", false) or light_level_of(comb) != Light.Level.BRIGHT:
+		return {}
+	for other in combatants:
+		if not other.get("alive", false) or other.get("side", -1) == comb.get("side", -1) or not other.has("passives") or other.get("illusion", false):
+			continue
+		for passive in active_passives(other):
+			if passive.nowhere_to_hide_tiles > 0 and distance_to(other, nearest_tile_of(comb, other.position)) <= passive.nowhere_to_hide_tiles \
+					and sees_tile(other, nearest_tile_of(comb, other.position), comb):
+				return other
+	return {}
+
+
+## `comb` tries to hide, in somebody's light: they cannot, and are Exposed to that one for trying. Whether they were.
+func _tried_to_hide_in_the_light(comb: Dictionary) -> bool:
+	var judge := _whose_light_they_are_in(comb)
+	if judge.is_empty():
+		return false
+	update_information.emit("[color=red]%s[/color] has nowhere to hide from [color=yellow]%s[/color].\n" % [comb.name, judge.name])
+	put_condition(comb, EXPOSED, 1, judge.name, true, judge.get("id", -1))
+	return true
+
+
+const EXPOSED := preload("res://data/conditions/exposed.tres")
+
+
+## Whether `viewer`'s own side has named `comb` to them (Calling Out).
+func _called_out_to(viewer: Dictionary, comb: Dictionary) -> bool:
+	for entry in comb.get("status_effects", []):
+		if entry.has("called_by_side") and entry.called_by_side == viewer.get("side", -1):
+			return true
+	return false
+
+
+## `comb`'s turn is beginning: whoever they called out is no longer told of.
+func _calling_out_ends(comb: Dictionary):
+	var id: int = comb.get("id", -1)
+	for other in combatants:
+		if other.has("status_effects") and other.status_effects.any(func(entry): return entry.get("called_by", -2) == id):
+			other.status_effects = other.status_effects.filter(func(entry): return entry.get("called_by", -2) != id)
+			_redress_the_hidden()
+
+
+## How much more `attacker`'s heals mend on `target` for standing in Bright (Blessed in the Light).
+func _blessed_factor(attacker: Dictionary, target: Dictionary) -> float:
+	if not attacker.has("passives") or not target.has("position") or light_level_of(target) != Light.Level.BRIGHT:
+		return 1.0
+	var factor := 1.0
+	for passive in active_passives(attacker):
+		factor += passive.blessed_in_bright
+	return factor
+
+
+## Where the tiles lie that a light has won from the dark, as of the last relight.
+var _won_from_the_dark := {}
+## Where several lights of one zone go about its middle (Dancing Lights).
+const ZONE_LIGHT_SPREAD := [Vector2i(0, -2), Vector2i(-2, 1), Vector2i(2, 1)]
+
+
+## Where `zone` gives its light from: its middle, or each of its lights, those that would be in a wall at its middle.
+func zone_light_points(zone: Dictionary) -> Array:
+	var effect: EffectDefinition = zone.get("effect")
+	if effect == null or effect.zone_lights <= 1:
+		return [zone.centre]
+	var points := []
+	for i in effect.zone_lights:
+		var at: Vector2i = zone.centre + ZONE_LIGHT_SPREAD[i % ZONE_LIGHT_SPREAD.size()]
+		points.append(at if controller.is_on_map(at) and not controller.terrain_blocks_sight(at, 1) else zone.centre)
+	return points
 
 
 func _light_from(tile: Vector2i, tiles: float, colour: Color) -> Dictionary:
@@ -16162,6 +16431,7 @@ func _light_shown():
 			sprite.set_light(Light.FIGURE_TINTS[level])
 			if not comb.has("object"):
 				sprite.set_in_the_dark(level == Light.Level.DARK, sees_in_darkness(comb))
+				sprite.off_ground = comb.get("movement_class", 0) == 1
 
 
 ## How lit `tile` is.
@@ -16783,8 +17053,9 @@ func summon(caster: Dictionary, effect: EffectDefinition, tile: Vector2i, skill:
 	if called.has("object"):
 		called["called_by"] = called.summoner
 		called.erase("summoner")
-	update_information.emit("[color=yellow]%s[/color] %s [color=lightgreen]%s[/color]%s.\n" % [caster.name,
-		"calls up" if skill != null else "brings", called.name, " into the fight" if skill != null else " with them"])
+	if not _quiet_summons:
+		update_information.emit("[color=yellow]%s[/color] %s [color=lightgreen]%s[/color]%s.\n" % [caster.name,
+			"calls up" if skill != null else "brings", called.name, " into the fight" if skill != null else " with them"])
 	# Its presence felt the moment it is there, not only at turn starts.
 	for other in combatants.duplicate():
 		if other.get("alive", false) and other != called and not other.has("object"):
@@ -16830,7 +17101,7 @@ func _bring_own_summon(comb: Dictionary):
 
 
 ## Takes a summon off the board: called away, or fallen - it leaves no body.
-func _unsummon(summoned: Dictionary, why: String):
+func _unsummon(summoned: Dictionary, why: String, quietly: bool = false):
 	if not summoned.get("alive", false):
 		return
 	var index := combatants.find(summoned)
@@ -16841,7 +17112,9 @@ func _unsummon(summoned: Dictionary, why: String):
 	summoned["taken"] = "unsummoned"
 	if index != -1:
 		groups[summoned.side].erase(index)
-	update_information.emit("[color=yellow]%s[/color] %s.\n" % [summoned.name, why])
+	if not quietly:
+		var called: String = _name_of_a_wall(summoned) if summoned.has("one_illusion") else summoned.name
+		update_information.emit("[color=yellow]%s[/color] %s.\n" % [called, why])
 	combatant_died.emit(summoned)
 	var sprite = summoned.get("sprite")
 	if sprite != null and is_instance_valid(sprite):
@@ -17208,7 +17481,10 @@ func snap_tether(comb: Dictionary, why: String):
 			resync_size(other)
 	for summoned in combatants.duplicate():
 		if summoned.get("alive", false) and summoned.get("tether_of", -1) == held.id:
-			_unsummon(summoned, "is gone with the tether that held it")
+			# A wall goes as one: a line for all of it.
+			var wall: int = summoned.get("one_illusion", -1)
+			_unsummon(summoned, "is gone with the tether that held it", wall >= 0 and _wall_said_gone == wall)
+			_wall_said_gone = wall
 	# And what it laid on the ground.
 	for zone in zones.duplicate():
 		if zone.get("tether_of", -1) == held.id:

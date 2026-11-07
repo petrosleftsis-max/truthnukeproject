@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="1_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/shadow_step_skill.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_skill")
+name = "Shadow Step"
+description = "A secondary action. From one Dim or Dark tile to another within four, with a clear line between them. Nobody can react to it, and nobody sees him go."
+max_range = 4
+icon = ExtResource("2_icon")
+respects_blocking = true
+teleports = 1
+is_secondary = true
+deals_damage = false
+can_be_copied = false
+required_level = 8
+only_in_shadow = true
+hand_look = 1
+noise = 1
+outside_use = 1

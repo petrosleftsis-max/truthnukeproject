@@ -10,3 +10,6 @@ description = "Held fast by whoever grabbed them: no moving until they break fre
 duration = 999
 prevents_movement = true
 holds = true
+round_them = 5
+figure_priority = 4
+arrival_word = "Grappled!"

@@ -9,3 +9,4 @@ tag = "Cl"
 description = "They climb anywhere: walls, pillars and the floor above."
 duration = 5
 climbs_anywhere = true
+figure_no_ring = true

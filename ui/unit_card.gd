@@ -88,7 +88,7 @@ func place():
 		return
 	var screen = get_viewport_rect().size
 	var mouse = Pad.screen_point()
-	var size_now = get_combined_minimum_size()
+	var size_now = get_combined_minimum_size() * scale.x
 	var at = mouse + OFFSET
 	if at.x + size_now.x > screen.x:
 		at.x = mouse.x - OFFSET.x - size_now.x

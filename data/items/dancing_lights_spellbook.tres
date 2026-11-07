@@ -5,10 +5,10 @@
 
 [resource]
 script = ExtResource("1_item")
-name = "Unveil Spellbook"
-description = "A spellbook of Unveil. Prometheus can learn Unveil from it - on the Moves page of his character sheet, between fights - and it is used up as he does."
+name = "Dancing Lights Spellbook"
+description = "A spellbook of Dancing Lights. Prometheus can learn Dancing Lights from it - on the Moves page of his character sheet, between fights - and it is used up as he does."
 icon = ExtResource("2_icon")
 can_be_copied = false
 deals_damage = false
 price = 150
-teaches = "unveil"
+teaches = "dancing_lights"

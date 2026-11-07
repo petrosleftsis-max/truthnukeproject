@@ -8,3 +8,7 @@ display_name = "Fear"
 description = "Too afraid to advance and can barely aim."
 accuracy_change = -20
 prevents_approach = true
+round_them = 4
+figure_pose = &"afraid"
+figure_priority = 4
+arrival_word = "Afraid!"

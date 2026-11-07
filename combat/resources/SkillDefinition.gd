@@ -105,6 +105,10 @@ enum AoEShape {
 ## there to be picked on its user's own turn (Combat.refusal_for), nor readied,
 ## and the AI never plans it - InstaHack, which only answers a spell being cast.
 @export var reaction_only: bool = false
+## A shot at a lamp, a torch or any other light in reach puts it out, quietly (the designer, 2026-11-07, Cyrus's Gun).
+@export var shoots_out_lights: bool = false
+## Used only from a Dim or Dark tile, and only to go to one (Shadow Step).
+@export var only_in_shadow: bool = false
 
 ## Set Off By's choices.
 enum SetOffBy { ENEMIES, ALLIES, EITHER }
@@ -466,7 +470,7 @@ enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
 ## see what it was. Unmarked plays as Silent, and the outside suite lists every
 ## move still unmarked.
 @export var noise: Loudness = Loudness.UNMARKED
-@export_range(0.0, 20.0, 0.5, "suffix:tiles") var noise_tiles: float = 0.0
+@export_range(0.0, 99.0, 0.5, "suffix:tiles") var noise_tiles: float = 0.0
 ## As a Lure: how far off guards hear what it leaves, and it may be thrown as far as Max Range says.
 ## 0: the plain Lure's (OutsideMoves.LURE_TILES, LURE_AHEAD). Phantom Noise.
 @export_range(0.0, 30.0, 0.5, "suffix:tiles") var lure_tiles: float = 0.0
@@ -476,7 +480,7 @@ enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
 ## an ambush with it as the opening blow - or breaks a breakable wall. Anything
 ## else does nothing out there unless it is set here. Counter Trap answers a
 ## magical trap as it goes off (MagicTrap - InstaHack). Stored by number: append.
-@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen", "Seeming", "Mislead", "Suggestion", "Detect Magic", "Arcane Eye")
+@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen", "Seeming", "Mislead", "Suggestion", "Detect Magic", "Arcane Eye", "Flare")
 var outside_use: int = 0
 
 @export_group("Tether")

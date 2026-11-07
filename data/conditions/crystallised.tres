@@ -13,3 +13,7 @@ dot_min = 1
 dot_max = 3
 prevents_movement = true
 duration = 5
+figure_tint = Color(0.7, 0.72, 0.78, 0.55)
+figure_pose = &"frozen"
+figure_priority = 5
+arrival_word = "Crystallised!"

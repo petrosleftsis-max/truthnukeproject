@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Called Out"
+tag = "Cu"
+description = "Named out loud: the other side can see them, and aim at them, whatever hides them, until the one who called them out takes their next turn."
+duration = 99
+called_out = true
+round_them = 8
+figure_priority = 3
+arrival_word = "Called out!"

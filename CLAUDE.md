@@ -43,7 +43,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 160 suites and takes a while. Each one boots the real game
+A full run is 163 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one. A second harness can run beside a
@@ -417,9 +417,48 @@ crossfades over `EASE_SECONDS`, dithers if `dithered`). Fog over the Dark (`FOG_
 `_build_occluders` makes `LightMap.blocks_light` into `LightOccluder2D`s, only when that has changed. `Grade`
 (`GRADE_SHADER`) with `Light.grade_at`, and a `CanvasModulate` with `Light.tone_at`. Godot gives a screen-reading shader
 only what was on the screen the first time anything read it, and the shade reads it first: anything later needs
-its own `BackBufferCopy` (`_grade_copy`, FightCards' drain). `CombatantSprite`: `_Shadow` points away from the nearest
-of `light_points`, or leans by `Light.shadow_at`; `set_in_the_dark` gives a rim (`RIM_SHADER`) and `_Eyes`.
+its own `BackBufferCopy` (`_grade_copy`, FightCards' drain). `Projectile` carries a `PointLight2D`, as below.
+
+**How light falls on a figure, and what is on them** (`CombatantSprite`, `combat/ConditionLook.gd`; `figures`; the designer, 2026-11-07, sections
+9 and 10 of `docs/proposals_2026-11-07.md`). View only, with no icons over the head: the designer looked at an example and preferred
+without. `FIGURE_SHADER`, one material per figure, set each frame by `_fall_of_light` from `light_points` (`{"at", "reach", "colour",
+"node", "energy"}`, told by `LightView._tell_the_shadows`): their colour from the nearest lights, the lit edge and the far side, lit from
+below by a fire or above by the sun, back lit, half in the dark by reading the shade's own picture (`shade_map`, `shade_rect`), and a
+rim in the Dark (`set_in_the_dark`, `_Eyes`). `_Shadow` is a patch at the feet; its child `_Casting` lays the frame they show along the
+ground away from each of the `MOST_SHADOWS` strongest lights, through `SHADOW_SHADER` (blurrier further off), or from the sun with
+`Light.shadow_at`'s lean, length and colour, stopped by `stops_shadow`. A flier's is smaller and further off (`off_ground`).
+`CombatantSprite.forget_the_light` at each new place. What is on them: `ConditionDefinition`'s "On The Figure" group (`figure_tint`, `round_them`,
+`off_them`, `figure_priority`, `figure_pose`, `arrival_word`, slots for pictures), `Combat._show_conditions_on_figures` from
+`update_combatants`, `ConditionLook.choose_from` (one at a time, the strongest, equals taking turns), a ring under the feet, a pose
+that falls back to idle (`set_pose`, `play_idle`). `CController._draw_tether` draws a thread to what a tether holds
+(`Combat.what_a_tether_holds`).
+
+**The board without its squares** (`CController` section of that name, `control/SoftAreas.gd`, `maps/grid_overlay.gd`; `hudlook`; the designer's
+"A" of 2026-11-07, section 13). The rules stay on tiles. `_draw_area` hands everything to two `SoftAreas` under the controller's own
+drawing: a mask with a pixel a tile, read by a linear filter, so what shows covers just those tiles with rounded corners; a pattern
+(`SoftAreas.Pattern`: stripes for danger and a blast, crosses for help) so colour isn't alone. `_walk_reach_now` is one outline of how far
+they can walk, `_draw_walk_path` a curve of dots (solid while there is movement for it, hollow past that), `_walk_the_step` walks on
+`_walk_curve` through the tiles, arriving on each. Headless or catching up: the straight line. `_fade_the_grid`: the lines show near the
+pointer while moving or aiming, and not at all otherwise, unless `GameSettings.grid_always` (`combat_ui._grid_button`). `_draw_health`: a
+bar under anybody hurt or pointed at, or all while the danger key is held. None of the soft board is made headless without `LightView.plays_headless`.
+
+**The fight's interface, the picks of 2026-11-07** (`ui/combat_ui.gd`, `hudlook`; section 11). `GateTag`: a shape per gate (`shape_of`), `compact`
+past `GATES_NAMED_IN_FULL` gates, the row an `HFlowContainer` whose foot stays over the tabs (`_seat_gate_row`). `ConditionStrip`: turns left on the
+mark, `ConditionDefinition.mark_picture` in place of the placeholder and its letters. The grid hides empty slots (`_empty_action`, `_fill_action`);
+`_turn_block` behind Ready, Go Prone, Undo and End Turn. `_refresh_round_mark` over the queue; `light_face_of`, from `CController._note_hover`.
+`_by_side`: yellow and red in the log go by who a name is, in the one place the log is written. A wall has one line each way
+(`_quiet_summons`, `_wall_said_gone`). On a map `_tuck_moves_panel`: the moves panel only while the pointer is low, the key says (`moves_panel`, M) or
+a pad is in use, which has no pointer to bring it up. `apply_ui_scale`, from `GameSettings.ui_scale` and `UiScalePicker` in both Options: each part
+keeps to its corner and the log narrows at the biggest; conversations and menus keep their size.
 `Projectile` carries a `PointLight2D` (`light_tiles_of`, `SkillDefinition.projectile_light_tiles`), and flares on landing.
+
+**Spells that make light** (`lightspells`; the designer, 2026-11-07). A dark zone (Light Void) is dark whatever lights it, in
+`relight`, but for a zone with `zone_beats_darkness` (Daylight), which wins tile by tile while it lies there
+(`_won_from_the_dark`, read by `relight`, `_zone_holds`, `zone_tiles`). Daylight aimed at somebody of her side is on their
+weapon (`zone_on_a_weapon`, `follows_id`). Dancing Lights: `zone_lights`, `zone_light_points`, `zone_moved_by` (its own secondary,
+`move_lights`; `movable_zone_of(comb, skill)`), no tether. Flare took Unveil's place on Prometheus and in the book: UNVEIL and a
+`zone_bare` light, and on a map `Use.FLARE`, `ExplorationScene.flare_up`, `Net.flare_there`. Votive Flame's Marked by Flame:
+`cannot_hide` (`set_hidden`, `make_invisible`, `_fade_into_the_dark`, `_invisibility_refusal`), `dispellable` (`spell_gate` 0).
 
 **The clock and the calendar** (Campaign "The clock and the calendar", `campaign/CalendarDefinition.gd`,
 `data/calendar.tres`, `ui/clock_face.gd`, `ui/time_passing.gd`; `clock`; the designer, 2026-11-07).
@@ -960,7 +999,7 @@ joins comes up on both (`manage_party_there`).
 port packed into base 32 with a check byte, 8 characters for the usual port and 12 with
 another. `Net.join` takes one for an address; the panel has a Copy Code beside each address
 to give. It does not hide the address, and the host must be reachable as for the address.
-`joincode` covers it. `PROTOCOL` is 9.
+`joincode` covers it. `PROTOCOL` is 10.
 **One player to a machine** (the designer's list of 2026-11-04):
 `Coop.player_here()` is this machine's player over a network, and any device here
 counts as them (`player_of_event`, `pointer_device`, `direction`). On a turn or a

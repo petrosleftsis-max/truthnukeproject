@@ -47,7 +47,19 @@ func show_for(comb: Dictionary, combat: Combat):
 		remove_child(child)
 		child.queue_free()
 	for state in states_of(comb, combat):
-		add_child(_mark(state.text, state.helpful, state.get("tag", "")))
+		add_child(_mark(state.text, state.helpful, state.get("tag", ""), state.get("turns", 0), state.get("picture")))
+
+
+## How many of their turns `effect` has left, for the number on its mark: 0 for one with no count of its own (on a tether, until they
+## get up, until the last image is gone).
+func turns_left(comb: Dictionary, effect: Dictionary) -> int:
+	if effect.get("held_by_tether", false) or effect.has("zone_id"):
+		return 0
+	var condition = effect.get("condition") if effect.get("stat", "") == "condition" else null
+	if condition != null and (condition.getting_up_share > 0.0 or condition.evades_hits > 0):
+		return 0
+	var left: int = effect.get("duration", 0)
+	return left if left > 0 and left < 90 else 0
 
 
 ## What is on `comb`, each as the words its mark's tooltip shows and whether it
@@ -64,18 +76,20 @@ func states_of(comb: Dictionary, combat: Combat) -> Array:
 		var condition = effect.get("condition") if effect.get("stat", "") == "condition" else null
 		if condition is ConditionDefinition:
 			state["tag"] = tag_of(condition)
+			state["picture"] = condition.mark_picture
+		state["turns"] = turns_left(comb, effect)
 		found.append(state)
 	return found
 
 
-func _mark(tooltip: String, helpful: bool, tag: String = "") -> TextureRect:
+func _mark(tooltip: String, helpful: bool, tag: String = "", turns: int = 0, picture = null) -> TextureRect:
 	var icon = TextureRect.new()
-	icon.texture = MARK
+	icon.texture = picture if picture != null else MARK
 	icon.custom_minimum_size = mark_size
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	# Only the mark itself takes the colour; the letter on it stays white.
-	icon.self_modulate = HELPFUL if helpful else HARMFUL
+	icon.self_modulate = Color.WHITE if picture != null else (HELPFUL if helpful else HARMFUL)
 	# Without this the mouse passes straight through and there is no tooltip.
 	icon.mouse_filter = Control.MOUSE_FILTER_STOP
 	icon.tooltip_text = TooltipText.wrap(tooltip)
@@ -90,6 +104,25 @@ func _mark(tooltip: String, helpful: bool, tag: String = "") -> TextureRect:
 		badge.offset_bottom = 0
 		if mark_size.y < MARK_SIZE.y:
 			badge.add_theme_constant_override("outline_size", 3)
+	# Turns left in the corner, where there is room for it to be read.
+	if turns > 0 and mark_size.y >= MARK_SIZE.y:
+		var count := Label.new()
+		count.name = "TurnsLeft"
+		count.text = str(turns)
+		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		count.add_theme_font_size_override("font_size", maxi(9, int(mark_size.y * 0.42)))
+		count.add_theme_color_override("font_color", Color("fff3c4"))
+		count.add_theme_color_override("font_outline_color", Color.BLACK)
+		count.add_theme_constant_override("outline_size", 4)
+		count.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		count.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		count.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		count.offset_left = -int(mark_size.y * 0.42)
+		count.offset_top = -int(mark_size.y * 0.5)
+		count.offset_right = 2
+		count.offset_bottom = 3
+		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		icon.add_child(count)
 	return icon
 
 

@@ -9,3 +9,4 @@ tag = "Ld"
 description = "To the other side they have fallen: nobody aims at them. Anything they do gives it away, a step included."
 duration = 999
 looks_dead = true
+figure_no_ring = true

@@ -32,7 +32,7 @@ class_name OutsideMoves
 ## Unmarked plays as Silent.
 
 enum Use { NONE, MEND, REVIVE, SPEED, INVISIBILITY, FAMILIAR, BLIND, SCARE, CONFUSE, READ, SWITCH_OFF_MAGIC,
-	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD, SUGGEST, DETECT_MAGIC, ARCANE_EYE }
+	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD, SUGGEST, DETECT_MAGIC, ARCANE_EYE, FLARE }
 
 const USE_NAMES := {
 	Use.NONE: "Only in a fight",
@@ -59,12 +59,13 @@ const USE_NAMES := {
 	Use.SUGGEST: "Sends a guard off on an errand",
 	Use.DETECT_MAGIC: "Shows every ward, magic sensor and magical trap",
 	Use.ARCANE_EYE: "An eye to steer that nothing notices",
+	Use.FLARE: "Goes up ahead of him: lights the ground, and every guard hears it",
 }
 
 ## SkillDefinition.outside_use, as a Use - -1 for Automatic.
 const FROM_FIELD := [-1, Use.NONE, Use.MEND, Use.REVIVE, Use.SPEED, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ,
 	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP, Use.COMPANY, Use.SEEMING, Use.MISLEAD,
-	Use.SUGGEST, Use.DETECT_MAGIC, Use.ARCANE_EYE]
+	Use.SUGGEST, Use.DETECT_MAGIC, Use.ARCANE_EYE, Use.FLARE]
 
 ## How long each lasts when the move gives no Outside Seconds - PROPOSAL test
 ## values, as are the rest below.
@@ -211,6 +212,9 @@ static func noise_fact(skill: SkillDefinition) -> String:
 ## are listening.
 static func sound(scene: Node, key: String, skill: SkillDefinition):
 	if scene == null or skill == null or skill.noise_tiles <= 0.0:
+		return
+	# Heard from where it went up, not from whoever sent it (Use.FLARE).
+	if use_of(skill) == Use.FLARE:
 		return
 	if skill.noise != SkillDefinition.Loudness.QUIET and skill.noise != SkillDefinition.Loudness.LOUD:
 		return
@@ -416,6 +420,8 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 		Use.AMBUSH:
 			# What it lands on is chosen as it is aimed (MapAim), and the fight pays for
 			# its opening blow - an ambush's, or a placed fight's.
+			if skill.shoots_out_lights and _any_light_to_shoot(scene):
+				return ""
 			return cannot_open_with(key, skill) if _something_to_strike(scene) else "Nothing on this map to strike"
 		Use.COMPANY:
 			if watch == null:
@@ -544,6 +550,19 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			var seconds := seconds_of(skill, kind)
 			scene.fly(seconds)
 			said = "[color=yellow]%s[/color] uses %s%s: the party rises over low things for %d seconds.\n" % [who, skill.name, paid_through(paid), seconds]
+		Use.FLARE:
+			var paid := pay(key, skill)
+			if paid.is_empty():
+				return false
+			var way: Vector2 = party.held_direction()
+			if way == Vector2.ZERO:
+				way = Vector2.LEFT if party.facing_left() else Vector2.RIGHT
+			var there: Vector2 = watch._ground_toward(at, way, skill.max_range) if watch != null else at
+			var seconds := seconds_of(skill, kind)
+			scene.flare_up(there, seconds)
+			if watch != null:
+				watch.make_noise(there, skill.noise_tiles, true)
+			said = "[color=yellow]%s[/color] casts %s%s: it hangs over the ground ahead for %d seconds, and everybody hears it.\n" % [who, skill.name, paid_through(paid), seconds]
 		Use.LURE:
 			var way: Vector2 = party.held_direction()
 			if way == Vector2.ZERO:
@@ -747,9 +766,42 @@ static func aim_refusal(scene: Node, key: String, skill: SkillDefinition, aim: V
 	var struck := struck_at(scene, key, skill, aim)
 	if not struck.guards.is_empty() or struck.placed != null:
 		return ""
+	if skill.shoots_out_lights and _light_to_shoot(scene, aim) != null:
+		return ""
 	if not struck.walls.is_empty():
 		return "" if breaks_walls(key, skill) else "Only a spell, an item or Enfina's strength knocks a wall down"
 	return "" if skill.aoe_radius > 0 else "Nobody there to hit"
+
+
+## Whether there is a light anywhere on the map that a shot could put out.
+static func _any_light_to_shoot(scene: Node) -> bool:
+	var map = scene.get_node_or_null(ExplorationScene.MAP_NODE) if scene != null else null
+	if map == null:
+		return false
+	for node in map.find_children("*", "Lamp", true, false):
+		if node.lit and node.can_be_put_out:
+			return true
+	for node in map.find_children("*", "LightSource", true, false):
+		if node.lit and not node.opening:
+			return true
+	return false
+
+
+## The lamp or other light on `aim` that a shot could put out on a map, or null (SkillDefinition.shoots_out_lights).
+static func _light_to_shoot(scene: Node, aim: Vector2i):
+	var watch = scene.get("stealth")
+	if watch != null and is_instance_valid(watch):
+		for lamp in watch._lamps:
+			if is_instance_valid(lamp) and lamp.lit and lamp.can_be_put_out and watch.tile_of(lamp.global_position) == aim:
+				return lamp
+	var map = scene.get_node_or_null(ExplorationScene.MAP_NODE)
+	var tile_map = scene.get("_tile_map")
+	if map == null or tile_map == null:
+		return null
+	for node in map.find_children("*", "LightSource", true, false):
+		if node.lit and not node.opening and tile_map.local_to_map(tile_map.to_local(node.global_position)) == aim:
+			return node
+	return null
 
 
 ## `key` lets `move` go at `aim`. False, and nothing spent, when they cannot.
@@ -779,6 +831,21 @@ static func fire_at(scene: Node, key: String, move: String, aim: Vector2i) -> bo
 	if skill is ItemDefinition:
 		Campaign.take_item(key, move)
 	var who := Campaign.display_name_of(key)
+	# A shot at a lamp: out it goes, quietly. A guard who sees it goes to light it again, as for any lamp.
+	var light = _light_to_shoot(scene, aim) if skill.shoots_out_lights else null
+	if light != null:
+		if light is Lamp:
+			watch.put_out(light, true)
+		else:
+			light.lit = false
+			light.queue_redraw()
+			if watch != null:
+				watch._relight()
+			else:
+				scene.relight_map()
+		if scene.has_method("log_message"):
+			scene.log_message("[color=yellow]%s[/color] shoots out the light.\n" % who)
+		return true
 	var broke := 0
 	if breaks_walls(key, skill):
 		for wall in struck.walls:

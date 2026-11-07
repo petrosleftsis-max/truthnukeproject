@@ -45,6 +45,64 @@ static func enemy_time_scale() -> float:
 	return ENEMY_SPEEDS[enemy_speed_index()]
 
 
+## --- The size of the HUD ---
+
+const UI_SCALE_KEY := "ui_scale"
+const UI_SCALES := [0.85, 1.0, 1.15, 1.3]
+const UI_SCALE_NAMES := ["Small", "Normal", "Large", "Largest"]
+static var _ui_scale := -1
+
+
+static func ui_scale_index() -> int:
+	if _ui_scale < 0:
+		var config := ConfigFile.new()
+		var stored := 1.0
+		if config.load(PATH) == OK:
+			stored = float(config.get_value(DISPLAY_SECTION, UI_SCALE_KEY, 1.0))
+		_ui_scale = 1
+		for i in UI_SCALES.size():
+			if absf(UI_SCALES[i] - stored) < absf(UI_SCALES[_ui_scale] - stored):
+				_ui_scale = i
+	return _ui_scale
+
+
+static func ui_scale() -> float:
+	return UI_SCALES[ui_scale_index()]
+
+
+static func set_ui_scale_index(index: int):
+	_ui_scale = clampi(index, 0, UI_SCALES.size() - 1)
+	var config := ConfigFile.new()
+	config.load(PATH)
+	config.set_value(DISPLAY_SECTION, UI_SCALE_KEY, UI_SCALES[_ui_scale])
+	config.save(PATH)
+
+
+## --- The grid in a fight ---
+##
+## Off, its lines fade away but near the pointer while moving or aiming. On, they stay up, for anybody who likes to count tiles.
+
+const GRID_KEY := "grid_always"
+static var _grid_always := -1
+
+
+static func grid_always() -> bool:
+	if _grid_always < 0:
+		var config := ConfigFile.new()
+		_grid_always = 0
+		if config.load(PATH) == OK:
+			_grid_always = 1 if config.get_value(SECTION, GRID_KEY, false) else 0
+	return _grid_always == 1
+
+
+static func set_grid_always(on: bool):
+	_grid_always = 1 if on else 0
+	var config := ConfigFile.new()
+	config.load(PATH)
+	config.set_value(SECTION, GRID_KEY, on)
+	config.save(PATH)
+
+
 ## --- How the game sits on the screen ---
 
 const DISPLAY_SECTION := "display"

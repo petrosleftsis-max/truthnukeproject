@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Marked by Flame"
+description = "The idol's flame clings to them: they cannot hide or go invisible, and the dark does not take them. Dispel Magic ends it."
+duration = 8
+cannot_hide = true
+dispellable = true
+figure_tint = Color(1, 0.85, 0.5, 0.3)
+off_them = 1
+figure_priority = 2
+arrival_word = "Marked!"

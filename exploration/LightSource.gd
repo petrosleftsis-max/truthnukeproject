@@ -44,7 +44,7 @@ func source_now(tile_map: TileMap, time: int) -> Dictionary:
 	if dim <= 0.0 and bright <= 0.0:
 		return {}
 	return {"tile": tile_map.local_to_map(tile_map.to_local(global_position)), "bright": bright, "dim": dim,
-		"colour": colour, "flickers": flickers and not opening, "opening": opening}
+		"colour": colour, "flickers": flickers and not opening, "opening": opening, "node": self}
 
 
 func _draw():

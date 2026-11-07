@@ -11,3 +11,6 @@ tag = "Cn"
 description = "Nothing frightens or confuses them while the tether holds."
 duration = 4
 immune_to_conditions = Array[ExtResource("1_cond")]([ExtResource("2_fear"), ExtResource("3_confused")])
+off_them = 4
+figure_priority = 3
+arrival_word = "Calmed"

@@ -13,3 +13,5 @@ dot_modifier = 0.25
 defense_change = -0.1
 dot_min = 1
 dot_max = 2
+figure_tint = Color(0.7, 0.5, 0.3, 0.35)
+figure_priority = 2

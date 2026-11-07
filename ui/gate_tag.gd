@@ -11,6 +11,11 @@ class_name GateTag
 const MOST_DOTS := 6
 const DOT := 7.0
 const DOT_GAP := 3.0
+## A shape for each gate as well as a colour, so nobody has to tell them apart by colour alone.
+const SHAPES := ["circle", "diamond", "square", "triangle", "hexagon", "down", "star", "cross", "pill", "ring"]
+
+## Only its first letter and its castings, for a row with many gates in it. Hovering says its name.
+var compact := false
 
 var level := 0
 ## Whether it is one of the Gates of Iris (Stats.OUTSIDE_GATES) - castings for
@@ -64,15 +69,15 @@ func _show(gate: int, left: int, most: int, short_name: String, colour: Color, f
 	level = gate
 	_left = left
 	_most = most
-	_name.text = short_name
+	_name.text = short_name.left(1) if compact else short_name
 	_name.add_theme_color_override("font_color", colour)
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color(0.07, 0.09, 0.12, 0.92)
 	box.border_color = Color(colour, 0.75)
 	box.set_border_width_all(1)
 	box.set_corner_radius_all(4)
-	box.content_margin_left = 7
-	box.content_margin_right = 7
+	box.content_margin_left = 4 if compact else 7
+	box.content_margin_right = 4 if compact else 7
 	box.content_margin_top = 3
 	box.content_margin_bottom = 4
 	add_theme_stylebox_override("panel", box)
@@ -95,9 +100,56 @@ func _draw_dots():
 		return
 	var colour := _colour()
 	var radius := DOT * 0.5
+	var shape: String = shape_of(level)
 	for i in _most:
-		var centre := Vector2(radius + i * (DOT + DOT_GAP), radius)
-		if i < _left:
-			_dots.draw_circle(centre, radius, colour)
-		else:
-			_dots.draw_arc(centre, radius - 0.5, 0.0, TAU, 16, Color(colour, 0.7), 1.0, true)
+		_draw_mark(Vector2(radius + i * (DOT + DOT_GAP), radius), radius, colour, i < _left, shape)
+
+
+## The shape gate `gate`'s castings are drawn in.
+static func shape_of(gate: int) -> String:
+	return SHAPES[posmod(gate - 1, SHAPES.size())]
+
+
+func _draw_mark(centre: Vector2, radius: float, colour: Color, full: bool, shape: String):
+	var points := PackedVector2Array()
+	match shape:
+		"diamond":
+			points = PackedVector2Array([Vector2(0, -1), Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0)])
+		"square":
+			points = PackedVector2Array([Vector2(-0.85, -0.85), Vector2(0.85, -0.85), Vector2(0.85, 0.85), Vector2(-0.85, 0.85)])
+		"triangle":
+			points = PackedVector2Array([Vector2(0, -1), Vector2(1, 0.85), Vector2(-1, 0.85)])
+		"down":
+			points = PackedVector2Array([Vector2(-1, -0.85), Vector2(1, -0.85), Vector2(0, 1)])
+		"hexagon":
+			for i in 6:
+				points.append(Vector2.from_angle(TAU * float(i) / 6.0))
+		"star":
+			for i in 10:
+				points.append(Vector2.from_angle(TAU * float(i) / 10.0 - PI * 0.5) * (1.1 if i % 2 == 0 else 0.5))
+		"cross":
+			points = PackedVector2Array([Vector2(-0.35, -1), Vector2(0.35, -1), Vector2(0.35, -0.35), Vector2(1, -0.35), Vector2(1, 0.35), Vector2(0.35, 0.35),
+				Vector2(0.35, 1), Vector2(-0.35, 1), Vector2(-0.35, 0.35), Vector2(-1, 0.35), Vector2(-1, -0.35), Vector2(-0.35, -0.35)])
+		"pill":
+			points = PackedVector2Array([Vector2(-0.5, -1), Vector2(0.5, -1), Vector2(0.5, 1), Vector2(-0.5, 1)])
+		"ring":
+			if full:
+				_dots.draw_arc(centre, radius * 0.7, 0.0, TAU, 16, colour, 2.0, true)
+				_dots.draw_circle(centre, radius * 0.25, colour)
+			else:
+				_dots.draw_arc(centre, radius * 0.8, 0.0, TAU, 16, Color(colour, 0.7), 1.0, true)
+			return
+		_:
+			if full:
+				_dots.draw_circle(centre, radius, colour)
+			else:
+				_dots.draw_arc(centre, radius - 0.5, 0.0, TAU, 16, Color(colour, 0.7), 1.0, true)
+			return
+	var drawn := PackedVector2Array()
+	for point in points:
+		drawn.append(centre + point * radius)
+	if full:
+		_dots.draw_colored_polygon(drawn, colour)
+	else:
+		drawn.append(drawn[0])
+		_dots.draw_polyline(drawn, Color(colour, 0.7), 1.0, true)

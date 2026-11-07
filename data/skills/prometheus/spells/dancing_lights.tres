@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/dancing_lights_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 34
+zone_turns = 10
+zone_moves = true
+zone_light_tiles = 3.0
+zone_lights = 3
+zone_light_colour = Color(1, 0.9, 0.6, 1)
+zone_light_steady = true
+zone_bare = true
+zone_moved_by = "move_lights"
+
+[resource]
+script = ExtResource("3_skill")
+name = "Dancing Lights"
+description = "Three small lights dance over where he points, each lighting a little of the ground. With a secondary action he can send them up to six tiles. They last ten of his turns, and need no tether. Light Void wins over them."
+max_range = 12
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 1
+aoe_radius = 2
+noise = 1
+outside_use = 1

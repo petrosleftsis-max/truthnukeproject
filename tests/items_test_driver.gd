@@ -100,7 +100,7 @@ func run_test():
 		# Alithia's enchantments, and what anybody can do lying down.
 		"prone", "compelled", "silenced", "unafraid", "braced", "burden_shared", "clear_sighted", "clinging", "composed", "in_darkness", "reflections",
 		# The illusions'.
-		"distracted", "dread", "looks_dead", "phantom_wound",
+		"called_out", "distracted", "dread", "looks_dead", "marked_by_flame", "phantom_wound",
 		# Calm's and Detect Magic's.
 		"calmed", "detecting_magic"]
 	for condition in conditions:

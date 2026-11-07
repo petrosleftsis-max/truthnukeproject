@@ -17,10 +17,56 @@ class_name GridOverlay
 ##
 ## Hidden by default. The encounter editor turns it on while placing units,
 ## which is the one place a grid actually helps.
+##
+## In a fight `fades` is on (CController "The board without its squares"): the lines show as much as `whole` everywhere and `near`
+## within `near_reach` of `pointer`, by a shader, and otherwise not at all.
 
 ## How thick the lines are, in world units. Scaled off the tile so it stays a
 ## hairline at any tile size rather than a fence at 192 and invisible at 32.
 const LINE_WIDTH_RATIO := 0.012
+## In a fight, thinner than that.
+const FADING_WIDTH_RATIO := 0.006
+
+const FADE_SHADER := """
+shader_type canvas_item;
+uniform vec2 pointer = vec2(0.0);
+uniform float near_reach = 1000.0;
+uniform float whole = 0.0;
+uniform float near = 0.0;
+varying vec2 world;
+void vertex() {
+	world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
+void fragment() {
+	float close = 1.0 - smoothstep(near_reach * 0.45, near_reach, distance(world, pointer));
+	COLOR.a *= max(whole, near * close);
+}
+"""
+
+var fades := false:
+	set(value):
+		fades = value
+		if fades and material == null:
+			var shader := Shader.new()
+			shader.code = FADE_SHADER
+			var made := ShaderMaterial.new()
+			made.shader = shader
+			material = made
+		apply()
+		queue_redraw()
+var whole := 0.0
+var near := 0.0
+var near_reach := 1000.0
+var pointer := Vector2.ZERO
+
+
+## Puts what is wanted on the shader.
+func apply():
+	if material is ShaderMaterial:
+		material.set_shader_parameter("whole", whole)
+		material.set_shader_parameter("near", near)
+		material.set_shader_parameter("near_reach", near_reach)
+		material.set_shader_parameter("pointer", pointer)
 
 
 func _ready():
@@ -35,7 +81,7 @@ func _draw():
 	var tile_map = _tile_map()
 	if tile_map == null:
 		return
-	var width = maxf(Grid.TILE_SIZE * LINE_WIDTH_RATIO, 1.0)
+	var width = maxf(Grid.TILE_SIZE * (FADING_WIDTH_RATIO if fades else LINE_WIDTH_RATIO), 1.0)
 	var size = Vector2(Grid.TILE_VECTOR)
 	for cell in tile_map.get_used_cells(0):
 		draw_rect(Rect2(Vector2(cell) * Grid.TILE_SIZE, size), Color.WHITE, false, width)

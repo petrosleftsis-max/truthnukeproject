@@ -9,3 +9,6 @@ tag = "Sn"
 description = "Caught in a trap: cannot walk until it lets go."
 duration = 1
 prevents_movement = true
+round_them = 5
+figure_priority = 4
+arrival_word = "Snared!"

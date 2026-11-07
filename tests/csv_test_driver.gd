@@ -420,8 +420,9 @@ func the_switches():
 	var plain: float = combat.dot_base_damage(cyrus, burning, Combat.dot_strength_of(cyrus, burning, burning.effects[0]))
 	ok(is_equal_approx(burn.dot_base, plain * 1.3) and burn.duration == Combat.turns_stored(3 + 1, false),
 		"Cyrus's burn: three tenths harder and a turn longer (DoT Master I and II)", "%.1f vs %.1f, %d" % [burn.dot_base, plain, burn.duration])
-	ok(is_equal_approx(combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["votive_flame"]), 1.2),
-		"the party hits it a fifth harder: afflicted, and by him (Synergy I and II)", "%.2f" % combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["votive_flame"]))
+	# Water, as Idol damage has Blessed in the Light on top of it in a bright place.
+	ok(is_equal_approx(combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["water_spike"]), 1.2),
+		"the party hits it a fifth harder: afflicted, and by him (Synergy I and II)", "%.2f" % combat.progression_damage_bonus(alithia, foe, SkillDatabase.skills["water_spike"]))
 
 	# Kindling, in place of Glass Cannon.
 	var blast: SkillDefinition = SkillDatabase.skills["fire_blast"]

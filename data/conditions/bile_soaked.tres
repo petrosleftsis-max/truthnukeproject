@@ -10,3 +10,6 @@ description = "Spat out of the glutton, dripping with it: slower, and half-blind
 duration = 2
 movement_change = -2
 accuracy_change = -15
+figure_tint = Color(0.75, 0.8, 0.3, 0.4)
+off_them = 2
+figure_priority = 3

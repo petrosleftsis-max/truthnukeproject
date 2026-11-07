@@ -52,6 +52,10 @@ Not chosen on 2026-11-07, still there in `docs/proposals_2026-11-06.md` section 
 
 ## 6. Spells that make light
 
+**Chosen and built, 2026-11-07:** Dancing Lights with no tether. Flare, in place of Unveil. Instead of Faerie Fire, Votive Flame
+marks whoever it hits: for 8 of their turns they cannot hide or go invisible, and it can be dispelled. Daylight, which can
+also go on a weapon. Light Void wins over every light source but a spell that says it can win.
+
 Gates and tethers are suggestions.
 
 | Idea | Who | Gate | Tether | What it does | Rests on |
@@ -69,6 +73,9 @@ Gates and tethers are suggestions.
 
 ## 7. Cyrus and the dark
 
+**Chosen and built, 2026-11-07:** his Gun shoots out lights, in a fight and on a map, and Snuff isn't needed. Shadow Step. Silhouette at
++20%. Ink Bottle. In Plain Darkness. Calling Out went to Alithia. Night Hunter and Lifted Torch are answered in section 17.
+
 He has Night Eyes, Stealth and Slip Past. In a fight "Dark" and "hidden" already count as the same thing to whoever
 cannot see in it, so most of this gives him ways to be there, stay there, or make it.
 
@@ -85,6 +92,9 @@ cannot see in it, so most of this gives him ways to be there, stay there, or mak
 
 ## 8. Alithia and lit places
 
+**Chosen and built, 2026-11-07:** Blessed in the Light at +10%, on her heals and her Idol damage. Nowhere to Hide. Calling Out. Her other
+ways are in section 17.
+
 She already leans on light in name: Flash, Piercing Light, Sanctuary of Light. A rule to go with it: **standing in Bright
 is good for her side**, so that she wants what he wants to put out. That makes the two of them pull against each other,
 in a good way.
@@ -100,6 +110,9 @@ in a good way.
 | **Illusions by Light** | Change | Her illusions are believed best where they can be seen clearly: their contests gain a little in Bright, and lose a little in Dark |
 
 ## 9. Showing conditions on the figure
+
+**Chosen and built, 2026-11-07:** everything here but icons over the head, which the designer looked at an example of and preferred
+without. Poses fall back on idle for a creature with no such animation.
 
 Now they are only marks beside a portrait and under a face in the turn queue (`ConditionStrip`), and in the log. Nothing
 is on the figure itself, which is where the eye is. By how much each shows for the work:
@@ -121,6 +134,8 @@ Tint, Round Them (a picture), Off Them (particles), Ring, Pose, Priority, each w
 for the real art, as Skill Look has for moves. It is view only, and changes no rule.
 
 ## 10. Sprites lit more, and better shadows
+
+**Chosen and built, 2026-11-07:** all of these, but for shine, normal maps and real shadows, which are answered in section 17.
 
 All of it is to look at only. Each works on the art as drawn, with no extra pictures needed, unless it says so.
 
@@ -150,6 +165,10 @@ All of it is to look at only. Each works on the art as drawn, with no extra pict
 | **Coloured by the hour** | Blue-black at night, warm at dusk, rather than always black |
 
 ## 11. The interface
+
+**Chosen and built, 2026-11-07:** all but "Less over the map" and "End Turn". The buttons' "more" needed nothing new: past twelve, they
+already go on a shelf that scrolls. Health shows while the danger key is held, with no key of its own. UI Scale covers the HUD of a
+fight and a map; conversations and menus keep their size.
 
 From looking at the screens while testing the light, a fight at level 64 above all.
 
@@ -190,6 +209,9 @@ how hard a fight is. "Last time" is the same probe before the ways of its own we
 | Sixty-Four | 661 -> 552 (592) | 3 -> 2 (2) | |
 
 ## 13. Going without tiles, as in Divinity: Original Sin 2
+
+**Chosen, 2026-11-07: A, built that day.** The rules stay on tiles. Soft patches, one outline for how far somebody can walk, a walk on a
+curve, grid lines only near the pointer while moving or aiming, and a button beside the clock for anybody who likes to count.
 
 Nothing here is built. It is three sizes of the same idea, smallest first. The recommendation is at the end.
 

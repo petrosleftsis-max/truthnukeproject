@@ -163,6 +163,12 @@ const DOT_STRENGTH_NAMES := {
 ## They look dead: invisible for as long as they have it, lying where they are, and anything they do
 ## gives it away - a step or a move (Combat "Unnoticed until they act"). Looks Dead (Fallen Friend).
 @export var looks_dead: bool = false
+## They cannot hide or go invisible, and the dark does not take them (Votive Flame's mark).
+@export var cannot_hide: bool = false
+## Their whole other side can see them, for as long as this lasts, whatever hides them (Calling Out).
+@export var called_out: bool = false
+## Dispel Magic takes it off through any gate, though no spell of a gate put it on (a cantrip's).
+@export var dispellable: bool = false
 ## A thing believed in, weighed again: as each of their turns starts they contest the spell that put
 ## it on them once more, their stat counting this much more for every time they have, and winning
 ## shakes it off before it ticks. 0, never. Phantom Wound (Phantom Killer).
@@ -191,6 +197,30 @@ const DOT_STRENGTH_NAMES := {
 @export var immune_to_conditions: Array[ConditionDefinition] = []
 ## Whoever has it shows the whole party the other side's unseen ground and unseen traps (Detect Magic).
 @export var sees_magic: bool = false
+
+@export_group("On The Figure")
+## How it shows on whoever has it (ConditionLook), one at a time: the highest Figure Priority, those equal taking turns.
+## A colour over them, breathing, as strong as its alpha. No alpha: none.
+@export var figure_tint: Color = Color(0, 0, 0, 0)
+## What goes round their head, or their feet. Stored by number: append.
+enum RoundThem { NONE, STARS, SPIRAL, BAND_OVER_EYES, SWEAT, CHAIN, GAG, STRINGS, ARROW, EXCLAIM }
+@export var round_them: RoundThem = RoundThem.NONE
+## The picture on this condition's mark on the portraits and the turn queue, in place of the placeholder with its two letters.
+@export var mark_picture: Texture2D = null
+## A picture to go there in place of the placeholder, circling slowly.
+@export var round_them_picture: Texture2D = null
+## What comes off them. Stored by number: append.
+enum OffThem { NONE, EMBERS, DRIPS, FROST, SOFT_LIGHT, SPARKS, WIND }
+@export var off_them: OffThem = OffThem.NONE
+## A picture for each of those particles, in place of the placeholder's dot.
+@export var off_them_picture: Texture2D = null
+## No ring under their feet for this one, which a condition otherwise gets: green for what helps, red for what hurts.
+@export var figure_no_ring: bool = false
+## The animation they play in place of idle while it is on them (stunned, afraid, frozen). They stand idle if they have none by that name.
+@export var figure_pose: StringName = &""
+@export var figure_priority: int = 1
+## The word that pops up over them as it lands. Empty: its name.
+@export var arrival_word: String = ""
 
 @export_group("Forced movement")
 ## At the start of their turn they are blown this many tiles in a random
@@ -248,6 +278,10 @@ func describe() -> String:
 		parts.append("the next %d single blows strike an image instead" % evades_hits)
 	if is_darkness:
 		parts.append("invisible to whoever cannot see in the dark")
+	if cannot_hide:
+		parts.append("cannot hide or go invisible")
+	if called_out:
+		parts.append("seen by everybody on the other side, whatever hides them")
 	if sees_in_darkness:
 		parts.append("sees in the dark")
 	if sees_the_unseen:

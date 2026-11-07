@@ -16,7 +16,7 @@ zone_colour = Color(0.02, 0.02, 0.06, 0.62)
 [resource]
 script = ExtResource("3_skill")
 name = "Light Void"
-description = "The light goes out of the ground he points at. Anybody in the dark is invisible to whoever cannot see in it, for as long as he holds the tether."
+description = "The light goes out of the ground he points at. Anybody in the dark is invisible to whoever cannot see in it, for as long as he holds the tether. No light shines in it, but a spell that says it can."
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 max_range = 10

@@ -313,7 +313,9 @@ func the_look():
 		ok((someone.sprite._animated if someone.sprite._animated != null else someone.sprite._static).material != null, "with a rim in the dark")
 		ok(someone.sprite._eyes != null and someone.sprite._eyes.visible, "and eyes, if they see in it")
 		someone.sprite.set_in_the_dark(false, true)
-		ok((someone.sprite._animated if someone.sprite._animated != null else someone.sprite._static).material == null and not someone.sprite._eyes.visible, "and neither in the light")
+		var drawn_as: Node2D = someone.sprite._animated if someone.sprite._animated != null else someone.sprite._static
+		await settle()
+		ok((drawn_as.material == null or drawn_as.material.get_shader_parameter("rim_on") == 0.0) and not someone.sprite._eyes.visible, "and neither in the light")
 	# Projectiles.
 	var fire := SkillDefinition.new()
 	fire.deals_damage = true

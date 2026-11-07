@@ -9,3 +9,6 @@ tag = "Si"
 description = "Standing where no spell can be cast."
 duration = 1
 prevents_spells = true
+round_them = 6
+figure_priority = 3
+arrival_word = "Silenced!"

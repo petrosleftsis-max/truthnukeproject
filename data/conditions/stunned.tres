@@ -8,3 +8,7 @@ display_name = "Stunned"
 description = "Loses their turn entirely."
 duration = 2
 skips_turn = true
+round_them = 1
+figure_pose = &"stunned"
+figure_priority = 6
+arrival_word = "Stunned!"

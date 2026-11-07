@@ -9,3 +9,5 @@ tag = "Dc"
 description = "Sure one of their own has sold them out: their next turn goes on the nearest of their own side."
 duration = 2
 turns_on_own_side = true
+round_them = 2
+figure_priority = 2

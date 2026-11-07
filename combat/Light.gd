@@ -144,7 +144,10 @@ static func shadow_at(ambient: int, minute: int) -> Dictionary:
 	if ambient == Ambient.UNDERGROUND or ambient == Ambient.INTERIOR:
 		return shadow_of(ambient, Hour.DAY)
 	var sky := _sky_at(minute)
-	return {"lean": lerpf(sky[0][2], sky[1][2], sky[2]), "strength": lerpf(sky[0][3], sky[1][3], sky[2])}
+	# Blue-black at night, warm at dusk: the sky's own colour, nearly gone.
+	var tone: Color = sky[0][1].lerp(sky[1][1], sky[2])
+	var colour := Color(tone.r * 0.12, tone.g * 0.1, tone.b * 0.14) if tone != Color.WHITE else Color.BLACK
+	return {"lean": lerpf(sky[0][2], sky[1][2], sky[2]), "strength": lerpf(sky[0][3], sky[1][3], sky[2]), "colour": colour}
 
 
 ## The middle of `time`, for something set to a part of the day and no particular minute.

@@ -12,3 +12,5 @@ dot_type = 6
 dot_strength = 2
 dot_modifier = 0.6
 doubt_each_turn = 3
+figure_tint = Color(0.6, 0.4, 0.8, 0.3)
+figure_priority = 3

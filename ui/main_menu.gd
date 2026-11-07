@@ -418,6 +418,12 @@ func _build_options() -> Control:
 		button.custom_minimum_size = Vector2(84, 0)
 		_dress(button)
 	holder.add_child(speed)
+	var ui_size := UiScalePicker.new()
+	ui_size.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	for button in ui_size.buttons:
+		button.custom_minimum_size = Vector2(84, 0)
+		_dress(button)
+	holder.add_child(ui_size)
 	holder.add_child(_back_button())
 	return holder
 

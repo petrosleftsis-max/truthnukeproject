@@ -9,3 +9,6 @@ tag = "Bs"
 description = "In Alithia's grace: takes less damage."
 duration = 1
 damage_taken_change = -0.1
+off_them = 4
+figure_priority = 1
+arrival_word = "Blessed"

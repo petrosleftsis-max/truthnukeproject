@@ -10,3 +10,6 @@ description = "Standing in a sanctuary of light: 15% less from every blow, and o
 duration = 2
 damage_taken_change = -0.15
 miss_chance = 25
+figure_tint = Color(1, 0.95, 0.7, 0.25)
+off_them = 4
+figure_priority = 2

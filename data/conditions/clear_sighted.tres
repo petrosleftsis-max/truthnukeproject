@@ -10,3 +10,4 @@ description = "They see in the dark, and see whoever is invisible or hidden."
 duration = 10
 sees_in_darkness = true
 sees_the_unseen = true
+figure_no_ring = true

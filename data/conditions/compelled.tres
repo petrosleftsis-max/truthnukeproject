@@ -9,3 +9,6 @@ tag = "Cm"
 description = "Their next turn is not their own: they do as they were ordered, and nothing else."
 duration = 1
 obeys_order = true
+round_them = 7
+figure_priority = 5
+arrival_word = "Compelled!"

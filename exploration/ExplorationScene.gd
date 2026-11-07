@@ -259,7 +259,7 @@ func _begin_light():
 	Campaign.map_no_moon = setup != null and setup.no_moon
 	if setup != null and setup.time_of_day >= 0 and not Net.follows():
 		Campaign.set_time_of_day(setup.time_of_day)
-	CombatantSprite.light_points = []
+	CombatantSprite.forget_the_light()
 	CombatantSprite.set_shadows(Light.shadow_at(Campaign.map_ambient, Campaign.minute_of_day()))
 	if _tile_map == null:
 		return
@@ -291,6 +291,35 @@ func _hour_changed():
 
 
 ## Works out afresh what is lit. `watch`, a StealthWatch relighting itself as it starts up.
+## A flare over `at` for `seconds` (OutsideMoves Use.FLARE): a light on the map, gone by itself, on both machines.
+func flare_up(at: Vector2, seconds: float):
+	var map = get_node_or_null(MAP_NODE)
+	if map == null:
+		return
+	Net.flare_there(at, seconds)
+	var flare := LightSource.new()
+	flare.bright_tiles = 5.0
+	flare.dim_tiles = 10.0
+	flare.colour = Color(1.0, 0.96, 0.85)
+	flare.flickers = false
+	flare.shows_flame = false
+	map.add_child(flare)
+	flare.global_position = at
+	_relit_for_a_flare()
+	get_tree().create_timer(seconds).timeout.connect(func():
+		if is_instance_valid(flare):
+			flare.get_parent().remove_child(flare)
+			flare.queue_free()
+			_relit_for_a_flare())
+
+
+func _relit_for_a_flare():
+	if stealth != null and is_instance_valid(stealth):
+		stealth._relight()
+	else:
+		relight_map()
+
+
 func relight_map(watch = null):
 	if watch == null and stealth != null and is_instance_valid(stealth):
 		watch = stealth

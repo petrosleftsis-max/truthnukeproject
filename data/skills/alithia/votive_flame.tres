@@ -4,17 +4,24 @@
 [ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="2_va4hi"]
 [ext_resource type="Texture2D" path="res://art/icons/votive_flame_skill.png" id="3_icon"]
 [ext_resource type="AudioStream" path="res://audio/sfx/moves/weak_idol_damage.wav" id="sfx_impact_sound"]
+[ext_resource type="Resource" path="res://data/conditions/marked_by_flame.tres" id="4_mark"]
 
 [sub_resource type="Resource" id="Effect_unveil"]
 script = ExtResource("1_3qhe5")
 type = 37
+
+[sub_resource type="Resource" id="Effect_mark"]
+script = ExtResource("1_3qhe5")
+type = 8
+condition = ExtResource("4_mark")
+condition_duration = 8
 
 [resource]
 script = ExtResource("2_va4hi")
 impact_sound = ExtResource("sfx_impact_sound")
 projectile_look = 15
 name = "Votive Flame"
-description = "Shoot them with the offering of the idol."
+description = "Shoot them with the offering of the idol. Whoever it hits is seen, and for 8 of their turns cannot hide or go invisible, unless it is dispelled."
 icon = ExtResource("3_icon")
 min_range = 2
 max_range = 20
@@ -22,5 +29,5 @@ respects_blocking = true
 ability_modifier = 0.7
 scaling_stat = 1
 damage_type = 12
-effects = Array[ExtResource("1_3qhe5")]([SubResource("Effect_unveil")])
+effects = Array[ExtResource("1_3qhe5")]([SubResource("Effect_unveil"), SubResource("Effect_mark")])
 metadata/_custom_type_script = "uid://d4nqbxk7tswep"

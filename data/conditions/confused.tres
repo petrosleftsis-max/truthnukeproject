@@ -8,3 +8,6 @@ display_name = "Confused"
 description = "Cannot tell friend from foe: goes for whoever is nearest, and does nothing else."
 duration = 1
 confuses = true
+round_them = 2
+figure_priority = 4
+arrival_word = "Confused!"
