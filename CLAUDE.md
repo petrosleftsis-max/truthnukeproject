@@ -43,7 +43,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 167 suites and takes a while. Each one boots the real game
+A full run is 168 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one. A second harness can run beside a
@@ -455,7 +455,11 @@ below by a fire or above by the sun, back lit, half in the dark by reading the s
 rim in the Dark (`set_in_the_dark`, `_Eyes`). `_Shadow` is a patch at the feet; its child `_Casting` lays the frame they show along the
 ground away from each of the `MOST_SHADOWS` strongest lights, through `SHADOW_SHADER` (blurrier further off), or from the sun with
 `Light.shadow_at`'s lean, length and colour, stopped by `stops_shadow`. A flier's is smaller and further off (`off_ground`).
-`CombatantSprite.forget_the_light` at each new place. What is on them: `ConditionDefinition`'s "On The Figure" group (`figure_tint`, `round_them`,
+`CombatantSprite.forget_the_light` at each new place. Nothing in FIGURE_SHADER reads the drawing's own edges any more: reading a few pixels aside
+turned every line inside a picture into a second, shifted outline (the designer, 2026-11-07: smeared parts, "part of his outline inside of his scarf").
+Light falls on a smooth rounded body instead (`across`, `down`, `n`), more so when `GameSettings.figure_shapes` (`FigureShapesToggle` in both Options;
+the designer's "normal maps without extra art", to try), by the light's height (`light_height`); a highlight where `shine_mask_for` finds a mask beside
+the frame (`shine_path_for`: `_shine` for `_color`; red how shiny, green how like metal; `docs/shine_masks.md`) and where they are `wet`. What is on them: `ConditionDefinition`'s "On The Figure" group (`figure_tint`, `round_them`,
 `off_them`, `figure_priority`, `figure_pose`, `arrival_word`, slots for pictures), `Combat._show_conditions_on_figures` from
 `update_combatants`, `ConditionLook.choose_from` (one at a time, the strongest, equals taking turns), a ring under the feet, a pose
 that falls back to idle (`set_pose`, `play_idle`). `CController._draw_tether` draws a thread to what a tether holds
@@ -488,6 +492,21 @@ weapon (`zone_on_a_weapon`, `follows_id`). Dancing Lights: `zone_lights`, `zone_
 `zone_bare` light, and on a map `Use.FLARE`, `ExplorationScene.flare_up`, `Net.flare_there`. Votive Flame's Marked by Flame:
 `cannot_hide` (`set_hidden`, `make_invisible`, `_fade_into_the_dark`, `_invisibility_refusal`), `dispellable` (`spell_gate` 0).
 
+**Darkness is cover** (Combat section of that name, `StealthWatch._dark_between`; `light`; the designer, 2026-11-07: "creatures can
+go through it but cannot see in or behind it, except if they have a passive like cyrus does"). In it is "In the dark"; behind it: a line
+across a Dark tile is one nobody sees along but whoever sees in the dark (`dark_between`, `_behind_the_dark`, asked by `hidden_from` for
+anybody at all, and by `is_seen_by_opponents`). The tiles right round the viewer (`SEEN_IN_THE_DARK_TILES`; a guard's `dark_sight_tiles`)
+and the target's own don't count. Marked by Flame and Calling Out see past it. The player is shown the other side's people the dark keeps
+from every one of the party (`_dark_keeps_from_party`, in `unseen_by_party` and `dress_for_hiding`); walls alone hide nobody, as ever. On a
+map it cuts a guard's `_seen` (`_sees_in_the_dark` by his creature's passives). Only sight: walking, and an area at the ground, go on.
+
+**Section 17's answers** (`beckon`; the designer, 2026-11-07). Beckoning Light, Alithia's (Hermes; Iris on a map): `SkillDefinition.beckons`
+aims it twice (`CController.aimed_twice`, the second click any open ground in reach), `_beckoned_to` makes Drawn To Aim go there, and a ZONE with
+`zone_at_destination` lights it; `ConditionDefinition.on_arrival` puts Off Guard on once they have walked (`_go_and_look`). On a map
+`OutsideMoves.Use.BECKON` -> `StealthWatch.beckon`. Kindled Faith: `PassiveDefinition.mends_in_bright` and `_per_stat`,
+`_kindled_at_turn_start`. The dart in place of Lifted Torch: `SkillDefinition.snuffs_carried_lights` (Poison Dart) in `OutsideMoves.fire_at`,
+`StealthWatch.snuff_torch` (`Guard.torch_out`, `Mood.RELIGHTING` to the nearest lit lamp, `_torch_lit_again`; "torch" in `net_state`).
+
 **The clock and the calendar** (Campaign "The clock and the calendar", `campaign/CalendarDefinition.gd`,
 `data/calendar.tres`, `ui/clock_face.gd`, `ui/time_passing.gd`; `clock`; the designer, 2026-11-07).
 `calendar_minutes`, saved, is the one number. `time_of_day` follows it (`Light.hour_at`), and `clock_to` is the only
@@ -505,6 +524,15 @@ the month moves when dawn and dusk begin (`season_shift`, in steps, 0 for the fi
 tiles `LightMap.under_the_sky`, the rule's levels unchanged; clouds' shadows and mist (`SKY_LAYER_SHADER`), rain, dust and insects (`_set_rain`, `_set_life`), a sound per hour
 (`_set_day_sound`, SoundBank's "The day"); an opening's light takes the sky's colour. `MapSetup.sky_tint` is a place's own sky. `LightSource.by_the_clock` and `Lamp.by_the_clock` come on around dusk and go
 out around dawn, each at its own minute by where it stands (`Light.lamp_lit_at`; `ExplorationScene._keep_lights_by_the_clock`, `StealthWatch.keep_lamps_by_the_clock`, only when they would change).
+**More weathers, eased** (section 17 and the designer's messages of 2026-11-07; `daysky`). Snow, sleet, thunderstorm, wind, sandstorm, blizzard, heat, ash, aurora, rainbow
+and eclipse in `Light.WEATHERS`, each with its `SKY_EXTRAS` (every `sky()` has all of them); `weather_of(day, days_in_a_year)` goes by `season_of` and `SEASON_ODDS`, and
+`SCENE_WEATHERS` come only by `set_weather`; `Campaign.days_in_a_year`, `season_now`. All only to look at. LightView: `show_hour` wants a sky and `_ease_the_sky` gets
+there over `sky_ease_seconds` (0 for a test that wants it at once), the shade over `SKY_SHADE_SECONDS`; `_put_on_the_sky` sets the tone, the grade (with `shimmer`), the
+sun's shadows and `CombatantSprite.soaking`; `_set_falling` (snow, hail, sand, ash, the wind's gusts), `AURORA_SHADER`, `RAINBOW_SHADER` (on the screen, as the grade),
+`_storm` (a flash, then SoundBank "thunder"). Callers ask `show_hour` each minute without `at_once`, and only set the shadows themselves with no view. Figures soak
+(`CombatantSprite.wetness`, `_soak`: `SOAKED_SECONDS`, `DRY_SECONDS`, under the sky by `under_the_sky`). Steps: `audio/Footsteps.gd` (`step`, from
+`ExplorationParty._step` every `STRIDE_TILES` and `CController._begin_step`), louder and splashing where `LightView.rainy_at`; SoundBank "Steps", PlaceholderSounds
+"step" and "step_wet" meanwhile; only a sound, not what guards hear. `docs/proposals_2026-11-07.md` section 18 has what more weather could show.
 
 **Sounds** (`audio/GameSounds.gd`, `audio/SoundBank.gd`, `audio/sound_bank.tres`; `audio`; `docs/sound_plan.md`).
 Everything that is not a move's or a condition's own is a slot in the bank: `GameSounds.play(slot)`, `loop`,

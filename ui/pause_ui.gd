@@ -155,6 +155,10 @@ func _ready():
 	var ui_size := UiScalePicker.new()
 	$OptionsPanel/VBox.add_child(ui_size)
 	_options_buttons.append_array(ui_size.buttons)
+	var shapes := FigureShapesToggle.new()
+	shapes.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	$OptionsPanel/VBox.add_child(shapes)
+	_options_buttons.append(shapes)
 	_volume = VolumeSliders.new()
 	$OptionsPanel/VBox.add_child(_volume)
 	_options_buttons.append_array(_volume.sliders())

@@ -91,6 +91,19 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's messages of the evening of 2026-11-07** (ledger rows of that date; CLAUDE.md "Darkness is cover", "Section 17's answers",
+  "More weathers, eased", and the figure's shapes; suites `beckon`, `light`, `daysky`, `figures`):
+  - The game started at a black screen from the Project Manager: new classes and icons had never been through the editor's scan. Imported
+    in place, `.uid` files committed; CLAUDE.md and a memory say to import after adding scripts or pictures.
+  - Shadows thrown down the screen (a light above the figure) were mirrored. Fixed, with a test.
+  - Beckoning Light (Alithia; Hermes, Iris on a map). Kindled Faith (24). Poison Dart puts lights out, and a guard's own from afar on a map, in
+    place of Lifted Torch. Silhouette and Blessed's numbers on trial.
+  - Darkness is cover: nobody sees into or past it but who sees in the dark, in a fight and on a map.
+  - Eleven more weathers, by season; changes of sky and light eased; figures soak in the rain and dry; steps louder and splashing in the rain;
+    figures lit as a smooth rounded body (a switch in Options; reading the pictures' own edges smeared them, the older side light too, and is
+    gone); the shine mask's slot (`docs/shine_masks.md`).
+  - Night Hunter's D turned out to be how hiding works already; section 17 has what else it could be.
+
 - **The designer's later messages of 2026-11-07** (ledger rows of that date; CLAUDE.md "Spells that make light", "How light falls on a
   figure", "The board without its squares", "The fight's interface"; suites `lightspells`, `figures`, `hudlook`):
   - Fallen Friend is a reaction only. Unbowed I-VII on Alithia. The Ash Warden is All Knowing.
@@ -434,9 +447,9 @@ holds the game for both).
 9. **Sounds:** the designer's "sword" sound goes on Sweep Strike, Chain Hook and Disarm when it comes.
    Not placed, no answer yet: `frog`, `train_passby`, `funny_boing_1` and `_2`. No ambience slot yet.
 
-10. **Waiting on the designer's choices, 2026-11-07:** `docs/proposals_2026-11-07.md`, sections 1 to 16 chosen and built; section 17 has the answers
-   to the designer's questions, each waiting on a word: Will-o'-the-Wisp and its alternatives, Night Hunter and a bonus for hitting while hidden (D recommended),
-   Lifted Torch, more ways for Alithia in the light, normal maps from the existing art, the weathers not yet in. Whether Phantom Noise is strong enough for Iris. Every illusion's,
+10. **Waiting on the designer's choices, 2026-11-07:** `docs/proposals_2026-11-07.md`, sections 1 to 17 chosen and built but for: Night Hunter
+   (D already happens; D+ recommended, section 17's "Night Hunter, again"), whether Poison Dart is the move to snuff torches, more ways for Alithia in the
+   light, how the shapes and the soaking look, whether guards hear the louder steps, and section 18 (weather on the map and on the creatures). Whether Phantom Noise is strong enough for Iris. Every illusion's,
    every AI dial's and every new move's number, to test by feel: Enfina's levels and numbers, Unbowed's levels as given (33, 46, 56, not the tiers 32, 41, 54), Shrink with no contest and no
    boss immunity. The Great Snare's x1.2 and hold. Which creature has which way of its own. The bubble lines themselves, which are placeholders and only Enfina's.
 

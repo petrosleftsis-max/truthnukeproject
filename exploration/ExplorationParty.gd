@@ -49,6 +49,8 @@ var puppet := false
 ## A puppet: whether its machine says it creeps (StealthWatch.creeping_in), so
 ## its steps are not heard here either.
 var creeping_there := false
+## How far the leader has walked since the last step was heard (Footsteps).
+var _strode := 0.0
 ## A puppet: where its machine last said it is (walk_to), which it eases to, and
 ## whether it said it was walking. The words come a score of times a second at
 ## best, and not evenly - put there each time, it stuttered along in jumps.
@@ -337,6 +339,11 @@ func _step(direction: Vector2, delta: float, speed: float = -1.0) -> bool:
 	_record_trail(before, moved_to)
 	_place_followers()
 	moved.emit(moved_to)
+	# Heard as they go: a step every stride, softer at a creep's pace (Footsteps).
+	_strode += before.distance_to(moved_to)
+	if _strode >= Grid.tiles(Footsteps.STRIDE_TILES):
+		_strode = 0.0
+		Footsteps.step(leader.global_position, pace * hurry < 0.9)
 	return true
 
 

@@ -17,6 +17,8 @@ func run_sections():
 	await the_story_has_the_last_word()
 	the_moon()
 	the_seasons()
+	the_other_weathers()
+	getting_wet()
 	await lights_by_the_clock()
 	await how_it_looks()
 
@@ -105,16 +107,16 @@ func the_story_has_the_last_word():
 	ok(moved[0] == 1, "and what is drawn hears it")
 	ok(Campaign.sky_now().rain > 0.9, "and it rains")
 	Campaign.advance_clock(0, 1)
-	ok(Campaign.weather_today() == Light.weather_of(Campaign.day_number()), "for today alone", Campaign.weather_today())
+	ok(Campaign.weather_today() == Light.weather_of(Campaign.day_number(), Campaign.days_in_a_year()), "for today alone", Campaign.weather_today())
 	Campaign.set_weather("rain", 3)
 	var today: int = Campaign.day_number()
 	Campaign.advance_clock(0, 2)
 	ok(Campaign.weather_today() == "rain", "or for three days")
 	Campaign.advance_clock(0, 1)
-	ok(Campaign.weather_today() == Light.weather_of(today + 3), "and no longer", Campaign.weather_today())
+	ok(Campaign.weather_today() == Light.weather_of(today + 3, Campaign.days_in_a_year()), "and no longer", Campaign.weather_today())
 	Campaign.set_weather("overcast")
 	Campaign.set_weather()
-	ok(Campaign.weather_today() == Light.weather_of(Campaign.day_number()), "and it can be handed back to the day")
+	ok(Campaign.weather_today() == Light.weather_of(Campaign.day_number(), Campaign.days_in_a_year()), "and it can be handed back to the day")
 	Campaign.clock_moved.disconnect(listen)
 	# A save keeps it.
 	ok(Campaign.SAVED.has("weather_fixed") and Campaign.SAVED.has("moon_fixed") and Campaign.SAVED.has("map_sky_tint"), "in a save")
@@ -247,6 +249,68 @@ func lights_by_the_clock():
 	log_line("")
 
 
+## The weathers that were not in at first (the designer, 2026-11-07: "Add the not included weathers as well").
+func the_other_weathers():
+	log_line("======== the other weathers ========")
+	var want := {"snow": ["snow", 720], "sleet": ["hail", 720], "thunderstorm": ["lightning", 720], "wind": ["wind", 720], "sandstorm": ["sand", 720],
+		"blizzard": ["snow", 720], "heat": ["shimmer", 780], "ash": ["ash", 720], "aurora": ["aurora", 1380], "rainbow": ["rainbow", 960], "eclipse": ["eclipse", 720]}
+	for kind in want:
+		ok(Light.WEATHERS.has(kind), "%s is a weather" % kind)
+		var sky: Dictionary = Light.sky(Light.Ambient.OUTDOORS, want[kind][1], 5, kind)
+		ok(float(sky.get(want[kind][0], 0.0)) > 0.3, "  with its %s" % want[kind][0], "%.2f" % float(sky.get(want[kind][0], 0.0)))
+	ok(Light.sky(Light.Ambient.OUTDOORS, 720, 5, "aurora").aurora < 0.05, "an aurora only by night")
+	ok(Light.sky(Light.Ambient.OUTDOORS, 1380, 5, "rainbow").rainbow < 0.05, "a rainbow only by day")
+	ok(Light.sky(Light.Ambient.OUTDOORS, 720, 5, "eclipse").amount < Light.sky(Light.Ambient.OUTDOORS, 720, 5, "clear").amount * 0.6, "an eclipse darkens noon")
+	ok(Light.sky(Light.Ambient.OUTDOORS, 720, 5, "blizzard").wind > 0.5 and Light.sky(Light.Ambient.OUTDOORS, 720, 5, "blizzard").sound == &"wind_blowing", "a blizzard blows, and is heard")
+	ok(Light.sky(Light.Ambient.UNDERGROUND, 720, 5, "snow").snow == 0.0, "nothing falls underground")
+	for extra in Light.SKY_EXTRAS:
+		ok(Light.sky(Light.Ambient.INTERIOR, 720).has(extra) and Light.sky(Light.Ambient.OUTDOORS, 720).has(extra), "every sky says how much %s" % extra)
+	# The seasons: what a day may have goes by the time of year.
+	var year := 360
+	ok(Light.season_of(1, year) == 0 and Light.season_of(91, year) == 1 and Light.season_of(181, year) == 2 and Light.season_of(271, year) == 3, "spring, summer, autumn, winter")
+	var seen := {}
+	for day in range(2, 721):
+		var kind: String = Light.weather_of(day, year)
+		var season: int = Light.season_of(day, year)
+		seen["%s %d" % [kind, season]] = true
+		if Light.SCENE_WEATHERS.has(kind):
+			seen["scene"] = true
+	ok(not seen.has("scene"), "storms, sandstorms, blizzards, ash and eclipses come only when a scene says")
+	ok(seen.has("snow 3") and not seen.has("snow 1"), "snow in winter, never in summer")
+	ok(seen.has("heat 1") and not seen.has("heat 3"), "heat in summer, never in winter")
+	ok(seen.has("thunderstorm 1"), "summer has its thunderstorms")
+	log_line("")
+
+
+## Wet in the rain, dry out of it (the designer, 2026-11-07: "make them seem slowly getting wet when it rains").
+func getting_wet():
+	log_line("======== getting wet ========")
+	var figure := CombatantSprite.new()
+	add_child(figure)
+	var was_soaking: float = CombatantSprite.soaking
+	var was_under: Callable = CombatantSprite.under_the_sky
+	CombatantSprite.soaking = 1.0
+	CombatantSprite.under_the_sky = func(_at): return true
+	figure._soak(5.0)
+	ok(figure.wetness > 0.1 and figure.wetness < 0.5, "five seconds of rain: getting wet", "%.2f" % figure.wetness)
+	figure._soak(60.0)
+	ok(is_equal_approx(figure.wetness, 1.0), "a minute: soaked", "%.2f" % figure.wetness)
+	CombatantSprite.under_the_sky = func(_at): return false
+	figure._soak(5.0)
+	ok(figure.wetness > 0.9, "under a roof, drying, slowly", "%.2f" % figure.wetness)
+	figure._soak(200.0)
+	ok(figure.wetness == 0.0, "and dry in the end")
+	CombatantSprite.soaking = was_soaking
+	CombatantSprite.under_the_sky = was_under
+	figure.queue_free()
+	# Somebody's shine mask is a drawing of their own, beside each frame.
+	ok(CombatantSprite.shine_path_for("res://art/characters/alithia/idle/alithia_idle_color0003.png") == "res://art/characters/alithia/idle/alithia_idle_shine0003.png",
+		"a shine mask sits beside the frame, _shine for _color")
+	ok(CombatantSprite.shine_path_for("res://art/things/barrel.png") == "res://art/things/barrel_shine.png", "or _shine on the end")
+	ok(GameSettings.figure_shapes(), "figures are lit as shapes unless Options say not")
+	log_line("")
+
+
 func how_it_looks():
 	log_line("======== how it looks ========")
 	LightView.plays_headless = true
@@ -259,8 +323,28 @@ func how_it_looks():
 		close_map(m)
 		await settle()
 		return
+	# A change eases in (the designer, 2026-11-07: "Some weather and lighting changes are a bit too abrupt").
 	Campaign.set_clock(12)
 	await settle()
+	Campaign.set_weather("storm")
+	await settle()
+	# Steps splash, louder, where it rains (the designer, 2026-11-07).
+	Footsteps._last_at = -100000
+	Footsteps.step(m.party.leader.global_position)
+	ok(not Footsteps.last.wet and is_equal_approx(Footsteps.last.db, Footsteps.DRY_DB), "a step before the rain has come on is dry", "%s" % [Footsteps.last])
+	ok(view._sky_wanted.rain > 0.9 and view._sky_shown.rain < 0.5, "a storm comes on over a few seconds, not at once",
+		"%.2f of %.2f" % [view._sky_shown.rain, view._sky_wanted.rain])
+	Engine.time_scale = 10.0
+	await until(func(): return not view._sky_easing, 40.0)
+	Engine.time_scale = 1.0
+	ok(is_equal_approx(view._sky_shown.rain, view._sky_wanted.rain), "and gets there", "%.2f" % view._sky_shown.rain)
+	var under: bool = view._under_the_sky(m.party.leader.global_position)
+	Footsteps._last_at = -100000
+	Footsteps.step(m.party.leader.global_position)
+	ok(not under or (Footsteps.last.wet and Footsteps.last.db > Footsteps.DRY_DB), "in the rain, under the sky, a step splashes, louder", "%s, under the sky %s" % [Footsteps.last, under])
+	ok(CombatantSprite.soaking > 0.9, "and the rain soaks whoever is out in it")
+	# The rest at once, to look at each.
+	LightView.sky_ease_seconds = 0.0
 	Campaign.set_weather("overcast")
 	await settle()
 	ok(view._clouds.visible, "clouds pass over an overcast day")
@@ -270,7 +354,8 @@ func how_it_looks():
 	await settle()
 	ok(view._rain != null and view._rain.emitting, "rain falls in a storm")
 	ok(view._day_sound_is == &"rain_falling", "and is heard, if there is a sound in the slot")
-	Campaign.set_weather("clear")
+	# Clear for the days that follow too: a day of its own may have wind, which has no birds or dawn mist.
+	Campaign.set_weather("clear", 3)
 	await settle()
 	ok(not view._rain.emitting, "and stops")
 	ok(view._life_is == "dust", "dust hangs at noon", view._life_is)
@@ -291,6 +376,7 @@ func how_it_looks():
 	Campaign.set_clock(12)
 	await settle()
 	ok(Campaign.sky_now().tone.g > Campaign.sky_now().tone.r, "a place's own sky colours the day")
+	LightView.sky_ease_seconds = 2.5
 	LightView.plays_headless = false
 	close_map(m)
 	await settle()

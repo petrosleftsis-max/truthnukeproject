@@ -445,7 +445,7 @@ func say_bubble(key: String, line: String):
 func weather_today() -> String:
 	if not weather_fixed.is_empty() and day_number() <= int(weather_fixed.get("until_day", 0)):
 		return weather_fixed.get("name", "clear")
-	return Light.weather_of(day_number())
+	return Light.weather_of(day_number(), days_in_a_year())
 
 
 ## `name` for today and `days` - 1 more, or the day's own with no name.
@@ -478,8 +478,18 @@ func no_moon_now() -> bool:
 
 ## How much later the sun goes down than in the middle of the year, by the month.
 func season_shift() -> int:
+	return Light.season_shift(day_number(), days_in_a_year())
+
+
+## How long the calendar's year is.
+func days_in_a_year() -> int:
 	var calendar_is := calendar()
-	return Light.season_shift(day_number(), maxi(calendar_is.months.size(), 1) * calendar_is.days_in_a_month)
+	return maxi(calendar_is.months.size(), 1) * calendar_is.days_in_a_month
+
+
+## Which season today is in: "spring", "summer", "autumn" or "winter" (Light.season_of).
+func season_now() -> String:
+	return Light.SEASON_NAMES[Light.season_of(day_number(), days_in_a_year())]
 
 
 ## The sky at `minute` of today, in `ambient` (Light.sky).

@@ -41,7 +41,7 @@ Who Cyrus, Prometheus, Enfina and Alithia are, what they are like, and what they
 - **Tethers:** some spells last only while the caster holds a tether, a bar that frays each turn and when they are hurt. They can let go at any time.
 - **Rests:** a short rest brings back some health and limited moves. A long rest brings back everything.
 - **Paths:** at level 24 each character chooses one of three paths, and can change it at a long rest.
-- **Light:** every tile is Bright, Dim or Dark. In the Dark you can be seen only by those who see in it, or from very close.
+- **Light:** every tile is Bright, Dim or Dark. In the Dark you can be seen only by those who see in it, or from very close. Darkness is also cover: nobody sees into it or past it, except those who see in the dark.
 - **Outside fights:** the party walks maps in real time, and guards watch by line of sight. Being caught starts a fight. Many moves also work on a map, and only Cyrus can sneak.
 - **Fights rarely need to end in killing:** the fallen are knocked out, enemies can flee, surrender or be bribed, and prisoners can be questioned, let go or handed over.
 - **Two players can share the party**, each steering some of the four, on one screen or over a network.
@@ -116,7 +116,7 @@ He has the highest initiative and no magic of his own, yet he can throw any spel
 - **Rapier** (level 1; melee, x1.5; also a reaction when an enemy leaves his reach).
 - **Gun** (1; range 20, x1.0): a shot at a lamp, a torch or any other light puts it out, quietly.
 - **Blink Strike** (1; x0.8): arrives on a tile within 4 and cuts everything beside it.
-- **Poison Dart** (8; x0.9): poisons.
+- **Poison Dart** (8; x0.9): poisons. A dart at a light puts it out. **New:** on a map, a dart at a guard carrying a torch puts it out from afar, silently, and he wanders off to relight it, walking in the dark meanwhile.
 - **Burning Shot** (16; x0.8): burns, and burns stronger from 32.
 - **Venom Fan** (24; a cone, x0.7): poisons everybody in front of him.
 - **Warning Shot** (32; x0.9): slows their advance.
@@ -512,6 +512,7 @@ Her list of spells is long and varied, so a turn is a question of what the party
 **Light and seeing**
 
 - **Daylight** (Hermes; tether): bright daylight on the ground, and no darkness holds there, Light Void included. Aimed at an ally, it goes on their weapon.
+- **Beckoning Light** (Hermes; the Gates of Iris on a map) **New:** a small light appears where she chooses, and one enemy who loses to her Mindfulness walks to it as their next turn starts, arriving off their guard. On a map it leads a guard away from her.
 - **Clear Sight** (Hermes; secondary): for ten of her turns she sees in the dark, and sees whoever is hidden.
 - **Detect Magic** (World): wards, sensors and traps show.
 - **Find Familiar** (World; only out of a fight): a spirit in the shape of the local animal, which she steers and sees through.
@@ -533,6 +534,7 @@ Her list of spells is long and varied, so a turn is a question of what the party
 - **Aura** (8, 24): allies within two tiles take less and mend a little.
 - **Blessed in the Light** (8): on somebody standing in Bright, her heals mend a tenth more and her Idol damage lands a tenth harder.
 - **Nowhere to Hide** (16): nobody of the other side in Bright within six tiles, in her sight, can hide.
+- **Kindled Faith** (24) **New:** standing in Bright as her turn starts, she mends a little.
 - **Devotion:** two castings of her own, for Heal or Dread Visage, spent before any gate.
 - **Reserved Power** (32, 54): more castings through her deepest gate.
 - **Radiant Guardian** (64): while she stands, the party takes a tenth less damage.
@@ -603,6 +605,6 @@ They have to be short, since they fade by themselves mid-fight, and they have to
 
 - **Enfina's voice in play.** She has the least written so far and is the one being deepened, so her lines and her story matter most right now.
 - **Her lack of recognition.** Does anybody ever finally say something to her, and who?
-- **Cyrus and being hidden.** Hitting from hiding gives no bonus at present, only that nobody can react, and the designer is weighing what it should do.
+- **Cyrus and being hidden.** Hitting from hiding gives no bonus at present, only that nobody can react, and if the blow fells them and nobody else sees, he stays hidden. A passive called Night Hunter, about staying hidden, is being decided.
 - **Necromancy for Prometheus.** Whether he uses it, how he came to know it, and what Alithia does about it.
 - **What the four know about each other,** and when each learns about the others' pasts.

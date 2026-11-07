@@ -103,6 +103,32 @@ static func set_grid_always(on: bool):
 	config.save(PATH)
 
 
+## --- Figures lit as shapes ---
+##
+## On, the light falls on a figure as on a shape worked out from its picture (CombatantSprite FIGURE_SHADER, "normal maps
+## without extra art", the designer, 2026-11-07); off, as on a flat picture, to compare.
+
+const SHAPES_KEY := "figure_shapes"
+static var _figure_shapes := -1
+
+
+static func figure_shapes() -> bool:
+	if _figure_shapes < 0:
+		var config := ConfigFile.new()
+		_figure_shapes = 1
+		if config.load(PATH) == OK:
+			_figure_shapes = 1 if config.get_value(SECTION, SHAPES_KEY, true) else 0
+	return _figure_shapes == 1
+
+
+static func set_figure_shapes(on: bool):
+	_figure_shapes = 1 if on else 0
+	var config := ConfigFile.new()
+	config.load(PATH)
+	config.set_value(SECTION, SHAPES_KEY, on)
+	config.save(PATH)
+
+
 ## --- How the game sits on the screen ---
 
 const DISPLAY_SECTION := "display"

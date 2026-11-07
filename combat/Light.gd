@@ -109,7 +109,9 @@ const _AMOUNT := 7
 
 ## The kinds of sky a day can have. Only how it looks: the rule goes by the part of the day and the moon. Each says what it does to the
 ## clear day's: `mix`, how far towards its `tone`; and what it multiplies the rest by. `clouds`, how much of the ground their shadows
-## pass over; `rain` and `mist`, how much of each there is.
+## pass over; `rain` and `mist`, how much of each there is; and, only where they say so, `snow`, `hail` (sleet), `lightning`, `wind`,
+## `sand`, `ash` falling, `shimmer` (heat off the ground), `aurora` by night, a `rainbow` by day, and an `eclipse` at noon (the designer,
+## 2026-11-07: "Add the not included weathers as well").
 const WEATHERS := {
 	"clear": {"tone": Color.WHITE, "mix": 0.0, "strength": 1.05, "soft": 0.9, "saturation": 1.03, "contrast": 1.02, "amount": 1.0, "clouds": 0.12, "rain": 0.0, "mist": 0.0},
 	"haze": {"tone": Color(1.0, 0.95, 0.86), "mix": 0.25, "strength": 0.6, "soft": 1.6, "saturation": 0.9, "contrast": 0.94, "amount": 0.97, "clouds": 0.05, "rain": 0.0, "mist": 0.12},
@@ -117,7 +119,30 @@ const WEATHERS := {
 	"rain": {"tone": Color(0.72, 0.77, 0.87), "mix": 0.6, "strength": 0.15, "soft": 2.0, "saturation": 0.65, "contrast": 0.95, "amount": 0.74, "clouds": 0.7, "rain": 0.5, "mist": 0.0},
 	"fog": {"tone": Color(0.85, 0.87, 0.9), "mix": 0.5, "strength": 0.2, "soft": 2.2, "saturation": 0.7, "contrast": 0.9, "amount": 0.85, "clouds": 0.0, "rain": 0.0, "mist": 1.0},
 	"storm": {"tone": Color(0.55, 0.6, 0.74), "mix": 0.7, "strength": 0.1, "soft": 2.2, "saturation": 0.55, "contrast": 1.0, "amount": 0.58, "clouds": 0.9, "rain": 1.0, "mist": 0.0},
+	"snow": {"tone": Color(0.88, 0.92, 1.0), "mix": 0.45, "strength": 0.3, "soft": 1.8, "saturation": 0.78, "contrast": 0.96, "amount": 0.92, "clouds": 0.5, "rain": 0.0, "mist": 0.15, "snow": 0.6},
+	"sleet": {"tone": Color(0.74, 0.79, 0.88), "mix": 0.58, "strength": 0.14, "soft": 2.0, "saturation": 0.64, "contrast": 0.95, "amount": 0.75, "clouds": 0.75, "rain": 0.35, "mist": 0.0, "hail": 0.6},
+	"thunderstorm": {"tone": Color(0.5, 0.55, 0.7), "mix": 0.72, "strength": 0.08, "soft": 2.3, "saturation": 0.55, "contrast": 1.02, "amount": 0.55, "clouds": 0.95, "rain": 1.0, "mist": 0.0, "lightning": 1.0, "wind": 0.5},
+	"wind": {"tone": Color(0.95, 0.97, 1.0), "mix": 0.15, "strength": 0.9, "soft": 1.1, "saturation": 0.98, "contrast": 1.02, "amount": 0.98, "clouds": 0.35, "rain": 0.0, "mist": 0.0, "wind": 1.0},
+	"sandstorm": {"tone": Color(1.0, 0.8, 0.55), "mix": 0.62, "strength": 0.12, "soft": 2.3, "saturation": 0.82, "contrast": 0.9, "amount": 0.72, "clouds": 0.0, "rain": 0.0, "mist": 0.0, "sand": 1.0, "wind": 1.0},
+	"blizzard": {"tone": Color(0.86, 0.9, 1.0), "mix": 0.68, "strength": 0.06, "soft": 2.4, "saturation": 0.58, "contrast": 0.88, "amount": 0.7, "clouds": 0.85, "rain": 0.0, "mist": 0.45, "snow": 1.0, "wind": 1.0},
+	"heat": {"tone": Color(1.0, 0.94, 0.82), "mix": 0.22, "strength": 1.15, "soft": 0.85, "saturation": 1.06, "contrast": 1.05, "amount": 1.03, "clouds": 0.02, "rain": 0.0, "mist": 0.0, "shimmer": 1.0},
+	"ash": {"tone": Color(0.82, 0.76, 0.74), "mix": 0.55, "strength": 0.2, "soft": 2.0, "saturation": 0.6, "contrast": 0.95, "amount": 0.7, "clouds": 0.6, "rain": 0.0, "mist": 0.1, "ash": 1.0},
+	"aurora": {"tone": Color(0.92, 0.97, 1.0), "mix": 0.1, "strength": 1.0, "soft": 0.95, "saturation": 1.0, "contrast": 1.02, "amount": 1.0, "clouds": 0.05, "rain": 0.0, "mist": 0.0, "aurora": 1.0},
+	"rainbow": {"tone": Color(0.95, 0.97, 1.0), "mix": 0.15, "strength": 0.8, "soft": 1.2, "saturation": 1.08, "contrast": 1.0, "amount": 0.97, "clouds": 0.3, "rain": 0.0, "mist": 0.05, "rainbow": 1.0},
+	"eclipse": {"tone": Color(0.62, 0.66, 0.86), "mix": 0.5, "strength": 0.6, "soft": 1.2, "saturation": 0.75, "contrast": 1.05, "amount": 1.0, "clouds": 0.0, "rain": 0.0, "mist": 0.0, "eclipse": 1.0},
 }
+## What else a sky can have beside rain and mist, each 0 to 1 (WEATHERS). Every sky() has all of them.
+const SKY_EXTRAS := ["snow", "hail", "lightning", "wind", "sand", "ash", "shimmer", "aurora", "rainbow", "eclipse"]
+## Only when a scene says so (Campaign.set_weather): too much to come by itself.
+const SCENE_WEATHERS := ["storm", "sandstorm", "blizzard", "ash", "eclipse"]
+## How likely each sky is, per season, in thousandths: spring, summer, autumn, winter (season_of). PROPOSAL.
+const SEASON_ODDS := [
+	{"clear": 450, "haze": 100, "overcast": 180, "rain": 160, "fog": 60, "wind": 50},
+	{"clear": 520, "haze": 130, "heat": 110, "overcast": 80, "rain": 60, "thunderstorm": 50, "wind": 30, "rainbow": 20},
+	{"clear": 380, "haze": 40, "overcast": 220, "rain": 170, "fog": 110, "wind": 80},
+	{"clear": 380, "overcast": 220, "snow": 180, "fog": 80, "sleet": 60, "wind": 50, "aurora": 30},
+]
+const SEASON_NAMES := ["spring", "summer", "autumn", "winter"]
 ## A foggy morning has lifted by then.
 const FOG_THICK_UNTIL := 480
 const FOG_GONE_BY := 600
@@ -173,9 +198,27 @@ static func day_share(day: int, salt: int) -> float:
 	return float(mixed % 1000) / 1000.0
 
 
-## The sky `day` has of itself. The story's first is clear.
-static func weather_of(day: int) -> String:
+## Which season `day` falls in, of a year `days_in_a_year` long: 0 spring, 1 summer, 2 autumn, 3 winter, each a quarter of it,
+## summer's middle where season_shift has the longest days.
+static func season_of(day: int, days_in_a_year: int) -> int:
+	if days_in_a_year <= 0:
+		return 0
+	var at: float = fposmod(float(day - 1) / float(days_in_a_year) + 0.125, 1.0)
+	return mini(int(at * 4.0), 3)
+
+
+## The sky `day` has of itself, by the season when the year's length is known. The story's first is clear.
+static func weather_of(day: int, days_in_a_year: int = 0) -> String:
 	if day <= 1:
+		return "clear"
+	if days_in_a_year > 0:
+		var odds: Dictionary = SEASON_ODDS[season_of(day, days_in_a_year)]
+		var roll: float = day_share(day, 1) * 1000.0
+		var so_far := 0.0
+		for kind in odds:
+			so_far += float(odds[kind])
+			if roll < so_far:
+				return kind
 		return "clear"
 	var share := day_share(day, 1)
 	if share < 0.5:
@@ -258,11 +301,11 @@ static func _low_sun_share(at: float) -> float:
 static func sky(ambient: int, minute: int, day: int = 0, weather: String = "", place: Color = Color.WHITE, moon: float = 0.5, shift: int = 0) -> Dictionary:
 	match ambient:
 		Ambient.INTERIOR:
-			return {"tone": INTERIOR_TONE, "lean": 0.0, "strength": 0.25, "soft": 1.0, "saturation": 0.95, "contrast": 1.0, "amount": -1.0,
-				"clouds": 0.0, "rain": 0.0, "mist": 0.0, "colour": Color.BLACK, "life": "", "sound": &""}
+			return _without_extras({"tone": INTERIOR_TONE, "lean": 0.0, "strength": 0.25, "soft": 1.0, "saturation": 0.95, "contrast": 1.0, "amount": -1.0,
+				"clouds": 0.0, "rain": 0.0, "mist": 0.0, "colour": Color.BLACK, "life": "", "sound": &""})
 		Ambient.UNDERGROUND:
-			return {"tone": UNDERGROUND_TONE, "lean": 0.0, "strength": 0.15, "soft": 1.0, "saturation": 0.85, "contrast": 1.05, "amount": -1.0,
-				"clouds": 0.0, "rain": 0.0, "mist": 0.0, "colour": Color.BLACK, "life": "", "sound": &""}
+			return _without_extras({"tone": UNDERGROUND_TONE, "lean": 0.0, "strength": 0.15, "soft": 1.0, "saturation": 0.85, "contrast": 1.05, "amount": -1.0,
+				"clouds": 0.0, "rain": 0.0, "mist": 0.0, "colour": Color.BLACK, "life": "", "sound": &""})
 	var at: float = _on_the_sky_clock(minute, shift)
 	var tone := Color(clampf(_curve(at, func(mark): return mark[_TONE].r), 0.0, 1.0), clampf(_curve(at, func(mark): return mark[_TONE].g), 0.0, 1.0),
 		clampf(_curve(at, func(mark): return mark[_TONE].b), 0.0, 1.0))
@@ -290,6 +333,9 @@ static func sky(ambient: int, minute: int, day: int = 0, weather: String = "", p
 	var clouds := 0.0
 	var rain := 0.0
 	var mist := 0.0
+	var extras := {}
+	for extra in SKY_EXTRAS:
+		extras[extra] = 0.0
 	if not kind.is_empty():
 		var thick := 1.0
 		if weather == "fog":
@@ -304,13 +350,25 @@ static func sky(ambient: int, minute: int, day: int = 0, weather: String = "", p
 		clouds = kind.clouds * thick * daylight
 		rain = kind.rain * thick
 		mist = kind.mist * thick
+		for extra in SKY_EXTRAS:
+			extras[extra] = float(kind.get(extra, 0.0)) * thick
+		# Heat off the ground at midday; an aurora by night; a rainbow in the afternoon light; the eclipse darkest at noon.
+		extras.shimmer *= daylight * smoothstep(600.0, 760.0, at) * (1.0 - smoothstep(900.0, 1060.0, at))
+		extras.aurora *= night_share * night_share
+		extras.rainbow *= daylight * smoothstep(780.0, 900.0, at) * (1.0 - smoothstep(1020.0, 1140.0, at))
+		extras.eclipse *= daylight * smoothstep(560.0, 720.0, at) * (1.0 - smoothstep(720.0, 880.0, at))
+		amount *= 1.0 - 0.62 * extras.eclipse
+		strength *= 1.0 - 0.7 * extras.eclipse
+		tone = tone.lerp(Color(0.5, 0.55, 0.8), 0.45 * extras.eclipse)
 	# A place's own sky: green under trees, grey-blue by the sea.
 	tone = Color(tone.r * place.r, tone.g * place.g, tone.b * place.b)
 	# Mist low on the ground at dawn, dust in the air at noon, insects at dusk; what is heard goes with them.
 	var life := ""
 	var sound: StringName = &""
-	if rain > 0.0:
+	if rain > 0.0 or extras.hail > 0.0:
 		sound = &"rain_falling"
+	elif extras.wind > 0.5:
+		sound = &"wind_blowing"
 	else:
 		if at >= 300.0 and at < 540.0:
 			mist = maxf(mist, 0.45 * smoothstep(300.0, 380.0, at) * (1.0 - smoothstep(440.0, 540.0, at)))
@@ -324,8 +382,17 @@ static func sky(ambient: int, minute: int, day: int = 0, weather: String = "", p
 			sound = &"crickets_at_night"
 	# Blue-black at night, warm at dusk: the sky's own colour, nearly gone.
 	var colour := Color(tone.r * 0.12, tone.g * 0.1, tone.b * 0.14)
-	return {"tone": tone, "lean": lean, "strength": strength, "soft": soft, "saturation": saturation, "contrast": contrast, "amount": amount,
+	var whole := {"tone": tone, "lean": lean, "strength": strength, "soft": soft, "saturation": saturation, "contrast": contrast, "amount": amount,
 		"clouds": clouds, "rain": rain, "mist": mist, "colour": colour, "life": life, "sound": sound}
+	whole.merge(extras)
+	return whole
+
+
+## `sky` with every one of SKY_EXTRAS at 0.
+static func _without_extras(sky: Dictionary) -> Dictionary:
+	for extra in SKY_EXTRAS:
+		sky[extra] = 0.0
+	return sky
 
 
 ## The colour over everything, at `minute` of the day, on a day with nothing of its own.

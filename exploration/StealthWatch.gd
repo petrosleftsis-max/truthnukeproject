@@ -5102,7 +5102,38 @@ func _refresh_seen(guard: Guard):
 			var gap := Vector2(tile - from).length()
 			if level == Light.Level.BRIGHT or gap <= (setup.dim_sight_tiles if level == Light.Level.DIM else setup.dark_sight_tiles):
 				made_out[tile] = true
+		# Nor past the dark: it hides what is behind it as a wall would (the designer, 2026-11-07), unless he sees in it.
+		if not _sees_in_the_dark(guard):
+			for tile in made_out.keys():
+				if _dark_between(map_light, from, tile, setup.dark_sight_tiles):
+					made_out.erase(tile)
 		_seen[guard] = made_out
+
+
+## Whether a Dark tile lies on the line from `from` to `to`, past `near` of `from` and short of `to` (Combat.dark_between).
+static func _dark_between(map_light: LightMap, from: Vector2i, to: Vector2i, near: float) -> bool:
+	if from == to:
+		return false
+	var a := Vector2(from)
+	var b := Vector2(to)
+	var steps: int = maxi(ceili(a.distance_to(b) * 4.0), 1)
+	var last := from
+	for i in range(1, steps):
+		var tile := Vector2i((a.lerp(b, float(i) / float(steps)) + Vector2(0.5, 0.5)).floor())
+		if tile == last:
+			continue
+		last = tile
+		if tile == to or Vector2(tile - from).length() <= near:
+			continue
+		if map_light.level_at(tile) == Light.Level.DARK:
+			return true
+	return false
+
+
+## Whether `guard` sees in the dark as Cyrus does: his creature's passives say so.
+func _sees_in_the_dark(guard: Guard) -> bool:
+	var definition = CombatantDatabase.combatants.get(guard.combatant_key)
+	return definition != null and definition.passives.any(func(passive): return passive != null and passive.sees_in_darkness)
 
 
 ## Somebody is sure. Everyone stops, the "!" goes up, and the fight is handed to

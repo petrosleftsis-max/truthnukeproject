@@ -4,7 +4,8 @@ Nothing here is built unless it says so. Everything here is a PROPOSAL until the
 
 ## 1. Fallen Friend
 
-**Chosen and built, 2026-11-07: A.** The rest are kept for the record.
+**Chosen and built, 2026-11-07: A.** The designer, the same day: "I actually really like this, we might do C at the future though". C is kept
+for later; the rest are kept for the record.
 
 As it was built first it was worse than Seeming: a deeper gate, and a step ends it. Ways to make it its own thing:
 
@@ -454,6 +455,29 @@ necromancy, Speak with the Dead and Marionette in forbidden books.
 
 Nothing in this section is built unless it says so. Numbers are proposals.
 
+**Chosen, 2026-11-07 (the designer's answers, all built that day unless it says):**
+- **Beckoning Light**, on the Gates of Iris. Built as Alithia's, Hermes in a fight and Iris on a map: aimed at one enemy, then at
+  open ground in her reach where a small light appears. If they lose to her Mindfulness they walk to it as their next turn starts and
+  arrive Off Guard (no reactions until their next turn). On a map a light leads a guard away from her for 20 seconds, his eyes on
+  nothing else.
+- **Night Hunter: D.** Not built. D turned out to be how hiding already works: after any action the game asks who can see whom, a
+  felled target sees nothing, and so with nobody else looking Cyrus stays hidden (checked in a test). Waiting on a word: see below.
+- **Silhouette +20% and Blessed in the Light +10%**, to try (APPROVED_TRIAL).
+- **Lifted Torch, as a ranged move of Cyrus's that snuffs torches from afar, silently.** Built on **Poison Dart** (my pick: a dart is
+  silent, and he has it from 8). It now shoots out lights as his Gun does, and on a map a dart at a guard carrying a light puts the
+  light out from afar with no fight. He goes to light it again at the nearest lit lamp, walking dark meanwhile, or carries on dark
+  if there is none.
+- **Kindled Faith.** Built, from 24: standing in Bright as her turn starts, she mends 3 and a twentieth of her Mindfulness.
+- **Normal maps without extra art, to see how it looks.** Built, then changed the same evening: normals read off each picture's own
+  outline and lines made the figures look smeared, with outlines showing inside them (a scarf), and so did the older side lighting,
+  which read the edges the same way. Now the light falls on a smooth rounded body, with a switch in Options ("Figures lit as shapes")
+  for more or less of it. Real detail would need normal maps baked once from the pictures with a proper blur, by a tool, and saved
+  beside each frame as the shine masks are: not built.
+- **How to make a shine mask:** `docs/shine_masks.md`. The slot is built: a picture beside each frame, `_shine` for `_color`.
+- **Real shadows:** you will look at the shadows as they are. Nothing built.
+- **The weathers not included:** all eleven built, and the season now says which days get what. See section 18.
+- **The bubble lines:** listed in the reply of that day. Only Enfina's placeholders and Alithia's four, so far.
+
 ### What you asked to be reminded of
 
 - **Choking Ash:** -15 to hit for 1 turn. Only the Ash Warden's Ash Presence puts it on anybody, on whoever of the other side starts a turn within 2 tiles of it.
@@ -534,3 +558,61 @@ Built: a bubble over somebody's head that goes away by itself, from `CombatLines
 Alithia's "I saw it coming" lines now show as a bubble too. Nobody says more than one line in 7 seconds, unless it's somebody falling, a phase, a win or taking a blow.
 
 `docs/chatgpt_party_characters.md` has what is needed to ask ChatGPT for these.
+
+### Night Hunter, again
+
+D already happens, so as a passive it would change nothing. These would make Night Hunter do something:
+
+| Way | What it does |
+| --- | --- |
+| **D+. Even if they stand** | A blow from hiding in Dim or Dark leaves him hidden even if it does not fell them, unless they see in the dark. Pairs with darkness being cover |
+| **A. A flat bonus** | +25% from hiding, as before |
+| **C. They can't answer** | No reaction from whoever is hit until their next turn |
+| **E. Slip away after** | Felling somebody from hiding gives him a free Stealth, even in sight, once a turn |
+
+**My recommendation is D+**, at 24: it is the "hidden and stay that way" you wanted, and darkness as cover makes it work.
+
+## 18. Weather on the map and on the creatures
+
+You asked how weather could show on the map and on the creatures. Built on 2026-11-07: things falling and blowing for every
+weather, a coloured haze for sand and a whiteout, an aurora by night, a rainbow by day, a darkened eclipse, heat shimmer,
+lightning with thunder after (a slot), figures soaking slowly in the rain and drying under a roof, and louder, splashing
+steps in the rain. Everything below is a suggestion.
+
+**On the ground**
+
+| Idea | What it shows |
+| --- | --- |
+| **Puddles** | Open ground darkens and gathers shining patches the longer it rains, and dries after. A ripple where each drop lands |
+| **Snow lying** | White builds up on open ground over a snowy day, thinner in the lee of walls. Footprints stay in it a while |
+| **Mud and prints** | Steps in rain leave dark prints that fade. Useful for stealth: a guard could follow fresh prints |
+| **Frost** | A pale rim on tiles on a cold clear night, gone by mid-morning |
+| **Ash settling** | A grey layer that grows over an ash day, on the ground and on what stands there |
+| **Sand drifting** | Sand gathering against walls in a sandstorm |
+| **Things that sway** | Trees, banners and cloth on a map moving with the wind, harder in a gale. Needs them drawn in parts |
+| **Lights in the wet** | Lamps' glow bigger and softer in rain and fog, and lit puddles catching it |
+| **The flash** | At a lightning flash, every shadow on the map points away from it for that instant |
+
+**On the creatures**
+
+| Idea | What it shows |
+| --- | --- |
+| **Wet** (built) | Darker, richer, glossy. More could come: drips falling off them, hair hanging heavier as a "wet" pose, steam rising off somebody wet who stands by fire, Enfina's Burn above all |
+| **Snow on them** | White settling on the parts that face up (the shapes worked out for the normal maps say which), and breath clouds in the cold |
+| **Wind in them** | Hair and cloaks streaming. A mask could mark which parts are loose cloth (the shine mask's blue, say) for a shader to wave |
+| **Dust and ash** | A dusty tint building up from the feet in a sandstorm, grey on the shoulders on an ash day |
+| **Cold and heat** | A blue tint creeping into skin in the cold, a sweat glint on the shiny parts in the heat |
+| **Splashes** | A small splash under each step in the rain, to go with the louder step |
+| **Poses** | Shivering, shielding the eyes from sand, hunching under rain: pose slots that fall back on idle, as the others do |
+
+**Rules it could change, each yours to decide (none built)**
+
+| Idea | What it does |
+| --- | --- |
+| **Steps heard further** | In the rain, guards hear walking from further off, as the steps are louder now. Or the other way: rain drowns steps, and guards hear less |
+| **Sight in thick weather** | Fog, a blizzard and a sandstorm make everything past a few tiles Dim, so a stealthy character can hide in it |
+| **Wind and shots** | A strong wind costs ranged blows a little accuracy, more across it than along it, and pushes fliers |
+| **Deep snow** | Snow lying costs more to walk through |
+| **Lightning** | In a thunderstorm, lightning strikes the arena now and then, high ground and metal first, telegraphed a turn ahead |
+| **Wet** | Rain puts out ground fires sooner and makes the soaked easier to freeze and to shock |
+| **Heat and cold** | Burns last longer in heat, Frozen longer in cold |

@@ -3754,7 +3754,7 @@ func is_seen_by_opponents(comb: Dictionary) -> bool:
 		# In Dim light, somebody who knows how is only made out from close by.
 		if _hides_in_dim(comb) and distance_to(watcher, nearest_tile_of(comb, watcher.position)) > DIM_SPOT_TILES:
 			continue
-		if sees_tile(watcher, nearest_tile_of(comb, watcher.position), comb):
+		if sees_tile(watcher, nearest_tile_of(comb, watcher.position), comb) and not _behind_the_dark(watcher, comb):
 			return true
 	return false
 
@@ -3865,6 +3865,9 @@ func dress_for_hiding(comb: Dictionary):
 	if comb.get("hidden", false):
 		# Whoever anybody of the party can see, the player sees faintly ("In the dark").
 		alpha = HIDDEN_ALLY_ALPHA if comb.side == Group.PLAYERS or party_sees(comb) else HIDDEN_ENEMY_ALPHA
+	elif comb.get("side", Group.PLAYERS) != Group.PLAYERS and _dark_keeps_from_party(comb):
+		# Behind the dark from all of the party ("Darkness is cover"): not seen.
+		alpha = HIDDEN_ENEMY_ALPHA
 	if sprite.has_method("set_hidden_alpha"):
 		sprite.set_hidden_alpha(alpha)
 	else:
@@ -16456,10 +16459,11 @@ func sees_the_unseen(viewer: Dictionary) -> bool:
 
 
 ## Whether `comb` is out of `viewer`'s sight: hidden, or invisible, and nothing about
-## them lets them see past that.
+## them lets them see past that - or behind darkness, which nobody sees into or past but
+## whoever sees in the dark ("Darkness is cover").
 func hidden_from(viewer: Dictionary, comb: Dictionary) -> bool:
 	if not is_hidden(comb):
-		return false
+		return _behind_the_dark(viewer, comb)
 	if viewer.is_empty() or sees_the_unseen(viewer):
 		return viewer.is_empty()
 	# Named out loud by one of their own (Calling Out).
@@ -16475,7 +16479,49 @@ func hidden_from(viewer: Dictionary, comb: Dictionary) -> bool:
 		return true
 	if sees_in_darkness(viewer):
 		return false
-	return viewer.has("position") and rect_gap(rect_of(viewer), rect_of(comb)) > SEEN_IN_THE_DARK_TILES
+	return viewer.has("position") and (rect_gap(rect_of(viewer), rect_of(comb)) > SEEN_IN_THE_DARK_TILES or _behind_the_dark(viewer, comb))
+
+
+## --- Darkness is cover ---
+##
+## The designer, 2026-11-07: "darkness should work as a visual cover. creatures can go through it but cannot see in
+## or behind it, except if they have a passive like cyrus does that allows them to". In it is "In the dark" above;
+## behind it is here: a line from `viewer` to `comb` across a Dark tile - the map's, or a dark zone's (Light Void),
+## which the LightMap has as Dark either way - is a line they cannot see along, unless they see in the dark. The
+## tiles right round the viewer (SEEN_IN_THE_DARK_TILES) and the tiles `comb` stands on do not count, so whoever
+## stands at the edge of the dark sees out of it. Asked by hidden_from for anybody at all, so everything that asks
+## who can see whom follows: the AI's looking and aiming, reactions, the player's aiming; is_seen_by_opponents for
+## who hides; and dress_for_hiding draws the other side's people the party cannot see as it draws the hidden.
+## Only sight: walking, and an area thrown at the ground, go on as ever. Marked by Flame and Calling Out see past it.
+
+## Whether darkness stands between `viewer` and `comb` for `viewer`'s eyes.
+func _behind_the_dark(viewer: Dictionary, comb: Dictionary) -> bool:
+	if light == null or not light.varies or viewer.is_empty() or not viewer.has("position") or not comb.has("position"):
+		return false
+	if sees_in_darkness(viewer) or sees_the_unseen(viewer) or has_restriction(comb, "cannot_hide") or _called_out_to(viewer, comb):
+		return false
+	return dark_between(nearest_across(viewer, nearest_tile_of(comb, viewer.position)), nearest_tile_of(comb, viewer.position), tiles_of(comb))
+
+
+## Whether a Dark tile lies on the line from `from` to `to`: not those right round `from`, and not `to` itself or
+## any of `ignoring`.
+func dark_between(from: Vector2i, to: Vector2i, ignoring: Array = []) -> bool:
+	if light == null or not light.varies or from == to:
+		return false
+	var a := Vector2(from)
+	var b := Vector2(to)
+	var steps: int = maxi(ceili(a.distance_to(b) * 4.0), 1)
+	var last := from
+	for i in range(1, steps):
+		var tile := Vector2i((a.lerp(b, float(i) / float(steps)) + Vector2(0.5, 0.5)).floor())
+		if tile == last:
+			continue
+		last = tile
+		if tile == to or tile in ignoring or maxi(absi(tile.x - from.x), absi(tile.y - from.y)) <= SEEN_IN_THE_DARK_TILES:
+			continue
+		if light.level_at(tile) == Light.Level.DARK:
+			return true
+	return false
 
 
 ## Whether anybody of the party standing sees `comb`, hidden as they are.
@@ -16489,13 +16535,35 @@ func party_sees(comb: Dictionary) -> bool:
 
 ## Whether `comb` is somebody of the other side that the player has no way of seeing.
 func unseen_by_party(comb: Dictionary) -> bool:
-	return comb.get("side", 0) != 0 and is_hidden(comb) and not party_sees(comb)
+	if comb.get("side", 0) == 0:
+		return false
+	return not party_sees(comb) if is_hidden(comb) else _dark_keeps_from_party(comb)
+
+
+## Whether the dark, and nothing else, keeps `comb` from every one of the party ("Darkness is cover"): nobody of
+## theirs has a clear line to them that the dark does not cross, and it crosses somebody's. Walls alone hide nobody
+## from the player, as ever.
+func _dark_keeps_from_party(comb: Dictionary) -> bool:
+	if light == null or not light.varies or not comb.has("position") or comb.has("object"):
+		return false
+	var dark_in_the_way := false
+	for index in groups[Group.PLAYERS]:
+		var other: Dictionary = combatants[index]
+		if not other.get("alive", false) or other.get("illusion", false) or not other.has("position"):
+			continue
+		if _behind_the_dark(other, comb):
+			dark_in_the_way = true
+		elif sees_tile(other, nearest_tile_of(comb, other.position), comb):
+			return false
+	return dark_in_the_way
 
 
 ## Everybody hidden drawn as who can see them now says.
 func _redress_the_hidden():
+	var dark: bool = light != null and light.varies
 	for comb in combatants:
-		if comb.get("alive", false) and comb.get("hidden", false):
+		# And with any dark about, whoever it may hide from the party ("Darkness is cover").
+		if comb.get("alive", false) and (comb.get("hidden", false) or (dark and comb.get("side", 0) != Group.PLAYERS and not comb.has("object"))):
 			dress_for_hiding(comb)
 
 
@@ -16576,9 +16644,11 @@ func _hour_changed():
 func _clock_moved():
 	if encounter != null and encounter.time_of_day >= 0:
 		return
-	CombatantSprite.set_shadows(Campaign.sky_now(_light_ambient, _light_minute()))
+	# Shown, the view eases to it, the sun's shadows with it; not, they are simply so.
 	if light_view != null:
-		light_view.show_hour(_light_ambient, _light_minute(), true)
+		light_view.show_hour(_light_ambient, _light_minute())
+	else:
+		CombatantSprite.set_shadows(Campaign.sky_now(_light_ambient, _light_minute()))
 
 
 ## Works out afresh what is lit.

@@ -34,6 +34,15 @@ class_name SoundBank
 @export var insects_at_dusk: AudioStream
 @export var crickets_at_night: AudioStream
 @export var rain_falling: AudioStream
+## Looped while the wind blows hard (a wind, a sandstorm, a blizzard).
+@export var wind_blowing: AudioStream
+## After a storm's flash of lightning.
+@export var thunder: AudioStream
+
+@export_group("Steps")
+## A step on the ground, and on wet ground in the rain, which is louder (Footsteps). Empty: a stand-in, made on the spot.
+@export var footstep: AudioStream
+@export var footstep_wet: AudioStream
 
 @export_group("Hacks and the world")
 @export var hack_failed: AudioStream

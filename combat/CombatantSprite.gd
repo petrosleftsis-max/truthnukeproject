@@ -127,6 +127,15 @@ static var shadow_soft := 1.0
 static var shadow_version := 0
 ## Each light here: {"at", "reach", "colour", "node", "energy"}: for shadows to point away from, and the figures' colour (LightView).
 static var light_points: Array = []
+## How fast anybody under the open sky gets wet now: rain, sleet, a little for snow (LightView._put_on_the_sky). 0: they dry.
+static var soaking := 0.0
+## Whether a place in the world is under the open sky (LightView), or nothing to ask.
+static var under_the_sky := Callable()
+## The shine masks found, by the frame's own file (shine_mask_for): a texture, or null for none.
+static var _shine_masks := {}
+## How wet they are, 0 to 1: soaking under the rain, drying out of it (the designer, 2026-11-07: "make them seem slowly getting
+## wet when it rains").
+var wetness := 0.0
 ## Whether something at a place on the map stops a shadow (LightView), or nothing to ask.
 static var stops_shadow: Callable = Callable()
 const MOST_SHADOWS := 3
@@ -404,6 +413,11 @@ uniform float figure_height = 256.0;
 uniform sampler2D shade_map : filter_linear, repeat_disable;
 uniform vec4 shade_rect = vec4(0.0, 0.0, 1.0, 1.0);
 uniform float shade_on = 0.0;
+uniform float shapes_on = 0.0;
+uniform float light_height = 0.6;
+uniform float wet = 0.0;
+uniform sampler2D shine_mask : filter_linear, repeat_disable;
+uniform float shine_on = 0.0;
 varying vec2 world;
 varying float up;
 void vertex() {
@@ -416,19 +430,43 @@ void fragment() {
 	vec2 pixel = TEXTURE_PIXEL_SIZE;
 	vec3 rgb = base.rgb;
 	rgb = mix(rgb, rgb * lit_colour * 1.5, lit_strength);
-	if (side_strength > 0.001) {
-		vec2 reach = pixel * 10.0;
-		float towards = texture(TEXTURE, UV + light_way * reach).a;
-		float away = texture(TEXTURE, UV - light_way * reach).a;
-		rgb += lit_colour * clamp(here - towards, 0.0, 1.0) * side_strength;
-		rgb *= 1.0 - clamp(here - away, 0.0, 1.0) * far_dark;
-	}
+	// Where on the figure this is, as a smooth rounded body: across from the middle of the frame, and down from about the
+	// chest. Nothing is read off the drawing's own edges, so a line or a gap inside it (a scarf, an arm against the body)
+	// is never taken for an outline and drawn again shifted (the designer, 2026-11-07: parts looked smeared, with "part of
+	// his outline inside of his scarf").
+	float across = clamp((UV.x - 0.5) / 0.32, -1.0, 1.0);
+	float down = clamp((UV.y - 0.55) / 0.42, -1.0, 1.0);
+	vec3 n = normalize(vec3(across * 0.9, down * 0.45, 1.0));
+	float towards = clamp(across * light_way.x + down * 0.5 * light_way.y, -1.0, 1.0);
+	// The side towards the light lighter, the far side darker.
+	rgb += rgb * lit_colour * max(towards, 0.0) * side_strength * 0.6;
+	rgb *= 1.0 - max(-towards, 0.0) * far_dark;
 	rgb *= 1.0 + from_above * (up - 0.5);
+	// Lit from behind: darker, with a glow towards their sides.
 	if (back_lit > 0.001) {
-		vec2 reach = pixel * 6.0;
-		float round_edge = 4.0 - (texture(TEXTURE, UV + vec2(reach.x, 0.0)).a + texture(TEXTURE, UV - vec2(reach.x, 0.0)).a
-			+ texture(TEXTURE, UV + vec2(0.0, reach.y)).a + texture(TEXTURE, UV - vec2(0.0, reach.y)).a);
-		rgb = mix(rgb, rgb * 0.45 + lit_colour * clamp(round_edge, 0.0, 1.0) * 0.6, back_lit);
+		rgb = mix(rgb, rgb * 0.5 + lit_colour * abs(across) * 0.3, back_lit);
+	}
+	// What shines (the shine mask: red how much, green how much like metal) and what is wet takes a highlight.
+	float shine = 0.0;
+	float metal = 0.0;
+	if (shine_on > 0.5) {
+		vec4 mask = texture(shine_mask, UV);
+		shine = mask.r * mask.a;
+		metal = mask.g * mask.a;
+	}
+	if (shapes_on > 0.5 || wet > 0.001 || shine > 0.001) {
+		vec3 lum = vec3(0.299, 0.587, 0.114);
+		vec3 l = normalize(vec3(light_way, light_height));
+		// More of a body's roundness, the light falling across it.
+		if (shapes_on > 0.5) {
+			float directional = clamp(side_strength * 1.4 + lit_strength, 0.0, 1.0);
+			rgb *= mix(1.0, 0.74 + 0.45 * clamp(dot(n, l), 0.0, 1.0), directional);
+		}
+		rgb = mix(rgb, rgb * 0.8, wet * 0.6);
+		rgb = mix(vec3(dot(rgb, lum)), rgb, 1.0 + 0.18 * wet);
+		float gloss = pow(max(dot(n, normalize(l + vec3(0.0, 0.0, 1.0))), 0.0), 28.0);
+		float how_shiny = clamp(shine + wet * 0.55, 0.0, 1.5) * clamp(side_strength * 1.2 + lit_strength + 0.25, 0.0, 1.2);
+		rgb += gloss * how_shiny * mix(lit_colour, rgb * lit_colour * 1.6, metal) * 0.9;
 	}
 	if (shade_on > 0.5) {
 		float dark = texture(shade_map, (world - shade_rect.xy) / shade_rect.zw).a;
@@ -477,6 +515,40 @@ func set_in_the_dark(dark: bool, sees: bool = false):
 
 
 ## Puts the light on them as it falls this frame.
+## Wetter under the rain, drier out of it: over LightView.SOAKED_SECONDS and DRY_SECONDS.
+func _soak(delta: float):
+	var wanted := 0.0
+	if soaking > 0.01 and not laid and under_the_sky.is_valid() and under_the_sky.call(global_position):
+		wanted = clampf(soaking, 0.0, 1.0)
+	if wetness < wanted:
+		wetness = minf(wetness + delta / LightView.SOAKED_SECONDS, wanted)
+	elif wetness > wanted:
+		wetness = maxf(wetness - delta / LightView.DRY_SECONDS, wanted)
+
+
+## The shine mask drawn for `texture`, a frame of theirs, or null: the same file with "_shine" for "_color" in its name
+## (alithia_idle_color0003.png and alithia_idle_shine0003.png), or "_shine" before its ending. Red: how shiny. Green: how
+## like metal, its highlight in its own colour rather than the light's. Black, or no file: matte.
+static func shine_mask_for(texture: Texture2D) -> Texture2D:
+	if texture == null or texture.resource_path == "":
+		return null
+	var path: String = texture.resource_path
+	if _shine_masks.has(path):
+		return _shine_masks[path]
+	var mask_path := shine_path_for(path)
+	var mask: Texture2D = load(mask_path) if ResourceLoader.exists(mask_path) else null
+	_shine_masks[path] = mask
+	return mask
+
+
+## Where the shine mask for the frame at `path` would be.
+static func shine_path_for(path: String) -> String:
+	var file := path.get_file()
+	var at := file.rfind("_color")
+	var mask_file := (file.substr(0, at) + "_shine" + file.substr(at + 6)) if at >= 0 else (file.get_basename() + "_shine." + file.get_extension())
+	return path.get_base_dir().path_join(mask_file)
+
+
 func _fall_of_light():
 	var drawn := _drawn()
 	if drawn == null:
@@ -543,6 +615,15 @@ func _fall_of_light():
 	material.set_shader_parameter("back_lit", behind)
 	material.set_shader_parameter("rim_on", 1.0 if _in_the_dark else 0.0)
 	material.set_shader_parameter("figure_alpha", hidden_alpha)
+	# A shape from the picture; how high the light is: a lamp or a fire low, the sun high.
+	material.set_shader_parameter("shapes_on", 1.0 if GameSettings.figure_shapes() else 0.0)
+	material.set_shader_parameter("light_height", 0.45 if weight > 0.001 else 0.9)
+	material.set_shader_parameter("wet", wetness)
+	var frame := current_frame()
+	var mask: Texture2D = shine_mask_for(frame.get("texture")) if not frame.is_empty() else null
+	material.set_shader_parameter("shine_on", 1.0 if mask != null else 0.0)
+	if mask != null:
+		material.set_shader_parameter("shine_mask", mask)
 	var height: float = _frame_height if _frame_height > 0.0 else float(Grid.TILE_SIZE)
 	if _animated != null:
 		material.set_shader_parameter("feet_y", _animated.offset.y + height * 0.5)
@@ -555,7 +636,8 @@ func _fall_of_light():
 		material.set_shader_parameter("shade_rect", Vector4(shade_rect.position.x, shade_rect.position.y, shade_rect.size.x, shade_rect.size.y))
 
 
-func _process(_delta):
+func _process(delta):
+	_soak(delta)
 	if figures_lit and not laid:
 		_fall_of_light()
 	elif _figure_material != null and _drawn() != null and _drawn().material == _figure_material:

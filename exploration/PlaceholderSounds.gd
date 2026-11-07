@@ -72,6 +72,9 @@ const RECIPES := {
 	"impact_graze": [[200, 120, 0.06, "sine", 0.16]],
 	"impact_shatter": [[5200, 2400, 0.06, "noise", 0.16], [2794, 2794, 0.05, "sine", 0.1], [3520, 3520, 0.08, "sine", 0.08]],
 	"impact_thud": [[110, 50, 0.12, "sine", 0.32], [400, 150, 0.05, "noise", 0.12]],
+	# A step (Footsteps), and a step that splashes.
+	"step": [[160, 90, 0.035, "sine", 0.2], [900, 400, 0.025, "noise", 0.05]],
+	"step_wet": [[150, 85, 0.03, "sine", 0.22], [2600, 900, 0.09, "noise", 0.12]],
 }
 
 static var _made := {}

@@ -120,3 +120,10 @@ Frost Round appears twice on purpose: `cyrus_pistol` as he fires and `weak_ice_a
 ## The day's sounds (2026-11-07)
 
 Empty slots in the SoundBank's "The day" group, looped outdoors each at its hour by `LightView` (silence until filled): `birds_at_dawn`, `insects_at_dusk`, `crickets_at_night`, `rain_falling`.
+
+## The weather's sounds and the steps (2026-11-07)
+
+More empty slots: `wind_blowing` (looped while a wind, a sandstorm or a blizzard blows), `thunder` (after a storm's flash of
+lightning), and the SoundBank's "Steps" group, `footstep` and `footstep_wet` (Footsteps: a step on dry ground, and a louder,
+splashing one in the rain under the open sky). The steps have generated stand-ins (PlaceholderSounds "step" and "step_wet")
+until there is a sound in the slot; the wind and the thunder are silence until then.

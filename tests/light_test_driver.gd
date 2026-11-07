@@ -24,9 +24,11 @@ func run_sections():
 	await dark_fight()
 	await dim_fight()
 	await what_gives_light()
+	await darkness_is_cover()
 	await close_fight()
 	await on_a_map()
 	await a_guards_torch()
+	await a_guard_cannot_see_past_the_dark()
 	await the_hour()
 	shadows()
 
@@ -177,6 +179,54 @@ func dark_fight():
 	log_line("")
 
 
+## The designer, 2026-11-07: "darkness should work as a visual cover. creatures can go through it but cannot see in or
+## behind it, except if they have a passive like cyrus does that allows them to".
+func darkness_is_cover():
+	log_line("======== darkness is cover to the eyes ========")
+	await open_fight(Light.Ambient.UNDERGROUND)
+	var enfina := who("enfina")
+	var cyrus := who("cyrus")
+	var foe: Dictionary = foes()[0]
+	for other in foes():
+		if not is_same(other, foe):
+			combat.teleport_to(other, tile_at_gap(foe.position, 12, other))
+	var there: Vector2i = tile_at_gap(foe.position, 6, enfina)
+	combat.teleport_to(enfina, there)
+	clear_round(foe.position, enfina)
+	# Each in a pool of light, with the dark between them.
+	for tile in [enfina.position, foe.position]:
+		combat._placed_lights.append({"tile": tile, "bright": 1.0, "dim": 1.0, "colour": Color.WHITE, "flickers": false})
+	combat.sync_zones()
+	ok(combat.light_level(enfina.position) == Light.Level.BRIGHT and combat.light_level(foe.position) == Light.Level.BRIGHT, "both stand in light")
+	ok(not combat.is_hidden(foe) and not combat.is_hidden(enfina), "so neither is hidden")
+	ok(combat.dark_between(enfina.position, foe.position, combat.tiles_of(foe)), "and the dark lies between them")
+	ok(combat.hidden_from(enfina, foe) and combat.hidden_from(foe, enfina), "they cannot see each other past it")
+	ok(combat.targets_if_aimed(enfina, SkillDatabase.skills.greatsword_attack, foe.position).is_empty(), "nor aim at each other")
+	# Beside her, with a clear line: bodies stop sight in a fight, hers too.
+	for way in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT, Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+		if combat.can_land_on(cyrus, enfina.position + way):
+			combat.teleport_to(cyrus, enfina.position + way)
+			if combat.sees_tile(cyrus, foe.position, foe):
+				break
+	combat.sync_zones()
+	ok(combat.sees_tile(cyrus, foe.position, foe), "Cyrus has a clear line to them")
+	ok(not combat.hidden_from(cyrus, foe), "Cyrus sees past it (Night Eyes)")
+	ok(not combat.unseen_by_party(foe), "so the player sees them, through him")
+	# Without his Night Eyes, he is as the rest.
+	cyrus.passives = cyrus.passives.filter(func(passive): return not passive.sees_in_darkness)
+	combat.sync_zones()
+	ok(combat.unseen_by_party(foe), "without Night Eyes, nobody of the party sees them",
+		"%s" % [combat.groups[0].map(func(index): return [combat.combatants[index].name, combat.combatants[index].position, combat.hidden_from(combat.combatants[index], foe)])])
+	# Lit all the way: nothing between.
+	combat._placed_lights.clear()
+	combat._placed_lights.append({"tile": enfina.position, "bright": 9.0, "dim": 12.0, "colour": Color.WHITE, "flickers": false})
+	combat.sync_zones()
+	ok(not combat.hidden_from(enfina, foe), "with the dark lit away, they see each other again")
+	combat._placed_lights.clear()
+	combat.sync_zones()
+	log_line("")
+
+
 func dim_fight():
 	log_line("======== indoors: all of it dim ========")
 	await open_fight(Light.Ambient.INTERIOR)
@@ -292,6 +342,28 @@ func a_guards_torch():
 	ok(watch.carried_lights_moved(), "knocked out, it goes out")
 	scene.relight_map()
 	ok(scene.light.level_at(watch.tile_of(walker.global_position)) == Light.Level.DARK, "and it is dark again")
+	await close_map(m)
+	log_line("")
+
+
+## On a map too: a guard sees nothing past the dark, unless his creature sees in it.
+func a_guard_cannot_see_past_the_dark():
+	log_line("======== a guard cannot see past the dark ========")
+	Campaign.return_to_position = false
+	var m = await open_map()
+	var post: Vector2i = m.post
+	var guard = add_guard(m, "Looker", post, 0.0)
+	var watch = await watch_it(m, out_of_sight_of(m, row(post)))
+	var scene: ExplorationScene = m.scene
+	var light: LightMap = scene.light
+	var far: Vector2i = post + Vector2i.RIGHT * 6
+	var near: Vector2i = post + Vector2i.RIGHT * 1
+	ok(not StealthWatch._dark_between(light, post, near, 1.0), "nothing between him and the tile beside him")
+	# All dark but a pool of light far off.
+	Campaign.map_ambient = Light.Ambient.UNDERGROUND
+	scene.relight_map()
+	ok(StealthWatch._dark_between(scene.light, post, far, 1.0), "dark lies between him and a tile six off")
+	ok(not watch._sees_in_the_dark(guard), "a barbarian does not see in the dark")
 	await close_map(m)
 	log_line("")
 

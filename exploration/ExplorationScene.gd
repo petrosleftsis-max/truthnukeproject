@@ -279,9 +279,11 @@ func _begin_light():
 
 ## The clock has moved on: how it looks moves with it. What is lit only changes with the part of the day.
 func _clock_moved():
-	CombatantSprite.set_shadows(Campaign.sky_now())
+	# Shown, the view eases to it, the sun's shadows with it; not, they are simply so.
 	if is_inside_tree() and light_view != null:
-		light_view.show_hour(Campaign.map_ambient, Campaign.minute_of_day(), true)
+		light_view.show_hour(Campaign.map_ambient, Campaign.minute_of_day())
+	else:
+		CombatantSprite.set_shadows(Campaign.sky_now())
 	if is_inside_tree():
 		_keep_lights_by_the_clock()
 

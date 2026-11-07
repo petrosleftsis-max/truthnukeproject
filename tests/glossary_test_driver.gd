@@ -126,6 +126,9 @@ func run_test():
 				for effect in source[key].effects:
 					if effect != null and (effect.condition == condition or effect.trap_holds_with == condition or effect.zone_condition == condition):
 						inflicted = true
+					# Or once what it put on them has run its course (Beckoned's Off Guard, ConditionDefinition.on_arrival).
+					if effect != null and effect.condition != null and effect.condition.on_arrival == condition:
+						inflicted = true
 				# Or by a rank of a skill, in place of its effect's (SkillRank.condition).
 				for rank in source[key].ranks:
 					if rank != null and rank.condition == condition:

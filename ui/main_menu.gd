@@ -424,6 +424,9 @@ func _build_options() -> Control:
 		button.custom_minimum_size = Vector2(84, 0)
 		_dress(button)
 	holder.add_child(ui_size)
+	var shapes := FigureShapesToggle.new()
+	shapes.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	holder.add_child(shapes)
 	holder.add_child(_back_button())
 	return holder
 

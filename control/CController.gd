@@ -2480,6 +2480,9 @@ var _floor_hop: int = CombatantSprite.Hop.NONE
 func _begin_step():
 	_hop_hold = 0.0
 	_floor_hop = CombatantSprite.Hop.NONE
+	# Heard, as each step begins (Footsteps): not while a fight is caught up on.
+	if controlled_node != null and not Net.catching_up():
+		Footsteps.step(controlled_node.global_position)
 	if _walking_combatant.is_empty() or controlled_node == null or not controlled_node.has_method("hop"):
 		return
 	var kind := hop_for(_walking_combatant, tile_map.local_to_map(controlled_node.position), tile_map.local_to_map(_next_position))
