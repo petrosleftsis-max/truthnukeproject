@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Kindled Faith"
+description = "Standing in Bright as her turn starts, she mends 3 and a twentieth of her Mindfulness."
+required_level = 24
+mends_in_bright = 3.0
+mends_in_bright_per_stat = 0.05

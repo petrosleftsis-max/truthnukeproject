@@ -372,6 +372,8 @@ enum DispelScope {
 @export var zone_on_a_weapon: bool = false
 ## Nothing drawn on the board for its tiles: only its light shows.
 @export var zone_bare: bool = false
+## Laid where a beckoning move's light goes (SkillDefinition.beckons), not where it was aimed.
+@export var zone_at_destination: bool = false
 ## The secondary action that moves it, if it moves. Empty: Move Cloud.
 @export var zone_moved_by: String = ""
 @export var zone_colour: Color = Color(0, 0, 0, 0)
@@ -438,7 +440,7 @@ const FIELDS_BY_TYPE := {
 	EffectType.CATALYST: ["catalyst_times"],
 	EffectType.ZONE: ["zone_condition", "zone_for", "zone_turns", "zone_unseen", "zone_costly", "zone_cost_spares_fliers", "zone_turn_damage", "damage_type",
 		"zone_heals", "heal_modifier", "heal_flat", "heal_per_stat", "heal_per_weapon", "zone_follows_caster", "zone_moves",
-		"zone_hurts_everybody", "zone_hurts_each_step", "zone_leaves_conditions", "zone_melee_sweeps", "zone_blows_out", "zone_colour", "zone_light_tiles", "zone_lights", "zone_light_colour", "zone_light_steady", "zone_beats_darkness", "zone_on_a_weapon", "zone_bare", "zone_moved_by", "zone_false_ground"],
+		"zone_hurts_everybody", "zone_hurts_each_step", "zone_leaves_conditions", "zone_melee_sweeps", "zone_blows_out", "zone_colour", "zone_light_tiles", "zone_lights", "zone_light_colour", "zone_light_steady", "zone_beats_darkness", "zone_on_a_weapon", "zone_bare", "zone_at_destination", "zone_moved_by", "zone_false_ground"],
 	# Nothing to configure: how deep it reaches is the gate it is cast through.
 	EffectType.DISPEL_MAGIC: [],
 	EffectType.FAMILIAR: [],

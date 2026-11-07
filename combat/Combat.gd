@@ -1935,6 +1935,9 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		valid = get_range_tiles(skill, attacker.position, attacker.get("movement_class", 0), attacker).has(impact_position)
 	# Placed (an image, put down where aimed): whoever it is of can be anywhere of
 	# theirs, and where it goes is what has to be in reach.
+	# Beckoning (Beckoning Light): whoever it is aimed at in reach as ever, and where the light goes in reach too.
+	if skill.beckons and not landing and destination != NO_AREA:
+		valid = valid and get_range_tiles(skill, attacker.position, attacker.get("movement_class", 0), attacker).has(destination)
 	if skill.placed_in_reach and not landing and destination != NO_AREA:
 		var chosen := get_combatant_at(impact_position)
 		valid = not chosen.is_empty() and chosen.get("side", -1) == attacker.get("side", -2) \
@@ -2194,7 +2197,8 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				set_trap(attacker, effect, impact_position, skill)
 				trapped_ground = true
 			if effect != null and effect.type == EffectDefinition.EffectType.ZONE:
-				lay_zone(attacker, effect, tiles, skill)
+				# Where a beckoning light goes, if it has somewhere (Beckoning Light).
+				lay_zone(attacker, effect, [destination] if effect.zone_at_destination and skill.beckons and destination != NO_AREA else tiles, skill)
 				trapped_ground = true
 			# Dispel Magic at bare ground: the zone on it; at cover that is not there,
 			# the spell that made it - nothing else ever touches it ("Dispelling").
@@ -2288,6 +2292,8 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			_aimed_tile = _aim_from_inside(attacker, target, impact_position) if aims_at_parts(attacker, skill) else null
 			# Where what it makes goes, for a skill Placed In Reach (summon_decoy).
 			_placing_at = destination if skill.placed_in_reach else NO_AREA
+			# Where the light they are to follow goes (Beckoning Light).
+			_beckoned_to = destination if skill.beckons else NO_AREA
 			# A graze says so, over its number (show_damage).
 			_grazing = grazed
 			for effect in skill.all_effects():
@@ -2306,6 +2312,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			_grazing = false
 			_aimed_tile = null
 			_placing_at = NO_AREA
+			_beckoned_to = NO_AREA
 			_steal_from = ""
 			_lift_picks = []
 			if not grazed:
@@ -3318,7 +3325,7 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 				if effect.flees_from_caster:
 					carried["flees_from"] = attacker.get("id", -1)
 				if effect.drawn_to_aim:
-					carried["drawn_to"] = _landing_at if _landing_at != NO_AREA else target.position
+					carried["drawn_to"] = _beckoned_to if _beckoned_to != NO_AREA else (_landing_at if _landing_at != NO_AREA else target.position)
 				# To weigh again as their turns start (Phantom Killer).
 				if effect.condition.doubt_each_turn > 0 and skill != null:
 					carried["weighed_as"] = skill_key_of(skill)
@@ -4296,7 +4303,15 @@ func _noise_they_heard(comb: Dictionary) -> Vector2i:
 
 func _go_and_look(comb: Dictionary):
 	var there := _noise_they_heard(comb)
+	# What they are to be once there (Beckoning Light's Off Guard), and whose it was.
+	var on_arrival: ConditionDefinition = null
+	var by := ""
+	var by_id := -1
 	for entry in comb.status_effects:
+		if entry.has("drawn_to") and entry.get("condition") != null and entry.condition.on_arrival != null:
+			on_arrival = entry.condition.on_arrival
+			by = entry.get("source_name", "")
+			by_id = entry.get("source_id", -1)
 		entry.erase("drawn_to")
 	var theirs: bool = controller.player_turn
 	controller.player_turn = false
@@ -4310,6 +4325,9 @@ func _go_and_look(comb: Dictionary):
 			await controller.ai_move(to)
 	stop_watching()
 	comb["ran_this_turn"] = true
+	if on_arrival != null and comb.get("alive", false):
+		if put_condition(comb, on_arrival, on_arrival.duration, by, false, by_id):
+			update_information.emit("[color=red]%s[/color] is %s.\n" % [comb.name, on_arrival.display_name.to_lower()])
 	if still_running():
 		controller.player_turn = theirs
 		emit_signal("update_combatants", combatants)
@@ -5955,6 +5973,7 @@ func _advance_turn():
 		comb.erase("struck_this_turn")
 		comb["started_in_cover"] = in_cover(comb)
 		_mend_at_turn_start(comb)
+		_kindled_at_turn_start(comb)
 		# What the paths count per turn and per round, Contagion, and what
 		# only lasts so long ("The paths").
 		_paths_at_turn_start(comb)
@@ -8541,6 +8560,8 @@ func believes_illusion(thing: Dictionary) -> bool:
 
 ## Where the image a skill Placed In Reach makes goes, while it lands (use_skill).
 var _placing_at := NO_AREA
+## Where a beckoning move's light went, while it lands (Beckoning Light).
+var _beckoned_to := NO_AREA
 
 
 ## Who `comb` is taken for by the other side: whoever an image is of, while they
@@ -15190,6 +15211,25 @@ func _mend_at_turn_start(comb: Dictionary):
 	comb.hp += amount
 	float_number(comb, "+" + str(amount), Color("7fe08a"))
 	update_information.emit("[color=lightgreen]%s[/color] mends %d.\n" % [comb.name, amount])
+	update_combatants.emit(combatants)
+
+
+## Standing in Bright as their turn starts, a mend (Kindled Faith, the designer, 2026-11-07): each passive's Mends In
+## Bright, and Mends In Bright Per Stat of their spellcasting attribute.
+func _kindled_at_turn_start(comb: Dictionary):
+	if not comb.get("alive", false) or not comb.has("passives") or not comb.has("position") or light_level_of(comb) != Light.Level.BRIGHT:
+		return
+	var amount := 0.0
+	for passive in active_passives(comb):
+		if passive.mends_in_bright > 0.0 or passive.mends_in_bright_per_stat > 0.0:
+			amount += passive.mends_in_bright + passive.mends_in_bright_per_stat * float(stat_of(comb, comb.get("spellcasting_stat", Stats.Type.MINDFULNESS)))
+	var most := get_effective_stat(comb, "max_hp")
+	var mended := mini(roundi(amount * healing_taken_share(comb)), most - comb.hp)
+	if mended <= 0:
+		return
+	comb.hp += mended
+	float_number(comb, "+" + str(mended), Color("ffe08a"))
+	update_information.emit("[color=lightgreen]%s[/color] mends %d in the light.\n" % [comb.name, mended])
 	update_combatants.emit(combatants)
 
 

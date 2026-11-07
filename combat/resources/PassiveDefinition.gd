@@ -310,6 +310,10 @@ var scales_every_skill_with: int = -1
 @export_range(0.0, 2.0, 0.05) var silhouette_bonus: float = 0.0
 ## On somebody standing in Bright: their heals mend, and their Idol damage lands, this share more (Blessed in the Light).
 @export_range(0.0, 2.0, 0.05) var blessed_in_bright: float = 0.0
+## Standing in Bright as their turn starts, they mend this much, and this share of their spellcasting stat more
+## (Kindled Faith, the designer, 2026-11-07).
+@export_range(0.0, 50.0, 0.5) var mends_in_bright: float = 0.0
+@export_range(0.0, 2.0, 0.01) var mends_in_bright_per_stat: float = 0.0
 ## Anybody of the other side in Bright within this many tiles, in their sight, cannot hide, and is Exposed to them if
 ## they try (Nowhere to Hide).
 @export_range(0, 20) var nowhere_to_hide_tiles: int = 0
@@ -596,6 +600,9 @@ func _describe_paths() -> Array:
 		lines.append("Somebody in Bright, shot from the Dark, takes %d%% more." % roundi(silhouette_bonus * 100))
 	if blessed_in_bright > 0.0:
 		lines.append("On somebody in Bright, their heals mend and their Idol damage lands %d%% more." % roundi(blessed_in_bright * 100))
+	if mends_in_bright > 0.0 or mends_in_bright_per_stat > 0.0:
+		lines.append("Standing in Bright as their turn starts, they mend %s%s." % [str(roundi(mends_in_bright)),
+			(" and %d%% of their spellcasting attribute" % roundi(mends_in_bright_per_stat * 100)) if mends_in_bright_per_stat > 0.0 else ""])
 	if nowhere_to_hide_tiles > 0:
 		lines.append("Nobody of the other side in Bright within %d tiles can hide, and they are Exposed if they try." % nowhere_to_hide_tiles)
 	if conduit:

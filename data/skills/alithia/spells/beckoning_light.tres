@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/beckoning_light_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Resource" path="res://data/conditions/beckoned.tres" id="4_cond"]
+
+[sub_resource type="Resource" id="Effect_0"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("4_cond")
+drawn_to_aim = true
+
+[sub_resource type="Resource" id="Effect_light"]
+script = ExtResource("1_effect")
+type = 34
+zone_turns = 1
+zone_light_tiles = 3.0
+zone_light_colour = Color(1, 0.93, 0.7, 1)
+zone_light_steady = true
+zone_bare = true
+zone_at_destination = true
+
+[resource]
+script = ExtResource("3_skill")
+name = "Beckoning Light"
+description = "Aimed at one enemy, then at open ground in her reach, where a small light appears. If they lose to her Mindfulness, as their next turn starts they walk towards the light as far as they can, and arrive off their guard: no reactions until their next turn. On a map, through the Gates of Iris, a light leads a guard away from her for 20 seconds, his eyes on nothing else."
+min_range = 1
+max_range = 8
+icon = ExtResource("2_icon")
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_0"), SubResource("Effect_light")])
+deals_damage = false
+can_be_copied = false
+uses_stat_contest = true
+contest_stat = 1
+beckons = true
+spell_slot_level = 2
+outside_gate = 1
+out_of_combat = true
+outside_use = 24

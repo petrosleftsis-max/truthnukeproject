@@ -24,6 +24,7 @@
 [ext_resource type="Resource" path="res://data/passives/unbowed_v.tres" id="p_unbowed_v"]
 [ext_resource type="Resource" path="res://data/passives/unbowed_vi.tres" id="p_unbowed_vi"]
 [ext_resource type="Resource" path="res://data/passives/unbowed_vii.tres" id="p_unbowed_vii"]
+[ext_resource type="Resource" path="res://data/passives/kindled_faith.tres" id="p_kindled_faith"]
 
 [resource]
 script = ExtResource("3_7klcm")
@@ -55,8 +56,8 @@ spellcasting_stat = 1
 icon = ExtResource("1_nj2rw")
 map_sprite = ExtResource("1_nj2rw")
 sprite_frames = ExtResource("4_1v0ks")
-skills = Array[String](["votive_flame", "daylight", "calling_out", "water_spike", "sass_club", "heal", "light_heal", "holy_lance", "flash", "river_flow", "frozen_river", "resuscitate", "cleanse", "intuition", "persuade", "slip_past", "run", "holy_splash", "communion", "piercing_light", "judgment", "glacial_tide", "purification", "divine_verdict", "restoration", "revelation", "grace", "dread_visage", "bewilder", "find_familiar", "compel", "steady_heart", "ecstasy", "silence", "mesmerise", "restorative_aura", "composure", "clear_sight", "terror", "elemental_ward", "shared_burden", "sleep", "calm", "suggestion", "detect_magic", "arcane_eye"])
-passives = Array[ExtResource("2_t7133")]([ExtResource("p_mercy"), ExtResource("p_aura"), ExtResource("p_mercy_ii"), ExtResource("p_aura_ii"), ExtResource("p_reserved_power"), ExtResource("p_mercy_iii"), ExtResource("p_reserved_power_ii"), ExtResource("p_radiant_guardian"), ExtResource("p_devotion"), ExtResource("p_blessed_in_the_light"), ExtResource("p_nowhere_to_hide"), ExtResource("p_unbowed"), ExtResource("p_unbowed_ii"), ExtResource("p_unbowed_iii"), ExtResource("p_unbowed_iv"), ExtResource("p_unbowed_v"), ExtResource("p_unbowed_vi"), ExtResource("p_unbowed_vii")])
+skills = Array[String](["votive_flame", "daylight", "calling_out", "beckoning_light", "water_spike", "sass_club", "heal", "light_heal", "holy_lance", "flash", "river_flow", "frozen_river", "resuscitate", "cleanse", "intuition", "persuade", "slip_past", "run", "holy_splash", "communion", "piercing_light", "judgment", "glacial_tide", "purification", "divine_verdict", "restoration", "revelation", "grace", "dread_visage", "bewilder", "find_familiar", "compel", "steady_heart", "ecstasy", "silence", "mesmerise", "restorative_aura", "composure", "clear_sight", "terror", "elemental_ward", "shared_burden", "sleep", "calm", "suggestion", "detect_magic", "arcane_eye"])
+passives = Array[ExtResource("2_t7133")]([ExtResource("p_mercy"), ExtResource("p_aura"), ExtResource("p_mercy_ii"), ExtResource("p_aura_ii"), ExtResource("p_reserved_power"), ExtResource("p_mercy_iii"), ExtResource("p_reserved_power_ii"), ExtResource("p_radiant_guardian"), ExtResource("p_devotion"), ExtResource("p_blessed_in_the_light"), ExtResource("p_nowhere_to_hide"), ExtResource("p_unbowed"), ExtResource("p_unbowed_ii"), ExtResource("p_unbowed_iii"), ExtResource("p_unbowed_iv"), ExtResource("p_unbowed_v"), ExtResource("p_unbowed_vi"), ExtResource("p_unbowed_vii"), ExtResource("p_kindled_faith")])
 subclasses = Array[String](["battle_chaplain", "illusory_shepherd", "inquisitor"])
 future_changed_lines = Array[String](["I saw it coming.", "Not this time.", "The future bends.", "That is not how it ends."])
 starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])

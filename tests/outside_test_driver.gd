@@ -110,8 +110,10 @@ func paying():
 	ok(OutsideMoves.payment("alithia", skill("find_familiar"), true).is_empty()
 		and OutsideMoves.cannot_pay("alithia", skill("find_familiar"), true) == "Alithia has no castings of World left",
 		"  but Find Familiar only ever its own World", OutsideMoves.cannot_pay("alithia", skill("find_familiar"), true))
-	# Marked Out Of Combat: the Gates of Iris first. (Suggestion, marked already, stands aside for this.)
+	# Marked Out Of Combat: the Gates of Iris first. (Suggestion and Beckoning Light, marked already, stand aside for this.)
 	skill("suggestion").out_of_combat = false
+	skill("beckoning_light").out_of_combat = false
+	skill("beckoning_light").outside_gate = 0
 	heal.out_of_combat = true
 	ok(OutsideMoves.iris_gate_for(heal) == 1, "marked, Heal may be paid through Iris (World is no deeper than the Hermes it matches)")
 	ok(Campaign.outside_gates_most("alithia")[1] == most[2], "  which Alithia now has, as many as her Hermes",
@@ -131,6 +133,8 @@ func paying():
 	heal.out_of_combat = false
 	ok(Campaign.outside_gates_most("alithia")[1] == 0, "unmarked again: no Iris for her", "%s" % [Campaign.outside_gates_most("alithia")])
 	skill("suggestion").out_of_combat = true
+	skill("beckoning_light").out_of_combat = true
+	skill("beckoning_light").outside_gate = 1
 	log_line("")
 
 

@@ -32,7 +32,8 @@ class_name OutsideMoves
 ## Unmarked plays as Silent.
 
 enum Use { NONE, MEND, REVIVE, SPEED, INVISIBILITY, FAMILIAR, BLIND, SCARE, CONFUSE, READ, SWITCH_OFF_MAGIC,
-	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD, SUGGEST, DETECT_MAGIC, ARCANE_EYE, FLARE, SHRINK }
+	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD, SUGGEST, DETECT_MAGIC, ARCANE_EYE, FLARE, SHRINK,
+	BECKON }
 
 const USE_NAMES := {
 	Use.NONE: "Only in a fight",
@@ -61,17 +62,18 @@ const USE_NAMES := {
 	Use.ARCANE_EYE: "An eye to steer that nothing notices",
 	Use.FLARE: "Goes up ahead of him: lights the ground, and every guard hears it",
 	Use.SHRINK: "Whoever leads gets small enough for grates and small gaps",
+	Use.BECKON: "A light leads a guard off, his eyes on nothing else",
 }
 
 ## SkillDefinition.outside_use, as a Use - -1 for Automatic.
 const FROM_FIELD := [-1, Use.NONE, Use.MEND, Use.REVIVE, Use.SPEED, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ,
 	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP, Use.COMPANY, Use.SEEMING, Use.MISLEAD,
-	Use.SUGGEST, Use.DETECT_MAGIC, Use.ARCANE_EYE, Use.FLARE, Use.SHRINK]
+	Use.SUGGEST, Use.DETECT_MAGIC, Use.ARCANE_EYE, Use.FLARE, Use.SHRINK, Use.BECKON]
 
 ## How long each lasts when the move gives no Outside Seconds - PROPOSAL test
 ## values, as are the rest below.
 const SECONDS := {Use.BLIND: 12, Use.SCARE: 15, Use.CONFUSE: 20, Use.SWITCH_OFF_MAGIC: 60, Use.FLY: 20,
-	Use.LURE: 10, Use.HIDING_SPOT: 60}
+	Use.LURE: 10, Use.HIDING_SPOT: 60, Use.BECKON: 20}
 ## A tether out of a fight frays by this much a second (the designer, 2026-11-05), so a
 ## tethered move lasts its Tether Strength over this, whatever else it says. One to a
 ## character there too: tying another lets go of the first (StealthWatch "Tethers").
@@ -84,7 +86,7 @@ const LURE_AHEAD := 4
 const LURE_TILES := 6.0
 ## What the Outside Spell key offers: what needs somebody to land on, so it is
 ## to some purpose only now and then.
-const ON_G := [Use.MEND, Use.REVIVE, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.SUGGEST]
+const ON_G := [Use.MEND, Use.REVIVE, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.SUGGEST, Use.BECKON]
 ## The moods Blind, Scare and Confuse put a guard in.
 const MOODS := {Use.BLIND: Guard.Mood.BLINDED, Use.SCARE: Guard.Mood.FRIGHTENED, Use.CONFUSE: Guard.Mood.BEWILDERED}
 
@@ -340,7 +342,7 @@ static func guard_for(watch, skill: SkillDefinition, kind: int) -> Guard:
 	if watch == null:
 		return null
 	match kind:
-		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SUGGEST:
+		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SUGGEST, Use.BECKON:
 			return watch.move_target(skill, watch.can_spellbind)
 		Use.READ:
 			return watch.move_target(skill, func(guard): return not guard.patrol_points().is_empty() and not watch.route_known(guard))
@@ -400,7 +402,7 @@ static func refusal(scene: Node, key: String, move: String) -> String:
 		Use.SPEED:
 			if scene != null and scene.has_method("hurried") and scene.hurried():
 				return "Already hurrying"
-		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SUGGEST:
+		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SUGGEST, Use.BECKON:
 			if watch == null:
 				return "Only where guards watch"
 			if guard_for(watch, skill, kind) == null:
@@ -518,7 +520,7 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			var seconds := skill.outside_seconds if skill.outside_seconds > 0 else HURRY_SECONDS
 			scene.hurry(HURRY, seconds)
 			said = "[color=yellow]%s[/color] uses %s%s: the party hurries on for %d seconds.\n" % [who, skill.name, paid_through(paid), seconds]
-		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.SUGGEST:
+		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.SUGGEST, Use.BECKON:
 			var paid := pay(key, skill)
 			if paid.is_empty():
 				return false
@@ -830,6 +832,21 @@ static func fire_at(scene: Node, key: String, move: String, aim: Vector2i) -> bo
 	if kind != Use.AMBUSH:
 		return false
 	var struck := struck_at(scene, key, skill, aim)
+	# A guard carrying a light, and a move that puts carried lights out (the dart): out it goes, from afar and silently,
+	# and nobody fights.
+	if skill.snuffs_carried_lights and watch != null:
+		for guard in struck.guards:
+			if is_instance_valid(guard) and not guard.knocked_out and guard.carries_light_tiles > 0.0 and not guard.torch_out:
+				if pay(key, skill).is_empty():
+					return false
+				if skill is ItemDefinition:
+					Campaign.take_item(key, move)
+				watch.snuff_torch(guard, key)
+				if scene.has_method("log_message"):
+					scene.log_message("[color=yellow]%s[/color] puts out [color=yellow]%s[/color]'s light with %s, from afar.\n" % [Campaign.display_name_of(key), watch._name_of(guard), skill.name])
+				if scene.has_method("_refresh_party_panel"):
+					scene._refresh_party_panel()
+				return true
 	if not struck.guards.is_empty():
 		return watch.strike(struck.guards, key, move, aim)
 	if struck.placed != null:
@@ -917,6 +934,10 @@ static func _do_to(watch, key: String, skill: SkillDefinition, kind: int, target
 		Use.READ:
 			watch.learn_route(target)
 			said = "[color=yellow]%s[/color] uses %s%s: [color=yellow]%s[/color]'s round is known.\n" % [who, skill.name, paid_words, watch._name_of(target)]
+		Use.BECKON:
+			var seconds := seconds_of(skill, kind)
+			watch.beckon(target, seconds, key)
+			said = "[color=yellow]%s[/color] casts %s%s: a light beckons [color=yellow]%s[/color] away, for %d seconds.\n" % [who, skill.name, paid_words, watch._name_of(target), seconds]
 		Use.SUGGEST:
 			var seconds := seconds_of(skill, kind)
 			watch.suggest_to(target, seconds)
@@ -940,7 +961,7 @@ static func _do_to(watch, key: String, skill: SkillDefinition, kind: int, target
 ## the guard watched - or it is lost (StealthWatch "Readied, out of a fight").
 
 ## What can be readied out here: what lands on a guard.
-const READYABLE := [Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.AMBUSH, Use.SUGGEST]
+const READYABLE := [Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ, Use.SWITCH_OFF_MAGIC, Use.AMBUSH, Use.SUGGEST, Use.BECKON]
 ## The triggers out here.
 const READY_TRIGGERS := [SkillDefinition.Trigger.ENTERS_REACH, SkillDefinition.Trigger.ENTERS_AREA, SkillDefinition.Trigger.HIT_IN_SIGHT]
 
@@ -953,7 +974,7 @@ static func can_ready(skill: SkillDefinition) -> bool:
 ## Whether `guard` is somebody `skill` (as `kind`) could do something to.
 static func fits(watch, skill: SkillDefinition, kind: int, guard) -> bool:
 	match kind:
-		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SUGGEST:
+		Use.BLIND, Use.SCARE, Use.CONFUSE, Use.SUGGEST, Use.BECKON:
 			return watch.can_spellbind(guard)
 		Use.READ:
 			return is_instance_valid(guard) and not guard.knocked_out and not guard.patrol_points().is_empty() and not watch.route_known(guard)

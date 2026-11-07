@@ -169,6 +169,8 @@ const DOT_STRENGTH_NAMES := {
 @export var called_out: bool = false
 ## Dispel Magic takes it off through any gate, though no spell of a gate put it on (a cantrip's).
 @export var dispellable: bool = false
+## Put on them once they have walked to what drew them (an effect's Drawn To Aim): Beckoning Light's Off Guard.
+@export var on_arrival: ConditionDefinition
 ## A thing believed in, weighed again: as each of their turns starts they contest the spell that put
 ## it on them once more, their stat counting this much more for every time they have, and winning
 ## shakes it off before it ticks. 0, never. Phantom Wound (Phantom Killer).

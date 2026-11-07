@@ -62,6 +62,7 @@ const OWN_ICONS := {
 	"blazed_path": "blazed_path_skill.png", "shrink": "shrink_skill.png", "transposition": "transposition_skill.png",
 	"grease": "grease_skill.png", "wall_of_stone": "wall_of_stone_skill.png", "false_life": "false_life_skill.png",
 	"withering_touch": "withering_touch_skill.png", "blight": "blight_skill.png",
+	"beckoning_light": "beckoning_light_skill.png",
 }
 var _log: FileAccess
 var _fail = 0

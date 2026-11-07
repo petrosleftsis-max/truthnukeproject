@@ -2665,7 +2665,7 @@ func picking_a_landing_tile() -> bool:
 ## somebody else, or a skill Placed In Reach (an image of an ally, put down
 ## where the caster likes); or where it starts, then where it ends: a wall.
 static func aimed_twice(skill: SkillDefinition) -> bool:
-	return skill.teleports == SkillDefinition.TeleportWho.TARGET or skill.placed_in_reach or Combat.places_a_wall(skill)
+	return skill.teleports == SkillDefinition.TeleportWho.TARGET or skill.placed_in_reach or Combat.places_a_wall(skill) or skill.beckons
 
 
 ## Whether the far end of a wall is what is being aimed now.
@@ -2713,6 +2713,9 @@ func standing_still_does_something() -> bool:
 ## the teleport itself, so the skill went off from where the caster was already
 ## standing: the damage landed and the move never happened.
 func is_valid_landing_tile(tile: Vector2i) -> bool:
+	# Where a beckoning light goes: anywhere on open ground in her reach (Beckoning Light).
+	if SkillDatabase.skills[_selected_skill].beckons:
+		return tile in _range_preview_positions
 	var traveller = travelling_combatant()
 	if traveller.is_empty():
 		return false
@@ -2761,6 +2764,11 @@ func confirm_skill_target(position: Vector2i):
 		# Now that we know who is travelling, narrow the marked tiles to the
 		# ones they could be set down on.
 		var subject_comb = combat.get_combatant_at(position)
+		# Where the light they will follow goes: open ground in her reach (Beckoning Light).
+		if skill.beckons:
+			_range_preview_positions = _range_preview_positions.filter(func(tile): return tile != position and combat.trap_fits(tile))
+			queue_redraw()
+			return
 		if not subject_comb.is_empty() and skill.throws:
 			# Thrown: anywhere in the throw's reach, somebody to throw them at
 			# included - not the reach they were grabbed from.
@@ -2823,6 +2831,8 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 			return ""
 		if skill.swaps_places:
 			return "%s needs somebody else there, of the same size" % skill.name
+		if skill.beckons:
+			return "%s needs open ground in reach for its light" % skill.name
 		if skill.throws:
 			return "Too far to throw them"
 		if skill.placed_in_reach or Combat.summons_with(skill) != "":

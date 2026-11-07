@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Off Guard"
+tag = "Og"
+description = "Drawn after a light, and off their guard: no reactions until their next turn starts."
+duration = 1
+wears_off_at_start = true
+prevents_reactions = true
+figure_priority = 2
+arrival_word = "Off guard!"

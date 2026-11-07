@@ -104,7 +104,9 @@ func run_test():
 		# Calm's and Detect Magic's.
 		"calmed", "detecting_magic",
 		# Enfina's, passed on, and Prometheus's rot.
-		"shared_fire", "withered", "blighted"]
+		"shared_fire", "withered", "blighted",
+		# Beckoning Light's.
+		"beckoned", "off_guard"]
 	for condition in conditions:
 		if not_bottled.has(condition):
 			continue

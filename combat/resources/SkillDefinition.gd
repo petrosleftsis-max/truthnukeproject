@@ -109,6 +109,12 @@ enum AoEShape {
 @export var shoots_out_lights: bool = false
 ## Used only from a Dim or Dark tile, and only to go to one (Shadow Step).
 @export var only_in_shadow: bool = false
+## Aimed twice: at somebody, then at where in reach a light goes (Beckoning Light, the designer, 2026-11-07). What draws
+## them (an effect's Drawn To Aim) is that tile, and a zone with Zone At Destination is laid there.
+@export var beckons: bool = false
+## Out of a fight: aimed at a guard who carries a light, it puts the light out from afar, silently, and he goes to light
+## it again at the nearest lamp, walking dark until then (the designer, 2026-11-07, in place of Lifted Torch).
+@export var snuffs_carried_lights: bool = false
 
 ## Set Off By's choices.
 enum SetOffBy { ENEMIES, ALLIES, EITHER }
@@ -496,7 +502,7 @@ enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
 ## an ambush with it as the opening blow - or breaks a breakable wall. Anything
 ## else does nothing out there unless it is set here. Counter Trap answers a
 ## magical trap as it goes off (MagicTrap - InstaHack). Stored by number: append.
-@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen", "Seeming", "Mislead", "Suggestion", "Detect Magic", "Arcane Eye", "Flare", "Shrink")
+@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen", "Seeming", "Mislead", "Suggestion", "Detect Magic", "Arcane Eye", "Flare", "Shrink", "Beckon")
 var outside_use: int = 0
 
 @export_group("Tether")

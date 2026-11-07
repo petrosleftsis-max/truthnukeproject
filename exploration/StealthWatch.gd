@@ -1175,6 +1175,29 @@ func _ground_toward(at: Vector2, way: Vector2, tiles: float) -> Vector2:
 	return at
 
 
+## How far a beckoning light leads a guard, and how fast he follows it (Beckoning Light; PROPOSAL).
+const BECKON_TILES := 6.0
+const BECKON_PACE := 0.6
+
+
+## A light beckons `guard` (Beckoning Light, the designer, 2026-11-07, through the Gates of Iris): he follows it away
+## from whoever cast it, his eyes on nothing else, and stands there off his guard until it fades.
+func beckon(guard: Guard, seconds: float, by: String = ""):
+	_seen_again()
+	var party = scene.get("party")
+	var caster = party.sprite_for(by) if by != "" else null
+	var from: Vector2 = (caster if caster != null else party.leader).global_position
+	# Straight away from her, or as near to that as the ground allows: whichever way takes him furthest from her.
+	var away: Vector2 = guard.global_position - from
+	var best: Vector2 = guard.global_position
+	for turn in [0.0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5]:
+		var there := _ground_toward(guard.global_position, away.rotated(turn), BECKON_TILES)
+		if there.distance_to(from) > best.distance_to(from) + 1.0:
+			best = there
+	guard.send_on_errand(Guard.Mood.BEWILDERED, best, seconds, Callable(), Callable(), BECKON_PACE)
+	_seen_key.erase(guard)
+
+
 ## A word put into `guard`'s head (Suggestion): off to the far end of the place, his mind on it.
 func suggest_to(guard: Guard, seconds: float):
 	_seen_again()
@@ -2094,6 +2117,45 @@ func keep_lamps_by_the_clock():
 		_relight()
 
 
+## How long a guard may take to light his torch again before he gives up and carries on dark (PROPOSAL).
+const RELIGHT_SECONDS := 4.0
+
+
+## The light `guard` carries put out from afar, silently (the dart; the designer, 2026-11-07, in place of Lifted Torch):
+## he goes to light it again at the nearest lit lamp, walking dark meanwhile, or carries on dark if there is none.
+## False when he carries no light, or it is out already.
+func snuff_torch(guard: Guard, by: String = "") -> bool:
+	if not is_instance_valid(guard) or guard.knocked_out or guard.carries_light_tiles <= 0.0 or guard.torch_out:
+		return false
+	guard.torch_out = true
+	_relight()
+	var lamp = _nearest_lit_lamp(guard.global_position)
+	if lamp != null and guard.moves():
+		guard.send_on_errand(Guard.Mood.RELIGHTING, lamp.global_position, RELIGHT_SECONDS, Callable(), _torch_lit_again.bind(guard))
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color]'s light goes out.\n" % _name_of(guard))
+	return true
+
+
+## Back at a lamp: his own light lit again.
+func _torch_lit_again(guard: Guard):
+	if not is_instance_valid(guard) or guard.knocked_out or not guard.torch_out:
+		return
+	guard.torch_out = false
+	_relight()
+	if scene.has_method("log_message"):
+		scene.log_message("[color=yellow]%s[/color] lights his torch again.\n" % _name_of(guard))
+
+
+## The lit lamp nearest `at`, or null.
+func _nearest_lit_lamp(at: Vector2):
+	var best = null
+	for lamp in _lamps:
+		if is_instance_valid(lamp) and lamp.lit and (best == null or lamp.global_position.distance_to(at) < best.global_position.distance_to(at)):
+			best = lamp
+	return best
+
+
 ## Every lamp and painted torch, as the map's light wants them.
 func lights_for_the_map() -> Array:
 	var found := []
@@ -2102,7 +2164,7 @@ func lights_for_the_map() -> Array:
 			"colour": Lamp.GLOW, "flickers": true})
 	_carried_light_tiles.clear()
 	for guard in guards:
-		if is_instance_valid(guard) and not guard.knocked_out and guard.carries_light_tiles > 0.0:
+		if is_instance_valid(guard) and not guard.knocked_out and guard.carries_light_tiles > 0.0 and not guard.torch_out:
 			var tile: Vector2i = tile_of(guard.global_position)
 			_carried_light_tiles[guard] = tile
 			found.append({"tile": tile, "bright": guard.carries_light_tiles / 2.0, "dim": guard.carries_light_tiles,
@@ -2119,7 +2181,7 @@ func carried_lights_moved() -> bool:
 	for guard in guards:
 		if not is_instance_valid(guard) or guard.carries_light_tiles <= 0.0:
 			continue
-		if guard.knocked_out:
+		if guard.knocked_out or guard.torch_out:
 			if _carried_light_tiles.has(guard):
 				return true
 		elif _carried_light_tiles.get(guard) != tile_of(guard.global_position):
@@ -4436,7 +4498,7 @@ func net_state() -> Dictionary:
 	for guard in guards:
 		if is_instance_valid(guard):
 			state.guards[_id_of(guard)] = [guard.global_position, guard.facing, int(guard.mood), guard.knocked_out,
-				guard.visible, float(suspicion.get(guard, 0.0))]
+				guard.visible, float(suspicion.get(guard, 0.0)), guard.torch_out]
 	for door in _doors:
 		if is_instance_valid(door):
 			state.doors[_id_of(door)] = door.is_open
@@ -4484,6 +4546,9 @@ func apply_net_state(state: Dictionary):
 				continue
 			guard.puppet_to(said[0], said[1], clampi(int(said[2]), 0, Guard.Mood.size() - 1), bool(said[3]), bool(said[4]))
 			suspicion[guard] = clampf(float(said[5]), 0.0, 1.0)
+			if said.size() > 6 and bool(said[6]) != guard.torch_out:
+				guard.torch_out = bool(said[6])
+				_relight()
 	var doors = state.get("doors", {})
 	if doors is Dictionary:
 		for door in _doors:

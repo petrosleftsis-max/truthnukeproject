@@ -152,6 +152,7 @@ enum Mood {
 	BLINDED,        ## Struck blind by a spell cast on a map (OutsideMoves - Flash): stands where he is, seeing nothing.
 	FRIGHTENED,     ## Scared off by one (Dread Visage, Intimidate): runs from whoever did it, seeing nothing behind him.
 	BEWILDERED,     ## Bewildered by one: wanders off a little way, slowly, his mind on nothing.
+	RELIGHTING,     ## His light put out from afar (the dart): off to light it again at the nearest lamp, walking dark.
 }
 var mood: Mood = Mood.PATROLLING
 ## Knocked out: lying where they fell, watching nothing, fighting nobody -
@@ -159,6 +160,8 @@ var mood: Mood = Mood.PATROLLING
 var knocked_out := false
 ## Whether their pockets have been picked already.
 var picked := false
+## The light they carry (Carries Light Tiles) put out, until they light it again (StealthWatch.snuff_torch).
+var torch_out := false
 ## Whether evidence has been planted on them (StealthWatch.plant) - the next
 ## guard to have a good look finds it.
 var framed := false
@@ -376,7 +379,7 @@ func is_free() -> bool:
 
 ## The moods that are errands: walked to, stayed at, then left for the beat.
 const ERRANDS := [Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING,
-	Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED]
+	Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED, Mood.RELIGHTING]
 ## The moods nothing draws them out of: being sick, too unwell to stand, or
 ## asleep. Somebody running to tell a guard what they saw has no mind for
 ## anything else either, and nor has anybody a spell is working on.
@@ -627,7 +630,7 @@ func _process(delta):
 				sprite.play_idle()
 			return
 		Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING, \
-				Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED:
+				Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED, Mood.RELIGHTING:
 			_run_errand(delta)
 			return
 		Mood.WATCHING, Mood.SUSPICIOUS:
