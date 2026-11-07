@@ -105,6 +105,13 @@ wrapped line written that way arrives mangled and still compiles, which is the
 worst of both - it runs, and it does not mean what you wrote. Write such files
 with a real file-writing tool, or keep the line unwrapped.
 
+**New scripts and pictures need the editor's scan before the game will run.** A
+`class_name` the editor has not seen yet is unknown to every other script, and a new
+picture has nothing imported, so a game started from the Project Manager's Run (which
+scans nothing) stops on parse errors at a black screen, while the tests, which import
+their own copy, pass. After adding either, run `godot --headless --path . --import` in
+the project (with no editor open on it) and commit the `.uid` files it writes.
+
 **Never name an unimported file from `ui/blue_theme.tres`.** Godot loads the
 project theme before it imports anything, so on a fresh clone a theme naming
 the fonts failed to load, and importing them then crashed the editor outright.
