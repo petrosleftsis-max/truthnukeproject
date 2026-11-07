@@ -287,6 +287,17 @@ class _Shadow extends Node2D:
 		return length
 
 
+## Where a shadow `length` long and `width` across lies, from `feet` the way `way` points: the corners for the picture's
+## bottom left, bottom right, top right and top left. Their right stays on the right: a shadow thrown down the screen (a
+## light above them) is the picture upside down, not turned round, which would mirror it - walking right, it walked left
+## (the designer, 2026-11-07).
+static func cast_corners(feet: Vector2, way: Vector2, length: float, width: float) -> PackedVector2Array:
+	var across := Vector2(-way.y, way.x * FLOOR_SLANT) * (-1.0 if way.y > 0.0 else 1.0)
+	var half: Vector2 = across * width * 0.5
+	var far_end: Vector2 = feet + way * length
+	return PackedVector2Array([feet - half, feet + half, far_end + half, far_end - half])
+
+
 ## Their frame laid along the ground away from each light, through SHADOW_SHADER. A node of its own, for the material: the patch is drawn plain.
 class _Casting extends Node2D:
 	var _material: ShaderMaterial = null
@@ -327,9 +338,6 @@ class _Casting extends Node2D:
 		if length <= 1.0:
 			return
 		var share: float = length / whole
-		var across := Vector2(-way.y, way.x * CombatantSprite.FLOOR_SLANT)
-		var half: Vector2 = across * width * 0.5
-		var far_end: Vector2 = feet + way * length
 		# The picture's own corners: an atlas's are its part of the whole.
 		var source: Texture2D = texture
 		var origin: Vector2 = region.position
@@ -358,7 +366,7 @@ class _Casting extends Node2D:
 		# Red says how far along it is: see SHADOW_SHADER.
 		var near := Color(0.0, 0.0, 0.0, near_alpha)
 		var far := Color(share, 0.0, 0.0, near_alpha * lerpf(1.0, 0.2, share))
-		draw_polygon(PackedVector2Array([feet - half, feet + half, far_end + half, far_end - half]),
+		draw_polygon(CombatantSprite.cast_corners(feet, way, length, width),
 			PackedColorArray([near, near, far, far]), uvs, source)
 
 

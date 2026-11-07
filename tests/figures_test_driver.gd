@@ -19,6 +19,7 @@ var controller = null
 
 func run_sections():
 	which_of_them_shows()
+	right_on_the_right()
 	MoveFeel.plays_headless = true
 	LightView.plays_headless = true
 	await open_fight()
@@ -35,6 +36,20 @@ func run_sections():
 	MoveFeel.plays_headless = false
 	LightView.plays_headless = false
 	CombatantSprite.forget_the_light()
+
+
+## A shadow keeps their right on the right whichever way it falls (the designer, 2026-11-07: below a light, walking right,
+## the shadow walked left).
+func right_on_the_right():
+	log_line("======== a shadow is never their mirror ========")
+	var feet := Vector2(100, 100)
+	for way in [Vector2.UP, Vector2.DOWN, Vector2(0.6, 0.8), Vector2(-0.6, 0.8), Vector2(0.6, -0.8)]:
+		var corners: PackedVector2Array = CombatantSprite.cast_corners(feet, way, 80.0, 40.0)
+		# The picture's bottom left is corner 0 and its bottom right corner 1: left of each other on the screen, at their feet.
+		ok(corners[0].x < corners[1].x, "thrown %s, their left is on the left" % way, "%s %s" % [corners[0], corners[1]])
+	var down: PackedVector2Array = CombatantSprite.cast_corners(feet, Vector2.DOWN, 80.0, 40.0)
+	ok(down[2].y > feet.y and down[3].y > feet.y, "and thrown down the screen, the head end is below their feet")
+	log_line("")
 
 
 func open_fight():
