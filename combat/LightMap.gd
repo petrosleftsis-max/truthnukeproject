@@ -22,6 +22,7 @@ var blocks_light: Callable = Callable()
 
 var _blocked := {}
 var _ambient := {}
+var _darkened := {}
 
 
 func level_at(tile: Vector2i) -> int:
@@ -30,6 +31,11 @@ func level_at(tile: Vector2i) -> int:
 
 func amount_at(tile: Vector2i) -> float:
 	return amounts.get(tile, Light.AMOUNTS[base])
+
+
+## Whether the open sky is what lights `tile`: not an ambient area of its own, and not darkened by a spell.
+func under_the_sky(tile: Vector2i) -> bool:
+	return not _ambient.has(tile) and not _darkened.has(tile)
 
 
 ## How lit `tile` would be with nothing lighting it: the map, and any ambient area it is in.
@@ -46,6 +52,7 @@ func clear():
 	flickers = false
 	sources = []
 	_ambient = {}
+	_darkened = {}
 
 
 ## Lights it all: `base_level`; `areas`, each {"rect", "level"}; `sources`, each {"tile", "bright", "dim",
@@ -71,6 +78,7 @@ func rebuild(base_level: int, areas: Array, lit_by: Array, dark_tiles: Array, bl
 		levels[tile] = Light.Level.DARK
 		amounts[tile] = 0.0
 		glow.erase(tile)
+		_darkened[tile] = true
 	varies = base != Light.Level.BRIGHT or levels.values().any(func(level): return level != Light.Level.BRIGHT)
 	_blocked = {}
 

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ItemDefinition.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://art/icons/lightheal_skill.png" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+name = "False Life Spellbook"
+description = "A spellbook of False Life. Prometheus can learn False Life from it - on the character sheet's Moves page."
+icon = ExtResource("2_icon")
+can_be_copied = false
+deals_damage = false
+price = 150
+teaches = "false_life"

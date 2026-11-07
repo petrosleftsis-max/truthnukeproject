@@ -32,7 +32,7 @@ class_name OutsideMoves
 ## Unmarked plays as Silent.
 
 enum Use { NONE, MEND, REVIVE, SPEED, INVISIBILITY, FAMILIAR, BLIND, SCARE, CONFUSE, READ, SWITCH_OFF_MAGIC,
-	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD, SUGGEST, DETECT_MAGIC, ARCANE_EYE, FLARE }
+	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD, SUGGEST, DETECT_MAGIC, ARCANE_EYE, FLARE, SHRINK }
 
 const USE_NAMES := {
 	Use.NONE: "Only in a fight",
@@ -60,12 +60,13 @@ const USE_NAMES := {
 	Use.DETECT_MAGIC: "Shows every ward, magic sensor and magical trap",
 	Use.ARCANE_EYE: "An eye to steer that nothing notices",
 	Use.FLARE: "Goes up ahead of him: lights the ground, and every guard hears it",
+	Use.SHRINK: "Whoever leads gets small enough for grates and small gaps",
 }
 
 ## SkillDefinition.outside_use, as a Use - -1 for Automatic.
 const FROM_FIELD := [-1, Use.NONE, Use.MEND, Use.REVIVE, Use.SPEED, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ,
 	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP, Use.COMPANY, Use.SEEMING, Use.MISLEAD,
-	Use.SUGGEST, Use.DETECT_MAGIC, Use.ARCANE_EYE, Use.FLARE]
+	Use.SUGGEST, Use.DETECT_MAGIC, Use.ARCANE_EYE, Use.FLARE, Use.SHRINK]
 
 ## How long each lasts when the move gives no Outside Seconds - PROPOSAL test
 ## values, as are the rest below.
@@ -550,6 +551,15 @@ static func use(scene: Node, key: String, move: String) -> bool:
 			var seconds := seconds_of(skill, kind)
 			scene.fly(seconds)
 			said = "[color=yellow]%s[/color] uses %s%s: the party rises over low things for %d seconds.\n" % [who, skill.name, paid_through(paid), seconds]
+		Use.SHRINK:
+			var paid := pay(key, skill)
+			if paid.is_empty():
+				return false
+			var seconds := seconds_of(skill, kind)
+			scene.shrink_party(seconds)
+			if watch != null and skill.tethered:
+				watch.tie_outside(key, skill, func(): if is_instance_valid(scene): scene.shrink_party(0.0))
+			said = "[color=yellow]%s[/color] casts %s%s: for %d seconds whoever leads fits through grates and small gaps.\n" % [who, skill.name, paid_through(paid), seconds]
 		Use.FLARE:
 			var paid := pay(key, skill)
 			if paid.is_empty():

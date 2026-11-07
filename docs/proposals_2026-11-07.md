@@ -192,21 +192,22 @@ From looking at the screens while testing the light, a fight at level 64 above a
 
 A measurement, not a proposal. `tests/run.sh aicompare` plays each fight from one seed, with nobody knowing anything and
 every dial at 1 ("before"), and as things now stand. Nobody plays the party, so read it as a before and after, not as
-how hard a fight is. "Last time" is the same probe before the ways of its own went in.
+how hard a fight is. "Last time" is the "now" of the run before: since then the Ash Warden became All Knowing, the Sorcerer lost Commander, and the
+party gained this round's moves, which the AI uses when it plays them, so "before" can move too (Erysichthon's went from 10 to 12 rounds). Measured again on 2026-11-07, once everything was built.
 
 | Fight | Party standing still: damage in 3 rounds, before -> now (last time) | Rounds to fell them, before -> now (last time) | AI on both sides |
 | --- | --- | --- | --- |
-| Sewer Intro Fight | 75 -> 75 (75) | 8 -> 6 (8) | |
-| Lab Fight | 106 -> 106 (106) | 3 -> 3 (3) | party lost before, won now with 10% left |
+| Sewer Intro Fight | 75 -> 75 (75) | 8 -> 8 (6) | |
+| Lab Fight | 106 -> 106 (106) | 3 -> 3 (3) | party won both, in 16 -> 10 rounds, 10% -> 22% left |
 | City Fight | 382 -> 403 (403) | 2 -> 3 (3) | |
-| Hired Blades | 211 -> 211 (211) | 4 -> 4 (4) | party won both, 20% -> 60% left |
-| The Bound Golem | 263 -> 255 (255) | 6 -> 7 (5) | |
-| The Alchemist | 517 -> 469 (421) | 2 -> 2 (2) | |
-| The Summoner | 128 -> 145 (145) | 8 -> 9 (9) | |
-| The Bellkeeper | 134 -> 135 (127) | 5 -> 4 (5) | |
-| The Ash Warden | 135 -> 107 (107) | 7 -> 7 (7) | party lost both, in 6 -> 10 rounds |
-| Erysichthon | 73 -> 83 (83) | 10 -> 9 (9) | |
-| Sixty-Four | 661 -> 552 (592) | 3 -> 2 (2) | |
+| Hired Blades | 211 -> 211 (211) | 4 -> 4 (4) | party won both, in 6 rounds, 21% -> 63% left |
+| The Bound Golem | 263 -> 255 (255) | 6 -> 7 (7) | |
+| The Alchemist | 517 -> 469 (469) | 2 -> 2 (2) | |
+| The Summoner | 128 -> 145 (145) | 8 -> 8 (9) | |
+| The Bellkeeper | 134 -> 135 (135) | 5 -> 4 (4) | |
+| The Ash Warden | 135 -> 135 (107) | 7 -> 8 (7) | party lost both, in 7 -> 8 rounds |
+| Erysichthon | 73 -> 83 (83) | 12 -> 9 (9) | |
+| Sixty-Four | 661 -> 552 (552) | 3 -> 2 (2) | |
 
 ## 13. Going without tiles, as in Divinity: Original Sin 2
 
@@ -285,6 +286,9 @@ about, because it trades away the exact reading of the board that the fights and
 
 ## 14. The day going round, smoother and with more to it
 
+**Chosen and built, 2026-11-07: all of it.** Two parts change a rule, as said below: a new moon is No Moon, and the month moves when dawn and
+dusk begin. Lamps go by the clock only when marked for it. Weathers we don't have are in section 17.
+
 **What it does now.** Eight marks round the day (`Light.SKY`), with straight lines between them, the same every day. So
 it turns sharply at each mark, nothing changes from 9:00 to 15:00, and nothing changes from 20:30 to 5:00. How dark a
 place looks changes at four moments only (5:00, 8:00, 17:00, 20:00), each eased over a second or so.
@@ -324,6 +328,11 @@ place looks changes at four moments only (5:00, 8:00, 17:00, 20:00), each eased 
 the weather and each day's own sunrise and sunset, which add the most variance for the work.
 
 ## 15. Enfina: more depth and personality
+
+**Chosen and built, 2026-11-07:** everything here, with Drills as a passive that gives her new reactions (Riposte at 8, Step In at 24, a quarter harder
+at 41) rather than a choice at the end of her turn. Not built: Called Opening, Field Notes and Show the Badge. Commendations became lines in a bubble
+(section 17). Levels I chose for what had none: Throw a Friend 8, Anything Is a Weapon 16, Arrest 24, Carries Them 1. On a map only a body can be
+carried, as a fallen ally isn't on the map to carry.
 
 **Why Trailblaze works.** It is the one thing she has that asks a question: health now, for speed now. Most of her kit is
 numbers that are simply on (Iron Hide, Bulwark, Momentum). She has no gates, no items to weigh and no pool to manage, so a
@@ -379,6 +388,10 @@ style of play. Then Drills, which gives her a real decision every turn. Throw a 
 they're where people will start to remember her.
 
 ## 16. Prometheus: transmutation, conjuration, necromancy
+
+**Chosen and built, 2026-11-07:** Shrink (on a map through the Gates of Iris), Transposition, Grease, Wall of Stone, False Life, Withering Touch and Blight
+(with a tether of 200), each from a book at the merchant. Spells deeper than Pandora are saved for later. Shrink has no contest, as tabled, and nobody is immune
+to it yet: say if bosses should be, per creature.
 
 He has elements in depth and a little of the rest. These fill the gaps, and all of them lean towards what makes him
 different: he changes the board rather than the people on it. Gates and tethers are suggestions. Gates open at 1, 8, 14,
@@ -436,3 +449,88 @@ different: he changes the board rather than the people on it. Gates and tethers 
 
 **Recommendation:** Transmute Ground, Singularity and Transposition first, since they make him more himself. For
 necromancy, Speak with the Dead and Marionette in forbidden books.
+
+## 17. Answers to the questions in your messages of 2026-11-07
+
+Nothing in this section is built unless it says so. Numbers are proposals.
+
+### What you asked to be reminded of
+
+- **Choking Ash:** -15 to hit for 1 turn. Only the Ash Warden's Ash Presence puts it on anybody, on whoever of the other side starts a turn within 2 tiles of it.
+- **All Knowing** is the highest of the five levels of smarts. The Ash Warden has it now.
+- **Your idea of keeping Cyrus hidden:** the only thing I could find is your line of 2026-09-26, "Cyrus will have to be hidden and stay that way", which was about stealth mode, and the fight rule that "you stay hidden until somebody sees you again". If you meant something else, tell me.
+
+### Will-o'-the-Wisp, and other ideas like it
+
+You liked it and asked for alternatives. All are World or Hermes unless it says.
+
+| Idea | What it does |
+| --- | --- |
+| **Will-o'-the-Wisp** (as proposed) | A light that draws anybody who fails a contest towards it |
+| **Ghost Lamp** | A light that shows where nobody stands, so guards and enemies take it for somebody's lantern and go to it |
+| **Shepherd's Light** | A small light that goes ahead of an ally: they walk a tile further towards it |
+| **Lantern Bearer** | A little figure carrying a lamp, which walks where it is told and is hit instead of anybody near it, once |
+| **Moth to the Flame** | Whoever is in a marked light must end their turn nearer it |
+| **Beckoning Light** | One target only, a contest: they spend their next move walking to the light, and are off their guard when they arrive |
+
+**Saved for when you look at higher spells:** Lantern of Truth, False Dawn, and the light of Stolen Sun.
+
+### Night Hunter, and a bonus for hitting while hidden
+
+Right now a blow from hiding means only that nobody can react. Four ways it could count, which can be mixed:
+
+| Way | What it does |
+| --- | --- |
+| **A. A flat bonus** | +25% from hiding. Simple to read, and it adds to an already strong first turn |
+| **B. It can't miss** | Keeps the numbers as they are, and makes hiding a promise |
+| **C. They can't answer** | No reaction from whoever is hit until their next turn. It leans on what hiding already does |
+| **D. He stays hidden** | If the blow fells them and nobody else sees, he is still hidden. This is the one closest to "hidden and stay that way", and it rewards picking off the one who is alone |
+
+**My recommendation is D**, with Night Hunter as a passive at 24 or 32.
+
+### Silhouette and Blessed in the Light
+
+- **Silhouette is +20%,** built at that. Lower and it isn't worth setting up; higher and shooting out of the Dark overshadows everything else he does.
+- **Blessed in the Light is +10%,** built at that, on her heals and her Idol damage. It is small because on a sunny day it is always on, and it should matter in a dark place when she has made it light.
+
+### How Lifted Torch would work
+
+Cyrus picks a guard's pocket for his torch. The guard's light goes out, and he goes to the nearest lit lamp to light it again, on an errand, walking dark until then with only his Dark Sight. Bodies stay hidden from him. Cyrus has the torch, and could drop it as a lure. It rests on what guards already do: errands, carried lights and pockets.
+
+### More ways Alithia can use light, and being in it
+
+- **Her Aura reaches a tile further** while she stands in Bright.
+- **Her heals reach further** to somebody in Bright.
+- **Gather the Light** (secondary): the light where she stands goes into her next spell, and her tile goes Dim.
+- **Vigil:** while she holds still in Bright, whoever is beside her can't be surprised or caught unseen.
+- **Dazzling Idol spells:** her Idol spells blind for a turn, on somebody in Bright.
+- **Kindled Faith:** a mend at the start of her turn, but only standing in Bright.
+
+### Shine mask, normal maps, and real shadows, with the art as it is
+
+**Can we do these with the existing art? Yes, as approximations, with no extra pictures.**
+
+- **Normal maps** tell the light which way each pixel faces, so a figure is lit like a shape and not a flat picture. A shader can work this out live from the picture: the edges of the figure curve away, and the ink lines read as folds. Or a tool can make them once and save them, which is a little better and a little more work. It won't be as good as ones painted by hand, and it can look odd on faces. I'd try it on one figure first.
+- **A shine mask** says which parts catch the light, such as metal and wet things. It can be guessed from colour: low saturation and high brightness are probably metal. A white dress fools it, so Alithia would need a per-character switch to say no.
+- **Real shadows** would be a `LightOccluder2D` for each figure, which the lighting engine already does for walls. They come out as true wedges all the way to the light's reach, which is right for a wall and looks wrong for somebody standing in this view, and tracing the figure's outline each frame flickers as they animate. **I recommend staying with the shadows in their own shape built now,** and perhaps using real ones only for very big creatures.
+
+I can make a prototype of the normal maps on one figure if you want to see it.
+
+### Weathers we don't have
+
+**Built:** clear, haze, overcast, rain, a foggy morning, and storm, which only a scene can call for.
+
+**Not included:** snow, sleet or hail, a thunderstorm with lightning, strong wind, a sandstorm, a blizzard, heat shimmer, ash falling, an aurora, a rainbow, and an eclipse. Ash falling, or an eclipse, could be a nice thing for the Dome's broken sky. Each is a line in `Light.WEATHERS` plus what it shows, and a few of them, such as wind and snow, could have a rule if you want one.
+
+### Where bubble lines can pop up
+
+Built: a bubble over somebody's head that goes away by itself, from `CombatLines` on each creature, or `do Campaign.say_bubble("enfina", "Keep up.")` in a conversation. These moments are hooked up, each with a list of lines in the creature's Speech group. Only Enfina has any so far, and they are placeholders:
+
+- **The fight:** it starts, their first blow, it is won.
+- **What they do:** they fell somebody, they react, they take a blow for somebody, they study somebody, a deep spell, the last casting, or using one move in particular.
+- **What happens to them:** somebody of theirs falls nearby, they drop below a third of their health, somebody else heals them, anything harmful lands, or one condition in particular (burned, stunned, frightened).
+- **Others:** they see through an illusion, a boss changes phase.
+
+Alithia's "I saw it coming" lines now show as a bubble too. Nobody says more than one line in 7 seconds, unless it's somebody falling, a phase, a win or taking a blow.
+
+`docs/chatgpt_party_characters.md` has what is needed to ask ChatGPT for these.

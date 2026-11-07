@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/riposte_skill.png" id="4_icon"]
+
+[resource]
+script = ExtResource("2_skill")
+name = "Riposte"
+description = "A reaction, once a blow from beside her has landed on her: back at them. x0.8."
+required_level = 8
+min_range = 1
+max_range = 1
+ability_modifier = 0.8
+melee = true
+icon = ExtResource("4_icon")
+can_be_copied = false
+is_reactive = true
+reacts_when = 8
+reaction_only = true

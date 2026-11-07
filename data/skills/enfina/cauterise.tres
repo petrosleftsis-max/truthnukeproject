@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Resource" path="res://data/conditions/poisoned.tres" id="3_poison"]
+[ext_resource type="Resource" path="res://data/conditions/corroded.tres" id="4_corroded"]
+[ext_resource type="Resource" path="res://data/conditions/deeply_corroded.tres" id="5_deep"]
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="6_cond"]
+[ext_resource type="Texture2D" path="res://art/icons/cauterise_skill.png" id="7_icon"]
+
+[sub_resource type="Resource" id="Effect_mend"]
+script = ExtResource("1_effect")
+type = 1
+heal_flat = 4.0
+heal_per_burn_turn = 6.0
+applies_to_caster = true
+
+[resource]
+script = ExtResource("2_skill")
+name = "Cauterise"
+description = "A secondary action, only while she burns: she closes it up. The Burn is over, she mends 4 and 6 more for each turn of it she had left, and any Poison or Corroded comes off."
+required_level = 24
+min_range = 0
+max_range = 0
+targets_ally = true
+melee = true
+is_secondary = true
+deals_damage = false
+icon = ExtResource("7_icon")
+can_be_copied = false
+needs_own_burn = true
+ends_own_burn = true
+lifts_from_user = Array[ExtResource("6_cond")]([ExtResource("3_poison"), ExtResource("4_corroded"), ExtResource("5_deep")])
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_mend")])

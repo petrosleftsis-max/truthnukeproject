@@ -134,7 +134,7 @@ func the_sky():
 	var night := Light.tone_at(Light.Ambient.OUTDOORS, 60)
 	ok(night.b > night.r, "night is blue", "%s" % night)
 	var dawn := Light.tone_at(Light.Ambient.OUTDOORS, 390)
-	ok(absf(dawn.r - dawn.b) < 0.1, "dawn is grey", "%s" % dawn)
+	ok(dawn.r > dawn.b and dawn.b > dusk.b, "dawn is first gold, paler than dusk", "%s" % dawn)
 	var between := Light.tone_at(Light.Ambient.OUTDOORS, 1000)
 	ok(between.b < noon.b and between.b > dusk.b, "and it eases between them", "%s" % between)
 	ok(Light.tone_at(Light.Ambient.UNDERGROUND, 60) == Light.UNDERGROUND_TONE, "underground the hour has no say")

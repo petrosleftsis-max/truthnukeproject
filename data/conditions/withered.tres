@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Withered"
+tag = "Wt"
+description = "Nothing can mend them until their next turn."
+duration = 1
+wears_off_at_start = true
+healing_taken_change = -1.0
+figure_tint = Color(0.45, 0.42, 0.35, 0.35)
+figure_priority = 2
+arrival_word = "Withered"

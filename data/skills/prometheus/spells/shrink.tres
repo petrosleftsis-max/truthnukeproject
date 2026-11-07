@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/shrink_skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_shrink"]
+script = ExtResource("1_effect")
+type = 27
+shrinks = true
+
+[resource]
+script = ExtResource("2_skill")
+name = "Shrink"
+description = "A size smaller, for as long as he holds the tether: a foe loses reach and grip, and an ally is less to hit. On a map, whoever leads fits through grates and small gaps."
+max_range = 8
+icon = ExtResource("4_icon")
+affects_both_sides = true
+respects_blocking = true
+deals_damage = false
+can_be_copied = false
+spell_slot_level = 2
+outside_gate = 1
+outside_use = 23
+tethered = true
+tether_strength = 100
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_shrink")])

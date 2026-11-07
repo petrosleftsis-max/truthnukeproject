@@ -358,6 +358,22 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 ## The target's attribute weighed against the caster's scaling_stat.
 @export var contest_stat: Stats.Type = Stats.Type.PHYSICAL
 
+@export_group("Enfina's fire and tricks")
+## Only while its user burns (Flashover, Cauterise).
+@export var needs_own_burn: bool = false
+## Its user's Burn is over once it has been used.
+@export var ends_own_burn: bool = false
+## This much more on the multiplier for each turn of Burn its user has left (Flashover).
+@export var modifier_per_burn_turn: float = 0.0
+## What comes off its user with it (Cauterise's Poison and Corroded).
+@export var lifts_from_user: Array[ConditionDefinition] = []
+## As a reaction: its user takes a single blow meant for whoever it is aimed at (Step In).
+@export var steps_in: bool = false
+## Aimed twice, at two people: they change places (Transposition). Contested for whoever is of the other side.
+@export var swaps_places: bool = false
+## Only on somebody whose nerve has gone this far towards breaking, as a share of it (Arrest).
+@export var needs_nerve_shaken: float = 0.0
+
 @export_group("Sound")
 ## A move sounds three times (the designer, 2026-10-30): leaving its user,
 ## travelling, and landing. Each slot left empty plays a stand-in made on the
@@ -480,7 +496,7 @@ enum Loudness { UNMARKED, SILENT, QUIET, LOUD }
 ## an ambush with it as the opening blow - or breaks a breakable wall. Anything
 ## else does nothing out there unless it is set here. Counter Trap answers a
 ## magical trap as it goes off (MagicTrap - InstaHack). Stored by number: append.
-@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen", "Seeming", "Mislead", "Suggestion", "Detect Magic", "Arcane Eye", "Flare")
+@export_enum("Automatic", "None", "Mend", "Revive", "Speed", "Blind", "Scare", "Confuse", "Read", "Switch Off Magic", "Blink", "Fly", "Lure", "Hiding Spot", "Trap", "Counter Trap", "The Company Unseen", "Seeming", "Mislead", "Suggestion", "Detect Magic", "Arcane Eye", "Flare", "Shrink")
 var outside_use: int = 0
 
 @export_group("Tether")

@@ -102,7 +102,9 @@ func run_test():
 		# The illusions'.
 		"called_out", "distracted", "dread", "looks_dead", "marked_by_flame", "phantom_wound",
 		# Calm's and Detect Magic's.
-		"calmed", "detecting_magic"]
+		"calmed", "detecting_magic",
+		# Enfina's, passed on, and Prometheus's rot.
+		"shared_fire", "withered", "blighted"]
 	for condition in conditions:
 		if not_bottled.has(condition):
 			continue

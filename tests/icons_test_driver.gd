@@ -54,6 +54,14 @@ const OWN_ICONS := {
 	"glacial_tide": "glacial_tide_skill.png", "purification": "purification_skill.png",
 	"divine_verdict": "divine_verdict_skill.png", "restoration": "restoration_skill.png",
 	"revelation": "revelation_skill.png", "grace": "grace_skill.png",
+	# The round of 2026-11-07 - placeholders, each its own.
+	"daylight": "daylight_skill.png", "dancing_lights": "dancing_lights_skill.png", "move_lights": "move_lights_skill.png",
+	"flare": "flare_skill.png", "calling_out": "calling_out_skill.png", "shadow_step": "shadow_step_skill.png",
+	"flashover": "flashover_skill.png", "cauterise": "cauterise_skill.png", "share_the_fire": "share_the_fire_skill.png",
+	"riposte": "riposte_skill.png", "step_in": "step_in_skill.png", "arrest": "arrest_skill.png",
+	"blazed_path": "blazed_path_skill.png", "shrink": "shrink_skill.png", "transposition": "transposition_skill.png",
+	"grease": "grease_skill.png", "wall_of_stone": "wall_of_stone_skill.png", "false_life": "false_life_skill.png",
+	"withering_touch": "withering_touch_skill.png", "blight": "blight_skill.png",
 }
 var _log: FileAccess
 var _fail = 0

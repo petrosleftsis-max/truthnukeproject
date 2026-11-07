@@ -33,6 +33,8 @@ func _ready():
 func snapshot(comb: Dictionary) -> Dictionary:
 	return {
 		"hp": comb.hp,
+		# False Life: health on top of what they have.
+		"temp_hp": comb.get("temp_hp", 0),
 		"effects": comb.status_effects.size(),
 		"position": comb.position,
 		"hidden": comb.get("hidden", false),
@@ -188,6 +190,13 @@ func run_test():
 			continue
 		# Shadow Step wants the dark, and this lane is lit - the lightspells suite plays it.
 		if skill.only_in_shadow:
+			continue
+		# Flashover and Cauterise want her own Burn, and Arrest somebody whose nerve is going -
+		# the enfina suite plays them.
+		if skill.needs_own_burn or skill.needs_nerve_shaken > 0.0:
+			continue
+		# Transposition is aimed at two people - the prometheus suite plays it.
+		if skill.swaps_places:
 			continue
 		# Dispel Magic undoes what spells left, and here nobody has anything on
 		# them - the dispel suite plays it.

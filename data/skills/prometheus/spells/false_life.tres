@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/false_life_skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_life"]
+script = ExtResource("1_effect")
+type = 42
+heal_flat = 10.0
+heal_per_stat = 0.2
+applies_to_caster = true
+
+[resource]
+script = ExtResource("2_skill")
+name = "False Life"
+description = "Health on top of his own, 10 and a fifth of his Intellect, taken first, gone by the end of the fight."
+min_range = 0
+max_range = 0
+targets_ally = true
+icon = ExtResource("4_icon")
+deals_damage = false
+can_be_copied = false
+spell_slot_level = 1
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_life")])

@@ -345,6 +345,10 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ##     2026-10-29 - PROPOSAL).
 @export_flags("Covers The Approach", "Guards Its Post", "Counters Casters", "Waits For The Hidden", "Protects Its Own") var ai_readies: int = 0
 
+@export_group("Speech")
+## What they say in a bubble over their head as a fight goes (CombatLines, SpeechBubbles). Empty, they say nothing.
+@export var lines: CombatLines = null
+
 @export_group("Giving Light")
 ## Gives off light by being what it is, this many tiles of it (Bright for half), real or an illusion:
 ## a burning thing, an illusion of one (Light). 0: none.

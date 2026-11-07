@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/step_in_skill.png" id="4_icon"]
+
+[resource]
+script = ExtResource("2_skill")
+name = "Step In"
+description = "A reaction, when a single blow is about to land on an ally beside her: it lands on her instead."
+required_level = 24
+min_range = 1
+max_range = 1
+targets_ally = true
+deals_damage = false
+melee = true
+icon = ExtResource("4_icon")
+can_be_copied = false
+is_reactive = true
+reacts_when = 16
+reaction_only = true
+steps_in = true

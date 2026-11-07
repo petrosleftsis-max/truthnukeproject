@@ -2068,6 +2068,32 @@ func lights_changed():
 				_lit[tile] = scene.light.amount_at(tile)
 
 
+## What each lamp that goes by the clock should last have been.
+var _clock_lamps := {}
+
+
+## Lamps marked to go by the clock come on and go out as it passes their minute (Lamp.by_the_clock). Only when they would change: one
+## somebody put out stays out until then. The host's to say.
+func keep_lamps_by_the_clock():
+	if puppet:
+		return
+	var minute: int = Campaign.minute_of_day()
+	var shift: int = Campaign.season_shift()
+	var changed := false
+	for lamp in _lamps:
+		if not is_instance_valid(lamp) or not lamp.by_the_clock:
+			continue
+		var at: Vector2i = tile_of(lamp.global_position)
+		var wanted: bool = Light.lamp_lit_at(minute, at.x * 37 + at.y * 101, shift)
+		if _clock_lamps.get(lamp) != wanted:
+			_clock_lamps[lamp] = wanted
+			if lamp.lit != wanted:
+				lamp.set_lit(wanted)
+				changed = true
+	if changed:
+		_relight()
+
+
 ## Every lamp and painted torch, as the map's light wants them.
 func lights_for_the_map() -> Array:
 	var found := []
@@ -3076,7 +3102,7 @@ func _set_pace():
 		return
 	for group in _groups():
 		if is_instance_valid(group) and not group.puppet:
-			group.pace = (DRAG_PACE if _drags(group) else 1.0) * (CREEP_PACE if creeping_in(group) else 1.0)
+			group.pace = (DRAG_PACE if _drags(group) and not _carries_at_full_pace() else 1.0) * (CREEP_PACE if creeping_in(group) else 1.0)
 
 
 ## Every group walking the map - the party alone outside co-op.
@@ -3089,6 +3115,14 @@ func _groups() -> Array:
 
 ## Whether `group` is the one dragging the body: whoever picked it up - or, on a
 ## puppet watch, whoever the host says.
+## Whether whoever leads has Carries Them (PassiveDefinition.carries_at_full_pace), at their level.
+func _carries_at_full_pace() -> bool:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(Campaign.leader())
+	if definition == null:
+		return false
+	return definition.passives.any(func(passive): return passive != null and passive.carries_at_full_pace and Campaign.party_level >= passive.required_level)
+
+
 func _drags(group) -> bool:
 	if puppet:
 		return _dragged_by >= 0 and group.player == _dragged_by

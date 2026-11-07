@@ -1472,6 +1472,34 @@ func _flare_there(at, seconds):
 		scene.flare_up(at, seconds)
 
 
+## The party has shrunk on the host's map, or stopped being: on the joiner's too, whose own feet need to know (ExplorationScene.shrink_party).
+func shrink_there(seconds: float):
+	if is_host() and with_another():
+		_shrink_there.rpc(seconds)
+
+
+@rpc("authority", "reliable")
+func _shrink_there(seconds):
+	if not follows() or typeof(seconds) != TYPE_FLOAT or seconds < 0.0 or seconds > 3600.0:
+		return
+	var scene = get_tree().current_scene
+	if scene != null and scene.has_method("shrink_party"):
+		scene.shrink_party(seconds)
+
+
+## A line in a bubble from a conversation, which only the host runs (Campaign.say_bubble): shown on the joiner's screen too.
+func bubble_there(key: String, line: String):
+	if is_host() and with_another():
+		_bubble_there.rpc(key, line)
+
+
+@rpc("authority", "reliable")
+func _bubble_there(key, line):
+	if not follows() or typeof(key) != TYPE_STRING or typeof(line) != TYPE_STRING or line.length() > 400:
+		return
+	Campaign.say_bubble(key, line)
+
+
 ## Whether a move of the other machine's is being played here just now.
 func playing_a_move() -> bool:
 	return _playing_move

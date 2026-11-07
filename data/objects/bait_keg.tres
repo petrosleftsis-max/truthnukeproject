@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("4_object")
+can_be_thrown = true
 breakable = true
 set_off_line = "The meat-wrapped keg goes up!"
 stagger = 20.0

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Blighted"
+tag = "Bg"
+description = "Rotting where they stand: armour a tenth worse, and whatever mends them does only half."
+duration = 99
+defense_change = -0.1
+healing_taken_change = -0.5
+figure_tint = Color(0.5, 0.6, 0.3, 0.3)
+figure_no_ring = true
+figure_priority = 1

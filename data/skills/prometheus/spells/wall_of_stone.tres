@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/wall_of_stone_skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_wall"]
+script = ExtResource("1_effect")
+type = 28
+summons = "wall_of_stone"
+summon_across = 2
+
+[resource]
+script = ExtResource("2_skill")
+name = "Wall of Stone"
+description = "A wall up to five tiles long, from where he points first to where he points next, straight or diagonal, and this one is really there: it stops both sides and can be broken. It stands for as long as he holds the tether."
+min_range = 1
+max_range = 8
+icon = ExtResource("4_icon")
+can_be_copied = false
+deals_damage = false
+spell_slot_level = 3
+tethered = true
+tether_strength = 200
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_wall")])

@@ -463,6 +463,8 @@ func _show_gates(key: String):
 		tags[i].visible = i < reading.size()
 		if i >= reading.size():
 			continue
+		# As in a fight: past a few, a letter and its marks, with the name on hovering.
+		tags[i].compact = reading.size() > 5
 		var of_iris: bool = reading[i][0]
 		var gate: int = reading[i][1]
 		if of_iris:

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/arrest_skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_arrest"]
+script = ExtResource("1_effect")
+type = 41
+
+[resource]
+script = ExtResource("2_skill")
+name = "Arrest"
+description = "A city guard's way of winning: somebody beside her whose nerve is more than half gone, her Physical against their Self. They give up, and can be questioned after."
+required_level = 24
+min_range = 1
+max_range = 1
+icon = ExtResource("4_icon")
+can_be_copied = false
+deals_damage = false
+uses_stat_contest = true
+contest_stat = 3
+needs_nerve_shaken = 0.5
+melee = true
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_arrest")])

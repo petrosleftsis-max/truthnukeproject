@@ -69,6 +69,10 @@ class_name BattleObjectDefinition
 @export var hack: HackDefinition
 @export var backfire_hits: HazardDefinition.Hits = HazardDefinition.Hits.THE_PARTY
 
+@export_group("Thrown")
+## Whether somebody who throws things can pick it up and hurl it (PassiveDefinition.throws_things).
+@export var can_be_thrown: bool = false
+
 @export_group("Set off")
 ## Into the log: "The bell tolls."
 @export var set_off_line: String = ""

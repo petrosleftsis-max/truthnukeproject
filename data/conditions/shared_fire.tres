@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+[ext_resource type="AudioStream" path="res://audio/sfx/moves/weak_fire_damage.wav" id="2_tick"]
+
+[resource]
+script = ExtResource("1_cond")
+tick_sound = ExtResource("2_tick")
+display_name = "Shared Fire"
+tag = "Sf"
+light_tiles = 3.0
+description = "Two tiles further, on a fire somebody else is paying for."
+duration = 5
+dot_type = 1
+dot_strength = 4
+dot_modifier = 1.0
+dot_min = 4
+dot_max = 5
+dot_lands_on_source = true
+movement_change = 2
+figure_tint = Color(1, 0.6, 0.25, 0.3)
+off_them = 1
+figure_priority = 4
+arrival_word = "Shared fire"

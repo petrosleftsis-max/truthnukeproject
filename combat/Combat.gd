@@ -523,6 +523,7 @@ func _nearest_foe_of(who: Dictionary) -> Dictionary:
 ## Sets the battle actually running. Separate from _ready because deployment
 ## sits in between.
 func start_first_turn():
+	SpeechBubbles.somebody_says(self, &"fight_starts")
 	if opener_due():
 		_open_the_ambush.call_deferred()
 		return
@@ -1769,6 +1770,8 @@ func _spread(from: Array, reach: int) -> Dictionary:
 ## be remembered here.
 func board_fingerprint(walker: Dictionary) -> String:
 	var parts := []
+	# A blazed trail is left on the board: no walking that back ("Enfina").
+	parts.append(zones.filter(func(zone): return zone.has("blazed_by")).map(func(zone): return zone.tiles.size()))
 	for comb in combatants:
 		var working := []
 		for passive in active_passives(comb):
@@ -2080,6 +2083,8 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			var travelling = get_combatant_at(impact_position)
 			if not travelling.is_empty() and immune_to(travelling, Immunity.Kind.TELEPORTED):
 				shrug_off(travelling, Immunity.name_of(Immunity.Kind.TELEPORTED))
+			elif not travelling.is_empty() and skill.swaps_places:
+				transpose(attacker, skill, travelling, get_combatant_at(destination))
 			elif not travelling.is_empty():
 				var gone_from: Vector2 = MoveFeel.middle_of(self, travelling)
 				if teleport_to(travelling, destination):
@@ -2143,6 +2148,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		await _react_before(attacker, skill, skill_key, targets)
 		if not still_running() or not attacker.alive:
 			return
+		targets = _take_blows_stepped_into(targets)
 		if has_restriction(attacker, "skips_turn"):
 			update_information.emit("[color=yellow]%s[/color] is stopped before %s lands.\n" % [attacker.name, skill.name])
 			targets = []
@@ -2365,6 +2371,10 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				_cast_again(attacker, skill, struck)
 			_righteous(attacker, skill)
 		_dealt_now = 0
+		_after_own_fire(attacker, skill)
+		if skill.deals_damage and effective_damage_type(attacker, skill.damage_type) == Damage.Type.FIRE:
+			_fire_touches(tiles, attacker)
+		SpeechBubbles.on_event(self, attacker, &"using", skill_key)
 		# Counted for Kindling: the next ones burn hotter.
 		if is_spell(skill):
 			attacker["spells_cast"] = attacker.get("spells_cast", 0) + 1
@@ -2473,6 +2483,17 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 
 ## What casting `skill` costs `attacker`, spent: its gate - or, amplified (the
 ## Demolitionist's), a free amplification or a deeper gate in its place.
+## Whether what it was cast through was deep, or the last they had, for what they say about it.
+func _say_of_the_casting(attacker: Dictionary) -> void:
+	if not SpeechBubbles.shown():
+		return
+	if _casting_gate >= DEEP_GATE_FROM:
+		SpeechBubbles.on_event(self, attacker, &"deep_spell")
+	var left: Array = attacker.get("spell_slots", [])
+	if not left.is_empty() and left.reduce(func(sum, count): return sum + count, 0) == 0:
+		SpeechBubbles.on_event(self, attacker, &"last_casting")
+
+
 func _pay_for_cast(attacker: Dictionary, skill: SkillDefinition):
 	# Through a gate of their choosing (SkillDefinition.chooses_gate - Dispel Magic).
 	var through: int = attacker.get("cast_through", 0)
@@ -2627,7 +2648,15 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	if skill.respects_blocking and not is_same(attacker, target) and not sees_tile(attacker, trigger_position, target):
 		return
-	attacker.reaction_used = true
+	_spend_the_reaction(attacker, target)
+	# Taking it for them: nothing flies, and the blow is hers as it lands (_take_blows_stepped_into).
+	if skill.steps_in:
+		_stepped_in[target.get("id", -1)] = attacker
+		update_information.emit("[color=yellow]%s[/color] steps in front of [color=yellow]%s[/color]!\n" % [attacker.name, target.name])
+		MoveFeel.exclaim(self, attacker)
+		SpeechBubbles.on_event(self, attacker, &"takes_a_blow")
+		return
+	SpeechBubbles.on_event(self, attacker, &"reacts")
 	if attacker.side == 0 and skill.can_be_copied:
 		last_player_skill_used = skill_key
 	var spent = spend_slot_for(attacker, skill)
@@ -2665,7 +2694,9 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	if skill.tethered:
 		for other in combatants:
 			carried_before.append([other, other.get("status_effects", []).duplicate()])
+	attacker["reacting"] = true
 	await _land_reaction(attacker, skill, target)
+	attacker.erase("reacting")
 	if skill.tethered:
 		_hold_reaction_on_tether(attacker, skill_key, skill, carried_before)
 	Projectile.settle()
@@ -3428,6 +3459,13 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 			read_intent(attacker, target)
 		EffectDefinition.EffectType.SHAKE:
 			shake(attacker, target, rng.randi_range(effect.min_amount, maxi(effect.min_amount, effect.max_amount)))
+		EffectDefinition.EffectType.OVERHEAL:
+			overheal(target, roundi(effect.heal_flat + effect.heal_per_stat * float(stat_of(attacker, scaling_stat_of(attacker, skill)))), attacker)
+		EffectDefinition.EffectType.ARREST:
+			if can_break(target):
+				update_information.emit("[color=yellow]%s[/color] arrests [color=red]%s[/color], who throws down their weapons.\n" % [attacker.name, target.name])
+				float_number(target, "Arrested!", Color("f0d060"))
+				_taken(target, "surrendered")
 		EffectDefinition.EffectType.CLIMB:
 			climb_onto(attacker, target)
 		EffectDefinition.EffectType.BRIBE:
@@ -4508,6 +4546,8 @@ static func modifier_of(comb: Dictionary, skill: SkillDefinition) -> float:
 	for rank in ranks_reached(comb, skill):
 		if rank.ability_modifier > 0.0:
 			value = rank.ability_modifier
+	if skill.modifier_per_burn_turn > 0.0:
+		value += skill.modifier_per_burn_turn * burn_turns_of(comb)
 	return value
 
 
@@ -5511,9 +5551,17 @@ func dot_tick(target: Dictionary, dot_base: float, flat_min: int, flat_max: int)
 
 
 ## `times` ticks' worth at once, for everything left going off together (Catalyst).
+## The tick of `condition` on `comb`: on them, or on whoever put it on them, for one that says so (Share the Fire).
+func _who_a_tick_lands_on(comb: Dictionary, condition: ConditionDefinition, by: Dictionary) -> Dictionary:
+	if condition.dot_lands_on_source and not by.is_empty() and by.get("alive", false):
+		return by
+	return comb
+
+
 func tick_condition_damage(comb: Dictionary, condition: ConditionDefinition, dot_base: float = 0.0, times: float = 1.0, by: Dictionary = {}):
 	if not comb.alive:
 		return
+	comb = _who_a_tick_lands_on(comb, condition, by)
 	var resistance = resistance_of(comb, condition.dot_type)
 	var amount = resisted_damage(comb, condition.dot_type, roundi(dot_tick(comb, dot_base, condition.dot_min, condition.dot_max) * times))
 	amount = _burden_share(comb, amount, condition.dot_type, by)
@@ -5896,6 +5944,7 @@ func _advance_turn():
 		comb.skill_used_this_turn = false
 		comb.secondary_used_this_turn = false
 		comb.reaction_used = false
+		comb.erase("free_reaction_spent")
 		comb.reactions_suppressed = false
 		comb.erase("ran_this_turn")
 		comb.erase("movement_left_when_grabbed")
@@ -6136,6 +6185,8 @@ var _turn_scale := 1.0
 
 
 func combat_finish():
+	if not combat_over:
+		SpeechBubbles.somebody_says(self, &"won")
 	# Whatever comes after the fight - the log, the result, the map - at normal speed.
 	_turn_scale = 1.0
 	if _hit_stop_depth == 0:
@@ -6759,6 +6810,222 @@ func _wounded_bonus(attacker: Dictionary, skill: SkillDefinition, struck: Array)
 ## power_behind x the dial. Either way the heal bonus (Mercy I) multiplies all of
 ## it, and never the share of the target's health (heal_share_on). With no effect
 ## given, the skill's own heal is read - the AI ranks heals that way.
+## --- Prometheus's other magic ---
+##
+## The designer's picks of 2026-11-07 (docs/proposals_2026-11-07.md section 16); numbers PROPOSAL. Shrink: an effect's shrinks on GROW, and on a map
+## OutsideMoves Use.SHRINK. Transposition: swaps_places, transpose. Grease: a zone with zone_catches_fire, _fire_touches, and its condition
+## contested by zone (_zone_strikes). Wall of Stone: a wall object placed as Phantom Wall is. False Life: OVERHEAL. Withering Touch and Blight:
+## a condition's healing_taken_change, healing_taken_share.
+
+
+## How much of what mends `comb` reaches them.
+func healing_taken_share(comb: Dictionary) -> float:
+	var share := 1.0
+	for condition in conditions_of(comb):
+		share += condition.healing_taken_change
+	return maxf(share, 0.0)
+
+
+## Whether these two can change places: both there, not the same, and the same size on the map.
+func can_transpose(one: Dictionary, other: Dictionary) -> bool:
+	if one.is_empty() or other.is_empty() or is_same(one, other):
+		return false
+	if one.has("object") or other.has("object") or one.get("illusion", false) or other.get("illusion", false) or one.has("riding") or other.has("riding"):
+		return false
+	return footprint(one) == footprint(other)
+
+
+## `one` and `other` change places (Transposition). Whoever is of the other side from `caster` gets a say, and it is all or nothing.
+func transpose(caster: Dictionary, skill: SkillDefinition, one: Dictionary, other: Dictionary):
+	if not can_transpose(one, other):
+		update_information.emit("%s finds no way to change those two over.\n" % skill.name)
+		return
+	for each in [one, other]:
+		if immune_to(each, Immunity.Kind.TELEPORTED):
+			shrug_off(each, Immunity.name_of(Immunity.Kind.TELEPORTED))
+			return
+		if each.get("side", -1) != caster.get("side", -2) and not wins_contest(caster, each, skill):
+			update_information.emit("[color=red]%s[/color] holds on to where they are.\n" % each.name)
+			float_number(each, "Resists", Color("f4e7a1"))
+			return
+	var one_at: Vector2i = one.position
+	var other_at: Vector2i = other.position
+	MoveFeel.puff(self, MoveFeel.middle_of(self, one))
+	MoveFeel.puff(self, MoveFeel.middle_of(self, other))
+	_break_holds_on(one)
+	_break_holds_on(other)
+	one.position = other_at
+	other.position = one_at
+	one.sprite.position = sprite_point(one)
+	other.sprite.position = sprite_point(other)
+	controller.refresh_occupancy()
+	sync_zones()
+	reveal_anyone_now_seen()
+	update_information.emit("[color=yellow]%s[/color] and [color=yellow]%s[/color] have changed places.\n" % [one.name, other.name])
+	update_combatants.emit(combatants)
+
+
+## Fire on `tiles`: any ground there that goes up, goes up, as the fiercest fire there is to hand.
+func _fire_touches(tiles: Array, by: Dictionary):
+	if not _zones_laid:
+		return
+	for zone in zones.duplicate():
+		var effect: EffectDefinition = zone.get("effect")
+		if effect == null or not effect.zone_catches_fire or not zone.tiles.any(func(tile): return tile in tiles):
+			continue
+		zones.erase(zone)
+		var burner: SkillDefinition = SkillDatabase.skills.get("burner")
+		var owner := _combatant_by_id(zone.owner_id)
+		update_information.emit("The %s goes up!\n" % zone.name)
+		if burner != null:
+			for ground in burner.effects:
+				if ground != null and ground.type == EffectDefinition.EffectType.ZONE:
+					lay_zone(owner if not owner.is_empty() else by, ground, zone.tiles, burner)
+					break
+		sync_zones()
+		if controller != null:
+			controller.queue_redraw()
+
+
+## What counts as a deep gate, for what somebody says about it: Sophia on.
+const DEEP_GATE_FROM := 7
+
+
+## --- Enfina ---
+##
+## The designer's picks of 2026-11-07 (docs/proposals_2026-11-07.md section 15), all switches on a passive or a skill, so any creature could
+## have them; numbers PROPOSAL. She pays, so that others don't have to, and she knows how you fight. Fire: Burn on them is what Trailblaze
+## and anything else puts there. Blazed Path: blaze_where_they_walk, from the walk, a zone with "blazed_by". Flashover and Cauterise: a skill's
+## needs_own_burn, ends_own_burn, modifier_per_burn_turn; an effect's heal_per_burn_turn. Share the Fire: a condition's dot_lands_on_source.
+## Reactions: a passive's reactions_granted (_reactions_open_to), steps_in (_stepped_in), reads_the_form (_spend_the_reaction), reactions_harder.
+## Tricks: throws_friends and throws_things in _grip_refusal and _hurl; ARREST.
+
+const BURN_CONDITION := "res://data/conditions/burn.tres"
+## How far a friend is thrown, at most.
+const FRIEND_THROWN_TILES := 3
+
+
+## How many turns of Burn `comb` has left.
+static func burn_turns_of(comb: Dictionary) -> int:
+	var most := 0
+	for entry in comb.get("status_effects", []):
+		var condition = entry.get("condition")
+		if condition != null and condition.resource_path == BURN_CONDITION:
+			most = maxi(most, int(entry.get("duration", 0)))
+	return most
+
+
+## Whether `comb` has a passive with `switch` on, working now.
+func _has_passive_switch(comb: Dictionary, switch: StringName) -> bool:
+	return comb.has("passives") and active_passives(comb).any(func(passive): return passive.get(switch))
+
+
+## `mover` has come to `tile`: burning, with Blazed Path, it stays lit until their next turn.
+func blaze_where_they_walk(mover: Dictionary, tile: Vector2i):
+	if not mover.get("alive", false) or burn_turns_of(mover) <= 0 or not is_same(mover, get_current_combatant()) or not _has_passive_switch(mover, &"blazes_a_path"):
+		return
+	var id: int = mover.get("id", -1)
+	for zone in zones:
+		if zone.get("blazed_by", -1) == id:
+			if not tile in zone.tiles:
+				zone.tiles.append(tile)
+				sync_zones()
+				if controller != null:
+					controller.queue_redraw()
+			return
+	var skill: SkillDefinition = SkillDatabase.skills.get("blazed_path")
+	if skill == null:
+		return
+	for effect in skill.effects:
+		if effect != null and effect.type == EffectDefinition.EffectType.ZONE:
+			lay_zone(mover, effect, [tile], skill)
+			zones.back()["blazed_by"] = id
+			return
+
+
+## Whether `tile` is blazed for `comb`: their side's, and theirs to walk.
+func blazed_for(comb: Dictionary, tile: Vector2i) -> bool:
+	if not _zones_laid:
+		return false
+	for zone in zones:
+		if zone.has("blazed_by") and zone.get("side", -1) == comb.get("side", -2) and tile in zone.tiles:
+			return true
+	return false
+
+
+## A tile further for somebody whose turn starts on a blazed tile of their side's.
+func blazed_path_bonus(comb: Dictionary) -> int:
+	return 1 if comb.has("position") and blazed_for(comb, comb.position) else 0
+
+
+## Whether fire on the ground does `comb` no harm.
+func walks_through_fire(comb: Dictionary) -> bool:
+	return burn_turns_of(comb) > 0 and _has_passive_switch(comb, &"through_the_fire")
+
+
+## What is left to do after `user`'s move has landed: their Burn over, what comes off with it, and thawing at once as they light up.
+func _after_own_fire(user: Dictionary, skill: SkillDefinition):
+	if skill.ends_own_burn:
+		var kept: Array = user.get("status_effects", []).filter(func(entry): return entry.get("condition") == null or entry.condition.resource_path != BURN_CONDITION)
+		if kept.size() != user.get("status_effects", []).size():
+			user.status_effects = kept
+			resync_movement_class(user)
+			update_information.emit("[color=yellow]%s[/color]'s Burn is over.\n" % user.name)
+	if not skill.lifts_from_user.is_empty():
+		_lift_conditions(user, skill.lifts_from_user)
+	if burn_turns_of(user) > 0:
+		for passive in active_passives(user):
+			if passive.through_the_fire and not passive.immune_while_burning.is_empty():
+				_lift_conditions(user, passive.immune_while_burning)
+	update_combatants.emit(combatants)
+
+
+## Every reaction `reactor` has: on their list, and what a passive gives them.
+func _reactions_open_to(reactor: Dictionary) -> Array:
+	var keys: Array = reactor.get("skill_list", []).duplicate()
+	if reactor.has("passives"):
+		for passive in active_passives(reactor):
+			for key in passive.reactions_granted:
+				if not keys.has(key):
+					keys.append(key)
+	return keys
+
+
+## Who takes the blow that has been stepped in for, as it lands.
+var _stepped_in := {}
+
+
+func _take_blows_stepped_into(targets: Array) -> Array:
+	if _stepped_in.is_empty():
+		return targets
+	var taken: Array = targets.map(func(target): return _stepped_in.get(target.get("id", -1), target))
+	_stepped_in = {}
+	return taken
+
+
+## A reaction is spent: unless it was the free one, on somebody studied (Reads the Form).
+func _spend_the_reaction(reactor: Dictionary, target: Dictionary):
+	if target.get("studied", false) and not reactor.get("free_reaction_spent", false) and _has_passive_switch(reactor, &"reads_the_form"):
+		reactor["free_reaction_spent"] = true
+		update_information.emit("[color=yellow]%s[/color] knows this one, and it costs her nothing.\n" % reactor.name)
+		return
+	reactor.reaction_used = true
+
+
+## Whether `thrower` can throw allies, or things.
+func throws_friends(thrower: Dictionary) -> bool:
+	return _has_passive_switch(thrower, &"throws_friends")
+
+
+func throws_things(thrower: Dictionary) -> bool:
+	return _has_passive_switch(thrower, &"throws_things")
+
+
+## Whether what `thrower` means to throw is one of theirs, who is only being helped along.
+func _thrown_as_a_friend(thrower: Dictionary, thrown: Dictionary) -> bool:
+	return thrown.get("side", -1) == thrower.get("side", -2) and not thrown.has("object")
+
+
 func heal_amount(healer: Dictionary, skill: SkillDefinition, effect: EffectDefinition = null) -> int:
 	# A path that heals harder (the Carer's) - here, so the panel says so too.
 	var bonus := 1.0
@@ -6768,7 +7035,8 @@ func heal_amount(healer: Dictionary, skill: SkillDefinition, effect: EffectDefin
 	if heal != null and heal.heals_flat() and not skill is ItemDefinition:
 		var stat := float(stat_of(healer, scaling_stat_of(healer, skill)))
 		var weapon := float(healer.get("weapon_base", Stats.WEAPON_BASE))
-		return maxi(roundi((heal.heal_flat + heal.heal_per_stat * stat + heal.heal_per_weapon * weapon) * bonus), 0)
+		var flat: float = heal.heal_flat + heal.heal_per_burn_turn * burn_turns_of(healer)
+		return maxi(roundi((flat + heal.heal_per_stat * stat + heal.heal_per_weapon * weapon) * bonus), 0)
 	return maxi(roundi(power_behind(healer, skill) * heal_strength(skill, effect) * bonus), 0)
 
 
@@ -6996,6 +7264,8 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	# A wall is no patient: a heal over it mends nothing.
 	if is_wall(target):
 		return
+	if not is_same(attacker, target):
+		SpeechBubbles.on_event(self, target, &"healed")
 	# The same shape as damage: the healer's stat and the skill's modifier. The
 	# effect's flat range only stands in when there is no skill behind the
 	# healing at all, the way it does for damage.
@@ -7003,7 +7273,7 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	if effect.heals_share_only:
 		amount = 0
 	amount += heal_share_from(attacker, target, skill, effect)
-	amount = roundi(float(amount) * _blessed_factor(attacker, target))
+	amount = roundi(float(amount) * _blessed_factor(attacker, target) * healing_taken_share(target))
 	var before_heal: int = target.hp
 	target.hp = mini(target.hp + amount, get_effective_stat(target, "max_hp"))
 	_metric("heal", {"who": attacker, "target": target, "amount": target.hp - before_heal, "skill": skill})
@@ -7035,7 +7305,23 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 			update_information.emit("[color=lightgreen]%s[/color] recovers %d as well.\n" % [attacker.name, back])
 
 
+## `fallen` has gone down: whoever did it, and the nearest of their own side, may have something to say.
+func _say_of_the_fallen(fallen: Dictionary):
+	if not SpeechBubbles.shown():
+		return
+	SpeechBubbles.on_event(self, _combatant_by_id(fallen.get("hurt_by", -1)), &"fells_somebody")
+	var nearest := {}
+	for other in combatants:
+		if is_same(other, fallen) or not other.get("alive", false) or other.get("side", -1) != fallen.get("side", -2) or other.has("object") or other.get("illusion", false):
+			continue
+		if nearest.is_empty() or get_distance(other, fallen) < get_distance(nearest, fallen):
+			nearest = other
+	SpeechBubbles.on_event(self, nearest, &"ally_falls")
+
+
 func combatant_die(combatant: Dictionary):
+	if not combatant.has("object") and not combatant.get("illusion", false):
+		_say_of_the_fallen(combatant)
 	# A thing on the map does not fall either: broken, it goes off and is gone
 	# (see "Things on the map").
 	if combatant.has("object"):
@@ -7485,7 +7771,10 @@ func lose_hp(target: Dictionary, amount: int, element: int = -1, by: Dictionary 
 	var absorbed := mini(shield, amount)
 	if absorbed > 0:
 		target.temp_hp = shield - absorbed
+	var hp_was: int = target.hp
 	target.hp -= amount - absorbed
+	if target.hp > 0 and float(target.hp) < float(target.get("max_hp", 1)) / 3.0 and float(hp_was) >= float(target.get("max_hp", 1)) / 3.0:
+		SpeechBubbles.on_event(self, target, &"badly_hurt")
 	# What hurt them last, and from where, for how they fall (MoveFeel.falls).
 	target["last_hurt"] = {"element": element, "from": by.get("position", null)}
 	_metric("damage", {"target": target, "amount": amount - absorbed, "absorbed": absorbed, "element": element,
@@ -7608,7 +7897,27 @@ func _offer_ward(attacker: Dictionary, target: Dictionary, skill: SkillDefinitio
 ## What `attacker`'s paths do once `skill` has landed on `target`: an ally a
 ## spell lands on overhealed, or spurred on; an enemy hit while empowered set
 ## alight too.
+## Her biggest blow, while she burns, leaves the ground round it burning (Burning Titanfall): a rank with a splash, as Titanfall's is.
+func _burning_titanfall(attacker: Dictionary, target: Dictionary, skill: SkillDefinition):
+	if burn_turns_of(attacker) <= 0 or not _has_passive_switch(attacker, &"burning_titanfall") or not target.has("position"):
+		return
+	if not ranks_reached(attacker, skill).any(func(rank): return rank.splash_radius > 0):
+		return
+	var ground: SkillDefinition = SkillDatabase.skills.get("blazed_path")
+	if ground == null:
+		return
+	for effect in ground.effects:
+		if effect != null and effect.type == EffectDefinition.EffectType.ZONE:
+			var tiles: Array = get_diamond_tiles(target.position, 1).filter(func(tile): return controller == null or controller.is_on_map(tile))
+			lay_zone(attacker, effect, tiles, ground)
+			return
+
+
 func _after_landing(attacker: Dictionary, target: Dictionary, skill: SkillDefinition):
+	_burning_titanfall(attacker, target, skill)
+	if skill.deals_damage and not attacker.has("first_blow_said"):
+		attacker["first_blow_said"] = true
+		SpeechBubbles.on_event(self, attacker, &"first_blow")
 	if not attacker.alive:
 		return
 	# Struck in melee on ground that sweeps them along ("Zones").
@@ -8214,6 +8523,7 @@ func _gives_away(illusion: Dictionary, walker: Dictionary, tile: Vector2i):
 		if not unseen_by_party(comb):
 			names.append(comb.name)
 			float_number(comb, "Sees through it", Color("f4e7a1"))
+			SpeechBubbles.on_event(self, comb, &"seen_through")
 	if not names.is_empty():
 		update_information.emit("[color=red]%s[/color] %s through the [color=lightgreen]%s[/color].\n" % [", ".join(names), "sees" if names.size() == 1 else "see", called])
 
@@ -8490,6 +8800,8 @@ func immune_to_condition(comb: Dictionary, condition: ConditionDefinition) -> bo
 		for passive in active_passives(comb):
 			if passive.immune_to_conditions.any(func(c): return c != null and c.resource_path == condition.resource_path):
 				return true
+			if passive.through_the_fire and burn_turns_of(comb) > 0 and passive.immune_while_burning.any(func(c): return c != null and c.resource_path == condition.resource_path):
+				return true
 	# Something on them warding it off (Steady Heart's Unafraid).
 	for held in conditions_of(comb):
 		if held.immune_to_conditions.any(func(c): return c != null and c.resource_path == condition.resource_path):
@@ -8645,6 +8957,7 @@ func _check_phases(comb: Dictionary):
 
 
 func _begin_phase(comb: Dictionary, phase: BossPhase):
+	SpeechBubbles.on_event(self, comb, &"phase")
 	if comb.has("boss") and comb.boss.phase_sound != null and MoveFeel.shown():
 		play_stream(comb.boss.phase_sound)
 	if phase.message != "":
@@ -9690,6 +10003,8 @@ func only_gets_you_moving(skill: SkillDefinition) -> bool:
 ## would do something. The action panel greys it out and says this; the AI
 ## leaves it alone. Rooted, Run doubles a movement that is not there.
 func wasted_on(comb: Dictionary, skill: SkillDefinition) -> String:
+	if skill != null and skill.needs_own_burn and burn_turns_of(comb) <= 0:
+		return "Only while %s burns" % comb.get("name", "they")
 	if skill != null and skill.reaction_only:
 		return "%s only goes off as a reaction - when %s." % [skill.name, skill.describe_triggers()]
 	if skill != null and skill.only_in_shadow and comb.has("position") and not tile_in_shadow(comb.position):
@@ -11395,6 +11710,8 @@ func _has_studied(attacker: Dictionary, target: Dictionary) -> bool:
 ## every hit of somebody with studies_on_hit does (Enfina's Measured Eye). A hit
 ## that studies says so only the first time, and says nothing to an immunity.
 func study(attacker: Dictionary, target: Dictionary, by_a_hit: bool = false):
+	if not target.get("studied", false):
+		SpeechBubbles.on_event(self, attacker, &"studies")
 	if immune_to(target, Immunity.Kind.STUDIED):
 		if not by_a_hit:
 			shrug_off(target, Immunity.name_of(Immunity.Kind.STUDIED))
@@ -12056,7 +12373,8 @@ func _future_changed(comb: Dictionary, intent: Dictionary):
 	var lines: Array = reader.get("future_changed_lines", [])
 	if reader.get("alive", false) and not lines.is_empty():
 		var line: String = lines[rng.randi() % lines.size()]
-		float_number(reader, line, FUTURE_COLOUR)
+		if not SpeechBubbles.say_line(self, reader, line):
+			float_number(reader, line, FUTURE_COLOUR)
 		update_information.emit("[color=yellow]%s[/color]: \"%s\"\n" % [reader.name, line])
 	update_combatants.emit(combatants)
 
@@ -12098,6 +12416,8 @@ func hemmed_tiles(mover: Dictionary) -> Dictionary:
 ## What each movement point stepping onto `tile` costs `mover`: 2 hemmed in, 1
 ## otherwise.
 func hem_cost(mover: Dictionary, tile: Vector2i) -> int:
+	if blazed_for(mover, tile):
+		return 1
 	return 2 if hemmed_tiles(mover).has(tile) or _zone_costs_double(mover, tile) or _thing_costs_double(mover, tile) else 1
 
 
@@ -12819,6 +13139,7 @@ func _bodyguards_step_in(attacker: Dictionary, skill: SkillDefinition, targets: 
 		if guard != ward and guard.get("ai_guards", "") == key and guard.get("side", -1) == ward.get("side", -2) and _can_react(guard) \
 				and get_distance(guard, ward) <= guard.get("ai_guards_within", 3):
 			guard["reaction_used"] = true
+			SpeechBubbles.on_event(self, guard, &"takes_a_blow")
 			update_information.emit("[color=red]%s[/color] throws themselves in front of [color=red]%s[/color]!\n" % [guard.name, ward.name])
 			return [guard]
 	return targets
@@ -13124,6 +13445,15 @@ func refusal_for(attacker: Dictionary, skill: SkillDefinition, impact: Vector2i)
 		return ""
 	if skill.reaction_only:
 		return "%s only goes off as a reaction" % skill.name
+	if skill.needs_own_burn and burn_turns_of(attacker) <= 0:
+		return "%s only while %s burns" % [skill.name, attacker.get("name", "they")]
+	if skill.needs_nerve_shaken > 0.0:
+		var shaken_one := get_combatant_at(impact)
+		if not shaken_one.is_empty() and shaken_one.get("side", -1) != attacker.get("side", -2):
+			if not can_break(shaken_one):
+				return "%s cannot be talked down" % shaken_one.name
+			if float(shaken(shaken_one)) < float(shaken_one.get("nerve", 60)) * skill.needs_nerve_shaken:
+				return "%s's nerve still holds" % shaken_one.name
 	if skill.only_in_shadow:
 		if not tile_in_shadow(attacker.position):
 			return "%s only goes from the Dim or the Dark" % skill.name
@@ -13540,10 +13870,14 @@ func _grip_refusal(user: Dictionary, skill: SkillDefinition, target: Dictionary)
 		return ""
 	if target.is_empty():
 		return "Nobody there to get hold of"
+	if target.has("object") and skill.throws and target.object.can_be_thrown and throws_things(user):
+		return ""
 	if target.has("object") or target.get("illusion", false):
 		return "Nothing there to get hold of"
 	if target.has("riding"):
 		return "%s is up on somebody else" % target.name
+	if skill.throws and target.get("side", -1) == user.get("side", -2) and not throws_friends(user):
+		return "Nobody to throw there"
 	if skill.throws:
 		for kind in [Immunity.Kind.THROWN, Immunity.Kind.SHOVED]:
 			if immune_to(target, kind):
@@ -13624,6 +13958,9 @@ static func _climbs(skill: SkillDefinition) -> bool:
 ## reach, or somebody to throw them at.
 func throw_destinations(thrower: Dictionary, skill: SkillDefinition, thrown: Dictionary) -> Array:
 	var reach := throw_reach(thrower, skill)
+	var friendly := _thrown_as_a_friend(thrower, thrown)
+	if friendly:
+		reach = mini(reach, FRIEND_THROWN_TILES)
 	var found := []
 	var from: Vector2i = thrower.position
 	for dx in range(-reach, reach + 1):
@@ -13632,7 +13969,7 @@ func throw_destinations(thrower: Dictionary, skill: SkillDefinition, thrown: Dic
 			var tile := from + Vector2i(dx, dy)
 			if tile == thrown.position or not controller.is_in_bounds(tile):
 				continue
-			if can_land_on(thrown, tile) or _thrown_into(thrown, thrower, tile).size() > 0:
+			if can_land_on(thrown, tile) or (not friendly and _thrown_into(thrown, thrower, tile).size() > 0):
 				found.append(tile)
 	return found
 
@@ -13674,11 +14011,13 @@ func _hurl(thrower: Dictionary, skill: SkillDefinition, subject_tile: Vector2i, 
 	play_skill_sound(skill)
 	controller.action_locked = false
 	game_ui.refresh_action_buttons()
+	# A friend needs no quick time, and hurts nobody: down they come, ready to act.
+	var friendly := _thrown_as_a_friend(thrower, thrown)
 	# A quick time event for whoever it matters to, if the skill has one.
-	var power := await quick_time_power(thrower, [thrown], skill)
+	var power := 1.0 if friendly else await quick_time_power(thrower, [thrown], skill)
 	if not still_running():
 		return
-	var struck := _thrown_into(thrown, thrower, destination)
+	var struck := [] if friendly else _thrown_into(thrown, thrower, destination)
 	var landing := destination if struck.is_empty() else _nearest_free_tile(thrown, destination)
 	# Thrown, they are out of anybody's grip and lose hold of anybody in theirs.
 	_break_holds_on(thrown)
@@ -13691,16 +14030,25 @@ func _hurl(thrower: Dictionary, skill: SkillDefinition, subject_tile: Vector2i, 
 		thrown.sprite.position = sprite_point(thrown)
 		controller.reposition_combatant(from, landing)
 		MoveFeel.thrown(self, thrown, thrown_from)
+	if friendly:
+		update_information.emit("[color=yellow]%s[/color] throws [color=yellow]%s[/color], who lands ready.\n" % [thrower.name, thrown.name])
+		reveal_anyone_now_seen()
+		await _hack_spends_action(thrower, as_secondary, end_turn_after)
+		return
 	if struck.is_empty():
 		update_information.emit("[color=yellow]%s[/color] hurls [color=red]%s[/color]!\n" % [thrower.name, thrown.name])
 	else:
 		update_information.emit("[color=yellow]%s[/color] hurls [color=red]%s[/color] into [color=red]%s[/color]!\n" % [
 			thrower.name, thrown.name, ", ".join(struck.map(func(other): return other.name))])
-	for victim in [thrown] + struck:
+	for victim in ([] if thrown.has("object") else [thrown]) + struck:
 		if not victim.alive:
 			continue
 		for effect in skill.all_effects():
 			apply_effect(thrower, victim, effect, skill, false, power)
+	# A thing goes off where it lands (Anything Is a Weapon).
+	if thrown.has("object") and thrown.get("alive", false):
+		thrown.hp = 0
+		combatant_die(thrown)
 	reveal_anyone_now_seen()
 	await _hack_spends_action(thrower, as_secondary, end_turn_after)
 
@@ -14579,14 +14927,18 @@ func _stretch_parts(comb: Dictionary, old_span: int, new_span: int):
 func grow(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition, mention_skill: bool):
 	if target.has("object") or target.get("illusion", false):
 		return
-	var size := size_wanted(target) + 1
+	var change: int = -1 if effect.shrinks else 1
+	var size := size_wanted(target) + change
 	if size > Sizes.Size.GIGANTIC:
 		update_information.emit("[color=yellow]%s[/color] can grow no bigger.\n" % target.name)
+		return
+	if size < Sizes.Size.TINY:
+		update_information.emit("[color=yellow]%s[/color] can get no smaller.\n" % target.name)
 		return
 	var entry := {
 		"stat" = "size",
 		"op" = "add",
-		"amount" = 1,
+		"amount" = change,
 		"duration" = stored_duration(target, effect) if effect.duration > 0 else 999,
 		"ends_at_start" = effect.wears_off_at_start,
 		"source_name" = attacker.name,
@@ -14596,7 +14948,7 @@ func grow(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, sk
 		target.status_effects.erase(entry)
 		update_information.emit("There is no room for [color=yellow]%s[/color] to grow.\n" % target.name)
 		return
-	update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, "a size bigger"))
+	update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, "a size smaller" if effect.shrinks else "a size bigger"))
 
 
 ## --- Progression ---
@@ -14708,6 +15060,8 @@ func progression_damage_bonus(attacker: Dictionary, target: Dictionary, skill: S
 	var kindling := 0.0
 	var kindling_most := 0.0
 	for passive in active_passives(attacker):
+		if passive.reactions_harder > 0.0 and attacker.has("reacting"):
+			bonus += passive.reactions_harder
 		kindling += passive.kindling_step
 		kindling_most += passive.kindling_most
 		if passive.still_damage_bonus > 0.0 and not attacker.get("moved_this_turn", false):
@@ -15609,6 +15963,8 @@ func lay_zone(caster: Dictionary, effect: EffectDefinition, tiles: Array, skill:
 			zones.back().radius = aoe_radius_of(caster, skill)
 			update_information.emit("[color=yellow]%s[/color] carries it on their weapon.\n" % bearer.name)
 	_zones_now.append(zones.back())
+	if effect.damage_type == Damage.Type.FIRE and not effect.zone_catches_fire:
+		_fire_touches(tiles, caster)
 	# Seen spreading out from where it came down (MoveFeel).
 	MoveFeel.zone_spreads(self, _next_zone_id, _landing_at if _landing_at != NO_AREA else tiles[0], tiles)
 	_next_zone_id += 1
@@ -15785,7 +16141,8 @@ func zone_tiles() -> Array:
 			var lights: bool = effect != null and effect.zone_lights > 1
 			var tiles: Array = _spread_so_far(zone)
 			# Darkness is not drawn where it has lost (Daylight).
-			if zone.condition != null and zone.condition.is_darkness and not _won_from_the_dark.is_empty():
+			var condition = zone.get("condition")
+			if condition != null and condition.is_darkness and not _won_from_the_dark.is_empty():
 				tiles = tiles.filter(func(tile): return not _won_from_the_dark.has(tile))
 			return {"tiles": tiles, "hostile": zone.side != 0, "colour": zone.get("colour", Color(0, 0, 0, 0)),
 				"cloud": zone.centre if zone.get("moves", false) and not lights else NO_AREA,
@@ -15845,6 +16202,18 @@ func _zone_strikes(zone: Dictionary, comb: Dictionary):
 	if effect == null or skill == null or caster.is_empty() or not comb.get("alive", false):
 		return
 	var element: int = effect.damage_type
+	if element == Damage.Type.FIRE and walks_through_fire(comb):
+		return
+	if effect.zone_turn_damage <= 0.0:
+		# Nothing but what it leaves on them (Blazed Path), and they may have a say in that (Grease).
+		if skill.uses_stat_contest and not wins_contest(caster, comb, skill):
+			return
+		if effect.zone_leaves_conditions:
+			for leaving in skill.effects:
+				if leaving != null and leaving.type == EffectDefinition.EffectType.CONDITION and not leaving.applies_to_caster:
+					_apply_effect_by_type(caster, comb, leaving, skill, false, 1.0)
+		update_combatants.emit(combatants)
+		return
 	var raw := Stats.final_damage(power_behind(caster, skill) * effect.zone_turn_damage, damage_taken_multiplier(comb), stat_of(comb, Stats.Type.DEFENSE))
 	var amount := _burden_share(comb, resisted_damage(comb, element, raw), element, caster)
 	flash_target({}, comb, Damage.type_colour(element), comb.position)
@@ -16132,11 +16501,11 @@ func _begin_light():
 	var tile_map = terrain.get_node_or_null("TileMap") if terrain != null else null
 	_light_ambient = encounter.ambient if encounter != null and encounter.ambient != Light.Ambient.AS_THE_MAP else Campaign.map_ambient
 	_light_time = encounter.time_of_day if encounter != null and encounter.time_of_day >= 0 else Campaign.time_of_day
-	var no_moon: bool = (encounter != null and encounter.no_moon) or Campaign.map_no_moon
+	var no_moon: bool = (encounter != null and encounter.no_moon) or Campaign.no_moon_now()
 	_light_base = Light.base_level(_light_ambient, _light_time, no_moon)
 	CombatantSprite.forget_the_light()
-	CombatantSprite.set_shadows(Light.shadow_at(_light_ambient, _light_minute()))
-	var gathered := Light.gather(terrain, tile_map, _light_time, no_moon)
+	CombatantSprite.set_shadows(Campaign.sky_now(_light_ambient, _light_minute()))
+	var gathered := Light.gather(terrain, tile_map, _light_time, no_moon, _light_minute(), Campaign.season_shift())
 	_placed_lights = gathered.sources
 	_ambient_areas = gathered.areas
 	if light_view == null and tile_map != null and LightView.shown():
@@ -16167,7 +16536,7 @@ func _hour_changed():
 func _clock_moved():
 	if encounter != null and encounter.time_of_day >= 0:
 		return
-	CombatantSprite.set_shadows(Light.shadow_at(_light_ambient, _light_minute()))
+	CombatantSprite.set_shadows(Campaign.sky_now(_light_ambient, _light_minute()))
 	if light_view != null:
 		light_view.show_hour(_light_ambient, _light_minute(), true)
 
@@ -16270,6 +16639,8 @@ func _condition_lands(comb: Dictionary, sprite: CombatantSprite, condition: Cond
 		return
 	float_number(comb, word, ConditionLook.RING_HELPS if helps else ConditionLook.RING_HURTS)
 	sprite.flash_hit(not helps, condition.figure_tint if condition.figure_tint.a > 0.0 else null)
+	if not helps:
+		SpeechBubbles.on_event(self, comb, &"afflicted", condition.resource_path.get_file().get_basename())
 
 
 ## Where what `holder`'s tether holds is: everybody it has anything on, whatever it called up, the middle of a zone. Tiles.
@@ -16566,6 +16937,9 @@ func _run_from_terror(comb: Dictionary):
 ## Whether `reacting` answers `incoming` from `attacker`: anything does, but one that
 ## answers only blows of a base element or Physical (answers_base_elements).
 func _answers_this_blow(reacting: SkillDefinition, attacker: Dictionary, incoming: SkillDefinition) -> bool:
+	# Stepping in is for one blow at one person.
+	if reacting != null and reacting.steps_in and (incoming == null or not incoming.deals_damage or aoe_radius_of(attacker, incoming) > 0):
+		return false
 	if reacting == null or not reacting.answers_base_elements:
 		return true
 	if incoming == null or not incoming.deals_damage:
@@ -18151,7 +18525,7 @@ func _react(trigger: int, source: Dictionary, why: String, protected_for: Callab
 			continue
 		var protected: Dictionary = protected_for.call(reactor) if protected_for.is_valid() else (source if ally else reactor)
 		var options := []
-		for key in reactor.skill_list:
+		for key in _reactions_open_to(reactor):
 			var skill: SkillDefinition = SkillDatabase.skills.get(key)
 			if skill == null or not skill.reacts_to(trigger):
 				continue

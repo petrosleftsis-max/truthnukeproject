@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Resource" path="res://data/conditions/prone.tres" id="3_prone"]
+[ext_resource type="Texture2D" path="res://art/icons/grease_skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_down"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("3_prone")
+
+[sub_resource type="Resource" id="Effect_ground"]
+script = ExtResource("1_effect")
+type = 34
+zone_for = 2
+zone_turns = 3
+zone_turn_damage = 0.0
+zone_hurts_everybody = true
+zone_hurts_each_step = true
+zone_leaves_conditions = true
+zone_catches_fire = true
+zone_colour = Color(0.45, 0.4, 0.2, 0.32)
+
+[resource]
+script = ExtResource("2_skill")
+name = "Grease"
+description = "Ground that knocks down whoever walks it, Physical against his Intellect, for three of his turns; and it goes up with the first fire that touches it."
+min_range = 1
+max_range = 10
+aoe_radius = 2
+icon = ExtResource("4_icon")
+deals_damage = false
+uses_stat_contest = true
+contest_stat = 0
+spell_slot_level = 1
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_down"), SubResource("Effect_ground")])

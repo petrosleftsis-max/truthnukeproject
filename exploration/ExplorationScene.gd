@@ -257,10 +257,11 @@ func _begin_light():
 	var setup := _map_setup()
 	Campaign.map_ambient = setup.ambient if setup != null else Light.Ambient.OUTDOORS
 	Campaign.map_no_moon = setup != null and setup.no_moon
+	Campaign.map_sky_tint = setup.sky_tint if setup != null else Color.WHITE
 	if setup != null and setup.time_of_day >= 0 and not Net.follows():
 		Campaign.set_time_of_day(setup.time_of_day)
 	CombatantSprite.forget_the_light()
-	CombatantSprite.set_shadows(Light.shadow_at(Campaign.map_ambient, Campaign.minute_of_day()))
+	CombatantSprite.set_shadows(Campaign.sky_now())
 	if _tile_map == null:
 		return
 	_light_sight = null
@@ -278,9 +279,42 @@ func _begin_light():
 
 ## The clock has moved on: how it looks moves with it. What is lit only changes with the part of the day.
 func _clock_moved():
-	CombatantSprite.set_shadows(Light.shadow_at(Campaign.map_ambient, Campaign.minute_of_day()))
+	CombatantSprite.set_shadows(Campaign.sky_now())
 	if is_inside_tree() and light_view != null:
 		light_view.show_hour(Campaign.map_ambient, Campaign.minute_of_day(), true)
+	if is_inside_tree():
+		_keep_lights_by_the_clock()
+
+
+## Lights that go by the clock (LightSource.by_the_clock), once one of them changes: what is lit changes, and it isn't the part of the day
+## that did it. Only a map with any asks.
+var _clock_lights := []
+var _clock_lights_found := false
+var _clock_lights_were := ""
+
+
+func _keep_lights_by_the_clock():
+	if stealth != null and is_instance_valid(stealth):
+		stealth.keep_lamps_by_the_clock()
+	var map = get_node_or_null(MAP_NODE)
+	if map == null or _tile_map == null:
+		return
+	if not _clock_lights_found:
+		_clock_lights_found = true
+		_clock_lights = map.find_children("*", "LightSource", true, false).filter(func(node): return node.by_the_clock)
+	if _clock_lights.is_empty():
+		return
+	var minute: int = Campaign.minute_of_day()
+	var shift: int = Campaign.season_shift()
+	var now := ""
+	for node in _clock_lights:
+		now += "1" if is_instance_valid(node) and node.lit_by_the_clock_at(minute, shift) else "0"
+	if now == _clock_lights_were:
+		return
+	_clock_lights_were = now
+	relight_map()
+	if stealth != null and is_instance_valid(stealth):
+		stealth.lights_changed()
 
 
 func _hour_changed():
@@ -327,10 +361,10 @@ func relight_map(watch = null):
 	if map == null or _tile_map == null:
 		return
 	var time: int = Campaign.time_of_day
-	var base: int = Light.base_level(Campaign.map_ambient, time, Campaign.map_no_moon)
+	var base: int = Light.base_level(Campaign.map_ambient, time, Campaign.no_moon_now())
 	if watch != null and watch.setup != null and watch.setup.dark:
 		base = Light.Level.DARK
-	var gathered := Light.gather(map, _tile_map, time, Campaign.map_no_moon)
+	var gathered := Light.gather(map, _tile_map, time, Campaign.no_moon_now(), Campaign.minute_of_day(), Campaign.season_shift())
 	if base == Light.Level.BRIGHT and gathered.areas.is_empty():
 		if light.varies or not light.glow.is_empty():
 			light.clear()
@@ -456,7 +490,7 @@ func is_walkable(world_position: Vector2) -> bool:
 		return false
 	# Flying (Fly - OutsideMoves), over whatever stops only walkers.
 	var walls: Dictionary = _blocking_fliers if flying() else _blocking
-	return not walls.has(tile) and not _shut.has(tile) and not _small_gaps.has(tile)
+	return not walls.has(tile) and not _shut.has(tile) and (shrunk() or not _small_gaps.has(tile))
 
 
 ## --- Small gaps ---
@@ -1169,6 +1203,7 @@ func hurry_left() -> float:
 
 func _hurry_on(delta: float):
 	_fly_on(delta)
+	_shrink_on(delta)
 	if _hurry_left <= 0.0:
 		return
 	_hurry_left -= delta
@@ -1732,6 +1767,54 @@ var _landing := false
 ## The party flies for `seconds` (Fly - OutsideMoves): over whatever stops only
 ## walkers - a barrel, a cart - and down once the time is up and they are over
 ## somewhere they can stand.
+## --- Shrink, on a map ---
+##
+## For so many seconds the party goes through small gaps (OutsideMoves Use.SHRINK). Drawn smaller meanwhile. With its time up in the middle
+## of a grate, it waits until they are out of it.
+const SHRUNK_SCALE := 0.65
+var _shrunk_left := 0.0
+
+
+func shrink_party(seconds: float):
+	Net.shrink_there(seconds)
+	var was := shrunk()
+	_shrunk_left = seconds
+	if shrunk() != was:
+		_draw_the_party_shrunk(shrunk())
+
+
+func shrunk() -> bool:
+	return _shrunk_left > 0.0
+
+
+func _draw_the_party_shrunk(on: bool):
+	if party == null:
+		return
+	for key in Campaign.party_order:
+		var figure = party.sprite_for(key)
+		if figure == null:
+			continue
+		if on and not figure.has_meta("scale_when_full"):
+			figure.set_meta("scale_when_full", figure.scale)
+			figure.scale *= SHRUNK_SCALE
+		elif not on and figure.has_meta("scale_when_full"):
+			figure.scale = figure.get_meta("scale_when_full")
+			figure.remove_meta("scale_when_full")
+
+
+func _shrink_on(delta: float):
+	if _shrunk_left <= 0.0:
+		return
+	var left: float = _shrunk_left - delta
+	if left <= 0.0:
+		var leader = party.sprite_for(Campaign.leader()) if party != null else null
+		if leader != null and _tile_map != null and _small_gaps.has(_tile_map.local_to_map(_tile_map.to_local(leader.global_position))):
+			return
+		shrink_party(0.0)
+		return
+	_shrunk_left = left
+
+
 func fly(seconds: float):
 	_flying_left = seconds
 	_landing = false

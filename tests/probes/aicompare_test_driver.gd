@@ -25,7 +25,7 @@ const BOTH_SIDES := ["res://data/encounters/encounter_02_sappers.tres", "res://d
 	"res://data/encounters/boss_ash_warden.tres"]
 const SEEDS := [11]
 const MOST_ROUNDS := 20
-const MOST_SECONDS := 150.0
+const MOST_SECONDS := 300.0
 const MOST_SECONDS_STANDING := 40.0
 const STUCK_SECONDS := 30.0
 
@@ -73,6 +73,7 @@ func _ready():
 				before.append(await play(path, each_seed, false, true))
 				now.append(await play(path, each_seed, true, true))
 			line += " | wins %d -> %d, rounds %.1f -> %.1f, health left %d%% -> %d%%" % [_wins(before), _wins(now), _mean(before, "rounds"), _mean(now, "rounds"), roundi(_mean(before, "left") * 100.0), roundi(_mean(now, "left") * 100.0)]
+			line += ", ended by %s -> %s" % [before[0].why, now[0].why]
 		log_line(line)
 	log_line("======== DONE ========")
 	_log.close()
@@ -159,7 +160,19 @@ func play(path: String, each_seed: int, knowing: bool, party_fights: bool) -> Di
 	for comb in party:
 		if comb.get("alive", false):
 			left += float(comb.hp)
-	var run := {"damage": taken_by_round_three, "rounds": combat.round_number, "left": left / maxf(whole, 1.0),
+	# Why it stopped, as a fight cut off is no loss.
+	var why := "the clock"
+	if combat.lost_because != "":
+		why = "\"%s\"" % combat.lost_because
+	elif combat.combat_over:
+		why = "the fight ending"
+	elif combat.groups[0].is_empty() or combat.groups[1].is_empty():
+		why = "a side gone"
+	elif combat.round_number > MOST_ROUNDS:
+		why = "the rounds running out"
+	elif float(Time.get_ticks_msec() - turn_since) / 1000.0 > STUCK_SECONDS:
+		why = "somebody stuck"
+	var run := {"damage": taken_by_round_three, "rounds": combat.round_number, "left": left / maxf(whole, 1.0), "why": why,
 		"won": party.any(func(comb): return comb.get("alive", false)) and not combat.groups[1].any(func(index): return combat.combatants[index].get("alive", false) and not combat.combatants[index].get("illusion", false))}
 	game.queue_free()
 	await settle(3)

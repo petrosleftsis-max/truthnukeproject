@@ -310,6 +310,8 @@ func enfina_paths():
 	cyrus.hp = 5
 	cyrus.max_hp = 9999
 	var enfina_hp: int = enfina.hp
+	# Her reaction spent, or she steps in front of it herself (Drills) and it never comes to this.
+	enfina.reaction_used = true
 	await strike(foe, cyrus)
 	ok(cyrus.alive and cyrus.hp == 1 and enfina.hp < enfina_hp, "a blow that would fell him stops at 1, the rest is hers (Last Wall)",
 		"%d / %d" % [cyrus.hp, enfina_hp - enfina.hp])

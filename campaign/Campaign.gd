@@ -291,6 +291,11 @@ signal time_of_day_changed
 var time_of_day: int = Light.Hour.DAY
 var map_ambient: int = Light.Ambient.OUTDOORS
 var map_no_moon := false
+## This map's own sky (MapSetup.sky_tint).
+var map_sky_tint := Color.WHITE
+## A sky or a moon a scene has fixed (set_weather, set_moon).
+var weather_fixed := {}
+var moon_fixed := ""
 
 
 ## To `hour`: a Light.Hour, or its name ("night"): the next time it comes round, by the clock.
@@ -298,7 +303,7 @@ func set_time_of_day(hour):
 	var wanted: int = hour if hour is int else Light.TIME_NAMES.find(String(hour).to_lower())
 	if wanted < 0 or wanted >= Light.TIME_NAMES.size() or wanted == time_of_day:
 		return
-	var ahead: int = posmod(Light.HOUR_STARTS[wanted] - minute_of_day(), Light.MINUTES_A_DAY)
+	var ahead: int = posmod(Light.hour_start(wanted, season_shift()) - minute_of_day(), Light.MINUTES_A_DAY)
 	clock_to(calendar_minutes + ahead)
 
 
@@ -369,7 +374,7 @@ func clock_to(minutes: int):
 		return
 	calendar_minutes = maxi(minutes, calendar_minutes)
 	clock_moved.emit()
-	var hour: int = Light.hour_at(minute_of_day())
+	var hour: int = Light.hour_at(minute_of_day(), season_shift())
 	if hour != time_of_day:
 		time_of_day = hour
 		time_of_day_changed.emit()
@@ -406,6 +411,80 @@ func watch_time_pass(hours: float, days: int = 0, seconds: float = 5.0):
 		return
 	Net.time_passes(minutes, seconds)
 	await play_time_passing(minutes, seconds)
+
+
+## --- A line in a bubble ---
+##
+## `do Campaign.say_bubble("enfina", "Keep up.")`: over them, gone by itself, on a map or in a fight, whoever else is talking.
+func say_bubble(key: String, line: String):
+	Net.bubble_there(key, line)
+	var scene = get_tree().current_scene
+	if scene is GameScene and scene.combat != null:
+		for comb in scene.combat.combatants:
+			if comb.get("combatant_key", "") == key and comb.get("alive", false) and not comb.get("illusion", false):
+				SpeechBubbles.say_line(scene.combat, comb, line)
+				return
+	elif scene is ExplorationScene and scene.party != null:
+		var figure = scene.party.sprite_for(key)
+		if figure != null:
+			SpeechBubbles.say_over(get_tree(), figure, line, SpeechBubbles.PARTY_EDGE)
+
+
+## --- The day's own sky ---
+##
+## (The designer's picks of 2026-11-07, docs/proposals_2026-11-07.md section 14.) Worked out from the day number and nothing else, so both
+## machines see the same sky, a save brings it back and a replayed fight comes out the same; only a scene saying otherwise changes it.
+##     do Campaign.set_weather("storm")          today, whatever it was going to be: clear, haze, overcast, rain, fog, storm
+##     do Campaign.set_weather("rain", 3)        today and the next two
+##     do Campaign.set_weather()                 the day's own again
+##     do Campaign.set_moon("full")              or "new", whatever the date; set_moon() goes by the date again
+## All of it is how it looks, but for two things: a new moon is No Moon, by the rule, and the month moves when dawn and dusk begin.
+
+
+## The sky today.
+func weather_today() -> String:
+	if not weather_fixed.is_empty() and day_number() <= int(weather_fixed.get("until_day", 0)):
+		return weather_fixed.get("name", "clear")
+	return Light.weather_of(day_number())
+
+
+## `name` for today and `days` - 1 more, or the day's own with no name.
+func set_weather(name: String = "", days: int = 1):
+	weather_fixed = {} if name == "" else {"name": name, "until_day": day_number() + maxi(days, 1) - 1}
+	clock_moved.emit()
+
+
+## "full" or "new", whatever the date, or going by the date again with neither.
+func set_moon(name: String = ""):
+	moon_fixed = name
+	time_of_day_changed.emit()
+	clock_moved.emit()
+
+
+## Where the moon is in its round: tonight's until noon, then the coming night's, so that it can't change in the middle of a night.
+func moon_now() -> float:
+	match moon_fixed:
+		"full":
+			return 0.5
+		"new":
+			return 0.0
+	return Light.moon_phase(day_number() - (1 if minute_of_day() < 720 else 0))
+
+
+## Whether tonight has no moon: this map's own say, or the date's.
+func no_moon_now() -> bool:
+	return map_no_moon or Light.moon_light(moon_now()) < Light.NO_MOON_BELOW
+
+
+## How much later the sun goes down than in the middle of the year, by the month.
+func season_shift() -> int:
+	var calendar_is := calendar()
+	return Light.season_shift(day_number(), maxi(calendar_is.months.size(), 1) * calendar_is.days_in_a_month)
+
+
+## The sky at `minute` of today, in `ambient` (Light.sky).
+func sky_now(ambient: int = map_ambient, minute: int = -1) -> Dictionary:
+	return Light.sky(ambient, minute if minute >= 0 else minute_of_day(), day_number(), weather_today(), map_sky_tint, moon_now(), season_shift())
 
 
 ## A night with no moon on this map, or with one.
@@ -1039,7 +1118,7 @@ const SAVED := ["party_level", "party_state", "subclasses", "path_change_open", 
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
 	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks",
 	"controllers", "prepared_spells", "locked_spells", "last_prepared", "spells_readied", "prepare_due",
-	"time_of_day", "map_ambient", "map_no_moon", "calendar_minutes"]
+	"time_of_day", "map_ambient", "map_no_moon", "calendar_minutes", "map_sky_tint", "weather_fixed", "moon_fixed"]
 
 
 ## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with
@@ -1113,8 +1192,9 @@ func net_state() -> Dictionary:
 
 ## `keeping`: SAVED keys left as they are here (Net: what an open menu changes).
 func apply(state: Dictionary, keeping: Array = []):
-	var light_before := [time_of_day, map_ambient, map_no_moon]
+	var light_before := [time_of_day, map_ambient, map_no_moon, moon_fixed]
 	var clock_before := calendar_minutes
+	var sky_before := [map_sky_tint, weather_fixed, moon_fixed]
 	# A copy: Array() of an array is that same array, and would change with it.
 	var party_before := party_order.duplicate()
 	if state.get("party_order") is Array:
@@ -1141,9 +1221,9 @@ func apply(state: Dictionary, keeping: Array = []):
 	# Saved before there was a clock: the first day, at that part of it.
 	if not state.has("calendar_minutes") and state.has("time_of_day") and not keeping.has("time_of_day"):
 		calendar_minutes = Light.HOUR_STARTS[clampi(time_of_day, 0, Light.HOUR_STARTS.size() - 1)]
-	if clock_before != calendar_minutes:
+	if clock_before != calendar_minutes or sky_before != [map_sky_tint, weather_fixed, moon_fixed]:
 		clock_moved.emit()
-	if light_before != [time_of_day, map_ambient, map_no_moon]:
+	if light_before != [time_of_day, map_ambient, map_no_moon, moon_fixed]:
 		time_of_day_changed.emit()
 
 
@@ -1484,6 +1564,9 @@ func reset():
 	time_passing = false
 	map_ambient = Light.Ambient.OUTDOORS
 	map_no_moon = false
+	map_sky_tint = Color.WHITE
+	weather_fixed = {}
+	moon_fixed = ""
 	_arena_return = {}
 	dungeon = null
 	dungeon_stage = 0

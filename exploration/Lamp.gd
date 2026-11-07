@@ -17,6 +17,9 @@ class_name Lamp
 @export var starts_lit: bool = true : set = _set_starts_lit
 ## Whether it can be put out at all - a brazier too big to pinch out.
 @export var can_be_put_out: bool = true
+## Lit around dusk and put out around dawn, each one at a slightly different minute (Light.lamp_lit_at). Whoever puts it out
+## in between leaves it out until the next time it would change.
+@export var by_the_clock: bool = false
 
 const FLAME := Color(1.0, 0.78, 0.36)
 const GLOW := Color(1.0, 0.72, 0.3)

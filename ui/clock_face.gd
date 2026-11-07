@@ -46,7 +46,8 @@ func _process(_delta):
 
 func _show():
 	_label.text = "Day %d  %s" % [Campaign.day_number(), Campaign.clock_text()]
-	tooltip_text = "%s\n%s, %s" % [Campaign.date_text(), Campaign.clock_text(), Light.TIME_NAMES[Campaign.time_of_day]]
+	var moon: String = Light.moon_name(Campaign.moon_now())
+	tooltip_text = "%s\n%s, %s\n%s, %s" % [Campaign.date_text(), Campaign.clock_text(), Light.TIME_NAMES[Campaign.time_of_day], Campaign.weather_today(), moon]
 	_dial.queue_redraw()
 
 
@@ -55,10 +56,17 @@ func _draw_dial():
 	var hour: int = Campaign.time_of_day
 	match hour:
 		Light.Hour.NIGHT:
+			# As much of it as there is tonight.
+			var phase: float = Campaign.moon_now()
 			_dial.draw_circle(middle, 6.0, MOON)
-			_dial.draw_circle(middle + Vector2(2.5, -1.5), 5.0, Color(0.1, 0.12, 0.2))
+			if Light.moon_light(phase) < 0.9:
+				_dial.draw_circle(middle + Vector2((phase - 0.5) * 16.0, 0.0), 5.6, Color(0.1, 0.12, 0.2))
 		Light.Hour.DAY:
 			_dial.draw_circle(middle, 6.0, SUN)
 		_:
 			_dial.draw_circle(middle + Vector2(0.0, 2.0), 6.0, LOW_SUN)
 			_dial.draw_rect(Rect2(0.0, middle.y + 4.0, _dial.size.x, 4.0), Color(0.1, 0.12, 0.2))
+	# A cloud in front of it, on a day with a sky to speak of.
+	if ["overcast", "rain", "storm", "fog"].has(Campaign.weather_today()):
+		for puff in [Vector2(-3.0, 3.0), Vector2(1.0, 2.0), Vector2(4.0, 4.0)]:
+			_dial.draw_circle(middle + puff, 3.2, Color(0.72, 0.75, 0.8))

@@ -13,6 +13,18 @@
 [ext_resource type="Resource" path="res://data/passives/bulwark_iii.tres" id="p_bulwark_iii"]
 [ext_resource type="Resource" path="res://data/passives/momentum_ii.tres" id="p_momentum_ii"]
 
+[ext_resource type="Resource" path="res://data/passives/blazed_path.tres" id="p_blazed_path"]
+[ext_resource type="Resource" path="res://data/passives/through_the_fire.tres" id="p_through_the_fire"]
+[ext_resource type="Resource" path="res://data/passives/burning_titanfall.tres" id="p_burning_titanfall"]
+[ext_resource type="Resource" path="res://data/passives/reads_the_form.tres" id="p_reads_the_form"]
+[ext_resource type="Resource" path="res://data/passives/drills.tres" id="p_drills"]
+[ext_resource type="Resource" path="res://data/passives/drills_ii.tres" id="p_drills_ii"]
+[ext_resource type="Resource" path="res://data/passives/drills_iii.tres" id="p_drills_iii"]
+[ext_resource type="Resource" path="res://data/passives/throw_a_friend.tres" id="p_throw_a_friend"]
+[ext_resource type="Resource" path="res://data/passives/anything_is_a_weapon.tres" id="p_anything_is_a_weapon"]
+[ext_resource type="Resource" path="res://data/passives/carries_them.tres" id="p_carries_them"]
+[ext_resource type="Resource" path="res://data/lines/enfina.tres" id="lines_enfina"]
+
 [resource]
 script = ExtResource("3_efyvm")
 name = "Enfina"
@@ -45,8 +57,9 @@ secondary_stat = 2
 icon = ExtResource("1_8oq43")
 map_sprite = ExtResource("1_8oq43")
 sprite_frames = ExtResource("4_yrjjv")
-skills = Array[String](["study", "greatsword_attack", "fire_burst", "light_swing", "shoving_strike", "sweep_strike", "blink_strike", "guard", "slip_past", "run", "trailblaze", "follow_up_attack", "intimidate", "hurl", "grab", "climb", "battle_cry", "disarm", "stunning_blow"])
-passives = Array[ExtResource("2_1e8p3")]([ExtResource("5_eye"), ExtResource("p_iron_hide"), ExtResource("p_bulwark"), ExtResource("p_iron_hide_ii"), ExtResource("p_momentum"), ExtResource("p_iron_hide_iii"), ExtResource("p_bulwark_iii"), ExtResource("p_momentum_ii")])
+skills = Array[String](["study", "greatsword_attack", "fire_burst", "light_swing", "shoving_strike", "sweep_strike", "blink_strike", "guard", "slip_past", "run", "trailblaze", "follow_up_attack", "intimidate", "hurl", "grab", "climb", "battle_cry", "disarm", "stunning_blow", "flashover", "cauterise", "share_the_fire", "arrest"])
+passives = Array[ExtResource("2_1e8p3")]([ExtResource("5_eye"), ExtResource("p_iron_hide"), ExtResource("p_bulwark"), ExtResource("p_iron_hide_ii"), ExtResource("p_momentum"), ExtResource("p_iron_hide_iii"), ExtResource("p_bulwark_iii"), ExtResource("p_momentum_ii"), ExtResource("p_blazed_path"), ExtResource("p_through_the_fire"), ExtResource("p_burning_titanfall"), ExtResource("p_reads_the_form"), ExtResource("p_drills"), ExtResource("p_drills_ii"), ExtResource("p_drills_iii"), ExtResource("p_throw_a_friend"), ExtResource("p_anything_is_a_weapon"), ExtResource("p_carries_them")])
 keeps_codex = true
+lines = ExtResource("lines_enfina")
 subclasses = Array[String](["vanguard", "juggernaut", "warden_of_cover"])
 starting_items = Array[String](["tiny_bomb", "tiny_bomb", "crystal_bottle"])

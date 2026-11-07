@@ -103,6 +103,9 @@ func run_test():
 	var bank := GameSounds.bank()
 	var empty := []
 	for property in bank.get_property_list():
+		# The day's own are silence until there is a sound for them (docs/sound_plan.md).
+		if property.name in ["birds_at_dawn", "insects_at_dusk", "crickets_at_night", "rain_falling"]:
+			continue
 		if property.usage & PROPERTY_USAGE_STORAGE and property.type == TYPE_OBJECT and bank.get(property.name) == null:
 			empty.append(property.name)
 	ok(empty.is_empty(), "every slot in the bank is filled", "%s" % [empty])

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="2_cond"]
+[ext_resource type="Resource" path="res://data/conditions/fear.tres" id="3_fear"]
+[ext_resource type="Resource" path="res://data/conditions/frozen.tres" id="4_frozen"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Through the Fire"
+description = "While she burns, fire on the ground does her no harm, she thaws at once, and Fear cannot take hold."
+required_level = 41
+through_the_fire = true
+immune_while_burning = Array[ExtResource("2_cond")]([ExtResource("3_fear"), ExtResource("4_frozen")])

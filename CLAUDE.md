@@ -43,7 +43,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 163 suites and takes a while. Each one boots the real game
+A full run is 167 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one. A second harness can run beside a
@@ -61,7 +61,7 @@ writes nothing to a terminal, so a headless run looks like it did nothing.
 
 ## What Godot will do to your .tres files
 
-Four things, all of which have cost real time here.
+Five things, all of which have cost real time here.
 
 **A property equal to its export default is not written at all.** So a missing
 line in a `.tres` means "whatever the script says the default is", and the day
@@ -88,6 +88,10 @@ while the project is open and the inspector still shows the old one; saving any
 resource from there writes the old name back over yours. That is how the
 `flat_power` files got re-broken after being fixed. Reopen the project after a
 rename of that kind.
+
+**A `uid` on an `ext_resource` line beats its `path`.** Change the path by hand on a
+line that has one, and the game goes on loading the old file without a word: Share the
+Fire wore Trailblaze's icon that way. Take the uid off in the same edit.
 
 ## Writing files into this project
 
@@ -373,6 +377,23 @@ their tile. `board_fingerprint` counts what has been seen through, so a walk can
 `settle_undo_point` never leaves the way back inside one. Nobody notices who can see nothing (`_sees_nothing`): Blind, or
 in darkness without `sees_in_darkness`.
 
+**Enfina** (Combat "Enfina"; `enfina`; the designer's picks of 2026-11-07, section 15). Switches on a passive or a skill, numbers PROPOSAL. She pays, so others don't have to, and she knows
+how you fight. `burn_turns_of`. Blazed Path: `blaze_where_they_walk` from the walk, a zone with "blazed_by", `blazed_for` in `hem_cost`, `blazed_path_bonus` in `set_controlled_combatant`. Flashover and
+Cauterise: `needs_own_burn`, `ends_own_burn` (`_after_own_fire`), `modifier_per_burn_turn` in `modifier_of`, `heal_per_burn_turn`. Share the Fire: a condition's `dot_lands_on_source` (`_who_a_tick_lands_on`).
+Through the Fire: `walks_through_fire`, `immune_while_burning`. Burning Titanfall: `_burning_titanfall`, from `_after_landing`. Drills: a passive's `reactions_granted` (`_reactions_open_to`, read by
+`_react`; off the action bar), Riposte, Step In (`steps_in`, `_stepped_in`, `_take_blows_stepped_into`), `reactions_harder`. Reads the Form: `_spend_the_reaction`. Throw a Friend and Anything Is a Weapon:
+`throws_friends`, `throws_things`, `BattleObjectDefinition.can_be_thrown`, in `_grip_refusal`, `throw_destinations`, `_hurl` and `CController.is_valid_skill_target`. Arrest: `needs_nerve_shaken`,
+EffectType ARREST. Carries Them: `StealthWatch._carries_at_full_pace`, whoever leads.
+
+**Prometheus's other magic** (Combat of that name; `prometheus`; section 16). Shrink: an effect's `shrinks` on GROW; on a map `OutsideMoves.Use.SHRINK`, `ExplorationScene.shrink_party`, `shrunk`
+(small gaps walkable, `_shrink_on` waiting if it runs out inside one). Transposition: `swaps_places`, `transpose`, `can_transpose`, aimed twice (`CController.is_valid_landing_tile`, `landable_tiles`).
+Grease: a zone with `zone_catches_fire`, `_fire_touches` from `_use_skill` and `lay_zone`; `_zone_strikes` contests a zone that does no damage. Wall of Stone: `data/objects/wall_of_stone.tres`, placed as Phantom Wall is.
+False Life: EffectType OVERHEAL. Withering Touch and Blight: `ConditionDefinition.healing_taken_change`, `healing_taken_share` in `do_heal`.
+
+**Lines in a bubble** (`combat/SpeechBubbles.gd`, `combat/resources/CombatLines.gd`; `speech`; the designer, 2026-11-07). Only to look at. `CombatantDefinition.lines` says what a creature may say at each moment;
+`SpeechBubbles.on_event` from Combat (`CHANCES`, `QUIET_FOR_MS`, `WONT_WAIT`), `somebody_says` for a moment that is the fight's, `say_line` for one somebody means, `say_over` for any figure, and `do Campaign.say_bubble(key, line)`
+for a conversation, on a map or in a fight. A CanvasLayer under the root, made as first needed, placed from the figure's position each frame. Global randomness is fine in that file, and not in Combat.gd (`rolls`). Headless: `plays_headless`, and `always` for a test.
+
 **The AI's mind** (Combat "The AI's mind"; `aimind`; the designer, 2026-11-06). Per creature:
 `CombatantDefinition.ai_smarts` (`AI_KNOWN_BY`), `ai_also_knows`, `ai_never_knows` make `comb.ai_knows`
 (`AiKnows` flags; ask `_ai_knows`), and the dials `ai_aggression`, `ai_caution`, `ai_focus`,
@@ -467,6 +488,16 @@ way it moves, never backwards, saying `clock_moved` always and `time_of_day_chan
 conversation: `advance_clock`, `set_clock`, `set_time_of_day`, `watch_time_pass` (a coroutine; `time_passing` holds
 everybody; `Net.time_passes` shows it on the joiner). A long rest ends at the next dawn; a short rest takes
 `SHORT_REST_HOURS` (PROPOSAL). Light's rule only changes with the part of the day; how it looks goes by the minute.
+
+**The sky** (`Light.sky`, Campaign "The day's own sky", `LightView._show_the_sky`; `daysky`; the designer's picks of 2026-11-07, section 14). `Light.SKY` is about
+thirteen marks with a Hermite curve through them (`_curve`); tone, lean, strength, softness, saturation, contrast and how lit it looks all come from
+`sky(ambient, minute, day, weather, place, moon, shift)`, and `Campaign.sky_now` fills in today. Nothing rolls: `day_share` works from the day number. `weather_of`, each
+day's sky, or `do Campaign.set_weather("storm")`; `Light.WEATHERS` says what each does. Each day's sunrise and sunset lean by `DAY_SKIES`. `moon_phase`: full on day 1,
+`MOON_DAYS` round. **Two rule changes:** a new moon is No Moon (`no_moon_now`, in place of reading `map_no_moon`, not changing in the middle of a night; `do Campaign.set_moon("full")`), and
+the month moves when dawn and dusk begin (`season_shift`, in steps, 0 for the first week; `hour_at(minute, shift)`, `hour_start`). `LightView`: `_how_lit_it_looks`, the shade by the minute for
+tiles `LightMap.under_the_sky`, the rule's levels unchanged; clouds' shadows and mist (`SKY_LAYER_SHADER`), rain, dust and insects (`_set_rain`, `_set_life`), a sound per hour
+(`_set_day_sound`, SoundBank's "The day"); an opening's light takes the sky's colour. `MapSetup.sky_tint` is a place's own sky. `LightSource.by_the_clock` and `Lamp.by_the_clock` come on around dusk and go
+out around dawn, each at its own minute by where it stands (`Light.lamp_lit_at`; `ExplorationScene._keep_lights_by_the_clock`, `StealthWatch.keep_lamps_by_the_clock`, only when they would change).
 
 **Sounds** (`audio/GameSounds.gd`, `audio/SoundBank.gd`, `audio/sound_bank.tres`; `audio`; `docs/sound_plan.md`).
 Everything that is not a move's or a condition's own is a slot in the bank: `GameSounds.play(slot)`, `loop`,

@@ -13,6 +13,8 @@ class_name LightSource
 @export var colour: Color = Color(1.0, 0.74, 0.42)
 ## Whether it is giving light to begin with.
 @export var lit: bool = true
+## Lit around dusk and put out around dawn, each one at a slightly different minute (Light.lamp_lit_at), going by the clock.
+@export var by_the_clock: bool = false
 ## A way in for the sun, not a flame of its own.
 @export var opening: bool = false
 ## Whether it breathes, as a flame does.
@@ -32,8 +34,8 @@ func _set_dim(value: float):
 
 
 ## What it gives now, as LightMap wants it, or nothing.
-func source_now(tile_map: TileMap, time: int) -> Dictionary:
-	if not lit:
+func source_now(tile_map: TileMap, time: int, minute: int = -1, shift: int = 0) -> Dictionary:
+	if not lit or (by_the_clock and minute >= 0 and not lit_by_the_clock_at(minute, shift)):
 		return {}
 	var bright := bright_tiles
 	var dim := dim_tiles
@@ -45,6 +47,12 @@ func source_now(tile_map: TileMap, time: int) -> Dictionary:
 		return {}
 	return {"tile": tile_map.local_to_map(tile_map.to_local(global_position)), "bright": bright, "dim": dim,
 		"colour": colour, "flickers": flickers and not opening, "opening": opening, "node": self}
+
+
+## Whether it is lit at `minute`, going by the clock. Told apart from the others by where it stands, so it is the same on both machines.
+func lit_by_the_clock_at(minute: int, shift: int = 0) -> bool:
+	var at := Vector2i(global_position / float(Grid.TILE_SIZE))
+	return Light.lamp_lit_at(minute, at.x * 37 + at.y * 101, shift)
 
 
 func _draw():

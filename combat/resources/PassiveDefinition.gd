@@ -368,6 +368,32 @@ var scales_every_skill_with: int = -1
 ## And these on each of their own side the foreseen blow is aimed at - a shield
 ## or a heal, ahead of it.
 @export var forewarn_effects: Array[EffectDefinition] = []
+
+@export_group("Fire she pays for")
+## While she burns, the tiles she walks stay lit until her next turn: her side walks on them unhemmed and starts a turn on them a tile
+## further, and the other side catches fire stepping there (Blazed Path; Combat "Enfina").
+@export var blazes_a_path: bool = false
+## While she burns, fire on the ground does her no harm, and none of these can take hold of her (Through the Fire).
+@export var through_the_fire: bool = false
+@export var immune_while_burning: Array[ConditionDefinition] = []
+## While she burns, her biggest blow leaves the ground burning (Burning Titanfall).
+@export var burning_titanfall: bool = false
+
+@export_group("Reactions")
+## Reactions this gives them, by the skill's key, offered like any other but kept off their action bar (Drills).
+@export var reactions_granted: Array[String] = []
+## Against somebody studied, their first reaction each round doesn't spend their reaction (Reads the Form).
+@export var reads_the_form: bool = false
+## Their reactions land this much harder (Drills III).
+@export var reactions_harder: float = 0.0
+
+@export_group("A city guard's tricks")
+## Hurl can be aimed at a willing ally: they land up to 3 tiles away, unhurt, ready to act (Throw a Friend).
+@export var throws_friends: bool = false
+## Hurl picks up what on the map can be thrown as well, and it goes off where it lands (Anything Is a Weapon).
+@export var throws_things: bool = false
+## Dragging a body on a map, at their full pace (Carries Them).
+@export var carries_at_full_pace: bool = false
 ## Their hits land this much harder on an enemy whose foreseen turn the party
 ## changed, until that enemy's next turn begins (0.25 is a quarter more).
 @export_range(0.0, 2.0, 0.05) var thwarted_damage_bonus: float = 0.0

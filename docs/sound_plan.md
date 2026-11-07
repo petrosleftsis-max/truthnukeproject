@@ -116,3 +116,7 @@ Frost Round appears twice on purpose: `cyrus_pistol` as he fires and `weak_ice_a
 - **SciFi Water:** Devour.
 - **Stand-ins drawn in code:** heals, misses, grazes, shatters, slams into walls, poison, acid and plasma,
   mind spells, and the stealth map's heartbeat.
+
+## The day's sounds (2026-11-07)
+
+Empty slots in the SoundBank's "The day" group, looped outdoors each at its hour by `LightView` (silence until filled): `birds_at_dawn`, `insects_at_dusk`, `crickets_at_night`, `rain_falling`.

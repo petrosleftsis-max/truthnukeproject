@@ -28,6 +28,13 @@ class_name SoundBank
 ## What flies, for a move with no Travel Sound of its own.
 @export var travel: AudioStream
 
+@export_group("The day")
+## Looped outdoors, each at its hour (LightView). An empty one is silence, as all of these are until there is a sound for it.
+@export var birds_at_dawn: AudioStream
+@export var insects_at_dusk: AudioStream
+@export var crickets_at_night: AudioStream
+@export var rain_falling: AudioStream
+
 @export_group("Hacks and the world")
 @export var hack_failed: AudioStream
 ## Looped while a hack's clock runs.

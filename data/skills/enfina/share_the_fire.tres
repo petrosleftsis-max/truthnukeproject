@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Resource" path="res://data/conditions/shared_fire.tres" id="3_shared"]
+[ext_resource type="Texture2D" path="res://art/icons/share_the_fire_skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_share"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("3_shared")
+condition_duration = 5
+condition_dot_modifier = 0.2
+
+[resource]
+script = ExtResource("2_skill")
+name = "Share the Fire"
+description = "A secondary action. Trailblaze, on an ally within three tiles: for five of their turns they move two tiles further, and what the fire does lands on her."
+required_level = 32
+min_range = 1
+max_range = 3
+targets_ally = true
+is_secondary = true
+deals_damage = false
+melee = true
+icon = ExtResource("4_icon")
+can_be_copied = false
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_share")])

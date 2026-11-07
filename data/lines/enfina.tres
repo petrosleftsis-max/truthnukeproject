@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CombatLines" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatLines.gd" id="1_lines"]
+
+[resource]
+script = ExtResource("1_lines")
+studies = Array[String](["Favours the left.", "Watch the feet.", "Seen that before."])
+when_using = {
+"trailblaze": ["Keep up.", "It's only fire."],
+"share_the_fire": ["Go. I've got it."],
+"step_in": ["Mine."]
+}
+takes_a_blow = Array[String](["Mine."])

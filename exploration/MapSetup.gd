@@ -52,6 +52,8 @@ class_name MapSetup
 @export_enum("As It Stands:-1", "Day:0", "Dusk:1", "Night:2", "Dawn:3") var time_of_day: int = -1
 ## A night with no moon, which is Dark and not Dim.
 @export var no_moon: bool = false
+## This place's own sky, as a tint over the day's: green under trees, warm in a desert, grey-blue by the sea, brown under a city's smoke.
+@export var sky_tint: Color = Color.WHITE
 ## How long each of day, dusk, night and dawn lasts while walking here. Zero: it stays until told.
 @export var seconds_per_time_of_day: float = 0.0
 

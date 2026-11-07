@@ -1594,7 +1594,7 @@ func set_controlled_combatant(combatant: Dictionary):
 	# In co-op the board is theirs alone whose character this is (Coop).
 	Coop.fight_turn(combat.player_of(combatant) if player_turn else Coop.ANYONE)
 	controlled_node = combatant.sprite
-	movement = maxi(combat.get_effective_stat(combatant, "movement"), 0)
+	movement = maxi(combat.get_effective_stat(combatant, "movement") + combat.blazed_path_bonus(combatant), 0)
 	if combat.has_restriction(combatant, "prevents_movement") or combat.is_prone(combatant):
 		# Crystallised - rooted for the turn, whatever their movement stat says.
 		# Lying down, nobody walks, whatever else lets them (Combat "Prone").
@@ -2175,6 +2175,7 @@ func _handle_step_arrival():
 	# Through an illusion, in front of whoever is looking (Combat "Seen through, one by one").
 	combat.illusions_stepped_through(mover)
 	# Onto ground that hurts whoever treads it, each step again.
+	combat.blaze_where_they_walk(mover, new_position)
 	combat.zones_under_step(mover, new_position)
 	# Somebody who looks dead, walking (Combat "Unnoticed until they act").
 	combat.step_gives_away(mover)
@@ -2719,6 +2720,9 @@ func is_valid_landing_tile(tile: Vector2i) -> bool:
 		return standing_still_does_something()
 	# A throw may land on somebody (Hurl - see Combat "Grappling").
 	var skill: SkillDefinition = SkillDatabase.skills[_selected_skill]
+	# And Transposition is only ever on somebody (Combat "Prometheus's other magic").
+	if skill.swaps_places:
+		return combat.can_transpose(traveller, combat.get_combatant_at(tile))
 	if skill.throws:
 		return combat.throw_destinations(aiming_caster(), skill, traveller).has(tile)
 	return combat.can_land_on(traveller, tile)
@@ -2727,6 +2731,8 @@ func is_valid_landing_tile(tile: Vector2i) -> bool:
 ## Of `tiles`, the ones `traveller` could really be put down on.
 func landable_tiles(tiles: Array, traveller: Dictionary) -> Array:
 	var landable: Array = []
+	if SkillDatabase.skills[_selected_skill].swaps_places:
+		return tiles.filter(func(tile): return combat.can_transpose(traveller, combat.get_combatant_at(tile)))
 	for tile in tiles:
 		if tile == traveller.position:
 			if standing_still_does_something():
@@ -2815,6 +2821,8 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 	if picking_a_landing_tile():
 		if tile in _range_preview_positions and is_valid_landing_tile(tile):
 			return ""
+		if skill.swaps_places:
+			return "%s needs somebody else there, of the same size" % skill.name
 		if skill.throws:
 			return "Too far to throw them"
 		if skill.placed_in_reach or Combat.summons_with(skill) != "":
@@ -3022,6 +3030,9 @@ func is_valid_skill_target(target: Dictionary, tile = null) -> bool:
 		# A skill that affects both sides can be aimed at anyone; otherwise
 		# targets_ally decides which side is legal.
 		var right_side = target.side == caster.side if skill.targets_ally else target.side != caster.side
+		# A friend to throw, or a thing (Combat "Enfina").
+		if skill.throws and not right_side and (combat.throws_friends(caster) or (target.has("object") and combat.throws_things(caster))):
+			right_side = combat._grip_refusal(caster, skill, target) == ""
 		if not right_side:
 			return false
 	var aimed: Vector2i = tile if tile != null else combat.nearest_tile_of(target, caster.position)

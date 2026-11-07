@@ -47,6 +47,8 @@ enum EffectType {
 	MOVE_ZONE,         ## Moves the zone its user laid that can be moved, up to its reach from where that is - the Storm Cloud (Combat "Zones").
 	MOVE_IMAGE,        ## Moves the double its user made (Effect's Image Moves), up to its reach from where that is - Move Double.
 	DISGUISE,          ## Its user slips into a disguise they carry that fits those they fight, while hidden - Put On Disguise (Combat "Disguises").
+	ARREST,            ## They give up, and can be questioned afterwards (Arrest; Combat "Enfina").
+	OVERHEAL,          ## Health on top of their own, taken first, gone by the end of the fight (False Life).
 }
 
 enum DispelScope {
@@ -183,6 +185,14 @@ enum DispelScope {
 ## Heal 12 / 0.25 / 0.3; Light Heal and Communion 8 / 0.15 / 0.2; Restoration
 ## 0 / 0.25 / 0 with half the target's health on top.
 @export_range(0.0, 100.0, 0.5, "or_greater") var heal_flat: float = 0.0
+## On the flat rule, this much more for each turn of Burn its user has left (Cauterise).
+@export_range(0.0, 100.0, 0.5, "or_greater") var heal_per_burn_turn: float = 0.0
+
+## A size smaller, where Growth is a size bigger (Shrink).
+@export var shrinks: bool = false
+
+## Ground that goes up, the first fire that touches it (Grease).
+@export var zone_catches_fire: bool = false
 @export_range(0.0, 2.0, 0.05, "or_greater") var heal_per_stat: float = 0.0
 @export_range(0.0, 2.0, 0.05, "or_greater") var heal_per_weapon: float = 0.0
 ## Only consulted when there is no skill behind the damage at all - a shove
@@ -379,8 +389,9 @@ enum DispelScope {
 ## Which fields each effect type actually reads. Everything not listed for a
 ## type is hidden while that type is selected - see _validate_property.
 const FIELDS_BY_TYPE := {
+	EffectType.OVERHEAL: ["heal_flat", "heal_per_stat"],
 	EffectType.DAMAGE: ["damage_type", "min_amount", "max_amount"],
-	EffectType.HEAL: ["heal_modifier", "heal_share_of_health", "heals_share_only", "share_doubled_on_wounded", "heal_flat", "heal_per_stat", "heal_per_weapon", "min_amount", "max_amount"],
+	EffectType.HEAL: ["heal_per_burn_turn", "heal_modifier", "heal_share_of_health", "heals_share_only", "share_doubled_on_wounded", "heal_flat", "heal_per_stat", "heal_per_weapon", "min_amount", "max_amount"],
 	EffectType.STAT_MODIFIER: ["display_name", "stat", "modifier_amount", "duration", "wears_off_at_start"],
 	EffectType.DAMAGE_OVER_TIME: ["display_name", "damage_type", "damage_modifier", "min_amount", "max_amount", "duration", "wears_off_at_start"],
 	EffectType.DISPEL: ["dispel_stat", "dispel_scope", "dispel_count"],

@@ -9,6 +9,7 @@
 
 [resource]
 script = ExtResource("6_16wsc")
+can_be_thrown = true
 breakable = true
 set_off_line = "The powder keg goes up!"
 stagger = 25.0

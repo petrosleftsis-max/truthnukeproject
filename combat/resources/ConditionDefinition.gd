@@ -205,6 +205,10 @@ const DOT_STRENGTH_NAMES := {
 ## What goes round their head, or their feet. Stored by number: append.
 enum RoundThem { NONE, STARS, SPIRAL, BAND_OVER_EYES, SWEAT, CHAIN, GAG, STRINGS, ARROW, EXCLAIM }
 @export var round_them: RoundThem = RoundThem.NONE
+## How much less they are mended by anything: -0.5 half, -1 not at all (Withering Touch, Blight).
+@export_range(-1.0, 1.0, 0.05) var healing_taken_change: float = 0.0
+## What it does each turn lands on whoever put it on them, not on them (Share the Fire).
+@export var dot_lands_on_source: bool = false
 ## The picture on this condition's mark on the portraits and the turn queue, in place of the placeholder with its two letters.
 @export var mark_picture: Texture2D = null
 ## A picture to go there in place of the placeholder, circling slowly.

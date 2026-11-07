@@ -12,6 +12,7 @@ Select the **MapSetup** node on the map, open its Light group:
 | Ambient | Outdoors goes by the sun. Interior is Dim. Underground is Dark. |
 | Time Of Day | The hour on arriving. As It Stands keeps whatever the clock says by now. |
 | No Moon | A night with no moon is Dark, not Dim. |
+| Sky Tint | This place's own sky over the day's: green under trees, warm in a desert, grey-blue by the sea. |
 | Seconds Per Time Of Day | Above 0, the clock runs while walking here, each of day, dusk, night and dawn taking this long. |
 
 A fight goes by the map it was walked into from. An **EncounterDefinition** can say otherwise with its own Ambient,
@@ -34,6 +35,7 @@ Add a **LightSource** node on the tile you want. The editor draws two rings: Bri
 | Colour | The colour of the light. |
 | Lit | Whether it is on to begin with. |
 | Flickers | A flame: it breathes and throws embers. Off: steady, with dust hanging in it. |
+| By The Clock | Lit around dusk, out around dawn, each at its own minute. A Lamp has the same. |
 | Opening | A window, a cave mouth, a hole in the roof: it lets in only what the sun gives. All of it by day, only the Dim at dusk and dawn, nothing at night. Shafts of light come from it. |
 | Shows Flame | Draws a small placeholder flame, for one with no art of its own to stand on. Untick it if the map has its own. |
 
@@ -81,6 +83,8 @@ do Campaign.set_time_of_day("night")     # the next time it is night
 do Campaign.watch_time_pass(8)           # eight hours on, seen going by, in five seconds
 do Campaign.watch_time_pass(0, 3, 9.0)   # three days on, seen going by, in nine seconds
 do Campaign.set_no_moon(true)            # no moon on this map
+do Campaign.set_moon("full")             # or "new", whatever the date; set_moon() goes by the date again
+do Campaign.set_weather("storm")         # clear, haze, overcast, rain, fog, storm, today; set_weather("rain", 3) for three days; set_weather() the day's own
 ```
 
 The names of the months and the days of the week, and where the story begins, are in `data/calendar.tres`.

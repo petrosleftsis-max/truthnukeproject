@@ -161,3 +161,7 @@ clock
 lightspells
 figures
 hudlook
+daysky
+enfina
+speech
+prometheus

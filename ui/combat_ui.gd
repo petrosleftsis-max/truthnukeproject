@@ -2687,6 +2687,8 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.CANCEL_CASTING:
 			return "Cancels the spell they are casting: none of it happens, and their gate is spent all the same"
 		EffectDefinition.EffectType.GROW:
+			if effect.shrinks:
+				return "Makes them a size smaller, for as long as the tether holds"
 			return "Makes them a size bigger %s, if there is room" % ("for the rest of the fight" if effect.duration <= 0 else "for %d turn%s" % [effect.duration, "" if effect.duration == 1 else "s"])
 		EffectDefinition.EffectType.SUMMON:
 			var called: CombatantDefinition = CombatantDatabase.combatants.get(effect.summons)
@@ -2767,6 +2769,10 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Hacks apart the spell they are winding up, before it lands - or the binding on a bound creature"
 		EffectDefinition.EffectType.READ_INTENT:
 			return "Marks what they will do on their next turn - and they are held to it"
+		EffectDefinition.EffectType.ARREST:
+			return "They give up, and can be questioned afterwards"
+		EffectDefinition.EffectType.OVERHEAL:
+			return "Health on top of their own, taken first, gone by the end of the fight"
 		EffectDefinition.EffectType.SHAKE:
 			return "Shakes their nerve (%d-%d), toward fleeing or surrendering" % [effect.min_amount, effect.max_amount]
 		EffectDefinition.EffectType.CLIMB:

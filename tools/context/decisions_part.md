@@ -337,7 +337,7 @@ The designer's handoff, `docs/handoff_0.1/disarm_deep_corrosion_light_swing.md` 
 - **Spells have no levels:** a spell comes when its gate opens.
 - **Damaging moves on a map are aimed.** A hit starts the fight, and everybody hit takes it before anybody's turn. A wall takes no fight, though its noise may bring guards. A trap that bursts does the same as it goes off.
 - **A tether can be ended at any point,** for nothing, with a right click on what it holds. Another player's only if they agree.
-- **The enemy's mind:** five levels of smarts per creature, Instinct, Trained, Cunning, Mastermind and All Knowing, which also reads the party's kits, prepared spells and castings left. Nobody has All Knowing yet. Four dials per creature, and ways of its own: commanders, grudges, hunters, bodyguards, packs, fears, learning, greed, moods by a boss's phase.
+- **The enemy's mind:** five levels of smarts per creature, Instinct, Trained, Cunning, Mastermind and All Knowing, which also reads the party's kits, prepared spells and castings left. The Ash Warden has All Knowing. Four dials per creature, and ways of its own: commanders, grudges, hunters, bodyguards, packs, fears, learning, greed, moods by a boss's phase.
 - **Everybody's numbers in all of this are proposals,** for the designer to test by feel.
 
 ## Known near-twins among the spells
@@ -459,3 +459,11 @@ These are OPEN: no sheet documents them, or documents them only in part. The val
   - per-item resale rates for junk and rare artifacts;
   - inns, horses, healers, and Gate Nade crafting.
 - **The sellswords' contract** on the lab map hands over a 200-gold purse, their uncollected advance. That is 4-7 contracts' pay at tier I.
+
+## The round of 2026-11-07
+
+- **Enfina's depth** is built as PROPOSAL numbers: fire she pays for (Blazed Path, Flashover, Cauterise, Share the Fire, Through the Fire, Burning Titanfall), Drills as a passive giving new reactions, Reads the Form, and a guard's tricks. Called Opening, Field Notes and Show the Badge were turned down.
+- **Prometheus's other magic:** Shrink, Transposition, Grease, Wall of Stone, False Life, Withering Touch, Blight. Spells deeper than Pandora (Flesh to Stone, Polymorph, Singularity, Conjure Elemental, Arms of the Deep, Marionette, Proxy of Flesh, Death Knell, Borrowed Time) are saved for later, and where necromancy goes is undecided.
+- **Two rule changes from the sky:** a new moon is No Moon, about 3 nights in 30, and the month moves dawn and dusk up to an hour either way. Weather itself is only how it looks.
+- **Icons over the head were turned down** after looking at an example. What is on somebody shows on the figure.
+- **The board hides its tiles (option A)**; the rules are still on tiles.

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/transposition_skill.png" id="4_icon"]
+
+
+[resource]
+script = ExtResource("2_skill")
+name = "Transposition"
+description = "Two people he can reach change places, the same size as each other: a foe into his own fire, or an ally out of danger. Whoever is of the other side has their Self against his Intellect."
+min_range = 0
+max_range = 8
+icon = ExtResource("4_icon")
+affects_both_sides = true
+teleports = 2
+swaps_places = true
+contest_stat = 3
+deals_damage = false
+can_be_copied = false
+spell_slot_level = 3

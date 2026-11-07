@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Blazed Path"
+description = "While she burns, the tiles she walks stay lit until her next turn. Her side walks them unhemmed and starts a turn on them a tile further; the other side catches fire stepping there."
+required_level = 8
+blazes_a_path = true

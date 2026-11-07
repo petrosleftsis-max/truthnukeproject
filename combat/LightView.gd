@@ -19,6 +19,11 @@ class_name LightView
 ##   at night, grey at dawn.
 ## Slots: a picture at art/fx/ember.png, dust.png or light_shaft.png is used in place of what is
 ## drawn here. dithered gives the shade a dithered edge, for if the art ends up pixel art.
+##
+## The sky goes round with the clock, and each day has its own (Light.sky, Campaign.sky_now; section 14 of docs/proposals_2026-11-07.md).
+## How dark a place looks follows the sun by the minute, though the rule only changes at four moments. Clouds' shadows pass over
+## everything outdoors, mist lies low at dawn or on a foggy morning, rain falls, dust hangs at noon and insects come out at dusk, with a
+## sound slot for each in the SoundBank. An opening's light takes the sky's colour.
 
 ## How heavy the shade is where no light reaches at all, and how blue.
 const SHADE_MOST := 0.86
@@ -91,6 +96,29 @@ void fragment() {
 }
 """
 
+## A layer over a whole map: clouds' shadows going over it, or mist. Nothing to do with the rule.
+const SKY_LAYER_SHADER := """
+shader_type canvas_item;
+render_mode unshaded;
+uniform sampler2D noise : repeat_enable, filter_linear;
+uniform vec2 tiles = vec2(16.0, 16.0);
+uniform float cover = 0.0;
+uniform float mist = 0.0;
+void fragment() {
+	vec2 at = UV * tiles / 14.0;
+	float one = texture(noise, at + vec2(TIME * 0.006, TIME * 0.002)).r;
+	float two = texture(noise, at * 0.6 - vec2(TIME * 0.003, TIME * 0.004)).r;
+	float cloud = smoothstep(0.42, 0.7, (one + two) * 0.5) * cover * 0.38;
+	vec2 low = UV * tiles / 5.0;
+	float wisps = smoothstep(0.32, 0.8, texture(noise, low + vec2(TIME * 0.01, TIME * 0.002)).r) * mist * 0.5;
+	if (wisps > cloud) {
+		COLOR = vec4(0.86, 0.88, 0.92, wisps);
+	} else {
+		COLOR = vec4(0.02, 0.03, 0.08, cloud);
+	}
+}
+"""
+
 const GRADE_SHADER := """
 shader_type canvas_item;
 render_mode unshaded;
@@ -129,6 +157,17 @@ var _clock := 0.0
 ## {"node": PointLight2D, "source", "at": where it is going, "energy": how strong it should be, "phase"}.
 var _lights: Array = []
 var _shade_easing: Tween = null
+## The sky: clouds over everything, mist under the figures, what falls and hangs in the air, what is heard.
+var _clouds: Sprite2D = null
+var _mist: Sprite2D = null
+var _rain: CPUParticles2D = null
+var _life: CPUParticles2D = null
+var _life_is := ""
+var _day_sound: AudioStreamPlayer = null
+var _day_sound_is: StringName = &""
+## How lit the sun makes things now, 0 to 1, or below 0 where it has no say.
+var _sun := -1.0
+var _opening_colour := Color(1.0, 0.96, 0.85)
 
 
 static func shown() -> bool:
@@ -190,6 +229,10 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_fog.material.set_shader_parameter("tiles", Vector2(region.size))
 	_fog.visible = false
 	add_child(_fog)
+	_mist = _sky_layer("Mist", noise, region)
+	_clouds = _sky_layer("Clouds", noise, region)
+	_clouds.z_as_relative = false
+	_clouds.z_index = ExplorationParty.PARTY_Z_TOP
 	_occluders = Node2D.new()
 	_occluders.name = "Occluders"
 	add_child(_occluders)
@@ -218,6 +261,25 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	refresh()
 
 
+func _sky_layer(called: String, noise: Texture2D, region: Rect2i) -> Sprite2D:
+	var layer := Sprite2D.new()
+	layer.name = called
+	layer.centered = false
+	layer.light_mask = 0
+	var white := Image.create(1, 1, false, Image.FORMAT_RGBA8)
+	white.fill(Color.WHITE)
+	layer.texture = ImageTexture.create_from_image(white)
+	layer.material = _material(SKY_LAYER_SHADER)
+	layer.material.set_shader_parameter("noise", noise)
+	layer.material.set_shader_parameter("tiles", Vector2(region.size))
+	var tile_size := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE)
+	layer.scale = Vector2(region.size) * tile_size
+	layer.position = to_local(_tile_map.to_global(_tile_map.map_to_local(region.position))) - tile_size / 2.0
+	layer.visible = false
+	add_child(layer)
+	return layer
+
+
 func _material(code: String) -> ShaderMaterial:
 	var shader := Shader.new()
 	shader.code = code
@@ -236,7 +298,7 @@ func _set_night_eyes(value: bool):
 func refresh():
 	if light == null or _tile_map == null or _region.size.x <= 0 or _region.size.y <= 0:
 		return
-	visible = light.varies or not light.glow.is_empty()
+	visible = light.varies or not light.glow.is_empty() or _sky_to_show()
 	_sync_lights()
 	if not visible:
 		return
@@ -247,7 +309,7 @@ func refresh():
 	for x in _region.size.x:
 		for y in _region.size.y:
 			var tile := _region.position + Vector2i(x, y)
-			var amount := light.amount_at(tile)
+			var amount := _how_lit_it_looks(tile)
 			any_dark = any_dark or amount <= 0.02
 			shade.set_pixel(x, y, Color(colour, most * pow(1.0 - amount, 1.3)))
 	_put_on_the_shade(shade, most)
@@ -255,6 +317,21 @@ func refresh():
 	_fog.visible = air_on and any_dark
 	_fog.material.set_shader_parameter("strength", FOG_WITH_NIGHT_EYES if night_eyes else FOG_STRENGTH)
 	_build_occluders()
+
+
+## How lit `tile` looks: as the map says, but where the sky reaches it, by the sun as it stands at this minute. The rule's level is
+## unchanged. A night with no moon is Dark all the same, and so is what a spell has darkened.
+func _how_lit_it_looks(tile: Vector2i) -> float:
+	var amount := light.amount_at(tile)
+	if _sun < 0.0 or light.base == Light.Level.DARK or not light.under_the_sky(tile):
+		return amount
+	return maxf(light.amounts[tile], _sun) if light.amounts.has(tile) else _sun
+
+
+## Whether there is anything of the sky to draw, with the map all one level.
+func _sky_to_show() -> bool:
+	return (_sun >= 0.0 and _sun < 0.99) or (_clouds != null and _clouds.visible) or (_mist != null and _mist.visible) \
+		or (_rain != null and _rain.emitting) or (_life != null and _life.emitting)
 
 
 ## The shade's new picture, eased into from the one it replaces.
@@ -300,7 +377,7 @@ func _sync_lights():
 		entry.source = source
 		entry.at = at
 		entry.energy = _energy_of(source)
-		entry.node.color = source.get("colour", Color.WHITE)
+		entry.node.color = _opening_colour if source.get("opening", false) else source.get("colour", Color.WHITE)
 		entry.node.texture_scale = light_scale(maxf(source.dim, source.bright))
 		kept.append(entry)
 	for entry in left:
@@ -516,8 +593,9 @@ class _Shaft extends Node2D:
 			var top := Vector2(across, 0.0)
 			var foot := top + Vector2(lean * tile * reach * 0.5, tile * reach * 0.8)
 			var width := tile * 0.13
-			var near := Color(1.0, 0.96, 0.85, strength * breath)
-			var far := Color(1.0, 0.96, 0.85, 0.0)
+			var sky_is: Color = parent_light.color if parent_light != null else Color(1.0, 0.96, 0.85)
+			var near := Color(sky_is, strength * breath)
+			var far := Color(sky_is, 0.0)
 			if picture != null:
 				draw_texture_rect(picture, Rect2(top - Vector2(width, 0.0), Vector2(width * 2.0, foot.y)), false, near)
 				continue
@@ -545,17 +623,171 @@ func set_tone(colour: Color, at_once: bool = false):
 
 ## The tone and the grade of `minute` of the day, in `ambient`.
 func show_hour(ambient: int, minute: int, at_once: bool = false):
-	set_tone(Light.tone_at(ambient, minute), at_once)
-	var grade := Light.grade_at(ambient, minute)
+	var sky: Dictionary = Campaign.sky_now(ambient, minute)
+	set_tone(sky.tone, at_once)
 	if _grade != null:
-		_grade.material.set_shader_parameter("saturation", grade.saturation)
-		_grade.material.set_shader_parameter("contrast", grade.contrast)
-		_grade.visible = not (is_equal_approx(grade.saturation, 1.0) and is_equal_approx(grade.contrast, 1.0))
+		_grade.material.set_shader_parameter("saturation", sky.saturation)
+		_grade.material.set_shader_parameter("contrast", sky.contrast)
+		_grade.visible = not (is_equal_approx(sky.saturation, 1.0) and is_equal_approx(sky.contrast, 1.0))
 		_grade_copy.visible = _grade.visible
+	_show_the_sky(sky)
+
+
+## How much the sun has to have moved for the shade to be drawn again.
+const SUN_STEP := 0.012
+
+
+func _show_the_sky(sky: Dictionary):
+	var had: bool = _sky_to_show()
+	if _clouds != null:
+		_clouds.visible = air_on and sky.clouds > 0.01
+		_clouds.material.set_shader_parameter("cover", sky.clouds)
+		_mist.visible = air_on and sky.mist > 0.01
+		_mist.material.set_shader_parameter("mist", sky.mist)
+	_set_rain(sky.rain if air_on else 0.0)
+	_set_life(sky.life if air_on else "")
+	_set_day_sound(sky.sound)
+	# What comes in at a window is the sky's colour at this minute, paler than the tone over everything.
+	_opening_colour = Color(sky.tone).lerp(Color.WHITE, 0.25)
+	for entry in _lights:
+		if entry.source.get("opening", false) and is_instance_valid(entry.node):
+			entry.node.color = _opening_colour
+	var sun: float = sky.amount
+	if absf(sun - _sun) >= SUN_STEP or (sun >= 0.0) != (_sun >= 0.0) or had != _sky_to_show():
+		_sun = sun
+		refresh()
+
+
+func _air_bits(called: String) -> CPUParticles2D:
+	var bits := CPUParticles2D.new()
+	bits.name = called
+	bits.local_coords = false
+	bits.light_mask = 0
+	bits.z_as_relative = false
+	bits.z_index = ExplorationParty.PARTY_Z_TOP
+	bits.emitting = false
+	bits.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	add_child(bits)
+	return bits
+
+
+func _set_rain(how_much: float):
+	if how_much <= 0.01:
+		if _rain != null:
+			_rain.emitting = false
+		return
+	var tile := float(Grid.TILE_SIZE)
+	if _rain == null:
+		_rain = _air_bits("Rain")
+		var streak := GradientTexture2D.new()
+		streak.width = 4
+		streak.height = 64
+		var fade := Gradient.new()
+		fade.set_color(0, Color(0.8, 0.86, 1.0, 0.0))
+		fade.set_color(1, Color(0.8, 0.86, 1.0, 0.6))
+		streak.gradient = fade
+		streak.fill_from = Vector2(0.5, 0.0)
+		streak.fill_to = Vector2(0.5, 1.0)
+		_rain.texture = streak
+		_rain.particle_flag_align_y = true
+		_rain.direction = Vector2(0.18, 1.0)
+		_rain.spread = 2.0
+		_rain.gravity = Vector2.ZERO
+		_rain.initial_velocity_min = tile * 16.0
+		_rain.initial_velocity_max = tile * 20.0
+		_rain.lifetime = 0.35
+		_rain.scale_amount_min = 1.5
+		_rain.scale_amount_max = 3.0
+	var wanted: int = roundi(lerpf(80.0, 320.0, how_much))
+	if _rain.amount != wanted:
+		_rain.amount = wanted
+	_rain.emitting = true
+
+
+func _set_life(what: String):
+	if what == _life_is:
+		return
+	_life_is = what
+	if what == "":
+		if _life != null:
+			_life.emitting = false
+		return
+	var tile := float(Grid.TILE_SIZE)
+	if _life == null:
+		_life = _air_bits("Life")
+		_life.gravity = Vector2.ZERO
+		_life.spread = 180.0
+	var fade := Gradient.new()
+	match what:
+		"insects":
+			_life.amount = 28
+			_life.lifetime = 2.4
+			_life.direction = Vector2.UP
+			_life.initial_velocity_min = tile * 0.1
+			_life.initial_velocity_max = tile * 0.5
+			_life.orbit_velocity_min = -0.5
+			_life.orbit_velocity_max = 0.5
+			_life.scale_amount_min = tile * 0.006
+			_life.scale_amount_max = tile * 0.012
+			fade.set_color(0, Color(1.0, 0.95, 0.6, 0.0))
+			fade.add_point(0.5, Color(1.0, 0.95, 0.6, 0.55))
+			fade.set_color(fade.get_point_count() - 1, Color(1.0, 0.95, 0.6, 0.0))
+		_:
+			_life.amount = 24
+			_life.lifetime = 6.0
+			_life.direction = Vector2.UP
+			_life.initial_velocity_min = tile * 0.01
+			_life.initial_velocity_max = tile * 0.05
+			_life.orbit_velocity_min = 0.0
+			_life.orbit_velocity_max = 0.0
+			_life.scale_amount_min = tile * 0.006
+			_life.scale_amount_max = tile * 0.012
+			fade.set_color(0, Color(1.0, 0.97, 0.88, 0.0))
+			fade.add_point(0.5, Color(1.0, 0.97, 0.88, 0.2))
+			fade.set_color(fade.get_point_count() - 1, Color(1.0, 0.97, 0.88, 0.0))
+	_life.color_ramp = fade
+	_life.emitting = true
+
+
+## What is heard at this hour, for as long as it is this hour: the SoundBank's, and silence with nothing in its slot.
+func _set_day_sound(slot: StringName):
+	if slot == _day_sound_is:
+		return
+	_day_sound_is = slot
+	if _day_sound == null:
+		_day_sound = AudioStreamPlayer.new()
+		_day_sound.name = "DaySound"
+		_day_sound.bus = &"SFX"
+		_day_sound.volume_db = -10.0
+		add_child(_day_sound)
+	var sound: AudioStream = GameSounds.stream(slot) if slot != &"" else null
+	if sound is AudioStreamWAV:
+		sound.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	elif sound != null and "loop" in sound:
+		sound.loop = true
+	_day_sound.stream = sound
+	if sound != null:
+		_day_sound.play()
+	else:
+		_day_sound.stop()
+
+
+## What falls and hangs in the air fills what can be seen of the map, wherever the view goes.
+func _keep_the_air_on_the_screen():
+	if (_rain == null or not _rain.emitting) and (_life == null or not _life.emitting):
+		return
+	var from_screen := get_canvas_transform().affine_inverse()
+	var view := get_viewport_rect().size * from_screen.get_scale()
+	var middle: Vector2 = from_screen * (get_viewport_rect().size / 2.0)
+	for bits in [_rain, _life]:
+		if bits != null and bits.emitting:
+			bits.global_position = middle - (Vector2(0.0, view.y * 0.15) if bits == _rain else Vector2.ZERO)
+			bits.emission_rect_extents = view / 2.0
 
 
 func _process(delta: float):
 	_keep_the_grade_on_the_screen()
+	_keep_the_air_on_the_screen()
 	if light == null:
 		return
 	_clock += delta

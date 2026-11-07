@@ -2,7 +2,7 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-11-06, after the designer's message of that day (see "Done
+updated 2026-11-07, after the designer's messages of that day (see "Done
 recently"); before that 2026-10-31, after Steps 2 and 3 of the network play (LAN, and online
 by UPnP), the designer's additions to it, the pictures, stores and dragging
 across the network, the placeholder projectiles, and everything in
@@ -99,6 +99,10 @@ holds the game for both).
   - What is on somebody shows on them, with no icons over the head. Figures are lit by what is near them, and throw shadows in their own shape.
   - The board hides its tiles (option A). The interface picks of section 11 but "Less over the map" and "End Turn".
   - `docs/chatgpt_party_characters.md`: the four characters, for the designer to give ChatGPT.
+  - The day: a curve through about thirteen marks, each day's weather and sunset, clouds, mist, rain, the moon, the seasons, a place's own sky, lamps by the clock. A new moon is No Moon, and the month moves dawn and dusk.
+  - Enfina: Blazed Path, Flashover, Cauterise, Share the Fire, Through the Fire, Burning Titanfall, Drills (a passive), Reads the Form, Throw a Friend, Anything Is a Weapon, Arrest, Carries Them.
+  - Lines in a bubble over somebody's head, per creature, by what happens in a fight. Only Enfina's placeholders are written.
+  - Prometheus: Shrink, Transposition, Grease, Wall of Stone, False Life, Withering Touch, Blight, each with a book.
 
 - **The designer's message of 2026-11-07** (ledger rows of that date; CLAUDE.md "Aimed on a map", "Letting go of a
   tether", "Ways of its own", "All Knowing", "Light", "The clock and the calendar"; `docs/light_on_maps.md`;
@@ -430,9 +434,11 @@ holds the game for both).
 9. **Sounds:** the designer's "sword" sound goes on Sweep Strike, Chain Hook and Disarm when it comes.
    Not placed, no answer yet: `frog`, `train_passby`, `funny_boing_1` and `_2`. No ambience slot yet.
 
-10. **Waiting on the designer's choices, 2026-11-07:** `docs/proposals_2026-11-07.md`, which the designer is reading:
-   everything not yet chosen there, Enfina's depth and Prometheus's new schools included. Whether Phantom Noise is strong enough for Iris. Every illusion's and every AI dial's number,
-   to test by feel. The Great Snare's x1.2 and hold. Which creature has which way of its own.
+10. **Waiting on the designer's choices, 2026-11-07:** `docs/proposals_2026-11-07.md`, sections 1 to 16 chosen and built; section 17 has the answers
+   to the designer's questions, each waiting on a word: Will-o'-the-Wisp and its alternatives, Night Hunter and a bonus for hitting while hidden (D recommended),
+   Lifted Torch, more ways for Alithia in the light, normal maps from the existing art, the weathers not yet in. Whether Phantom Noise is strong enough for Iris. Every illusion's,
+   every AI dial's and every new move's number, to test by feel: Enfina's levels and numbers, Unbowed's levels as given (33, 46, 56, not the tiers 32, 41, 54), Shrink with no contest and no
+   boss immunity. The Great Snare's x1.2 and hold. Which creature has which way of its own. The bubble lines themselves, which are placeholders and only Enfina's.
 
 
 ## Good to know

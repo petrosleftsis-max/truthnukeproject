@@ -8,7 +8,7 @@ Who Cyrus, Prometheus, Enfina and Alithia are, what they are like, and what they
 
 - **Quotes** are the game's own text, word for word, or the designer's own words where it says so.
 - ***Reading:*** marks an interpretation made while writing this document. It is not something the designer has stated, so feel free to disagree with it.
-- **Approved, being built** marks moves the designer approved on 7 November 2026 that are not in the game yet.
+- **New** marks moves the designer approved on 7 November 2026, built that day, and not yet tried by players.
 - **Every number is a trial value.** Balance is still being tested, so nothing in the story should lean on an exact figure.
 - **Looks** are described from the current in-game art, which may change.
 - **The story exists in pieces:** an opening, a middle stretch, and a scene from near the end, plus some test stages. The stealth stages are test material, though their lines show how the characters sound.
@@ -266,7 +266,7 @@ He has by far the least health, and the lowest initiative. His power lies in cho
 
 **Hacking outside fights:** wards, seals and machines are shown as rules on a sheet, and he edits them in minigames. A badly balanced edit makes "the Demiurge" notice. His own forgotten strongbox is one such puzzle.
 
-**Approved, being built** (7 November 2026)
+**New** (7 November 2026)
 
 - **Shrink** (Hermes in a fight, Iris on a map; tether): a size smaller. A foe loses reach and grip, and an ally on a map fits through small gaps.
 - **Transposition** (Pandora): two people in reach swap places, contested if unwilling.
@@ -374,7 +374,7 @@ Short sentences, often one line. Little or no decoration, and no explaining hers
 
 **On a map:** she can break breakable walls, which only she and spells or items can do.
 
-**Approved, being built** (7 November 2026)
+**New** (7 November 2026)
 
 *Fire she pays for:*
 
@@ -407,7 +407,7 @@ Short sentences, often one line. Little or no decoration, and no explaining hers
 
 - "She raises it for everyone else" is written all over her kit: Iron Hide takes half of a hit on an ally, Bulwark shelters them, and Last Wall takes the killing blow.
 - "Trained and studied": every blow she lands studies its target. She learns you by fighting you.
-- "I'll carve a path ahead" is what Trailblaze says, and what Blazed Path will do.
+- "I'll carve a path ahead" is what Trailblaze says, and what Blazed Path does.
 - *Reading:* nobody gives her a rank, so her reward in play is only that everybody else is still standing. Setting herself on fire to be faster is a very exact picture of a person who has decided her own cost does not count.
 
 ---
@@ -585,9 +585,9 @@ Her list of spells is long and varied, so a turn is a question of what the party
 
 ## 9. Lines still to be written: speech bubbles
 
-The designer wants, in their words, "dialogue that only shows up as a bubble above a character that goes away by itself", with lines "for every character depending on what happens in combat". This is approved, and none of the lines exist yet. It replaces an earlier idea of tracking what Enfina does for others in a quiet tally.
+The designer wanted, in their words, "dialogue that only shows up as a bubble above a character that goes away by itself", with lines "for every character depending on what happens in combat". It is built, and hardly any lines exist yet: only a few placeholders for Enfina ("Favours the left.", "Keep up.", "Mine."), and Alithia's lines for when a foreseen future changes. It replaces an earlier idea of tracking what Enfina does for others in a quiet tally.
 
-They have to be short, since they fade by themselves mid-fight, and they have to sound like the person saying them. These are the moments proposed so far, and the designer has not settled the list:
+They have to be short, since they fade by themselves mid-fight, and they have to sound like the person saying them. Each can have several lines for a moment, which take turns. These are the moments the game can already use:
 
 - A fight starts, and the first blow lands.
 - They fell somebody, or an ally falls.
@@ -597,7 +597,7 @@ They have to be short, since they fade by themselves mid-fight, and they have to
 - An illusion is seen through, or a foreseen future changes.
 - A deep spell, or their last casting.
 - A boss changes phase, and the fight is won.
-- Enfina studying somebody, and Enfina setting herself alight.
+- Using one move in particular, or one condition in particular landing: Enfina studying somebody, and Enfina setting herself alight.
 
 ## 10. Open for discussion
 

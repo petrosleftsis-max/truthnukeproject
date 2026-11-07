@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Resource" path="res://data/conditions/withered.tres" id="3_withered"]
+[ext_resource type="Texture2D" path="res://art/icons/withering_touch_skill.png" id="4_icon"]
+
+[sub_resource type="Resource" id="Effect_withered"]
+script = ExtResource("1_effect")
+type = 8
+condition = ExtResource("3_withered")
+condition_duration = 1
+
+[resource]
+script = ExtResource("2_skill")
+name = "Withering Touch"
+description = "A weak blow, x0.6 psychic, at somebody beside him: until their next turn nothing can mend them."
+min_range = 1
+max_range = 1
+ability_modifier = 0.6
+damage_type = 6
+melee = true
+icon = ExtResource("4_icon")
+spell_slot_level = 1
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_withered")])

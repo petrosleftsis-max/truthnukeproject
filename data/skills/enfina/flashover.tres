@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Texture2D" path="res://art/icons/flashover_skill.png" id="4_icon"]
+
+[resource]
+script = ExtResource("2_skill")
+name = "Flashover"
+description = "A secondary action, only while she burns: all of it at once, in a blast round her. x0.6, and x0.15 more for each turn of Burn she had left. The Burn is over."
+required_level = 16
+min_range = 0
+max_range = 0
+ability_modifier = 0.6
+damage_type = 1
+aoe_radius = 2
+aoe_shape = 0
+melee = true
+is_secondary = true
+icon = ExtResource("4_icon")
+can_be_copied = false
+needs_own_burn = true
+ends_own_burn = true
+modifier_per_burn_turn = 0.15

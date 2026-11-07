@@ -121,6 +121,8 @@ const SHADOW_PICTURE := "res://art/fx/figure_shadow.png"
 static var shadow_lean := 0.12
 static var shadow_strength := 0.35
 static var shadow_colour := Color.BLACK
+## How soft the sun's or the moon's shadow is, against a lamp's: hard at noon and soft at either end of the day or under cloud.
+static var shadow_soft := 1.0
 ## Counts changes, for each shadow to see that it has to draw itself again.
 static var shadow_version := 0
 ## Each light here: {"at", "reach", "colour", "node", "energy"}: for shadows to point away from, and the figures' colour (LightView).
@@ -187,6 +189,7 @@ static func set_shadows(lying: Dictionary):
 	shadow_lean = lying.lean
 	shadow_strength = lying.strength
 	shadow_colour = lying.get("colour", Color.BLACK)
+	shadow_soft = lying.get("soft", 1.0)
 	shadow_version += 1
 
 
@@ -239,7 +242,7 @@ class _Shadow extends Node2D:
 				return []
 			var lean: float = CombatantSprite.shadow_lean
 			var way := Vector2(lean, CombatantSprite.SUN_SLANT).normalized()
-			return [{"way": way, "length": minf(absf(lean) * 1.4 + 0.25, CombatantSprite.SUN_SHADOW_MOST), "strength": strength, "colour": CombatantSprite.shadow_colour}]
+			return [{"way": way, "length": minf(absf(lean) * 1.4 + 0.25, CombatantSprite.SUN_SHADOW_MOST), "strength": strength, "colour": CombatantSprite.shadow_colour, "soft": CombatantSprite.shadow_soft}]
 		found.sort_custom(func(one, other): return one.strength > other.strength)
 		return found.slice(0, CombatantSprite.MOST_SHADOWS)
 
@@ -350,7 +353,7 @@ class _Casting extends Node2D:
 		_material.set_shader_parameter("shade_colour", Vector3(c.r, c.g, c.b))
 		var frame_uv := region.size / whole_size
 		_material.set_shader_parameter("sharp", frame_uv * CombatantSprite.SHADOW_SHARP)
-		_material.set_shader_parameter("soft", frame_uv * CombatantSprite.SHADOW_SOFT)
+		_material.set_shader_parameter("soft", frame_uv * CombatantSprite.SHADOW_SOFT * float(cast.get("soft", 1.0)))
 		var near_alpha: float = cast.strength * strength_share
 		# Red says how far along it is: see SHADOW_SHADER.
 		var near := Color(0.0, 0.0, 0.0, near_alpha)

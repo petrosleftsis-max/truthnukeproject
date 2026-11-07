@@ -6,6 +6,7 @@
 
 [resource]
 script = ExtResource("6_object")
+can_be_thrown = true
 interactable = false
 breakable = true
 set_off_line = "The cauldron splits, and the tar runs away."
