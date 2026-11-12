@@ -87,8 +87,10 @@ render_mode unshaded;
 uniform sampler2D noise : repeat_enable, filter_linear;
 uniform vec2 tiles = vec2(16.0, 16.0);
 uniform float strength = 0.24;
+uniform sampler2D previous : filter_linear, repeat_disable;
+uniform float blend = 1.0;
 void fragment() {
-	float dark = texture(TEXTURE, UV).a;
+	float dark = mix(texture(previous, UV).a, texture(TEXTURE, UV).a, blend);
 	vec2 at = UV * tiles / 6.0;
 	float one = texture(noise, at + vec2(TIME * 0.012, TIME * 0.005)).r;
 	float two = texture(noise, at * 1.7 - vec2(TIME * 0.008, TIME * 0.011)).r;
@@ -106,6 +108,7 @@ uniform float cover = 0.0;
 uniform float mist = 0.0;
 uniform vec3 mist_colour = vec3(0.86, 0.88, 0.92);
 uniform float speed = 1.0;
+uniform sampler2D sky_mask : hint_default_white, filter_linear, repeat_disable;
 void fragment() {
 	vec2 at = UV * tiles / 14.0;
 	float one = texture(noise, at + vec2(TIME * 0.006, TIME * 0.002) * speed).r;
@@ -118,6 +121,7 @@ void fragment() {
 	} else {
 		COLOR = vec4(0.02, 0.03, 0.08, cloud);
 	}
+	COLOR.a *= texture(sky_mask, UV).r;
 }
 """
 
@@ -144,14 +148,84 @@ render_mode unshaded, blend_add;
 uniform sampler2D noise : repeat_enable, filter_linear;
 uniform vec2 tiles = vec2(16.0, 16.0);
 uniform float aurora = 0.0;
+uniform sampler2D sky_mask : hint_default_white, filter_linear, repeat_disable;
 void fragment() {
 	vec2 at = UV * tiles / 22.0;
 	float band = texture(noise, vec2(at.x * 0.5 + TIME * 0.01, at.y * 2.0 + sin(at.x * 3.0 + TIME * 0.2) * 0.3)).r;
 	float glow = smoothstep(0.55, 0.85, band) * aurora * 0.22;
 	vec3 hue = mix(vec3(0.2, 1.0, 0.55), vec3(0.65, 0.35, 1.0), smoothstep(0.3, 0.8, texture(noise, at * 0.7 + TIME * 0.004).r));
-	COLOR = vec4(hue * glow, 1.0);
+	COLOR = vec4(hue * glow * texture(sky_mask, UV).r, 1.0);
 }
 """
+
+## --- Only under the open sky ---
+##
+## The designer, 2026-11-12: "outdoor effects like rain shouldn't appear indoor, keep them shown outside still". Everything the
+## sky brings - what falls and blows (rain, snow, hail, sand, ash, the wind's streaks), the insects and motes, the mist, the
+## clouds' shadows, an aurora, a rainbow - fades out over every tile that is not open to the sky (LightMap.under_the_sky),
+## through a mask a pixel a tile that the linear filter softens over a tile's width (_mask_the_sky). The sky layers read it by
+## their own UV, being the map's size; what moves with the view reads it by where on the screen it is drawn, the screen's place
+## on the map told it every frame (AIR_SHADER's screen_origin and screen_extent, from _keep_the_air_on_the_screen) - drawn as
+## particles, a drop's own place never reaches the shader. A lightning flash keeps FLASH_INDOORS of itself there: its light at a
+## window. Past the map's edges, as before.
+
+const FLASH_INDOORS := 0.15
+const AIR_SHADER := """
+shader_type canvas_item;
+uniform sampler2D sky_mask : hint_default_white, filter_linear, repeat_disable;
+uniform vec2 mask_origin = vec2(0.0);
+uniform vec2 mask_size = vec2(0.0);
+uniform float indoors = 0.0;
+uniform vec2 screen_origin = vec2(0.0);
+uniform vec2 screen_extent = vec2(0.0);
+void fragment() {
+	float open = 1.0;
+	if (mask_size.x > 0.0 && screen_extent.x != 0.0) {
+		vec2 world = screen_origin + SCREEN_UV * screen_extent;
+		vec2 on_map = (world - mask_origin) / mask_size;
+		if (on_map.x >= 0.0 && on_map.y >= 0.0 && on_map.x <= 1.0 && on_map.y <= 1.0) {
+			open = texture(sky_mask, on_map).r;
+		}
+	}
+	COLOR.a *= mix(indoors, 1.0, open);
+}
+"""
+## One for everything that falls and floats; the flash its own, for how much of it shows indoors.
+var _air_material: ShaderMaterial = null
+var _sky_mask_made := false
+
+
+## The mask of the open sky, put on everything that reads it: again whenever the light map is (_build_occluders), and only
+## when it has changed.
+var _sky_mask_bytes := PackedByteArray()
+
+
+func _mask_the_sky():
+	if _sky_mask_made or light == null or _tile_map == null or _region.size.x <= 0 or _region.size.y <= 0:
+		return
+	_sky_mask_made = true
+	var image := Image.create(_region.size.x, _region.size.y, false, Image.FORMAT_L8)
+	for y in _region.size.y:
+		for x in _region.size.x:
+			image.set_pixel(x, y, Color.WHITE if light.under_the_sky(_region.position + Vector2i(x, y)) else Color.BLACK)
+	if image.get_data() == _sky_mask_bytes:
+		return
+	_sky_mask_bytes = image.get_data()
+	var mask := ImageTexture.create_from_image(image)
+	var half := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE) / 2.0
+	var origin: Vector2 = _tile_map.to_global(_tile_map.map_to_local(_region.position) - half)
+	var far: Vector2 = _tile_map.to_global(_tile_map.map_to_local(_region.end) - half)
+	for layer in [_mist, _clouds, _aurora]:
+		if layer != null:
+			layer.material.set_shader_parameter("sky_mask", mask)
+	if _air_material == null:
+		_air_material = _material(AIR_SHADER)
+	for material in [_air_material, _rainbow.material if _rainbow != null else null, _flash.material if _flash != null else null]:
+		if material != null:
+			material.set_shader_parameter("sky_mask", mask)
+			material.set_shader_parameter("mask_origin", origin)
+			material.set_shader_parameter("mask_size", far - origin)
+
 
 ## A rainbow across the map, from a middle far below it (Light.WEATHERS "rainbow"). A placeholder.
 const RAINBOW_SHADER := """
@@ -159,13 +233,27 @@ shader_type canvas_item;
 render_mode unshaded, blend_add;
 uniform float rainbow = 0.0;
 uniform float aspect = 1.0;
+uniform sampler2D sky_mask : hint_default_white, filter_linear, repeat_disable;
+uniform vec2 mask_origin = vec2(0.0);
+uniform vec2 mask_size = vec2(0.0);
+varying vec2 world;
+void vertex() {
+	world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
 void fragment() {
 	vec2 at = vec2((UV.x - 0.5) * aspect, UV.y - 1.6);
 	float from_middle = length(at);
 	float across = clamp((from_middle - 1.05) / 0.12, 0.0, 1.0);
 	float in_band = step(0.0, across) * step(across, 0.999) * smoothstep(0.0, 0.15, across) * (1.0 - smoothstep(0.85, 1.0, across));
 	vec3 hue = clamp(abs(fract(across + vec3(0.0, 0.66, 0.33)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
-	COLOR = vec4(hue * in_band * rainbow * 0.08, 1.0);
+	float open = 1.0;
+	if (mask_size.x > 0.0) {
+		vec2 on_map = (world - mask_origin) / mask_size;
+		if (on_map.x >= 0.0 && on_map.y >= 0.0 && on_map.x <= 1.0 && on_map.y <= 1.0) {
+			open = texture(sky_mask, on_map).r;
+		}
+	}
+	COLOR = vec4(hue * in_band * rainbow * 0.08 * open, 1.0);
 }
 """
 
@@ -319,6 +407,8 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_flash.name = "Flash"
 	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_flash.color = Color(0.92, 0.95, 1.0, 0.0)
+	_flash.material = _material(AIR_SHADER)
+	_flash.material.set_shader_parameter("indoors", FLASH_INDOORS)
 	_flash.z_as_relative = false
 	_flash.z_index = 4001
 	_flash.light_mask = 0
@@ -424,9 +514,14 @@ func refresh(slowly: bool = false):
 			var amount := _how_lit_it_looks(tile)
 			any_dark = any_dark or amount <= 0.02
 			shade.set_pixel(x, y, Color(colour, most * pow(1.0 - amount, 1.3)))
+	_fog_wanted = any_dark
+	# Shown at once when it comes, so it can fade in; kept until the shade has got there when it goes (_put_on_the_shade).
+	if air_on and any_dark:
+		_fog.visible = true
+	elif not air_on or _shade_easing == null or not _shade_easing.is_valid() or not _shade_easing.is_running():
+		_fog.visible = false
 	_put_on_the_shade(shade, most, SKY_SHADE_SECONDS if slowly else EASE_SECONDS)
 	_tell_the_shadows()
-	_fog.visible = air_on and any_dark
 	_fog.material.set_shader_parameter("strength", FOG_WITH_NIGHT_EYES if night_eyes else FOG_STRENGTH)
 	_build_occluders()
 
@@ -447,10 +542,54 @@ func _sky_to_show() -> bool:
 		or (_rainbow != null and _rainbow.visible) or [_snow, _hail, _sand, _ash, _gusts].any(func(bits): return bits != null and bits.emitting)
 
 
-## The shade's new picture, eased into from the one it replaces.
+## --- Darkness comes on slowly ---
+##
+## The designer, 2026-11-12: "Add a smooth transition to when darkness appears in any way". Whatever darkens - a dark zone
+## laid, a lamp or a torch out, the night, a door shut - the shade crossfades from what it was (at least DARKEN_SECONDS when
+## anything gets darker, EASE_SECONDS otherwise), and so do the fog over the Dark and the darkness on the figures, from the
+## same two pictures and the same blend (CombatantSprite.shade_previous, shade_blend). One coming before the last is done goes
+## on from where that had got to (_shade_shown), not from its end. The figures' own (their rim and eyes in the dark, fading
+## out of sight into it) ease in CombatantSprite.
+
+const DARKEN_SECONDS := 1.2
+## The picture the shade is going to, the one it came from, and how far between them it is, to go on from.
+var _shade_target: Image = null
+var _shade_from: Image = null
+var _shade_blend := 1.0
+## Whether the fog over the Dark is wanted once the shade gets where it is going.
+var _fog_wanted := false
+
+
+## The shade as it shows now, between where it came from and where it is going.
+func _shade_shown() -> Image:
+	if _shade_target == null:
+		return null
+	if _shade_from == null or _shade_blend >= 0.999 or _shade_from.get_size() != _shade_target.get_size():
+		return _shade_target
+	var shown := Image.create(_shade_target.get_width(), _shade_target.get_height(), false, Image.FORMAT_RGBA8)
+	for y in shown.get_height():
+		for x in shown.get_width():
+			shown.set_pixel(x, y, _shade_from.get_pixel(x, y).lerp(_shade_target.get_pixel(x, y), _shade_blend))
+	return shown
+
+
+## Whether anywhere in `image` is darker than in `before`.
+static func _darker_somewhere(before: Image, image: Image) -> bool:
+	if before == null or before.get_size() != image.get_size():
+		return false
+	for y in image.get_height():
+		for x in image.get_width():
+			if image.get_pixel(x, y).a > before.get_pixel(x, y).a + 0.04:
+				return true
+	return false
+
+
+## The shade's new picture, eased into from the one it shows now.
 func _put_on_the_shade(image: Image, most: float, seconds: float = EASE_SECONDS):
 	var old: Texture2D = _shade.texture
+	var was := _shade_shown()
 	var picture := ImageTexture.create_from_image(image)
+	var from_picture: Texture2D = ImageTexture.create_from_image(was) if was != null and was != _shade_target else old
 	_shade.texture = picture
 	_fog.texture = picture
 	var tile_size := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE)
@@ -458,17 +597,35 @@ func _put_on_the_shade(image: Image, most: float, seconds: float = EASE_SECONDS)
 		sprite.scale = tile_size
 		sprite.position = to_local(_tile_map.to_global(_tile_map.map_to_local(_region.position))) - tile_size / 2.0
 	var material: ShaderMaterial = _shade.material
+	var fog: ShaderMaterial = _fog.material
 	material.set_shader_parameter("most", most)
 	material.set_shader_parameter("dither", 12.0 if dithered else 0.0)
-	material.set_shader_parameter("previous", old if old != null else picture)
+	material.set_shader_parameter("previous", from_picture if from_picture != null else picture)
+	fog.set_shader_parameter("previous", from_picture if from_picture != null else picture)
+	CombatantSprite.shade_previous = from_picture if from_picture != null else picture
 	if _shade_easing != null and _shade_easing.is_valid():
 		_shade_easing.kill()
+	_shade_from = was
+	_shade_target = image
 	if old == null or not is_inside_tree():
-		material.set_shader_parameter("blend", 1.0)
+		_set_shade_blend(1.0)
 		return
-	material.set_shader_parameter("blend", 0.0)
+	if seconds < DARKEN_SECONDS and _darker_somewhere(was, image):
+		seconds = DARKEN_SECONDS
+	_set_shade_blend(0.0)
 	_shade_easing = create_tween()
-	_shade_easing.tween_method(func(value: float): material.set_shader_parameter("blend", value), 0.0, 1.0, seconds)
+	_shade_easing.tween_method(_set_shade_blend, 0.0, 1.0, seconds)
+	_shade_easing.finished.connect(func(): _fog.visible = air_on and _fog_wanted)
+
+
+## How far the shade, the fog and the figures' darkness are from the last picture to the new one.
+func _set_shade_blend(value: float):
+	_shade_blend = value
+	if _shade != null:
+		_shade.material.set_shader_parameter("blend", value)
+	if _fog != null:
+		_fog.material.set_shader_parameter("blend", value)
+	CombatantSprite.shade_blend = value
 
 
 ## --- Real lights ---
@@ -577,6 +734,8 @@ func _stops_a_shadow(at: Vector2) -> bool:
 ## they go into. Only when that has changed.
 func _build_occluders():
 	_ground_mask_made = false
+	# The roofs as the light map has them now: the sky's mask again too, once anything of the sky wants it (_mask_the_sky).
+	_sky_mask_made = false
 	if light.blocks_light == null or not light.blocks_light.is_valid() or not light.varies:
 		return
 	var rows := {}
@@ -1027,6 +1186,7 @@ static func splash(at: Vector2):
 
 
 func _show_the_sky(sky: Dictionary, at_once: bool = true):
+	_mask_the_sky()
 	var had: bool = _sky_to_show()
 	var wind: float = float(sky.get("wind", 0.0))
 	var sand: float = float(sky.get("sand", 0.0))
@@ -1074,6 +1234,10 @@ func _air_bits(called: String) -> CPUParticles2D:
 	bits.z_index = ExplorationParty.PARTY_Z_TOP
 	bits.emitting = false
 	bits.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	# Faded where the sky does not reach ("Only under the open sky").
+	if _air_material == null:
+		_air_material = _material(AIR_SHADER)
+	bits.material = _air_material
 	add_child(bits)
 	return bits
 
@@ -1283,6 +1447,17 @@ func _set_day_sound(slot: StringName):
 
 ## What falls and hangs in the air fills what can be seen of the map, wherever the view goes.
 func _keep_the_air_on_the_screen():
+	# Where the screen is on the map, for what reads the sky's mask by it (AIR_SHADER).
+	if _air_material != null:
+		_mask_the_sky()
+		var to_map := get_canvas_transform().affine_inverse()
+		var screen := get_viewport_rect().size
+		var origin: Vector2 = to_map * Vector2.ZERO
+		var extent: Vector2 = to_map * screen - origin
+		for material in [_air_material, _flash.material if _flash != null else null]:
+			if material != null:
+				material.set_shader_parameter("screen_origin", origin)
+				material.set_shader_parameter("screen_extent", extent)
 	var falling := [_rain, _life, _snow, _hail, _sand, _ash, _gusts]
 	if not falling.any(func(bits): return bits != null and bits.emitting):
 		return

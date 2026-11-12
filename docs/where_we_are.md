@@ -91,6 +91,18 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's second message of 2026-11-12** (ledger rows of that date from "InstaHack costs no gate" on; CLAUDE.md "Only under the open
+  sky", "Darkness comes on slowly", "The calendar to look at", Night Hunter; suites `dispel`, `triggers`, `ways`, `stealth`, `preparespells`,
+  `weather`, `daysky`, `clock`, `figures`):
+  - InstaHack costs the hacked caster no gate; the AI's cancel and dispel thresholds fall with the gates its caster has open, and deeper magic
+    counts for more to undo.
+  - Several Mimics are shared out over the party, nobody with two more behind them than another.
+  - Night Hunter is E, Cyrus's from 24. Path spells and Devotion's are always prepared and never counted.
+  - Fog, blizzards and sandstorms: checked that whoever is close still sees (3 tiles in a fight, a guard's Dim sight on a map).
+  - Rain and everything else of the sky stays out from under roofs. Darkness, however it comes, fades in.
+  - The light stage's sundial: the calendar, every weather, a round of them all. Proposals 20 (four looks in blue, for justice) and 23 (the
+    sundial and the calendar's look); the interface page has the new looks.
+
 - **The designer's messages of 2026-11-12** (ledger rows of that date; CLAUDE.md "The round of 2026-11-12", "What the weather does",
   "The weather on the ground and on the creatures", "Hunting in the dark", "Dispelling and cancelling, for the AI"; suites `weather`,
   `wallcheck` new, and `dispel`, `speech`, `sheet`, `preparespells`, `triggers`, `ways`, `light`, `blast`):
@@ -396,6 +408,9 @@ holds the game for both).
 
 ## Waiting on the designer
 
+0. **From the second message of 2026-11-12:** which look (F with G's gates is the recommendation now); painted weathers for the calendar
+   (`art/ui/weather/<weather>.png`); Night Hunter's level (24 is PROPOSAL); whether a Gate Nade torn apart comes back too (it does not now); the
+   lightning flash's share under a roof (0.15) and the darkness timings (1.2 s darkening, 0.8 s otherwise).
 0. **From 2026-11-12:** Night Hunter (E now recommended, or D+); the two study lines on each monster; which look for the interface
    (proposals 20; a page with the looks and the art list); which of 19, 21 and 22 to do; sounds for the empty slots (`docs/sound_slots.md`);
    who draws lightning (no creature ticked); shine masks with blue for cloth to try the wind on; the weather numbers (all PROPOSAL).

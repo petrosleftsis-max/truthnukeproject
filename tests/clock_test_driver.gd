@@ -39,6 +39,7 @@ func _ready():
 	await time_seen_going_by()
 	await phantom_wall_and_light()
 	await the_look()
+	await the_calendar_panel()
 	log_line("FAILURES: %d" % _fail)
 	_log.close()
 	get_tree().quit(0 if _fail == 0 else 1)
@@ -303,8 +304,27 @@ func the_look():
 		combat._placed_lights = []
 		combat.relight()
 		await settle()
+		# Darkness comes on slowly (the designer, 2026-11-12): the shade, the fog over the Dark and the figures' darkness alike.
+		ok(view._shade_blend < 1.0 and CombatantSprite.shade_blend < 1.0 and float(view.get_node("Fog").material.get_shader_parameter("blend")) < 1.0,
+			"the dark coming on eases in: the shade, the fog and the figures together", "%.2f" % view._shade_blend)
+		ok(view._shade_easing != null and view._shade_easing.is_valid(), "over a while")
 		await get_tree().create_timer(LightView.EASE_SECONDS + 0.2).timeout
 		ok(view.get_children().filter(func(node): return node is PointLight2D).is_empty(), "and they go out, slowly")
+		await get_tree().create_timer(LightView.DARKEN_SECONDS).timeout
+		ok(is_equal_approx(view._shade_blend, 1.0) and is_equal_approx(CombatantSprite.shade_blend, 1.0), "and gets there")
+		# One coming before the last is done goes on from where that had got to.
+		combat._placed_lights = [{"tile": tile, "bright": 2.0, "dim": 5.0, "colour": Color.WHITE, "flickers": false}]
+		combat.relight()
+		await get_tree().create_timer(0.3).timeout
+		var halfway: Image = view._shade_shown()
+		combat._placed_lights = []
+		combat.relight()
+		var from_image: Image = (view.get_node("Shade").material.get_shader_parameter("previous") as Texture2D).get_image()
+		var at: Vector2i = tile - view._region.position
+		ok(from_image != null and halfway != null and absf(from_image.get_pixelv(at).a - halfway.get_pixelv(at).a) < 0.06,
+			"a change halfway goes on from halfway, not from where the last was going",
+			"%.2f and %.2f" % [from_image.get_pixelv(at).a if from_image != null else -1.0, halfway.get_pixelv(at).a if halfway != null else -1.0])
+		await get_tree().create_timer(LightView.DARKEN_SECONDS + 0.2).timeout
 		# Figures in the dark.
 		var someone: Dictionary = combat.combatants[0]
 		someone.sprite.set_in_the_dark(true, true)
@@ -312,10 +332,24 @@ func the_look():
 		ok(someone.sprite._animated != null or someone.sprite._static != null, "a figure is there")
 		ok((someone.sprite._animated if someone.sprite._animated != null else someone.sprite._static).material != null, "with a rim in the dark")
 		ok(someone.sprite._eyes != null and someone.sprite._eyes.visible, "and eyes, if they see in it")
+		await get_tree().create_timer(CombatantSprite.FADE_SECONDS + 0.1).timeout
 		someone.sprite.set_in_the_dark(false, true)
 		var drawn_as: Node2D = someone.sprite._animated if someone.sprite._animated != null else someone.sprite._static
 		await settle()
-		ok((drawn_as.material == null or drawn_as.material.get_shader_parameter("rim_on") == 0.0) and not someone.sprite._eyes.visible, "and neither in the light")
+		ok(someone.sprite._rim > 0.0 and someone.sprite._rim < 1.0, "the rim eases away, not at once", "%.2f" % someone.sprite._rim)
+		await get_tree().create_timer(CombatantSprite.FADE_SECONDS + 0.1).timeout
+		ok((drawn_as.material == null or float(drawn_as.material.get_shader_parameter("rim_on")) == 0.0) and not someone.sprite._eyes.visible, "and neither in the light")
+		# Fading out of sight into the dark, or hidden: eased too, the rule's own number at once.
+		var showing_now: float = someone.sprite._shown_alpha
+		var to: float = 0.1 if showing_now > 0.5 else 0.9
+		var was_wanted: float = someone.sprite.hidden_alpha
+		someone.sprite.set_hidden_alpha(to)
+		ok(is_equal_approx(someone.sprite.hidden_alpha, to) and is_equal_approx(someone.sprite._shown_alpha, showing_now),
+			"somebody fading into the dark or out of it goes slowly, though the rule has them hidden or seen at once",
+			"%.2f to %.2f" % [someone.sprite._shown_alpha, to])
+		await get_tree().create_timer(CombatantSprite.FADE_SECONDS + 0.1).timeout
+		ok(is_equal_approx(someone.sprite._shown_alpha, to), "and gets there", "%.2f" % someone.sprite._shown_alpha)
+		someone.sprite.set_hidden_alpha(was_wanted)
 	# Projectiles.
 	var fire := SkillDefinition.new()
 	fire.deals_damage = true
@@ -331,4 +365,53 @@ func the_look():
 	game.queue_free()
 	await settle()
 	LightView.plays_headless = false
+	log_line("")
+
+
+func the_calendar_panel():
+	log_line("======== the calendar, to look at ========")
+	# The designer, 2026-11-12: "make it easier for me to see every weather through the sundial, allow me to check a calendar to
+	# see dates and weather".
+	Campaign.reset()
+	Campaign.call_deferred("open_calendar")
+	await settle(4)
+	var panel = get_tree().root.get_node_or_null("CalendarPanel")
+	ok(panel != null, "it comes up")
+	if panel == null:
+		return
+	var days: Array = panel.find_children("Day*", "Button", true, false)
+	ok(days.size() == Campaign.calendar().days_in_a_month, "a square for every day of the month", "%d" % days.size())
+	var said_today: Array = days[0].find_children("*", "Label", true, false).map(func(label): return label.text)
+	ok(said_today.any(func(text): return text.begins_with(Campaign.weather_on(1).capitalize())), "each with its weather", "%s" % [said_today])
+	panel._show("weathers")
+	await settle()
+	var buttons: Array = panel.find_children("Weather_*", "Button", true, false)
+	ok(buttons.size() == Light.WEATHERS.size(), "and every weather there is, to have now", "%d" % buttons.size())
+	for button in buttons:
+		if button.name == "Weather_fog":
+			button.pressed.emit()
+	ok(Campaign.weather_today() == "fog", "pressed, it is that weather now", Campaign.weather_today())
+	panel._show("month")
+	await settle()
+	panel._picked_day = 5
+	panel._go_to_picked()
+	ok(Campaign.day_number() == 5, "a day to come can be gone to", "day %d" % Campaign.day_number())
+	panel._picked_day = 2
+	panel._say_about()
+	ok(panel._go.disabled, "never one gone by")
+	panel._close()
+	await settle()
+	ok(get_tree().root.get_node_or_null("CalendarPanel") == null, "and it closes")
+	# A round of every weather, stopped by a press, and the sky as it was after.
+	Campaign.set_weather("snow", 2)
+	var was: Dictionary = Campaign.weather_fixed.duplicate()
+	Campaign.call_deferred("tour_the_weathers")
+	await settle(4)
+	var caption = get_tree().root.get_node_or_null("WeatherTour")
+	ok(caption != null and Campaign.weather_today() == Light.WEATHERS.keys()[0], "a round of them all begins with the first", Campaign.weather_today())
+	if caption != null:
+		caption.stopped = true
+	await settle(4)
+	ok(Campaign.weather_fixed == was and get_tree().root.get_node_or_null("WeatherTour") == null, "stopped, the sky is as it was", "%s" % [Campaign.weather_fixed])
+	Campaign.reset()
 	log_line("")

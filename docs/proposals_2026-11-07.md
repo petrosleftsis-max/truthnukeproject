@@ -580,6 +580,10 @@ longer would; and a melee blow from Dim on somebody who stays standing would no 
 still see him either way. Since that is narrow, **my recommendation is now E** (a free Stealth after felling somebody from hiding,
 once a turn): it changes play everywhere, and it is the hunter's way, one kill and gone again.
 
+**Chosen and built, 2026-11-12: E.** Night Hunter is Cyrus's from 24: felling somebody from hiding on his own turn, he slips out of
+sight again, even while watched, once a turn. The rest of hiding's rules stand: not the last of his side standing or in sight, not
+marked (Votive Flame), not in a light he cannot hide from. If nobody saw the blow, he was never seen, and the turn's slip is kept.
+
 ## 18. Weather on the map and on the creatures
 
 You asked how weather could show on the map and on the creatures. Built on 2026-11-07: things falling and blowing for every
@@ -702,6 +706,22 @@ health, stagger and tether bars, portrait frames for the party and the turn queu
 banner, the round mark, the clock face, the speech bubble, the stealth bar's icons, the alert meter, menu and journal backgrounds,
 and the codex's seal for a newly studied kind. The page has the sizes and what each is for.
 
+**Then (the designer, 2026-11-12):** "I really like the A and E ui looks. Suggest more and if possible, fitting two things: blue and
+justice, as a big theme of this game will be about what's right." Four more are on the same page, each from A and E. The gates
+already have Greek names, so justice comes from the same place: Themis, who holds the scales, and Astraea, the star-maiden of justice
+who became Virgo, with the scales (Libra) beside her.
+
+| Style | What it is |
+| --- | --- |
+| **F. The ultramarine codex** | A, with the vellum dyed lapis: gold-leaf rules and initials, Themis's scales in the corner of every panel, the main button the only gold thing on it |
+| **G. Astraea's sky** | E, bluer, its constellation drawn as the scales: a star for each gate, lit while it has castings, faint once spent |
+| **H. Chartres glass** | Every panel a leaded window in cathedral blues with light through it; the gates as the panes of a rose window. Boldest, and hardest to keep readable |
+| **I. Themis's seal** | A decree: navy leather, a parchment ribbon, the gates as blue wax seals that crack as they are spent; End Turn presses the seal |
+
+**My recommendation now: F, with G's scales for the gates.** It is A and E together, blue, with justice in the picture without a
+word said about it, and red kept for health and danger. The art list has the pieces F and G need first: the scales in gold, the
+gates as the scales in stars, the lapis vellum, and gold initials later.
+
 ## 21. More atmosphere
 
 | Idea | What it adds |
@@ -735,3 +755,25 @@ stage under 2D figures.
 **My recommendation: A, B and C together.** They keep every picture we have, add the depth you are after where it shows most
 (high ground, walls, things in front), and the rules do not change - Heights already has who is up. E is the finished look of that
 road; worth one test map later if you want to see it.
+
+## 23. The sundial and the calendar, and how they could look
+
+Built on 2026-11-12, as asked: the light stage's sundial now offers the calendar (a month of days, each with its date, its weather
+drawn and named, and the moon's phase; a day pressed says what its weather does, and a day to come can be gone to), every weather to
+have at once, a round of all seventeen four seconds each with their names along the top, and the day's own weather back. Any
+conversation can open it too: `do Campaign.open_calendar()`. You asked for ways to make it look better:
+
+| Idea | What it adds |
+| --- | --- |
+| **A real sundial** | A sprite on the stage whose gnomon's shadow turns with the hour, none at night or under cloud. Pressing E shows the dial up close before the menu |
+| **The calendar as an almanac** | A book's page in the interface's look (F above: lapis and gold), the month's name illuminated, the moon's phases down the margin, the days gone by crossed through in ink |
+| **Painted weathers** | Each weather's glyph drawn by your artist: the slot is there, `art/ui/weather/<weather>.png`, 64 by 64, seventeen of them |
+| **A border for each season** | The calendar's frame grows vines in spring, wheat in summer, leaves in autumn, frost in winter |
+| **Days that matter** | A seal on the days the story has fixed: a festival, a meeting, the weather a scene has set (shown now as "set") |
+| **Tomorrow's weather, as foresight** | Players see only today and the days gone; Alithia, who reads the future, could tell them tomorrow's. A small use of her gift that makes the weather something to plan around |
+| **The clock at the top as a sky dial** | The sun and moon going round a small dial, today's weather glyph beside it, so the calendar is a press away |
+| **On the map** | A weathervane that turns with the wind (`Campaign.wind_now`), rain barrels filling, wet stone that shines under lamps |
+| **Sound** | A page turning between months; a short sting for each weather as the round of them goes |
+
+My pick for first: the painted weathers and the almanac page, since the calendar shows most what it is drawn with. Tomorrow's
+weather as Alithia's foresight is the one that changes play.

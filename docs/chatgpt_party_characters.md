@@ -534,7 +534,7 @@ Her list of spells is long and varied, so a turn is a question of what the party
 - **Blessed in the Light** (8): on somebody standing in Bright, her heals mend a tenth more and her Idol damage lands a tenth harder.
 - **Nowhere to Hide** (16): nobody of the other side in Bright within six tiles, in her sight, can hide.
 - **Kindled Faith** (24) **New:** standing in Bright as her turn starts, she mends a little.
-- **Devotion:** two castings of her own, for Heal or Dread Visage, spent before any gate. Both spells are always prepared, so the castings are never wasted.
+- **Devotion:** two castings of her own, for Heal or Dread Visage, spent before any gate. Both spells are always prepared, so the castings are never wasted, and neither counts among the spells she chooses to prepare; nor do her path's own spells.
 - **Reserved Power** (32, 54): more castings through her deepest gate.
 - **Radiant Guardian** (64): while she stands, the party takes a tenth less damage.
 
@@ -607,7 +607,7 @@ The designer has written some already: Enfina's ("So that's how you fight.", "Wa
 
 - **Enfina's voice in play.** She has the least written so far and is the one being deepened, so her lines and her story matter most right now.
 - **Her lack of recognition.** Does anybody ever finally say something to her, and who?
-- **Cyrus and being hidden.** Hitting from hiding gives no bonus at present, only that nobody can react, and if the blow fells them and nobody else sees, he stays hidden. A passive called Night Hunter, about staying hidden, is being decided; the latest suggestion is a free Stealth after felling somebody from hiding, once a turn.
+- **Cyrus and being hidden.** Hitting from hiding gives no bonus at present, only that nobody can react, and if the blow fells them and nobody else sees, he stays hidden. His passive Night Hunter (from 24): felling somebody from hiding on his own turn, he slips out of sight again, even while they watch, once a turn.
 - **The world's weather is a rule now.** Rain soaks (ice and lightning hurt more), wind carries shots along it and shortens them across it, deep snow is slow going, lightning strikes in a thunderstorm, fog and sandstorms hide whoever knows how. Guards hear steps further in a light rain and less in a storm, and follow fresh prints in mud and snow.
 - **Necromancy for Prometheus.** Whether he uses it, how he came to know it, and what Alithia does about it.
 - **What the four know about each other,** and when each learns about the others' pasts.

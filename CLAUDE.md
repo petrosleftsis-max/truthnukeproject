@@ -423,9 +423,12 @@ close goes in after them (`_ai_hunts_in_the_dark`); the dark's edge is cover (`_
 **Dispelling and cancelling, for the AI** (Combat section of that name; `dispel`; the Sorcerer's Instahack and Dispel Magic, 2026-11-12):
 `_choose_option` lets a casting go unless `_ai_cancel_worth` reaches `_ai_cancel_wanted` (`AI_CANCEL_*`); `ai_caster` tries
 `_ai_dispel_a_zone`, then `_ai_dispel` (`_ai_best_dispel`, `_ai_dispel_worth` in blows, `AI_DISPEL_*`, through `cast_through`) before a blow.
+What has to be worth a casting falls with the gates its caster has open (`_ai_gate_cost`, never under `AI_GATE_COST_LEAST`; `_ai_dispel_wanted`), and
+what a spell left counts for more the deeper the gate it came through (`_ai_gate_worth`, `AI_DISPEL_PER_GATE`; the designer, 2026-11-12).
 **A pack waits only so long** (`_ai_holds_back`, `AI_PACK_WAITS`, `AI_PACK_TOGETHER_TILES`, `comb.held_back`). **A turn after one of theirs**
 (`CombatantDefinition.turn_after_one_of_them`, the Mimic's: `_turns_after_one_of_them` at each round's top and before the first, by `rng`, never
-the same one twice running).
+the same one twice running). Several are shared out so nobody has two more behind them than another (`_share_out`), and two behind one stay one after
+the other with no extra turn between (`_follows`, read by `_spread_turn_queue`).
 
 **Ways of its own** (Combat "Ways of its own"; `ways`; the designer, 2026-11-07). Switches on the creature's AI Mind
 group, all per creature and PROPOSAL as to who has what: `ai_commands_tiles` (`_ai_take_orders`, as each begins to
@@ -461,6 +464,18 @@ crossfades over `EASE_SECONDS`, dithers if `dithered`). Fog over the Dark (`FOG_
 (`GRADE_SHADER`) with `Light.grade_at`, and a `CanvasModulate` with `Light.tone_at`. Godot gives a screen-reading shader
 only what was on the screen the first time anything read it, and the shade reads it first: anything later needs
 its own `BackBufferCopy` (`_grade_copy`, FightCards' drain). `Projectile` carries a `PointLight2D`, as below.
+
+**Only under the open sky** (LightView section of that name; `daysky`; the designer, 2026-11-12: "outdoor effects like rain shouldn't appear
+indoor"). `_mask_the_sky`: a pixel a tile, white under the sky, rebuilt with the light map (`_build_occluders`) and put on only when it has changed.
+The mist, the clouds and the aurora read it by their own UV; what falls and floats, the rainbow and the flash by where on the screen they are drawn
+(`AIR_SHADER`, `screen_origin` and `screen_extent` told every frame by `_keep_the_air_on_the_screen`: a particle's own place never reaches its shader
+in this renderer, so `MODEL_MATRIX` will not do). `FLASH_INDOORS` of a lightning flash shows under a roof.
+**Darkness comes on slowly** (LightView section of that name; `clock`, `figures`; the designer, 2026-11-12). `_put_on_the_shade` crossfades the
+shade, the fog over the Dark and the figures' darkness from the same two pictures (`CombatantSprite.shade_previous`, `shade_blend`; FOG_SHADER's
+`previous`, `blend`), `DARKEN_SECONDS` when anything gets darker; one coming before the last is done starts from `_shade_shown`. The fog stays until
+it has faded (`_fog_wanted`). A figure's rim and eyes in the dark and its fading out of sight or back ease over `CombatantSprite.FADE_SECONDS`
+(`_rim`, `_shown_alpha`, `_ease_into_the_dark`); `hidden_alpha` is still the rule's, at once, and the first dressing is at once, so nobody who starts
+hidden is shown fading away where they stand.
 
 **How light falls on a figure, and what is on them** (`CombatantSprite`, `combat/ConditionLook.gd`; `figures`; the designer, 2026-11-07, sections
 9 and 10 of `docs/proposals_2026-11-07.md`). View only, with no icons over the head: the designer looked at an example and preferred
@@ -514,6 +529,10 @@ anybody at all, and by `is_seen_by_opponents`). The tiles right round the viewer
 and the target's own don't count. Marked by Flame and Calling Out see past it. The player is shown the other side's people the dark keeps
 from every one of the party (`_dark_keeps_from_party`, in `unseen_by_party` and `dress_for_hiding`); walls alone hide nobody, as ever. On a
 map it cuts a guard's `_seen` (`_sees_in_the_dark` by his creature's passives). Only sight: walking, and an area at the ground, go on.
+**Night Hunter** (Cyrus's from 24; the designer's E, 2026-11-12): felling somebody from hiding on his own turn (`hidden_as_it_began`, set at the top of
+`_use_skill`; `felled_from_hiding`, from `_after_felling`), he slips out of sight again after the reveal (`_slips_away`:
+`PassiveDefinition.slips_away_after_felling`), even while watched, once a turn (`slipped_away`, cleared as his turn begins); hiding's other rules
+stand. `stealth` covers it.
 
 **The round of 2026-11-12** (the designer's messages of that day). Cones go eight ways: on a diagonal the quarter between the two
 straight ways (`get_cone_tiles`, `get_octant_direction`; `blast`). The ground one can walk to is drawn quieter (`CController.MOVE_FILL`,
@@ -536,6 +555,11 @@ way it moves, never backwards, saying `clock_moved` always and `time_of_day_chan
 conversation: `advance_clock`, `set_clock`, `set_time_of_day`, `watch_time_pass` (a coroutine; `time_passing` holds
 everybody; `Net.time_passes` shows it on the joiner). A long rest ends at the next dawn; a short rest takes
 `SHORT_REST_HOURS` (PROPOSAL). Light's rule only changes with the part of the day; how it looks goes by the minute.
+**The calendar to look at** (`ui/calendar_panel.gd`, loaded by path, no class_name; `clock`; the designer, 2026-11-12): `do Campaign.open_calendar()`
+(or `"weathers"`) waits for it to close: a month of days with the date, the weather drawn (`_Glyph`, a slot `art/ui/weather/<weather>.png`) and
+the moon's phase; a day pressed says what its weather does (`WEATHER_SAYS`) and a day to come can be gone to; every weather to have now
+(`Campaign.set_weather`); `Campaign.tour_the_weathers` (the panel's static `tour`, `TOUR_SECONDS`, its caption "WeatherTour", any press stopping it,
+the sky as it was after). The light stage's sundial offers all of it.
 
 **The sky** (`Light.sky`, Campaign "The day's own sky", `LightView._show_the_sky`; `daysky`; the designer's picks of 2026-11-07, section 14). `Light.SKY` is about
 thirteen marks with a Hermite curve through them (`_curve`); tone, lean, strength, softness, saturation, contrast and how lit it looks all come from
@@ -567,7 +591,7 @@ move; `combat_ui._flight_button`; the AI's `_ai_consider_landing`); `_snow_costs
 (`data/hazards/lightning.tres`; `HazardDefinition.Aim.HIGH_AND_METAL`, `damage_by_level`, `flashes`; `_lightning_strikes`, `_hazard_damage`,
 `LightView.lightning_now`; `CombatantDefinition.draws_lightning`); `SOAKED` (`_rain_on`, `ConditionDefinition`'s Weather group:
 `damage_taken_of` in `resisted_damage`, `lengthens`, `longer_in_heat`, `longer_in_cold` through `_weather_lengthens` in `condition_turns` and
-`put_condition`); `_zone_burns` in `_zones_at_turn_start`; `thick_weather` in `_hides_in_dim`. On a map: `_rain_hearing` on
+`put_condition`); `_zone_burns` in `_zones_at_turn_start`; `thick_weather` in `_hides_in_dim`, so whoever is within `DIM_SPOT_TILES` still sees them. On a map: `_rain_hearing` on
 `notices_walking`, the dash and noisy ground; prints (`step_taken` from `_age_prints`, which watches the leader's walk; an oddity "prints",
 never putting the map up); `_thick_now` cutting `_seen` past `dim_sight_tiles`.
 **The weather on the ground and on the creatures** (LightView "The weather on the ground", CombatantSprite "The weather on the creatures";
@@ -597,7 +621,8 @@ shows only its own player's casters; with none left it waits, naming who for, no
 `_deploy_party`; `OutsideMoves.moves_of`, `outside_spells`; the sheet's fourth page "Prepared"
 (`has_readied`, `_show_prepared`) and "not prepared" and "locked" badges. `preparespells`. A spell a passive gives castings of its own
 for (Devotion: Heal, Dread Visage) is always prepared and not chosen (`Campaign.always_prepared`, in `is_prepared` and `prepare_choices`;
-the designer, 2026-11-12). The window's tooltips are the fight's own (`combat_ui.details_of`, which works with no fight on, the numbers by
+the designer, 2026-11-12), and so is a path's own spell once the path is theirs (`spares_prepared`, `path_spells_prepared`; `always_prepared_said`
+for the window's note and the sheet's Prepared page). None of them counts among those chosen. The window's tooltips are the fight's own (`combat_ui.details_of`, which works with no fight on, the numbers by
 `_base_damage_with_no_fight`); so is the sheet's on a map (`_preview_of`).
 
 **What opens and closes a fight** (`combat/FightCards.gd`; EncounterDefinition's and
@@ -1801,7 +1826,7 @@ one section each, and every rule is a per-creature switch:
   - `_react_to_casting` (Casts), in `use_skill` before the animation, for
     anything `is_spell`. It sets `comb.casting`; `cancel_casting`
     (EffectType.CANCEL_CASTING, InstaHack) sets `cast_cancelled`, and then
-    `_cast_cancelled` pays (`_pay_for_cast`) and spends the action;
+    `_cast_cancelled` spends the action but no gate, spare or amplifying gate (the designer, 2026-11-12);
   - `_react_before`, in `use_skill` once the targets are known (an attacker
     left stunned there hits nobody);
   - `_react_after`, once it has landed;

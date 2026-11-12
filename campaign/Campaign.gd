@@ -543,6 +543,29 @@ func play_time_passing(minutes: int, seconds: float):
 	await show.finished
 
 
+## --- The calendar and the weathers ---
+##
+## The designer, 2026-11-12: "make it easier for me to see every weather through the sundial, allow me to check a calendar to see
+## dates and weather". `do Campaign.open_calendar()` in a conversation (the light stage's sundial has it) puts up the calendar
+## (ui/calendar_panel.gd) and waits for it to close: a month of days with their weather and moon, and every weather to have now.
+## `page` "weathers" opens on those. A round of them all asked for there goes once it closes (tour_the_weathers).
+const CALENDAR_PANEL := "res://ui/calendar_panel.gd"
+
+
+func open_calendar(page: String = "month"):
+	var panel: CanvasLayer = load(CALENDAR_PANEL).new()
+	panel.page = page
+	get_tree().root.add_child(panel)
+	var wants_tour: bool = await panel.closed
+	if wants_tour:
+		await tour_the_weathers()
+
+
+## Every weather in turn, a few seconds each, its name along the top, then the sky as it was: any press stops it.
+func tour_the_weathers():
+	await load(CALENDAR_PANEL).tour(get_tree())
+
+
 ## Whether `key` sees in the dark, as far as their passives go (Cyrus's Night Eyes).
 func sees_in_darkness(key: String) -> bool:
 	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)

@@ -279,10 +279,11 @@ func light_on_them():
 	await settle()
 	var far: Vector2i = tile + Vector2i(-40, -40)
 	sprite.set_in_the_dark(true, false)
-	await settle(2)
+	# It comes on over a moment, as darkness does (the designer, 2026-11-12).
+	await get_tree().create_timer(CombatantSprite.FADE_SECONDS + 0.15).timeout
 	ok(material.get_shader_parameter("rim_on") == 1.0, "in the Dark, a rim so she can still be made out")
 	sprite.set_in_the_dark(false, false)
-	await settle(2)
+	await get_tree().create_timer(CombatantSprite.FADE_SECONDS + 0.15).timeout
 	ok(material.get_shader_parameter("rim_on") == 0.0, "out of it, none")
 	# Half in the dark: the shade's own picture is read, pixel by pixel.
 	ok(CombatantSprite.shade_map != null and CombatantSprite.shade_rect.size.x > 0.0, "the shade is there to read", "%s" % CombatantSprite.shade_rect)

@@ -480,3 +480,10 @@ These are OPEN: no sheet documents them, or documents them only in part. The val
 - **Alithia's Heal and Dread Visage are always prepared** (Devotion pays for them). The Sorcerer has Instahack and Dispel Magic.
 - **Lines:** each monster gets a line of Enfina's and one of Prometheus's for studying it, written by the designer; Alithia's changed-future lines are the designer's own now.
 - Asked for and written as suggestions: more places for lines, five looks for the interface with an art list for an artist, more atmosphere, and 2.5D (depth with 2D art: raised ground shown, layers, light that knows height).
+- **InstaHack** costs the one whose spell it tears apart no gate, only the spell and the action. The AI weighs cancelling and dispelling against the gates its caster has open: a Pandora casting is all a Sorcerer has at 14 and a small part of it at 64, so less has to be worth it as gates open, and deeper magic counts for more to undo.
+- **Several Mimics** are shared out over the party, nobody ever with two more behind them than another.
+- **Night Hunter is E:** felling somebody from hiding, Cyrus slips out of sight again, even while watched, once a turn, from level 24.
+- **Prepared spells:** Devotion's Heal and Dread Visage and a path's own spells are always prepared and never counted among those chosen.
+- **The sky stays outside:** rain, snow, mist and the rest never show under a roof. **Darkness fades in**, whatever brings it.
+- **The calendar:** on the light stage's sundial, a month of days with their weather and moon, every weather to try at once, and a round of them all.
+- The interface: the designer liked A (the codex) and E (the night sky); four more were drawn in blue around justice (Themis's scales, Astraea's stars), and F with G's gates recommended.

@@ -353,6 +353,24 @@ func how_it_looks():
 	Campaign.set_weather("storm")
 	await settle()
 	ok(view._rain != null and view._rain.emitting, "rain falls in a storm")
+	# Only under the open sky (the designer, 2026-11-12: "outdoor effects like rain shouldn't appear indoor").
+	await settle()
+	ok(view._air_material != null and view._rain.material == view._air_material, "what falls is drawn through the sky's mask")
+	if view._air_material != null:
+		var mask_size: Vector2 = view._air_material.get_shader_parameter("mask_size")
+		ok(mask_size.x > 0.0 and view._air_material.get_shader_parameter("screen_extent") != Vector2.ZERO,
+			"laid over the map, and told where on it the screen is", "%s" % mask_size)
+	var region: Rect2i = view._region
+	var agrees: bool = view._sky_mask_bytes.size() == region.size.x * region.size.y
+	if agrees:
+		for y in region.size.y:
+			for x in region.size.x:
+				if (view._sky_mask_bytes[y * region.size.x + x] > 127) != view.light.under_the_sky(region.position + Vector2i(x, y)):
+					agrees = false
+	ok(agrees, "open where the sky is and shut under a roof, tile by tile", "%d bytes for %s" % [view._sky_mask_bytes.size(), region.size])
+	ok(view._clouds.material.get_shader_parameter("sky_mask") != null and view._mist.material.get_shader_parameter("sky_mask") != null,
+		"and the clouds' shadows and the mist read it too")
+	ok(is_equal_approx(float(view._flash.material.get_shader_parameter("indoors")), LightView.FLASH_INDOORS), "a flash of lightning shows a little indoors, as at a window")
 	ok(view._day_sound_is == &"rain_falling", "and is heard, if there is a sound in the slot")
 	# Clear for the days that follow too: a day of its own may have wind, which has no birds or dawn mist.
 	Campaign.set_weather("clear", 3)

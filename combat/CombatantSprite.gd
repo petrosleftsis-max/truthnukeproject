@@ -64,10 +64,36 @@ var tint := Color.WHITE
 
 func set_hidden_alpha(alpha: float):
 	hidden_alpha = alpha
+	# Into the dark or out of it, hidden or seen: eased where it is drawn (LightView "Darkness comes on slowly"), at once headless -
+	# and at once the first time, so nobody who starts out hidden is shown fading away where they stand.
+	if not LightView.shown() or not is_inside_tree() or not _alpha_set:
+		_shown_alpha = alpha
+	_alpha_set = true
+	_dress_alpha()
+
+
+## The figure's colour with how much of them shows now.
+func _dress_alpha():
 	for sprite in [_animated, _static]:
 		if sprite != null and is_instance_valid(sprite):
 			var lit: Color = Color.WHITE if _figure_material != null and sprite.material == _figure_material and shade_map != null else lit_by
-			sprite.self_modulate = Color(tint * lit * condition_tint, alpha)
+			sprite.self_modulate = Color(tint * lit * condition_tint, _shown_alpha)
+
+
+## How much of them shows, easing to hidden_alpha; and the rim in the dark, easing to on or off.
+var _shown_alpha := 1.0
+var _alpha_set := false
+var _rim := 0.0
+const FADE_SECONDS := 0.8
+
+
+func _ease_into_the_dark(delta: float):
+	var step: float = delta / FADE_SECONDS
+	if not is_equal_approx(_shown_alpha, hidden_alpha):
+		_shown_alpha = move_toward(_shown_alpha, hidden_alpha, step)
+		_dress_alpha()
+	var rim_wanted := 1.0 if _in_the_dark else 0.0
+	_rim = move_toward(_rim, rim_wanted, step) if LightView.shown() else rim_wanted
 
 
 ## --- What is on them, on them (ConditionLook) ---
@@ -222,7 +248,7 @@ class _Shadow extends Node2D:
 
 	func _process(_delta):
 		var figure: CombatantSprite = get_parent()
-		var alpha: float = figure.hidden_alpha
+		var alpha: float = figure._shown_alpha
 		var frame: Variant = figure.frame_stamp()
 		# With a light about, it turns as they move, and it walks as they do.
 		if seen != CombatantSprite.shadow_version or alpha_seen != alpha or frame != frame_seen or not CombatantSprite.light_points.is_empty():
@@ -411,6 +437,8 @@ uniform float back_lit = 0.0;
 uniform float feet_y = 128.0;
 uniform float figure_height = 256.0;
 uniform sampler2D shade_map : filter_linear, repeat_disable;
+uniform sampler2D shade_previous : filter_linear, repeat_disable;
+uniform float shade_blend = 1.0;
 uniform vec4 shade_rect = vec4(0.0, 0.0, 1.0, 1.0);
 uniform float shade_on = 0.0;
 uniform float shapes_on = 0.0;
@@ -503,16 +531,17 @@ void fragment() {
 		rgb += vec3(1.0, 0.95, 0.85) * shine * heat_on * 0.35 * (0.5 + 0.5 * sin(TIME * 3.0 + UV.y * 30.0));
 	}
 	if (shade_on > 0.5) {
-		float dark = texture(shade_map, (world - shade_rect.xy) / shade_rect.zw).a;
+		vec2 on_shade = (world - shade_rect.xy) / shade_rect.zw;
+		float dark = mix(texture(shade_previous, on_shade).a, texture(shade_map, on_shade).a, shade_blend);
 		rgb *= 1.0 - clamp(dark, 0.0, 1.0) * 0.55;
 	}
 	COLOR = vec4(rgb, base.a);
-	if (rim_on > 0.5) {
+	if (rim_on > 0.001) {
 		vec2 step_by = pixel * 4.0;
 		float near = texture(TEXTURE, UV + vec2(step_by.x, 0.0)).a + texture(TEXTURE, UV - vec2(step_by.x, 0.0)).a
 			+ texture(TEXTURE, UV + vec2(0.0, step_by.y)).a + texture(TEXTURE, UV - vec2(0.0, step_by.y)).a;
 		float edge = clamp(near, 0.0, 1.0) * (1.0 - clamp(here * 4.0, 0.0, 1.0));
-		COLOR = mix(COLOR, vec4(rim.rgb, rim.a * figure_alpha), edge);
+		COLOR = mix(COLOR, vec4(rim.rgb, rim.a * figure_alpha), edge * clamp(rim_on, 0.0, 1.0));
 	}
 }
 """
@@ -520,6 +549,9 @@ void fragment() {
 static var figures_lit := false
 ## How dark each tile is, for half in the dark: the shade's own picture, and where it lies.
 static var shade_map: Texture2D = null
+## The picture the shade is easing from, and how far it has got (LightView "Darkness comes on slowly").
+static var shade_previous: Texture2D = null
+static var shade_blend := 1.0
 static var shade_rect := Rect2()
 const SIDE_MOST := 0.9
 const FAR_DARK_MOST := 0.4
@@ -807,8 +839,8 @@ func _fall_of_light():
 	material.set_shader_parameter("far_dark", side * (FAR_DARK_MOST / SIDE_MOST))
 	material.set_shader_parameter("from_above", above)
 	material.set_shader_parameter("back_lit", behind)
-	material.set_shader_parameter("rim_on", 1.0 if _in_the_dark else 0.0)
-	material.set_shader_parameter("figure_alpha", hidden_alpha)
+	material.set_shader_parameter("rim_on", _rim)
+	material.set_shader_parameter("figure_alpha", _shown_alpha)
 	# A shape from the picture; how high the light is: a lamp or a fire low, the sun high.
 	material.set_shader_parameter("shapes_on", 1.0 if GameSettings.figure_shapes() else 0.0)
 	material.set_shader_parameter("light_height", 0.45 if weight > 0.001 else 0.9)
@@ -833,12 +865,15 @@ func _fall_of_light():
 	material.set_shader_parameter("shade_on", 1.0 if shade_map != null else 0.0)
 	if shade_map != null:
 		material.set_shader_parameter("shade_map", shade_map)
+		material.set_shader_parameter("shade_previous", shade_previous if shade_previous != null else shade_map)
+		material.set_shader_parameter("shade_blend", shade_blend if shade_previous != null else 1.0)
 		material.set_shader_parameter("shade_rect", Vector4(shade_rect.position.x, shade_rect.position.y, shade_rect.size.x, shade_rect.size.y))
 
 
 func _process(delta):
 	_soak(delta)
 	_weather_on_me(delta)
+	_ease_into_the_dark(delta)
 	if figures_lit and not laid:
 		_fall_of_light()
 	elif _figure_material != null and _drawn() != null and _drawn().material == _figure_material:
@@ -862,7 +897,7 @@ class _Eyes extends Node2D:
 	func _process(_delta):
 		var parent := get_parent() as CombatantSprite
 		position = Vector2(0.0, -parent.head_height() - float(Grid.TILE_SIZE) * 0.18)
-		modulate.a = parent.hidden_alpha
+		modulate.a = parent._shown_alpha * parent._rim
 
 	func _draw():
 		var tile := float(Grid.TILE_SIZE)

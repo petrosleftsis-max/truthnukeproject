@@ -1,5 +1,13 @@
 ~ sundial
-Sundial: {{Campaign.clock_text()}} on day {{Campaign.day_number()}}. {{Campaign.date_text()}}.
+Sundial: {{Campaign.clock_text()}} on day {{Campaign.day_number()}}. {{Campaign.date_text()}}. The weather: {{Campaign.weather_today()}}.
+- Look at the calendar (the days, their weather, the moon)
+	do Campaign.open_calendar()
+- Have a weather now (every one there is)
+	do Campaign.open_calendar("weathers")
+- Go round every weather, four seconds each
+	do Campaign.tour_the_weathers()
+- The day's own weather again
+	do Campaign.set_weather()
 - Watch a whole day go round (twelve seconds)
 	do Campaign.watch_time_pass(24.0, 0, 12.0)
 - Watch eight hours go by (five seconds)
