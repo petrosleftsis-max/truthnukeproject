@@ -346,6 +346,7 @@ func open(hold_the_game: bool = true):
 
 
 func close():
+	_finish_reveal()
 	if path_picker != null:
 		path_picker.queue_free()
 		path_picker = null
@@ -372,6 +373,11 @@ func _name_keys():
 ## turns the page - taken here, before the focus moves on Tab.
 func _input(event):
 	if not _open:
+		return
+	# Any press finishes a reveal at once ("A new kind, studied").
+	if is_revealing() and event.is_pressed() and not event.is_echo() and (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton):
+		_finish_reveal()
+		get_viewport().set_input_as_handled()
 		return
 	if path_picker == null and Pad.went_down(event, &"skill_tab") and _index < _entries.size():
 		get_viewport().set_input_as_handled()
@@ -588,6 +594,165 @@ func _show_entry():
 			_show_stats(entry)
 	_show_members()
 	_fit_to_screen()
+	if _page == 0:
+		_maybe_reveal(entry)
+
+
+## --- A new kind, studied ---
+##
+## The designer, 2026-11-07: "an effect for when a new kind of monster is studied... when the character sheet of a new monster
+## opens, for there to be some sort of effects that reveal the information". The first time the sheet shows a kind of creature
+## studied (Campaign.sheets_revealed, by its key, saved), its Sheet page plays _reveal: a gold line over the top saying so, the
+## portrait coming out of a silhouette with a flash, a bright line sweeping down the page, and each row coming in after the one
+## before, its numbers spinning before they settle. Any press finishes it at once. Its sound is SoundBank "codex_reveal" (a
+## stand-in meanwhile). Placeholder looks, all of it; headless only with `reveals_headless`.
+
+const REVEAL_ROW_GAP := 0.07
+const REVEAL_SPIN_SECONDS := 0.4
+const REVEAL_PORTRAIT_SECONDS := 0.6
+const REVEAL_SWEEP_SECONDS := 0.75
+const REVEAL_TOLD_SECONDS := 2.2
+const REVEAL_GOLD := Color("f0d27a")
+const REVEAL_SILHOUETTE_SECONDS := 0.35
+static var reveals_headless := false
+var _revealing: Tween = null
+## Each reveal's own number, so what waits for the sheet's layout knows whether it is still wanted.
+var _reveal_token := 0
+## What the reveal put up, to take down: [nodes], and the labels whose numbers spin: [[label, its text]].
+var _reveal_made: Array = []
+var _reveal_spins: Array = []
+
+
+## `entry` is shown: if it is a kind studied that nobody has seen the sheet of yet, its reveal.
+func _maybe_reveal(entry: Dictionary):
+	if not entry.get("studied", false):
+		return
+	var key: String = entry.get("key", "")
+	if key == "" or Campaign.sheets_revealed.has(key):
+		return
+	Campaign.sheets_revealed.append(key)
+	if DisplayServer.get_name() == "headless" and not reveals_headless:
+		return
+	_reveal(entry)
+
+
+func _reveal(entry: Dictionary):
+	_finish_reveal()
+	_reveal_token += 1
+	var token := _reveal_token
+	if GameSounds.stream(&"codex_reveal") != null:
+		GameSounds.play(&"codex_reveal")
+	else:
+		GameSounds.play_stream(PlaceholderSounds.make("reveal"), -6.0)
+	# How long it all takes, for is_revealing.
+	_revealing = create_tween()
+	_revealing.tween_interval(REVEAL_TOLD_SECONDS + 0.9)
+	# The portrait: a silhouette a moment, a flash, and them.
+	if _portrait != null and _portrait.visible:
+		_portrait.modulate = Color(0, 0, 0, 1)
+		var portrait := create_tween()
+		portrait.tween_interval(REVEAL_SILHOUETTE_SECONDS)
+		portrait.tween_property(_portrait, "modulate", Color(2.2, 2.0, 1.6, 1.0), 0.15)
+		portrait.tween_property(_portrait, "modulate", Color.WHITE, 0.45)
+		_reveal_made.append(portrait)
+	# Row after row, the numbers spinning till they settle.
+	var rows: Array = _stat_rows.get_children().filter(func(row): return row is CanvasItem and row.visible)
+	for i in rows.size():
+		var row: CanvasItem = rows[i]
+		row.modulate.a = 0.0
+		var coming := create_tween()
+		coming.tween_interval(0.15 + REVEAL_ROW_GAP * float(i))
+		coming.tween_property(row, "modulate:a", 1.0, 0.18)
+		_reveal_made.append(coming)
+		for label in row.find_children("*", "Label", true, false) + ([row] if row is Label else []):
+			var said: String = label.text
+			if not said.contains("0") and not said.contains("1") and not said.contains("2") and not said.contains("3") and not said.contains("4") \
+					and not said.contains("5") and not said.contains("6") and not said.contains("7") and not said.contains("8") and not said.contains("9"):
+				continue
+			_reveal_spins.append([label, said])
+			var spinning := create_tween()
+			spinning.tween_interval(0.15 + REVEAL_ROW_GAP * float(i))
+			spinning.tween_method(func(settled: float): if is_instance_valid(label): label.text = _spun(said, settled), 0.0, 1.0, REVEAL_SPIN_SECONDS)
+			spinning.tween_callback(func(): if is_instance_valid(label): label.text = said)
+			_reveal_made.append(spinning)
+	_reveal_over_the_panel(entry, token)
+
+
+## What goes over the sheet itself - the words over its top, the line down it - once it has been laid out where it will be.
+func _reveal_over_the_panel(entry: Dictionary, token: int):
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if token != _reveal_token or not _open:
+		return
+	var panel := _panel.get_global_rect()
+	var told := Label.new()
+	told.text = "Studied for the first time: %s" % entry.get("name", "")
+	told.theme_type_variation = GameFonts.HEADER
+	told.add_theme_font_size_override("font_size", 22)
+	told.add_theme_color_override("font_color", REVEAL_GOLD)
+	told.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	told.add_theme_constant_override("outline_size", 6)
+	told.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	told.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	told.size = Vector2(panel.size.x, 32)
+	told.position = Vector2(panel.position.x, maxf(panel.position.y - 40.0, 6.0))
+	told.modulate.a = 0.0
+	_root.add_child(told)
+	_reveal_made.append(told)
+	var telling := create_tween()
+	telling.tween_property(told, "modulate:a", 1.0, 0.25)
+	telling.tween_interval(REVEAL_TOLD_SECONDS)
+	telling.tween_property(told, "modulate:a", 0.0, 0.6)
+	_reveal_made.append(telling)
+	var sweep := ColorRect.new()
+	sweep.color = Color(REVEAL_GOLD.r, REVEAL_GOLD.g, REVEAL_GOLD.b, 0.75)
+	sweep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sweep.size = Vector2(panel.size.x, 3)
+	sweep.position = panel.position
+	_root.add_child(sweep)
+	_reveal_made.append(sweep)
+	var sweeping := create_tween()
+	sweeping.tween_property(sweep, "position:y", panel.end.y - 3.0, REVEAL_SWEEP_SECONDS).set_trans(Tween.TRANS_SINE)
+	sweeping.tween_property(sweep, "modulate:a", 0.0, 0.2)
+	_reveal_made.append(sweeping)
+
+
+## `text` with its digits spinning: those past `settled` of the way along still a random digit.
+static func _spun(text: String, settled: float) -> String:
+	var out := ""
+	var fixed := int(float(text.length()) * settled)
+	for i in text.length():
+		var letter := text[i]
+		out += str(randi() % 10) if i >= fixed and letter >= "0" and letter <= "9" else letter
+	return out
+
+
+## The reveal, finished at once: everything as it is to be.
+func _finish_reveal():
+	for made in _reveal_made:
+		if made is Tween and made.is_valid():
+			made.kill()
+		elif made is Node and is_instance_valid(made):
+			made.queue_free()
+	_reveal_made.clear()
+	if _revealing != null and _revealing.is_valid():
+		_revealing.kill()
+	_revealing = null
+	for spin in _reveal_spins:
+		if is_instance_valid(spin[0]):
+			spin[0].text = spin[1]
+	_reveal_spins.clear()
+	if _portrait != null:
+		_portrait.modulate = Color.WHITE
+	if _stat_rows != null:
+		for row in _stat_rows.get_children():
+			if row is CanvasItem:
+				row.modulate.a = 1.0
+
+
+## Whether the reveal is playing.
+func is_revealing() -> bool:
+	return _revealing != null and _revealing.is_valid() and _revealing.is_running()
 
 
 ## Gives the numbers all the height they want, up to what the screen has room
@@ -1115,11 +1280,7 @@ func _preview_of(skill: SkillDefinition, subject: Dictionary) -> String:
 	var panel = combat.game_ui if combat != null and is_instance_valid(combat) else null
 	if panel != null and panel.has_method("build_skill_tooltip"):
 		return panel.build_skill_tooltip(skill, subject)
-	var lines := [skill.name]
-	if skill.description != "":
-		lines.append(skill.description)
-	return "
-".join(lines)
+	return (load("res://ui/combat_ui.gd") as GDScript).details_of(skill, subject)
 
 
 ## A row: its name on the left, its value beside it (not off at the far edge,
@@ -1367,9 +1528,13 @@ func _show_prepared(entry: Dictionary):
 	var path := SubclassDefinition.named(entry.get("subclass", ""))
 	var level: int = entry.get("level", 1)
 	var prepared: Array = Campaign.prepared_list(key)
-	_heading("Prepared", INK, "%d of %d, until the next long rest" % [prepared.size(), Campaign.prepare_limit()])
+	var always: Array = Campaign.always_prepared(key)
+	var told := "%d of %d, until the next long rest" % [prepared.size(), Campaign.prepare_limit()]
+	if not always.is_empty():
+		told += "; always, and not counted: %s" % Campaign.always_prepared_said(key)
+	_heading("Prepared", INK, told)
 	var shelves := {}
-	for spell in prepared:
+	for spell in prepared + always.filter(func(spell): return not prepared.has(spell)):
 		var skill: SkillDefinition = SkillDatabase.skills.get(spell)
 		if skill != null:
 			if not shelves.has(skill.spell_slot_level):

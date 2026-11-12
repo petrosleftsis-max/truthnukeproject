@@ -132,6 +132,9 @@ var chapter: int = 1
 ## Whether the Levels page has shown the levels past ΛΗΘΗ being uncovered - the
 ## first time it is opened in Chapter V.
 var levels_unveiled := false
+## The kinds of creature whose sheet has played its reveal, the first time it showed them studied (CharacterSheet "A new kind,
+## studied"; the designer, 2026-11-07).
+var sheets_revealed: Array = []
 
 
 ## Starts chapter `which`, 1 to 5. Written for a dialogue:
@@ -438,20 +441,41 @@ func say_bubble(key: String, line: String):
 ##     do Campaign.set_weather("rain", 3)        today and the next two
 ##     do Campaign.set_weather()                 the day's own again
 ##     do Campaign.set_moon("full")              or "new", whatever the date; set_moon() goes by the date again
-## All of it is how it looks, but for two things: a new moon is No Moon, by the rule, and the month moves when dawn and dusk begin.
+## Mostly it is how it looks. By the rule: a new moon is No Moon; the month moves when dawn and dusk begin; and the weather does what
+## Light "What the weather does" says, in a fight (Combat "Weather") and on a map (StealthWatch "The weather").
 
 
 ## The sky today.
 func weather_today() -> String:
-	if not weather_fixed.is_empty() and day_number() <= int(weather_fixed.get("until_day", 0)):
+	return weather_on(day_number())
+
+
+## The sky on `day`: a scene's while it holds (from the day it was set: an older save's holds from today), or the day's own.
+func weather_on(day: int) -> String:
+	if not weather_fixed.is_empty() and day <= int(weather_fixed.get("until_day", 0)) and day >= int(weather_fixed.get("from_day", day_number())):
 		return weather_fixed.get("name", "clear")
-	return Light.weather_of(day_number(), days_in_a_year())
+	return Light.weather_of(day, days_in_a_year())
 
 
 ## `name` for today and `days` - 1 more, or the day's own with no name.
 func set_weather(name: String = "", days: int = 1):
-	weather_fixed = {} if name == "" else {"name": name, "until_day": day_number() + maxi(days, 1) - 1}
+	weather_fixed = {} if name == "" else {"name": name, "from_day": day_number(), "until_day": day_number() + maxi(days, 1) - 1}
 	clock_moved.emit()
+
+
+## What lies on open ground now, in `ambient` (Light.ground): nothing indoors or underground.
+func ground_now(ambient: int = map_ambient, minute: int = -1) -> Dictionary:
+	if ambient != Light.Ambient.OUTDOORS and ambient != Light.Ambient.AS_THE_MAP:
+		return Light.NOTHING_LYING.duplicate()
+	if ambient == Light.Ambient.AS_THE_MAP and map_ambient != Light.Ambient.OUTDOORS:
+		return Light.NOTHING_LYING.duplicate()
+	return Light.ground(minute if minute >= 0 else minute_of_day(), weather_on(day_number()), weather_on(day_number() - 1),
+		Light.season_of(day_number(), days_in_a_year()))
+
+
+## Which way today's wind blows, on the grid (Light.wind_way).
+func wind_now() -> Vector2i:
+	return Light.wind_way(day_number())
 
 
 ## "full" or "new", whatever the date, or going by the date again with neither.
@@ -558,14 +582,84 @@ func prepare_limit() -> int:
 
 
 ## The spells `key` could prepare: theirs and their path's, known, reached, and through
-## a gate open to them.
+## a gate open to them - but those always prepared (always_prepared), which are not chosen.
 func prepare_choices(key: String) -> Array:
 	var found := []
+	var always := always_prepared(key)
 	for spell in learnable_spells(key):
 		var skill: SkillDefinition = SkillDatabase.skills.get(spell)
 		if skill == null or skill is ItemDefinition or CharacterSheet.comes_in(skill) > party_level or not knows_spell(key, spell):
 			continue
+		if always.has(spell):
+			continue
 		found.append(spell)
+	return found
+
+
+## The spells `key` always has prepared, over and above those chosen and never counted among them: every spell a passive of
+## theirs gives castings of its own for (spares_prepared), and their path's own spells (path_spells_prepared).
+func always_prepared(key: String) -> Array:
+	var found := spares_prepared(key)
+	for spell in path_spells_prepared(key):
+		if not found.has(spell):
+			found.append(spell)
+	return found
+
+
+## Their path's own spells, once the path is theirs: known (learned, for whoever learns spells) and through a gate open to
+## them (the designer, 2026-11-12: "heal and dread shouldnt count to the number of prepared spells. the same is true for
+## subclass spells").
+func path_spells_prepared(key: String) -> Array:
+	var found := []
+	var path := SubclassDefinition.named(subclass_of(key))
+	if path == null or party_level < Stats.SUBCLASS_LEVEL:
+		return found
+	for spell in path.skills:
+		var skill: SkillDefinition = SkillDatabase.skills.get(spell)
+		if skill != null and not skill is ItemDefinition and Combat.is_spell(skill) and not found.has(spell) and knows_spell(key, spell) \
+				and CharacterSheet.comes_in(skill) <= party_level:
+			found.append(spell)
+	return found
+
+
+## What is always prepared, in a few words for a window or a sheet: Devotion's by name, a path's by name while few, else
+## counted. "" with none.
+func always_prepared_said(key: String) -> String:
+	var spares := spares_prepared(key)
+	var of_path: Array = path_spells_prepared(key).filter(func(spell): return not spares.has(spell))
+	var said := []
+	if not spares.is_empty():
+		said.append(", ".join(spares.map(func(spell): return SkillDatabase.skills[spell].name)))
+	if not of_path.is_empty():
+		var path := SubclassDefinition.named(subclass_of(key))
+		var path_name: String = path.name if path != null else "path"
+		if of_path.size() <= 3:
+			said.append("%s (the %s's)" % [", ".join(of_path.map(func(spell): return SkillDatabase.skills[spell].name)), path_name])
+		else:
+			said.append("the %d spells of the %s's path" % [of_path.size(), path_name])
+	return "; ".join(said)
+
+
+## Every spell a passive of `key`'s gives castings of its own for (Devotion's Heal and Dread Visage), since those castings are
+## for nothing else (the designer, 2026-11-07: "The free heal castings for alithia don't exist if the spell isn't prepared.
+## Always have it prepared").
+func spares_prepared(key: String) -> Array:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null:
+		return []
+	var passives: Array = Array(definition.passives)
+	var path := SubclassDefinition.named(subclass_of(key))
+	if path != null:
+		passives.append_array(path.passives)
+	var found := []
+	for passive in passives:
+		if passive == null or passive.spare_castings <= 0 or passive.required_level > party_level:
+			continue
+		for spell in passive.spare_casting_spells:
+			var skill: SkillDefinition = SkillDatabase.skills.get(spell)
+			if skill != null and not found.has(spell) and learnable_spells(key).has(spell) and knows_spell(key, spell) \
+					and CharacterSheet.comes_in(skill) <= party_level:
+				found.append(spell)
 	return found
 
 
@@ -588,7 +682,7 @@ func prepared_list(key: String) -> Array:
 ## is on it - or they have not been asked since their last long rest (a rest right before a
 ## fight, say), and it was on it then: nobody loses a spell to a window they never saw.
 func is_prepared(key: String, spell: String) -> bool:
-	if not prepared_spells.has(key) or prepared_spells[key].has(spell):
+	if not prepared_spells.has(key) or prepared_spells[key].has(spell) or always_prepared(key).has(spell):
 		return true
 	return prepare_due and not spells_readied.has(key) and last_prepared.get(key, []).has(spell)
 
@@ -1126,7 +1220,7 @@ func restart_stealth():
 ## The keys of everything the run is made of, copied as they are.
 const SAVED := ["party_level", "party_state", "subclasses", "path_change_open", "inventories", "gear", "equipped",
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
-	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "learned_spells", "containers", "stacks",
+	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "sheets_revealed", "learned_spells", "containers", "stacks",
 	"controllers", "prepared_spells", "locked_spells", "last_prepared", "spells_readied", "prepare_due",
 	"time_of_day", "map_ambient", "map_no_moon", "calendar_minutes", "map_sky_tint", "weather_fixed", "moon_fixed"]
 
@@ -1595,6 +1689,7 @@ func reset():
 	party_level = 1
 	chapter = 1
 	levels_unveiled = false
+	sheets_revealed = []
 	learned_spells.clear()
 	prepared_spells.clear()
 	locked_spells.clear()

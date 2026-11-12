@@ -129,7 +129,7 @@ const WATCHES_A_SECOND := 10.0
 const FIGHT_SCENE := "res://scenes/game.tscn"
 ## The moves a fight sends - and "steer", who steers whom changing at that
 ## point of the fight (the host's alone to send).
-const FIGHT_MOVES := ["walk", "skill", "end_turn", "undo", "ready", "deployed", "steer", "prone", "let_go"]
+const FIGHT_MOVES := ["walk", "skill", "end_turn", "undo", "ready", "deployed", "steer", "prone", "let_go", "land"]
 ## How much faster a fight joined under way is played through, catching up.
 const CATCH_UP_SPEED := 8.0
 ## The presses on a map that do something to the world, which on a joiner are
@@ -1415,6 +1415,9 @@ func _make(combat: Combat, kind: String, args: Array):
 		"prone":
 			if args.size() == 1 and typeof(args[0]) == TYPE_BOOL:
 				controller.change_stance(args[0])
+		"land":
+			if args.size() == 1 and typeof(args[0]) == TYPE_BOOL:
+				controller.change_flight(args[0])
 		"ready":
 			if args.size() == 6 and typeof(args[0]) == TYPE_INT and typeof(args[1]) == TYPE_STRING \
 					and typeof(args[2]) == TYPE_INT and typeof(args[3]) == TYPE_VECTOR2I and typeof(args[4]) == TYPE_INT \

@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+[gd_resource type="Resource" script_class="SkillDefinition" format=3 uid="uid://blxcbh18hldwx"]
 
-[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
-[ext_resource type="Texture2D" path="res://art/icons/sleep_skill.png" id="2_icon"]
-[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" uid="uid://bgbh1ua8naii1" path="res://art/icons/sleep_skill.png" id="2_icon"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="3_b785d"]
+[ext_resource type="Script" uid="uid://d4nqbxk7tswep" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
 [ext_resource type="Resource" path="res://data/conditions/stunned.tres" id="4_cond"]
+[ext_resource type="Script" uid="uid://b888fqvud4xu1" path="res://combat/resources/SkillRank.gd" id="5_p23ol"]
 
 [sub_resource type="Resource" id="Effect_0"]
 script = ExtResource("1_effect")
@@ -23,8 +25,7 @@ effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 deals_damage = false
 contest_stat = 1
 impact_look = 13
-spell_slot_level = 2
+spell_slot_level = 3
 tethered = true
 tether_strength = 200
 aoe_radius = 3
-up_to_a_total = 2.0

@@ -200,6 +200,18 @@ const DOT_STRENGTH_NAMES := {
 ## Whoever has it shows the whole party the other side's unseen ground and unseen traps (Detect Magic).
 @export var sees_magic: bool = false
 
+@export_group("Weather")
+## Damage of these kinds taken changes by Damage Taken Of Change while it is on them (Soaked: ice and lightning).
+@export var damage_taken_of: Array[Damage.Type] = []
+@export_range(-0.9, 2.0, 0.05) var damage_taken_of_change: float = 0.0
+## These put on whoever has this last Lengthens By turns longer (Soaked: Frozen).
+@export var lengthens: Array[ConditionDefinition] = []
+@export_range(0, 5) var lengthens_by: int = 0
+## Turns longer when put on in the heat of the day, or in the cold (the designer, 2026-11-07: "Burns last longer in heat, Frozen
+## longer in cold").
+@export_range(0, 5) var longer_in_heat: int = 0
+@export_range(0, 5) var longer_in_cold: int = 0
+
 @export_group("On The Figure")
 ## How it shows on whoever has it (ConditionLook), one at a time: the highest Figure Priority, those equal taking turns.
 ## A colour over them, breathing, as strong as its alpha. No alpha: none.

@@ -36,6 +36,12 @@ of the light's own colour left in its highlight.
 
 Paint inside the figure's outline. Outside it, the mask is not read.
 
+## Blue: what the wind moves
+
+Paint **blue** where cloth and hair hang loose (a scarf's ends, a cloak's hem, long hair). In a strong wind those parts wave, more the
+bluer they are (CombatantSprite, the figure's shader; the designer, 2026-11-12: "we can try wind in them"). Leave the body, the face and
+anything stiff without blue. A mask with no blue moves nothing.
+
 ## What it does in the game
 
 A light near the figure (a lamp, a torch, a spell's light) puts a small, sharp highlight on what the mask marks, on the side facing

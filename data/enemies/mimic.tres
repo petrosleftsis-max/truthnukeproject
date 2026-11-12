@@ -20,3 +20,4 @@ passives = Array[ExtResource("1_u0pnb")]([ExtResource("2_fhucq")])
 resist_water = -50
 resist_wind = 50
 ai_function = "ai_copycat"
+turn_after_one_of_them = true

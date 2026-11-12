@@ -26,7 +26,23 @@ func _ready():
 	await run_test()
 
 
+## Cones in all eight directions (the designer, 2026-11-07: "I'd like for cone aoes to work diagonally").
+func cones():
+	log_line("======== cones, straight and diagonal ========")
+	var straight: Array = Combat.get_cone_tiles(Vector2i.ZERO, Vector2i(3, 0), 3)
+	ok(straight.size() == 9 and straight.has(Vector2i(1, 0)) and straight.has(Vector2i(3, 2)) and not straight.has(Vector2i(1, 1)),
+		"straight, as it was: a tile, then three, then five", "%s" % [straight])
+	var diagonal: Array = Combat.get_cone_tiles(Vector2i.ZERO, Vector2i(2, 2), 3)
+	ok(diagonal.size() == 9 and diagonal.has(Vector2i(1, 1)) and diagonal.has(Vector2i(3, 3)) and diagonal.has(Vector2i(3, 1)) and diagonal.has(Vector2i(1, 3)),
+		"aimed corner-ways, the quarter between", "%s" % [diagonal])
+	ok(not diagonal.has(Vector2i(1, 0)) and not diagonal.has(Vector2i(0, 1)) and not diagonal.has(Vector2i(-1, 1)), "nothing behind or beside the caster's corner")
+	var up_left: Array = Combat.get_cone_tiles(Vector2i(5, 5), Vector2i(3, 3), 2)
+	ok(up_left.size() == 4 and up_left.has(Vector2i(4, 4)) and up_left.has(Vector2i(3, 3)) and up_left.has(Vector2i(3, 4)), "every corner of the four", "%s" % [up_left])
+	log_line("")
+
+
 func run_test():
+	cones()
 	Campaign.reset()
 	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
 	var game = load("res://scenes/game.tscn").instantiate()

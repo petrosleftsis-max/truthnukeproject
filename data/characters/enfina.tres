@@ -1,34 +1,35 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://blabaoxm2ykd2"]
 
-[ext_resource type="Texture2D" path="res://art/characters/enfina/idle/enfina_idle_color0000.png" id="1_8oq43"]
-[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="2_1e8p3"]
-[ext_resource type="Script" path="res://combat/resources/CombatantDefinition.gd" id="3_efyvm"]
+[ext_resource type="Texture2D" uid="uid://nx1negu4ijrl" path="res://art/characters/enfina/idle/enfina_idle_color0000.png" id="1_8oq43"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_wxrcs"]
+[ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="2_1e8p3"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="3_2ep6q"]
+[ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="3_efyvm"]
 [ext_resource type="SpriteFrames" path="res://art/characters/enfina/enfina_frames.tres" id="4_yrjjv"]
 [ext_resource type="Resource" path="res://data/passives/measured_eye.tres" id="5_eye"]
-[ext_resource type="Resource" path="res://data/passives/iron_hide.tres" id="p_iron_hide"]
-[ext_resource type="Resource" path="res://data/passives/bulwark.tres" id="p_bulwark"]
-[ext_resource type="Resource" path="res://data/passives/iron_hide_ii.tres" id="p_iron_hide_ii"]
-[ext_resource type="Resource" path="res://data/passives/momentum.tres" id="p_momentum"]
-[ext_resource type="Resource" path="res://data/passives/iron_hide_iii.tres" id="p_iron_hide_iii"]
-[ext_resource type="Resource" path="res://data/passives/bulwark_iii.tres" id="p_bulwark_iii"]
-[ext_resource type="Resource" path="res://data/passives/momentum_ii.tres" id="p_momentum_ii"]
-
+[ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="5_fcq1a"]
+[ext_resource type="Resource" path="res://data/lines/enfina.tres" id="lines_enfina"]
+[ext_resource type="Resource" path="res://data/passives/anything_is_a_weapon.tres" id="p_anything_is_a_weapon"]
 [ext_resource type="Resource" path="res://data/passives/blazed_path.tres" id="p_blazed_path"]
-[ext_resource type="Resource" path="res://data/passives/through_the_fire.tres" id="p_through_the_fire"]
+[ext_resource type="Resource" path="res://data/passives/bulwark.tres" id="p_bulwark"]
+[ext_resource type="Resource" path="res://data/passives/bulwark_iii.tres" id="p_bulwark_iii"]
 [ext_resource type="Resource" path="res://data/passives/burning_titanfall.tres" id="p_burning_titanfall"]
-[ext_resource type="Resource" path="res://data/passives/reads_the_form.tres" id="p_reads_the_form"]
+[ext_resource type="Resource" path="res://data/passives/carries_them.tres" id="p_carries_them"]
 [ext_resource type="Resource" path="res://data/passives/drills.tres" id="p_drills"]
 [ext_resource type="Resource" path="res://data/passives/drills_ii.tres" id="p_drills_ii"]
 [ext_resource type="Resource" path="res://data/passives/drills_iii.tres" id="p_drills_iii"]
+[ext_resource type="Resource" path="res://data/passives/iron_hide.tres" id="p_iron_hide"]
+[ext_resource type="Resource" path="res://data/passives/iron_hide_ii.tres" id="p_iron_hide_ii"]
+[ext_resource type="Resource" path="res://data/passives/iron_hide_iii.tres" id="p_iron_hide_iii"]
+[ext_resource type="Resource" path="res://data/passives/momentum.tres" id="p_momentum"]
+[ext_resource type="Resource" path="res://data/passives/momentum_ii.tres" id="p_momentum_ii"]
+[ext_resource type="Resource" path="res://data/passives/reads_the_form.tres" id="p_reads_the_form"]
+[ext_resource type="Resource" path="res://data/passives/through_the_fire.tres" id="p_through_the_fire"]
 [ext_resource type="Resource" path="res://data/passives/throw_a_friend.tres" id="p_throw_a_friend"]
-[ext_resource type="Resource" path="res://data/passives/anything_is_a_weapon.tres" id="p_anything_is_a_weapon"]
-[ext_resource type="Resource" path="res://data/passives/carries_them.tres" id="p_carries_them"]
-[ext_resource type="Resource" path="res://data/lines/enfina.tres" id="lines_enfina"]
 
 [resource]
 script = ExtResource("3_efyvm")
 name = "Enfina"
-breaks_walls = true
 glossary_text = "A city guard who has trained and studied to perfectly respond to any combat situation.
 
 Narrative:
@@ -52,14 +53,15 @@ defense_by_level = {
 17: 28
 }
 movement = 6
-initiative = 6
+initiative = 5
 secondary_stat = 2
 icon = ExtResource("1_8oq43")
 map_sprite = ExtResource("1_8oq43")
 sprite_frames = ExtResource("4_yrjjv")
 skills = Array[String](["study", "greatsword_attack", "fire_burst", "light_swing", "shoving_strike", "sweep_strike", "blink_strike", "guard", "slip_past", "run", "trailblaze", "follow_up_attack", "intimidate", "hurl", "grab", "climb", "battle_cry", "disarm", "stunning_blow", "flashover", "cauterise", "share_the_fire", "arrest"])
 passives = Array[ExtResource("2_1e8p3")]([ExtResource("5_eye"), ExtResource("p_iron_hide"), ExtResource("p_bulwark"), ExtResource("p_iron_hide_ii"), ExtResource("p_momentum"), ExtResource("p_iron_hide_iii"), ExtResource("p_bulwark_iii"), ExtResource("p_momentum_ii"), ExtResource("p_blazed_path"), ExtResource("p_through_the_fire"), ExtResource("p_burning_titanfall"), ExtResource("p_reads_the_form"), ExtResource("p_drills"), ExtResource("p_drills_ii"), ExtResource("p_drills_iii"), ExtResource("p_throw_a_friend"), ExtResource("p_anything_is_a_weapon"), ExtResource("p_carries_them")])
-keeps_codex = true
-lines = ExtResource("lines_enfina")
 subclasses = Array[String](["vanguard", "juggernaut", "warden_of_cover"])
+keeps_codex = true
+breaks_walls = true
 starting_items = Array[String](["tiny_bomb", "tiny_bomb", "crystal_bottle"])
+lines = ExtResource("lines_enfina")

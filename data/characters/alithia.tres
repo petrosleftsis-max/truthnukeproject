@@ -1,30 +1,31 @@
 [gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://burnyloofco28"]
 
 [ext_resource type="Texture2D" uid="uid://j18c0awsyfjm" path="res://art/characters/alithia/idle/alithia_idle_color0000.png" id="1_nj2rw"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_qv1rn"]
 [ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="2_7klcm"]
 [ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="2_t7133"]
 [ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="3_1v0ks"]
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="3_7klcm"]
 [ext_resource type="SpriteFrames" path="res://art/characters/alithia/alithia_frames.tres" id="4_1v0ks"]
-[ext_resource type="Resource" path="res://data/passives/mercy.tres" id="p_mercy"]
 [ext_resource type="Resource" path="res://data/passives/aura.tres" id="p_aura"]
-[ext_resource type="Resource" path="res://data/passives/mercy_ii.tres" id="p_mercy_ii"]
 [ext_resource type="Resource" path="res://data/passives/aura_ii.tres" id="p_aura_ii"]
-[ext_resource type="Resource" path="res://data/passives/reserved_power.tres" id="p_reserved_power"]
-[ext_resource type="Resource" path="res://data/passives/mercy_iii.tres" id="p_mercy_iii"]
-[ext_resource type="Resource" path="res://data/passives/reserved_power_ii.tres" id="p_reserved_power_ii"]
-[ext_resource type="Resource" path="res://data/passives/radiant_guardian.tres" id="p_radiant_guardian"]
-[ext_resource type="Resource" path="res://data/passives/devotion.tres" id="p_devotion"]
-[ext_resource type="Resource" path="res://data/passives/unbowed.tres" id="p_unbowed"]
 [ext_resource type="Resource" path="res://data/passives/blessed_in_the_light.tres" id="p_blessed_in_the_light"]
+[ext_resource type="Resource" path="res://data/passives/devotion.tres" id="p_devotion"]
+[ext_resource type="Resource" path="res://data/passives/kindled_faith.tres" id="p_kindled_faith"]
+[ext_resource type="Resource" path="res://data/passives/mercy.tres" id="p_mercy"]
+[ext_resource type="Resource" path="res://data/passives/mercy_ii.tres" id="p_mercy_ii"]
+[ext_resource type="Resource" path="res://data/passives/mercy_iii.tres" id="p_mercy_iii"]
 [ext_resource type="Resource" path="res://data/passives/nowhere_to_hide.tres" id="p_nowhere_to_hide"]
+[ext_resource type="Resource" path="res://data/passives/radiant_guardian.tres" id="p_radiant_guardian"]
+[ext_resource type="Resource" path="res://data/passives/reserved_power.tres" id="p_reserved_power"]
+[ext_resource type="Resource" path="res://data/passives/reserved_power_ii.tres" id="p_reserved_power_ii"]
+[ext_resource type="Resource" path="res://data/passives/unbowed.tres" id="p_unbowed"]
 [ext_resource type="Resource" path="res://data/passives/unbowed_ii.tres" id="p_unbowed_ii"]
 [ext_resource type="Resource" path="res://data/passives/unbowed_iii.tres" id="p_unbowed_iii"]
 [ext_resource type="Resource" path="res://data/passives/unbowed_iv.tres" id="p_unbowed_iv"]
 [ext_resource type="Resource" path="res://data/passives/unbowed_v.tres" id="p_unbowed_v"]
 [ext_resource type="Resource" path="res://data/passives/unbowed_vi.tres" id="p_unbowed_vi"]
 [ext_resource type="Resource" path="res://data/passives/unbowed_vii.tres" id="p_unbowed_vii"]
-[ext_resource type="Resource" path="res://data/passives/kindled_faith.tres" id="p_kindled_faith"]
 
 [resource]
 script = ExtResource("3_7klcm")
@@ -56,8 +57,8 @@ spellcasting_stat = 1
 icon = ExtResource("1_nj2rw")
 map_sprite = ExtResource("1_nj2rw")
 sprite_frames = ExtResource("4_1v0ks")
-skills = Array[String](["votive_flame", "daylight", "calling_out", "beckoning_light", "water_spike", "sass_club", "heal", "light_heal", "holy_lance", "flash", "river_flow", "frozen_river", "resuscitate", "cleanse", "intuition", "persuade", "slip_past", "run", "holy_splash", "communion", "piercing_light", "judgment", "glacial_tide", "purification", "divine_verdict", "restoration", "revelation", "grace", "dread_visage", "bewilder", "find_familiar", "compel", "steady_heart", "ecstasy", "silence", "mesmerise", "restorative_aura", "composure", "clear_sight", "terror", "elemental_ward", "shared_burden", "sleep", "calm", "suggestion", "detect_magic", "arcane_eye"])
+skills = Array[String](["votive_flame", "daylight", "calling_out", "beckoning_light", "water_spike", "sass_club", "heal", "light_heal", "holy_lance", "flash", "river_flow", "frozen_river", "resuscitate", "cleanse", "intuition", "persuade", "slip_past", "run", "holy_splash", "communion", "piercing_light", "judgment", "glacial_tide", "purification", "divine_verdict", "restoration", "revelation", "grace", "dread_visage", "bewilder", "find_familiar", "compel", "steady_heart", "ecstasy", "silence", "restorative_aura", "composure", "clear_sight", "terror", "elemental_ward", "shared_burden", "sleep", "calm", "suggestion", "detect_magic", "arcane_eye"])
 passives = Array[ExtResource("2_t7133")]([ExtResource("p_mercy"), ExtResource("p_aura"), ExtResource("p_mercy_ii"), ExtResource("p_aura_ii"), ExtResource("p_reserved_power"), ExtResource("p_mercy_iii"), ExtResource("p_reserved_power_ii"), ExtResource("p_radiant_guardian"), ExtResource("p_devotion"), ExtResource("p_blessed_in_the_light"), ExtResource("p_nowhere_to_hide"), ExtResource("p_unbowed"), ExtResource("p_unbowed_ii"), ExtResource("p_unbowed_iii"), ExtResource("p_unbowed_iv"), ExtResource("p_unbowed_v"), ExtResource("p_unbowed_vi"), ExtResource("p_unbowed_vii"), ExtResource("p_kindled_faith")])
 subclasses = Array[String](["battle_chaplain", "illusory_shepherd", "inquisitor"])
-future_changed_lines = Array[String](["I saw it coming.", "Not this time.", "The future bends.", "That is not how it ends."])
+future_changed_lines = Array[String](["Didn't expect to let you do that, did you now?", "Not this time.", "Our actions shape our future!", "So very obvious of you."])
 starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])

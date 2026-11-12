@@ -43,7 +43,7 @@ tests/run.sh dot flags       # just those
 tests/run.sh --list          # what there is
 ```
 
-A full run is 168 suites and takes a while. Each one boots the real game
+A full run is 170 suites and takes a while. Each one boots the real game
 headless, plays something out and writes a result file; the runner prints one
 line per suite and exits non-zero if any of them is unhappy. `tests/README.md`
 has the details, including how to add one. A second harness can run beside a
@@ -168,7 +168,9 @@ target already hurt and for the one the last enemy went for
 (`_ai_focus_id`). Its own side caught by a both-sides blast is a heavy cost and
 itself caught is ruled out. The `AI_*` constants beside it are the dials.
 
-It only scores aim points near somebody worth hitting, and each aim once per
+A blast that respects blocking needs a clear line from where it is thrown to where it lands, whatever its size (`_ai_best_aim_from`,
+on the plan's `_SightGrid`; the designer saw the lab's casters throw Wildfire through walls, 2026-11-12; `wallcheck` plays the lab's City
+Fight and checks every one). It only scores aim points near somebody worth hitting, and each aim once per
 skill rather than once per standing tile - the caster once took eleven seconds
 a turn, and `castcost` times the planner to keep it under one. `archetypes`
 asserts what each enemy does with a turn; change a dial and run it.
@@ -400,6 +402,8 @@ False Life: EffectType OVERHEAL. Withering Touch and Blight: `ConditionDefinitio
 **Lines in a bubble** (`combat/SpeechBubbles.gd`, `combat/resources/CombatLines.gd`; `speech`; the designer, 2026-11-07). Only to look at. `CombatantDefinition.lines` says what a creature may say at each moment;
 `SpeechBubbles.on_event` from Combat (`CHANCES`, `QUIET_FOR_MS`, `WONT_WAIT`), `somebody_says` for a moment that is the fight's, `say_line` for one somebody means, `say_over` for any figure, and `do Campaign.say_bubble(key, line)`
 for a conversation, on a map or in a fight. A CanvasLayer under the root, made as first needed, placed from the figure's position each frame. Global randomness is fine in that file, and not in Combat.gd (`rolls`). Headless: `plays_headless`, and `always` for a test.
+A line of Enfina's and one of Prometheus's written on each monster (`CombatantDefinition.enfina_studies_line`, `prometheus_studies_line`; the designer,
+2026-11-12): `SpeechBubbles.says_what_it_is` from `Combat.study`, once a fight for each kind (`_studied_said`), else her own Studies lines.
 
 **The AI's mind** (Combat "The AI's mind"; `aimind`; the designer, 2026-11-06). Per creature:
 `CombatantDefinition.ai_smarts` (`AI_KNOWN_BY`), `ai_also_knows`, `ai_never_knows` make `comb.ai_knows`
@@ -411,6 +415,17 @@ A plan: gates and `_ai_shove_worth` in `ai_plan_attack`. First things first: `_a
 `_ai_set_off_a_hazard` (`_ai_shooting_thing` lets a blow through at something of its own side's), `_ai_fall_back`.
 A healer: `_ai_patient`, `_ai_most_afflicted`, `_ai_dispel_a_zone`. Nothing here reads a clock or rolls, so a
 replayed fight agrees. `EncounterDefinition.ai_leaves_hazards` is the fight's own switch.
+**Hunting in the dark** (Combat section of that name; `light`; the designer, 2026-11-12, Cunning and above: `AiKnows.DARK_PATCHES`, appended):
+whoever goes into the dark in the other side's sight is remembered where (`_ai_saw_them_go`, from `_fade_into_the_dark`: `_ai_seen`,
+`_ai_into_the_dark`); `_ai_dark_guesses` puts them there for a plan (`_ai_assumed`, `_ai_pos`, in `ai_worth_table` at `AI_DARK_GUESS` for an area
+only, `_ai_aim_scores`, `_ai_best_aim_from`); Dispel Magic undoes a dark zone of the other side's hiding them (`_ai_best_dispel`); who fights
+close goes in after them (`_ai_hunts_in_the_dark`); the dark's edge is cover (`_ai_mind.dark_cover`, `AI_DARK_COVER` in `_ai_tile_worth`).
+**Dispelling and cancelling, for the AI** (Combat section of that name; `dispel`; the Sorcerer's Instahack and Dispel Magic, 2026-11-12):
+`_choose_option` lets a casting go unless `_ai_cancel_worth` reaches `_ai_cancel_wanted` (`AI_CANCEL_*`); `ai_caster` tries
+`_ai_dispel_a_zone`, then `_ai_dispel` (`_ai_best_dispel`, `_ai_dispel_worth` in blows, `AI_DISPEL_*`, through `cast_through`) before a blow.
+**A pack waits only so long** (`_ai_holds_back`, `AI_PACK_WAITS`, `AI_PACK_TOGETHER_TILES`, `comb.held_back`). **A turn after one of theirs**
+(`CombatantDefinition.turn_after_one_of_them`, the Mimic's: `_turns_after_one_of_them` at each round's top and before the first, by `rng`, never
+the same one twice running).
 
 **Ways of its own** (Combat "Ways of its own"; `ways`; the designer, 2026-11-07). Switches on the creature's AI Mind
 group, all per creature and PROPOSAL as to who has what: `ai_commands_tiles` (`_ai_take_orders`, as each begins to
@@ -500,11 +515,18 @@ and the target's own don't count. Marked by Flame and Calling Out see past it. T
 from every one of the party (`_dark_keeps_from_party`, in `unseen_by_party` and `dress_for_hiding`); walls alone hide nobody, as ever. On a
 map it cuts a guard's `_seen` (`_sees_in_the_dark` by his creature's passives). Only sight: walking, and an area at the ground, go on.
 
+**The round of 2026-11-12** (the designer's messages of that day). Cones go eight ways: on a diagonal the quarter between the two
+straight ways (`get_cone_tiles`, `get_octant_direction`; `blast`). The ground one can walk to is drawn quieter (`CController.MOVE_FILL`,
+`MOVE_EDGE`, `MOVE_EDGE_WIDTH`). The first time the sheet shows a kind studied, it reveals it (CharacterSheet "A new kind, studied":
+`_maybe_reveal`, `_reveal`, `_reveal_over_the_panel`, `_finish_reveal` on any press; `Campaign.sheets_revealed`, saved; SoundBank
+"codex_reveal"; `reveals_headless`; `sheet`). `docs/sound_slots.md` lists every sound slot and what fills it (made by a script over the
+data). Alithia's changed-future lines are the designer's own; the Gun has the torch from afar for now.
+
 **Section 17's answers** (`beckon`; the designer, 2026-11-07). Beckoning Light, Alithia's (Hermes; Iris on a map): `SkillDefinition.beckons`
 aims it twice (`CController.aimed_twice`, the second click any open ground in reach), `_beckoned_to` makes Drawn To Aim go there, and a ZONE with
 `zone_at_destination` lights it; `ConditionDefinition.on_arrival` puts Off Guard on once they have walked (`_go_and_look`). On a map
 `OutsideMoves.Use.BECKON` -> `StealthWatch.beckon`. Kindled Faith: `PassiveDefinition.mends_in_bright` and `_per_stat`,
-`_kindled_at_turn_start`. The dart in place of Lifted Torch: `SkillDefinition.snuffs_carried_lights` (Poison Dart) in `OutsideMoves.fire_at`,
+`_kindled_at_turn_start`. In place of Lifted Torch: `SkillDefinition.snuffs_carried_lights` (on the Gun for now, the designer, 2026-11-07) in `OutsideMoves.fire_at`,
 `StealthWatch.snuff_torch` (`Guard.torch_out`, `Mood.RELIGHTING` to the nearest lit lamp, `_torch_lit_again`; "torch" in `net_state`).
 
 **The clock and the calendar** (Campaign "The clock and the calendar", `campaign/CalendarDefinition.gd`,
@@ -526,13 +548,33 @@ tiles `LightMap.under_the_sky`, the rule's levels unchanged; clouds' shadows and
 out around dawn, each at its own minute by where it stands (`Light.lamp_lit_at`; `ExplorationScene._keep_lights_by_the_clock`, `StealthWatch.keep_lamps_by_the_clock`, only when they would change).
 **More weathers, eased** (section 17 and the designer's messages of 2026-11-07; `daysky`). Snow, sleet, thunderstorm, wind, sandstorm, blizzard, heat, ash, aurora, rainbow
 and eclipse in `Light.WEATHERS`, each with its `SKY_EXTRAS` (every `sky()` has all of them); `weather_of(day, days_in_a_year)` goes by `season_of` and `SEASON_ODDS`, and
-`SCENE_WEATHERS` come only by `set_weather`; `Campaign.days_in_a_year`, `season_now`. All only to look at. LightView: `show_hour` wants a sky and `_ease_the_sky` gets
+`SCENE_WEATHERS` come only by `set_weather`; `Campaign.days_in_a_year`, `season_now`. Some of it is a rule now: below. LightView: `show_hour` wants a sky and `_ease_the_sky` gets
 there over `sky_ease_seconds` (0 for a test that wants it at once), the shade over `SKY_SHADE_SECONDS`; `_put_on_the_sky` sets the tone, the grade (with `shimmer`), the
 sun's shadows and `CombatantSprite.soaking`; `_set_falling` (snow, hail, sand, ash, the wind's gusts), `AURORA_SHADER`, `RAINBOW_SHADER` (on the screen, as the grade),
 `_storm` (a flash, then SoundBank "thunder"). Callers ask `show_hour` each minute without `at_once`, and only set the shadows themselves with no view. Figures soak
 (`CombatantSprite.wetness`, `_soak`: `SOAKED_SECONDS`, `DRY_SECONDS`, under the sky by `under_the_sky`). Steps: `audio/Footsteps.gd` (`step`, from
 `ExplorationParty._step` every `STRIDE_TILES` and `CController._begin_step`), louder and splashing where `LightView.rainy_at`; SoundBank "Steps", PlaceholderSounds
-"step" and "step_wet" meanwhile; only a sound, not what guards hear. `docs/proposals_2026-11-07.md` section 18 has what more weather could show.
+"step" and "step_wet" meanwhile. `docs/proposals_2026-11-07.md` section 18 has the designer's choices of 2026-11-12.
+
+**What the weather does** (Light "What the weather does", Combat "Weather", StealthWatch "The weather"; `weather`; the designer, 2026-11-12).
+All from the sky at the minute and what lies on the ground, alike on both machines: `Light.ground(minute, today, yesterday, season)`
+(wet, snow, frost, ash, sand), `lying_on` (the lee of walls), `wind_way(day)`, `thick`, `hot`, `cold`, `rain_loudness`; `Campaign.weather_on(day)`
+(`weather_fixed.from_day`), `ground_now`, `wind_now`. Indoors and underground, none. In a fight (`_begin_weather`, from `_begin_light`: `weather`,
+`lying`, `wind`, `_deep_snow`): `_wind_reach` for what `wind_carries` in `get_range_tiles`, `is_effectively_in_range`, `targets_if_aimed`,
+`_use_skill`'s validity, `_spot_to_hit_from`, `_ai_best_aim_from` and the danger view (`_aim_points`' `windless_reach`); `_blown_by_the_wind` after
+`apply_drift`; `land` / `take_off` (`comb.landed`, kept by `resync_movement_class`; `CController.toggle_flight`, `change_flight`; the "land" fight
+move; `combat_ui._flight_button`; the AI's `_ai_consider_landing`); `_snow_costs_double` in `hem_cost`; `LIGHTNING_HAZARD`
+(`data/hazards/lightning.tres`; `HazardDefinition.Aim.HIGH_AND_METAL`, `damage_by_level`, `flashes`; `_lightning_strikes`, `_hazard_damage`,
+`LightView.lightning_now`; `CombatantDefinition.draws_lightning`); `SOAKED` (`_rain_on`, `ConditionDefinition`'s Weather group:
+`damage_taken_of` in `resisted_damage`, `lengthens`, `longer_in_heat`, `longer_in_cold` through `_weather_lengthens` in `condition_turns` and
+`put_condition`); `_zone_burns` in `_zones_at_turn_start`; `thick_weather` in `_hides_in_dim`. On a map: `_rain_hearing` on
+`notices_walking`, the dash and noisy ground; prints (`step_taken` from `_age_prints`, which watches the leader's walk; an oddity "prints",
+never putting the map up); `_thick_now` cutting `_seen` past `dim_sight_tiles`.
+**The weather on the ground and on the creatures** (LightView "The weather on the ground", CombatantSprite "The weather on the creatures";
+view only). `WET_SHADER` (multiplied) and `GROUND_SHADER` over open ground under the shade, from `_ground_mask` (red open, green snow, blue
+sand); `_Prints` (`leave_print`) and `splash`, from `Footsteps.step`. On a figure: `snow_on`, `ash_on`, `dust`, `cold_on`, `heat_on` into
+`FIGURE_SHADER`, cloth by the shine mask's blue in the wind (`wind_blows`), drips, steam by a fire (`_by_a_fire`), breath, and
+`weather_pose` (shiver, shield_eyes, hunch) under any condition's pose in `play_idle`.
 
 **Sounds** (`audio/GameSounds.gd`, `audio/SoundBank.gd`, `audio/sound_bank.tres`; `audio`; `docs/sound_plan.md`).
 Everything that is not a move's or a condition's own is a slot in the bank: `GameSounds.play(slot)`, `loop`,
@@ -553,7 +595,10 @@ shows only its own player's casters; with none left it waits, naming who for, no
 (`MenuPause.release`, `_root_own_groups`) so the other machine's changes arrive, and
 `Net.send_menu_changes` sends each finished list at once. `forget_unprepared` in
 `_deploy_party`; `OutsideMoves.moves_of`, `outside_spells`; the sheet's fourth page "Prepared"
-(`has_readied`, `_show_prepared`) and "not prepared" and "locked" badges. `preparespells`.
+(`has_readied`, `_show_prepared`) and "not prepared" and "locked" badges. `preparespells`. A spell a passive gives castings of its own
+for (Devotion: Heal, Dread Visage) is always prepared and not chosen (`Campaign.always_prepared`, in `is_prepared` and `prepare_choices`;
+the designer, 2026-11-12). The window's tooltips are the fight's own (`combat_ui.details_of`, which works with no fight on, the numbers by
+`_base_damage_with_no_fight`); so is the sheet's on a map (`_preview_of`).
 
 **What opens and closes a fight** (`combat/FightCards.gd`; EncounterDefinition's and
 BossDefinition's "Title cards"; the designer, 2026-11-05). `opening` from `Combat._ready`
@@ -1747,7 +1792,9 @@ one section each, and every rule is a per-creature switch:
   - A grab mid-walk is stopped in `CController._handle_step_arrival`.
 - **Ignores Defense**: `defense_against`, read by `skill_damage`, the one place
   a hit meets Defense.
-- **"Reactions"**: `SkillDefinition.reacts_when` (flags, `Trigger`). Leaves
+- **"Reactions"**: everybody a moment sets off reacts, by initiative, the highest first (`_by_initiative`; `_react_all`
+  takes several triggers as one moment: the Foreseen Blow, Targeted and Ally Attacked before a blow; the designer, 2026-11-12).
+  `SkillDefinition.reacts_when` (flags, `Trigger`). Leaves
   Reach is still `check_reactive_skills`. Everything else goes through
   `_react(trigger, enemy, why, protected_for, fits)`, called from:
   - `_react_to_step`, at the end of `check_reactive_skills`;

@@ -32,8 +32,8 @@ name = "The Ash Rises"
 at_health = 0.66
 message = "Its armour splits, and burning ash pours out of it."
 skills_added = Array[String](["rockfall"])
-hazards = Array[ExtResource("2_48cf8")]([SubResource("Resource_2gfb1")])
 ai_aggression = 1.2
+hazards = Array[ExtResource("2_48cf8")]([SubResource("Resource_2gfb1")])
 
 [sub_resource type="Resource" id="Resource_r4fvk"]
 script = ExtResource("7_75tdb")
@@ -49,10 +49,10 @@ at_health = 0.33
 message = "It burns brighter as it breaks - and its cracked armour can no longer keep a stun out."
 stagger = SubResource("Resource_r4fvk")
 clears_conditions = true
-immunities_lost = Array[ExtResource("4_nrkbm")]([ExtResource("6_ofos0")])
-summons = Array[String](["imp", "imp"])
 ai_aggression = 1.5
 ai_caution = 0.5
+immunities_lost = Array[ExtResource("4_nrkbm")]([ExtResource("6_ofos0")])
+summons = Array[String](["imp", "imp"])
 
 [sub_resource type="Resource" id="Resource_lxa4g"]
 script = ExtResource("7_75tdb")
@@ -93,7 +93,7 @@ immune_to = Array[int]([0, 1, 9])
 turns_per_round = 2
 boss = SubResource("Resource_ofos0")
 parts = Array[ExtResource("13_part")]([SubResource("Part_vents")])
-ai_smarts = 4
-ai_learns = true
 light_tiles = 4.0
 light_colour = Color(1, 0.5, 0.2, 1)
+ai_smarts = 4
+ai_learns = true

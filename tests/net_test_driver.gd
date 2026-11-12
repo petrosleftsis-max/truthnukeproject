@@ -718,7 +718,7 @@ func hosts_preparing():
 	ok(await until(func(): return not is_instance_valid(panel), 20.0), "and goes once the joiner has finished")
 	if is_instance_valid(panel):
 		log_preparing(panel)
-	ok(Campaign.has_readied("alithia") and Campaign.prepared_list("alithia").has("heal"), "what they prepared has reached here", "%s" % [Campaign.prepared_list("alithia")])
+	ok(Campaign.has_readied("alithia") and Campaign.prepared_list("alithia").has(first_chosen("alithia")), "what they prepared has reached here", "%s" % [Campaign.prepared_list("alithia")])
 	ok(not scene.groups[0].rooted, "and the party walks again")
 	ok(not Campaign.prepare_due, "and nothing is due")
 	say("seen prepared")
@@ -738,7 +738,12 @@ func joiners_preparing():
 		return
 	var panel: PrepareSpells = scene.preparing
 	ok(await until(func(): return is_instance_valid(panel) and panel.preparing == "alithia", 10.0) and not panel._spell_buttons.has("fire_blast"), "only for this player's own caster", panel.preparing)
-	panel._spell_buttons["heal"].set_pressed(true)
+	# Heal and Dread Visage are always prepared now (Devotion's), with no buttons: the first she chooses.
+	var chosen: String = first_chosen("alithia")
+	ok(panel._spell_buttons.has(chosen), "%s is hers to choose" % chosen, "%s" % [panel._spell_buttons.keys()])
+	if not panel._spell_buttons.has(chosen):
+		return
+	panel._spell_buttons[chosen].set_pressed(true)
 	var told := []
 	var on_told := func(text): told.append(text)
 	Net.told.connect(on_told)
@@ -753,6 +758,12 @@ func joiners_preparing():
 	await hear("seen prepared")
 	Campaign.asks_to_prepare = false
 	log_line("")
+
+
+## The first spell `key` chooses among when preparing (not one always prepared): the same on both machines.
+func first_chosen(key: String) -> String:
+	var choices: Array = Campaign.prepare_choices(key)
+	return String(choices[0]) if not choices.is_empty() else ""
 
 
 ## How preparing stands here, into the log.
@@ -1384,7 +1395,7 @@ func _ask_about_the_tether(combat: Combat):
 		return
 	var holder := combat._combatant_by_id(int(heard_after("tether up:")))
 	var mine: int = Coop.local_players()[0]
-	ok(combat.holds_tether(holder) and combat._has_to_ask(holder, mine), "the joiner's player holds a tether: the host's has to ask")
+	ok(await until(func(): return combat.holds_tether(holder), 15.0) and combat._has_to_ask(holder, mine), "the joiner's player holds a tether: the host's has to ask")
 	combat.ask_to_let_go(holder, mine)
 	ok(combat.holds_tether(holder), "  and until they say, it holds")
 	ok(await until(func(): return not combat.holds_tether(holder), 30.0), "  they agree: it ends here too, as one of their moves")
@@ -1395,7 +1406,7 @@ func _hold_and_be_asked(combat: Combat, comb: Dictionary, foe: Dictionary):
 	var controller: CController = combat.controller
 	var aim: Vector2i = combat.nearest_tile_of(foe, comb.position)
 	var skill: SkillDefinition = SkillDatabase.skills.light_void
-	if combat.distance_to(comb, aim) > combat.effective_max_range(comb, skill) or combat.refusal_for(comb, skill, aim) != "":
+	if not combat.is_effectively_in_range(skill, comb.position, aim, comb.movement_class, comb) or combat.refusal_for(comb, skill, aim) != "":
 		return
 	_tethered_once = true
 	controller.set_selected_skill("light_void")

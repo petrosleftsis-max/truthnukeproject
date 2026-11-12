@@ -47,6 +47,8 @@ func run_test():
 	var combat = game.get_node("VisualCombat")
 	combat.finish_deployment()
 	await get_tree().process_frame
+	# The weather lengthens Burn and Frozen (Combat._weather_lengthens); what is counted here is what a move gives, so none.
+	combat.weather = {}
 
 	# Somebody who is NOT the one currently acting, so the turn they are in the
 	# middle of doesn't muddy the numbers being read here.

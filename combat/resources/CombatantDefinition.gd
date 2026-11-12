@@ -186,6 +186,9 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ## Turns they get each round, spread through it. A boss facing a whole party
 ## usually wants more than one.
 @export_range(1, 4, 1, "or_greater") var turns_per_round: int = 1
+## At the top of each round its turn moves to just after one of the other side's, picked at random, a different one each
+## round (the designer, 2026-11-07, for the Mimic: "right after the turn of one player character, a different one each time").
+@export var turn_after_one_of_them: bool = false
 
 @export_group("Boss")
 ## Makes them a boss, whatever their size: their name across the screen as they
@@ -213,6 +216,11 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 @export var brings_back: Array[String] = []
 ## Set when they get away, for a conversation afterwards to know.
 @export var fled_flag: String = ""
+
+@export_group("Weather")
+## Metal on them, or made of it - or a thing on the map that is (BattleObjectDefinition has it too): lightning in a thunderstorm
+## goes for them first (Combat "Weather"; the designer, 2026-11-07).
+@export var draws_lightning: bool = false
 
 @export_group("Dealing with them")
 ## Gold that buys them out of a fight (Bribe, or a parley before it): a
@@ -348,6 +356,11 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 @export_group("Speech")
 ## What they say in a bubble over their head as a fight goes (CombatLines, SpeechBubbles). Empty, they say nothing.
 @export var lines: CombatLines = null
+## What Enfina says the first time in a fight she studies one of these (the designer, 2026-11-07: "allow her to say a different
+## line depending on who she studies. Allow me to write two lines for each monster"). Empty: one of her own Studies lines.
+@export_multiline var enfina_studies_line: String = ""
+## What Prometheus says the first time in a fight he studies one of these. Empty: nothing.
+@export_multiline var prometheus_studies_line: String = ""
 
 @export_group("Giving Light")
 ## Gives off light by being what it is, this many tiles of it (Bright for half), real or an illusion:
@@ -365,9 +378,10 @@ enum AiSmarts { INSTINCT, TRAINED, CUNNING, MASTERMIND, ALL_KNOWING }
 ## What it might know, on top of what its Smarts already give (Also Knows) or taken away from it
 ## (Never Knows). Stored by number: append.
 enum AiKnows { GROUND = 1, TELEGRAPHS = 2, KEEPS_FROM_HAZARDS = 4, SETS_OFF_HAZARDS = 8, SHOVES = 16, TETHERS = 32, WAKES_ALLIES = 64,
-	AVOIDS_REACH = 128, SPREADS_OUT = 256, SET_UPS = 512, HEMS = 1024, BLOCKS = 2048, TRIAGE = 4096, GATES = 8192, DARK = 16384, FALLS_BACK = 32768, KITS = 65536 }
-@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back", "Knows The Party's Kits") var ai_also_knows: int = 0
-@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back", "Knows The Party's Kits") var ai_never_knows: int = 0
+	AVOIDS_REACH = 128, SPREADS_OUT = 256, SET_UPS = 512, HEMS = 1024, BLOCKS = 2048, TRIAGE = 4096, GATES = 8192, DARK = 16384, FALLS_BACK = 32768, KITS = 65536,
+	DARK_PATCHES = 131072 }
+@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back", "Knows The Party's Kits", "Hunts In The Dark") var ai_also_knows: int = 0
+@export_flags("Knows The Ground", "Steps Off Telegraphs", "Keeps From Hazards", "Sets Off Hazards", "Uses Shoves", "Goes For Tether Holders", "Wakes Allies", "Avoids The Party's Reach", "Spreads Out", "Sets Things Up", "Hems In", "Blocks The Way", "Triage", "Saves Its Gates", "Searches The Dark", "Falls Back", "Knows The Party's Kits", "Hunts In The Dark") var ai_never_knows: int = 0
 ## How much a blow is worth to it: above 1 it trades safety for blood, below 1 it would rather live.
 @export_range(0.0, 3.0, 0.05) var ai_aggression: float = 1.0
 ## How much it minds bad ground, a hazard, the party's reach and standing bunched up.

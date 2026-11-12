@@ -1,6 +1,6 @@
 # The headless harness
 
-168 suites that boot the real game without a window, play something out and
+170 suites that boot the real game without a window, play something out and
 write down what happened.
 
 ```bash

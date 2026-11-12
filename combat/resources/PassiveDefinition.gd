@@ -308,6 +308,9 @@ var scales_every_skill_with: int = -1
 @export_range(0.0, 2.0, 0.05) var resonance: float = 0.0
 ## Somebody standing in Bright, shot from the Dark, takes this share more (Silhouette).
 @export_range(0.0, 2.0, 0.05) var silhouette_bonus: float = 0.0
+## Felling somebody from hiding on their own turn, they slip out of sight again: a free Stealth, even while watched, once a
+## turn - the rest of hiding's rules standing (Night Hunter; the designer, 2026-11-12, way E).
+@export var slips_away_after_felling: bool = false
 ## On somebody standing in Bright: their heals mend, and their Idol damage lands, this share more (Blessed in the Light).
 @export_range(0.0, 2.0, 0.05) var blessed_in_bright: float = 0.0
 ## Standing in Bright as their turn starts, they mend this much, and this share of their spellcasting stat more
@@ -598,6 +601,8 @@ func _describe_paths() -> Array:
 		lines.append("A spell of another element than their last hits %d%% harder." % roundi(resonance * 100))
 	if silhouette_bonus > 0.0:
 		lines.append("Somebody in Bright, shot from the Dark, takes %d%% more." % roundi(silhouette_bonus * 100))
+	if slips_away_after_felling:
+		lines.append("Felling somebody from hiding, they slip out of sight again, even while watched: once a turn.")
 	if blessed_in_bright > 0.0:
 		lines.append("On somebody in Bright, their heals mend and their Idol damage lands %d%% more." % roundi(blessed_in_bright * 100))
 	if mends_in_bright > 0.0 or mends_in_bright_per_stat > 0.0:

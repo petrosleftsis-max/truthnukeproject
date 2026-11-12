@@ -49,6 +49,7 @@ func _ready():
 	await open_fight()
 	await bodyguards()
 	await open_fight()
+	await a_turn_after_theirs()
 	await packs()
 	await open_fight()
 	await fears()
@@ -228,6 +229,98 @@ func bodyguards():
 	log_line("")
 
 
+## The Mimic's turn, after one of the party's, a different one each round (the designer, 2026-11-07).
+func a_turn_after_theirs():
+	log_line("======== a turn after one of theirs ========")
+	ok(CombatantDatabase.combatants.mimic.turn_after_one_of_them, "the Mimic takes its turn after one of the party's")
+	# Only the movers this section makes: anybody the fight brought who moves is kept still for it.
+	var brought := []
+	for comb in combat.combatants:
+		if comb.get("turn_after_one_of_them", false):
+			brought.append(comb)
+			comb.erase("turn_after_one_of_them")
+	var party := []
+	for index in combat._base_queue:
+		var comb: Dictionary = combat.combatants[index]
+		if comb.get("alive", false) and comb.get("side", 1) == 0 and not comb.has("object") and not comb.has("summoner"):
+			party.append(comb.get("id", -1))
+	var the_foes := foes()
+	var foe: Dictionary = the_foes[0]
+	foe["turn_after_one_of_them"] = true
+	var followed := []
+	for round in 4:
+		ok(combat._turns_after_one_of_them(), "round %d: it moves" % round)
+		var leader: Dictionary = leader_of(foe)
+		ok(not leader.is_empty() and leader.get("side", 1) == 0 and leader.get("id", -1) == foe.get("followed", -2),
+			"round %d: right after %s" % [round, leader.get("name", "nobody")], "%s" % [combat.turn_queue])
+		followed.append(foe.get("followed", -1))
+	var different := true
+	for i in range(1, followed.size()):
+		if followed[i] == followed[i - 1]:
+			different = false
+	ok(different, "never the same one twice running", "%s" % [followed])
+	# Several (the designer, 2026-11-12): as many as the party, each behind a different one.
+	var movers := [foe]
+	for comb in the_foes.slice(1):
+		if movers.size() < party.size():
+			comb["turn_after_one_of_them"] = true
+			movers.append(comb)
+	for round in 3:
+		combat._turns_after_one_of_them()
+		var theirs := movers.map(func(comb): return comb.get("followed", -1))
+		var once := {}
+		for id in theirs:
+			once[id] = true
+		ok(once.size() == movers.size(), "%d of them, round %d: each behind a different one" % [movers.size(), round], "%s" % [theirs])
+		ok(movers.all(func(comb): return leader_of(comb).get("id", -1) == comb.get("followed", -2)),
+			"round %d: and each right after the one it follows" % round, "%s" % [combat.turn_queue])
+	# More of them than the party: nobody has two more behind them than anybody else.
+	for comb in the_foes.slice(movers.size()):
+		if movers.size() < party.size() + 2:
+			comb["turn_after_one_of_them"] = true
+			movers.append(comb)
+	if movers.size() > party.size():
+		var repeats := 0
+		for round in 3:
+			var was := movers.map(func(comb): return comb.get("followed", -1))
+			combat._turns_after_one_of_them()
+			var behind := {}
+			for id in party:
+				behind[id] = 0
+			for comb in movers:
+				behind[comb.get("followed", -1)] = behind.get(comb.get("followed", -1), 0) + 1
+			var counts: Array = behind.values()
+			ok(counts.max() - counts.min() <= 1, "%d of them on %d, round %d: never two more on one than another" % [movers.size(), party.size(), round],
+				"%s" % [behind])
+			ok(movers.all(func(comb): return leader_of(comb).get("id", -1) == comb.get("followed", -2)),
+				"round %d: two behind one go one after the other, right after it" % round, "%s" % [combat.turn_queue])
+			for i in movers.size():
+				if movers[i].get("followed", -1) == was[i]:
+					repeats += 1
+		ok(repeats == 0, "and each a different one from the round before", "%d the same" % repeats)
+	else:
+		log_line("  (only %d foes to make movers of)" % movers.size())
+	for comb in movers:
+		comb.erase("turn_after_one_of_them")
+		comb.erase("followed")
+	for comb in brought:
+		comb["turn_after_one_of_them"] = true
+	log_line("")
+
+
+## Whose turn `comb` comes right after: the one before them in the order, past anybody else behind the same one.
+func leader_of(comb: Dictionary) -> Dictionary:
+	var index: int = combat.combatants.find(comb)
+	var at: int = combat.turn_queue.find(index) - 1
+	while at >= 0:
+		var before: Dictionary = combat.combatants[combat.turn_queue[at]]
+		if before.get("turn_after_one_of_them", false) and before.get("followed", -1) == comb.get("followed", -2):
+			at -= 1
+			continue
+		return before
+	return {}
+
+
 func packs():
 	log_line("======== packs ========")
 	var alithia := who("alithia")
@@ -252,6 +345,22 @@ func packs():
 	combat.teleport_to(mate, tile_away(alithia.position, 3, mate))
 	await settle()
 	ok(not combat._ai_holds_back(lone), "with the other in reach as well, in it goes")
+	# Gathered, out of anybody's reach: in they go together (the designer, 2026-11-07: "Have them keep fighting").
+	combat.teleport_to(lone, tile_away(alithia.position, 10, lone))
+	combat.teleport_to(mate, tile_away(lone.position, 2, mate))
+	await settle()
+	ok(combat.get_distance(lone, mate) > Combat.AI_PACK_TOGETHER_TILES or not combat._ai_holds_back(lone), "gathered, they go in together",
+		"%d apart" % combat.get_distance(lone, mate))
+	# And it waits only so long, whatever the others do.
+	combat.teleport_to(mate, tile_away(alithia.position, 14, mate))
+	mate.skill_list = []
+	mate.movement = 0
+	await settle()
+	lone["held_back"] = Combat.AI_PACK_WAITS
+	ok(not combat._ai_holds_back(lone), "after waiting %d turns, it fights whatever the others do" % Combat.AI_PACK_WAITS)
+	lone.erase("held_back")
+	mate.skill_list = mate_list
+	mate.movement = mate_feet
 	# The last of them has nobody to wait for.
 	mate["ai_pack"] = 0
 	ok(not combat._ai_holds_back(lone), "with nobody left to wait for, it stops waiting")

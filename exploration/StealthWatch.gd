@@ -1818,7 +1818,7 @@ func dash() -> bool:
 		return false
 	_dash_cooldown = DASH_COOLDOWN
 	# Heard, if not seen: guards near enough turn to the sound.
-	make_noise(party.leader.global_position, DASH_NOISE_TILES, false)
+	make_noise(party.leader.global_position, DASH_NOISE_TILES * _rain_hearing(party.leader.global_position), false)
 	return true
 
 
@@ -2291,6 +2291,99 @@ func take_pickup(pickup: StealthPickup) -> bool:
 	return true
 
 
+## --- The weather ---
+##
+## The designer, 2026-11-07 (section 18): steps are heard more in a light rain and less in a hard one, like a storm - whoever walks
+## about openly is noticed WALKING_NOTICED_TILES times RAIN_CARRIES off in a light rain and RAIN_DROWNS in a hard one, and so is a
+## dash and noisy ground (_rain_hearing: Light.SOME_RAIN, LOUD_RAIN). A step on wet ground open to the sky, or in snow, leaves a
+## print every PRINT_EVERY_TILES (step_taken, from ExplorationParty), fresh for PRINT_MUD_SECONDS, or PRINT_SNOW_SECONDS in snow:
+## an oddity, "prints", that a guard notices within PRINT_SEEN_TILES and goes to look at - and there, sees the next, so he follows
+## the trail; never putting the map up. Fog, a blizzard, a sandstorm: past a guard's Dim sight, out under the sky, he sees nothing
+## (_thick_now, in _refresh_seen). PROPOSAL, every number.
+const RAIN_CARRIES := 1.5
+const RAIN_DROWNS := 0.5
+const PRINT_EVERY_TILES := 1.5
+const PRINT_MUD_SECONDS := 30.0
+const PRINT_SNOW_SECONDS := 90.0
+const PRINT_SEEN_TILES := 4.0
+const PRINTS_KEPT := 40
+## How far the leader has walked since the last print, and where they were last frame.
+var _since_print := 0.0
+var _leader_was := Vector2.INF
+## [{node, until}]: the prints still fresh, oldest first.
+var _prints: Array = []
+
+
+## Whether `at`, a place in the world, is out of doors and open to the sky.
+func _open_to_the_sky(at: Vector2) -> bool:
+	if Campaign.map_ambient != Light.Ambient.OUTDOORS:
+		return false
+	var map_light = scene.get("light") if scene != null else null
+	return map_light == null or map_light.under_the_sky(tile_of(at))
+
+
+## How much further a step is heard at `at` for the rain: further in a light rain, less in a hard one.
+func _rain_hearing(at: Vector2) -> float:
+	if not _open_to_the_sky(at):
+		return 1.0
+	var rain := Light.rain_loudness(Campaign.sky_now())
+	if rain >= Light.LOUD_RAIN:
+		return RAIN_DROWNS
+	if rain >= Light.SOME_RAIN:
+		return RAIN_CARRIES
+	return 1.0
+
+
+## Whether the weather is thick enough to hide in, here and now.
+func _thick_now() -> bool:
+	return Campaign.map_ambient == Light.Ambient.OUTDOORS and Light.thick(Campaign.sky_now())
+
+
+## A step of the leader's at `at`, `way` walked since the last: a print, now and then, on wet ground or in snow.
+func step_taken(at: Vector2, way: Vector2):
+	if puppet:
+		return
+	_since_print += way.length()
+	if _since_print < Grid.tiles(PRINT_EVERY_TILES):
+		return
+	_since_print = 0.0
+	if not _open_to_the_sky(at):
+		return
+	var ground := Campaign.ground_now()
+	var in_snow: bool = float(ground.get("snow", 0.0)) >= 0.2
+	if not in_snow and float(ground.get("wet", 0.0)) < 0.3:
+		return
+	var mark := Node2D.new()
+	mark.name = "Print"
+	add_child(mark)
+	mark.global_position = at
+	var lasts: float = PRINT_SNOW_SECONDS if in_snow else PRINT_MUD_SECONDS
+	_prints.append({"node": mark, "until": Time.get_ticks_msec() / 1000.0 + lasts})
+	_add_oddity(mark, "prints", PRINT_SEEN_TILES)
+	while _prints.size() > PRINTS_KEPT:
+		_forget_print(_prints.pop_front())
+
+
+## The prints gone cold, gone; and the leader's walk since last frame, for the next.
+func _age_prints():
+	var party = scene.get("party") if scene != null else null
+	if party != null and is_instance_valid(party) and party.leader != null and is_instance_valid(party.leader):
+		var now_at: Vector2 = party.leader.global_position
+		if _leader_was != Vector2.INF and now_at != _leader_was and now_at.distance_to(_leader_was) < Grid.tiles(2.0):
+			step_taken(now_at, now_at - _leader_was)
+		_leader_was = now_at
+	var now := Time.get_ticks_msec() / 1000.0
+	while not _prints.is_empty() and float(_prints[0].until) <= now:
+		_forget_print(_prints.pop_front())
+
+
+func _forget_print(print_left: Dictionary):
+	var mark = print_left.node
+	if is_instance_valid(mark):
+		_remove_oddity(mark)
+		mark.queue_free()
+
+
 func _add_oddity(node: Node2D, what: String, near: float):
 	for odd in _oddities:
 		if odd.node == node:
@@ -2326,6 +2419,9 @@ func _notice_oddities(guard: Guard):
 			continue
 		odd.by = guard
 		guard.investigate(odd.node.global_position)
+		# One print after another: never the map up for each.
+		if odd.what == "prints":
+			odd.alarmed = true
 		if not odd.alarmed:
 			odd.alarmed = true
 			raise_alert(ALERT_PER_INVESTIGATION)
@@ -2334,6 +2430,7 @@ func _notice_oddities(guard: Guard):
 				"door": "notices a door left open",
 				"lamp": "notices a lamp gone out",
 				"item": "notices something gone",
+				"prints": "notices fresh prints, and follows them",
 				"spot": "notices something odd about a hiding spot",
 			}.get(odd.what, "notices something")])
 		return
@@ -2366,6 +2463,8 @@ func _see_to_oddities():
 					if scene.has_method("log_message"):
 						scene.log_message("[color=yellow]%s[/color] shuts the door.\n" % _name_of(guard))
 			"item":
+				_remove_oddity(node)
+			"prints":
 				_remove_oddity(node)
 			"spot":
 				_remove_oddity(node)
@@ -3121,7 +3220,7 @@ func notices_walking(guard: Guard, someone: Dictionary) -> bool:
 		return false
 	if not _walking_now.has(someone.key) or stealthing(someone.key) or worn_by(someone.key) != "":
 		return false
-	return Vector2(someone.tile - tile_of(guard.global_position)).length() <= WALKING_NOTICED_TILES
+	return Vector2(someone.tile - tile_of(guard.global_position)).length() <= WALKING_NOTICED_TILES * _rain_hearing(_tile_centre_of(someone.tile))
 
 
 ## Whether anybody in `group` could go to stealth mode: creeping is for them.
@@ -3226,7 +3325,7 @@ func _listen_to_feet(delta: float):
 		if _step_in[someone.key] > 0.0:
 			continue
 		_step_in[someone.key] = STEP_SECONDS
-		make_noise(at, ground.noise_tiles(), ground.brings_them())
+		make_noise(at, ground.noise_tiles() * _rain_hearing(at), ground.brings_them())
 
 
 ## --- Throwing (T) ---
@@ -4637,6 +4736,7 @@ func _process(delta):
 		_play_puppet()
 		return
 	_dress_the_party()
+	_age_prints()
 	if spotted_by != null:
 		# Still drawing: the "!" is popping.
 		_meters.queue_redraw()
@@ -5079,7 +5179,8 @@ func _refresh_seen(guard: Guard):
 	var facing_step = roundi(rad_to_deg(guard.facing.angle()) / FACING_STEP_DEGREES)
 	# The width too: a guard investigating sees 340 degrees rather than 160. And
 	# the doors and lamps as they stand: a door shut or a lamp out changes it.
-	var key = [from, facing_step, guard.half_cone(), _world_version]
+	var thick := _thick_now()
+	var key = [from, facing_step, guard.half_cone(), _world_version, thick]
 	if _seen_key.get(guard) == key:
 		return
 	_seen_key[guard] = key
@@ -5108,6 +5209,12 @@ func _refresh_seen(guard: Guard):
 				if _dark_between(map_light, from, tile, setup.dark_sight_tiles):
 					made_out.erase(tile)
 		_seen[guard] = made_out
+	# Fog, a blizzard, a sandstorm: past a few tiles out under the sky, Dim at best ("The weather").
+	if thick and setup != null:
+		var near: float = setup.dim_sight_tiles
+		for tile in _seen[guard].keys():
+			if Vector2(tile - from).length() > near and (map_light == null or map_light.under_the_sky(tile)):
+				_seen[guard].erase(tile)
 
 
 ## Whether a Dark tile lies on the line from `from` to `to`, past `near` of `from` and short of `to` (Combat.dark_between).

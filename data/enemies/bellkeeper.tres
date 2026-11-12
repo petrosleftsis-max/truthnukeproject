@@ -38,10 +38,10 @@ script = ExtResource("1_ir0ey")
 name = "The Last Toll"
 message = "It tears the clapper from its own throat, and the floor itself begins to ring."
 stagger = SubResource("Resource_omeb0")
-summons = Array[String](["rat", "rat", "rat"])
-hazards = Array[ExtResource("2_omeb0")]([SubResource("Resource_ir0ey")])
 ai_aggression = 1.4
 ai_caution = 0.5
+summons = Array[String](["rat", "rat", "rat"])
+hazards = Array[ExtResource("2_omeb0")]([SubResource("Resource_ir0ey")])
 
 [sub_resource type="Resource" id="Resource_1decp"]
 script = ExtResource("5_4eeyp")

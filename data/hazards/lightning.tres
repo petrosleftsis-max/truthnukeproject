@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="HazardDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/HazardDefinition.gd" id="1_hazard"]
+
+[resource]
+script = ExtResource("1_hazard")
+display_name = "Lightning"
+description = "A thunderstorm over the field: lightning comes down where it is marked a round ahead, high ground and whoever draws it first."
+first_round = 2
+every_rounds = 2
+aim = 4
+count = 1
+radius = 1
+damage_type = 9
+damage_by_level = 1.2
+flashes = true
+stagger = 15.0

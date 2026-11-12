@@ -54,7 +54,7 @@ Who Cyrus, Prometheus, Enfina and Alithia are, what they are like, and what they
 | **In play** | Mobility, stealth, items, lingering damage | Area damage, control, every other kind of magic, hacking | Front line: most damage, most punishment | Healer with enchantment, illusion and divination |
 | **Attributes** | Self, Physical | Intellect, Mindfulness | Physical, Intellect | Mindfulness, Self |
 | **Health at 1 / 24 / 64** | 75 / 90 / 115 | 30 / 40 / 58 | 130 / 152 / 190 | 75 / 90 / 115 |
-| **Initiative** (higher goes first) | 8 | 5 | 6 | 7 |
+| **Initiative** (higher goes first) | 8 | 6 | 5 | 7 |
 | **Movement** | 6 | 6 | 6 | 6 |
 | **Gates** | None | All ten | None | All ten |
 | **Signature** | Slipping out of sight, using anything to hand | Stolen Sun, rewriting a ward's rules | Trailblaze, the greatsword nobody walks away from | Intuition: reading what an enemy will do |
@@ -114,9 +114,9 @@ He has the highest initiative and no magic of his own, yet he can throw any spel
 **Blows and shots**
 
 - **Rapier** (level 1; melee, x1.5; also a reaction when an enemy leaves his reach).
-- **Gun** (1; range 20, x1.0): a shot at a lamp, a torch or any other light puts it out, quietly.
+- **Gun** (1; range 20, x1.0): a shot at a lamp, a torch or any other light puts it out, quietly. **New:** on a map, a shot at a guard carrying a torch puts it out from afar, silently, and he wanders off to relight it, walking in the dark meanwhile (on the Gun for now; the designer will move it to a later ranged move).
 - **Blink Strike** (1; x0.8): arrives on a tile within 4 and cuts everything beside it.
-- **Poison Dart** (8; x0.9): poisons. A dart at a light puts it out. **New:** on a map, a dart at a guard carrying a torch puts it out from afar, silently, and he wanders off to relight it, walking in the dark meanwhile.
+- **Poison Dart** (8; x0.9): poisons.
 - **Burning Shot** (16; x0.8): burns, and burns stronger from 32.
 - **Venom Fan** (24; a cone, x0.7): poisons everybody in front of him.
 - **Warning Shot** (32; x0.9): slows their advance.
@@ -208,7 +208,7 @@ Scholarly and complete when he is on his subject, then short and wry. "Haha" oft
 
 **The game:** "The hardest unit to use well, he has the most potent capabilities in the party. Yet they are limited by resource and his frail frame makes him easy to be killed in but an instant. It is more important for him to stay alive, rather than cast spells earlier! ... To make the most of him is to make the most of all!"
 
-He has by far the least health, and the lowest initiative. His power lies in choosing which gate to spend on what, and where. **He learns spells only from books,** found as loot or bought, or by using up a Gate Nade, and only those that are his. He also has a few small shots that cost no gate. His fires and winds linger on the ground, so he shapes where people can stand. Every spell he casts makes the next burn hotter.
+He has by far the least health. His power lies in choosing which gate to spend on what, and where. **He learns spells only from books,** found as loot or bought, or by using up a Gate Nade, and only those that are his. He also has a few small shots that cost no gate. His fires and winds linger on the ground, so he shapes where people can stand. Every spell he casts makes the next burn hotter.
 
 ### Abilities
 
@@ -244,7 +244,7 @@ He has by far the least health, and the lowest initiative. His power lies in cho
 - **Mesmerise** (area, tether): enemies who lose the contest stand and stare.
 - **Kindled Hound** (tether): a hound of embers that fights for him.
 - **Dispel Magic:** undoes what spells did to somebody, or a spell's zone.
-- **InstaHack** (reaction): tears a spell apart the instant a foe casts it. Their gate is spent all the same.
+- **InstaHack** (reaction): tears a spell apart the instant a foe casts it. They lose the spell and the action, but not the gate.
 - **Great Snare** (only out of a fight): a great magical trap that opens the fight with a blast when a guard sets it off.
 
 **The deep gates**
@@ -500,11 +500,10 @@ Her list of spells is long and varied, so a turn is a question of what the party
 
 - **Compel** (World): "One word, and they obey it." Their next turn is spent coming to her, going from her, falling prone or doing nothing, as she chooses.
 - **Ecstasy** (World; tether): "It takes them all at once and their legs go."
-- **Sleep** (Hermes; area, tether): an area falls asleep, the weakest-minded first, until any hurt wakes them.
+- **Sleep** (Pandora; area, tether): an area falls asleep, whoever loses the contest, until any hurt wakes them.
 - **Bewilder** (Hermes): confused, they go for whoever is nearest.
 - **Dread Visage** (Pandora; a cone): "A face only the target sees, and cannot stop seeing."
 - **Terror** (Pandora; a long cone, tether): "Something behind her eyes shows itself." They run from her at each turn's start.
-- **Mesmerise** (Pandora; area, tether): they stand and stare.
 - **Silence** (Hermes; area, tether): nobody in it can cast, her own side included.
 - **Flash** (Hermes): a burst of light that blinds.
 - **Suggestion** (Hermes, only out of a fight): a guard walks off for five minutes on an errand he cannot quite remember being given.
@@ -535,7 +534,7 @@ Her list of spells is long and varied, so a turn is a question of what the party
 - **Blessed in the Light** (8): on somebody standing in Bright, her heals mend a tenth more and her Idol damage lands a tenth harder.
 - **Nowhere to Hide** (16): nobody of the other side in Bright within six tiles, in her sight, can hide.
 - **Kindled Faith** (24) **New:** standing in Bright as her turn starts, she mends a little.
-- **Devotion:** two castings of her own, for Heal or Dread Visage, spent before any gate.
+- **Devotion:** two castings of her own, for Heal or Dread Visage, spent before any gate. Both spells are always prepared, so the castings are never wasted.
 - **Reserved Power** (32, 54): more castings through her deepest gate.
 - **Radiant Guardian** (64): while she stands, the party takes a tenth less damage.
 
@@ -600,11 +599,15 @@ They have to be short, since they fade by themselves mid-fight, and they have to
 - A deep spell, or their last casting.
 - A boss changes phase, and the fight is won.
 - Using one move in particular, or one condition in particular landing: Enfina studying somebody, and Enfina setting herself alight.
+- **Studying a monster, per monster** (new): each monster has one line for Enfina and one for Prometheus, said the first time in a fight they study one of its kind. None written yet.
+
+The designer has written some already: Enfina's ("So that's how you fight.", "Watch the feet.", "Seen that before." studying; "You are not getting away.", "It's only fire.", "I'll carve the path ahead." with Trailblaze; "Go. I've got it." sharing the fire; "Mine." stepping in; "You can't escape me." taking a blow for somebody) and Alithia's when she changes the future ("Didn't expect to let you do that, did you now?", "Not this time.", "Our actions shape our future!", "So very obvious of you."). More places lines could go are in docs/proposals_2026-11-07.md, section 19.
 
 ## 10. Open for discussion
 
 - **Enfina's voice in play.** She has the least written so far and is the one being deepened, so her lines and her story matter most right now.
 - **Her lack of recognition.** Does anybody ever finally say something to her, and who?
-- **Cyrus and being hidden.** Hitting from hiding gives no bonus at present, only that nobody can react, and if the blow fells them and nobody else sees, he stays hidden. A passive called Night Hunter, about staying hidden, is being decided.
+- **Cyrus and being hidden.** Hitting from hiding gives no bonus at present, only that nobody can react, and if the blow fells them and nobody else sees, he stays hidden. A passive called Night Hunter, about staying hidden, is being decided; the latest suggestion is a free Stealth after felling somebody from hiding, once a turn.
+- **The world's weather is a rule now.** Rain soaks (ice and lightning hurt more), wind carries shots along it and shortens them across it, deep snow is slow going, lightning strikes in a thunderstorm, fog and sandstorms hide whoever knows how. Guards hear steps further in a light rain and less in a storm, and follow fresh prints in mud and snow.
 - **Necromancy for Prometheus.** Whether he uses it, how he came to know it, and what Alithia does about it.
 - **What the four know about each other,** and when each learns about the others' pasts.

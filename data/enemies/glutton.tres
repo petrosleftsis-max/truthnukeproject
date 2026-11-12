@@ -132,5 +132,5 @@ meal_heals = 0.06
 fed_effects = Array[ExtResource("6_effect")]([SubResource("Effect_gorged")])
 spat_out_with = ExtResource("8_bile")
 ai_function = "ai_glutton"
-ai_never_knows = 4
 ai_smarts = 2
+ai_never_knows = 4

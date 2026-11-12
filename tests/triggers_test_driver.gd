@@ -213,6 +213,38 @@ func run_test():
 	alithia.skill_list.erase("t_ward")
 	log_line("")
 
+	# Everybody a blow sets off reacts, by initiative (the designer, 2026-11-07).
+	log_line("======== All of them at once, by initiative ========")
+	fresh_round()
+	put(alithia, free_near(cyrus, 1))
+	put(enfina, free_near(cyrus, 1))
+	cyrus.skill_list.append(reactive("t_duck", Trigger.TARGETED, true))
+	alithia.skill_list.append(reactive("t_ward", Trigger.ALLY_ATTACKED, true))
+	enfina.skill_list.append(reactive("t_cover", Trigger.ALLY_ATTACKED, true))
+	var was_initiative := [cyrus.initiative, alithia.initiative, enfina.initiative]
+	enfina.initiative = 30
+	cyrus.initiative = 20
+	alithia.initiative = 10
+	foe.skill_used_this_turn = false
+	await combat.use_skill(strike, foe, cyrus.position, false)
+	await settle()
+	ok(reacted(cyrus.name) and reacted(alithia.name) and reacted(enfina.name), "the one it is aimed at and both of his allies, all of them",
+		"%s %s %s" % [reacted(cyrus.name), reacted(alithia.name), reacted(enfina.name)])
+	var first := func(name: String) -> int:
+		for i in said.size():
+			if said[i].contains("%s[/color] reacts with" % name):
+				return i
+		return 9999
+	ok(first.call(enfina.name) < first.call(cyrus.name) and first.call(cyrus.name) < first.call(alithia.name), "the highest initiative first",
+		"%d %d %d" % [first.call(enfina.name), first.call(cyrus.name), first.call(alithia.name)])
+	cyrus.initiative = was_initiative[0]
+	alithia.initiative = was_initiative[1]
+	enfina.initiative = was_initiative[2]
+	cyrus.skill_list.erase("t_duck")
+	alithia.skill_list.erase("t_ward")
+	enfina.skill_list.erase("t_cover")
+	log_line("")
+
 	log_line("======== Casts ========")
 	fresh_round()
 	var caster := {}
@@ -517,7 +549,7 @@ func cancelled() -> bool:
 
 
 ## Prometheus's InstaHack: only ever a reaction, to an enemy in reach casting a
-## spell - which comes to nothing, its gate spent all the same.
+## spell - which comes to nothing, its action spent but not its gate (the designer, 2026-11-12).
 func instahack():
 	log_line("======== InstaHack ========")
 	var prometheus = who("prometheus")
@@ -572,8 +604,8 @@ func instahack():
 	ok(cancelled() and prometheus.reaction_used, "%s casts %s in reach: Prometheus cancels it" % [caster.name, spell], why)
 	ok(prometheus.hp == 999, "none of it lands", "%d" % prometheus.hp)
 	ok(prometheus.spell_slots[3] == 1, "a Gate of Pandora spent on it", "%s" % [prometheus.spell_slots])
-	ok(gates_left(caster) == caster_gates - 1 and caster.skill_used_this_turn,
-		"and the caster's gate and action are spent all the same", "%d -> %d" % [caster_gates, gates_left(caster)])
+	ok(gates_left(caster) == caster_gates and caster.skill_used_this_turn,
+		"the caster's action is spent, but not the gate (the designer, 2026-11-12)", "%d -> %d" % [caster_gates, gates_left(caster)])
 	ok(not caster.has("casting") and not caster.has("cast_cancelled"), "nothing left behind on them")
 	said.clear()
 	caster.skill_used_this_turn = false

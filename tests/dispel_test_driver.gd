@@ -40,6 +40,10 @@ func _ready():
 	if game != null and is_instance_valid(game):
 		game.queue_free()
 		await settle(3)
+	await the_sorcerers_mind()
+	if game != null and is_instance_valid(game):
+		game.queue_free()
+		await settle(3)
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
 
@@ -224,4 +228,130 @@ func dispelling():
 	ok(cover.get("name", "") == "Illusory Cover", "cover that is not there")
 	await dispel(prometheus, cover_at, 3)
 	ok(not cover.get("alive", true), "dispelled - the one thing that touches it")
+	log_line("")
+
+
+## Instahack and Dispel Magic on the Sorcerer, and its mind weighing when to use them (the designer, 2026-11-07).
+func the_sorcerers_mind():
+	log_line("======== The Sorcerer's mind ========")
+	var kit: Array = CombatantDatabase.combatants.sorcerer.skills
+	ok(kit.has("instahack") and kit.has("dispel_magic"), "the Sorcerer has Instahack and Dispel Magic")
+	await open_fight()
+	var prometheus := who("prometheus")
+	var alithia := who("alithia")
+	var cyrus := who("cyrus")
+	var foes := enemies()
+	var sorcerer: Dictionary = foes[0]
+	var ally: Dictionary = foes[1] if foes.size() > 1 else {}
+	# One of the fight's own, made a Sorcerer's mind and gates, as the Sixty-Four's are.
+	sorcerer.skill_list.append_array(["instahack", "dispel_magic"])
+	sorcerer["level"] = 64
+	sorcerer.spell_slots = Stats.gates_for_level(64)
+	sorcerer["max_spell_slots"] = Stats.gates_for_level(64)
+	sorcerer["ai_knows"] = Combat._ai_knows_of(CombatantDatabase.combatants.sorcerer)
+	ok(combat.meets_level_for(sorcerer, SkillDatabase.skills.instahack) and combat.meets_level_for(sorcerer, SkillDatabase.skills.dispel_magic),
+		"with Pandora's gate open to it, it can use both")
+	prometheus.spell_slots = Stats.gates_for_level(64)
+	alithia.spell_slots = Stats.gates_for_level(64)
+
+	# What a spell is worth cancelling.
+	var blast: SkillDefinition = SkillDatabase.skills.fire_blast
+	var hound: SkillDefinition = SkillDatabase.skills.kindled_hound
+	ok(combat._ai_cancel_worth(sorcerer, prometheus, blast) < Combat.AI_CANCEL_WORTH, "a spell through the Gates of World alone is let go",
+		"%.0f" % combat._ai_cancel_worth(sorcerer, prometheus, blast))
+	ok(combat._ai_cancel_worth(sorcerer, prometheus, hound) >= Combat.AI_CANCEL_WORTH, "a hound called up through Pandora's is cancelled",
+		"%.0f" % combat._ai_cancel_worth(sorcerer, prometheus, hound))
+	ok(combat._ai_cancel_worth(sorcerer, alithia, SkillDatabase.skills.resuscitate) >= Combat.AI_CANCEL_WORTH, "somebody brought back is cancelled")
+	if not ally.is_empty():
+		ok(combat._ai_cancel_worth(sorcerer, ally, hound) == 0.0, "nothing of its own side's")
+
+	# As a reaction, in sight and in reach of Prometheus casting.
+	var spot := a_tile(prometheus.position, func(tile): return combat.get_position_distance(tile, prometheus.position) in [3, 4] \
+		and combat.has_line_of_sight(tile, prometheus.position, 0))
+	put(sorcerer, spot)
+	for comb in combat.combatants:
+		comb["reaction_used"] = comb != sorcerer
+	var cancelled: bool = await combat._react_to_casting(prometheus, "fire_blast", blast)
+	ok(not cancelled and not sorcerer.reaction_used, "Prometheus's Fire Blast it lets go, and keeps its reaction and its casting")
+	var pandora: int = sorcerer.spell_slots[3]
+	cancelled = await combat._react_to_casting(prometheus, "kindled_hound", hound)
+	ok(cancelled and sorcerer.reaction_used, "his hound it cancels", "%s %s" % [cancelled, sorcerer.reaction_used])
+	ok(sorcerer.spell_slots[3] == pandora - 1, "for a casting through Pandora's", "%d -> %d" % [pandora, sorcerer.spell_slots[3]])
+	sorcerer["reaction_used"] = false
+	# Cast for real and torn apart: whoever cast it keeps the gate (the designer, 2026-11-12).
+	give_turn(prometheus)
+	var his_pandora: int = prometheus.spell_slots[3]
+	var hounds: int = combat.summons_of(prometheus).size()
+	var its_pandora: int = sorcerer.spell_slots[3]
+	await combat.use_skill("kindled_hound", prometheus, a_tile(prometheus.position, func(tile): return combat.get_position_distance(tile, prometheus.position) in [2, 3]), false)
+	await settle(2)
+	ok(combat.summons_of(prometheus).size() == hounds and sorcerer.spell_slots[3] == its_pandora - 1, "cast for real, it is torn apart: no hound",
+		"%d hounds, its Pandora's %d -> %d" % [combat.summons_of(prometheus).size(), its_pandora, sorcerer.spell_slots[3]])
+	ok(prometheus.spell_slots[3] == his_pandora, "and his Pandora's casting is his still", "%d -> %d" % [his_pandora, prometheus.spell_slots[3]])
+	sorcerer["reaction_used"] = false
+	# The deeper the gates open to it, the less a casting through Pandora's has to buy (the designer, 2026-11-12: "the worth of
+	# instahack and dispel magic increases as higher gates are unlocked").
+	var young: Dictionary = sorcerer.duplicate()
+	young["level"] = 14
+	young["spell_slots"] = Stats.gates_for_level(14)
+	young["max_spell_slots"] = Stats.gates_for_level(14)
+	var instahack: SkillDefinition = SkillDatabase.skills.instahack
+	# Its gates full again, so the last casting through Pandora's asks nothing more of it.
+	sorcerer.spell_slots = Stats.gates_for_level(64)
+	var at_14: float = combat._ai_cancel_wanted(young, instahack)
+	var at_64: float = combat._ai_cancel_wanted(sorcerer, instahack)
+	ok(is_equal_approx(at_14, Combat.AI_CANCEL_WORTH), "at 14, with Pandora's its deepest, a cancelling has to be worth all of it", "%.1f" % at_14)
+	ok(at_64 < at_14 and at_64 >= Combat.AI_CANCEL_WORTH * Combat.AI_GATE_COST_LEAST, "at 64, with nine gates open, less", "%.1f" % at_64)
+	var plain := SkillDefinition.new()
+	plain.name = "A plain spell through Hermes'"
+	plain.spell_slot_level = 2
+	plain.deals_damage = true
+	var worth: float = combat._ai_cancel_worth(sorcerer, prometheus, plain)
+	ok(worth < at_14 and worth >= at_64, "a plain spell through Hermes' it lets go at 14 and cancels at 64", "worth %.0f, %.1f and %.1f wanted" % [worth, at_14, at_64])
+	ok(combat._ai_cancel_worth(sorcerer, prometheus, blast) < at_64, "one through the World's it lets go even at 64")
+	ok(is_equal_approx(combat._ai_dispel_wanted(young, 3), Combat.AI_DISPEL_BLOWS) and combat._ai_dispel_wanted(sorcerer, 3) < Combat.AI_DISPEL_BLOWS,
+		"undoing magic through Pandora's: all of a casting's worth at 14, less at 64",
+		"%.2f and %.2f" % [combat._ai_dispel_wanted(young, 3), combat._ai_dispel_wanted(sorcerer, 3)])
+	ok(combat._ai_dispel_wanted(sorcerer, 9) > combat._ai_dispel_wanted(sorcerer, 3), "and through a deeper gate, more")
+	ok(Combat._ai_gate_worth(3) > Combat._ai_gate_worth(1), "what came through a deeper gate counts for more to undo",
+		"%.2f and %.2f" % [Combat._ai_gate_worth(1), Combat._ai_gate_worth(3)])
+
+	# Dispel Magic, on its turn. One of its own put to sleep by a spell of Alithia's: that is what to undo.
+	if not ally.is_empty():
+		ally.status_effects.clear()
+		put_on(alithia, ally, "sleep")
+		ok(has_condition(ally, "stunned"), "one of its own asleep, by Alithia's Sleep")
+		var best: Dictionary = combat._ai_best_dispel(sorcerer)
+		ok(best.get("target", {}) == ally and best.get("gate", 0) == SkillDatabase.skills.sleep.spell_slot_level, "that is what it would undo, through the gate it came through",
+			"%s, gate %s, worth %s" % [best.get("target", {}).get("name", "nobody"), best.get("gate", 0), best.get("worth", 0)])
+		put(sorcerer, a_tile(ally.position, func(tile): return combat.get_position_distance(tile, ally.position) in [2, 3, 4]))
+		give_turn(sorcerer)
+		ok(await combat._ai_dispel(sorcerer, 0), "and does")
+		await settle(2)
+		ok(not has_condition(ally, "stunned"), "awake again")
+	# Nothing worth a casting: a single quickening of Cyrus's alone is not.
+	cyrus.status_effects.clear()
+	put_on(prometheus, cyrus, "quicken")
+	ok(combat._ai_best_dispel(sorcerer).is_empty(), "a single quickening is not worth a casting", str(combat._ai_best_dispel(sorcerer).get("worth", 0)))
+	# Quickened and invisible both, by spells: it is.
+	put_on(prometheus, cyrus, "invisibility")
+	var seen_cyrus: Dictionary = combat._ai_best_dispel(sorcerer)
+	ok(seen_cyrus.get("target", {}) == cyrus or combat.hidden_from(sorcerer, cyrus), "quickened and invisible both is, if it can see him", "%s" % seen_cyrus.get("worth", 0))
+	cyrus.status_effects.clear()
+	combat.set_hidden(cyrus, false)
+	# A hound a spell called up: worth more than any of that.
+	give_turn(prometheus)
+	await combat.use_skill("kindled_hound", prometheus, a_tile(prometheus.position, func(tile): return combat.get_position_distance(tile, prometheus.position) in [2, 3]), false)
+	await settle(2)
+	var called: Array = combat.summons_of(prometheus)
+	if not called.is_empty():
+		ok(combat._ai_best_dispel(sorcerer).get("target", {}) == called[0], "a hound of his, called up by a spell, it would undo")
+	# An image it has not seen through is whoever it is of.
+	var count: int = combat.combatants.size()
+	combat.summon_decoy(alithia, cyrus, SkillDatabase.skills.mirror_image)
+	var image: Dictionary = combat.combatants.back() if combat.combatants.size() > count else {}
+	if not image.is_empty():
+		for each in called:
+			each.alive = false
+		ok(combat._ai_best_dispel(sorcerer).get("target", {}) != image, "an image it has not seen through it takes for Cyrus, and leaves")
 	log_line("")

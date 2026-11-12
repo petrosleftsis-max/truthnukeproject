@@ -21,7 +21,7 @@ movement = 6
 initiative = 4
 main_stat = 2
 sprite_frames = ExtResource("3_n7ymf")
-skills = Array[String](["burner", "wildfire", "crystalise", "gust_blast", "wind_swoon", "run", "fire_burst", "fire_blast", "rock_throw", "wind_shot"])
+skills = Array[String](["burner", "wildfire", "crystalise", "gust_blast", "wind_swoon", "run", "fire_burst", "fire_blast", "rock_throw", "wind_shot", "instahack", "dispel_magic"])
 skill_levels = {
 "burner": 5,
 "crystalise": 7,

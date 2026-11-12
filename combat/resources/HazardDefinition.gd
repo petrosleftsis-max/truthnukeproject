@@ -23,6 +23,7 @@ enum Aim {
 	AT_THE_PARTY,  ## Where the party is standing.
 	AT_EVERYONE,   ## Where anybody is standing, either side.
 	THESE_TILES,   ## Exactly the Tiles below.
+	HIGH_AND_METAL, ## Anywhere open to the sky, high ground and whoever draws lightning first (Lightning, in a thunderstorm).
 }
 
 enum Hits {
@@ -57,6 +58,11 @@ enum Hits {
 ## Before defence and resistance, the way an item's power is.
 @export_range(0, 999, 1, "or_greater") var damage: int = 0
 @export var damage_type: Damage.Type = Damage.Type.PHYSICAL
+## In place of Damage: a blow as hard as one from somebody of the level of whoever it catches, this many times over
+## (Stats.base_damage of main_stat_at), so it is as dangerous at 64 as at 1 (Lightning). 0: Damage above.
+@export_range(0.0, 5.0, 0.05) var damage_by_level: float = 0.0
+## The sky lights up as it lands, and thunder follows (Lightning).
+@export var flashes: bool = false
 @export var condition: ConditionDefinition
 ## 0 for the condition's own.
 @export_range(0, 10, 1) var condition_duration: int = 0

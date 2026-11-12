@@ -166,3 +166,5 @@ enfina
 speech
 prometheus
 beckon
+wallcheck
+weather

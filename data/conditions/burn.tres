@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_cond")
+longer_in_heat = 1
 tick_sound = ExtResource("sfx_tick_sound")
 display_name = "Burn"
 light_tiles = 3.0

@@ -160,8 +160,10 @@ func tile_away(from: Vector2i, gap: int, walker: Dictionary) -> Vector2i:
 func her_kit():
 	log_line("======== Alithia's new spells ========")
 	var alithia := who("alithia")
-	for key in ["compel", "steady_heart", "ecstasy", "silence", "mesmerise"]:
+	for key in ["compel", "steady_heart", "ecstasy", "silence"]:
 		ok(alithia.skill_list.has(key), "she has %s" % key)
+	ok(not alithia.skill_list.has("mesmerise") and CombatantDatabase.combatants.prometheus.skills.has("mesmerise"),
+		"Mesmerise is Prometheus's alone (the designer took it off her, 2026-11-12)")
 	var skills: Dictionary = SkillDatabase.skills
 	ok(skills.compel.spell_slot_level == 1 and skills.compel.uses_stat_contest and skills.compel.contest_stat == Stats.Type.MINDFULNESS, "Compel: World, a contest of Mindfulness")
 	ok(skills.steady_heart.spell_slot_level == 1 and skills.steady_heart.targets_ally and skills.steady_heart.effects[0].condition_duration == 4, "Steady Heart: World, on an ally, 4 turns")
@@ -322,7 +324,10 @@ func steady_heart():
 
 func mesmerise():
 	log_line("======== Mesmerise ========")
+	# Prometheus's spell; he is not in this fight, so she casts it for him here.
 	var alithia := who("alithia")
+	if not alithia.skill_list.has("mesmerise"):
+		alithia.skill_list.append("mesmerise")
 	var the_foes := foes()
 	var strong: Dictionary = the_foes[1]
 	var weak: Dictionary = the_foes[0]
@@ -335,7 +340,7 @@ func mesmerise():
 	alithia.spell_slots[3] = 2
 	await combat.use_skill("mesmerise", alithia, weak.position, false)
 	await settle()
-	ok(combat.has_restriction(weak, "skips_turn"), "who loses to her Intellect is stunned")
+	ok(combat.has_restriction(weak, "skips_turn"), "who loses to the caster's Intellect is stunned")
 	ok(not combat.has_restriction(strong, "skips_turn"), "who beats it is not")
 	ok(Combat.holds_tether(alithia) and alithia.tether.max == 200.0, "held on a tether of 200", "%s" % [alithia.get("tether")])
 	# It lasts as long as the tether does, not a count of turns.

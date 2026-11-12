@@ -1782,6 +1782,29 @@ func change_stance(going_down: bool) -> bool:
 	return true
 
 
+## The player acting lands, or takes off again (Combat "Weather"), for nothing. False, and nothing done, when they cannot
+## now. Over a network the other machine does the same (Net "land").
+func toggle_flight() -> bool:
+	if not can_change_stance():
+		return false
+	var landing: bool = not combat.get_current_combatant().get("landed", false)
+	if not change_flight(landing):
+		return false
+	Net.fight_move(combat, "land", [landing])
+	return true
+
+
+## The one acting lands or takes off, and what shows where they can go follows.
+func change_flight(landing: bool) -> bool:
+	var comb = combat.get_current_combatant()
+	if not (combat.land(comb) if landing else combat.take_off(comb)):
+		return false
+	_path = PackedVector2Array()
+	game_ui_refresh()
+	queue_redraw()
+	return true
+
+
 ## Recomputes where the enemy can see, for a hidden player about to move - or
 ## for one deciding whether to hide in the first place.
 ##
@@ -3583,8 +3606,10 @@ func _fade_the_grid(delta: float):
 
 
 const NO_HOVER := Vector2i(-99999, -99999)
-const MOVE_FILL := Color(0.5, 0.75, 1.0, 0.07)
-const MOVE_EDGE := Color(0.62, 0.84, 1.0, 0.6)
+## Quiet, so what is on the ground still shows through (the designer, 2026-11-07: "a bit too bright"). PROPOSAL.
+const MOVE_FILL := Color(0.55, 0.72, 0.9, 0.035)
+const MOVE_EDGE := Color(0.62, 0.8, 0.95, 0.32)
+const MOVE_EDGE_WIDTH := 4.0
 ## How far they can walk from here, worked out only when something it goes by has changed.
 var _walk_reach: Array = []
 var _walk_reach_key := []
@@ -3612,7 +3637,7 @@ func _draw_walk_path():
 			for step in 8:
 				line.append(_walk_curve(i, float(step) / 8.0))
 		line.append(_path[_path.size() - 1])
-		draw_polyline(line, Color(0.75, 0.88, 1.0, 0.55), tile * 0.018, true)
+		draw_polyline(line, Color(0.75, 0.88, 1.0, 0.42), tile * 0.016, true)
 	for i in range(_path.size()):
 		var point: Vector2 = _path[i]
 		if i > 0:
@@ -3813,7 +3838,7 @@ func _draw_board():
 		else:
 			var walker = combat.get_current_combatant()
 			if _soft_fills != null and movement > 0 and walker != null and not walker.is_empty() and combat.plays_for_party(walker):
-				_draw_area(_walk_reach_now(walker), MOVE_FILL, MOVE_EDGE, EDGE_WIDTH)
+				_draw_area(_walk_reach_now(walker), MOVE_FILL, MOVE_EDGE, MOVE_EDGE_WIDTH)
 			if _soft_fills != null:
 				_draw_walk_path()
 			else:

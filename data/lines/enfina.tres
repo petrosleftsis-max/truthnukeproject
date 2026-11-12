@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1_lines")
-studies = Array[String](["Favours the left.", "Watch the feet.", "Seen that before."])
+studies = Array[String](["So that's how you fight.", "Watch the feet.", "Seen that before."])
 when_using = {
-"trailblaze": ["Keep up.", "It's only fire."],
+"trailblaze": ["You are not getting away.", "It's only fire.", "I'll carve the path ahead."],
 "share_the_fire": ["Go. I've got it."],
 "step_in": ["Mine."]
 }
-takes_a_blow = Array[String](["Mine."])
+takes_a_blow = Array[String](["You can't escape me."])

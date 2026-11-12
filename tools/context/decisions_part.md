@@ -468,6 +468,15 @@ These are OPEN: no sheet documents them, or documents them only in part. The val
 - **Icons over the head were turned down** after looking at an example. What is on somebody shows on the figure.
 - **The board hides its tiles (option A)**; the rules are still on tiles.
 - **Darkness is cover** (the designer, that evening): nobody sees into or past a Dark tile but whoever sees in the dark (Cyrus's Night Eyes), in a fight and on a map. Walking through it, and an area aimed at the ground, are unchanged.
-- **Section 17's answers:** Beckoning Light for Alithia (Hermes, the Gates of Iris on a map); Kindled Faith from 24; Lifted Torch became Poison Dart putting out a guard's light from afar, silently; Silhouette +20% and Blessed in the Light +10% on trial. Night Hunter's D already happens; what it should be is open.
+- **Section 17's answers:** Beckoning Light for Alithia (Hermes, the Gates of Iris on a map); Kindled Faith from 24; Lifted Torch became a shot putting out a guard's light from afar, silently, on the Gun until a later ranged move of Cyrus's takes it; Silhouette +20% and Blessed in the Light +10% on trial. Night Hunter's D already happens; what it should be is open.
 - **Eleven more weathers** by season, all only to look at; storms, sandstorms, blizzards, ash and eclipses come only when a scene says. Sky and light changes ease in, figures soak in rain, and steps are louder in it (a sound, not yet anything guards hear).
 - **Figures lit as shapes, without extra art,** on trial. Reading a shape off each picture's own edges made the figures look smeared, with lines showing inside them, so the light falls on a smooth rounded body instead, with a switch in Options. A shine mask beside a frame (red how shiny, green how like metal) marks what catches the light.
+
+## The round of 2026-11-12
+
+- **The weather is a rule now, not only a look** (section 18, all but things that sway): a strong wind doubles what flies along it and halves it across; fliers are blown a tile a turn unless they land, and landing and taking off cost nothing; deep snow costs twice to walk; lightning strikes in a thunderstorm, marked a round ahead; rain soaks (ice and lightning hurt more) and shortens fires; Burn lasts longer in the heat, Frozen in the cold; fog, a blizzard and a sandstorm hide whoever creeps; steps are heard further in a light rain and less in a hard one; guards follow fresh prints.
+- **Darkness is no sanctum:** Cunning and smarter enemies remember where somebody went into the dark, and throw an area there, dispel the dark, go in after them, or use its edge as cover themselves.
+- **Reactions:** everybody a moment sets off reacts, highest initiative first. **Cones** go diagonally too. **The Mimic** takes its turn right after one of the party's, a different one each round.
+- **Alithia's Heal and Dread Visage are always prepared** (Devotion pays for them). The Sorcerer has Instahack and Dispel Magic.
+- **Lines:** each monster gets a line of Enfina's and one of Prometheus's for studying it, written by the designer; Alithia's changed-future lines are the designer's own now.
+- Asked for and written as suggestions: more places for lines, five looks for the interface with an art list for an artist, more atmosphere, and 2.5D (depth with 2D art: raised ground shown, layers, light that knows height).

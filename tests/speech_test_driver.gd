@@ -23,6 +23,8 @@ func run_sections():
 	await open_fight()
 	await the_moments()
 	await open_fight()
+	await studying_them()
+	await open_fight()
 	await the_bubble()
 	await close_fight()
 	await on_a_map()
@@ -186,6 +188,47 @@ func the_moments():
 	cyrus.alive = false
 	ok(not SpeechBubbles.on_event(combat, cyrus, &"won"), "nobody down says anything")
 	cyrus.alive = true
+	log_line("")
+
+
+## A line of Enfina's and one of Prometheus's written on each monster (the designer, 2026-11-07).
+func studying_them():
+	log_line("== What she says, studying them ==")
+	var enfina := who("enfina")
+	var prometheus := who("prometheus")
+	var foe: Dictionary = foes()[0]
+	var definition: CombatantDefinition = CombatantDatabase.combatants[foe.combatant_key]
+	var was := [definition.enfina_studies_line, definition.prometheus_studies_line]
+	ok("enfina_studies_line" in definition and "prometheus_studies_line" in definition, "a monster has a line of each of theirs to fill in")
+	definition.enfina_studies_line = "Leans on the bad knee."
+	definition.prometheus_studies_line = "Fascinating. Hold still."
+	SpeechBubbles.said.clear()
+	combat.study(enfina, foe, true)
+	var hers: Array = SpeechBubbles.said.filter(func(entry): return entry.who == "enfina")
+	ok(hers.size() == 1 and hers[0].line == "Leans on the bad knee." and hers[0].event == &"studies_them", "Enfina says what is written for her on it", str(hers))
+	ok(not SpeechBubbles.said.any(func(entry): return entry.event == &"studies"), "and none of her own lines with it")
+	var same: Array = foes().filter(func(other): return other != foe and other.combatant_key == foe.combatant_key)
+	SpeechBubbles.said.clear()
+	if not same.is_empty():
+		combat.study(enfina, same[0], true)
+		ok(SpeechBubbles.said.is_empty(), "another of the same kind: she keeps it to herself", str(SpeechBubbles.said))
+	combat.study(enfina, foe, true)
+	ok(SpeechBubbles.said.is_empty(), "nor again on the same one")
+	combat.study(prometheus, foe, true)
+	var his: Array = SpeechBubbles.said.filter(func(entry): return entry.who == "prometheus")
+	ok(his.size() == 1 and his[0].line == "Fascinating. Hold still.", "Prometheus says his, though she studied it first", str(his))
+	definition.enfina_studies_line = ""
+	definition.prometheus_studies_line = ""
+	var others: Array = foes().filter(func(other): return other.combatant_key != foe.combatant_key and not other.get("studied", false))
+	SpeechBubbles.said.clear()
+	if not others.is_empty():
+		combat.study(enfina, others[0], true)
+		ok(SpeechBubbles.said.any(func(entry): return entry.who == "enfina" and entry.event == &"studies"), "nothing written: one of her own", str(SpeechBubbles.said))
+	SpeechBubbles.said.clear()
+	combat.study(prometheus, foe, true)
+	ok(SpeechBubbles.said.is_empty(), "nothing written for him, and he has no lines of his own: nothing")
+	definition.enfina_studies_line = was[0]
+	definition.prometheus_studies_line = was[1]
 	log_line("")
 
 

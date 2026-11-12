@@ -97,6 +97,7 @@ func _ready():
 	_build_undo_button()
 	_build_ready_button()
 	_build_prone_button()
+	_build_flight_button()
 	_build_turn_block()
 	_style_turn_buttons()
 	_build_grid_button()
@@ -368,6 +369,45 @@ func _build_prone_button():
 	$Actions.add_child(_prone_button)
 	_prone_button.position = end_turn.position - Vector2(0, (end_turn.size.y + 5) * 3)
 	_prone_button.pressed.connect(_on_prone_pressed)
+
+
+const LAND_TIP := "Land, for nothing, and walk: out of the wind's way, which blows whoever flies a tile as their turn starts"
+const TAKE_OFF_TIP := "Take to the air again, for nothing"
+
+var _flight_button: Button = null
+
+
+## Land or Take Off, for a flier (Combat "Weather"; the designer, 2026-11-07: "allow fliers now to walk with no movement cost on
+## the switching"), over Go Prone.
+func _build_flight_button():
+	var end_turn = $Actions/EndTurnButton
+	_flight_button = end_turn.duplicate(0)
+	_flight_button.name = "FlightButton"
+	_flight_button.text = "Land"
+	_flight_button.visible = false
+	$Actions.add_child(_flight_button)
+	_flight_button.position = end_turn.position - Vector2(0, (end_turn.size.y + 5) * 4)
+	_flight_button.pressed.connect(func():
+		close_pad_panel()
+		if controller != null and controller.has_method("toggle_flight"):
+			controller.toggle_flight())
+
+
+func _refresh_flight():
+	if _flight_button == null:
+		return
+	var comb: Dictionary = combat.get_current_combatant() if combat != null else {}
+	var can_show: bool = combat != null and controller != null and not exploration_mode and not _deployment_mode \
+		and not is_viewing_other() and not comb.is_empty() and combat.plays_for_party(comb) and controller.player_turn \
+		and not controller.is_skill_selected() and (not Coop.on() or Coop.is_local(combat.player_of(comb))) and combat.can_fly(comb)
+	_flight_button.visible = can_show
+	if not can_show:
+		return
+	var landed: bool = comb.get("landed", false)
+	var why: String = combat.take_off_refusal(comb) if landed else combat.land_refusal(comb)
+	_flight_button.text = "Take Off" if landed else "Land"
+	_flight_button.disabled = why != "" or not controller.can_change_stance()
+	_flight_button.tooltip_text = why if why != "" else (TAKE_OFF_TIP if landed else LAND_TIP)
 
 
 func _on_prone_pressed():
@@ -1317,6 +1357,7 @@ func _show_skills_for(comb: Dictionary):
 	_refresh_undo()
 	_refresh_ready()
 	_refresh_prone()
+	_refresh_flight()
 	if _pips != null:
 		_pips.show_for(comb, combat)
 
@@ -2346,6 +2387,16 @@ func build_skill_tooltip(skill: SkillDefinition, in_the_hands_of: Dictionary = {
 	return built
 
 
+## The same, with no fight on - the spells being prepared, a sheet opened on a map (the designer, 2026-11-07: the preview
+## "can only see the description not the usual details you can see in fight"). Whatever only a fight knows (uses left, a
+## spare casting, a passive's grant) is left out.
+static func details_of(skill: SkillDefinition, in_the_hands_of: Dictionary = {}) -> String:
+	var builder = (load("res://ui/combat_ui.gd") as GDScript).new()
+	var text: String = builder.build_skill_tooltip(skill, in_the_hands_of)
+	builder.free()
+	return text
+
+
 func _build_skill_tooltip(skill: SkillDefinition) -> String:
 	var lines: Array[String] = [skill.name]
 	if skill.description != "":
@@ -2685,7 +2736,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 				return "Nobody notices them, even in plain view, until they do anything at all - or nobody on their side is left in sight"
 			return "Turns them invisible, even in plain view - until they do something to an enemy, or nobody on their side is left in sight"
 		EffectDefinition.EffectType.CANCEL_CASTING:
-			return "Cancels the spell they are casting: none of it happens, and their gate is spent all the same"
+			return "Cancels the spell they are casting: none of it happens, and their action is lost, though not their gate"
 		EffectDefinition.EffectType.GROW:
 			if effect.shrinks:
 				return "Makes them a size smaller, for as long as the tether holds"
@@ -2957,6 +3008,7 @@ func _set_aiming(aiming: bool):
 		_refresh_undo()
 		# Nor Go Prone, which is only there for whoever plays the one acting.
 		_refresh_prone()
+		_refresh_flight()
 		# Nor Spells, which is only there for somebody who casts something -
 		# switched back on with the rest, it offered a swordsman a button that
 		# vanished the moment it was pressed.
@@ -3469,9 +3521,30 @@ func _scaling_moved_by() -> PassiveDefinition:
 ## on the other end of it soaks any. -1 with nobody to ask.
 func _base_damage(skill: SkillDefinition) -> int:
 	var caster = _caster()
-	if skill == null or caster.is_empty() or not combat.has_method("base_skill_damage"):
+	if skill == null or caster.is_empty():
+		return -1
+	if combat == null:
+		return _base_damage_with_no_fight(caster, skill)
+	if not combat.has_method("base_skill_damage"):
 		return -1
 	return combat.base_skill_damage(caster, skill)
+
+
+## What `skill` swings for in `entry`'s hands with no fight on (a sheet's entry on a map, the spells being prepared): the
+## sheet's own arithmetic (CharacterSheet.expected_damage), power behind it times its multiplier.
+static func _base_damage_with_no_fight(entry: Dictionary, skill: SkillDefinition) -> int:
+	if not skill.deals_damage:
+		return -1
+	if skill is ItemDefinition:
+		return roundi(skill.item_power * Combat.modifier_of({"level": entry.get("level", 1)}, skill))
+	var stat := skill.scaling_stat as int
+	if Combat.is_spell(skill) and entry.get("spellcasting_stat", -1) >= 0:
+		stat = entry.spellcasting_stat
+	for passive in entry.get("passives", []):
+		if passive != null and passive.scales_every_skill_with >= 0 and passive.required_level <= entry.get("level", 1):
+			stat = passive.scales_every_skill_with
+	var value: int = entry.get("stats", {}).get(Stats.KEYS[stat], Stats.BASE_STAT)
+	return roundi(Stats.base_damage(value, entry.get("weapon_base", Stats.WEAPON_BASE)) * Combat.modifier_of({"level": entry.get("level", 1)}, skill))
 
 
 ## What one tick of a lingering effect is worth, as a number. -1 when there is
@@ -3489,7 +3562,7 @@ func _base_damage(skill: SkillDefinition) -> int:
 ## alight - so there the real figure is known and is what gets shown.
 func _tick_figure(skill: SkillDefinition, damage_type: int, modifier: float, on_self: bool) -> int:
 	var caster = _caster()
-	if skill == null or caster.is_empty():
+	if skill == null or caster.is_empty() or combat == null:
 		return -1
 	var base = combat.dot_base_damage(caster, skill, modifier)
 	if base <= 0.0:
@@ -3504,7 +3577,7 @@ func _tick_figure(skill: SkillDefinition, damage_type: int, modifier: float, on_
 ## that does not hurt.
 func _collision_damage(skill: SkillDefinition, effect: EffectDefinition) -> int:
 	var caster = _caster()
-	if skill == null or caster.is_empty() or not combat.has_method("collision_impact"):
+	if skill == null or caster.is_empty() or combat == null or not combat.has_method("collision_impact"):
 		return -1
 	return combat.collision_impact(caster, effect, skill)
 
@@ -3513,7 +3586,7 @@ func _collision_damage(skill: SkillDefinition, effect: EffectDefinition) -> int:
 ## defence and resistance and all. -1 with nobody to ask.
 func _damage_to_self(skill: SkillDefinition, effect: EffectDefinition) -> int:
 	var caster = _caster()
-	if skill == null or caster.is_empty() or not combat.has_method("skill_damage"):
+	if skill == null or caster.is_empty() or combat == null or not combat.has_method("skill_damage"):
 		return -1
 	# The same two steps do_damage takes, in the same order.
 	var raw = combat.skill_damage(caster, caster, skill)
@@ -3545,7 +3618,7 @@ func _condition_tick(effect: EffectDefinition, skill: SkillDefinition) -> String
 ## What a heal from whoever is acting would restore, or -1 with nobody to ask.
 func _heal_amount(skill: SkillDefinition, effect: EffectDefinition = null) -> int:
 	var caster = _caster()
-	if skill == null or caster.is_empty() or not combat.has_method("heal_amount"):
+	if skill == null or caster.is_empty() or combat == null or not combat.has_method("heal_amount"):
 		return -1
 	# The effect goes with it, because a heal can carry its own dial - the
 	# panel showing the skill's instead would promise the wrong number on

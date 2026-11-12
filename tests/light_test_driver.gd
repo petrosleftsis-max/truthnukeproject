@@ -25,6 +25,7 @@ func run_sections():
 	await dim_fight()
 	await what_gives_light()
 	await darkness_is_cover()
+	await hunting_in_the_dark()
 	await close_fight()
 	await on_a_map()
 	await a_guards_torch()
@@ -224,6 +225,96 @@ func darkness_is_cover():
 	ok(not combat.hidden_from(enfina, foe), "with the dark lit away, they see each other again")
 	combat._placed_lights.clear()
 	combat.sync_zones()
+	log_line("")
+
+
+## Cunning and above know where somebody went into the dark, and that an area, a dispel or a search could still find them; and
+## they keep to the dark's edge themselves (the designer, 2026-11-07).
+func hunting_in_the_dark():
+	log_line("======== hunting in the dark ========")
+	await open_fight(Light.Ambient.OUTDOORS)
+	var enfina := who("enfina")
+	var prometheus := who("prometheus")
+	var cyrus := who("cyrus")
+	cyrus.passives = cyrus.passives.filter(func(passive): return not passive.sees_in_darkness)
+	var foe: Dictionary = foes()[0]
+	var definition: CombatantDefinition = CombatantDatabase.combatants[foe.combatant_key]
+	foe["ai_knows"] = Combat._ai_knows_of(definition, CombatantDefinition.AiSmarts.CUNNING)
+	ok(Combat._ai_knows(foe, CombatantDefinition.AiKnows.DARK_PATCHES), "Cunning hunts in the dark")
+	ok(Combat._ai_knows_of(definition, CombatantDefinition.AiSmarts.TRAINED) & CombatantDefinition.AiKnows.DARK_PATCHES == 0, "Trained does not")
+	for other in combat.combatants:
+		if other.get("alive", false) and other != foe and other != enfina and other != prometheus and not other.has("object"):
+			combat.teleport_to(other, tile_at_gap(foe.position, 14, other))
+	# A Light Void six tiles off, in its sight.
+	var spot := tile_at_gap(foe.position, 6, prometheus)
+	combat.teleport_to(prometheus, tile_at_gap(spot, 3, prometheus))
+	combat.teleport_to(enfina, tile_at_gap(foe.position, 2, enfina))
+	prometheus.spell_slots = Stats.gates_for_level(64)
+	if not prometheus.skill_list.has("light_void"):
+		prometheus.skill_list.append("light_void")
+	combat.current_combatant = combat.combatants.find(prometheus)
+	controller.set_controlled_combatant(prometheus)
+	prometheus.skill_used_this_turn = false
+	await combat.use_skill("light_void", prometheus, spot, false)
+	await settle(2)
+	var dark: Array = combat.zones.filter(func(zone): return zone.get("condition") != null and zone.condition.is_darkness)
+	ok(not dark.is_empty(), "a Light Void on the ground")
+	if dark.is_empty():
+		log_line("")
+		return
+	var zone: Dictionary = dark[0]
+	# The edge of it nearest the foe, which it can see.
+	var edge := Vector2i(-99999, -99999)
+	for tile in zone.tiles:
+		if combat.can_land_on(enfina, tile) and combat.has_line_of_sight(foe.position, tile, 0) and not combat.dark_between(foe.position, tile, [tile]) \
+				and (edge.x == -99999 or combat.get_position_distance(foe.position, tile) < combat.get_position_distance(foe.position, edge)):
+			edge = tile
+	ok(edge.x != -99999, "an edge of it the foe can see", "%s" % edge)
+	if edge.x == -99999:
+		log_line("")
+		return
+	combat.teleport_to(enfina, edge)
+	combat.sync_zones()
+	ok(combat.in_darkness(enfina) and combat.hidden_from(foe, enfina), "Enfina steps into it, and is lost to it")
+	var guesses: Dictionary = combat._ai_dark_guesses(foe)
+	ok(guesses.get(enfina.id, Vector2i(-1, -1)) == edge, "but it saw where she went in", "%s" % [guesses])
+	# An area there.
+	foe["level"] = 64
+	foe.spell_slots = Stats.gates_for_level(64)
+	foe["max_spell_slots"] = Stats.gates_for_level(64)
+	foe.skill_list.append_array(["wildfire", "dispel_magic"])
+	var wildfire: SkillDefinition = SkillDatabase.skills.wildfire
+	combat._ai_assumed = guesses
+	ok(combat.ai_worth_table(foe, wildfire).has(enfina.id), "Wildfire there is worth something: it could catch her")
+	ok(not combat.ai_worth_table(foe, SkillDatabase.skills.fire_blast).has(enfina.id) or combat.aoe_radius_of(foe, SkillDatabase.skills.fire_blast) > 0,
+		"a blow at one tile is not: there is nobody there to see")
+	var aims: Dictionary = combat._ai_aim_scores(foe, wildfire, combat.ai_worth_table(foe, wildfire))
+	ok(aims.keys().any(func(aim): return combat.get_position_distance(aim, edge) <= wildfire.aoe_radius and aims[aim] > 0.0), "aimed round where she went in")
+	combat._ai_assumed = {}
+	var plan: Dictionary = combat.ai_plan_attack(foe, ["wildfire"], 0)
+	ok(plan.skill == "wildfire" and combat.get_position_distance(plan.aim, edge) <= wildfire.aoe_radius, "and the plan is to throw it there",
+		"%s at %s" % [plan.skill, plan.aim])
+	# Undo the dark.
+	var undo: Dictionary = combat._ai_best_dispel(foe)
+	ok(undo.get("target", {"x": 1}).is_empty() and undo.get("aim", Vector2i(-1, -1)) in zone.tiles, "or undo the dark she hides in", "%s" % [undo])
+	# Trained knows nothing of it.
+	foe["ai_knows"] = Combat._ai_knows_of(definition, CombatantDefinition.AiSmarts.TRAINED)
+	ok(combat._ai_dark_guesses(foe).is_empty() and combat.ai_plan_attack(foe, ["wildfire"], 0).skill == "", "Trained, none of it")
+	foe["ai_knows"] = Combat._ai_knows_of(definition, CombatantDefinition.AiSmarts.CUNNING)
+	# Its own cover: the dark's edge, with nobody in sight who sees in it.
+	combat._ai_read_the_field(foe)
+	ok(combat._ai_mind.get("dark_cover", false), "the dark is cover to it, with nobody in sight who sees in it")
+	var lurk := Vector2i(-99999, -99999)
+	var lit := Vector2i(-99999, -99999)
+	for tile in zone.tiles:
+		if tile == edge:
+			continue
+		for step in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			if combat.light.level_at(tile + step) != Light.Level.DARK and controller.is_on_map(tile + step):
+				lurk = tile
+				lit = tile + step
+	ok(lurk.x != -99999 and combat._ai_tile_worth(foe, lurk) > combat._ai_tile_worth(foe, lit), "a dark tile at its edge is worth more than the lit one beside it",
+		"%.1f against %.1f" % [combat._ai_tile_worth(foe, lurk), combat._ai_tile_worth(foe, lit)])
 	log_line("")
 
 

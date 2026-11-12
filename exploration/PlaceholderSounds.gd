@@ -75,6 +75,8 @@ const RECIPES := {
 	# A step (Footsteps), and a step that splashes.
 	"step": [[160, 90, 0.035, "sine", 0.2], [900, 400, 0.025, "noise", 0.05]],
 	"step_wet": [[150, 85, 0.03, "sine", 0.22], [2600, 900, 0.09, "noise", 0.12]],
+	# A kind of creature's sheet, opened on it studied for the first time.
+	"reveal": [[392, 784, 0.12, "sine", 0.12], [784, 1175, 0.14, "sine", 0.11], [1568, 1568, 0.25, "sine", 0.08]],
 }
 
 static var _made := {}

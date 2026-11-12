@@ -466,7 +466,8 @@ Nothing in this section is built unless it says so. Numbers are proposals.
 - **Lifted Torch, as a ranged move of Cyrus's that snuffs torches from afar, silently.** Built on **Poison Dart** (my pick: a dart is
   silent, and he has it from 8). It now shoots out lights as his Gun does, and on a map a dart at a guard carrying a light puts the
   light out from afar with no fight. He goes to light it again at the nearest lit lamp, walking dark meanwhile, or carries on dark
-  if there is none.
+  if there is none. **Then (the designer):** "For now have it on gun, but i'll put it on another future ranged move". It is on the
+  Gun now, and the dart is as it was.
 - **Kindled Faith.** Built, from 24: standing in Bright as her turn starts, she mends 3 and a twentieth of her Mindfulness.
 - **Normal maps without extra art, to see how it looks.** Built, then changed the same evening: normals read off each picture's own
   outline and lines made the figures look smeared, with outlines showing inside them (a scarf), and so did the older side lighting,
@@ -572,6 +573,13 @@ D already happens, so as a passive it would change nothing. These would make Nig
 
 **My recommendation is D+**, at 24: it is the "hidden and stay that way" you wanted, and darkness as cover makes it work.
 
+**Then (the designer):** "isn't D+ for night hunter also changing nothing?" Not nothing, but less than it looked. A blow from the dark
+already gives Cyrus away only until his next turn, and with darkness as cover nobody whose line to him crosses dark tiles sees him
+anyway. D+ would change two things: those who would still see him after a blow from the dark (at its edge, or within two tiles) no
+longer would; and a melee blow from Dim on somebody who stays standing would no longer reveal him. Right beside him, they would
+still see him either way. Since that is narrow, **my recommendation is now E** (a free Stealth after felling somebody from hiding,
+once a turn): it changes play everywhere, and it is the hunter's way, one kill and gone again.
+
 ## 18. Weather on the map and on the creatures
 
 You asked how weather could show on the map and on the creatures. Built on 2026-11-07: things falling and blowing for every
@@ -616,3 +624,114 @@ steps in the rain. Everything below is a suggestion.
 | **Lightning** | In a thunderstorm, lightning strikes the arena now and then, high ground and metal first, telegraphed a turn ahead |
 | **Wet** | Rain puts out ground fires sooner and makes the soaked easier to freeze and to shock |
 | **Heat and cold** | Burns last longer in heat, Frozen longer in cold |
+
+**Then (the designer):** all of it but things that sway; wind in them to try; poses falling back on idle; steps heard more in a light
+rain and less in a hard one; across the wind half the range, along it double; fliers pushed, and free to land and take off. **Built,
+every number PROPOSAL:** puddles with ripples, snow lying (thinner in the lee of walls), frost, ash, sand drifted against walls, prints
+in mud and snow that guards follow, splashes; on the figures drips, steam by a fire, snow and ash on top, dust from the feet, the
+cold's blue, the heat's glint, breath, cloth in the wind (the shine mask's blue), and shiver, shield-the-eyes and hunch poses. The
+rules: walking heard 1.5 times as far in a light rain and half as far in a hard one; fog, a blizzard and a sandstorm hide whoever
+creeps past three tiles; a strong wind (wind, sandstorm, blizzard) doubles the reach of anything that flies along it and halves it
+across, and blows a flier a tile at its turn's start unless it has landed (Land and Take Off cost nothing); deep snow costs double to
+walk; lightning every second round from round 2 in a thunderstorm, marked a round ahead, as hard as 1.2 blows at the level of whoever
+it catches; rain soaks (ice and lightning +25%, Frozen a turn longer) and burns fire on the ground out twice as fast; in the heat Burn
+lasts a turn longer, in the cold Frozen does.
+
+## 19. More places for lines, for all four
+
+You asked where else lines could go. Each is a list of lines per character, and several can name who they are about (as the
+new study lines do per monster). Already hooked up: the fight starting and won, their first blow, felling somebody, reacting, taking
+a blow for somebody, studying, a deep spell, their last casting, a move in particular, an ally falling, badly hurt, healed, a
+condition, seeing through an illusion, a boss's phase.
+
+**In a fight**
+
+| Moment | For example |
+| --- | --- |
+| **A miss, and being missed** | Cyrus dodging: a quip; Enfina missing: a grunt of annoyance |
+| **A big hit** | A blow taking a third of somebody's health, given or taken |
+| **Bringing somebody back, and being brought back** | Alithia's Resuscitate, and who she brings back thanking her, a line per pair |
+| **Lifting a condition, and having one lifted** | Cleanse, Calm |
+| **Going into hiding, and being found** | Cyrus vanishing; Cyrus spotted |
+| **The dark, and the light** | Stepping into darkness, into Daylight; Alithia in Bright, Cyrus in the dark |
+| **A boss first seen** | One line per character per boss, as the study lines are per monster |
+| **The enemy giving up** | Surrendering, fleeing, being bought off |
+| **Out of castings** | The last gate spent: "That's all I have." |
+| **Praise for each other** | A kill by somebody else in sight: a line per pair (Enfina about Cyrus, Cyrus about Alithia...) |
+| **Stepping in, per ally** | Enfina's Step In with a line for each of the three she protects |
+| **The weather** | First turn in rain, snow, fog, a thunderstorm; lightning striking near |
+| **A hazard dodged, or not** | Out of a marked tile just in time; caught in fire |
+
+**On a map**
+
+| Moment | For example |
+| --- | --- |
+| **A new place** | The first time the party sets foot somewhere, one character comments |
+| **Stealth** | A guard close by, a near miss, being spotted, a guard knocked out |
+| **Doors, locks, hacks** | A lock picked, a hack finished, a door that will not open |
+| **Finds** | A clue, loot, a book Prometheus can learn from |
+| **The day and the weather** | Rain starting, night falling, dawn |
+| **Standing about** | Two of them talking while the party stands still a while: pairs, taking turns, never the same twice running |
+| **Hurt, walking** | Low health on a map |
+| **Rests** | A short rest, a long rest, around the fire |
+| **Stores** | Haggling, nothing to afford |
+| **Growing** | A level, a new spell, a path chosen |
+
+My pick for first: praise per pair, a boss first seen, standing about (pairs) and a new place. They give the four the most
+personality for the fewest lines.
+
+## 20. The interface's look, and art for your artist
+
+You asked how the interface could look other than blue, and what art to ask your artist for. A page with the styles drawn out and
+the whole art list, to look at and to send your artist, is linked in my message. In short:
+
+| Style | What it is |
+| --- | --- |
+| **A. The illuminated codex** | Panels as dark vellum with gold-leaf trims and red initials, ink rules between sections: the Gnostic books the gates come from |
+| **B. Byzantine mosaic** | Lapis and gold tesserae borders, gilded frames, round halos for portraits, each gate a coloured tile |
+| **C. Brass and glass** | Dark wood and brass, engraved dials, glass gauges for health and gates: Prometheus's lab |
+| **D. Ink and wash** | Soft washes, brushstroke underlines, torn paper edges, to sit with the hand-drawn figures |
+| **E. The night sky** | The blue kept, deepened to indigo with star specks, the gates as a constellation, silver trims |
+
+**My recommendation is A, with E's gates**: the codex fits the story (the gates, ΛΗΘΗ, truth), it sits well with Cinzel, and a star
+map of the gates keeps the blue's calm where it matters most.
+
+**Art to ask for** (frames as nine-slices, so they stretch): panel frames in three sizes, the tooltip's, buttons in four states and a
+main and lesser kind, tabs, the ten gate symbols, stat icons, the thirteen damage types, condition marks (each condition has a slot),
+health, stagger and tether bars, portrait frames for the party and the turn queue, a cursor set, ornamental dividers, the turn
+banner, the round mark, the clock face, the speech bubble, the stealth bar's icons, the alert meter, menu and journal backgrounds,
+and the codex's seal for a newly studied kind. The page has the sizes and what each is for.
+
+## 21. More atmosphere
+
+| Idea | What it adds |
+| --- | --- |
+| **Sound by place** | A bed of sound for each place (wind in trees, a city's murmur, a cave's drips), echo indoors and underground, footsteps by what is underfoot: stone, wood, grass, water |
+| **Music that follows the danger** | Layers coming in as a stealth map's alert rises, and as a fight turns |
+| **Light that moves** | Torches flickering their shadows, lanterns swaying in the wind, dust in shafts of light indoors, fireflies at dusk |
+| **Life about** | Birds taking off as the party comes near, rats in the lab, a city's people with bubbles of their own, birds gone quiet before a storm |
+| **The camera** | A slow push in during a conversation, a pan across the field as a fight opens, a vignette when in danger |
+| **The world's own story** | Notes and marks on walls to read by pointing, shrines with candles, rooms that say what happened in them |
+| **The hours** | Shops shut at night, people in their beds, lamps lit, guards changing at dawn |
+| **Forgetting** | ΛΗΘΗ: when a memory is lost, the colour drains from the edges of the screen a moment |
+| **After a fight** | The fallen and the knocked out stay where they fell, dust settling, smoke from fires going out |
+
+My pick for first: sound by place and footsteps by ground, then life about. Both change how every map feels, and the sound plan has
+slots ready for them.
+
+## 22. 2.5D: depth with 2D art
+
+You asked whether the map can feel three-dimensional with 2D art. It can, in steps, from depth on the art we have to a real 3D
+stage under 2D figures.
+
+| Way | How it works | What it costs |
+| --- | --- | --- |
+| **A. Raised ground, shown** | High ground drawn with a cliff face under it and a shadow down from its edge; figures up there drawn higher (the hop exists already); sorted so who is nearer is drawn over who is further | Tiles with a top and a front face; code: modest |
+| **B. Layers and parallax** | Each map in layers - ground, walls, roofs and arches in front - moving a little against each other as the view moves; what stands in front of a figure fades while they are behind it | Foreground pieces and background layers from the artist; code: modest |
+| **C. Light that knows height** | Shading at the foot of walls, walls lit from the side, shadows thrown down off ledges, the figures' rounded light (exists) | Normal maps for tiles, or none; code: modest |
+| **D. Isometric** | The board turned to diamonds, heights stacked as blocks, the classic tactics look | Every tile and map redrawn; code: large |
+| **E. A 3D stage, 2D figures** | The maps built in 3D, the figures as flat pictures standing in it, the camera tilted, a soft blur far off (the "HD-2D" look) | Maps rebuilt in 3D; code: very large |
+
+**My recommendation: A, B and C together.** They keep every picture we have, add the depth you are after where it shows most
+(high ground, walls, things in front), and the rules do not change - Heights already has who is up. E is the finished look of that
+road; worth one test map later if you want to see it.

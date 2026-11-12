@@ -16,6 +16,8 @@ const STRIDE_TILES := 0.55
 
 ## What was played last: {"wet", "db"} - for a test.
 static var last := {}
+## Where the last step was, for which way the next print points.
+static var _stepped_from := Vector2.INF
 static var _last_at := -GAP_MS
 
 
@@ -25,6 +27,11 @@ static func step(at: Vector2, softly: bool = false):
 	if now - _last_at < GAP_MS:
 		return
 	_last_at = now
+	# A print and a splash, where the ground takes them (LightView "The weather on the ground").
+	var way: Vector2 = at - _stepped_from if _stepped_from != Vector2.INF and at.distance_to(_stepped_from) < Grid.tiles(3.0) else Vector2.ZERO
+	_stepped_from = at
+	LightView.leave_print(at, way)
+	LightView.splash(at)
 	var wet := LightView.rainy_at(at)
 	var db: float = (WET_DB if wet else DRY_DB) + (SOFTLY_DB if softly else 0.0)
 	last = {"wet": wet, "db": db}

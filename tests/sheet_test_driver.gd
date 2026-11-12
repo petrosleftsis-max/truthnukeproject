@@ -199,6 +199,35 @@ func run_test():
 	ok(not get_tree().paused, "and closing it lets the game carry on")
 	log_line("")
 
+	# A new kind, studied: the first time its sheet shows it, a reveal (the designer, 2026-11-07).
+	log_line("======== a new kind, studied ========")
+	CharacterSheet.reveals_headless = true
+	Campaign.sheets_revealed.clear()
+	var stranger := {}
+	for comb in combat.combatants:
+		if comb.alive and comb.side == 1 and not comb.has("object") and not comb.get("illusion", false):
+			stranger = comb
+			break
+	if not stranger.is_empty():
+		stranger["studied"] = true
+		sheet.open_on(stranger.name)
+		await get_tree().process_frame
+		ok(Campaign.sheets_revealed.has(stranger.combatant_key), "its kind is remembered as shown", "%s" % [Campaign.sheets_revealed])
+		ok(sheet.is_revealing(), "and the reveal plays")
+		press(KEY_SPACE)
+		await get_tree().process_frame
+		ok(not sheet.is_revealing() and sheet._portrait.modulate == Color.WHITE, "a press finishes it at once")
+		sheet.close()
+		await get_tree().process_frame
+		sheet.open_on(stranger.name)
+		await get_tree().process_frame
+		ok(not sheet.is_revealing(), "the second time, no reveal: it is known")
+		sheet.close()
+		await get_tree().process_frame
+		ok("sheets_revealed" in Campaign.SAVED, "and a save keeps it")
+	CharacterSheet.reveals_headless = false
+	log_line("")
+
 	log_line("======== a contest that carries no damage does not promise half of it ========")
 	# A graze keeps the damage at half and drops everything else, so a skill
 	# with no damage in it does nothing at all to whoever shrugs it off.

@@ -350,8 +350,8 @@ static func _passive_name(passive: PassiveDefinition) -> String:
 ## auras on their passives, the hazards their phases start, the blasts of the
 ## things on the map. Reached through them, so they survive an export too.
 static func conditions_from_combatants() -> Array:
-	# What Combat puts on itself: a stagger, riding something (Climb), legs broken.
-	var found: Array = [Combat.STAGGERED, Combat.RIDING, Combat.CRIPPLED]
+	# What Combat puts on itself: a stagger, riding something (Climb), legs broken, the rain (Soaked).
+	var found: Array = [Combat.STAGGERED, Combat.RIDING, Combat.CRIPPLED, Combat.SOAKED]
 	for key in CombatantDatabase.combatants:
 		var definition: CombatantDefinition = CombatantDatabase.combatants[key]
 		if definition == null:

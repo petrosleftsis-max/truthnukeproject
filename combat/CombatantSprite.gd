@@ -418,16 +418,33 @@ uniform float light_height = 0.6;
 uniform float wet = 0.0;
 uniform sampler2D shine_mask : filter_linear, repeat_disable;
 uniform float shine_on = 0.0;
+uniform float snow_on = 0.0;
+uniform float ash_on = 0.0;
+uniform float dust = 0.0;
+uniform float cold_on = 0.0;
+uniform float heat_on = 0.0;
+uniform vec2 wind_wave = vec2(0.0);
 varying vec2 world;
 varying float up;
+varying vec4 vertex_colour;
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
 	up = clamp((feet_y - VERTEX.y) / max(figure_height, 1.0), 0.0, 1.0);
+	vertex_colour = COLOR;
 }
 void fragment() {
 	vec4 base = COLOR;
 	float here = texture(TEXTURE, UV).a;
 	vec2 pixel = TEXTURE_PIXEL_SIZE;
+	// Loose cloth and hair moving in the wind: the shine mask's blue (docs/shine_masks.md).
+	if (shine_on > 0.5 && length(wind_wave) > 0.01) {
+		vec4 cloth = texture(shine_mask, UV);
+		float loose = cloth.b * cloth.a;
+		if (loose > 0.01) {
+			vec2 sway = wind_wave * pixel * 4.0 * loose * (0.6 + 0.4 * sin(TIME * 7.0 + UV.y * 24.0 + UV.x * 9.0));
+			base = texture(TEXTURE, UV - sway) * vertex_colour;
+		}
+	}
 	vec3 rgb = base.rgb;
 	rgb = mix(rgb, rgb * lit_colour * 1.5, lit_strength);
 	// Where on the figure this is, as a smooth rounded body: across from the middle of the frame, and down from about the
@@ -467,6 +484,23 @@ void fragment() {
 		float gloss = pow(max(dot(n, normalize(l + vec3(0.0, 0.0, 1.0))), 0.0), 28.0);
 		float how_shiny = clamp(shine + wet * 0.55, 0.0, 1.5) * clamp(side_strength * 1.2 + lit_strength + 0.25, 0.0, 1.2);
 		rgb += gloss * how_shiny * mix(lit_colour, rgb * lit_colour * 1.6, metal) * 0.9;
+	}
+	// Snow and ash on what faces up, dust from the feet, the cold's blue and the heat's glint (the weather on the creatures).
+	if (snow_on > 0.01 || ash_on > 0.01) {
+		float near_top = clamp(here - texture(TEXTURE, UV - vec2(0.0, pixel.y * 3.0)).a, 0.0, 1.0);
+		float further = clamp(here - texture(TEXTURE, UV - vec2(0.0, pixel.y * 6.0)).a, 0.0, 1.0) * 0.6;
+		float top = max(near_top, further) * here;
+		rgb = mix(rgb, vec3(0.95, 0.97, 1.0), top * snow_on);
+		rgb = mix(rgb, vec3(0.45, 0.43, 0.42), top * ash_on * 0.8);
+	}
+	if (dust > 0.01) {
+		rgb = mix(rgb, rgb * vec3(1.05, 0.92, 0.72) + vec3(0.12, 0.08, 0.02), smoothstep(0.45, 1.0, UV.y) * dust * 0.7);
+	}
+	if (cold_on > 0.01) {
+		rgb = mix(rgb, rgb * vec3(0.84, 0.92, 1.12), cold_on * 0.45);
+	}
+	if (heat_on > 0.01 && shine > 0.001) {
+		rgb += vec3(1.0, 0.95, 0.85) * shine * heat_on * 0.35 * (0.5 + 0.5 * sin(TIME * 3.0 + UV.y * 30.0));
 	}
 	if (shade_on > 0.5) {
 		float dark = texture(shade_map, (world - shade_rect.xy) / shade_rect.zw).a;
@@ -515,6 +549,166 @@ func set_in_the_dark(dark: bool, sees: bool = false):
 
 
 ## Puts the light on them as it falls this frame.
+## --- The weather on the creatures ---
+##
+## The designer, 2026-11-07 (section 18). View only, placeholders all of it. Out under the sky: snow settles on what faces up and ash
+## too (`snow_on`, `ash_on`, over SETTLED_SECONDS, gone over MELT_SECONDS), sand dusts them from the feet up (`dust`), the cold tints
+## them blue and the heat of the day glints on what shines (`cold_on`, `heat_on`); loose cloth and hair - the shine mask's blue - move
+## in the wind (`wind_blows`). Drips fall from the wet, steam rises off the wet by a fire, breath shows in the cold; and a pose for
+## it, which falls back on idle as every pose does (`weather_pose`: "shiver", "shield_eyes", "hunch" - slots to fill in their
+## SpriteFrames). LightView._put_on_the_sky says what the sky is doing.
+static var snowing := 0.0
+static var ashing := 0.0
+static var sanding := 0.0
+static var cold_air := 0.0
+static var hot_air := 0.0
+static var hard_rain := false
+static var wind_blows := Vector2.ZERO
+const SETTLED_SECONDS := 40.0
+const MELT_SECONDS := 60.0
+const DUSTED_SECONDS := 30.0
+const BREATH_EVERY := [2.4, 3.6]
+var snow_on := 0.0
+var ash_on := 0.0
+var dust := 0.0
+var cold_on := 0.0
+var heat_on := 0.0
+## The pose the weather wants them in, below any a condition wants.
+var weather_pose: StringName = &""
+var _open_sky := false
+var _drips: CPUParticles2D = null
+var _steam: CPUParticles2D = null
+var _breath: CPUParticles2D = null
+var _next_breath := 0.0
+
+
+func _weather_on_me(delta: float):
+	_open_sky = not laid and under_the_sky.is_valid() and under_the_sky.call(global_position)
+	snow_on = move_toward(snow_on, 1.0 if _open_sky and snowing > 0.2 else 0.0, delta / (SETTLED_SECONDS if _open_sky and snowing > 0.2 else MELT_SECONDS))
+	ash_on = move_toward(ash_on, 1.0 if _open_sky and ashing > 0.2 else 0.0, delta / (SETTLED_SECONDS if _open_sky and ashing > 0.2 else MELT_SECONDS))
+	dust = move_toward(dust, 1.0 if _open_sky and sanding > 0.3 else 0.0, delta / (DUSTED_SECONDS if _open_sky and sanding > 0.3 else MELT_SECONDS))
+	cold_on = move_toward(cold_on, cold_air if _open_sky else 0.0, delta / 20.0)
+	heat_on = move_toward(heat_on, clampf(hot_air, 0.0, 1.0) if _open_sky else 0.0, delta / 10.0)
+	var wanted: StringName = &""
+	if _open_sky:
+		if cold_air > 0.5:
+			wanted = &"shiver"
+		elif sanding > 0.5:
+			wanted = &"shield_eyes"
+		elif hard_rain:
+			wanted = &"hunch"
+	set_weather_pose(wanted)
+	if not LightView.shown():
+		return
+	_keep_drips(wetness > 0.45 and not laid)
+	_keep_steam(wetness > 0.2 and not laid and _by_a_fire())
+	_breathe(delta, _open_sky and cold_air > 0.5)
+
+
+## The pose the weather wants, falling back on idle where they have no such animation.
+func set_weather_pose(wanted: StringName):
+	if wanted == weather_pose:
+		return
+	var was: StringName = weather_pose
+	weather_pose = wanted
+	if _animated != null and (_animated.animation == &"idle" or _animated.animation == was):
+		play_idle()
+
+
+## Whether a fire is near enough to steam them dry: a warm light within a tile and a half.
+func _by_a_fire() -> bool:
+	for point in light_points:
+		var colour: Color = point.get("colour", Color.WHITE)
+		if colour.r > colour.b + 0.25 and global_position.distance_to(point.get("at", Vector2.INF)) <= Grid.tiles(1.5):
+			return true
+	return false
+
+
+func _particles(called: String, colour: Color) -> CPUParticles2D:
+	var made := CPUParticles2D.new()
+	made.name = called
+	made.z_index = 1
+	made.color = colour
+	made.emitting = false
+	made.local_coords = false
+	add_child(made)
+	return made
+
+
+func _keep_drips(on: bool):
+	if not on and _drips == null:
+		return
+	if _drips == null:
+		_drips = _particles("Drips", Color(0.75, 0.84, 0.98, 0.65))
+		_drips.amount = 6
+		_drips.lifetime = 0.55
+		_drips.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+		_drips.emission_rect_extents = Vector2(Grid.tiles(0.18), Grid.tiles(0.25))
+		_drips.position = Vector2(0, -Grid.tiles(0.35))
+		_drips.direction = Vector2.DOWN
+		_drips.spread = 5.0
+		_drips.gravity = Vector2(0, Grid.tiles(5.0))
+		_drips.initial_velocity_min = 0.0
+		_drips.initial_velocity_max = Grid.tiles(0.2)
+		_drips.scale_amount_min = 2.0
+		_drips.scale_amount_max = 3.0
+	_drips.emitting = on
+
+
+func _keep_steam(on: bool):
+	if not on and _steam == null:
+		return
+	if _steam == null:
+		_steam = _particles("Steam", Color(0.95, 0.95, 0.95, 0.35))
+		_steam.amount = 10
+		_steam.lifetime = 1.6
+		_steam.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+		_steam.emission_rect_extents = Vector2(Grid.tiles(0.2), Grid.tiles(0.3))
+		_steam.position = Vector2(0, -Grid.tiles(0.5))
+		_steam.direction = Vector2.UP
+		_steam.spread = 25.0
+		_steam.gravity = Vector2(0, -Grid.tiles(0.3))
+		_steam.initial_velocity_min = Grid.tiles(0.2)
+		_steam.initial_velocity_max = Grid.tiles(0.45)
+		_steam.scale_amount_min = 6.0
+		_steam.scale_amount_max = 12.0
+		var fading := Gradient.new()
+		fading.set_color(0, Color(1, 1, 1, 0.5))
+		fading.set_color(1, Color(1, 1, 1, 0.0))
+		_steam.color_ramp = fading
+	_steam.emitting = on
+
+
+func _breathe(delta: float, cold: bool):
+	if not cold:
+		return
+	_next_breath -= delta
+	if _next_breath > 0.0:
+		return
+	_next_breath = randf_range(BREATH_EVERY[0], BREATH_EVERY[1])
+	if _breath == null:
+		_breath = _particles("Breath", Color(0.95, 0.97, 1.0, 0.4))
+		_breath.one_shot = true
+		_breath.amount = 5
+		_breath.lifetime = 1.1
+		_breath.explosiveness = 0.85
+		_breath.direction = Vector2.RIGHT
+		_breath.spread = 20.0
+		_breath.gravity = Vector2(0, -Grid.tiles(0.15))
+		_breath.initial_velocity_min = Grid.tiles(0.15)
+		_breath.initial_velocity_max = Grid.tiles(0.3)
+		_breath.scale_amount_min = 5.0
+		_breath.scale_amount_max = 9.0
+		var fading := Gradient.new()
+		fading.set_color(0, Color(1, 1, 1, 0.45))
+		fading.set_color(1, Color(1, 1, 1, 0.0))
+		_breath.color_ramp = fading
+	var facing: float = -1.0 if (_animated != null and _animated.flip_h) or (_static != null and _static.flip_h) else 1.0
+	_breath.position = Vector2(facing * Grid.tiles(0.08), -maxf(head_height(), Grid.tiles(0.6)))
+	_breath.direction = Vector2(facing, -0.2)
+	_breath.restart()
+
+
 ## Wetter under the rain, drier out of it: over LightView.SOAKED_SECONDS and DRY_SECONDS.
 func _soak(delta: float):
 	var wanted := 0.0
@@ -619,6 +813,12 @@ func _fall_of_light():
 	material.set_shader_parameter("shapes_on", 1.0 if GameSettings.figure_shapes() else 0.0)
 	material.set_shader_parameter("light_height", 0.45 if weight > 0.001 else 0.9)
 	material.set_shader_parameter("wet", wetness)
+	material.set_shader_parameter("snow_on", snow_on)
+	material.set_shader_parameter("ash_on", ash_on)
+	material.set_shader_parameter("dust", dust)
+	material.set_shader_parameter("cold_on", cold_on)
+	material.set_shader_parameter("heat_on", heat_on)
+	material.set_shader_parameter("wind_wave", wind_blows if _open_sky else Vector2.ZERO)
 	var frame := current_frame()
 	var mask: Texture2D = shine_mask_for(frame.get("texture")) if not frame.is_empty() else null
 	material.set_shader_parameter("shine_on", 1.0 if mask != null else 0.0)
@@ -638,6 +838,7 @@ func _fall_of_light():
 
 func _process(delta):
 	_soak(delta)
+	_weather_on_me(delta)
 	if figures_lit and not laid:
 		_fall_of_light()
 	elif _figure_material != null and _drawn() != null and _drawn().material == _figure_material:
@@ -833,6 +1034,8 @@ func play_idle():
 		_animated.play(LYING_ANIMATION)
 	elif pose != &"" and _animated and _animated.sprite_frames.has_animation(pose):
 		_animated.play(pose)
+	elif weather_pose != &"" and _animated and _animated.sprite_frames.has_animation(weather_pose):
+		_animated.play(weather_pose)
 	elif _animated and _animated.sprite_frames.has_animation("idle"):
 		_animated.play("idle")
 

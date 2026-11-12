@@ -106,7 +106,9 @@ func run_test():
 		# Enfina's, passed on, and Prometheus's rot.
 		"shared_fire", "withered", "blighted",
 		# Beckoning Light's.
-		"beckoned", "off_guard"]
+		"beckoned", "off_guard",
+		# The rain's.
+		"soaked"]
 	for condition in conditions:
 		if not_bottled.has(condition):
 			continue

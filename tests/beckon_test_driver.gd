@@ -42,8 +42,10 @@ func the_kit():
 	var faith: PassiveDefinition = load("res://data/passives/kindled_faith.tres")
 	ok(CombatantDatabase.combatants.alithia.passives.has(faith), "Kindled Faith is hers")
 	ok(faith.required_level == 24 and faith.mends_in_bright == 3.0 and is_equal_approx(faith.mends_in_bright_per_stat, 0.05), "from 24: 3, and a twentieth of her Mindfulness")
+	var gun: SkillDefinition = SkillDatabase.skills.gun
+	ok(gun.snuffs_carried_lights and gun.shoots_out_lights, "Cyrus's gun puts lights out, carried ones too (for now: the designer)")
 	var dart: SkillDefinition = SkillDatabase.skills.poison_dart
-	ok(dart.snuffs_carried_lights and dart.shoots_out_lights, "Cyrus's dart puts lights out, carried ones too")
+	ok(not dart.snuffs_carried_lights and not dart.shoots_out_lights, "and his dart is as it was")
 	log_line("")
 
 
@@ -225,9 +227,9 @@ func the_dart():
 	var scene = m.scene
 	ok(watch.lights_for_the_map().size() >= 2, "his light and the lamp light the map")
 	var tile: Vector2i = tile_at(m, guard.global_position)
-	ok(OutsideMoves.aim_refusal(scene, "cyrus", SkillDatabase.skills.poison_dart, tile) == "", "the dart can be aimed at him", OutsideMoves.aim_refusal(scene, "cyrus", SkillDatabase.skills.poison_dart, tile))
+	ok(OutsideMoves.aim_refusal(scene, "cyrus", SkillDatabase.skills.gun, tile) == "", "the gun can be aimed at him", OutsideMoves.aim_refusal(scene, "cyrus", SkillDatabase.skills.poison_dart, tile))
 	var encounter_was = Campaign.current_encounter
-	ok(OutsideMoves.fire_at(scene, "cyrus", "poison_dart", tile), "let go")
+	ok(OutsideMoves.fire_at(scene, "cyrus", "gun", tile), "let go")
 	ok(guard.torch_out, "his light is out")
 	ok(not watch.lights_for_the_map().any(func(source): return source.tile == tile_at(m, guard.global_position)), "and lights nothing")
 	ok(Campaign.current_encounter == encounter_was and is_instance_valid(scene) and not guard.knocked_out, "no fight, nobody hurt")

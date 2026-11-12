@@ -250,7 +250,7 @@ The title screen offers four ways in, one per character, plus the stealth stages
 - **Alithia's flaw is her mechanic.** Asker says her flaw is trying "to comprehend and see the entire future". Her signature move, **Intuition**, reads exactly what an enemy will do next turn and holds it to that future.
   - When the party changes it, the marks shatter with a sound and a beat of frozen time, and "Future changed!" rises off the enemy.
   - The log says "The party managed to change the future that Alithia foresaw and the [enemy] is forced to adapt".
-  - Alithia says one of: "I saw it coming." / "Not this time." / "The future bends." / "That is not how it ends."
+  - Alithia says one of: "Didn't expect to let you do that, did you now?" / "Not this time." / "Our actions shape our future!" / "So very obvious of you."
   - Her Inquisitor path "passes sentence" on what she foresees, or forbids it.
   - *Reading:* fate (Moira), foresight, and changing what was foreseen run through her play and her story alike.
 - **Truth and forgetting** in the level page, ΛΗΘΗ at 55 and ΑΛΗΘΕΙΑ at 64 (section 2).
@@ -1050,7 +1050,7 @@ Even though she's really important for the party to not be worn out from the dur
 
 She is also capable of weakening enemies to mitigate their offensive capabilities.
 
-Said when a foreseen future is changed: "I saw it coming." / "Not this time." / "The future bends." / "That is not how it ends."
+Said when a foreseen future is changed: "Didn't expect to let you do that, did you now?" / "Not this time." / "Our actions shape our future!" / "So very obvious of you."
 
 ### Cyrus
 

@@ -28,7 +28,7 @@ there, and Cover Leap gone. Steps 4 and 5 wait on the designer.
   designer as they/them.
 - Commit and push at the end of every piece of work. Kill processes by pid.
   Never shut down or restart the computer.
-- Tests: `tests/run.sh` (all 161 suites) or `tests/run.sh outside familiar`.
+- Tests: `tests/run.sh` (all 170 suites) or `tests/run.sh outside familiar`.
   In the cloud, five suites fail on untouched code too, for environment
   reasons: audio, encmusic (the music `.wav` files are not in git), gear,
   editor, sweep. Locally, with the music present, audio and encmusic may pass.
@@ -91,13 +91,28 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's messages of 2026-11-12** (ledger rows of that date; CLAUDE.md "The round of 2026-11-12", "What the weather does",
+  "The weather on the ground and on the creatures", "Hunting in the dark", "Dispelling and cancelling, for the AI"; suites `weather`,
+  `wallcheck` new, and `dispel`, `speech`, `sheet`, `preparespells`, `triggers`, `ways`, `light`, `blast`):
+  - The Sorcerer has Instahack and Dispel Magic, and its mind weighs them: a casting cancelled or magic undone only when worth a casting.
+  - The lab's casters threw blasts through walls: the AI only checked a clear line for one-tile blasts. Fixed; `wallcheck` plays the fight.
+  - Section 18, all but things that sway: the weather as rules (wind on shots and fliers, Land and Take Off for nothing, deep snow,
+    lightning, Soaked, heat and cold, thick weather, steps heard in the rain, prints guards follow) and to look at (puddles, snow, frost, ash,
+    sand, prints, splashes; drips, steam, snow and ash on figures, dust, the cold, breath, cloth in the wind, weather poses).
+  - Cunning and above hunt in the dark: where somebody went in, an area there, a dispel, a search, the dark's edge as cover.
+  - Reactions all go off, by initiative; cones go diagonally; the Mimic takes its turn after one of the party's, a different one each round;
+    a pack waits two turns at most; the walking range is quieter.
+  - Heal and Dread Visage always prepared (Devotion's); the preparation window shows the fight's details; a reveal the first time a kind
+    is studied; a line of Enfina's and one of Prometheus's per monster (to write); Alithia's new lines; the Gun has the torch for now.
+  - Proposals 19-22 (more places for lines, the interface's look and art for the artist, atmosphere, 2.5D); `docs/sound_slots.md`.
+
 - **The designer's messages of the evening of 2026-11-07** (ledger rows of that date; CLAUDE.md "Darkness is cover", "Section 17's answers",
   "More weathers, eased", and the figure's shapes; suites `beckon`, `light`, `daysky`, `figures`):
   - The game started at a black screen from the Project Manager: new classes and icons had never been through the editor's scan. Imported
     in place, `.uid` files committed; CLAUDE.md and a memory say to import after adding scripts or pictures.
   - Shadows thrown down the screen (a light above the figure) were mirrored. Fixed, with a test.
-  - Beckoning Light (Alithia; Hermes, Iris on a map). Kindled Faith (24). Poison Dart puts lights out, and a guard's own from afar on a map, in
-    place of Lifted Torch. Silhouette and Blessed's numbers on trial.
+  - Beckoning Light (Alithia; Hermes, Iris on a map). Kindled Faith (24). The Gun puts a guard's own light out from afar on a map, in place of
+    Lifted Torch, until the designer moves it to a later ranged move. Silhouette and Blessed's numbers on trial.
   - Darkness is cover: nobody sees into or past it but who sees in the dark, in a fight and on a map.
   - Eleven more weathers, by season; changes of sky and light eased; figures soak in the rain and dry; steps louder and splashing in the rain;
     figures lit as a smooth rounded body (a switch in Options; reading the pictures' own edges smeared them, the older side light too, and is
@@ -381,6 +396,9 @@ holds the game for both).
 
 ## Waiting on the designer
 
+0. **From 2026-11-12:** Night Hunter (E now recommended, or D+); the two study lines on each monster; which look for the interface
+   (proposals 20; a page with the looks and the art list); which of 19, 21 and 22 to do; sounds for the empty slots (`docs/sound_slots.md`);
+   who draws lightning (no creature ticked); shine masks with blue for cloth to try the wind on; the weather numbers (all PROPOSAL).
 
 1. **Outside moves, PROPOSAL values** (ledger):
    - durations: blind 12 s, scare 15, confuse 20, switch off 60, fly 20, cover

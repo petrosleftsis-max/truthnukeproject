@@ -48,6 +48,52 @@ static func forget():
 	said = []
 	_last_at = {}
 	_next_of = {}
+	_studied_said = {}
+
+
+## --- What is written on a creature for whoever studies it ---
+##
+## The designer, 2026-11-07: a line of Enfina's and one of Prometheus's for each monster, said as they study one
+## (CombatantDefinition.enfina_studies_line, prometheus_studies_line). Once a fight for each kind: a second of the same kind
+## studied, they keep it to themselves. Where nothing is written, Enfina has her own Studies lines, as before (Combat.study).
+
+## Who has said what is written on a kind of creature this fight: {"fight": the fight's id, "said": {"studier>kind": true}}.
+static var _studied_said := {}
+
+
+## What is written on what `target` is for `studier` to say studying one, or "".
+static func studied_line(studier: Dictionary, target: Dictionary) -> String:
+	var definition = CombatantDatabase.combatants.get(target.get("combatant_key", ""))
+	if definition == null:
+		return ""
+	match studier.get("combatant_key", ""):
+		"enfina":
+			return definition.enfina_studies_line
+		"prometheus":
+			return definition.prometheus_studies_line
+	return ""
+
+
+## `studier` studies `target`, and what is written on its kind for them is said - the first time this fight. True if something
+## is written for them, said now or already: nothing else is said then.
+static func says_what_it_is(combat: Combat, studier: Dictionary, target: Dictionary) -> bool:
+	var line := studied_line(studier, target).strip_edges()
+	if line == "":
+		return false
+	var fight: int = combat.get_instance_id() if combat != null else 0
+	if int(_studied_said.get("fight", -1)) != fight:
+		_studied_said = {"fight": fight, "said": {}}
+	var key := "%s>%s" % [studier.get("combatant_key", ""), target.get("combatant_key", "")]
+	if _studied_said.said.has(key):
+		return true
+	if not shown() or studier.is_empty() or not studier.get("alive", false):
+		return true
+	if not say_line(combat, studier, line):
+		return true
+	_studied_said.said[key] = true
+	_last_at[studier.get("id", -1)] = Time.get_ticks_msec()
+	said.append({"who": studier.get("combatant_key", ""), "line": line, "event": &"studies_them", "about": target.get("combatant_key", "")})
+	return true
 
 
 ## `event` has happened to or by `comb`: they say something about it, if they have anything and it is the moment. True if they did.

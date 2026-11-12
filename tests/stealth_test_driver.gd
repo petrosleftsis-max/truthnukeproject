@@ -279,6 +279,81 @@ func run_test():
 		ok(not combat.is_hidden(hero), "so the one move that ignores cover reveals him as well")
 	log_line("")
 
+	log_line("======== Night Hunter: one felled from hiding, and gone again ========")
+	# The designer, 2026-11-12: "night hunter: let's go with E" - a free Stealth after felling somebody from hiding,
+	# even in sight, once a turn.
+	var hunter: PassiveDefinition = load("res://data/passives/night_hunter.tres")
+	ok(hunter.slips_away_after_felling and CombatantDatabase.combatants["cyrus"].passives.has(hunter),
+		"Cyrus has Night Hunter, from level %d" % hunter.required_level)
+	var hunter_comb = {}
+	for comb in combat.combatants:
+		if comb.get("combatant_key", "") == "cyrus" and comb.alive:
+			hunter_comb = comb
+	var others := []
+	for comb in combat.combatants:
+		if comb.alive and comb.side == 1 and not comb.has("object") and comb != mark and not comb.get("illusion", false):
+			others.append(comb)
+	if hunter_comb.is_empty() or others.size() < 3:
+		log_line("  (no Cyrus, or too few of them, to try it on)")
+	else:
+		hunter_comb["level"] = maxi(int(hunter_comb.get("level", 1)), hunter.required_level)
+		hunter_comb.hp = maxi(hunter_comb.hp, 50)
+		var taken_tiles := []
+		var near_him := func(gap: int) -> Vector2i:
+			for dx in range(-gap, gap + 1):
+				for dy in range(-gap, gap + 1):
+					var tile: Vector2i = hunter_comb.position + Vector2i(dx, dy)
+					if combat.get_position_distance(tile, hunter_comb.position) == gap and not taken_tiles.has(tile) \
+							and combat.controller.is_on_map(tile) and not combat.controller.is_tile_blocking(tile, 0) \
+							and combat.get_combatant_at(tile).is_empty() and combat.has_line_of_sight(tile, hunter_comb.position, 0):
+						taken_tiles.append(tile)
+						return tile
+			return Vector2i(-999, -999)
+		var prey: Dictionary = others[0]
+		var watcher: Dictionary = others[1]
+		var second: Dictionary = others[2]
+		var prey_at: Vector2i = near_him.call(1)
+		var watcher_at: Vector2i = near_him.call(2)
+		var second_at: Vector2i = near_him.call(1)
+		if prey_at.x == -999 or watcher_at.x == -999 or second_at.x == -999:
+			log_line("  (no room round him to try it)")
+		else:
+			combat.teleport_to(prey, prey_at)
+			combat.teleport_to(watcher, watcher_at)
+			combat.teleport_to(second, second_at)
+			prey.hp = 1
+			second.hp = 1
+			# Sure of his blows, and nobody answering them: this is about what comes after.
+			hunter_comb["accuracy"] = 200
+			for comb in combat.combatants:
+				comb["reaction_used"] = comb != hunter_comb
+			combat.current_combatant = combat.combatants.find(hunter_comb)
+			combat.controller.set_controlled_combatant(hunter_comb)
+			combat.controller.player_turn = true
+			combat.controller.action_locked = false
+			hunter_comb.skill_used_this_turn = false
+			hunter_comb.secondary_used_this_turn = false
+			hunter_comb.erase("slipped_away")
+			combat.set_hidden(hunter_comb, true)
+			ok(combat.is_hidden(hunter_comb), "Cyrus hidden, one of them beside him and another two tiles off, looking his way")
+			await combat.use_skill("rapier", hunter_comb, prey.position, false)
+			for i in 4:
+				await get_tree().process_frame
+			ok(not prey.alive, "the one beside him falls")
+			ok(combat.is_hidden(hunter_comb), "and he is gone again, though the other was watching", "%s" % [hunter_comb.get("slipped_away", false)])
+			# Once a turn: the next one felled the same turn leaves him seen.
+			hunter_comb.skill_used_this_turn = false
+			await combat.use_skill("rapier", hunter_comb, second.position, false)
+			for i in 4:
+				await get_tree().process_frame
+			ok(not second.alive and not combat.is_hidden(hunter_comb), "a second felled the same turn, and he is seen: once a turn")
+			# Below his level it does nothing.
+			hunter_comb["level"] = hunter.required_level - 1
+			hunter_comb.erase("slipped_away")
+			combat._slips_away(hunter_comb)
+			ok(not combat.is_hidden(hunter_comb), "before level %d, nothing" % hunter.required_level)
+	log_line("")
+
 	log_line("======== and so does being caught by something ========")
 	# The case asked for: a blast aimed at somebody else that happens to land on
 	# a hidden combatant nobody knew was there.

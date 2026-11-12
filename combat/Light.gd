@@ -395,6 +395,103 @@ static func _without_extras(sky: Dictionary) -> Dictionary:
 	return sky
 
 
+## --- What the weather does ---
+##
+## The designer, 2026-11-07 (docs/proposals_2026-11-07.md section 18): weather was only how it looks, and now some of it is a rule
+## too - each from the sky at that minute and what lies on the ground, which both machines and a replayed fight have alike. In a
+## fight (Combat "Weather"): the wind carries shots and pushes fliers, deep snow is hard going, lightning strikes in a
+## thunderstorm, the rain soaks, heat and cold make Burn and Frozen last, and thick weather hides. On a map (StealthWatch): rain
+## carries steps or drowns them, prints are left and followed, and thick weather hides. Indoors and underground there is none of
+## it: their skies have none. PROPOSAL, every number here.
+
+## A wind this strong carries shots and pushes whoever flies: wind, a sandstorm, a blizzard.
+const STRONG_WIND := 0.75
+## Rain and hail this loud drown steps: a storm, a thunderstorm, sleet. Less than it, but some, and steps carry further.
+const LOUD_RAIN := 0.75
+const SOME_RAIN := 0.1
+## Snow lying this deep is hard going.
+const DEEP_SNOW := 0.5
+## How much of the snow lies in the lee of a wall, and how much sand gathers away from one.
+const LEE_SHARE := 0.35
+## The ways a day's wind can blow, on the grid.
+const WIND_WAYS := [Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 1), Vector2i(-1, 1), Vector2i(-1, 0), Vector2i(-1, -1),
+	Vector2i(0, -1), Vector2i(1, -1)]
+## Nothing on the ground at all (indoors, underground).
+const NOTHING_LYING := {"wet": 0.0, "snow": 0.0, "frost": 0.0, "ash": 0.0, "sand": 0.0}
+
+
+## Which way the wind blows on `day`, on the grid: the same all day, and alike everywhere.
+static func wind_way(day: int) -> Vector2i:
+	return WIND_WAYS[mini(int(day_share(day, 7) * WIND_WAYS.size()), WIND_WAYS.size() - 1)]
+
+
+## How loud the rain is in `sky`: its rain and sleet's hail.
+static func rain_loudness(sky: Dictionary) -> float:
+	return float(sky.get("rain", 0.0)) + float(sky.get("hail", 0.0))
+
+
+## Whether `sky` is thick enough to hide in past a few tiles: a fog, a blizzard, a sandstorm (not a morning's mist).
+static func thick(sky: Dictionary) -> bool:
+	return float(sky.get("mist", 0.0)) >= 0.5 or float(sky.get("sand", 0.0)) >= 0.5 \
+		or (float(sky.get("snow", 0.0)) >= 0.8 and float(sky.get("wind", 0.0)) >= STRONG_WIND)
+
+
+## Whether it is hot under `sky`: the heat of the day, shimmering off the ground.
+static func hot(sky: Dictionary) -> bool:
+	return float(sky.get("shimmer", 0.0)) >= 0.3
+
+
+## Whether it is cold under `sky`, with `lying` on the ground: snow or sleet falling, frost, deep snow.
+static func cold(sky: Dictionary, lying: Dictionary) -> bool:
+	return float(sky.get("snow", 0.0)) >= 0.3 or float(sky.get("hail", 0.0)) >= 0.3 or float(lying.get("frost", 0.0)) >= 0.3 \
+		or float(lying.get("snow", 0.0)) >= DEEP_SNOW
+
+
+## What lies on open ground at `minute` of a day of `today`'s weather, after one of `yesterday`'s, in `season` (season_of), each
+## 0 to 1: "wet", puddles, filling over a few hours of rain and drying through the next morning; "snow", building up over a
+## snowy day, and melting through the next unless it is winter (rain melts it faster); "frost", on a cold clear night, gone by
+## mid-morning; "ash" and "sand", gathering over a day of them and lingering into the next.
+static func ground(minute: int, today: String, yesterday: String, season: int) -> Dictionary:
+	var now: Dictionary = WEATHERS.get(today, WEATHERS.clear)
+	var before: Dictionary = WEATHERS.get(yesterday, WEATHERS.clear)
+	var at := float(posmod(minute, MINUTES_A_DAY))
+	var rain_now := float(now.get("rain", 0.0)) + float(now.get("hail", 0.0)) * 0.5
+	var rain_before := float(before.get("rain", 0.0)) + float(before.get("hail", 0.0)) * 0.5
+	var wet := maxf(clampf(rain_before * 1.2 - at / 600.0, 0.0, 1.0), clampf(rain_now * (0.2 + at / 180.0), 0.0, 1.0))
+	var winter := season == 3
+	var snow_now := float(now.get("snow", 0.0))
+	var left := clampf(float(before.get("snow", 0.0)) * 1.2, 0.0, 1.0) * (0.8 if winter else clampf(1.0 - at / 900.0, 0.0, 1.0))
+	var snow := clampf(left + snow_now * at / 480.0, 0.0, 1.0)
+	if rain_now > 0.3:
+		snow *= 0.5
+	var frost := 0.0
+	var clear_night: bool = float(now.get("clouds", 0.0)) <= 0.35 and rain_now <= 0.0 and snow_now <= 0.0
+	if clear_night and season != 1:
+		var cold_share := 1.0 if winter else 0.5
+		var overnight: float = 0.6 + 0.4 * at / 360.0 if at < 360.0 else (1.0 - smoothstep(480.0, 600.0, at) if at < 600.0 else 0.6 * smoothstep(1260.0, 1440.0, at))
+		frost = clampf(overnight * cold_share, 0.0, 1.0)
+	var ash := clampf(float(now.get("ash", 0.0)) * at / 600.0, 0.0, 1.0)
+	if float(before.get("ash", 0.0)) > 0.0 and rain_now < 0.2:
+		ash = maxf(ash, 0.6)
+	var sand := clampf(float(now.get("sand", 0.0)) * at / 480.0, 0.0, 1.0)
+	if float(before.get("sand", 0.0)) > 0.0:
+		sand = maxf(sand, 0.5)
+	return {"wet": wet, "snow": snow, "frost": frost, "ash": ash, "sand": sand}
+
+
+## How much of what lies on open ground lies on `tile`, by the walls round it and the wind: snow thinner in the lee of a wall
+## (`wall_at(tile - wind)`), sand gathering against one (`wall_at(tile + wind)`). Calm, `wind` is the day's way all the same.
+static func lying_on(lying: Dictionary, tile: Vector2i, wind: Vector2i, wall_at: Callable) -> Dictionary:
+	var here := lying.duplicate()
+	if wind == Vector2i.ZERO or not wall_at.is_valid():
+		return here
+	if float(here.get("snow", 0.0)) > 0.0 and wall_at.call(tile - wind):
+		here.snow = float(here.snow) * LEE_SHARE
+	if float(here.get("sand", 0.0)) > 0.0 and not wall_at.call(tile + wind):
+		here.sand = float(here.sand) * LEE_SHARE
+	return here
+
+
 ## The colour over everything, at `minute` of the day, on a day with nothing of its own.
 static func tone_at(ambient: int, minute: int) -> Color:
 	return sky(ambient, minute).tone

@@ -44,6 +44,11 @@ class_name SoundBank
 @export var footstep: AudioStream
 @export var footstep_wet: AudioStream
 
+@export_group("The character sheet")
+## The first time a kind of creature's sheet shows it studied, as what it is comes up (CharacterSheet "A new kind, studied").
+## Empty: a stand-in, made on the spot.
+@export var codex_reveal: AudioStream
+
 @export_group("Hacks and the world")
 @export var hack_failed: AudioStream
 ## Looped while a hack's clock runs.

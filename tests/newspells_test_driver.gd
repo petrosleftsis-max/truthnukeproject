@@ -25,7 +25,7 @@ func whose_they_are():
 	var alithia: CombatantDefinition = CombatantDatabase.combatants.alithia
 	for key in ["sleep", "calm", "suggestion", "detect_magic", "arcane_eye"]:
 		ok(alithia.skills.has(key) and SkillDatabase.skills.has(key), "%s is Alithia's" % key)
-	ok(SkillDatabase.skills.sleep.spell_slot_level == 2 and SkillDatabase.skills.calm.spell_slot_level == 2, "Sleep and Calm through Hermes")
+	ok(SkillDatabase.skills.sleep.spell_slot_level == 3 and SkillDatabase.skills.calm.spell_slot_level == 2, "Sleep through Pandora (the designer's, 2026-11-12), Calm through Hermes")
 	ok(SkillDatabase.skills.suggestion.outside_only() and OutsideMoves.iris_gate_for(SkillDatabase.skills.suggestion) == 1, "Suggestion through Iris, with nothing in a fight")
 	ok(SkillDatabase.skills.detect_magic.spell_slot_level == 1 and OutsideMoves.iris_gate_for(SkillDatabase.skills.detect_magic) == 0, "Detect Magic through the Gates of the World")
 	ok(SkillDatabase.skills.detect_magic.outside_seconds == 300, "for five minutes")
@@ -103,15 +103,19 @@ func sleep_and_calm():
 	alithia.stats["mindfulness"] = 10
 	var foes: Array = combat.combatants.filter(func(comb): return comb.side == 1 and comb.alive and not comb.has("object"))
 	var sleep: SkillDefinition = SkillDatabase.skills.sleep
-	# Lowest first, up to a total.
+	# The designer took the total off Sleep (2026-11-12): whoever it catches.
+	ok(sleep.up_to_a_total <= 0.0 and combat._up_to_a_total(alithia, sleep, foes.slice(0, 4)).size() == 4, "Sleep has no total now: all four it catches")
+	# The total is still there for a spell that has one: lowest first, up to it.
+	var capped: SkillDefinition = sleep.duplicate()
+	capped.up_to_a_total = 2.0
 	foes[0].stats["mindfulness"] = 15
 	foes[1].stats["mindfulness"] = 3
 	foes[2].stats["mindfulness"] = 7
 	foes[3].stats["mindfulness"] = 11
-	var reached: Array = combat._up_to_a_total(alithia, sleep, foes.slice(0, 4))
-	ok(reached == [foes[1], foes[2]], "up to twice her Mindfulness: 3 and 7 of 20, and not the 11 past it", "%s" % [reached.map(func(comb): return comb.stats.mindfulness)])
+	var reached: Array = combat._up_to_a_total(alithia, capped, foes.slice(0, 4))
+	ok(reached == [foes[1], foes[2]], "a total of twice her Mindfulness: 3 and 7 of 20, and not the 11 past it", "%s" % [reached.map(func(comb): return comb.stats.mindfulness)])
 	foes[3].stats["mindfulness"] = 10
-	ok(combat._up_to_a_total(alithia, sleep, foes.slice(0, 4)) == [foes[1], foes[2], foes[3]], "a 10 still fits, in what is left")
+	ok(combat._up_to_a_total(alithia, capped, foes.slice(0, 4)) == [foes[1], foes[2], foes[3]], "a 10 still fits, in what is left")
 	var stunned: ConditionDefinition = load("res://data/conditions/stunned.tres")
 	ok(sleep.effects[0].condition == stunned and sleep.effects[0].comes_off_when_hurt and sleep.effects[0].held_by_tether, "they sleep until hurt, or until the tether goes")
 	# Calm.

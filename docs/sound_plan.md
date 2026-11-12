@@ -127,3 +127,11 @@ More empty slots: `wind_blowing` (looped while a wind, a sandstorm or a blizzard
 lightning), and the SoundBank's "Steps" group, `footstep` and `footstep_wet` (Footsteps: a step on dry ground, and a louder,
 splashing one in the rain under the open sky). The steps have generated stand-ins (PlaceholderSounds "step" and "step_wet")
 until there is a sound in the slot; the wind and the thunder are silence until then.
+
+## The reveal, lightning, and every slot at once (2026-11-12)
+
+`codex_reveal` (the SoundBank's "The character sheet" group): the first time the sheet shows a kind of creature studied, as what it is
+comes up. A stand-in (PlaceholderSounds "reveal", three rising notes) until filled. `thunder` now also follows lightning striking the
+field in a thunderstorm (a hazard), right after its flash. `docs/sound_slots.md` lists every slot the game has - the bank, the
+pictures, the conditions that tick, and each move's launch, travel and impact - with what is in it: yours, a stand-in, or silence.
+Run `perl` on the script named at its top to make it again after placing sounds.

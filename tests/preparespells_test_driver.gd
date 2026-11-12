@@ -47,10 +47,22 @@ func nobody_asked_yet():
 	Campaign.set_party(["alithia", "enfina"], 14)
 	ok(Campaign.is_prepared("alithia", "heal") and Campaign.is_prepared("alithia", "terror"), "with no list yet, everything they know")
 	var choices := Campaign.prepare_choices("alithia")
-	ok(choices.has("heal") and choices.has("compel"), "what she could prepare", "%d" % choices.size())
+	ok(choices.has("compel"), "what she could prepare", "%d" % choices.size())
+	# Devotion's castings are for Heal and Dread Visage alone: both always prepared, and not chosen (the designer, 2026-11-07).
+	ok(not choices.has("heal") and Campaign.always_prepared("alithia").has("heal"), "Heal is always prepared, not chosen", "%s" % [Campaign.always_prepared("alithia")])
 	ok(not choices.has("grace"), "not what she has not reached")
 	ok(not choices.has("votive_flame"), "and only spells")
 	ok(Campaign.prepare_choices("enfina").is_empty() and Campaign.casters_to_prepare() == ["alithia"], "Enfina has nothing to prepare", "%s" % [Campaign.casters_to_prepare()])
+	# A path's own spells are always prepared too, and not counted (the designer, 2026-11-12).
+	Campaign.set_party(["alithia", "enfina"], 24)
+	ok(Campaign.choose_subclass("alithia", "inquisitor"), "at 24, she takes the Inquisitor's path")
+	var always: Array = Campaign.always_prepared("alithia")
+	var of_path: Array = Campaign.path_spells_prepared("alithia")
+	ok(not of_path.is_empty() and of_path.all(func(spell): return always.has(spell) and not Campaign.prepare_choices("alithia").has(spell)),
+		"the path's spells are always prepared, and not chosen", "%s" % [of_path])
+	ok(Campaign.always_prepared_said("alithia").contains("Inquisitor"), "and the window says whose", Campaign.always_prepared_said("alithia"))
+	Campaign.prepared_spells["alithia"] = []
+	ok(of_path.all(func(spell): return Campaign.is_prepared("alithia", spell)), "with nothing chosen, she can still cast them")
 	log_line("")
 
 
@@ -80,6 +92,9 @@ func the_window():
 	# Only what he knows: he starts with five.
 	var offered: Array = panel._spell_buttons.keys()
 	ok(offered.has("fire_blast") and not offered.has("wildfire"), "what he knows, not what he has yet to learn", "%s" % [offered])
+	# Everything the action panel says of it in a fight, not the description alone (the designer, 2026-11-07).
+	var tip: String = panel._spell_buttons["fire_blast"].tooltip_text
+	ok(tip.contains("Range:") and tip.contains("Effects:") and tip.contains("Hit chance"), "a spell's preview has the fight's details", tip.left(120))
 	panel._spell_buttons["fire_blast"].set_pressed(true)
 	panel._lock_buttons["wind_shot"].set_pressed(true)
 	ok(panel._picked.has("fire_blast") and panel._picked.has("wind_shot"), "picked; a lock prepares it too", "%s" % [panel._picked])
@@ -101,6 +116,7 @@ func the_window():
 	ok(panel._note.text.contains("%d" % limit), "and she is told", panel._note.text)
 	panel._done.pressed.emit()
 	await settle(3)
+	ok(not Campaign.prepared_list("alithia").has("heal") and Campaign.is_prepared("alithia", "heal"), "Heal is hers whatever she chose")
 	ok(Campaign.preparing_left().is_empty(), "nobody left")
 	ok(not Campaign.prepare_due, "nothing due")
 	ok(not is_instance_valid(panel) or panel.is_queued_for_deletion(), "and it is gone")
@@ -113,31 +129,35 @@ func a_long_rest():
 	log_line("======== a long rest ========")
 	Campaign.reset()
 	Campaign.set_party(["alithia"], 14)
-	Campaign.set_prepared("alithia", ["heal", "cleanse", "compel"], ["heal"])
+	# Heal is always hers (Devotion's), so another of her spells is the one she locks.
+	var others: Array = Campaign.prepare_choices("alithia").filter(func(spell): return spell != "cleanse" and spell != "compel" and spell != "terror")
+	var kept: String = others[0]
+	Campaign.set_prepared("alithia", [kept, "cleanse", "compel"], [kept])
 	Campaign.finish_preparing("alithia")
 	ok(Campaign.is_prepared("alithia", "cleanse") and not Campaign.is_prepared("alithia", "terror"), "her list stands")
 	ok(Campaign.has_readied("alithia"), "and her page")
 	Campaign.long_rest()
-	ok(Campaign.prepared_list("alithia") == ["heal"], "after a long rest, only what she locked", "%s" % [Campaign.prepared_list("alithia")])
+	ok(Campaign.prepared_list("alithia") == [kept], "after a long rest, only what she locked", "%s" % [Campaign.prepared_list("alithia")])
 	ok(Campaign.prepare_due, "and she is to choose again")
 	ok(not Campaign.has_readied("alithia"), "not finished yet")
-	ok(Campaign.last_prepared.alithia == ["heal", "cleanse", "compel"], "what she had is remembered, to prepare the same")
+	ok(Campaign.last_prepared.alithia == [kept, "cleanse", "compel"], "what she had is remembered, to prepare the same")
 	ok(Campaign.is_prepared("alithia", "cleanse") and not Campaign.is_prepared("alithia", "terror"), "and until she has been asked it still stands: no spell lost to a window she never saw")
 	# The window offers the same again.
 	var panel := PrepareSpells.new()
 	get_tree().root.add_child(panel)
 	await settle()
-	ok(panel._picked == ["heal"] and panel._same.visible, "locked already in, and Same As Last Time")
+	ok(panel._picked == [kept] and panel._same.visible, "locked already in, and Same As Last Time")
 	panel._same.pressed.emit()
 	ok(panel._picked.size() == 3 and panel._picked.has("cleanse"), "the same as last time", "%s" % [panel._picked])
 	# The lock comes off, and the spell goes.
-	panel._lock_buttons["heal"].set_pressed(false)
-	panel._spell_buttons["heal"].set_pressed(false)
-	ok(not panel._picked.has("heal"), "with the lock off, she can let it go")
+	panel._lock_buttons[kept].set_pressed(false)
+	panel._spell_buttons[kept].set_pressed(false)
+	ok(not panel._picked.has(kept), "with the lock off, she can let it go")
 	panel._done.pressed.emit()
 	await settle(3)
-	ok(not Campaign.is_prepared("alithia", "heal"), "asked now, what she let go is gone")
-	ok(not Campaign.prepared_list("alithia").has("heal") and Campaign.locked_spells.alithia.is_empty(), "and it has gone", "%s" % [Campaign.prepared_list("alithia")])
+	ok(not Campaign.is_prepared("alithia", kept), "asked now, what she let go is gone")
+	ok(not Campaign.prepared_list("alithia").has(kept) and Campaign.locked_spells.alithia.is_empty(), "and it has gone", "%s" % [Campaign.prepared_list("alithia")])
+	ok(Campaign.is_prepared("alithia", "heal"), "and Heal she has still")
 	# A save keeps it.
 	var state := Campaign.snapshot("", Vector2.ZERO)
 	ok(state.prepared_spells.alithia == Campaign.prepared_list("alithia") and state.has("locked_spells") and state.has("last_prepared"), "kept in a save")

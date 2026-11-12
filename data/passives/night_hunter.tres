@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Night Hunter"
+description = "One kill and gone again: felling somebody from hiding, he slips out of sight once more, even while they watch. Once a turn, and only where he could hide at all."
+required_level = 24
+slips_away_after_felling = true

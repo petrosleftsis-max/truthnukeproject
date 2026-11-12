@@ -167,6 +167,9 @@ func _show_caster(key: String):
 	_same.visible = not Campaign.last_prepared.get(key, []).is_empty()
 	_done.visible = true
 	_note.text = "Prepared spells are the ones they can cast until the next long rest. A locked spell stays prepared through it."
+	var always: String = Campaign.always_prepared_said(key)
+	if always != "":
+		_note.text += "\nAlways prepared, over and above these and not counted among them: %s." % always
 	_fill_rows()
 	_refresh_count()
 
@@ -196,6 +199,14 @@ func _fill_rows():
 			_rows.add_child(_spell_row(spell))
 
 
+## Whoever is preparing, as the sheet has them on a map, for what a spell would do in their hands.
+func _preparer() -> Dictionary:
+	for member in Campaign.party_members():
+		if member.get("key", "") == preparing:
+			return CharacterSheet.map_entry_of(member)
+	return {}
+
+
 func _spell_row(spell: String) -> Control:
 	var skill: SkillDefinition = SkillDatabase.skills[spell]
 	var row := HBoxContainer.new()
@@ -209,7 +220,8 @@ func _spell_row(spell: String) -> Control:
 	pick.icon = skill.icon
 	pick.expand_icon = true
 	pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	pick.tooltip_text = TooltipText.wrap(skill.description)
+	# Everything the action panel says of it in a fight, in the hands of whoever is preparing.
+	pick.tooltip_text = TooltipText.wrap((load("res://ui/combat_ui.gd") as GDScript).details_of(skill, _preparer()))
 	pick.set_pressed_no_signal(_picked.has(spell))
 	pick.toggled.connect(_toggle_spell.bind(spell))
 	row.add_child(pick)

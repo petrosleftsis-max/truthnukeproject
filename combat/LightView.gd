@@ -270,6 +270,8 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_tile_map = tile_map
 	_region = region
 	name = "LightView"
+	# What lies on open ground, under the shade so the dark darkens it too ("The weather on the ground").
+	_make_the_ground(region)
 	_shade = Sprite2D.new()
 	_shade.name = "Shade"
 	_shade.centered = false
@@ -574,6 +576,7 @@ func _stops_a_shadow(at: Vector2) -> bool:
 ## The Blocks tiles, and whatever else stops light, as occluders, merged into as few rectangles as
 ## they go into. Only when that has changed.
 func _build_occluders():
+	_ground_mask_made = false
 	if light.blocks_light == null or not light.blocks_light.is_valid() or not light.varies:
 		return
 	var rows := {}
@@ -736,6 +739,7 @@ func set_tone(colour: Color, at_once: bool = false):
 ## sky_ease_seconds, so that neither the clock's minutes nor a change of weather jump.
 func show_hour(ambient: int, minute: int, at_once: bool = false):
 	_sky_wanted = Campaign.sky_now(ambient, minute)
+	_ground_wanted = Campaign.ground_now(ambient, minute)
 	if at_once or sky_ease_seconds <= 0.0 or _sky_shown.is_empty() or not is_inside_tree():
 		_sky_shown = _sky_wanted.duplicate()
 		_sky_easing = false
@@ -781,11 +785,245 @@ func _put_on_the_sky(at_once: bool):
 	CombatantSprite.set_shadows(sky)
 	CombatantSprite.soaking = float(sky.get("rain", 0.0)) + float(sky.get("hail", 0.0)) * 0.8 + float(sky.get("snow", 0.0)) * 0.3
 	CombatantSprite.under_the_sky = _under_the_sky
+	# What the weather puts on the figures ("The weather on the creatures").
+	CombatantSprite.snowing = float(sky.get("snow", 0.0))
+	CombatantSprite.ashing = float(sky.get("ash", 0.0))
+	CombatantSprite.sanding = float(sky.get("sand", 0.0))
+	CombatantSprite.cold_air = 1.0 if Light.cold(sky, _ground_wanted) else 0.0
+	CombatantSprite.hot_air = float(sky.get("shimmer", 0.0))
+	CombatantSprite.hard_rain = Light.rain_loudness(sky) >= Light.LOUD_RAIN
+	CombatantSprite.wind_blows = Vector2(Campaign.wind_now()).normalized() * float(sky.get("wind", 0.0))
+	_put_on_the_ground(sky)
 	_show_the_sky(sky, at_once)
 
 
 ## How much the sun has to have moved for the shade to be drawn again.
 const SUN_STEP := 0.012
+
+
+## --- The weather on the ground ---
+##
+## The designer, 2026-11-07 (section 18). View only, placeholders all of it. A layer over open ground, under the shade
+## (GROUND_SHADER): puddles darkening and gathering shine the longer it rains, and a ripple where drops land; snow lying, thinner
+## in the lee of walls; a pale rim of frost on a cold clear night; ash settling; sand drifted against walls. All of it from
+## Campaign.ground_now (Light.ground) at the hour shown, and a mask a pixel a tile (_ground_mask: red, open to the sky and not a
+## wall; green, how much of the snow lies there; blue, how much sand: Light.lying_on). Prints where somebody steps on wet ground or
+## in snow, fading (leave_print, from Footsteps; PRINT_MUD_SECONDS, PRINT_SNOW_SECONDS), and a splash under each step in the rain
+## (splash).
+
+const GROUND_SHADER := """
+shader_type canvas_item;
+uniform sampler2D mask : filter_linear, repeat_disable;
+uniform sampler2D noise : repeat_enable, filter_linear;
+uniform vec2 tiles = vec2(1.0);
+uniform float wet = 0.0;
+uniform float raining = 0.0;
+uniform float snow = 0.0;
+uniform float frost = 0.0;
+uniform float ash = 0.0;
+uniform float sand = 0.0;
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+void fragment() {
+	vec4 m = texture(mask, UV);
+	vec2 cell = UV * tiles;
+	vec2 in_tile = fract(cell);
+	float n1 = texture(noise, cell * 0.21).r;
+	float n2 = texture(noise, cell * 0.57 + vec2(0.31, 0.77)).r;
+	vec4 col = vec4(0.0);
+	if (wet > 0.01) {
+		// The water itself darkens the ground in WET_SHADER, under this: here only its shine, and the rings where drops land.
+		float pool = smoothstep(0.6 - wet * 0.28, 0.48 - wet * 0.28, texture(noise, cell * 0.09).r) * clamp(wet * 1.4, 0.0, 1.0);
+		float sheen = smoothstep(0.55, 0.85, texture(noise, cell * 0.3 + vec2(TIME * 0.015, TIME * 0.01)).r) * pool;
+		col = vec4(vec3(0.82, 0.88, 0.97), sheen * 0.22);
+		if (raining > 0.01 && pool > 0.3) {
+			vec2 drop_cell = floor(cell * 3.0);
+			float t = fract(TIME * 0.9 + hash(drop_cell));
+			vec2 centre = (drop_cell + vec2(hash(drop_cell + 1.3), hash(drop_cell + 7.1))) / 3.0;
+			float d = length(cell - centre) * 3.0;
+			float ring = smoothstep(0.06, 0.0, abs(d - t * 0.9)) * (1.0 - t) * raining;
+			col.rgb = mix(col.rgb, vec3(0.85, 0.9, 1.0), ring * 0.7);
+			col.a = max(col.a, ring * 0.5);
+		}
+	}
+	if (ash > 0.01) {
+		float a = clamp(ash * (0.55 + 0.45 * n2) - 0.1, 0.0, 1.0) * 0.6;
+		col.rgb = mix(col.rgb, vec3(0.42, 0.4, 0.4), a);
+		col.a = max(col.a, a);
+	}
+	if (sand > 0.01) {
+		float a = clamp(sand * m.b * 1.3 - (1.0 - n1) * 0.35, 0.0, 1.0) * 0.75;
+		col.rgb = mix(col.rgb, vec3(0.8, 0.66, 0.42), a);
+		col.a = max(col.a, a);
+	}
+	if (frost > 0.01) {
+		float edge = min(min(in_tile.x, 1.0 - in_tile.x), min(in_tile.y, 1.0 - in_tile.y));
+		float a = frost * smoothstep(0.16, 0.0, edge) * (0.6 + 0.4 * n2) * 0.6;
+		col.rgb = mix(col.rgb, vec3(0.88, 0.94, 1.0), a);
+		col.a = max(col.a, a);
+	}
+	if (snow > 0.01) {
+		float lying = texture(noise, cell * 0.25 + vec2(0.13, 0.41)).r;
+		float a = clamp(snow * m.g * 1.5 - (1.0 - lying) * 0.7, 0.0, 1.0) * 0.8;
+		col.rgb = mix(col.rgb, vec3(0.94, 0.96, 1.0) - n1 * 0.06, a);
+		col.a = max(col.a, a);
+	}
+	COLOR = vec4(col.rgb, col.a * step(0.5, m.r));
+}
+"""
+## Wet ground, darker and cooler, and the pools on it: multiplied over what is there, so the tiles show through.
+const WET_SHADER := """
+shader_type canvas_item;
+render_mode blend_mul;
+uniform sampler2D mask : filter_linear, repeat_disable;
+uniform sampler2D noise : repeat_enable, filter_linear;
+uniform vec2 tiles = vec2(1.0);
+uniform float wet = 0.0;
+void fragment() {
+	vec4 m = texture(mask, UV);
+	vec2 cell = UV * tiles;
+	float pool = smoothstep(0.6 - wet * 0.28, 0.48 - wet * 0.28, texture(noise, cell * 0.09).r) * clamp(wet * 1.4, 0.0, 1.0);
+	vec3 damp = vec3(1.0 - 0.16 * wet);
+	vec3 under = mix(damp, damp * vec3(0.68, 0.74, 0.86), pool);
+	COLOR = vec4(mix(vec3(1.0), under, step(0.5, m.r)), 1.0);
+}
+"""
+const PRINT_MUD_SECONDS := 20.0
+const PRINT_SNOW_SECONDS := 60.0
+const PRINTS_MOST := 160
+var _ground: Sprite2D = null
+var _wet_ground: Sprite2D = null
+var _ground_wanted := {}
+var _ground_mask_made := false
+var _prints: _Prints = null
+
+
+## Somebody's prints in the mud or the snow, each fading away.
+class _Prints extends Node2D:
+	## [{at, way, born, snow, left}]
+	var marks: Array = []
+
+	func _process(_delta: float):
+		if marks.is_empty():
+			return
+		var now := Time.get_ticks_msec() / 1000.0
+		marks = marks.filter(func(mark): return now - float(mark.born) < (LightView.PRINT_SNOW_SECONDS if mark.snow else LightView.PRINT_MUD_SECONDS))
+		queue_redraw()
+
+	func _draw():
+		var now := Time.get_ticks_msec() / 1000.0
+		var foot := float(Grid.TILE_SIZE) * 0.055
+		for mark in marks:
+			var lasts: float = LightView.PRINT_SNOW_SECONDS if mark.snow else LightView.PRINT_MUD_SECONDS
+			var fade: float = clampf(1.0 - (now - float(mark.born)) / lasts, 0.0, 1.0)
+			var colour := Color(0.62, 0.68, 0.8, 0.45 * fade) if mark.snow else Color(0.16, 0.12, 0.09, 0.45 * fade)
+			var way: Vector2 = mark.way if mark.way.length_squared() > 0.001 else Vector2.RIGHT
+			var side := way.orthogonal().normalized() * foot * (0.9 if mark.left else -0.9)
+			draw_set_transform(to_local(mark.at) + side, way.angle(), Vector2(1.0, 0.55))
+			draw_circle(Vector2.ZERO, foot, colour)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _make_the_ground(region: Rect2i):
+	var noise := _ground_noise()
+	_wet_ground = _sky_layer("WetGround", noise, region, WET_SHADER)
+	_wet_ground.visible = false
+	_ground = _sky_layer("Ground", noise, region, GROUND_SHADER)
+	_ground.visible = false
+	_prints = _Prints.new()
+	_prints.name = "Prints"
+	add_child(_prints)
+
+
+func _ground_noise() -> NoiseTexture2D:
+	var noise := NoiseTexture2D.new()
+	noise.seamless = true
+	noise.width = 256
+	noise.height = 256
+	var pattern := FastNoiseLite.new()
+	pattern.frequency = 0.03
+	pattern.seed = 23
+	noise.noise = pattern
+	return noise
+
+
+## The mask for the ground: a pixel a tile.
+func _ground_mask() -> ImageTexture:
+	var image := Image.create(maxi(_region.size.x, 1), maxi(_region.size.y, 1), false, Image.FORMAT_RGBA8)
+	var wind := Campaign.wind_now()
+	var wall_at := func(tile: Vector2i) -> bool:
+		return light != null and light.blocks_light != null and light.blocks_light.is_valid() and light.blocks_light.call(tile)
+	for y in _region.size.y:
+		for x in _region.size.x:
+			var tile := _region.position + Vector2i(x, y)
+			var open: bool = light != null and light.under_the_sky(tile) and not wall_at.call(tile)
+			var share := Light.lying_on({"snow": 1.0, "sand": 1.0}, tile, wind, wall_at)
+			image.set_pixel(x, y, Color(1.0 if open else 0.0, float(share.snow), float(share.sand), 1.0))
+	return ImageTexture.create_from_image(image)
+
+
+func _put_on_the_ground(sky: Dictionary):
+	if _ground == null:
+		return
+	var lying: Dictionary = _ground_wanted
+	var any: bool = lying.values().any(func(amount): return float(amount) > 0.01)
+	_ground.visible = air_on and any
+	_wet_ground.visible = air_on and float(lying.get("wet", 0.0)) > 0.01
+	if not _ground.visible:
+		return
+	if not _ground_mask_made:
+		var mask := _ground_mask()
+		_ground.material.set_shader_parameter("mask", mask)
+		_wet_ground.material.set_shader_parameter("mask", mask)
+		_ground_mask_made = true
+	_wet_ground.material.set_shader_parameter("wet", float(lying.get("wet", 0.0)))
+	for key in ["wet", "snow", "frost", "ash", "sand"]:
+		_ground.material.set_shader_parameter(key, float(lying.get(key, 0.0)))
+	_ground.material.set_shader_parameter("raining", clampf(Light.rain_loudness(sky), 0.0, 1.0))
+
+
+## A print where somebody stepped at `at`, going `way`, if the ground there takes one.
+static func leave_print(at: Vector2, way: Vector2):
+	if showing == null or not is_instance_valid(showing) or showing._prints == null or not shown():
+		return
+	showing._leave_print(at, way)
+
+
+func _leave_print(at: Vector2, way: Vector2):
+	if not _under_the_sky(at):
+		return
+	var in_snow: bool = float(_ground_wanted.get("snow", 0.0)) >= 0.2
+	if not in_snow and float(_ground_wanted.get("wet", 0.0)) < 0.3:
+		return
+	var left: bool = _prints.marks.is_empty() or not _prints.marks.back().left
+	_prints.marks.append({"at": at, "way": way, "born": Time.get_ticks_msec() / 1000.0, "snow": in_snow, "left": left})
+	while _prints.marks.size() > PRINTS_MOST:
+		_prints.marks.pop_front()
+
+
+## A splash under a step at `at`, in the rain.
+static func splash(at: Vector2):
+	if showing == null or not is_instance_valid(showing) or not shown() or not rainy_at(at):
+		return
+	var drops := CPUParticles2D.new()
+	drops.one_shot = true
+	drops.amount = 10
+	drops.lifetime = 0.35
+	drops.explosiveness = 1.0
+	drops.direction = Vector2.UP
+	drops.spread = 70.0
+	drops.initial_velocity_min = Grid.tiles(0.6)
+	drops.initial_velocity_max = Grid.tiles(1.2)
+	drops.gravity = Vector2(0, Grid.tiles(6.0))
+	drops.scale_amount_min = 2.0
+	drops.scale_amount_max = 3.5
+	drops.color = Color(0.82, 0.88, 0.98, 0.7)
+	drops.z_index = 2
+	showing.add_child(drops)
+	drops.global_position = at
+	drops.emitting = true
+	drops.finished.connect(drops.queue_free)
 
 
 func _show_the_sky(sky: Dictionary, at_once: bool = true):
@@ -1070,6 +1308,19 @@ func _storm(delta: float):
 	if _next_flash > 0.0:
 		return
 	_next_flash = lerpf(FLASH_GAP[1], FLASH_GAP[0], lightning) * randf_range(0.6, 1.4)
+	_flash_the_sky(lightning)
+
+
+## Lightning striking the field (Combat "Weather", a hazard that `flashes`): the flash, and thunder close behind.
+func lightning_now():
+	if _flash == null:
+		return
+	_next_flash = maxf(_next_flash, FLASH_GAP[0])
+	_flash_the_sky(1.0, 0.1)
+
+
+## The whole view flashes, `lightning` strong, and thunder follows after `thunder_after` seconds (a random wait when -1).
+func _flash_the_sky(lightning: float, thunder_after: float = -1.0):
 	var from_screen := get_canvas_transform().affine_inverse()
 	_flash.global_position = from_screen * Vector2.ZERO
 	_flash.size = get_viewport_rect().size * from_screen.get_scale()
@@ -1079,8 +1330,8 @@ func _storm(delta: float):
 	flash.tween_property(_flash, "color:a", 0.0, 0.12)
 	flash.tween_property(_flash, "color:a", 0.35 * lightning, 0.04)
 	flash.tween_property(_flash, "color:a", 0.0, 0.35)
-	flash.tween_interval(randf_range(THUNDER_AFTER[0], THUNDER_AFTER[1]))
-	flash.tween_callback(func(): GameSounds.play(&"thunder", -4.0))
+	flash.tween_interval(thunder_after if thunder_after >= 0.0 else randf_range(THUNDER_AFTER[0], THUNDER_AFTER[1]))
+	flash.tween_callback(func(): GameSounds.play(&"thunder", -4.0 if thunder_after < 0.0 else 0.0))
 
 
 func _process(delta: float):

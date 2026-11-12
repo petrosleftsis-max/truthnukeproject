@@ -41,7 +41,7 @@ defense_by_level = {
 17: 28
 }
 movement = 6
-initiative = 5
+initiative = 6
 main_stat = 2
 icon = ExtResource("1_miqts")
 map_sprite = ExtResource("1_miqts")
