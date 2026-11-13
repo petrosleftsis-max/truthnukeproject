@@ -21,8 +21,11 @@
 [ext_resource type="Resource" path="res://data/passives/elusive.tres" id="p_elusive"]
 [ext_resource type="Resource" path="res://data/passives/synergy_ii.tres" id="p_synergy_ii"]
 
+[ext_resource type="Resource" path="res://data/lines/cyrus.tres" id="lines_cyrus"]
+
 [resource]
 script = ExtResource("5_l5ron")
+lines = ExtResource("lines_cyrus")
 name = "Cyrus"
 glossary_text = "A swift cunning cat with a bunch of tricks up his sleeves to hide from enemies and hunt down his targets.
 

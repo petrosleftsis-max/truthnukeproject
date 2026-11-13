@@ -404,6 +404,11 @@ False Life: EffectType OVERHEAL. Withering Touch and Blight: `ConditionDefinitio
 for a conversation, on a map or in a fight. A CanvasLayer under the root, made as first needed, placed from the figure's position each frame. Global randomness is fine in that file, and not in Combat.gd (`rolls`). Headless: `plays_headless`, and `always` for a test.
 A line of Enfina's and one of Prometheus's written on each monster (`CombatantDefinition.enfina_studies_line`, `prometheus_studies_line`; the designer,
 2026-11-12): `SpeechBubbles.says_what_it_is` from `Combat.study`, once a fight for each kind (`_studied_said`), else her own Studies lines.
+The designer's lines of 2026-11-13 (`data/lines/<key>.tres` for all four): `big_hit_taken` and `big_hit_given` (`Combat._say_of_a_big_hit` in
+`do_damage`, a blow of `BIG_HIT_SHARE` of their most health or more), `brought_back` (`revive`), `condition_lifted` (`dispel_status_effects`
+by `_is_harm`, and an effect's `lifts`), `enemy_gives_up` (`check_nerve` running: `somebody_says(..., side)`, one of the other side), `praise`
+by the killer's key (`SpeechBubbles.praise` from `_say_of_the_fallen`, one other of their side, never for a boss), out of castings in
+`last_casting`, and Enfina's Step In in `when_using.step_in`.
 
 **The AI's mind** (Combat "The AI's mind"; `aimind`; the designer, 2026-11-06). Per creature:
 `CombatantDefinition.ai_smarts` (`AI_KNOWN_BY`), `ai_also_knows`, `ai_never_knows` make `comb.ai_knows`
@@ -476,6 +481,18 @@ shade, the fog over the Dark and the figures' darkness from the same two picture
 it has faded (`_fog_wanted`). A figure's rim and eyes in the dark and its fading out of sight or back ease over `CombatantSprite.FADE_SECONDS`
 (`_rim`, `_shown_alpha`, `_ease_into_the_dark`); `hidden_alpha` is still the rule's, at once, and the first dressing is at once, so nobody who starts
 hidden is shown fading away where they stand.
+
+**Light that moves** (LightView section of that name; the designer, 2026-11-13). A flame dances (`FLAME_DANCE_TILES`) and a light out under the
+sky sways along the wind (`SWAY_TILES`), through `_light_moves` on each light's `base`; the shadows follow, reading the light's node. Fireflies on
+warm nights under a still, dry sky (`_fireflies_wanted`, `_set_fireflies`, an additive copy of AIR_SHADER, `_glow_material`); dust in a window's
+shaft (`_Shaft._keep_the_motes`). **After a fight** (Combat section of that name): won, `combat_finish` awaits `_after_the_fight` before the
+closing card - dust settling over the field, smoke from fire on the ground and from whoever burned (`AFTER_SECONDS`, `_world_at`); view only.
+**The wind's way, seen** (the designer, 2026-11-13: "the particles and fog flow towards the wind direction", no arrow): sand and the wind's
+streaks go along `Campaign.wind_now`, from upwind (`_wind_way`, `_keep_the_air_on_the_screen`), rain and snow lean its way (`_wind_lean`),
+the clouds and mist drift with it (SKY_LAYER_SHADER `drift`); the clock face's tooltip says it in words (`ClockFace.wind_said`). A lightning
+flash keeps covering the view while it moves (`_keep_the_grade_on_the_screen`). The heat's shimmer is held to the ground, slow and in patches
+(GRADE_SHADER's `world`), and comes from morning to evening (`Light.HEAT_BY_NIGHT`, `HEAT_LOW_SUN`). A fog a scene holds stays all day
+(`Light.sky`'s `held`, from `Campaign.weather_held`) and is a veil, not only wisps; a day's own still lifts by ten.
 
 **How light falls on a figure, and what is on them** (`CombatantSprite`, `combat/ConditionLook.gd`; `figures`; the designer, 2026-11-07, sections
 9 and 10 of `docs/proposals_2026-11-07.md`). View only, with no icons over the head: the designer looked at an example and preferred
@@ -558,8 +575,8 @@ everybody; `Net.time_passes` shows it on the joiner). A long rest ends at the ne
 **The calendar to look at** (`ui/calendar_panel.gd`, loaded by path, no class_name; `clock`; the designer, 2026-11-12): `do Campaign.open_calendar()`
 (or `"weathers"`) waits for it to close: a month of days with the date, the weather drawn (`_Glyph`, a slot `art/ui/weather/<weather>.png`) and
 the moon's phase; a day pressed says what its weather does (`WEATHER_SAYS`) and a day to come can be gone to; every weather to have now
-(`Campaign.set_weather`); `Campaign.tour_the_weathers` (the panel's static `tour`, `TOUR_SECONDS`, its caption "WeatherTour", any press stopping it,
-the sky as it was after). The light stage's sundial offers all of it.
+(`Campaign.set_weather` for `HELD_DAYS`, so going round the hours keeps it); `Campaign.tour_the_weathers` (the panel's static `tour`, `TOUR_SECONDS`, its
+caption "WeatherTour", any press stopping it, the sky as it was after). The light stage's sundial offers all of it.
 
 **The sky** (`Light.sky`, Campaign "The day's own sky", `LightView._show_the_sky`; `daysky`; the designer's picks of 2026-11-07, section 14). `Light.SKY` is about
 thirteen marks with a Hermite curve through them (`_curve`); tone, lean, strength, softness, saturation, contrast and how lit it looks all come from

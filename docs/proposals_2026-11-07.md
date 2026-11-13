@@ -684,6 +684,12 @@ condition, seeing through an illusion, a boss's phase.
 My pick for first: praise per pair, a boss first seen, standing about (pairs) and a new place. They give the four the most
 personality for the fewest lines.
 
+**Then (the designer, 2026-11-13): lines written, and built that day.** A big hit taken and given (a blow of half or more of somebody's
+most health; taken only while still standing), being brought back, having something harmful lifted, an enemy breaking and running (one of
+the party, chosen at random, says one line), out of castings (Alithia's and Prometheus's, at their last casting), praise for each other
+(one line, from one of the others, for any kill that is not a boss's) and Enfina's Step In. Three spelling slips were mended as they went
+in: "Scum like you", "you carved your own path", "making yourself useful"; say if any was meant as written.
+
 ## 20. The interface's look, and art for your artist
 
 You asked how the interface could look other than blue, and what art to ask your artist for. A page with the styles drawn out and
@@ -722,6 +728,20 @@ who became Virgo, with the scales (Libra) beside her.
 word said about it, and red kept for health and danger. The art list has the pieces F and G need first: the scales in gold, the
 gates as the scales in stars, the lapis vellum, and gold initials later.
 
+**Then (the designer, 2026-11-13):** "I actually didn't really like the new suggestions. Something I like with E is that it uses blue and
+also a sky, which is another focus in this world where the sky is now pixelated. G the stars are too perfectly placed." Five more on the
+page, all E's blue night, the stars strewn as real ones are:
+
+| Style | What it is |
+| --- | --- |
+| **J. The pixelated night** | E's indigo in hard bands, stars as single square pixels and pairs, strewn unevenly; the gates the brightest of them |
+| **K. The sky coming apart** | Smooth blue at the top of each panel, fraying into loose pixel blocks towards the bottom |
+| **L. The false sky** | Calm blue, with a slice slipping sideways now and then and a dead pixel flickering |
+| **M. The river of stars** | A crowded band of stars and glow across each panel, the rest nearly empty; the gates in the band |
+| **N. The sky of the hour** | The panels are the game's sky at that moment: dawn, day, dusk, night with its stars |
+
+**My recommendation now: J, with N's hours.** K and L could wait for when the story starts showing the sky is false.
+
 ## 21. More atmosphere
 
 | Idea | What it adds |
@@ -739,6 +759,26 @@ gates as the scales in stars, the lapis vellum, and gold initials later.
 My pick for first: sound by place and footsteps by ground, then life about. Both change how every map feels, and the sound plan has
 slots ready for them.
 
+**Then (the designer, 2026-11-13):** "Do light that moves and after a fight. I meant to have more atmosphere aesthetically." Built that day:
+a flame dances a little where it burns, so the shadows it throws waver; out of doors a light sways in the wind, more the harder it blows;
+fireflies blink on warm nights under a still, dry sky; dust drifts in a window's shaft of light. After a fight is won, the field settles a
+moment before the words come up: dust drifting down over where it was fought, smoke rising from what burned and thinning away; the fallen
+already lie where they fell. More to look at, then, rather than to read:
+
+| Idea | What it adds |
+| --- | --- |
+| **Wet reflections** | After rain, lamps and fires reflected in the puddles, broken up by the ripples |
+| **Leaves and petals on the wind** | Spring blossom and autumn leaves crossing the board the way the wind blows |
+| **Birds' shadows** | By day, now and then, a flock's shadow passing over the board |
+| **Banners and smoke in the wind** | Flags, washing lines and chimney smoke leaning the wind's way: the wind seen without an arrow |
+| **Light that blooms** | A soft glow round bright lights at night, and a faint vignette, darker at the edges after dusk |
+| **Ground mist in hollows** | Low mist lying in the lowest ground and by water at night, thinning as the sun climbs |
+| **Distant lightning** | Far-off cloud flashes with no thunder, on a close summer night before a storm |
+| **Water that moves** | Ripples, foam at a shore, the sun's glint moving on water with the hour |
+| **The sky's pixels showing** | At dawn and dusk, the light's edges stepping into pixels for a moment, a hint that the sky is false |
+
+My pick for first: wet reflections and leaves on the wind. They show the weather and the wind on every map at once.
+
 ## 22. 2.5D: depth with 2D art
 
 You asked whether the map can feel three-dimensional with 2D art. It can, in steps, from depth on the art we have to a real 3D
@@ -755,6 +795,11 @@ stage under 2D figures.
 **My recommendation: A, B and C together.** They keep every picture we have, add the depth you are after where it shows most
 (high ground, walls, things in front), and the rules do not change - Heights already has who is up. E is the finished look of that
 road; worth one test map later if you want to see it.
+
+**Then (the designer, 2026-11-13):** "Can I see an example of your recommendation and of D?" A page with one courtyard drawn three ways (as
+it is now, A with B and C, and D isometric), each part of the recommendation switched on and off, the light movable and the view to drag,
+is linked in my message. It is drawn in shapes by the page, not in our art, so it shows how depth reads rather than how the game will
+look. A real test map in the game, with the art we have, would be the next step if one of them is wanted.
 
 ## 23. The sundial and the calendar, and how they could look
 

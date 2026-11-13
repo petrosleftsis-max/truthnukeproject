@@ -91,6 +91,15 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's message of 2026-11-13** (ledger rows of that date; CLAUDE.md "Light that moves", "After a fight", "The wind's way,
+  seen", the four's lines; suites `speech`, `clock`, `daysky`):
+  - The four's lines at new moments (big hits at half health, brought back, a condition lifted, an enemy running, out of castings,
+    praise for a kill, Enfina's Step In).
+  - Light that moves (flames dancing, lights swaying, fireflies, dust in window shafts) and the field settling after a won fight.
+  - The wind shown by what blows and drifts, not an arrow; fog held all day by a scene; the heat calmer and through the day; lightning
+    across the whole view; the sundial's weathers held through the hours.
+  - The interface page has five sky looks (J to N); a page with the courtyard drawn three ways for 2.5D (proposals 20 and 22).
+
 - **The designer's second message of 2026-11-12** (ledger rows of that date from "InstaHack costs no gate" on; CLAUDE.md "Only under the open
   sky", "Darkness comes on slowly", "The calendar to look at", Night Hunter; suites `dispel`, `triggers`, `ways`, `stealth`, `preparespells`,
   `weather`, `daysky`, `clock`, `figures`):
@@ -408,6 +417,9 @@ holds the game for both).
 
 ## Waiting on the designer
 
+0. **From 2026-11-13:** which sky look (J with N's hours recommended); whether 2.5D gets a test map (proposals 22, the courtyard page);
+   the three mended spellings in the lines; the timings and strengths by feel (darkness, lightning indoors, the heat, the after-fight beat,
+   fireflies); which of the new atmosphere ideas in section 21.
 0. **From the second message of 2026-11-12:** which look (F with G's gates is the recommendation now); painted weathers for the calendar
    (`art/ui/weather/<weather>.png`); Night Hunter's level (24 is PROPOSAL); whether a Gate Nade torn apart comes back too (it does not now); the
    lightning flash's share under a roof (0.15) and the darkness timings (1.2 s darkening, 0.8 s otherwise).

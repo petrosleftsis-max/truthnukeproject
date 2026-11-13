@@ -108,14 +108,20 @@ uniform float cover = 0.0;
 uniform float mist = 0.0;
 uniform vec3 mist_colour = vec3(0.86, 0.88, 0.92);
 uniform float speed = 1.0;
+uniform vec2 drift = vec2(1.0, 0.3);
 uniform sampler2D sky_mask : hint_default_white, filter_linear, repeat_disable;
 void fragment() {
 	vec2 at = UV * tiles / 14.0;
-	float one = texture(noise, at + vec2(TIME * 0.006, TIME * 0.002) * speed).r;
-	float two = texture(noise, at * 0.6 - vec2(TIME * 0.003, TIME * 0.004) * speed).r;
+	// Drifting with the wind, the way it blows (Campaign.wind_now): one layer along it, a slower one a little across it.
+	vec2 with_wind = normalize(drift + vec2(0.0001));
+	vec2 across = vec2(-with_wind.y, with_wind.x);
+	float one = texture(noise, at - with_wind * TIME * 0.0065 * speed).r;
+	float two = texture(noise, at * 0.6 - (with_wind * 0.8 + across * 0.3) * TIME * 0.004 * speed).r;
 	float cloud = smoothstep(0.42, 0.7, (one + two) * 0.5) * cover * 0.38;
 	vec2 low = UV * tiles / 5.0;
-	float wisps = smoothstep(0.32, 0.8, texture(noise, low + vec2(TIME * 0.01, TIME * 0.002) * speed).r) * mist * 0.5;
+	float wisps = smoothstep(0.32, 0.8, texture(noise, low - with_wind * TIME * 0.01 * speed).r) * mist * 0.5;
+	// A thick fog is a veil over everything, the wisps drifting through it; a morning's mist only the wisps.
+	wisps = max(wisps, smoothstep(0.4, 1.0, mist) * (0.26 + 0.08 * texture(noise, low * 0.35 - with_wind * TIME * 0.004 * speed).r));
 	if (wisps > cloud) {
 		COLOR = vec4(mist_colour, wisps);
 	} else {
@@ -132,8 +138,16 @@ uniform sampler2D screen : hint_screen_texture, filter_linear, repeat_disable;
 uniform float saturation = 1.0;
 uniform float contrast = 1.0;
 uniform float shimmer = 0.0;
+varying vec2 world;
+void vertex() {
+	world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
 void fragment() {
-	vec2 at = SCREEN_UV + vec2(sin(SCREEN_UV.y * 140.0 + TIME * 4.0), cos(SCREEN_UV.x * 90.0 + TIME * 3.0)) * 0.0011 * shimmer;
+	// Held to the ground, so walking does not set the whole view swimming; slow, in patches that come and go (the designer,
+	// 2026-11-13: "i love the heat visual effect, but its too tiring when walking around").
+	float patch = 0.5 + 0.5 * sin(world.x * 0.0021 + TIME * 0.21) * sin(world.y * 0.0017 - TIME * 0.17);
+	vec2 wave = vec2(sin(world.y * 0.045 + TIME * 1.7), cos(world.x * 0.033 + TIME * 1.3));
+	vec2 at = SCREEN_UV + wave * 0.00055 * shimmer * (0.35 + 0.65 * patch);
 	vec3 under = texture(screen, at).rgb;
 	float grey = dot(under, vec3(0.299, 0.587, 0.114));
 	vec3 graded = (mix(vec3(grey), under, saturation) - 0.5) * contrast + 0.5;
@@ -220,7 +234,7 @@ func _mask_the_sky():
 			layer.material.set_shader_parameter("sky_mask", mask)
 	if _air_material == null:
 		_air_material = _material(AIR_SHADER)
-	for material in [_air_material, _rainbow.material if _rainbow != null else null, _flash.material if _flash != null else null]:
+	for material in [_air_material, _glow_material, _rainbow.material if _rainbow != null else null, _flash.material if _flash != null else null]:
 		if material != null:
 			material.set_shader_parameter("sky_mask", mask)
 			material.set_shader_parameter("mask_origin", origin)
@@ -851,8 +865,43 @@ class _Shaft extends Node2D:
 		if ResourceLoader.exists(LightView.SHAFT_PICTURE):
 			picture = load(LightView.SHAFT_PICTURE)
 
+	var _motes: CPUParticles2D = null
+
 	func _process(_delta):
 		queue_redraw()
+		_keep_the_motes()
+
+	## Dust drifting slowly in the beam, faint, as bright as the shaft is (LightView "Light that moves").
+	func _keep_the_motes():
+		var tile := float(Grid.TILE_SIZE)
+		if _motes == null:
+			_motes = CPUParticles2D.new()
+			_motes.name = "Motes"
+			_motes.use_parent_material = true
+			_motes.light_mask = 0
+			_motes.amount = 14
+			_motes.lifetime = 7.0
+			_motes.preprocess = 5.0
+			_motes.gravity = Vector2(0.0, tile * 0.004)
+			_motes.direction = Vector2.UP
+			_motes.spread = 180.0
+			_motes.initial_velocity_min = tile * 0.005
+			_motes.initial_velocity_max = tile * 0.03
+			_motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+			_motes.scale_amount_min = tile * 0.006
+			_motes.scale_amount_max = tile * 0.013
+			var fade := Gradient.new()
+			fade.set_color(0, Color(1.0, 0.96, 0.86, 0.0))
+			fade.add_point(0.5, Color(1.0, 0.96, 0.86, 0.5))
+			fade.set_color(fade.get_point_count() - 1, Color(1.0, 0.96, 0.86, 0.0))
+			_motes.color_ramp = fade
+			add_child(_motes)
+		var lean: float = CombatantSprite.shadow_lean
+		_motes.position = Vector2(lean * tile * reach * 0.25, tile * reach * 0.4)
+		_motes.emission_rect_extents = Vector2(tile * 0.45, tile * reach * 0.38)
+		var parent_light := get_parent() as PointLight2D
+		_motes.modulate.a = clampf(parent_light.energy / LightView.OPENING_ENERGY, 0.0, 1.0) if parent_light != null else 1.0
+		_motes.emitting = _motes.modulate.a > 0.05
 
 	func _draw():
 		var tile := float(Grid.TILE_SIZE)
@@ -1195,6 +1244,9 @@ func _show_the_sky(sky: Dictionary, at_once: bool = true):
 		_clouds.visible = air_on and sky.clouds > 0.01
 		_clouds.material.set_shader_parameter("cover", sky.clouds)
 		_clouds.material.set_shader_parameter("speed", 1.0 + wind * 3.0)
+		var way := Vector2(Campaign.wind_now())
+		_clouds.material.set_shader_parameter("drift", way)
+		_mist.material.set_shader_parameter("drift", way)
 		# Sand in the air, or a whiteout, is a mist of its own colour.
 		var haze: float = maxf(sky.mist, sand * 0.85)
 		_mist.visible = air_on and haze > 0.01
@@ -1213,6 +1265,7 @@ func _show_the_sky(sky: Dictionary, at_once: bool = true):
 	_set_falling("ash", float(sky.get("ash", 0.0)) if air_on else 0.0, wind)
 	_set_falling("gusts", wind * (1.0 - snow) * (1.0 - sand) if air_on else 0.0, wind)
 	_set_life(sky.life if air_on else "")
+	_set_fireflies(_fireflies_wanted(sky))
 	_set_day_sound(sky.sound)
 	# What comes in at a window is the sky's colour at this minute, paler than the tone over everything.
 	_opening_colour = Color(sky.tone).lerp(Color.WHITE, 0.25)
@@ -1274,7 +1327,7 @@ func _set_rain(how_much: float, wind: float = 0.0):
 	if absf(float(_rain.amount - wanted)) > float(_rain.amount) * 0.35:
 		_rain.amount = wanted
 	_rain.modulate.a = clampf(how_much * 2.5, 0.0, 1.0)
-	_rain.direction = Vector2(0.18 + wind * 0.5, 1.0)
+	_rain.direction = Vector2(_wind_lean(0.18) + _wind_way().x * wind * 0.5, 1.0)
 	_rain.emitting = true
 
 
@@ -1371,10 +1424,24 @@ func _set_falling(what: String, how_much: float, wind: float):
 		bits.texture = dot
 		set("_" + what, bits)
 	bits.modulate.a = clampf(how_much * 1.6, 0.0, 1.0)
-	# Down, leaning with the wind; sand and the wind's streaks along it.
-	bits.direction = Vector2(1.0, 0.08) if what == "sand" or what == "gusts" else Vector2(wind * 1.2, 1.0)
+	# Down, leaning with the wind; sand and the wind's streaks along it, the way it blows (the designer, 2026-11-13: "show the wind's
+	# direction").
+	var way := _wind_way()
+	bits.direction = way if what == "sand" or what == "gusts" else Vector2(_wind_lean(0.0) + way.x * wind * 1.2, 1.0)
 	bits.spread = 25.0 if what == "snow" or what == "ash" else 4.0
 	bits.emitting = true
+
+
+## The way the wind blows today, as a unit on the screen (Campaign.wind_now: east is right, south down).
+func _wind_way() -> Vector2:
+	var way := Vector2(Campaign.wind_now())
+	return way.normalized() if way.length_squared() > 0.0 else Vector2.RIGHT
+
+
+## A slant of `still_air` for what falls, to the side the wind blows from, so even rain on a calm day leans its way.
+func _wind_lean(still_air: float) -> float:
+	var x := _wind_way().x
+	return still_air * (1.0 if x >= 0.0 else -1.0) if absf(x) > 0.01 else 0.0
 
 
 func _set_life(what: String):
@@ -1454,11 +1521,11 @@ func _keep_the_air_on_the_screen():
 		var screen := get_viewport_rect().size
 		var origin: Vector2 = to_map * Vector2.ZERO
 		var extent: Vector2 = to_map * screen - origin
-		for material in [_air_material, _flash.material if _flash != null else null]:
+		for material in [_air_material, _glow_material, _flash.material if _flash != null else null]:
 			if material != null:
 				material.set_shader_parameter("screen_origin", origin)
 				material.set_shader_parameter("screen_extent", extent)
-	var falling := [_rain, _life, _snow, _hail, _sand, _ash, _gusts]
+	var falling := [_rain, _life, _snow, _hail, _sand, _ash, _gusts, _fireflies]
 	if not falling.any(func(bits): return bits != null and bits.emitting):
 		return
 	var from_screen := get_canvas_transform().affine_inverse()
@@ -1467,7 +1534,8 @@ func _keep_the_air_on_the_screen():
 	for bits in falling:
 		if bits != null and bits.emitting:
 			var sideways: bool = bits == _sand or bits == _gusts
-			bits.global_position = middle - (Vector2(view.x * 0.15, 0.0) if sideways else (Vector2(0.0, view.y * 0.15) if bits == _rain or bits == _hail else Vector2.ZERO))
+			# Blowing in from upwind, so the screen fills the way they go.
+			bits.global_position = middle - (_wind_way() * view * 0.15 if sideways else (Vector2(0.0, view.y * 0.15) if bits == _rain or bits == _hail else Vector2.ZERO))
 			bits.emission_rect_extents = view / 2.0
 
 
@@ -1522,7 +1590,10 @@ func _process(delta: float):
 		var node: PointLight2D = entry.node
 		if not is_instance_valid(node):
 			continue
-		node.position = node.position.lerp(entry.at, minf(GLIDE_RATE * delta, 1.0))
+		var base: Vector2 = entry.get("base", node.position)
+		base = base.lerp(entry.at, minf(GLIDE_RATE * delta, 1.0))
+		entry["base"] = base
+		node.position = base + _light_moves(entry)
 		var wobble := 0.0
 		if entry.source.get("flickers", false):
 			wobble = sin(_clock * FLICKER_RATE + entry.phase) * 0.55 + sin(_clock * FLICKER_RATE * 2.3 + 1.3 + entry.phase) * 0.45
@@ -1530,7 +1601,95 @@ func _process(delta: float):
 		node.energy = move_toward(node.energy, wanted, entry.energy / EASE_SECONDS * delta) if node.energy < wanted - entry.energy * FLICKER * 2.0 else wanted
 
 
+## --- Light that moves ---
+##
+## The designer, 2026-11-13 (proposals 21: "Do light that moves"). A flame dances a little about where it burns, so the shadows it throws
+## waver with it (the figures' shadows read the light's own node); out under the sky in a wind, a light sways along the wind's way, more
+## the harder it blows. Fireflies blink in the warm months' nights under a still, dry sky (_fireflies_wanted), and dust drifts in a shaft
+## of light from a window (_Shaft). View only, numbers PROPOSAL.
+const FLAME_DANCE_TILES := 0.018
+const SWAY_TILES := 0.05
+var _fireflies: CPUParticles2D = null
+var _glow_material: ShaderMaterial = null
+
+
+## How far a light is about where it stands this moment: its flame's dance and its sway in the wind.
+func _light_moves(entry: Dictionary) -> Vector2:
+	var tile := float(Grid.TILE_SIZE)
+	var moved := Vector2.ZERO
+	var phase: float = entry.get("phase", 0.0)
+	if entry.source.get("flickers", false):
+		moved += Vector2(sin(_clock * 6.3 + phase), cos(_clock * 4.7 + phase * 1.7)) * tile * FLAME_DANCE_TILES
+	var wind: float = float(_sky_shown.get("wind", 0.0)) if air_on else 0.0
+	if wind > 0.05 and entry.source.has("tile") and light.under_the_sky(entry.source.tile):
+		moved += _wind_way() * sin(_clock * 1.4 + phase) * tile * SWAY_TILES * wind
+	return moved
+
+
+## How many fireflies there are, 0 to 1: the warm months' evenings and nights, out of doors, with no rain, snow or wind to speak of.
+func _fireflies_wanted(sky: Dictionary) -> float:
+	if not air_on or float(sky.get("amount", -1.0)) < 0.0 or not ["spring", "summer"].has(Campaign.season_now()):
+		return 0.0
+	if float(sky.get("rain", 0.0)) > 0.01 or float(sky.get("snow", 0.0)) > 0.01 or float(sky.get("hail", 0.0)) > 0.01 or float(sky.get("wind", 0.0)) > 0.45:
+		return 0.0
+	var at := float(Campaign.minute_of_day())
+	return smoothstep(1110.0, 1200.0, at) if at >= 720.0 else 1.0 - smoothstep(0.0, 90.0, at)
+
+
+func _set_fireflies(how_many: float):
+	if how_many <= 0.01:
+		if _fireflies != null:
+			_fireflies.emitting = false
+		return
+	var tile := float(Grid.TILE_SIZE)
+	if _fireflies == null:
+		_fireflies = _air_bits("Fireflies")
+		if _glow_material == null:
+			_glow_material = _material(AIR_SHADER.replace("shader_type canvas_item;", "shader_type canvas_item;\nrender_mode blend_add;"))
+			_sky_mask_made = false
+		_fireflies.material = _glow_material
+		var dot := GradientTexture2D.new()
+		dot.width = 24
+		dot.height = 24
+		dot.fill = GradientTexture2D.FILL_RADIAL
+		dot.fill_from = Vector2(0.5, 0.5)
+		dot.fill_to = Vector2(1.0, 0.5)
+		var soft := Gradient.new()
+		soft.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+		soft.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+		dot.gradient = soft
+		_fireflies.texture = dot
+		_fireflies.gravity = Vector2.ZERO
+		_fireflies.direction = Vector2.UP
+		_fireflies.spread = 180.0
+		_fireflies.lifetime = 6.0
+		_fireflies.preprocess = 4.0
+		_fireflies.initial_velocity_min = tile * 0.03
+		_fireflies.initial_velocity_max = tile * 0.12
+		_fireflies.orbit_velocity_min = -0.06
+		_fireflies.orbit_velocity_max = 0.06
+		_fireflies.scale_amount_min = 1.6
+		_fireflies.scale_amount_max = 2.6
+		# Each blinks a few times as it drifts.
+		var blink := Gradient.new()
+		var glow := Color(0.82, 1.0, 0.42)
+		blink.set_color(0, Color(glow, 0.0))
+		for step in [[0.06, 1.0], [0.2, 1.0], [0.3, 0.0], [0.4, 0.0], [0.48, 1.0], [0.62, 0.9], [0.7, 0.0], [0.78, 0.0], [0.84, 0.9], [0.94, 0.0]]:
+			blink.add_point(step[0], Color(glow, step[1]))
+		blink.set_color(blink.get_point_count() - 1, Color(glow, 0.0))
+		_fireflies.color_ramp = blink
+	_fireflies.amount = maxi(roundi(48.0 * how_many), 4)
+	_fireflies.modulate.a = clampf(how_many * 1.5, 0.0, 1.0)
+	_fireflies.emitting = true
+
+
 func _keep_the_grade_on_the_screen():
+	# A lightning flash covers the view however the view moves while it lasts (the designer, 2026-11-13: walking, "I walk away from the
+	# rectangle that has the lighting effect").
+	if _flash != null and _flash.visible:
+		var where_now := get_canvas_transform().affine_inverse()
+		_flash.global_position = where_now * Vector2.ZERO
+		_flash.size = get_viewport_rect().size * where_now.get_scale()
 	if _rainbow != null and _rainbow.visible:
 		var on_screen := get_canvas_transform().affine_inverse()
 		_rainbow.global_position = on_screen * Vector2.ZERO

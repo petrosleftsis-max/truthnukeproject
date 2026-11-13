@@ -518,7 +518,13 @@ func season_now() -> String:
 
 ## The sky at `minute` of today, in `ambient` (Light.sky).
 func sky_now(ambient: int = map_ambient, minute: int = -1) -> Dictionary:
-	return Light.sky(ambient, minute if minute >= 0 else minute_of_day(), day_number(), weather_today(), map_sky_tint, moon_now(), season_shift())
+	return Light.sky(ambient, minute if minute >= 0 else minute_of_day(), day_number(), weather_today(), map_sky_tint, moon_now(), season_shift(),
+		weather_held(day_number()))
+
+
+## Whether a scene holds the weather on `day` (set_weather): a fog it holds stays all day.
+func weather_held(day: int) -> bool:
+	return not weather_fixed.is_empty() and day <= int(weather_fixed.get("until_day", 0)) and day >= int(weather_fixed.get("from_day", day_number()))
 
 
 ## A night with no moon on this map, or with one.

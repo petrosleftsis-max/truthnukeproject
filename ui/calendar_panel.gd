@@ -19,6 +19,9 @@ const GLYPH_FOLDER := "res://art/ui/weather/"
 ## A round of every weather: how long each shows, and how fast the sky goes from one to the next meanwhile.
 const TOUR_SECONDS := 4.0
 const TOUR_EASE_SECONDS := 0.8
+## A weather had from here holds this many days, so going round the hours does not lose it at midnight (the designer, 2026-11-13: "when
+## i switch back to the other times, where ive seen the snow, it still doesnt snow"); the day's own takes it back.
+const HELD_DAYS := 30
 
 ## What each weather does, in a line (Light "What the weather does", Combat "Weather", StealthWatch "The weather").
 const WEATHER_SAYS := {
@@ -344,7 +347,7 @@ func _fill_weathers():
 		button.custom_minimum_size = Vector2(152, 86)
 		button.tooltip_text = WEATHER_SAYS.get(weather, "")
 		button.pressed.connect(func():
-			Campaign.set_weather(weather))
+			Campaign.set_weather(weather, HELD_DAYS))
 		var glyph := _Glyph.new()
 		glyph.weather = weather
 		glyph.position = Vector2(54, 6)
@@ -362,6 +365,7 @@ func _fill_weathers():
 		button.add_child(said)
 		if Light.SCENE_WEATHERS.has(weather):
 			button.tooltip_text += "\nOnly ever by a scene: it never comes by itself."
+		button.tooltip_text += "\nHeld for %d days, whatever the hour, until the day's own is asked for again." % HELD_DAYS
 		grid.add_child(button)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)

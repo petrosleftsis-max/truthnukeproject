@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CombatLines" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatLines.gd" id="1_lines"]
+
+[resource]
+script = ExtResource("1_lines")
+big_hit_given = Array[String](["Haha, bet you didn't see that coming!", "You were standing there wide open for me to take advantage of!", "Hahaha, the shadows always retaliate!"])
+big_hit_taken = Array[String](["Ugh, you'll never catch me!", "That won't be slowing me down!", "Haha, this is almost bad!"])
+brought_back = Array[String](["I've got 9 more where that came from! Wait, but 9 was the total... Forget it, I'm back baby!"])
+condition_lifted = Array[String](["How refreshing, you have my gratitude!"])
+enemy_gives_up = Array[String](["You can't escape from the escapist!"])
+praise = {
+"alithia": ["Great hit, didn't know you had it in you! Wait don't look at me like that..."],
+"enfina": ["This time, you carved your own path, Enfina!"],
+"prometheus": ["Burn them to the ground, bud!"]
+}

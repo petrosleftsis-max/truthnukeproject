@@ -391,6 +391,8 @@ func the_calendar_panel():
 		if button.name == "Weather_fog":
 			button.pressed.emit()
 	ok(Campaign.weather_today() == "fog", "pressed, it is that weather now", Campaign.weather_today())
+	Campaign.set_clock(6, 30)
+	ok(Campaign.weather_today() == "fog", "and still, the hours gone round past midnight", "day %d: %s" % [Campaign.day_number(), Campaign.weather_today()])
 	panel._show("month")
 	await settle()
 	panel._picked_day = 5

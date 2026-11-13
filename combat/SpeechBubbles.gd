@@ -18,9 +18,10 @@ const FADE_SECONDS := 0.25
 const QUIET_FOR_MS := 7000
 ## How often each moment comes to anything. Those not named here always do.
 const CHANCES := {&"first_blow": 0.6, &"fells_somebody": 0.7, &"badly_hurt": 0.8, &"healed": 0.5, &"reacts": 0.4, &"using": 0.7,
-	&"afflicted": 0.5, &"studies": 0.5, &"seen_through": 0.8, &"deep_spell": 0.8}
+	&"afflicted": 0.5, &"studies": 0.5, &"seen_through": 0.8, &"deep_spell": 0.8, &"big_hit_taken": 0.85, &"big_hit_given": 0.75,
+	&"condition_lifted": 0.7}
 ## Those that are said whoever spoke a moment ago.
-const WONT_WAIT := [&"ally_falls", &"won", &"phase", &"takes_a_blow"]
+const WONT_WAIT := [&"ally_falls", &"won", &"phase", &"takes_a_blow", &"brought_back", &"last_casting", &"enemy_gives_up", &"praise"]
 const INK := Color("eef4fb")
 const BACK := Color(0.07, 0.09, 0.12, 0.94)
 const PARTY_EDGE := Color("7fb4ea")
@@ -122,14 +123,29 @@ static func on_event(combat: Combat, comb: Dictionary, event: StringName, about:
 	return true
 
 
-## One of those in the fight who have a line for `event` says it (as it starts, as it is won). Which of them doesn't matter to anything.
-static func somebody_says(combat: Combat, event: StringName):
+## One of those in the fight who have a line for `event` says it (as it starts, as it is won), or one of `side`'s only. Which of them
+## doesn't matter to anything.
+static func somebody_says(combat: Combat, event: StringName, side: int = -1):
 	if not shown():
 		return
-	var those: Array = combat.combatants.filter(func(comb): return comb.get("alive", false) and not comb.has("object") and not comb.get("illusion", false))
+	var those: Array = combat.combatants.filter(func(comb): return comb.get("alive", false) and not comb.has("object") and not comb.get("illusion", false) \
+		and (side < 0 or comb.get("side", -1) == side))
 	those.shuffle()
 	for comb in those:
 		if on_event(combat, comb, event):
+			return
+
+
+## `killer` has felled somebody who is not a boss: one other of their side, chosen at random among those with a line about them, praises
+## them (CombatLines.praise; the designer, 2026-11-13: "play only one of these lines each time for any kill that isn't a boss kill").
+static func praise(combat: Combat, killer: Dictionary):
+	if not shown() or killer.is_empty():
+		return
+	var those: Array = combat.combatants.filter(func(comb): return comb.get("alive", false) and comb.get("side", -1) == killer.get("side", -2) \
+		and not comb.has("object") and not comb.get("illusion", false) and not comb.has("summoner") and not is_same(comb, killer))
+	those.shuffle()
+	for comb in those:
+		if on_event(combat, comb, &"praise", killer.get("combatant_key", "")):
 			return
 
 

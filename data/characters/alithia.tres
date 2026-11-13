@@ -27,8 +27,11 @@
 [ext_resource type="Resource" path="res://data/passives/unbowed_vi.tres" id="p_unbowed_vi"]
 [ext_resource type="Resource" path="res://data/passives/unbowed_vii.tres" id="p_unbowed_vii"]
 
+[ext_resource type="Resource" path="res://data/lines/alithia.tres" id="lines_alithia"]
+
 [resource]
 script = ExtResource("3_7klcm")
+lines = ExtResource("lines_alithia")
 name = "Alithia"
 glossary_text = "A prideful and arrogant cleric with several capabilities of protecting her allies.
 

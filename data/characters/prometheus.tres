@@ -18,8 +18,11 @@
 [ext_resource type="Resource" path="res://data/passives/kindling_iii.tres" id="p_kindling_iii"]
 [ext_resource type="Resource" path="res://data/passives/meditate.tres" id="p_meditate"]
 
+[ext_resource type="Resource" path="res://data/lines/prometheus.tres" id="lines_prometheus"]
+
 [resource]
 script = ExtResource("3_genhd")
+lines = ExtResource("lines_prometheus")
 name = "Prometheus"
 glossary_text = "A messy pragmatic scholar who can never be seen without a book and a drink.
 

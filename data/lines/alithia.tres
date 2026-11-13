@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CombatLines" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatLines.gd" id="1_lines"]
+
+[resource]
+script = ExtResource("1_lines")
+last_casting = Array[String](["I can no longer protect you. Do not squander the chance I gave you!"])
+big_hit_given = Array[String](["What, surprised?", "You bore me.", "Fall to the divine light of justice!"])
+big_hit_taken = Array[String](["Keep your hands off me!", "Oh no, you don't!", "Scum like you don't deserve the honour of felling me!"])
+brought_back = Array[String](["This is so embarrassing."])
+condition_lifted = Array[String](["I shall not be hindered by their like."])
+enemy_gives_up = Array[String](["Don't just stand there, they're leaving!"])
+praise = {
+"cyrus": ["Finally making yourself useful?"],
+"enfina": ["They never stood a chance against you."],
+"prometheus": ["Your fire will always be glorious."]
+}

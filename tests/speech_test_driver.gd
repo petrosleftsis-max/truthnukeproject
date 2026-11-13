@@ -16,7 +16,12 @@ var controller = null
 var lines: CombatLines = null
 
 
+## Cyrus's own lines, kept while the suite gives him one for every moment.
+var real_cyrus_lines: CombatLines = null
+
+
 func run_sections():
+	real_cyrus_lines = CombatantDatabase.combatants.cyrus.lines
 	which_lines()
 	SpeechBubbles.plays_headless = true
 	SpeechBubbles.always = true
@@ -24,6 +29,8 @@ func run_sections():
 	await the_moments()
 	await open_fight()
 	await studying_them()
+	await open_fight()
+	await their_own_lines()
 	await open_fight()
 	await the_bubble()
 	await close_fight()
@@ -91,7 +98,7 @@ func close_fight():
 		await settle(3)
 	game = null
 	combat = null
-	CombatantDatabase.combatants.cyrus.lines = null
+	CombatantDatabase.combatants.cyrus.lines = real_cyrus_lines
 
 
 func who(key: String) -> Dictionary:
@@ -269,4 +276,85 @@ func on_a_map():
 	close_map(m)
 	await settle()
 	Campaign.reset()
+	log_line("")
+
+
+## The designer's lines of 2026-11-13 (proposals section 19), at their own moments.
+func their_own_lines():
+	log_line("======== their own lines ========")
+	CombatantDatabase.combatants.cyrus.lines = real_cyrus_lines
+	var cyrus := who("cyrus")
+	var alithia := who("alithia")
+	var enfina := who("enfina")
+	var prometheus := who("prometheus")
+	var them := foes()
+	var foe: Dictionary = them[0]
+	var lines_of := func(key: String) -> CombatLines: return CombatantDatabase.combatants[key].lines
+	var spoke := func(key: String, event: StringName) -> Array:
+		return SpeechBubbles.said.filter(func(entry): return entry.who == key and entry.event == event)
+	for key in ["cyrus", "alithia", "enfina", "prometheus"]:
+		ok(lines_of.call(key) != null, "%s has lines" % key)
+	# A big hit: half their health or more in one blow, taken standing and given.
+	SpeechBubbles.forget()
+	cyrus.hp = 400
+	combat._say_of_a_big_hit(foe, cyrus, 500)
+	var taken: Array = spoke.call("cyrus", &"big_hit_taken")
+	ok(taken.size() == 1 and lines_of.call("cyrus").big_hit_taken.has(taken[0].line), "half his health in one blow, and Cyrus says so", "%s" % [taken])
+	SpeechBubbles.forget()
+	var foe_most: int = combat.get_effective_stat(foe, "max_hp")
+	combat._say_of_a_big_hit(alithia, foe, roundi(foe_most * 0.6))
+	var given: Array = spoke.call("alithia", &"big_hit_given")
+	ok(given.size() == 1 and lines_of.call("alithia").big_hit_given.has(given[0].line), "and Alithia, giving one", "%s" % [given])
+	SpeechBubbles.forget()
+	combat._say_of_a_big_hit(alithia, foe, roundi(foe_most * 0.3))
+	ok(spoke.call("alithia", &"big_hit_given").is_empty(), "a third of it is not a big one")
+	cyrus.hp = 900
+	# Brought back.
+	SpeechBubbles.forget()
+	var resuscitate: SkillDefinition = SkillDatabase.skills.resuscitate
+	var revive_effect: EffectDefinition = null
+	for effect in resuscitate.all_effects():
+		if effect != null and effect.type == EffectDefinition.EffectType.REVIVE:
+			revive_effect = effect
+	prometheus.alive = false
+	prometheus.hp = 0
+	combat.revive(alithia, prometheus, revive_effect, resuscitate)
+	var back: Array = spoke.call("prometheus", &"brought_back")
+	ok(prometheus.alive and back.size() == 1 and back[0].line == "Don't worry, I'm back.", "brought back, Prometheus says so", "%s" % [back])
+	prometheus.hp = 900
+	# Something harmful lifted off them by their own side.
+	SpeechBubbles.forget()
+	combat.put_condition(cyrus, load("res://data/conditions/poisoned.tres"), 3, "test", true)
+	var cleanse := EffectDefinition.new()
+	cleanse.type = EffectDefinition.EffectType.DISPEL
+	cleanse.dispel_scope = EffectDefinition.DispelScope.DEBUFFS_ONLY
+	combat.dispel_status_effects(alithia, cyrus, cleanse)
+	var thanks: Array = spoke.call("cyrus", &"condition_lifted")
+	ok(thanks.size() == 1 and thanks[0].line == "How refreshing, you have my gratitude!", "a poison lifted off him: his thanks", "%s" % [thanks])
+	# An enemy breaking and running: one of the party says so, only one.
+	SpeechBubbles.forget()
+	var runner: Dictionary = them[1] if them.size() > 1 else foe
+	runner["nerve"] = 0
+	runner["when_broken"] = 0
+	runner.erase("fleeing")
+	var broke: bool = combat.check_nerve(runner)
+	var shouted: Array = SpeechBubbles.said.filter(func(entry): return entry.event == &"enemy_gives_up")
+	ok(not broke or (shouted.size() == 1 and ["cyrus", "alithia", "enfina", "prometheus"].has(shouted[0].who)), "one of them breaks and runs: one of the party says so", "%s %s" % [broke, shouted])
+	# Praise: one other of the party, about whoever felled somebody who is not a boss.
+	SpeechBubbles.forget()
+	var felled: Dictionary = them[2] if them.size() > 2 else foe
+	felled["hurt_by"] = enfina.id
+	combat._say_of_the_fallen(felled)
+	var praised: Array = SpeechBubbles.said.filter(func(entry): return entry.event == &"praise")
+	ok(praised.size() == 1 and praised[0].who != "enfina" and lines_of.call(praised[0].who).praise.get("enfina", []).has(praised[0].line),
+		"Enfina fells one: one of the others praises her", "%s" % [praised])
+	SpeechBubbles.forget()
+	felled["boss"] = true
+	combat._say_of_the_fallen(felled)
+	felled.erase("boss")
+	ok(SpeechBubbles.said.filter(func(entry): return entry.event == &"praise").is_empty(), "a boss felled: no praise")
+	# What is said at the last casting, and Enfina's Step In.
+	ok(lines_of.call("alithia").last_casting.has("I can no longer protect you. Do not squander the chance I gave you!")
+		and lines_of.call("prometheus").last_casting.has("My system is out of power, I leave the rest to you."), "out of castings: hers and his")
+	ok(lines_of.call("enfina").when_using.get("step_in", []).has("Can you really afford to be distracted?"), "and Enfina's Step In")
 	log_line("")

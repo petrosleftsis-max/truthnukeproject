@@ -78,6 +78,14 @@ func each_day_its_own():
 	ok(early.mist > 0.8, "a foggy morning", "%.2f" % early.mist)
 	ok(lifted.mist < 0.01, "has lifted by ten", "%.2f" % lifted.mist)
 	ok(is_equal_approx(fog_noon.amount, Light.sky(outdoors, 720, 5, "").amount) and fog_noon.strength > 0.3, "and the day goes on as if it had never been")
+	# One a scene holds does not lift (the designer, 2026-11-13: "I don't see the fog working?").
+	ok(Light.sky(outdoors, 720, 5, "fog", Color.WHITE, 0.5, 0, true).mist > 0.8, "a fog a scene holds is there at noon too")
+	# The heat shimmers all day, most at noon (the designer, 2026-11-13: "it doesnt appear at all on times that arent the noon").
+	var heat_morning: float = Light.sky(outdoors, 480, 5, "heat").shimmer
+	var heat_noon: float = Light.sky(outdoors, 750, 5, "heat").shimmer
+	var heat_evening: float = Light.sky(outdoors, 1080, 5, "heat").shimmer
+	ok(heat_morning > 0.3 and heat_evening > 0.2 and heat_noon > heat_morning, "a heat shimmers from morning to evening, most at noon",
+		"%.2f %.2f %.2f" % [heat_morning, heat_noon, heat_evening])
 	# Sunset and sunrise vary, within a range.
 	var sunsets := {}
 	for day in range(2, 40):

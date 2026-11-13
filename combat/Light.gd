@@ -144,6 +144,9 @@ const SEASON_ODDS := [
 ]
 const SEASON_NAMES := ["spring", "summer", "autumn", "winter"]
 ## A foggy morning has lifted by then.
+## A heat's shimmer: what is left of it by night, and with the sun low (morning and evening); all of it from noon to mid-afternoon.
+const HEAT_BY_NIGHT := 0.2
+const HEAT_LOW_SUN := 0.45
 const FOG_THICK_UNTIL := 480
 const FOG_GONE_BY := 600
 ## What colours a day's sunrise and sunset may lean towards.
@@ -298,7 +301,7 @@ static func _low_sun_share(at: float) -> float:
 ## moon_phase's. Campaign.sky_now fills it all in for now:
 ## {"tone", "lean", "strength", "soft", "saturation", "contrast", "amount", "clouds", "rain", "mist", "colour", "life", "sound"}.
 ## `amount` below 0: under a roof or a rock, where the sun has no say.
-static func sky(ambient: int, minute: int, day: int = 0, weather: String = "", place: Color = Color.WHITE, moon: float = 0.5, shift: int = 0) -> Dictionary:
+static func sky(ambient: int, minute: int, day: int = 0, weather: String = "", place: Color = Color.WHITE, moon: float = 0.5, shift: int = 0, held: bool = false) -> Dictionary:
 	match ambient:
 		Ambient.INTERIOR:
 			return _without_extras({"tone": INTERIOR_TONE, "lean": 0.0, "strength": 0.25, "soft": 1.0, "saturation": 0.95, "contrast": 1.0, "amount": -1.0,
@@ -338,7 +341,9 @@ static func sky(ambient: int, minute: int, day: int = 0, weather: String = "", p
 		extras[extra] = 0.0
 	if not kind.is_empty():
 		var thick := 1.0
-		if weather == "fog":
+		# A day's own fog lifts in the morning; one a scene holds (Campaign.set_weather, the sundial) stays all day (the designer,
+		# 2026-11-13: "I don't see the fog working?").
+		if weather == "fog" and not held:
 			thick = 1.0 - smoothstep(float(FOG_THICK_UNTIL), float(FOG_GONE_BY), at)
 		var how_much: float = thick * lerpf(0.5, 1.0, daylight)
 		tone = tone.lerp(kind.tone, kind.mix * how_much)
@@ -353,7 +358,7 @@ static func sky(ambient: int, minute: int, day: int = 0, weather: String = "", p
 		for extra in SKY_EXTRAS:
 			extras[extra] = float(kind.get(extra, 0.0)) * thick
 		# Heat off the ground at midday; an aurora by night; a rainbow in the afternoon light; the eclipse darkest at noon.
-		extras.shimmer *= daylight * smoothstep(600.0, 760.0, at) * (1.0 - smoothstep(900.0, 1060.0, at))
+		extras.shimmer *= lerpf(HEAT_BY_NIGHT, lerpf(HEAT_LOW_SUN, 1.0, smoothstep(540.0, 720.0, at) * (1.0 - smoothstep(840.0, 1080.0, at))), daylight)
 		extras.aurora *= night_share * night_share
 		extras.rainbow *= daylight * smoothstep(780.0, 900.0, at) * (1.0 - smoothstep(1020.0, 1140.0, at))
 		extras.eclipse *= daylight * smoothstep(560.0, 720.0, at) * (1.0 - smoothstep(720.0, 880.0, at))

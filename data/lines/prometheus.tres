@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CombatLines" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/CombatLines.gd" id="1_lines"]
+
+[resource]
+script = ExtResource("1_lines")
+last_casting = Array[String](["My system is out of power, I leave the rest to you."])
+big_hit_given = Array[String](["This should keep them under control.", "Can't handle the heat?", "Perish!"])
+big_hit_taken = Array[String](["They're on me...!", "Shit!", "I'm... alright."])
+brought_back = Array[String](["Don't worry, I'm back."])
+condition_lifted = Array[String](["Thanks, I needed that."])
+enemy_gives_up = Array[String](["I won't let them run off."])
+praise = {
+"alithia": ["The Divine's light is not to be easily trifled with."],
+"cyrus": ["Never run out of tricks, friend."],
+"enfina": ["Heh, bet they'll remember that hurt."]
+}

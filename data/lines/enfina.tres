@@ -8,6 +8,16 @@ studies = Array[String](["So that's how you fight.", "Watch the feet.", "Seen th
 when_using = {
 "trailblaze": ["You are not getting away.", "It's only fire.", "I'll carve the path ahead."],
 "share_the_fire": ["Go. I've got it."],
-"step_in": ["Mine."]
+"step_in": ["Mine.", "I'm right here.", "You can't escape me.", "Can you really afford to be distracted?"]
 }
 takes_a_blow = Array[String](["You can't escape me."])
+big_hit_given = Array[String](["I've only just begun.", "You are nothing more than my next step.", "Out of my way."])
+big_hit_taken = Array[String](["Is that all...?", "This much is nothing....", "Bring it on."])
+brought_back = Array[String](["You will never... keep me down."])
+condition_lifted = Array[String](["I'm fine, but thank you."])
+enemy_gives_up = Array[String](["You aren't going anywhere. I'll get you."])
+praise = {
+"alithia": ["They don't stand a chance against your holy relics."],
+"cyrus": ["Keep looking over my back, will you?"],
+"prometheus": ["That should keep them down."]
+}

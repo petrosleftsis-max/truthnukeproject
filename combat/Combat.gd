@@ -3308,7 +3308,10 @@ func apply_effect(attacker: Dictionary, target: Dictionary, effect: EffectDefini
 		return
 	# What comes off them as it lands (Calm).
 	if not effect.lifts.is_empty():
+		var had: int = target.get("status_effects", []).size()
 		_lift_conditions(target, effect.lifts)
+		if target.get("status_effects", []).size() < had and target.get("side", -1) == attacker.get("side", -2):
+			SpeechBubbles.on_event(self, target, &"condition_lifted")
 	# Flagged by who sent it, not by what it does: a heal from an enemy is
 	# still something the other side did to you, and reading the colour as
 	# "whose doing was this" stays true for buffs, shoves and dispels alike.
@@ -4836,12 +4839,14 @@ func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: Eff
 		return
 	var was_held := has_restriction(target, "prevents_movement")
 	var movement_before: int = get_effective_stat(target, "movement") if target.has("movement") else 0
+	var harm_lifted := 0
 	# What the player chose to lift first (_choose_lifts)...
 	for entry in _lift_picks.duplicate():
 		if effect.dispel_count > 0 and removed >= effect.dispel_count:
 			break
 		var at := _effect_index(target, entry)
 		if at >= 0 and should_dispel(entry, effect, keeps_boons):
+			harm_lifted += 1 if _is_harm(entry) else 0
 			target.status_effects.remove_at(at)
 			_lift_picks.erase(entry)
 			removed += 1
@@ -4853,6 +4858,7 @@ func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: Eff
 		if effect.dispel_count > 0 and removed >= effect.dispel_count:
 			break
 		if should_dispel(target.status_effects[i], effect, keeps_boons):
+			harm_lifted += 1 if _is_harm(target.status_effects[i]) else 0
 			target.status_effects.remove_at(i)
 			removed += 1
 		i -= 1
@@ -4871,6 +4877,18 @@ func dispel_status_effects(attacker: Dictionary, target: Dictionary, effect: Eff
 			removed,
 			target.name
 		]))
+	# Something harmful off them, by their own side: they may say so.
+	if harm_lifted > 0 and target.get("side", -1) == attacker.get("side", -2):
+		SpeechBubbles.on_event(self, target, &"condition_lifted")
+
+
+## Whether what `entry` does to whoever has it is harm: a condition, a tick, a number brought down (should_dispel's debuff).
+static func _is_harm(entry: Dictionary) -> bool:
+	if entry.get("stat", "") == "dot" or entry.get("stat", "") == "condition":
+		return true
+	if entry.get("op", "add") == "multiply":
+		return float(entry.get("amount", 1.0)) < 1.0
+	return float(entry.get("amount", 0)) < 0.0
 
 
 ## --- Cleansing: choosing what comes off ---
@@ -6396,10 +6414,115 @@ func combat_finish():
 		kind = "draw"
 	elif enemies_alive:
 		kind = "defeat"
+	# Won: the field settles a moment first ("After a fight").
+	if kind == "victory":
+		await _after_the_fight()
 	await FightCards.closing(self, kind)
 	if not is_inside_tree():
 		return
 	emit_signal("combat_finished")
+
+
+## --- After a fight ---
+##
+## The designer, 2026-11-13 (proposals 21: "Do light that moves and after a fight"). Won, the field settles a moment before the words come
+## up: dust drifts down over where it was fought, smoke rises from fire on the ground and from whoever burned, and thins away; the fallen
+## lie where they fell (CombatantSprite.fall). Only to look at: nothing rolls or changes, and nothing of it plays headless or while catching
+## up (MoveFeel.shown). AFTER_SECONDS PROPOSAL.
+const AFTER_SECONDS := 2.2
+const AFTER_SMOKE_MOST := 8
+
+
+## Where `tile` is in the world, its middle.
+func _world_at(tile: Vector2i) -> Vector2:
+	return controller.tile_map.to_global(controller.tile_map.map_to_local(tile))
+
+
+func _after_the_fight():
+	if not MoveFeel.shown() or controller == null or not is_instance_valid(controller) or controller.tile_map == null or not is_inside_tree():
+		return
+	var tile := float(Grid.TILE_SIZE)
+	var field := Rect2()
+	var first := true
+	for comb in combatants:
+		if not comb.has("position") or comb.has("object"):
+			continue
+		var at: Vector2 = _world_at(comb.position)
+		if first:
+			field = Rect2(at, Vector2.ZERO)
+			first = false
+		else:
+			field = field.expand(at)
+	if first:
+		return
+	field = field.grow(tile * 1.5)
+	var left := []
+	var dust := CPUParticles2D.new()
+	dust.name = "DustSettling"
+	dust.z_as_relative = false
+	dust.z_index = ExplorationParty.PARTY_Z_TOP
+	dust.light_mask = 0
+	dust.global_position = field.get_center()
+	dust.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	dust.emission_rect_extents = field.size / 2.0
+	dust.amount = clampi(roundi(field.get_area() / (tile * tile) * 0.6), 30, 160)
+	dust.lifetime = AFTER_SECONDS * 1.4
+	dust.one_shot = true
+	dust.explosiveness = 0.6
+	dust.direction = Vector2.DOWN
+	dust.spread = 50.0
+	dust.gravity = Vector2(0.0, tile * 0.05)
+	dust.initial_velocity_min = tile * 0.02
+	dust.initial_velocity_max = tile * 0.1
+	dust.scale_amount_min = tile * 0.01
+	dust.scale_amount_max = tile * 0.025
+	var settle := Gradient.new()
+	settle.set_color(0, Color(0.78, 0.72, 0.62, 0.0))
+	settle.add_point(0.25, Color(0.78, 0.72, 0.62, 0.45))
+	settle.set_color(settle.get_point_count() - 1, Color(0.78, 0.72, 0.62, 0.0))
+	dust.color_ramp = settle
+	add_child(dust)
+	left.append(dust)
+	# Smoke from fire on the ground, and from whoever burned.
+	var smoking := []
+	for zone in zones:
+		if _zone_burns(zone):
+			for zone_tile in zone.get("tiles", []):
+				smoking.append(zone_tile)
+	for comb in combatants:
+		var burned_down: bool = not comb.get("alive", true) and comb.get("last_hurt", {}) is Dictionary and comb.get("last_hurt", {}).get("element", -1) == Damage.Type.FIRE
+		if comb.has("position") and (burn_turns_of(comb) > 0 or burned_down):
+			smoking.append(comb.position)
+	smoking.shuffle()
+	for smoke_tile in smoking.slice(0, AFTER_SMOKE_MOST):
+		var smoke := CPUParticles2D.new()
+		smoke.name = "SmokeThinning"
+		smoke.z_as_relative = false
+		smoke.z_index = ExplorationParty.PARTY_Z_TOP
+		smoke.light_mask = 0
+		smoke.global_position = _world_at(smoke_tile)
+		smoke.amount = 10
+		smoke.lifetime = AFTER_SECONDS
+		smoke.direction = Vector2.UP
+		smoke.spread = 18.0
+		smoke.gravity = Vector2(0.0, -tile * 0.08)
+		smoke.initial_velocity_min = tile * 0.12
+		smoke.initial_velocity_max = tile * 0.3
+		smoke.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+		smoke.emission_sphere_radius = tile * 0.2
+		smoke.scale_amount_min = tile * 0.06
+		smoke.scale_amount_max = tile * 0.14
+		var thin := Gradient.new()
+		thin.set_color(0, Color(0.35, 0.33, 0.32, 0.4))
+		thin.set_color(1, Color(0.55, 0.53, 0.52, 0.0))
+		smoke.color_ramp = thin
+		add_child(smoke)
+		left.append(smoke)
+	await get_tree().create_timer(AFTER_SECONDS, true, false, true).timeout
+	for bits in left:
+		if is_instance_valid(bits):
+			bits.emitting = false
+			get_tree().create_timer(AFTER_SECONDS * 1.5, true, false, true).timeout.connect(bits.queue_free)
 
 
 ## How much `type` damage `target` actually takes from a raw `amount`, after
@@ -7427,6 +7550,8 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	# Talked into standing down, then hit: that is the end of that.
 	if damage > 0 and target.hp > 0:
 		_hurt_ends_conditions(target)
+	# Half their health or more in one blow: something to say about it, both of them.
+	_say_of_a_big_hit(attacker, target, damage)
 	# Every blow of somebody who measures as they fight (Enfina's) studies.
 	if target.hp > 0 and attacker.has("id") and attacker != target and not target.has("object") \
 			and not target.get("illusion", false) and studies_on_hit(attacker):
@@ -7482,11 +7607,34 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 			update_information.emit("[color=lightgreen]%s[/color] recovers %d as well.\n" % [attacker.name, back])
 
 
-## `fallen` has gone down: whoever did it, and the nearest of their own side, may have something to say.
+## How much of somebody's health one blow takes to be a big one, given or taken (the designer, 2026-11-13: "make it when it's a blow
+## that deals half or more the hp").
+const BIG_HIT_SHARE := 0.5
+
+
+## A blow of `damage` from `attacker` on `target`: half their most health or more, and whoever took it says so if they stand, and whoever
+## gave it, felling them or not.
+func _say_of_a_big_hit(attacker: Dictionary, target: Dictionary, damage: int):
+	if not SpeechBubbles.shown() or target.has("object") or target.get("illusion", false) or is_same(attacker, target):
+		return
+	var most := float(get_effective_stat(target, "max_hp"))
+	if most <= 0.0 or float(damage) < most * BIG_HIT_SHARE:
+		return
+	if target.hp > 0:
+		SpeechBubbles.on_event(self, target, &"big_hit_taken")
+	if attacker.get("side", -1) != target.get("side", -2):
+		SpeechBubbles.on_event(self, attacker, &"big_hit_given")
+
+
+## `fallen` has gone down: whoever did it, and the nearest of their own side, may have something to say - and one other of the
+## killer's side praises them, for anybody but a boss (SpeechBubbles.praise).
 func _say_of_the_fallen(fallen: Dictionary):
 	if not SpeechBubbles.shown():
 		return
-	SpeechBubbles.on_event(self, _combatant_by_id(fallen.get("hurt_by", -1)), &"fells_somebody")
+	var killer := _combatant_by_id(fallen.get("hurt_by", -1))
+	SpeechBubbles.on_event(self, killer, &"fells_somebody")
+	if not killer.is_empty() and killer.get("side", -1) != fallen.get("side", -2) and not fallen.has("boss"):
+		SpeechBubbles.praise(self, killer)
 	var nearest := {}
 	for other in combatants:
 		if is_same(other, fallen) or not other.get("alive", false) or other.get("side", -1) != fallen.get("side", -2) or other.has("object") or other.get("illusion", false):
@@ -7673,6 +7821,7 @@ func revive(attacker: Dictionary, target: Dictionary, effect: EffectDefinition, 
 	update_turn_queue.emit(combatants, turn_queue)
 	update_information.emit("[color=yellow]%s[/color] used %s: [color=lightgreen]%s[/color] is back on their feet with %d health - and %d%% weaker until a long rest.\n" % [
 		attacker.name, skill.name if skill != null else "it", target.name, target.hp, roundi(effect.revive_weakening * 100.0)])
+	SpeechBubbles.on_event(self, target, &"brought_back")
 
 
 ## Takes `fraction` off everything `comb` is made of but their movement - for
@@ -14296,6 +14445,9 @@ func check_nerve(comb: Dictionary) -> bool:
 		update_information.emit("[color=red]%s[/color] breaks - %s - and runs for it!\n" % [comb.name, ", ".join(why)])
 		comb["fleeing"] = FLEE_TURNS
 		update_combatants.emit(combatants)
+	# Running: one of the other side says so (the designer, 2026-11-13: "randomly have only one character say one of this lines").
+	if comb.get("fleeing", 0) > 0:
+		SpeechBubbles.somebody_says(self, &"enemy_gives_up", Group.PLAYERS if comb.get("side", -1) != Group.PLAYERS else Group.ENEMIES)
 	return true
 
 
