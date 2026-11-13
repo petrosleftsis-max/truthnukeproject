@@ -65,8 +65,16 @@ uniform float blend = 1.0;
 uniform float drain = 0.9;
 uniform float most = 0.86;
 uniform float dither = 0.0;
+uniform float pixels = 0.0;
+uniform vec2 tiles = vec2(16.0, 16.0);
 void fragment() {
 	vec4 shade = mix(texture(previous, UV), texture(TEXTURE, UV), blend);
+	// The sky's pixels showing ("More to look at"): for a moment the light's edges step, four steps to a tile.
+	if (pixels > 0.0) {
+		vec2 steps = tiles * 4.0;
+		vec2 stepped = (floor(UV * steps) + 0.5) / steps;
+		shade = mix(shade, mix(texture(previous, stepped), texture(TEXTURE, stepped), blend), pixels);
+	}
 	float amount = shade.a;
 	if (dither > 0.0) {
 		int x = int(FRAGCOORD.x / dither) % 4;
@@ -110,15 +118,22 @@ uniform vec3 mist_colour = vec3(0.86, 0.88, 0.92);
 uniform float speed = 1.0;
 uniform vec2 drift = vec2(1.0, 0.3);
 uniform sampler2D sky_mask : hint_default_white, filter_linear, repeat_disable;
+uniform float pixels = 0.0;
 void fragment() {
-	vec2 at = UV * tiles / 14.0;
+	vec2 uv = UV;
+	// The sky's pixels showing ("More to look at"): for a moment, two steps to a tile.
+	if (pixels > 0.0) {
+		vec2 steps = tiles * 2.0;
+		uv = mix(UV, (floor(UV * steps) + 0.5) / steps, pixels);
+	}
+	vec2 at = uv * tiles / 14.0;
 	// Drifting with the wind, the way it blows (Campaign.wind_now): one layer along it, a slower one a little across it.
 	vec2 with_wind = normalize(drift + vec2(0.0001));
 	vec2 across = vec2(-with_wind.y, with_wind.x);
 	float one = texture(noise, at - with_wind * TIME * 0.0065 * speed).r;
 	float two = texture(noise, at * 0.6 - (with_wind * 0.8 + across * 0.3) * TIME * 0.004 * speed).r;
 	float cloud = smoothstep(0.42, 0.7, (one + two) * 0.5) * cover * 0.38;
-	vec2 low = UV * tiles / 5.0;
+	vec2 low = uv * tiles / 5.0;
 	float wisps = smoothstep(0.32, 0.8, texture(noise, low - with_wind * TIME * 0.01 * speed).r) * mist * 0.5;
 	// A thick fog is a veil over everything, the wisps drifting through it; a morning's mist only the wisps.
 	wisps = max(wisps, smoothstep(0.4, 1.0, mist) * (0.26 + 0.08 * texture(noise, low * 0.35 - with_wind * TIME * 0.004 * speed).r));
@@ -138,6 +153,14 @@ uniform sampler2D screen : hint_screen_texture, filter_linear, repeat_disable;
 uniform float saturation = 1.0;
 uniform float contrast = 1.0;
 uniform float shimmer = 0.0;
+// The night's darker edges, and the sky's pixels showing ("More to look at"): the open sky's mask, read by where on the screen.
+uniform float vignette = 0.0;
+uniform float pixels = 0.0;
+uniform sampler2D sky_mask : hint_default_white, filter_linear, repeat_disable;
+uniform vec2 mask_origin = vec2(0.0);
+uniform vec2 mask_size = vec2(0.0);
+uniform vec2 screen_origin = vec2(0.0);
+uniform vec2 screen_extent = vec2(0.0);
 varying vec2 world;
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
@@ -148,9 +171,21 @@ void fragment() {
 	float patch = 0.5 + 0.5 * sin(world.x * 0.0021 + TIME * 0.21) * sin(world.y * 0.0017 - TIME * 0.17);
 	vec2 wave = vec2(sin(world.y * 0.045 + TIME * 1.7), cos(world.x * 0.033 + TIME * 1.3));
 	vec2 at = SCREEN_UV + wave * 0.00055 * shimmer * (0.35 + 0.65 * patch);
+	if (pixels > 0.0) {
+		float open = 1.0;
+		if (mask_size.x > 0.0 && screen_extent.x != 0.0) {
+			vec2 on_map = (screen_origin + SCREEN_UV * screen_extent - mask_origin) / mask_size;
+			if (on_map.x >= 0.0 && on_map.y >= 0.0 && on_map.x <= 1.0 && on_map.y <= 1.0) {
+				open = texture(sky_mask, on_map).r;
+			}
+		}
+		vec2 block = SCREEN_PIXEL_SIZE * 6.0;
+		at = mix(at, (floor(at / block) + 0.5) * block, step(0.5, pixels * open));
+	}
 	vec3 under = texture(screen, at).rgb;
 	float grey = dot(under, vec3(0.299, 0.587, 0.114));
 	vec3 graded = (mix(vec3(grey), under, saturation) - 0.5) * contrast + 0.5;
+	graded *= 1.0 - vignette * smoothstep(0.45, 1.0, length(SCREEN_UV - 0.5) * 1.414);
 	COLOR = vec4(graded, 1.0);
 }
 """
@@ -234,7 +269,8 @@ func _mask_the_sky():
 			layer.material.set_shader_parameter("sky_mask", mask)
 	if _air_material == null:
 		_air_material = _material(AIR_SHADER)
-	for material in [_air_material, _glow_material, _rainbow.material if _rainbow != null else null, _flash.material if _flash != null else null]:
+	for material in [_air_material, _glow_material, _rainbow.material if _rainbow != null else null, _flash.material if _flash != null else null,
+			_far_flash.material if _far_flash != null else null, _grade.material if _grade != null else null]:
 		if material != null:
 			material.set_shader_parameter("sky_mask", mask)
 			material.set_shader_parameter("mask_origin", origin)
@@ -381,6 +417,7 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_shade.light_mask = 0
 	_shade.material = _material(SHADE_SHADER)
 	_shade.material.set_shader_parameter("drain", DRAIN)
+	_shade.material.set_shader_parameter("tiles", Vector2(region.size))
 	add_child(_shade)
 	_fog = Sprite2D.new()
 	_fog.name = "Fog"
@@ -400,6 +437,9 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_fog.material.set_shader_parameter("tiles", Vector2(region.size))
 	_fog.visible = false
 	add_child(_fog)
+	# Over the dark, under the figures: lights mirrored in the wet and in water, and the low mist of a night ("More to look at").
+	_make_the_reflections(region)
+	_ground_mist = _sky_layer("GroundMist", noise, region, GROUND_MIST_SHADER)
 	_mist = _sky_layer("Mist", noise, region)
 	_clouds = _sky_layer("Clouds", noise, region)
 	_clouds.z_as_relative = false
@@ -407,6 +447,17 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_aurora = _sky_layer("Aurora", noise, region, AURORA_SHADER)
 	_aurora.z_as_relative = false
 	_aurora.z_index = ExplorationParty.PARTY_Z_TOP
+	_birds = _Birds.new()
+	_birds.name = "BirdShadows"
+	_birds.z_as_relative = false
+	_birds.z_index = ExplorationParty.PARTY_Z_TOP
+	_birds.light_mask = 0
+	if _air_material == null:
+		_air_material = _material(AIR_SHADER)
+	_birds.material = _air_material
+	if ResourceLoader.exists(BIRD_PICTURE):
+		_birds.picture = load(BIRD_PICTURE)
+	add_child(_birds)
 	# Across the view, wherever it goes, as the grade is.
 	_rainbow = ColorRect.new()
 	_rainbow.name = "Rainbow"
@@ -428,6 +479,15 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_flash.light_mask = 0
 	_flash.visible = false
 	add_child(_flash)
+	_far_flash = ColorRect.new()
+	_far_flash.name = "FarFlash"
+	_far_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_far_flash.material = _material(FAR_FLASH_SHADER)
+	_far_flash.z_as_relative = false
+	_far_flash.z_index = 4001
+	_far_flash.light_mask = 0
+	_far_flash.visible = false
+	add_child(_far_flash)
 	showing = self
 	_occluders = Node2D.new()
 	_occluders.name = "Occluders"
@@ -454,6 +514,7 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_tone.name = "Tone"
 	_tone.color = Color.WHITE
 	add_child(_tone)
+	_gather_the_water()
 	refresh()
 
 
@@ -514,7 +575,7 @@ func _set_night_eyes(value: bool):
 func refresh(slowly: bool = false):
 	if light == null or _tile_map == null or _region.size.x <= 0 or _region.size.y <= 0:
 		return
-	visible = light.varies or not light.glow.is_empty() or _sky_to_show()
+	visible = light.varies or not light.glow.is_empty() or _sky_to_show() or not _water_tiles.is_empty()
 	_sync_lights()
 	if not visible:
 		return
@@ -553,7 +614,9 @@ func _how_lit_it_looks(tile: Vector2i) -> float:
 func _sky_to_show() -> bool:
 	return (_sun >= 0.0 and _sun < 0.99) or (_clouds != null and _clouds.visible) or (_mist != null and _mist.visible) \
 		or (_rain != null and _rain.emitting) or (_life != null and _life.emitting) or (_aurora != null and _aurora.visible) \
-		or (_rainbow != null and _rainbow.visible) or [_snow, _hail, _sand, _ash, _gusts].any(func(bits): return bits != null and bits.emitting)
+		or (_rainbow != null and _rainbow.visible) or [_snow, _hail, _sand, _ash, _gusts, _leaves].any(func(bits): return bits != null and bits.emitting) \
+		or (_ground_mist != null and _ground_mist.visible) or (_birds != null and not _birds.flocks.is_empty()) \
+		or (not _sky_shown.is_empty() and _birds_wanted(_sky_shown) > 0.05)
 
 
 ## --- Darkness comes on slowly ---
@@ -661,6 +724,7 @@ func _sync_lights():
 		entry.source = source
 		entry.at = at
 		entry.energy = _energy_of(source)
+		entry["dark"] = _dark_round(source)
 		entry.node.color = _opening_colour if source.get("opening", false) else source.get("colour", Color.WHITE)
 		entry.node.texture_scale = light_scale(maxf(source.dim, source.bright))
 		kept.append(entry)
@@ -700,7 +764,9 @@ func _new_light(source: Dictionary, at: Vector2) -> Dictionary:
 	add_child(node)
 	if air_on:
 		_add_what_hangs_in_the_air(node, source)
-	return {"node": node, "source": source, "at": at, "energy": _energy_of(source), "phase": float(source.tile.x * 13 + source.tile.y * 7) * 0.37}
+	_add_bloom(node, source)
+	return {"node": node, "source": source, "at": at, "energy": _energy_of(source), "phase": float(source.tile.x * 13 + source.tile.y * 7) * 0.37,
+		"dark": _dark_round(source), "bloom": node.get_node_or_null("Bloom"), "smoke": node.get_node_or_null("Smoke")}
 
 
 func _put_out(entry: Dictionary):
@@ -748,6 +814,7 @@ func _stops_a_shadow(at: Vector2) -> bool:
 ## they go into. Only when that has changed.
 func _build_occluders():
 	_ground_mask_made = false
+	_ground_mist_made = false
 	# The roofs as the light map has them now: the sky's mask again too, once anything of the sky wants it (_mask_the_sky).
 	_sky_mask_made = false
 	if light.blocks_light == null or not light.blocks_light.is_valid() or not light.varies:
@@ -829,6 +896,11 @@ func _add_what_hangs_in_the_air(node: PointLight2D, source: Dictionary):
 		bits.scale_amount_max = tile * 0.028
 		fade.set_color(0, Color(1.0, 0.75, 0.3, 0.95))
 		fade.set_color(1, Color(0.9, 0.25, 0.05, 0.0))
+		# Out under the sky, a flame smokes, leaning the way the wind blows ("More to look at").
+		if light != null and source.has("tile") and light.under_the_sky(source.tile):
+			var smoke := ChimneySmoke.make_smoke(0.3, Color(0.7, 0.7, 0.72))
+			smoke.position = Vector2(0.0, -tile * 0.1)
+			node.add_child(smoke)
 	else:
 		bits.amount = 8
 		bits.lifetime = 5.0
@@ -988,7 +1060,8 @@ func _put_on_the_sky(at_once: bool):
 		_grade.material.set_shader_parameter("saturation", sky.saturation)
 		_grade.material.set_shader_parameter("contrast", sky.contrast)
 		_grade.material.set_shader_parameter("shimmer", shimmer if air_on else 0.0)
-		_grade.visible = not (is_equal_approx(sky.saturation, 1.0) and is_equal_approx(sky.contrast, 1.0)) or (air_on and shimmer > 0.01)
+		_grade.material.set_shader_parameter("vignette", VIGNETTE_MOST * _night_share(sky) if air_on else 0.0)
+		_grade.visible = _grade_wanted(sky)
 		_grade_copy.visible = _grade.visible
 	CombatantSprite.set_shadows(sky)
 	CombatantSprite.soaking = float(sky.get("rain", 0.0)) + float(sky.get("hail", 0.0)) * 0.8 + float(sky.get("snow", 0.0)) * 0.3
@@ -1135,10 +1208,15 @@ class _Prints extends Node2D:
 
 func _make_the_ground(region: Rect2i):
 	var noise := _ground_noise()
+	_ground_noise_texture = noise
 	_wet_ground = _sky_layer("WetGround", noise, region, WET_SHADER)
 	_wet_ground.visible = false
 	_ground = _sky_layer("Ground", noise, region, GROUND_SHADER)
 	_ground.visible = false
+	# A map's water, over the ground and under the dark ("More to look at"), lit by its lamps.
+	_water = _sky_layer("Water", noise, region, WATER_SHADER)
+	_water.light_mask = 1
+	_water.visible = false
 	_prints = _Prints.new()
 	_prints.name = "Prints"
 	add_child(_prints)
@@ -1184,6 +1262,8 @@ func _put_on_the_ground(sky: Dictionary):
 		var mask := _ground_mask()
 		_ground.material.set_shader_parameter("mask", mask)
 		_wet_ground.material.set_shader_parameter("mask", mask)
+		if _reflections != null:
+			_reflections.material.set_shader_parameter("ground", mask)
 		_ground_mask_made = true
 	_wet_ground.material.set_shader_parameter("wet", float(lying.get("wet", 0.0)))
 	for key in ["wet", "snow", "frost", "ash", "sand"]:
@@ -1266,6 +1346,10 @@ func _show_the_sky(sky: Dictionary, at_once: bool = true):
 	_set_falling("gusts", wind * (1.0 - snow) * (1.0 - sand) if air_on else 0.0, wind)
 	_set_life(sky.life if air_on else "")
 	_set_fireflies(_fireflies_wanted(sky))
+	_set_leaves(_leaves_wanted(sky), wind)
+	_set_ground_mist(_ground_mist_wanted(sky))
+	_put_on_the_water(sky)
+	_put_on_the_reflections(sky)
 	_set_day_sound(sky.sound)
 	# What comes in at a window is the sky's colour at this minute, paler than the tone over everything.
 	_opening_colour = Color(sky.tone).lerp(Color.WHITE, 0.25)
@@ -1521,11 +1605,12 @@ func _keep_the_air_on_the_screen():
 		var screen := get_viewport_rect().size
 		var origin: Vector2 = to_map * Vector2.ZERO
 		var extent: Vector2 = to_map * screen - origin
-		for material in [_air_material, _glow_material, _flash.material if _flash != null else null]:
+		for material in [_air_material, _glow_material, _flash.material if _flash != null else null, _far_flash.material if _far_flash != null else null,
+				_grade.material if _grade != null else null]:
 			if material != null:
 				material.set_shader_parameter("screen_origin", origin)
 				material.set_shader_parameter("screen_extent", extent)
-	var falling := [_rain, _life, _snow, _hail, _sand, _ash, _gusts, _fireflies]
+	var falling := [_rain, _life, _snow, _hail, _sand, _ash, _gusts, _fireflies, _leaves]
 	if not falling.any(func(bits): return bits != null and bits.emitting):
 		return
 	var from_screen := get_canvas_transform().affine_inverse()
@@ -1533,7 +1618,7 @@ func _keep_the_air_on_the_screen():
 	var middle: Vector2 = from_screen * (get_viewport_rect().size / 2.0)
 	for bits in falling:
 		if bits != null and bits.emitting:
-			var sideways: bool = bits == _sand or bits == _gusts
+			var sideways: bool = bits == _sand or bits == _gusts or bits == _leaves
 			# Blowing in from upwind, so the screen fills the way they go.
 			bits.global_position = middle - (_wind_way() * view * 0.15 if sideways else (Vector2(0.0, view.y * 0.15) if bits == _rain or bits == _hail else Vector2.ZERO))
 			bits.emission_rect_extents = view / 2.0
@@ -1583,6 +1668,7 @@ func _process(delta: float):
 	_keep_the_grade_on_the_screen()
 	_keep_the_air_on_the_screen()
 	_storm(delta)
+	_more_to_look_at(delta)
 	if light == null:
 		return
 	_clock += delta
@@ -1599,6 +1685,13 @@ func _process(delta: float):
 			wobble = sin(_clock * FLICKER_RATE + entry.phase) * 0.55 + sin(_clock * FLICKER_RATE * 2.3 + 1.3 + entry.phase) * 0.45
 		var wanted: float = entry.energy * (1.0 + wobble * FLICKER)
 		node.energy = move_toward(node.energy, wanted, entry.energy / EASE_SECONDS * delta) if node.energy < wanted - entry.energy * FLICKER * 2.0 else wanted
+		# Its glow after dark, breathing with it; its smoke leaning with the wind ("More to look at").
+		var bloom = entry.get("bloom")
+		if bloom != null and is_instance_valid(bloom):
+			bloom.modulate = Color(node.color, BLOOM * float(entry.get("dark", 0.0)) * clampf(node.energy / ENERGY, 0.0, 1.3) if air_on else 0.0)
+		var smoke = entry.get("smoke")
+		if smoke != null and is_instance_valid(smoke):
+			ChimneySmoke.lean(smoke)
 
 
 ## --- Light that moves ---
@@ -1690,6 +1783,10 @@ func _keep_the_grade_on_the_screen():
 		var where_now := get_canvas_transform().affine_inverse()
 		_flash.global_position = where_now * Vector2.ZERO
 		_flash.size = get_viewport_rect().size * where_now.get_scale()
+	if _far_flash != null and _far_flash.visible:
+		var where_now := get_canvas_transform().affine_inverse()
+		_far_flash.global_position = where_now * Vector2.ZERO
+		_far_flash.size = get_viewport_rect().size * where_now.get_scale()
 	if _rainbow != null and _rainbow.visible:
 		var on_screen := get_canvas_transform().affine_inverse()
 		_rainbow.global_position = on_screen * Vector2.ZERO
@@ -1700,3 +1797,767 @@ func _keep_the_grade_on_the_screen():
 	var from_screen := get_canvas_transform().affine_inverse()
 	_grade.global_position = from_screen * Vector2.ZERO
 	_grade.size = get_viewport_rect().size * from_screen.get_scale()
+
+
+
+## --- More to look at ---
+##
+## The designer, 2026-11-13 (proposals 21: "I like all the new suggestions you can do them"). View only, placeholders, every number
+## PROPOSAL, nothing rolled from Combat.rng:
+## - Wet reflections: after rain, each light is mirrored in the puddles below it (the ground's own, WET_SHADER's) and in a map's water,
+##   broken up by ripples, more in the rain (_Reflections, REFLECTION_SHADER, REFLECTION, REFLECTION_TILES).
+## - Leaves and petals on the wind: blossom in spring, leaves in autumn, a few green ones in a summer gale, crossing the board the way
+##   it blows, more the harder (_leaves_wanted, _set_leaves). Slots: art/fx/petal.png, art/fx/leaf.png.
+## - Birds' shadows: by day, now and then, a flock's shadows passing over the open ground the way the wind blows, fainter under cloud
+##   (_Birds, _birds_wanted, BIRDS_EVERY, BIRD_SHADOW; birds_now for a look). Slot: art/fx/bird_shadow.png.
+## - Smoke in the wind: from a flame out under the sky, leaning the wind's way (ChimneySmoke.make_smoke); a map's ChimneySmoke and
+##   WindBanner nodes (banners, pennants, washing lines) do the same.
+## - Light that blooms: a soft glow round each light after dark (BLOOM, _add_bloom), and the edges of the view a little darker after
+##   dusk (GRADE_SHADER's vignette, VIGNETTE_MOST, _night_share).
+## - Ground mist: low mist lying in sheltered ground and by water at night, thinning as the sun climbs, blown away by a wind
+##   (_ground_mist_wanted, GROUND_MIST_SHADER, where it lies from _ground_mist_mask, GROUND_MIST_MOST).
+## - Distant lightning: on a close summer night before a storm, far flashes at one edge of the view, with no thunder
+##   (_far_lightning_wanted, FAR_FLASH, FAR_FLASH_GAP; far_lightning_now for a look).
+## - The sky's pixels showing: at dawn and dusk, now and then, for a moment the light's edges step into pixels and the open sky with
+##   them, a hint that it is not what it seems (_pixels_due, PIXELS_EVERY; sky_pixels_now for a look; the shaders' `pixels`).
+## - Water that moves: a map's WaterPatch ripples the way the wind blows, foams where it meets the land, takes the rain's rings, and
+##   the sun glints on it on the side where the sun stands at the hour, the moon faintly at night (_water, WATER_SHADER, under the dark
+##   as the ground is, and lit by lamps).
+
+const BLOOM := 0.3
+const VIGNETTE_MOST := 0.36
+const REFLECTION := 0.6
+const REFLECTION_TILES := 2.4
+const LEAVES_MOST := 70
+const BIRDS_EVERY := [28.0, 80.0]
+const BIRD_SHADOW := 0.28
+const GROUND_MIST_MOST := 0.42
+const FAR_FLASH := 0.22
+const FAR_FLASH_GAP := [4.0, 15.0]
+const PIXELS_EVERY := [45.0, 120.0]
+## The next day's weathers a far flash comes before.
+const STORMY := ["storm", "thunderstorm", "rain"]
+const LEAF_PICTURE := "res://art/fx/leaf.png"
+const PETAL_PICTURE := "res://art/fx/petal.png"
+const BIRD_PICTURE := "res://art/fx/bird_shadow.png"
+
+var _reflections: _Reflections = null
+var _ground_noise_texture: NoiseTexture2D = null
+var _leaves: CPUParticles2D = null
+var _leaves_are := ""
+var _birds: _Birds = null
+var _next_birds := 12.0
+var _ground_mist: Sprite2D = null
+var _ground_mist_made := false
+var _far_flash: ColorRect = null
+var _next_far_flash := 3.0
+var _pixels := 0.0
+var _next_pixels := 15.0
+var _water: Sprite2D = null
+## The tiles water lies on, {tile: WaterPatch}.
+var _water_tiles := {}
+static var _leaf_pictures := {}
+
+## The map's water: a pixel a tile in `water` (its colour, and in alpha whether there is any, 1 with foam at its edges and 0.6
+## without).
+const WATER_SHADER := """
+shader_type canvas_item;
+uniform sampler2D water : filter_nearest, repeat_disable;
+uniform sampler2D picture : hint_default_white, repeat_enable, filter_linear;
+uniform bool has_picture = false;
+uniform vec2 tiles = vec2(16.0, 16.0);
+uniform float glint = 0.0;
+uniform vec3 glint_colour = vec3(1.0, 0.96, 0.84);
+uniform float sun_at = 0.5;
+uniform float raining = 0.0;
+uniform vec2 drift = vec2(0.0);
+uniform float pixels = 0.0;
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float wobble(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float water_at(vec2 tile) {
+	if (tile.x < 0.0 || tile.y < 0.0 || tile.x >= tiles.x || tile.y >= tiles.y) {
+		return 0.0;
+	}
+	return step(0.4, texture(water, (tile + 0.5) / tiles).a);
+}
+void fragment() {
+	vec2 cell = UV * tiles;
+	if (pixels > 0.0) {
+		cell = mix(cell, floor(cell * 4.0) / 4.0 + 0.125, pixels);
+	}
+	vec2 tile = floor(cell);
+	vec4 here = texture(water, (tile + 0.5) / tiles);
+	if (here.a < 0.4) {
+		discard;
+	}
+	vec2 in_tile = cell - tile;
+	vec3 colour = here.rgb;
+	if (has_picture) {
+		colour *= texture(picture, cell).rgb;
+	}
+	// Ripples, two slow layers going the way the wind blows.
+	vec2 flow = drift * 0.4 + vec2(0.05, 0.02);
+	float one = wobble(cell * 3.0 - flow * TIME * 1.6);
+	float two = wobble(cell * 5.3 + vec2(-flow.y, flow.x) * TIME * 1.1 + vec2(TIME * 0.07, 0.0));
+	float wave = one * 0.6 + two * 0.4;
+	colour *= 0.9 + 0.2 * wave;
+	// Rings where the rain lands on it.
+	if (raining > 0.01) {
+		vec2 drop_cell = floor(cell * 4.0);
+		float t = fract(TIME * 1.1 + hash(drop_cell));
+		vec2 centre = (drop_cell + vec2(hash(drop_cell + 1.3), hash(drop_cell + 7.1))) / 4.0;
+		float d = length(cell - centre) * 4.0;
+		float ring = smoothstep(0.07, 0.0, abs(d - t * 0.8)) * (1.0 - t) * raining;
+		colour = mix(colour, vec3(0.85, 0.92, 1.0), ring * 0.6);
+	}
+	// The sun's glint, on the side of the view where it stands at the hour; the moon's, fainter, by night.
+	float band = exp(-pow((SCREEN_UV.x - sun_at) * 2.6, 2.0));
+	vec2 spark_cell = floor(cell * 9.0);
+	float spark = step(0.955, hash(spark_cell + floor(TIME * 2.5 + hash(spark_cell) * 9.0)));
+	float crest = smoothstep(0.6, 0.82, wave);
+	colour += glint_colour * glint * band * (spark * crest * 0.85 + crest * 0.1);
+	// Foam where it meets the land: along each side with no water beyond it, broken up, coming and going.
+	if (here.a > 0.9) {
+		float edge = 9.0;
+		if (water_at(tile + vec2(-1.0, 0.0)) < 0.5) { edge = min(edge, in_tile.x); }
+		if (water_at(tile + vec2(1.0, 0.0)) < 0.5) { edge = min(edge, 1.0 - in_tile.x); }
+		if (water_at(tile + vec2(0.0, -1.0)) < 0.5) { edge = min(edge, in_tile.y); }
+		if (water_at(tile + vec2(0.0, 1.0)) < 0.5) { edge = min(edge, 1.0 - in_tile.y); }
+		float froth = smoothstep(0.17, 0.02, edge + (wobble(cell * 8.0 + TIME * 0.35) - 0.5) * 0.12);
+		colour = mix(colour, vec3(0.9, 0.95, 0.97), froth * (0.5 + 0.25 * sin(TIME * 1.2 + cell.x * 2.3 + cell.y * 1.9)));
+	}
+	COLOR = vec4(colour, 0.94);
+}
+"""
+
+## A light mirrored below it, where the ground is wet (the ground's own puddles, as WET_SHADER lays them) or there is water.
+const REFLECTION_SHADER := """
+shader_type canvas_item;
+render_mode unshaded, blend_add;
+uniform sampler2D noise : repeat_enable, filter_linear;
+uniform sampler2D ground : filter_linear, repeat_disable;
+uniform sampler2D water : filter_nearest, repeat_disable;
+uniform vec2 map_origin = vec2(0.0);
+uniform vec2 map_size = vec2(1.0);
+uniform float tile = 256.0;
+uniform float wet = 0.0;
+uniform float raining = 0.0;
+uniform float strength = 0.6;
+varying vec2 world;
+varying vec4 tint;
+void vertex() {
+	world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+	tint = COLOR;
+}
+void fragment() {
+	vec2 on_map = (world - map_origin) / map_size;
+	if (on_map.x < 0.0 || on_map.y < 0.0 || on_map.x > 1.0 || on_map.y > 1.0) {
+		discard;
+	}
+	vec2 cell = (world - map_origin) / tile;
+	float open = step(0.5, texture(ground, on_map).r);
+	float pool = smoothstep(0.6 - wet * 0.28, 0.48 - wet * 0.28, texture(noise, cell * 0.09).r) * clamp(wet * 1.4, 0.0, 1.0) * open;
+	float mirror = max(pool, step(0.4, texture(water, on_map).a));
+	float wave = sin(world.y * 0.09 + TIME * (1.8 + raining * 3.0)) * (0.05 + 0.1 * raining)
+		+ (texture(noise, cell * 0.7 + vec2(TIME * 0.05, 0.0)).r - 0.5) * 0.12;
+	float streak = texture(TEXTURE, vec2(UV.x + wave, UV.y)).a;
+	float bands = 0.6 + 0.4 * sin(world.y * 0.06 - TIME * 1.4 + texture(noise, cell * 0.35 + vec2(0.0, TIME * 0.03)).r * 6.283);
+	COLOR = vec4(tint.rgb, tint.a * streak * mirror * bands * strength);
+}
+"""
+
+## Low mist where `lies` says, a pixel a tile, drifting slowly the way the wind blows.
+const GROUND_MIST_SHADER := """
+shader_type canvas_item;
+render_mode unshaded;
+uniform sampler2D noise : repeat_enable, filter_linear;
+uniform sampler2D lies : filter_linear, repeat_disable;
+uniform vec2 tiles = vec2(16.0, 16.0);
+uniform float amount = 0.0;
+uniform vec2 drift = vec2(1.0, 0.3);
+uniform float pixels = 0.0;
+void fragment() {
+	vec2 uv = UV;
+	if (pixels > 0.0) {
+		vec2 steps = tiles * 2.0;
+		uv = mix(UV, (floor(UV * steps) + 0.5) / steps, pixels);
+	}
+	vec2 at = uv * tiles / 3.0;
+	vec2 way = normalize(drift + vec2(0.0001));
+	float one = texture(noise, at - way * TIME * 0.006).r;
+	float two = texture(noise, at * 1.9 + vec2(way.y, -way.x) * TIME * 0.004).r;
+	float wisp = smoothstep(0.3, 0.75, one * 0.6 + two * 0.4);
+	COLOR = vec4(0.8, 0.84, 0.9, wisp * texture(lies, UV).r * amount);
+}
+"""
+
+## A far flash beyond one edge of the view (`side`, the way to it from the middle), only under the open sky.
+const FAR_FLASH_SHADER := """
+shader_type canvas_item;
+render_mode unshaded, blend_add;
+uniform sampler2D sky_mask : hint_default_white, filter_linear, repeat_disable;
+uniform vec2 mask_origin = vec2(0.0);
+uniform vec2 mask_size = vec2(0.0);
+uniform vec2 screen_origin = vec2(0.0);
+uniform vec2 screen_extent = vec2(0.0);
+uniform vec2 side = vec2(1.0, -0.4);
+uniform float flash = 0.0;
+void fragment() {
+	float open = 1.0;
+	if (mask_size.x > 0.0 && screen_extent.x != 0.0) {
+		vec2 on_map = (screen_origin + SCREEN_UV * screen_extent - mask_origin) / mask_size;
+		if (on_map.x >= 0.0 && on_map.y >= 0.0 && on_map.x <= 1.0 && on_map.y <= 1.0) {
+			open = texture(sky_mask, on_map).r;
+		}
+	}
+	float towards = clamp(dot(SCREEN_UV - 0.5, normalize(side)) + 0.5, 0.0, 1.0);
+	COLOR = vec4(vec3(0.62, 0.7, 1.0) * flash * pow(towards, 2.2) * open, 1.0);
+}
+"""
+
+
+func _more_to_look_at(delta: float):
+	if _sky_shown.is_empty() or not visible:
+		return
+	if _birds != null:
+		_next_birds -= delta
+		if _next_birds <= 0.0:
+			_next_birds = randf_range(BIRDS_EVERY[0], BIRDS_EVERY[1])
+			var how_dark := _birds_wanted(_sky_shown)
+			if how_dark > 0.05:
+				birds_now(how_dark)
+	_next_far_flash -= delta
+	if _next_far_flash <= 0.0:
+		var far := _far_lightning_wanted(_sky_shown)
+		_next_far_flash = lerpf(FAR_FLASH_GAP[1], FAR_FLASH_GAP[0], far) * randf_range(0.7, 1.3) if far > 0.0 else FAR_FLASH_GAP[0]
+		if far > 0.0:
+			far_lightning_now(randf_range(0.5, 1.0))
+	_pixels_due(delta)
+
+
+## How far into the dark of the night it is, 0 by day to 1: by the sun where the sky has a say, by the place's own light where not.
+func _night_share(sky: Dictionary) -> float:
+	var amount := float(sky.get("amount", -1.0))
+	if amount >= 0.0:
+		return clampf((0.8 - amount) / 0.34, 0.0, 1.0)
+	if light == null:
+		return 0.0
+	return [1.0, 0.5, 0.0][clampi(light.base, 0, 2)]
+
+
+## How dark it is round a light, 0 to 1, for its glow: by what the place would be without it.
+func _dark_round(source: Dictionary) -> float:
+	if light == null or not source.has("tile"):
+		return 0.0
+	return clampf((1.0 - light.ambient_amount_at(source.tile)) / 0.6, 0.0, 1.0)
+
+
+## Whether the grade over the view is wanted: a change of colour, the heat's shimmer, the night's darker edges, or the sky's pixels.
+func _grade_wanted(sky: Dictionary) -> bool:
+	return not (is_equal_approx(float(sky.get("saturation", 1.0)), 1.0) and is_equal_approx(float(sky.get("contrast", 1.0)), 1.0)) \
+		or (air_on and (float(sky.get("shimmer", 0.0)) > 0.01 or _night_share(sky) > 0.01 or _pixels > 0.0))
+
+
+## A soft glow round a light, on its own node, shown after dark (_process); none for a window.
+func _add_bloom(node: PointLight2D, source: Dictionary):
+	if source.get("opening", false):
+		return
+	var glow := Sprite2D.new()
+	glow.name = "Bloom"
+	glow.texture = light_picture()
+	glow.light_mask = 0
+	glow.z_as_relative = false
+	glow.z_index = ExplorationParty.PARTY_Z_TOP
+	var add := CanvasItemMaterial.new()
+	add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	add.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	glow.material = add
+	glow.scale = Vector2.ONE * light_scale(maxf(float(source.get("bright", 1.0)), 1.0) * 0.6)
+	glow.modulate = Color(source.get("colour", Color.WHITE), 0.0)
+	node.add_child(glow)
+
+
+## The colour a thing standing at `at` takes from the dark about it (a banner, smoke): white where it is lit, nearer the shade's own
+## colour the heavier the shade is there.
+static func lit_colour_at(at: Vector2) -> Color:
+	if showing == null or not is_instance_valid(showing) or not showing.visible:
+		return Color.WHITE
+	return Color.WHITE.lerp(Color(SHADE_COLOUR, 1.0), clampf(showing._shade_at(at), 0.0, 1.0))
+
+
+## How heavy the shade is at `at`, a place in the world: where it is going, not where it is on the way.
+func _shade_at(at: Vector2) -> float:
+	if _shade_target == null or _tile_map == null:
+		return 0.0
+	var tile := _tile_map.local_to_map(_tile_map.to_local(at)) - _region.position
+	if tile.x < 0 or tile.y < 0 or tile.x >= _shade_target.get_width() or tile.y >= _shade_target.get_height():
+		return 0.0
+	return _shade_target.get_pixel(tile.x, tile.y).a
+
+
+func _wall_at(tile: Vector2i) -> bool:
+	return light != null and light.blocks_light != null and light.blocks_light.is_valid() and light.blocks_light.call(tile)
+
+
+## Whether `tile` is high ground (the TileSet's Climb).
+func _high_ground(tile: Vector2i) -> bool:
+	if _tile_map == null or _tile_map.tile_set == null or _tile_map.tile_set.get_custom_data_layer_by_name("Climb") < 0:
+		return false
+	var data := _tile_map.get_cell_tile_data(0, tile)
+	return data != null and bool(data.get_custom_data("Climb"))
+
+
+## --- Wet reflections ---
+
+
+func _make_the_reflections(region: Rect2i):
+	_reflections = _Reflections.new()
+	_reflections.name = "Reflections"
+	_reflections.view = self
+	_reflections.light_mask = 0
+	_reflections.streak = _streak_picture()
+	_reflections.material = _material(REFLECTION_SHADER)
+	_reflections.visible = false
+	var half := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE) / 2.0
+	var origin: Vector2 = _tile_map.to_global(_tile_map.map_to_local(region.position) - half)
+	var far: Vector2 = _tile_map.to_global(_tile_map.map_to_local(region.end) - half)
+	_reflections.material.set_shader_parameter("map_origin", origin)
+	_reflections.material.set_shader_parameter("map_size", far - origin)
+	_reflections.material.set_shader_parameter("tile", float(Grid.TILE_SIZE))
+	_reflections.material.set_shader_parameter("noise", _ground_noise_texture)
+	_reflections.material.set_shader_parameter("strength", REFLECTION)
+	add_child(_reflections)
+
+
+## A light's streak on wet ground: bright where it begins, fading away from the light and to either side.
+static func _streak_picture() -> Texture2D:
+	var image := Image.create(32, 128, false, Image.FORMAT_RGBA8)
+	for y in 128:
+		for x in 32:
+			var across := (float(x) + 0.5) / 16.0 - 1.0
+			var along := (float(y) + 0.5) / 128.0
+			var a := pow(maxf(1.0 - across * across, 0.0), 1.5) * pow(1.0 - along, 1.4)
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, a))
+	return ImageTexture.create_from_image(image)
+
+
+func _put_on_the_reflections(sky: Dictionary):
+	if _reflections == null:
+		return
+	var wet := float(_ground_wanted.get("wet", 0.0))
+	_reflections.visible = air_on and not _lights.is_empty() and (wet > 0.05 or not _water_tiles.is_empty())
+	if not _reflections.visible:
+		return
+	_reflections.material.set_shader_parameter("wet", wet)
+	_reflections.material.set_shader_parameter("raining", clampf(Light.rain_loudness(sky), 0.0, 1.0))
+
+
+## Each light mirrored below it, drawn through REFLECTION_SHADER, which keeps only what falls on the wet and the water.
+class _Reflections extends Node2D:
+	var view: LightView = null
+	var streak: Texture2D = null
+
+	func _process(_delta: float):
+		if visible:
+			queue_redraw()
+
+	func _draw():
+		if view == null or not is_instance_valid(view) or streak == null:
+			return
+		var tile := float(Grid.TILE_SIZE)
+		for entry in view._lights:
+			var node: PointLight2D = entry.node
+			if not is_instance_valid(node) or entry.source.get("opening", false):
+				continue
+			var strength: float = clampf(node.energy / LightView.ENERGY, 0.0, 1.4)
+			if strength < 0.03:
+				continue
+			var reach: float = maxf(float(entry.source.get("bright", 1.0)), 1.0)
+			var size := Vector2(tile * (0.3 + 0.1 * reach), tile * LightView.REFLECTION_TILES * (0.7 + 0.15 * reach))
+			draw_texture_rect(streak, Rect2(node.position + Vector2(-size.x / 2.0, tile * 0.15), size), false, Color(node.color, strength))
+
+
+## --- Leaves and petals on the wind ---
+
+
+## What blows across the board now, and how much of it, 0 to 1: blossom in spring, leaves in autumn, a few green ones in a summer
+## gale; none where there is no sky, nor in snow, hail, sand or ash.
+func _leaves_wanted(sky: Dictionary) -> Dictionary:
+	var none := {"what": "", "amount": 0.0}
+	if not air_on or float(sky.get("amount", -1.0)) < 0.0:
+		return none
+	for key in ["snow", "hail", "sand", "ash"]:
+		if float(sky.get(key, 0.0)) > 0.05:
+			return none
+	var wind := float(sky.get("wind", 0.0))
+	match Campaign.season_now():
+		"spring":
+			return {"what": "petals", "amount": clampf(0.12 + wind * 1.1, 0.0, 1.0)}
+		"autumn":
+			return {"what": "leaves", "amount": clampf(0.15 + wind * 1.1, 0.0, 1.0)}
+		"summer":
+			if wind >= 0.5:
+				return {"what": "green", "amount": clampf((wind - 0.4) * 0.8, 0.0, 0.5)}
+	return none
+
+
+func _set_leaves(wanted: Dictionary, wind: float):
+	var amount: float = wanted.amount
+	if amount <= 0.01:
+		if _leaves != null:
+			_leaves.emitting = false
+		_leaves_are = ""
+		return
+	var tile := float(Grid.TILE_SIZE)
+	if _leaves == null:
+		_leaves = _air_bits("Leaves")
+		_leaves.gravity = Vector2.ZERO
+		_leaves.lifetime = 5.5
+		_leaves.spread = 22.0
+		_leaves.angle_min = 0.0
+		_leaves.angle_max = 360.0
+		_leaves.angular_velocity_min = -160.0
+		_leaves.angular_velocity_max = 160.0
+		_leaves.tangential_accel_min = -tile * 0.4
+		_leaves.tangential_accel_max = tile * 0.4
+		_leaves.scale_amount_min = 2.2
+		_leaves.scale_amount_max = 3.4
+		var fade := Gradient.new()
+		fade.set_color(0, Color(1.0, 1.0, 1.0, 0.0))
+		fade.add_point(0.08, Color(1.0, 1.0, 1.0, 0.95))
+		fade.add_point(0.85, Color(1.0, 1.0, 1.0, 0.9))
+		fade.set_color(fade.get_point_count() - 1, Color(1.0, 1.0, 1.0, 0.0))
+		_leaves.color_ramp = fade
+	if wanted.what != _leaves_are:
+		_leaves_are = wanted.what
+		_leaves.texture = _leaf_picture(wanted.what)
+		_leaves.color_initial_ramp = _leaf_colours(wanted.what)
+	var count := maxi(roundi(float(LEAVES_MOST) * amount), 6)
+	if absi(_leaves.amount - count) > maxi(_leaves.amount / 3, 2):
+		_leaves.amount = count
+	_leaves.direction = (_wind_way() + Vector2(0.0, 0.35)).normalized()
+	_leaves.initial_velocity_min = tile * (0.4 + 2.2 * wind)
+	_leaves.initial_velocity_max = tile * (0.8 + 3.6 * wind)
+	_leaves.modulate.a = clampf(amount * 3.0, 0.0, 1.0)
+	_leaves.emitting = true
+
+
+## A petal or a leaf, drawn here unless its slot has a picture: white, to take each one's colour (_leaf_colours).
+static func _leaf_picture(what: String) -> Texture2D:
+	var slot := PETAL_PICTURE if what == "petals" else LEAF_PICTURE
+	if ResourceLoader.exists(slot):
+		return load(slot)
+	if _leaf_pictures.has(what):
+		return _leaf_pictures[what]
+	var size := Vector2i(12, 9) if what == "petals" else Vector2i(18, 10)
+	var image := Image.create(size.x, size.y, false, Image.FORMAT_RGBA8)
+	for y in size.y:
+		for x in size.x:
+			var u := (float(x) + 0.5) / float(size.x)
+			var v := (float(y) + 0.5) / float(size.y) * 2.0 - 1.0
+			var half := sqrt(maxf(1.0 - pow(u * 2.0 - 1.0, 2.0), 0.0)) if what == "petals" else sin(PI * u)
+			var inside := clampf((half - absf(v)) * float(size.y) * 0.5, 0.0, 1.0)
+			# A leaf's vein down its middle, a little darker.
+			var shade := 0.8 if what != "petals" and absf(v) < 0.14 and u > 0.08 and u < 0.92 else 1.0
+			image.set_pixel(x, y, Color(shade, shade, shade, inside))
+	var picture := ImageTexture.create_from_image(image)
+	_leaf_pictures[what] = picture
+	return picture
+
+
+## The colours they come in, one each, at random.
+static func _leaf_colours(what: String) -> Gradient:
+	var colours: Array
+	match what:
+		"petals":
+			colours = [Color(1.0, 0.82, 0.88), Color(1.0, 0.97, 0.97), Color(0.98, 0.7, 0.8), Color(1.0, 0.9, 0.93)]
+		"green":
+			colours = [Color(0.38, 0.6, 0.22), Color(0.5, 0.7, 0.28), Color(0.3, 0.5, 0.2)]
+		_:
+			colours = [Color(0.86, 0.45, 0.14), Color(0.72, 0.2, 0.1), Color(0.9, 0.72, 0.22), Color(0.5, 0.32, 0.16), Color(0.8, 0.55, 0.2)]
+	var ramp := Gradient.new()
+	ramp.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_CONSTANT
+	ramp.set_color(0, colours[0])
+	ramp.set_color(1, colours[colours.size() - 1])
+	for i in range(1, colours.size()):
+		ramp.add_point(float(i) / float(colours.size()), colours[i])
+	return ramp
+
+
+## --- Birds' shadows ---
+
+
+## Whether birds' shadows would pass now, and how dark, 0 to 1: by day under the open sky, fainter the more cloud; none in rain,
+## snow, hail, sand, ash, fog or a storm.
+func _birds_wanted(sky: Dictionary) -> float:
+	if not air_on or float(sky.get("amount", -1.0)) < 0.7:
+		return 0.0
+	var minute := Campaign.minute_of_day()
+	if minute < 390 or minute > 1110:
+		return 0.0
+	if float(sky.get("rain", 0.0)) > 0.2 or float(sky.get("snow", 0.0)) > 0.05 or float(sky.get("hail", 0.0)) > 0.05 \
+			or float(sky.get("sand", 0.0)) > 0.05 or float(sky.get("ash", 0.0)) > 0.05 or float(sky.get("mist", 0.0)) > 0.5 \
+			or float(sky.get("lightning", 0.0)) > 0.05:
+		return 0.0
+	return clampf(1.0 - float(sky.get("clouds", 0.0)) * 0.75, 0.0, 1.0)
+
+
+## A flock's shadows across the view now, `how_dark` of them (and for a look, whatever the sky).
+func birds_now(how_dark: float = 1.0):
+	if _birds == null or not is_inside_tree():
+		return
+	var tile := float(Grid.TILE_SIZE)
+	var from_screen := get_canvas_transform().affine_inverse()
+	var view := get_viewport_rect().size * from_screen.get_scale()
+	var middle: Vector2 = to_local(from_screen * (get_viewport_rect().size / 2.0))
+	var way := _wind_way().rotated(randf_range(-0.7, 0.7)) if float(_sky_shown.get("wind", 0.0)) > 0.1 else Vector2.RIGHT.rotated(randf() * TAU)
+	var across := view.length() * 0.62
+	var speed := tile * randf_range(3.0, 4.6)
+	var flock := {"at": middle - way * across + way.orthogonal() * randf_range(-0.3, 0.3) * view.y, "way": way, "speed": speed,
+		"lasts": across * 2.0 / speed, "left": across * 2.0 / speed, "strength": how_dark, "birds": []}
+	var in_a_v := randf() < 0.5
+	for i in randi_range(3, 9):
+		var offset: Vector2
+		if in_a_v:
+			var rank := floorf(float(i + 1) / 2.0)
+			offset = -way * rank * tile * 0.45 + way.orthogonal() * rank * tile * 0.38 * (1.0 if i % 2 == 0 else -1.0)
+		else:
+			offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * tile * 1.1
+		flock.birds.append({"offset": offset, "size": randf_range(0.5, 0.75), "rate": randf_range(7.0, 10.0), "phase": randf() * TAU,
+			"glide": randf_range(1.5, 4.0)})
+	_birds.flocks.append(flock)
+
+
+## The flocks going over, each a shadow a bird, flapping and now and then gliding.
+class _Birds extends Node2D:
+	## [{"at", "way", "speed", "lasts", "left", "strength", "birds": [{"offset", "size", "rate", "phase", "glide"}]}]
+	var flocks: Array = []
+	var picture: Texture2D = null
+
+	func _process(delta: float):
+		if flocks.is_empty():
+			return
+		for flock in flocks:
+			flock["at"] = flock["at"] + flock["way"] * float(flock["speed"]) * delta
+			flock["left"] = float(flock["left"]) - delta
+		flocks = flocks.filter(func(flock): return flock.left > 0.0)
+		queue_redraw()
+
+	func _draw():
+		var tile := float(Grid.TILE_SIZE)
+		var now := Time.get_ticks_msec() / 1000.0
+		for flock in flocks:
+			var fade: float = clampf(flock.left / 1.5, 0.0, 1.0) * clampf((flock.lasts - flock.left) / 1.5, 0.0, 1.0)
+			var colour := Color(0.02, 0.03, 0.08, LightView.BIRD_SHADOW * float(flock.strength) * fade)
+			var forward: Vector2 = flock.way
+			var side := forward.orthogonal()
+			for bird in flock.birds:
+				var at: Vector2 = flock.at + bird.offset
+				var span: float = tile * float(bird.size)
+				var flapping: bool = fmod(now + float(bird.phase), float(bird.glide) + 1.4) < 1.4
+				var reach := span * ((0.6 + 0.4 * absf(cos(now * float(bird.rate) + float(bird.phase)))) if flapping else 1.0)
+				if picture != null:
+					draw_set_transform(at, forward.angle() + PI / 2.0, Vector2(reach / span, 1.0))
+					draw_texture_rect(picture, Rect2(-Vector2(span, span) / 2.0, Vector2(span, span)), false, colour)
+					draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+					continue
+				var nose := at + forward * span * 0.18
+				var tail := at - forward * span * 0.1
+				var left_tip := at + side * reach * 0.5 - forward * span * 0.22
+				var right_tip := at - side * reach * 0.5 - forward * span * 0.22
+				draw_colored_polygon(PackedVector2Array([nose, left_tip, tail, right_tip]), colour)
+
+
+## --- Ground mist ---
+
+
+## How much low mist lies in the hollows now, 0 to 1: through the night and the early morning, thinning as the sun climbs and gone
+## by half past nine, coming in again after dusk; blown away by a wind; thinner in rain; none in snow, sand, ash, heat or a storm.
+func _ground_mist_wanted(sky: Dictionary) -> float:
+	if not air_on or float(sky.get("amount", -1.0)) < 0.0:
+		return 0.0
+	if float(sky.get("snow", 0.0)) > 0.1 or float(sky.get("sand", 0.0)) > 0.05 or float(sky.get("ash", 0.0)) > 0.05 \
+			or float(sky.get("shimmer", 0.0)) > 0.1 or float(sky.get("lightning", 0.0)) > 0.05:
+		return 0.0
+	var minute := float(Campaign.minute_of_day())
+	var by_hour: float
+	if minute >= 1140.0:
+		by_hour = smoothstep(1140.0, 1260.0, minute)
+	elif minute < 420.0:
+		by_hour = 1.0
+	else:
+		by_hour = 1.0 - smoothstep(420.0, 570.0, minute)
+	var still := 1.0 - smoothstep(0.2, 0.6, float(sky.get("wind", 0.0)))
+	var wet := 0.6 if float(sky.get("rain", 0.0)) > 0.4 else 1.0
+	var season: float = {"spring": 1.0, "summer": 0.7, "autumn": 1.0, "winter": 0.85}.get(Campaign.season_now(), 1.0)
+	return by_hour * still * wet * season
+
+
+func _set_ground_mist(amount: float):
+	if _ground_mist == null:
+		return
+	_ground_mist.visible = air_on and amount > 0.01
+	if not _ground_mist.visible:
+		return
+	if not _ground_mist_made:
+		_ground_mist_made = true
+		_ground_mist.material.set_shader_parameter("lies", _ground_mist_mask())
+	_ground_mist.material.set_shader_parameter("amount", amount * GROUND_MIST_MOST)
+	_ground_mist.material.set_shader_parameter("drift", Vector2(Campaign.wind_now()))
+
+
+## Where the low mist lies, a pixel a tile: open ground, more where it is sheltered (walls and high ground about it) and by water;
+## none on a wall, up on high ground or under a roof.
+func _ground_mist_mask() -> ImageTexture:
+	var image := Image.create(maxi(_region.size.x, 1), maxi(_region.size.y, 1), false, Image.FORMAT_L8)
+	var steps := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
+	for y in _region.size.y:
+		for x in _region.size.x:
+			var tile := _region.position + Vector2i(x, y)
+			var lies := 0.0
+			if light != null and light.under_the_sky(tile) and not _wall_at(tile) and not _high_ground(tile):
+				var about := 0
+				for step in steps:
+					if _wall_at(tile + step) or _high_ground(tile + step):
+						about += 1
+				var by_water := 0.0
+				if not _water_tiles.is_empty():
+					for dy in range(-2, 3):
+						for dx in range(-2, 3):
+							if _water_tiles.has(tile + Vector2i(dx, dy)):
+								by_water = maxf(by_water, 1.0 - Vector2(dx, dy).length() / 3.0)
+				lies = clampf(0.3 + float(about) / 8.0 * 0.5 + by_water * 0.5, 0.0, 1.0)
+			image.set_pixel(x, y, Color(lies, lies, lies))
+	return ImageTexture.create_from_image(image)
+
+
+## --- Distant lightning ---
+
+
+## How often far flashes come now, 0 to 1: a summer night under the open sky before a storm (the next day's weather a storm or
+## rain), or a close one (a day of heat); never in a storm itself, nor in rain or snow.
+func _far_lightning_wanted(sky: Dictionary) -> float:
+	if not air_on or float(sky.get("amount", -1.0)) < 0.0 or Campaign.season_now() != "summer":
+		return 0.0
+	if float(sky.get("lightning", 0.0)) > 0.05 or float(sky.get("rain", 0.0)) > 0.1 or float(sky.get("snow", 0.0)) > 0.01:
+		return 0.0
+	var minute := Campaign.minute_of_day()
+	if minute < 1230 and minute >= 270:
+		return 0.0
+	if STORMY.has(Campaign.weather_on(Campaign.day_number() + (1 if minute >= 720 else 0))):
+		return 1.0
+	return 0.6 if Campaign.weather_today() == "heat" else 0.0
+
+
+## A far flash at one edge of the view, with no thunder (and for a look, whatever the sky).
+func far_lightning_now(strength: float = 1.0):
+	if _far_flash == null or not is_inside_tree():
+		return
+	var from_screen := get_canvas_transform().affine_inverse()
+	_far_flash.global_position = from_screen * Vector2.ZERO
+	_far_flash.size = get_viewport_rect().size * from_screen.get_scale()
+	_far_flash.material.set_shader_parameter("side", Vector2.RIGHT.rotated(randf() * TAU))
+	_far_flash.visible = true
+	var most := FAR_FLASH * strength
+	var flash := create_tween()
+	flash.tween_method(_set_far_flash, 0.0, most, 0.06)
+	flash.tween_method(_set_far_flash, most, most * 0.25, 0.12)
+	flash.tween_method(_set_far_flash, most * 0.25, most * 0.8, 0.05)
+	flash.tween_method(_set_far_flash, most * 0.8, 0.0, 0.5)
+	flash.tween_callback(func(): _far_flash.visible = false)
+
+
+func _set_far_flash(value: float):
+	_far_flash.material.set_shader_parameter("flash", value)
+
+
+## --- The sky's pixels showing ---
+
+
+func _pixels_due(delta: float):
+	_next_pixels -= delta
+	if _next_pixels > 0.0:
+		return
+	_next_pixels = randf_range(PIXELS_EVERY[0], PIXELS_EVERY[1])
+	if not air_on or float(_sky_shown.get("amount", -1.0)) < 0.0:
+		return
+	var minute := Campaign.minute_of_day()
+	if (minute >= 300 and minute < 480) or (minute >= 1020 and minute < 1200):
+		sky_pixels_now()
+
+
+## For a moment, the light's edges and the open sky step into pixels (and for a look, whatever the hour).
+func sky_pixels_now():
+	if not is_inside_tree():
+		return
+	var moment := create_tween()
+	for step in [[1.0, 0.16], [0.0, 0.08], [1.0, 0.45], [0.5, 0.1], [1.0, 0.3], [0.0, 0.0]]:
+		moment.tween_callback(_set_pixels.bind(step[0]))
+		if step[1] > 0.0:
+			moment.tween_interval(step[1])
+
+
+func _set_pixels(value: float):
+	_pixels = value
+	for layer in [_shade, _clouds, _mist, _ground_mist, _water]:
+		if layer != null:
+			layer.material.set_shader_parameter("pixels", value)
+	if _grade != null:
+		_grade.material.set_shader_parameter("pixels", value)
+		if not _sky_shown.is_empty():
+			_grade.visible = _grade_wanted(_sky_shown)
+			_grade_copy.visible = _grade.visible
+
+
+## --- Water that moves ---
+
+
+## The map's water (WaterPatch), gathered once: the tiles it covers, and a picture of it a pixel a tile for WATER_SHADER.
+func _gather_the_water():
+	_water_tiles.clear()
+	if _tile_map == null or _water == null or not is_inside_tree():
+		return
+	var top: Node = _tile_map
+	while top.get_parent() != null and top.get_parent() != get_tree().root:
+		top = top.get_parent()
+	for patch in top.find_children("*", "WaterPatch", true, false):
+		for tile in patch.covers(patch.first_tile(_tile_map)):
+			_water_tiles[tile] = patch
+	if _water_tiles.is_empty():
+		return
+	var image := Image.create(maxi(_region.size.x, 1), maxi(_region.size.y, 1), false, Image.FORMAT_RGBA8)
+	for tile in _water_tiles:
+		var at: Vector2i = tile - _region.position
+		if at.x < 0 or at.y < 0 or at.x >= _region.size.x or at.y >= _region.size.y:
+			continue
+		var patch: WaterPatch = _water_tiles[tile]
+		image.set_pixel(at.x, at.y, Color(patch.colour, 1.0 if patch.foam else 0.6))
+	var mask := ImageTexture.create_from_image(image)
+	_water.material.set_shader_parameter("water", mask)
+	if _reflections != null:
+		_reflections.material.set_shader_parameter("water", mask)
+	if ResourceLoader.exists(WaterPatch.PICTURE):
+		_water.material.set_shader_parameter("picture", load(WaterPatch.PICTURE))
+		_water.material.set_shader_parameter("has_picture", true)
+	_water.visible = true
+
+
+func _put_on_the_water(sky: Dictionary):
+	if _water == null or not _water.visible:
+		return
+	var clouds := float(sky.get("clouds", 0.0))
+	var by_day := clampf((float(sky.get("amount", 1.0)) - 0.5) / 0.4, 0.0, 1.0)
+	var sun := by_day * (1.0 - clouds * 0.8)
+	var moon := 0.0 if Campaign.no_moon_now() else 0.25 * (1.0 - by_day) * (1.0 - clouds)
+	_water.material.set_shader_parameter("glint", maxf(sun, moon))
+	_water.material.set_shader_parameter("glint_colour", Vector3(1.0, 0.96, 0.84) if sun >= moon else Vector3(0.75, 0.82, 1.0))
+	_water.material.set_shader_parameter("sun_at", clampf(0.5 - float(sky.get("lean", 0.0)) * 0.34, 0.08, 0.92))
+	_water.material.set_shader_parameter("raining", clampf(Light.rain_loudness(sky), 0.0, 1.0))
+	_water.material.set_shader_parameter("drift", Vector2(Campaign.wind_now()).normalized() * float(sky.get("wind", 0.0)))

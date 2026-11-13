@@ -109,3 +109,20 @@ It is extra art: one more picture for every tile and every frame. Most people ge
 tool (Laigter, SpriteIlluminator), then touch them up. So it only makes sense once the real art exists, and it
 needs no code when it does. In Godot, a TileSet atlas has a Normal Map field, and a sprite takes a CanvasTexture,
 which holds the picture and its normal map together. The lights here already use them when they are there.
+
+## 8. Water, cloth and smoke
+
+Three more nodes to place, each only to look at:
+
+| Node | What it does |
+| --- | --- |
+| WaterPatch | Water. Put it on the top-left tile and set Size Tiles, as for a Noisy Floor; Colour is the water's, and Foam can be turned off for water against a wall or a quay. It ripples the way the wind blows, foams where it meets the land, rings in the rain, and the sun glints on it on the side where the sun stands. Lights are mirrored in it, and the night's low mist lies thicker beside it. Nobody is kept out of it: paint the tiles under it with Blocks for that. |
+| WindBanner | Cloth in the wind. Kind is Banner, Pennant or Washing Line; Cloth is its colour, Pole Tiles how tall its pole is, and a washing line reaches Reach Tiles to the right. It hangs slack in still air and streams out the way the wind blows. |
+| ChimneySmoke | Smoke over the roofs, leaning with the wind: Lit, Thickness and Colour. A flame out under the sky smokes by itself. |
+
+Nothing has to be placed for the rest, which come with the season, the hour and the weather: lights mirrored in the wet after rain,
+blossom and leaves on the wind in spring and autumn, birds' shadows by day, a glow round lights and darker edges after dark, low mist
+at night, far lightning on a close summer night before a storm, and at dawn and dusk the light stepping into pixels for a moment. The
+Light stage's yard has one of each node, and its sundial gives any season, weather and hour.
+
+Slots: `art/fx/water.png`, `art/fx/smoke.png`, `art/fx/leaf.png`, `art/fx/petal.png`, `art/fx/bird_shadow.png`.

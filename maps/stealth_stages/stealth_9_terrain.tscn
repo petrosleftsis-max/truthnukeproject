@@ -4,6 +4,9 @@
 [ext_resource type="Script" path="res://maps/grid_overlay.gd" id="2_4aons"]
 [ext_resource type="Script" path="res://exploration/LightSource.gd" id="3_nja3b"]
 [ext_resource type="Script" path="res://exploration/AmbientArea.gd" id="4_ofwuh"]
+[ext_resource type="Script" path="res://exploration/WaterPatch.gd" id="5_water"]
+[ext_resource type="Script" path="res://exploration/WindBanner.gd" id="6_banner"]
+[ext_resource type="Script" path="res://exploration/ChimneySmoke.gd" id="7_smoke"]
 
 [node name="Stealth9Terrain" type="Node2D" unique_id=279645256]
 
@@ -78,3 +81,22 @@ script = ExtResource("3_nja3b")
 bright_tiles = 1.5
 dim_tiles = 4.5
 colour = Color(0.72, 0.42, 1, 1)
+
+[node name="Pond" type="Node2D" parent="." unique_id=1611340377]
+position = Vector2(3456, 3456)
+script = ExtResource("5_water")
+size_tiles = Vector2i(4, 2)
+
+[node name="YardBanner" type="Node2D" parent="." unique_id=1734115822]
+position = Vector2(4224, 2432)
+script = ExtResource("6_banner")
+
+[node name="Washing" type="Node2D" parent="." unique_id=1253406187]
+position = Vector2(640, 3200)
+script = ExtResource("6_banner")
+kind = 2
+cloth = Color(0.62, 0.22, 0.2, 1)
+
+[node name="HallChimney" type="Node2D" parent="." unique_id=1460911339]
+position = Vector2(7552, 2176)
+script = ExtResource("7_smoke")

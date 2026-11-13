@@ -13992,7 +13992,7 @@ func _ai_dispel_a_zone(comb: Dictionary) -> bool:
 ## be worth it is less the deeper it reaches (to AI_GATE_COST_LEAST of it). And what a spell left counts for more the deeper the
 ## gate it came through (_ai_gate_worth: AI_DISPEL_PER_GATE more a gate past the World's), as a spell cancelled already does
 ## (AI_CANCEL_PER_GATE). An InstaHack costs the one whose spell it tears apart no gate (_cast_cancelled), only the spell and the
-## action.
+## action; a Gate Nade torn apart stays in their bag, to throw again.
 
 const AI_CANCEL_WORTH := 30.0
 const AI_CANCEL_PER_GATE := 10.0
@@ -19828,13 +19828,16 @@ func cancel_casting(attacker: Dictionary, target: Dictionary):
 
 ## `attacker`'s `skill`, cancelled as they cast it (InstaHack): none of it happens, and the gate it would have come through is
 ## not spent - nor a spare casting, nor a deeper gate to amplify it (the designer, 2026-11-12: "make instahack not let the
-## caster spend their gate for that spell"). The action is, and a Gate Nade thrown is gone.
+## caster spend their gate for that spell"). The action is spent. A Gate Nade whose spell it tears apart is not: it stays in
+## the thrower's bag, unused (the designer, 2026-11-13: "gate nade: if it gets instahack, keep it unused").
 func _cast_cancelled(attacker: Dictionary, skill_key: String, skill: SkillDefinition, end_turn_after: bool, as_secondary: bool):
 	attacker.erase("cast_through")
 	attacker["amplify"] = 0
 	if is_spell(skill) and not is_item(skill_key) and not casts_without_gates(attacker):
 		update_information.emit("[color=yellow]%s[/color] keeps the gate it would have come through.\n" % attacker.name)
-	if is_item(skill_key):
+	if skill is GateNadeDefinition:
+		update_information.emit("[color=yellow]%s[/color] still has the %s - it never went off.\n" % [attacker.name, skill.name])
+	elif is_item(skill_key):
 		consume_item(attacker, skill_key)
 	await _hack_spends_action(attacker, as_secondary, end_turn_after)
 

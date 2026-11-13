@@ -162,6 +162,7 @@ lightspells
 figures
 hudlook
 daysky
+atmos
 enfina
 speech
 prometheus

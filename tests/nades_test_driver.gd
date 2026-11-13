@@ -208,6 +208,16 @@ func throwing_them():
 	ok(not combat.items_of(alithia).has("communion_gate_nade") and alithia.spell_slots == gates_before,
 		"and is gone, with no gate of hers opened")
 	ok(alithia.skill_used_this_turn, "it took her main action")
+	# Torn apart as it is thrown (InstaHack's cancel_casting): the action is spent, the nade is not (the designer, 2026-11-13:
+	# "gate nade: if it gets instahack, keep it unused").
+	Campaign.set_inventory("alithia", ["communion_gate_nade"])
+	give_turn(alithia)
+	mark = heard.size()
+	await combat._cast_cancelled(alithia, "communion_gate_nade", nade("communion_gate_nade"), false, false)
+	await settle(2)
+	ok(combat.items_of(alithia).has("communion_gate_nade"), "torn apart by an InstaHack, the nade is still in her bag")
+	ok(alithia.skill_used_this_turn, "though throwing it took her action")
+	ok(heard.slice(mark).any(func(line): return "never went off" in line), "and the log says she still has it")
 	combat.teleport_to(prometheus, within(prometheus, foe, 6))
 	await settle(1)
 	give_turn(prometheus)

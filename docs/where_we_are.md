@@ -91,6 +91,15 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's later message of 2026-11-13** (ledger rows of that date from "An InstaHacked Gate Nade kept"; CLAUDE.md "More to
+  look at"; suite `atmos`):
+  - All nine of section 21's new atmosphere ideas built: lights mirrored in the wet and in water, leaves and petals on the wind,
+    birds' shadows, smoke and cloth in the wind (`WindBanner`, `ChimneySmoke`), a glow round lights and darker edges after dark, low
+    mist by night, far lightning before a summer storm, the sky's pixels showing at dawn and dusk, and water that moves (`WaterPatch`).
+    The Light stage's yard has a pond, a banner, washing and a chimney.
+  - A Gate Nade torn apart by InstaHack stays unused; Enfina's "Mine." is out.
+  - The interface page has six more looks from K (O to T), R recommended.
+
 - **The designer's message of 2026-11-13** (ledger rows of that date; CLAUDE.md "Light that moves", "After a fight", "The wind's way,
   seen", the four's lines; suites `speech`, `clock`, `daysky`):
   - The four's lines at new moments (big hits at half health, brought back, a condition lifted, an enemy running, out of castings,
@@ -417,11 +426,11 @@ holds the game for both).
 
 ## Waiting on the designer
 
-0. **From 2026-11-13:** which sky look (J with N's hours recommended); whether 2.5D gets a test map (proposals 22, the courtyard page);
-   the three mended spellings in the lines; the timings and strengths by feel (darkness, lightning indoors, the heat, the after-fight beat,
-   fireflies); which of the new atmosphere ideas in section 21.
-0. **From the second message of 2026-11-12:** which look (F with G's gates is the recommendation now); painted weathers for the calendar
-   (`art/ui/weather/<weather>.png`); Night Hunter's level (24 is PROPOSAL); whether a Gate Nade torn apart comes back too (it does not now); the
+0. **From later on 2026-11-13:** which of O to T, or K itself; how strong and how often the new atmosphere is, by feel. 2.5D (A, B and C)
+   is chosen with their artist and planned for Fable: its brief is `docs/fable_brief.md`, with three more jobs worth Fable's time.
+0. **From 2026-11-13:** the timings and strengths by feel (darkness, lightning indoors, the heat, the after-fight beat, fireflies).
+0. **From the second message of 2026-11-12:** painted weathers for the calendar
+   (`art/ui/weather/<weather>.png`); Night Hunter's level (24 is PROPOSAL); the
    lightning flash's share under a roof (0.15) and the darkness timings (1.2 s darkening, 0.8 s otherwise).
 0. **From 2026-11-12:** Night Hunter (E now recommended, or D+); the two study lines on each monster; which look for the interface
    (proposals 20; a page with the looks and the art list); which of 19, 21 and 22 to do; sounds for the empty slots (`docs/sound_slots.md`);

@@ -139,6 +139,14 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_wdnkf")
 
+[node name="SignWater" type="Node2D" parent="." unique_id=1817424063]
+position = Vector2(3200, 3712)
+script = ExtResource("8_36tr8")
+text = "WATER, WIND AND THE REST. The pond is a WaterPatch: it ripples the way the wind blows, foams at its edges, rings in the rain, and the sun glints on it on the side where the sun stands. It is only to look at; what can be walked on is the tiles' Blocks, as ever. The banner and the washing are WindBanners and the hall's chimney a ChimneySmoke: they stream and lean with the wind, and a flame out here smokes the same way. Ask the sundial for the rest: blossom or leaves on the wind in spring and autumn, birds' shadows by day, lamps mirrored in the wet after rain and glowing after dark, low mist by the pond at night, far lightning on a close summer night before a storm, and at dawn or dusk, now and then, the light stepping into pixels for a moment."
+prompt = "Read"
+interaction_radius = 320.0
+sprite_frames = ExtResource("7_wdnkf")
+
 [node name="Waypoint_round_a" type="Node2D" parent="." unique_id=812624539]
 position = Vector2(9088, 3200)
 script = ExtResource("11_5b13n")

@@ -689,6 +689,7 @@ most health; taken only while still standing), being brought back, having someth
 the party, chosen at random, says one line), out of castings (Alithia's and Prometheus's, at their last casting), praise for each other
 (one line, from one of the others, for any kill that is not a boss's) and Enfina's Step In. Three spelling slips were mended as they went
 in: "Scum like you", "you carved your own path", "making yourself useful"; say if any was meant as written.
+**Later that day:** the mended spellings stand, and Enfina's earlier "Mine." is out of her Step In.
 
 ## 20. The interface's look, and art for your artist
 
@@ -742,6 +743,21 @@ page, all E's blue night, the stars strewn as real ones are:
 
 **My recommendation now: J, with N's hours.** K and L could wait for when the story starts showing the sky is false.
 
+**Then (the designer, 2026-11-13, later):** "I actually really like K, but do show some more examples with less focus on the pixelated
+part." Six more on the page, all K's smooth night with its stars, the sky coming apart in other ways:
+
+| Style | What it is |
+| --- | --- |
+| **O. The seam** | Two sheets of night sewn together; a seam of warm light across the panel, a few stitches loose |
+| **P. The peeled corner** | One corner of the painted night lifted, a warm light behind it |
+| **Q. The thinning sky** | The blue thick at the top, running thin at the bottom, where a warm light shows through, grainy |
+| **R. The cracked dome** | The sky a glazed dome, cracked from one corner, light in the cracks |
+| **S. Stars coming loose** | Now and then a star falls slowly out of the panel; the fallen lie dim along its edge |
+| **T. K, lighter** | K with only a few small pixels loose in one corner |
+
+**My pick from these: R.** The cracks sit in one corner, so they work on every panel from a tooltip to the journal, and they can spread a
+little each chapter as the story gets closer to the truth. S could be kept for the story's big revelations.
+
 ## 21. More atmosphere
 
 | Idea | What it adds |
@@ -779,6 +795,15 @@ already lie where they fell. More to look at, then, rather than to read:
 
 My pick for first: wet reflections and leaves on the wind. They show the weather and the wind on every map at once.
 
+**Then (the designer, 2026-11-13, later):** "I like all the new suggestions you can do them." All nine built that day, placeholders all:
+lights mirrored in the puddles after rain and in water; blossom in spring, leaves in autumn and a summer gale's green ones on the wind;
+birds' shadows going over by day; a flame out of doors smoking the wind's way, and banners, pennants, washing lines and chimney smoke to put
+on a map; a glow round each light after dark and the view's edges a little darker; low mist in sheltered ground and by water at night,
+thinning as the sun climbs; far lightning with no thunder on a close summer night before a storm; at dawn and dusk, now and then, the
+light's edges stepping into pixels for a moment; and water that ripples with the wind, foams at its edges, rings in the rain and glints on
+the side where the sun stands. The Light stage's yard has a pond, a banner, washing and a chimney to see them by, and the sundial runs the
+rest. How strong and how often each is, by feel.
+
 ## 22. 2.5D: depth with 2D art
 
 You asked whether the map can feel three-dimensional with 2D art. It can, in steps, from depth on the art we have to a real 3D
@@ -800,6 +825,10 @@ road; worth one test map later if you want to see it.
 it is now, A with B and C, and D isometric), each part of the recommendation switched on and off, the light movable and the view to drag,
 is linked in my message. It is drawn in shapes by the page, not in our art, so it shows how depth reads rather than how the game will
 look. A real test map in the game, with the art we have, would be the next step if one of them is wanted.
+
+**Then (the designer and their artist, 2026-11-13, later):** A, B and C together, as recommended. It is the biggest change to how
+the game draws since the light: raised ground with its faces and shadows, layers that part as the view moves, what stands in front fading,
+light that knows the height of walls. The designer means to give it to Fable as one piece of work; its brief is `docs/fable_brief.md`.
 
 ## 23. The sundial and the calendar, and how they could look
 

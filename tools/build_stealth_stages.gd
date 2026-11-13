@@ -384,6 +384,7 @@ func stage_light():
 	pickup(root, Vector2i(35, 17), "Lantern", "lantern", "stage9_lantern")
 	light_sign(root, "SignLantern", Vector2i(34, 18), "A LANTERN, on the floor here: whoever has one in their Baldric lights the way as they go, and is seen coming. It is no item to use in a fight, and it lights up a fight just the same.")
 	light_sign(root, "SignColour2", Vector2i(41, 5), "Two more colours among the pillars, to show how the shadows cross: one steady, one flickering.")
+	light_sign(root, "SignWater", Vector2i(12, 14), "WATER, WIND AND THE REST. The pond is a WaterPatch: it ripples the way the wind blows, foams at its edges, rings in the rain, and the sun glints on it on the side where the sun stands. It is only to look at; what can be walked on is the tiles' Blocks, as ever. The banner and the washing are WindBanners and the hall's chimney a ChimneySmoke: they stream and lean with the wind, and a flame out here smokes the same way. Ask the sundial for the rest: blossom or leaves on the wind in spring and autumn, birds' shadows by day, lamps mirrored in the wet after rain and glowing after dark, low mist by the pond at night, far lightning on a close summer night before a storm, and at dawn or dusk, now and then, the light stepping into pixels for a moment.")
 	for point in [["round_a", Vector2i(35, 12)], ["round_b", Vector2i(47, 12)], ["round_c", Vector2i(47, 24)], ["round_d", Vector2i(35, 24)]]:
 		waypoint(root, point[0], point[1])
 	var torch = guard(root, "TorchBearer", "barbarian", Vector2i(35, 12), 0.0, ["round_a", "round_b", "round_c", "round_d"])
@@ -464,6 +465,16 @@ func _light_the_stage(terrain_path: String):
 	ambient_area(root, Vector2i(33, 3), "CellarRock", Vector2i(17, 25), Light.Ambient.UNDERGROUND)
 	light_source(root, Vector2i(39, 6), "GreenLight", 1.5, 4.5, Color(0.35, 1.0, 0.5), false)
 	light_source(root, Vector2i(43, 6), "VioletLight", 1.5, 4.5, Color(0.72, 0.42, 1.0), true)
+	# Water, cloth and smoke in the yard, to see the weather move them (LightView "More to look at").
+	var pond := WaterPatch.new()
+	pond.size_tiles = Vector2i(4, 2)
+	place(root, pond, "Pond", Vector2i(13, 13))
+	place(root, WindBanner.new(), "YardBanner", Vector2i(16, 9))
+	var washing := WindBanner.new()
+	washing.kind = WindBanner.Kind.WASHING_LINE
+	washing.cloth = Color(0.62, 0.22, 0.2)
+	place(root, washing, "Washing", Vector2i(2, 12))
+	place(root, ChimneySmoke.new(), "HallChimney", Vector2i(29, 8))
 	_save(root, terrain_path)
 
 

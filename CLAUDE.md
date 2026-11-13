@@ -493,6 +493,20 @@ the clouds and mist drift with it (SKY_LAYER_SHADER `drift`); the clock face's t
 flash keeps covering the view while it moves (`_keep_the_grade_on_the_screen`). The heat's shimmer is held to the ground, slow and in patches
 (GRADE_SHADER's `world`), and comes from morning to evening (`Light.HEAT_BY_NIGHT`, `HEAT_LOW_SUN`). A fog a scene holds stays all day
 (`Light.sky`'s `held`, from `Campaign.weather_held`) and is a veil, not only wisps; a day's own still lifts by ten.
+**More to look at** (LightView section of that name; the designer, 2026-11-13, proposals 21: "I like all the new suggestions you can do them";
+suite `atmos`; view only, placeholders, numbers PROPOSAL). Lights mirrored in the ground's own puddles after rain and in water (`_Reflections`,
+REFLECTION_SHADER, drawn over the dark, under the figures); blossom, leaves or a summer gale's green ones on the wind (`_leaves_wanted`,
+`_set_leaves`, slots `art/fx/petal.png`, `leaf.png`); birds' shadows by day, now and then (`_Birds`, `_birds_wanted`, `birds_now`, slot
+`art/fx/bird_shadow.png`); a flame under the sky smokes, leaning with the wind (`ChimneySmoke.make_smoke` and `lean`); a glow round each
+light after dark (`_add_bloom`, `BLOOM`, by `_dark_round`) and the view's edges darker after dusk (GRADE_SHADER's `vignette`, `_night_share`,
+`_grade_wanted`); low mist in sheltered ground and by water at night, thinning as the sun climbs (`_ground_mist_wanted`, GROUND_MIST_SHADER,
+`_ground_mist_mask`); far flashes with no thunder on a close summer night before a storm (`_far_lightning_wanted`, `STORMY`,
+`far_lightning_now`, FAR_FLASH_SHADER); at dawn and dusk, now and then, the light's edges and the open sky stepping into pixels for a moment
+(`_pixels_due`, `sky_pixels_now`, the shaders' `pixels`). Nothing in it rolls from `Combat.rng`. **On maps:** `WaterPatch` (water: a size in
+tiles, a colour, foam or not; drawn by the view under the dark, `_gather_the_water`, WATER_SHADER: ripples with the wind, foam where it meets
+land, rain's rings, the sun's glint on its side at the hour; only to look at, Blocks still decides walking), `WindBanner` (a banner, a pennant
+or a washing line streaming the wind's way) and `ChimneySmoke`, both darkened with the night through `LightView.lit_colour_at`. The Light
+stage's yard has one of each (`tools/build_stealth_stages.gd`, sign "SignWater").
 
 **How light falls on a figure, and what is on them** (`CombatantSprite`, `combat/ConditionLook.gd`; `figures`; the designer, 2026-11-07, sections
 9 and 10 of `docs/proposals_2026-11-07.md`). View only, with no icons over the head: the designer looked at an example and preferred
@@ -1843,7 +1857,8 @@ one section each, and every rule is a per-creature switch:
   - `_react_to_casting` (Casts), in `use_skill` before the animation, for
     anything `is_spell`. It sets `comb.casting`; `cancel_casting`
     (EffectType.CANCEL_CASTING, InstaHack) sets `cast_cancelled`, and then
-    `_cast_cancelled` spends the action but no gate, spare or amplifying gate (the designer, 2026-11-12);
+    `_cast_cancelled` spends the action but no gate, spare or amplifying gate (the designer, 2026-11-12), and a Gate
+    Nade torn apart stays in the thrower's bag, unused (the designer, 2026-11-13);
   - `_react_before`, in `use_skill` once the targets are known (an attacker
     left stunned there hits nobody);
   - `_react_after`, once it has landed;

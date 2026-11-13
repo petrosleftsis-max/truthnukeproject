@@ -8,7 +8,7 @@ studies = Array[String](["So that's how you fight.", "Watch the feet.", "Seen th
 when_using = {
 "trailblaze": ["You are not getting away.", "It's only fire.", "I'll carve the path ahead."],
 "share_the_fire": ["Go. I've got it."],
-"step_in": ["Mine.", "I'm right here.", "You can't escape me.", "Can you really afford to be distracted?"]
+"step_in": ["I'm right here.", "You can't escape me.", "Can you really afford to be distracted?"]
 }
 takes_a_blow = Array[String](["You can't escape me."])
 big_hit_given = Array[String](["I've only just begun.", "You are nothing more than my next step.", "Out of my way."])
