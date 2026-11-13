@@ -1090,7 +1090,7 @@ class Trap extends Node2D:
 
 	func _ready():
 		z_as_relative = false
-		z_index = ExplorationParty.PARTY_Z_TOP - 3
+		z_index = ExplorationParty.PARTY_Z_BOTTOM - 3
 
 	func _process(_delta):
 		if watch == null or not is_instance_valid(watch):

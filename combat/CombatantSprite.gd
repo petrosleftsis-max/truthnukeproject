@@ -48,6 +48,11 @@ class_name CombatantSprite
 var _animated: AnimatedSprite2D = null
 var _static: Sprite2D = null
 
+
+## Every figure drawn is in Depth.FIGURES: sorted by where it stands on a map, and seen through what covers it (DepthView).
+func _enter_tree():
+	add_to_group(Depth.FIGURES)
+
 ## How solid this combatant is drawn, for hiding.
 ##
 ## Kept off `modulate` on purpose: that one is already spoken for by the hit
@@ -286,6 +291,8 @@ class _Shadow extends Node2D:
 		var feet := Vector2(0.0, float(Grid.TILE_SIZE) * 0.42)
 		if figure.off_ground:
 			feet.y += float(Grid.TILE_SIZE) * CombatantSprite.OFF_GROUND_DROP
+		# Up on raised ground, so is their shadow.
+		feet.y -= figure.ground_lift / (figure.scale.y if figure.scale.y != 0.0 else 1.0)
 		return feet
 
 	func _draw():
@@ -1429,12 +1436,19 @@ const FLOOR_HOP_FROM := 0.55
 var _hop_tween: Tween = null
 
 
-## Hops, `kind` (Hop), over `seconds`.
-func hop(kind: int, seconds: float):
+## Hops, `kind` (Hop), over `seconds`: and to `to_lift`, where the ground they land on is drawn that much higher (Depth; below 0,
+## as high as they are).
+func hop(kind: int, seconds: float, to_lift: float = -1.0):
 	var drawn = _drawn()
 	if drawn == null or kind == Hop.NONE:
 		return
 	end_hop()
+	if to_lift >= 0.0 and not is_equal_approx(to_lift, ground_lift):
+		# Home is where they will land; the hop starts as far under or over it as the ground they leave is.
+		_hop_drop = to_lift - ground_lift
+		ground_lift = to_lift
+		size_offset = _home()
+		_hop_lifts = true
 	_hop_tween = create_tween()
 	_hop_tween.tween_method(_hop_at.bind(kind), 0.0, 1.0, maxf(seconds, 0.05))
 	_hop_tween.finished.connect(end_hop)
@@ -1445,6 +1459,8 @@ func end_hop():
 	if _hop_tween != null and _hop_tween.is_valid():
 		_hop_tween.kill()
 	_hop_tween = null
+	_hop_lifts = false
+	_hop_drop = 0.0
 	var drawn = _drawn()
 	if drawn != null:
 		drawn.position = size_offset
@@ -1468,7 +1484,7 @@ func _hop_at(t: float, kind: int):
 			lift = _arc(t, 0.25) * HOP_HEIGHT * 0.5 + FLOOR_HOP_FROM * (1.0 - t * t)
 	# Up the screen is down the y axis; and in the node's own units, like
 	# size_offset.
-	drawn.position = size_offset + Vector2(0.0, -lift * tile / (scale.y if scale.y != 0.0 else 1.0))
+	drawn.position = size_offset + Vector2(0.0, (_hop_drop * (1.0 - t) - lift * tile) / (scale.y if scale.y != 0.0 else 1.0))
 
 
 ## The drawing comes in from `from` (as measured on the map, off where it
@@ -1559,8 +1575,41 @@ var size_offset := Vector2.ZERO
 
 ## Puts the drawing `offset` away from the node, as measured on the map.
 func set_size_offset(offset: Vector2):
-	# Per side: somebody folded (Combat "Squeezing") is squashed one way only.
-	size_offset = Vector2(offset.x / scale.x if scale.x != 0.0 else offset.x, offset.y / scale.y if scale.y != 0.0 else offset.y)
+	_placed = offset
+	size_offset = _home()
+	var drawn = _drawn()
+	if drawn != null:
+		drawn.position = size_offset
+
+
+## --- Up on raised ground (Depth) ---
+##
+## Whoever stands up on high ground is drawn as much higher as the ground is (Depth.RAISED_LIFT; Combat.place_sprites says, from
+## `comb.up`), their shadow with them. Only the drawing: the node stays on its tile. A hop onto it or off it carries the drawing
+## from the one height to the other (hop's `to_lift`).
+
+## How much higher than their tile they are drawn, as measured on the map.
+var ground_lift := 0.0
+## The offset asked for (set_size_offset), before the lift.
+var _placed := Vector2.ZERO
+## A hop that changes their height: how far from home it starts, and that one is going.
+var _hop_drop := 0.0
+var _hop_lifts := false
+
+
+## Where the drawing rests, in the node's own units: per side, since somebody folded (Combat "Squeezing") is squashed one way only.
+func _home() -> Vector2:
+	var across: float = scale.x if scale.x != 0.0 else 1.0
+	var down: float = scale.y if scale.y != 0.0 else 1.0
+	return Vector2(_placed.x / across, (_placed.y - ground_lift) / down)
+
+
+## Draws them `lift` higher than their tile. A hop that is taking them to a height is left to get there.
+func set_ground_lift(lift: float):
+	if is_equal_approx(lift, ground_lift) or (_hop_lifts and _hop_tween != null and _hop_tween.is_valid()):
+		return
+	ground_lift = lift
+	size_offset = _home()
 	var drawn = _drawn()
 	if drawn != null:
 		drawn.position = size_offset

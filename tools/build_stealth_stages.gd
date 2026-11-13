@@ -347,6 +347,10 @@ func stage_light():
 	c.room(19, 8, 31, 22)           # the hall
 	c.room(32, 15, 32, 15)          # down to the cellar
 	c.room(33, 4, 48, 26)           # the cellar
+	# Raised ground in the yard's corner, to see depth by (Depth): a terrace three by two, which Cyrus climbs in a fight, and a
+	# barrel beside it for a thing that only stands on the ground.
+	c.room(14, 18, 16, 19, "r")
+	c.put(13, 18, "b")
 	for pillar in [[6, 11, "b"], [12, 11, "b"], [6, 19, "b"], [12, 19, "b"],
 			[24, 12, "b"], [27, 12, "o"], [24, 18, "o"], [27, 18, "b"],
 			[37, 10, "b"], [41, 10, "o"], [45, 10, "b"], [37, 15, "o"], [41, 15, "b"], [45, 15, "o"], [37, 20, "b"], [41, 20, "o"], [45, 20, "b"]]:
@@ -385,6 +389,7 @@ func stage_light():
 	light_sign(root, "SignLantern", Vector2i(34, 18), "A LANTERN, on the floor here: whoever has one in their Baldric lights the way as they go, and is seen coming. It is no item to use in a fight, and it lights up a fight just the same.")
 	light_sign(root, "SignColour2", Vector2i(41, 5), "Two more colours among the pillars, to show how the shadows cross: one steady, one flickering.")
 	light_sign(root, "SignWater", Vector2i(12, 14), "WATER, WIND AND THE REST. The pond is a WaterPatch: it ripples the way the wind blows, foams at its edges, rings in the rain, and the sun glints on it on the side where the sun stands. It is only to look at; what can be walked on is the tiles' Blocks, as ever. The banner and the washing are WindBanners and the hall's chimney a ChimneySmoke: they stream and lean with the wind, and a flame out here smokes the same way. Ask the sundial for the rest: blossom or leaves on the wind in spring and autumn, birds' shadows by day, lamps mirrored in the wet after rain and glowing after dark, low mist by the pond at night, far lightning on a close summer night before a storm, and at dawn or dusk, now and then, the light stepping into pixels for a moment.")
+	light_sign(root, "SignDepth", Vector2i(13, 20), "DEPTH. High ground (a tile whose Blocks stops a walker and not a flier, like this terrace) is drawn raised, with a face under its edge and a shadow off it that leans with the sun; walls stand taller still. A barrel is high ground too, but a thing standing on the floor (its tile's Stands, in the TileSet): it is drawn bigger where it stands, not lifted. Whoever stands behind something raised is seen through it, in a round patch. In a fight, whoever climbs up is drawn up there: Cyrus climbs anywhere. A tile's Lift, in the TileSet, says how high one kind of tile is drawn, or below 0 that it never is. Nothing of it changes who can see, reach or walk where.")
 	for point in [["round_a", Vector2i(35, 12)], ["round_b", Vector2i(47, 12)], ["round_c", Vector2i(47, 24)], ["round_d", Vector2i(35, 24)]]:
 		waypoint(root, point[0], point[1])
 	var torch = guard(root, "TorchBearer", "barbarian", Vector2i(35, 12), 0.0, ["round_a", "round_b", "round_c", "round_d"])

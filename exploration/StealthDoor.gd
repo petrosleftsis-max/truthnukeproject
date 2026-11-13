@@ -40,8 +40,32 @@ func _ready():
 	prompt = "Close" if is_open else "Open"
 	# Over the floor, under anybody walking through it.
 	z_as_relative = false
-	z_index = ExplorationParty.PARTY_Z_TOP - 2
+	z_index = ExplorationParty.PARTY_Z_BOTTOM - 2
 	queue_redraw()
+	if not Engine.is_editor_hint():
+		add_to_group(Depth.UPRIGHTS)
+
+
+## Shut, it stands as tall as the walls beside it (DepthView "What a map's own nodes stand up"); open or held, it lies swung back
+## as drawn below.
+func depth_lift() -> float:
+	return 0.0 if passable() else Depth.lift_of(Depth.Kind.WALL)
+
+
+func depth_top() -> Color:
+	return WOOD.lerp(WOOD_DARK, 0.35)
+
+
+## Its front, drawn on `canvas` in `front`: planks, two iron bands and a ring.
+func depth_paint(canvas: CanvasItem, front: Rect2):
+	canvas.draw_rect(front, WOOD)
+	for i in range(1, 4):
+		var x: float = front.position.x + front.size.x * i / 4.0
+		canvas.draw_line(Vector2(x, front.position.y), Vector2(x, front.end.y), WOOD_DARK, 5.0)
+	canvas.draw_rect(Rect2(front.position.x, front.position.y + front.size.y * 0.2, front.size.x, front.size.y * 0.09), IRON)
+	canvas.draw_rect(Rect2(front.position.x, front.position.y + front.size.y * 0.72, front.size.x, front.size.y * 0.09), IRON)
+	canvas.draw_circle(Vector2(front.position.x + front.size.x * 0.8, front.position.y + front.size.y * 0.5), front.size.x * 0.045, IRON)
+	canvas.draw_rect(front, WOOD_DARK, false, 6.0)
 
 
 ## Whether anybody can walk and see through it right now.

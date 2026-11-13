@@ -52,7 +52,7 @@ func _ready():
 	# Under the party, so whoever hides is drawn in front of the spot rather
 	# than vanishing behind it.
 	z_as_relative = false
-	z_index = ExplorationParty.PARTY_Z_TOP - 1
+	z_index = ExplorationParty.PARTY_Z_BOTTOM - 1
 	queue_redraw()
 
 

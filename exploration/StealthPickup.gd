@@ -30,7 +30,7 @@ func _set_item_key(value: String):
 func _ready():
 	super()
 	z_as_relative = false
-	z_index = ExplorationParty.PARTY_Z_TOP - 2
+	z_index = ExplorationParty.PARTY_Z_BOTTOM - 2
 	var item = _item()
 	if item != null:
 		prompt = "Take the %s" % item.name.to_lower()

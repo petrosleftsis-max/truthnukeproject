@@ -508,6 +508,31 @@ land, rain's rings, the sun's glint on its side at the hour; only to look at, Bl
 or a washing line streaming the wind's way) and `ChimneySmoke`, both darkened with the night through `LightView.lit_colour_at`. The Light
 stage's yard has one of each (`tools/build_stealth_stages.gd`, sign "SignWater").
 
+**Depth: 2.5D with the art there is** (`combat/Depth.gd`, `combat/DepthView.gd`; `depth`; the designer and their artist, 2026-11-13, A, B and C of
+proposals section 22; `docs/2_5d_plan.md` has what is built and what is still to come). View only: no rule asks it anything, headless none of it is
+made (`LightView.shown()`), and every number is PROPOSAL. **A is built.** `Depth` decides, with no nodes in it: a tile's kind from its Blocks
+(`kind_of_blocks`: HIGH is `Combat.is_high`'s test, WALL stops a flier too), how high it is drawn (`lift_at`: `RAISED_LIFT` 80, `WALL_LIFT` 160;
+`walls_lifted` is the switch for walls), the face under it (`face_under`: by how much it stands over what lies to its south), and two per-tile
+says of the TileSet: **Lift** (below 0 never lifted: the sewer's green channel, which the rules count as high ground; above 0 that many pixels) and
+**Stands** (a thing standing on the floor, the barrels: its floor stays flat). `DepthView` draws, made beside the LightView by `Combat._begin_light`
+and `ExplorationScene._begin_light` as the TileMap's first child: each row of lifted tiles is a `_Row` sorted from its north edge - in a fight in the
+y-sorted `Combatants` layer, on a map by an absolute z (`Depth.z_at`, eight steps a tile, between `ExplorationParty.PARTY_Z_BOTTOM` 20 and
+`PARTY_Z_TOP` 620; `_sort_the_figures` gives every `CombatantSprite`, all in the group `Depth.FIGURES`, its z each frame, so the nearer is over the
+further; what lay at `PARTY_Z_TOP - n` is at `PARTY_Z_BOTTOM - n`). `RAISED_SHADER` darkens the rows from the shade's own picture, as the figures are
+(a canvas shader's COLOR already holds the picture: multiplying by the texture again squared it), and opens **the cutaway** (the designer's pick):
+a round patch about whoever stands behind something lifted (`cuts`, at most `Depth.MOST_CUTS`; only who is drawn, `Depth.opens_a_cutaway`), about
+the tile a fight's pointer is on (`more_cuts`, from `CController._note_hover`) and about a thing to be found on a map (`Interactable`, group
+`Depth.THINGS`). A thing that Stands is cut out of its tile until its slot has a picture (`_cut_out`, `_object_entry`) and drawn `OBJECT_SCALE`
+bigger from where it stands. Whoever is `up` is drawn `depth_view.height_at(tile)` higher (`CombatantSprite.ground_lift`, `set_ground_lift` from
+`Combat.place_sprites`; `hop`'s `to_lift` carries the drawing between heights; `_home` is where it rests), their shadow and health bar with them.
+A shadow off every edge leans with the sun as the figures' do (`_cast_the_shadows`, a mask eight samples a tile under the shade). A map's own nodes
+that stand - a shut `StealthDoor`, a `BreakableWall` not yet broken - are in `Depth.UPRIGHTS` and say `depth_lift`, `depth_top`, `depth_paint`;
+`_keep_the_uprights` gives each a child drawn as a wall is, down at once when opened or broken. `Depth.TOP_STAND_INS`: the laboratory's half-floor
+wall pieces are drawn, lifted, as the whole block. Thick mist rises over all of it (`LightView` "Mist that rises": `high_mist_of`, `_high_mist`).
+The TileSet has a raised-ground tile (the stone floor's alternative 1; `StagePainter` "r"), and the Light stage's yard a terrace of it with a sign.
+Slots, in `art/terrain/depth/`: `face_<column>_<row>.png`, `face.png` (256 x 80), `wall_face.png` (256 x 160), `top_<column>_<row>.png` (256 x 256),
+`object_<column>_<row>.png` (a thing alone, standing).
+
 **How light falls on a figure, and what is on them** (`CombatantSprite`, `combat/ConditionLook.gd`; `figures`; the designer, 2026-11-07, sections
 9 and 10 of `docs/proposals_2026-11-07.md`). View only, with no icons over the head: the designer looked at an example and preferred
 without. `FIGURE_SHADER`, one material per figure, set each frame by `_fall_of_light` from `light_points` (`{"at", "reach", "colour",

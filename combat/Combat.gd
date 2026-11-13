@@ -5261,6 +5261,8 @@ func place_sprites():
 		var sprite = comb.get("sprite")
 		if not comb.alive or sprite == null or not is_instance_valid(sprite):
 			continue
+		# Up on high ground, they are drawn as much higher as it is (Depth): only where anything is drawn.
+		sprite.set_ground_lift(depth_view.height_at(comb.position) if comb.get("up", false) and depth_view != null and is_instance_valid(depth_view) else 0.0)
 		if footprint(comb) != Vector2i.ONE or Sizes.shares(comb.get("size", Sizes.Size.HUMAN)):
 			sprite.set_size_offset(drawing_offset(comb))
 		elif sprite.size_offset != Vector2.ZERO:
@@ -17375,6 +17377,8 @@ const DIM_SPOT_TILES := 3
 
 var light := LightMap.new()
 var light_view: LightView = null
+## The map's depth, drawn (Depth): raised ground and walls with their faces, what covers whom.
+var depth_view: DepthView = null
 var _light_base: int = Light.Level.BRIGHT
 var _light_ambient: int = Light.Ambient.OUTDOORS
 var _light_time: int = Light.Hour.DAY
@@ -17400,6 +17404,12 @@ func _begin_light():
 		light_view = LightView.new()
 		tile_map.add_child(light_view)
 		light_view.start(light, tile_map, tile_map.get_used_rect())
+	if depth_view == null and tile_map != null and LightView.shown():
+		depth_view = DepthView.new()
+		tile_map.add_child(depth_view)
+		# Under the light's own ground and shade, which darken its shadows too.
+		tile_map.move_child(depth_view, 0)
+		depth_view.start(tile_map, combatant_layer())
 	if light_view != null:
 		light_view.show_hour(_light_ambient, _light_minute(), true)
 	if not Campaign.time_of_day_changed.is_connected(_hour_changed):

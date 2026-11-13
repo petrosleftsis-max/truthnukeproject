@@ -7,6 +7,7 @@ class_name StagePainter
 ##     T  wall with a torch on it - on a wall facing east or west
 ##     b  a barrel standing on the floor (blocks walking and sight)
 ##     o  a barrel lying on its side (the same, the other way round)
+##     r  raised ground: the floor's own tile a step up (its alternative 1: Blocks as a barrel's, drawn lifted by Depth)
 ##     anything else is floor - letters and digits can mark where things go
 ##
 ## The walls are worked out the way the lab was painted by hand: a wall tile
@@ -25,6 +26,8 @@ const BARREL_LYING := Vector2i(6, 2)
 const WALL := Vector2i(2, 3)
 const WALL_TORCH := Vector2i(2, 4)
 const BLOCK := Vector2i(0, 2)
+## The floor tiles' alternative that is raised ground.
+const RAISED_ALTERNATIVE := 1
 
 ## The wall piece turned to face the floor beside it: which way round each of
 ## the lab's walls is drawn. The flags are TileSetAtlasSource's own.
@@ -57,7 +60,7 @@ static func paint(tile_map: TileMap, rows: PackedStringArray, origin := Vector2i
 					tile = BARREL
 				elif ch == "o":
 					tile = BARREL_LYING
-				tile_map.set_cell(0, cell, 0, tile, 0)
+				tile_map.set_cell(0, cell, 0, tile, RAISED_ALTERNATIVE if ch == "r" else 0)
 				continue
 			_paint_wall(tile_map, rows, x, y, cell, ch == "T")
 

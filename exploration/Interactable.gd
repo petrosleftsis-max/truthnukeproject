@@ -92,6 +92,9 @@ var contact_spent := false
 
 
 func _ready():
+	# To be found: drawn over raised ground it lies on, and seen through a wall in front of it (DepthView).
+	if not Engine.is_editor_hint():
+		add_to_group(Depth.THINGS)
 	_rebuild_animation()
 	queue_redraw()
 

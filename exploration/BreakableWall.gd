@@ -42,7 +42,35 @@ func _set_broken(value: bool):
 
 func _ready():
 	z_as_relative = false
-	z_index = ExplorationParty.PARTY_Z_TOP - 2
+	z_index = ExplorationParty.PARTY_Z_BOTTOM - 2
+	if not Engine.is_editor_hint():
+		add_to_group(Depth.UPRIGHTS)
+
+
+## Standing, it is as tall as the walls beside it (DepthView "What a map's own nodes stand up"); broken, it is the rubble drawn
+## below.
+func depth_lift() -> float:
+	return 0.0 if broken else Depth.lift_of(Depth.Kind.WALL)
+
+
+func depth_top() -> Color:
+	return STONE.darkened(0.25)
+
+
+## Its front, drawn on `canvas` in `front`: its own picture, or courses of stone with a crack down them.
+func depth_paint(canvas: CanvasItem, front: Rect2):
+	if look != null:
+		canvas.draw_texture_rect(look, front, false)
+		return
+	canvas.draw_rect(front, STONE)
+	for row in range(1, 3):
+		var y: float = front.position.y + front.size.y * row / 3.0
+		canvas.draw_line(Vector2(front.position.x, y), Vector2(front.end.x, y), MORTAR, 4.0)
+	var crack := PackedVector2Array()
+	for point in [Vector2(0.4, 0.0), Vector2(0.55, 0.35), Vector2(0.42, 0.6), Vector2(0.6, 1.0)]:
+		crack.append(front.position + point * front.size)
+	canvas.draw_polyline(crack, CRACK, 5.0)
+	canvas.draw_rect(front, MORTAR, false, 6.0)
 
 
 ## The flag it is kept broken in, on the map at `map_path`.

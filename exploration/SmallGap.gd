@@ -15,7 +15,7 @@ const DARK := Color(0.05, 0.05, 0.07)
 
 func _ready():
 	z_as_relative = false
-	z_index = ExplorationParty.PARTY_Z_TOP - 3
+	z_index = ExplorationParty.PARTY_Z_BOTTOM - 3
 
 
 func _draw():

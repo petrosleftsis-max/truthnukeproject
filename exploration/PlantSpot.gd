@@ -22,7 +22,7 @@ func _init():
 func _ready():
 	super()
 	z_as_relative = false
-	z_index = ExplorationParty.PARTY_Z_TOP - 2
+	z_index = ExplorationParty.PARTY_Z_BOTTOM - 2
 	queue_redraw()
 
 

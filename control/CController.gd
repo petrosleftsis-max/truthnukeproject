@@ -2518,7 +2518,11 @@ func _begin_step():
 			controlled_node.hop(CombatantSprite.Hop.UP if kind == CombatantSprite.Hop.FLOOR_UP else CombatantSprite.Hop.DOWN,
 				controlled_node.position.distance_to(_next_position) / move_speed)
 	elif kind != CombatantSprite.Hop.NONE:
-		controlled_node.hop(kind, controlled_node.position.distance_to(_next_position) / move_speed)
+		# Onto raised ground or off it: the drawing goes from the one height to the other (Depth), where anything is drawn.
+		var to_lift := -1.0
+		if combat.depth_view != null and is_instance_valid(combat.depth_view):
+			to_lift = combat.depth_view.height_at(tile_map.local_to_map(_next_position)) if kind == CombatantSprite.Hop.UP else 0.0
+		controlled_node.hop(kind, controlled_node.position.distance_to(_next_position) / move_speed, to_lift)
 
 
 ## The hop (CombatantSprite.Hop) `mover` makes stepping from `from` to `to`: up
@@ -3288,6 +3292,9 @@ func _note_hover(tile: Vector2i):
 	var was_on_somebody: bool = _hover_tile != NO_HOVER and combat != null and _soft_fills != null and not combat.combatants_at(_hover_tile).is_empty()
 	_hover_tile = tile
 	_light_their_face(tile)
+	# The tile pointed at stays in view through anything lifted in front of it (DepthView's cutaway).
+	if combat != null and combat.depth_view != null and is_instance_valid(combat.depth_view):
+		combat.depth_view.more_cuts = [] if tile == NO_HOVER else [tile_map.to_global(tile_map.map_to_local(tile))]
 	if combat != null and _soft_fills != null and (was_on_somebody or not combat.combatants_at(tile).is_empty()):
 		# Their health shows while the pointer is on them (_draw_health).
 		queue_redraw()
@@ -3367,6 +3374,10 @@ func _draw_health():
 		var left := _tile_rect(square.position).position.x
 		var right := _tile_rect(square.end - Vector2i.ONE).end.x
 		var bottom := _tile_rect(square.end - Vector2i.ONE).end.y
+		# Up on raised ground, the bar goes up with them (Depth).
+		var bar_sprite = comb.get("sprite")
+		if bar_sprite != null and is_instance_valid(bar_sprite):
+			bottom -= bar_sprite.ground_lift
 		var whole := Rect2(Vector2(left + (right - left) * 0.14, bottom - 7.0 - HEALTH_BAR_HEIGHT - 2.0), Vector2((right - left) * 0.72, HEALTH_BAR_HEIGHT))
 		draw_rect(whole.grow(2.0), HEALTH_BAR_BACK)
 		var most: float = maxf(float(comb.get("max_hp", 1)), 1.0)

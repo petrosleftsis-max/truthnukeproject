@@ -12,7 +12,7 @@ const DARK := Color(0.14, 0.11, 0.09)
 
 func _ready():
 	z_as_relative = false
-	z_index = ExplorationParty.PARTY_Z_TOP - 2
+	z_index = ExplorationParty.PARTY_Z_BOTTOM - 2
 	queue_redraw()
 
 

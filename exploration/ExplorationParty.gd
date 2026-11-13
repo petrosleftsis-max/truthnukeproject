@@ -24,9 +24,12 @@ class_name ExplorationParty
 
 signal moved(position: Vector2)
 
-## Draw layer for the leader; each follower sits one below, so a party of any
-## realistic size still clears the map underneath.
-const PARTY_Z_TOP := 20
+## Draw layers. Everybody on a map is drawn between PARTY_Z_BOTTOM and PARTY_Z_TOP, by where they stand, so the nearer is over
+## the further and a lifted wall over whoever is behind it (Depth.z_at, DepthView). What lies on the ground under them is under
+## PARTY_Z_BOTTOM, and what is over everybody is PARTY_Z_TOP or over it. Until the view sorts them (and headless), the leader is
+## at the top and each follower one below.
+const PARTY_Z_BOTTOM := 20
+const PARTY_Z_TOP := 620
 ## How far the stick can be pushed and still count as a light touch - see
 ## light_touch(). Past the stick's dead zone, so a little over half its travel.
 const LIGHT_TOUCH := 0.45

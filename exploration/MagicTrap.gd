@@ -35,7 +35,7 @@ func _set_armed(value: bool):
 
 func _ready():
 	z_as_relative = false
-	z_index = ExplorationParty.PARTY_Z_TOP - 3
+	z_index = ExplorationParty.PARTY_Z_BOTTOM - 3
 
 
 ## The flag it is kept spent in, on the map at `map_path`.

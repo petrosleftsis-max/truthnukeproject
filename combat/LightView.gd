@@ -264,7 +264,7 @@ func _mask_the_sky():
 	var half := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE) / 2.0
 	var origin: Vector2 = _tile_map.to_global(_tile_map.map_to_local(_region.position) - half)
 	var far: Vector2 = _tile_map.to_global(_tile_map.map_to_local(_region.end) - half)
-	for layer in [_mist, _clouds, _aurora]:
+	for layer in [_mist, _high_mist, _clouds, _aurora]:
 		if layer != null:
 			layer.material.set_shader_parameter("sky_mask", mask)
 	if _air_material == null:
@@ -351,6 +351,8 @@ var _shade_easing: Tween = null
 ## The sky: clouds over everything, mist under the figures, what falls and hangs in the air, what is heard.
 var _clouds: Sprite2D = null
 var _mist: Sprite2D = null
+## Thick mist over raised ground and whoever stands in it ("Mist that rises").
+var _high_mist: Sprite2D = null
 var _rain: CPUParticles2D = null
 var _life: CPUParticles2D = null
 var _life_is := ""
@@ -441,6 +443,9 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_make_the_reflections(region)
 	_ground_mist = _sky_layer("GroundMist", noise, region, GROUND_MIST_SHADER)
 	_mist = _sky_layer("Mist", noise, region)
+	_high_mist = _sky_layer("HighMist", noise, region)
+	_high_mist.z_as_relative = false
+	_high_mist.z_index = ExplorationParty.PARTY_Z_TOP
 	_clouds = _sky_layer("Clouds", noise, region)
 	_clouds.z_as_relative = false
 	_clouds.z_index = ExplorationParty.PARTY_Z_TOP
@@ -1334,6 +1339,12 @@ func _show_the_sky(sky: Dictionary, at_once: bool = true):
 		_mist.material.set_shader_parameter("speed", 1.0 + wind * 4.0)
 		var mist_colour := Color(0.86, 0.88, 0.92).lerp(Color(0.9, 0.7, 0.45), clampf(sand / maxf(haze, 0.01), 0.0, 1.0))
 		_mist.material.set_shader_parameter("mist_colour", Vector3(mist_colour.r, mist_colour.g, mist_colour.b))
+		var high := high_mist_of(haze, _ground_mist_wanted(sky))
+		_high_mist.visible = air_on and high > 0.01
+		_high_mist.material.set_shader_parameter("mist", high)
+		_high_mist.material.set_shader_parameter("drift", way)
+		_high_mist.material.set_shader_parameter("speed", 1.0 + wind * 4.0)
+		_high_mist.material.set_shader_parameter("mist_colour", Vector3(mist_colour.r, mist_colour.g, mist_colour.b))
 		_aurora.visible = air_on and float(sky.get("aurora", 0.0)) > 0.01
 		_aurora.material.set_shader_parameter("aurora", float(sky.get("aurora", 0.0)))
 		_rainbow.visible = air_on and float(sky.get("rainbow", 0.0)) > 0.01
@@ -1360,6 +1371,26 @@ func _show_the_sky(sky: Dictionary, at_once: bool = true):
 	if absf(sun - _sun) >= SUN_STEP or (sun >= 0.0) != (_sun >= 0.0) or had != _sky_to_show():
 		_sun = sun
 		refresh(not at_once)
+
+
+## --- Mist that rises ---
+##
+## The designer, 2026-11-13: "Could the mist and fog sometimes be higher?" The mist lies on the ground, under the figures and under
+## what Depth lifts, so raised ground and walls stand clear of it. A thick one rises: past HIGH_MIST_FROM of the sky's mist (a fog,
+## a sandstorm, a whiteout), and on the stillest nights when the low mist is at its deepest (past HIGH_LOW_MIST_FROM), a second
+## layer of it drifts over raised ground, walls and whoever stands in it (_high_mist, over everybody as the clouds' shadows are).
+## A morning's thin mist stays low. View only, numbers PROPOSAL.
+const HIGH_MIST_FROM := 0.45
+const HIGH_MIST_MOST := 0.6
+const HIGH_LOW_MIST_FROM := 0.7
+const HIGH_LOW_MIST_MOST := 0.4
+
+
+## How much mist is up over raised ground, 0 to 1, for `haze` of the sky's mist and `low` of the night's low mist.
+static func high_mist_of(haze: float, low: float) -> float:
+	var from_the_sky := clampf((haze - HIGH_MIST_FROM) / (1.0 - HIGH_MIST_FROM), 0.0, 1.0) * HIGH_MIST_MOST
+	var from_the_ground := clampf((low - HIGH_LOW_MIST_FROM) / (1.0 - HIGH_LOW_MIST_FROM), 0.0, 1.0) * HIGH_LOW_MIST_MOST
+	return maxf(from_the_sky, from_the_ground)
 
 
 func _air_bits(called: String) -> CPUParticles2D:
@@ -2506,7 +2537,7 @@ func sky_pixels_now():
 
 func _set_pixels(value: float):
 	_pixels = value
-	for layer in [_shade, _clouds, _mist, _ground_mist, _water]:
+	for layer in [_shade, _clouds, _mist, _high_mist, _ground_mist, _water]:
 		if layer != null:
 			layer.material.set_shader_parameter("pixels", value)
 	if _grade != null:

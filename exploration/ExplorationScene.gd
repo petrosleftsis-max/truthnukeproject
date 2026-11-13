@@ -246,6 +246,8 @@ func _build_map():
 
 var light := LightMap.new()
 var light_view: LightView = null
+## The map's depth, drawn (Depth): raised ground and walls with their faces, and everybody sorted by where they stand.
+var depth_view: DepthView = null
 var _light_sight: StealthSight = null
 ## Seconds into this time of day, for a map whose hours pass by themselves.
 var _hour_clock := 0.0
@@ -270,6 +272,12 @@ func _begin_light():
 		_tile_map.add_child(light_view)
 		light_view.start(light, _tile_map, _tile_map.get_used_rect())
 		light_view.show_hour(Campaign.map_ambient, Campaign.minute_of_day(), true)
+		if depth_view == null or not is_instance_valid(depth_view):
+			depth_view = DepthView.new()
+			_tile_map.add_child(depth_view)
+			# Under the light's own ground and shade, which darken its shadows too.
+			_tile_map.move_child(depth_view, 0)
+			depth_view.start(_tile_map)
 	if not Campaign.time_of_day_changed.is_connected(_hour_changed):
 		Campaign.time_of_day_changed.connect(_hour_changed)
 	if not Campaign.clock_moved.is_connected(_clock_moved):
