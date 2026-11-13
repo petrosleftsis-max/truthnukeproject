@@ -510,7 +510,7 @@ stage's yard has one of each (`tools/build_stealth_stages.gd`, sign "SignWater")
 
 **Depth: 2.5D with the art there is** (`combat/Depth.gd`, `combat/DepthView.gd`; `depth`; the designer and their artist, 2026-11-13, A, B and C of
 proposals section 22; `docs/2_5d_plan.md` has what is built and what is still to come). View only: no rule asks it anything, headless none of it is
-made (`LightView.shown()`), and every number is PROPOSAL. **A is built.** `Depth` decides, with no nodes in it: a tile's kind from its Blocks
+made (`LightView.shown()`), and every number is PROPOSAL. **A and C are built; B (layers, parallax, roofs) is to come.** `Depth` decides, with no nodes in it: a tile's kind from its Blocks
 (`kind_of_blocks`: HIGH is `Combat.is_high`'s test, WALL stops a flier too), how high it is drawn (`lift_at`: `RAISED_LIFT` 80, `WALL_LIFT` 160;
 `walls_lifted` is the switch for walls), the face under it (`face_under`: by how much it stands over what lies to its south), and two per-tile
 says of the TileSet: **Lift** (below 0 never lifted: the sewer's green channel, which the rules count as high ground; above 0 that many pixels) and
@@ -522,7 +522,9 @@ further; what lay at `PARTY_Z_TOP - n` is at `PARTY_Z_BOTTOM - n`). `RAISED_SHAD
 (a canvas shader's COLOR already holds the picture: multiplying by the texture again squared it), and opens **the cutaway** (the designer's pick):
 a round patch about whoever stands behind something lifted (`cuts`, at most `Depth.MOST_CUTS`; only who is drawn, `Depth.opens_a_cutaway`), about
 the tile a fight's pointer is on (`more_cuts`, from `CController._note_hover`) and about a thing to be found on a map (`Interactable`, group
-`Depth.THINGS`). A thing that Stands is cut out of its tile until its slot has a picture (`_cut_out`, `_object_entry`) and drawn `OBJECT_SCALE`
+`Depth.THINGS`). Somebody bigger than a tile is seen through about the middle of what they cover, as far round as they are big (`body_middle`,
+`_covered`), and is drawn over a barrel or raised ground among their own feet (`_keep_the_big_over`: z 2 in the figures' layer while any lies in the
+rows they cover below their first). A thing that Stands is cut out of its tile until its slot has a picture (`_cut_out`, `_object_entry`) and drawn `OBJECT_SCALE`
 bigger from where it stands. Whoever is `up` is drawn `depth_view.height_at(tile)` higher (`CombatantSprite.ground_lift`, `set_ground_lift` from
 `Combat.place_sprites`; `hop`'s `to_lift` carries the drawing between heights; `_home` is where it rests), their shadow and health bar with them.
 A shadow off every edge leans with the sun as the figures' do (`_cast_the_shadows`, a mask eight samples a tile under the shade). A map's own nodes
@@ -532,6 +534,16 @@ wall pieces are drawn, lifted, as the whole block. Thick mist rises over all of 
 The TileSet has a raised-ground tile (the stone floor's alternative 1; `StagePainter` "r"), and the Light stage's yard a terrace of it with a sign.
 Slots, in `art/terrain/depth/`: `face_<column>_<row>.png`, `face.png` (256 x 80), `wall_face.png` (256 x 160), `top_<column>_<row>.png` (256 x 256),
 `object_<column>_<row>.png` (a thing alone, standing).
+**Light that knows height** (C; DepthView section of that name). The real lights never reach what stands inside a wall's or a barrel's own square
+(it is their occluder), so `RAISED_SHADER` lights what is lifted itself. Each row is three nodes, for its tops, its faces and the things standing
+in it (`_Row.TOPS`, `FACES`, `THINGS`; `_material`, `_face_material`, `_object_material`, the shader's `kind`): a top faces up, a face towards us, a
+thing is round (its corners' colours say where each is across it). `_tell_the_lamps` gives the shader the nearest `MOST_LAMPS` of
+`CombatantSprite.light_points` every frame (place, reach, strength this moment as a share of `LightView.ENERGY`, colour), and `_gate_the_light` a
+pixel a tile of where a lamp reaches by the rule (`LightMap.glow`; `LightMap.version` counts each `rebuild`): a face asks of the floor in front of
+it, and takes that floor's shade too, so it is as lit as the room it looks into and never lit through its own wall. A slot's picture with a normal
+map beside it (`_n` before `.png`; `Depth.slot` makes a CanvasTexture) faces as that says. The lamps' real shadows already fall off walls and
+barrels. `_shade_the_feet`: the floor shaded at the foot of every wall and raised edge (`FOOT_SHADER` over a mask a pixel a tile of how high each
+tile stands, `foot_of`; `FOOT_SHADE`), under the shade as the ledges' shadows are.
 
 **How light falls on a figure, and what is on them** (`CombatantSprite`, `combat/ConditionLook.gd`; `figures`; the designer, 2026-11-07, sections
 9 and 10 of `docs/proposals_2026-11-07.md`). View only, with no icons over the head: the designer looked at an example and preferred

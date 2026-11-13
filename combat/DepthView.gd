@@ -32,18 +32,67 @@ uniform vec3 cuts[24];
 uniform int cut_count = 0;
 uniform float cut_alpha = 0.16;
 uniform float cut_soft = 0.3;
+// What is drawn with it: 0 a top, 1 a face (it faces us, down the screen), 2 a thing standing (round, as a barrel is).
+uniform float kind = 0.0;
+uniform vec3 face_normal = vec3(0.0, 0.86, 0.5);
+uniform float roundness = 0.85;
+// The lamps: where each is, how far it reaches and how strong it is this moment; its colour; and where their light reaches at all.
+uniform vec4 lamps[8];
+uniform vec3 lamp_colours[8];
+uniform int lamp_count = 0;
+uniform sampler2D lit_gate : filter_linear, repeat_disable;
+uniform vec4 gate_rect = vec4(0.0, 0.0, 1.0, 1.0);
+uniform float lamp_gain = 1.0;
+uniform float lamp_height = 128.0;
 varying vec2 world;
 varying float north;
+varying vec2 shape;
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
 	north = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).y;
+	// A thing standing is drawn with where each corner is across it and down it in its vertex colour, not a tint.
+	shape = COLOR.rg;
+	if (kind > 1.5) {
+		COLOR = vec4(1.0);
+	}
 }
 void fragment() {
 	// COLOR comes in as the picture's own colour already.
 	vec4 colour = COLOR;
+	// Which way this faces, the ground it stands on, and the ground whose light it takes: a top its own tile; a face the floor in
+	// front of it, so it is as lit as the room it looks into and a lamp behind the wall never lights it; a thing standing its
+	// own tile, round.
+	vec3 facing = vec3(0.0, 0.0, 1.0);
+	vec2 ground = vec2(world.x, north + half_tile);
+	vec2 asked = ground;
+	if (kind > 0.5 && kind < 1.5) {
+		vec3 mapped = texture(NORMAL_TEXTURE, UV).rgb;
+		if (length(mapped.xy - vec2(0.5)) < 0.02) {
+			facing = normalize(face_normal);
+		} else {
+			facing = normalize(vec3(mapped.x * 2.0 - 1.0, 1.0 - mapped.y * 2.0, mapped.z));
+		}
+		ground = vec2(world.x, north + half_tile * 2.0);
+		asked = vec2(world.x, north + half_tile * 3.0);
+	} else if (kind > 1.5) {
+		float across = clamp(shape.x * 2.0 - 1.0, -1.0, 1.0) * roundness;
+		facing = normalize(vec3(across, 0.45, sqrt(max(1.0 - across * across, 0.04))));
+		ground = vec2(world.x, north + half_tile * 1.6);
+	}
+	if (lamp_count > 0) {
+		float reached = texture(lit_gate, (asked - gate_rect.xy) / gate_rect.zw).r;
+		vec3 lit = vec3(0.0);
+		for (int i = 0; i < lamp_count; i++) {
+			vec2 to = lamps[i].xy - ground;
+			float near = clamp(1.0 - length(to) / max(lamps[i].z, 1.0), 0.0, 1.0);
+			vec3 from = normalize(vec3(to, lamp_height));
+			lit += lamp_colours[i] * (near * sqrt(near) * lamps[i].w * max(dot(facing, from), 0.0));
+		}
+		colour.rgb += colour.rgb * lit * reached * lamp_gain;
+	}
 	if (shade_on > 0.5) {
-		// The ground this row stands on, not the ground it is drawn over.
-		vec2 on_shade = (vec2(world.x, north + half_tile) - shade_rect.xy) / shade_rect.zw;
+		// The ground whose light it takes, not the ground it is drawn over.
+		vec2 on_shade = (asked - shade_rect.xy) / shade_rect.zw;
 		vec4 shade = mix(texture(shade_previous, on_shade), texture(shade_map, on_shade), shade_blend);
 		float grey = dot(colour.rgb, vec3(0.299, 0.587, 0.114));
 		vec3 drained = mix(colour.rgb, vec3(grey), clamp(shade.a / most, 0.0, 1.0) * drain);
@@ -95,6 +144,11 @@ var _objects := {}
 var _rise := {}
 var _rows: Array = []
 var _material: ShaderMaterial = null
+## The same shader for the faces and for things standing, each told what it draws (RAISED_SHADER's `kind`).
+var _face_material: ShaderMaterial = null
+var _object_material: ShaderMaterial = null
+## The shade at the foot of walls and raised edges ("Light that knows height").
+var _feet: Sprite2D = null
 var _shadows: Sprite2D = null
 var _shadow_key := ""
 var _shadow_lean := 99.0
@@ -113,9 +167,28 @@ func start(tile_map: TileMap, layer: Node2D = null):
 	shader.code = RAISED_SHADER
 	_material = ShaderMaterial.new()
 	_material.shader = shader
-	_material.set_shader_parameter("half_tile", float(Grid.TILE_SIZE) * 0.5)
-	_material.set_shader_parameter("cut_alpha", Depth.CUT_ALPHA)
-	_material.set_shader_parameter("cut_soft", Depth.CUT_SOFT)
+	_face_material = ShaderMaterial.new()
+	_face_material.shader = shader
+	_face_material.set_shader_parameter("kind", 1.0)
+	_object_material = ShaderMaterial.new()
+	_object_material.shader = shader
+	_object_material.set_shader_parameter("kind", 2.0)
+	for material in _materials():
+		material.set_shader_parameter("half_tile", float(Grid.TILE_SIZE) * 0.5)
+		material.set_shader_parameter("cut_alpha", Depth.CUT_ALPHA)
+		material.set_shader_parameter("cut_soft", Depth.CUT_SOFT)
+	_feet = Sprite2D.new()
+	_feet.name = "WallFeet"
+	_feet.centered = false
+	_feet.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_feet.light_mask = 0
+	var feet_shader := Shader.new()
+	feet_shader.code = FOOT_SHADER
+	_feet.material = ShaderMaterial.new()
+	_feet.material.shader = feet_shader
+	_feet.material.set_shader_parameter("strength", FOOT_SHADE)
+	_feet.visible = false
+	add_child(_feet)
 	_shadows = Sprite2D.new()
 	_shadows.name = "LedgeShadows"
 	_shadows.centered = false
@@ -187,25 +260,37 @@ func build():
 	var ys := by_row.keys()
 	ys.sort()
 	for y in ys:
-		var row := _Row.new()
-		row.name = "Row%d" % y
-		row.material = _material
-		var first: Vector2 = _tile_map.map_to_local(Vector2i(0, y))
-		# Its north edge, in the tile map's own coordinates: where it sorts from.
-		row.position = Vector2(0.0, first.y - tile * 0.5)
 		var tiles: Array = by_row[y]
 		tiles.sort_custom(func(one, other): return one.x < other.x)
+		var entries := []
 		for at in tiles:
-			row.tiles.append(_objects[at] if _objects.has(at) else _entry(at))
-		if _layer != null:
-			# With the figures, sorted by where each stands.
-			row.z_index = 1
-			_layer.add_child(row)
-		else:
-			add_child(row)
-			row.z_as_relative = false
-			row.z_index = Depth.z_at(_tile_map.to_global(row.position).y, _top)
-		_rows.append(row)
+			entries.append(_objects[at] if _objects.has(at) else _entry(at))
+		var first: Vector2 = _tile_map.map_to_local(Vector2i(0, y))
+		# The tops, then the faces, then what stands: a node each, for how the light falls on each (RAISED_SHADER's `kind`).
+		for what in [_Row.TOPS, _Row.FACES, _Row.THINGS]:
+			var wanted: Array = entries.filter(func(entry):
+				if entry.get("object", false):
+					return what == _Row.THINGS
+				return what == _Row.TOPS or (what == _Row.FACES and entry.face > 0.0))
+			if wanted.is_empty():
+				continue
+			var row := _Row.new()
+			row.name = "Row%d%s" % [y, ["Tops", "Faces", "Things"][what]]
+			row.what = what
+			row.material = [_material, _face_material, _object_material][what]
+			# Its north edge, in the tile map's own coordinates: where it sorts from.
+			row.position = Vector2(0.0, first.y - tile * 0.5)
+			row.tiles = wanted
+			if _layer != null:
+				# With the figures, sorted by where each stands.
+				row.z_index = 1
+				_layer.add_child(row)
+			else:
+				add_child(row)
+				row.z_as_relative = false
+				row.z_index = Depth.z_at(_tile_map.to_global(row.position).y, _top)
+			_rows.append(row)
+	_shade_the_feet()
 	_shadow_key = ""
 	_shadow_lean = 99.0
 	_keep_the_shadows()
@@ -394,53 +479,214 @@ static func _look_of(source: TileSetAtlasSource, atlas: Vector2i) -> Color:
 	return colour
 
 
-## One row of lifted tiles: each one's picture drawn `lift` higher, and its face under it.
+## One row of lifted tiles: their tops (each one's picture drawn `lift` higher), or their faces, or the things standing in the row.
+## A node for each, since the light falls on each differently (RAISED_SHADER's `kind`).
 class _Row extends Node2D:
+	enum { TOPS, FACES, THINGS }
+	var what := TOPS
 	var tiles: Array = []
 
 	func _draw():
-		var tile := float(Grid.TILE_SIZE)
 		for entry in tiles:
-			if entry.get("object", false):
-				# A thing standing on the floor: its own picture, bigger, from where it stands.
-				var stands: Rect2 = entry.dest
-				if entry.get("flipped", false):
-					stands.size.x = -stands.size.x
-				draw_texture_rect_region(entry.texture, stands, entry.source)
-				continue
-			var top := Rect2(entry.x, -entry.lift, tile, tile)
-			if entry.top_picture != null:
-				draw_texture_rect(entry.top_picture, top, false)
-			elif entry.texture != null:
-				var alternative: int = entry.alternative
-				var dest := top
-				if alternative & TileSetAtlasSource.TRANSFORM_FLIP_H:
-					dest.size.x = -dest.size.x
-				if alternative & TileSetAtlasSource.TRANSFORM_FLIP_V:
-					dest.size.y = -dest.size.y
-				draw_texture_rect_region(entry.texture, dest, entry.region, Color.WHITE, (alternative & TileSetAtlasSource.TRANSFORM_TRANSPOSE) != 0)
-			if entry.face <= 0.0:
-				continue
-			var face := Rect2(entry.x, tile - entry.lift, tile, entry.face)
-			if entry.face_picture != null:
-				draw_texture_rect(entry.face_picture, face, false)
-				continue
-			var colour: Color = entry.face_colour
-			draw_rect(face, colour)
-			# The lip's own shadow along the top of the face, and courses of stone or boards across it.
-			draw_rect(Rect2(face.position, Vector2(tile, minf(10.0, entry.face * 0.2))), Color(0, 0, 0, 0.28))
-			var courses := maxi(int(entry.face / 44.0), 1)
-			for course in range(1, courses + 1):
-				var y: float = face.position.y + entry.face * float(course) / float(courses + 1)
-				draw_rect(Rect2(entry.x, y, tile, 3.0), Color(1, 1, 1, 0.07) if entry.wall else Color(0, 0, 0, 0.18))
+			match what:
+				TOPS:
+					_draw_top(entry)
+				FACES:
+					_draw_face(entry)
+				THINGS:
+					_draw_thing(entry)
+
+	func _draw_top(entry: Dictionary):
+		var tile := float(Grid.TILE_SIZE)
+		var top := Rect2(entry.x, -entry.lift, tile, tile)
+		if entry.top_picture != null:
+			draw_texture_rect(entry.top_picture, top, false)
+		elif entry.texture != null:
+			var alternative: int = entry.alternative
+			var dest := top
+			if alternative & TileSetAtlasSource.TRANSFORM_FLIP_H:
+				dest.size.x = -dest.size.x
+			if alternative & TileSetAtlasSource.TRANSFORM_FLIP_V:
+				dest.size.y = -dest.size.y
+			draw_texture_rect_region(entry.texture, dest, entry.region, Color.WHITE, (alternative & TileSetAtlasSource.TRANSFORM_TRANSPOSE) != 0)
+		if entry.face > 0.0:
 			# The edge of the top, catching the light.
-			draw_rect(Rect2(entry.x, face.position.y - 4.0, tile, 4.0), Color(1, 1, 1, 0.1))
+			draw_rect(Rect2(entry.x, tile - entry.lift - 4.0, tile, 4.0), Color(1, 1, 1, 0.1))
+
+	func _draw_face(entry: Dictionary):
+		var tile := float(Grid.TILE_SIZE)
+		var face := Rect2(entry.x, tile - entry.lift, tile, entry.face)
+		if entry.face_picture != null:
+			draw_texture_rect(entry.face_picture, face, false)
+			return
+		var colour: Color = entry.face_colour
+		draw_rect(face, colour)
+		# The lip's own shadow along the top of the face, and courses of stone or boards across it.
+		draw_rect(Rect2(face.position, Vector2(tile, minf(10.0, entry.face * 0.2))), Color(0, 0, 0, 0.28))
+		var courses := maxi(int(entry.face / 44.0), 1)
+		for course in range(1, courses + 1):
+			var y: float = face.position.y + entry.face * float(course) / float(courses + 1)
+			draw_rect(Rect2(entry.x, y, tile, 3.0), Color(1, 1, 1, 0.07) if entry.wall else Color(0, 0, 0, 0.18))
+
+	## A thing standing on the floor: its own picture, bigger, from where it stands. Each corner's colour says where it is across
+	## the thing and down it, for the shader to round it by.
+	func _draw_thing(entry: Dictionary):
+		var stands: Rect2 = entry.dest
+		var source: Rect2 = entry.source
+		var size: Vector2 = entry.texture.get_size()
+		var left: float = source.position.x / size.x
+		var right: float = source.end.x / size.x
+		if entry.get("flipped", false):
+			var swap := left
+			left = right
+			right = swap
+		var up: float = source.position.y / size.y
+		var down: float = source.end.y / size.y
+		draw_polygon(
+			PackedVector2Array([stands.position, Vector2(stands.end.x, stands.position.y), stands.end, Vector2(stands.position.x, stands.end.y)]),
+			PackedColorArray([Color(0, 0, 0), Color(1, 0, 0), Color(1, 1, 0), Color(0, 1, 0)]),
+			PackedVector2Array([Vector2(left, up), Vector2(right, up), Vector2(right, down), Vector2(left, down)]),
+			entry.texture)
+
+
+## The three materials of the one shader: for the tops, the faces, and things standing.
+func _materials() -> Array:
+	return [_material, _face_material, _object_material]
+
+
+## --- Light that knows height ---
+##
+## C of the three (the designer and their artist, 2026-11-13). The real lights never reach what stands inside a wall's or a
+## barrel's own square (it is their occluder), so RAISED_SHADER lights what is lifted itself, from the lamps LightView tells the
+## figures of (_tell_the_lamps: where each is and how strong this moment, so they move and breathe): by which way each piece faces -
+## a top up, a face towards us, so a lamp in front of it lights it and one behind it does not, a thing standing round, lit on the
+## side the lamp is - and only where the light's own rule says a lamp reaches (_gate_the_light, from LightMap.glow: a face asks of
+## the floor in front of it), so nothing is lit through a wall. A picture in a slot with a normal map beside it (`_n` before
+## `.png`, Depth.slot) faces as that says. The lamps' own shadows already fall off every wall and barrel (LightView's occluders). And the foot of every wall and raised edge is shaded on the floor: FOOT_SHADER over a mask a pixel a tile of how
+## high each tile stands, which the filter fades across the floor beside it; under the shade, as the ledges' shadows are.
+
+## How strong a lamp's light is on what is lifted, against what the real light gives the floor beside it; how high over the floor a
+## lamp is taken to hang, for which way its light comes; and how lit by a lamp the floor has to be (LightMap.glow's strength)
+## for what stands on it or over it to be lit at all.
+const LAMP_GAIN := 1.6
+const LAMP_HEIGHT_TILES := 0.5
+const GATE_FROM := 0.04
+## The most lamps told to the shader at once: the nearest to the middle of the view.
+const MOST_LAMPS := 8
+
+## Which tiles a lamp's light reaches, by the light's own rule: a pixel a tile, for the shader to ask.
+var _gate: ImageTexture = null
+var _gate_map: LightMap = null
+var _gate_version := -1
+
+
+## The lamps, told to the rows every frame: where each is and how strong this moment (they move and breathe), from what LightView
+## tells the figures; and where their light reaches at all, from the light's own map, again whenever that has been worked out anew.
+func _tell_the_lamps():
+	var view: LightView = LightView.showing
+	var map: LightMap = view.light if view != null and is_instance_valid(view) else null
+	var points: Array = CombatantSprite.light_points
+	if map == null or points.is_empty() or not view.visible:
+		for material in _materials():
+			material.set_shader_parameter("lamp_count", 0)
+		return
+	if map != _gate_map or map.version != _gate_version:
+		_gate_map = map
+		_gate_version = map.version
+		_gate_the_light(map)
+	var middle: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * (Vector2(get_viewport().get_visible_rect().size) * 0.5)
+	var nearest := points.duplicate()
+	if nearest.size() > MOST_LAMPS:
+		nearest.sort_custom(func(one, other): return _lamp_at(one).distance_squared_to(middle) < _lamp_at(other).distance_squared_to(middle))
+		nearest.resize(MOST_LAMPS)
+	var lamps := PackedVector4Array()
+	var colours := PackedVector3Array()
+	for point in nearest:
+		var at := _lamp_at(point)
+		var node = point.get("node")
+		var energy: float = node.energy if node != null and is_instance_valid(node) else float(point.get("energy", 1.0))
+		# As a share of a lamp's full strength: a torch is little by day, and one coming on or going out is on its way.
+		lamps.append(Vector4(at.x, at.y, point.reach, energy / LightView.ENERGY))
+		var colour: Color = node.color if node != null and is_instance_valid(node) else point.get("colour", Color.WHITE)
+		colours.append(Vector3(colour.r, colour.g, colour.b))
+	var count := lamps.size()
+	lamps.resize(MOST_LAMPS)
+	colours.resize(MOST_LAMPS)
+	var tile := float(Grid.TILE_SIZE)
+	var region := _region.grow(1)
+	var origin: Vector2 = _tile_map.to_global(_tile_map.map_to_local(region.position)) - Vector2(tile, tile) * 0.5
+	for material in _materials():
+		material.set_shader_parameter("lamp_count", count)
+		material.set_shader_parameter("lamps", lamps)
+		material.set_shader_parameter("lamp_colours", colours)
+		material.set_shader_parameter("lit_gate", _gate)
+		material.set_shader_parameter("gate_rect", Vector4(origin.x, origin.y, region.size.x * tile, region.size.y * tile))
+		material.set_shader_parameter("lamp_gain", LAMP_GAIN)
+		material.set_shader_parameter("lamp_height", tile * LAMP_HEIGHT_TILES)
+
+
+static func _lamp_at(point: Dictionary) -> Vector2:
+	var node = point.get("node")
+	return node.global_position if node != null and is_instance_valid(node) else point.at
+
+
+## Whether a lamp's light reaches `tile` of `map` at all, by the light's own rule and what stops it.
+static func lamp_reaches(map: LightMap, tile: Vector2i) -> bool:
+	return map != null and map.glow.has(tile) and map.glow[tile].a > GATE_FROM
+
+
+func _gate_the_light(map: LightMap):
+	var region := _region.grow(1)
+	var mask := Image.create(region.size.x, region.size.y, false, Image.FORMAT_L8)
+	for tile in map.glow:
+		var at: Vector2i = tile - region.position
+		if at.x >= 0 and at.y >= 0 and at.x < region.size.x and at.y < region.size.y and map.glow[tile].a > GATE_FROM:
+			mask.set_pixelv(at, Color.WHITE)
+	_gate = ImageTexture.create_from_image(mask)
+
+
+## How dark the floor is right at the foot of a wall, 0 to 1. Raised ground shades it by its height.
+const FOOT_SHADE := 0.42
+const FOOT_SHADER := """
+shader_type canvas_item;
+render_mode unshaded;
+uniform float strength = 0.42;
+void fragment() {
+	// How high what stands here is, a pixel a tile: half of it at its edge, fading to nothing at the middle of the floor beside it.
+	float high = texture(TEXTURE, UV).r;
+	COLOR = vec4(0.03, 0.03, 0.07, strength * smoothstep(0.07, 0.5, high));
+}
+"""
+
+
+## How dark the foot of something `rise` high is in the mask, 0 to 1: a wall wholly, raised ground and things by their height.
+static func foot_of(rise: float) -> float:
+	return clampf(rise / Depth.WALL_LIFT, 0.0, 1.0)
+
+
+func _shade_the_feet():
+	if _feet == null:
+		return
+	# Not under a thing standing: its floor shows all round it, and a shaded square there reads as a darker tile.
+	if _lifts.is_empty():
+		_feet.visible = false
+		return
+	var region := _region.grow(1)
+	var mask := Image.create(region.size.x, region.size.y, false, Image.FORMAT_L8)
+	for at in _lifts:
+		mask.set_pixelv(at - region.position, Color(foot_of(_lifts[at]), 0.0, 0.0))
+	var tile := float(Grid.TILE_SIZE)
+	_feet.texture = ImageTexture.create_from_image(mask)
+	_feet.scale = Vector2(tile, tile)
+	_feet.position = to_local(_tile_map.to_global(_tile_map.map_to_local(region.position))) - Vector2(tile, tile) * 0.5
+	_feet.visible = true
 
 
 func _process(_delta: float):
 	if _tile_map == null:
 		return
 	_tell_the_shade()
+	_tell_the_lamps()
 	_keep_the_uprights()
 	_sort_the_figures()
 	_keep_the_shadows()
@@ -449,15 +695,17 @@ func _process(_delta: float):
 ## The shade's own picture, for the rows to darken themselves by: what the figures read.
 func _tell_the_shade():
 	var on := CombatantSprite.shade_map != null
-	_material.set_shader_parameter("shade_on", 1.0 if on else 0.0)
+	for material in _materials():
+		material.set_shader_parameter("shade_on", 1.0 if on else 0.0)
 	if not on:
 		return
 	var rect: Rect2 = CombatantSprite.shade_rect
-	_material.set_shader_parameter("shade_map", CombatantSprite.shade_map)
-	_material.set_shader_parameter("shade_previous", CombatantSprite.shade_previous if CombatantSprite.shade_previous != null else CombatantSprite.shade_map)
-	_material.set_shader_parameter("shade_blend", CombatantSprite.shade_blend if CombatantSprite.shade_previous != null else 1.0)
-	_material.set_shader_parameter("shade_rect", Vector4(rect.position.x, rect.position.y, rect.size.x, rect.size.y))
-	_material.set_shader_parameter("drain", LightView.DRAIN)
+	for material in _materials():
+		material.set_shader_parameter("shade_map", CombatantSprite.shade_map)
+		material.set_shader_parameter("shade_previous", CombatantSprite.shade_previous if CombatantSprite.shade_previous != null else CombatantSprite.shade_map)
+		material.set_shader_parameter("shade_blend", CombatantSprite.shade_blend if CombatantSprite.shade_previous != null else 1.0)
+		material.set_shader_parameter("shade_rect", Vector4(rect.position.x, rect.position.y, rect.size.x, rect.size.y))
+		material.set_shader_parameter("drain", LightView.DRAIN)
 
 
 ## On a map, every figure takes its z from where it stands, so the nearer is drawn over the further and a lifted row over whoever
@@ -471,13 +719,18 @@ func _sort_the_figures():
 		var at: Vector2 = figure.global_position
 		if _layer == null and not figure.z_as_relative and figure.z_index >= ExplorationParty.PARTY_Z_BOTTOM and figure.z_index <= ExplorationParty.PARTY_Z_TOP:
 			figure.z_index = Depth.z_at(at.y, _top)
+		if _layer != null and figure.get_parent() == _layer:
+			_keep_the_big_over(figure)
 		if cuts.size() >= Depth.MOST_CUTS or (_rise.is_empty() and _upright_rise.is_empty()):
 			continue
 		if not Depth.opens_a_cutaway(figure.is_visible_in_tree(), figure._shown_alpha):
 			continue
 		var reach: float = Depth.CUT_TILES * tile * maxf(absf(figure.global_scale.x), absf(figure.global_scale.y))
-		if _covered(at, reach):
-			cuts.append(Vector3(at.x, at.y, reach))
+		# About the middle of what is drawn, not the node: somebody bigger than a tile is drawn off their own tile, over the middle
+		# of the square they cover (the designer, 2026-11-13: "Does the cutaway work for creatures that are bigger than human").
+		var middle := body_middle(figure)
+		if _covered(middle, reach):
+			cuts.append(Vector3(middle.x, middle.y, reach))
 	if _layer == null and not (_rise.is_empty() and _upright_rise.is_empty()):
 		for thing in get_tree().get_nodes_in_group(Depth.THINGS):
 			if not is_instance_valid(thing) or not thing is Node2D or not thing.is_inside_tree() or not thing.is_visible_in_tree():
@@ -499,10 +752,13 @@ func _sort_the_figures():
 		if cuts.size() < Depth.MOST_CUTS and _covered(point, Depth.CUT_TILES * tile):
 			cuts.append(Vector3(point.x, point.y, Depth.CUT_TILES * tile))
 	_cuts = cuts
-	_material.set_shader_parameter("cut_count", cuts.size())
-	if not cuts.is_empty():
+	var count := cuts.size()
+	if count > 0:
 		cuts.resize(Depth.MOST_CUTS)
-		_material.set_shader_parameter("cuts", cuts)
+	for material in _materials():
+		material.set_shader_parameter("cut_count", count)
+		if count > 0:
+			material.set_shader_parameter("cuts", cuts)
 
 
 ## Other places in the world to keep in view through what is lifted: the tile a fight's pointer is on (CController).
@@ -515,16 +771,48 @@ func cuts_now() -> PackedVector3Array:
 	return _cuts
 
 
-## Whether anything lifted stands in front of somebody at `at` near enough to cover them: in the row to their south, within
-## `reach` to either side.
+## Somebody bigger than a tile sorts from their top-left tile, as ever, so a barrel or raised ground among their feet - the big step
+## over high ground (Combat.steps_over_size) - would be drawn over their legs. While any lies in the rows they cover below their
+## first, they are drawn over everything in the figures' layer instead; and back as they were once none does.
+func _keep_the_big_over(figure: CombatantSprite):
+	var wide := roundi(absf(figure.scale.x))
+	var deep := roundi(absf(figure.scale.y))
+	var over := false
+	if deep >= 2 and not (_objects.is_empty() and _lifts.is_empty()):
+		var first := _tile_map.local_to_map(_tile_map.to_local(figure.global_position))
+		for dy in range(1, deep):
+			for dx in wide:
+				var tile := first + Vector2i(dx, dy)
+				if _objects.has(tile) or (_lifts.has(tile) and _lifts[tile] < Depth.WALL_LIFT):
+					over = true
+	if over and figure.z_index == 1:
+		figure.z_index = 2
+		figure.set_meta("depth_over", true)
+	elif not over and figure.has_meta("depth_over"):
+		figure.remove_meta("depth_over")
+		if figure.z_index == 2:
+			figure.z_index = 1
+
+
+## The middle of what is drawn of `figure`, in the world: its node, and for somebody bigger or smaller than a tile where their
+## drawing sits off it (CombatantSprite.set_size_offset), as high as they stand up.
+static func body_middle(figure: CombatantSprite) -> Vector2:
+	return figure.global_position + figure._placed - Vector2(0.0, figure.ground_lift)
+
+
+## Whether anything lifted stands in front of somebody whose middle is at `at`, near enough to cover them: in the rows to their
+## south, within `reach` to either side, and reaching up into the round patch `reach` about them.
 func _covered(at: Vector2, reach: float) -> bool:
+	var tile := float(Grid.TILE_SIZE)
 	var here := _tile_map.local_to_map(_tile_map.to_local(at))
-	var across := maxi(ceili(reach / float(Grid.TILE_SIZE)), 1)
-	for dx in range(-across, across + 1):
-		for dy in [1, 2]:
+	var across := maxi(ceili(reach / tile), 1)
+	for dy in range(1, across + 2):
+		# The north edge of that row, in the world.
+		var north: float = _tile_map.to_global(_tile_map.map_to_local(here + Vector2i(0, dy))).y - tile * 0.5
+		for dx in range(-across, across + 1):
 			var lift: float = maxf(_rise.get(here + Vector2i(dx, dy), 0.0), _upright_rise.get(here + Vector2i(dx, dy), 0.0))
-			# The second row down only reaches them if it is lifted more than a tile.
-			if lift > 0.0 and (dy == 1 or lift > float(Grid.TILE_SIZE)):
+			# Its top edge, drawn `lift` over that: it has to come up into the patch.
+			if lift > 0.0 and north - lift - at.y < reach:
 				return true
 	return false
 
@@ -556,15 +844,22 @@ class _Upright extends Node2D:
 		var above := Rect2(-half, -lift, tile, tile)
 		draw_rect(above, top)
 		draw_rect(above.grow(-3.0), top.darkened(0.3), false, 6.0)
-		if face <= 0.0:
+
+
+## An upright's front: a node of its own, lit as a face is.
+class _Front extends Node2D:
+	func _draw():
+		var upright: _Upright = get_parent()
+		if upright.lift <= 0.0 or upright.face <= 0.0:
 			return
-		var front := Rect2(-half, tile - lift, tile, face)
-		if painter.is_valid():
-			painter.call(self, front)
+		var tile := float(Grid.TILE_SIZE)
+		var front := Rect2(-tile * 0.5, tile - upright.lift, tile, upright.face)
+		if upright.painter.is_valid():
+			upright.painter.call(self, front)
 		else:
-			draw_rect(front, top.darkened(0.25))
+			draw_rect(front, upright.top.darkened(0.25))
 		# The lip's own shadow along the top of the front.
-		draw_rect(Rect2(front.position, Vector2(tile, minf(10.0, face * 0.2))), Color(0, 0, 0, 0.28))
+		draw_rect(Rect2(front.position, Vector2(tile, minf(10.0, upright.face * 0.2))), Color(0, 0, 0, 0.28))
 
 
 func _keep_the_uprights():
@@ -591,12 +886,18 @@ func _keep_the_uprights():
 			if node.has_method("depth_paint"):
 				upright.painter = node.depth_paint
 			node.add_child(upright)
+			var front := _Front.new()
+			front.name = "Front"
+			front.material = _face_material
+			upright.add_child(front)
 		var on := _tile_map.local_to_map(_tile_map.to_local(node.global_position))
 		var face: float = maxf(lift - float(_lifts.get(on + Vector2i.DOWN, 0.0)), 0.0) if lift > 0.0 else 0.0
 		if not is_equal_approx(lift, upright.lift) or not is_equal_approx(face, upright.face):
 			upright.lift = lift
 			upright.face = face
 			upright.queue_redraw()
+			for part in upright.get_children():
+				part.queue_redraw()
 		upright.visible = lift > 0.0
 		upright.z_index = Depth.z_at(upright.global_position.y, _top)
 		if lift > 0.0:

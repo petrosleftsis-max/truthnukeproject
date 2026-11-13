@@ -9,6 +9,7 @@ extends "res://StealthHarness.gd"
 ## - whoever stands up on raised ground is drawn that much higher, and a hop takes the drawing there;
 ## - a shut door and a wall that can be broken stand as tall as a wall, and drop when opened or broken;
 ## - thick mist rises over what is lifted, thin mist does not;
+## - C: the lamps are told to the rows with where their light reaches, each piece lit its own way, and walls' feet shaded;
 ## - one seeded fight played with the view and without ends the same.
 
 const STAGE := "res://maps/stealth_stages/stealth_9.tscn"
@@ -93,6 +94,7 @@ func a_painted_map():
 	ok(Depth.face_under(lifts, Vector2i(0, 2)) == 0.0, "a wall with more wall to its south has none")
 	ok(Depth.face_under(lifts, Vector2i(3, 5)) == Depth.WALL_LIFT, "a wall with nothing to its south has one")
 	ok(Depth.face_under(lifts, Vector2i(1, 1)) == 0.0 and Depth.face_under(lifts, Vector2i(3, 3)) == 0.0, "and what is not lifted has none")
+	ok(Depth.slot("no_such_picture") == null, "an empty slot is no picture: code draws")
 	# Raised ground against a wall: only what stands over its neighbour shows.
 	tile_map.set_cell(0, Vector2i(3, 1), 0, StagePainter.FLOOR_ODD, StagePainter.RAISED_ALTERNATIVE)
 	lifts = Depth.lifts_of(tile_map)
@@ -292,6 +294,28 @@ func on_the_stage():
 	for cut in view.cuts_now():
 		for_far = for_far or Vector2(cut.x, cut.y).distance_to(far.global_position) < 2.0
 	ok(for_far, "against the hall's south wall, they are seen through the wall")
+	# Somebody bigger than a tile: two by two, their node on their top-left tile and their drawing over the middle of the four.
+	far.scale = Vector2(2.0, 2.0)
+	far.set_size_offset(Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE) * 0.5)
+	far.global_position = Grid.tile_to_world(Vector2i(24, 21))
+	await settle(2)
+	var big_cut := Vector3.ZERO
+	for cut in view.cuts_now():
+		if Vector2(cut.x, cut.y).distance_to(DepthView.body_middle(far)) < 2.0:
+			big_cut = cut
+	ok(big_cut != Vector3.ZERO, "somebody two tiles by two against the hall's south wall is seen through it too")
+	ok(is_equal_approx(big_cut.x, Grid.tile_to_world(Vector2i(24, 21)).x + Grid.TILE_SIZE * 0.5) and is_equal_approx(big_cut.y, Grid.tile_to_world(Vector2i(24, 21)).y + Grid.TILE_SIZE * 0.5),
+		"about the middle of the four tiles they cover, not their own top-left one", "%s" % [big_cut])
+	ok(is_equal_approx(big_cut.z, Depth.CUT_TILES * Grid.TILE_SIZE * 2.0), "and twice as far round them")
+	far.global_position = Grid.tile_to_world(Vector2i(24, 19))
+	await settle(2)
+	big_cut = Vector3.ZERO
+	for cut in view.cuts_now():
+		if Vector2(cut.x, cut.y).distance_to(DepthView.body_middle(far)) < 2.0:
+			big_cut = cut
+	ok(big_cut == Vector3.ZERO, "a row further from the wall, nothing covers them and nothing is cut away")
+	far.scale = Vector2.ONE
+	far.set_size_offset(Vector2.ZERO)
 	far.global_position = Grid.tile_to_world(Vector2i(25, 15))
 	await settle(2)
 	for_far = false
@@ -334,6 +358,34 @@ func on_the_stage():
 	Campaign.set_clock(23)
 	await settle(4)
 	ok(view._material.get_shader_parameter("shade_on") == 1.0 and view._material.get_shader_parameter("shade_map") != null, "by night the rows read the shade's own picture")
+	# Light that knows height (C): the lamps are told to the rows, and where their light reaches by the light's own rule.
+	await settle(3)
+	var map: LightMap = scene.light
+	ok(map != null and DepthView.lamp_reaches(map, Vector2i(14, 13)), "the yard's lamp reaches the floor beside it, by the light's own rule")
+	ok(not DepthView.lamp_reaches(map, Vector2i(2, 2)) and not DepthView.lamp_reaches(null, Vector2i(14, 13)), "and no lamp reaches solid rock, nor anything with no light map")
+	ok(int(view._material.get_shader_parameter("lamp_count")) > 0 and view._gate != null, "after dark the rows are told the lamps, and where their light reaches",
+		"%s lamps" % [view._material.get_shader_parameter("lamp_count")])
+	ok(view._face_material.get_shader_parameter("kind") == 1.0 and view._object_material.get_shader_parameter("kind") == 2.0 and view._material.get_shader_parameter("kind") == null,
+		"a face is lit as facing us, a thing standing as round, a top as flat")
+	var faces := 0
+	var things := 0
+	var wrong := 0
+	for row in rows:
+		if row.what == DepthView._Row.FACES:
+			faces += 1
+			wrong += 0 if row.material == view._face_material else 1
+		elif row.what == DepthView._Row.THINGS:
+			things += 1
+			wrong += 0 if row.material == view._object_material else 1
+		else:
+			wrong += 0 if row.material == view._material else 1
+	ok(faces > 0 and things > 0 and wrong == 0, "each row's tops, faces and things are drawn by a node of their own, lit its own way", "%d of faces, %d of things" % [faces, things])
+	var before: int = map.version
+	scene.relight_map()
+	ok(map.version > before, "and the light's map counts each time it is worked out anew, for the view to see")
+	# The foot of walls.
+	ok(view._feet != null and view._feet.visible and view._feet.texture != null, "the foot of every wall and raised edge is shaded on the floor")
+	ok(DepthView.foot_of(Depth.WALL_LIFT) == 1.0 and DepthView.foot_of(Depth.RAISED_LIFT) == 0.5 and DepthView.foot_of(0.0) == 0.0, "a wall's wholly, raised ground's by its height, the floor's not at all")
 	LightView.plays_headless = false
 	LightView.sky_ease_seconds = 2.5
 	far.queue_free()
@@ -403,6 +455,19 @@ func up_on_raised_ground():
 	sprite.hop(CombatantSprite.Hop.DOWN, 0.15, 0.0)
 	await wait(0.4)
 	ok(sprite.ground_lift == 0.0 and is_equal_approx(drawn.position.y, 0.0), "and a hop down brings it down")
+	# Somebody bigger than a tile with raised ground among their feet: they sort from their top-left tile, so it would be drawn
+	# over their legs.
+	ok(sprite.z_index == 1, "a figure in a fight is drawn at the layer's own height")
+	sprite.scale = Vector2(3.0, 3.0)
+	sprite.position = Grid.tile_to_world(Vector2i(14, 16))
+	await settle(2)
+	ok(sprite.z_index == 2, "somebody three tiles by three with the terrace among their feet is drawn over it", "%s" % [sprite.z_index])
+	sprite.position = Grid.tile_to_world(Vector2i(14, 21))
+	await settle(2)
+	ok(sprite.z_index == 1, "and as they were once they have stepped off it", "%s" % [sprite.z_index])
+	sprite.scale = Vector2.ONE
+	sprite.position = combat.sprite_point(cyrus)
+	await settle(2)
 	LightView.plays_headless = false
 	await end_fight()
 	log_line("")

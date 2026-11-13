@@ -20,6 +20,9 @@ var flickers := false
 var sources: Array = []
 var blocks_light: Callable = Callable()
 
+## Counts each time it is worked out anew, for what draws from it to see that it has (DepthView).
+var version := 0
+
 var _blocked := {}
 var _ambient := {}
 var _darkened := {}
@@ -81,6 +84,7 @@ func rebuild(base_level: int, areas: Array, lit_by: Array, dark_tiles: Array, bl
 		_darkened[tile] = true
 	varies = base != Light.Level.BRIGHT or levels.values().any(func(level): return level != Light.Level.BRIGHT)
 	_blocked = {}
+	version += 1
 
 
 func _shine(source: Dictionary, blocks: Callable):

@@ -176,11 +176,19 @@ static func opens_a_cutaway(visible: bool, alpha: float) -> bool:
 	return visible and alpha > CUT_NEEDS_ALPHA
 
 
-## The picture in the slot `name` (without ".png"), or null.
+## The picture in the slot `name` (without ".png"), or null. With a normal map beside it (`name`_n.png), the two together, so the
+## real lights fall on it by that (DepthView "Light that knows height").
 static func slot(name: String) -> Texture2D:
 	var path := ART + name + ".png"
 	if not _slots.has(path):
-		_slots[path] = load(path) if ResourceLoader.exists(path) else null
+		var picture: Texture2D = load(path) if ResourceLoader.exists(path) else null
+		var normal_path := ART + name + "_n.png"
+		if picture != null and ResourceLoader.exists(normal_path):
+			var both := CanvasTexture.new()
+			both.diffuse_texture = picture
+			both.normal_texture = load(normal_path)
+			picture = both
+		_slots[path] = picture
 	return _slots[path]
 
 

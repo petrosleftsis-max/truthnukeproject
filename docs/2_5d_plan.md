@@ -12,12 +12,13 @@ This file is kept current after every step, so another session can take over. Re
 | Reading, the plan told and agreed | Done, 2026-11-13 |
 | "Before" screenshots | Done (in the session's scratch folder; taken again by `shot_driver.gd`, below) |
 | A. Raised ground, shown | Built, approved with three changes (below) and committed, 2026-11-13 |
-| C. Light that knows height | Not started |
-| B. Layers and parallax, with roofs | Not started |
-| Docs (CLAUDE.md section, `docs/depth_on_maps.md`, ledger rows), full pass | Not started (a full pass was begun after A; see the log) |
+| C. Light that knows height | Built, approved ("i really like how things are you may proceed") and committed, 2026-11-13 |
+| The sewer's channel no longer high ground (a rule; the designer: "thats fine, do the change in the sewer water") | **Next, before B** |
+| **B. Layers and parallax, with roofs** | **Not started** |
+| Docs (`docs/depth_on_maps.md`, ledger rows for B, `docs/where_we_are.md`), full pass | Not started. The full pass begun with C was cut off by a power cut at the designer's; it has to be run again |
 
 The order is A, then C, then B; after each: screenshots on the Light stage (stealth stage 9), the designer's OK, then commit and
-push to main. A is committed and pushed; **C is next**.
+push to main. A and C are committed and pushed. **The sewer change, then B, are next.**
 
 **Do not shut the PC down at the end.** The designer first asked for it "when done", then took that back the same day
 (2026-11-13): "Don't turn off my pc when you're done".
@@ -83,15 +84,22 @@ Known, and left for later or for the designer:
 
 ## Still to build
 
-### C. Light that knows height
+### C. Light that knows height: built
 
-- The foot of every wall and raised edge: a soft shade on the floor (a shader over a mask a pixel a tile, on the ground under the
-  shade).
-- Faces lit from the side they face by the lamps near them, in the lamp's colour, dark from behind, with nothing that stops light
-  between (`LightMap.blocks_light`), from `CombatantSprite.light_points`, in RAISED_SHADER. The rows are lit by the real lights
-  already (A found that works), so this adds what a face's own side gives.
-- Short soft shadows off ledges away from the nearest lamps, on top of the sun's.
-- A face's `_n.png` normal map read by the face shader; until then a face faces south and a top faces up.
+Found first: the real lights never reach what stands inside a wall's or a barrel's own square, so normals for them were no use.
+What is lifted is lit in its own shader instead (CLAUDE.md "Light that knows height"):
+
+- each row is three nodes (tops, faces, things standing), one shader, three materials (`kind`);
+- `_tell_the_lamps`: the nearest eight of `CombatantSprite.light_points` every frame, so the light moves and breathes with them;
+- `_gate_the_light`: where a lamp reaches by the rule (`LightMap.glow`; `LightMap.version` is new), so nothing is lit through a
+  wall; a face asks of the floor in front of it and takes that floor's shade;
+- a thing standing is lit round, on the side the lamp is;
+- a slot's `_n.png` normal map makes a face face as it says (`Depth.slot`);
+- `_shade_the_feet`: the floor shaded at the foot of every wall and raised edge (`FOOT_SHADE` 0.42).
+- Not built, on purpose: extra shadows off ledges away from lamps. The lamps' real shadows already fall off every wall, barrel
+  and terrace (they are occluders), and a second one beside it read as a mistake.
+
+Numbers (PROPOSAL): `LAMP_GAIN` 1.6, `LAMP_HEIGHT_TILES` 0.5, `GATE_FROM` 0.04, `FOOT_SHADE` 0.42.
 
 ### B. Layers and parallax
 
@@ -136,3 +144,9 @@ are in the session's scratch folder; they are a page of code and quick to write 
 - 2026-11-13: the designer approved A with three changes (the channel flat, doors lifted, mist that rises). Built; `depth` and the
   suites that touch doors, light and weather clean (depth atmos clock light figures weather daysky aimed net outside stages
   stealthworld). CLAUDE.md has a Depth section and the ledger ten rows. A committed and pushed.
+- 2026-11-13: C built. Suite `depth` clean with its checks; a full pass started; screenshots sent. Waiting for the designer's OK.
+- 2026-11-13: the designer asked "Does the cutaway work for creatures that are bigger than human". It did not quite: it was about
+  their top-left tile. Now about the middle of what they cover (`DepthView.body_middle`, `_covered`), and somebody big is drawn
+  over barrels and raised ground among their own feet (`_keep_the_big_over`). Checked in `depth` (93 checks, clean).
+- 2026-11-13: the designer approved C and the sewer's rules change. Their power went out and cut the full pass off (clean as far
+  as it had got). C committed and pushed.
