@@ -6433,6 +6433,16 @@ const AFTER_SECONDS := 2.2
 const AFTER_SMOKE_MOST := 8
 
 
+## At most `most` of `items`, spread evenly through them rather than the first few: for what is only to look at, with nothing rolled.
+static func _spread_out(items: Array, most: int) -> Array:
+	if items.size() <= most:
+		return items
+	var picked := []
+	for i in most:
+		picked.append(items[int(float(i) * float(items.size()) / float(most))])
+	return picked
+
+
 ## Where `tile` is in the world, its middle.
 func _world_at(tile: Vector2i) -> Vector2:
 	return controller.tile_map.to_global(controller.tile_map.map_to_local(tile))
@@ -6493,8 +6503,8 @@ func _after_the_fight():
 		var burned_down: bool = not comb.get("alive", true) and comb.get("last_hurt", {}) is Dictionary and comb.get("last_hurt", {}).get("element", -1) == Damage.Type.FIRE
 		if comb.has("position") and (burn_turns_of(comb) > 0 or burned_down):
 			smoking.append(comb.position)
-	smoking.shuffle()
-	for smoke_tile in smoking.slice(0, AFTER_SMOKE_MOST):
+	# Spread over what burned, nothing rolled: Combat.gd rolls only through rng, even for a look.
+	for smoke_tile in _spread_out(smoking, AFTER_SMOKE_MOST):
 		var smoke := CPUParticles2D.new()
 		smoke.name = "SmokeThinning"
 		smoke.z_as_relative = false
