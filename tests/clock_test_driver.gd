@@ -290,11 +290,8 @@ func the_look():
 		ok(not CombatantSprite.light_points.is_empty(), "figures' shadows are told where the lights are")
 		ok(view.get_node("Grade").visible, "underground is graded")
 		ok(view.get_node("Fog").visible, "fog hangs in the dark")
-		view.night_eyes = false
-		var strength: float = view.get_node("Fog").material.get_shader_parameter("strength")
-		view.night_eyes = true
-		ok(view.get_node("Fog").visible and view.get_node("Fog").material.get_shader_parameter("strength") != strength, "and still does for whoever sees in the dark, as they see it")
-		view.night_eyes = false
+		ok(view.get("night_eyes") == null and is_equal_approx(view.get_node("Fog").material.get_shader_parameter("strength"), LightView.FOG_STRENGTH),
+			"the same for whoever sees in the dark: the dark is not shown lighter for them any more")
 		# A carried light glides; a light gone goes out.
 		var first: PointLight2D = lights[0]
 		combat._placed_lights[0].tile = tile + Vector2i(1, 0)

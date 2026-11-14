@@ -246,10 +246,12 @@ func whose_gaze_matters():
 	var post: Vector2i = m.post
 	var fooled = add_guard(m, "Fooled", post, 180.0)
 	fooled.recognises = Guard.Recognises.NO_DISGUISE
-	var sharp_tile = find_tile(m, func(t): return gap(t, post) >= 8.0 and gap(t, post) <= 12.0)
+	# Neither of the other two with a line to the first one's post, so that only his gaze is on it: distance alone no longer
+	# does that, since the sewer's channel is water that anybody sees across (the designer, 2026-11-13).
+	var sharp_tile = find_tile(m, func(t): return gap(t, post) >= 8.0 and gap(t, post) <= 12.0 and not m.sight.clear(t, post))
 	var sharp = add_guard(m, "Sharp", sharp_tile, 0.0)
 	sharp.recognises = Guard.Recognises.ANY_DISGUISE
-	var asker_tile = find_tile(m, func(t): return gap(t, post) >= 14.0 and gap(t, sharp_tile) >= 8.0)
+	var asker_tile = find_tile(m, func(t): return gap(t, post) >= 14.0 and gap(t, sharp_tile) >= 8.0 and not m.sight.clear(t, post))
 	var asker = add_guard(m, "Asker", asker_tile, 0.0, "priest")
 	asker.questions = load("res://dialogue/stealth_stages.dialogue")
 	Campaign.give_item(m.leader, "priest_robes")

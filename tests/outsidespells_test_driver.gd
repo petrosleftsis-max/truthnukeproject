@@ -177,7 +177,9 @@ func illusions_on_a_map():
 	Campaign.set_party(["alithia", "cyrus"], 64)
 	Campaign.choose_subclass("alithia", "illusory_shepherd")
 	await settle()
-	var near := add_guard(m, "Near", m.post + Vector2i.RIGHT * 8, 180.0)
+	# His back to the party: the sewer's channel lies between them, and since 2026-11-13 it is water that anybody sees across
+	# (the designer), so facing them he would be watching them, not listening.
+	var near := add_guard(m, "Near", m.post + Vector2i.RIGHT * 8, 0.0)
 	var far := add_guard(m, "Far", m.post + Vector2i.RIGHT * 24, 180.0)
 	var watch = await watch_it(m, m.post)
 	var scene = m.scene

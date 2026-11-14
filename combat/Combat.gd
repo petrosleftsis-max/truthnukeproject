@@ -1045,6 +1045,9 @@ func add_combatant(combatant: Dictionary, side: int, position: Vector2i):
 	combatant_layer().add_child(new_combatant_sprite)
 	new_combatant_sprite.position = sprite_point(combatant)
 	new_combatant_sprite.z_index = 1
+	# One of the party: a roof over the map fades for them (DepthPiece). Only to look at.
+	if side == 0 and not combatant.has("object"):
+		new_combatant_sprite.add_to_group(Depth.PARTY)
 	var facing_flip = side == 0
 	new_combatant_sprite.setup(combatant.sprite_frames, combatant.map_sprite, facing_flip)
 	new_combatant_sprite.set_tint(combatant.get("tint", Color.WHITE))
@@ -9114,8 +9117,6 @@ func _turn_begins_for(comb: Dictionary):
 	_auras_on(comb)
 	_ground_under(comb)
 	_zones_on_their_turn(comb)
-	if light_view != null and plays_for_party(comb) and not comb.has("summoner"):
-		light_view.night_eyes = sees_in_darkness(comb)
 
 
 ## --- Immunities ---

@@ -39,6 +39,60 @@ const UPRIGHTS := &"depth_uprights"
 
 ## The group every figure drawn is in (CombatantSprite), for sorting them on a map and for the cutaway.
 const FIGURES := &"depth_figures"
+## The group of the figures that are the party's (ExplorationParty's on a map, side 0's in a fight): a roof fades for them.
+const PARTY := &"depth_party"
+## The group every DepthPiece in the game is in.
+const PIECES := &"depth_pieces"
+
+## --- B. Layers and parallax (DepthPiece) ---
+##
+## How far a piece moves against the ground as the view moves, as a share of how far the view's middle is from it, where the piece
+## does not say (its Moves below 0). Only what stands free moves: a tree's crown, in front, and anything behind the ground. A roof,
+## an arch and a balcony rest on walls, which do not move, so they stay.
+const PIECE_MOVES_FRONT := 0.12
+const PIECE_MOVES_BEHIND := 0.5
+## How far a piece behind the ground can move at most, each way, in tiles: its picture is drawn that much bigger than the part of
+## the ground it is seen through, so it never runs out.
+const BEHIND_MARGIN_TILES := 4.0
+## A roof fades away whole while one of the party is under it or within this many tiles of it, over this long.
+const ROOF_NEAR_TILES := 2.0
+const PIECE_FADE_SECONDS := 0.35
+## The z of a piece in front: over every figure and lifted row, and - coming after the light's own nodes in the tree, at the same z -
+## over the embers, the shafts from windows and the glow round a lamp, which are all inside under a roof (the mist and the clouds'
+## shadows with them: a roof stands out of the mist). Smoke from a chimney is one higher. And of one behind, under the ground.
+const PIECE_Z_FRONT := ExplorationParty.PARTY_Z_TOP
+const PIECE_Z_BEHIND := -50
+## One behind that knows the map it is on (DepthPiece "Behind the ground") is drawn over the ground and its shade instead, kept off
+## every painted tile: at the ground's own z, after it in the tree, so under every figure and lifted row.
+const PIECE_Z_BEHIND_MASKED := 0
+
+
+## How far a piece moves against the ground: what it says for itself (`own`, 0 or more), or by whether it is `behind` the ground
+## and whether it `stands_free` (a tree).
+static func piece_moves(own: float, behind: bool, stands_free: bool) -> float:
+	if own >= 0.0:
+		return own
+	if behind:
+		return PIECE_MOVES_BEHIND
+	return PIECE_MOVES_FRONT if stands_free else 0.0
+
+
+## Where a piece is drawn off its own place, with the view's middle at `view` and its own at `middle`, both in the world: nothing
+## when the view is centred on it. What is in front (nearer than the ground) slides away from the view's middle, as the top of
+## something tall does seen from above; what is behind (further) lags after the view, held to BEHIND_MARGIN_TILES.
+static func piece_offset(moves: float, behind: bool, middle: Vector2, view: Vector2) -> Vector2:
+	if moves <= 0.0:
+		return Vector2.ZERO
+	if not behind:
+		return (middle - view) * moves
+	var most := BEHIND_MARGIN_TILES * float(Grid.TILE_SIZE)
+	var lag := (view - middle) * moves
+	return Vector2(clampf(lag.x, -most, most), clampf(lag.y, -most, most))
+
+
+## Whether somebody standing at `at` opens a roof over the ground `covered` (both in the world): under it, or near it.
+static func roof_opens(covered: Rect2, at: Vector2) -> bool:
+	return covered.grow(ROOF_NEAR_TILES * float(Grid.TILE_SIZE)).has_point(at)
 ## A cutaway: how far round a figure a tile big it reaches, in tiles; how much of what covers them is left in it; and how much of
 ## its radius is its soft edge.
 const CUT_TILES := 0.62

@@ -114,6 +114,8 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 		# Who this actually is, so a conversation can send "cyrus" somewhere
 		# rather than "the second one in the line".
 		sprite.set_meta("combatant_key", members[i].get("key", ""))
+		# One of the party: a roof fades for them (DepthPiece).
+		sprite.add_to_group(Depth.PARTY)
 		# Above the map, descending so the line reads front-to-back with the
 		# leader on top. Absolute rather than relative, and never at or below
 		# the terrain's own z_index of 0 - followers were previously at -1 and

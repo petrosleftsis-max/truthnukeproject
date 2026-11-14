@@ -447,8 +447,6 @@ func _light_goes_on(delta: float):
 				var level := light.level_at(_tile_map.local_to_map(_tile_map.to_local(guard.global_position)))
 				guard.sprite.set_light(Light.FIGURE_TINTS[level])
 				guard.sprite.set_in_the_dark(level == Light.Level.DARK, false)
-	if light_view != null:
-		light_view.night_eyes = Campaign.sees_in_darkness(Campaign.leader())
 
 
 ## Switches off any grid overlay the map brought with it, wherever it sits -

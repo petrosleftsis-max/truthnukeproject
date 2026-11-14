@@ -871,6 +871,14 @@ func _keep_the_uprights():
 		if not is_instance_valid(node) or not node is Node2D or not node.is_inside_tree() or not node.has_method("depth_lift"):
 			continue
 		var lift: float = node.depth_lift() if node.is_visible_in_tree() else 0.0
+		var on := _tile_map.local_to_map(_tile_map.to_local(node.global_position))
+		var face: float = maxf(lift - float(_lifts.get(on + Vector2i.DOWN, 0.0)), 0.0) if lift > 0.0 else 0.0
+		# A door in a wall that runs north to south has a wall to its south as tall as itself: stood up, only its top would show,
+		# the wall's height further up the screen than the tile it is on (the designer, 2026-11-14: "the door isnt on the same tile
+		# as its drawing"). Such a one stays drawn flat on its own tile, and is seen through the wall's top that covers it, as a
+		# thing to be found is (_sort_the_figures).
+		if lift > 0.0 and face <= 0.0 and node.has_method("depth_needs_front") and node.depth_needs_front():
+			lift = 0.0
 		var upright: _Upright = node.get_node_or_null("DepthUpright")
 		if upright == null:
 			if lift <= 0.0:
@@ -890,8 +898,6 @@ func _keep_the_uprights():
 			front.name = "Front"
 			front.material = _face_material
 			upright.add_child(front)
-		var on := _tile_map.local_to_map(_tile_map.to_local(node.global_position))
-		var face: float = maxf(lift - float(_lifts.get(on + Vector2i.DOWN, 0.0)), 0.0) if lift > 0.0 else 0.0
 		if not is_equal_approx(lift, upright.lift) or not is_equal_approx(face, upright.face):
 			upright.lift = lift
 			upright.face = face

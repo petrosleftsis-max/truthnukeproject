@@ -27,9 +27,7 @@ class_name LightView
 
 ## How heavy the shade is where no light reaches at all, and how blue.
 const SHADE_MOST := 0.86
-const NIGHT_EYES_MOST := 0.52
 const SHADE_COLOUR := Color(0.015, 0.02, 0.06)
-const NIGHT_EYES_COLOUR := Color(0.1, 0.14, 0.24)
 const TONE_SECONDS := 1.2
 ## How long the shade takes to change, and a light to come on or go out.
 const EASE_SECONDS := 0.8
@@ -41,11 +39,16 @@ const OPENING_ENERGY := 0.34
 ## How much a light is lost in what is lit already, in full sun.
 const LOST_IN_THE_SUN := 0.65
 const FLICKER := 0.09
-## How strong the fog is, and how strong for whoever sees in the dark (the designer, 2026-11-07: "i'd like it
-## to still be somewhat visible when cyrus plays"): it goes by how heavy the shade is, which is lighter
-## for them, so this is about half as strong on the screen.
+## How strong the fog is. The dark looks the same whoever is led or whose turn it is: the lighter, greyer dark shown for whoever
+## sees in it (Cyrus's Night Eyes) was taken out (the designer, 2026-11-14: "remove the night eyes visual effect"). The rule
+## stands: he still sees who is in the dark, and his eyes still glow there (CombatantSprite._Eyes).
 const FOG_STRENGTH := 0.24
-const FOG_WITH_NIGHT_EYES := 0.8
+## The weather is over everything, a roof and a tree's crown too (DepthPiece, at PARTY_Z_TOP; the designer, 2026-11-14: "the
+## effects like the fog go behind the door, even tho they go over the walls"): the mist that rises, the clouds' shadows, birds,
+## the aurora and the rainbow, and whatever falls or blows. What belongs indoors under a roof - the embers and dust at a light,
+## a window's shafts, the glow round a lamp - stays at PARTY_Z_TOP, under the pieces that come after it in the tree. A chimney's
+## smoke is between (ChimneySmoke, one over).
+const SKY_Z := ExplorationParty.PARTY_Z_TOP + 2
 const FLICKER_RATE := 7.0
 const GLIDE_RATE := 9.0
 ## How far a light may have gone and still be taken for the same one, between one look and the next.
@@ -254,9 +257,16 @@ func _mask_the_sky():
 		return
 	_sky_mask_made = true
 	var image := Image.create(_region.size.x, _region.size.y, false, Image.FORMAT_L8)
+	# The same, but only where the map has ground: what lies over the map alone - the mist, the clouds' shadows, the aurora -
+	# ends where the map's own tiles do, not in a straight line at the edge of its rectangle, now that something can be seen
+	# past it (a DepthPiece behind the ground, everywhere; found 2026-11-14). What falls and blows goes on past the map.
+	var ground := Image.create(_region.size.x, _region.size.y, false, Image.FORMAT_L8)
 	for y in _region.size.y:
 		for x in _region.size.x:
-			image.set_pixel(x, y, Color.WHITE if light.under_the_sky(_region.position + Vector2i(x, y)) else Color.BLACK)
+			var tile := _region.position + Vector2i(x, y)
+			var open: bool = light.under_the_sky(tile)
+			image.set_pixel(x, y, Color.WHITE if open else Color.BLACK)
+			ground.set_pixel(x, y, Color.WHITE if open and _tile_map.get_cell_source_id(0, tile) != -1 else Color.BLACK)
 	if image.get_data() == _sky_mask_bytes:
 		return
 	_sky_mask_bytes = image.get_data()
@@ -264,9 +274,10 @@ func _mask_the_sky():
 	var half := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE) / 2.0
 	var origin: Vector2 = _tile_map.to_global(_tile_map.map_to_local(_region.position) - half)
 	var far: Vector2 = _tile_map.to_global(_tile_map.map_to_local(_region.end) - half)
+	var ground_mask := ImageTexture.create_from_image(ground)
 	for layer in [_mist, _high_mist, _clouds, _aurora]:
 		if layer != null:
-			layer.material.set_shader_parameter("sky_mask", mask)
+			layer.material.set_shader_parameter("sky_mask", ground_mask)
 	if _air_material == null:
 		_air_material = _material(AIR_SHADER)
 	for material in [_air_material, _glow_material, _rainbow.material if _rainbow != null else null, _flash.material if _flash != null else null,
@@ -333,7 +344,6 @@ static var air_on := true
 static var _light_picture: Texture2D = null
 
 var light: LightMap = null
-var night_eyes := false : set = _set_night_eyes
 
 var _tile_map: TileMap = null
 var _region := Rect2i()
@@ -445,17 +455,17 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_mist = _sky_layer("Mist", noise, region)
 	_high_mist = _sky_layer("HighMist", noise, region)
 	_high_mist.z_as_relative = false
-	_high_mist.z_index = ExplorationParty.PARTY_Z_TOP
+	_high_mist.z_index = SKY_Z
 	_clouds = _sky_layer("Clouds", noise, region)
 	_clouds.z_as_relative = false
-	_clouds.z_index = ExplorationParty.PARTY_Z_TOP
+	_clouds.z_index = SKY_Z
 	_aurora = _sky_layer("Aurora", noise, region, AURORA_SHADER)
 	_aurora.z_as_relative = false
-	_aurora.z_index = ExplorationParty.PARTY_Z_TOP
+	_aurora.z_index = SKY_Z
 	_birds = _Birds.new()
 	_birds.name = "BirdShadows"
 	_birds.z_as_relative = false
-	_birds.z_index = ExplorationParty.PARTY_Z_TOP
+	_birds.z_index = SKY_Z
 	_birds.light_mask = 0
 	if _air_material == null:
 		_air_material = _material(AIR_SHADER)
@@ -468,7 +478,7 @@ func start(map: LightMap, tile_map: TileMap, region: Rect2i):
 	_rainbow.name = "Rainbow"
 	_rainbow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rainbow.z_as_relative = false
-	_rainbow.z_index = ExplorationParty.PARTY_Z_TOP
+	_rainbow.z_index = SKY_Z
 	_rainbow.light_mask = 0
 	_rainbow.material = _material(RAINBOW_SHADER)
 	_rainbow.visible = false
@@ -570,12 +580,6 @@ func _material(code: String) -> ShaderMaterial:
 	return material
 
 
-func _set_night_eyes(value: bool):
-	if value != night_eyes:
-		night_eyes = value
-		refresh()
-
-
 ## Draws what the map says now: `slowly` for the sun's moving (SKY_SHADE_SECONDS), not a light lit or put out.
 func refresh(slowly: bool = false):
 	if light == null or _tile_map == null or _region.size.x <= 0 or _region.size.y <= 0:
@@ -585,8 +589,8 @@ func refresh(slowly: bool = false):
 	if not visible:
 		return
 	var shade := Image.create(_region.size.x, _region.size.y, false, Image.FORMAT_RGBA8)
-	var most := NIGHT_EYES_MOST if night_eyes else SHADE_MOST
-	var colour := NIGHT_EYES_COLOUR if night_eyes else SHADE_COLOUR
+	var most := SHADE_MOST
+	var colour := SHADE_COLOUR
 	var any_dark := false
 	for x in _region.size.x:
 		for y in _region.size.y:
@@ -602,7 +606,7 @@ func refresh(slowly: bool = false):
 		_fog.visible = false
 	_put_on_the_shade(shade, most, SKY_SHADE_SECONDS if slowly else EASE_SECONDS)
 	_tell_the_shadows()
-	_fog.material.set_shader_parameter("strength", FOG_WITH_NIGHT_EYES if night_eyes else FOG_STRENGTH)
+	_fog.material.set_shader_parameter("strength", FOG_STRENGTH)
 	_build_occluders()
 
 
@@ -1399,7 +1403,7 @@ func _air_bits(called: String) -> CPUParticles2D:
 	bits.local_coords = false
 	bits.light_mask = 0
 	bits.z_as_relative = false
-	bits.z_index = ExplorationParty.PARTY_Z_TOP
+	bits.z_index = SKY_Z
 	bits.emitting = false
 	bits.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	# Faded where the sky does not reach ("Only under the open sky").
@@ -2121,6 +2125,16 @@ static func lit_colour_at(at: Vector2) -> Color:
 	if showing == null or not is_instance_valid(showing) or not showing.visible:
 		return Color.WHITE
 	return Color.WHITE.lerp(Color(SHADE_COLOUR, 1.0), clampf(showing._shade_at(at), 0.0, 1.0))
+
+
+## The colour of something up under the open sky now, whatever the ground beneath it is - a roof over a lit room (DepthPiece):
+## white by day, the shade's own as the night comes, by the sun as it stands at this minute. With no sky over the map, as the
+## map itself is lit.
+static func open_sky_colour() -> Color:
+	if showing == null or not is_instance_valid(showing) or not showing.visible or showing.light == null:
+		return Color.WHITE
+	var amount: float = showing._sun if showing._sun >= 0.0 else float(Light.AMOUNTS[showing.light.base])
+	return Color.WHITE.lerp(Color(SHADE_COLOUR, 1.0), clampf(SHADE_MOST * pow(1.0 - clampf(amount, 0.0, 1.0), 1.3), 0.0, 1.0))
 
 
 ## How heavy the shade is at `at`, a place in the world: where it is going, not where it is on the way.

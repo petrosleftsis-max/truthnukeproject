@@ -52,6 +52,12 @@ func depth_lift() -> float:
 	return 0.0 if passable() else Depth.lift_of(Depth.Kind.WALL)
 
 
+## A door is stood up only where its front shows: facing us, in a wall that runs east to west. In a wall that runs north to south
+## it stays drawn on its own tile (DepthView._keep_the_uprights).
+func depth_needs_front() -> bool:
+	return true
+
+
 func depth_top() -> Color:
 	return WOOD.lerp(WOOD_DARK, 0.35)
 

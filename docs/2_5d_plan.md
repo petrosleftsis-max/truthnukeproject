@@ -13,12 +13,20 @@ This file is kept current after every step, so another session can take over. Re
 | "Before" screenshots | Done (in the session's scratch folder; taken again by `shot_driver.gd`, below) |
 | A. Raised ground, shown | Built, approved with three changes (below) and committed, 2026-11-13 |
 | C. Light that knows height | Built, approved ("i really like how things are you may proceed") and committed, 2026-11-13 |
-| The sewer's channel no longer high ground (a rule; the designer: "thats fine, do the change in the sewer water") | **Next, before B** |
-| **B. Layers and parallax, with roofs** | **Not started** |
-| Docs (`docs/depth_on_maps.md`, ledger rows for B, `docs/where_we_are.md`), full pass | Not started. The full pass begun with C was cut off by a power cut at the designer's; it has to be run again |
+| The sewer's channel no longer high ground (a rule; the designer: "thats fine, do the change in the sewer water") | Built and committed with B, 2026-11-14. The full pass with it found two suites whose guards were placed counting on the channel to hide the party (`alarm`, `outsidespells`): their setups were moved, their checks left as they were |
+| B. Layers and parallax, with roofs | Built, liked ("i really like them all") with changes asked for, all built (below), and committed, 2026-11-14 |
+| Docs (`docs/depth_on_maps.md`, the ledger, CLAUDE.md, `docs/where_we_are.md`) | Done |
+| **The last full pass** | **Running, or to run: read `Log` below for whether it came back clean** |
 
-The order is A, then C, then B; after each: screenshots on the Light stage (stealth stage 9), the designer's OK, then commit and
-push to main. A and C are committed and pushed. **The sewer change, then B, are next.**
+A, C and B are committed and pushed. What is left is the last full pass, and the designer's answers below.
+
+**Asked of the designer, not answered yet** (each is a ledger row's NextAction):
+- how tall walls should be drawn now that a person is the size of Cyrus's idle animation (about 330 pixels, 1.3 tiles): walls are
+  160, half a person, and a picture with 256 was sent beside it. Do not change `Depth.WALL_LIFT` without their word;
+- whether a shut door in a north-south wall reads as shut, drawn flat on its tile;
+- whether the Light stage's two doors should start open, or the ways have no door;
+- whether the town should stay out of some unpainted gaps (the rock round the cellar);
+- whether Cyrus's glowing eyes should go with the Night Eyes view.
 
 **Do not shut the PC down at the end.** The designer first asked for it "when done", then took that back the same day
 (2026-11-13): "Don't turn off my pc when you're done".
@@ -101,7 +109,33 @@ What is lifted is lit in its own shader instead (CLAUDE.md "Light that knows hei
 
 Numbers (PROPOSAL): `LAMP_GAIN` 1.6, `LAMP_HEIGHT_TILES` 0.5, `GATE_FROM` 0.04, `FOOT_SHADE` 0.42.
 
-### B. Layers and parallax
+### B. Layers and parallax: built and committed
+
+**The designer's changes of 2026-11-14, all built.** They took the grey arch slab over the hall's way for a door ("the door isnt on
+the same tile as its drawing, and id like the option to open the door again as well"; "the effects like the fog go behind the door,
+even tho they go over the walls"), found the town's edge ("doesnt show all around the map... i can still see the end of the
+background") and asked for the Night Eyes view to go ("also remove the night eyes visual effect"). So:
+- the two arches over the hall's ways are gone, each way has a real `StealthDoor` (HallDoor (18, 15), CellarDoor (32, 15), shut to
+  begin with), and the arch is over a gate in the yard (YardGate (3, 17), between gateposts at (2, 17) and (4, 17)), drawing its
+  front where that faces us (`_front_shows`);
+- a door in a wall running north to south is not stood up (`StealthDoor.depth_needs_front`): it stays flat on its tile and is seen
+  through the wall's top;
+- the weather is at `LightView.SKY_Z`, over the pieces; mist, clouds and aurora are kept to the map's own ground;
+- a piece Behind is drawn over the shade, kept off painted tiles by a mask, and with **Everywhere** has no end (TownBelow);
+- `LightView.night_eyes` and its numbers are gone; the rule and the glowing eyes stay.
+
+As built (it differs from the table below, which was the plan, in three ways): a piece has a **Height** (pixels over the ground,
+160 rests it on the walls; a tree's trunk); **Moves** below 0 means "as its kind does", and only a Tree (0.12) and anything Behind
+(0.5) move by themselves, because a roof, an arch and a balcony rest on walls, which do not move; and a piece Behind is seen only
+through the ground it stands over (its Size Tiles are a window), its picture drawn 4 tiles bigger each way so it never runs out.
+The decisions are in `Depth` ("B. Layers and parallax": `piece_moves`, `piece_offset`, `roof_opens`, the groups `PARTY` and
+`PIECES`, `PIECE_Z_FRONT` 620, `PIECE_Z_BEHIND` -50), the node is `exploration/DepthPiece.gd`, `LightView.open_sky_colour` is new
+(a roof darkens with the sky, whatever lights the room under it), and `ExplorationParty` and `Combat.create_combatant` put the
+party's figures in `Depth.PARTY`. A thing to be found under a roof is not seen through it (a roof is there to hide the indoors
+until somebody comes near); under anything else it is. On the Light stage (`_light_the_stage`, `depth_piece`): RoofOverHall
+(19, 8) 13 x 15, ArchToHall (18, 15), ArchToCellar (32, 15), YardTree (9, 11) on a planter of raised ground, HallBalcony
+(16, 20) 2 x 3 at 120, TownBelow (0, 0) 33 x 7 Behind, and a sign, SignLayers (7, 13). The real project was imported for the new
+class and icon (`.uid`, `.import`). The headless camera's middle is not kept, so the suite holds the tree still for its cutaway.
 
 `exploration/DepthPiece.gd` (`DepthPiece`, `@tool`, an editor icon), placed on a tile; in a terrain scene it shows in the map and its
 fights.
@@ -150,3 +184,13 @@ are in the session's scratch folder; they are a page of code and quick to write 
   over barrels and raised ground among their own feet (`_keep_the_big_over`). Checked in `depth` (93 checks, clean).
 - 2026-11-13: the designer approved C and the sewer's rules change. Their power went out and cut the full pass off (clean as far
   as it had got). C committed and pushed.
+- 2026-11-13: the sewer's channel made water to the rules (Blocks see-through). A full pass started with it.
+- 2026-11-13: B built: `DepthPiece`, the Light stage's pieces, `depth` grown to 135 checks, clean. The designer, meanwhile: "the
+  real size of the human size creatures will be the size of the idle animation of cyrus" (384 x 384 a frame, the figure about
+  330 pixels tall, 1.3 tiles). Screenshots sent with two of the walls at 160 and at 256 beside a person. Waiting for their OK.
+- 2026-11-14: the full pass with C and the sewer change: 170 of 172 clean; `alarm` and `outsidespells` each failed one check, both
+  on the crossroads, both from guards now seeing across the channel (they pass with the old tiles). Their setups were moved: one
+  guard turned his back, two were placed out of sight of the first's post.
+- 2026-11-14: the designer liked B and asked for the changes listed under B above; all built. `depth` 146 checks, clean, with
+  `daysky atmos weather clock light figures stages stealthworld alarm outsidespells guardlife`. B and the sewer change committed
+  and pushed. The last full pass started.

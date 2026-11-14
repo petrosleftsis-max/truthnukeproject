@@ -10,6 +10,8 @@ extends "res://StealthHarness.gd"
 ## - a shut door and a wall that can be broken stand as tall as a wall, and drop when opened or broken;
 ## - thick mist rises over what is lifted, thin mist does not;
 ## - C: the lamps are told to the rows with where their light reaches, each piece lit its own way, and walls' feet shaded;
+## - B: a piece over or under the ground (DepthPiece): how far each kind moves against the ground and which way, a roof fading for
+##   the party and not for anybody else, the cutaway about who is under one, nothing of it headless;
 ## - one seeded fight played with the view and without ends the same.
 
 const STAGE := "res://maps/stealth_stages/stealth_9.tscn"
@@ -26,7 +28,7 @@ func suite() -> String:
 
 
 func time_limit() -> float:
-	return 280.0
+	return 360.0
 
 
 func run_sections():
@@ -36,6 +38,7 @@ func run_sections():
 	where_a_figure_is_drawn()
 	await as_the_rules_have_it()
 	await on_the_stage()
+	await layers()
 	await up_on_raised_ground()
 	await only_a_look()
 
@@ -66,7 +69,7 @@ func painted() -> TileMap:
 		"#.rb..#",
 		"#.....#",
 		"#######"]))
-	# The sewer's channel, which the rules count as high ground and the TileSet's Lift keeps flat.
+	# The sewer's channel: water, see-through, so no high ground (the designer, 2026-11-13).
 	tile_map.set_cell(0, Vector2i(5, 1), 0, Vector2i(3, 1), 0)
 	return tile_map
 
@@ -82,8 +85,21 @@ func a_painted_map():
 	ok(Depth.kind_at(tile_map, Vector2i(3, 3)) == Depth.Kind.HIGH and Depth.stands_at(tile_map, Vector2i(3, 3)) and not lifts.has(Vector2i(3, 3)),
 		"a barrel is high ground, but a thing standing on the floor: its floor is not lifted")
 	ok(Depth.standers_of(tile_map) == [Vector2i(3, 3)], "and it is the only thing standing here", "%s" % [Depth.standers_of(tile_map)])
-	ok(Depth.kind_at(tile_map, Vector2i(5, 1)) == Depth.Kind.HIGH and Depth.lift_at(tile_map, Vector2i(5, 1)) == 0.0 and not lifts.has(Vector2i(5, 1)),
-		"the sewer's channel is high ground to the rules and never lifted (the TileSet's Lift)")
+	ok(Depth.kind_at(tile_map, Vector2i(5, 1)) == Depth.Kind.FLOOR and Depth.lift_at(tile_map, Vector2i(5, 1)) == 0.0 and not lifts.has(Vector2i(5, 1)),
+		"the sewer's channel is water, no high ground, and never lifted")
+	# The TileSet's Lift, on a copy of it: what one kind of tile says for itself.
+	var own := TileMap.new()
+	own.tile_set = tile_map.tile_set.duplicate(true)
+	own.set_cell(0, Vector2i(0, 0), 0, StagePainter.FLOOR_ODD, StagePainter.RAISED_ALTERNATIVE)
+	var said: TileData = (own.tile_set.get_source(0) as TileSetAtlasSource).get_tile_data(StagePainter.FLOOR_ODD, StagePainter.RAISED_ALTERNATIVE)
+	ok(Depth.lift_at(own, Vector2i(0, 0)) == Depth.RAISED_LIFT, "raised ground that says nothing is lifted as high ground is")
+	said.set_custom_data(Depth.LIFT_LAYER, -1.0)
+	ok(Depth.kind_at(own, Vector2i(0, 0)) == Depth.Kind.HIGH and Depth.lift_at(own, Vector2i(0, 0)) == 0.0 and Depth.lifts_of(own).is_empty(),
+		"a tile whose Lift is below 0 is never lifted, high ground or not", "%s" % [Depth.lift_at(own, Vector2i(0, 0))])
+	said.set_custom_data(Depth.LIFT_LAYER, 40.0)
+	ok(Depth.lift_at(own, Vector2i(0, 0)) == 40.0, "and one whose Lift is above 0 is lifted that many pixels", "%s" % [Depth.lift_at(own, Vector2i(0, 0))])
+	ok(Depth.lift_at(tile_map, Vector2i(2, 2)) == Depth.RAISED_LIFT, "the game's own TileSet is as it was")
+	own.free()
 	ok(not Depth.stands_at(tile_map, Vector2i(2, 2)) and not Depth.stands_at(tile_map, Vector2i(1, 1)) and not Depth.stands_at(tile_map, Vector2i(0, 0)),
 		"raised ground, floor and walls are no such thing")
 	# Faces: wherever what lies to the south is lower.
@@ -137,13 +153,17 @@ func the_real_maps():
 	lifts = Depth.lifts_of(tile_map)
 	var channel := 0
 	var lifted_channel := 0
+	var high_channel := 0
 	for tile in tile_map.get_used_cells(0):
 		var atlas := tile_map.get_cell_atlas_coords(0, tile)
 		if atlas == Vector2i(3, 1) or atlas == Vector2i(4, 1) or atlas == Vector2i(3, 0):
 			channel += 1
 			if lifts.has(tile):
 				lifted_channel += 1
+			if Depth.kind_at(tile_map, tile) != Depth.Kind.FLOOR:
+				high_channel += 1
 	ok(channel > 100 and lifted_channel == 0, "the crossroads' channel lies flat, every tile of it", "%d tiles, %d lifted" % [channel, lifted_channel])
+	ok(high_channel == 0, "and none of it is high ground: it is water, which nobody climbs and anybody sees across", "%d" % [high_channel])
 	crossroads.free()
 	log_line("")
 
@@ -390,6 +410,175 @@ func on_the_stage():
 	LightView.sky_ease_seconds = 2.5
 	far.queue_free()
 	near.queue_free()
+	scene.queue_free()
+	MenuPause.clear(get_tree())
+	await settle(3)
+	log_line("")
+
+
+## B: the layers over and under the ground (DepthPiece).
+func layers():
+	log_line("======== layers: what a piece decides ========")
+	ok(Depth.piece_moves(-1.0, false, false) == 0.0, "a piece in front that rests on walls stays where it is")
+	ok(Depth.piece_moves(-1.0, false, true) == Depth.PIECE_MOVES_FRONT, "one that stands free, a tree, moves a little")
+	ok(Depth.piece_moves(-1.0, true, false) == Depth.PIECE_MOVES_BEHIND and Depth.PIECE_MOVES_BEHIND > Depth.PIECE_MOVES_FRONT, "one behind the ground moves more")
+	ok(Depth.piece_moves(0.3, false, false) == 0.3 and Depth.piece_moves(0.0, true, true) == 0.0, "and a piece that says for itself is taken at its word")
+	var tile := float(Grid.TILE_SIZE)
+	ok(Depth.piece_offset(0.12, false, Vector2(500.0, 500.0), Vector2(500.0, 500.0)) == Vector2.ZERO
+		and Depth.piece_offset(0.5, true, Vector2(500.0, 500.0), Vector2(500.0, 500.0)) == Vector2.ZERO, "with the view centred on it, a piece is exactly in its place")
+	ok(Depth.piece_offset(0.12, false, Vector2.ZERO, Vector2(1000.0, 0.0)).is_equal_approx(Vector2(-120.0, 0.0)),
+		"one in front slides away from the view's middle", "%s" % [Depth.piece_offset(0.12, false, Vector2.ZERO, Vector2(1000.0, 0.0))])
+	ok(Depth.piece_offset(0.5, true, Vector2.ZERO, Vector2(1000.0, -200.0)).is_equal_approx(Vector2(500.0, -100.0)), "one behind lags after it")
+	ok(Depth.piece_offset(0.5, true, Vector2.ZERO, Vector2(100000.0, 0.0)).x == Depth.BEHIND_MARGIN_TILES * tile, "no further than its picture reaches")
+	ok(Depth.piece_offset(0.0, false, Vector2.ZERO, Vector2(1000.0, 0.0)) == Vector2.ZERO, "and one that does not move does not")
+	var covered := Rect2(0.0, 0.0, tile * 2.0, tile * 2.0)
+	ok(Depth.roof_opens(covered, Vector2(tile, tile)) and Depth.roof_opens(covered, Vector2(tile * 2.0 + Depth.ROOF_NEAR_TILES * tile - 4.0, tile)),
+		"a roof opens for somebody under it, or within a few tiles of it")
+	ok(not Depth.roof_opens(covered, Vector2(tile * 2.0 + Depth.ROOF_NEAR_TILES * tile + 4.0, tile)), "and not for somebody further off")
+	# Headless, a piece draws nothing.
+	var bare = load(STAGE_TERRAIN).instantiate()
+	add_child(bare)
+	var unseen: DepthPiece = bare.get_node_or_null("RoofOverHall")
+	ok(unseen != null and not unseen.visible and not unseen.is_processing(), "headless, a piece on a map is neither drawn nor run")
+	bare.queue_free()
+	await settle(2)
+	log_line("")
+	log_line("======== layers: on the Light stage ========")
+	LightView.plays_headless = true
+	LightView.sky_ease_seconds = 0.0
+	Campaign.reset()
+	Campaign.set_clock(12)
+	Campaign.current_map = STAGE
+	var scene: ExplorationScene = load("res://scenes/exploration.tscn").instantiate()
+	get_tree().root.add_child(scene)
+	await settle(5)
+	scene.end_blocking_interaction()
+	var pieces := {}
+	for piece in get_tree().get_nodes_in_group(Depth.PIECES):
+		pieces[String(piece.name)] = piece
+	var roof: DepthPiece = pieces.get("RoofOverHall")
+	var tree: DepthPiece = pieces.get("YardTree")
+	var arch: DepthPiece = pieces.get("YardGate")
+	var town: DepthPiece = pieces.get("TownBelow")
+	ok(roof != null and tree != null and arch != null and town != null and pieces.has("HallBalcony"),
+		"the stage has a roof, a tree, an arch over its gate, a balcony and a town below", "%s" % [pieces.keys()])
+	ok(not pieces.has("ArchToHall") and not pieces.has("ArchToCellar"), "and no arch over the ways through the hall's walls, where one read as a door")
+	if roof == null or tree == null or arch == null or town == null:
+		LightView.plays_headless = false
+		scene.queue_free()
+		await settle()
+		return
+	ok(roof.visible and roof.z_index == Depth.PIECE_Z_FRONT and not roof.z_as_relative and roof.z_index >= ExplorationParty.PARTY_Z_TOP, "a piece in front is over every figure")
+	ok(town.masked() and town.z_index == Depth.PIECE_Z_BEHIND_MASKED and town.z_index < ExplorationParty.PARTY_Z_BOTTOM,
+		"one behind is kept off the map's tiles, over the ground's shade and under every figure", "%d" % town.z_index)
+	ok(LightView.SKY_Z > Depth.PIECE_Z_FRONT and scene.light_view.get_node("HighMist").z_index == LightView.SKY_Z and scene.light_view.get_node("Clouds").z_index == LightView.SKY_Z,
+		"the weather is over a piece in front, as it is over the walls")
+	ok(roof.ground_in_world() == Rect2(Vector2(19, 8) * tile, Vector2(13, 15) * tile), "the roof stands over the hall's floor", "%s" % [roof.ground_in_world()])
+	ok(roof.drawn_in_world() == Rect2(Vector2(19, 8) * tile - Vector2(0.0, Depth.WALL_LIFT), Vector2(13, 15) * tile), "and is drawn as high as the walls it rests on")
+	# The roof, and the party.
+	scene.party.teleport(Grid.tile_to_world(Vector2i(8, 15)))
+	await wait(0.6)
+	ok(roof.fade_now() == 1.0, "with the party out in the yard the roof is whole", "%s" % [roof.fade_now()])
+	var far := CombatantSprite.new()
+	scene.add_child(far)
+	far.setup(null, load("res://art/terrain/first_area_tiles.png"), false)
+	far.z_as_relative = false
+	far.z_index = ExplorationParty.PARTY_Z_BOTTOM
+	far.global_position = Grid.tile_to_world(Vector2i(25, 12))
+	await settle(3)
+	var for_far := false
+	for cut in roof.cuts_now():
+		for_far = for_far or Vector2(cut.x, cut.y).distance_to(DepthView.body_middle(far)) < 2.0
+	ok(for_far, "somebody under it whom the player can see is seen through it", "%d cutaways" % roof.cuts_now().size())
+	far._shown_alpha = 0.0
+	far.hidden_alpha = 0.0
+	await settle(2)
+	ok(roof.cuts_now().is_empty(), "and nobody the player cannot see")
+	var signs := 0
+	for thing in get_tree().get_nodes_in_group(Depth.THINGS):
+		if thing is Node2D and thing.is_visible_in_tree() and roof.ground_in_world().has_point(thing.global_position):
+			signs += 1
+	ok(signs > 0 and roof.cuts_now().is_empty(), "what is to be found in the hall is under the roof until somebody comes near", "%d things under it" % signs)
+	scene.party.teleport(Grid.tile_to_world(Vector2i(17, 15)))
+	await wait(0.15)
+	var on_the_way: float = roof.fade_now()
+	await wait(0.6)
+	ok(on_the_way > 0.0 and on_the_way < 1.0 and roof.fade_now() == 0.0, "two tiles from it, it fades away, and not at once", "%.2f on the way, then %.2f" % [on_the_way, roof.fade_now()])
+	scene.party.teleport(Grid.tile_to_world(Vector2i(24, 14)))
+	await wait(0.3)
+	ok(roof.fade_now() == 0.0, "and stays away while they are under it")
+	scene.party.teleport(Grid.tile_to_world(Vector2i(8, 15)))
+	await wait(0.7)
+	ok(roof.fade_now() == 1.0, "back out in the yard, it is whole again")
+	roof.fades = false
+	scene.party.teleport(Grid.tile_to_world(Vector2i(24, 14)))
+	await wait(0.6)
+	ok(roof.fade_now() == 1.0 and roof.cuts_now().is_empty(), "a roof that does not fade stays whole, whoever is under it")
+	roof.fades = true
+	# The arch and the tree.
+	ok(arch.moves_now() == 0.0 and arch.offset_for(Vector2(9999.0, 0.0)) == Vector2.ZERO, "an arch rests on its walls: it does not move")
+	ok(arch._front_shows(), "over a way that faces us, its front shows")
+	scene.party.teleport(Grid.tile_to_world(Vector2i(3, 17)))
+	await wait(0.3)
+	ok(arch.fade_now() == 1.0 and not arch.cuts_now().is_empty(), "whoever walks under it is seen through it, and it stays whole", "%d cutaways" % arch.cuts_now().size())
+	ok(tree.moves_now() == Depth.PIECE_MOVES_FRONT, "a tree's crown moves")
+	var crown := tree.ground_in_world().get_center()
+	ok(tree.offset_for(crown) == Vector2.ZERO and tree.offset_for(crown + Vector2(1000.0, 0.0)).x < 0.0 and tree.offset_for(crown - Vector2(1000.0, 0.0)).x > 0.0,
+		"away from the view's middle, whichever side that is")
+	ok(tree._raised == Depth.RAISED_LIFT, "and it stands on top of its planter, which is raised ground", "%s" % [tree._raised])
+	# Where it is drawn goes by the view's middle, which a headless run does not keep: held in its place for this.
+	tree.moves = 0.0
+	scene.party.teleport(Grid.tile_to_world(Vector2i(9, 10)))
+	await wait(0.3)
+	ok(not tree.cuts_now().is_empty() and tree.fade_now() == 1.0, "whoever stands under the crown is seen through it", "%d cutaways" % tree.cuts_now().size())
+	scene.party.teleport(Grid.tile_to_world(Vector2i(3, 20)))
+	await wait(0.3)
+	ok(tree.cuts_now().is_empty(), "and nothing is cut away with nobody under it")
+	tree.moves = -1.0
+	# The town below.
+	ok(town.moves_now() == Depth.PIECE_MOVES_BEHIND and town.fade_now() == 1.0 and town.cuts_now().is_empty(), "the town below moves, and is never seen through")
+	var below := town.global_position
+	ok(town.offset_for(below + Vector2(600.0, 0.0)).is_equal_approx(Vector2(300.0, 0.0)), "it lags after the view")
+	ok(town.everywhere and town.offset_for(below + Vector2(100000.0, 0.0)).is_equal_approx(Vector2(50000.0, 0.0)), "it is everywhere, so nothing holds it back: it has no end to come to")
+	var cells: Rect2i = town._cells_in_view()
+	ok(cells.size.x > 0 and cells.size.y > 0 and cells.position.x % DepthPiece.VIEW_STEP_CELLS == 0 and cells.size.x % DepthPiece.VIEW_STEP_CELLS == 0,
+		"and is drawn over whatever the view shows, a few cells at a time", "%s" % [cells])
+	var windowed := DepthPiece.new()
+	windowed.layer = DepthPiece.Layer.BEHIND
+	windowed.size_tiles = Vector2i(4, 3)
+	ok(windowed.drawn_rect().size == windowed.ground_rect().size + Vector2.ONE * Depth.BEHIND_MARGIN_TILES * tile * 2.0,
+		"one that is not everywhere is drawn bigger than the ground it is seen through, by as far as it can move")
+	windowed.free()
+	# The doors into the hall: real ones, each in a wall that runs north to south.
+	var hall_door = scene.find_children("HallDoor", "", true, false)
+	ok(not hall_door.is_empty() and hall_door[0] is StealthDoor and not hall_door[0].is_open, "the way into the hall has a door, shut")
+	if not hall_door.is_empty():
+		var door: StealthDoor = hall_door[0]
+		var stood = door.get_node_or_null("DepthUpright")
+		ok(stood == null or not stood.visible, "in a wall that runs north to south it is not stood up: it stays drawn on its own tile")
+		var seen_through := false
+		for cut in scene.depth_view.cuts_now():
+			seen_through = seen_through or Vector2(cut.x, cut.y).distance_to(door.global_position) < 2.0
+		ok(seen_through, "and is seen through the top of the wall that covers it", "%d cutaways" % scene.depth_view.cuts_now().size())
+		scene.party.teleport(Grid.tile_to_world(Vector2i(17, 15)))
+		await settle(2)
+		door.interact(scene)
+		await settle(2)
+		ok(door.is_open and door.prompt == "Close", "it opens")
+		door.interact(scene)
+		await settle(2)
+		ok(not door.is_open and door.prompt == "Open", "shuts")
+		door.interact(scene)
+		await settle(2)
+		ok(door.is_open, "and opens again")
+	ok(LightView.open_sky_colour() == Color.WHITE, "at noon a roof is as bright as day")
+	Campaign.set_clock(23)
+	await wait(0.5)
+	ok(LightView.open_sky_colour().get_luminance() < 0.75, "and at night it darkens with the sky, whatever lights the room under it", "%.2f" % LightView.open_sky_colour().get_luminance())
+	Campaign.set_clock(12)
+	LightView.plays_headless = false
+	LightView.sky_ease_seconds = 2.5
+	far.queue_free()
 	scene.queue_free()
 	MenuPause.clear(get_tree())
 	await settle(3)

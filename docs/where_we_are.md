@@ -91,6 +91,18 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **2.5D with the art there is, 2026-11-13 and 14** (Job 1 of `docs/fable_brief.md`; CLAUDE.md "Depth"; `docs/2_5d_plan.md` has the
+  whole story; `docs/depth_on_maps.md` is the guide for putting it on a map and the sizes for the artist; suite `depth`; ledger rows
+  "Depth A/B/C"). View only.
+  - A: raised ground and walls drawn lifted with faces, the cutaway about whoever is behind them, barrels as things that stand,
+    whoever climbs drawn up there, doors and breakable walls standing, mist rising over it.
+  - C: what is lifted lit by the lamps by the way it faces, never through its own wall; the foot of walls shaded.
+  - B: `DepthPiece`, a node for a roof (fades for the party), an arch, a balcony, a tree (its crown slides as the view moves) and a
+    backdrop behind the ground (Everywhere: all round the map, no end). The Light stage (stealth stage 9) shows one of each.
+  - With it, by the designer's word: the sewer's channel is water to the rules too (see-through, no high ground); the Light stage's
+    two ways into the hall have real doors; a door in a north-south wall stays flat on its tile; the weather is over the layers;
+    the lighter dark shown for whoever has Night Eyes is gone (the rule and the glowing eyes stay).
+
 - **The designer's later message of 2026-11-13** (ledger rows of that date from "An InstaHacked Gate Nade kept"; CLAUDE.md "More to
   look at"; suite `atmos`):
   - All nine of section 21's new atmosphere ideas built: lights mirrored in the wet and in water, leaves and petals on the wind,
@@ -426,8 +438,12 @@ holds the game for both).
 
 ## Waiting on the designer
 
+0. **From the 2.5D work, 2026-11-14** (ledger, the rows' NextAction): how tall walls should be drawn now that a person is the size of
+   Cyrus's idle animation, about 330 pixels (walls are 160; OPEN); whether a shut door in a north-south wall reads as shut drawn flat;
+   whether the Light stage's two doors should start open; whether the town should stay out of some unpainted gaps; whether Cyrus's
+   glowing eyes should go with the Night Eyes view; and every depth number by feel.
 0. **From later on 2026-11-13:** which of O to T, or K itself; how strong and how often the new atmosphere is, by feel. 2.5D (A, B and C)
-   is chosen with their artist and planned for Fable: its brief is `docs/fable_brief.md`, with three more jobs worth Fable's time.
+   is built (above). `docs/fable_brief.md` has three more jobs worth Fable's time.
 0. **From 2026-11-13:** the timings and strengths by feel (darkness, lightning indoors, the heat, the after-fight beat, fireflies).
 0. **From the second message of 2026-11-12:** painted weathers for the calendar
    (`art/ui/weather/<weather>.png`); Night Hunter's level (24 is PROPOSAL); the

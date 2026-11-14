@@ -510,10 +510,10 @@ stage's yard has one of each (`tools/build_stealth_stages.gd`, sign "SignWater")
 
 **Depth: 2.5D with the art there is** (`combat/Depth.gd`, `combat/DepthView.gd`; `depth`; the designer and their artist, 2026-11-13, A, B and C of
 proposals section 22; `docs/2_5d_plan.md` has what is built and what is still to come). View only: no rule asks it anything, headless none of it is
-made (`LightView.shown()`), and every number is PROPOSAL. **A and C are built; B (layers, parallax, roofs) is to come.** `Depth` decides, with no nodes in it: a tile's kind from its Blocks
+made (`LightView.shown()`), and every number is PROPOSAL. **A, C and B are built** (`docs/depth_on_maps.md` says how to put any of it on a map). `Depth` decides, with no nodes in it: a tile's kind from its Blocks
 (`kind_of_blocks`: HIGH is `Combat.is_high`'s test, WALL stops a flier too), how high it is drawn (`lift_at`: `RAISED_LIFT` 80, `WALL_LIFT` 160;
 `walls_lifted` is the switch for walls), the face under it (`face_under`: by how much it stands over what lies to its south), and two per-tile
-says of the TileSet: **Lift** (below 0 never lifted: the sewer's green channel, which the rules count as high ground; above 0 that many pixels) and
+says of the TileSet: **Lift** (below 0 never lifted: the sewer's green channel, which is water to the rules too since 2026-11-13, see-through and no high ground; above 0 that many pixels) and
 **Stands** (a thing standing on the floor, the barrels: its floor stays flat). `DepthView` draws, made beside the LightView by `Combat._begin_light`
 and `ExplorationScene._begin_light` as the TileMap's first child: each row of lifted tiles is a `_Row` sorted from its north edge - in a fight in the
 y-sorted `Combatants` layer, on a map by an absolute z (`Depth.z_at`, eight steps a tile, between `ExplorationParty.PARTY_Z_BOTTOM` 20 and
@@ -544,6 +544,33 @@ it, and takes that floor's shade too, so it is as lit as the room it looks into 
 map beside it (`_n` before `.png`; `Depth.slot` makes a CanvasTexture) faces as that says. The lamps' real shadows already fall off walls and
 barrels. `_shade_the_feet`: the floor shaded at the foot of every wall and raised edge (`FOOT_SHADER` over a mask a pixel a tile of how high each
 tile stands, `foot_of`; `FOOT_SHADE`), under the shade as the ledges' shadows are.
+**Layers and parallax** (B; `exploration/DepthPiece.gd`, `@tool`; Depth "B. Layers and parallax"). A `DepthPiece` is placed on a tile, in a terrain
+scene so a map and its fights both show it: Picture (the artist's slot; empty, a placeholder by Kind), Kind (Arch, Roof, Balcony, Tree, Backdrop;
+appended only), Size Tiles, Layer, Height, Moves, Fades, Everywhere. In Front it is at `Depth.PIECE_Z_FRONT` (`PARTY_Z_TOP`: over every figure and
+row, and, coming after the light's own nodes in the tree, over the embers, shafts and glows that are indoors under a roof; chimney smoke is one
+higher, and the weather - the mist that rises, clouds' shadows, birds, the aurora, the rainbow, whatever falls or blows - is over all of it at
+`LightView.SKY_Z`, two higher; the designer, 2026-11-14: "the effects like the fog go behind the door, even tho they go over the walls"),
+drawn Height above the ground it stands over, and seen through by the cutaway about whoever the player can see under it, the pointer's tile in a
+fight and, but for a Roof, a thing to be found (`_who_it_covers`, its own `PIECE_SHADER`). A **Roof** fades away whole while one of the party
+(the group `Depth.PARTY`: ExplorationParty's figures, side 0's in a fight) is under it or within `ROOF_NEAR_TILES` (`Depth.roof_opens`,
+`PIECE_FADE_SECONDS`; the designer: "roofs that fade when the player walks under and close to them"), and darkens by
+`LightView.open_sky_colour`, not by the room under it. Behind, it is seen where no tile is painted (DepthPiece "Behind the ground"): drawn over the
+ground's shade at `PIECE_Z_BEHIND_MASKED`, kept off every painted tile by `painted` (a pixel a tile, `_mask_by_the_map`; with no map found, under
+the ground at `PIECE_Z_BEHIND`), and darkened by the open sky, so it is the same inside the map's rectangle and far past it. **Everywhere**
+(the designer, 2026-11-14: "the town below doesnt show all around the map... i can still see the end of the background") it has no end: drawn over
+whatever the view shows, in cells that are the same wherever met (`_cells_in_view`, `VIEW_STEP_CELLS`; a Picture repeated). Otherwise only through
+the ground it stands over (the shader's `window`), its picture drawn `BEHIND_MARGIN_TILES` bigger each way. LightView's mist, clouds and aurora are
+kept to the map's own ground (`_mask_the_sky`'s second mask), so they do not end in a straight line with a backdrop showing past them. **Moves**: `Depth.piece_moves` (below 0, as its
+kind does: a Tree `PIECE_MOVES_FRONT`, anything Behind `PIECE_MOVES_BEHIND`, the rest 0 since they rest on walls) and `Depth.piece_offset` from the
+camera's `get_screen_center_position` (in front away from the view's middle, behind after it; exactly in place with the view centred on it; a
+headless run does not keep that middle). A Tree stands on its own tile, on top of any raised ground there, its trunk leaning to its crown. In the
+editor a piece draws the ground it stands over. Headless it is hidden and does not run. An Arch draws its front only where what stands to its south is lower (`_front_shows`): over a way through
+a wall that runs north to south only its top shows, and the designer took the Light stage's two for doors, so those ways have real `StealthDoor`s
+now and the arch is over a gate in the yard. **A door in a wall running north to south is not stood up** (`StealthDoor.depth_needs_front`,
+`DepthView._keep_the_uprights`; the designer: "the door isnt on the same tile as its drawing"): it stays drawn flat on its own tile and is seen
+through the wall's top that covers it, as a thing to be found is. The Light stage has one of each
+(`tools/build_stealth_stages.gd` `depth_piece`, sign "SignLayers"). **Asked of the designer, not answered (ledger, OPEN):** how tall walls should be
+now that a person is the size of Cyrus's idle animation (about 330 pixels; `WALL_LIFT` is 160).
 
 **How light falls on a figure, and what is on them** (`CombatantSprite`, `combat/ConditionLook.gd`; `figures`; the designer, 2026-11-07, sections
 9 and 10 of `docs/proposals_2026-11-07.md`). View only, with no icons over the head: the designer looked at an example and preferred

@@ -351,6 +351,11 @@ func stage_light():
 	# barrel beside it for a thing that only stands on the ground.
 	c.room(14, 18, 16, 19, "r")
 	c.put(13, 18, "b")
+	# A stone planter for the yard's tree to stand in (a DepthPiece: _light_the_stage).
+	c.put(9, 11, "r")
+	# Two gateposts south of where the party comes in, for an arch over the way between them.
+	c.put(2, 17, "#")
+	c.put(4, 17, "#")
 	for pillar in [[6, 11, "b"], [12, 11, "b"], [6, 19, "b"], [12, 19, "b"],
 			[24, 12, "b"], [27, 12, "o"], [24, 18, "o"], [27, 18, "b"],
 			[37, 10, "b"], [41, 10, "o"], [45, 10, "b"], [37, 15, "o"], [41, 15, "b"], [45, 15, "o"], [37, 20, "b"], [41, 20, "o"], [45, 20, "b"]]:
@@ -384,12 +389,16 @@ func stage_light():
 	light_sign(root, "SignWindows", Vector2i(21, 9), "WINDOWS (a LightSource with Opening ticked): it lets in only what the sun gives. All of it by day, only the Dim at dusk and dawn, nothing at night. Shafts of light slant in from it, leaning with the hour. Ask the sundial for a day going round from in here.")
 	light_sign(root, "SignFire", Vector2i(23, 16), "A FLAME: it flickers, embers go up from it, and dust hangs in other light. Stand the party round it and each figure's shadow points away from it. The barrels throw shadows across the floor, and any light eases on and off rather than snapping.")
 	# The cellar: dark, but for what is brought into it.
-	light_sign(root, "SignDark", Vector2i(34, 15), "THE DARK (an AmbientArea, or a whole map, set Underground). Colours drain away, fog drifts, and whoever stands in it has only a faint rim. Anybody in it is invisible to whoever cannot see in the dark, unless right beside them. Tab to Cyrus, who has Night Eyes: he sees the dark as a grey half-light, and his eyes glow.")
+	light_sign(root, "SignDark", Vector2i(34, 15), "THE DARK (an AmbientArea, or a whole map, set Underground). Colours drain away, fog drifts, and whoever stands in it has only a faint rim. Anybody in it is invisible to whoever cannot see in the dark, unless right beside them. Cyrus, who has Night Eyes, still sees whoever stands in it, and his eyes glow there.")
 	pickup(root, Vector2i(35, 17), "Lantern", "lantern", "stage9_lantern")
 	light_sign(root, "SignLantern", Vector2i(34, 18), "A LANTERN, on the floor here: whoever has one in their Baldric lights the way as they go, and is seen coming. It is no item to use in a fight, and it lights up a fight just the same.")
 	light_sign(root, "SignColour2", Vector2i(41, 5), "Two more colours among the pillars, to show how the shadows cross: one steady, one flickering.")
 	light_sign(root, "SignWater", Vector2i(12, 14), "WATER, WIND AND THE REST. The pond is a WaterPatch: it ripples the way the wind blows, foams at its edges, rings in the rain, and the sun glints on it on the side where the sun stands. It is only to look at; what can be walked on is the tiles' Blocks, as ever. The banner and the washing are WindBanners and the hall's chimney a ChimneySmoke: they stream and lean with the wind, and a flame out here smokes the same way. Ask the sundial for the rest: blossom or leaves on the wind in spring and autumn, birds' shadows by day, lamps mirrored in the wet after rain and glowing after dark, low mist by the pond at night, far lightning on a close summer night before a storm, and at dawn or dusk, now and then, the light stepping into pixels for a moment.")
 	light_sign(root, "SignDepth", Vector2i(13, 20), "DEPTH. High ground (a tile whose Blocks stops a walker and not a flier, like this terrace) is drawn raised, with a face under its edge and a shadow off it that leans with the sun; walls stand taller still. A barrel is high ground too, but a thing standing on the floor (its tile's Stands, in the TileSet): it is drawn bigger where it stands, not lifted. Whoever stands behind something raised is seen through it, in a round patch. In a fight, whoever climbs up is drawn up there: Cyrus climbs anywhere. A tile's Lift, in the TileSet, says how high one kind of tile is drawn, or below 0 that it never is. Nothing of it changes who can see, reach or walk where.")
+	# A door in each way through the hall's walls, to open and shut (the designer, 2026-11-14).
+	door(root, Vector2i(18, 15), "HallDoor")
+	door(root, Vector2i(32, 15), "CellarDoor")
+	light_sign(root, "SignLayers", Vector2i(7, 13), "LAYERS (a DepthPiece node, placed on a tile). In Front, it is drawn over everybody, as high as its Height says: the tree here, the balcony on the hall's wall, the arch over the gate south of where you came in, and the hall's roof. Whoever you can see under one is seen through it, in a round patch; a Roof fades away whole when one of the party is under it or within two tiles, so a room reads as indoors until you walk in. Behind, with Everywhere ticked, it is drawn wherever nothing is painted, all round the map and with no end: the town far below. Walk about and watch the tree's crown and the town move against the ground (Moves). Each has a Picture slot for the artist; these are placeholders. The doors into the hall and the cellar are real doors: E opens and shuts them. Nothing of the layers changes who can see, reach or walk where.")
 	for point in [["round_a", Vector2i(35, 12)], ["round_b", Vector2i(47, 12)], ["round_c", Vector2i(47, 24)], ["round_d", Vector2i(35, 24)]]:
 		waypoint(root, point[0], point[1])
 	var torch = guard(root, "TorchBearer", "barbarian", Vector2i(35, 12), 0.0, ["round_a", "round_b", "round_c", "round_d"])
@@ -480,7 +489,30 @@ func _light_the_stage(terrain_path: String):
 	washing.cloth = Color(0.62, 0.22, 0.2)
 	place(root, washing, "Washing", Vector2i(2, 12))
 	place(root, ChimneySmoke.new(), "HallChimney", Vector2i(29, 8))
+	# Layers over and under the ground (DepthPiece; docs/depth_on_maps.md): a roof over the hall, resting on its walls, which fades
+	# as the party comes near; an arch over the way between the yard's two gateposts, which faces us (over a way through a wall
+	# that runs north to south an arch shows only its top, and the designer took it for a door, 2026-11-14: those two ways have
+	# real doors now, stage_light); a tree in the yard's planter; a balcony on the hall's wall; and the town far below, wherever
+	# nothing is painted, all round the map.
+	depth_piece(root, "RoofOverHall", Vector2i(19, 8), DepthPiece.Kind.ROOF, Vector2i(13, 15))
+	depth_piece(root, "YardGate", Vector2i(3, 17), DepthPiece.Kind.ARCH, Vector2i(1, 1))
+	var tree := depth_piece(root, "YardTree", Vector2i(9, 11), DepthPiece.Kind.TREE, Vector2i(3, 3))
+	tree.height = 300.0
+	var balcony := depth_piece(root, "HallBalcony", Vector2i(16, 20), DepthPiece.Kind.BALCONY, Vector2i(2, 3))
+	balcony.height = 120.0
+	var town := depth_piece(root, "TownBelow", Vector2i(0, 0), DepthPiece.Kind.BACKDROP, Vector2i(1, 1))
+	town.layer = DepthPiece.Layer.BEHIND
+	town.everywhere = true
 	_save(root, terrain_path)
+
+
+## A layer over or under the ground, on `tile`.
+func depth_piece(root: Node, called: String, tile: Vector2i, kind: DepthPiece.Kind, size: Vector2i) -> DepthPiece:
+	var piece := DepthPiece.new()
+	piece.kind = kind
+	piece.size_tiles = size
+	place(root, piece, called, tile)
+	return piece
 
 
 func _light_fight_layout() -> Carve:
