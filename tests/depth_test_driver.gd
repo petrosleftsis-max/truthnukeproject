@@ -590,8 +590,11 @@ func layers():
 		var door: StealthDoor = hall_door[0]
 		var stood = door.get_node_or_null("DepthUpright")
 		ok(stood != null and stood.visible and stood.lift == Depth.WALL_LIFT, "it stands as tall as the wall it is in", "%s" % [stood.lift if stood != null else -1.0])
-		ok(stood != null and stood.foot.size.x < 0.5 and stood.foot.size.y > 0.99 and is_equal_approx(stood.foot.get_center().x, 0.5) and stood.face == 0.0,
-			"in a wall we look along it is a leaf seen edge on, from the wall north of it to the wall south, no front facing us", "%s" % [stood.foot if stood != null else Rect2()])
+		# At the side of its tile the hall is on, so it meets the hall's roof (the designer, 2026-11-15: "Put the door closer to the
+		# building, to look connected").
+		ok(stood != null and stood.foot.size.x < 0.5 and stood.foot.size.y > 0.99 and is_equal_approx(stood.foot.end.x, 1.0) and stood.face == 0.0,
+			"in a wall we look along it is a leaf seen edge on, from the wall north of it to the wall south, at the side the hall is on, no front facing us",
+			"%s" % [stood.foot if stood != null else Rect2()])
 		var seen_through := false
 		for cut in scene.depth_view.cuts_now():
 			seen_through = seen_through or Vector2(cut.x, cut.y).distance_to(door.global_position) < 2.0
@@ -601,14 +604,21 @@ func layers():
 		door.interact(scene)
 		await settle(2)
 		ok(door.is_open and door.prompt == "Close", "it opens")
-		ok(stood != null and stood.visible and stood.foot.size.x > 0.99 and stood.foot.size.y < 0.5 and stood.foot.position.y == 0.0 and stood.face == Depth.WALL_LIFT,
-			"open, it lies back flat against the north side of the way, its face to us and the way clear below it", "%s" % [stood.foot if stood != null else Rect2()])
+		ok(stood != null and stood.visible and stood.foot.size.x > 0.99 and stood.foot.size.y < 0.5 and stood.foot.position.y == 0.0 and stood.face == Depth.WALL_LIFT
+			and door.depth_handle_west, "open, it lies back flat against the north side of the way, its face to us, the way clear below it and its ring at the end towards the yard",
+			"%s, ring west %s" % [stood.foot if stood != null else Rect2(), door.depth_handle_west])
 		door.interact(scene)
 		await settle(2)
 		ok(not door.is_open and door.prompt == "Open" and stood.foot.size.x < 0.5, "shuts")
 		door.interact(scene)
 		await settle(2)
 		ok(door.is_open, "and opens again")
+	# The cellar's door has the hall and its roof to its west: it stands at its west side, and its ring is at its east end.
+	var cellar_door = scene.find_children("CellarDoor", "", true, false)
+	if not cellar_door.is_empty():
+		var stood = cellar_door[0].get_node_or_null("DepthUpright")
+		ok(stood != null and stood.visible and stood.foot.position.x == 0.0 and stood.foot.size.x < 0.5 and not cellar_door[0].depth_handle_west,
+			"the cellar's door, with the hall's roof to its west, stands at its west side", "%s" % [stood.foot if stood != null else Rect2()])
 	# The small box at their feet (ExplorationParty; the designer, 2026-11-14): pressed against the yard's north wall, the point
 	# they stand on comes within the little there is of the box above it, and is still on the yard's floor.
 	scene.party.teleport(Grid.tile_to_world(Vector2i(8, 8)))
@@ -633,12 +643,15 @@ func layers():
 		var door: StealthDoor = store_door[0]
 		await settle(2)
 		var stood = door.get_node_or_null("DepthUpright")
-		ok(stood != null and stood.visible and stood.foot.size == Vector2.ONE and stood.lift == Depth.WALL_LIFT and stood.face == Depth.WALL_LIFT and scene.depth_view._upright_rise.has(Vector2i(6, 7)),
-			"in a wall that runs east to west it fills its tile, its whole front facing us", "%s" % [stood.foot if stood != null else Rect2()])
+		# Its front takes over all but a leaf's thickness of what is lifted (the designer, 2026-11-15: "a character would be seeing the
+		# door itself, not above it").
+		ok(stood != null and stood.visible and stood.foot.size == Vector2.ONE and stood.lift == Depth.WALL_LIFT and stood.face == Depth.WALL_LIFT and scene.depth_view._upright_rise.has(Vector2i(6, 7))
+			and is_equal_approx(stood.top_deep, StealthDoor.LEAF_TILES), "in a wall that runs east to west it fills its tile, its whole front facing us and over what is lifted, its top only a leaf thick",
+			"%s, top %.2f deep" % [stood.foot if stood != null else Rect2(), stood.top_deep if stood != null else -1.0])
 		door.set_open(true)
 		await settle(2)
-		ok(stood != null and stood.visible and stood.foot.size.x < 0.5 and stood.foot.size.y > 0.99 and stood.face == Depth.WALL_LIFT and not scene.depth_view._upright_rise.has(Vector2i(6, 7)),
-			"open, a leaf along the side of its frame, the way through clear beside it")
+		ok(stood != null and stood.visible and stood.foot.size.x < 0.5 and stood.foot.size.y > 0.99 and stood.face == Depth.WALL_LIFT and not scene.depth_view._upright_rise.has(Vector2i(6, 7))
+			and is_equal_approx(stood.top_deep, 1.0), "open, a leaf along the side of its frame, the way through clear beside it")
 		door.set_open(false)
 	ok(LightView.open_sky_colour() == Color.WHITE, "at noon a roof is as bright as day")
 	Campaign.set_clock(23)

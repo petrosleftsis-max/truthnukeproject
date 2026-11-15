@@ -17,9 +17,28 @@ This file is kept current after every step, so another session can take over. Re
 | B. Layers and parallax, with roofs | Built, liked ("i really like them all") with changes asked for, all built (below), and committed, 2026-11-14 |
 | Docs (`docs/depth_on_maps.md`, the ledger, CLAUDE.md, `docs/where_we_are.md`) | Done |
 | The full pass after B | 170 of 172; the two were timing under load and pass alone (Log) |
-| **The designer's second round, 2026-11-14** (below) | **Built, screenshots sent, waiting for their OK; then commit and push. Read `Log` for the full pass** |
+| The designer's second round, 2026-11-14 (below) | Built; approved ("Yes, commit") and committed 2026-11-15, pushed once its full pass is clean (Log) |
+| The designer's third round, 2026-11-15 (below) | Built; approved ("Yes, commit") and committed 2026-11-15, pushed with the second round once its pass is clean (Log) |
 
-A, C and B are committed and pushed. The second round is in the working tree, not committed.
+A, C, B and the second and third rounds are committed. Nothing of this work is left in the working tree.
+
+**The designer's third round, 2026-11-15** (one message, answering the second round's questions; each is a ledger row):
+- "Walls: I need to think about it a bit more": `Depth.WALL_LIFT` stays 160 until they say.
+- "Fog: At its thickest, it should go over everything": as built. Only the weather the rules call thick rises over walls, arch,
+  tree and the pieces in front; nothing changed.
+- "The doors of the south or north part of a building is almost correct now, When it's closed and "lifted", it's art should take
+  over the part that is "lifted" as well, as a character would be seeing the door itself, not above it, esp when above it is much
+  thinner. WHen it's open it looks perfect": shut and facing us, its front is drawn over all of what is lifted but a top a leaf
+  thick (`StealthDoor.depth_top_deep`; `DepthView._Upright.top_deep`, `_Front` drawing from under it to the ground).
+- "When the door is on the eastern or western part of a building, it kind of looks like there is a gap between the door and the
+  roof. Put the door closer to the building, to look connected": shut and side on, its leaf stands at the side of its tile its
+  building is on (`DepthView._inside_of`: a roof over the tile on one side and not the other, else the open sky over one side and
+  not the other; with neither, the middle as before). On the Light stage the hall's door is at its east side, the cellar's at its
+  west, each meeting the hall's roof.
+- "While open the handle should face outside, not inwards to where the door is turning": open and side on, its ring is at the end
+  away from its building (`StealthDoor.depth_handle_west`, set by the view).
+- "keep the town below": as it is, showing in every unpainted gap.
+- "i'll test the hitboxes and let you know": waiting.
 
 **The designer's second round, 2026-11-14** (one message; each is a ledger row):
 - "Oh I didn't realise that's the arch. Then have the fog not go over the arch, tree and walls, so they can pop out more. Keep as
@@ -43,21 +62,20 @@ A, C and B are committed and pushed. The second round is in the working tree, no
   (`LightView` "Wading, and figures mirrored in the water").
 - "Can you show me an example of 256?": eight pictures sent, four views at 160 and at 256. `Depth.WALL_LIFT` is still 160.
 
-**Doors** (`StealthDoor.depth_footprint(side_on)`, `DepthView._keep_the_uprights`). "Side on" is a wall to the door's north and to
-its south: the way through goes east and west.
+**Doors** (`StealthDoor.depth_footprint(side_on, inside)`, `depth_top_deep`, `DepthView._keep_the_uprights`, `_inside_of`). "Side
+on" is a wall to the door's north and to its south: the way through goes east and west.
 
 | | Shut | Open |
 | --- | --- | --- |
-| Facing us (a wall running east to west) | Fills its tile, its front showing, as before | A leaf along the west side of its frame |
-| Side on (a wall we look along) | A leaf seen edge on, from wall to wall | Flat against the north side of the way, its face to us |
+| Facing us (a wall running east to west) | Fills its tile, its front showing over all of what is lifted but a top a leaf thick | A leaf along the west side of its frame |
+| Side on (a wall we look along) | A leaf seen edge on, from wall to wall, at the side its building is on | Flat against the north side of the way, its face to us, its ring at the end towards the outside |
 
 **Asked of the designer, not answered yet** (each is a ledger row's NextAction):
-- how tall walls should be drawn, having seen 256 beside 160. Do not change `Depth.WALL_LIFT` without their word;
-- whether the two kinds of door read right;
-- whether the "fog" weather itself, at its thickest, should stay under walls, arch and tree too (it is what "thick" means here);
+- how tall walls should be drawn, having seen 256 beside 160; they are thinking it over (2026-11-15). Do not change
+  `Depth.WALL_LIFT` without their word;
 - whether the cutaway reads right now, or what looked wrong if not;
-- whether the town should stay out of some unpainted gaps (the rock round the cellar);
-- the new numbers by feel: the box at the feet, the wading rings and the mirror's strength.
+- the box at the feet: they are trying it (2026-11-15);
+- the other new numbers by feel: the wading rings and the mirror's strength.
 
 **Do not shut the PC down at the end.** The designer first asked for it "when done", then took that back the same day
 (2026-11-13): "Don't turn off my pc when you're done".
@@ -236,3 +254,9 @@ are in the session's scratch folder; they are a page of code and quick to write 
   ("nothing is cut away with nobody under it") now says whom each cut is about; under load, and after the nine suites that come
   before it in a pass, it was clean all three times, so its cause is not found yet. Fable's limit ran out here, and a Claude Code
   session on Opus 5.5 took over: a new full pass started. Its result: see the next line.
+- 2026-11-15: the designer approved the second round ("Yes, commit"); committed, to be pushed once its pass is clean. The PC was
+  restarted after 69 of the pass's 172 suites, all clean; the other 103 were run on their own in the same harness. The third
+  round (above) built meanwhile: `depth` clean with its new door checks (the hall's door at its east side, the cellar's at its
+  west, the ring at the end towards the outside, the store's door's top a leaf thick); eight pictures taken (`shot_driver.gd`'s
+  `doors3`, from the Fable session's scratch copy of the project), and `stages stealthworld light alarm` clean with it. The
+  designer approved it ("Yes, commit"); committed, to be pushed with the second round, and a last full pass run with both.

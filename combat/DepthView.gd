@@ -853,6 +853,11 @@ func _covered(at: Vector2, reach: float) -> bool:
 ## along the west of its frame open; in a wall we look along ("side on": a wall to its north and to its south) it is a leaf seen
 ## edge on from wall to wall shut, and swung flat against the north side of the way open. Only what fills its tile covers anybody
 ## (_upright_rise); a leaf covers nobody. While one stands, its own flat drawing is off (depth_stood).
+##
+## The designer's look of 2026-11-15: shut and facing us, its front takes over all but a leaf's thickness of what is lifted
+## (depth_top_deep: its top is only that deep, and _Front draws from under it to the ground), so the door itself is seen standing,
+## not from above. Side on, it stands at the side of its tile its building is on (_inside_of), meeting the roof with no gap, and
+## open its ring is at the end towards the outside (depth_handle_west).
 
 ## How high each stands now, {tile: lift}, for the cutaway.
 var _upright_rise := {}
@@ -865,6 +870,10 @@ class _Upright extends Node2D:
 	var face := 0.0
 	## The part of its tile it stands on, in tiles from the tile's north-west corner.
 	var foot := Rect2(0.0, 0.0, 1.0, 1.0)
+	## How deep its top is seen from above, in tiles down from its foot's north edge: the rest of what is lifted is its front's.
+	var top_deep := 1.0
+	## Which side its building is on, for a door side on (_inside_of): kept to know when it has to be drawn again.
+	var inside := 0
 	var top := Color(0.4, 0.4, 0.42)
 	var painter := Callable()
 	var top_painter := Callable()
@@ -874,7 +883,7 @@ class _Upright extends Node2D:
 			return
 		var tile := float(Grid.TILE_SIZE)
 		var half := tile * 0.5
-		var above := Rect2(-half + foot.position.x * tile, foot.position.y * tile - lift, foot.size.x * tile, foot.size.y * tile)
+		var above := Rect2(-half + foot.position.x * tile, foot.position.y * tile - lift, foot.size.x * tile, top_deep * tile)
 		if top_painter.is_valid():
 			top_painter.call(self, above)
 			return
@@ -886,17 +895,21 @@ class _Upright extends Node2D:
 class _Front extends Node2D:
 	func _draw():
 		var upright: _Upright = get_parent()
-		if upright.lift <= 0.0 or upright.face <= 0.0:
+		if upright.lift <= 0.0:
 			return
 		var tile := float(Grid.TILE_SIZE)
 		var foot: Rect2 = upright.foot
-		var front := Rect2(-tile * 0.5 + foot.position.x * tile, foot.end.y * tile - upright.lift, foot.size.x * tile, upright.face)
+		# From under its top down to the ground: its own front, and whatever of what is lifted its top leaves to it (a shut door's).
+		var front := Rect2(-tile * 0.5 + foot.position.x * tile, (foot.position.y + upright.top_deep) * tile - upright.lift,
+			foot.size.x * tile, (foot.size.y - upright.top_deep) * tile + upright.face)
+		if front.size.y <= 0.0:
+			return
 		if upright.painter.is_valid():
 			upright.painter.call(self, front)
 		else:
 			draw_rect(front, upright.top.darkened(0.25))
 		# The lip's own shadow along the top of the front.
-		draw_rect(Rect2(front.position, Vector2(front.size.x, minf(10.0, upright.face * 0.2))), Color(0, 0, 0, 0.28))
+		draw_rect(Rect2(front.position, Vector2(front.size.x, minf(10.0, front.size.y * 0.2))), Color(0, 0, 0, 0.28))
 
 
 func _keep_the_uprights():
@@ -914,9 +927,15 @@ func _keep_the_uprights():
 		# along the wall ("side on").
 		var side_on: bool = float(_lifts.get(on + Vector2i.UP, 0.0)) > 0.0 and float(_lifts.get(on + Vector2i.DOWN, 0.0)) > 0.0 \
 				and not (float(_lifts.get(on + Vector2i.LEFT, 0.0)) > 0.0 and float(_lifts.get(on + Vector2i.RIGHT, 0.0)) > 0.0)
+		var inside := _inside_of(on) if side_on and lift > 0.0 else 0
 		var foot := Rect2(0.0, 0.0, 1.0, 1.0)
 		if lift > 0.0 and node.has_method("depth_footprint"):
-			foot = node.depth_footprint(side_on)
+			foot = node.depth_footprint(side_on, inside)
+		var top_deep: float = foot.size.y
+		if lift > 0.0 and node.has_method("depth_top_deep"):
+			top_deep = clampf(node.depth_top_deep(side_on), 0.0, foot.size.y)
+		if "depth_handle_west" in node:
+			node.depth_handle_west = side_on and inside > 0
 		var whole: bool = foot.size.x >= 0.99 and foot.size.y >= 0.99
 		# Its front: all of it, unless it reaches its tile's south edge, where only what stands over the tile to the south shows.
 		var face: float = lift
@@ -945,10 +964,13 @@ func _keep_the_uprights():
 			front.name = "Front"
 			front.material = _face_material
 			upright.add_child(front)
-		if not is_equal_approx(lift, upright.lift) or not is_equal_approx(face, upright.face) or not upright.foot.is_equal_approx(foot):
+		if not is_equal_approx(lift, upright.lift) or not is_equal_approx(face, upright.face) or not upright.foot.is_equal_approx(foot) \
+				or not is_equal_approx(top_deep, upright.top_deep) or inside != upright.inside:
 			upright.lift = lift
 			upright.face = face
 			upright.foot = foot
+			upright.top_deep = top_deep
+			upright.inside = inside
 			upright.queue_redraw()
 			for part in upright.get_children():
 				part.queue_redraw()
@@ -961,6 +983,34 @@ func _keep_the_uprights():
 				rise[on] = lift
 	_upright_rise = rise
 	_stood = stood
+
+
+## Which side of a door in a wall we look along its building is on: 1 east, -1 west, 0 neither known (the designer, 2026-11-15:
+## "it kind of looks like there is a gap between the door and the roof. Put the door closer to the building, to look connected").
+## A roof over the tile on one side of it and not the other says so; failing that, the open sky over one side and not the other,
+## the building being the side under none.
+func _inside_of(on: Vector2i) -> int:
+	var east := on + Vector2i.RIGHT
+	var west := on + Vector2i.LEFT
+	var east_at: Vector2 = _tile_map.to_global(_tile_map.map_to_local(east))
+	var west_at: Vector2 = _tile_map.to_global(_tile_map.map_to_local(west))
+	var roofed_east := false
+	var roofed_west := false
+	for piece in get_tree().get_nodes_in_group(Depth.PIECES):
+		if piece is DepthPiece and piece.kind == DepthPiece.Kind.ROOF and piece.layer == DepthPiece.Layer.IN_FRONT:
+			var ground: Rect2 = piece.ground_in_world()
+			roofed_east = roofed_east or ground.has_point(east_at)
+			roofed_west = roofed_west or ground.has_point(west_at)
+	if roofed_east != roofed_west:
+		return 1 if roofed_east else -1
+	var view: LightView = LightView.showing
+	var map: LightMap = view.light if view != null and is_instance_valid(view) else null
+	if map != null:
+		var open_east := map.under_the_sky(east)
+		var open_west := map.under_the_sky(west)
+		if open_east != open_west:
+			return -1 if open_east else 1
+	return 0
 
 
 ## --- The shadow off every edge ---

@@ -26,10 +26,12 @@ A door (a StealthDoor) is as tall as the walls beside it, shut or open, and is d
 
 | The door is in | Shut | Open |
 | --- | --- | --- |
-| a wall running east to west (it faces us) | It fills its tile, its front showing | A leaf along the west side of its frame |
-| a wall running north to south (we look along it) | A leaf seen edge on, from wall to wall | Flat against the north side of the way, its face to us |
+| a wall running east to west (it faces us) | It fills its tile, its front showing all the way up, its top only a leaf thick | A leaf along the west side of its frame |
+| a wall running north to south (we look along it) | A leaf seen edge on, from wall to wall, at the side its building is on | Flat against the north side of the way, its face to us, its ring at the end towards the outside |
 
-Nothing has to be set: a door with a wall to its north and to its south is the second kind.
+Nothing has to be set: a door with a wall to its north and to its south is the second kind. Its building is the side with a
+roof (a DepthPiece of Kind Roof) over the tile next to the door; with no roof on either side, the side not under the open
+sky. Where neither tells, the leaf stands in the middle of its tile.
 
 To paint raised ground, use the stone floor's **alternative 1** in the TileMap editor (the same picture as the floor, a
 step up). In a layout typed for the LayoutPainter or the stage builder it is the letter `r`.

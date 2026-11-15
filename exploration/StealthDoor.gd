@@ -68,15 +68,40 @@ func depth_lift() -> float:
 ## The part of its tile it stands on, in tiles from the tile's north-west corner. `side_on` is a door in a wall that runs north to
 ## south, which we look along: the way through it goes east and west (the designer, 2026-11-14: "looks weird when a closed door
 ## is facing me when it's on the left or right of a building, especially when when it's open, it looks like it actually blocks
-## their way").
-## - Facing us (a wall that runs east to west), shut: the whole tile, its front showing. Open: its leaf swung back along the
-##   west side of its frame, seen edge on, the way through clear beside it.
-## - Side on, shut: its leaf seen edge on, from the wall to the north of it to the wall to the south. Open: swung back flat
-##   against the north side of the way through, its face to us and the floor of the way clear below it.
-func depth_footprint(side_on: bool) -> Rect2:
+## their way"). `inside` is which side of it the building is on, for a door side on: 1 east, -1 west, 0 neither known
+## (DepthView._inside_of).
+## - Facing us (a wall that runs east to west), shut: the whole tile, its front showing (and taking over all but a leaf's
+##   thickness of what is lifted: depth_top_deep). Open: its leaf swung back along the west side of its frame, seen edge on, the
+##   way through clear beside it.
+## - Side on, shut: its leaf seen edge on, from the wall to the north of it to the wall to the south, at the side of its tile the
+##   building is on, so it meets the building's roof (the designer, 2026-11-15: "it kind of looks like there is a gap between the
+##   door and the roof. Put the door closer to the building, to look connected"); in the middle with neither side known. Open:
+##   swung back flat against the north side of the way through, its face to us and the floor of the way clear below it.
+func depth_footprint(side_on: bool, inside: int = 0) -> Rect2:
 	if side_on:
-		return Rect2(0.0, 0.0, 1.0, LEAF_TILES) if passable() else Rect2(0.5 - LEAF_TILES * 0.5, 0.0, LEAF_TILES, 1.0)
+		if passable():
+			return Rect2(0.0, 0.0, 1.0, LEAF_TILES)
+		var west := 0.5 - LEAF_TILES * 0.5
+		if inside > 0:
+			west = 1.0 - LEAF_TILES
+		elif inside < 0:
+			west = 0.0
+		return Rect2(west, 0.0, LEAF_TILES, 1.0)
 	return Rect2(0.0, 0.0, LEAF_TILES, 1.0) if passable() else Rect2(0.0, 0.0, 1.0, 1.0)
+
+
+## How deep its top is seen from above, in tiles. Shut and facing us it is only as thick as its leaf, and its front takes over
+## the rest of what is lifted: a door is seen standing, not from above (the designer, 2026-11-15: "When it's closed and 'lifted',
+## it's art should take over the part that is 'lifted' as well, as a character would be seeing the door itself, not above it, esp
+## when above it is much thinner"). Otherwise all of what it stands on.
+func depth_top_deep(side_on: bool) -> float:
+	return LEAF_TILES if not side_on and not passable() else 1.0
+
+
+## Set by the view: whether its ring is drawn at the west end of its front - for a door side on whose building is to the east, so
+## that open, the ring is at the end towards the outside, away from where it swung in (the designer, 2026-11-15: "While open the
+## handle should face outside, not inwards to where the door is turning").
+var depth_handle_west := false
 
 
 func depth_top() -> Color:
@@ -97,8 +122,8 @@ func depth_paint_top(canvas: CanvasItem, above: Rect2):
 	canvas.draw_rect(above.grow(-3.0), top.darkened(0.3), false, 6.0)
 
 
-## Its front, drawn on `canvas` in `front`: planks, two iron bands and a ring. Seen edge on, `front` is only as wide as its leaf
-## is thick.
+## Its front, drawn on `canvas` in `front`: planks, two iron bands and a ring (at the west end if depth_handle_west, else the
+## east). Seen edge on, `front` is only as wide as its leaf is thick.
 func depth_paint(canvas: CanvasItem, front: Rect2):
 	canvas.draw_rect(front, WOOD)
 	var planks := maxi(roundi(front.size.x / (float(Grid.TILE_SIZE) * 0.25)), 1)
@@ -108,7 +133,8 @@ func depth_paint(canvas: CanvasItem, front: Rect2):
 	canvas.draw_rect(Rect2(front.position.x, front.position.y + front.size.y * 0.2, front.size.x, front.size.y * 0.09), IRON)
 	canvas.draw_rect(Rect2(front.position.x, front.position.y + front.size.y * 0.72, front.size.x, front.size.y * 0.09), IRON)
 	if planks >= 3:
-		canvas.draw_circle(Vector2(front.position.x + front.size.x * 0.8, front.position.y + front.size.y * 0.5), front.size.x * 0.045, IRON)
+		var ring_at := 0.2 if depth_handle_west else 0.8
+		canvas.draw_circle(Vector2(front.position.x + front.size.x * ring_at, front.position.y + front.size.y * 0.5), front.size.x * 0.045, IRON)
 	canvas.draw_rect(front, WOOD_DARK, false, 6.0)
 
 

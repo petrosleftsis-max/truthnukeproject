@@ -101,8 +101,13 @@ holds the game for both).
     backdrop behind the ground (Everywhere: all round the map, no end). The Light stage (stealth stage 9) shows one of each.
   - With it, by the designer's word: the sewer's channel is water to the rules too (see-through, no high ground); the Light stage's
     two ways into the hall have real doors; the weather is over the layers.
-  - **The designer's second round, 2026-11-14, built on the 14th and 15th** (`docs/2_5d_plan.md` has their words; **in the working
-    tree until they approve it, unless the log there says committed**): only a thick fog's mist rises over walls, arch and tree; the
+  - **The designer's third round, 2026-11-15, approved and committed the same day** (`docs/2_5d_plan.md` has their words): a shut
+    door facing us shows its front all the way up, its top only a leaf thick; a door
+    in a wall we look along stands at its building's side, meeting the roof, and open has its ring at the end towards the outside.
+    Their answers: the thickest fog goes over everything (as built), the town below stays as it is, walls they are still thinking
+    over, and they are trying the box at the feet.
+  - **The designer's second round, 2026-11-14, built on the 14th and 15th, approved and committed on the 15th**: only a thick
+    fog's mist rises over walls, arch and tree; the
     lighter dark for whoever has Night Eyes is back as it was and the glowing eyes are gone instead; a door is as tall as its wall
     and drawn by which way its wall runs (a leaf seen edge on in a wall we look along, flat against the side of the way open),
     with a store on the Light stage for one that faces us; the box that stops the party at walls is small and at their feet
@@ -444,10 +449,9 @@ holds the game for both).
 
 ## Waiting on the designer
 
-0. **From the 2.5D work, 2026-11-14** (ledger, the rows' NextAction): **their OK on the second round, to commit it**; how tall walls should
-   be drawn, having seen 256 beside 160 (OPEN); whether the two kinds of door read right; whether the "fog" weather at its thickest
-   should stay under walls, arch and tree too; whether the cutaway reads right now; whether the town should stay out of some
-   unpainted gaps; and every depth number by feel, with the box at the party's feet and the water's rings and mirror.
+0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): how tall walls should be drawn, having seen 256 beside 160
+   (OPEN; they are thinking it over); the box at the party's feet (they are trying it); whether the cutaway reads right now; and
+   every depth number by feel, with the water's rings and mirror.
 0. **From later on 2026-11-13:** which of O to T, or K itself; how strong and how often the new atmosphere is, by feel. 2.5D (A, B and C)
    is built (above). `docs/fable_brief.md` has three more jobs worth Fable's time.
 0. **From 2026-11-13:** the timings and strengths by feel (darkness, lightning indoors, the heat, the after-fight beat, fireflies).

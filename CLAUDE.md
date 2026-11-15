@@ -530,8 +530,11 @@ bigger from where it stands. Whoever is `up` is drawn `depth_view.height_at(tile
 A shadow off every edge leans with the sun as the figures' do (`_cast_the_shadows`, a mask eight samples a tile under the shade). A map's own nodes
 that stand - a `StealthDoor`, a `BreakableWall` not yet broken - are in `Depth.UPRIGHTS` and say `depth_lift`, `depth_top`, `depth_paint`;
 `_keep_the_uprights` gives each a child drawn as a wall is. A door is as tall as its wall shut or open and says which part of its tile it
-stands on (`depth_footprint(side_on)`; the designer, 2026-11-14): facing us it fills its tile shut and is a leaf along the west of its frame
-open; in a wall we look along (a wall to its north and south) it is a leaf seen edge on shut and flat against the north side of the way open.
+stands on (`depth_footprint(side_on, inside)`; the designer, 2026-11-14 and 15): facing us it fills its tile shut, its front over all of
+what is lifted but a top a leaf thick (`depth_top_deep`, `_Upright.top_deep`), and is a leaf along the west of its frame open; in a wall we
+look along (a wall to its north and south) it is a leaf seen edge on shut, at the side its building is on (`DepthView._inside_of`: a roof
+over one side, else the open sky over the other), and flat against the north side of the way open, its ring at the outside end
+(`depth_handle_west`).
 Only what fills its tile covers anybody; `depth_stood` turns its flat drawing off. `Depth.TOP_STAND_INS`: the laboratory's half-floor
 wall pieces are drawn, lifted, as the whole block. Only a thick mist rises over all of it, from where the rules call the weather thick; a thinner one and a night's low mist lie under walls, arch and tree (`LightView` "Mist that rises": `high_mist_of`, `HIGH_MIST_FROM`, `_high_mist`; the designer, 2026-11-14).
 The TileSet has a raised-ground tile (the stone floor's alternative 1; `StagePainter` "r"), and the Light stage's yard a terrace of it with a sign.
