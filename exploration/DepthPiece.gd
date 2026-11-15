@@ -413,7 +413,7 @@ func _be_seen_through(delta: float):
 func _the_party_is_near() -> bool:
 	var covered := ground_in_world()
 	for one in get_tree().get_nodes_in_group(Depth.PARTY):
-		if is_instance_valid(one) and one is Node2D and one.is_inside_tree() and Depth.roof_opens(covered, one.global_position):
+		if is_instance_valid(one) and one is Node2D and one.is_inside_tree() and Depth.same_scene(one, self) and Depth.roof_opens(covered, one.global_position):
 			return true
 	return false
 
@@ -428,7 +428,7 @@ func _who_it_covers() -> PackedVector3Array:
 	for figure in get_tree().get_nodes_in_group(Depth.FIGURES):
 		if cuts.size() >= Depth.MOST_CUTS:
 			return cuts
-		if not is_instance_valid(figure) or not figure.is_inside_tree() or not figure is CombatantSprite:
+		if not is_instance_valid(figure) or not figure.is_inside_tree() or not figure is CombatantSprite or not Depth.same_scene(figure, self):
 			continue
 		if not Depth.opens_a_cutaway(figure.is_visible_in_tree(), figure._shown_alpha):
 			continue
@@ -441,7 +441,8 @@ func _who_it_covers() -> PackedVector3Array:
 		for thing in get_tree().get_nodes_in_group(Depth.THINGS):
 			if cuts.size() >= Depth.MOST_CUTS:
 				return cuts
-			if not is_instance_valid(thing) or not thing is Node2D or not thing.is_inside_tree() or not thing.is_visible_in_tree() or thing.is_in_group(Depth.UPRIGHTS):
+			if not is_instance_valid(thing) or not thing is Node2D or not thing.is_inside_tree() or not thing.is_visible_in_tree() or thing.is_in_group(Depth.UPRIGHTS) \
+					or not Depth.same_scene(thing, self):
 				continue
 			if drawn.has_point(thing.global_position):
 				cuts.append(Vector3(thing.global_position.x, thing.global_position.y, DepthView.THING_CUT_TILES * tile))

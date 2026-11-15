@@ -717,7 +717,7 @@ func _sort_the_figures():
 	var shapes := PackedVector2Array()
 	var tile := float(Grid.TILE_SIZE)
 	for figure in get_tree().get_nodes_in_group(Depth.FIGURES):
-		if not is_instance_valid(figure) or not figure.is_inside_tree() or not figure is CombatantSprite:
+		if not is_instance_valid(figure) or not figure.is_inside_tree() or not figure is CombatantSprite or not Depth.same_scene(figure, self):
 			continue
 		var at: Vector2 = figure.global_position
 		if _layer == null and not figure.z_as_relative and figure.z_index >= ExplorationParty.PARTY_Z_BOTTOM and figure.z_index <= ExplorationParty.PARTY_Z_TOP:
@@ -737,7 +737,7 @@ func _sort_the_figures():
 			shapes.append(cut_shape_of(figure, reach))
 	if _layer == null and not (_rise.is_empty() and _upright_rise.is_empty()):
 		for thing in get_tree().get_nodes_in_group(Depth.THINGS):
-			if not is_instance_valid(thing) or not thing is Node2D or not thing.is_inside_tree() or not thing.is_visible_in_tree():
+			if not is_instance_valid(thing) or not thing is Node2D or not thing.is_inside_tree() or not thing.is_visible_in_tree() or not Depth.same_scene(thing, self):
 				continue
 			var where: Vector2 = thing.global_position
 			var on := _tile_map.local_to_map(_tile_map.to_local(where))
@@ -919,7 +919,7 @@ func _keep_the_uprights():
 	var stood := {}
 	var tile := float(Grid.TILE_SIZE)
 	for node in get_tree().get_nodes_in_group(Depth.UPRIGHTS):
-		if not is_instance_valid(node) or not node is Node2D or not node.is_inside_tree() or not node.has_method("depth_lift"):
+		if not is_instance_valid(node) or not node is Node2D or not node.is_inside_tree() or not node.has_method("depth_lift") or not Depth.same_scene(node, self):
 			continue
 		var lift: float = node.depth_lift() if node.is_visible_in_tree() else 0.0
 		var on := _tile_map.local_to_map(_tile_map.to_local(node.global_position))
@@ -997,7 +997,7 @@ func _inside_of(on: Vector2i) -> int:
 	var roofed_east := false
 	var roofed_west := false
 	for piece in get_tree().get_nodes_in_group(Depth.PIECES):
-		if piece is DepthPiece and piece.kind == DepthPiece.Kind.ROOF and piece.layer == DepthPiece.Layer.IN_FRONT:
+		if piece is DepthPiece and piece.kind == DepthPiece.Kind.ROOF and piece.layer == DepthPiece.Layer.IN_FRONT and Depth.same_scene(piece, self):
 			var ground: Rect2 = piece.ground_in_world()
 			roofed_east = roofed_east or ground.has_point(east_at)
 			roofed_west = roofed_west or ground.has_point(west_at)

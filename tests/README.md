@@ -87,6 +87,13 @@ stops at its first autoload name, past the parse). A run killed by hand leaves
 `.run.lock` behind - a folder - in the work directory, and the next run says
 another is going until it is removed.
 
+Every suite runs on top of the game's main scene: `scenes/game.tscn` (the Sewer
+Intro Fight) is the current scene in each, and stays there behind whatever a
+driver adds to the root. Its figures stand in the same world as a map being
+tested, so anything that gathers a group across the whole tree has to keep to
+its own scene (`Depth.same_scene`): one of that fight's figures, standing where
+the Light stage's tree is, once failed `depth` inside a full pass.
+
 Projectiles (`combat/Projectile.gd`) land at once headless, so no suite waits on
 them, and how moves are felt (`combat/MoveFeel.gd`) makes nothing headless;
 `projectile` sets `Projectile.plays_headless` and `MoveFeel.plays_headless` to

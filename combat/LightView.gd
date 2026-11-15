@@ -2693,7 +2693,7 @@ func _keep_the_waders(delta: float):
 	var seen := {}
 	var any_near := false
 	for figure in get_tree().get_nodes_in_group(Depth.FIGURES):
-		if not _water_shows(figure):
+		if not _water_shows(figure) or not Depth.same_scene(figure, self):
 			continue
 		var feet := feet_of(figure)
 		var tile := _tile_map.local_to_map(_tile_map.to_local(feet))
@@ -2765,7 +2765,7 @@ class _Mirrored extends Node2D:
 			return
 		var to_here := get_global_transform().affine_inverse()
 		for figure in get_tree().get_nodes_in_group(Depth.FIGURES):
-			if not LightView._water_shows(figure):
+			if not LightView._water_shows(figure) or not Depth.same_scene(figure, view):
 				continue
 			var feet := LightView.feet_of(figure)
 			var tile: Vector2i = view._tile_map.local_to_map(view._tile_map.to_local(feet))

@@ -241,6 +241,21 @@ static func opens_a_cutaway(visible: bool, alpha: float) -> bool:
 	return visible and alpha > CUT_NEEDS_ALPHA
 
 
+## Whether `node` is part of the same scene as `of`: the same node hanging from the root above each. The depth of a map or a fight
+## counts only its own scene's figures, things, doors and pieces. In the tests another scene stands in the same world as the one
+## being tested (the game's own fight, which every suite starts with), and one of its figures, standing where the Light stage's
+## tree is, once opened a cutaway in the tree with nobody of the stage under it (2026-11-15). In the game there is one scene.
+static func same_scene(node: Node, of: Node) -> bool:
+	return _scene_of(node) == _scene_of(of)
+
+
+static func _scene_of(node: Node) -> Node:
+	var at := node
+	while at.get_parent() != null and at.get_parent().get_parent() != null:
+		at = at.get_parent()
+	return at
+
+
 ## The picture in the slot `name` (without ".png"), or null. With a normal map beside it (`name`_n.png), the two together, so the
 ## real lights fall on it by that (DepthView "Light that knows height").
 static func slot(name: String) -> Texture2D:

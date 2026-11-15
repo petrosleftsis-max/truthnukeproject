@@ -260,3 +260,10 @@ are in the session's scratch folder; they are a page of code and quick to write 
   west, the ring at the end towards the outside, the store's door's top a leaf thick); eight pictures taken (`shot_driver.gd`'s
   `doors3`, from the Fable session's scratch copy of the project), and `stages stealthworld light alarm` clean with it. The
   designer approved it ("Yes, commit"); committed, to be pushed with the second round, and a last full pass run with both.
+- 2026-11-15: the rest of the second round's pass: 103 of 103 clean, so 172 of 172 with the first 69; both rounds pushed. The
+  last full pass, with the doors: 171 of 172, `depth`'s "nothing is cut away with nobody under it" once more, and this time it
+  said who: `/root/Game/Terrain/TileMap/Combatants/...` at (8, 10). Every suite runs on top of the game's own main scene, the
+  Sewer Intro Fight, which stays there behind the map being tested, and its figures stand in the same world; one stood under the
+  tree. So whatever depth gathers from a group is only its own scene's now (`Depth.same_scene`, in DepthView, DepthPiece and
+  LightView's waders), and the check puts a figure of another scene under the crown on purpose (it fails without
+  `same_scene`). `depth atmos figures clock daysky light stages walk` clean; a full pass started with it.

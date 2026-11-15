@@ -536,7 +536,7 @@ look along (a wall to its north and south) it is a leaf seen edge on shut, at th
 over one side, else the open sky over the other), and flat against the north side of the way open, its ring at the outside end
 (`depth_handle_west`).
 Only what fills its tile covers anybody; `depth_stood` turns its flat drawing off. `Depth.TOP_STAND_INS`: the laboratory's half-floor
-wall pieces are drawn, lifted, as the whole block. Only a thick mist rises over all of it, from where the rules call the weather thick; a thinner one and a night's low mist lie under walls, arch and tree (`LightView` "Mist that rises": `high_mist_of`, `HIGH_MIST_FROM`, `_high_mist`; the designer, 2026-11-14).
+wall pieces are drawn, lifted, as the whole block. Only a thick mist rises over all of it, from where the rules call the weather thick; a thinner one and a night's low mist lie under walls, arch and tree (`LightView` "Mist that rises": `high_mist_of`, `HIGH_MIST_FROM`, `_high_mist`; the designer, 2026-11-14). Whatever depth gathers from a group (figures, things, doors, pieces, the party, the waders) is only its own scene's (`Depth.same_scene`): in the tests the game's own fight runs behind the map being tested.
 The TileSet has a raised-ground tile (the stone floor's alternative 1; `StagePainter` "r"), and the Light stage's yard a terrace of it with a sign.
 Slots, in `art/terrain/depth/`: `face_<column>_<row>.png`, `face.png` (256 x 80), `wall_face.png` (256 x 160), `top_<column>_<row>.png` (256 x 256),
 `object_<column>_<row>.png` (a thing alone, standing).

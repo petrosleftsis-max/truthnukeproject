@@ -554,9 +554,15 @@ func layers():
 	await settle(3)
 	ok(not tree.cuts_now().is_empty() and tree.fade_now() == 1.0, "whoever stands under the crown is seen through it", "%d cutaways" % tree.cuts_now().size())
 	scene.party.teleport(Grid.tile_to_world(Vector2i(3, 20)))
+	# A figure of another scene stands under the crown: in every suite the game's own fight is running behind the map being tested,
+	# and inside a full pass one of its figures stood here and opened a cutaway in the tree (2026-11-15). It is nobody of the stage's.
+	var stranger := CombatantSprite.new()
+	get_tree().root.add_child(stranger)
+	stranger.setup(null, load("res://art/terrain/first_area_tiles.png"), false)
+	stranger.global_position = Grid.tile_to_world(Vector2i(9, 10))
 	await wait(0.3)
 	await settle(3)
-	# Said with who it is about, if anybody: this has failed only inside a full pass.
+	# Said with who it is about, if anybody.
 	var still_under := []
 	for cut in tree.cuts_now():
 		var who := "nobody's"
@@ -567,7 +573,8 @@ func layers():
 			if thing is Node2D and thing.global_position.distance_to(Vector2(cut.x, cut.y)) < 2.0:
 				who = str(thing.get_path())
 		still_under.append("%s at %s" % [who, scene._tile_map.local_to_map(scene._tile_map.to_local(Vector2(cut.x, cut.y)))])
-	ok(tree.cuts_now().is_empty(), "and nothing is cut away with nobody under it", ", ".join(still_under))
+	ok(tree.cuts_now().is_empty(), "and nothing is cut away with nobody under it, not even for a figure of another scene standing there", ", ".join(still_under))
+	stranger.queue_free()
 	tree.moves = -1.0
 	# The town below.
 	ok(town.moves_now() == Depth.PIECE_MOVES_BEHIND and town.fade_now() == 1.0 and town.cuts_now().is_empty(), "the town below moves, and is never seen through")
