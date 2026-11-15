@@ -185,12 +185,18 @@ func where_a_figure_is_drawn():
 	ok(Depth.z_at(tile * 60.0, top) < ExplorationParty.PARTY_Z_TOP - 1, "a map sixty rows deep still sorts to its last row")
 	ok(Depth.opens_a_cutaway(true, 1.0) and Depth.opens_a_cutaway(true, 0.5), "somebody seen opens a cutaway in what covers them")
 	ok(not Depth.opens_a_cutaway(true, 0.0) and not Depth.opens_a_cutaway(false, 1.0), "somebody the player cannot see never does")
+	# A cutaway is as tall as whoever it is about (the designer, 2026-11-14).
+	var round_patch := Depth.cut_shape(0.0, 100.0)
+	var tall := Depth.cut_shape(128.0, 100.0)
+	ok(round_patch == Vector2(0.0, 100.0), "about somebody a tile tall a cutaway is the round patch it was", "%s" % round_patch)
+	ok(tall.x == 64.0 and tall.y == 164.0 and is_equal_approx(tall.x + tall.y - 128.0, 100.0) and tall.y - tall.x == 100.0,
+		"about somebody drawn taller it goes as far over their head, and no further under their feet", "%s" % tall)
 	# Mist that rises (LightView): thin, it lies under what is lifted; thick, some of it is over it.
-	ok(LightView.high_mist_of(0.3, 0.0) == 0.0 and LightView.high_mist_of(0.0, 0.5) == 0.0, "a thin mist stays on the ground, under what is lifted")
-	ok(LightView.high_mist_of(0.9, 0.0) > 0.3 and LightView.high_mist_of(1.0, 0.0) == LightView.HIGH_MIST_MOST, "a thick fog rises over raised ground",
-		"%.2f" % LightView.high_mist_of(0.9, 0.0))
-	ok(LightView.high_mist_of(0.0, 1.0) == LightView.HIGH_LOW_MIST_MOST and LightView.high_mist_of(0.0, 0.8) < LightView.high_mist_of(0.0, 1.0),
-		"and so does the low mist of the stillest nights, less")
+	ok(LightView.high_mist_of(0.3) == 0.0 and LightView.high_mist_of(0.49) == 0.0, "a mist that is not thick stays on the ground, under what is lifted")
+	ok(LightView.high_mist_of(0.9) > 0.3 and LightView.high_mist_of(1.0) == LightView.HIGH_MIST_MOST, "a thick fog rises over raised ground",
+		"%.2f" % LightView.high_mist_of(0.9))
+	ok(not Light.thick({"mist": 0.49}) and Light.thick({"mist": 0.5}) and LightView.high_mist_of(0.5) == 0.0 and LightView.high_mist_of(0.55) > 0.0,
+		"from where the rules call the weather thick, and not before")
 	log_line("")
 
 
@@ -299,6 +305,12 @@ func on_the_stage():
 		for_far = for_far or Vector2(cut.x, cut.y).distance_to(far.global_position) < 2.0
 		for_near = for_near or Vector2(cut.x, cut.y).distance_to(near.global_position) < 2.0
 	ok(for_far and not for_near, "whoever is behind it is seen through it, and whoever is in front needs no cutaway", "%d cutaways" % cuts.size())
+	var shapes := view.cut_shapes_now()
+	var shaped := shapes.size() == cuts.size()
+	for i in mini(shapes.size(), cuts.size()):
+		shaped = shaped and shapes[i].y >= cuts[i].z and shapes[i].x >= 0.0
+	ok(shaped and DepthView.cut_shape_of(far, 100.0) == Depth.cut_shape(far.head_height() * absf(far.global_scale.y), 100.0),
+		"each cutaway has its shape beside it, by how tall its figure is drawn", "%d shapes" % shapes.size())
 	far._shown_alpha = 0.0
 	far.hidden_alpha = 0.0
 	await settle(2)
@@ -366,7 +378,9 @@ func on_the_stage():
 	door.set_open(true)
 	wall.broken = true
 	await settle(3)
-	ok(door_up != null and not door_up.visible and door.depth_lift() == 0.0, "opened, the door is down at once")
+	ok(door_up != null and door_up.visible and door.depth_lift() == Depth.WALL_LIFT and door_up.foot.size.x < 0.5 and door_up.foot.size.y > 0.99 and door_up.foot.position.x == 0.0,
+		"opened, it is a leaf swung back along the west of its frame, as tall as it was", "%s" % [door_up.foot if door_up != null else Rect2()])
+	ok(door.depth_stood and not view._upright_rise.has(Vector2i(22, 15)), "its flat drawing off, and covering nobody")
 	ok(wall_up != null and not wall_up.visible, "and broken, the wall is rubble on the floor")
 	for_far = false
 	for cut in view.cuts_now():
@@ -478,6 +492,7 @@ func layers():
 	# The roof, and the party.
 	scene.party.teleport(Grid.tile_to_world(Vector2i(8, 15)))
 	await wait(0.6)
+	await settle(3)
 	ok(roof.fade_now() == 1.0, "with the party out in the yard the roof is whole", "%s" % [roof.fade_now()])
 	var far := CombatantSprite.new()
 	scene.add_child(far)
@@ -501,18 +516,23 @@ func layers():
 	ok(signs > 0 and roof.cuts_now().is_empty(), "what is to be found in the hall is under the roof until somebody comes near", "%d things under it" % signs)
 	scene.party.teleport(Grid.tile_to_world(Vector2i(17, 15)))
 	await wait(0.15)
+	await settle(3)
 	var on_the_way: float = roof.fade_now()
 	await wait(0.6)
+	await settle(3)
 	ok(on_the_way > 0.0 and on_the_way < 1.0 and roof.fade_now() == 0.0, "two tiles from it, it fades away, and not at once", "%.2f on the way, then %.2f" % [on_the_way, roof.fade_now()])
 	scene.party.teleport(Grid.tile_to_world(Vector2i(24, 14)))
 	await wait(0.3)
+	await settle(3)
 	ok(roof.fade_now() == 0.0, "and stays away while they are under it")
 	scene.party.teleport(Grid.tile_to_world(Vector2i(8, 15)))
 	await wait(0.7)
+	await settle(3)
 	ok(roof.fade_now() == 1.0, "back out in the yard, it is whole again")
 	roof.fades = false
 	scene.party.teleport(Grid.tile_to_world(Vector2i(24, 14)))
 	await wait(0.6)
+	await settle(3)
 	ok(roof.fade_now() == 1.0 and roof.cuts_now().is_empty(), "a roof that does not fade stays whole, whoever is under it")
 	roof.fades = true
 	# The arch and the tree.
@@ -520,6 +540,7 @@ func layers():
 	ok(arch._front_shows(), "over a way that faces us, its front shows")
 	scene.party.teleport(Grid.tile_to_world(Vector2i(3, 17)))
 	await wait(0.3)
+	await settle(3)
 	ok(arch.fade_now() == 1.0 and not arch.cuts_now().is_empty(), "whoever walks under it is seen through it, and it stays whole", "%d cutaways" % arch.cuts_now().size())
 	ok(tree.moves_now() == Depth.PIECE_MOVES_FRONT, "a tree's crown moves")
 	var crown := tree.ground_in_world().get_center()
@@ -530,10 +551,23 @@ func layers():
 	tree.moves = 0.0
 	scene.party.teleport(Grid.tile_to_world(Vector2i(9, 10)))
 	await wait(0.3)
+	await settle(3)
 	ok(not tree.cuts_now().is_empty() and tree.fade_now() == 1.0, "whoever stands under the crown is seen through it", "%d cutaways" % tree.cuts_now().size())
 	scene.party.teleport(Grid.tile_to_world(Vector2i(3, 20)))
 	await wait(0.3)
-	ok(tree.cuts_now().is_empty(), "and nothing is cut away with nobody under it")
+	await settle(3)
+	# Said with who it is about, if anybody: this has failed only inside a full pass.
+	var still_under := []
+	for cut in tree.cuts_now():
+		var who := "nobody's"
+		for figure in get_tree().get_nodes_in_group(Depth.FIGURES):
+			if figure is CombatantSprite and DepthView.body_middle(figure).distance_to(Vector2(cut.x, cut.y)) < 2.0:
+				who = str(figure.get_path())
+		for thing in get_tree().get_nodes_in_group(Depth.THINGS):
+			if thing is Node2D and thing.global_position.distance_to(Vector2(cut.x, cut.y)) < 2.0:
+				who = str(thing.get_path())
+		still_under.append("%s at %s" % [who, scene._tile_map.local_to_map(scene._tile_map.to_local(Vector2(cut.x, cut.y)))])
+	ok(tree.cuts_now().is_empty(), "and nothing is cut away with nobody under it", ", ".join(still_under))
 	tree.moves = -1.0
 	# The town below.
 	ok(town.moves_now() == Depth.PIECE_MOVES_BEHIND and town.fade_now() == 1.0 and town.cuts_now().is_empty(), "the town below moves, and is never seen through")
@@ -555,25 +589,61 @@ func layers():
 	if not hall_door.is_empty():
 		var door: StealthDoor = hall_door[0]
 		var stood = door.get_node_or_null("DepthUpright")
-		ok(stood == null or not stood.visible, "in a wall that runs north to south it is not stood up: it stays drawn on its own tile")
+		ok(stood != null and stood.visible and stood.lift == Depth.WALL_LIFT, "it stands as tall as the wall it is in", "%s" % [stood.lift if stood != null else -1.0])
+		ok(stood != null and stood.foot.size.x < 0.5 and stood.foot.size.y > 0.99 and is_equal_approx(stood.foot.get_center().x, 0.5) and stood.face == 0.0,
+			"in a wall we look along it is a leaf seen edge on, from the wall north of it to the wall south, no front facing us", "%s" % [stood.foot if stood != null else Rect2()])
 		var seen_through := false
 		for cut in scene.depth_view.cuts_now():
 			seen_through = seen_through or Vector2(cut.x, cut.y).distance_to(door.global_position) < 2.0
-		ok(seen_through, "and is seen through the top of the wall that covers it", "%d cutaways" % scene.depth_view.cuts_now().size())
+		ok(not seen_through and door.depth_stood and not scene.depth_view._upright_rise.has(Vector2i(18, 15)), "standing, it is not looked for through the wall, and a leaf covers nobody")
 		scene.party.teleport(Grid.tile_to_world(Vector2i(17, 15)))
 		await settle(2)
 		door.interact(scene)
 		await settle(2)
 		ok(door.is_open and door.prompt == "Close", "it opens")
+		ok(stood != null and stood.visible and stood.foot.size.x > 0.99 and stood.foot.size.y < 0.5 and stood.foot.position.y == 0.0 and stood.face == Depth.WALL_LIFT,
+			"open, it lies back flat against the north side of the way, its face to us and the way clear below it", "%s" % [stood.foot if stood != null else Rect2()])
 		door.interact(scene)
 		await settle(2)
-		ok(not door.is_open and door.prompt == "Open", "shuts")
+		ok(not door.is_open and door.prompt == "Open" and stood.foot.size.x < 0.5, "shuts")
 		door.interact(scene)
 		await settle(2)
 		ok(door.is_open, "and opens again")
+	# The small box at their feet (ExplorationParty; the designer, 2026-11-14): pressed against the yard's north wall, the point
+	# they stand on comes within the little there is of the box above it, and is still on the yard's floor.
+	scene.party.teleport(Grid.tile_to_world(Vector2i(8, 8)))
+	for i in 200:
+		if not scene.party._step(Vector2.UP, 0.016):
+			break
+	var wall_foot: float = Grid.tile_to_world(Vector2i(8, 8)).y - Grid.TILE_SIZE * 0.5
+	var gap: float = scene.party.leader.global_position.y - wall_foot
+	ok(gap >= Grid.tiles(ExplorationParty.BODY_ABOVE_TILES) - 0.01 and gap < Grid.tiles(ExplorationParty.BODY_ABOVE_TILES) + 20.0 and scene.is_walkable(scene.party.leader.global_position),
+		"pressed against a wall to the north, they come right up to it, the point they stand on still on the floor", "%.0f pixels from it" % gap)
+	scene.party.teleport(Grid.tile_to_world(Vector2i(3, 16)) + Vector2(Grid.TILE_SIZE * 0.25, 0.0))
+	var through := false
+	for i in 200:
+		scene.party._step(Vector2.DOWN, 0.016)
+		through = through or scene.party.leader.global_position.y > Grid.tile_to_world(Vector2i(3, 18)).y
+	ok(through, "and a quarter of a tile off the middle of the one-tile way between the gateposts, they still walk straight into it")
+	scene.party._set_walking(false)
+	# The store's door, in the yard's north wall, faces us.
+	var store_door = scene.find_children("StoreDoor", "", true, false)
+	ok(not store_door.is_empty() and store_door[0] is StealthDoor and not store_door[0].is_open, "the store off the yard has a door, shut")
+	if not store_door.is_empty():
+		var door: StealthDoor = store_door[0]
+		await settle(2)
+		var stood = door.get_node_or_null("DepthUpright")
+		ok(stood != null and stood.visible and stood.foot.size == Vector2.ONE and stood.lift == Depth.WALL_LIFT and stood.face == Depth.WALL_LIFT and scene.depth_view._upright_rise.has(Vector2i(6, 7)),
+			"in a wall that runs east to west it fills its tile, its whole front facing us", "%s" % [stood.foot if stood != null else Rect2()])
+		door.set_open(true)
+		await settle(2)
+		ok(stood != null and stood.visible and stood.foot.size.x < 0.5 and stood.foot.size.y > 0.99 and stood.face == Depth.WALL_LIFT and not scene.depth_view._upright_rise.has(Vector2i(6, 7)),
+			"open, a leaf along the side of its frame, the way through clear beside it")
+		door.set_open(false)
 	ok(LightView.open_sky_colour() == Color.WHITE, "at noon a roof is as bright as day")
 	Campaign.set_clock(23)
 	await wait(0.5)
+	await settle(3)
 	ok(LightView.open_sky_colour().get_luminance() < 0.75, "and at night it darkens with the sky, whatever lights the room under it", "%.2f" % LightView.open_sky_colour().get_luminance())
 	Campaign.set_clock(12)
 	LightView.plays_headless = false

@@ -9117,6 +9117,8 @@ func _turn_begins_for(comb: Dictionary):
 	_auras_on(comb)
 	_ground_under(comb)
 	_zones_on_their_turn(comb)
+	if light_view != null and plays_for_party(comb) and not comb.has("summoner"):
+		light_view.night_eyes = sees_in_darkness(comb)
 
 
 ## --- Immunities ---
@@ -17929,7 +17931,7 @@ func _light_shown():
 			var level := light_level_of(comb)
 			sprite.set_light(Light.FIGURE_TINTS[level])
 			if not comb.has("object"):
-				sprite.set_in_the_dark(level == Light.Level.DARK, sees_in_darkness(comb))
+				sprite.set_in_the_dark(level == Light.Level.DARK)
 				sprite.off_ground = comb.get("movement_class", 0) == 1
 
 

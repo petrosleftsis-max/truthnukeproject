@@ -94,7 +94,7 @@ They are placeholders for your own. The sun's colours and hours are in `combat/L
 ## 7. Slots for art
 
 Each of these replaces what is drawn in code, by being there: `art/fx/ember.png`, `art/fx/dust.png`,
-`art/fx/light_shaft.png`, `art/fx/figure_shadow.png`, `art/fx/glowing_eyes.png`.
+`art/fx/light_shaft.png`, `art/fx/figure_shadow.png`.
 
 If the art ends up as pixel art, `Campaign.set_dithered_light(true)` gives the shade a dithered edge.
 

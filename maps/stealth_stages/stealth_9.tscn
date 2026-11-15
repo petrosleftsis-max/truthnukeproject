@@ -19,16 +19,16 @@
 [ext_resource type="Script" path="res://exploration/StealthGoal.gd" id="17_gh3px"]
 [ext_resource type="Resource" path="res://dialogue/stealth_stages.dialogue" id="18_0yga0"]
 
-[node name="Stage9Light" type="Node2D" unique_id=460551312]
+[node name="Stage9Light" type="Node2D" unique_id=510918902]
 
-[node name="Terrain" type="Node2D" parent="." unique_id=335356449 instance=ExtResource("1_javnc")]
+[node name="Terrain" type="Node2D" parent="." unique_id=86673684 instance=ExtResource("1_javnc")]
 
-[node name="EntryPoint" type="Marker2D" parent="." unique_id=2134796222]
+[node name="EntryPoint" type="Marker2D" parent="." unique_id=1977777642]
 position = Vector2(896, 3968)
 script = ExtResource("2_0fnn1")
 entry_name = "start"
 
-[node name="MapSetup" type="Node" parent="." unique_id=426170238]
+[node name="MapSetup" type="Node" parent="." unique_id=1339550429]
 script = ExtResource("3_c80bv")
 members = Array[String](["alithia", "cyrus", "prometheus", "enfina"])
 level = 64
@@ -39,12 +39,12 @@ paths = {
 knows_every_spell = true
 empty_handed = true
 
-[node name="StealthSetup" type="Node" parent="." unique_id=1964422948]
+[node name="StealthSetup" type="Node" parent="." unique_id=147431234]
 script = ExtResource("4_afd05")
 battle_terrain = ExtResource("1_javnc")
 fight_name = "A fight on the Light stage"
 
-[node name="Sundial" type="Node2D" parent="." unique_id=1587816694]
+[node name="Sundial" type="Node2D" parent="." unique_id=1867830598]
 position = Vector2(2432, 3968)
 script = ExtResource("5_vkrvk")
 dialogue = ExtResource("6_wdnkf")
@@ -53,7 +53,7 @@ prompt = "Look at the sundial"
 interaction_radius = 384.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignOutdoors" type="Node2D" parent="." unique_id=1607892759]
+[node name="SignOutdoors" type="Node2D" parent="." unique_id=2080431746]
 position = Vector2(1408, 2432)
 script = ExtResource("8_ghnx6")
 text = "THE SUN. A map's MapSetup says what it is by itself: its Ambient (Outdoors, Interior, Underground) and, for Outdoors, its Time Of Day and No Moon. By day everything is Bright; at dusk and dawn Dim; at night Dim under a moon and Dark without one. The colour of the whole picture goes round with the clock: gold at dusk, blue at night, grey at dawn. Watch the shadows under the party lean as it does. The sundial runs the clock."
@@ -61,7 +61,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignLamp" type="Node2D" parent="." unique_id=252523782]
+[node name="SignLamp" type="Node2D" parent="." unique_id=774648987]
 position = Vector2(3456, 2432)
 script = ExtResource("8_ghnx6")
 text = "A LAMP (a Lamp node on a watched map): it can be put out, with E beside it, and guards notice that. Its Light Tiles are how far it reaches. Best seen after dark: ask the sundial for night."
@@ -69,14 +69,14 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="YardLamp" type="Node2D" parent="." unique_id=1862597573]
+[node name="YardLamp" type="Node2D" parent="." unique_id=532717699]
 position = Vector2(3712, 3200)
 script = ExtResource("9_dhcga")
 light_tiles = 5.0
 prompt = "Put out"
 interaction_radius = 332.8
 
-[node name="SignColours" type="Node2D" parent="." unique_id=1346909693]
+[node name="SignColours" type="Node2D" parent="." unique_id=299143006]
 position = Vector2(1408, 5504)
 script = ExtResource("8_ghnx6")
 text = "LIGHT SOURCES (a LightSource node): Bright Tiles and Dim Tiles, a Colour, Flickers or steady, and whether it is lit to begin with. Each is a real light with real shadows: these two, after dark, either side of a post. Walls and barrels stop them, because a tile's Blocks says so."
@@ -84,7 +84,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignRoof" type="Node2D" parent="." unique_id=1187766433]
+[node name="SignRoof" type="Node2D" parent="." unique_id=1751253301]
 position = Vector2(5248, 3712)
 script = ExtResource("8_ghnx6")
 text = "A ROOF (an AmbientArea node): part of a map with an Ambient of its own. Its corner is where the node stands, and it reaches Size Tiles right and down. This one is Interior: Dim, whatever the hour, unless something lights it."
@@ -92,7 +92,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignWindows" type="Node2D" parent="." unique_id=570206707]
+[node name="SignWindows" type="Node2D" parent="." unique_id=373690956]
 position = Vector2(5504, 2432)
 script = ExtResource("8_ghnx6")
 text = "WINDOWS (a LightSource with Opening ticked): it lets in only what the sun gives. All of it by day, only the Dim at dusk and dawn, nothing at night. Shafts of light slant in from it, leaning with the hour. Ask the sundial for a day going round from in here."
@@ -100,7 +100,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignFire" type="Node2D" parent="." unique_id=667342637]
+[node name="SignFire" type="Node2D" parent="." unique_id=344409186]
 position = Vector2(6016, 4224)
 script = ExtResource("8_ghnx6")
 text = "A FLAME: it flickers, embers go up from it, and dust hangs in other light. Stand the party round it and each figure's shadow points away from it. The barrels throw shadows across the floor, and any light eases on and off rather than snapping."
@@ -108,15 +108,15 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignDark" type="Node2D" parent="." unique_id=1643813635]
+[node name="SignDark" type="Node2D" parent="." unique_id=1092939646]
 position = Vector2(8832, 3968)
 script = ExtResource("8_ghnx6")
-text = "THE DARK (an AmbientArea, or a whole map, set Underground). Colours drain away, fog drifts, and whoever stands in it has only a faint rim. Anybody in it is invisible to whoever cannot see in the dark, unless right beside them. Cyrus, who has Night Eyes, still sees whoever stands in it, and his eyes glow there."
+text = "THE DARK (an AmbientArea, or a whole map, set Underground). Colours drain away, fog drifts, and whoever stands in it has only a faint rim. Anybody in it is invisible to whoever cannot see in the dark, unless right beside them. Tab to Cyrus, who has Night Eyes: he sees the dark as a grey half-light, and whoever stands in it."
 prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="Lantern" type="Node2D" parent="." unique_id=652286812]
+[node name="Lantern" type="Node2D" parent="." unique_id=2026255504]
 position = Vector2(9088, 4480)
 script = ExtResource("10_5b13n")
 item_key = "lantern"
@@ -124,7 +124,7 @@ taken_flag = "stage9_lantern"
 prompt = "Take"
 interaction_radius = 320.0
 
-[node name="SignLantern" type="Node2D" parent="." unique_id=654868818]
+[node name="SignLantern" type="Node2D" parent="." unique_id=1366648431]
 position = Vector2(8832, 4736)
 script = ExtResource("8_ghnx6")
 text = "A LANTERN, on the floor here: whoever has one in their Baldric lights the way as they go, and is seen coming. It is no item to use in a fight, and it lights up a fight just the same."
@@ -132,7 +132,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignColour2" type="Node2D" parent="." unique_id=576649539]
+[node name="SignColour2" type="Node2D" parent="." unique_id=789298183]
 position = Vector2(10624, 1408)
 script = ExtResource("8_ghnx6")
 text = "Two more colours among the pillars, to show how the shadows cross: one steady, one flickering."
@@ -140,7 +140,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignWater" type="Node2D" parent="." unique_id=76608867]
+[node name="SignWater" type="Node2D" parent="." unique_id=992959607]
 position = Vector2(3200, 3712)
 script = ExtResource("8_ghnx6")
 text = "WATER, WIND AND THE REST. The pond is a WaterPatch: it ripples the way the wind blows, foams at its edges, rings in the rain, and the sun glints on it on the side where the sun stands. It is only to look at; what can be walked on is the tiles' Blocks, as ever. The banner and the washing are WindBanners and the hall's chimney a ChimneySmoke: they stream and lean with the wind, and a flame out here smokes the same way. Ask the sundial for the rest: blossom or leaves on the wind in spring and autumn, birds' shadows by day, lamps mirrored in the wet after rain and glowing after dark, low mist by the pond at night, far lightning on a close summer night before a storm, and at dawn or dusk, now and then, the light stepping into pixels for a moment."
@@ -148,7 +148,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignDepth" type="Node2D" parent="." unique_id=227732577]
+[node name="SignDepth" type="Node2D" parent="." unique_id=1657415078]
 position = Vector2(3456, 5248)
 script = ExtResource("8_ghnx6")
 text = "DEPTH. High ground (a tile whose Blocks stops a walker and not a flier, like this terrace) is drawn raised, with a face under its edge and a shadow off it that leans with the sun; walls stand taller still. A barrel is high ground too, but a thing standing on the floor (its tile's Stands, in the TileSet): it is drawn bigger where it stands, not lifted. Whoever stands behind something raised is seen through it, in a round patch. In a fight, whoever climbs up is drawn up there: Cyrus climbs anywhere. A tile's Lift, in the TileSet, says how high one kind of tile is drawn, or below 0 that it never is. Nothing of it changes who can see, reach or walk where."
@@ -156,47 +156,53 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="HallDoor" type="Node2D" parent="." unique_id=10960737]
+[node name="HallDoor" type="Node2D" parent="." unique_id=378009070]
 position = Vector2(4736, 3968)
 script = ExtResource("11_v1ccb")
 prompt = "Open"
 interaction_radius = 332.8
 
-[node name="CellarDoor" type="Node2D" parent="." unique_id=14283758]
+[node name="CellarDoor" type="Node2D" parent="." unique_id=1806471498]
 position = Vector2(8320, 3968)
 script = ExtResource("11_v1ccb")
 prompt = "Open"
 interaction_radius = 332.8
 
-[node name="SignLayers" type="Node2D" parent="." unique_id=254388507]
+[node name="StoreDoor" type="Node2D" parent="." unique_id=2006338319]
+position = Vector2(1664, 1920)
+script = ExtResource("11_v1ccb")
+prompt = "Open"
+interaction_radius = 332.8
+
+[node name="SignLayers" type="Node2D" parent="." unique_id=1249979390]
 position = Vector2(1920, 3456)
 script = ExtResource("8_ghnx6")
-text = "LAYERS (a DepthPiece node, placed on a tile). In Front, it is drawn over everybody, as high as its Height says: the tree here, the balcony on the hall's wall, the arch over the gate south of where you came in, and the hall's roof. Whoever you can see under one is seen through it, in a round patch; a Roof fades away whole when one of the party is under it or within two tiles, so a room reads as indoors until you walk in. Behind, with Everywhere ticked, it is drawn wherever nothing is painted, all round the map and with no end: the town far below. Walk about and watch the tree's crown and the town move against the ground (Moves). Each has a Picture slot for the artist; these are placeholders. The doors into the hall and the cellar are real doors: E opens and shuts them. Nothing of the layers changes who can see, reach or walk where."
+text = "LAYERS (a DepthPiece node, placed on a tile). In Front, it is drawn over everybody, as high as its Height says: the tree here, the balcony on the hall's wall, the arch over the gate south of where you came in, and the hall's roof. Whoever you can see under one is seen through it, in a round patch; a Roof fades away whole when one of the party is under it or within two tiles, so a room reads as indoors until you walk in. Behind, with Everywhere ticked, it is drawn wherever nothing is painted, all round the map and with no end: the town far below. Walk about and watch the tree's crown and the town move against the ground (Moves). Each has a Picture slot for the artist; these are placeholders. The doors are real doors: E opens and shuts them. The store's, north of the yard, faces you; the hall's and the cellar's are in walls you look along, so each is seen edge on shut, and open lies back against the side of its way. Nothing of the layers changes who can see, reach or walk where."
 prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="Waypoint_round_a" type="Node2D" parent="." unique_id=1216975280]
+[node name="Waypoint_round_a" type="Node2D" parent="." unique_id=1333141680]
 position = Vector2(9088, 3200)
 script = ExtResource("12_mp1p7")
 point_name = "round_a"
 
-[node name="Waypoint_round_b" type="Node2D" parent="." unique_id=321612054]
+[node name="Waypoint_round_b" type="Node2D" parent="." unique_id=742633914]
 position = Vector2(12160, 3200)
 script = ExtResource("12_mp1p7")
 point_name = "round_b"
 
-[node name="Waypoint_round_c" type="Node2D" parent="." unique_id=1201416903]
+[node name="Waypoint_round_c" type="Node2D" parent="." unique_id=1009170204]
 position = Vector2(12160, 6272)
 script = ExtResource("12_mp1p7")
 point_name = "round_c"
 
-[node name="Waypoint_round_d" type="Node2D" parent="." unique_id=1516017722]
+[node name="Waypoint_round_d" type="Node2D" parent="." unique_id=1074314249]
 position = Vector2(9088, 6272)
 script = ExtResource("12_mp1p7")
 point_name = "round_d"
 
-[node name="TorchBearer" type="Node2D" parent="." unique_id=1520626843]
+[node name="TorchBearer" type="Node2D" parent="." unique_id=550130853]
 position = Vector2(9088, 3200)
 script = ExtResource("13_a30st")
 level = 64
@@ -206,7 +212,7 @@ minds_his_own_business = true
 patrol = Array[String](["round_a", "round_b", "round_c", "round_d"])
 can_be_taken_down = false
 
-[node name="SignTorch" type="Node2D" parent="." unique_id=2089174902]
+[node name="SignTorch" type="Node2D" parent="." unique_id=1442604373]
 position = Vector2(8832, 2944)
 script = ExtResource("8_ghnx6")
 text = "A GUARD WITH A TORCH (a Guard's Carries Light Tiles): it lights the ground round him as he walks, and the light glides after him. This one is set to Minds His Own Business, so he can be looked at; knock an ordinary one out and it goes out."
@@ -214,7 +220,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="Ward" type="Node2D" parent="." unique_id=229271912]
+[node name="Ward" type="Node2D" parent="." unique_id=1383493313]
 position = Vector2(11904, 6528)
 script = ExtResource("13_a30st")
 combatant_key = "mimic"
@@ -225,7 +231,7 @@ minds_his_own_business = true
 back_and_forth = true
 can_be_taken_down = false
 
-[node name="Sensor" type="Node2D" parent="." unique_id=652253700]
+[node name="Sensor" type="Node2D" parent="." unique_id=706180939]
 position = Vector2(11392, 6528)
 script = ExtResource("13_a30st")
 combatant_key = "mimic"
@@ -237,12 +243,12 @@ minds_his_own_business = true
 back_and_forth = true
 can_be_taken_down = false
 
-[node name="Glyph" type="Node2D" parent="." unique_id=248025421]
+[node name="Glyph" type="Node2D" parent="." unique_id=1361443982]
 position = Vector2(10880, 6528)
 script = ExtResource("14_a5ye6")
 flag = "stage9_glyph"
 
-[node name="SignMagic" type="Node2D" parent="." unique_id=1221171871]
+[node name="SignMagic" type="Node2D" parent="." unique_id=1079216515]
 position = Vector2(11136, 6016)
 script = ExtResource("8_ghnx6")
 text = "Alithia's DETECT MAGIC, from the panel (Spells): for five minutes every ward, magic sensor and magical trap on the map has a ring round it, wherever it is. Her ARCANE EYE, through the Gates of Mnemosyne, is an eye to steer that nothing notices. Mind the glyph: it fires."
@@ -250,7 +256,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="FightMarker" type="Node2D" parent="." unique_id=1270872500]
+[node name="FightMarker" type="Node2D" parent="." unique_id=1751091138]
 position = Vector2(12160, 1408)
 script = ExtResource("15_ouwj5")
 encounter = ExtResource("16_qlwoq")
@@ -258,7 +264,7 @@ prompt = "Start the fight in the dark"
 interaction_radius = 384.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="SignFight" type="Node2D" parent="." unique_id=1526581908]
+[node name="SignFight" type="Node2D" parent="." unique_id=745870189]
 position = Vector2(11904, 1664)
 script = ExtResource("8_ghnx6")
 text = "A FIGHT, Underground, for what only happens in one. Fire and lightning light the way as they fly, and flare where they land. Somebody burning gives light, as does burning ground. Prometheus's Light Void and Alithia's Phantom Wall take it away: a Phantom Wall stops light as a wall does. His Illusory Dragon gives light, though it is not there. Break the brazier and watch its light ease out. Rats will not walk beside fire. Prometheus knows every spell here, and Alithia has the Illusory Shepherd's. Right click what a tether holds to end it."
@@ -266,7 +272,7 @@ prompt = "Read"
 interaction_radius = 320.0
 sprite_frames = ExtResource("7_36tr8")
 
-[node name="Goal" type="Node2D" parent="." unique_id=233106061]
+[node name="Goal" type="Node2D" parent="." unique_id=1949480458]
 position = Vector2(640, 2432)
 script = ExtResource("17_gh3px")
 completed_flag = "stage9_done"

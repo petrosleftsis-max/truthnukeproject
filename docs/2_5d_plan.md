@@ -16,17 +16,48 @@ This file is kept current after every step, so another session can take over. Re
 | The sewer's channel no longer high ground (a rule; the designer: "thats fine, do the change in the sewer water") | Built and committed with B, 2026-11-14. The full pass with it found two suites whose guards were placed counting on the channel to hide the party (`alarm`, `outsidespells`): their setups were moved, their checks left as they were |
 | B. Layers and parallax, with roofs | Built, liked ("i really like them all") with changes asked for, all built (below), and committed, 2026-11-14 |
 | Docs (`docs/depth_on_maps.md`, the ledger, CLAUDE.md, `docs/where_we_are.md`) | Done |
-| **The last full pass** | **Running, or to run: read `Log` below for whether it came back clean** |
+| The full pass after B | 170 of 172; the two were timing under load and pass alone (Log) |
+| **The designer's second round, 2026-11-14** (below) | **Built, screenshots sent, waiting for their OK; then commit and push. Read `Log` for the full pass** |
 
-A, C and B are committed and pushed. What is left is the last full pass, and the designer's answers below.
+A, C and B are committed and pushed. The second round is in the working tree, not committed.
+
+**The designer's second round, 2026-11-14** (one message; each is a ledger row):
+- "Oh I didn't realise that's the arch. Then have the fog not go over the arch, tree and walls, so they can pop out more. Keep as
+  is for thick fog": only a thick fog's mist rises over them now, from where the rules call the weather thick
+  (`LightView.HIGH_MIST_FROM` 0.5, `Light.thick`); a thinner one and a night's low mist stay on the ground.
+- "I forgot the ability is actually called might eyes, I meant his glowing eyes, revert the dark being lighter when he leads":
+  `LightView.night_eyes` is back exactly as it was, and the glowing eyes are gone (`CombatantSprite._Eyes`).
+- "The door is a bit misleading. It would have been perfect if it was on the north or south of a building, but looks weird when a
+  closed door is facing me when it's on the left or right of a building, especially when when it's open, it looks like it
+  actually blocks their way, even though it doesn't. Also the door would be the same height as the wall": a door is as tall as
+  its wall shut or open, and drawn by which way its wall runs (`StealthDoor.depth_footprint`; "Doors" below). Every door on the
+  stages was in a wall we look along, so the Light stage has a store off the yard with one that faces us (StoreDoor (6, 7)).
+- "The hitboxes of the characters are a bit too big... Maybe a simple solution is to have a small hitbox at their feet": the box
+  that stops the party at walls is 0.14 of a tile to either side of the point they stand on, 0.06 above and 0.3125 below
+  (`ExplorationParty.body_corners`). That point still never leaves walkable ground, since it says which tile they are on.
+- "The cutaway doesn't look right for the size of Cyrus' idle animation, will it be right when I change all the animations to that
+  size?": it is an oval as tall as whoever it is about now, by each figure's own frame (`Depth.cut_shape`), so yes.
+- "The two doors should start closed": they do.
+- "I'd like for there to be reflections in the water and effects when the characters walk on it. Also the ripples aren't perfectly
+  round, they get cut off in the middle of the body of water": rings from whoever wades, figures mirrored, the rain's rings whole
+  (`LightView` "Wading, and figures mirrored in the water").
+- "Can you show me an example of 256?": eight pictures sent, four views at 160 and at 256. `Depth.WALL_LIFT` is still 160.
+
+**Doors** (`StealthDoor.depth_footprint(side_on)`, `DepthView._keep_the_uprights`). "Side on" is a wall to the door's north and to
+its south: the way through goes east and west.
+
+| | Shut | Open |
+| --- | --- | --- |
+| Facing us (a wall running east to west) | Fills its tile, its front showing, as before | A leaf along the west side of its frame |
+| Side on (a wall we look along) | A leaf seen edge on, from wall to wall | Flat against the north side of the way, its face to us |
 
 **Asked of the designer, not answered yet** (each is a ledger row's NextAction):
-- how tall walls should be drawn now that a person is the size of Cyrus's idle animation (about 330 pixels, 1.3 tiles): walls are
-  160, half a person, and a picture with 256 was sent beside it. Do not change `Depth.WALL_LIFT` without their word;
-- whether a shut door in a north-south wall reads as shut, drawn flat on its tile;
-- whether the Light stage's two doors should start open, or the ways have no door;
+- how tall walls should be drawn, having seen 256 beside 160. Do not change `Depth.WALL_LIFT` without their word;
+- whether the two kinds of door read right;
+- whether the "fog" weather itself, at its thickest, should stay under walls, arch and tree too (it is what "thick" means here);
+- whether the cutaway reads right now, or what looked wrong if not;
 - whether the town should stay out of some unpainted gaps (the rock round the cellar);
-- whether Cyrus's glowing eyes should go with the Night Eyes view.
+- the new numbers by feel: the box at the feet, the wading rings and the mirror's strength.
 
 **Do not shut the PC down at the end.** The designer first asked for it "when done", then took that back the same day
 (2026-11-13): "Don't turn off my pc when you're done".
@@ -118,11 +149,11 @@ background") and asked for the Night Eyes view to go ("also remove the night eye
 - the two arches over the hall's ways are gone, each way has a real `StealthDoor` (HallDoor (18, 15), CellarDoor (32, 15), shut to
   begin with), and the arch is over a gate in the yard (YardGate (3, 17), between gateposts at (2, 17) and (4, 17)), drawing its
   front where that faces us (`_front_shows`);
-- a door in a wall running north to south is not stood up (`StealthDoor.depth_needs_front`): it stays flat on its tile and is seen
-  through the wall's top;
-- the weather is at `LightView.SKY_Z`, over the pieces; mist, clouds and aurora are kept to the map's own ground;
+- a door in a wall running north to south was not stood up but drawn flat on its tile (replaced the same day: "Doors" above);
+- the weather is at `LightView.SKY_Z`, over the pieces (a thick fog's mist only, since the second round); mist, clouds and aurora
+  are kept to the map's own ground;
 - a piece Behind is drawn over the shade, kept off painted tiles by a mask, and with **Everywhere** has no end (TownBelow);
-- `LightView.night_eyes` and its numbers are gone; the rule and the glowing eyes stay.
+- `LightView.night_eyes` was taken out, by a misreading: put back the same day, and the glowing eyes taken out in its place.
 
 As built (it differs from the table below, which was the plan, in three ways): a piece has a **Height** (pixels over the ground,
 160 rests it on the walls; a tree's trunk); **Moves** below 0 means "as its kind does", and only a Tree (0.12) and anything Behind
@@ -194,3 +225,14 @@ are in the session's scratch folder; they are a page of code and quick to write 
 - 2026-11-14: the designer liked B and asked for the changes listed under B above; all built. `depth` 146 checks, clean, with
   `daysky atmos weather clock light figures stages stealthworld alarm outsidespells guardlife`. B and the sewer change committed
   and pushed. The last full pass started.
+- 2026-11-14: the full pass after B: 170 of 172. `spacebar` ("space works again") and `depth` ("nothing is cut away with nobody
+  under it") each failed one check under the pass's load and pass alone and together; `depth`'s waits were given frames to
+  settle, and `cuts_now` a copy of its own (it had been handing out the shader's padded list).
+- 2026-11-14 and 15: the designer's second round (above), all built. `depth atmos walk clock figures` clean (178, and the new
+  checks in each). Fifteen screenshots sent. The full pass with it: see the next line; if there is none, it is still to be read.
+- 2026-11-15: the full pass with the second round: 170 of 172, the same two checks as after B. `spacebar` was the test's own: a
+  press before its menu checks ended a turn for real and the fight went on to an enemy's, so the last press was rightly refused
+  ("their turn false"). It now makes it the hero's turn before those checks (`make_it_their_turn`), and is clean. `depth`'s check
+  ("nothing is cut away with nobody under it") now says whom each cut is about; under load, and after the nine suites that come
+  before it in a pass, it was clean all three times, so its cause is not found yet. Fable's limit ran out here, and a Claude Code
+  session on Opus 5.5 took over: a new full pass started. Its result: see the next line.

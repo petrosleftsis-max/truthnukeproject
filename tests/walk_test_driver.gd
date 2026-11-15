@@ -70,6 +70,12 @@ func run_test():
 		ok(party._can_stand(here), "it starts on ground it can stand on", "%s" % here)
 		ok(open_directions(party) == 4, "and can step in every direction",
 			"%d of 4 open" % open_directions(party))
+		# The box tested against the map is small and at their feet (the designer, 2026-11-14), and the point they stand on
+		# is inside it, so pressed into a wall that point is still on ground they can walk on.
+		var corners: Array = ExplorationParty.body_corners()
+		var box := Rect2(corners[0], corners[3] - corners[0])
+		ok(corners.size() == 4 and box.size.x < Grid.TILE_SIZE * 0.35 and box.size.y < Grid.TILE_SIZE * 0.5 and box.has_point(Vector2.ZERO) and box.end.y > -box.position.y,
+			"the box that stops them at walls is small, and mostly below the point they stand on", "%s" % box)
 		# Walking is read straight off the keyboard in _process, so drive the
 		# same function the game does rather than faking an input event.
 		var before = party.leader.position

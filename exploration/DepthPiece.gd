@@ -49,6 +49,7 @@ enum Layer { IN_FRONT, BEHIND }
 const PIECE_SHADER := """
 shader_type canvas_item;
 uniform vec3 cuts[24];
+uniform vec2 cut_shapes[24];
 uniform int cut_count = 0;
 uniform float cut_alpha = 0.16;
 uniform float cut_soft = 0.3;
@@ -67,7 +68,7 @@ void fragment() {
 	vec4 colour = COLOR;
 	float left = fade;
 	for (int i = 0; i < cut_count; i++) {
-		float far = distance(world, cuts[i].xy) / max(cuts[i].z, 1.0);
+		float far = length((world - cuts[i].xy + vec2(0.0, cut_shapes[i].x)) / vec2(max(cuts[i].z, 1.0), max(cut_shapes[i].y, 1.0)));
 		left = min(left, mix(cut_alpha * fade, fade, smoothstep(1.0 - cut_soft, 1.0, far)));
 	}
 	if (windowed > 0.5 && (world.x < window.x || world.y < window.y || world.x > window.x + window.z || world.y > window.y + window.w)) {
@@ -114,6 +115,7 @@ var _fade := 1.0
 var _settled := false
 var _offset := Vector2.ZERO
 var _cuts := PackedVector3Array()
+var _shapes := PackedVector2Array()
 var _raised := 0.0
 
 
@@ -395,13 +397,17 @@ func _be_seen_through(delta: float):
 			cuts = _who_it_covers()
 	_fade = wanted if not _settled else move_toward(_fade, wanted, delta / Depth.PIECE_FADE_SECONDS)
 	_settled = true
-	_cuts = cuts
+	# A copy: what is told to the shader below is padded out to its whole length.
+	_cuts = cuts.duplicate()
 	var count := cuts.size()
 	_material.set_shader_parameter("fade", _fade)
 	_material.set_shader_parameter("cut_count", count)
 	if count > 0:
+		var shapes := _shapes.duplicate()
+		shapes.resize(Depth.MOST_CUTS)
 		cuts.resize(Depth.MOST_CUTS)
 		_material.set_shader_parameter("cuts", cuts)
+		_material.set_shader_parameter("cut_shapes", shapes)
 
 
 func _the_party_is_near() -> bool:
@@ -416,6 +422,7 @@ func _the_party_is_near() -> bool:
 ## is there to hide the indoors until somebody comes near), and about the tile a fight's pointer is on.
 func _who_it_covers() -> PackedVector3Array:
 	var cuts := PackedVector3Array()
+	_shapes = PackedVector2Array()
 	var tile := float(Grid.TILE_SIZE)
 	var drawn := drawn_in_world()
 	for figure in get_tree().get_nodes_in_group(Depth.FIGURES):
@@ -429,6 +436,7 @@ func _who_it_covers() -> PackedVector3Array:
 		var middle := DepthView.body_middle(figure)
 		if drawn.grow(reach).has_point(middle):
 			cuts.append(Vector3(middle.x, middle.y, reach))
+			_shapes.append(DepthView.cut_shape_of(figure, reach))
 	if kind != Kind.ROOF:
 		for thing in get_tree().get_nodes_in_group(Depth.THINGS):
 			if cuts.size() >= Depth.MOST_CUTS:
@@ -437,10 +445,12 @@ func _who_it_covers() -> PackedVector3Array:
 				continue
 			if drawn.has_point(thing.global_position):
 				cuts.append(Vector3(thing.global_position.x, thing.global_position.y, DepthView.THING_CUT_TILES * tile))
+				_shapes.append(Vector2(0.0, DepthView.THING_CUT_TILES * tile))
 	if DepthView.showing != null and is_instance_valid(DepthView.showing):
 		for point in DepthView.showing.more_cuts:
 			if cuts.size() < Depth.MOST_CUTS and drawn.has_point(point):
 				cuts.append(Vector3(point.x, point.y, Depth.CUT_TILES * tile))
+				_shapes.append(Vector2(0.0, Depth.CUT_TILES * tile))
 	return cuts
 
 

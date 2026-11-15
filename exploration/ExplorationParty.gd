@@ -18,9 +18,18 @@ class_name ExplorationParty
 @export var move_speed: float = Grid.tiles(3.4375)
 ## How far apart party members sit along the trail, in pixels. One tile is 32.
 @export var follow_spacing: float = Grid.tiles(0.8125)
-## Half-width of the box tested against the map. Smaller than a tile so you can
-## walk down a one-tile corridor without catching on the walls.
-@export var body_radius: float = Grid.tiles(0.3125)
+## The box tested against the map: small, and at their feet (the designer, 2026-11-14: "The hitboxes of the characters are a bit
+## too big, making them unable to go close to walls, which make one tile hallways annoying to traverse. Maybe a simple solution is
+## to have a small hitbox at their feet"). It is about the point they stand on - this node's leader, which is what says which
+## tile they are on, so that point itself never leaves ground they can walk on: narrow to either side of it, a little above it,
+## and down to about their feet (which are drawn 0.42 of a tile under it). It was a box 0.3125 of a tile every way: 96 pixels of
+## play in a corridor one tile wide, and now 184 across one and 162 along one. The numbers are PROPOSAL.
+const BODY_HALF_WIDTH_TILES := 0.14
+const BODY_ABOVE_TILES := 0.06
+const BODY_BELOW_TILES := 0.3125
+@export var body_half_width: float = Grid.tiles(BODY_HALF_WIDTH_TILES)
+@export var body_above: float = Grid.tiles(BODY_ABOVE_TILES)
+@export var body_below: float = Grid.tiles(BODY_BELOW_TILES)
 
 signal moved(position: Vector2)
 
@@ -459,19 +468,28 @@ func _set_facing(left: bool):
 
 
 ## Whether the party's body fits at `centre`. Tests the corners of a box rather
-## than a single point, so a member can't stand half-buried in a wall.
+## than a single point, so a member can't stand half-buried in a wall. The box is
+## small and at their feet: see body_half_width.
 func _can_stand(centre: Vector2) -> bool:
 	if leash.is_valid() and not leash.call(self, centre):
 		return false
 	if not _walkable_test.is_valid():
 		return true
-	for offset in [
-		Vector2(-body_radius, -body_radius), Vector2(body_radius, -body_radius),
-		Vector2(-body_radius, body_radius), Vector2(body_radius, body_radius)
-	]:
+	for offset in body_corners(body_half_width, body_above, body_below):
 		if not _walkable_test.call(centre + offset):
 			return false
 	return true
+
+
+## The corners of the box tested against the map, from the point somebody stands on: as it is made, with nothing given.
+static func body_corners(half_width: float = -1.0, above: float = -1.0, below: float = -1.0) -> Array:
+	if half_width < 0.0:
+		half_width = Grid.tiles(BODY_HALF_WIDTH_TILES)
+	if above < 0.0:
+		above = Grid.tiles(BODY_ABOVE_TILES)
+	if below < 0.0:
+		below = Grid.tiles(BODY_BELOW_TILES)
+	return [Vector2(-half_width, -above), Vector2(half_width, -above), Vector2(-half_width, below), Vector2(half_width, below)]
 
 
 func _record_trail(from: Vector2, to: Vector2):

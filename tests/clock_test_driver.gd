@@ -290,8 +290,11 @@ func the_look():
 		ok(not CombatantSprite.light_points.is_empty(), "figures' shadows are told where the lights are")
 		ok(view.get_node("Grade").visible, "underground is graded")
 		ok(view.get_node("Fog").visible, "fog hangs in the dark")
-		ok(view.get("night_eyes") == null and is_equal_approx(view.get_node("Fog").material.get_shader_parameter("strength"), LightView.FOG_STRENGTH),
-			"the same for whoever sees in the dark: the dark is not shown lighter for them any more")
+		view.night_eyes = false
+		var strength: float = view.get_node("Fog").material.get_shader_parameter("strength")
+		view.night_eyes = true
+		ok(view.get_node("Fog").visible and view.get_node("Fog").material.get_shader_parameter("strength") != strength, "and still does for whoever sees in the dark, as they see it")
+		view.night_eyes = false
 		# A carried light glides; a light gone goes out.
 		var first: PointLight2D = lights[0]
 		combat._placed_lights[0].tile = tile + Vector2i(1, 0)
@@ -324,18 +327,18 @@ func the_look():
 		await get_tree().create_timer(LightView.DARKEN_SECONDS + 0.2).timeout
 		# Figures in the dark.
 		var someone: Dictionary = combat.combatants[0]
-		someone.sprite.set_in_the_dark(true, true)
+		someone.sprite.set_in_the_dark(true)
 		await settle()
 		ok(someone.sprite._animated != null or someone.sprite._static != null, "a figure is there")
 		ok((someone.sprite._animated if someone.sprite._animated != null else someone.sprite._static).material != null, "with a rim in the dark")
-		ok(someone.sprite._eyes != null and someone.sprite._eyes.visible, "and eyes, if they see in it")
+		ok(someone.sprite.get("_eyes") == null, "and a rim only: no glowing eyes any more")
 		await get_tree().create_timer(CombatantSprite.FADE_SECONDS + 0.1).timeout
-		someone.sprite.set_in_the_dark(false, true)
+		someone.sprite.set_in_the_dark(false)
 		var drawn_as: Node2D = someone.sprite._animated if someone.sprite._animated != null else someone.sprite._static
 		await settle()
 		ok(someone.sprite._rim > 0.0 and someone.sprite._rim < 1.0, "the rim eases away, not at once", "%.2f" % someone.sprite._rim)
 		await get_tree().create_timer(CombatantSprite.FADE_SECONDS + 0.1).timeout
-		ok((drawn_as.material == null or float(drawn_as.material.get_shader_parameter("rim_on")) == 0.0) and not someone.sprite._eyes.visible, "and neither in the light")
+		ok((drawn_as.material == null or float(drawn_as.material.get_shader_parameter("rim_on")) == 0.0), "and none in the light")
 		# Fading out of sight into the dark, or hidden: eased too, the rule's own number at once.
 		var showing_now: float = someone.sprite._shown_alpha
 		var to: float = 0.1 if showing_now > 0.5 else 0.9

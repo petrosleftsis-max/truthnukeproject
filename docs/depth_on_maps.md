@@ -19,10 +19,17 @@ A tile is drawn by what its Blocks says:
 | see-through (water, a railing) | Neither | Flat |
 | stops no walker | Floor | Flat |
 
-Whoever stands behind something lifted is seen through it, in a round patch. In a fight, whoever climbs up is drawn up
-there. A wall that can be broken stands as tall as a wall until it is broken. So does a shut door that faces us (in a wall
-running east to west). A door in a wall running north to south stays drawn flat on its own tile, and is seen through
-the top of the wall that covers it: stood up, only its top would show, most of a tile further up the screen.
+Whoever stands behind something lifted is seen through it, in a patch as tall as they are drawn. In a fight, whoever
+climbs up is drawn up there. A wall that can be broken stands as tall as a wall until it is broken.
+
+A door (a StealthDoor) is as tall as the walls beside it, shut or open, and is drawn by which way its wall runs:
+
+| The door is in | Shut | Open |
+| --- | --- | --- |
+| a wall running east to west (it faces us) | It fills its tile, its front showing | A leaf along the west side of its frame |
+| a wall running north to south (we look along it) | A leaf seen edge on, from wall to wall | Flat against the north side of the way, its face to us |
+
+Nothing has to be set: a door with a wall to its north and to its south is the second kind.
 
 To paint raised ground, use the stone floor's **alternative 1** in the TileMap editor (the same picture as the floor, a
 step up). In a layout typed for the LayoutPainter or the stage builder it is the letter `r`.

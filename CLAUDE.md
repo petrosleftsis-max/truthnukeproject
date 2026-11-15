@@ -504,7 +504,7 @@ light after dark (`_add_bloom`, `BLOOM`, by `_dark_round`) and the view's edges 
 `far_lightning_now`, FAR_FLASH_SHADER); at dawn and dusk, now and then, the light's edges and the open sky stepping into pixels for a moment
 (`_pixels_due`, `sky_pixels_now`, the shaders' `pixels`). Nothing in it rolls from `Combat.rng`. **On maps:** `WaterPatch` (water: a size in
 tiles, a colour, foam or not; drawn by the view under the dark, `_gather_the_water`, WATER_SHADER: ripples with the wind, foam where it meets
-land, rain's rings, the sun's glint on its side at the hour; only to look at, Blocks still decides walking), `WindBanner` (a banner, a pennant
+land, rain's rings, the sun's glint on its side at the hour; only to look at, Blocks still decides walking; whoever wades sends rings out from their feet and is mirrored in it, `_keep_the_waders`, `_Mirrored`, `in_water`, and the rain's rings are whole; the designer, 2026-11-14), `WindBanner` (a banner, a pennant
 or a washing line streaming the wind's way) and `ChimneySmoke`, both darkened with the night through `LightView.lit_colour_at`. The Light
 stage's yard has one of each (`tools/build_stealth_stages.gd`, sign "SignWater").
 
@@ -520,7 +520,7 @@ y-sorted `Combatants` layer, on a map by an absolute z (`Depth.z_at`, eight step
 `PARTY_Z_TOP` 620; `_sort_the_figures` gives every `CombatantSprite`, all in the group `Depth.FIGURES`, its z each frame, so the nearer is over the
 further; what lay at `PARTY_Z_TOP - n` is at `PARTY_Z_BOTTOM - n`). `RAISED_SHADER` darkens the rows from the shade's own picture, as the figures are
 (a canvas shader's COLOR already holds the picture: multiplying by the texture again squared it), and opens **the cutaway** (the designer's pick):
-a round patch about whoever stands behind something lifted (`cuts`, at most `Depth.MOST_CUTS`; only who is drawn, `Depth.opens_a_cutaway`), about
+a patch about whoever stands behind something lifted, as wide as it was and as tall as they are drawn (`cuts` and `cut_shapes`, at most `Depth.MOST_CUTS`; `Depth.cut_shape` by `CombatantSprite.head_height`; only who is drawn, `Depth.opens_a_cutaway`), about
 the tile a fight's pointer is on (`more_cuts`, from `CController._note_hover`) and about a thing to be found on a map (`Interactable`, group
 `Depth.THINGS`). Somebody bigger than a tile is seen through about the middle of what they cover, as far round as they are big (`body_middle`,
 `_covered`), and is drawn over a barrel or raised ground among their own feet (`_keep_the_big_over`: z 2 in the figures' layer while any lies in the
@@ -528,9 +528,12 @@ rows they cover below their first). A thing that Stands is cut out of its tile u
 bigger from where it stands. Whoever is `up` is drawn `depth_view.height_at(tile)` higher (`CombatantSprite.ground_lift`, `set_ground_lift` from
 `Combat.place_sprites`; `hop`'s `to_lift` carries the drawing between heights; `_home` is where it rests), their shadow and health bar with them.
 A shadow off every edge leans with the sun as the figures' do (`_cast_the_shadows`, a mask eight samples a tile under the shade). A map's own nodes
-that stand - a shut `StealthDoor`, a `BreakableWall` not yet broken - are in `Depth.UPRIGHTS` and say `depth_lift`, `depth_top`, `depth_paint`;
-`_keep_the_uprights` gives each a child drawn as a wall is, down at once when opened or broken. `Depth.TOP_STAND_INS`: the laboratory's half-floor
-wall pieces are drawn, lifted, as the whole block. Thick mist rises over all of it (`LightView` "Mist that rises": `high_mist_of`, `_high_mist`).
+that stand - a `StealthDoor`, a `BreakableWall` not yet broken - are in `Depth.UPRIGHTS` and say `depth_lift`, `depth_top`, `depth_paint`;
+`_keep_the_uprights` gives each a child drawn as a wall is. A door is as tall as its wall shut or open and says which part of its tile it
+stands on (`depth_footprint(side_on)`; the designer, 2026-11-14): facing us it fills its tile shut and is a leaf along the west of its frame
+open; in a wall we look along (a wall to its north and south) it is a leaf seen edge on shut and flat against the north side of the way open.
+Only what fills its tile covers anybody; `depth_stood` turns its flat drawing off. `Depth.TOP_STAND_INS`: the laboratory's half-floor
+wall pieces are drawn, lifted, as the whole block. Only a thick mist rises over all of it, from where the rules call the weather thick; a thinner one and a night's low mist lie under walls, arch and tree (`LightView` "Mist that rises": `high_mist_of`, `HIGH_MIST_FROM`, `_high_mist`; the designer, 2026-11-14).
 The TileSet has a raised-ground tile (the stone floor's alternative 1; `StagePainter` "r"), and the Light stage's yard a terrace of it with a sign.
 Slots, in `art/terrain/depth/`: `face_<column>_<row>.png`, `face.png` (256 x 80), `wall_face.png` (256 x 160), `top_<column>_<row>.png` (256 x 256),
 `object_<column>_<row>.png` (a thing alone, standing).
@@ -548,7 +551,7 @@ tile stands, `foot_of`; `FOOT_SHADE`), under the shade as the ledges' shadows ar
 scene so a map and its fights both show it: Picture (the artist's slot; empty, a placeholder by Kind), Kind (Arch, Roof, Balcony, Tree, Backdrop;
 appended only), Size Tiles, Layer, Height, Moves, Fades, Everywhere. In Front it is at `Depth.PIECE_Z_FRONT` (`PARTY_Z_TOP`: over every figure and
 row, and, coming after the light's own nodes in the tree, over the embers, shafts and glows that are indoors under a roof; chimney smoke is one
-higher, and the weather - the mist that rises, clouds' shadows, birds, the aurora, the rainbow, whatever falls or blows - is over all of it at
+higher, and the weather - a thick fog's risen mist, clouds' shadows, birds, the aurora, the rainbow, whatever falls or blows - is over all of it at
 `LightView.SKY_Z`, two higher; the designer, 2026-11-14: "the effects like the fog go behind the door, even tho they go over the walls"),
 drawn Height above the ground it stands over, and seen through by the cutaway about whoever the player can see under it, the pointer's tile in a
 fight and, but for a Roof, a thing to be found (`_who_it_covers`, its own `PIECE_SHADER`). A **Roof** fades away whole while one of the party
@@ -566,18 +569,20 @@ camera's `get_screen_center_position` (in front away from the view's middle, beh
 headless run does not keep that middle). A Tree stands on its own tile, on top of any raised ground there, its trunk leaning to its crown. In the
 editor a piece draws the ground it stands over. Headless it is hidden and does not run. An Arch draws its front only where what stands to its south is lower (`_front_shows`): over a way through
 a wall that runs north to south only its top shows, and the designer took the Light stage's two for doors, so those ways have real `StealthDoor`s
-now and the arch is over a gate in the yard. **A door in a wall running north to south is not stood up** (`StealthDoor.depth_needs_front`,
-`DepthView._keep_the_uprights`; the designer: "the door isnt on the same tile as its drawing"): it stays drawn flat on its own tile and is seen
-through the wall's top that covers it, as a thing to be found is. The Light stage has one of each
+now and the arch is over a gate in the yard. The Light stage has one of each
 (`tools/build_stealth_stages.gd` `depth_piece`, sign "SignLayers"). **Asked of the designer, not answered (ledger, OPEN):** how tall walls should be
-now that a person is the size of Cyrus's idle animation (about 330 pixels; `WALL_LIFT` is 160).
+now that a person is the size of Cyrus's idle animation (about 330 pixels; `WALL_LIFT` is 160; they have pictures of 256 beside it).
+**What stops the party at walls** (the designer, 2026-11-14: "a small hitbox at their feet"): a box about the point the leader stands on
+(`ExplorationParty.body_corners`: `body_half_width` 0.14 of a tile, `body_above` 0.06, `body_below` 0.3125; their feet are drawn 0.42 below it).
+The point itself is inside the box, so it never leaves walkable ground: it is what says which tile they are on, to guards, light and fights.
+PROPOSAL; `walk` and `depth` cover it.
 
 **How light falls on a figure, and what is on them** (`CombatantSprite`, `combat/ConditionLook.gd`; `figures`; the designer, 2026-11-07, sections
 9 and 10 of `docs/proposals_2026-11-07.md`). View only, with no icons over the head: the designer looked at an example and preferred
 without. `FIGURE_SHADER`, one material per figure, set each frame by `_fall_of_light` from `light_points` (`{"at", "reach", "colour",
 "node", "energy"}`, told by `LightView._tell_the_shadows`): their colour from the nearest lights, the lit edge and the far side, lit from
 below by a fire or above by the sun, back lit, half in the dark by reading the shade's own picture (`shade_map`, `shade_rect`), and a
-rim in the Dark (`set_in_the_dark`, `_Eyes`). `_Shadow` is a patch at the feet; its child `_Casting` lays the frame they show along the
+rim in the Dark (`set_in_the_dark`; the glowing eyes of whoever sees in it were taken out, the designer, 2026-11-14). `_Shadow` is a patch at the feet; its child `_Casting` lays the frame they show along the
 ground away from each of the `MOST_SHADOWS` strongest lights, through `SHADOW_SHADER` (blurrier further off), or from the sun with
 `Light.shadow_at`'s lean, length and colour, stopped by `stops_shadow`. A flier's is smaller and further off (`off_ground`).
 `CombatantSprite.forget_the_light` at each new place. Nothing in FIGURE_SHADER reads the drawing's own edges any more: reading a few pixels aside

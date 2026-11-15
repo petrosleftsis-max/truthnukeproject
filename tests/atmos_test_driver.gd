@@ -119,6 +119,36 @@ func on_the_stage():
 	await settle()
 	var noon_glint: float = view._water.material.get_shader_parameter("glint")
 	ok(noon_glint > 0.5, "the sun glints on it at noon", "%.2f" % noon_glint)
+	# Wading, and figures mirrored (the designer, 2026-11-14).
+	var pond_tile := Vector2i(14, 13)
+	var in_pond: Vector2 = tile_map.to_global(tile_map.map_to_local(pond_tile))
+	ok(LightView.in_water(in_pond) and not LightView.in_water(tile_map.to_global(tile_map.map_to_local(Vector2i(10, 13)))), "the pond's tiles are water to walk in, and the yard's are not")
+	ok(view.wades_now().is_empty(), "with nobody in it, no rings")
+	scene.party.teleport(in_pond)
+	await settle(3)
+	var rings: int = view.wades_now().size()
+	ok(rings >= 1, "whoever steps into it sends a ring out from their feet", "%d rings" % rings)
+	var feet: Vector2 = LightView.feet_of(scene.party.leader)
+	var from_the_feet := false
+	for ring in view.wades_now():
+		from_the_feet = from_the_feet or Vector2(ring.x, ring.y).distance_to(feet) < 2.0
+	ok(from_the_feet and feet.y > scene.party.leader.global_position.y, "from where their feet are, under the point they stand on")
+	ok(int(view._water.material.get_shader_parameter("wade_count")) == rings, "told to the water's shader")
+	for i in 40:
+		scene.party._step(Vector2.RIGHT, 0.016)
+	await settle(2)
+	ok(view.wades_now().size() > rings, "and another every stride they wade", "%d rings" % view.wades_now().size())
+	ok(view._mirrored != null and view._mirrored.visible, "they are mirrored in it")
+	Footsteps.step(scene.party.leader.global_position)
+	ok(Footsteps.last.get("wet", false), "a step in it sounds wet")
+	var before: int = view.wades_now().size()
+	scene.party.leader._shown_alpha = 0.0
+	scene.party.teleport(tile_map.to_global(tile_map.map_to_local(Vector2i(10, 13))))
+	await wait(LightView.WADE_SECONDS + 0.3)
+	ok(view.wades_now().is_empty(), "a ring is gone in a moment", "%d rings" % view.wades_now().size())
+	scene.party.leader._shown_alpha = 1.0
+	var rain_code: String = LightView.WATER_SHADER
+	ok(rain_code.contains("for (int dx = -1; dx <= 1; dx++)"), "the rain's rings are whole: each pixel asks the cells about it")
 	# Cloth and smoke in the wind.
 	var banner: WindBanner = scene.find_children("*", "WindBanner", true, false)[0]
 	ok(banner._streams(Vector2.ZERO) == Vector2.DOWN, "a banner hangs slack in still air")

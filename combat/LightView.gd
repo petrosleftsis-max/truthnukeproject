@@ -27,7 +27,9 @@ class_name LightView
 
 ## How heavy the shade is where no light reaches at all, and how blue.
 const SHADE_MOST := 0.86
+const NIGHT_EYES_MOST := 0.52
 const SHADE_COLOUR := Color(0.015, 0.02, 0.06)
+const NIGHT_EYES_COLOUR := Color(0.1, 0.14, 0.24)
 const TONE_SECONDS := 1.2
 ## How long the shade takes to change, and a light to come on or go out.
 const EASE_SECONDS := 0.8
@@ -39,10 +41,12 @@ const OPENING_ENERGY := 0.34
 ## How much a light is lost in what is lit already, in full sun.
 const LOST_IN_THE_SUN := 0.65
 const FLICKER := 0.09
-## How strong the fog is. The dark looks the same whoever is led or whose turn it is: the lighter, greyer dark shown for whoever
-## sees in it (Cyrus's Night Eyes) was taken out (the designer, 2026-11-14: "remove the night eyes visual effect"). The rule
-## stands: he still sees who is in the dark, and his eyes still glow there (CombatantSprite._Eyes).
+## How strong the fog is, and how strong for whoever sees in the dark (the designer, 2026-11-07: "i'd like it
+## to still be somewhat visible when cyrus plays"): it goes by how heavy the shade is, which is lighter
+## for them, so this is about half as strong on the screen. (Taken out on 2026-11-14 by a misreading and put back the same
+## day: what the designer wanted gone was the glowing eyes, "revert the dark being lighter when he leads".)
 const FOG_STRENGTH := 0.24
+const FOG_WITH_NIGHT_EYES := 0.8
 ## The weather is over everything, a roof and a tree's crown too (DepthPiece, at PARTY_Z_TOP; the designer, 2026-11-14: "the
 ## effects like the fog go behind the door, even tho they go over the walls"): the mist that rises, the clouds' shadows, birds,
 ## the aurora and the rainbow, and whatever falls or blows. What belongs indoors under a roof - the embers and dust at a light,
@@ -344,6 +348,7 @@ static var air_on := true
 static var _light_picture: Texture2D = null
 
 var light: LightMap = null
+var night_eyes := false : set = _set_night_eyes
 
 var _tile_map: TileMap = null
 var _region := Rect2i()
@@ -580,6 +585,12 @@ func _material(code: String) -> ShaderMaterial:
 	return material
 
 
+func _set_night_eyes(value: bool):
+	if value != night_eyes:
+		night_eyes = value
+		refresh()
+
+
 ## Draws what the map says now: `slowly` for the sun's moving (SKY_SHADE_SECONDS), not a light lit or put out.
 func refresh(slowly: bool = false):
 	if light == null or _tile_map == null or _region.size.x <= 0 or _region.size.y <= 0:
@@ -589,8 +600,8 @@ func refresh(slowly: bool = false):
 	if not visible:
 		return
 	var shade := Image.create(_region.size.x, _region.size.y, false, Image.FORMAT_RGBA8)
-	var most := SHADE_MOST
-	var colour := SHADE_COLOUR
+	var most := NIGHT_EYES_MOST if night_eyes else SHADE_MOST
+	var colour := NIGHT_EYES_COLOUR if night_eyes else SHADE_COLOUR
 	var any_dark := false
 	for x in _region.size.x:
 		for y in _region.size.y:
@@ -606,7 +617,7 @@ func refresh(slowly: bool = false):
 		_fog.visible = false
 	_put_on_the_shade(shade, most, SKY_SHADE_SECONDS if slowly else EASE_SECONDS)
 	_tell_the_shadows()
-	_fog.material.set_shader_parameter("strength", FOG_STRENGTH)
+	_fog.material.set_shader_parameter("strength", FOG_WITH_NIGHT_EYES if night_eyes else FOG_STRENGTH)
 	_build_occluders()
 
 
@@ -1226,6 +1237,12 @@ func _make_the_ground(region: Rect2i):
 	_water = _sky_layer("Water", noise, region, WATER_SHADER)
 	_water.light_mask = 1
 	_water.visible = false
+	_make_the_mirror()
+	var half := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE) / 2.0
+	var origin: Vector2 = _tile_map.to_global(_tile_map.map_to_local(region.position) - half)
+	var far: Vector2 = _tile_map.to_global(_tile_map.map_to_local(region.end) - half)
+	_mirrored.material.set_shader_parameter("map_origin", origin)
+	_mirrored.material.set_shader_parameter("map_size", far - origin)
 	_prints = _Prints.new()
 	_prints.name = "Prints"
 	add_child(_prints)
@@ -1303,24 +1320,7 @@ func _leave_print(at: Vector2, way: Vector2):
 static func splash(at: Vector2):
 	if showing == null or not is_instance_valid(showing) or not shown() or not rainy_at(at):
 		return
-	var drops := CPUParticles2D.new()
-	drops.one_shot = true
-	drops.amount = 10
-	drops.lifetime = 0.35
-	drops.explosiveness = 1.0
-	drops.direction = Vector2.UP
-	drops.spread = 70.0
-	drops.initial_velocity_min = Grid.tiles(0.6)
-	drops.initial_velocity_max = Grid.tiles(1.2)
-	drops.gravity = Vector2(0, Grid.tiles(6.0))
-	drops.scale_amount_min = 2.0
-	drops.scale_amount_max = 3.5
-	drops.color = Color(0.82, 0.88, 0.98, 0.7)
-	drops.z_index = 2
-	showing.add_child(drops)
-	drops.global_position = at
-	drops.emitting = true
-	drops.finished.connect(drops.queue_free)
+	showing._throw_drops(at, 10, Color(0.82, 0.88, 0.98, 0.7))
 
 
 func _show_the_sky(sky: Dictionary, at_once: bool = true):
@@ -1343,7 +1343,7 @@ func _show_the_sky(sky: Dictionary, at_once: bool = true):
 		_mist.material.set_shader_parameter("speed", 1.0 + wind * 4.0)
 		var mist_colour := Color(0.86, 0.88, 0.92).lerp(Color(0.9, 0.7, 0.45), clampf(sand / maxf(haze, 0.01), 0.0, 1.0))
 		_mist.material.set_shader_parameter("mist_colour", Vector3(mist_colour.r, mist_colour.g, mist_colour.b))
-		var high := high_mist_of(haze, _ground_mist_wanted(sky))
+		var high := high_mist_of(haze)
 		_high_mist.visible = air_on and high > 0.01
 		_high_mist.material.set_shader_parameter("mist", high)
 		_high_mist.material.set_shader_parameter("drift", way)
@@ -1380,21 +1380,19 @@ func _show_the_sky(sky: Dictionary, at_once: bool = true):
 ## --- Mist that rises ---
 ##
 ## The designer, 2026-11-13: "Could the mist and fog sometimes be higher?" The mist lies on the ground, under the figures and under
-## what Depth lifts, so raised ground and walls stand clear of it. A thick one rises: past HIGH_MIST_FROM of the sky's mist (a fog,
-## a sandstorm, a whiteout), and on the stillest nights when the low mist is at its deepest (past HIGH_LOW_MIST_FROM), a second
-## layer of it drifts over raised ground, walls and whoever stands in it (_high_mist, over everybody as the clouds' shadows are).
-## A morning's thin mist stays low. View only, numbers PROPOSAL.
-const HIGH_MIST_FROM := 0.45
+## what Depth lifts, so raised ground, walls, an arch and a tree stand clear of it. Only a thick one rises: from HIGH_MIST_FROM of
+## the sky's mist, which is where the rules call the weather thick (Light.thick: a fog, a sandstorm, a whiteout), a second layer of
+## it drifts over raised ground, walls, the layers in front and whoever stands in it (_high_mist, over everybody as the clouds'
+## shadows are). Anything thinner stays low, and so does the low mist of a still night however deep it lies (the designer,
+## 2026-11-14: "have the fog not go over the arch, tree and walls, so they can pop out more. Keep as is for thick fog"; until then
+## a thinning fog rose from 0.45 and the stillest nights' low mist rose too). View only, numbers PROPOSAL.
+const HIGH_MIST_FROM := 0.5
 const HIGH_MIST_MOST := 0.6
-const HIGH_LOW_MIST_FROM := 0.7
-const HIGH_LOW_MIST_MOST := 0.4
 
 
-## How much mist is up over raised ground, 0 to 1, for `haze` of the sky's mist and `low` of the night's low mist.
-static func high_mist_of(haze: float, low: float) -> float:
-	var from_the_sky := clampf((haze - HIGH_MIST_FROM) / (1.0 - HIGH_MIST_FROM), 0.0, 1.0) * HIGH_MIST_MOST
-	var from_the_ground := clampf((low - HIGH_LOW_MIST_FROM) / (1.0 - HIGH_LOW_MIST_FROM), 0.0, 1.0) * HIGH_LOW_MIST_MOST
-	return maxf(from_the_sky, from_the_ground)
+## How much mist is up over raised ground, 0 to 1, for `haze` of the sky's mist.
+static func high_mist_of(haze: float) -> float:
+	return clampf((haze - HIGH_MIST_FROM) / (1.0 - HIGH_MIST_FROM), 0.0, 1.0) * HIGH_MIST_MOST
 
 
 func _air_bits(called: String) -> CPUParticles2D:
@@ -1704,6 +1702,7 @@ func _process(delta: float):
 	_keep_the_air_on_the_screen()
 	_storm(delta)
 	_more_to_look_at(delta)
+	_keep_the_waders(delta)
 	if light == null:
 		return
 	_clock += delta
@@ -1907,6 +1906,11 @@ uniform float sun_at = 0.5;
 uniform float raining = 0.0;
 uniform vec2 drift = vec2(0.0);
 uniform float pixels = 0.0;
+// Rings from whoever wades: where each began, in tiles from this layer's corner, and when by `now`.
+uniform vec3 wades[16];
+uniform int wade_count = 0;
+uniform float now = 0.0;
+uniform float wade_seconds = 1.6;
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -1944,13 +1948,30 @@ void fragment() {
 	float wave = one * 0.6 + two * 0.4;
 	colour *= 0.9 + 0.2 * wave;
 	// Rings where the rain lands on it.
+	// One begins in each small cell and grows wider than it, so each pixel asks the nine cells about it: every ring is whole.
 	if (raining > 0.01) {
-		vec2 drop_cell = floor(cell * 4.0);
-		float t = fract(TIME * 1.1 + hash(drop_cell));
-		vec2 centre = (drop_cell + vec2(hash(drop_cell + 1.3), hash(drop_cell + 7.1))) / 4.0;
-		float d = length(cell - centre) * 4.0;
-		float ring = smoothstep(0.07, 0.0, abs(d - t * 0.8)) * (1.0 - t) * raining;
-		colour = mix(colour, vec3(0.85, 0.92, 1.0), ring * 0.6);
+		vec2 about = floor(cell * 4.0);
+		float ring = 0.0;
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				vec2 drop_cell = about + vec2(float(dx), float(dy));
+				float t = fract(TIME * 1.1 + hash(drop_cell));
+				vec2 centre = (drop_cell + vec2(hash(drop_cell + 1.3), hash(drop_cell + 7.1))) / 4.0;
+				float d = length(cell - centre) * 4.0;
+				ring = max(ring, smoothstep(0.07, 0.0, abs(d - t * 0.8)) * (1.0 - t));
+			}
+		}
+		colour = mix(colour, vec3(0.85, 0.92, 1.0), ring * raining * 0.6);
+	}
+	// Rings from whoever wades: two, one inside the other, widening and fading.
+	for (int i = 0; i < wade_count; i++) {
+		float age = (now - wades[i].z) / max(wade_seconds, 0.01);
+		if (age >= 0.0 && age < 1.0) {
+			float d = length(cell - wades[i].xy);
+			float wide = 0.07 + age * 0.72;
+			float ring = smoothstep(0.045, 0.0, abs(d - wide)) + smoothstep(0.035, 0.0, abs(d - wide * 0.55)) * 0.55;
+			colour = mix(colour, vec3(0.88, 0.94, 1.0), min(ring, 1.0) * (1.0 - age) * 0.5);
+		}
 	}
 	// The sun's glint, on the side of the view where it stands at the hour; the moon's, fainter, by night.
 	float band = exp(-pow((SCREEN_UV.x - sun_at) * 2.6, 2.0));
@@ -2561,6 +2582,239 @@ func _set_pixels(value: float):
 			_grade_copy.visible = _grade.visible
 
 
+## --- Wading, and figures mirrored in the water ---
+##
+## The designer, 2026-11-14: "I'd like for there to be reflections in the water and effects when the characters walk on it. Also
+## the ripples aren't perfectly round, they get cut off in the middle of the body of water." View only, numbers PROPOSAL.
+## - The rain's rings are whole now: each pixel asks the nine cells about it, since a ring grows wider than the cell it began in
+##   (WATER_SHADER).
+## - Whoever the player can see standing in water sends rings out from their feet: one as they step in, one every WADE_STRIDE_TILES
+##   they walk with a few drops thrown up, and a slow one every WADE_IDLE_SECONDS standing still (_keep_the_waders, `wades` in
+##   WATER_SHADER; each lasts WADE_SECONDS). A step there sounds wet (Footsteps, in_water). Not a flier, nor somebody up on
+##   raised ground, nor anybody hidden from the player: a ring would give them away.
+## - Whoever stands in or just north of water is mirrored in it, upside down from their feet, fainter further from them, wavering,
+##   tinted with the water and only where water is (_Mirrored, MIRROR_SHADER; under the dark as the water is).
+const WADE_STRIDE_TILES := 0.4
+const WADE_IDLE_SECONDS := 2.6
+const WADE_SECONDS := 1.6
+const MOST_WADES := 16
+const MIRROR := 0.45
+const MIRROR_FAR := 0.12
+const MIRROR_LENGTH := 0.85
+
+## The rings out now, each (x, y in tiles from the water layer's corner, when it began by _wade_clock).
+var _wades: Array = []
+## Who is in the water, {instance id: {"at": where their last ring began, "next": when the next comes standing still}}.
+var _waders := {}
+var _wade_clock := 0.0
+var _mirrored: _Mirrored = null
+
+const MIRROR_SHADER := """
+shader_type canvas_item;
+uniform sampler2D water : filter_nearest, repeat_disable;
+uniform vec2 map_origin = vec2(0.0);
+uniform vec2 map_size = vec2(1.0);
+uniform float waver = 5.0;
+varying vec2 world;
+varying vec4 given;
+void vertex() {
+	world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+	given = COLOR;
+}
+void fragment() {
+	vec2 on_map = (world - map_origin) / map_size;
+	if (on_map.x < 0.0 || on_map.y < 0.0 || on_map.x >= 1.0 || on_map.y >= 1.0) {
+		discard;
+	}
+	vec4 pool = texture(water, on_map);
+	if (pool.a < 0.4) {
+		discard;
+	}
+	vec2 uv = UV + vec2(sin(world.y * 0.07 + TIME * 2.4) * TEXTURE_PIXEL_SIZE.x * waver, 0.0);
+	vec4 seen = texture(TEXTURE, uv);
+	COLOR = vec4(mix(seen.rgb, pool.rgb, 0.4) * given.rgb, seen.a * given.a);
+}
+"""
+
+
+## Whether `at`, a place in the world, is in water (a WaterPatch's tile).
+static func in_water(at: Vector2) -> bool:
+	if showing == null or not is_instance_valid(showing) or showing._tile_map == null or showing._water_tiles.is_empty():
+		return false
+	return showing._water_tiles.has(showing._tile_map.local_to_map(showing._tile_map.to_local(at)))
+
+
+## Where `figure`'s feet are, in the world.
+static func feet_of(figure: CombatantSprite) -> Vector2:
+	return figure.global_position + Vector2(0.0, float(Grid.TILE_SIZE) * 0.42 * absf(figure.global_scale.y))
+
+
+## Whether `figure` is somebody the water shows: seen by the player, on the ground, down on its level.
+static func _water_shows(figure) -> bool:
+	return is_instance_valid(figure) and figure is CombatantSprite and figure.is_inside_tree() and figure.is_visible_in_tree() \
+		and figure._shown_alpha > Depth.CUT_NEEDS_ALPHA and not figure.off_ground and figure.ground_lift <= 0.0
+
+
+func _make_the_mirror():
+	_mirrored = _Mirrored.new()
+	_mirrored.name = "Mirrored"
+	_mirrored.view = self
+	_mirrored.light_mask = 1
+	_mirrored.material = _material(MIRROR_SHADER)
+	_mirrored.visible = false
+	add_child(_mirrored)
+
+
+## A ring from `at`, a place in the world, on the water.
+func _ring_at(at: Vector2):
+	if _water == null:
+		return
+	var cell: Vector2 = (at - _water.global_position) / float(Grid.TILE_SIZE)
+	_wades.append(Vector3(cell.x, cell.y, _wade_clock))
+	while _wades.size() > MOST_WADES:
+		_wades.pop_front()
+
+
+## The rings out on the water now, each (x, y in the world, how far through its life from 0 to 1): for a test.
+func wades_now() -> Array:
+	var out := []
+	if _water == null:
+		return out
+	for ring in _wades:
+		out.append(Vector3(_water.global_position.x + ring.x * Grid.TILE_SIZE, _water.global_position.y + ring.y * Grid.TILE_SIZE, (_wade_clock - ring.z) / WADE_SECONDS))
+	return out
+
+
+func _keep_the_waders(delta: float):
+	if _water == null or not _water.visible or _water_tiles.is_empty() or _tile_map == null:
+		return
+	_wade_clock += delta
+	var stride := Grid.tiles(WADE_STRIDE_TILES)
+	var seen := {}
+	var any_near := false
+	for figure in get_tree().get_nodes_in_group(Depth.FIGURES):
+		if not _water_shows(figure):
+			continue
+		var feet := feet_of(figure)
+		var tile := _tile_map.local_to_map(_tile_map.to_local(feet))
+		for dy in 3:
+			any_near = any_near or _water_tiles.has(tile + Vector2i(0, dy))
+		if not _water_tiles.has(tile):
+			continue
+		var id: int = figure.get_instance_id()
+		seen[id] = true
+		if not _waders.has(id):
+			_waders[id] = {"at": feet, "next": _wade_clock + WADE_IDLE_SECONDS}
+			_ring_at(feet)
+		elif feet.distance_to(_waders[id].at) >= stride:
+			_waders[id] = {"at": feet, "next": _wade_clock + WADE_IDLE_SECONDS}
+			_ring_at(feet)
+			_throw_drops(feet, 5, Color(0.85, 0.92, 1.0, 0.65))
+		elif _wade_clock >= float(_waders[id].next):
+			_waders[id].next = _wade_clock + WADE_IDLE_SECONDS
+			_ring_at(feet)
+	for id in _waders.keys():
+		if not seen.has(id):
+			_waders.erase(id)
+	_wades = _wades.filter(func(ring): return _wade_clock - ring.z < WADE_SECONDS)
+	var rings := PackedVector3Array(_wades)
+	var count := rings.size()
+	rings.resize(MOST_WADES)
+	_water.material.set_shader_parameter("wade_count", count)
+	_water.material.set_shader_parameter("wades", rings)
+	_water.material.set_shader_parameter("now", _wade_clock)
+	_water.material.set_shader_parameter("wade_seconds", WADE_SECONDS)
+	if _mirrored != null:
+		_mirrored.visible = air_on and any_near
+		if _mirrored.visible:
+			_mirrored.queue_redraw()
+
+
+## A few drops thrown up from `at`.
+func _throw_drops(at: Vector2, amount: int, colour: Color):
+	var drops := CPUParticles2D.new()
+	drops.one_shot = true
+	drops.amount = amount
+	drops.lifetime = 0.35
+	drops.explosiveness = 1.0
+	drops.direction = Vector2.UP
+	drops.spread = 70.0
+	drops.initial_velocity_min = Grid.tiles(0.6)
+	drops.initial_velocity_max = Grid.tiles(1.2)
+	drops.gravity = Vector2(0, Grid.tiles(6.0))
+	drops.scale_amount_min = 2.0
+	drops.scale_amount_max = 3.5
+	drops.color = colour
+	drops.z_index = 2
+	add_child(drops)
+	drops.global_position = at
+	drops.emitting = true
+	drops.finished.connect(drops.queue_free)
+
+
+## Each figure in or beside the water drawn upside down from their feet, through MIRROR_SHADER, which keeps only what falls on
+## water.
+class _Mirrored extends Node2D:
+	var view: LightView = null
+	## How many were drawn last, for a test.
+	var drawn := 0
+
+	func _draw():
+		drawn = 0
+		if view == null or not is_instance_valid(view) or view._tile_map == null:
+			return
+		var to_here := get_global_transform().affine_inverse()
+		for figure in get_tree().get_nodes_in_group(Depth.FIGURES):
+			if not LightView._water_shows(figure):
+				continue
+			var feet := LightView.feet_of(figure)
+			var tile: Vector2i = view._tile_map.local_to_map(view._tile_map.to_local(feet))
+			var near := false
+			for dy in 3:
+				near = near or view._water_tiles.has(tile + Vector2i(0, dy))
+			if not near:
+				continue
+			var sprite: Node2D = figure._drawn()
+			if sprite == null or not sprite.visible:
+				continue
+			var texture: Texture2D = null
+			if sprite is AnimatedSprite2D and sprite.sprite_frames != null and sprite.sprite_frames.has_animation(sprite.animation) \
+					and sprite.sprite_frames.get_frame_count(sprite.animation) > 0:
+				texture = sprite.sprite_frames.get_frame_texture(sprite.animation, clampi(sprite.frame, 0, sprite.sprite_frames.get_frame_count(sprite.animation) - 1))
+			elif sprite is Sprite2D:
+				texture = sprite.texture
+			if texture == null:
+				continue
+			# The frame's four corners as the figure draws it, then each put as far under the feet as it is over them.
+			var size := texture.get_size()
+			var corner: Vector2 = sprite.offset - (size * 0.5 if sprite.centered else Vector2.ZERO)
+			var source := texture
+			var region := Rect2(Vector2.ZERO, size)
+			if texture is AtlasTexture and texture.atlas != null:
+				source = texture.atlas
+				region = texture.region
+			var whole := source.get_size()
+			var left: float = region.position.x / whole.x
+			var right: float = region.end.x / whole.x
+			if sprite.flip_h:
+				var swap := left
+				left = right
+				right = swap
+			var points := PackedVector2Array()
+			var across: Transform2D = sprite.get_global_transform()
+			for at in [corner, corner + Vector2(size.x, 0.0), corner + size, corner + Vector2(0.0, size.y)]:
+				var world: Vector2 = across * at
+				world.y = feet.y + (feet.y - world.y) * LightView.MIRROR_LENGTH
+				points.append(to_here * world)
+			var shown: float = clampf(figure._shown_alpha, 0.0, 1.0)
+			var far := Color(1.0, 1.0, 1.0, LightView.MIRROR_FAR * shown)
+			var close := Color(1.0, 1.0, 1.0, LightView.MIRROR * shown)
+			draw_polygon(points, PackedColorArray([far, far, close, close]),
+				PackedVector2Array([Vector2(left, region.position.y / whole.y), Vector2(right, region.position.y / whole.y),
+					Vector2(right, region.end.y / whole.y), Vector2(left, region.end.y / whole.y)]), source)
+			drawn += 1
+
+
 ## --- Water that moves ---
 
 
@@ -2588,6 +2842,8 @@ func _gather_the_water():
 	_water.material.set_shader_parameter("water", mask)
 	if _reflections != null:
 		_reflections.material.set_shader_parameter("water", mask)
+	if _mirrored != null:
+		_mirrored.material.set_shader_parameter("water", mask)
 	if ResourceLoader.exists(WaterPatch.PICTURE):
 		_water.material.set_shader_parameter("picture", load(WaterPatch.PICTURE))
 		_water.material.set_shader_parameter("has_picture", true)

@@ -40,6 +40,18 @@ func press_space(ui) -> bool:
 	return ended[0]
 
 
+## Makes it `hero`'s turn with nothing in flight, as the checks below mean it to be. The presses that end a turn really end one,
+## and the fight goes on by itself afterwards, so whose turn it is a moment later depends on how fast the machine is: inside a
+## full pass, twice, it was an enemy's by the last check (2026-11-14 and 15).
+func make_it_their_turn(combat, controller, hero):
+	for i in combat.combatants.size():
+		if is_same(combat.combatants[i], hero):
+			combat.current_combatant = i
+	controller.set_controlled_combatant(hero)
+	controller.player_turn = true
+	controller.action_locked = false
+
+
 func run_test():
 	Campaign.reset()
 	Campaign.current_encounter = load("res://data/encounters/encounter_02_sappers.tres")
@@ -96,6 +108,8 @@ func run_test():
 	log_line("======== nor with a menu over the map ========")
 	var pause = game.get_node_or_null("PauseUI")
 	if pause != null:
+		make_it_their_turn(combat, controller, hero)
+		await get_tree().process_frame
 		pause._show_panel(pause.get_node("PausePanel"), pause._pause_buttons)
 		await get_tree().process_frame
 		ok(controller.a_menu_is_over_the_map(), "the pause menu counts as a menu")
@@ -103,7 +117,12 @@ func run_test():
 		pause._close()
 		await get_tree().process_frame
 		ok(not controller.a_menu_is_over_the_map(), "and closing it gives the map back")
-		ok(press_space(ui), "space works again")
+		make_it_their_turn(combat, controller, hero)
+		# Said with what the press would be refused by, should it be: this has failed only inside a full pass.
+		var standing := "their turn %s, aiming %s, locked %s, idle %s, a menu %s, End Turn off %s or hidden %s or held %s" % [controller.player_turn, controller.is_skill_selected(),
+			controller.action_locked, controller.is_idle(), controller.a_menu_is_over_the_map(), ui.get_node("Actions/EndTurnButton").disabled,
+			not ui.get_node("Actions/EndTurnButton").visible, ui.end_turn_held()]
+		ok(press_space(ui), "space works again", standing)
 	log_line("")
 
 	log_line("======== only the space bar ========")

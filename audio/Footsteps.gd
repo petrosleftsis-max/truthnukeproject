@@ -2,7 +2,7 @@ extends RefCounted
 class_name Footsteps
 ## A step heard as somebody walks (the designer, 2026-11-07: "have their footstep be louder when walking on tiles where its
 ## rainy"): the SoundBank's "Steps" slots, or a stand-in made on the spot (PlaceholderSounds "step", "step_wet"). Louder, and
-## the wet one, where it is raining under the open sky (LightView.rainy_at). Only to hear: nothing here is a rule, so how far a
+## the wet one, where it is raining under the open sky (LightView.rainy_at) or they wade through a map's water (in_water). Only to hear: nothing here is a rule, so how far a
 ## guard hears steps is as it was. Headless nothing plays, but `last` still says what would have.
 
 ## How loud a step is, on dry ground and on wet, and softly (creeping).
@@ -32,7 +32,7 @@ static func step(at: Vector2, softly: bool = false):
 	_stepped_from = at
 	LightView.leave_print(at, way)
 	LightView.splash(at)
-	var wet := LightView.rainy_at(at)
+	var wet := LightView.rainy_at(at) or LightView.in_water(at)
 	var db: float = (WET_DB if wet else DRY_DB) + (SOFTLY_DB if softly else 0.0)
 	last = {"wet": wet, "db": db}
 	if DisplayServer.get_name() == "headless":

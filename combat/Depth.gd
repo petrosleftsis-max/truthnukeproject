@@ -100,6 +100,17 @@ const CUT_ALPHA := 0.16
 const CUT_SOFT := 0.3
 ## The most cutaways at once (the shader's array).
 const MOST_CUTS := 24
+
+
+## The shape of a cutaway about somebody drawn `taller` than a tile (CombatantSprite.head_height, as drawn), `reach` to either
+## side: (how far over the point they stand on its middle is, how far up and down from there it goes). The designer, 2026-11-14:
+## "The cutaway doesn't look right for the size of Cyrus' idle animation": it was a round patch about the tile, so whoever is drawn
+## taller than a tile stood with their head out of it. Now it is as tall as they are: an oval from where the round one ended under
+## their feet to as far over their head. Somebody a tile tall has the round patch still. It goes by each figure's own frame, so it
+## is right for whoever has been redrawn to Cyrus's size and for whoever has not been yet.
+static func cut_shape(taller: float, reach: float) -> Vector2:
+	var up := maxf(taller, 0.0) * 0.5
+	return Vector2(up, reach + up)
 ## How much of somebody has to be showing for them to open a cutaway: nobody the player cannot see ever does.
 const CUT_NEEDS_ALPHA := 0.08
 

@@ -347,6 +347,10 @@ func stage_light():
 	c.room(19, 8, 31, 22)           # the hall
 	c.room(32, 15, 32, 15)          # down to the cellar
 	c.room(33, 4, 48, 26)           # the cellar
+	# A store off the yard's north wall, for a door that faces us (the designer, 2026-11-14: a door "on the north or south of a
+	# building"; the hall's two are in walls we look along).
+	c.room(5, 4, 7, 6)
+	c.room(6, 7, 6, 7)
 	# Raised ground in the yard's corner, to see depth by (Depth): a terrace three by two, which Cyrus climbs in a fight, and a
 	# barrel beside it for a thing that only stands on the ground.
 	c.room(14, 18, 16, 19, "r")
@@ -389,7 +393,7 @@ func stage_light():
 	light_sign(root, "SignWindows", Vector2i(21, 9), "WINDOWS (a LightSource with Opening ticked): it lets in only what the sun gives. All of it by day, only the Dim at dusk and dawn, nothing at night. Shafts of light slant in from it, leaning with the hour. Ask the sundial for a day going round from in here.")
 	light_sign(root, "SignFire", Vector2i(23, 16), "A FLAME: it flickers, embers go up from it, and dust hangs in other light. Stand the party round it and each figure's shadow points away from it. The barrels throw shadows across the floor, and any light eases on and off rather than snapping.")
 	# The cellar: dark, but for what is brought into it.
-	light_sign(root, "SignDark", Vector2i(34, 15), "THE DARK (an AmbientArea, or a whole map, set Underground). Colours drain away, fog drifts, and whoever stands in it has only a faint rim. Anybody in it is invisible to whoever cannot see in the dark, unless right beside them. Cyrus, who has Night Eyes, still sees whoever stands in it, and his eyes glow there.")
+	light_sign(root, "SignDark", Vector2i(34, 15), "THE DARK (an AmbientArea, or a whole map, set Underground). Colours drain away, fog drifts, and whoever stands in it has only a faint rim. Anybody in it is invisible to whoever cannot see in the dark, unless right beside them. Tab to Cyrus, who has Night Eyes: he sees the dark as a grey half-light, and whoever stands in it.")
 	pickup(root, Vector2i(35, 17), "Lantern", "lantern", "stage9_lantern")
 	light_sign(root, "SignLantern", Vector2i(34, 18), "A LANTERN, on the floor here: whoever has one in their Baldric lights the way as they go, and is seen coming. It is no item to use in a fight, and it lights up a fight just the same.")
 	light_sign(root, "SignColour2", Vector2i(41, 5), "Two more colours among the pillars, to show how the shadows cross: one steady, one flickering.")
@@ -398,7 +402,8 @@ func stage_light():
 	# A door in each way through the hall's walls, to open and shut (the designer, 2026-11-14).
 	door(root, Vector2i(18, 15), "HallDoor")
 	door(root, Vector2i(32, 15), "CellarDoor")
-	light_sign(root, "SignLayers", Vector2i(7, 13), "LAYERS (a DepthPiece node, placed on a tile). In Front, it is drawn over everybody, as high as its Height says: the tree here, the balcony on the hall's wall, the arch over the gate south of where you came in, and the hall's roof. Whoever you can see under one is seen through it, in a round patch; a Roof fades away whole when one of the party is under it or within two tiles, so a room reads as indoors until you walk in. Behind, with Everywhere ticked, it is drawn wherever nothing is painted, all round the map and with no end: the town far below. Walk about and watch the tree's crown and the town move against the ground (Moves). Each has a Picture slot for the artist; these are placeholders. The doors into the hall and the cellar are real doors: E opens and shuts them. Nothing of the layers changes who can see, reach or walk where.")
+	door(root, Vector2i(6, 7), "StoreDoor")
+	light_sign(root, "SignLayers", Vector2i(7, 13), "LAYERS (a DepthPiece node, placed on a tile). In Front, it is drawn over everybody, as high as its Height says: the tree here, the balcony on the hall's wall, the arch over the gate south of where you came in, and the hall's roof. Whoever you can see under one is seen through it, in a round patch; a Roof fades away whole when one of the party is under it or within two tiles, so a room reads as indoors until you walk in. Behind, with Everywhere ticked, it is drawn wherever nothing is painted, all round the map and with no end: the town far below. Walk about and watch the tree's crown and the town move against the ground (Moves). Each has a Picture slot for the artist; these are placeholders. The doors are real doors: E opens and shuts them. The store's, north of the yard, faces you; the hall's and the cellar's are in walls you look along, so each is seen edge on shut, and open lies back against the side of its way. Nothing of the layers changes who can see, reach or walk where.")
 	for point in [["round_a", Vector2i(35, 12)], ["round_b", Vector2i(47, 12)], ["round_c", Vector2i(47, 24)], ["round_d", Vector2i(35, 24)]]:
 		waypoint(root, point[0], point[1])
 	var torch = guard(root, "TorchBearer", "barbarian", Vector2i(35, 12), 0.0, ["round_a", "round_b", "round_c", "round_d"])

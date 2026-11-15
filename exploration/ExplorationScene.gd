@@ -440,13 +440,15 @@ func _light_goes_on(delta: float):
 		for sprite in group._members():
 			var level := light.level_at(_tile_map.local_to_map(_tile_map.to_local(sprite.global_position)))
 			sprite.set_light(Light.FIGURE_TINTS[level])
-			sprite.set_in_the_dark(level == Light.Level.DARK, Campaign.sees_in_darkness(sprite.get_meta("combatant_key", "")))
+			sprite.set_in_the_dark(level == Light.Level.DARK)
 	if stealth != null and is_instance_valid(stealth):
 		for guard in stealth.guards:
 			if is_instance_valid(guard) and guard.sprite != null and is_instance_valid(guard.sprite):
 				var level := light.level_at(_tile_map.local_to_map(_tile_map.to_local(guard.global_position)))
 				guard.sprite.set_light(Light.FIGURE_TINTS[level])
-				guard.sprite.set_in_the_dark(level == Light.Level.DARK, false)
+				guard.sprite.set_in_the_dark(level == Light.Level.DARK)
+	if light_view != null:
+		light_view.night_eyes = Campaign.sees_in_darkness(Campaign.leader())
 
 
 ## Switches off any grid overlay the map brought with it, wherever it sits -
@@ -637,16 +639,12 @@ func _start_position() -> Vector2:
 func _first_standable_position() -> Vector2:
 	if _tile_map == null:
 		return Vector2.ZERO
-	var radius = ExplorationParty.new().body_radius
 	var used = _tile_map.get_used_rect()
 	for y in range(used.position.y, used.position.y + used.size.y):
 		for x in range(used.position.x, used.position.x + used.size.x):
 			var centre = _tile_map.map_to_local(Vector2i(x, y))
 			var clear = true
-			for offset in [
-				Vector2(-radius, -radius), Vector2(radius, -radius),
-				Vector2(-radius, radius), Vector2(radius, radius)
-			]:
+			for offset in ExplorationParty.body_corners():
 				if not is_walkable(centre + offset):
 					clear = false
 					break

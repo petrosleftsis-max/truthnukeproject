@@ -425,10 +425,9 @@ func frame_stamp() -> Variant:
 ## the nearest lights, mixed by how close, breathing as a flame does. The edge of the figure facing the light lit in its colour, and the far side
 ## darker. Lit from below by a fire on the floor, or from above by the sun. Back lit, with the light behind them from where
 ## we look: the front goes dark, and only the rim shows. And half in the dark: each pixel reads how dark it is where that pixel is, so
-## somebody stepping out of a doorway is lit on one half. In the Dark, a faint rim, so a figure is still there to look at. Those who see
-## in it have eyes that glow: a picture at EYES_PICTURE is drawn for the eyes.
+## somebody stepping out of a doorway is lit on one half. In the Dark, a faint rim, so a figure is still there to look at. (Those who see
+## in it had eyes that glowed; the designer had them taken out, 2026-11-14: "I meant his glowing eyes".)
 
-const EYES_PICTURE := "res://art/fx/glowing_eyes.png"
 const FIGURE_SHADER := """
 shader_type canvas_item;
 uniform vec4 rim : source_color = vec4(0.5, 0.62, 1.0, 0.8);
@@ -569,22 +568,10 @@ const BACK_LIT_MOST := 0.65
 static var _figure_shader: Shader = null
 var _figure_material: ShaderMaterial = null
 var _in_the_dark := false
-var _sees_in_it := false
-var _eyes: Node2D = null
 
 
-func set_in_the_dark(dark: bool, sees: bool = false):
-	if dark == _in_the_dark and sees == _sees_in_it:
-		return
+func set_in_the_dark(dark: bool):
 	_in_the_dark = dark
-	_sees_in_it = sees
-	if not LightView.shown():
-		return
-	if dark and sees and _eyes == null:
-		_eyes = _Eyes.new()
-		add_child(_eyes)
-	if _eyes != null:
-		_eyes.visible = dark and sees
 
 
 ## Puts the light on them as it falls this frame.
@@ -886,35 +873,6 @@ func _process(delta):
 	elif _figure_material != null and _drawn() != null and _drawn().material == _figure_material:
 		_drawn().material = null
 		set_hidden_alpha(hidden_alpha)
-
-
-class _Eyes extends Node2D:
-	var picture: Texture2D = null
-
-	func _ready():
-		z_index = 1
-		light_mask = 0
-		var add := CanvasItemMaterial.new()
-		add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-		add.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
-		material = add
-		if ResourceLoader.exists(CombatantSprite.EYES_PICTURE):
-			picture = load(CombatantSprite.EYES_PICTURE)
-
-	func _process(_delta):
-		var parent := get_parent() as CombatantSprite
-		position = Vector2(0.0, -parent.head_height() - float(Grid.TILE_SIZE) * 0.18)
-		modulate.a = parent._shown_alpha * parent._rim
-
-	func _draw():
-		var tile := float(Grid.TILE_SIZE)
-		if picture != null:
-			draw_texture(picture, -picture.get_size() / 2.0)
-			return
-		for side in [-1.0, 1.0]:
-			var at := Vector2(side * tile * 0.05, 0.0)
-			draw_circle(at, tile * 0.028, Color(1.0, 0.85, 0.35, 0.5))
-			draw_circle(at, tile * 0.012, Color(1.0, 0.95, 0.7, 1.0))
 
 
 ## How the light where they stand colours them (Light.FIGURE_TINTS).

@@ -29,6 +29,8 @@ uniform float drain = 0.9;
 uniform float most = 0.86;
 uniform float half_tile = 128.0;
 uniform vec3 cuts[24];
+// For each: how far over that point its middle is, and how far up and down it goes (Depth.cut_shape).
+uniform vec2 cut_shapes[24];
 uniform int cut_count = 0;
 uniform float cut_alpha = 0.16;
 uniform float cut_soft = 0.3;
@@ -102,7 +104,7 @@ void fragment() {
 	for (int i = 0; i < cut_count; i++) {
 		// Only whoever stands behind this row: on it or in front of it, they are drawn over it anyway.
 		if (cuts[i].y < north) {
-			float far = distance(world, cuts[i].xy) / max(cuts[i].z, 1.0);
+			float far = length((world - cuts[i].xy + vec2(0.0, cut_shapes[i].x)) / vec2(max(cuts[i].z, 1.0), max(cut_shapes[i].y, 1.0)));
 			left = min(left, mix(cut_alpha, 1.0, smoothstep(1.0 - cut_soft, 1.0, far)));
 		}
 	}
@@ -712,6 +714,7 @@ func _tell_the_shade():
 ## is behind it; and, on a map or in a fight, whoever stands behind a lifted row opens a cutaway in it.
 func _sort_the_figures():
 	var cuts := PackedVector3Array()
+	var shapes := PackedVector2Array()
 	var tile := float(Grid.TILE_SIZE)
 	for figure in get_tree().get_nodes_in_group(Depth.FIGURES):
 		if not is_instance_valid(figure) or not figure.is_inside_tree() or not figure is CombatantSprite:
@@ -731,13 +734,14 @@ func _sort_the_figures():
 		var middle := body_middle(figure)
 		if _covered(middle, reach):
 			cuts.append(Vector3(middle.x, middle.y, reach))
+			shapes.append(cut_shape_of(figure, reach))
 	if _layer == null and not (_rise.is_empty() and _upright_rise.is_empty()):
 		for thing in get_tree().get_nodes_in_group(Depth.THINGS):
 			if not is_instance_valid(thing) or not thing is Node2D or not thing.is_inside_tree() or not thing.is_visible_in_tree():
 				continue
 			var where: Vector2 = thing.global_position
 			var on := _tile_map.local_to_map(_tile_map.to_local(where))
-			if _upright_rise.has(on) and thing.is_in_group(Depth.UPRIGHTS):
+			if _stood.has(thing.get_instance_id()):
 				# Standing, it is its own wall: nothing to be seen through to.
 				continue
 			if _lifts.has(on):
@@ -748,27 +752,44 @@ func _sort_the_figures():
 					thing.z_index = over
 			elif cuts.size() < Depth.MOST_CUTS and _covered(where, THING_CUT_TILES * tile):
 				cuts.append(Vector3(where.x, where.y, THING_CUT_TILES * tile))
+				shapes.append(Vector2(0.0, THING_CUT_TILES * tile))
 	for point in more_cuts:
 		if cuts.size() < Depth.MOST_CUTS and _covered(point, Depth.CUT_TILES * tile):
 			cuts.append(Vector3(point.x, point.y, Depth.CUT_TILES * tile))
-	_cuts = cuts
+			shapes.append(Vector2(0.0, Depth.CUT_TILES * tile))
+	# A copy: what is told to the shader below is padded out to its whole length.
+	_cuts = cuts.duplicate()
+	_cut_shapes = shapes.duplicate()
 	var count := cuts.size()
 	if count > 0:
 		cuts.resize(Depth.MOST_CUTS)
+		shapes.resize(Depth.MOST_CUTS)
 	for material in _materials():
 		material.set_shader_parameter("cut_count", count)
 		if count > 0:
 			material.set_shader_parameter("cuts", cuts)
+			material.set_shader_parameter("cut_shapes", shapes)
 
 
 ## Other places in the world to keep in view through what is lifted: the tile a fight's pointer is on (CController).
 var more_cuts: Array = []
 ## The cutaways open now, each (x, y, reach) in the world (for a test).
 var _cuts := PackedVector3Array()
+## And the shape of each, beside it (Depth.cut_shape).
+var _cut_shapes := PackedVector2Array()
 
 
 func cuts_now() -> PackedVector3Array:
 	return _cuts
+
+
+func cut_shapes_now() -> PackedVector2Array:
+	return _cut_shapes
+
+
+## The shape of the cutaway about `figure`, `reach` to either side: as tall as they are drawn.
+static func cut_shape_of(figure: CombatantSprite, reach: float) -> Vector2:
+	return Depth.cut_shape(figure.head_height() * absf(figure.global_scale.y), reach)
 
 
 ## Somebody bigger than a tile sorts from their top-left tile, as ever, so a barrel or raised ground among their feet - the big step
@@ -821,27 +842,42 @@ func _covered(at: Vector2, reach: float) -> bool:
 ##
 ## A shut door and a wall that can be broken are nodes on a floor tile, not tiles (the designer, 2026-11-13: "A door is just a
 ## placeholder of a single colour right? It should be easy to lift when appropriate"). Each is in Depth.UPRIGHTS and says how high
-## it stands now (depth_lift: a wall's lift shut or standing, 0 open or broken), the colour of its top (depth_top) and how its front
+## it stands now (depth_lift: a wall's lift, 0 for a wall broken), the colour of its top (depth_top) and how its front
 ## is drawn (depth_paint). Here each gets a child that draws it lifted, as a wall tile is: sorted from its north edge, darkened by
-## the shade, seen through about whoever is behind it. Asked every frame, so a door opening drops at once. Only on a map: neither
+## the shade, seen through about whoever is behind it. Asked every frame, so a door opening changes at once. Only on a map: neither
 ## is in a fight.
+##
+## A door says which part of its tile it stands on (depth_footprint), by whether it is shut and which way its wall runs (the
+## designer, 2026-11-14: a shut door facing us "on the left or right of a building" looked weird, and open "it looks like it
+## actually blocks their way"; "the door would be the same height as the wall"). Facing us it fills its tile shut and is a leaf
+## along the west of its frame open; in a wall we look along ("side on": a wall to its north and to its south) it is a leaf seen
+## edge on from wall to wall shut, and swung flat against the north side of the way open. Only what fills its tile covers anybody
+## (_upright_rise); a leaf covers nobody. While one stands, its own flat drawing is off (depth_stood).
 
 ## How high each stands now, {tile: lift}, for the cutaway.
 var _upright_rise := {}
+## Which of them are drawn standing now, by instance id.
+var _stood := {}
 
 
 class _Upright extends Node2D:
 	var lift := 0.0
 	var face := 0.0
+	## The part of its tile it stands on, in tiles from the tile's north-west corner.
+	var foot := Rect2(0.0, 0.0, 1.0, 1.0)
 	var top := Color(0.4, 0.4, 0.42)
 	var painter := Callable()
+	var top_painter := Callable()
 
 	func _draw():
 		if lift <= 0.0:
 			return
 		var tile := float(Grid.TILE_SIZE)
 		var half := tile * 0.5
-		var above := Rect2(-half, -lift, tile, tile)
+		var above := Rect2(-half + foot.position.x * tile, foot.position.y * tile - lift, foot.size.x * tile, foot.size.y * tile)
+		if top_painter.is_valid():
+			top_painter.call(self, above)
+			return
 		draw_rect(above, top)
 		draw_rect(above.grow(-3.0), top.darkened(0.3), false, 6.0)
 
@@ -853,32 +889,41 @@ class _Front extends Node2D:
 		if upright.lift <= 0.0 or upright.face <= 0.0:
 			return
 		var tile := float(Grid.TILE_SIZE)
-		var front := Rect2(-tile * 0.5, tile - upright.lift, tile, upright.face)
+		var foot: Rect2 = upright.foot
+		var front := Rect2(-tile * 0.5 + foot.position.x * tile, foot.end.y * tile - upright.lift, foot.size.x * tile, upright.face)
 		if upright.painter.is_valid():
 			upright.painter.call(self, front)
 		else:
 			draw_rect(front, upright.top.darkened(0.25))
 		# The lip's own shadow along the top of the front.
-		draw_rect(Rect2(front.position, Vector2(tile, minf(10.0, upright.face * 0.2))), Color(0, 0, 0, 0.28))
+		draw_rect(Rect2(front.position, Vector2(front.size.x, minf(10.0, upright.face * 0.2))), Color(0, 0, 0, 0.28))
 
 
 func _keep_the_uprights():
 	if _layer != null:
 		return
 	var rise := {}
+	var stood := {}
 	var tile := float(Grid.TILE_SIZE)
 	for node in get_tree().get_nodes_in_group(Depth.UPRIGHTS):
 		if not is_instance_valid(node) or not node is Node2D or not node.is_inside_tree() or not node.has_method("depth_lift"):
 			continue
 		var lift: float = node.depth_lift() if node.is_visible_in_tree() else 0.0
 		var on := _tile_map.local_to_map(_tile_map.to_local(node.global_position))
-		var face: float = maxf(lift - float(_lifts.get(on + Vector2i.DOWN, 0.0)), 0.0) if lift > 0.0 else 0.0
-		# A door in a wall that runs north to south has a wall to its south as tall as itself: stood up, only its top would show,
-		# the wall's height further up the screen than the tile it is on (the designer, 2026-11-14: "the door isnt on the same tile
-		# as its drawing"). Such a one stays drawn flat on its own tile, and is seen through the wall's top that covers it, as a
-		# thing to be found is (_sort_the_figures).
-		if lift > 0.0 and face <= 0.0 and node.has_method("depth_needs_front") and node.depth_needs_front():
-			lift = 0.0
+		# Which way its wall runs: with a wall to its north and to its south, the way through it goes east and west, and we look
+		# along the wall ("side on").
+		var side_on: bool = float(_lifts.get(on + Vector2i.UP, 0.0)) > 0.0 and float(_lifts.get(on + Vector2i.DOWN, 0.0)) > 0.0 \
+				and not (float(_lifts.get(on + Vector2i.LEFT, 0.0)) > 0.0 and float(_lifts.get(on + Vector2i.RIGHT, 0.0)) > 0.0)
+		var foot := Rect2(0.0, 0.0, 1.0, 1.0)
+		if lift > 0.0 and node.has_method("depth_footprint"):
+			foot = node.depth_footprint(side_on)
+		var whole: bool = foot.size.x >= 0.99 and foot.size.y >= 0.99
+		# Its front: all of it, unless it reaches its tile's south edge, where only what stands over the tile to the south shows.
+		var face: float = lift
+		if lift > 0.0 and foot.end.y >= 0.99:
+			face = maxf(lift - float(_lifts.get(on + Vector2i.DOWN, 0.0)), 0.0)
+		if "depth_stood" in node:
+			node.depth_stood = lift > 0.0
 		var upright: _Upright = node.get_node_or_null("DepthUpright")
 		if upright == null:
 			if lift <= 0.0:
@@ -893,22 +938,29 @@ func _keep_the_uprights():
 				upright.top = node.depth_top()
 			if node.has_method("depth_paint"):
 				upright.painter = node.depth_paint
+			if node.has_method("depth_paint_top"):
+				upright.top_painter = node.depth_paint_top
 			node.add_child(upright)
 			var front := _Front.new()
 			front.name = "Front"
 			front.material = _face_material
 			upright.add_child(front)
-		if not is_equal_approx(lift, upright.lift) or not is_equal_approx(face, upright.face):
+		if not is_equal_approx(lift, upright.lift) or not is_equal_approx(face, upright.face) or not upright.foot.is_equal_approx(foot):
 			upright.lift = lift
 			upright.face = face
+			upright.foot = foot
 			upright.queue_redraw()
 			for part in upright.get_children():
 				part.queue_redraw()
 		upright.visible = lift > 0.0
 		upright.z_index = Depth.z_at(upright.global_position.y, _top)
 		if lift > 0.0:
-			rise[on] = lift
+			stood[node.get_instance_id()] = true
+			# Only what fills its tile covers whoever is behind it, as a wall does: a leaf seen edge on covers nobody.
+			if whole:
+				rise[on] = lift
 	_upright_rise = rise
+	_stood = stood
 
 
 ## --- The shadow off every edge ---

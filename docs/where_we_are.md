@@ -100,8 +100,14 @@ holds the game for both).
   - B: `DepthPiece`, a node for a roof (fades for the party), an arch, a balcony, a tree (its crown slides as the view moves) and a
     backdrop behind the ground (Everywhere: all round the map, no end). The Light stage (stealth stage 9) shows one of each.
   - With it, by the designer's word: the sewer's channel is water to the rules too (see-through, no high ground); the Light stage's
-    two ways into the hall have real doors; a door in a north-south wall stays flat on its tile; the weather is over the layers;
-    the lighter dark shown for whoever has Night Eyes is gone (the rule and the glowing eyes stay).
+    two ways into the hall have real doors; the weather is over the layers.
+  - **The designer's second round, 2026-11-14, built on the 14th and 15th** (`docs/2_5d_plan.md` has their words; **in the working
+    tree until they approve it, unless the log there says committed**): only a thick fog's mist rises over walls, arch and tree; the
+    lighter dark for whoever has Night Eyes is back as it was and the glowing eyes are gone instead; a door is as tall as its wall
+    and drawn by which way its wall runs (a leaf seen edge on in a wall we look along, flat against the side of the way open),
+    with a store on the Light stage for one that faces us; the box that stops the party at walls is small and at their feet
+    (`ExplorationParty.body_corners`); the cutaway is as tall as whoever it is about (`Depth.cut_shape`); in a WaterPatch's water
+    whoever wades sends rings out, figures are mirrored and the rain's rings are whole. Pictures of walls at 256 sent beside 160.
 
 - **The designer's later message of 2026-11-13** (ledger rows of that date from "An InstaHacked Gate Nade kept"; CLAUDE.md "More to
   look at"; suite `atmos`):
@@ -438,10 +444,10 @@ holds the game for both).
 
 ## Waiting on the designer
 
-0. **From the 2.5D work, 2026-11-14** (ledger, the rows' NextAction): how tall walls should be drawn now that a person is the size of
-   Cyrus's idle animation, about 330 pixels (walls are 160; OPEN); whether a shut door in a north-south wall reads as shut drawn flat;
-   whether the Light stage's two doors should start open; whether the town should stay out of some unpainted gaps; whether Cyrus's
-   glowing eyes should go with the Night Eyes view; and every depth number by feel.
+0. **From the 2.5D work, 2026-11-14** (ledger, the rows' NextAction): **their OK on the second round, to commit it**; how tall walls should
+   be drawn, having seen 256 beside 160 (OPEN); whether the two kinds of door read right; whether the "fog" weather at its thickest
+   should stay under walls, arch and tree too; whether the cutaway reads right now; whether the town should stay out of some
+   unpainted gaps; and every depth number by feel, with the box at the party's feet and the water's rings and mirror.
 0. **From later on 2026-11-13:** which of O to T, or K itself; how strong and how often the new atmosphere is, by feel. 2.5D (A, B and C)
    is built (above). `docs/fable_brief.md` has three more jobs worth Fable's time.
 0. **From 2026-11-13:** the timings and strengths by feel (darkness, lightning indoors, the heat, the after-fight beat, fireflies).
