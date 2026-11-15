@@ -267,3 +267,7 @@ are in the session's scratch folder; they are a page of code and quick to write 
   tree. So whatever depth gathers from a group is only its own scene's now (`Depth.same_scene`, in DepthView, DepthPiece and
   LightView's waders), and the check puts a figure of another scene under the crown on purpose (it fails without
   `same_scene`). `depth atmos figures clock daysky light stages walk` clean; a full pass started with it.
+- 2026-11-15: that full pass: 171 of 172, `depth` clean with the stranger under the tree. `net` failed one check, on the joiner,
+  "and what the host's player prepared is here": asked at once as its preparing window went, while the host's list comes with
+  the host's state and was still on its way. It waits for it now (up to 10 seconds, as the suite's other arrivals do), and
+  `net` is clean alone. Nothing of this work is left to do but the designer's open answers above.

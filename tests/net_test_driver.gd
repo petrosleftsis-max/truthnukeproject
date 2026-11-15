@@ -754,7 +754,11 @@ func joiners_preparing():
 		log_preparing(panel)
 	Net.told.disconnect(on_told)
 	ok(told.is_empty(), "and nothing the host did first got in its way", "%s" % [told])
-	ok(Campaign.has_readied("prometheus") and Campaign.prepared_list("prometheus").has("fire_blast"), "and what the host's player prepared is here", "%s" % [Campaign.prepared_list("prometheus")])
+	# The host's list comes with its state, not with the window going here, so it may still be on its way: inside a full pass
+	# (2026-11-15) it had not come yet when this was asked at once. The host's own check waits by its window, which goes only once
+	# this machine's list has reached it.
+	ok(await until(func(): return Campaign.has_readied("prometheus") and Campaign.prepared_list("prometheus").has("fire_blast"), 10.0),
+		"and what the host's player prepared is here", "%s" % [Campaign.prepared_list("prometheus")])
 	await hear("seen prepared")
 	Campaign.asks_to_prepare = false
 	log_line("")
