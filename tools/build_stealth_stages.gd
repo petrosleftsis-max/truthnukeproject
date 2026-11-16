@@ -504,7 +504,8 @@ func _light_the_stage(terrain_path: String):
 	var tree := depth_piece(root, "YardTree", Vector2i(9, 11), DepthPiece.Kind.TREE, Vector2i(3, 3))
 	tree.height = 300.0
 	var balcony := depth_piece(root, "HallBalcony", Vector2i(16, 20), DepthPiece.Kind.BALCONY, Vector2i(2, 3))
-	balcony.height = 120.0
+	# Three quarters of the way up the hall's wall.
+	balcony.height = Depth.WALL_LIFT * 0.75
 	var town := depth_piece(root, "TownBelow", Vector2i(0, 0), DepthPiece.Kind.BACKDROP, Vector2i(1, 1))
 	town.layer = DepthPiece.Layer.BEHIND
 	town.everywhere = true

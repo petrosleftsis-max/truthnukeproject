@@ -33,9 +33,10 @@ enum Layer { IN_FRONT, BEHIND }
 @export var size_tiles: Vector2i = Vector2i.ONE : set = _set_size
 ## In Front: over everybody. Behind: under the ground, seen where no tile is painted.
 @export var layer: Layer = Layer.IN_FRONT : set = _set_layer
-## In Front: how many pixels above the ground it is drawn. A wall's top is 160 up and raised ground's 80, so 160 rests it on the
-## walls. A Tree: how tall its trunk is.
-@export var height: float = 160.0 : set = _set_height
+## In Front: how many pixels above the ground it is drawn. A wall's top is 192 up (Depth.WALL_LIFT) and raised ground's 80, so
+## 192, as it is to begin with, rests it on the walls. A Tree: how tall its trunk is. A piece left at this is not written into
+## its scene, so it follows the walls if their height is ever changed again; one given a height of its own keeps it.
+@export var height: float = Depth.WALL_LIFT : set = _set_height
 ## How far it moves against the ground as the view moves, as a share of how far the view's middle is from it. Below 0: as its kind
 ## does (a Tree 0.12, anything Behind 0.5, the rest stay where they are, since they rest on walls).
 @export_range(-1.0, 1.0, 0.01) var moves: float = -1.0

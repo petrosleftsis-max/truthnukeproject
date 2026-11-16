@@ -13,9 +13,12 @@ class_name Depth
 
 enum Kind { FLOOR, HIGH, WALL, VOID }
 
-## How much higher high ground and walls are drawn, in pixels of the map (a tile is Grid.TILE_SIZE).
+## How much higher high ground and walls are drawn, in pixels of the map (a tile is Grid.TILE_SIZE). A wall is three quarters of a
+## tile: the designer's pick, 2026-11-16 ("192"), having seen 160, 192, 224 and 256 beside somebody the size of Cyrus's idle
+## animation. It was 160. Behind a wall that much of the floor is covered, so a tile-deep room still shows a quarter of its floor.
+## A door stands as tall (StealthDoor.depth_lift), and a DepthPiece left at its own Height rests on the walls.
 const RAISED_LIFT := 80.0
-const WALL_LIFT := 160.0
+const WALL_LIFT := 192.0
 ## The value in a tile's Blocks that lets sight through (CController.SEE_THROUGH): a railing, water. Never lifted.
 const SEE_THROUGH := 3
 ## Whether walls are lifted at all. Off, only high ground is.

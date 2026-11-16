@@ -23,7 +23,7 @@ This file is kept current after every step, so another session can take over. Re
 A, C, B and the second and third rounds are committed. Nothing of this work is left in the working tree.
 
 **The designer's third round, 2026-11-15** (one message, answering the second round's questions; each is a ledger row):
-- "Walls: I need to think about it a bit more": `Depth.WALL_LIFT` stays 160 until they say.
+- "Walls: I need to think about it a bit more": `Depth.WALL_LIFT` stayed 160 until they said (192, 2026-11-16: the Log).
 - "Fog: At its thickest, it should go over everything": as built. Only the weather the rules call thick rises over walls, arch,
   tree and the pieces in front; nothing changed.
 - "The doors of the south or north part of a building is almost correct now, When it's closed and "lifted", it's art should take
@@ -71,8 +71,7 @@ on" is a wall to the door's north and to its south: the way through goes east an
 | Side on (a wall we look along) | A leaf seen edge on, from wall to wall, at the side its building is on | Flat against the north side of the way, its face to us, its ring at the end towards the outside |
 
 **Asked of the designer, not answered yet** (each is a ledger row's NextAction):
-- how tall walls should be drawn, having seen 256 beside 160; they are thinking it over (2026-11-15). Do not change
-  `Depth.WALL_LIFT` without their word;
+- whether raised ground should go from 80 to 96, half a wall as it was, now that walls are 192 (their pick, 2026-11-16);
 - whether the cutaway reads right now, or what looked wrong if not;
 - the box at the feet: they are trying it (2026-11-15);
 - the other new numbers by feel: the wading rings and the mirror's strength.
@@ -129,7 +128,7 @@ on" is a wall to the door's north and to its south: the way through goes east an
 | `tools/stage_painter.gd`, `tools/build_stealth_stages.gd` | "r" paints raised ground; the Light stage's yard has a terrace (14..16, 18..19), a barrel beside it (13, 18) and a sign (SignDepth). Only `stealth_9.tscn` and `stealth_9_terrain.tscn` were brought back from the rebuild. |
 | `tests/depth_test_driver.gd`, `tests/suites.txt` | Suite `depth`, 67 checks, clean. |
 
-Slots so far (`art/terrain/depth/`): `face_<column>_<row>.png` and `face.png` (256 x 80), `wall_face.png` (256 x 160),
+Slots so far (`art/terrain/depth/`): `face_<column>_<row>.png` and `face.png` (256 x 80), `wall_face.png` (256 x 192),
 `top_<column>_<row>.png` (256 x 256), `object_<column>_<row>.png` (a thing alone, standing; its foot's middle goes on the tile's
 foot, any size, a barrel about 200 x 250).
 
@@ -174,7 +173,7 @@ background") and asked for the Night Eyes view to go ("also remove the night eye
 - `LightView.night_eyes` was taken out, by a misreading: put back the same day, and the glowing eyes taken out in its place.
 
 As built (it differs from the table below, which was the plan, in three ways): a piece has a **Height** (pixels over the ground,
-160 rests it on the walls; a tree's trunk); **Moves** below 0 means "as its kind does", and only a Tree (0.12) and anything Behind
+192 rests it on the walls (160 until 2026-11-16); a tree's trunk); **Moves** below 0 means "as its kind does", and only a Tree (0.12) and anything Behind
 (0.5) move by themselves, because a roof, an arch and a balcony rest on walls, which do not move; and a piece Behind is seen only
 through the ground it stands over (its Size Tiles are a window), its picture drawn 4 tiles bigger each way so it never runs out.
 The decisions are in `Depth` ("B. Layers and parallax": `piece_moves`, `piece_offset`, `roof_opens`, the groups `PARTY` and
@@ -271,3 +270,8 @@ are in the session's scratch folder; they are a page of code and quick to write 
   "and what the host's player prepared is here": asked at once as its preparing window went, while the host's list comes with
   the host's state and was still on its way. It waits for it now (up to 10 seconds, as the suite's other arrivals do), and
   `net` is clean alone. Nothing of this work is left to do but the designer's open answers above.
+- 2026-11-16: the designer asked for a wall height between 160 and 256 ("I'd like an inbetween of 160 and 256, do you have any
+  suggestions"). Sixteen pictures sent, four views at 160, 192, 224 and 256, with 192 recommended (a tile-deep room behind a wall
+  still shows a quarter of its floor; a clean 256 x 192 face). They chose it ("192"). `Depth.WALL_LIFT` is 192; a `DepthPiece`'s
+  Height begins at `Depth.WALL_LIFT` instead of a written 160, so the roof and the arch follow; the Light stage's balcony is 144.
+  Raised ground is still 80 (asked: 96?). The suites run with it and the full pass: see the next line.

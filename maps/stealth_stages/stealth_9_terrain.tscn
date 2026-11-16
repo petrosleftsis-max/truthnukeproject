@@ -124,7 +124,7 @@ position = Vector2(4224, 5248)
 script = ExtResource("8_r5m2e")
 kind = 2
 size_tiles = Vector2i(2, 3)
-height = 120.0
+height = 144.0
 
 [node name="TownBelow" type="Node2D" parent="." unique_id=878683795]
 position = Vector2(128, 128)
