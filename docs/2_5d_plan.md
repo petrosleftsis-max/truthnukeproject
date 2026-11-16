@@ -281,3 +281,5 @@ are in the session's scratch folder; they are a page of code and quick to write 
   see the next line.
 - 2026-11-16: the full pass with walls at 192 (`fb0abe5`): 172 of 172 clean, no script errors. Raised ground at 96 committed
   and pushed (`8f393ab`) after the nine closest suites came back clean; a full pass with it started: see the next line.
+- 2026-11-16: the full pass with raised ground at 96 (`8f393ab`, walls 192): 172 of 172 clean, no script errors. The proposals
+  for how the game looks and feels from here are in `docs/proposals_2026-11-16.md` (`65c1495`), nothing of them built.
