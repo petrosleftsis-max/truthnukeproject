@@ -511,7 +511,7 @@ stage's yard has one of each (`tools/build_stealth_stages.gd`, sign "SignWater")
 **Depth: 2.5D with the art there is** (`combat/Depth.gd`, `combat/DepthView.gd`; `depth`; the designer and their artist, 2026-11-13, A, B and C of
 proposals section 22; `docs/2_5d_plan.md` has what is built and what is still to come). View only: no rule asks it anything, headless none of it is
 made (`LightView.shown()`), and every number is PROPOSAL. **A, C and B are built** (`docs/depth_on_maps.md` says how to put any of it on a map). `Depth` decides, with no nodes in it: a tile's kind from its Blocks
-(`kind_of_blocks`: HIGH is `Combat.is_high`'s test, WALL stops a flier too), how high it is drawn (`lift_at`: `RAISED_LIFT` 80, `WALL_LIFT` 192, three quarters of a tile, the designer's pick of 2026-11-16;
+(`kind_of_blocks`: HIGH is `Combat.is_high`'s test, WALL stops a flier too), how high it is drawn (`lift_at`: `RAISED_LIFT` 96, `WALL_LIFT` 192, three quarters of a tile and half of that, the designer's picks of 2026-11-16;
 `walls_lifted` is the switch for walls), the face under it (`face_under`: by how much it stands over what lies to its south), and two per-tile
 says of the TileSet: **Lift** (below 0 never lifted: the sewer's green channel, which is water to the rules too since 2026-11-13, see-through and no high ground; above 0 that many pixels) and
 **Stands** (a thing standing on the floor, the barrels: its floor stays flat). `DepthView` draws, made beside the LightView by `Combat._begin_light`
@@ -538,7 +538,7 @@ over one side, else the open sky over the other), and flat against the north sid
 Only what fills its tile covers anybody; `depth_stood` turns its flat drawing off. `Depth.TOP_STAND_INS`: the laboratory's half-floor
 wall pieces are drawn, lifted, as the whole block. Only a thick mist rises over all of it, from where the rules call the weather thick; a thinner one and a night's low mist lie under walls, arch and tree (`LightView` "Mist that rises": `high_mist_of`, `HIGH_MIST_FROM`, `_high_mist`; the designer, 2026-11-14). Whatever depth gathers from a group (figures, things, doors, pieces, the party, the waders) is only its own scene's (`Depth.same_scene`): in the tests the game's own fight runs behind the map being tested.
 The TileSet has a raised-ground tile (the stone floor's alternative 1; `StagePainter` "r"), and the Light stage's yard a terrace of it with a sign.
-Slots, in `art/terrain/depth/`: `face_<column>_<row>.png`, `face.png` (256 x 80), `wall_face.png` (256 x 192), `top_<column>_<row>.png` (256 x 256),
+Slots, in `art/terrain/depth/`: `face_<column>_<row>.png`, `face.png` (256 x 96), `wall_face.png` (256 x 192), `top_<column>_<row>.png` (256 x 256),
 `object_<column>_<row>.png` (a thing alone, standing).
 **Light that knows height** (C; DepthView section of that name). The real lights never reach what stands inside a wall's or a barrel's own square
 (it is their occluder), so `RAISED_SHADER` lights what is lifted itself. Each row is three nodes, for its tops, its faces and the things standing
@@ -575,7 +575,7 @@ a wall that runs north to south only its top shows, and the designer took the Li
 now and the arch is over a gate in the yard. The Light stage has one of each
 (`tools/build_stealth_stages.gd` `depth_piece`, sign "SignLayers"). **How tall walls are** was asked of the designer once a person became the size
 of Cyrus's idle animation (about 330 pixels): they saw 160, 192, 224 and 256 and chose 192 (2026-11-16). A door is as tall, and a `DepthPiece`
-left at its own Height (`Depth.WALL_LIFT`, not written into its scene) follows the walls. Raised ground is still 80.
+left at its own Height (`Depth.WALL_LIFT`, not written into its scene) follows the walls. Raised ground is half a wall, 96, their pick the same day (it was 80).
 **What stops the party at walls** (the designer, 2026-11-14: "a small hitbox at their feet"): a box about the point the leader stands on
 (`ExplorationParty.body_corners`: `body_half_width` 0.14 of a tile, `body_above` 0.06, `body_below` 0.3125; their feet are drawn 0.42 below it).
 The point itself is inside the box, so it never leaves walkable ground: it is what says which tile they are on, to guards, light and fights.

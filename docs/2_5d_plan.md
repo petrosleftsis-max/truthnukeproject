@@ -71,7 +71,6 @@ on" is a wall to the door's north and to its south: the way through goes east an
 | Side on (a wall we look along) | A leaf seen edge on, from wall to wall, at the side its building is on | Flat against the north side of the way, its face to us, its ring at the end towards the outside |
 
 **Asked of the designer, not answered yet** (each is a ledger row's NextAction):
-- whether raised ground should go from 80 to 96, half a wall as it was, now that walls are 192 (their pick, 2026-11-16);
 - whether the cutaway reads right now, or what looked wrong if not;
 - the box at the feet: they are trying it (2026-11-15);
 - the other new numbers by feel: the wading rings and the mirror's strength.
@@ -128,7 +127,7 @@ on" is a wall to the door's north and to its south: the way through goes east an
 | `tools/stage_painter.gd`, `tools/build_stealth_stages.gd` | "r" paints raised ground; the Light stage's yard has a terrace (14..16, 18..19), a barrel beside it (13, 18) and a sign (SignDepth). Only `stealth_9.tscn` and `stealth_9_terrain.tscn` were brought back from the rebuild. |
 | `tests/depth_test_driver.gd`, `tests/suites.txt` | Suite `depth`, 67 checks, clean. |
 
-Slots so far (`art/terrain/depth/`): `face_<column>_<row>.png` and `face.png` (256 x 80), `wall_face.png` (256 x 192),
+Slots so far (`art/terrain/depth/`): `face_<column>_<row>.png` and `face.png` (256 x 96), `wall_face.png` (256 x 192),
 `top_<column>_<row>.png` (256 x 256), `object_<column>_<row>.png` (a thing alone, standing; its foot's middle goes on the tile's
 foot, any size, a barrel about 200 x 250).
 
@@ -275,3 +274,8 @@ are in the session's scratch folder; they are a page of code and quick to write 
   still shows a quarter of its floor; a clean 256 x 192 face). They chose it ("192"). `Depth.WALL_LIFT` is 192; a `DepthPiece`'s
   Height begins at `Depth.WALL_LIFT` instead of a written 160, so the roof and the arch follow; the Light stage's balcony is 144.
   Raised ground is still 80 (asked: 96?). The suites run with it and the full pass: see the next line.
+- 2026-11-16: walls at 192 committed and pushed (`fb0abe5`): `depth atmos stages light figures clock stealthworld walk daysky`
+  clean, after one check in `depth` that had "half a wall" written as 0.5 for raised ground's foot was made to ask for the
+  share. Asked about raised ground, the designer wanted to see it ("show me examples?"): eight pictures at 80 and at 96; they
+  chose 96 ("96"). `Depth.RAISED_LIFT` is 96, half a wall again; a raised-ground face for the artist is 256 x 96. The full pass:
+  see the next line.

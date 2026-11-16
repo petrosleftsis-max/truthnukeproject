@@ -419,8 +419,7 @@ func on_the_stage():
 	ok(map.version > before, "and the light's map counts each time it is worked out anew, for the view to see")
 	# The foot of walls.
 	ok(view._feet != null and view._feet.visible and view._feet.texture != null, "the foot of every wall and raised edge is shaded on the floor")
-	# Raised ground's was written here as 0.5 while it was half a wall (80 of 160). Walls are 192 since 2026-11-16, the designer's
-	# pick, so its share is 80 of 192: its foot is shaded a tenth lighter than it was.
+	# Raised ground's is its share of a wall's height, whatever the two are: half, at 96 of 192 (the designer's picks, 2026-11-16).
 	ok(DepthView.foot_of(Depth.WALL_LIFT) == 1.0 and is_equal_approx(DepthView.foot_of(Depth.RAISED_LIFT), Depth.RAISED_LIFT / Depth.WALL_LIFT)
 		and DepthView.foot_of(Depth.RAISED_LIFT) > 0.0 and DepthView.foot_of(Depth.RAISED_LIFT) < 1.0 and DepthView.foot_of(0.0) == 0.0,
 		"a wall's wholly, raised ground's by its height, the floor's not at all", "%.2f" % DepthView.foot_of(Depth.RAISED_LIFT))

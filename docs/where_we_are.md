@@ -94,7 +94,8 @@ holds the game for both).
 - **Walls are 192 tall, 2026-11-16** (`Depth.WALL_LIFT`; it was 160). The designer asked for something between 160 and 256, was
   sent four views at 160, 192, 224 and 256, and chose 192, three quarters of a tile. Doors follow, and so does a `DepthPiece` left
   at its own Height (roofs and arches); the Light stage's balcony is three quarters of the way up, 144. A wall's face for the
-  artist is 256 x 192 now (`docs/depth_on_maps.md`). Raised ground is still 80.
+  artist is 256 x 192 now (`docs/depth_on_maps.md`). Raised ground is 96, half a wall as it was, their pick the same day from
+  pictures of 80 and 96; its face for the artist is 256 x 96.
 
 - **2.5D with the art there is, 2026-11-13 and 14** (Job 1 of `docs/fable_brief.md`; CLAUDE.md "Depth"; `docs/2_5d_plan.md` has the
   whole story; `docs/depth_on_maps.md` is the guide for putting it on a map and the sizes for the artist; suite `depth`; ledger rows
@@ -454,8 +455,7 @@ holds the game for both).
 
 ## Waiting on the designer
 
-0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): whether raised ground should go from 80 to 96 now that walls are 192
-   (half a wall, as it was); the box at the party's feet (they are trying it); whether the cutaway reads right now; and
+0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): the box at the party's feet (they are trying it); whether the cutaway reads right now; and
    every depth number by feel, with the water's rings and mirror.
 0. **From later on 2026-11-13:** which of O to T, or K itself; how strong and how often the new atmosphere is, by feel. 2.5D (A, B and C)
    is built (above). `docs/fable_brief.md` has three more jobs worth Fable's time.

@@ -14,7 +14,7 @@ A tile is drawn by what its Blocks says:
 
 | Blocks | What it is | How it is drawn |
 | --- | --- | --- |
-| stops a walker, not a flier, not see-through | High ground | Lifted 80 pixels, with a face under its south edge |
+| stops a walker, not a flier, not see-through | High ground | Lifted 96 pixels (half a wall), with a face under its south edge |
 | stops a flier too | A wall | Lifted 192 pixels (three quarters of a tile), with a face |
 | see-through (water, a railing) | Neither | Flat |
 | stops no walker | Floor | Flat |
@@ -56,7 +56,7 @@ editor draws the ground it stands over as an outline, and where it will be drawn
 | Kind | Arch, Roof, Balcony, Tree or Backdrop. See below for what each does besides its placeholder. |
 | Size Tiles | How much ground it stands over, right and down from its tile. For a Tree: how big its crown is. |
 | Layer | In Front: over everybody. Behind: under the ground, seen only where no tile is painted. |
-| Height | In Front: how many pixels above the ground it is drawn. 192 rests it on the walls, and is what a new piece has; 80 rests it on raised ground. For a Tree: how tall its trunk is. |
+| Height | In Front: how many pixels above the ground it is drawn. 192 rests it on the walls, and is what a new piece has; 96 rests it on raised ground. For a Tree: how tall its trunk is. |
 | Moves | How far it slides against the ground as the view moves. Leave it below 0 for "as its kind does": a Tree 0.12, anything Behind 0.5, the rest stay put because they rest on walls. |
 | Fades | Whether it is seen through about whoever is under it. Off: always whole. |
 | Everywhere | Behind only: shown wherever no tile is painted, all round the map and however far the view goes. Size Tiles are not used, and a Picture is repeated side by side. |
@@ -90,7 +90,7 @@ A tile is 256 pixels. A person is about 330 pixels tall (the size of Cyrus's idl
 
 | Slot | Where | Size |
 | --- | --- | --- |
-| A face under raised ground | `art/terrain/depth/face_<column>_<row>.png` for one kind of tile, `face.png` for the rest | 256 x 80 |
+| A face under raised ground | `art/terrain/depth/face_<column>_<row>.png` for one kind of tile, `face.png` for the rest | 256 x 96 |
 | A wall's face | `art/terrain/depth/wall_face.png` | 256 x 192 |
 | A tile's top, in place of its own picture | `art/terrain/depth/top_<column>_<row>.png` | 256 x 256 |
 | A thing that Stands, alone | `art/terrain/depth/object_<column>_<row>.png` | Any; a barrel about 200 x 250, its foot's middle at the bottom |

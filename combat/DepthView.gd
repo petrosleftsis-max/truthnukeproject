@@ -14,7 +14,7 @@ class_name DepthView
 ##   (_tell_the_cutaways, RAISED_SHADER's `cuts`);
 ## - a shadow off every edge onto the low side, leaning with the sun or the moon as the figures' shadows do
 ##   (_cast_the_shadows, a mask LEDGE_GRAIN to a tile under the shade), and a soft line at the foot of each face.
-## Slots (Depth.slot): art/terrain/depth/face_<column>_<row>.png (256 x 80, a kind of raised ground's front, by its tile in the
+## Slots (Depth.slot): art/terrain/depth/face_<column>_<row>.png (256 x 96, a kind of raised ground's front, by its tile in the
 ## atlas), face.png (any other's), wall_face.png (256 x 192), top_<column>_<row>.png (256 x 256, in place of the tile's own picture).
 
 ## Darkened as the shade darkens the ground under them, and see-through about whoever they cover.
