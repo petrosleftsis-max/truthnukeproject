@@ -279,3 +279,5 @@ are in the session's scratch folder; they are a page of code and quick to write 
   share. Asked about raised ground, the designer wanted to see it ("show me examples?"): eight pictures at 80 and at 96; they
   chose 96 ("96"). `Depth.RAISED_LIFT` is 96, half a wall again; a raised-ground face for the artist is 256 x 96. The full pass:
   see the next line.
+- 2026-11-16: the full pass with walls at 192 (`fb0abe5`): 172 of 172 clean, no script errors. Raised ground at 96 committed
+  and pushed (`8f393ab`) after the nine closest suites came back clean; a full pass with it started: see the next line.

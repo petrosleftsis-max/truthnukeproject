@@ -455,6 +455,9 @@ holds the game for both).
 
 ## Waiting on the designer
 
+0. **Proposals of 2026-11-16** (`docs/proposals_2026-11-16.md`): twelve sections on how the game looks and feels from here (walking,
+   the map's camera, things to use, depth's next steps, water, the attacker's own motion, the pad, the interface in motion, sound
+   that follows the picture, conversations, life about, comfort dials), with what I would do first. Nothing built; they pick.
 0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): the box at the party's feet (they are trying it); whether the cutaway reads right now; and
    every depth number by feel, with the water's rings and mirror.
 0. **From later on 2026-11-13:** which of O to T, or K itself; how strong and how often the new atmosphere is, by feel. 2.5D (A, B and C)
