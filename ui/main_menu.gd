@@ -174,6 +174,7 @@ func _ready():
 	_panels["options"] = _build_options()
 	_panels["resolution"] = _build_resolution()
 	_panels["volume"] = _build_volume()
+	_panels["comfort"] = _build_comfort()
 	_panels["glossary"] = _build_glossary()
 	_panels["load"] = _build_load()
 	_panels["players"] = _build_players()
@@ -411,6 +412,7 @@ func _build_options() -> Control:
 	buttons.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	buttons.add_child(_menu_button("Resolution", func(): _show("resolution")))
 	buttons.add_child(_menu_button("Volume", func(): _show("volume")))
+	buttons.add_child(_menu_button("Comfort", func(): _show("comfort")))
 	holder.add_child(buttons)
 	var speed := BattleSpeedPicker.new()
 	speed.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -453,6 +455,17 @@ func _build_resolution() -> Control:
 func _build_volume() -> Control:
 	var holder := _panel("Volume")
 	var rows := VolumeSliders.new()
+	rows.custom_minimum_size = Vector2(360, 0)
+	rows.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	holder.add_child(rows)
+	holder.add_child(_back_button())
+	return holder
+
+
+## Shake, flashes, camera sway, rumble and slow motion (Comfort): how much of what moves the player wants.
+func _build_comfort() -> Control:
+	var holder := _panel("Comfort")
+	var rows := ComfortDials.new()
 	rows.custom_minimum_size = Vector2(360, 0)
 	rows.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	holder.add_child(rows)

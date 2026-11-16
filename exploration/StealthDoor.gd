@@ -49,6 +49,52 @@ func _ready():
 ## How thick its leaf is drawn, in tiles.
 const LEAF_TILES := 0.16
 
+## --- Swinging ---
+##
+## A door opens and shuts over SWING_SECONDS, with a creak as it goes and a thud as it comes to rest shut (the proposals of
+## 2026-11-16, section 3; the designer, 2026-11-17). Only what is drawn swings: whether anybody can walk or see through it changes
+## at once, as it did (passable). `swing` is 0 shut to 1 open as it is drawn now; headless it is where it will end, at once.
+## PROPOSAL.
+const SWING_SECONDS := 0.2
+
+var _swing := -1.0
+
+
+## 0 shut to 1 open, as it is drawn right now.
+func swing() -> float:
+	var aim := 1.0 if passable() else 0.0
+	if _swing < 0.0 or Engine.is_editor_hint() or not MapFeel.shown():
+		_swing = aim
+	return _swing
+
+
+func _process(delta: float):
+	if Engine.is_editor_hint():
+		return
+	var aim := 1.0 if passable() else 0.0
+	var was := swing()
+	if was == aim:
+		return
+	if was == 0.0 or was == 1.0:
+		MapFeel.sound(&"door_creak", -9.0, 1.0 if aim > was else 0.9)
+	_swing = move_toward(was, aim, delta / SWING_SECONDS)
+	if _swing == 0.0:
+		MapFeel.sound(&"door_shut", -7.0)
+	queue_redraw()
+
+
+## A rect part of the way from `shut` to `open`, by how far it has swung (eased, so it starts and stops softly).
+func _swung(shut: Rect2, open: Rect2) -> Rect2:
+	var share := smoothstep(0.0, 1.0, swing())
+	return Rect2(shut.position.lerp(open.position, share), shut.size.lerp(open.size, share))
+
+
+## What "in reach" goes round (ReachMark): all of it as it stands, from its top to the floor.
+func reach_rect() -> Rect2:
+	var tile := float(Grid.TILE_SIZE)
+	var lift := depth_lift() if depth_stood else 0.0
+	return Rect2(-tile * 0.5, -tile * 0.5 - lift, tile, tile + lift)
+
 ## Set by the view while it draws this door standing (DepthView._keep_the_uprights): then nothing is drawn flat on the tile.
 var depth_stood := false : set = _set_depth_stood
 
@@ -79,15 +125,13 @@ func depth_lift() -> float:
 ##   swung back flat against the north side of the way through, its face to us and the floor of the way clear below it.
 func depth_footprint(side_on: bool, inside: int = 0) -> Rect2:
 	if side_on:
-		if passable():
-			return Rect2(0.0, 0.0, 1.0, LEAF_TILES)
 		var west := 0.5 - LEAF_TILES * 0.5
 		if inside > 0:
 			west = 1.0 - LEAF_TILES
 		elif inside < 0:
 			west = 0.0
-		return Rect2(west, 0.0, LEAF_TILES, 1.0)
-	return Rect2(0.0, 0.0, LEAF_TILES, 1.0) if passable() else Rect2(0.0, 0.0, 1.0, 1.0)
+		return _swung(Rect2(west, 0.0, LEAF_TILES, 1.0), Rect2(0.0, 0.0, 1.0, LEAF_TILES))
+	return _swung(Rect2(0.0, 0.0, 1.0, 1.0), Rect2(0.0, 0.0, LEAF_TILES, 1.0))
 
 
 ## How deep its top is seen from above, in tiles. Shut and facing us it is only as thick as its leaf, and its front takes over
@@ -95,7 +139,7 @@ func depth_footprint(side_on: bool, inside: int = 0) -> Rect2:
 ## it's art should take over the part that is 'lifted' as well, as a character would be seeing the door itself, not above it, esp
 ## when above it is much thinner"). Otherwise all of what it stands on.
 func depth_top_deep(side_on: bool) -> float:
-	return LEAF_TILES if not side_on and not passable() else 1.0
+	return 1.0 if side_on else lerpf(LEAF_TILES, 1.0, smoothstep(0.0, 1.0, swing()))
 
 
 ## Set by the view: whether its ring is drawn at the west end of its front - for a door side on whose building is to the east, so

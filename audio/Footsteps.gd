@@ -19,6 +19,9 @@ static var last := {}
 ## Where the last step was, for which way the next print points.
 static var _stepped_from := Vector2.INF
 static var _last_at := -GAP_MS
+## Coming out of water, the next few steps leave dark prints, each fainter (the proposals of 2026-11-16, section 1). PROPOSAL.
+const WET_PRINTS := 7
+static var _wet_left := 0
 
 
 ## A step at `at`, a place in the world.
@@ -32,6 +35,11 @@ static func step(at: Vector2, softly: bool = false):
 	_stepped_from = at
 	LightView.leave_print(at, way)
 	LightView.splash(at)
+	if LightView.in_water(at):
+		_wet_left = WET_PRINTS
+	elif _wet_left > 0:
+		LightView.leave_wet_print(at, way, float(_wet_left) / float(WET_PRINTS))
+		_wet_left -= 1
 	var wet := LightView.rainy_at(at) or LightView.in_water(at)
 	var db: float = (WET_DB if wet else DRY_DB) + (SOFTLY_DB if softly else 0.0)
 	last = {"wet": wet, "db": db}

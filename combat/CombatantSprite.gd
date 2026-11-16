@@ -1510,6 +1510,22 @@ func squash(direction: Vector2):
 	_shape_tween.tween_property(drawn, "scale", Vector2.ONE, RECOIL_SECONDS).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 
+## The drawing stretched along `direction` by `amount` (0.2: a fifth longer that way, thinner across) for `seconds`, and springing
+## back: a dash on a map (ExplorationParty).
+func stretch_along(direction: Vector2, amount: float, seconds: float):
+	var drawn = _drawn()
+	if drawn == null or direction == Vector2.ZERO or laid:
+		return
+	if _shape_tween != null and _shape_tween.is_valid():
+		_shape_tween.kill()
+	var across := absf(direction.normalized().x)
+	var stretched := Vector2(1.0 + amount * across - amount * 0.5 * (1.0 - across), 1.0 + amount * (1.0 - across) - amount * 0.5 * across)
+	_shape_tween = create_tween()
+	_shape_tween.tween_property(drawn, "scale", stretched, maxf(seconds, 0.02) * 0.3).set_ease(Tween.EASE_OUT)
+	_shape_tween.tween_interval(maxf(seconds, 0.02) * 0.7)
+	_shape_tween.tween_property(drawn, "scale", Vector2.ONE, RECOIL_SECONDS).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+
 ## 0 at both ends and 1 at `peak` (0 to 1), a parabola either side of it.
 static func _arc(t: float, peak: float) -> float:
 	if t < peak:

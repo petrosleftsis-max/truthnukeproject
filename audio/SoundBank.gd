@@ -66,6 +66,23 @@ class_name SoundBank
 ## The Levels page unveiling what lies past ΛΗΘΗ.
 @export var levels_unveiled: AudioStream
 
+@export_group("On a map")
+## A door swinging open or shut, and coming to rest shut (StealthDoor). Empty: a stand-in, made on the spot, as all of these are.
+@export var door_creak: AudioStream
+@export var door_shut: AudioStream
+## Something taken from where it lay, as it lands in the bag (StealthPickup).
+@export var picked_up: AudioStream
+## A lamp put out.
+@export var lamp_out: AudioStream
+## A breakable wall coming down.
+@export var wall_breaks: AudioStream
+## Something landing in water.
+@export var water_splash: AudioStream
+## A soft tick as a line of a conversation types out, pitched for who speaks (DialogueBalloon).
+@export var voice_tick: AudioStream
+## A button refused: something that cannot be done just now.
+@export var refused: AudioStream
+
 @export_group("Menus")
 ## Every button there is, but those that say otherwise (GameSounds.quiet).
 @export var menu_press: AudioStream

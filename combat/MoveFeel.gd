@@ -597,7 +597,9 @@ static func _overlay(combat: Combat) -> CanvasLayer:
 ## roar's pulse.
 static func screen_flash(combat: Combat, tint: Color, seconds: float):
 	var layer := _overlay(combat)
-	if layer == null:
+	# As bright as the player wants (Comfort, Options): at nothing, no flash at all.
+	tint.a *= Comfort.share(Comfort.FLASHES)
+	if layer == null or tint.a <= 0.004:
 		return
 	var flash := ColorRect.new()
 	flash.color = tint

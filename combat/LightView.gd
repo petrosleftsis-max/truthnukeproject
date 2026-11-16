@@ -1209,16 +1209,24 @@ class _Prints extends Node2D:
 		if marks.is_empty():
 			return
 		var now := Time.get_ticks_msec() / 1000.0
-		marks = marks.filter(func(mark): return now - float(mark.born) < (LightView.PRINT_SNOW_SECONDS if mark.snow else LightView.PRINT_MUD_SECONDS))
+		marks = marks.filter(func(mark): return now - float(mark.born) < _lasts(mark))
 		queue_redraw()
+
+	static func _lasts(mark: Dictionary) -> float:
+		if mark.has("wet"):
+			return LightView.PRINT_WET_SECONDS
+		return LightView.PRINT_SNOW_SECONDS if mark.snow else LightView.PRINT_MUD_SECONDS
 
 	func _draw():
 		var now := Time.get_ticks_msec() / 1000.0
 		var foot := float(Grid.TILE_SIZE) * 0.055
 		for mark in marks:
-			var lasts: float = LightView.PRINT_SNOW_SECONDS if mark.snow else LightView.PRINT_MUD_SECONDS
+			var lasts: float = _lasts(mark)
 			var fade: float = clampf(1.0 - (now - float(mark.born)) / lasts, 0.0, 1.0)
 			var colour := Color(0.62, 0.68, 0.8, 0.45 * fade) if mark.snow else Color(0.16, 0.12, 0.09, 0.45 * fade)
+			if mark.has("wet"):
+				# Out of water: the ground darkened where a foot came down.
+				colour = Color(0.03, 0.05, 0.08, 0.5 * fade * float(mark.wet))
 			var way: Vector2 = mark.way if mark.way.length_squared() > 0.001 else Vector2.RIGHT
 			var side := way.orthogonal().normalized() * foot * (0.9 if mark.left else -0.9)
 			draw_set_transform(to_local(mark.at) + side, way.angle(), Vector2(1.0, 0.55))
@@ -1314,6 +1322,23 @@ func _leave_print(at: Vector2, way: Vector2):
 	_prints.marks.append({"at": at, "way": way, "born": Time.get_ticks_msec() / 1000.0, "snow": in_snow, "left": left})
 	while _prints.marks.size() > PRINTS_MOST:
 		_prints.marks.pop_front()
+
+
+## A dark print left by somebody just out of water, `share` strong (1 the first step, less each one after): on any ground, under
+## a roof or not, and gone sooner than one in mud (PRINT_WET_SECONDS). `at` is the point they stand on; the print is at their feet.
+const PRINT_WET_SECONDS := 7.0
+static var wet_prints_left := 0
+
+
+static func leave_wet_print(at: Vector2, way: Vector2, share: float):
+	wet_prints_left += 1
+	if showing == null or not is_instance_valid(showing) or showing._prints == null or not shown():
+		return
+	var marks: Array = showing._prints.marks
+	var left: bool = marks.is_empty() or not marks.back().left
+	marks.append({"at": at + Vector2(0.0, float(Grid.TILE_SIZE) * 0.4), "way": way, "born": Time.get_ticks_msec() / 1000.0, "snow": false, "left": left, "wet": clampf(share, 0.0, 1.0)})
+	while marks.size() > PRINTS_MOST:
+		marks.pop_front()
 
 
 ## A splash under a step at `at`, in the rain.
@@ -1686,10 +1711,12 @@ func _flash_the_sky(lightning: float, thunder_after: float = -1.0):
 	_flash.global_position = from_screen * Vector2.ZERO
 	_flash.size = get_viewport_rect().size * from_screen.get_scale()
 	_flash.visible = true
+	# As bright as the player wants (Comfort, Options); the thunder follows all the same.
+	var bright := lightning * Comfort.share(Comfort.FLASHES)
 	var flash := create_tween()
-	flash.tween_property(_flash, "color:a", 0.55 * lightning, 0.05)
+	flash.tween_property(_flash, "color:a", 0.55 * bright, 0.05)
 	flash.tween_property(_flash, "color:a", 0.0, 0.12)
-	flash.tween_property(_flash, "color:a", 0.35 * lightning, 0.04)
+	flash.tween_property(_flash, "color:a", 0.35 * bright, 0.04)
 	flash.tween_property(_flash, "color:a", 0.0, 0.35)
 	flash.tween_interval(thunder_after if thunder_after >= 0.0 else randf_range(THUNDER_AFTER[0], THUNDER_AFTER[1]))
 	flash.tween_callback(func(): GameSounds.play(&"thunder", -4.0 if thunder_after < 0.0 else 0.0))
@@ -2531,7 +2558,7 @@ func far_lightning_now(strength: float = 1.0):
 	_far_flash.size = get_viewport_rect().size * from_screen.get_scale()
 	_far_flash.material.set_shader_parameter("side", Vector2.RIGHT.rotated(randf() * TAU))
 	_far_flash.visible = true
-	var most := FAR_FLASH * strength
+	var most := FAR_FLASH * strength * Comfort.share(Comfort.FLASHES)
 	var flash := create_tween()
 	flash.tween_method(_set_far_flash, 0.0, most, 0.06)
 	flash.tween_method(_set_far_flash, most, most * 0.25, 0.12)

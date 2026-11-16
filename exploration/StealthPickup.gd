@@ -60,12 +60,28 @@ func interact(scene: Node):
 		mark_taken()
 
 
-## Gone from where it lay.
+## Gone from where it lay: it rises, and flies off to the leader's portrait, landing with a tick (the proposals of 2026-11-16,
+## section 3: "Picked up"; MapFeel.fly_to_bag). Only to look at: it is in the bag already.
 func mark_taken():
+	if not taken and is_inside_tree() and not Engine.is_editor_hint():
+		_fly_off()
 	taken = true
 	if taken_flag != "":
 		Campaign.set_flag(taken_flag)
 	queue_redraw()
+
+
+func _fly_off():
+	var item = _item()
+	var to_screen := get_viewport().get_canvas_transform()
+	var from: Vector2 = to_screen * (global_position + Vector2(0.0, -Grid.TILE_SIZE * 0.25))
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	var to := Vector2(48.0, screen.y - 48.0)
+	var scene := get_tree().current_scene
+	var hud = scene.get("game_ui") if scene != null else null
+	if hud != null and is_instance_valid(hud) and hud.has_node("Actions/StatusIcon") and hud.get_node("Actions/StatusIcon").is_visible_in_tree():
+		to = hud.get_node("Actions/StatusIcon").get_global_rect().get_center()
+	MapFeel.fly_to_bag(scene if scene != null else self, item.icon if item != null else null, from, to, func(): MapFeel.sound(&"picked_up", -8.0))
 
 
 func _draw():

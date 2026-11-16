@@ -125,6 +125,8 @@ static func _start(sound: AudioStream, volume_db: float, from: float = 0.0) -> A
 		return null
 	player.stream = sound
 	player.volume_db = volume_db
+	# Whoever pitched it last (MapFeel.sound) does not pitch this one.
+	player.pitch_scale = 1.0
 	player.play(from)
 	return player
 

@@ -159,6 +159,15 @@ func _ready():
 	shapes.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	$OptionsPanel/VBox.add_child(shapes)
 	_options_buttons.append(shapes)
+	# Shake, flashes, camera sway, rumble and slow motion, in a panel of their own: Options is as tall as it can be already. Above the
+	# volume, so the sliders stay last in the keyboard's loop.
+	var comfort := Button.new()
+	comfort.name = "ComfortButton"
+	comfort.text = "Comfort"
+	comfort.pressed.connect(func(): _show_panel(_comfort_panel, _comfort_controls))
+	$OptionsPanel/VBox.add_child(comfort)
+	_options_buttons.append(comfort)
+	_build_comfort()
 	_volume = VolumeSliders.new()
 	$OptionsPanel/VBox.add_child(_volume)
 	_options_buttons.append_array(_volume.sliders())
@@ -181,7 +190,7 @@ func _show_panel(panel: Control, buttons: Array):
 	if panel == $PausePanel:
 		_offer_restart()
 		buttons = _pause_buttons
-	if not $PausePanel.visible and not $OptionsPanel.visible and not _glossary_showing():
+	if not $PausePanel.visible and not $OptionsPanel.visible and not _glossary_showing() and not (_comfort_panel != null and _comfort_panel.visible):
 		# Who had the keyboard before this opened. A dialogue balloon holds it
 		# while a conversation is on, and Enter stops advancing the conversation
 		# if it doesn't get it back.
@@ -191,6 +200,8 @@ func _show_panel(panel: Control, buttons: Array):
 	$OptionsPanel.visible = panel == $OptionsPanel
 	if _glossary_panel != null:
 		_glossary_panel.visible = panel == _glossary_panel
+	if _comfort_panel != null:
+		_comfort_panel.visible = panel == _comfort_panel
 	if not buttons.is_empty():
 		if _keyboard == null:
 			_keyboard = FocusOnDemand.attach(self, buttons[0])
@@ -207,6 +218,8 @@ func _close():
 	$OptionsPanel.visible = false
 	if _glossary_panel != null:
 		_glossary_panel.visible = false
+	if _comfort_panel != null:
+		_comfort_panel.visible = false
 	MenuPause.release(self)
 	var focused = get_viewport().gui_get_focus_owner()
 	if focused != null:
@@ -230,6 +243,9 @@ func _unhandled_input(event):
 		# The same as Options: back to Pause.
 		_close_saves()
 		_show_panel($PausePanel, _pause_buttons)
+	elif _comfort_panel != null and _comfort_panel.visible:
+		# Back to Options, where it was opened from.
+		_show_panel($OptionsPanel, _options_buttons)
 	elif $OptionsPanel.visible or _glossary_showing():
 		# Escape from a sub-panel goes back to Pause rather than closing
 		# everything, so one key does not drop you out of the game from three
@@ -248,6 +264,48 @@ func _unhandled_input(event):
 
 func _on_options_pressed():
 	_show_panel($OptionsPanel, _options_buttons)
+
+
+## --- Comfort ---
+##
+## How much of what moves the player wants (Comfort, ComfortDials): the same dials as the title screen's.
+
+var _comfort_panel: PanelContainer = null
+var _comfort_controls: Array = []
+
+
+func _build_comfort():
+	_comfort_panel = PanelContainer.new()
+	_comfort_panel.name = "ComfortPanel"
+	_comfort_panel.visible = false
+	_comfort_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_comfort_panel.offset_left = -190.0
+	_comfort_panel.offset_top = -190.0
+	_comfort_panel.offset_right = 190.0
+	_comfort_panel.offset_bottom = 190.0
+	_comfort_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_comfort_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 16)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	var title := Label.new()
+	title.theme_type_variation = &"HeaderLabel"
+	title.add_theme_font_size_override("font_size", 28)
+	title.text = "Comfort"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var dials := ComfortDials.new()
+	box.add_child(dials)
+	var back := Button.new()
+	back.name = "BackButton"
+	back.text = "Back"
+	back.pressed.connect(func(): _show_panel($OptionsPanel, _options_buttons))
+	box.add_child(back)
+	_comfort_panel.add_child(box)
+	add_child(_comfort_panel)
+	_comfort_controls = dials.controls()
+	_comfort_controls.append(back)
+	FocusLoop.link(_comfort_controls)
 
 
 func _glossary_showing() -> bool:

@@ -6874,7 +6874,8 @@ var _slowed := 0
 
 
 func slow_motion(seconds: float, share: float):
-	if not MoveFeel.shown():
+	# Not for anybody who has turned it off (Comfort, Options).
+	if not MoveFeel.shown() or not Comfort.slow_motion():
 		return
 	_slowed += 1
 	if _hit_stop_depth == 0:

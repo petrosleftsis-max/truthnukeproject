@@ -111,6 +111,9 @@ func setup(members: Array, start_position: Vector2, walkable_test: Callable):
 	_trail.clear()
 	_trail_length = 0.0
 	_said_anything = false
+	_fan.clear()
+	_fan_walks.clear()
+	_gait = 0.0
 	for i in members.size():
 		# The same CombatantSprite battles use, so the party walks with the
 		# animation set it fights with rather than sliding along as a still. It
@@ -211,6 +214,11 @@ func dash(direction: Vector2, distance: float, seconds: float) -> bool:
 	_dash_left = distance
 	_dash_speed = distance / maxf(seconds, 0.01)
 	dashing = true
+	# A dash ends where it ends: nothing of the walk's glide is added to it.
+	_gait = 0.0
+	# Felt (the proposals of 2026-11-16, section 1): the leader stretched along the way, and a streak left behind.
+	leader.stretch_along(_dash_direction, DASH_STRETCH, seconds)
+	MapFeel.spawn(self, &"streak", leader.position + FEET, {"toward": _dash_direction, "reach": distance * 0.6, "seconds": seconds + 0.12, "z": PARTY_Z_BOTTOM - 1})
 	return true
 
 
@@ -269,6 +277,9 @@ func held_direction() -> Vector2:
 		return Vector2.ZERO
 	if player >= 0 and Coop.on():
 		return Coop.direction(player, &"move_left", &"move_right", &"move_up", &"move_down")
+	# Looking about with the keys (ExplorationScene "The map's camera, softer"): the view slides and nobody walks.
+	if not Pad.using_pad and InputMap.has_action(&"look_about") and Input.is_action_pressed(&"look_about"):
+		return Vector2.ZERO
 	return Pad.direction(&"move_left", &"move_right", &"move_up", &"move_down")
 
 
@@ -288,6 +299,7 @@ func _process(delta):
 		return
 	if leader == null or frozen or rooted or in_a_menu or _held_by_another():
 		dashing = false
+		_gait = 0.0
 		if vaulting:
 			# Not left hanging over the barrel: down on the far side.
 			leader.position = _vault_to
@@ -303,16 +315,131 @@ func _process(delta):
 		# Stopped by a wall, or run its length: either way it is over.
 		if not _step(_dash_direction, delta, length / maxf(delta, 0.0001)) or _dash_left <= 0.0:
 			dashing = false
+			_gait = 0.0
+			# A skid of dust where it ends, thrown on the way it was going.
+			MapFeel.spawn(self, &"skid", leader.position + FEET, {"toward": _dash_direction, "z": PARTY_Z_BOTTOM - 1})
 		return
 	var direction = held_direction()
 	if direction == Vector2.ZERO:
+		# Easing out: a moment's glide the way they were going, and then still.
+		if _gait > 0.0 and _going != Vector2.ZERO:
+			_gait = maxf(_gait - delta / EASE_OUT_SECONDS, 0.0)
+			if _gait > 0.0 and _step(_going, delta, move_speed * pace * hurry * _gait):
+				return
+		_gait = 0.0
 		_set_walking(false)
+		_fan_step(delta, true)
 		return
-	_step(direction, delta)
+	# Easing in: from EASE_FROM of their pace to all of it over EASE_IN_SECONDS. Turning costs nothing.
+	_gait = minf(_gait + delta / EASE_IN_SECONDS, 1.0)
+	_going = direction
+	_fan_step(delta, false)
+	if not _step(direction, delta, move_speed * pace * hurry * lerpf(EASE_FROM, 1.0, _gait)):
+		_gait = 0.0
 
 
 ## Whether another player's group is held - a conversation, a catch: in co-op
 ## everybody holds together (ExplorationScene "Co-op").
+## --- Weight, and followers with a mind ---
+##
+## The proposals of 2026-11-16, section 1 (the designer, 2026-11-17). The party reaches its pace over a moment and stops over a
+## shorter one, so it has weight; turning stays instant. Those behind fan out a little to either side once the leader has stood a
+## while, instead of standing in a line, and fall back in as it sets off. Only the keys' own walking eases: a dash, a retreat and a
+## puppet (another machine's player) go as they went. All numbers PROPOSAL.
+
+const EASE_IN_SECONDS := 0.12
+const EASE_OUT_SECONDS := 0.09
+## The share of their pace they set off at.
+const EASE_FROM := 0.35
+## How long the leader stands before those behind fan out, how far to the side and how much closer, and how fast they go.
+const FAN_AFTER_SECONDS := 0.5
+const FAN_TILES := 0.3
+const FAN_CLOSER_TILES := 0.12
+const FAN_RATE := 5.0
+const FAN_BACK_RATE := 8.0
+## How much longer the leader is drawn along a dash's way.
+const DASH_STRETCH := 0.22
+## Where their feet are from the point they stand on.
+const FEET := Vector2(0.0, Grid.TILE_SIZE * 0.4)
+
+## Off for a map that wants its line kept (and for a suite that measures the line).
+var fans := true
+## 0 standing to 1 at full pace, and the way they last went.
+var _gait := 0.0
+var _going := Vector2.ZERO
+var _stood := 0.0
+## Where each follower is off its place on the trail, and whether it is walking there.
+var _fan: Array = []
+var _fan_walks: Array = []
+
+
+## How much of their pace they have: 0 standing, 1 walking flat out.
+func gait() -> float:
+	return _gait
+
+
+## A step of the fan: out while the leader has stood FAN_AFTER_SECONDS, back in as it walks.
+func _fan_step(delta: float, standing: bool):
+	_stood = _stood + delta if standing else 0.0
+	if followers.is_empty():
+		return
+	while _fan.size() < followers.size():
+		_fan.append(Vector2.ZERO)
+		_fan_walks.append(false)
+	for i in followers.size():
+		var aim := Vector2.ZERO
+		if standing and fans and _stood >= FAN_AFTER_SECONDS:
+			aim = _fan_spot(i)
+		var was: Vector2 = _fan[i]
+		var now: Vector2 = was.lerp(aim, 1.0 - exp(-(FAN_RATE if standing else FAN_BACK_RATE) * delta))
+		if now.distance_to(aim) < 0.75:
+			now = aim
+		_fan[i] = now
+		if not standing:
+			# _place_followers puts them, the fan with them.
+			_fan_walks[i] = false
+			continue
+		if now != was:
+			followers[i].position += now - was
+			if absf(now.x - was.x) > 0.05:
+				followers[i].set_facing(now.x < was.x)
+		var walks: bool = now != aim
+		if walks != bool(_fan_walks[i]):
+			_fan_walks[i] = walks
+			if walks:
+				followers[i].play_walk()
+			else:
+				followers[i].play_idle()
+				followers[i].set_facing(_facing_left)
+
+
+## Where follower `i` stands off the trail once fanned out: to one side of the line and a little closer, on ground it fits on -
+## the other side if not, and in the line where neither will do.
+func _fan_spot(i: int) -> Vector2:
+	var back := follow_spacing * (i + 1)
+	var here := _trail_position(back)
+	var along := _trail_position(maxf(back - follow_spacing * 0.5, 0.0)) - here
+	if along.length() < 1.0:
+		along = Vector2.LEFT if _facing_left else Vector2.RIGHT
+	along = along.normalized()
+	var side := along.orthogonal() * (1.0 if i % 2 == 0 else -1.0)
+	for way in [side, -side]:
+		var spot: Vector2 = way * Grid.tiles(FAN_TILES) + along * Grid.tiles(FAN_CLOSER_TILES)
+		if _fits(here + spot):
+			return spot
+	return Vector2.ZERO
+
+
+## Whether a body fits at `centre`, by the map alone (no leash: this is where a follower stands, not where the group goes).
+func _fits(centre: Vector2) -> bool:
+	if not _walkable_test.is_valid():
+		return true
+	for offset in body_corners(body_half_width, body_above, body_below):
+		if not _walkable_test.call(centre + offset):
+			return false
+	return true
+
+
 func _held_by_another() -> bool:
 	for group in companions:
 		if group != self and is_instance_valid(group) and group.frozen:
@@ -424,6 +551,10 @@ func keep_places(places: Dictionary):
 	if not trail.is_empty():
 		_trail = trail
 		_trail_length = length
+	# Where they stood is where they are: nothing of the fan is left over.
+	_fan.clear()
+	_fan_walks.clear()
+	_stood = 0.0
 
 
 ## `sprite` stays at `at`, out of the line.
@@ -503,7 +634,7 @@ func _record_trail(from: Vector2, to: Vector2):
 
 func _place_followers():
 	for i in followers.size():
-		followers[i].position = _trail_position(follow_spacing * (i + 1))
+		followers[i].position = _trail_position(follow_spacing * (i + 1)) + (_fan[i] if i < _fan.size() else Vector2.ZERO)
 
 
 ## Where the leader was, `distance_back` pixels ago along the route actually
@@ -531,6 +662,10 @@ func _trail_position(distance_back: float) -> Vector2:
 func teleport(to: Vector2):
 	vaulting = false
 	dashing = false
+	_gait = 0.0
+	_fan.clear()
+	_fan_walks.clear()
+	_stood = 0.0
 	_said_at = to
 	_trail.clear()
 	_trail_length = 0.0
@@ -581,6 +716,7 @@ func _ease_to_where_said(delta: float):
 		_place_followers()
 		moved.emit(_said_at)
 	_set_walking(_said_walking or gap > Grid.tiles(0.1))
+	_fan_step(delta, not _walking)
 
 
 func position_of_leader() -> Vector2:

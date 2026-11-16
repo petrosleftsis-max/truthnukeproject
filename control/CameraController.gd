@@ -195,7 +195,8 @@ var _shake := 0.0
 ## the strongest of any overlapping calls rather than adding them up, so three
 ## things going off together shake once rather than throwing the camera.
 func shake(pixels: float):
-	_shake = maxf(_shake, pixels)
+	# As much of it as the player wants (Comfort, Options).
+	_shake = maxf(_shake, pixels * Comfort.share(Comfort.SHAKE))
 
 
 func _shake_step(delta: float):
@@ -417,7 +418,7 @@ func _take_back():
 func lean_after(point: Vector2, share: float):
 	if not moves():
 		return
-	_lean_aim = ((point - position) * share).limit_length(LEAN_MOST_PIXELS / maxf(zoom.x, 0.001))
+	_lean_aim = ((point - position) * share).limit_length(LEAN_MOST_PIXELS / maxf(zoom.x, 0.001)) * Comfort.share(Comfort.SWAY)
 
 
 ## It comes back to the middle.
@@ -430,7 +431,7 @@ func lean_off():
 func kick(direction: Vector2, pixels: float):
 	if not moves() or direction == Vector2.ZERO:
 		return
-	_lean += direction.normalized() * pixels / maxf(zoom.x, 0.001)
+	_lean += direction.normalized() * pixels * Comfort.share(Comfort.SWAY) / maxf(zoom.x, 0.001)
 
 
 ## --- Watching somebody act ---

@@ -792,6 +792,16 @@ map). Screen-wide flashes and faces are on `MoveFeelOverlay` (layer 20). The hur
 vignette's flare runs on real time (`HurtVignette.flare`), so a hit-stop - a kill's
 longest - does not hold it back.
 
+**How the game feels** (`docs/feel_built.md`, the proposals of 2026-11-16 built from 2026-11-17; `feel`). View and feel only,
+every number PROPOSAL. `Comfort` (`ui/comfort.gd`, Options' Comfort group `ComfortDials`): whatever shakes the view, flashes the screen, sways the
+camera, rumbles a pad or slows the world asks `Comfort.share(...)` or `Comfort.slow_motion()` first - a new effect gets its dial. `MapFeel`
+(`exploration/MapFeel.gd`) is the map's MoveFeel: small drawn effects (`spawn`), `sound(slot)` (the SoundBank's "On a map" slot or a
+`PlaceholderSounds` stand-in of the same name, counted in `heard`), `fly_to_bag`; headless nothing unless `plays_headless`. `ExplorationParty`
+"Weight, and followers with a mind" (`_gait`, `_fan`; only the keys' walking eases, `_step` itself is as it was). `ExplorationScene` "The map's
+camera, softer": `_aim_camera` sets `_view_want` and `_soften_view` eases there every frame (headless it is put there, unless
+`CameraController.moves_headless`); the room's share of the zoom goes on and comes off as the stealth pressure's does. `ReachMark` outlines
+`_current_target`. `StealthDoor.swing()` and `Lamp.glow()` ease only what is drawn. `Rumble` (`control/Rumble.gd`).
+
 ## Stealth maps
 
 An exploration map with a `StealthSetup` in it is watched in real time by its

@@ -91,6 +91,12 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **How the game feels, from 2026-11-17** (`docs/feel_built.md`, kept current as each part goes in; suite `feel`). The designer on
+  the proposals of 2026-11-16: "in general i love all of these recommendations", and a line for each section. Built so far:
+  the Comfort dials (12), walking (1: ease in and out, followers that fan out, wet prints, the dash), the map's camera (2: soft
+  follow, looking ahead, rooms, a look about on Left Alt, arriving) and things to use (3: a door that swings, what is in reach
+  outlined with its prompt beside it, pick-ups flying to the bag, a lamp put out, a wall broken). Every number is a PROPOSAL.
+
 - **Walls are 192 tall, 2026-11-16** (`Depth.WALL_LIFT`; it was 160). The designer asked for something between 160 and 256, was
   sent four views at 160, 192, 224 and 256, and chose 192, three quarters of a tile. Doors follow, and so does a `DepthPiece` left
   at its own Height (roofs and arches); the Light stage's balcony is three quarters of the way up, 144. A wall's face for the
@@ -455,7 +461,9 @@ holds the game for both).
 
 ## Waiting on the designer
 
-0. **Proposals of 2026-11-16** (`docs/proposals_2026-11-16.md`): twelve sections on how the game looks and feels from here (walking,
+0. **How the game feels** (`docs/feel_built.md`): every number in it, by feel; whether the banner at the top should go now that the
+   prompt is beside the thing in reach.
+0. **Proposals of 2026-11-16** (`docs/proposals_2026-11-16.md`; being built, see `docs/feel_built.md`): twelve sections on how the game looks and feels from here (walking,
    the map's camera, things to use, depth's next steps, water, the attacker's own motion, the pad, the interface in motion, sound
    that follows the picture, conversations, life about, comfort dials), with what I would do first. Nothing built; they pick.
 0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): the box at the party's feet (they are trying it); whether the cutaway reads right now; and

@@ -580,6 +580,7 @@ func _spawn_party():
 	if not Coop.players_changed.is_connected(_on_players_changed):
 		Coop.players_changed.connect(_on_players_changed)
 	_follow_camera(_camera_group().position_of_leader())
+	_arrive()
 
 
 ## What everyone still standing looks like, leader first - straight off the
@@ -611,6 +612,7 @@ func _start_position() -> Vector2:
 		return Campaign.return_position
 	var entries = []
 	_collect_entries(get_node_or_null(MAP_NODE), entries)
+	_came_by_entry = not entries.is_empty()
 	if entries.is_empty():
 		var ground = _first_standable_position()
 		push_warning("Exploration map '%s' has no EntryPoint - starting the party on the first ground found, at %s. Add one to say where they should arrive." % [map_path(), ground])
@@ -690,6 +692,13 @@ func _aim_camera(at: Vector2, zoom_level: float = 0.0):
 		return
 	if zoom_level > 0.0:
 		camera.zoom = Vector2.ONE * zoom_level
+	if _view_softened():
+		# Not put there: eased there, frame by frame (The map's camera, softer).
+		_view_want = at
+		if _view_has:
+			return
+		_view_has = true
+		_view_was = at
 	camera.position = at
 	if camera.has_method("clamp_to_map"):
 		# The battle camera's clamping: the middle of the view stays on the
@@ -886,8 +895,32 @@ func _nearest_interactable(group: ExplorationParty = null) -> Interactable:
 	return best
 
 
+## --- In reach, it shows ---
+##
+## What the interact key would use right now is outlined, its prompt beside it (ReachMark; the proposals of 2026-11-16, section 3).
+## Not in co-op on one screen, where each player has a prompt of their own in the banner, nor while something holds the map.
+
+var reach_mark: ReachMark = null
+
+
+func _mark_in_reach():
+	if reach_mark == null or not is_instance_valid(reach_mark):
+		if not MapFeel.shown():
+			return
+		reach_mark = ReachMark.new()
+		reach_mark.name = "ReachMark"
+		add_child(reach_mark)
+	var shows: bool = _current_target != null and groups.is_empty() and not _blocking_interaction and not controlling_familiar()
+	if shows:
+		reach_mark.show_on(_current_target, Pad.key(&"interact"), _current_target.prompt)
+	else:
+		reach_mark.show_on(null)
+
+
 func _update_prompt():
+
 	_current_target = _nearest_interactable()
+	_mark_in_reach()
 	if game_ui == null or not game_ui.has_method("set_interaction_prompt"):
 		return
 	if not groups.is_empty() and not _blocking_interaction:
@@ -1083,11 +1116,198 @@ var _path_layer: CanvasLayer = null
 var picker: SubclassPicker = null
 
 
+## --- The map's camera, softer ---
+##
+## The proposals of 2026-11-16, section 2 (the designer, 2026-11-17: "Do all"). The view was fixed to the leader. Now:
+##
+## - A soft follow: it trails the leader by a fraction of a second and settles (FOLLOW_RATE).
+## - Looking ahead: it leans the way the party walks, LOOK_AHEAD_TILES at most, and comes back once they have stood a moment.
+## - Rooms that frame themselves: in a small enclosed place (ROOM_MOST_TILES of floor or fewer, counted with the roof or the open
+##   sky they began under) it eases in by ROOM_ZOOM, and back out in the open. Its share of the zoom goes on and comes off as the
+##   stealth map's pressure does, so the wheel and that lean are kept.
+## - A look about: holding `look_about` (Left Alt) the walking keys slide the view up to LOOK_ABOUT_TILES and nobody walks; on a
+##   pad, the pointer pushed to the screen's edge does it. Let go, it comes back.
+## - Arriving: coming onto a map by one of its ways in, the view starts ARRIVE_TILES outside it and glides to the party.
+##
+## How much of it there is, is the player's (Comfort.SWAY): at nothing the view is fixed to the leader as it was, though they may
+## still look about. Only the view: nothing here is a rule, and headless it is fixed as it was unless a suite asks
+## (CameraController.moves_headless). With several groups on one screen the view frames them all, softly, and none of the rest.
+## All numbers PROPOSAL.
+
+const FOLLOW_RATE := 9.0
+const LOOK_AHEAD_TILES := 0.9
+const LOOK_AHEAD_RATE := 2.4
+## How long they stand before the view stops looking ahead.
+const LOOK_AHEAD_HOLD := 0.6
+const ROOM_MOST_TILES := 36
+const ROOM_ZOOM := 0.1
+const ROOM_RATE := 1.6
+const LOOK_ABOUT_TILES := 4.0
+const LOOK_ABOUT_RATE := 5.0
+## The share of the screen at each edge where a pad's pointer slides the view.
+const LOOK_ABOUT_EDGE := 0.08
+const ARRIVE_TILES := 1.6
+const ARRIVE_SECONDS := 1.0
+const ARRIVE_RATE := 3.0
+## Further than this in one go is not walked: the view is put there (a door, a blink).
+const VIEW_JUMP_TILES := 7.0
+
+## Where the view would be put, and whether it has been put anywhere yet.
+var _view_want := Vector2.ZERO
+var _view_has := false
+var _view_was := Vector2.ZERO
+var _view_still := 0.0
+var _look_ahead := Vector2.ZERO
+var _look_about := Vector2.ZERO
+var _room_zoom := 0.0
+var _room_applied := 0.0
+var _room_tile := Vector2i(-99999, -99999)
+var _room_small := false
+var _arriving := 0.0
+## Set by _start_position: the party came by one of the map's ways in.
+var _came_by_entry := false
+
+
+func _view_softened() -> bool:
+	return camera != null and CameraController.moves()
+
+
+## Where the view is aimed apart from the leader: for a suite and the curious. {ahead, about, room}
+func view_feel() -> Dictionary:
+	return {"ahead": _look_ahead, "about": _look_about, "room": _room_zoom, "want": _view_want, "arriving": _arriving}
+
+
+## The view starts outside the way in and glides to the party (once, from _spawn_party).
+func _arrive():
+	if not _view_softened() or not _came_by_entry or Comfort.share(Comfort.SWAY) <= 0.0 or not camera.has_method("get_map_rect"):
+		return
+	var middle: Vector2 = camera.get_map_rect().get_center()
+	var out: Vector2 = _view_want - middle
+	if out.length() < 1.0:
+		return
+	camera.position = _view_want + out.normalized() * Grid.tiles(ARRIVE_TILES) * Comfort.share(Comfort.SWAY)
+	camera.clamp_to_map()
+	_arriving = ARRIVE_SECONDS
+
+
+## A frame of the softer view: every frame, held or not, so it settles under a conversation too.
+func _soften_view(delta: float):
+	if not _view_softened() or not _view_has or _camera_gliding():
+		return
+	var sway := Comfort.share(Comfort.SWAY)
+	var alone: bool = groups.size() <= 1 or Coop.networked
+	var walked := _view_want - _view_was
+	_view_was = _view_want
+	var ahead := Vector2.ZERO
+	if alone and walked.length() > 0.01 and walked.length() < Grid.tiles(1.0):
+		ahead = walked.normalized() * Grid.tiles(LOOK_AHEAD_TILES) * sway
+		_view_still = 0.0
+	else:
+		_view_still += delta
+	if ahead != Vector2.ZERO or _view_still > LOOK_AHEAD_HOLD or sway <= 0.0:
+		_look_ahead = _look_ahead.lerp(ahead, 1.0 - exp(-LOOK_AHEAD_RATE * delta))
+		if ahead == Vector2.ZERO and _look_ahead.length() < 0.5:
+			_look_ahead = Vector2.ZERO
+	var about := _look_about_aim() if alone else Vector2.ZERO
+	_look_about = _look_about.lerp(about, 1.0 - exp(-LOOK_ABOUT_RATE * delta))
+	if about == Vector2.ZERO and _look_about.length() < 0.5:
+		_look_about = Vector2.ZERO
+	var to := _view_want + _look_ahead + _look_about
+	_arriving = maxf(_arriving - delta, 0.0)
+	if sway <= 0.0 or camera.position.distance_to(to) > Grid.tiles(VIEW_JUMP_TILES):
+		camera.position = to
+	else:
+		var rate: float = ARRIVE_RATE if _arriving > 0.0 else FOLLOW_RATE / sway
+		camera.position = camera.position.lerp(to, 1.0 - exp(-rate * delta))
+		if camera.position.distance_to(to) < 0.25:
+			camera.position = to
+	if camera.has_method("clamp_to_map"):
+		camera.clamp_to_map()
+	_frame_the_room(delta, alone, sway)
+
+
+## Which way the player looks about, and how far: the keys while `look_about` is held, or a pad's pointer at the screen's edge.
+func _look_about_aim() -> Vector2:
+	if is_holding() or picker != null or store_screen != null:
+		return Vector2.ZERO
+	var way := Vector2.ZERO
+	if Pad.using_pad:
+		if Pad.pointer_showing():
+			var size: Vector2 = get_viewport().get_visible_rect().size
+			var at: Vector2 = Pad.pointer() / size
+			way.x = -_edge_push(at.x) + _edge_push(1.0 - at.x)
+			way.y = -_edge_push(at.y) + _edge_push(1.0 - at.y)
+	elif InputMap.has_action(&"look_about") and Input.is_action_pressed(&"look_about"):
+		way = Pad.key_direction(&"move_left", &"move_right", &"move_up", &"move_down")
+	return way.limit_length(1.0) * Grid.tiles(LOOK_ABOUT_TILES)
+
+
+## 0 away from an edge to 1 on it, `share` being how far from that edge (0 to 1 of the screen).
+static func _edge_push(share: float) -> float:
+	return clampf(1.0 - share / LOOK_ABOUT_EDGE, 0.0, 1.0)
+
+
+## The view eased in a little in a small enclosed place, and back out of one.
+func _frame_the_room(delta: float, alone: bool, sway: float):
+	var aim := 0.0
+	var group := _camera_group()
+	if alone and sway > 0.0 and _tile_map != null and group != null and group.leader != null:
+		var tile: Vector2i = _tile_map.local_to_map(_tile_map.to_local(group.leader.global_position))
+		if tile != _room_tile:
+			_room_tile = tile
+			_room_small = small_room_at(tile)
+		if _room_small:
+			aim = ROOM_ZOOM * sway
+	_room_zoom = lerpf(_room_zoom, aim, 1.0 - exp(-ROOM_RATE * delta))
+	if absf(_room_zoom - aim) < 0.0005:
+		_room_zoom = aim
+	if not is_equal_approx(_room_zoom, _room_applied):
+		var chosen: float = camera.zoom.x / (1.0 + _room_applied)
+		camera.zoom = Vector2.ONE * chosen * (1.0 + _room_zoom)
+		_room_applied = _room_zoom
+
+
+## Takes the room's share off the zoom at once: before anything sets the zoom outright.
+func _drop_room_zoom():
+	if camera == null or _room_applied == 0.0:
+		return
+	camera.zoom = camera.zoom / (1.0 + _room_applied)
+	_room_applied = 0.0
+	_room_zoom = 0.0
+
+
+## Whether `tile` is in a small enclosed place: the floor reached from it by walking, without passing from under a roof to the
+## open sky or back, is ROOM_MOST_TILES or fewer.
+func small_room_at(tile: Vector2i) -> bool:
+	if _tile_map == null or not is_walkable(_tile_map.to_global(_tile_map.map_to_local(tile))):
+		return false
+	var roofed: bool = light != null and not light.under_the_sky(tile)
+	var seen := {tile: true}
+	var open: Array = [tile]
+	while not open.is_empty():
+		var at: Vector2i = open.pop_back()
+		for step in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			var next: Vector2i = at + step
+			if seen.has(next):
+				continue
+			if not is_walkable(_tile_map.to_global(_tile_map.map_to_local(next))):
+				continue
+			if light != null and (not light.under_the_sky(next)) != roofed:
+				continue
+			seen[next] = true
+			if seen.size() > ROOM_MOST_TILES:
+				return false
+			open.append(next)
+	return true
+
+
 func _on_party_leveled(_level: int):
+
 	_paths_due = true
 
 
 func _process(delta):
+	_soften_view(delta)
 	# Over a network: the camera drawn to another's conversation, and the other
 	# player marked while they look at a picture - a conversation or not. On one
 	# screen in co-op: drawn to whoever began one.
@@ -1224,6 +1444,8 @@ func _hurry_on(delta: float):
 ## party portraits, the action bar and the moves, the prompt, and on a watched
 ## map the stealth bar, the objectives and the prompts over heads.
 func set_ui_hidden(on: bool):
+	if reach_mark != null and is_instance_valid(reach_mark):
+		reach_mark.visible = not on
 	ui_hidden = on
 	if game_ui != null and game_ui.has_method("set_ui_hidden"):
 		game_ui.set_ui_hidden(on)
@@ -1442,6 +1664,7 @@ func _frame_groups() -> bool:
 	for at in leaders:
 		box = box.expand(at)
 	if _coop_zoom <= 0.0:
+		_drop_room_zoom()
 		_coop_zoom = camera.zoom.x
 	var view: Vector2 = camera.get_viewport_rect().size
 	var room := box.size + Vector2.ONE * Grid.tiles(COOP_VIEW_ROOM)
@@ -2007,12 +2230,30 @@ func break_wall(wall: BreakableWall):
 	wall.broken = true
 	Campaign.set_flag(wall.flag_for(map_path()))
 	var tile := _tile_map.local_to_map(_tile_map.to_local(wall.global_position))
+	_wall_comes_down(wall)
 	set_tile_shut(tile, false)
 	# A way through now, for whoever walks a route - guards and conversations.
 	Actors.refresh_tile(tile)
 	if stealth != null:
 		stealth.wall_broken(tile)
 		stealth.make_noise(wall.global_position, WALL_NOISE_TILES, true)
+
+
+## A wall broken, seen (the proposals of 2026-11-16, section 3): rubble thrown the way of the blow - away from whoever broke it -
+## dust hanging where it stood, the view kicked that way and shaken, and it is heard. Only to look at. PROPOSAL.
+const WALL_SHAKE := 10.0
+const WALL_KICK := 14.0
+
+
+func _wall_comes_down(wall: BreakableWall):
+	var way: Vector2 = wall.global_position - party_position()
+	way = way.normalized() if way.length() > 1.0 else Vector2.RIGHT
+	MapFeel.spawn(wall.get_parent(), &"rubble", wall.position, {"toward": way, "colour": BreakableWall.STONE})
+	MapFeel.spawn(wall.get_parent(), &"hang", wall.position, {"colour": BreakableWall.STONE.lightened(0.2)})
+	MapFeel.sound(&"wall_breaks", -3.0)
+	if camera != null and camera.has_method("shake"):
+		camera.shake(WALL_SHAKE)
+		camera.kick(way, WALL_KICK)
 
 
 ## How far a wall coming down is heard - a PROPOSAL test value.
