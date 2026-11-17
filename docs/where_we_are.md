@@ -480,6 +480,9 @@ holds the game for both).
    raised ground should be climbable on a map (both are rules, so theirs); and the two experiments' switches: the attacker's
    motion over the party's own attack animations (`MoveFeel.OWN_ANIMATION_SHARE`) and the speaker stepping up
    (`DialogueBalloon.speaker_steps_up`). All twelve sections of the proposals of 2026-11-16 are built.
+0. **Proposals of 2026-11-17** (`docs/proposals_2026-11-17.md`): game feel, the next round, nine sections. Chosen the same day (their
+   words are at its top) and being built; the map becoming the board waits on their answer to whether a map and its fights should
+   be one scene.
 0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): the box at the party's feet (they are trying it); whether the cutaway reads right now; and
    every depth number by feel, with the water's rings and mirror.
 0. **From later on 2026-11-13:** how strong and how often the new atmosphere is, by feel (the interface's look is chosen: T, built
