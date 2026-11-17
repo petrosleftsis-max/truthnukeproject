@@ -131,11 +131,53 @@ static func _start(sound: AudioStream, volume_db: float, from: float = 0.0) -> A
 	return player
 
 
-static func _free_player() -> AudioStreamPlayer:
+## --- Sound with a place (SoundFollows) ---
+##
+## The same, heard from `at` in the world: from its side of the screen, quieter off it, gone well past it, dulled behind a wall
+## (SoundFollows.place). For what happens somewhere - a door, a splash, a lamp put out; the interface's own sounds stay in the
+## middle.
+const VOICES_PLACED := 6
+static var _players_placed: Array = []
+static var _next_placed := 0
+
+
+## Plays what fills `slot` from `at`. Nothing when nothing fills it, or it is too far off the screen to be heard.
+static func play_at(slot: StringName, at: Vector2, volume_db: float = 0.0) -> AudioStreamPlayer2D:
+	var sound := stream(slot)
+	if sound == null:
+		return null
+	var now := Time.get_ticks_msec()
+	if now - int(_last_at.get(slot, -SAME_MS - 1)) <= SAME_MS:
+		return null
+	_last_at[slot] = now
+	return _start_at(sound, at, volume_db)
+
+
+static func _start_at(sound: AudioStream, at: Vector2, volume_db: float, from: float = 0.0) -> AudioStreamPlayer2D:
+	if not _holder_ready():
+		return null
+	var player: AudioStreamPlayer2D = null
+	for each in _players_placed:
+		if not each.playing:
+			player = each
+			break
+	if player == null:
+		_next_placed = (_next_placed + 1) % _players_placed.size()
+		player = _players_placed[_next_placed]
+	if not SoundFollows.place(player, at, volume_db):
+		return null
+	player.stream = sound
+	player.pitch_scale = 1.0
+	player.play(from)
+	return player
+
+
+## The players' holder under the root, made the first time: true once it is in the tree to play from.
+static func _holder_ready() -> bool:
 	if _holder == null or not is_instance_valid(_holder):
 		var tree := Engine.get_main_loop() as SceneTree
 		if tree == null or tree.root == null:
-			return null
+			return false
 		_holder = Node.new()
 		_holder.name = "GameSounds"
 		_holder.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -147,7 +189,16 @@ static func _free_player() -> AudioStreamPlayer:
 				made.bus = &"SFX"
 			_holder.add_child(made)
 			_players.append(made)
-	if not _holder.is_inside_tree():
+		_players_placed = []
+		for i in VOICES_PLACED:
+			var placed := AudioStreamPlayer2D.new()
+			_holder.add_child(placed)
+			_players_placed.append(placed)
+	return _holder.is_inside_tree()
+
+
+static func _free_player() -> AudioStreamPlayer:
+	if not _holder_ready():
 		return null
 	for player in _players:
 		if not player.playing:

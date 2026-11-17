@@ -293,7 +293,27 @@ func light_touch() -> bool:
 	return held != Vector2.ZERO and held.length() < LIGHT_TOUCH
 
 
+## How often the party's figures are told how hurt they are, for the pace of their idle (CombatantSprite "The pace of the idle":
+## slower while hurt). From what the campaign keeps of their health between fights.
+const PACE_EVERY := 0.5
+var _pace_check := 0.0
+
+
+func _pace_party_idles(delta: float):
+	_pace_check -= delta
+	if _pace_check > 0.0:
+		return
+	_pace_check = PACE_EVERY
+	for sprite in [leader] + followers + stayers:
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		var state: Dictionary = Campaign.party_state.get(String(sprite.get_meta("combatant_key", "")), {})
+		if state.has("hp") and float(state.get("max_hp", 0)) > 0.0:
+			sprite.set_spirits(float(state.hp) / float(state.max_hp), false)
+
+
 func _process(delta):
+	_pace_party_idles(delta)
 	if _scripted:
 		return
 	if puppet:

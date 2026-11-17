@@ -31,6 +31,32 @@ static func walked_through(at: Vector2):
 		_wet_left = WET_PRINTS
 
 
+## --- A guard heard before seen ---
+##
+## The proposals of 2026-11-17, section 4. A guard's step (Guard, as they walk) is heard from where they are (SoundFollows "Sound with
+## a place": from their side of the screen, gone a few tiles past its edge, dulled behind a wall), quietly, and only while they are
+## within GUARD_HEARD_TILES of where the party last stepped: so somebody coming round a corner is heard first. The sound bank's
+## Guard Step, a stand-in meanwhile. Only heard: nothing a guard does changes for it. PROPOSAL.
+const GUARD_STEP_TILES := 0.6
+const GUARD_HEARD_TILES := 9.0
+const GUARD_STEP_DB := -17.0
+## How many guards' steps there have been, for a suite.
+static var guard_steps := 0
+
+
+## A guard's step at `at`, a place in the world.
+static func guard_step(at: Vector2):
+	if _stepped_from != Vector2.INF and at.distance_to(_stepped_from) > Grid.tiles(GUARD_HEARD_TILES):
+		return
+	guard_steps += 1
+	if DisplayServer.get_name() == "headless":
+		return
+	var sound: AudioStream = GameSounds.stream(&"guard_step")
+	if sound == null:
+		sound = PlaceholderSounds.make("guard_step")
+	GameSounds._start_at(sound, at, GUARD_STEP_DB)
+
+
 ## A step at `at`, a place in the world.
 static func step(at: Vector2, softly: bool = false):
 	var now := Time.get_ticks_msec()
@@ -55,4 +81,4 @@ static func step(at: Vector2, softly: bool = false):
 	var sound: AudioStream = GameSounds.stream(&"footstep_wet" if wet else &"footstep")
 	if sound == null:
 		sound = PlaceholderSounds.make("step_wet" if wet else "step")
-	GameSounds.play_stream(sound, db)
+	GameSounds._start_at(sound, at, db)

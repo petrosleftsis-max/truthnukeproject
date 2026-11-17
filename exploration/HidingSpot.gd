@@ -33,6 +33,41 @@ func _set_holds_body(value: Node2D):
 	queue_redraw()
 
 
+## --- Stirred ---
+##
+## The proposals of 2026-11-17, section 5 ("A hiding spot that answers"): somebody of the party going in or coming out shakes it a
+## moment and it settles, with a rustle or a creak - `stirs_with`; by itself, a creak for anything drawn and nothing for a patch of
+## shadow, which does not shake either (StealthWatch._stir_hiding_spots). Only to look at and hear: no guard hears it. PROPOSAL.
+enum Stir { AUTOMATIC, RUSTLE, CREAK, NOTHING }
+@export var stirs_with: Stir = Stir.AUTOMATIC
+const STIR_SECONDS := 0.38
+const STIR_TURN := 0.07
+var _stir_tween: Tween = null
+## How many times it has been stirred, for a suite.
+var stirred := 0
+
+
+func stir():
+	stirred += 1
+	var sound := stirs_with
+	if sound == Stir.AUTOMATIC:
+		sound = Stir.CREAK if look != null else Stir.NOTHING
+	if sound != Stir.NOTHING:
+		MapFeel.sound(&"rustle" if sound == Stir.RUSTLE else &"creak", -12.0, 1.0, global_position)
+	if look == null or not MapFeel.shown():
+		return
+	if _stir_tween != null and _stir_tween.is_valid():
+		_stir_tween.kill()
+	_stir_tween = create_tween()
+	_stir_tween.tween_method(_stir_at, 0.0, 1.0, STIR_SECONDS)
+
+
+func _stir_at(t: float):
+	var shake := sin(t * PI * 5.0) * (1.0 - t)
+	rotation = STIR_TURN * shake
+	scale = Vector2(1.0 + 0.04 * absf(shake), 1.0 - 0.06 * absf(shake))
+
+
 ## Whether somebody could still hide here.
 func is_free() -> bool:
 	return holds_body == null

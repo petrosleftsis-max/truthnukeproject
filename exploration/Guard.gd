@@ -526,13 +526,16 @@ func hear(at: Vector2, go_look: bool):
 	_listen_left = LISTEN_SECONDS
 
 
-## Knocked out: down where they stand, and done watching.
-func knock_out():
+## Knocked out: down where they stand, and done watching. Taken down, with `away` the way the blow came (StealthWatch "A takedown
+## that lands"), they fold down that way; else they only sink, as when a map is put back as it was.
+func knock_out(away: Vector2 = Vector2.INF):
 	knocked_out = true
 	_drop_errand()
 	mood = Mood.PATROLLING
 	_leg = []
-	if sprite != null and sprite.has_method("set_dead"):
+	if sprite != null and away.is_finite() and sprite.has_method("fold_down"):
+		sprite.fold_down(away)
+	elif sprite != null and sprite.has_method("set_dead"):
 		sprite.set_dead()
 
 
@@ -589,9 +592,28 @@ func _play_puppet(delta: float):
 	_face_sprite()
 
 
+## How far they have walked since a step of theirs was last heard, and where they were (Footsteps "A guard heard before seen").
+var _walked := 0.0
+var _was_at := Vector2.INF
+
+
+func _count_steps():
+	if _was_at != Vector2.INF:
+		var moved := global_position.distance_to(_was_at)
+		# A jump to somewhere else - a puppet put right - is no step.
+		if moved < Grid.tiles(1.0):
+			_walked += moved
+	_was_at = global_position
+	if _walked >= Grid.tiles(Footsteps.GUARD_STEP_TILES):
+		_walked = 0.0
+		if not knocked_out:
+			Footsteps.guard_step(global_position)
+
+
 func _process(delta):
 	if Engine.is_editor_hint() or not active:
 		return
+	_count_steps()
 	if puppet:
 		_play_puppet(delta)
 		return

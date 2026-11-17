@@ -2215,7 +2215,7 @@ func set_door(door: StealthDoor, open: bool, by_hand: bool = false, shut_by: Nod
 	door.set_open(open)
 	_apply_door(door)
 	if by_hand:
-		GameSounds.play(&"mechanism_opened")
+		GameSounds.play_at(&"mechanism_opened", door.global_position)
 		if open != door.starts_open:
 			_add_oddity(door, "door", INF)
 		else:
@@ -3463,11 +3463,29 @@ func throw_at(tile: Vector2i) -> bool:
 		_aiming = ""
 		_last_thrown = item_key
 		queue_redraw()
+		# Seen to fly on the thrower's own screen; what it does is the host's.
+		_fly(item, tile, Callable())
 		Net.do_on_host("throw", [item_key, tile])
 		return true
 	Campaign.take_item(leader_key(), item_key)
 	_aiming = ""
 	_last_thrown = item_key
+	# Whoever sees the arm go up sees it now, wherever the thrower is by the time it lands.
+	var seen_by := throw_watchers()
+	var party = scene.get("party")
+	var thrown_from: Vector2 = party.leader.global_position if party != null and party.leader != null else Vector2.INF
+	# It flies, and what it does happens where it comes down (A thrown thing flies); with nothing shown, at once.
+	if not _fly(item, tile, _land.bind(item, tile, seen_by, thrown_from)):
+		_land(item, tile, seen_by, thrown_from)
+	return true
+
+
+## What `item`, thrown at `tile`, does as it comes down there: a dart finds whoever is there, anything else makes its noise and
+## puts out a lamp beside it - then whoever saw it thrown (`seen_by`, from `thrown_from`) knows. In the order it always had, only
+## after its flight.
+func _land(item: ItemDefinition, tile: Vector2i, seen_by: Array, thrown_from: Vector2):
+	if scene == null or not is_inside_tree() or _tile_map == null:
+		return
 	if item.is_poison():
 		var target = dart_target(tile)
 		if scene.has_method("log_message"):
@@ -3477,19 +3495,156 @@ func throw_at(tile: Vector2i) -> bool:
 			_seen_again()
 			dose(target, item)
 			guard_hit(target, leader_key())
-		_given_away_by_throwing()
-		return true
-	make_noise(_tile_map.to_global(_tile_map.map_to_local(tile)), item.distraction_radius, true)
-	# Coming down in water, it is seen to (LightView "Water, the next steps"): only to look at.
-	LightView.land_in_water(_tile_map.to_global(_tile_map.map_to_local(tile)), 0.6)
+		_given_away_by_throwing(seen_by, thrown_from)
+		return
+	var at: Vector2 = _tile_map.to_global(_tile_map.map_to_local(tile))
+	make_noise(at, item.distraction_radius, true)
+	# Coming down in water, it is seen to (LightView "Water, the next steps"); on dry ground it clatters and skitters on.
+	if not LightView.land_in_water(at, 0.6):
+		_clatter(item, at)
 	# Landing beside a lamp knocks it out.
 	for lamp in _lamps:
 		if is_instance_valid(lamp) and lamp.lit and Vector2(tile_of(lamp.global_position) - tile).length() <= 1.0:
 			put_out(lamp, true)
 	if scene.has_method("log_message"):
 		scene.log_message("[color=yellow]%s[/color] lands with a clatter.\n" % item.name)
-	_given_away_by_throwing()
+	_given_away_by_throwing(seen_by, thrown_from)
+
+
+## --- Stealth, felt ---
+##
+## The proposals of 2026-11-17, section 5 (the designer: "From section 4 and on do all"). Only to look at and hear: what a guard
+## hears and sees is the rules' own (make_noise, the cones), untouched by any of it. PROPOSAL.
+## - **A takedown that lands** (take_down): the world still a moment (MapFeel.still), a muffled thump from where he goes down, a
+##   tap on the pad, a puff of dust, and the guard folding down (Guard.knock_out, CombatantSprite.fold_down).
+## - **A thrown thing flies** (throw_at): from the hand to where it was aimed, its shadow under it (MapFeel's thrown and dart), and
+##   what it does there waits for it to land (_land); it clatters and skitters on, or splashes in water. Who saw it thrown is who
+##   saw the arm go up, as it went up.
+## - **A hiding spot that answers**: going in or coming out stirs it (HidingSpot.stir).
+## - **Holding your breath**: a guard's look passing over somebody he does not make out, close by, hushes the world a moment and
+##   the heartbeat skips (_near_miss).
+## - **A body dragged**: a scrape as it goes and faint marks behind it, fading (_drag_felt).
+const TAKEDOWN_STILL_SECONDS := 0.1
+const NEAR_MISS_TILES := 6.0
+const HELD_BREATH_EVERY := 4.0
+const DRAG_SCRAPE_TILES := 0.7
+const DRAG_MARK_TILES := 0.3
+## How many of each there have been, for a suite.
+var takedowns_felt := 0
+var held_breaths := 0
+var _near := {}
+var _held_breath_at := -100.0
+var _was_hiding := {}
+var _hiding_known := false
+var _dragged_from := Vector2.INF
+var _scraped := 0.0
+
+
+func _takedown_lands(guard: Guard):
+	takedowns_felt += 1
+	MapFeel.still(get_tree(), TAKEDOWN_STILL_SECONDS)
+	MapFeel.sound(&"takedown", -5.0, 1.0, guard.global_position)
+	Rumble.tap()
+	var party = scene.get("party")
+	if party != null and party is Node2D:
+		MapFeel.spawn(party, &"dust", party.to_local(guard.global_position + Vector2(0.0, Grid.tiles(0.3))), {"strength": 1.2})
+
+
+## `item` flying from the leader to `tile`, `landed` called as it comes down. False when nothing is shown, and nothing waits.
+func _fly(item: ItemDefinition, tile: Vector2i, landed: Callable) -> bool:
+	var party = scene.get("party") if scene != null else null
+	if not MapFeel.shown() or party == null or not party is Node2D or party.leader == null or _tile_map == null:
+		return false
+	var from: Vector2 = party.leader.global_position
+	var to: Vector2 = _tile_map.to_global(_tile_map.map_to_local(tile))
+	var tiles := from.distance_to(to) / float(Grid.TILE_SIZE)
+	var dart := item.is_poison()
+	var feel := MapFeel.spawn(party, &"dart" if dart else &"thrown", party.to_local(from), {"toward": to - from, "texture": item.icon,
+		"seconds": MapFeel.SECONDS[&"dart"] if dart else MapFeel.flight_seconds(tiles), "reach": Grid.tiles(clampf(tiles * 0.12, 0.4, 1.2))})
+	if feel == null:
+		return false
+	feel.landed = landed
 	return true
+
+
+## Something thrown coming down at `at` on dry ground: a clatter, and on a little.
+func _clatter(item: ItemDefinition, at: Vector2):
+	MapFeel.sound(&"clatter", -8.0, 1.0, at)
+	var party = scene.get("party")
+	if party != null and party is Node2D and party.leader != null:
+		MapFeel.spawn(party, &"skitter", party.to_local(at), {"toward": at - party.leader.global_position, "texture": item.icon})
+		MapFeel.spawn(party, &"dust", party.to_local(at + Vector2(0.0, Grid.tiles(0.1))), {"strength": 0.6})
+
+
+## Whoever of the party went into a hiding spot or came out of one since last time stirs it.
+func _stir_hiding_spots(standing: Array):
+	var now := {}
+	for someone in standing:
+		if someone.hiding:
+			now[someone.key] = someone.tile
+	if _hiding_known:
+		for key in now:
+			if _was_hiding.get(key) != now[key]:
+				_stir_at(now[key])
+		for key in _was_hiding:
+			if now.get(key) != _was_hiding[key]:
+				_stir_at(_was_hiding[key])
+	_was_hiding = now
+	_hiding_known = true
+
+
+func _stir_at(tile: Vector2i):
+	for spot in _hiding_spots:
+		if is_instance_valid(spot) and tile_of(spot.global_position) == tile:
+			spot.stir()
+			return
+
+
+## `guard` does not make `someone` out: if his look is on them all the same, close by, the world holds its breath - once a look.
+func _near_miss(guard: Guard, someone: Dictionary):
+	var pair := "%d:%s" % [guard.get_instance_id(), someone.key]
+	var from := tile_of(guard.global_position)
+	var over: bool = guard.kind != Guard.Kind.SENSOR and guard.kind != Guard.Kind.DOG and not guard.sees_nothing() \
+		and Vector2(someone.tile - from).length() <= NEAR_MISS_TILES and sight.sees(from, guard.facing, someone.tile, guard.half_cone())
+	if not over:
+		_near.erase(pair)
+		return
+	if _near.has(pair):
+		return
+	_near[pair] = true
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _held_breath_at < HELD_BREATH_EVERY:
+		return
+	_held_breath_at = now
+	held_breaths += 1
+	SoundFollows.hush_for(SoundFollows.HUSH_SECONDS)
+	# A beat skipped; or, with none going, one as the breath comes back.
+	if _beat_in > 0.0:
+		_beat_in += HEART_SLOW
+	elif _heart != null and MapFeel.shown() and DisplayServer.get_name() != "headless":
+		get_tree().create_timer(SoundFollows.HUSH_SECONDS, true, false, true).timeout.connect(_one_beat)
+
+
+func _one_beat():
+	if _heart != null and is_instance_valid(_heart) and _beat_in <= 0.0:
+		_heart.volume_db = HEART_QUIET_DB
+		_heart.play()
+
+
+## The body being dragged has reached `at`: marks behind it, and a scrape now and then.
+func _drag_felt(at: Vector2):
+	if _dragged_from == Vector2.INF or at.distance_to(_dragged_from) > Grid.tiles(1.0):
+		_dragged_from = at
+		return
+	var moved := at.distance_to(_dragged_from)
+	if moved < Grid.tiles(DRAG_MARK_TILES):
+		return
+	LightView.leave_drag_mark(at + Vector2(0.0, Grid.tiles(0.3)), at - _dragged_from)
+	_dragged_from = at
+	_scraped += moved
+	if _scraped >= Grid.tiles(DRAG_SCRAPE_TILES):
+		_scraped = 0.0
+		MapFeel.sound(&"body_drag", -14.0, 1.0, at)
 
 
 ## Who a throw from where the leader is would give him away to: tucked into a
@@ -3511,12 +3666,16 @@ func throw_watchers() -> Array:
 
 ## Thrown from a hiding spot somebody has in view: he is known at once - or,
 ## by somebody who is nobody's guard, off they run to tell.
-func _given_away_by_throwing():
+## `seen_by` and `at`: who saw it and from where, worked out as it was thrown (it lands later); else as things are now.
+func _given_away_by_throwing(seen_by = null, at: Vector2 = Vector2.INF):
 	if spotted_by != null:
 		return
 	var party = scene.get("party")
-	var at: Vector2 = party.leader.global_position
-	for guard in throw_watchers():
+	if not at.is_finite():
+		at = party.leader.global_position
+	for guard in (throw_watchers() if seen_by == null else seen_by):
+		if not is_instance_valid(guard) or guard.knocked_out:
+			continue
 		if guard.kind == Guard.Kind.CIVILIAN:
 			_run_to_tell(guard, at)
 			continue
@@ -3864,7 +4023,9 @@ func take_down(preferred = null) -> bool:
 	if guard == null or spotted_by != null:
 		return false
 	_seen_again()
-	guard.knock_out()
+	var taker = scene.get("party")
+	guard.knock_out(guard.global_position - (taker.leader.global_position if taker != null and taker.leader != null else guard.global_position))
+	_takedown_lands(guard)
 	suspicion[guard] = 0.0
 	_bodies[guard] = false
 	guard.visible = true
@@ -4085,6 +4246,8 @@ func _drag_along():
 		remaining -= span
 		i -= 1
 	_dragging.global_position = at
+	# A scrape, and marks behind it (Stealth, felt).
+	_drag_felt(at)
 	# Nothing further back than where the body is will be needed again.
 	if i > 1:
 		_drag_path = _drag_path.slice(i - 1)
@@ -4779,6 +4942,8 @@ func _process(delta):
 	var party = scene.get("party")
 	var dashing: bool = party != null and party.dashing
 	var standing := _party_standing()
+	# Into a hiding spot or out of one, it stirs (Stealth, felt).
+	_stir_hiding_spots(standing)
 	var watched := false
 	for guard in guards:
 		if not is_instance_valid(guard) or guard.knocked_out:
@@ -4795,7 +4960,10 @@ func _process(delta):
 		var caught_at_it := false
 		for someone in standing:
 			if not can_perceive(guard, someone) and not notices_walking(guard, someone):
+				# His look on them all the same, close by: the world holds its breath (Stealth, felt).
+				_near_miss(guard, someone)
 				continue
+			_near.erase("%d:%s" % [guard.get_instance_id(), someone.key])
 			# Seen dragging a body, changing clothes or poisoning a supper, there
 			# is no doubt at all who he is - whatever he has on.
 			if someone.key == leader_key() and caught_red_handed():

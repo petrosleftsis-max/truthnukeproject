@@ -319,6 +319,10 @@ func _sway_the_crown(delta: float):
 	var way := wind.normalized() if strong > 0.01 else Vector2.RIGHT
 	_sway = way * tile * (SWAY_STILL_TILES * rock + SWAY_TILES * strong * (0.55 + 0.45 * rock))
 	_sway_turn = SWAY_TURN * (0.25 + strong) * rock
+	# Shaken by a blast beside it, dying away.
+	var shake := shaken_now()
+	_sway += _shaken_way * tile * SHAKEN_TILES * shake
+	_sway_turn += SHAKEN_TURN * shake * (1.0 if _shaken_way.x >= 0.0 else -1.0)
 	_canvas.queue_redraw()
 	if strong >= LEAVES_FROM_WIND:
 		_next_leaves -= delta
@@ -490,9 +494,55 @@ func _process(delta: float):
 	_darken_with_the_hour()
 	_be_seen_through(delta)
 	_keep_the_shade(delta)
+	_keep_shaking(delta)
 	_sway_the_crown(delta)
 	_keep_the_haze()
 	_stand_among_the_figures()
+
+
+## --- Shaken by a blast ---
+##
+## The proposals of 2026-11-17, section 6 ("Trees and things that stand, shaken"): a blast beside it (MapLife.blast_at) shakes a
+## tree's crown and knocks a few leaves loose, and rocks a thing that stands about its foot; both settle as the shaking dies away.
+## Only to look at. PROPOSAL.
+const SHAKEN_SECONDS := 0.9
+const SHAKEN_TILES := 0.12
+const SHAKEN_TURN := 0.09
+const ROCK_TURN := 0.06
+const SHAKEN_LEAVES := 3
+var _shaken_way := Vector2.ZERO
+var _shaken_left := 0.0
+## How many times it has been shaken, for a suite.
+var shaken := 0
+
+
+## Shaken by a blast from beside it, `away` the way it was pushed and `strength` 0 to 1 of how hard.
+func shake(away: Vector2, strength: float):
+	if kind != Kind.TREE and not stands():
+		return
+	shaken += 1
+	_shaken_way = (away.normalized() if away != Vector2.ZERO else Vector2.RIGHT) * clampf(strength, 0.2, 1.0)
+	_shaken_left = SHAKEN_SECONDS
+	if kind == Kind.TREE and _canvas != null:
+		var crown := drawn_rect().get_center() + _offset
+		for i in SHAKEN_LEAVES:
+			MapFeel.spawn(self, &"leaf", crown + Vector2(randf_range(-1.0, 1.0), randf_range(-0.5, 0.5)) * Grid.tiles(0.45),
+				{"toward": _shaken_way, "colour": LEAF.lightened(0.15), "z": Depth.PIECE_Z_FRONT + 1})
+
+
+## How far through its shaking it is now: a wobble dying away, -1 to 1; 0 at rest.
+func shaken_now() -> float:
+	if _shaken_left <= 0.0:
+		return 0.0
+	var t := 1.0 - _shaken_left / SHAKEN_SECONDS
+	return sin(t * PI * 6.0) * (1.0 - t) * (1.0 - t) * _shaken_way.length()
+
+
+func _keep_shaking(delta: float):
+	if _shaken_left <= 0.0:
+		return
+	_shaken_left = maxf(_shaken_left - delta, 0.0)
+	_canvas.queue_redraw()
 
 
 func _move_with_the_view():
@@ -741,6 +791,18 @@ func _paint(canvas: CanvasItem):
 	if kind == Kind.TREE:
 		_paint_tree(canvas, over)
 		return
+	# Rocked about its foot by a blast beside it (Shaken by a blast).
+	var rock := ROCK_TURN * shaken_now() * (1.0 if _shaken_way.x >= 0.0 else -1.0) if stands() else 0.0
+	if rock != 0.0:
+		var foot := Vector2(over.get_center().x, over.end.y)
+		canvas.draw_set_transform(foot - foot.rotated(rock), rock, Vector2.ONE)
+	_paint_body(canvas, over)
+	if rock != 0.0:
+		canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## What it is, drawn over `over`: the artist's picture, or the drawing in code for its kind.
+func _paint_body(canvas: CanvasItem, over: Rect2):
 	if picture != null:
 		canvas.draw_texture_rect(picture, over, false)
 		return

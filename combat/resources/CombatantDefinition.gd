@@ -362,6 +362,14 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ## What Prometheus says the first time in a fight he studies one of these. Empty: nothing.
 @export_multiline var prometheus_studies_line: String = ""
 
+@export_group("Voice")
+## Their own voice in a fight (MoveFeel "Voices in a fight"): an effort with a blow they throw, a cry when they are hurt, a breath
+## when they are healed. Played as it is, heard from them. Empty: for one of the party, the sound bank's Voices in a fight pitched
+## for them; for anybody else, nothing.
+@export var voice_effort: AudioStream
+@export var voice_hurt: AudioStream
+@export var voice_healed: AudioStream
+
 @export_group("Giving Light")
 ## Gives off light by being what it is, this many tiles of it (Bright for half), real or an illusion:
 ## a burning thing, an illusion of one (Light). 0: none.

@@ -221,10 +221,10 @@ func use(scene: Node):
 		if outcome.get("result", "") != "success":
 			return
 	if use_sound != null:
-		GameSounds.play_stream(use_sound)
+		GameSounds._start_at(use_sound, global_position, 0.0)
 	elif hack != null:
 		# Something that had to be hacked open comes open.
-		GameSounds.play(&"mechanism_opened")
+		GameSounds.play_at(&"mechanism_opened", global_position)
 	interact(scene)
 	# Once means once however it was reached. Walking into an automatic one
 	# marks it before getting here, but pressing the key marked nothing at all -

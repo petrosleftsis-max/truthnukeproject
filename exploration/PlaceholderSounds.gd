@@ -88,6 +88,15 @@ const RECIPES := {
 	"voice_tick": [[520, 500, 0.022, "sine", 0.1]],
 	"refused": [[196, 150, 0.07, "square", 0.07]],
 	"danger": [[72, 52, 0.09, "sine", 0.5], [0, 0, 0.07, "rest", 0.0], [64, 46, 0.12, "sine", 0.38]],
+	# Stealth, felt (StealthWatch, Footsteps, HidingSpot): a guard's heavier step, a takedown's muffled thump, a clatter skittering,
+	# a bush's rustle, a cupboard's creak, a body's scrape.
+	"guard_step": [[125, 70, 0.045, "sine", 0.22], [650, 280, 0.03, "noise", 0.06]],
+	"takedown": [[88, 42, 0.16, "sine", 0.36], [320, 110, 0.07, "noise", 0.1]],
+	"clatter": [[2300, 1500, 0.035, "noise", 0.12], [0, 0, 0.04, "rest", 0.0], [1900, 1200, 0.03, "noise", 0.08],
+		[0, 0, 0.05, "rest", 0.0], [1600, 1000, 0.025, "noise", 0.05]],
+	"rustle": [[3400, 1900, 0.24, "noise", 0.05]],
+	"creak": [[190, 280, 0.11, "square", 0.03], [280, 220, 0.07, "square", 0.025]],
+	"body_drag": [[700, 320, 0.28, "noise", 0.035]],
 	# A kind of creature's sheet, opened on it studied for the first time.
 	"reveal": [[392, 784, 0.12, "sine", 0.12], [784, 1175, 0.14, "sine", 0.11], [1568, 1568, 0.25, "sine", 0.08]],
 }

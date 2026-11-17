@@ -88,6 +88,25 @@ class_name SoundBank
 @export var underground: AudioStream
 ## A low pulse under the music while a watched map is on edge, faster when Alarmed (SoundFollows). Empty: a stand-in heartbeat.
 @export var danger: AudioStream
+## A guard's step, heard from where they walk while near (Footsteps "A guard heard before seen"). Empty: a stand-in.
+@export var guard_step: AudioStream
+## A takedown landing: a muffled thump (StealthWatch "A takedown that lands"). Empty: a stand-in.
+@export var takedown: AudioStream
+## Something thrown landing, and skittering (StealthWatch "A thrown thing flies"). Empty: a stand-in.
+@export var clatter: AudioStream
+## A hiding spot stirred by somebody going in or out: a bush's rustle, and the creak of anything else (HidingSpot). Empty: stand-ins.
+@export var rustle: AudioStream
+@export var creak: AudioStream
+## A body dragged along the ground, a moment of it a step (StealthWatch "A body dragged"). Empty: a stand-in.
+@export var body_drag: AudioStream
+
+@export_group("Voices in a fight")
+## One of each for everybody, pitched for who it is as their voice ticks are (SoundFollows.voice_pitch): an effort with a blow
+## they throw, a cry when they are hurt, a breath when they are healed. A creature's own (CombatantDefinition's Voice) is played in
+## its place, as it is. Empty: silence, not a stand-in.
+@export var voice_effort: AudioStream
+@export var voice_hurt: AudioStream
+@export var voice_healed: AudioStream
 
 @export_group("Menus")
 ## Every button there is, but those that say otherwise (GameSounds.quiet).

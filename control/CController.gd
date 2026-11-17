@@ -135,6 +135,8 @@ func _swap_deployed(comb: Dictionary, tile: Vector2i):
 		_set_deployed_position(occupant, from)
 	_set_deployed_position(comb, tile)
 	update_points_weight()
+	# Placed with a thump, whoever made way sliding past (MoveFeel "Into a fight").
+	MoveFeel.placed(combat, comb, from, tile, occupant if occupant != null else {})
 
 
 func _set_deployed_position(comb: Dictionary, tile: Vector2i):
@@ -2306,6 +2308,8 @@ func _handle_step_arrival():
 		finished_move.emit()
 		_arrived = true
 		controlled_node.play_idle()
+		# A run of three tiles or more stopping beside the other side skids (MoveFeel "A rush that stops").
+		MoveFeel.charge_stops(combat, mover, _position_id, Vector2(new_position - old_position))
 		# Deferred rather than called directly (awaited or not): once
 		# _arrived is true, this step's own processing is genuinely
 		# finished, and _processing_step (which guards _process() against

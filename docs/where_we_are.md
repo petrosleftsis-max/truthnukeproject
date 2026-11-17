@@ -91,6 +91,14 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **How the game feels, the second round, 2026-11-17** (`docs/feel_built.md` "The second round"; suite `feel2`). The proposals
+  of that day as the designer chose them: the idle's pace (slower hurt, faster with the nerve broken, slower a while settled), a
+  rush that stops (a shove slides and skids; a charge skids beside a foe), the party as a party (a friend falls, a heal answered,
+  won together), sound with a place (from its side of the screen, gone well off it, dulled behind a wall; a guard's steps heard;
+  voices in a fight, silent until filled), stealth felt (a takedown's beat and fold, a thrown thing that flies and acts where it
+  lands, hiding spots that stir, a held breath, a body's scrape and marks), the world shaken (trees and things that stand, lights
+  swinging, a blast's light, dust indoors), into a fight (the map becoming the board and back, without merging the scenes; a look
+  at what you face; placed with a thump), the view (never quite still; weather near the eye), music in layers (waiting on parts).
 - **How the game feels, from 2026-11-16** (`docs/feel_built.md`, kept current as each part goes in; suite `feel`). The designer on
   the proposals of 2026-11-16: "in general i love all of these recommendations", and a line for each section. Built so far:
   the Comfort dials (12), walking (1: ease in and out, followers that fan out, wet prints, the dash), the map's camera (2: soft
@@ -480,9 +488,11 @@ holds the game for both).
    raised ground should be climbable on a map (both are rules, so theirs); and the two experiments' switches: the attacker's
    motion over the party's own attack animations (`MoveFeel.OWN_ANIMATION_SHARE`) and the speaker stepping up
    (`DialogueBalloon.speaker_steps_up`). All twelve sections of the proposals of 2026-11-16 are built.
-0. **Proposals of 2026-11-17** (`docs/proposals_2026-11-17.md`): game feel, the next round, nine sections. Chosen the same day (their
-   words are at its top) and being built; the map becoming the board waits on their answer to whether a map and its fights should
-   be one scene.
+0. **The second round of feel** (`docs/feel_built.md` "The second round", built 2026-11-17): every number by feel; whether a felled
+   fighter should still grey as they fall (section 6); whether a map and its fights should ever be one scene (section 7 says why it
+   was not needed); the sounds for the new slots (a guard's step, a takedown, a clatter, a rustle and a creak, a body dragged, voices
+   in a fight) and the music in parts (`<track>_wary`, `<track>_fighting`); `CameraController.drifts`, the view's drift, is an
+   experiment with a switch.
 0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): the box at the party's feet (they are trying it); whether the cutaway reads right now; and
    every depth number by feel, with the water's rings and mirror.
 0. **From later on 2026-11-13:** how strong and how often the new atmosphere is, by feel (the interface's look is chosen: T, built

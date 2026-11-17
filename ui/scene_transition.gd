@@ -58,6 +58,15 @@ func _ready():
 	_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_screen.modulate.a = 1.0
 	add_child(_screen)
+	# The last picture of a map or a fight, held while the scene changes under it (The map becomes the board).
+	_carried = TextureRect.new()
+	_carried.name = "Carried"
+	_carried.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_carried.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_carried.stretch_mode = TextureRect.STRETCH_SCALE
+	_carried.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_carried.visible = false
+	add_child(_carried)
 	# The first scene of a session is one nobody faded out of, so it would
 	# otherwise snap into existence. Autoloads are ready before it exists, so
 	# starting opaque and fading up covers its first frame without any scene
@@ -79,7 +88,115 @@ func change_scene(path: String):
 	if net != null and not net.may_change_scene(path):
 		return
 	_changing = true
+	# Into a fight on the ground the party stands on, and back from it won: carried across rather than through black.
+	if _carries(path):
+		_run_carry(path)
+		return
 	_run_change(path)
+
+
+## --- The map becomes the board ---
+##
+## The proposals of 2026-11-17, section 7 (the designer: "From section 4 and on do all"). Into a fight fought on the very ground of
+## the map the party is on (the encounter's terrain is the map's own: a stealth map caught, a fight on the map), and back to that map
+## once the fight is won, there is no black: the last picture of the world - its HUD left out - is held over the screen while the
+## scene changes under it, the new scene opens its view where the old one's was (`take_carried_view`: the map and its fight share
+## their ground and its place), and the picture dissolves into it. Into a fight the view then pushes in to the party and the
+## board's lines draw out from them (Combat.go_on_from_carried); back to the map the board's view first pulls back to where the
+## party will stand there, at the map's own zoom. Each machine does it for itself, a joiner following the host too. Headless, and
+## anywhere else, a change is the fade it always was. PROPOSAL.
+const FIGHT_SCENE := "res://scenes/game.tscn"
+const MAP_SCENE := "res://scenes/exploration.tscn"
+## The map camera's own zoom (scenes/exploration.tscn), which the board's view pulls back to before it is carried back.
+const MAP_ZOOM := 0.25
+const CARRY_DISSOLVE := 0.55
+const CARRY_PULL_BACK_MS := 900
+var _carried: TextureRect = null
+var _carried_view := {}
+## The map a carried fight came from: carried back to it once the fight is won.
+var _fought_on := ""
+## How many changes were carried, for a suite.
+var carries := 0
+
+
+## The view the scene arriving should open on, {"at" (the middle of the screen, in the world), "zoom"}, once: empty after, or when
+## nothing was carried.
+func take_carried_view() -> Dictionary:
+	var view := _carried_view
+	_carried_view = {}
+	return view
+
+
+## Whether going to `path` from here is carried across.
+func _carries(path: String) -> bool:
+	if DisplayServer.get_name() == "headless":
+		return false
+	var view: LightView = LightView.showing
+	if view == null or not is_instance_valid(view) or view._tile_map == null:
+		return false
+	if path == FIGHT_SCENE:
+		var fight: EncounterDefinition = Campaign.current_encounter
+		var ground := _ground_of(view._tile_map)
+		return fight != null and fight.terrain_scene != null and ground != "" and fight.terrain_scene.resource_path == ground \
+			and Campaign.has_map_to_return_to()
+	if path == MAP_SCENE:
+		return _fought_on != "" and _fought_on == Campaign.current_map and _won_here()
+	return false
+
+
+## The terrain scene `tile_map` is part of: the map's own ground, or the fight's.
+static func _ground_of(tile_map: TileMap) -> String:
+	if tile_map.scene_file_path != "":
+		return tile_map.scene_file_path
+	return tile_map.owner.scene_file_path if tile_map.owner != null else ""
+
+
+## Whether the fight being left was won.
+func _won_here() -> bool:
+	var scene := get_tree().current_scene
+	var fight = scene.get("combat") if scene != null else null
+	return fight is Combat and fight.combat_over and fight.lost_because == "" \
+		and fight.groups[Combat.Group.ENEMIES].is_empty() and not fight.groups[Combat.Group.PLAYERS].is_empty()
+
+
+func _run_carry(path: String):
+	carries += 1
+	var into_a_fight := path == FIGHT_SCENE
+	var scene := get_tree().current_scene
+	var camera := get_viewport().get_camera_2d()
+	# The world alone: whatever is drawn over it - the HUD, the panels - put away for the picture.
+	if scene != null:
+		for over in scene.find_children("*", "CanvasLayer", true, false):
+			if over.layer > 0:
+				over.visible = false
+	if not into_a_fight and camera != null and camera.has_method("glide_to"):
+		# Back to the map: the view first to where the party will stand there, at the map's own zoom.
+		camera.glide_to(Campaign.return_position, MAP_ZOOM)
+		var until := Time.get_ticks_msec() + CARRY_PULL_BACK_MS
+		while camera.is_inside_tree() and camera.is_gliding() and Time.get_ticks_msec() < until:
+			await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var picture := get_viewport().get_texture().get_image()
+	_carried_view = {"at": camera.get_screen_center_position(), "zoom": camera.zoom} if camera != null and is_instance_valid(camera) else {}
+	_fought_on = Campaign.current_map if into_a_fight else ""
+	_carried.texture = ImageTexture.create_from_image(picture)
+	_carried.modulate.a = 1.0
+	_carried.visible = true
+	MenuPause.clear(get_tree())
+	var net = get_node_or_null("/root/Net")
+	if net != null:
+		net.scene_changing(path)
+	get_tree().change_scene_to_file(path)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# On real time: a map caught slows the world a moment, and the dissolve is not to crawl with it.
+	var dissolve := create_tween().set_ignore_time_scale(true)
+	dissolve.tween_property(_carried, "modulate:a", 0.0, CARRY_DISSOLVE)
+	await dissolve.finished
+	_carried.visible = false
+	_carried.texture = null
+	_carried_view = {}
+	_changing = false
 
 
 ## Whether a change is under way - between the fade starting out and the new

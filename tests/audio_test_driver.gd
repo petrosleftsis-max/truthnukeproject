@@ -109,6 +109,9 @@ func run_test():
 		# And those of 2026-11-17 ("On a map", MapFeel.sound): a stand-in plays until the designer has a sound for each.
 		if property.name in ["door_creak", "door_shut", "picked_up", "lamp_out", "wall_breaks", "water_splash", "voice_tick", "refused", "indoors", "underground", "danger"]:
 			continue
+		# And the next round's (the proposals of 2026-11-17: stealth felt, voices in a fight): stand-ins, or silence for a voice.
+		if property.name in ["guard_step", "takedown", "clatter", "rustle", "creak", "body_drag", "voice_effort", "voice_hurt", "voice_healed"]:
+			continue
 		if property.usage & PROPERTY_USAGE_STORAGE and property.type == TYPE_OBJECT and bank.get(property.name) == null:
 			empty.append(property.name)
 	ok(empty.is_empty(), "every slot in the bank is filled", "%s" % [empty])

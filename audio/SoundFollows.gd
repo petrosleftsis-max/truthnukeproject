@@ -76,6 +76,7 @@ func _ready():
 	_music_muffle = _add(&"Music", AudioEffectLowPassFilter.new())
 	_give_way = _add(&"Music", AudioEffectAmplify.new())
 	_world_muffle = _add(&"SFX", AudioEffectLowPassFilter.new())
+	_hush_world = _add(&"SFX", AudioEffectAmplify.new())
 	_echo = _add(&"SFX", AudioEffectReverb.new())
 	if _echo != null:
 		_echo.dry = 1.0
@@ -105,6 +106,25 @@ func _add(bus_name: StringName, effect: AudioEffect) -> AudioEffect:
 	return effect
 
 
+## Holding your breath (StealthWatch "Stealth, felt"; the proposals of 2026-11-17, section 5): the music and the world alike go
+## quiet for `seconds`, quickly, and come back over HUSH_BACK. PROPOSAL.
+const HUSH_DB := -12.0
+const HUSH_SECONDS := 0.7
+const HUSH_BACK := 0.8
+var _hush_world: AudioEffectAmplify = null
+var _hush_until := 0.0
+var hush := 0.0
+## How many times the world held its breath, for a suite.
+static var hushes := 0
+
+
+static func hush_for(seconds: float = HUSH_SECONDS):
+	hushes += 1
+	if _self == null or not is_instance_valid(_self):
+		return
+	_self._hush_until = maxf(_self._hush_until, _self._now() + seconds)
+
+
 ## The music gives way for `seconds` (at least GIVE_WAY_HOLD), and comes back after: a line in a bubble, a boss's reveal, a fall.
 static func give_way(seconds: float = 0.0):
 	if _self == null or not is_instance_valid(_self):
@@ -130,6 +150,109 @@ static func voice_pitch(speaker: String) -> float:
 
 func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0
+
+
+## --- Sound with a place ---
+##
+## The proposals of 2026-11-17, section 4 (the designer: "From section 4 and on do all"). A sound of a fight or a map that happens
+## somewhere is heard from there (`place`): from its side of the screen, panned by the engine (an AudioStreamPlayer2D); as loud as
+## ever over most of the screen, falling to PLACE_AT_EDGE at its edge and gone PLACE_FADE_TILES past it, worked out here as it
+## starts; and dulled when a wall stands between it and the middle of the view (the bus SFX Behind, made as first needed: a
+## low-pass and a little quieter, sending on to SFX so the dial and the rest still hold), as the rain is dulled indoors. The music,
+## the interface's sounds and a voice's ticks stay in the middle. PROPOSAL.
+const PLACE_PANNING := 1.6
+const PLACE_FALLS_FROM := 0.75
+const PLACE_AT_EDGE := 0.7
+const PLACE_FADE_TILES := 4.0
+const BEHIND_BUS := &"SFX Behind"
+const BEHIND_HZ := 1100.0
+const BEHIND_DB := -4.0
+## How many have been placed, and how many of them behind a wall, for a suite.
+static var placed := {}
+
+
+## Readies `player` to play a sound at `at` (in the world) at `volume_db`: where it is, how loud, behind a wall or not. False when
+## it is too far off the screen to be heard, and it should not play.
+static func place(player: AudioStreamPlayer2D, at: Vector2, volume_db: float) -> bool:
+	var loud := loudness_at(at)
+	if loud <= 0.0:
+		placed[&"unheard"] = int(placed.get(&"unheard", 0)) + 1
+		return false
+	player.global_position = at
+	# How loud is worked out here; the engine only pans.
+	player.max_distance = 1.0e7
+	player.attenuation = 1.0
+	player.panning_strength = PLACE_PANNING
+	player.volume_db = volume_db + linear_to_db(loud)
+	var behind := behind_wall(at)
+	player.bus = _behind_bus() if behind else (&"SFX" if AudioServer.get_bus_index(&"SFX") >= 0 else &"Master")
+	placed[&"behind" if behind else &"heard"] = int(placed.get(&"behind" if behind else &"heard", 0)) + 1
+	return true
+
+
+## The viewport the world is shown in: the root's.
+static func _screen() -> Viewport:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root if tree != null else null
+
+
+## How loud a sound at `at` (in the world) is heard, 0 to 1, by where it is on the screen: 1 over most of it, PLACE_AT_EDGE at its
+## edge, 0 PLACE_FADE_TILES past it.
+static func loudness_at(at: Vector2) -> float:
+	var viewport := _screen()
+	if viewport == null:
+		return 1.0
+	var screen := viewport.get_visible_rect().size
+	if screen.x <= 0.0 or screen.y <= 0.0:
+		return 1.0
+	var canvas := viewport.get_canvas_transform()
+	var half := screen * 0.5
+	var off := (canvas * at - half).abs()
+	var share := maxf(off.x / half.x, off.y / half.y)
+	if share <= PLACE_FALLS_FROM:
+		return 1.0
+	if share <= 1.0:
+		return lerpf(1.0, PLACE_AT_EDGE, (share - PLACE_FALLS_FROM) / (1.0 - PLACE_FALLS_FROM))
+	var zoom := maxf(absf(canvas.get_scale().x), 0.0001)
+	var past_tiles := maxf(off.x - half.x, off.y - half.y) / zoom / float(Grid.TILE_SIZE)
+	return maxf(PLACE_AT_EDGE * (1.0 - past_tiles / PLACE_FADE_TILES), 0.0)
+
+
+## Whether a wall (Depth's WALL) stands between `at` (in the world) and the middle of the view, on the map or fight shown.
+static func behind_wall(at: Vector2) -> bool:
+	var view: LightView = LightView.showing
+	var viewport := _screen()
+	if view == null or not is_instance_valid(view) or view._tile_map == null or viewport == null:
+		return false
+	var tile_map: TileMap = view._tile_map
+	var middle: Vector2 = viewport.get_canvas_transform().affine_inverse() * (viewport.get_visible_rect().size * 0.5)
+	return wall_between(tile_map, tile_map.local_to_map(tile_map.to_local(middle)), tile_map.local_to_map(tile_map.to_local(at)))
+
+
+## Whether a wall (Depth's WALL) of `tile_map` stands on the line between tiles `from` and `to`, a quarter of a tile at a time;
+## the tiles at either end do not count.
+static func wall_between(tile_map: TileMap, from: Vector2i, to: Vector2i) -> bool:
+	var steps := mini(ceili(Vector2(to - from).length() * 4.0), 400)
+	for i in range(1, steps):
+		var tile := Vector2i(Vector2(from).lerp(Vector2(to), float(i) / float(steps)).round())
+		if tile != from and tile != to and Depth.kind_at(tile_map, tile) == Depth.Kind.WALL:
+			return true
+	return false
+
+
+## The bus a sound behind a wall plays on: made the first time, a low-pass sending on to SFX.
+static func _behind_bus() -> StringName:
+	if AudioServer.get_bus_index(BEHIND_BUS) >= 0:
+		return BEHIND_BUS
+	AudioServer.add_bus()
+	var index := AudioServer.bus_count - 1
+	AudioServer.set_bus_name(index, BEHIND_BUS)
+	AudioServer.set_bus_send(index, &"SFX" if AudioServer.get_bus_index(&"SFX") >= 0 else &"Master")
+	AudioServer.set_bus_volume_db(index, BEHIND_DB)
+	var dull := AudioEffectLowPassFilter.new()
+	dull.cutoff_hz = BEHIND_HZ
+	AudioServer.add_bus_effect(index, dull)
+	return BEHIND_BUS
 
 
 ## What the picture asks of the sound right now: {"hz", "dip", "wet", "room", "bed", "danger"}.
@@ -182,10 +305,30 @@ func _view() -> Dictionary:
 	var middle := camera.get_screen_center_position() if DisplayServer.get_name() != "headless" else camera.global_position
 	var tile: Vector2i = view._tile_map.local_to_map(view._tile_map.to_local(middle))
 	var map: LightMap = view.light
-	var any_sky: bool = map.under_the_sky(tile) or _has_sky(view)
+	var open: bool = map.under_the_sky(tile)
+	var any_sky: bool = open or _has_sky(view)
+	# A place indoors or underground as a whole (the fight's or the map's own ambient) has no sky anywhere, ambient areas or none.
+	match _ambient_of(view):
+		Light.Ambient.INTERIOR:
+			open = false
+			any_sky = true
+		Light.Ambient.UNDERGROUND:
+			open = false
+			any_sky = false
 	var sky: Dictionary = view._sky_shown
 	var raining: bool = not sky.is_empty() and float(sky.get("rain", 0.0)) + float(sky.get("hail", 0.0)) > 0.1
-	return {"open": map.under_the_sky(tile), "any_sky": any_sky, "raining": raining, "dark": map.level_at(tile) == Light.Level.DARK}
+	return {"open": open, "any_sky": any_sky, "raining": raining, "dark": map.level_at(tile) == Light.Level.DARK}
+
+
+## The ambient of the place `view` shows: its fight's, else the map's (Campaign.map_ambient).
+func _ambient_of(view: LightView) -> int:
+	var top: Node = view
+	while top.get_parent() != null and top.get_parent() != get_tree().root:
+		top = top.get_parent()
+	var fight = top.get("combat")
+	if fight is Combat:
+		return fight._light_ambient
+	return Campaign.map_ambient
 
 
 ## Whether any of the map shown is under the open sky (kept, as a map does not change it): a map with none is underground.
@@ -223,12 +366,16 @@ func _process(delta: float):
 	cutoff = pow(2.0, lerpf(log(cutoff) / log(2.0), log(float(wanted.hz)) / log(2.0), share))
 	var back := clampf(delta / GIVE_WAY_BACK, 0.0, 1.0) if wanted.dip > dip else share
 	dip = lerpf(dip, float(wanted.dip), back)
+	var hushed := HUSH_DB if _now() < _hush_until else 0.0
+	hush = lerpf(hush, hushed, clampf(delta / HUSH_BACK, 0.0, 1.0) if hushed > hush else clampf(share * 3.0, 0.0, 1.0))
 	wet = lerpf(wet, float(wanted.wet), share * 0.5)
 	for muffle in [_music_muffle, _world_muffle]:
 		if muffle != null:
 			muffle.cutoff_hz = cutoff
 	if _give_way != null:
-		_give_way.volume_db = dip
+		_give_way.volume_db = dip + hush
+	if _hush_world != null:
+		_hush_world.volume_db = hush
 	if _echo != null:
 		_echo.wet = wet
 		_echo.room_size = float(wanted.room)

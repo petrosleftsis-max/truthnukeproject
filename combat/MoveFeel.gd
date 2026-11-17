@@ -35,6 +35,7 @@ const SECONDS := {
 	&"disarm": 0.9, &"settle": 1.0, &"spark_beside": 0.45, &"rock_break": 0.6, &"edge": 0.4,
 	&"wildfire": 0.9, &"whiff": 0.35, &"shatter": 0.55, &"motes": 0.9, &"line": 0.35,
 	&"exclaim": 0.85, &"outline": 0.5, &"dust": 0.5, &"item": 0.5, &"gather": 0.5, &"glance": 0.4,
+	&"glow": 0.5, &"grit": 1.3, &"board_out": 1.0,
 }
 ## How a mark on the ground lasts: gone this many rounds after it was left.
 const MARK_ROUNDS := 2
@@ -137,13 +138,15 @@ static func pitch_for(combat: Combat, who: Dictionary) -> float:
 
 
 ## Plays `stream`, or the stand-in `called` when it is empty.
-static func sound(combat: Combat, stream: AudioStream, called: String, who: Dictionary = {}, volume_db: float = 0.0):
+static func sound(combat: Combat, stream: AudioStream, called: String, who: Dictionary = {}, volume_db: float = 0.0, place: Vector2 = Vector2.INF):
 	if combat == null or not is_instance_valid(combat):
 		return
+	# Heard from whoever it is about, when it is about somebody (SoundFollows "Sound with a place").
+	var at := place if place.is_finite() else (middle_of(combat, who) if who.has("position") else Vector2.INF)
 	if stream != null:
-		combat.play_stream(stream, volume_db)
+		combat.play_stream(stream, volume_db, 1.0, at)
 	elif called != "":
-		combat.play_stream(PlaceholderSounds.make(called), volume_db - 4.0, pitch_for(combat, who))
+		combat.play_stream(PlaceholderSounds.make(called), volume_db - 4.0, pitch_for(combat, who), at)
 
 
 ## --- A move leaving its user ---
@@ -245,6 +248,9 @@ static func strike(combat: Combat, user: Dictionary, skill: SkillDefinition, aim
 		spawn(combat, &"gather", from, {"colour": Projectile.colour_for(skill, element), "on": user, "on_offset": combat.drawing_offset(user),
 			"strength": clampf(0.55 + 0.15 * float(skill.spell_slot_level), 0.0, 1.6)})
 		felt[&"gathered"] = int(felt.get(&"gathered", 0)) + 1
+	# An effort as they throw it (Voices in a fight).
+	if at_somebody_else and (skill.deals_damage or skill.melee):
+		voice(combat, user, &"effort")
 	if not strikes or not at_somebody_else or not (skill.deals_damage or skill.melee):
 		return 0.0
 	var own: bool = sprite.has_skill_animation(skill.animation)
@@ -308,6 +314,9 @@ static func impact(combat: Combat, attacker: Dictionary, target: Dictionary, ski
 	if not flown:
 		if skill.deals_damage:
 			burst(combat, at, element, 0.6 if grazed else 1.0)
+			# A bolt's light where it lands; an area has its own, once (over_area).
+			if combat.aoe_radius_of(attacker, skill) <= 0:
+				blast_light(combat, at, element, skill, false)
 		sound(combat, skill.impact_sound, _impact_sound_of(skill, element, grazed), target)
 	# A blow that lands on somebody standing in water throws some up.
 	if skill.deals_damage and target.get("sprite") != null and is_instance_valid(target.sprite) and target.sprite is CombatantSprite:
@@ -362,8 +371,12 @@ static func over_area(combat: Combat, attacker: Dictionary, skill: SkillDefiniti
 		for tile in [centre] + tiles:
 			if typeof(tile) == TYPE_VECTOR2I and thrown < 4 and LightView.land_in_water(combat.sprite_point({}, tile), 0.7 if thrown == 0 else 0.35):
 				thrown += 1
-		# The grass and the banners about it bend away from it (MapLife, the proposals of 2026-11-16, section 11).
-		MapLife.blast_at(combat.get_tree(), combat.sprite_point({}, centre), sqrt(float(maxi(tiles.size(), 1))) * 0.6)
+		# The grass and the banners about it bend away from it (MapLife, the proposals of 2026-11-16, section 11); trees and the
+		# things that stand shake, lights swing, it lights what is about it and dust comes down indoors (The world shaken by a fight).
+		var blast_at := combat.sprite_point({}, centre)
+		MapLife.blast_at(combat.get_tree(), blast_at, sqrt(float(maxi(tiles.size(), 1))) * 0.6)
+		blast_light(combat, blast_at, _element_of(combat, attacker, skill), skill, true)
+		dust_from_above(combat, blast_at, 1.0)
 	var look := impact_look_of(skill)
 	var area_looks := [SkillDefinition.ImpactLook.DOME, SkillDefinition.ImpactLook.STORM, SkillDefinition.ImpactLook.STREAM,
 		SkillDefinition.ImpactLook.ICE_SPREAD, SkillDefinition.ImpactLook.WING, SkillDefinition.ImpactLook.GLYPH_CIRCLE,
@@ -428,7 +441,7 @@ static func missed(combat: Combat, attacker: Dictionary, target: Dictionary, ski
 
 ## An image going to pieces at `at` - a copy taking a blow, an image broken.
 static func shatter(combat: Combat, at: Vector2):
-	sound(combat, null, "impact_shatter")
+	sound(combat, null, "impact_shatter", {}, 0.0, at)
 	spawn(combat, &"shatter", at, {"colour": Color(0.8, 0.92, 1.0)})
 
 
@@ -451,7 +464,7 @@ static func falls(combat: Combat, comb: Dictionary):
 	screen_flash(combat, Color(1.0, 0.95, 0.85, 0.28), 0.16)
 	if combat.camera != null and is_instance_valid(combat.camera) and combat.camera.has_method("punch_in"):
 		combat.camera.punch_in()
-	sound(combat, null, "impact_thud")
+	sound(combat, null, "impact_thud", {}, 0.0, at)
 	sprite.fall(away, element)
 	# A body down in water: a splash (LightView "Water, the next steps").
 	LightView.land_in_water(LightView.feet_of(sprite), 1.0)
@@ -475,6 +488,256 @@ static func falls(combat: Combat, comb: Dictionary):
 static func mended(combat: Combat, target: Dictionary):
 	spawn(combat, &"motes", middle_of(combat, target), {"colour": Projectile.MEND, "on": target,
 		"on_offset": combat.drawing_offset(target)})
+
+
+## --- Into a fight ---
+##
+## The proposals of 2026-11-17, section 7. Only the picture. PROPOSAL.
+## - **The board drawn out** (board_out): come from the map the fight is fought on (Combat "The map becomes the board"), the board's
+##   lines draw themselves outward from the party over the ground about them, and go.
+## - **Placed with a thump** (placed): placing the party before a fight, whoever is put on a tile hops onto it and lands with a
+##   puff; whoever made way for them slides past to the tile they left (CController._swap_deployed).
+const BOARD_OUT_TILES := 7.0
+const BOARD_OUT_SECONDS := 1.0
+const PLACED_SECONDS := 0.28
+const PLACED_HOP_TILES := 0.35
+const MADE_WAY_SECONDS := 0.24
+
+
+## The board's lines drawn out from the party, over the floor about them.
+static func board_out(combat: Combat):
+	felt[&"board_out"] = int(felt.get(&"board_out", 0)) + 1
+	var tile_map: TileMap = combat.controller.tile_map if combat.controller != null else null
+	if tile_map == null:
+		return
+	var middle := Vector2.ZERO
+	var counted := 0
+	for comb in combat.combatants:
+		if comb.get("side", -1) == Combat.Group.PLAYERS and comb.get("alive", false) and comb.has("position"):
+			middle += combat.sprite_point(comb)
+			counted += 1
+	if counted == 0:
+		return
+	middle /= float(counted)
+	var centre := tile_map.local_to_map(tile_map.to_local(middle))
+	var reach := ceili(BOARD_OUT_TILES)
+	var squares := []
+	for dx in range(-reach, reach + 1):
+		for dy in range(-reach, reach + 1):
+			var tile := centre + Vector2i(dx, dy)
+			if Vector2(dx, dy).length() > BOARD_OUT_TILES or Depth.kind_at(tile_map, tile) != Depth.Kind.FLOOR:
+				continue
+			squares.append(combat.sprite_point({}, tile) - middle)
+	var feel := spawn(combat, &"board_out", middle, {"points": squares, "reach": Grid.TILE_SIZE * BOARD_OUT_TILES, "seconds": BOARD_OUT_SECONDS})
+	# On the floor with the board's own lines, under everybody (CController draws them).
+	if feel != null and combat.controller is Node2D:
+		feel.get_parent().remove_child(feel)
+		combat.controller.add_child(feel)
+		feel.z_as_relative = true
+		feel.z_index = 0
+
+
+## `comb` put on `to_tile` from `from_tile` while the party is placed; `made_way`, whoever stood there, to `from_tile`.
+static func placed(combat: Combat, comb: Dictionary, from_tile: Vector2i, to_tile: Vector2i, made_way: Dictionary = {}):
+	if not shown():
+		return
+	felt[&"placed"] = int(felt.get(&"placed", 0)) + 1
+	var gap: Vector2 = combat.sprite_point({}, from_tile) - combat.sprite_point({}, to_tile)
+	var sprite = comb.get("sprite")
+	if sprite != null and is_instance_valid(sprite) and sprite is CombatantSprite:
+		sprite.fly_in(gap, PLACED_SECONDS, Grid.TILE_SIZE * PLACED_HOP_TILES)
+		var puff_at := middle_of(combat, comb) + Vector2(0.0, Grid.TILE_SIZE * 0.3)
+		combat.create_tween().tween_callback(func(): dust(combat, puff_at, 1.0)).set_delay(PLACED_SECONDS)
+	var other = made_way.get("sprite")
+	if not made_way.is_empty() and other != null and is_instance_valid(other) and other is CombatantSprite:
+		other.fly_in(-gap, MADE_WAY_SECONDS, 0.0)
+
+
+## --- The world shaken by a fight ---
+##
+## The proposals of 2026-11-17, section 6 (the designer: "From section 4 and on do all"). Only the picture: the light the rules read
+## (Light) and the ground are untouched. PROPOSAL.
+## - **A blast's light** (blast_light): fire, plasma, lightning and an Idol's light light the walls and the figures about where they
+##   land, in their colour, for a moment - a glow over the dark, wider for an area; as strong as the Flashes dial lets it (Comfort).
+## - **Dust from above** (dust_from_above): under a roof or underground, a blast, or a blow of GRIT_FROM_SHARE of somebody's health
+##   or more, shakes dust and grit down about where it lands.
+## - **Trees and things that stand, shaken**: MapLife.blast_at shakes them (DepthPiece.shake) and swings the lights about it
+##   (LightView.swing_lights).
+## Falling away from the blow was already there (falls, since 2026-11-05).
+const GLOW_ELEMENTS := [Damage.Type.FIRE, Damage.Type.PLASMA, Damage.Type.LIGHTNING, Damage.Type.IDOL]
+const GLOW_TILES := 1.6
+const GLOW_AREA_TILES := 2.6
+const GRIT_FROM_SHARE := 1.0 / 3.0
+const GRIT_BITS := 16
+var _grit: Array = []
+
+
+## `skill`'s blow of `element` landing at `at`: its light, if it is one that gives light. `area`: over an area, wider.
+static func blast_light(combat: Combat, at: Vector2, element: int, skill: SkillDefinition, area: bool):
+	if skill == null or not skill.deals_damage or not element in GLOW_ELEMENTS:
+		return
+	var strength := Comfort.share(Comfort.FLASHES)
+	if strength <= 0.0:
+		return
+	felt[&"glowed"] = int(felt.get(&"glowed", 0)) + 1
+	spawn(combat, &"glow", at, {"colour": Projectile.colour_for(skill, element), "strength": strength,
+		"reach": Grid.TILE_SIZE * (GLOW_AREA_TILES if area else GLOW_TILES)})
+
+
+## A blast or a heavy blow at `at`: under a roof or underground, dust and grit come down.
+static func dust_from_above(combat: Combat, at: Vector2, strength: float = 1.0):
+	var view: LightView = LightView.showing
+	if view == null or not is_instance_valid(view) or view.light == null or view._tile_map == null:
+		return
+	# A fight indoors or underground is covered everywhere; out of doors, wherever a roof is (an ambient area of its own).
+	var covered: bool = combat._light_ambient == Light.Ambient.INTERIOR or combat._light_ambient == Light.Ambient.UNDERGROUND
+	if not covered and view.light.under_the_sky(view._tile_map.local_to_map(view._tile_map.to_local(at))):
+		return
+	felt[&"grit"] = int(felt.get(&"grit", 0)) + 1
+	var feel := spawn(combat, &"grit", at, {"strength": clampf(strength, 0.3, 1.0), "reach": Grid.TILE_SIZE * 1.2})
+	if feel == null:
+		return
+	for i in GRIT_BITS:
+		feel._grit.append({"x": feel._rng.randf_range(-1.0, 1.0) * Grid.TILE_SIZE * 1.1, "late": feel._rng.randf() * 0.4,
+			"size": feel._rng.randf_range(0.6, 1.5)})
+
+
+## --- Voices in a fight ---
+##
+## The proposals of 2026-11-17, section 4: an effort with a blow they throw (strike), a cry when they are hurt by more than a
+## scratch (VOICE_HURT_FROM of their health: Combat.show_damage), a breath when they are healed (heal_answered). A creature's own
+## voice (CombatantDefinition's Voice) as it is; else, for one of the party, the sound bank's Voices in a fight, pitched for who it
+## is as their voice ticks are (SoundFollows.voice_pitch). Silent until filled. Heard from them (SoundFollows "Sound with a place").
+## PROPOSAL.
+const VOICE_HURT_FROM := 0.04
+const VOICE_DB := -6.0
+const VOICE_SLOTS := {&"effort": &"voice_effort", &"hurt": &"voice_hurt", &"healed": &"voice_healed"}
+## How many of each were heard, for a suite.
+static var voiced := {}
+
+
+static func voice(combat: Combat, comb: Dictionary, kind: StringName):
+	if not shown() or comb.has("object") or comb.get("illusion", false) or not comb.has("position"):
+		return
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(comb.get("combatant_key", ""))
+	var stream: AudioStream = definition.get("voice_" + String(kind)) if definition != null else null
+	var pitch := 1.0
+	if stream == null:
+		if comb.get("side", -1) != Combat.Group.PLAYERS:
+			return
+		stream = GameSounds.stream(VOICE_SLOTS.get(kind, &""))
+		pitch = SoundFollows.voice_pitch(String(comb.get("name", "")))
+	if stream == null:
+		return
+	voiced[kind] = int(voiced.get(kind, 0)) + 1
+	combat.play_stream(stream, VOICE_DB, pitch, middle_of(combat, comb))
+
+
+## --- The party, as a party ---
+##
+## The proposals of 2026-11-17, section 3 (the designer: "Do all except A hard Blow. "Breathing slower" have it be their idle
+## animation slowing down for a bit"). Only the picture, none of it headless or while catching up (shown):
+## - **A friend falls**: a beat after one of the party goes down, the others of the party standing turn to them for a moment, and
+##   the nearest takes half a step towards them (Combat._falls).
+## - **A heal answered**: whoever is mended settles, their idle slower a while (CombatantSprite.settle), and when somebody else
+##   mended them, healer and healed turn to each other a moment; either side (Combat.do_heal).
+## - **Won, together**: as a fight is won, the party standing turn to one another and settle, before the words come up
+##   (Combat._after_the_fight).
+## PROPOSAL.
+
+const FRIEND_AFTER_SECONDS := 0.35
+const FRIEND_GLANCE_SECONDS := 1.6
+const FRIEND_STEP_TILES := 0.18
+const FRIEND_STEP_SECONDS := 0.7
+const HEAL_SETTLE_SECONDS := 2.4
+const HEAL_GLANCE_SECONDS := 1.2
+const WON_SETTLE_SECONDS := 3.0
+const WON_GLANCE_SECONDS := 2.6
+
+
+## Whoever of the party could look: standing, a figure of their own, neither a thing nor an image.
+static func _party_figures(combat: Combat, but: Dictionary = {}) -> Array:
+	var found := []
+	for comb in combat.combatants:
+		if comb == but or comb.get("side", -1) != Combat.Group.PLAYERS or not comb.get("alive", false) or comb.has("object") \
+				or comb.get("illusion", false) or not comb.has("position"):
+			continue
+		var sprite = comb.get("sprite")
+		if sprite != null and is_instance_valid(sprite) and sprite is CombatantSprite:
+			found.append(comb)
+	return found
+
+
+## `fallen` of the party has gone down: the rest turn to them, and the nearest goes half a step their way.
+static func friend_falls(combat: Combat, fallen: Dictionary):
+	if not shown() or fallen.get("side", -1) != Combat.Group.PLAYERS or not fallen.has("position") or fallen.has("object") \
+			or fallen.get("illusion", false):
+		return
+	var others := _party_figures(combat, fallen)
+	if others.is_empty():
+		return
+	felt[&"friend_fell"] = int(felt.get(&"friend_fell", 0)) + 1
+	var at := middle_of(combat, fallen)
+	await combat.get_tree().create_timer(FRIEND_AFTER_SECONDS, true, false, true).timeout
+	if not is_instance_valid(combat) or not combat.is_inside_tree():
+		return
+	var nearest = null
+	var nearest_gap := INF
+	for comb in others:
+		var gap := middle_of(combat, comb).distance_to(at)
+		if comb.get("alive", false) and gap < nearest_gap:
+			nearest_gap = gap
+			nearest = comb
+	for comb in others:
+		var sprite = comb.get("sprite")
+		if sprite == null or not is_instance_valid(sprite) or not comb.get("alive", false):
+			continue
+		var toward := at - middle_of(combat, comb)
+		if absf(toward.x) > Grid.TILE_SIZE * 0.25:
+			sprite.glance(toward.x < 0.0, FRIEND_GLANCE_SECONDS)
+		if comb == nearest:
+			sprite.step_towards(toward, FRIEND_STEP_TILES, FRIEND_STEP_SECONDS)
+
+
+## `healer` mended `healed`: they settle, and the two turn to each other when they are two.
+static func heal_answered(combat: Combat, healer: Dictionary, healed: Dictionary):
+	if not shown() or not healed.get("alive", false):
+		return
+	var sprite = healed.get("sprite")
+	if sprite == null or not is_instance_valid(sprite) or not sprite is CombatantSprite:
+		return
+	felt[&"heal_answered"] = int(felt.get(&"heal_answered", 0)) + 1
+	sprite.settle(HEAL_SETTLE_SECONDS)
+	voice(combat, healed, &"healed")
+	if is_same(healer, healed) or not healer.has("position") or not healed.has("position"):
+		return
+	var between := middle_of(combat, healer) - middle_of(combat, healed)
+	if absf(between.x) <= Grid.TILE_SIZE * 0.25:
+		return
+	sprite.glance(between.x < 0.0, HEAL_GLANCE_SECONDS)
+	var by = healer.get("sprite")
+	if by != null and is_instance_valid(by) and by is CombatantSprite and healer.get("alive", false):
+		by.glance(between.x > 0.0, HEAL_GLANCE_SECONDS)
+
+
+## The fight is won: the party standing turn to one another, towards the middle of them, and settle.
+static func won_together(combat: Combat):
+	if not shown():
+		return
+	var standing := _party_figures(combat)
+	if standing.is_empty():
+		return
+	felt[&"won_together"] = int(felt.get(&"won_together", 0)) + 1
+	var middle := Vector2.ZERO
+	for comb in standing:
+		middle += middle_of(combat, comb)
+	middle /= float(standing.size())
+	for comb in standing:
+		var sprite = comb.sprite
+		sprite.settle(WON_SETTLE_SECONDS)
+		var toward := middle - middle_of(combat, comb)
+		if standing.size() > 1 and absf(toward.x) > Grid.TILE_SIZE * 0.1:
+			sprite.glance(toward.x < 0.0, WON_GLANCE_SECONDS)
 
 
 ## --- Marks on the ground ---
@@ -591,10 +854,62 @@ static func dust(combat: Combat, at: Vector2, strength: float = 1.0):
 	spawn(combat, &"dust", at, {"colour": Color(0.78, 0.7, 0.58), "strength": strength})
 
 
+## --- A rush that stops ---
+##
+## The proposals of 2026-11-17, section 2 (the designer: "Do a rush that stop"). Somebody shoved or dragged slides from where they
+## were to where they end up, slowing as they skid, the dust kicked up at each tile as they pass it and a puff thrown up in front of
+## them as they stop (Combat.apply_knockback); somebody who runs CHARGE_TILES or more and stops beside somebody of the other side
+## skids the last of it, a little past the tile and back, with the same puff (CController, a walk's end). Leading Charge counts a
+## charge the same way. Only the picture: where they stand is the rules' at once (CombatantSprite.skid). PROPOSAL.
+const CHARGE_TILES := 3
+const SKID_PUFF := 1.5
+
+
+## `target` shoved or dragged from `from` to `to` (the middle of them, before and after), over `tiles` tiles.
+static func shoved_skid(combat: Combat, target: Dictionary, from: Vector2, to: Vector2, tiles: int):
+	var sprite = target.get("sprite")
+	var feet := Vector2(0.0, Grid.TILE_SIZE * 0.3)
+	if not shown() or sprite == null or not is_instance_valid(sprite) or not sprite is CombatantSprite or from == to:
+		for i in tiles + 1:
+			dust(combat, from.lerp(to, float(i) / float(maxi(tiles, 1))) + feet, 0.8)
+		return
+	felt[&"skidded"] = int(felt.get(&"skidded", 0)) + 1
+	var way := to - from
+	sprite.skid(way, from - to)
+	# Each tile's dust as they pass it: the slide slows as 1 - (1 - t)², so tile i of n is passed at 1 - √(1 - i / n) of it. On a
+	# tween of the fight's, so nothing is left to go off once it is gone.
+	var timing := combat.create_tween().set_parallel(true)
+	for i in tiles + 1:
+		var share := float(i) / float(maxi(tiles, 1))
+		var at := from.lerp(to, share) + feet
+		timing.tween_callback(func(): dust(combat, at, 0.8)).set_delay(CombatantSprite.SKID_SECONDS * (1.0 - sqrt(maxf(1.0 - share, 0.0))))
+	var ahead := to + feet + way.normalized() * Grid.TILE_SIZE * 0.3
+	timing.tween_callback(func(): dust(combat, ahead, SKID_PUFF)).set_delay(CombatantSprite.SKID_SECONDS * 0.85)
+
+
+## `mover` has run `tiles` tiles, the last of them along `way`, and stopped: beside somebody of the other side, a skid.
+static func charge_stops(combat: Combat, mover: Dictionary, tiles: int, way: Vector2):
+	if not shown() or tiles < CHARGE_TILES or way == Vector2.ZERO or not mover.get("alive", false) or mover.has("object"):
+		return
+	var sprite = mover.get("sprite")
+	if sprite == null or not is_instance_valid(sprite) or not sprite is CombatantSprite:
+		return
+	var against := false
+	for comb in combat.combatants:
+		if comb.get("alive", false) and comb.get("side", -1) != mover.get("side", -2) and not comb.has("object") and combat._beside(mover, comb):
+			against = true
+			break
+	if not against:
+		return
+	felt[&"charge_stopped"] = int(felt.get(&"charge_stopped", 0)) + 1
+	sprite.skid(way)
+	dust(combat, middle_of(combat, mover) + Vector2(0.0, Grid.TILE_SIZE * 0.3) + way.normalized() * Grid.TILE_SIZE * 0.3, SKID_PUFF)
+
+
 ## Somebody thrown or shoved into something solid at `at`: a thud, a ring of
 ## dust, and the view shaken.
 static func thud(combat: Combat, at: Vector2):
-	sound(combat, null, "impact_thud")
+	sound(combat, null, "impact_thud", {}, 0.0, at)
 	combat.shake_camera(10.0)
 	spawn(combat, &"dust", at, {"colour": Color(0.78, 0.7, 0.58), "strength": 1.6})
 	spawn(combat, &"shockwave", at, {"colour": Color(0.85, 0.78, 0.65), "reach": Grid.TILE_SIZE * 0.8, "strength": 0.6})
@@ -755,6 +1070,12 @@ func on_the_ground():
 func _ready():
 	_rng.seed = hash([kind, position.round(), element, text])
 	match kind:
+		&"glow":
+			# Light on whatever is about it, over the dark: added, never shaded.
+			var add := CanvasItemMaterial.new()
+			add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+			add.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+			material = add
 		&"burst":
 			_build_burst()
 		&"puff", &"dust":
@@ -987,6 +1308,38 @@ func _draw():
 				var own := clampf(t * 1.3 - 0.3 * float(i), 0.0, 1.0)
 				if own > 0.0 and own < 1.0:
 					_draw_ellipse_ring(Vector2(0, tile * 0.3), tile * 0.75 * (1.0 - own * 0.8), tile * 0.3 * (1.0 - own * 0.8), Color(colour.lerp(Color.WHITE, 0.4), 0.6 * own * (1.0 - own) * 2.0 * strength), 4.0)
+		&"board_out":
+			# The board's lines drawn out from the party: a front going out over the floor, the lines behind it fading as it goes.
+			var front := reach * (1.0 - (1.0 - t) * (1.0 - t))
+			var half := tile * 0.5
+			for square in points:
+				var gap: float = square.length()
+				if gap > front:
+					continue
+				var behind := clampf(1.0 - (front - gap) / (tile * 2.5), 0.0, 1.0)
+				var line := 0.45 * behind * (1.0 - t * t)
+				if line > 0.01:
+					draw_rect(Rect2(square - Vector2(half, half), Vector2(tile, tile)), Color(1.0, 1.0, 1.0, line), false, 2.0)
+		&"glow":
+			# A blast's light on everything about it, up at once and dying away; flattened as the ground is seen.
+			var light := (1.0 - t) * (1.0 - t) * strength
+			var r := reach if reach > 0.0 else tile * GLOW_TILES
+			draw_texture_rect(LightView.light_picture(), Rect2(Vector2(-r, -r * 0.75), Vector2(r * 2.0, r * 1.5)), false,
+				Color(colour.r, colour.g, colour.b, 0.85 * light))
+		&"grit":
+			# Dust and grit shaken down from above, falling faster as it goes, and a haze where it comes down.
+			for bit in _grit:
+				var s := clampf((t - bit.late) / 0.6, 0.0, 1.0)
+				if s <= 0.0 or s >= 1.0:
+					continue
+				var fall: float = -tile * 1.7 + tile * 1.9 * s * s
+				draw_circle(Vector2(bit.x + sin(s * 6.0 + bit.x) * tile * 0.03, fall), tile * 0.012 * bit.size,
+					Color(0.62, 0.58, 0.52, 0.8 * (1.0 - s * 0.6) * strength))
+			var haze := sin(clampf(t * 1.4, 0.0, 1.0) * PI) * 0.16 * strength
+			if haze > 0.0:
+				draw_set_transform(Vector2(0.0, tile * 0.15), 0.0, Vector2(1.0, 0.45))
+				draw_circle(Vector2.ZERO, reach if reach > 0.0 else tile, Color(0.7, 0.66, 0.6, haze))
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		&"glance":
 			# A blow resisted: a pale arc before them, sliding off.
 			var off := 1.0 - t

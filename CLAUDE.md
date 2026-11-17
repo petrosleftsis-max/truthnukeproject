@@ -837,6 +837,28 @@ Conversations (DialogueBalloon "Conversations, felt"): `_step_up` from `apply_di
 by combat_ui (`_keep_early`/`_play_early`, keys) and CController (`_early_click`/`_play_early_click`, a click's tile, its path
 found afresh) for `EARLY_SECONDS`; `Pad._step_tiles` quickens a held direction (`_step_held`).
 
+**The second round** (`docs/feel_built.md` "The second round", the proposals of 2026-11-17; `feel2`). `CombatantSprite` "The pace
+of the idle": `set_spirits(share, broken)` (from `Combat._pace_idles` on `update_combatants`, and `ExplorationParty._pace_party_idles`
+from `Campaign.party_state`), `settle(seconds)`, `idle_pace()` into `_animated.speed_scale` while `_idling()`; `glance(flip,
+seconds)`, `step_towards`, `skid(way, from)`, `fold_down(away)`. `MoveFeel` (qualify `Combat.Group` there): `shoved_skid` (from
+`apply_knockback`: the node moves at once, the drawing slides), `charge_stops` (CController, a walk's end), `friend_falls`,
+`heal_answered`, `won_together`, `voice`, `blast_light` (`glow`, additive, the Flashes dial), `dust_from_above` (`grit`),
+`board_out`, `placed`. Sound with a place: `SoundFollows.place(player_2d, at, db)` (`loudness_at` by the root viewport's canvas
+transform, `behind_wall` along Depth's WALL tiles from the view's middle, the runtime bus `SFX Behind`), used by
+`Combat.play_stream(..., at)`, `GameSounds.play_at` and `_start_at`, `MapFeel.sound(..., at)`, `Footsteps.guard_step` (from
+`Guard._count_steps`). StealthWatch "Stealth, felt": `_takedown_lands`, `_fly` and `_land` (a throw's effects wait for its flight;
+`throw_watchers` judged as it is thrown and handed to `_given_away_by_throwing(seen_by, at)`), `_stir_hiding_spots`
+(`HidingSpot.stir`, `stirs_with`), `_near_miss` (`SoundFollows.hush_for`), `_drag_felt` (`LightView.leave_drag_mark`);
+`MapFeel.still` bends `Engine.time_scale` only from 1 and never headless. `MapLife.blast_at` also shakes `DepthPiece.shake` and
+`LightView.swing_lights`. Into a fight: `SceneTransition._carries(path)` decides by itself (FIGHT_SCENE when the encounter's
+terrain is the map's own, `_ground_of`; MAP_SCENE back to `_fought_on` once `_won_here`), so a joiner following the host carries
+too; `_run_carry` hides the scene's CanvasLayers, takes the picture after `frame_post_draw` and keeps `_carried_view` for
+`take_carried_view()` (Combat `_open_where_carried` and `go_on_from_carried`, awaited by FightCards' opening; ExplorationScene
+`_spawn_party`); never headless. `FightCards._look_at_what_you_face`. `CameraController.drift_now()` in the offset (`drifts`).
+`LightView` "Weather near the eye" (`_NearTheEye`, z `NEAR_Z`). `Music` "Music in layers": `_start_parts` loads a track's
+`_wary` and `_fighting` beside it, `_process` eases them by `standing_now()`, `thin`, `swell`; `Combat._turn_the_music`,
+`_last_leader_felled`.
+
 ## Stealth maps
 
 An exploration map with a `StealthSetup` in it is watched in real time by its

@@ -126,13 +126,14 @@ func what_flies(combat: Combat, hero: Dictionary, foe: Dictionary):
 	ok(camera.offset.x > 0.0, "it leans after it", "%s" % camera.offset)
 	ok(camera._lean_aim.length() * camera.zoom.x <= CameraController.LEAN_MOST_PIXELS + 0.01, "  a slight lean, however far it is", "%.1f px" % (camera._lean_aim.length() * camera.zoom.x))
 	camera.lean_off()
-	await until(func(): return camera.offset == Vector2.ZERO, 3.0)
-	ok(camera.offset == Vector2.ZERO, "  and comes back to the middle")
+	# Back to the middle: the lean gone, nothing left in the offset but the view's own slow drift (CameraController "Never quite still").
+	await until(func(): return camera._lean == Vector2.ZERO, 3.0)
+	ok(camera._lean == Vector2.ZERO and camera.offset.distance_to(camera.drift_now()) < 1.0 / camera.zoom.x, "  and comes back to the middle")
 	camera.kick(Vector2.RIGHT, 20.0)
 	await settle(1)
 	ok(camera.offset.x > 0.0, "landing, a shove the way it went")
-	await until(func(): return camera.offset == Vector2.ZERO, 3.0)
-	ok(camera.offset == Vector2.ZERO, "  which comes back by itself")
+	await until(func(): return camera._lean == Vector2.ZERO, 3.0)
+	ok(camera._lean == Vector2.ZERO and camera.offset.distance_to(camera.drift_now()) < 1.0 / camera.zoom.x, "  which comes back by itself")
 	# A real one, flown: leaning while it flies, off once it has landed.
 	Projectile.plays_headless = true
 	var skill: SkillDefinition = SkillDatabase.skills["fire_blast"]

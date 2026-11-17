@@ -84,6 +84,8 @@ func play(track: String, loop: bool = true):
 	_player.volume_db = 0.0
 	_player.stream = _with_loop(stream, loop)
 	_player.play()
+	# Its parts, if it has any, in step under it (Music in layers).
+	_start_parts(track, loop)
 
 
 ## Stops and forgets the current track, so a later play() of the same one
@@ -94,6 +96,107 @@ func stop():
 	_cancel_fade()
 	_player.stop()
 	_current = ""
+	_start_parts("", false)
+
+
+## --- Music in layers ---
+##
+## The proposals of 2026-11-17, section 9 (the designer: "From section 4 and on do all"). A track may come in parts, the designer's:
+## beside "village" (calm: the track itself), "village_wary" and "village_fighting" in audio/music, the same length and tempo, played
+## in step under it. They come in and go out with how things stand - calm; a watched map Wary (wary); Alarmed, or in a fight (wary
+## and fighting) - rather than one track switched for another. In a fight the music turns with it: the other side's last leader
+## felled with others still standing, it swells a while (swell); the party down to one, it thins to its fighting part alone (thin).
+## A track with no parts beside it plays as it always has, and none of this touches it. PROPOSAL.
+const PARTS := ["wary", "fighting"]
+const PART_FADE := 1.6
+const PART_OUT_DB := -60.0
+const SWELL_DB := 3.0
+const SWELL_SECONDS := 8.0
+const THIN_DB := -30.0
+var _parts := {}
+var _thin := false
+var _swell_until := 0.0
+
+
+## The parts of `track` beside it, started in step with it; "" puts any away.
+func _start_parts(track: String, loop: bool):
+	for part in _parts.values():
+		if is_instance_valid(part):
+			part.queue_free()
+	_parts.clear()
+	_thin = false
+	_swell_until = 0.0
+	if track == "" or track.begins_with("res://") or track.begins_with("user://"):
+		return
+	for part_name in PARTS:
+		var stream := _load("%s_%s" % [track, part_name])
+		if stream == null:
+			continue
+		var part := AudioStreamPlayer.new()
+		part.name = "Part_" + part_name
+		part.bus = "Music"
+		part.volume_db = PART_OUT_DB
+		part.stream = _with_loop(stream, loop)
+		add_child(part)
+		part.play(_player.get_playback_position())
+		_parts[part_name] = part
+
+
+## The parts this track has, for a suite.
+func parts() -> Array:
+	return _parts.keys()
+
+
+## How things stand for the parts: 0 calm, 1 wary, 2 fighting.
+func standing_now() -> int:
+	var scene := get_tree().current_scene if get_tree() != null else null
+	var fight = scene.get("combat") if scene != null else null
+	if fight is Combat and not fight.combat_over:
+		return 2
+	var watch = Campaign.get("stealth_watch")
+	if watch != null and is_instance_valid(watch) and "alert" in watch:
+		if watch.alert >= StealthWatch.ALERT_ALARMED:
+			return 2
+		if watch.alert >= StealthWatch.ALERT_WARY:
+			return 1
+	return 0
+
+
+## The party down to one in a fight, or not: the music thins to its fighting part, or comes back.
+func thin(on: bool):
+	_thin = on
+
+
+## The other side's last leader felled: the music swells a while.
+func swell():
+	_swell_until = Time.get_ticks_msec() / 1000.0 + SWELL_SECONDS
+
+
+func _process(delta: float):
+	if _parts.is_empty() or _player == null:
+		return
+	var standing := standing_now()
+	var swelling := Time.get_ticks_msec() / 1000.0 < _swell_until
+	var lift := SWELL_DB if swelling else 0.0
+	var share := clampf(delta / PART_FADE, 0.0, 1.0)
+	var wanted := {"wary": 0.0 if standing >= 1 and not _thin else PART_OUT_DB, "fighting": lift if standing >= 2 else PART_OUT_DB}
+	if _fade != null and _fade.is_valid():
+		# Fading out: the parts with it.
+		wanted = {"wary": PART_OUT_DB, "fighting": PART_OUT_DB}
+		share = clampf(share * 2.0, 0.0, 1.0)
+	for part_name in _parts:
+		var part: AudioStreamPlayer = _parts[part_name]
+		if is_instance_valid(part):
+			part.volume_db = _toward(part.volume_db, float(wanted.get(part_name, PART_OUT_DB)), share)
+			part.stream_paused = _player.stream_paused
+	# The track itself is the calm part: down to nothing while thinned, lifted with a swell - unless it is fading out.
+	if _fade == null or not _fade.is_valid():
+		_player.volume_db = _toward(_player.volume_db, THIN_DB if _thin else lift, share)
+
+
+## `from` decibels eased `share` of the way to `to`, evenly to the ear.
+static func _toward(from: float, to: float, share: float) -> float:
+	return linear_to_db(lerpf(db_to_linear(from), db_to_linear(to), share)) if absf(from - to) > 0.05 else to
 
 
 ## Holds the music where it is. resume() picks it up from the same point.

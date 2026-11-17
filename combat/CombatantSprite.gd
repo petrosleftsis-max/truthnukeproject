@@ -878,6 +878,8 @@ func _process(delta):
 	_soak(delta)
 	_weather_on_me(delta)
 	_ease_into_the_dark(delta)
+	_keep_pace(delta)
+	_keep_glance(delta)
 	if figures_lit and not laid:
 		_fall_of_light()
 	elif _figure_material != null and _drawn() != null and _drawn().material == _figure_material:
@@ -1339,6 +1341,9 @@ func set_dead():
 		end_hop()
 	if _shape_tween != null and _shape_tween.is_valid():
 		_shape_tween.kill()
+	_end_step()
+	_end_skid()
+	_glance_left = 0.0
 	var drawn = _drawn()
 	if drawn != null:
 		drawn.scale = _rest_scale
@@ -1572,6 +1577,7 @@ func strike(toward: Vector2, steps_in: bool, share: float = 1.0) -> float:
 	if drawn == null or toward == Vector2.ZERO or share <= 0.0 or lying or laid or (_hop_tween != null and _hop_tween.is_valid()):
 		return 0.0
 	end_strike()
+	_end_step()
 	strikes += 1
 	var way := toward.normalized()
 	_strike_tween = create_tween()
@@ -1621,6 +1627,235 @@ func _strike_at(t: float, way: Vector2, step_tiles: float, share: float):
 	var feet := Vector2(0.0, tile * 0.42)
 	drawn.rotation = angle
 	drawn.position = size_offset + Vector2(moved.x / across, moved.y / down) + feet - feet.rotated(angle)
+
+
+## --- The pace of the idle, and the party as a party ---
+##
+## The proposals of 2026-11-17. The designer: "When someone is hurt, make their idle animation slower, while when someone's nerve
+## breaks, make it a bit faster", and of a heal and a win, "'Breathing slower' have it be their idle animation slowing down for a
+## bit". Their idle (or the pose standing in for it, as play_idle picks) plays slower while they are hurt, faster once their nerve
+## has broken, and slower for a while after a heal or a fight won (`settle`); any other animation keeps its own pace, and only
+## somebody with an idle animation shows any of it. For the party seeing each other (MoveFeel "The party, as a party"): a glance
+## that turns them a moment and back, and half a step of the drawing towards somebody. Only the picture. PROPOSAL.
+
+## Under this share of their health they are hurt: their idle at HURT_PACE, down to HURT_SLOWEST with nothing left.
+const HURT_BELOW := 1.0 / 3.0
+const HURT_PACE := 0.8
+const HURT_SLOWEST := 0.6
+## Their nerve broken (Combat "Nerve"): this much faster.
+const BROKEN_PACE := 1.3
+## Settled, after a heal or a win: this much of the pace at first, easing back over the time asked.
+const SETTLED_PACE := 0.6
+
+var _health_share := 1.0
+var _broken := false
+var _settled_for := 0.0
+var _settle_left := 0.0
+## A glance: the facing to go back to, how long it has left, and the way it turned them.
+var _glance_back := false
+var _glance_left := 0.0
+var _glanced := false
+var _step_tween: Tween = null
+
+
+## How much of their health they have, 0 to 1, and whether their nerve has broken: the pace of their idle.
+func set_spirits(health_share: float, broken: bool):
+	_health_share = clampf(health_share, 0.0, 1.0)
+	_broken = broken
+
+
+## Their idle slower for `seconds`, easing back to its pace: breathing easier after a heal, or a fight won.
+func settle(seconds: float):
+	_settled_for = maxf(seconds, 0.01)
+	_settle_left = _settled_for
+
+
+## Whether they are settling still, for a suite.
+func settling() -> bool:
+	return _settle_left > 0.0
+
+
+## The pace their idle plays at now: 1 as drawn.
+func idle_pace() -> float:
+	var pace := 1.0
+	if _broken:
+		pace = BROKEN_PACE
+	elif _health_share < HURT_BELOW:
+		pace = lerpf(HURT_SLOWEST, HURT_PACE, _health_share / HURT_BELOW)
+	if _settle_left > 0.0:
+		var still := _settle_left / _settled_for
+		pace *= lerpf(1.0, SETTLED_PACE, still * still * (3.0 - 2.0 * still))
+	return pace
+
+
+## Whether what they are playing is their idle, or a pose standing in for it.
+func _idling() -> bool:
+	if _animated == null or not _animated.is_playing():
+		return false
+	var now := _animated.animation
+	return now == &"idle" or now == LYING_ANIMATION or (pose != &"" and now == pose) or (weather_pose != &"" and now == weather_pose)
+
+
+func _keep_pace(delta: float):
+	if _settle_left > 0.0:
+		_settle_left = maxf(_settle_left - delta, 0.0)
+	if _animated != null:
+		_animated.speed_scale = idle_pace() if _idling() else 1.0
+
+
+## Whether they are drawn turned round (set_facing's `flip`).
+func flipped() -> bool:
+	if _animated != null:
+		return _animated.flip_h
+	return _static != null and _static.flip_h
+
+
+## Turns them as set_facing(`flip`) would for `seconds`, then back the way they were, unless something has turned them since.
+func glance(flip: bool, seconds: float):
+	if lying or laid:
+		return
+	if _glance_left <= 0.0:
+		_glance_back = flipped()
+	_glance_left = seconds
+	_glanced = flip
+	set_facing(flip)
+
+
+## Whether a glance is still holding them, for a suite.
+func glancing() -> bool:
+	return _glance_left > 0.0
+
+
+func _keep_glance(delta: float):
+	if _glance_left <= 0.0:
+		return
+	_glance_left -= delta
+	if _glance_left <= 0.0 and flipped() == _glanced and not lying and not laid:
+		set_facing(_glance_back)
+
+
+## The drawing `tiles` of a tile towards `toward` (a direction on the map) and back over `seconds`: going to somebody without
+## leaving the tile. Not while lying, laid along a wall, mid-hop, mid-blow or springing back from one.
+func step_towards(toward: Vector2, tiles: float, seconds: float):
+	var drawn = _drawn()
+	if drawn == null or toward == Vector2.ZERO or lying or laid or (_hop_tween != null and _hop_tween.is_valid()) \
+			or (_strike_tween != null and _strike_tween.is_valid()) or (_recoil_tween != null and _recoil_tween.is_valid()):
+		return
+	_end_step()
+	_step_tween = create_tween()
+	_step_tween.tween_method(_step_at.bind(toward.normalized(), tiles), 0.0, 1.0, seconds)
+	_step_tween.finished.connect(_end_step)
+
+
+## Whether half a step is under way, for a suite.
+func stepping() -> bool:
+	return _step_tween != null and _step_tween.is_valid()
+
+
+func _end_step():
+	if _step_tween == null:
+		return
+	if _step_tween.is_valid():
+		_step_tween.kill()
+	_step_tween = null
+	var drawn = _drawn()
+	if drawn != null and not lying and not laid:
+		drawn.position = size_offset
+
+
+func _step_at(t: float, way: Vector2, tiles: float):
+	var drawn = _drawn()
+	if drawn == null:
+		return
+	# Out quickly, a moment there, back slowly.
+	var out := 1.0
+	if t < 0.35:
+		var go := t / 0.35
+		out = 1.0 - (1.0 - go) * (1.0 - go)
+	elif t > 0.6:
+		var back := (t - 0.6) / 0.4
+		out = 1.0 - back * back * (3.0 - 2.0 * back)
+	var across: float = scale.x if scale.x != 0.0 else 1.0
+	var down: float = scale.y if scale.y != 0.0 else 1.0
+	var moved := way * float(Grid.TILE_SIZE) * tiles * out
+	drawn.position = size_offset + Vector2(moved.x / across, moved.y / down)
+
+
+## A rush that stops (MoveFeel "A rush that stops"): shoved or dragged, the drawing slides from `from` (where they were, off the
+## node, as measured on the map) home along `way`, slowing all the way as they skid; with no `from`, a run braking on its tile goes
+## a little past it and back. Either way they lean back against it about their feet. Only the drawing. PROPOSAL.
+const SKID_SECONDS := 0.24
+const SKID_STOP_SECONDS := 0.3
+const SKID_OVER_TILES := 0.12
+const SKID_LEAN := 0.16
+var _skid_tween: Tween = null
+## How many skids this figure has made, for a suite.
+var skids := 0
+
+
+func skid(way: Vector2, from: Vector2 = Vector2.ZERO):
+	var drawn = _drawn()
+	if drawn == null or way == Vector2.ZERO or lying or laid or (_hop_tween != null and _hop_tween.is_valid()):
+		return
+	if _recoil_tween != null and _recoil_tween.is_valid():
+		_recoil_tween.kill()
+	end_strike()
+	_end_step()
+	_end_skid()
+	skids += 1
+	_skid_tween = create_tween()
+	_skid_tween.tween_method(_skid_at.bind(way.normalized(), from), 0.0, 1.0, SKID_SECONDS if from != Vector2.ZERO else SKID_STOP_SECONDS)
+	_skid_tween.finished.connect(_end_skid)
+
+
+func _end_skid():
+	if _skid_tween == null:
+		return
+	if _skid_tween.is_valid():
+		_skid_tween.kill()
+	_skid_tween = null
+	var drawn = _drawn()
+	if drawn != null and not lying and not laid:
+		drawn.position = size_offset
+		drawn.rotation = 0.0
+
+
+func _skid_at(t: float, way: Vector2, from: Vector2):
+	var drawn = _drawn()
+	if drawn == null:
+		return
+	var tile := float(Grid.TILE_SIZE)
+	var moved := Vector2.ZERO
+	if from != Vector2.ZERO:
+		# Quick off the mark, creeping at the end.
+		moved = from * (1.0 - t) * (1.0 - t)
+	else:
+		moved = way * tile * SKID_OVER_TILES * sin(PI * t)
+	var angle := -SKID_LEAN * signf(way.x) * sin(PI * minf(t * 1.25, 1.0))
+	var feet := Vector2(0.0, tile * 0.42)
+	var across: float = scale.x if scale.x != 0.0 else 1.0
+	var down: float = scale.y if scale.y != 0.0 else 1.0
+	drawn.rotation = angle
+	drawn.position = size_offset + Vector2(moved.x / across, moved.y / down) + feet - feet.rotated(angle)
+
+
+## Taken down on a map (StealthWatch "A takedown that lands"): folding where they stand and tipping over away from `away` (a
+## direction on the map), not only greying and sinking as set_dead alone does. Ends as set_dead does, so set_alive stands them
+## back up. A "dead" animation of their own keeps its place.
+const FOLD_SECONDS := 0.34
+const FOLD_SQUASH := 0.72
+
+
+func fold_down(away: Vector2):
+	set_dead()
+	var drawn = _drawn()
+	if drawn == null or (_animated != null and _animated.sprite_frames.has_animation("dead")):
+		return
+	var side := 1.0 if away.x >= 0.0 else -1.0
+	var fold := create_tween().set_ignore_time_scale(true)
+	fold.tween_property(drawn, "scale", Vector2(_rest_scale.x * 1.05, _rest_scale.y * FOLD_SQUASH), FOLD_SECONDS * 0.4).set_ease(Tween.EASE_IN)
+	fold.tween_property(drawn, "rotation", deg_to_rad(FALL_ANGLE) * side, FOLD_SECONDS * 0.6).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	fold.parallel().tween_property(drawn, "scale", _rest_scale, FOLD_SECONDS * 0.6)
 
 
 ## --- Wading ---

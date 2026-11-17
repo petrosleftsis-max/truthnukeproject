@@ -269,6 +269,15 @@ static func blast_at(tree: SceneTree, at: Vector2, radius_tiles: float):
 	for banner in tree.get_nodes_in_group(WindBanner.GROUP):
 		if banner is WindBanner and banner.global_position.distance_to(at) < reach:
 			banner.push((banner.global_position - at).normalized() * 1.2)
+	# Trees, the things that stand and the lights about it shaken as well (the proposals of 2026-11-17, section 6).
+	for piece in tree.get_nodes_in_group(Depth.PIECES):
+		if not piece is DepthPiece:
+			continue
+		var foot: Vector2 = piece.to_global(piece.ground_rect().get_center())
+		var gap := foot.distance_to(at)
+		if gap < reach + piece.ground_rect().size.length() * 0.5:
+			piece.shake(foot - at, 1.0 - gap / (reach * 2.0))
+	LightView.swing_lights(at, reach)
 
 
 ## Where each of them is now, for a suite: [{at, state, alpha, bend}].

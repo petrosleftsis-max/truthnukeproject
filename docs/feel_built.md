@@ -294,3 +294,175 @@ While a slot is empty a stand-in made in code plays (`PlaceholderSounds`), or a 
 10. "do all, altho im uncertain if i'll like the speaker steps up"
 11. "add all"
 12. "Add all"
+
+# The second round: what was built from the proposals of 2026-11-17
+
+The designer's answers are word for word at the top of `docs/proposals_2026-11-17.md`. As before, **every number is a PROPOSAL**,
+all of it is view, sound and feel (nothing rolls on a fight's dice, nothing changes a rule), and every sound made for it is a
+stand-in behind a slot (the table at the end of this part). The suite is `feel2`.
+
+## 1. The pace of the idle (and section 3's "breathing slower")
+
+`CombatantSprite` "The pace of the idle, and the party as a party". Whoever has an idle animation (or a pose standing in for it)
+plays it:
+
+- **slower while hurt**: under a third of their health at 0.8 of its pace, down to 0.6 with nothing left (`HURT_BELOW`, `HURT_PACE`,
+  `HURT_SLOWEST`);
+- **a little faster once their nerve has broken** (fleeing): 1.3 (`BROKEN_PACE`), however hurt;
+- **slower for a while once settled** - after a heal, and as a fight is won: at first 0.6 of its pace, easing back (`SETTLED_PACE`;
+  how long is the caller's, below).
+
+Any other animation (a walk, a blow) keeps its own pace. In a fight each figure is told whenever anything changes
+(`Combat._pace_idles`); on a map the party's figures read what the campaign keeps of their health every half second
+(`ExplorationParty.PACE_EVERY`). Only somebody with an idle animation shows any of it: most enemies today have none, and get it the
+day they do. Breathing, "by what they are" and "watching" were not chosen and are not built.
+
+## 2. A rush that stops
+
+`MoveFeel` "A rush that stops"; `CombatantSprite.skid`.
+
+- **Shoved or dragged**, the figure now slides from where it was to where it ends up, slowing as it skids (0.24 s,
+  `SKID_SECONDS`), leaning back against it, the dust kicked up at each tile as it passes it and a puff thrown up in front as it
+  stops (`SKID_PUFF`). Before, it jumped there at once with the dust all along the way together.
+- **A charge**: a walk of three tiles or more that ends beside somebody of the other side (Leading Charge counts a charge the same
+  way) skids the last of it, a little past the tile and back (0.3 s, `SKID_OVER_TILES`), with the same puff. `CHARGE_TILES`.
+
+Only the drawing: where they stand is the rules' at once.
+
+## 3. The party, as a party
+
+`MoveFeel` "The party, as a party". A hard blow felt beside was not chosen and is not built.
+
+- **A friend falls**: 0.35 s after one of the party goes down, the others of the party standing turn to them for 1.6 s and the
+  nearest takes a fifth of a step towards them and back (`FRIEND_AFTER_SECONDS`, `FRIEND_GLANCE_SECONDS`, `FRIEND_STEP_TILES`).
+- **A heal answered**: whoever is mended settles for 2.4 s (their idle slower, as section 1), and when somebody else mended them,
+  healer and healed turn to each other for 1.2 s; either side (`HEAL_SETTLE_SECONDS`, `HEAL_GLANCE_SECONDS`).
+- **Won, together**: as a fight is won, the party standing turn towards the middle of them and settle for 3 s, before the words
+  come up (`WON_SETTLE_SECONDS`, `WON_GLANCE_SECONDS`).
+
+Turning is only the picture, as facing always was; a glance goes back the way they faced unless something else turned them
+meanwhile.
+
+## 4. Sound with a place
+
+`SoundFollows` "Sound with a place"; `GameSounds.play_at`; `Combat.play_stream(..., at)`; `MapFeel.sound(..., at)`.
+
+- **Heard from where it happens.** A sound of a fight or a map that happens somewhere is heard from its side of the screen (an
+  AudioStreamPlayer2D, panned by the engine, `PLACE_PANNING` 1.6), as loud as ever over three quarters of the way to the screen's
+  edge, falling to 0.7 at the edge and gone 4 tiles past it (`PLACE_FALLS_FROM`, `PLACE_AT_EDGE`, `PLACE_FADE_TILES`). Placed: a
+  move's sound (from its user), a blow's (from whoever it lands on), a condition's tick, a body falling, the party's and a guard's
+  steps, doors, lamps, a wall coming down, a splash, a trap, a lever. The music, the interface's sounds, a voice's ticks, thunder
+  and rummaging stay in the middle.
+- **Behind a wall.** A sound with a wall (Depth's WALL) between it and the middle of the view plays on the bus SFX Behind (made as
+  first needed: a low-pass at 1,100 Hz and 4 dB quieter, sending on to SFX, so the dial and the rest still hold). `BEHIND_HZ`,
+  `BEHIND_DB`.
+- **A guard heard before seen.** A guard's step every 0.6 of a tile walked, heard from where he is (so dulled behind a wall and gone
+  well off the screen), quietly (-17 dB), while within 9 tiles of where the party last stepped. `Footsteps` "A guard heard before
+  seen": `GUARD_STEP_TILES`, `GUARD_HEARD_TILES`, `GUARD_STEP_DB`. On either machine.
+- **Voices in a fight.** An effort as somebody throws a blow, a cry when they are hurt by more than 4% of their health, a breath when
+  they are healed (`MoveFeel` "Voices in a fight", `VOICE_HURT_FROM`, `VOICE_DB`). A creature's own (CombatantDefinition's new
+  Voice group) as it is; else, for one of the party, the sound bank's Voices in a fight, pitched for who it is as their voice ticks
+  are. **Silent until filled**: no stand-in.
+
+## 5. Stealth, felt
+
+`StealthWatch` "Stealth, felt". What a guard hears and sees is the rules' own and untouched.
+
+- **A takedown that lands**: the world still for a tenth of a second (`MapFeel.still`, real time; not while time is already bent),
+  a muffled thump from where he goes down, a tap on the pad, a puff of dust, and the guard folding where he stands and tipping
+  over away from whoever took him down (`CombatantSprite.fold_down`, `FOLD_SECONDS`, `FOLD_SQUASH`). Brought round, he stands up as
+  he was. `TAKEDOWN_STILL_SECONDS`.
+- **A thrown thing flies**: from the leader's hand to where it was aimed, its shadow along the ground under it, in 0.22 to 0.55 s by
+  how far (`MapFeel.flight_seconds`), a dart a quick streak (0.12 s). **What it does waits for it to land**: its noise, the lamp it
+  knocks out, the dart finding whoever it finds - in the order they always came, only after the flight. Who saw it thrown is who
+  saw the arm go up, as it went up. On dry ground it clatters and skitters on; in water it splashes. On a joiner's screen the
+  thrower sees it fly too; what it does is the host's. Headless it all happens at once, as before.
+- **A hiding spot that answers**: going in or coming out, a hiding spot with a picture shakes a moment and settles, with a creak
+  (a bush: set its new **Stirs With** to Rustle); a patch of shadow alone neither shakes nor sounds. `HidingSpot` "Stirred".
+- **Holding your breath**: a guard's look passing over somebody of the party he does not make out (hidden, unseen, in the dark)
+  within 6 tiles of him hushes the music and the world alike for 0.7 s (12 dB down, `SoundFollows.hush_for`), and the heartbeat
+  skips a beat - or, quiet till then, beats once as it comes back. Once a look, and not again for 4 s. `NEAR_MISS_TILES`,
+  `HELD_BREATH_EVERY`, `HUSH_DB`, `HUSH_SECONDS`.
+- **A body dragged**: faint marks behind it every 0.3 of a tile, gone in 10 s, and a scrape every 0.7 of a tile. Only to look at:
+  no guard sees the marks. `DRAG_MARK_TILES`, `DRAG_SCRAPE_TILES`, `LightView.PRINT_DRAG_SECONDS`.
+
+## 6. The world shaken by a fight
+
+`MoveFeel` "The world shaken by a fight"; `DepthPiece` "Shaken by a blast"; `LightView.swing_lights`.
+
+- **Trees and things that stand, shaken**: a blast (an area blow landing; a wall broken on a map) shakes a tree's crown and knocks
+  three leaves loose, rocks a crate, a pillar, a statue, a lamp post or a railing about its foot (0.9 s, `SHAKEN_SECONDS`,
+  `SHAKEN_TILES`, `SHAKEN_TURN`, `ROCK_TURN`), and swings every light near it away and back (`SWING_TILES`, `SWING_SECONDS`).
+- **A blast's light**: fire, plasma, lightning and an Idol's light light whatever is about where they land, in their colour, for
+  half a second - a glow over the dark, 1.6 tiles for a single blow and 2.6 for an area (`GLOW_TILES`, `GLOW_AREA_TILES`). As
+  strong as the **Flashes** dial lets it. The light the rules read is untouched.
+- **Dust from above**: under a roof, and anywhere in a fight indoors or underground, a blast, or a blow of a third of
+  somebody's health or more, shakes dust and grit down about where it lands (`GRIT_FROM_SHARE`).
+- **Falling away from the blow** was already there: since 2026-11-05 a felled fighter is thrown back and tips over away from the
+  blow (`MoveFeel.falls`, `CombatantSprite.fall`). The proposal was wrong to say otherwise. They still grey as they go down; the
+  figure's own notes give the reason (a body stays dimmer than anyone standing, so the board never leaves doubt who can still act).
+  **Whether the grey should go is the designer's to say.**
+
+## 7. Into a fight
+
+- **The map becomes the board** (`SceneTransition` "The map becomes the board"; `Combat` "The map becomes the board"). Into a fight
+  fought on the very ground of the map the party is on, and back to that map once the fight is won, there is no black. The last
+  picture of the world, its HUD left out, is held while the scene changes under it; the new scene opens its view where the old one's
+  was; the picture dissolves into it over 0.55 s (`CARRY_DISSOLVE`). Into a fight the view then pushes in from the map's zoom to
+  the board's and the board's lines draw themselves out from the party over 7 tiles of floor (`MoveFeel.board_out`,
+  `BOARD_OUT_TILES`, `BOARD_OUT_SECONDS`); back to the map, the board's view first pulls back to where the party will stand there,
+  at the map's own zoom (`MAP_ZOOM` 0.25). It goes by itself wherever the ground matches - a stealth map caught, a fight on a map's
+  own terrain - and on a joiner's machine too; anything else, and headless, is the fade it always was.
+  **On one scene for maps and fights** (the designer's question): not needed for this, and not done. The two scenes already share
+  the ground: a stealth map and its fight load the same terrain at the same place, and the fight puts everybody on the tile they
+  stood on. Only the black was between them. One scene would mean rebuilding the backbone of the fights, the maps, co-op and the
+  saves, and a fight from the level select or a dungeon would still need the scene it has. It would be worth it for fights in which
+  the rest of the map carries on around the board - guards not caught walking their rounds, more coming in from the map, the party
+  running back into it. That is a direction for the game, not a matter of feel.
+- **A look at what you face** (`FightCards` "A look at what you face"): a fight without a boss's reveal opens with the view gliding
+  to the middle of whoever of the other side the party can see, holding a moment and coming back, before the title (about 1.7 s
+  all told; `FACE_GLIDE_SECONDS`, `FACE_HOLD_SECONDS`). Any press skips it, with the rest of the opening.
+- **Placed with a thump** (`MoveFeel` "Into a fight"): placing the party before a fight, whoever is put on a tile hops onto it and
+  lands with a puff (`PLACED_SECONDS`, `PLACED_HOP_TILES`); whoever made way slides past to the tile they left (`MADE_WAY_SECONDS`).
+
+## 8. The view
+
+- **Never quite still** (`CameraController` "Never quite still", an experiment with its switch `drifts`): in a fight the view drifts
+  5 pixels on the screen, slowly, round and round (13 and 17 s; `DRIFT_PIXELS`, `DRIFT_SECONDS`), so the layers of depth always move
+  against each other a little. As much as the **Camera sway** dial says; on real time; never on a map.
+- **Weather near the eye** (`LightView` "Weather near the eye"): with the view out under the open sky, every 1.8 to 4.5 s one to
+  three big soft drops of rain, flakes of snow, or leaves and petals on the wind pass right by the view, fast, large, dim and blurred
+  - over the world and its weather, under the HUD, the same size on the screen whatever the zoom. From a fifth of rain, snow or
+  leaves up (`NEAR_FROM`, `NEAR_EVERY`).
+
+## 9. Music in layers
+
+`Music` "Music in layers"; `Combat` "The turn of a fight, in the music". **Waiting on the designer's music in parts**; with none,
+nothing changes.
+
+- **Layers**: beside a track `village` in `audio/music`, a `village_wary` and a `village_fighting`, the same length and tempo, are
+  played in step under it. Calm, only the track; a watched map Wary, the wary part comes in; Alarmed, or in a fight, both. Over 1.6
+  s (`PART_FADE`). A fight with the same track as its map keeps it playing, with its parts up.
+- **The turn of a fight**: the other side's last leader (Their Side's Leader, or a boss) felled with others of them still standing,
+  the music swells 3 dB for 8 s (`SWELL_DB`, `SWELL_SECONDS`); the party down to one of those it came with, it thins to its fighting
+  part alone (`THIN_DB`), and comes back at two or when the fight is over. So the fighting part is best the drums.
+
+## Found on the way
+
+- Sound that follows the picture (the first round, section 9) told indoors and underground from open sky by the tile alone, so a
+  fight indoors or underground as a whole - the laboratory's, with no ambient area drawn over it - was heard as out of doors, with
+  no echo. It now goes by the fight's own ambient, or the map's (`SoundFollows._ambient_of`).
+- The fight's view suite waited for the view's offset to come to nothing after a lean; it now waits for the lean to go, the
+  view's own drift (section 8) left in it.
+
+## Slots of the second round
+
+| What | Where | Size or kind |
+| --- | --- | --- |
+| A guard's step | `audio/sound_bank.tres`: On a map, Guard Step | Sound; a stand-in plays meanwhile |
+| A takedown's thump | On a map, Takedown | Sound; a stand-in meanwhile |
+| Something thrown landing | On a map, Clatter | Sound; a stand-in meanwhile |
+| A hiding spot stirred | On a map, Rustle (a bush) and Creak (anything else) | Sounds; stand-ins meanwhile |
+| A body dragged | On a map, Body Drag | Sound, a moment of it a step; a stand-in meanwhile |
+| Voices in a fight | Voices in a fight: Voice Effort, Voice Hurt, Voice Healed (one each, pitched for each of the party); or any creature's own, in its CombatantDefinition's Voice | Short sounds; **silent until filled** |
+| Music in parts | `audio/music/<track>_wary` and `<track>_fighting` (.ogg, .mp3 or .wav), beside the track | The track's own length and tempo |

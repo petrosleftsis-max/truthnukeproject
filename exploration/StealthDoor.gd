@@ -85,10 +85,10 @@ func _process(delta: float):
 	if was == aim:
 		return
 	if was == 0.0 or was == 1.0:
-		MapFeel.sound(&"door_creak", -9.0, 1.0 if aim > was else 0.9)
+		MapFeel.sound(&"door_creak", -9.0, 1.0 if aim > was else 0.9, global_position)
 	_swing = move_toward(was, aim, delta / SWING_SECONDS)
 	if _swing == 0.0:
-		MapFeel.sound(&"door_shut", -7.0)
+		MapFeel.sound(&"door_shut", -7.0, 1.0, global_position)
 	queue_redraw()
 
 

@@ -1237,6 +1237,8 @@ class _Prints extends Node2D:
 		queue_redraw()
 
 	static func _lasts(mark: Dictionary) -> float:
+		if mark.has("drag"):
+			return LightView.PRINT_DRAG_SECONDS
 		if mark.has("wet"):
 			return LightView.PRINT_WET_SECONDS
 		return LightView.PRINT_SNOW_SECONDS if mark.snow else LightView.PRINT_MUD_SECONDS
@@ -1247,6 +1249,12 @@ class _Prints extends Node2D:
 			var foot := float(Grid.TILE_SIZE) * 0.055
 			var lasts: float = _lasts(mark)
 			var fade: float = clampf(1.0 - (now - float(mark.born)) / lasts, 0.0, 1.0)
+			if mark.has("drag"):
+				# A body dragged over it: a faint smear along the way it went.
+				var along: Vector2 = mark.way if mark.way.length_squared() > 0.001 else Vector2.RIGHT
+				draw_set_transform(to_local(mark.at), along.angle(), Vector2(2.6, 0.45))
+				draw_circle(Vector2.ZERO, float(Grid.TILE_SIZE) * 0.07, Color(0.14, 0.11, 0.08, 0.3 * fade))
+				continue
 			var colour := Color(0.62, 0.68, 0.8, 0.45 * fade) if mark.snow else Color(0.16, 0.12, 0.09, 0.45 * fade)
 			if mark.has("wet"):
 				# Out of water: the ground darkened where a foot came down.
@@ -1364,6 +1372,22 @@ static func leave_wet_print(at: Vector2, way: Vector2, share: float):
 	var marks: Array = showing._prints.marks
 	var left: bool = marks.is_empty() or not marks.back().left
 	marks.append({"at": at + Vector2(0.0, float(Grid.TILE_SIZE) * 0.4), "way": way, "born": Time.get_ticks_msec() / 1000.0, "snow": false, "left": left, "wet": clampf(share, 0.0, 1.0)})
+	while marks.size() > PRINTS_MOST:
+		marks.pop_front()
+
+
+## A faint mark where a body was dragged over `at`, going `way` (StealthWatch "A body dragged"): on any ground, gone in
+## PRINT_DRAG_SECONDS. Only to look at: no guard sees it.
+const PRINT_DRAG_SECONDS := 10.0
+static var drag_marks_left := 0
+
+
+static func leave_drag_mark(at: Vector2, way: Vector2):
+	drag_marks_left += 1
+	if showing == null or not is_instance_valid(showing) or showing._prints == null or not shown():
+		return
+	var marks: Array = showing._prints.marks
+	marks.append({"at": at, "way": way, "born": Time.get_ticks_msec() / 1000.0, "snow": false, "left": false, "drag": true})
 	while marks.size() > PRINTS_MOST:
 		marks.pop_front()
 
@@ -1759,6 +1783,7 @@ func _process(delta: float):
 	_keep_the_air_on_the_screen()
 	_storm(delta)
 	_more_to_look_at(delta)
+	_near_the_eye(delta)
 	_keep_the_waders(delta)
 	if light == null:
 		return
@@ -1801,11 +1826,141 @@ var _fireflies: CPUParticles2D = null
 var _glow_material: ShaderMaterial = null
 
 
+## --- Weather near the eye ---
+##
+## The proposals of 2026-11-17, section 8 (the designer: "From section 4 and on do all"). With the view out under the open sky, now
+## and then a few big soft drops of rain, flakes of snow or leaves and petals on the wind pass very close to the view: fast, large,
+## blurred and dim, the way things at the screen's edge are drawn (DepthPiece's Edge) - the weather given depth. Over the world and
+## its weather, under the HUD, sized on the screen whatever the zoom. Only to look at; never headless. PROPOSAL.
+const NEAR_EVERY := [1.8, 4.5]
+const NEAR_Z := 3990
+const NEAR_FROM := 0.2
+## A leaf's colour by what is on the wind (_leaves_wanted), darker as something this near the eye is.
+const LEAF_COLOURS := {"petals": Color(0.62, 0.5, 0.55), "leaves": Color(0.5, 0.3, 0.13), "green": Color(0.2, 0.32, 0.15)}
+var _near: _NearTheEye = null
+var _near_left := 2.0
+## How many have passed by the eye, for a suite.
+static var near_passed := 0
+
+
+class _NearTheEye extends Node2D:
+	## [{at, way (screen pixels a second), size, kind, age, life, turn}], on the screen from its middle.
+	var bits: Array = []
+
+	func _process(delta: float):
+		for bit in bits:
+			bit.at += bit.way * delta
+			bit.age += delta
+			bit.turn += delta * 3.0
+		bits = bits.filter(func(bit): return bit.age < bit.life)
+		queue_redraw()
+
+	func _draw():
+		for bit in bits:
+			var fade: float = clampf(minf(bit.age / 0.15, (bit.life - bit.age) / 0.25), 0.0, 1.0)
+			match bit.kind:
+				"rain":
+					var tail: Vector2 = bit.at - bit.way.normalized() * bit.size * 4.0
+					for i in 3:
+						draw_line(tail, bit.at, Color(0.82, 0.88, 0.98, 0.07 * fade), bit.size * (0.9 - 0.25 * float(i)), true)
+				"snow":
+					for i in 3:
+						draw_circle(bit.at, bit.size * (1.0 - 0.28 * float(i)), Color(0.95, 0.97, 1.0, 0.09 * fade))
+				_:
+					draw_set_transform(bit.at, bit.turn, Vector2(1.0, 0.5))
+					for i in 2:
+						draw_circle(Vector2.ZERO, bit.size * (1.0 - 0.3 * float(i)), Color(bit.colour.r, bit.colour.g, bit.colour.b, 0.35 * fade))
+					draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## What passes by the eye now: "rain", "snow", a leaf's colour, or "" for nothing.
+func _near_kind() -> String:
+	if not air_on or _sky_shown.is_empty():
+		return ""
+	var camera := get_viewport().get_camera_2d()
+	if camera == null or not _under_the_sky(camera.get_screen_center_position()):
+		return ""
+	if float(_sky_shown.get("snow", 0.0)) >= NEAR_FROM:
+		return "snow"
+	if float(_sky_shown.get("rain", 0.0)) >= NEAR_FROM:
+		return "rain"
+	var leaves: Dictionary = _leaves_wanted(_sky_shown)
+	return String(leaves.get("what", "")) if float(leaves.get("amount", 0.0)) >= NEAR_FROM else ""
+
+
+func _near_the_eye(delta: float):
+	if not shown() or DisplayServer.get_name() == "headless":
+		return
+	var camera := get_viewport().get_camera_2d()
+	if camera == null:
+		return
+	if _near == null:
+		_near = _NearTheEye.new()
+		_near.name = "NearTheEye"
+		_near.z_as_relative = false
+		_near.z_index = NEAR_Z
+		add_child(_near)
+	# Held at the middle of the screen and sized on it, whatever the zoom.
+	_near.global_position = camera.get_screen_center_position()
+	_near.scale = Vector2.ONE / camera.zoom
+	_near_left -= delta
+	if _near_left > 0.0:
+		return
+	_near_left = randf_range(NEAR_EVERY[0], NEAR_EVERY[1])
+	var kind := _near_kind()
+	if kind == "":
+		return
+	var half := get_viewport().get_visible_rect().size * 0.5
+	var wind := wind_over()
+	for i in randi_range(1, 3):
+		near_passed += 1
+		var bit := {"kind": kind, "age": 0.0, "turn": randf() * TAU, "colour": LEAF_COLOURS.get(kind, Color(0.3, 0.42, 0.2))}
+		match kind:
+			"rain":
+				bit.way = Vector2(wind.x * 700.0, 2200.0)
+				bit.size = randf_range(8.0, 16.0)
+				bit.at = Vector2(randf_range(-half.x, half.x) - bit.way.x * 0.4, -half.y - 60.0)
+			"snow":
+				bit.way = Vector2(wind.x * 420.0 + randf_range(-80.0, 80.0), 520.0)
+				bit.size = randf_range(20.0, 42.0)
+				bit.at = Vector2(randf_range(-half.x, half.x) - bit.way.x, -half.y - 50.0)
+			_:
+				var side := 1.0 if wind.x >= 0.0 else -1.0
+				bit.way = Vector2(side * randf_range(900.0, 1300.0), randf_range(-80.0, 220.0))
+				bit.size = randf_range(16.0, 30.0)
+				bit.at = Vector2(-side * (half.x + 60.0), randf_range(-half.y, half.y) * 0.8)
+		bit.life = (half.length() * 2.0 + 160.0) / maxf(bit.way.length(), 1.0)
+		_near.bits.append(bit)
+
+
+## A blast at `at` (in the world) swings every light within `reach` of it away and back, dying away (MapLife.blast_at; the proposals
+## of 2026-11-17, section 6: "a lamp post's light swings"). Only to look at: what is lit by the rules does not move.
+const SWING_TILES := 0.09
+const SWING_SECONDS := 1.4
+static var swung := 0
+
+
+static func swing_lights(at: Vector2, reach: float):
+	if showing == null or not is_instance_valid(showing):
+		return
+	for entry in showing._lights:
+		var where: Vector2 = showing.to_global(entry.at)
+		if where.distance_to(at) < reach:
+			entry["swing"] = {"way": (where - at).normalized() if where.distance_to(at) > 1.0 else Vector2.RIGHT, "born": showing._clock}
+			swung += 1
+
+
 ## How far a light is about where it stands this moment: its flame's dance and its sway in the wind.
 func _light_moves(entry: Dictionary) -> Vector2:
 	var tile := float(Grid.TILE_SIZE)
 	var moved := Vector2.ZERO
 	var phase: float = entry.get("phase", 0.0)
+	if entry.has("swing"):
+		var since: float = _clock - float(entry.swing.born)
+		if since < SWING_SECONDS:
+			moved += entry.swing.way * sin(since * 11.0) * exp(-since * 3.2) * tile * SWING_TILES
+		else:
+			entry.erase("swing")
 	if entry.source.get("flickers", false):
 		moved += Vector2(sin(_clock * 6.3 + phase), cos(_clock * 4.7 + phase * 1.7)) * tile * FLAME_DANCE_TILES
 	var wind: float = float(_sky_shown.get("wind", 0.0)) if air_on else 0.0
@@ -2831,7 +2986,7 @@ static func land_in_water(at: Vector2, strength: float = 1.0) -> bool:
 		return true
 	showing._ring_at(at)
 	showing._throw_drops(at, roundi(8.0 + 10.0 * strength), Color(0.86, 0.93, 1.0, 0.75))
-	MapFeel.sound(&"water_splash", lerpf(-14.0, -5.0, clampf(strength, 0.0, 1.0)))
+	MapFeel.sound(&"water_splash", lerpf(-14.0, -5.0, clampf(strength, 0.0, 1.0)), 1.0, at)
 	return true
 
 

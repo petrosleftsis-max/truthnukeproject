@@ -18,6 +18,6 @@ func interact(scene: Node):
 	if target_map == "":
 		push_warning("DoorInteractable '%s' has no target map." % name)
 		return
-	GameSounds.play(&"mechanism_opened")
+	GameSounds.play_at(&"mechanism_opened", global_position)
 	Campaign.travel_to_map(target_map, target_entry)
 	scene.reload_map()

@@ -581,6 +581,11 @@ func _spawn_party():
 		Coop.players_changed.connect(_on_players_changed)
 	_follow_camera(_camera_group().position_of_leader())
 	_arrive()
+	# Back from a fight won on this ground, its picture carried across: the view opens where the board's was (SceneTransition
+	# "The map becomes the board"), and the soft view takes it on from there.
+	var carried: Dictionary = SceneTransition.take_carried_view()
+	if not carried.is_empty() and camera != null:
+		camera.position = carried.at
 
 
 ## What everyone still standing looks like, leader first - straight off the
@@ -2152,7 +2157,7 @@ func spring_trap(trap: MagicTrap, who: String):
 		return
 	springing = trap
 	trap.armed = false
-	GameSounds.play(&"mechanism_opened")
+	GameSounds.play_at(&"mechanism_opened", trap.global_position)
 	Campaign.set_flag(trap.flag_for(map_path()))
 	var answer := trap_answer()
 	var hacked := false
@@ -2260,7 +2265,7 @@ func _wall_comes_down(wall: BreakableWall):
 	way = way.normalized() if way.length() > 1.0 else Vector2.RIGHT
 	MapFeel.spawn(wall.get_parent(), &"rubble", wall.position, {"toward": way, "colour": BreakableWall.STONE})
 	MapFeel.spawn(wall.get_parent(), &"hang", wall.position, {"colour": BreakableWall.STONE.lightened(0.2)})
-	MapFeel.sound(&"wall_breaks", -3.0)
+	MapFeel.sound(&"wall_breaks", -3.0, 1.0, wall.global_position)
 	MapLife.blast_at(get_tree(), wall.global_position, 1.5)
 	Rumble.roll(0.7, 0.6)
 	if camera != null and camera.has_method("shake"):

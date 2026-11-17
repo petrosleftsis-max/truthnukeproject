@@ -17,7 +17,7 @@ const RUBBLE_PICTURE := "res://art/fx/rubble.png"
 
 const SECONDS := {
 	&"dust": 0.45, &"skid": 0.5, &"streak": 0.28, &"smoke": 1.1, &"rubble": 0.8, &"hang": 2.2, &"ring": 0.9, &"splash": 0.5,
-	&"hop_dust": 0.4, &"leaf": 1.6,
+	&"hop_dust": 0.4, &"leaf": 1.6, &"thrown": 0.4, &"dart": 0.12, &"skitter": 0.45,
 }
 
 var kind: StringName = &""
@@ -39,14 +39,15 @@ static var heard := {}
 
 ## Plays the SoundBank's `slot`, or its stand-in of the same name (PlaceholderSounds) while the slot is empty. Counted even
 ## headless, where nothing plays.
-static func sound(slot: StringName, volume_db: float = -6.0, pitch: float = 1.0):
+static func sound(slot: StringName, volume_db: float = -6.0, pitch: float = 1.0, at: Vector2 = Vector2.INF):
 	heard[slot] = int(heard.get(slot, 0)) + 1
 	if DisplayServer.get_name() == "headless":
 		return
 	var stream: AudioStream = GameSounds.stream(slot)
 	if stream == null:
 		stream = PlaceholderSounds.make(String(slot))
-	var player: AudioStreamPlayer = GameSounds._start(stream, volume_db)
+	# Somewhere in the world, heard from there (SoundFollows "Sound with a place"); else in the middle.
+	var player = GameSounds._start_at(stream, at, volume_db) if at.is_finite() else GameSounds._start(stream, volume_db)
 	if player != null:
 		player.pitch_scale = pitch
 
@@ -150,12 +151,60 @@ func _scatter(count: int, spread: float, slow: float, fast: float):
 		})
 
 
+## What happens where something in flight comes down (thrown, dart), called as it lands.
+var landed: Callable = Callable()
+
+
 func _process(delta: float):
 	_clock += delta
 	if _clock >= seconds:
+		if landed.is_valid():
+			var call := landed
+			landed = Callable()
+			call.call()
 		queue_free()
 		return
 	queue_redraw()
+
+
+## --- Stealth, felt (the proposals of 2026-11-17, section 5) ---
+##
+## Something thrown flies from the hand to where it was aimed, its shadow along the ground under it (`thrown`: `toward` from here to
+## there, `reach` how high it arcs, `texture` the thing's icon), and skitters on a little as it lands (`skitter`); a dart is a quick
+## streak (`dart`). What it does where it lands waits for it (`landed`; StealthWatch.throw_at). And a takedown's beat: the world
+## still for a moment (`still`).
+const THROWN_HAND := 0.45
+const THROWN_ARC := 0.6
+const STILL_SCALE := 0.02
+
+
+## How long something thrown `tiles` tiles is in the air.
+static func flight_seconds(tiles: float) -> float:
+	return clampf(0.18 + 0.035 * tiles, 0.22, 0.55)
+
+
+## The world still for `seconds` of real time: a takedown's beat. Not while time is already bent (a catch slowing it, a menu), and
+## never headless.
+static func still(tree: SceneTree, seconds: float):
+	made[&"still"] = int(made.get(&"still", 0)) + 1
+	if tree == null or not shown() or DisplayServer.get_name() == "headless" or not is_equal_approx(Engine.time_scale, 1.0):
+		return
+	Engine.time_scale = STILL_SCALE
+	tree.create_timer(seconds, true, false, true).timeout.connect(func():
+		if is_equal_approx(Engine.time_scale, STILL_SCALE):
+			Engine.time_scale = 1.0
+	)
+
+
+## The thing itself, as drawn in flight and skittering: its icon, or a small stone.
+func _draw_thing(unit: float, alpha: float = 1.0):
+	if texture != null:
+		var size := Vector2.ONE * unit * 0.24
+		draw_texture_rect(texture, Rect2(-size / 2.0, size), false, Color(1, 1, 1, alpha))
+		return
+	var r := unit * 0.045
+	draw_colored_polygon(PackedVector2Array([Vector2(-r, -r * 0.6), Vector2(r * 0.7, -r), Vector2(r, r * 0.5), Vector2(-r * 0.4, r)]),
+		Color(0.55, 0.5, 0.45, alpha))
 
 
 func _draw():
@@ -229,3 +278,24 @@ func _draw():
 				draw_set_transform(at, bit.turn + s * 5.0, Vector2(1.0, 0.5))
 				draw_circle(Vector2.ZERO, unit * 0.03 * bit.size, Color(colour.r, colour.g, colour.b, 0.85 * (1.0 - s * s)))
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		&"thrown":
+			# From the hand, up and down where it was aimed; its shadow along the ground, smaller the higher it is.
+			var ground := toward * t
+			var lift := unit * THROWN_HAND * (1.0 - t) + 4.0 * t * (1.0 - t) * maxf(reach, unit * THROWN_ARC)
+			draw_set_transform(ground, 0.0, Vector2(1.0, 0.5))
+			draw_circle(Vector2.ZERO, unit * 0.08 * (1.0 - 0.45 * clampf(lift / (unit * 1.2), 0.0, 1.0)), Color(0.0, 0.0, 0.0, 0.3))
+			draw_set_transform(ground - Vector2(0.0, lift), t * 9.0, Vector2.ONE)
+			_draw_thing(unit)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		&"skitter":
+			# On a little past where it came down, a hop, and lying still as it fades.
+			var s := 1.0 - (1.0 - t) * (1.0 - t)
+			var on := (toward.normalized() if toward != Vector2.ZERO else Vector2.RIGHT) * unit * 0.3 * s
+			draw_set_transform(on - Vector2(0.0, absf(sin(s * PI)) * unit * 0.08), s * 4.0, Vector2.ONE)
+			_draw_thing(unit, 1.0 - clampf((t - 0.6) / 0.4, 0.0, 1.0))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		&"dart":
+			# A quick streak to where it finds its mark.
+			var tip := toward * t
+			var tail := toward * maxf(t - 0.4, 0.0)
+			draw_line(tail, tip, Color(0.95, 0.95, 1.0, 0.75), unit * 0.02, true)

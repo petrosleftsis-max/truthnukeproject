@@ -140,6 +140,8 @@ func _state_value(value) -> String:
 func _ready():
 	emit_signal("register_combat", self)
 	update_combatants.connect(_show_conditions_on_figures)
+	update_combatants.connect(_pace_idles)
+	update_combatants.connect(_turn_the_music)
 	seed_rolls(_seed_wanted())
 	# Played on another machine too, it is told of every turn (Net).
 	Net.fight_begins(self)
@@ -270,6 +272,8 @@ func _ready():
 	# wherever the map happens to begin makes the first thing you do hunting for
 	# yourself, and on a large map that can be most of a screen away.
 	centre_on_party()
+	# Come from the map this is fought on, its picture carried across: the view opens where the map's was (The map becomes the board).
+	_open_where_carried()
 	# Let the player arrange the party across the starting tiles before anyone
 	# takes a turn. Pointless with only one tile to stand on.
 	_begin_light()
@@ -2222,7 +2226,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		# The battle was left while it played: nothing here to resolve it on.
 		if not still_running():
 			return
-		play_skill_sound(skill)
+		play_skill_sound(skill, attacker)
 		# The flash at their hand as it leaves them, and the stand-in for its sound
 		# while it has none of its own (MoveFeel).
 		MoveFeel.hand(self, attacker, skill, impact_position)
@@ -2817,7 +2821,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	await _play_the_move(attacker, skill, target.get("position", trigger_position))
 	if not still_running():
 		return
-	play_skill_sound(skill)
+	play_skill_sound(skill, attacker)
 	MoveFeel.hand(self, attacker, skill, target.position)
 	controller.action_locked = false
 	game_ui.refresh_action_buttons()
@@ -5325,8 +5329,8 @@ func apply_knockback(attacker: Dictionary, target: Dictionary, effect: EffectDef
 		controller.reposition_combatant(old_position, final_position)
 		var slid_to: Vector2 = MoveFeel.middle_of(self, target)
 		var tiles_slid := maxi(get_position_distance(old_position, final_position), 1)
-		for i in tiles_slid + 1:
-			MoveFeel.dust(self, slid_from.lerp(slid_to, float(i) / float(tiles_slid)) + Vector2(0.0, Grid.TILE_SIZE * 0.3), 0.8)
+		# Slid there and skidding to a stop, dust at each tile and a puff in front (MoveFeel "A rush that stops").
+		MoveFeel.shoved_skid(self, target, slid_from, slid_to, tiles_slid)
 		var distance_moved = get_position_distance(old_position, final_position)
 		update_information.emit("[color=yellow]{0}[/color] {1} [color=red]{2}[/color] {3} tile(s)\n".format([
 			attacker.name,
@@ -5639,7 +5643,7 @@ func start_of_turn_effects(comb: Dictionary, paced: bool = false):
 				game_ui.lock_action_buttons()
 		if paced:
 			var ticks_as = eff.condition.tick_sound if eff.get("condition") != null else null
-			play_stream(ticks_as if ticks_as != null else eff.get("sound"), eff.get("sound_db", 0.0))
+			play_stream(ticks_as if ticks_as != null else eff.get("sound"), eff.get("sound_db", 0.0), 1.0, MoveFeel.middle_of(self, comb))
 		if wound:
 			tick_damage_over_time(comb, eff)
 		else:
@@ -6381,8 +6385,9 @@ var _turn_scale := 1.0
 
 
 func combat_finish():
-	# Nothing left buzzing in the hands once it is over (Rumble).
+	# Nothing left buzzing in the hands once it is over (Rumble), and the music whole again (The turn of a fight, in the music).
 	Rumble.stop()
+	Music.thin(false)
 	if not combat_over:
 		SpeechBubbles.somebody_says(self, &"won")
 	# Whatever comes after the fight - the log, the result, the map - at normal speed.
@@ -6458,6 +6463,8 @@ func _world_at(tile: Vector2i) -> Vector2:
 func _after_the_fight():
 	if not MoveFeel.shown() or controller == null or not is_instance_valid(controller) or controller.tile_map == null or not is_inside_tree():
 		return
+	# The party turn to one another, breathing easier (MoveFeel "The party, as a party").
+	MoveFeel.won_together(self)
 	var tile := float(Grid.TILE_SIZE)
 	var field := Rect2()
 	var first := true
@@ -6591,25 +6598,35 @@ var _last_stream: AudioStream = null
 var _last_stream_at := -1000
 
 
+## The same again, heard from where it happens (SoundFollows "Sound with a place").
+var _sound_players_placed: Array = []
+var _next_placed_voice := 0
+
+
 func _build_sound_players():
 	for i in SOUND_VOICES:
 		var player = AudioStreamPlayer.new()
 		player.bus = "SFX"
 		add_child(player)
 		_sound_players.append(player)
+	for i in SOUND_VOICES:
+		var placed := AudioStreamPlayer2D.new()
+		add_child(placed)
+		_sound_players_placed.append(placed)
 
 
-## Plays `skill`'s sound, if it has one. Round-robin across the voices rather
+## Plays `skill`'s sound, if it has one, heard from `user` when there is one. Round-robin across the voices rather
 ## than one shared player, so two skills resolving close together both sound.
-func play_skill_sound(skill: SkillDefinition):
+func play_skill_sound(skill: SkillDefinition, user: Dictionary = {}):
 	if skill == null or skill.sound == null:
 		return
-	play_stream(skill.sound, skill.sound_volume_db)
+	play_stream(skill.sound, skill.sound_volume_db, 1.0, MoveFeel.middle_of(self, user) if user.has("position") else Vector2.INF)
 
 
 ## Plays `stream` on the next free voice - a skill's sound, or anything else a
-## fight makes a noise about.
-func play_stream(stream: AudioStream, volume_db: float = 0.0, pitch: float = 1.0):
+## fight makes a noise about. With `at` (in the world), heard from there: its side of the screen, quieter off it, dulled behind a
+## wall, and not at all well off the screen (SoundFollows "Sound with a place").
+func play_stream(stream: AudioStream, volume_db: float = 0.0, pitch: float = 1.0, at: Vector2 = Vector2.INF):
 	if stream == null:
 		return
 	# An area landing on five at once is the one sound, not five on top of each other.
@@ -6620,6 +6637,15 @@ func play_stream(stream: AudioStream, volume_db: float = 0.0, pitch: float = 1.0
 	_last_stream_at = now
 	if _sound_players.is_empty():
 		_build_sound_players()
+	if at.is_finite():
+		var placed: AudioStreamPlayer2D = _sound_players_placed[_next_placed_voice]
+		_next_placed_voice = (_next_placed_voice + 1) % _sound_players_placed.size()
+		if not SoundFollows.place(placed, at, volume_db):
+			return
+		placed.stream = stream
+		placed.pitch_scale = pitch
+		placed.play()
+		return
 	var player = _sound_players[_next_voice]
 	_next_voice = (_next_voice + 1) % _sound_players.size()
 	player.stream = stream
@@ -6772,6 +6798,12 @@ func show_damage(target: Dictionary, amount: int, type: int, flash: bool = false
 	# Felt in the hands (the proposals of 2026-11-16, section 7): a tap, or a thump for a big blow or a felling one (Rumble).
 	if not Net.catching_up():
 		Rumble.blow(share, lethal)
+	# A cry, for more than a scratch (MoveFeel "Voices in a fight").
+	if share >= MoveFeel.VOICE_HURT_FROM:
+		MoveFeel.voice(self, target, &"hurt")
+	# A heavy blow under a roof brings dust down (MoveFeel "The world shaken by a fight").
+	if share >= MoveFeel.GRIT_FROM_SHARE and MoveFeel.shown() and target.has("position"):
+		MoveFeel.dust_from_above(self, MoveFeel.middle_of(self, target), 0.6)
 	var told := how.duplicate()
 	told["share"] = share
 	told["graze"] = _grazing
@@ -7630,6 +7662,8 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	# Motes rising off them; their health bar is seen filling (MoveFeel, HealthBarMarks.fill).
 	if target.hp > before_heal:
 		MoveFeel.mended(self, target)
+		# They breathe easier, and healer and healed turn to each other (MoveFeel "The party, as a party").
+		MoveFeel.heal_answered(self, attacker, target)
 	update_combatants.emit(combatants)
 	if mention_skill and skill != null:
 		update_information.emit("[color=yellow]%s[/color] used %s on [color=lightgreen]%s[/color], healing [color=lightgreen]%d[/color].\n" % [
@@ -7777,10 +7811,15 @@ func _falls(comb: Dictionary):
 		sprite.set_dead()
 		return
 	MoveFeel.falls(self, comb)
+	# The rest of the party turn to them (MoveFeel "The party, as a party").
+	MoveFeel.friend_falls(self, comb)
+	# Their side's last leader down, the rest still standing: the music swells (The turn of a fight, in the music).
+	if _last_leader_felled(comb):
+		Music.swell()
 	if comb.has("boss"):
-		GameSounds.play(&"boss_falls")
+		GameSounds.play_at(&"boss_falls", MoveFeel.middle_of(self, comb))
 	elif comb.get("side", 1) != Group.PLAYERS and not comb.has("object") and not comb.get("illusion", false):
-		GameSounds.play(&"enemy_falls")
+		GameSounds.play_at(&"enemy_falls", MoveFeel.middle_of(self, comb))
 	if comb.get("side", 1) == Group.PLAYERS and not comb.has("summoner") and not comb.has("turncoat"):
 		slow_motion(PARTY_FALL_SLOW_SECONDS, PARTY_FALL_SLOW)
 		FightCards.fallen(self, comb)
@@ -12478,6 +12517,47 @@ func teleport_to(comb: Dictionary, tile: Vector2i) -> bool:
 ## party spread across a line of starting tiles is framed as a group. Set
 ## outright rather than eased: there is nothing on screen yet for a glide to
 ## carry the eye from.
+## --- The map becomes the board ---
+##
+## The proposals of 2026-11-17, section 7. Come from the map this fight is fought on, its last picture carried across
+## (SceneTransition): the view opens where the map's was, at the map's zoom; once the picture has gone (FightCards' opening waits
+## for it) it pushes in to where it would have opened, and the board's lines draw out from the party (MoveFeel's board_out). Only
+## the view. PROPOSAL.
+var _carried_on_to := {}
+
+
+func _open_where_carried():
+	var carried: Dictionary = SceneTransition.take_carried_view()
+	if carried.is_empty() or camera == null or not is_instance_valid(camera):
+		return
+	_carried_on_to = {"at": camera.position, "zoom": camera.zoom.x}
+	var parent := camera.get_parent()
+	camera.position = parent.to_local(carried.at) if parent is Node2D else carried.at
+	camera.zoom = carried.zoom
+
+
+## Whether this fight opened on a picture carried from its map, still to go on from, for a suite.
+func opened_carried() -> bool:
+	return not _carried_on_to.is_empty()
+
+
+## On from where the map's view was to the party, and the board drawn out from them. Waits for the view to get there.
+func go_on_from_carried():
+	if _carried_on_to.is_empty() or camera == null or not is_instance_valid(camera):
+		return
+	var on_to: Dictionary = _carried_on_to
+	_carried_on_to = {}
+	MoveFeel.board_out(self)
+	if not CameraController.moves():
+		camera.position = on_to.at
+		camera.zoom = Vector2.ONE * float(on_to.zoom)
+		return
+	camera.glide_to(on_to.at, on_to.zoom)
+	var until := Time.get_ticks_msec() + 1200
+	while is_instance_valid(camera) and camera.is_gliding() and Time.get_ticks_msec() < until and still_running():
+		await get_tree().process_frame
+
+
 func centre_on_party():
 	if camera == null or not is_instance_valid(camera):
 		return
@@ -14825,7 +14905,7 @@ func _hurl(thrower: Dictionary, skill: SkillDefinition, subject_tile: Vector2i, 
 	await thrower.sprite.play_skill_and_wait(skill.animation)
 	if not still_running():
 		return
-	play_skill_sound(skill)
+	play_skill_sound(skill, thrower)
 	controller.action_locked = false
 	game_ui.refresh_action_buttons()
 	# A friend needs no quick time, and hurts nobody: down they come, ready to act.
@@ -17764,6 +17844,51 @@ func relight():
 	_light_shown()
 
 
+## --- The pace of the idle ---
+##
+## Each figure is told how much of their health they have and whether their nerve has broken whenever anything changes, and plays
+## their idle slower while hurt and faster once broken (CombatantSprite "The pace of the idle"; the designer, 2026-11-17). Only the
+## picture: it is told headless too, as it costs nothing and rolls nothing.
+func _pace_idles(_list: Array = []):
+	for comb in combatants:
+		var sprite = comb.get("sprite")
+		if sprite == null or not is_instance_valid(sprite) or not sprite is CombatantSprite or comb.has("object"):
+			continue
+		var most := float(maxi(get_effective_stat(comb, "max_hp"), 1))
+		sprite.set_spirits(float(comb.get("hp", 0)) / most if comb.get("alive", false) else 1.0, comb.get("fleeing", 0) > 0)
+
+
+## --- The turn of a fight, in the music ---
+##
+## The proposals of 2026-11-17, section 9 (Music "Music in layers"): the party down to one of those it came with, the music thins
+## to its fighting part, and comes back once there are two again or the fight is over; the other side's last leader felled with
+## others of them still standing, it swells a while (_falls). Only heard, and only for a track that comes in parts.
+func _turn_the_music(_list: Array = []):
+	var came := 0
+	var standing := 0
+	for comb in combatants:
+		if comb.get("side", -1) != Group.PLAYERS or comb.has("object") or comb.get("illusion", false):
+			continue
+		came += 1
+		if comb.get("alive", false):
+			standing += 1
+	Music.thin(came > 1 and standing == 1 and not combat_over)
+
+
+## Whether `fallen` was the last leader of their side, with others of it still standing: the music swells.
+func _last_leader_felled(fallen: Dictionary) -> bool:
+	if fallen.get("side", Group.PLAYERS) == Group.PLAYERS or not (fallen.get("leads", false) or fallen.has("boss")):
+		return false
+	var others := 0
+	for comb in combatants:
+		if comb == fallen or comb.get("side", -1) != fallen.get("side", -2) or not comb.get("alive", false) or comb.has("object"):
+			continue
+		if comb.get("leads", false) or comb.has("boss"):
+			return false
+		others += 1
+	return others > 0
+
+
 ## --- What is on them, on them ---
 ##
 ## View only (ConditionLook), so never headless and never while catching up (MoveFeel.shown). Each figure is told what is on it
@@ -20158,7 +20283,7 @@ func _fire_readied(reactor: Dictionary, target: Dictionary, why: String):
 		await sprite.play_skill_and_wait(skill.animation)
 	if not still_running():
 		return
-	play_skill_sound(skill)
+	play_skill_sound(skill, reactor)
 	if controller != null:
 		controller.action_locked = false
 	if game_ui != null:

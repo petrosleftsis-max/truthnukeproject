@@ -101,7 +101,7 @@ func set_lit(value: bool):
 	lit = value
 	if was and not value and is_inside_tree() and not Engine.is_editor_hint():
 		MapFeel.spawn(get_parent(), &"smoke", position + Vector2(0.0, -Grid.TILE_SIZE * 0.3), {"toward": Vector2(Campaign.wind_now())})
-		MapFeel.sound(&"lamp_out", -10.0)
+		MapFeel.sound(&"lamp_out", -10.0, 1.0, global_position)
 	queue_redraw()
 
 

@@ -199,23 +199,47 @@ func shake(pixels: float):
 	_shake = maxf(_shake, pixels * Comfort.share(Comfort.SHAKE))
 
 
+## --- Never quite still ---
+##
+## The proposals of 2026-11-17, section 8 (the designer: "From section 4 and on do all"), an experiment with its switch (`drifts`).
+## In a fight (the view the player moves) it drifts a few pixels, slowly, round and round, so the layers of depth (DepthPiece, which
+## follow the screen's middle) always move against each other a little and the board reads as a place. As much as the Camera sway
+## dial says (Comfort); on real time, so slow motion does not slow it; never headless. PROPOSAL.
+static var drifts := true
+const DRIFT_PIXELS := 5.0
+const DRIFT_SECONDS := Vector2(13.0, 17.0)
+
+
+## Where the drift has the view now, in world units: nothing on a map, headless, or with it switched off.
+func drift_now() -> Vector2:
+	if not drifts or not free_look or not moves():
+		return Vector2.ZERO
+	var sway := Comfort.share(Comfort.SWAY)
+	if sway <= 0.0:
+		return Vector2.ZERO
+	var now := Time.get_ticks_msec() / 1000.0
+	var circling := Vector2(sin(now * TAU / DRIFT_SECONDS.x), sin(now * TAU / DRIFT_SECONDS.y + 1.3))
+	return circling * DRIFT_PIXELS * sway / maxf(zoom.x, 0.001)
+
+
 func _shake_step(delta: float):
-	# What leans the view (lean_after) is in offset too, under the shake.
+	# What leans the view (lean_after) is in offset too, under the shake - and the drift under both.
 	_lean = _lean.lerp(_lean_aim, 1.0 - exp(-LEAN_RATE * delta))
 	if _lean_aim == Vector2.ZERO and _lean.length() * zoom.x < LEAN_GONE_PIXELS:
 		_lean = Vector2.ZERO
+	var drift := drift_now()
 	if _shake <= 0.0:
-		offset = _lean
+		offset = _lean + drift
 		return
 	_shake = lerpf(_shake, 0.0, minf(SHAKE_DECAY * delta, 1.0))
 	if _shake < SHAKE_MINIMUM:
 		_shake = 0.0
-		offset = _lean
+		offset = _lean + drift
 		return
 	# Divided by zoom so the shake is the same size on screen however far out
 	# the view is - offset is in world units, which zoom then scales.
 	var amount = _shake / maxf(zoom.x, 0.001)
-	offset = _lean + Vector2(randf_range(-amount, amount), randf_range(-amount, amount))
+	offset = _lean + drift + Vector2(randf_range(-amount, amount), randf_range(-amount, amount))
 
 
 func _process(delta):

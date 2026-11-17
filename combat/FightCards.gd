@@ -136,15 +136,55 @@ func _play_opening():
 	await get_tree().process_frame
 	while SceneTransition.is_changing():
 		await get_tree().process_frame
+	# Carried in from the map: on to the party, the board drawn out from them (Combat "The map becomes the board").
+	await combat.go_on_from_carried()
 	_hold_the_board(true)
 	var subject := _reveal_subject()
 	if combat.encounter.boss_reveal and not subject.is_empty():
 		# The music gives way for the reveal (SoundFollows).
 		SoundFollows.give_way(SoundFollows.REVEAL_SECONDS)
 		await _reveal(subject)
+	elif not _skipped and combat.still_running():
+		await _look_at_what_you_face()
 	if not _skipped and combat.still_running():
 		await _shatter_and_title()
 	_hold_the_board(false)
+
+
+## --- A look at what you face ---
+##
+## The proposals of 2026-11-17, section 7. A fight with no boss's reveal opens with the view passing over the other side - the middle
+## of whoever of them the party can see - and coming back to where it was, before the title; any press skips it, as it does the
+## rest of the opening. Each machine shows its own. PROPOSAL.
+const FACE_GLIDE_SECONDS := 0.55
+const FACE_HOLD_SECONDS := 0.6
+## How many fights opened with a look at the other side, for a suite.
+static var looked := 0
+
+
+func _look_at_what_you_face():
+	if combat.camera == null or not is_instance_valid(combat.camera):
+		return
+	var middle := Vector2.ZERO
+	var seen := 0
+	for comb in combat.combatants:
+		if comb.get("alive", false) and comb.get("side", -1) != Combat.Group.PLAYERS and comb.has("position") and not comb.has("object") \
+				and not comb.get("illusion", false) and not combat.unseen_by_party(comb):
+			middle += combat.sprite_point(comb) + combat.drawing_offset(comb)
+			seen += 1
+	if seen == 0:
+		return
+	looked += 1
+	middle /= float(seen)
+	var back: Vector2 = combat.camera.position
+	if middle.distance_to(back) < Grid.TILE_SIZE * 2.0:
+		return
+	combat.camera.glide_to(middle)
+	await _wait(FACE_GLIDE_SECONDS + FACE_HOLD_SECONDS)
+	if is_instance_valid(combat) and combat.camera != null and is_instance_valid(combat.camera):
+		combat.camera.glide_to(back)
+	if not _skipped:
+		await _wait(FACE_GLIDE_SECONDS)
 
 
 ## Whoever the reveal is of: the one the encounter names, else the first boss there, else
