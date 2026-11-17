@@ -401,7 +401,9 @@ meanwhile.
 - **Falling away from the blow** was already there: since 2026-11-05 a felled fighter is thrown back and tips over away from the
   blow (`MoveFeel.falls`, `CombatantSprite.fall`). The proposal was wrong to say otherwise. They still grey as they go down; the
   figure's own notes give the reason (a body stays dimmer than anyone standing, so the board never leaves doubt who can still act).
-  **Whether the grey should go is the designer's to say.**
+  **The designer, 2026-11-17: keep the grey.** Asked first what else shows somebody down: tipped over and still, with no bar,
+  card, rings or light, gone from the queue; but going prone lies a fighter on their side much as a body does, and a joiner
+  catching up on a fight sees bodies only sink, so the grey is what keeps the board sure.
 
 ## 7. Into a fight
 
@@ -419,6 +421,9 @@ meanwhile.
   saves, and a fight from the level select or a dungeon would still need the scene it has. It would be worth it for fights in which
   the rest of the map carries on around the board - guards not caught walking their rounds, more coming in from the map, the party
   running back into it. That is a direction for the game, not a matter of feel.
+  **The designer's answer, 2026-11-17:** no. Anybody else on the map "would be caught in the combat, or at least respect its
+  'time' and wait for their 'turn'", so nothing would carry on around a fight; "proceed as is then". The two scenes stay, with the
+  carry between them.
 - **A look at what you face** (`FightCards` "A look at what you face"): a fight without a boss's reveal opens with the view gliding
   to the middle of whoever of the other side the party can see, holding a moment and coming back, before the title (about 1.7 s
   all told; `FACE_GLIDE_SECONDS`, `FACE_HOLD_SECONDS`). Any press skips it, with the rest of the opening.

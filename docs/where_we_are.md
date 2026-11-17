@@ -99,6 +99,9 @@ holds the game for both).
   lands, hiding spots that stir, a held breath, a body's scrape and marks), the world shaken (trees and things that stand, lights
   swinging, a blast's light, dust indoors), into a fight (the map becoming the board and back, without merging the scenes; a look
   at what you face; placed with a thump), the view (never quite still; weather near the eye), music in layers (waiting on parts).
+  Maps and fights stay two scenes (the designer, 2026-11-17: anybody else on the map would be caught in the fight, or keep to its
+  time and wait for their turn, so nothing would go on around it - "proceed as is then"). Felled fighters keep the grey (the
+  designer, 2026-11-17, told what else shows somebody down, and that a prone fighter lies on their side much as a body does).
 - **How the game feels, from 2026-11-16** (`docs/feel_built.md`, kept current as each part goes in; suite `feel`). The designer on
   the proposals of 2026-11-16: "in general i love all of these recommendations", and a line for each section. Built so far:
   the Comfort dials (12), walking (1: ease in and out, followers that fan out, wet prints, the dash), the map's camera (2: soft
@@ -488,11 +491,9 @@ holds the game for both).
    raised ground should be climbable on a map (both are rules, so theirs); and the two experiments' switches: the attacker's
    motion over the party's own attack animations (`MoveFeel.OWN_ANIMATION_SHARE`) and the speaker stepping up
    (`DialogueBalloon.speaker_steps_up`). All twelve sections of the proposals of 2026-11-16 are built.
-0. **The second round of feel** (`docs/feel_built.md` "The second round", built 2026-11-17): every number by feel; whether a felled
-   fighter should still grey as they fall (section 6); whether a map and its fights should ever be one scene (section 7 says why it
-   was not needed); the sounds for the new slots (a guard's step, a takedown, a clatter, a rustle and a creak, a body dragged, voices
-   in a fight) and the music in parts (`<track>_wary`, `<track>_fighting`); `CameraController.drifts`, the view's drift, is an
-   experiment with a switch.
+0. **The second round of feel** (`docs/feel_built.md` "The second round", built 2026-11-17): every number by feel; the sounds for
+   the new slots (a guard's step, a takedown, a clatter, a rustle and a creak, a body dragged, voices in a fight) and the music in
+   parts (`<track>_wary`, `<track>_fighting`); `CameraController.drifts`, the view's drift, is an experiment with a switch.
 0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): the box at the party's feet (they are trying it); whether the cutaway reads right now; and
    every depth number by feel, with the water's rings and mirror.
 0. **From later on 2026-11-13:** how strong and how often the new atmosphere is, by feel (the interface's look is chosen: T, built
