@@ -551,6 +551,29 @@ static func rainy_at(at: Vector2) -> bool:
 	return wet > 0.1 and showing._under_the_sky(at)
 
 
+## The wind over the map now: the way it blows, as long as it is strong (0 still to 1 a gale). Nothing with no sky shown.
+static func wind_over() -> Vector2:
+	if showing == null or not is_instance_valid(showing) or showing._sky_shown.is_empty():
+		return Vector2.ZERO
+	var way := Vector2(Campaign.wind_now())
+	if way == Vector2.ZERO:
+		return Vector2.ZERO
+	return way.normalized() * clampf(float(showing._sky_shown.get("wind", 0.0)), 0.0, 1.0)
+
+
+## How much mist there is in the air now, 0 to 1, and how much of the night (0 day, 1 night).
+static func mist_now() -> float:
+	if showing == null or not is_instance_valid(showing) or showing._sky_shown.is_empty():
+		return 0.0
+	return clampf(float(showing._sky_shown.get("mist", 0.0)), 0.0, 1.0)
+
+
+static func night_now() -> float:
+	if showing == null or not is_instance_valid(showing) or showing._sky_shown.is_empty():
+		return 0.0
+	return showing._night_share(showing._sky_shown)
+
+
 ## Whether `at`, a place in the world, is a tile under the open sky.
 func _under_the_sky(at: Vector2) -> bool:
 	if light == null or _tile_map == null:
@@ -785,8 +808,9 @@ func _new_light(source: Dictionary, at: Vector2) -> Dictionary:
 	if air_on:
 		_add_what_hangs_in_the_air(node, source)
 	_add_bloom(node, source)
+	_add_moths(node, source)
 	return {"node": node, "source": source, "at": at, "energy": _energy_of(source), "phase": float(source.tile.x * 13 + source.tile.y * 7) * 0.37,
-		"dark": _dark_round(source), "bloom": node.get_node_or_null("Bloom"), "smoke": node.get_node_or_null("Smoke")}
+		"dark": _dark_round(source), "bloom": node.get_node_or_null("Bloom"), "smoke": node.get_node_or_null("Smoke"), "moths": node.get_node_or_null("Moths")}
 
 
 func _put_out(entry: Dictionary):
@@ -1219,14 +1243,15 @@ class _Prints extends Node2D:
 
 	func _draw():
 		var now := Time.get_ticks_msec() / 1000.0
-		var foot := float(Grid.TILE_SIZE) * 0.055
 		for mark in marks:
+			var foot := float(Grid.TILE_SIZE) * 0.055
 			var lasts: float = _lasts(mark)
 			var fade: float = clampf(1.0 - (now - float(mark.born)) / lasts, 0.0, 1.0)
 			var colour := Color(0.62, 0.68, 0.8, 0.45 * fade) if mark.snow else Color(0.16, 0.12, 0.09, 0.45 * fade)
 			if mark.has("wet"):
 				# Out of water: the ground darkened where a foot came down.
-				colour = Color(0.03, 0.05, 0.08, 0.5 * fade * float(mark.wet))
+				colour = Color(0.03, 0.05, 0.08, 0.62 * fade * float(mark.wet))
+				foot = float(Grid.TILE_SIZE) * 0.075
 			var way: Vector2 = mark.way if mark.way.length_squared() > 0.001 else Vector2.RIGHT
 			var side := way.orthogonal().normalized() * foot * (0.9 if mark.left else -0.9)
 			draw_set_transform(to_local(mark.at) + side, way.angle(), Vector2(1.0, 0.55))
@@ -1251,6 +1276,8 @@ func _make_the_ground(region: Rect2i):
 	var far: Vector2 = _tile_map.to_global(_tile_map.map_to_local(region.end) - half)
 	_mirrored.material.set_shader_parameter("map_origin", origin)
 	_mirrored.material.set_shader_parameter("map_size", far - origin)
+	_mirrored_world.material.set_shader_parameter("map_origin", origin)
+	_mirrored_world.material.set_shader_parameter("map_size", far - origin)
 	_prints = _Prints.new()
 	_prints.name = "Prints"
 	add_child(_prints)
@@ -1719,7 +1746,10 @@ func _flash_the_sky(lightning: float, thunder_after: float = -1.0):
 	flash.tween_property(_flash, "color:a", 0.35 * bright, 0.04)
 	flash.tween_property(_flash, "color:a", 0.0, 0.35)
 	flash.tween_interval(thunder_after if thunder_after >= 0.0 else randf_range(THUNDER_AFTER[0], THUNDER_AFTER[1]))
-	flash.tween_callback(func(): GameSounds.play(&"thunder", -4.0 if thunder_after < 0.0 else 0.0))
+	flash.tween_callback(func():
+		GameSounds.play(&"thunder", -4.0 if thunder_after < 0.0 else 0.0)
+		# A long low roll in the hands with it (Rumble; the proposals of 2026-11-16, section 7), softer for the far ones.
+		Rumble.roll(0.55 if thunder_after < 0.0 else 0.75, 0.8))
 
 
 func _process(delta: float):
@@ -1753,6 +1783,10 @@ func _process(delta: float):
 		var smoke = entry.get("smoke")
 		if smoke != null and is_instance_valid(smoke):
 			ChimneySmoke.lean(smoke)
+		# Moths about it while it burns in the dark (the proposals of 2026-11-16, section 11).
+		var moths = entry.get("moths")
+		if moths != null and is_instance_valid(moths):
+			moths.emitting = air_on and _night_share(_sky_shown) > 0.5 and float(entry.get("dark", 0.0)) >= MOTHS_FROM_DARK and node.energy > entry.energy * 0.5
 
 
 ## --- Light that moves ---
@@ -1938,6 +1972,10 @@ uniform vec3 wades[16];
 uniform int wade_count = 0;
 uniform float now = 0.0;
 uniform float wade_seconds = 1.6;
+// Depth by colour: paler by the shore, darker `deep_tiles` out from it and beyond.
+uniform float deep_tiles = 1.6;
+uniform float deep_dark = 0.3;
+uniform float shore_pale = 0.16;
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -1974,6 +2012,18 @@ void fragment() {
 	float two = wobble(cell * 5.3 + vec2(-flow.y, flow.x) * TIME * 1.1 + vec2(TIME * 0.07, 0.0));
 	float wave = one * 0.6 + two * 0.4;
 	colour *= 0.9 + 0.2 * wave;
+	// How far it is to the nearest land, in tiles: the two tiles about this one are asked.
+	float shore = 9.0;
+	for (int sx = -2; sx <= 2; sx++) {
+		for (int sy = -2; sy <= 2; sy++) {
+			vec2 other = tile + vec2(float(sx), float(sy));
+			if (water_at(other) < 0.5) {
+				shore = min(shore, length(max(abs(cell - (other + 0.5)) - 0.5, vec2(0.0))));
+			}
+		}
+	}
+	float deep = smoothstep(0.0, deep_tiles, shore + (wave - 0.5) * 0.12);
+	colour = mix(mix(colour, vec3(0.78, 0.9, 0.92), shore_pale * (1.0 - smoothstep(0.0, 0.45, shore))), colour * (1.0 - deep_dark), deep);
 	// Rings where the rain lands on it.
 	// One begins in each small cell and grows wider than it, so each pixel asks the nine cells about it: every ring is whole.
 	if (raining > 0.01) {
@@ -2146,6 +2196,49 @@ func _dark_round(source: Dictionary) -> float:
 func _grade_wanted(sky: Dictionary) -> bool:
 	return not (is_equal_approx(float(sky.get("saturation", 1.0)), 1.0) and is_equal_approx(float(sky.get("contrast", 1.0)), 1.0)) \
 		or (air_on and (float(sky.get("shimmer", 0.0)) > 0.01 or _night_share(sky) > 0.01 or _pixels > 0.0))
+
+
+## Moths about a light (the proposals of 2026-11-16, section 11, "moths at a lamp at night"; the designer: "add all"): a few pale
+## wings circling it, flying only at night (`_night_share` over half) while it burns with the dark about it (`dark` of
+## MOTHS_FROM_DARK or more), none for a window. The slot art/fx/moth.png takes the place of the pale square.
+const MOTHS := 6
+const MOTHS_FROM_DARK := 0.6
+
+
+func _add_moths(node: PointLight2D, source: Dictionary):
+	if source.get("opening", false):
+		return
+	var moths := CPUParticles2D.new()
+	moths.name = "Moths"
+	moths.amount = MOTHS
+	moths.lifetime = 2.6
+	moths.preprocess = 2.6
+	moths.emitting = false
+	moths.local_coords = true
+	moths.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	moths.emission_sphere_radius = float(Grid.TILE_SIZE) * 0.22
+	moths.gravity = Vector2.ZERO
+	moths.direction = Vector2.UP
+	moths.spread = 180.0
+	moths.initial_velocity_min = 10.0
+	moths.initial_velocity_max = 34.0
+	moths.orbit_velocity_min = 0.3
+	moths.orbit_velocity_max = 0.75
+	moths.radial_accel_min = -24.0
+	moths.radial_accel_max = 20.0
+	moths.scale_amount_min = 3.0
+	moths.scale_amount_max = 5.0
+	moths.color = Color(0.96, 0.93, 0.84, 0.8)
+	var wing := "res://art/fx/moth.png"
+	if ResourceLoader.exists(wing):
+		moths.texture = load(wing)
+		moths.scale_amount_min = 0.5
+		moths.scale_amount_max = 0.8
+	moths.light_mask = 0
+	moths.z_as_relative = false
+	moths.z_index = ExplorationParty.PARTY_Z_TOP
+	moths.position = Vector2(0.0, -float(Grid.TILE_SIZE) * 0.25)
+	node.add_child(moths)
 
 
 ## A soft glow round a light, on its own node, shown after dark (_process); none for a window.
@@ -2682,8 +2775,147 @@ static func _water_shows(figure) -> bool:
 		and figure._shown_alpha > Depth.CUT_NEEDS_ALPHA and not figure.off_ground and figure.ground_lift <= 0.0
 
 
+## --- Water, the next steps (the proposals of 2026-11-16, section 5; the designer, 2026-11-17: "do all") ---
+##
+## - **A waterline**: whoever wades has the water drawn over their legs - to the ankle by the shore, to the knee out in the middle
+##   (WADE_ANKLE_TILES, WADE_KNEE_TILES, by water_depth_at) - with a bright line where it meets them (CombatantSprite "Wading").
+##   Their legs show through it, dimmed, so they are in the water and not standing on it.
+## - **Depth by colour**: paler by the shore, darker out from it (WATER_SHADER `deep_tiles`, `deep_dark`, `shore_pale`).
+## - **The world mirrored**: the walls north of the water and whatever stands over it - a tree, a thing that stands, an arch, a
+##   balcony, a roof - upside down in it, dim (_MirroredWorld, MIRROR_WORLD; through MIRROR_SHADER, so only where water is).
+## - **Something landing in it**: a ring, drops thrown up and a splash heard (land_in_water): a blow or a blast landing on a tile
+##   of water, a body falling in it, a thrown thing coming down in it.
+##
+## All only to look at. PROPOSAL.
+const WADE_ANKLE_TILES := 0.1
+const WADE_KNEE_TILES := 0.3
+const WATER_DEEP_TILES := 1.6
+const MIRROR_WORLD := 0.3
+## How many tiles north of water something lifted is still mirrored in it.
+const MIRROR_REACH_TILES := 3
+
+var _mirrored_world: _MirroredWorld = null
+## How many splashes there were, for a suite.
+static var splashes := 0
+
+
+## How deep the water is at `at`, a place in the world: 0 by the shore to 1 WATER_DEEP_TILES out and beyond; 0 where there is none.
+static func water_depth_at(at: Vector2) -> float:
+	if showing == null or not is_instance_valid(showing) or showing._tile_map == null or showing._water_tiles.is_empty():
+		return 0.0
+	var view: LightView = showing
+	var tile_size := float(Grid.TILE_SIZE)
+	var local: Vector2 = view._tile_map.to_local(at)
+	var tile: Vector2i = view._tile_map.local_to_map(local)
+	if not view._water_tiles.has(tile):
+		return 0.0
+	var shore := 9.0
+	for dx in range(-2, 3):
+		for dy in range(-2, 3):
+			var other := tile + Vector2i(dx, dy)
+			if view._water_tiles.has(other):
+				continue
+			var middle: Vector2 = view._tile_map.map_to_local(other)
+			var away: Vector2 = ((local - middle).abs() - Vector2.ONE * tile_size * 0.5).max(Vector2.ZERO)
+			shore = minf(shore, away.length() / tile_size)
+	return clampf(shore / WATER_DEEP_TILES, 0.0, 1.0)
+
+
+## Something lands at `at`, a place in the world: if that is water, a ring, drops and a splash, `strength` big (1: a body).
+## True if it was water.
+static func land_in_water(at: Vector2, strength: float = 1.0) -> bool:
+	if not in_water(at):
+		return false
+	splashes += 1
+	if not shown():
+		return true
+	showing._ring_at(at)
+	showing._throw_drops(at, roundi(8.0 + 10.0 * strength), Color(0.86, 0.93, 1.0, 0.75))
+	MapFeel.sound(&"water_splash", lerpf(-14.0, -5.0, clampf(strength, 0.0, 1.0)))
+	return true
+
+
+## The world upside down in the water: the walls to the north of it, and what stands over it.
+class _MirroredWorld extends Node2D:
+	var view: LightView = null
+	## How many things were drawn last, for a test.
+	var drawn := 0
+
+	func _draw():
+		drawn = 0
+		if view == null or not is_instance_valid(view) or view._tile_map == null or view._water_tiles.is_empty():
+			return
+		var tile_map: TileMap = view._tile_map
+		var to_here := get_global_transform().affine_inverse()
+		var tile := float(Grid.TILE_SIZE)
+		var depth: DepthView = DepthView.showing
+		# The walls: each lifted tile with water within reach to its south, its own picture turned over below its south edge.
+		if depth != null and is_instance_valid(depth) and Depth.same_scene(depth, view):
+			var lifts: Dictionary = depth.lifts()
+			var asked := {}
+			for water_tile in view._water_tiles:
+				for dy in range(1, LightView.MIRROR_REACH_TILES + 1):
+					var wall: Vector2i = water_tile - Vector2i(0, dy)
+					if view._water_tiles.has(wall):
+						continue
+					if asked.has(wall) or not lifts.has(wall):
+						break
+					asked[wall] = true
+					var lift := float(lifts[wall])
+					var source_id := tile_map.get_cell_source_id(0, wall)
+					var source = tile_map.tile_set.get_source(source_id) if source_id >= 0 else null
+					if lift <= 0.0 or not source is TileSetAtlasSource or source.texture == null:
+						break
+					var region: Rect2 = source.get_tile_texture_region(tile_map.get_cell_atlas_coords(0, wall))
+					var whole: Vector2 = source.texture.get_size()
+					var middle: Vector2 = tile_map.to_global(tile_map.map_to_local(wall))
+					var south := middle.y + tile * 0.5
+					var long := (lift + tile) * LightView.MIRROR_LENGTH
+					var points := PackedVector2Array([to_here * Vector2(middle.x - tile * 0.5, south), to_here * Vector2(middle.x + tile * 0.5, south),
+						to_here * Vector2(middle.x + tile * 0.5, south + long), to_here * Vector2(middle.x - tile * 0.5, south + long)])
+					var near := Color(0.55, 0.55, 0.6, 1.0)
+					var far := Color(0.55, 0.55, 0.6, 0.15)
+					# Its foot is nearest: the picture's south edge at the waterline, its north edge furthest out.
+					draw_polygon(points, PackedColorArray([near, near, far, far]),
+						PackedVector2Array([Vector2(region.position.x, region.end.y) / whole, Vector2(region.end.x, region.end.y) / whole,
+							Vector2(region.end.x, region.position.y) / whole, Vector2(region.position.x, region.position.y) / whole]), source.texture)
+					drawn += 1
+					break
+		# What stands over the ground: each piece's own drawing, turned over about its foot.
+		for piece in get_tree().get_nodes_in_group(Depth.PIECES):
+			if not is_instance_valid(piece) or not piece is DepthPiece or not piece.is_inside_tree() or not piece.visible or not Depth.same_scene(piece, view):
+				continue
+			if piece.layer != DepthPiece.Layer.IN_FRONT or piece.kind == DepthPiece.Kind.EDGE or piece.fade_now() < 0.5:
+				continue
+			var ground: Rect2 = piece.ground_in_world()
+			var first: Vector2i = tile_map.local_to_map(tile_map.to_local(ground.position + Vector2.ONE))
+			var last: Vector2i = tile_map.local_to_map(tile_map.to_local(ground.end - Vector2.ONE))
+			var by_water := false
+			for x in range(first.x - 1, last.x + 2):
+				for y in range(first.y, last.y + LightView.MIRROR_REACH_TILES + 1):
+					by_water = by_water or view._water_tiles.has(Vector2i(x, y))
+			if not by_water:
+				continue
+			# About the south edge of the ground it stands over, in its own space: y' = foot + (foot - y) * length.
+			var foot: float = piece.ground_rect().end.y
+			var turned := Transform2D(Vector2(1.0, 0.0), Vector2(0.0, -LightView.MIRROR_LENGTH), Vector2(0.0, foot * (1.0 + LightView.MIRROR_LENGTH)))
+			draw_set_transform_matrix(to_here * piece.get_global_transform() * turned)
+			piece._paint(self)
+			drawn += 1
+		draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
 func _make_the_mirror():
+	_mirrored_world = _MirroredWorld.new()
+	_mirrored_world.name = "MirroredWorld"
+	_mirrored_world.view = self
+	_mirrored_world.light_mask = 1
+	_mirrored_world.material = _material(MIRROR_SHADER)
+	_mirrored_world.modulate.a = MIRROR_WORLD
+	_mirrored_world.visible = false
+	add_child(_mirrored_world)
 	_mirrored = _Mirrored.new()
+
 	_mirrored.name = "Mirrored"
 	_mirrored.view = self
 	_mirrored.light_mask = 1
@@ -2730,6 +2962,9 @@ func _keep_the_waders(delta: float):
 			continue
 		var id: int = figure.get_instance_id()
 		seen[id] = true
+		# In it, not on it: the water drawn over their legs, as deep as it is there.
+		var pool: WaterPatch = _water_tiles[tile]
+		figure.set_wading(lerpf(WADE_ANKLE_TILES, WADE_KNEE_TILES, water_depth_at(feet)) * float(Grid.TILE_SIZE), pool.colour)
 		if not _waders.has(id):
 			_waders[id] = {"at": feet, "next": _wade_clock + WADE_IDLE_SECONDS}
 			_ring_at(feet)
@@ -2743,6 +2978,9 @@ func _keep_the_waders(delta: float):
 	for id in _waders.keys():
 		if not seen.has(id):
 			_waders.erase(id)
+			var out = instance_from_id(id)
+			if out != null and is_instance_valid(out) and out is CombatantSprite:
+				out.set_wading(0.0)
 	_wades = _wades.filter(func(ring): return _wade_clock - ring.z < WADE_SECONDS)
 	var rings := PackedVector3Array(_wades)
 	var count := rings.size()
@@ -2755,6 +2993,9 @@ func _keep_the_waders(delta: float):
 		_mirrored.visible = air_on and any_near
 		if _mirrored.visible:
 			_mirrored.queue_redraw()
+	if _mirrored_world != null:
+		_mirrored_world.visible = air_on
+		_mirrored_world.queue_redraw()
 
 
 ## A few drops thrown up from `at`.
@@ -2871,6 +3112,8 @@ func _gather_the_water():
 		_reflections.material.set_shader_parameter("water", mask)
 	if _mirrored != null:
 		_mirrored.material.set_shader_parameter("water", mask)
+	if _mirrored_world != null:
+		_mirrored_world.material.set_shader_parameter("water", mask)
 	if ResourceLoader.exists(WaterPatch.PICTURE):
 		_water.material.set_shader_parameter("picture", load(WaterPatch.PICTURE))
 		_water.material.set_shader_parameter("has_picture", true)

@@ -82,7 +82,17 @@ func _dress_alpha():
 	for sprite in [_animated, _static]:
 		if sprite != null and is_instance_valid(sprite):
 			var lit: Color = Color.WHITE if _figure_material != null and sprite.material == _figure_material and shade_map != null else lit_by
-			sprite.self_modulate = Color(tint * lit * condition_tint, _shown_alpha)
+			sprite.self_modulate = Color(tint * lit * condition_tint * talk_tint, _shown_alpha)
+
+
+## How a conversation shows them (DialogueBalloon "The speaker steps up"): lit while they speak, dimmed while another of the
+## conversation does, white otherwise. Multiplied in with the rest, so it undoes nothing of theirs.
+var talk_tint := Color.WHITE
+
+
+func set_talk_tint(colour: Color):
+	talk_tint = colour
+	_dress_alpha()
 
 
 ## How much of them shows, easing to hidden_alpha; and the rim in the dark, easing to on or off.
@@ -1526,8 +1536,168 @@ func stretch_along(direction: Vector2, amount: float, seconds: float):
 	_shape_tween.tween_property(drawn, "scale", Vector2.ONE, RECOIL_SECONDS).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 
+## --- Striking ---
+##
+## A blow from the side of whoever throws it (the proposals of 2026-11-16, section 6; the designer, 2026-11-17: "do all. Some of
+## these are experimental because the characters already have attack animations"). The figure as drawn leans back a moment, goes
+## forward into the blow and settles: a lean about its feet and a step of the drawing, no new frames, and the node stays on its
+## tile. A melee blow steps in towards its target (STRIKE_STEP_TILES); anything else only reaches (STRIKE_REACH_TILES).
+## Somebody with an animation of their own for the move does less of it (MoveFeel.strike says how much). Never while lying, laid
+## along a wall or mid-hop. PROPOSAL.
+
+const STRIKE_SECONDS := 0.42
+## The share of it gone when the blow lands.
+const STRIKE_LANDS := 0.45
+const STRIKE_BACK_TILES := 0.07
+const STRIKE_STEP_TILES := 0.3
+const STRIKE_REACH_TILES := 0.08
+const STRIKE_LEAN := 0.1
+
+var _strike_tween: Tween = null
+## How many strikes this figure has made, for a suite.
+var strikes := 0
+
+
+## Whether its own frames have an animation called `animation_name` (or the general "skill" one that stands in for it).
+func has_skill_animation(animation_name: String = "skill") -> bool:
+	if _animated == null or _animated.sprite_frames == null:
+		return false
+	return _animated.sprite_frames.has_animation(animation_name) or _animated.sprite_frames.has_animation("skill")
+
+
+## Leans back, goes into a blow `toward` (a direction on the map) and settles; `steps_in` for a melee blow, `share` of all of
+## it (1: everything). Returns how long until the blow lands, in seconds; 0 if it does nothing.
+func strike(toward: Vector2, steps_in: bool, share: float = 1.0) -> float:
+	var drawn = _drawn()
+	if drawn == null or toward == Vector2.ZERO or share <= 0.0 or lying or laid or (_hop_tween != null and _hop_tween.is_valid()):
+		return 0.0
+	end_strike()
+	strikes += 1
+	var way := toward.normalized()
+	_strike_tween = create_tween()
+	_strike_tween.tween_method(_strike_at.bind(way, (STRIKE_STEP_TILES if steps_in else STRIKE_REACH_TILES) * share, share), 0.0, 1.0, STRIKE_SECONDS)
+	_strike_tween.finished.connect(end_strike)
+	return STRIKE_SECONDS * STRIKE_LANDS
+
+
+## Stops a strike where it is and puts the drawing home.
+func end_strike():
+	if _strike_tween == null:
+		return
+	if _strike_tween.is_valid():
+		_strike_tween.kill()
+	_strike_tween = null
+	var drawn = _drawn()
+	if drawn != null and not lying and not laid:
+		drawn.position = size_offset
+		drawn.rotation = 0.0
+
+
+## How far into the blow they are at `t` (0 to 1) of a strike: -1 wound all the way back, 1 all the way into it, 0 at rest.
+static func strike_curve(t: float) -> float:
+	if t < 0.3:
+		var back := t / 0.3
+		return -(1.0 - (1.0 - back) * (1.0 - back))
+	if t < STRIKE_LANDS:
+		var forth := (t - 0.3) / (STRIKE_LANDS - 0.3)
+		return lerpf(-1.0, 1.0, forth * forth)
+	if t < 0.6:
+		return 1.0
+	var settle := (t - 0.6) / 0.4
+	return (1.0 - settle) * (1.0 - settle)
+
+
+func _strike_at(t: float, way: Vector2, step_tiles: float, share: float):
+	var drawn = _drawn()
+	if drawn == null:
+		return
+	var tile := float(Grid.TILE_SIZE)
+	var into := strike_curve(t)
+	var across: float = scale.x if scale.x != 0.0 else 1.0
+	var down: float = scale.y if scale.y != 0.0 else 1.0
+	var moved := way * tile * (into * STRIKE_BACK_TILES * share if into < 0.0 else into * step_tiles)
+	# The lean, about their feet: towards the blow as they go into it, away as they wind up; less for a blow straight up or down.
+	var angle := STRIKE_LEAN * share * (into * 0.6 if into < 0.0 else into) * way.x
+	var feet := Vector2(0.0, tile * 0.42)
+	drawn.rotation = angle
+	drawn.position = size_offset + Vector2(moved.x / across, moved.y / down) + feet - feet.rotated(angle)
+
+
+## --- Wading ---
+##
+## Whoever stands in a map's water has the water drawn over their legs, `deep` pixels up from their feet, in the pool's own
+## colour, and a bright line where it meets them that rocks a little (LightView "Water, the next steps": the waterline). Their legs
+## show through, dimmed. A child of the figure, drawn after its picture, so it sorts with them. Only the drawing.
+
+const WADE_ALPHA := 0.62
+const WADE_HALF_WIDTH := 0.2
+
+var wading := 0.0
+var _wading_colour := Color(0.17, 0.35, 0.47)
+var _wade: _Wade = null
+
+
+## The water drawn over their legs `deep` pixels up from their feet (as measured on the map); 0 for none.
+func set_wading(deep: float, colour: Color = Color(0.17, 0.35, 0.47)):
+	if is_equal_approx(deep, wading) and (deep <= 0.0 or colour == _wading_colour):
+		return
+	wading = maxf(deep, 0.0)
+	_wading_colour = colour
+	if _wade == null:
+		if wading <= 0.0:
+			return
+		_wade = _Wade.new()
+		_wade.name = "Wade"
+		_wade.figure = self
+		add_child(_wade)
+	_wade.visible = wading > 0.0
+
+
+class _Wade extends Node2D:
+	var figure: CombatantSprite = null
+
+	func _process(_delta: float):
+		if visible:
+			queue_redraw()
+
+	func _draw():
+		if figure == null or figure.wading <= 0.0:
+			return
+		var tile := float(Grid.TILE_SIZE)
+		var down: float = absf(figure.scale.y) if figure.scale.y != 0.0 else 1.0
+		var feet := Vector2(0.0, tile * 0.42)
+		var deep: float = figure.wading / down
+		var half := tile * CombatantSprite.WADE_HALF_WIDTH
+		var surface := feet.y - deep
+		var water: Color = figure._wading_colour
+		var clock := Time.get_ticks_msec() / 1000.0
+		# The water over their legs: from the surface down past their feet, fading out at its sides.
+		var points := PackedVector2Array()
+		var colours := PackedColorArray()
+		var steps := 10
+		for i in steps + 1:
+			var share := float(i) / float(steps)
+			var x := lerpf(-half, half, share)
+			var rock := sin(clock * 3.1 + share * 5.0) * tile * 0.006
+			points.append(Vector2(x, surface + rock))
+			colours.append(Color(water.r, water.g, water.b, CombatantSprite.WADE_ALPHA * sin(share * PI)))
+		for i in steps + 1:
+			var share := 1.0 - float(i) / float(steps)
+			points.append(Vector2(lerpf(-half, half, share), feet.y + tile * 0.03))
+			colours.append(Color(water.r, water.g, water.b, CombatantSprite.WADE_ALPHA * 1.2 * sin(share * PI)))
+		draw_polygon(points, colours)
+		# The line where it meets them: bright in the middle, rocking.
+		for i in steps:
+			var a := float(i) / float(steps)
+			var b := float(i + 1) / float(steps)
+			var from := Vector2(lerpf(-half, half, a) * 0.8, surface + sin(clock * 3.1 + a * 5.0) * tile * 0.006)
+			var to := Vector2(lerpf(-half, half, b) * 0.8, surface + sin(clock * 3.1 + b * 5.0) * tile * 0.006)
+			draw_line(from, to, Color(0.9, 0.96, 1.0, 0.85 * sin((a + b) * 0.5 * PI)), tile * 0.012, true)
+
+
 ## 0 at both ends and 1 at `peak` (0 to 1), a parabola either side of it.
-static func _arc(t: float, peak: float) -> float:
+static func _arc(
+t: float, peak: float) -> float:
 	if t < peak:
 		var before := (peak - t) / peak
 		return 1.0 - before * before

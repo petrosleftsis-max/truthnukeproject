@@ -1141,6 +1141,10 @@ const LOOK_AHEAD_RATE := 2.4
 const LOOK_AHEAD_HOLD := 0.6
 const ROOM_MOST_TILES := 36
 const ROOM_ZOOM := 0.1
+## How far the camera pushes in over a long conversation, and over how many seconds of it (PROPOSAL).
+const TALK_ZOOM := 0.07
+const TALK_PUSH_SECONDS := 20.0
+var _talk_seconds := 0.0
 const ROOM_RATE := 1.6
 const LOOK_ABOUT_TILES := 4.0
 const LOOK_ABOUT_RATE := 5.0
@@ -1258,6 +1262,12 @@ func _frame_the_room(delta: float, alone: bool, sway: float):
 			_room_small = small_room_at(tile)
 		if _room_small:
 			aim = ROOM_ZOOM * sway
+	# The camera listens (the proposals of 2026-11-16, section 10): over a long exchange it pushes in slowly, and lets go after.
+	if alone and sway > 0.0 and Coop.talking():
+		_talk_seconds += delta
+	else:
+		_talk_seconds = 0.0
+	aim += TALK_ZOOM * sway * smoothstep(0.0, 1.0, _talk_seconds / TALK_PUSH_SECONDS)
 	_room_zoom = lerpf(_room_zoom, aim, 1.0 - exp(-ROOM_RATE * delta))
 	if absf(_room_zoom - aim) < 0.0005:
 		_room_zoom = aim
@@ -2251,6 +2261,8 @@ func _wall_comes_down(wall: BreakableWall):
 	MapFeel.spawn(wall.get_parent(), &"rubble", wall.position, {"toward": way, "colour": BreakableWall.STONE})
 	MapFeel.spawn(wall.get_parent(), &"hang", wall.position, {"colour": BreakableWall.STONE.lightened(0.2)})
 	MapFeel.sound(&"wall_breaks", -3.0)
+	MapLife.blast_at(get_tree(), wall.global_position, 1.5)
+	Rumble.roll(0.7, 0.6)
 	if camera != null and camera.has_method("shake"):
 		camera.shake(WALL_SHAKE)
 		camera.kick(way, WALL_KICK)

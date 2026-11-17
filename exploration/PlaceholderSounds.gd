@@ -72,6 +72,9 @@ const RECIPES := {
 	"impact_graze": [[200, 120, 0.06, "sine", 0.16]],
 	"impact_shatter": [[5200, 2400, 0.06, "noise", 0.16], [2794, 2794, 0.05, "sine", 0.1], [3520, 3520, 0.08, "sine", 0.08]],
 	"impact_thud": [[110, 50, 0.12, "sine", 0.32], [400, 150, 0.05, "noise", 0.12]],
+	# A blow resisted, and one they are vulnerable to (MoveFeel.resisted, vulnerable).
+	"impact_dull": [[95, 70, 0.09, "sine", 0.26], [260, 120, 0.04, "noise", 0.06]],
+	"impact_ring": [[1568, 1568, 0.05, "sine", 0.14], [2093, 2093, 0.16, "sine", 0.1], [3136, 3136, 0.2, "sine", 0.05]],
 	# A step (Footsteps), and a step that splashes.
 	"step": [[160, 90, 0.035, "sine", 0.2], [900, 400, 0.025, "noise", 0.05]],
 	"step_wet": [[150, 85, 0.03, "sine", 0.22], [2600, 900, 0.09, "noise", 0.12]],
@@ -84,6 +87,7 @@ const RECIPES := {
 	"water_splash": [[2600, 700, 0.16, "noise", 0.14], [180, 90, 0.06, "sine", 0.12]],
 	"voice_tick": [[520, 500, 0.022, "sine", 0.1]],
 	"refused": [[196, 150, 0.07, "square", 0.07]],
+	"danger": [[72, 52, 0.09, "sine", 0.5], [0, 0, 0.07, "rest", 0.0], [64, 46, 0.12, "sine", 0.38]],
 	# A kind of creature's sheet, opened on it studied for the first time.
 	"reveal": [[392, 784, 0.12, "sine", 0.12], [784, 1175, 0.14, "sine", 0.11], [1568, 1568, 0.25, "sine", 0.08]],
 }

@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://exploration/WindBanner.gd" id="6_gt4d4"]
 [ext_resource type="Script" path="res://exploration/ChimneySmoke.gd" id="7_pj0r8"]
 [ext_resource type="Script" path="res://exploration/DepthPiece.gd" id="8_r5m2e"]
+[ext_resource type="Script" path="res://exploration/MapLife.gd" id="9_mlife"]
 
 [node name="Stealth9Terrain" type="Node2D" unique_id=86673684]
 
@@ -102,6 +103,31 @@ cloth = Color(0.62, 0.22, 0.2, 1)
 position = Vector2(7552, 2176)
 script = ExtResource("7_pj0r8")
 
+[node name="YardBirds" type="Node2D" parent="." unique_id=731004521]
+position = Vector2(2688, 3968)
+script = ExtResource("9_mlife")
+
+[node name="GrassByTheGate" type="Node2D" parent="." unique_id=731004522]
+position = Vector2(384, 3968)
+script = ExtResource("9_mlife")
+kind = 3
+size_tiles = Vector2i(2, 2)
+count = 9
+
+[node name="GrassByThePond" type="Node2D" parent="." unique_id=731004523]
+position = Vector2(3456, 3968)
+script = ExtResource("9_mlife")
+kind = 3
+size_tiles = Vector2i(4, 1)
+count = 8
+
+[node name="WallCat" type="Node2D" parent="." unique_id=731004524]
+position = Vector2(2944, 1920)
+script = ExtResource("9_mlife")
+kind = 2
+size_tiles = Vector2i(1, 1)
+count = 1
+
 [node name="RoofOverHall" type="Node2D" parent="." unique_id=1635590790]
 position = Vector2(4992, 2176)
 script = ExtResource("8_r5m2e")
@@ -125,6 +151,38 @@ script = ExtResource("8_r5m2e")
 kind = 2
 size_tiles = Vector2i(2, 3)
 height = 144.0
+
+[node name="YardCrate" type="Node2D" parent="." unique_id=910000101]
+position = Vector2(1664, 5504)
+script = ExtResource("8_r5m2e")
+kind = 6
+
+[node name="YardPillar" type="Node2D" parent="." unique_id=910000102]
+position = Vector2(2176, 5504)
+script = ExtResource("8_r5m2e")
+kind = 7
+
+[node name="YardStatue" type="Node2D" parent="." unique_id=910000103]
+position = Vector2(2688, 5504)
+script = ExtResource("8_r5m2e")
+kind = 8
+
+[node name="YardLampPost" type="Node2D" parent="." unique_id=910000104]
+position = Vector2(3200, 5504)
+script = ExtResource("8_r5m2e")
+kind = 9
+
+[node name="YardRailing" type="Node2D" parent="." unique_id=910000105]
+position = Vector2(1408, 4992)
+script = ExtResource("8_r5m2e")
+kind = 10
+size_tiles = Vector2i(2, 1)
+
+[node name="YardBough" type="Node2D" parent="." unique_id=910000106]
+position = Vector2(128, 5248)
+script = ExtResource("8_r5m2e")
+kind = 5
+size_tiles = Vector2i(4, 4)
 
 [node name="TownBelow" type="Node2D" parent="." unique_id=878683795]
 position = Vector2(128, 128)

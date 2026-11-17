@@ -43,6 +43,11 @@ func press_space(ui) -> bool:
 ## Makes it `hero`'s turn with nothing in flight, as the checks below mean it to be. The presses that end a turn really end one,
 ## and the fight goes on by itself afterwards, so whose turn it is a moment later depends on how fast the machine is: inside a
 ## full pass, twice, it was an enemy's by the last check (2026-11-14 and 15).
+## Longer than a press is kept for (combat_ui EARLY_SECONDS).
+func combat_ui_early_wait(ui) -> float:
+	return float(ui.EARLY_SECONDS) + 0.15
+
+
 func make_it_their_turn(combat, controller, hero):
 	for i in combat.combatants.size():
 		if is_same(combat.combatants[i], hero):
@@ -89,9 +94,32 @@ func run_test():
 	log_line("")
 
 	log_line("======== and refuses everything the button refuses ========")
+	make_it_their_turn(combat, controller, hero)
 	controller.action_locked = true
-	ok(not press_space(ui), "not while an animation is resolving")
+	ok(not press_space(ui) and ui.early_kept(), "not while an animation is resolving: it is kept for the moment that ends")
+	# A press a moment early still counts (the proposals of 2026-11-16, section 7): what was playing over within a fifth of a
+	# second, the turn ends then.
+	var early_ended := [false]
+	var early_listener := func(): early_ended[0] = true
+	ui.turn_ended.connect(early_listener)
 	controller.action_locked = false
+	for i in 3:
+		await get_tree().process_frame
+	ui.turn_ended.disconnect(early_listener)
+	ok(early_ended[0] and not ui.early_kept(), "and acted on as it ends")
+	# Earlier than that it was too early, and is let go.
+	make_it_their_turn(combat, controller, hero)
+	controller.action_locked = true
+	press_space(ui)
+	await get_tree().create_timer(combat_ui_early_wait(ui)).timeout
+	early_ended[0] = false
+	ui.turn_ended.connect(early_listener)
+	controller.action_locked = false
+	for i in 3:
+		await get_tree().process_frame
+	ui.turn_ended.disconnect(early_listener)
+	ok(not early_ended[0] and not ui.early_kept(), "pressed longer before that, it is let go")
+	make_it_their_turn(combat, controller, hero)
 
 	controller.player_turn = false
 	ok(not press_space(ui), "not on somebody else's turn")

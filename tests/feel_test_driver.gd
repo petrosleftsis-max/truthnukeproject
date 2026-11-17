@@ -1,5 +1,5 @@
 extends Node
-## How the game feels, the proposals of 2026-11-16 as built from 2026-11-17: the comfort dials, the party's weight and its
+## How the game feels, the proposals of 2026-11-16 as built from that day: the comfort dials, the party's weight and its
 ## followers' fan, the softer map camera, and (further down, as they were built) the rest. View and feel only, so what is
 ## checked is that each thing happens, is switched off by its dial, and changes no rule.
 
@@ -103,6 +103,14 @@ func run_test():
 	await walking()
 	await the_view()
 	await things()
+	await depth_next()
+	await water()
+	await blows()
+	await interface_motion()
+	await sound_follows()
+	await conversations()
+	await life_about()
+	await the_pad()
 	log_line("")
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0)
@@ -374,3 +382,700 @@ func things():
 			"a wall broken throws rubble, leaves dust hanging and is heard")
 	await close(scene)
 	MapFeel.plays_headless = false
+
+
+func depth_next():
+	log_line("======== depth, the next steps ========")
+	LightView.plays_headless = true
+	LightView.sky_ease_seconds = 0.0
+	MapFeel.plays_headless = true
+	Campaign.reset()
+	Campaign.set_clock(12)
+	Campaign.set_weather("clear", 5)
+	Campaign.current_map = STAGE
+	var scene: ExplorationScene = load("res://scenes/exploration.tscn").instantiate()
+	get_tree().root.add_child(scene)
+	await settle(8)
+	scene.end_blocking_interaction()
+	var pieces := {}
+	for piece in get_tree().get_nodes_in_group(Depth.PIECES):
+		if Depth.same_scene(piece, scene):
+			pieces[String(piece.name)] = piece
+	var tree: DepthPiece = pieces.get("YardTree")
+	ok(tree != null, "the yard's tree")
+	if tree != null:
+		await settle(4)
+		ok(tree.shade_now() > 0.0 and tree._shade != null and tree._shade.visible, "at noon under a clear sky its crown throws a dappled shade", "%.2f" % tree.shade_now())
+		ok(tree._shade.get_global_rect().grow(Grid.TILE_SIZE).has_point(tree.global_position), "on the ground about it")
+		var still: Vector2 = tree._sway
+		Campaign.set_weather("wind", 5)
+		await wait(0.6)
+		var windy := 0.0
+		for i in 30:
+			await get_tree().process_frame
+			windy = maxf(windy, tree._sway.length())
+		ok(LightView.wind_over().length() > 0.3 and windy > still.length() and windy > Grid.TILE_SIZE * DepthPiece.SWAY_TILES * 0.2, "in a wind its crown leans and rocks",
+			"%.1f px, still %.1f; wind %.2f" % [windy, still.length(), LightView.wind_over().length()])
+		var leaves := int(MapFeel.made.get(&"leaf", 0))
+		tree._next_leaves = 0.0
+		await settle(3)
+		ok(LightView.wind_over().length() < DepthPiece.LEAVES_FROM_WIND or int(MapFeel.made.get(&"leaf", 0)) > leaves, "and in a gale leaves are shaken loose",
+			"wind %.2f, %d leaves" % [LightView.wind_over().length(), int(MapFeel.made.get(&"leaf", 0)) - leaves])
+		Campaign.set_weather("clear", 5)
+		Campaign.set_clock(0)
+		await wait(0.5)
+		ok(tree.shade_now() < 0.05, "at midnight there is no shade to throw", "%.2f" % tree.shade_now())
+		Campaign.set_clock(12)
+		await wait(0.3)
+	var town: DepthPiece = pieces.get("TownBelow")
+	ok(town != null, "the town below")
+	if town != null:
+		var clear_haze := town.haze_now()
+		ok(clear_haze >= DepthPiece.HAZE_ALWAYS - 0.001, "what is far away is a little hazy on a clear day", "%.2f" % clear_haze)
+		Campaign.set_weather("fog", 5)
+		await wait(0.5)
+		ok(town.haze_now() > clear_haze, "and hazier in mist", "%.2f" % town.haze_now())
+		Campaign.set_weather("clear", 5)
+		await wait(0.3)
+	# Things that stand.
+	var crate: DepthPiece = pieces.get("YardCrate")
+	ok(crate != null and pieces.has("YardPillar") and pieces.has("YardStatue") and pieces.has("YardLampPost") and pieces.has("YardRailing"), "one of each thing that stands, in the yard")
+	if crate != null:
+		ok(crate.stands() and not tree.stands(), "a crate stands; a tree is not one of these")
+		ok(is_equal_approx(crate.stand_height(), DepthPiece.STAND_HEIGHTS[DepthPiece.Kind.CRATE]) and is_equal_approx(crate.drawn_rect().size.y, crate.stand_height()) and is_equal_approx(crate.drawn_rect().end.y, crate.ground_rect().end.y), "drawn standing on the south edge of its tile, as tall as its kind is",
+			"%s" % crate.drawn_rect())
+		var party: ExplorationParty = scene.party
+		var tile := float(Grid.TILE_SIZE)
+		party.teleport(crate.position + Vector2(0.0, tile))
+		await settle(4)
+		ok(party.leader.z_index > crate.z_index, "whoever stands in front of it is drawn over it", "%d over %d" % [party.leader.z_index, crate.z_index])
+		ok(crate.cuts_now().is_empty(), "and it is not cut away for them", "%s; leader %s, foot %.0f" % [crate.cuts_now(), party.leader.global_position, crate.foot_in_world()])
+		party.teleport(crate.position + Vector2(0.0, -tile))
+		await settle(4)
+		ok(party.leader.z_index < crate.z_index, "whoever stands behind it is drawn under it", "%d under %d" % [party.leader.z_index, crate.z_index])
+		ok(scene.is_walkable(crate.global_position), "it stops nobody by itself: that is the tile's to say")
+	var bough: DepthPiece = pieces.get("YardBough")
+	ok(bough != null, "and a bough at the screen's edge")
+	if bough != null:
+		ok(bough.z_index > LightView.SKY_Z and is_equal_approx(bough.moves_now(), Depth.PIECE_MOVES_EDGE), "at the very front, sliding fastest", "z %d, moves %.2f" % [bough.z_index, bough.moves_now()])
+		scene.party.teleport(bough.drawn_in_world().get_center())
+		await wait(Depth.PIECE_FADE_SECONDS * 2.5)
+		ok(bough.fade_now() <= DepthPiece.EDGE_FADED + 0.01, "it fades while one of the party is under it", "%.2f" % bough.fade_now())
+		scene.party.teleport(Grid.tile_to_world(Vector2i(12, 12)))
+		await wait(Depth.PIECE_FADE_SECONDS * 2.5)
+		ok(bough.fade_now() >= 0.99, "and is whole again when they have gone", "%.2f" % bough.fade_now())
+	# A step up, on a map: whoever stands on raised ground is drawn up on it.
+	var view: DepthView = scene.depth_view
+	var raised := Vector2i(15, 18)
+	ok(view.height_at(raised) > 0.0, "the terrace is raised ground")
+	var hops := int(MapFeel.made.get(&"hop_dust", 0))
+	scene.party.teleport(Grid.tile_to_world(raised))
+	await wait(DepthView.MAP_HOP_SECONDS * 2.0)
+	ok(is_equal_approx(scene.party.leader.ground_lift, view.height_at(raised)), "put on it, somebody is drawn up on it", "%.0f" % scene.party.leader.ground_lift)
+	scene.party.teleport(Grid.tile_to_world(Vector2i(12, 20)))
+	await wait(DepthView.MAP_HOP_SECONDS * 2.0)
+	ok(scene.party.leader.ground_lift == 0.0 and int(MapFeel.made.get(&"hop_dust", 0)) >= hops + 2, "and comes down again, with a puff of dust each way",
+		"%d puffs" % (int(MapFeel.made.get(&"hop_dust", 0)) - hops))
+	await close(scene)
+	LightView.plays_headless = false
+	MapFeel.plays_headless = false
+
+
+func water():
+	log_line("======== water, the next steps ========")
+	LightView.plays_headless = true
+	LightView.sky_ease_seconds = 0.0
+	MapFeel.plays_headless = true
+	Campaign.reset()
+	Campaign.set_clock(12)
+	Campaign.set_weather("clear", 5)
+	Campaign.current_map = STAGE
+	var scene: ExplorationScene = load("res://scenes/exploration.tscn").instantiate()
+	get_tree().root.add_child(scene)
+	await settle(8)
+	scene.end_blocking_interaction()
+	var view: LightView = LightView.showing
+	var tile_map: TileMap = scene._tile_map
+	ok(view != null and not view._water_tiles.is_empty(), "the Light stage has a pond")
+	if view == null or view._water_tiles.is_empty():
+		await close(scene)
+		return
+	# The tile of it furthest from land, and one at its edge.
+	var deepest := Vector2i.ZERO
+	var most := -1.0
+	var shallow := Vector2i.ZERO
+	var least := 9.0
+	for tile in view._water_tiles:
+		var depth := LightView.water_depth_at(tile_map.to_global(tile_map.map_to_local(tile)))
+		if depth > most:
+			most = depth
+			deepest = tile
+		if depth < least:
+			least = depth
+			shallow = tile
+	ok(most > 0.0 and most <= 1.0, "it is deeper away from its shore", "%.2f at %s" % [most, deepest])
+	var edge: Vector2 = tile_map.to_global(tile_map.map_to_local(shallow))
+	var at_the_edge := 9.0
+	for corner in [Vector2(-0.49, -0.49), Vector2(0.49, -0.49), Vector2(-0.49, 0.49), Vector2(0.49, 0.49)]:
+		at_the_edge = minf(at_the_edge, LightView.water_depth_at(edge + corner * Grid.TILE_SIZE))
+	ok(at_the_edge < 0.05, "and has no depth where it meets the land", "%.2f" % at_the_edge)
+	ok(LightView.water_depth_at(Grid.tile_to_world(Vector2i(12, 12))) == 0.0, "the yard has none")
+	ok(LightView.WATER_SHADER.contains("deep_tiles") and LightView.WATER_SHADER.contains("shore_pale"), "the water's shader darkens it by depth and pales it by the shore")
+	# Wading: the water over their legs.
+	var leader: CombatantSprite = scene.party.leader
+	ok(leader.wading == 0.0, "on dry ground nobody wades")
+	var feet_off := LightView.feet_of(leader) - leader.global_position
+	scene.party.teleport(tile_map.to_global(tile_map.map_to_local(deepest)) - feet_off)
+	await settle(4)
+	var knee := leader.wading
+	ok(knee > 0.0 and knee <= LightView.WADE_KNEE_TILES * Grid.TILE_SIZE + 0.5, "standing in it, the water is drawn over their legs", "%.0f px" % knee)
+	ok(leader.get_node_or_null("Wade") != null and leader.get_node("Wade").visible, "by a part of the figure itself, so it sorts with them")
+	scene.party.teleport(edge + Vector2(0.0, 0.0) - feet_off)
+	await settle(4)
+	ok(leader.wading > 0.0 and leader.wading <= knee, "no deeper nearer the shore", "%.0f px" % leader.wading)
+	scene.party.teleport(Grid.tile_to_world(Vector2i(12, 12)))
+	await settle(4)
+	ok(leader.wading == 0.0 and not leader.get_node("Wade").visible, "out of it, none")
+	# Wet prints: out of the water, the next steps leave them.
+	var pond_south := Vector2i(deepest.x, deepest.y)
+	while view._water_tiles.has(pond_south + Vector2i.DOWN):
+		pond_south += Vector2i.DOWN
+	scene.party.teleport(tile_map.to_global(tile_map.map_to_local(pond_south)))
+	await settle(2)
+	var prints := LightView.wet_prints_left
+	var walked := 0.0
+	while walked < Grid.tiles(3.0):
+		var before: Vector2 = scene.party.leader.position
+		if not scene.party._step(Vector2.DOWN, 1.0 / 60.0):
+			break
+		walked += before.distance_to(scene.party.leader.position)
+		await get_tree().process_frame
+	scene.party._set_walking(false)
+	var wet_marks: Array = view._prints.marks.filter(func(mark): return mark.has("wet"))
+	ok(LightView.wet_prints_left > prints and not wet_marks.is_empty(), "walking out of the water leaves wet prints", "%d prints over %.1f tiles" % [LightView.wet_prints_left - prints, walked / Grid.TILE_SIZE])
+	ok(wet_marks.size() < 2 or float(wet_marks.back().wet) < float(wet_marks.front().wet), "each fainter than the last")
+	scene.party.teleport(Grid.tile_to_world(Vector2i(12, 12)))
+	await settle(2)
+	# The world in it.
+	ok(view._mirrored_world != null and view._mirrored_world.visible and is_equal_approx(view._mirrored_world.modulate.a, LightView.MIRROR_WORLD), "the world is mirrored in it, dimly")
+	# Something landing in it.
+	var splashes := LightView.splashes
+	var heard := int(MapFeel.heard.get(&"water_splash", 0))
+	var rings: int = view.wades_now().size()
+	ok(LightView.land_in_water(tile_map.to_global(tile_map.map_to_local(deepest)), 1.0), "something landing in it is a splash")
+	ok(LightView.splashes == splashes + 1 and int(MapFeel.heard.get(&"water_splash", 0)) == heard + 1 and view.wades_now().size() == rings + 1, "seen as a ring, and heard")
+	ok(not LightView.land_in_water(Grid.tile_to_world(Vector2i(12, 12)), 1.0) and LightView.splashes == splashes + 1, "and on dry ground it is not")
+	await close(scene)
+	LightView.plays_headless = false
+	MapFeel.plays_headless = false
+
+
+var game: Node = null
+var combat: Combat = null
+
+
+func open_fight():
+	await close_fight()
+	Campaign.reset()
+	Campaign.set_party(["enfina", "cyrus", "prometheus", "alithia"], 64)
+	Campaign.current_map = "res://maps/crossroads_explore.tscn"
+	Campaign.return_to_position = true
+	var encounter: EncounterDefinition = load("res://data/encounters/encounter_03_watcher.tres").duplicate()
+	Campaign.current_encounter = encounter
+	game = load("res://scenes/game.tscn").instantiate()
+	get_tree().root.add_child(game)
+	await settle(6)
+	combat = game.get_node("VisualCombat")
+	if combat.deployment_active:
+		combat.finish_deployment()
+		await settle(2)
+	for comb in combat.combatants:
+		comb.reaction_used = true
+		comb["accuracy"] = 200
+		if comb.has("stats"):
+			comb.hp = 900
+			comb.max_hp = 900
+	for key in ["alithia", "prometheus"]:
+		var caster := who(key)
+		for gate in caster.spell_slots.size():
+			caster.spell_slots[gate] = 5
+	await settle()
+
+
+func close_fight():
+	if game != null and is_instance_valid(game):
+		game.queue_free()
+		await settle(3)
+	game = null
+	combat = null
+	Engine.time_scale = 1.0
+
+
+func who(key: String) -> Dictionary:
+	for comb in combat.combatants:
+		if comb.get("combatant_key", "") == key and not comb.get("illusion", false):
+			return comb
+	return {}
+
+
+func a_foe() -> Dictionary:
+	for comb in combat.combatants:
+		if comb.get("side", 0) == 1 and comb.get("alive", false) and comb.has("stats") and not comb.has("object"):
+			return comb
+	return {}
+
+
+## A free tile beside `comb`, to its east or its west.
+func beside(comb: Dictionary, east: bool) -> Vector2i:
+	return comb.position + (Vector2i.RIGHT if east else Vector2i.LEFT)
+
+
+func blows():
+	log_line("======== a blow, from the side of whoever throws it ========")
+	# The curve of a strike: back, into it, held, home.
+	ok(CombatantSprite.strike_curve(0.0) == 0.0 and is_equal_approx(CombatantSprite.strike_curve(0.3), -1.0) and is_equal_approx(CombatantSprite.strike_curve(CombatantSprite.STRIKE_LANDS), 1.0)
+		and is_equal_approx(CombatantSprite.strike_curve(0.55), 1.0) and is_equal_approx(CombatantSprite.strike_curve(1.0), 0.0), "a strike winds back, goes into the blow as it lands, holds and comes home")
+	await open_fight()
+	var cyrus := who("cyrus")
+	var foe := a_foe()
+	ok(not cyrus.is_empty() and not foe.is_empty(), "Cyrus and somebody to hit")
+	if cyrus.is_empty() or foe.is_empty():
+		await close_fight()
+		return
+	# Headless and not asked to play, none of it happens and nobody waits.
+	var before: int = cyrus.sprite.strikes
+	ok(MoveFeel.strike(combat, cyrus, SkillDatabase.skills["rapier"], foe.position) == 0.0 and cyrus.sprite.strikes == before, "unseen, nothing of it is played")
+	MoveFeel.plays_headless = true
+	MoveFeel.felt.clear()
+	# Cyrus to the west of the foe, both looking the wrong way.
+	var east_free: bool = combat.can_land_on(cyrus, beside(foe, false))
+	var spot := beside(foe, not east_free)
+	combat.teleport_to(cyrus, spot)
+	await settle(2)
+	var foe_is_east: bool = foe.position.x > cyrus.position.x
+	cyrus.sprite.set_facing(foe_is_east)
+	foe.sprite.set_facing(foe_is_east)
+	var hp: int = foe.hp
+	await combat.use_skill("rapier", cyrus, foe.position, false)
+	ok(cyrus.sprite.strikes == before + 1 and int(MoveFeel.felt.get(&"struck", 0)) == 1, "Cyrus's rapier winds up and goes into the blow", "%d" % (cyrus.sprite.strikes - before))
+	ok(cyrus.sprite._drawn().flip_h == (not foe_is_east), "he turns to face what he aims at")
+	ok(foe.hp < hp, "the blow lands as ever", "%d -> %d" % [hp, foe.hp])
+	ok(foe.sprite._drawn().flip_h == foe_is_east, "and whoever is hit turns to whoever hit them")
+	await wait(CombatantSprite.STRIKE_SECONDS + 0.3)
+	ok(cyrus.sprite._drawn().rotation == 0.0 and cyrus.sprite._drawn().position.distance_to(cyrus.sprite.size_offset) < 0.01, "afterwards he stands as he stood")
+	ok(cyrus.position == spot, "and never left his tile: only the picture moved")
+	# With an animation of his own, less of it, and the fight waits no longer for it.
+	var own: bool = cyrus.sprite.has_skill_animation(SkillDatabase.skills["rapier"].animation)
+	var lands: float = MoveFeel.strike(combat, cyrus, SkillDatabase.skills["rapier"], foe.position)
+	ok((own and lands == 0.0) or (not own and lands > 0.0), "somebody with an animation of their own is not waited for; somebody without is given the moment the blow takes", "own %s, %.2f s" % [own, lands])
+	cyrus.sprite.end_strike()
+	# A spell gathers its light; a blade does not.
+	var gathered := int(MoveFeel.felt.get(&"gathered", 0))
+	var alithia := who("alithia")
+	# Played as the fight plays a move, whether or not she could reach him from where she stands.
+	var alithia_struck: int = alithia.sprite.strikes
+	await combat._play_the_move(alithia, SkillDatabase.skills["sleep"], foe.position)
+	ok(int(MoveFeel.felt.get(&"gathered", 0)) == gathered + 1, "a spell lights its caster as it gathers")
+	ok(alithia.sprite.strikes == alithia_struck, "and one that hurts nobody is not a blow: she does not lunge")
+	await combat._play_the_move(cyrus, SkillDatabase.skills["rapier"], foe.position)
+	ok(int(MoveFeel.felt.get(&"gathered", 0)) == gathered + 1, "a rapier gathers none")
+	# Resisted and vulnerable, felt.
+	combat.show_damage(foe, 5, Damage.Type.FIRE, false, {"resisted": true})
+	combat.show_damage(foe, 5, Damage.Type.FIRE, false, {"vulnerable": true})
+	combat.show_damage(foe, 5, Damage.Type.FIRE, false, {})
+	ok(int(MoveFeel.felt.get(&"resisted", 0)) == 1 and int(MoveFeel.felt.get(&"vulnerable", 0)) == 1, "a blow resisted and one they are vulnerable to are each felt, and a plain one is neither")
+	# Each is an experiment with a switch.
+	MoveFeel.strikes = false
+	MoveFeel.faces = false
+	MoveFeel.gathers = false
+	MoveFeel.tells = false
+	var struck: int = cyrus.sprite.strikes
+	MoveFeel.felt.clear()
+	cyrus.sprite.set_facing(foe_is_east)
+	await combat.use_skill("rapier", cyrus, foe.position, false)
+	combat.show_damage(foe, 5, Damage.Type.FIRE, false, {"resisted": true})
+	ok(cyrus.sprite.strikes == struck and MoveFeel.felt.is_empty() and cyrus.sprite._drawn().flip_h == foe_is_east, "switched off, none of it is played")
+	MoveFeel.strikes = true
+	MoveFeel.faces = true
+	MoveFeel.gathers = true
+	MoveFeel.tells = true
+	MoveFeel.plays_headless = false
+	await close_fight()
+
+
+## Section 8, the interface in motion (UiFeel): each thing happens, comes back to the size the game keeps it at (never to 1),
+## and headless nothing moves.
+func interface_motion():
+	log_line("======== the interface in motion ========")
+	UiFeel.plays_headless = true
+	var holder := Control.new()
+	get_tree().root.add_child(holder)
+	# Buttons that answer, about their own size: one the game keeps bigger comes back to that.
+	var button := Button.new()
+	button.text = "Try"
+	holder.add_child(button)
+	await settle(2)
+	button.scale = Vector2(1.25, 1.25)
+	button.mouse_entered.emit()
+	await wait(0.2)
+	ok(button.scale.is_equal_approx(Vector2.ONE * 1.25 * UiFeel.HOVER), "a button swells under the pointer, from its own size", "%s" % button.scale)
+	button.mouse_exited.emit()
+	await wait(0.2)
+	ok(button.scale.is_equal_approx(Vector2.ONE * 1.25), "and comes back to it, not to 1", "%s" % button.scale)
+	button.button_down.emit()
+	await wait(0.2)
+	ok(button.scale.x < 1.25, "pressed, it dips", "%s" % button.scale)
+	button.button_up.emit()
+	await wait(0.2)
+	ok(button.scale.is_equal_approx(Vector2.ONE * 1.25), "let go, it is back at its own size", "%s" % button.scale)
+	# Back in the tree again, moved to another parent: its signals are not connected a second time.
+	var connected := button.mouse_entered.get_connections().size()
+	holder.remove_child(button)
+	holder.add_child(button)
+	ok(button.mouse_entered.get_connections().size() == connected, "a button come back into the tree is not connected twice", "%d" % button.mouse_entered.get_connections().size())
+	# A press on a button that cannot be pressed: it shakes its head.
+	var shut := Button.new()
+	shut.text = "No"
+	shut.disabled = true
+	holder.add_child(shut)
+	await settle(1)
+	var refused := int(UiFeel.seen.get(&"refused", 0))
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	shut.gui_input.emit(press)
+	await wait(0.1)
+	var shaking: float = shut.rotation
+	await wait(0.4)
+	ok(int(UiFeel.seen.get(&"refused", 0)) == refused + 1 and not is_zero_approx(shaking) and is_zero_approx(shut.rotation),
+		"a press it cannot take: it shakes its head and comes to rest", "%.3f, then %.3f" % [shaking, shut.rotation])
+	# Panels that arrive: faded in, their size and pivot left as the interface's scale set them.
+	var panel := PanelContainer.new()
+	panel.visible = false
+	holder.add_child(panel)
+	panel.scale = Vector2(1.3, 1.3)
+	await settle(1)
+	var arrived := int(UiFeel.seen.get(&"arrived", 0))
+	panel.visible = true
+	await settle(1)
+	var arriving: float = panel.modulate.a
+	await wait(0.3)
+	ok(int(UiFeel.seen.get(&"arrived", 0)) == arrived + 1 and arriving < 0.99 and is_equal_approx(panel.modulate.a, 1.0), "a panel coming up fades in",
+		"%.2f, then %.2f" % [arriving, panel.modulate.a])
+	ok(panel.scale.is_equal_approx(Vector2(1.3, 1.3)) and panel.pivot_offset == Vector2.ZERO, "and is never resized or moved: the HUD's parts are scaled by the interface's size",
+		"%s about %s" % [panel.scale, panel.pivot_offset])
+	# Whose turn: the action bar deals itself in, one button after the next.
+	var bar := HBoxContainer.new()
+	holder.add_child(bar)
+	var dealt := []
+	for i in 4:
+		var one := Button.new()
+		one.text = str(i)
+		bar.add_child(one)
+		dealt.append(one)
+	await settle(2)
+	UiFeel.deal_in(dealt)
+	ok(dealt[3].modulate.a < 0.5, "a turn's action bar deals itself in: the last button is not there yet", "%.2f" % dealt[3].modulate.a)
+	await wait(0.5)
+	ok(dealt.all(func(one): return is_equal_approx(one.modulate.a, 1.0) and one.scale.is_equal_approx(Vector2.ONE)), "then all of it is, each at its own size")
+	# And their face steps forward in the queue, settling where the current face stands.
+	var face = load("res://ui/tq_icon.tscn").instantiate()
+	holder.add_child(face)
+	await settle(2)
+	var stepped := int(UiFeel.seen.get(&"stepped", 0))
+	face.set_current(true, 0)
+	await wait(0.05)
+	var swelling: float = face.scale.x
+	await wait(0.45)
+	ok(int(UiFeel.seen.get(&"stepped", 0)) == stepped + 1 and not is_equal_approx(swelling, 1.15) and is_equal_approx(face.scale.x, 1.15),
+		"whose turn it is: their face steps forward and settles where the current face stands", "%.3f, then %.3f" % [swelling, face.scale.x])
+	# Numbers that count.
+	var label := Label.new()
+	holder.add_child(label)
+	await settle(1)
+	UiFeel.count_to(label, 10, func(shown: int) -> String: return "%d gold" % shown)
+	ok(label.text == "10 gold", "a number is written at once the first time", label.text)
+	UiFeel.count_to(label, 40, func(shown: int) -> String: return "%d gold" % shown)
+	await wait(0.1)
+	var counting := label.text
+	await wait(0.45)
+	ok(counting != "10 gold" and counting != "40 gold" and label.text == "40 gold", "after that it counts to the new one", "%s on the way" % counting)
+	# A number that changes pops, and is back at its own size.
+	var tag := Label.new()
+	tag.text = "3"
+	holder.add_child(tag)
+	tag.scale = Vector2(0.9, 0.9)
+	await settle(1)
+	UiFeel.pop(tag)
+	await wait(0.05)
+	var popping: float = tag.scale.x
+	await wait(0.35)
+	ok(popping > 0.9 and tag.scale.is_equal_approx(Vector2(0.9, 0.9)), "a number that changes pops, and is back at its own size", "%.3f, then %.3f" % [popping, tag.scale.x])
+	# Headless, nothing moves and a number is simply written.
+	UiFeel.plays_headless = false
+	button.mouse_entered.emit()
+	await settle(3)
+	UiFeel.count_to(label, 5, func(shown: int) -> String: return "%d gold" % shown)
+	ok(button.scale.is_equal_approx(Vector2.ONE * 1.25) and label.text == "5 gold", "headless, nothing moves, and a number is written at once")
+	holder.queue_free()
+	await settle(2)
+	log_line("")
+
+
+## Section 9, sound that follows the picture (SoundFollows): what the picture asks of the sound, by moment and by place, and that
+## the buses' own effects follow it.
+func sound_follows():
+	log_line("======== sound that follows the picture ========")
+	var follows: SoundFollows = SoundFollows._self
+	ok(follows != null and is_instance_valid(follows) and follows.get_parent() == Music, "it is there on every screen, under the music")
+	if follows == null or not is_instance_valid(follows):
+		return
+	Engine.time_scale = 1.0
+	ok(follows.wants().hz == SoundFollows.CLEAR_HZ, "with nothing in the way it is clear", "%s" % [follows.wants()])
+	MenuPause.hold(self)
+	ok(follows.wants().hz == SoundFollows.MENU_HZ, "behind a menu, the music and the world are muffled")
+	MenuPause.release(self)
+	Engine.time_scale = 0.4
+	ok(follows.wants().hz == SoundFollows.SLOW_HZ, "in slow motion, muffled less")
+	Engine.time_scale = 1.0
+	SoundFollows.give_way(0.3)
+	ok(follows.wants().dip == SoundFollows.GIVE_WAY_DB, "the music gives way")
+	await wait(0.9)
+	ok(follows.wants().dip == 0.0, "and comes back")
+	# Heard: the low-pass on the buses eases down behind a menu and up again.
+	SoundFollows.plays_headless = true
+	MenuPause.hold(self)
+	await wait(1.2)
+	var muffled: float = follows.cutoff
+	MenuPause.release(self)
+	await wait(1.8)
+	ok(muffled < 2000.0 and follows.cutoff > 15000.0 and is_equal_approx(follows._music_muffle.cutoff_hz, follows.cutoff) and is_equal_approx(follows._world_muffle.cutoff_hz, follows.cutoff),
+		"the music's and the world's low-pass ease down behind a menu and up again", "%.0f Hz, then %.0f" % [muffled, follows.cutoff])
+	SoundFollows.plays_headless = false
+	# By place, on the Light stage.
+	LightView.plays_headless = true
+	LightView.sky_ease_seconds = 0.0
+	var scene := await open_map(STAGE)
+	Campaign.set_clock(12)
+	Campaign.set_weather("clear", 5)
+	await wait(0.4)
+	# Headless the map's camera does not follow: it is put on the leader, as the camera's own checks above do.
+	scene.party.teleport(Grid.tile_to_world(Vector2i(8, 15)))
+	scene.camera.position = scene.party.leader.position
+	await settle(4)
+	var yard := follows.wants()
+	ok(yard.wet == 0.0 and yard.bed == &"" and yard.hz == SoundFollows.CLEAR_HZ, "out in the yard: no echo, no bed, clear", "%s" % [yard])
+	scene.party.teleport(Grid.tile_to_world(Vector2i(24, 14)))
+	scene.camera.position = scene.party.leader.position
+	await settle(4)
+	var hall := follows.wants()
+	ok(hall.wet == SoundFollows.ECHO_HALL and hall.bed == &"indoors", "in the hall: an echo, and the room's own bed", "%s" % [hall])
+	Campaign.set_weather("rain", 5)
+	await wait(0.6)
+	ok(follows.wants().hz == SoundFollows.RAIN_INDOORS_HZ, "indoors while it rains outside, muffled", "%s" % [follows.wants()])
+	Campaign.set_weather("clear", 5)
+	await wait(0.4)
+	var watch = Campaign.stealth_watch
+	ok(watch != null, "the stage is watched")
+	if watch != null:
+		watch.alert = StealthWatch.ALERT_WARY
+		var wary: int = follows.wants().danger
+		watch.alert = StealthWatch.ALERT_ALARMED
+		var alarmed: int = follows.wants().danger
+		watch.alert = 0.0
+		ok(wary == 1 and alarmed == 2 and follows.wants().danger == 0, "the map on edge: a pulse, faster when Alarmed, none when calm", "%d, %d" % [wary, alarmed])
+	LightView.plays_headless = false
+	LightView.sky_ease_seconds = 2.5
+	await close(scene)
+	# A voice for each speaker.
+	ok(SoundFollows.voice_pitch("Cyrus") < 1.0 and SoundFollows.voice_pitch("Alithia") > 1.0 and SoundFollows.voice_pitch("A Guard") == SoundFollows.voice_pitch("A Guard"),
+		"each speaker's ticks have a pitch of their own, the same every time")
+	var ticks := int(MapFeel.heard.get(&"voice_tick", 0))
+	var letters := ["A", "b", " ", "c", "!", "d", "e"]
+	for i in letters.size():
+		SoundFollows.voice("Cyrus", letters[i], i)
+	ok(int(MapFeel.heard.get(&"voice_tick", 0)) - ticks == 2, "a tick every second letter, none for a space or a mark", "%d" % (int(MapFeel.heard.get(&"voice_tick", 0)) - ticks))
+	log_line("")
+
+
+## Section 10, conversations: the speaker steps up (lit, the others dimmed, put back after), the bars for the lines that matter,
+## and the camera's slow push over a long exchange.
+func conversations():
+	log_line("======== conversations ========")
+	UiFeel.plays_headless = true
+	# The map's camera eases only if it may move headless when the map opens.
+	CameraController.moves_headless = true
+	var scene := await open_map(LAB)
+	var cyrus = Actors.figure_of("Cyrus")
+	var alithia = Actors.figure_of("Alithia")
+	ok(cyrus is CombatantSprite and alithia is CombatantSprite and Actors.figure_of("Nobody Here") == null, "a speaker's figure is found by name, and nobody is made up for one who is not there")
+	if cyrus is CombatantSprite and alithia is CombatantSprite:
+		cyrus.set_talk_tint(Color(0.5, 0.5, 0.5))
+		var drawn: Node2D = cyrus._drawn()
+		ok(drawn.self_modulate.r < 0.6, "a conversation's tint is multiplied into how the figure is drawn", "%s" % drawn.self_modulate)
+		cyrus.set_talk_tint(Color.WHITE)
+		var balloon = load("res://ui/dialogue_balloon.tscn").instantiate()
+		get_tree().root.add_child(balloon)
+		await settle(2)
+		balloon._step_up("Cyrus")
+		await wait(0.4)
+		var lit: Color = cyrus.talk_tint
+		balloon._step_up("Alithia")
+		await wait(0.4)
+		ok(lit.r > 1.0 and alithia.talk_tint.r > 1.0 and cyrus.talk_tint.r < 0.8, "whoever speaks is lit, and whoever spoke before is dimmed", "%s, then %s and %s" % [lit, alithia.talk_tint, cyrus.talk_tint])
+		DialogueBalloon.speaker_steps_up = false
+		balloon._step_up("Cyrus")
+		await wait(0.4)
+		ok(cyrus.talk_tint.r < 0.8, "and with its switch off, nobody is lit or dimmed any more")
+		DialogueBalloon.speaker_steps_up = true
+		balloon._show_bars(true)
+		await wait(0.6)
+		var bars_in: bool = balloon.bars_shown()
+		balloon._show_bars(false)
+		await wait(0.6)
+		ok(bars_in and not balloon.bars_shown(), "a line that matters brings bars in at the top and the bottom, and the next takes them away")
+		balloon.queue_free()
+		await wait(0.5)
+		ok(cyrus.talk_tint.is_equal_approx(Color.WHITE) and alithia.talk_tint.is_equal_approx(Color.WHITE), "the conversation over, everybody is as they were",
+			"%s, %s" % [cyrus.talk_tint, alithia.talk_tint])
+	# The camera listens: over a long exchange it pushes in, a little at a time.
+	var hold := RefCounted.new()
+	Coop._talks.append([hold, 0])
+	await wait(3.0)
+	var pushing: float = scene._talk_seconds
+	var room: float = scene.view_feel().room
+	Coop._end_talk(hold)
+	await wait(0.3)
+	ok(pushing > 2.0 and room > 0.0 and scene._talk_seconds == 0.0, "while they talk the camera pushes in slowly, and lets go after", "%.1f s, %.4f" % [pushing, room])
+	CameraController.moves_headless = false
+	UiFeel.plays_headless = false
+	await close(scene)
+	log_line("")
+
+
+## Section 11, life about the place (MapLife, the moths, the banners): each thing happens, and keeps to where it belongs.
+func life_about():
+	log_line("======== life about the place ========")
+	MapLife.plays_headless = true
+	LightView.plays_headless = true
+	LightView.sky_ease_seconds = 0.0
+	var scene := await open_map(STAGE)
+	Campaign.set_clock(12)
+	Campaign.set_weather("clear", 5)
+	await wait(0.4)
+	var lives := {}
+	for life in get_tree().get_nodes_in_group(MapLife.GROUP):
+		lives[String(life.name)] = life
+	ok(lives.has("YardBirds") and lives.has("GrassByTheGate") and lives.has("WallCat") and lives.has("TorchBearerChatter"),
+		"the Light stage has birds, grass, a cat on its wall and a guard who talks to himself", "%s" % [lives.keys()])
+	var birds: MapLife = lives.get("YardBirds")
+	if birds != null:
+		ok(birds.members().size() == birds.count and birds.members().all(func(one): return one.state == &"here"), "the birds peck about, the party far off")
+		scene.party.teleport(birds.to_global(birds.ground().get_center()))
+		await wait(0.5)
+		ok(birds.members().all(func(one): return one.state == &"off"), "the party comes near: they take off")
+		scene.party.teleport(Grid.tile_to_world(Vector2i(3, 21)))
+		for one in birds._members:
+			one.time = 0.0
+		await wait(0.3)
+		ok(birds.members().all(func(one): return one.state == &"here"), "and once the party has gone, they come back")
+	var grass: MapLife = lives.get("GrassByTheGate")
+	if grass != null:
+		var tuft: Dictionary = grass.members()[0]
+		scene.party.teleport(grass.to_global(tuft.at) + Vector2(-Grid.tiles(0.25), 0.0))
+		await wait(0.6)
+		ok(grass.members()[0].bend > 0.2, "grass bends away from whoever stands in it", "%.2f" % grass.members()[0].bend)
+		scene.party.teleport(Grid.tile_to_world(Vector2i(12, 20)))
+		await wait(0.8)
+		MapLife.blast_at(get_tree(), grass.to_global(grass.ground().get_center()) + Vector2(Grid.tiles(1.5), 0.0), 1.0)
+		await wait(0.1)
+		ok(grass.members().any(func(one): return one.bend < -0.15), "and away from a blast beside it", "%s" % [grass.members().map(func(one): return snappedf(one.bend, 0.01))])
+	var banner: WindBanner = null
+	for one in get_tree().get_nodes_in_group(WindBanner.GROUP):
+		if String(one.name) == "YardBanner":
+			banner = one
+	if banner != null:
+		scene.party.teleport(banner.global_position + Vector2(-Grid.tiles(0.4), 0.0))
+		await wait(0.2)
+		ok(banner.pushed().x > 0.1, "a banner is brushed aside by whoever walks by it", "%s" % banner.pushed())
+	var chatter: MapLife = lives.get("TorchBearerChatter")
+	if chatter != null:
+		SpeechBubbles.plays_headless = true
+		var guard = chatter.get_node_or_null(chatter.speaker)
+		chatter.say_next()
+		await settle(2)
+		ok(guard != null and SpeechBubbles.bubble_over(guard) != null, "the guard says one of his lines in a bubble over himself")
+		SpeechBubbles.plays_headless = false
+	# Moths at the yard's lamps: at night, not at noon.
+	var moths_now := func() -> int:
+		var flying := 0
+		for entry in LightView.showing._lights:
+			var moths = entry.get("moths")
+			if moths != null and is_instance_valid(moths) and moths.emitting:
+				flying += 1
+		return flying
+	var by_day: int = moths_now.call()
+	Campaign.set_clock(23)
+	await wait(1.5)
+	var by_night: int = moths_now.call()
+	ok(by_day == 0 and by_night > 0, "moths circle the lamps at night, and not by day", "%d by day, %d at night" % [by_day, by_night])
+	Campaign.set_clock(12)
+	await close(scene)
+	# The lab's rats keep to its floor.
+	scene = await open_map(LAB)
+	await wait(0.3)
+	var rats: MapLife = null
+	for life in get_tree().get_nodes_in_group(MapLife.GROUP):
+		if String(life.name) == "LabRats":
+			rats = life
+	ok(rats != null and rats.members().size() == rats.count, "rats in the laboratory")
+	if rats != null:
+		var tile_map: TileMap = scene._tile_map
+		var on_floor := rats.members().all(func(one): return Depth.kind_at(tile_map, tile_map.local_to_map(tile_map.to_local(rats.to_global(one.at)))) == Depth.Kind.FLOOR)
+		ok(on_floor, "and they keep to its floor")
+	await close(scene)
+	MapLife.plays_headless = false
+	LightView.plays_headless = false
+	LightView.sky_ease_seconds = 2.5
+	log_line("")
+
+
+## Section 7, the pad in your hands: rumble for blows and for somebody near death, a click a moment early kept and acted on.
+func the_pad():
+	log_line("======== the pad in your hands ========")
+	await open_fight()
+	var cyrus := who("cyrus")
+	var asked: int = Rumble.asked
+	combat.show_damage(cyrus, 90, Damage.Type.PHYSICAL)
+	var light: Dictionary = Rumble.last.duplicate()
+	combat.show_damage(cyrus, 450, Damage.Type.PHYSICAL)
+	var heavy: Dictionary = Rumble.last.duplicate()
+	ok(Rumble.asked == asked + 2 and light.get("kind") == &"tap" and heavy.get("kind") == &"thump", "a blow is a tap in the hands, a heavy one a thump", "%s, %s" % [light, heavy])
+	combat.show_damage(cyrus, 3, Damage.Type.PHYSICAL)
+	ok(Rumble.asked == asked + 2, "and a scratch is nothing")
+	# Near death, a heartbeat.
+	cyrus.hp = int(cyrus.max_hp * 0.1)
+	Rumble.last = {}
+	await settle(4)
+	ok(Rumble.last.get("kind") == &"heart", "with one of the party near death, a heartbeat", "%s" % [Rumble.last])
+	cyrus.hp = cyrus.max_hp
+	# A click let go of a moment before the end of what was playing is kept, and acted on as it ends.
+	var controller: CController = combat.controller
+	controller.set_controlled_combatant(cyrus)
+	controller.player_turn = true
+	controller.action_locked = true
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	controller._unhandled_input(release)
+	var kept: bool = controller.early_click_kept()
+	controller.action_locked = false
+	await settle(3)
+	ok(kept and not controller.early_click_kept(), "a click a moment early is kept, and acted on as what was playing ends")
+	controller.action_locked = true
+	controller._unhandled_input(release)
+	await wait(0.35)
+	ok(not controller.early_click_kept(), "and one longer before that is let go")
+	controller.action_locked = false
+	await close_fight()
+	log_line("")

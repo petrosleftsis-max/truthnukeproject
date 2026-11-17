@@ -50,6 +50,10 @@ func _light(on: bool):
 	if not on:
 		return
 	var base := get_theme_stylebox("panel")
+	if base is SkyLook.SkyPanel:
+		# The interface's night (SkyLook): ringed in the gold rather than an edge recoloured.
+		add_theme_stylebox_override("panel", (base as SkyLook.SkyPanel).lit(HOVER_EDGE))
+		return
 	var lit: StyleBox = base.duplicate() if base != null else StyleBoxFlat.new()
 	if lit is StyleBoxFlat:
 		lit.border_color = HOVER_EDGE
@@ -64,6 +68,9 @@ func set_icon(texture: Texture2D):
 
 ## Who this is, under the face. Empty hides the line.
 func set_name_text(text: String):
+	if $Layout/Name.text != text and $Layout/HealthText.has_meta(&"_feel_number"):
+		# Somebody else's portrait now: their health is not counted to from the last one's.
+		$Layout/HealthText.remove_meta(&"_feel_number")
 	$Layout/Name.text = text
 	$Layout/Name.visible = text != ""
 
@@ -74,7 +81,9 @@ func set_name_text(text: String):
 func set_health(hp: int, hp_max: int, overheal: int = 0):
 	var bar: ProgressBar = $Layout/Health
 	# Overheal (Combat.overheal) after it, as what is taken first.
-	$Layout/HealthText.text = "{0}/{1}".format([hp, hp_max]) + (" +%d" % overheal if overheal > 0 else "")
+	# Counted to, not jumped to (UiFeel "Numbers that count"); written at once the first time and for somebody new.
+	var after := " +%d" % overheal if overheal > 0 else ""
+	UiFeel.count_to($Layout/HealthText, hp, func(shown: int) -> String: return "%d/%d" % [shown, hp_max] + after)
 	if _hp > hp:
 		HealthBarMarks.drain(bar, _hp, hp, maxi(hp_max, 1))
 	elif _hp < hp and _hp > 0:

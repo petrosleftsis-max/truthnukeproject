@@ -13,6 +13,15 @@ class_name StealthDoor
 ## Whether it starts open. One that starts shut and is left open is noticed.
 @export var starts_open: bool = false : set = _set_starts_open
 
+@export_group("Pictures")
+## This door's own picture shut, facing us (256 x 448), in place of the slot art/terrain/depth/door_shut.png. Empty: the slot's.
+@export var own_shut: Texture2D
+## This door's own picture seen edge on (41 x 448), in place of the slot door_edge.png. Empty: the slot's.
+@export var own_edge: Texture2D
+## This door's own picture open in a wall we look along, ring at the west end (256 x 233), in place of the slot door_open.png.
+@export var own_open: Texture2D
+@export_group("")
+
 const WOOD := Color(0.42, 0.28, 0.16)
 const WOOD_DARK := Color(0.27, 0.17, 0.09)
 const IRON := Color(0.35, 0.36, 0.4)
@@ -146,14 +155,73 @@ func depth_top_deep(side_on: bool) -> float:
 ## that open, the ring is at the end towards the outside, away from where it swung in (the designer, 2026-11-15: "While open the
 ## handle should face outside, not inwards to where the door is turning").
 var depth_handle_west := false
+## Set by the view: whether it is in a wall we look along (`side_on` in depth_footprint), for which picture it shows.
+var depth_side_on := false
+
+
+## --- Its pictures (the designer, 2026-11-15: "I'd like doors to have a slot for my artist's pictures") ---
+##
+## Three, each a slot in art/terrain/depth/ (Depth.slot, so a normal map beside one, `_n` before `.png`, is used too) that this
+## door's own Pictures take the place of. Each is all of the door as it is drawn standing, top to ground, at walls WALL_LIFT (192)
+## tall: the view hands each part of the drawing (its top, its front) its own share of the one picture. Empty, the door is drawn in
+## code. Sizes are in docs/depth_on_maps.md.
+
+## Shut, facing us: 256 x 448, its top edge the top 41 pixels and its front the rest.
+func picture_shut() -> Texture2D:
+	return own_shut if own_shut != null else Depth.slot("door_shut")
+
+
+## Seen edge on: 41 x 448, its top edge front to back the top 256 pixels and its end the 192 under them. Open and facing us; and
+## shut in a wall we look along, where only its top shows.
+func picture_edge() -> Texture2D:
+	return own_edge if own_edge != null else Depth.slot("door_edge")
+
+
+## Open in a wall we look along, flat against the side of the way with its face to us: 256 x 233, its top edge the top 41
+## pixels and its face the rest. Drawn with its ring at the west end; turned round where the ring belongs at the east.
+func picture_open() -> Texture2D:
+	return own_open if own_open != null else Depth.slot("door_open")
+
+
+## The picture for how it stands now (which way its wall runs and how far it has swung: the nearer of shut and open), or null.
+func depth_picture() -> Texture2D:
+	var open := swing() >= 0.5
+	if depth_side_on:
+		return picture_open() if open else picture_edge()
+	return picture_edge() if open else picture_shut()
+
+
+## The share of a picture `size` big that `part` of the door is of `whole`, all of it top to ground.
+static func picture_source(size: Vector2, part: Rect2, whole: Rect2) -> Rect2:
+	return Rect2((part.position - whole.position) / whole.size * size, part.size / whole.size * size)
+
+
+## Draws `part` of the door (its top or its front, in `canvas`'s own pixels) from its picture, if it has one: the share of the
+## picture that `part` is of `whole`, all of the door as it stands, top to ground. False with no picture, to be drawn in code.
+func _paint_picture(canvas: CanvasItem, part: Rect2, whole: Rect2) -> bool:
+	var picture := depth_picture()
+	if picture == null or whole.size.x <= 0.0 or whole.size.y <= 0.0:
+		return false
+	var source := picture_source(picture.get_size(), part, whole)
+	# The open picture is drawn with its ring at the west end: turned round for a door whose ring belongs at the east.
+	var turned := depth_side_on and swing() >= 0.5 and not depth_handle_west
+	if turned:
+		canvas.draw_set_transform(Vector2(part.position.x * 2.0 + part.size.x, 0.0), 0.0, Vector2(-1.0, 1.0))
+	canvas.draw_texture_rect_region(picture, part, source)
+	if turned:
+		canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	return true
 
 
 func depth_top() -> Color:
 	return WOOD.lerp(WOOD_DARK, 0.35)
 
 
-## Its top, drawn on `canvas` in `above`: a leaf seen edge on has its two iron bands across it.
-func depth_paint_top(canvas: CanvasItem, above: Rect2):
+## Its top, drawn on `canvas` in `above` (`whole` being all of it, for a picture): a leaf seen edge on has its two iron bands
+## across it.
+func depth_paint_top(canvas: CanvasItem, above: Rect2, whole: Rect2 = Rect2()):
+	if _paint_picture(canvas, above, whole):
+		return
 	var top := depth_top()
 	canvas.draw_rect(above, top)
 	var tile := float(Grid.TILE_SIZE)
@@ -166,9 +234,11 @@ func depth_paint_top(canvas: CanvasItem, above: Rect2):
 	canvas.draw_rect(above.grow(-3.0), top.darkened(0.3), false, 6.0)
 
 
-## Its front, drawn on `canvas` in `front`: planks, two iron bands and a ring (at the west end if depth_handle_west, else the
-## east). Seen edge on, `front` is only as wide as its leaf is thick.
-func depth_paint(canvas: CanvasItem, front: Rect2):
+## Its front, drawn on `canvas` in `front` (`whole` being all of it, for a picture): planks, two iron bands and a ring (at the
+## west end if depth_handle_west, else the east). Seen edge on, `front` is only as wide as its leaf is thick.
+func depth_paint(canvas: CanvasItem, front: Rect2, whole: Rect2 = Rect2()):
+	if _paint_picture(canvas, front, whole):
+		return
 	canvas.draw_rect(front, WOOD)
 	var planks := maxi(roundi(front.size.x / (float(Grid.TILE_SIZE) * 0.25)), 1)
 	for i in range(1, planks):

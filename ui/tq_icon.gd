@@ -123,8 +123,12 @@ func _apply_alpha():
 ## Marks this as the combatant currently acting. Scaled up as well as ringed,
 ## because on a row of same-sized faces a colour change alone is easy to miss.
 func set_current(current: bool, side: int):
+	var steps_forward: bool = current and not _is_current
 	_is_current = current
 	scale = Vector2(1.15, 1.15) if current else Vector2.ONE
+	if steps_forward:
+		# Their turn begins: the face swells to its place instead of being there at once (UiFeel "Whose turn").
+		UiFeel.step_forward(self, scale)
 	# The condition marks under the face keep their size either way - scaled up
 	# with it, they reached under the next face along.
 	var marks = get_node_or_null("Conditions")

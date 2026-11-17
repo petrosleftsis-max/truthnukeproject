@@ -138,7 +138,7 @@ func redraw():
 	var focused_row := ""
 	if focused != null and is_ancestor_of(focused) and focused.name == "Button":
 		focused_row = String(focused.get_parent().name)
-	_gold.text = "%d gold" % Campaign.gold
+	UiFeel.count_to(_gold, Campaign.gold, func(shown: int) -> String: return "%d gold" % shown)
 	for list in [_buy_list, _sell_list]:
 		if list == null:
 			continue

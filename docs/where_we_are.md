@@ -91,11 +91,25 @@ holds the game for both).
 
 ## Done recently (newest first)
 
-- **How the game feels, from 2026-11-17** (`docs/feel_built.md`, kept current as each part goes in; suite `feel`). The designer on
+- **How the game feels, from 2026-11-16** (`docs/feel_built.md`, kept current as each part goes in; suite `feel`). The designer on
   the proposals of 2026-11-16: "in general i love all of these recommendations", and a line for each section. Built so far:
   the Comfort dials (12), walking (1: ease in and out, followers that fan out, wet prints, the dash), the map's camera (2: soft
   follow, looking ahead, rooms, a look about on Left Alt, arriving) and things to use (3: a door that swings, what is in reach
-  outlined with its prompt beside it, pick-ups flying to the bag, a lamp put out, a wall broken). Every number is a PROPOSAL.
+  outlined with its prompt beside it, pick-ups flying to the bag, a lamp put out, a wall broken); depth's next steps (4: a tree's dappled shade and swaying crown, a
+  hazier backdrop, the new DepthPiece kinds Edge, Crate, Pillar, Statue, Lamp Post and Railing, hops between heights on a map)
+  and water (5: a waterline on whoever wades, depth by colour, the world mirrored, splashes); a blow from the attacker's side (6,
+  experiments with a switch each: wind-up and stepping in, facing, a spell's light about its caster, resisted and vulnerable
+  felt); the interface in motion (8: buttons that answer, panels that fade in, the action bar dealing itself in, the queue's
+  face stepping forward, numbers that count) and **its look, T** ("K, lighter", the designer's pick of 2026-11-17: every panel a
+  smooth blue night with stars strewn on it and a few loose pixels at one corner, pill buttons, the menus' and the sheet's cards
+  in its colours; `ui/sky_look.gd`, slots in `art/ui/sky/`). Every number is a PROPOSAL. Doors have picture slots too
+  (`docs/depth_on_maps.md`). Then sound that follows the picture (9: muffled behind a menu, in slow motion, indoors in the rain
+  and in the dark; the music giving way for a bubble, a reveal and a fall; echo by place; a voice tick for each speaker; a bed by
+  place and a pulse when a watched map is on edge), conversations (10: the speaker lit and the others dimmed, with a switch; bars
+  for a line tagged [#bars]; the camera pushing in over a long exchange; moving words written into the line), life about the
+  place (11: `MapLife` birds, rats, a cat on a wall, grass and chatter; moths at a lamp at night; banners brushed and pushed),
+  and the pad last (7: rumble for blows, thunder, a wall, a heartbeat near death; a press a moment early kept and acted on;
+  a held direction quickening). All twelve sections are built.
 
 - **Walls are 192 tall, 2026-11-16** (`Depth.WALL_LIFT`; it was 160). The designer asked for something between 160 and 256, was
   sent four views at 160, 192, 224 and 256, and chose 192, three quarters of a tile. Doors follow, and so does a `DepthPiece` left
@@ -462,14 +476,14 @@ holds the game for both).
 ## Waiting on the designer
 
 0. **How the game feels** (`docs/feel_built.md`): every number in it, by feel; whether the banner at the top should go now that the
-   prompt is beside the thing in reach.
-0. **Proposals of 2026-11-16** (`docs/proposals_2026-11-16.md`; being built, see `docs/feel_built.md`): twelve sections on how the game looks and feels from here (walking,
-   the map's camera, things to use, depth's next steps, water, the attacker's own motion, the pad, the interface in motion, sound
-   that follows the picture, conversations, life about, comfort dials), with what I would do first. Nothing built; they pick.
+   prompt is beside the thing in reach; whether a thing that stands (a crate, a pillar) should stop people by itself, and whether
+   raised ground should be climbable on a map (both are rules, so theirs); and the two experiments' switches: the attacker's
+   motion over the party's own attack animations (`MoveFeel.OWN_ANIMATION_SHARE`) and the speaker stepping up
+   (`DialogueBalloon.speaker_steps_up`). All twelve sections of the proposals of 2026-11-16 are built.
 0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): the box at the party's feet (they are trying it); whether the cutaway reads right now; and
    every depth number by feel, with the water's rings and mirror.
-0. **From later on 2026-11-13:** which of O to T, or K itself; how strong and how often the new atmosphere is, by feel. 2.5D (A, B and C)
-   is built (above). `docs/fable_brief.md` has three more jobs worth Fable's time.
+0. **From later on 2026-11-13:** how strong and how often the new atmosphere is, by feel (the interface's look is chosen: T, built
+   2026-11-17). 2.5D (A, B and C) is built (above). `docs/fable_brief.md` has three more jobs worth Fable's time.
 0. **From 2026-11-13:** the timings and strengths by feel (darkness, lightning indoors, the heat, the after-fight beat, fireflies).
 0. **From the second message of 2026-11-12:** painted weathers for the calendar
    (`art/ui/weather/<weather>.png`); Night Hunter's level (24 is PROPOSAL); the

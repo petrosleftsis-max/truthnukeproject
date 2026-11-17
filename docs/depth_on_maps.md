@@ -80,6 +80,18 @@ What each kind is for:
   TileMap in the scene tree (where a new node goes anyway), and remember that it shows in every unpainted gap, the rock
   between rooms included.
 
+- **Edge** (2026-11-17): something at the very front of the screen, a bough, a banner, an eave. Drawn dark and soft over
+  everything on the map, the weather too; it slides fastest as the view moves and fades while one of the party is under
+  it. Put it at the map's border, Size Tiles as big as it should look (four by four is a bough).
+- **Crate, Pillar, Statue, Lamp Post, Railing** (2026-11-17): a thing that stands on its tile, among the figures. It is
+  drawn standing on the south edge of its tile, as wide as its Size Tiles and as tall as its Height: left at 192 it takes
+  its kind's own (210, 400, 340, 400, 110). Whoever is in front of it is drawn over it; whoever is behind it is under it
+  and seen through it. **It stops nobody by itself**: put it on a tile that already stops walkers, or where being walked
+  past does not matter. Its Layer, Moves and Fades are not used.
+
+A Tree now throws a dappled shade by day and its crown sways with the wind; a piece Behind is a little hazy, more in
+mist. Water mirrors the walls to its north and whatever piece stands over it. None of it needs anything done on the map.
+
 Whoever the player can see under a piece In Front is seen through it in a round patch, the same as behind a wall. A
 thing to be found (a sparkle) shows through a tree, an arch or a balcony, but not through a roof: a roof hides the
 indoors until somebody comes near.
@@ -94,16 +106,24 @@ A tile is 256 pixels. A person is about 330 pixels tall (the size of Cyrus's idl
 | A wall's face | `art/terrain/depth/wall_face.png` | 256 x 192 |
 | A tile's top, in place of its own picture | `art/terrain/depth/top_<column>_<row>.png` | 256 x 256 |
 | A thing that Stands, alone | `art/terrain/depth/object_<column>_<row>.png` | Any; a barrel about 200 x 250, its foot's middle at the bottom |
+| A door, shut, facing us | `art/terrain/depth/door_shut.png`, or a door's own Pictures (Own Shut) | 256 x 448: its top edge the top 41 pixels, its front the rest |
+| A door seen edge on (open facing us; shut in a wall we look along, where only its top shows) | `art/terrain/depth/door_edge.png`, or Own Edge | 41 x 448: its top edge front to back the top 256, its end the 192 below |
+| A door open in a wall we look along, its face to us | `art/terrain/depth/door_open.png`, or Own Open | 256 x 233: its top edge the top 41, its face the rest; its ring at the left (west) end, and it is turned round where the ring belongs at the east |
 | A normal map for any of those | The same name with `_n` before `.png` | The same size |
 | A roof | The DepthPiece's Picture | 256 a tile, each way |
 | An arch over a one-tile way | Picture | 256 x 256 for the slab; wider if it should overhang |
 | A balcony | Picture | 256 a tile, each way |
 | A tree's crown, seen from above | Picture | 768 x 768 for a crown three tiles across |
+| Something at the screen's edge (Edge) | Picture | Large, such as 1024 x 1024 for four tiles across; a plain shape with a clear outline |
+| A crate, pillar, statue, lamp post, railing | Picture | 256 wide a tile, as tall as its Height (210, 400, 340, 400, 110 to begin with), its foot at the bottom |
 | A backdrop, Everywhere | Picture | Any size that repeats cleanly side by side and top to bottom, such as 1024 x 1024 |
 | A backdrop seen through its Size Tiles | Picture | Its Size Tiles plus 4 tiles each way, 256 a tile; it is stretched to fit, so half that size is fine for something far and hazy |
 
 `<column>_<row>` is the tile's place in the tileset picture, counted from 0. If the wall or raised-ground heights
-change, the two face sizes change with them.
+change, the two face sizes change with them, and so do the doors' heights (each is 256 + the wall's height tall, or 41 +
+it for the open one); a picture of another size is stretched to fit. A door's picture is all of it as it stands, from its
+top to the ground: the game shares it out over the top and the front it draws. One door can have its own (its Pictures
+group in the Inspector: Own Shut, Own Edge, Own Open); the rest take the slot's.
 
 ## 5. What it does not do yet
 

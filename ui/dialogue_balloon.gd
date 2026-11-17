@@ -104,6 +104,11 @@ func _ready() -> void:
 	if display != null:
 		character_label.add_theme_font_override("normal_font", display)
 
+	# A soft tick as a line types out, pitched for who speaks (SoundFollows.voice); not for a line with a voice of its own.
+	dialogue_label.spoke.connect(func(letter: String, letter_index: int, _speed: float):
+		if is_instance_valid(dialogue_line) and not dialogue_line.has_tag("voice"):
+			SoundFollows.voice(dialogue_line.character, letter, letter_index))
+
 	# If the responses menu doesn't have a next action set, use this one
 	if responses_menu.next_action.is_empty():
 		responses_menu.next_action = next_action
@@ -148,6 +153,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _notification(what: int) -> void:
+	# The conversation over: everybody in it as they were, and the bars gone with the balloon.
+	if what == NOTIFICATION_EXIT_TREE:
+		_step_down()
 	## Detect a change of locale and update the current dialogue line to show the new language
 	if what == NOTIFICATION_TRANSLATION_CHANGED and _locale != TranslationServer.get_locale() and is_instance_valid(dialogue_label):
 		_locale = TranslationServer.get_locale()
@@ -190,8 +198,12 @@ func apply_dialogue_line() -> void:
 	character_label.text = tr(dialogue_line.character, "dialogue")
 
 	var face = _portrait_for(dialogue_line)
+	if face != null and face != portrait.texture:
+		_bob(portrait)
 	portrait.texture = face
 	portrait.visible = face != null
+	_step_up(dialogue_line.character)
+	_show_bars(dialogue_line.tags.has(BARS_TAG))
 
 	dialogue_label.hide()
 	dialogue_label.dialogue_line = dialogue_line
@@ -434,10 +446,10 @@ func _build_skip_button() -> void:
 ## is made here rather than placed in the scene still looks like it belongs to
 ## the game it sits on top of.
 func _dress(button: Button) -> void:
-	const INK := Color("dce8f5")
-	const CARD := Color("1c2531")
-	const CARD_LIT := Color("24344a")
-	const CARD_EDGE := Color("2b3947")
+	const INK := SkyLook.INK
+	const CARD := SkyLook.CARD
+	const CARD_LIT := SkyLook.CARD_LIT
+	const CARD_EDGE := SkyLook.CARD_EDGE
 	button.add_theme_font_size_override("font_size", 15)
 	for role in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(role, INK)
@@ -608,6 +620,104 @@ const PORTRAIT_DIR = "res://art/portraits"
 ## expression whose name would read badly as a bare tag.
 const NO_PORTRAIT_TAG = "noportrait"
 const PORTRAIT_TAG = "portrait"
+
+
+## --- Conversations, felt (the proposals of 2026-11-16, section 10; the designer: "do all, altho im uncertain if i'll like the
+## speaker steps up", so that one has a switch) ---
+##
+## - **The speaker steps up**: whoever speaks is lit on the map and the others of the conversation (whoever has spoken in it) are
+##   dimmed (CombatantSprite.talk_tint), and the portrait bobs as it changes to somebody else's. `speaker_steps_up` turns the
+##   lighting off; the bob stays.
+## - **The lines that matter**: a line tagged [#bars] brings bars in at the top and the bottom of the screen; the next line
+##   without the tag takes them away.
+## - Words that move need nothing here: a line's own [shake]...[/shake] and [wave]...[/wave] (the text's own effects) and
+##   [speed=0.4] (the conversation's, for words that come slowly) are written into it. The camera's slow push over a long
+##   exchange is the map's (ExplorationScene, TALK_ZOOM).
+## Only to look at, every number PROPOSAL; headless nothing moves (UiFeel.shown).
+
+static var speaker_steps_up := true
+const SPEAKER_LIT := Color(1.14, 1.14, 1.1)
+const OTHERS_DIMMED := Color(0.7, 0.7, 0.78)
+const STEP_SECONDS := 0.25
+const BOB := 1.07
+const BARS_TAG := "bars"
+const BARS_SHARE := 0.085
+const BARS_SECONDS := 0.4
+
+## Whoever has spoken in this conversation and is on the map: their figures, by instance id.
+var _in_the_talk := {}
+var _bars: Array = []
+
+
+func _step_up(speaker: String):
+	if not speaker_steps_up or not UiFeel.shown():
+		return
+	var actors = get_node_or_null("/root/Actors")
+	var figure = actors.figure_of(speaker) if actors != null and actors.has_method("figure_of") else null
+	if figure is CombatantSprite:
+		_in_the_talk[figure.get_instance_id()] = figure
+	for id in _in_the_talk.keys():
+		var one = _in_the_talk[id]
+		if not is_instance_valid(one):
+			_in_the_talk.erase(id)
+			continue
+		_tint(one, SPEAKER_LIT if one == figure else OTHERS_DIMMED)
+
+
+func _step_down():
+	for one in _in_the_talk.values():
+		if is_instance_valid(one) and one.is_inside_tree():
+			_tint(one, Color.WHITE)
+	_in_the_talk.clear()
+
+
+func _tint(figure: CombatantSprite, to: Color):
+	var tween := figure.create_tween()
+	tween.tween_method(figure.set_talk_tint, figure.talk_tint, to, STEP_SECONDS)
+
+
+## The portrait bobs: a new face coming up.
+func _bob(face: Control):
+	if not UiFeel.shown():
+		return
+	face.pivot_offset = face.size * Vector2(0.5, 1.0)
+	var tween := face.create_tween()
+	tween.tween_property(face, "scale", Vector2.ONE * BOB, 0.09).set_ease(Tween.EASE_OUT)
+	tween.tween_property(face, "scale", Vector2.ONE, 0.16).set_ease(Tween.EASE_IN_OUT)
+
+
+## The bars at the top and the bottom of the screen, in or out.
+func _show_bars(on: bool):
+	if _bars.is_empty():
+		if not on:
+			return
+		for top in [true, false]:
+			var bar := ColorRect.new()
+			bar.name = "BarTop" if top else "BarBottom"
+			bar.color = Color(0.0, 0.0, 0.02, 0.94)
+			bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			bar.set_anchors_preset(Control.PRESET_TOP_WIDE if top else Control.PRESET_BOTTOM_WIDE)
+			bar.offset_top = 0.0
+			bar.offset_bottom = 0.0
+			add_child(bar)
+			move_child(bar, 0)
+			_bars.append(bar)
+	var height: float = get_viewport().get_visible_rect().size.y * BARS_SHARE if on else 0.0
+	for bar in _bars:
+		var top: bool = bar.name == "BarTop"
+		if not UiFeel.shown():
+			if top:
+				bar.offset_bottom = height
+			else:
+				bar.offset_top = -height
+			continue
+		var tween: Tween = bar.create_tween()
+		tween.tween_property(bar, "offset_bottom" if top else "offset_top", height if top else -height, BARS_SECONDS).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+
+
+## Whether the bars are in, for a suite.
+func bars_shown() -> bool:
+	return not _bars.is_empty() and (_bars[0].offset_bottom > 0.5 or _bars[0].offset_top < -0.5)
 
 
 ## The portrait for the line being shown, or null for none.

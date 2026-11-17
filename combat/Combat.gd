@@ -2218,7 +2218,7 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				if teleport_to(travelling, destination):
 					MoveFeel.puff(self, gone_from)
 					MoveFeel.puff(self, MoveFeel.middle_of(self, travelling))
-		await attacker.sprite.play_skill_and_wait(skill.animation)
+		await _play_the_move(attacker, skill, impact_position)
 		# The battle was left while it played: nothing here to resolve it on.
 		if not still_running():
 			return
@@ -2814,7 +2814,7 @@ func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Diction
 	await _frame_the_blow(attacker, skill, target.get("position", trigger_position))
 	if not still_running():
 		return
-	await attacker.sprite.play_skill_and_wait(skill.animation)
+	await _play_the_move(attacker, skill, target.get("position", trigger_position))
 	if not still_running():
 		return
 	play_skill_sound(skill)
@@ -6381,6 +6381,8 @@ var _turn_scale := 1.0
 
 
 func combat_finish():
+	# Nothing left buzzing in the hands once it is over (Rumble).
+	Rumble.stop()
 	if not combat_over:
 		SpeechBubbles.somebody_says(self, &"won")
 	# Whatever comes after the fight - the log, the result, the map - at normal speed.
@@ -6631,6 +6633,21 @@ func play_stream(stream: AudioStream, volume_db: float = 0.0, pitch: float = 1.0
 const LEVEL_THREE_SHAKE = 14.0
 
 
+## Plays `skill` by `user`, aimed at `aim`: their own animation for it, and what MoveFeel adds from their side of the blow - they
+## face it, wind up and go into it, a spell gathers its light (MoveFeel "A blow, from the side of whoever throws it"). Somebody
+## with no animation of their own is given the moment it takes the blow to land; nobody else waits any longer than before.
+func _play_the_move(user: Dictionary, skill: SkillDefinition, aim: Vector2i):
+	var sprite = user.get("sprite")
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var lands: float = MoveFeel.strike(self, user, skill, aim)
+	if lands > 0.0:
+		await get_tree().create_timer(lands).timeout
+		if not is_instance_valid(sprite):
+			return
+	await sprite.play_skill_and_wait(skill.animation)
+
+
 ## Rattles the view, if this battle has a camera to rattle. Silent when it
 ## doesn't, so nothing needs a camera to work.
 func shake_camera(pixels: float):
@@ -6655,6 +6672,10 @@ func flash_target(attacker: Dictionary, target: Dictionary, damage_colour = null
 	# but not placed.
 	sprite.flash_hit(attacker.get("side", 1) != target.get("side", 1), damage_colour)
 	var origin = from_position if from_position != null else attacker.position
+	# Whoever is hit turns to whoever hit them (MoveFeel "Facing"): only the picture, and only for a blow from the other side.
+	if MoveFeel.faces and MoveFeel.shown() and attacker.has("position") and target.has("position") and attacker.get("side", 1) != target.get("side", 1) \
+			and attacker.position.x != target.position.x and target.get("alive", false) and not sprite.laid:
+		sprite.set_facing(attacker.position.x < target.position.x)
 	# Away from the blow, measured to the part of them it struck - not the
 	# corner of somebody bigger than a tile.
 	var struck: Vector2i = nearest_tile_of(target, origin)
@@ -6748,9 +6769,17 @@ func show_damage(target: Dictionary, amount: int, type: int, flash: bool = false
 	var ceiling = get_effective_stat(target, "max_hp")
 	var share := float(amount) / maxf(ceiling, 1.0)
 	var lethal: bool = target.hp <= 0
+	# Felt in the hands (the proposals of 2026-11-16, section 7): a tap, or a thump for a big blow or a felling one (Rumble).
+	if not Net.catching_up():
+		Rumble.blow(share, lethal)
 	var told := how.duplicate()
 	told["share"] = share
 	told["graze"] = _grazing
+	# Felt as well as read (MoveFeel): resisted, it lands dull; vulnerable, it rings.
+	if how.get("resisted", false):
+		MoveFeel.resisted(self, target)
+	elif how.get("vulnerable", false):
+		MoveFeel.vulnerable(self, target, type)
 	float_number(target, str(amount), Damage.type_colour(type), told)
 	if flash:
 		var sprite = target.get("sprite")

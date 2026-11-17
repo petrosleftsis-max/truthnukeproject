@@ -107,7 +107,7 @@ func run_test():
 		if property.name in ["birds_at_dawn", "insects_at_dusk", "crickets_at_night", "rain_falling", "wind_blowing", "thunder", "footstep", "footstep_wet", "codex_reveal"]:
 			continue
 		# And those of 2026-11-17 ("On a map", MapFeel.sound): a stand-in plays until the designer has a sound for each.
-		if property.name in ["door_creak", "door_shut", "picked_up", "lamp_out", "wall_breaks", "water_splash", "voice_tick", "refused"]:
+		if property.name in ["door_creak", "door_shut", "picked_up", "lamp_out", "wall_breaks", "water_splash", "voice_tick", "refused", "indoors", "underground", "danger"]:
 			continue
 		if property.usage & PROPERTY_USAGE_STORAGE and property.type == TYPE_OBJECT and bank.get(property.name) == null:
 			empty.append(property.name)

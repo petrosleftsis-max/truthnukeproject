@@ -26,6 +26,7 @@
 [ext_resource type="Resource" path="res://dialogue/lab_sellsword_contract.dialogue" id="102_contract"]
 [ext_resource type="Resource" path="res://dialogue/lab_hired_blades_parley.dialogue" id="103_parley"]
 [ext_resource type="Resource" path="res://data/encounters/encounter_hired_blades.tres" id="104_blades"]
+[ext_resource type="Script" path="res://exploration/MapLife.gd" id="105_rats"]
 
 [node name="Node2D" type="Node2D" unique_id=557726441]
 
@@ -37,6 +38,13 @@ layer_0/tile_data = PackedInt32Array(65537, 196608, 2, 65538, 262144, 2, 131073,
 [node name="Grid" type="Node2D" parent="." unique_id=782838035]
 script = ExtResource("2_mwbr2")
 metadata/_custom_type_script = "uid://bvxg6wn4mrssx"
+
+[node name="LabRats" type="Node2D" parent="." unique_id=731004526]
+position = Vector2(384, 384)
+script = ExtResource("105_rats")
+kind = 1
+size_tiles = Vector2i(4, 10)
+count = 4
 
 [node name="EntryPoint" type="Marker2D" parent="." unique_id=1675313260]
 position = Vector2(809.3333, 418.6667)

@@ -55,6 +55,8 @@ const PIECES := &"depth_pieces"
 ## an arch and a balcony rest on walls, which do not move, so they stay.
 const PIECE_MOVES_FRONT := 0.12
 const PIECE_MOVES_BEHIND := 0.5
+## What is at the screen's very edge, nearest of all (a DepthPiece of kind Edge), slides fastest.
+const PIECE_MOVES_EDGE := 0.35
 ## How far a piece behind the ground can move at most, each way, in tiles: its picture is drawn that much bigger than the part of
 ## the ground it is seen through, so it never runs out.
 const BEHIND_MARGIN_TILES := 4.0

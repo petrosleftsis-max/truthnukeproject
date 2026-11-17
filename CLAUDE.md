@@ -792,7 +792,7 @@ map). Screen-wide flashes and faces are on `MoveFeelOverlay` (layer 20). The hur
 vignette's flare runs on real time (`HurtVignette.flare`), so a hit-stop - a kill's
 longest - does not hold it back.
 
-**How the game feels** (`docs/feel_built.md`, the proposals of 2026-11-16 built from 2026-11-17; `feel`). View and feel only,
+**How the game feels** (`docs/feel_built.md`, the proposals of 2026-11-16, built from that day; `feel`). View and feel only,
 every number PROPOSAL. `Comfort` (`ui/comfort.gd`, Options' Comfort group `ComfortDials`): whatever shakes the view, flashes the screen, sways the
 camera, rumbles a pad or slows the world asks `Comfort.share(...)` or `Comfort.slow_motion()` first - a new effect gets its dial. `MapFeel`
 (`exploration/MapFeel.gd`) is the map's MoveFeel: small drawn effects (`spawn`), `sound(slot)` (the SoundBank's "On a map" slot or a
@@ -801,6 +801,41 @@ camera, rumbles a pad or slows the world asks `Comfort.share(...)` or `Comfort.s
 camera, softer": `_aim_camera` sets `_view_want` and `_soften_view` eases there every frame (headless it is put there, unless
 `CameraController.moves_headless`); the room's share of the zoom goes on and comes off as the stealth pressure's does. `ReachMark` outlines
 `_current_target`. `StealthDoor.swing()` and `Lamp.glow()` ease only what is drawn. `Rumble` (`control/Rumble.gd`).
+`DepthPiece` "The next steps of depth": a Tree's `_shade` (a multiply-blend ColorRect under its crown) and `_sway`; `haze` and `soft` in
+PIECE_SHADER for what is Behind; Kind `EDGE` (z `LightView.SKY_Z + 1`, `Depth.PIECE_MOVES_EDGE`) and the kinds that stand (`stands()`,
+`STAND_HEIGHTS`: z by `foot_in_world()` on a map, `_stand_in_a_fight` reparents what is drawn into the fight's y-sorted layer; they stop
+nobody). `DepthView._keep_the_height`: a map's figures drawn up on what is lifted, with a hop. `LightView` "Water, the next steps":
+`water_depth_at`, `CombatantSprite.set_wading` (a `_Wade` child), `_MirroredWorld` (re-runs each piece's own `_paint` turned over),
+`land_in_water` (from `MoveFeel.impact`, `over_area`, `falls` and a stealth throw); `Footsteps.walked_through` every frame walked.
+`Combat._play_the_move` is what plays a move's animation now (three call sites): `MoveFeel.strike` first (facing, `CombatantSprite.strike`,
+the `gather` light; switches `MoveFeel.strikes`, `faces`, `gathers`, `tells`; nothing unless `MoveFeel.shown()`), and only somebody with no
+animation of their own is waited for, the moment the blow takes. `MoveFeel.resisted` and `vulnerable` from `show_damage`'s `how`.
+`UiFeel` (`ui/ui_feel.gd`), listened for from SceneTransition: every BaseButton and PanelContainer added to the tree, once (`_feel_on`);
+whatever scales a control does it about `rest_of` (the scale it rests at), never back to 1, and a panel only fades (`arrive`), since
+`apply_ui_scale` scales and places the HUD's parts; `deal_in` (deferred, so it skips what is freed), `step_forward`, `count_to`, `pop`,
+`refuse`; `no_feel` meta, `plays_headless`, `seen`. **The interface's look is T** (`ui/sky_look.gd`, `SkyLook.apply` after
+`GameFonts.apply`; the designer, 2026-11-17): `SkyPanel`, a scripted StyleBox (the night by a gradient or the slot's picture through a
+rounded polygon, `strew_stars` seeded by the canvas item and size, `edge` broken at the lower left, `loosen`), the button styles (theme
+variations `MAIN_BUTTON` for End Turn and `SLOT_BUTTON` for the skill slots), and the old palette's names (`INK`, `ACCENT`, `PANEL`,
+`CARD`, `CARD_LIT`, `CARD_EDGE`) that the screens drawing their own cards take. A health bar's fill stays a StyleBoxFlat its owner
+recolours. A door's pictures: `StealthDoor.depth_picture`, `picture_source`, the painters' third argument `whole`
+(`DepthView._Upright.whole_rect`). `SoundFollows` (`audio/SoundFollows.gd`, a child of the Music autoload): its own low-pass
+on Music and SFX, amplify on Music, reverb on SFX, eased each frame to `wants()` (menu, slow motion, the view's tile under the
+sky or not and dark or not, the map having any sky, rain, `Campaign.stealth_watch.alert`); `give_way(seconds)` from
+`SpeechBubbles._say`, `MoveFeel.falls`, `FightCards` before a reveal; `voice(speaker, letter, index)` from DialogueBalloon's
+`spoke`. It reads the camera of the scene shown (`_camera_of`), since in the tests the game's own fight is the viewport's.
+Conversations (DialogueBalloon "Conversations, felt"): `_step_up` from `apply_dialogue_line` lights the speaker's figure
+(`Actors.figure_of`, which never spawns or warns) and dims the conversation's others through `CombatantSprite.set_talk_tint`
+(a factor in `_dress_alpha`), `_step_down` on exit; `speaker_steps_up` is its switch; `_bob` the portrait; `[#bars]` lines
+`_show_bars`. ExplorationScene's `_frame_the_room` adds `TALK_ZOOM` while `Coop.talking()`. `MapLife`
+(`exploration/MapLife.gd`, group `map_life`): Kind BIRDS, RATS, CAT, GRASS, CHATTER (append only); its members are dictionaries
+(`members()` for a suite), kept to Depth's FLOOR by `_floor_point`; the party is `Depth.PARTY` in its own scene; `blast_at` (from
+`MoveFeel.over_area` and `ExplorationScene._wall_comes_down`) bends grass and pushes `WindBanner`s (group `wind_banners`,
+`push`, brushed by passers-by). LightView's `_add_moths` per light, flying by `_night_share` and the light's `dark`. The pad:
+`Rumble.blow` from `Combat.show_damage` (not while catching up), `Rumble.roll` from the storm's thunder and a wall coming down,
+`Rumble.heartbeat` from `combat_ui._near_death_beats`, `Rumble.stop` in `combat_finish` and `MenuPause.hold`; early presses kept
+by combat_ui (`_keep_early`/`_play_early`, keys) and CController (`_early_click`/`_play_early_click`, a click's tile, its path
+found afresh) for `EARLY_SECONDS`; `Pad._step_tiles` quickens a held direction (`_step_held`).
 
 ## Stealth maps
 

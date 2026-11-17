@@ -25,13 +25,13 @@ const CAST := ["cyrus", "enfina", "prometheus", "alithia"]
 ## ones - a skill is free to inflict the same condition differently.
 const DEFAULTS_NOTE := "These are the defaults, and subject to change: a skill that inflicts this can carry its own duration, and any damage it deals scales with whoever inflicted it."
 
-const INK := Color("dce8f5")
-const INK_DIM := Color("c2ceda")
+const INK := SkyLook.INK
+const INK_DIM := SkyLook.INK_DIM
 const MUTED := Color("8296a9")
-const ACCENT := Color("4a86c8")
-const CARD := Color("1c2531")
-const CARD_LIT := Color("24344a")
-const CARD_EDGE := Color("2b3947")
+const ACCENT := SkyLook.ACCENT
+const CARD := SkyLook.CARD
+const CARD_LIT := SkyLook.CARD_LIT
+const CARD_EDGE := SkyLook.CARD_EDGE
 
 var _title: Label
 var _blurb: Label

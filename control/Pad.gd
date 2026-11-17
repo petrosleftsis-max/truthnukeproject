@@ -77,6 +77,10 @@ const WARPS_REMEMBERED := 12
 ## own, and the time between steps after that.
 const STEP_DELAY := 0.35
 const STEP_EVERY := 0.11
+## Held on past the first pause, the steps come faster, down to this share of STEP_EVERY over STEP_SPEEDS_UP seconds (PROPOSAL).
+const STEP_FASTEST_SHARE := 0.5
+const STEP_SPEEDS_UP := 1.0
+var _step_held := 0.0
 ## The left stick on the board steps the cursor too, once pushed this far, and
 ## keeps stepping every this many seconds - slowest just past that, fastest
 ## pushed all the way.
@@ -610,15 +614,19 @@ func _step_tiles(board: Node, delta: float):
 			every = lerpf(STICK_SLOW, STICK_FAST, inverse_lerp(STICK_STEP, 1.0, minf(stick.length(), 1.0)))
 	if way == Vector2i.ZERO:
 		_step_dir = Vector2i.ZERO
+		_step_held = 0.0
 		return
 	if way != _step_dir:
 		_step_dir = way
 		_step_wait = STEP_DELAY
+		_step_held = 0.0
 	else:
+		_step_held += delta
 		_step_wait -= delta
 		if _step_wait > 0.0:
 			return
-		_step_wait = every
+		# Held on, it walks on faster after a moment (the proposals of 2026-11-16, section 7: "Holding to repeat").
+		_step_wait = lerpf(every, every * STEP_FASTEST_SHARE, clampf((_step_held - STEP_DELAY) / STEP_SPEEDS_UP, 0.0, 1.0))
 	_idle = 0.0
 	board.pad_tile_step(way)
 

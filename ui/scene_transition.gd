@@ -40,7 +40,11 @@ func _ready():
 	# The first autoload with anything to show, so the fonts are on the theme
 	# before any screen is built. See GameFonts for why it is done here.
 	GameFonts.apply()
+	# And in the interface's look, T (SkyLook), before any screen is built for the same reason.
+	SkyLook.apply()
 	GameSounds.listen(get_tree())
+	# And every button and panel moves (UiFeel).
+	UiFeel.listen(get_tree())
 	Campaign.gold_changed.connect(func(_gold): GameSounds.play(&"coin"))
 	layer = LAYER
 	# Keeps fading while the tree is paused - the pause menu is a Control like

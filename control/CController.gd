@@ -431,6 +431,38 @@ func a_menu_is_over_the_map() -> bool:
 	return false
 
 
+## --- A press a moment early (the proposals of 2026-11-16, section 7: "a key pressed in the last fifth of a second of an
+## animation is acted on as it ends") ---
+##
+## A click let go of while the controller is locked on the player's own turn is kept for EARLY_SECONDS: if what was playing ends
+## within that, the tile it was on is aimed at, or walked to by a path worked out afresh (never the path from before, which the
+## lock kept from following the pointer). Later, it was too early and is let go. The keys' own are the HUD's (combat_ui).
+const EARLY_SECONDS := 0.2
+var _early_click := {}
+
+
+func _play_early_click():
+	if _early_click.is_empty():
+		return
+	if Time.get_ticks_msec() - int(_early_click.at) > int(EARLY_SECONDS * 1000.0):
+		_early_click = {}
+		return
+	if not player_turn or action_locked or not is_idle() or a_menu_is_over_the_map():
+		return
+	var tile: Vector2i = _early_click.tile
+	_early_click = {}
+	if _skill_selected and not _look_only:
+		aim_click(tile)
+	elif not _skill_selected and _arrived:
+		find_path(tile)
+		move_player()
+
+
+## Whether a click is being kept, for a suite.
+func early_click_kept() -> bool:
+	return not _early_click.is_empty()
+
+
 func _unhandled_input(event):
 	# The pointer on the board, for the other player to see (Net), whoever's turn
 	# it is, while the party is being placed too.
@@ -472,6 +504,10 @@ func _unhandled_input(event):
 		_card_for(get_combatant_at_position(looked_at))
 		return
 	if player_turn == false or action_locked:
+		# A click let go of while the last of something plays out on the player's own turn is kept a moment, and acted on as it
+		# ends (_play_early_click).
+		if player_turn and action_locked and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_released():
+			_early_click = {"tile": tile_map.local_to_map(_pointed_at()), "at": Time.get_ticks_msec()}
 		return
 
 	if _skill_selected and event.is_action_pressed("ui_cancel"):
@@ -2037,6 +2073,7 @@ var _step_arrival_finished := false
 func _process(delta):
 	_keep_other_pointing(delta)
 	_fade_the_grid(delta)
+	_play_early_click()
 	# The floor on the screen changed (the view moved): who is on another one is
 	# drawn afresh.
 	if combat != null and combat._floored and shown_floor() != _drawn_floor:

@@ -18,6 +18,7 @@
 [ext_resource type="Resource" path="res://maps/stealth_stages/stealth_9_fight.tres" id="16_qlwoq"]
 [ext_resource type="Script" path="res://exploration/StealthGoal.gd" id="17_gh3px"]
 [ext_resource type="Resource" path="res://dialogue/stealth_stages.dialogue" id="18_0yga0"]
+[ext_resource type="Script" path="res://exploration/MapLife.gd" id="19_mlife"]
 
 [node name="Stage9Light" type="Node2D" unique_id=510918902]
 
@@ -211,6 +212,15 @@ carries_light_tiles = 7.0
 minds_his_own_business = true
 patrol = Array[String](["round_a", "round_b", "round_c", "round_d"])
 can_be_taken_down = false
+
+[node name="TorchBearerChatter" type="Node2D" parent="." unique_id=731004525]
+position = Vector2(9088, 3200)
+script = ExtResource("19_mlife")
+kind = 4
+size_tiles = Vector2i(1, 1)
+count = 1
+lines = PackedStringArray("Another round, another night.", "Who keeps leaving that door open?", "Cold down by the cellar.", "Quiet. Too quiet.")
+speaker = NodePath("../TorchBearer")
 
 [node name="SignTorch" type="Node2D" parent="." unique_id=1442604373]
 position = Vector2(8832, 2944)

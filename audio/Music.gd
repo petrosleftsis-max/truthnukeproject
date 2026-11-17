@@ -38,6 +38,10 @@ var _fade: Tween = null
 
 func _ready():
 	_ensure_player()
+	# The sound that follows the picture: muffled, giving way, echoing by place (SoundFollows).
+	var follows := SoundFollows.new()
+	follows.name = "SoundFollows"
+	add_child(follows)
 
 
 ## Builds the player if it is not there yet.

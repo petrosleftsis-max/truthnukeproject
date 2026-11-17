@@ -3480,6 +3480,8 @@ func throw_at(tile: Vector2i) -> bool:
 		_given_away_by_throwing()
 		return true
 	make_noise(_tile_map.to_global(_tile_map.map_to_local(tile)), item.distraction_radius, true)
+	# Coming down in water, it is seen to (LightView "Water, the next steps"): only to look at.
+	LightView.land_in_water(_tile_map.to_global(_tile_map.map_to_local(tile)), 0.6)
 	# Landing beside a lamp knocks it out.
 	for lamp in _lamps:
 		if is_instance_valid(lamp) and lamp.lit and Vector2(tile_of(lamp.global_position) - tile).length() <= 1.0:

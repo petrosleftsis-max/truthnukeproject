@@ -34,7 +34,7 @@ const SECONDS := {
 	&"shimmer": 0.8, &"eye": 1.0, &"stream": 0.8, &"ice_spread": 1.0, &"rays": 0.8, &"wing": 0.7,
 	&"disarm": 0.9, &"settle": 1.0, &"spark_beside": 0.45, &"rock_break": 0.6, &"edge": 0.4,
 	&"wildfire": 0.9, &"whiff": 0.35, &"shatter": 0.55, &"motes": 0.9, &"line": 0.35,
-	&"exclaim": 0.85, &"outline": 0.5, &"dust": 0.5, &"item": 0.5,
+	&"exclaim": 0.85, &"outline": 0.5, &"dust": 0.5, &"item": 0.5, &"gather": 0.5, &"glance": 0.4,
 }
 ## How a mark on the ground lasts: gone this many rounds after it was left.
 const MARK_ROUNDS := 2
@@ -200,6 +200,78 @@ static func _element_of(combat: Combat, user: Dictionary, skill: SkillDefinition
 	return combat.effective_damage_type(user, element)
 
 
+## --- A blow, from the side of whoever throws it ---
+##
+## The proposals of 2026-11-16, section 6 (the designer, 2026-11-17: "do all. Some of these are experimental because the
+## characters already have attack animations"). As a move is played (Combat._play_the_move):
+##
+## - **Facing**: its user turns to face where it is aimed, and whoever a blow from the other side lands on turns to whoever
+##   threw it (Combat.flash_target). `faces`.
+## - **Wind-up, follow-through and stepping in**: CombatantSprite.strike. All of it for somebody with no animation of their own
+##   for the move, whom it also gives a moment to land the blow in; OWN_ANIMATION_SHARE of it over an animation of their own,
+##   which already shows the blow. `strikes`.
+## - **The caster's light**: a spell lights its caster in its own colour as it gathers, brighter the deeper its gate
+##   (`gather`). `gathers`.
+## - **Resisted and vulnerable, felt**: a blow resisted lands dull, with a pale arc glancing off; one they are vulnerable to
+##   rings, with a bright ring in its colour (Combat.show_damage). `tells`.
+##
+## Each has its switch here, since they are experiments. Only to look at: nothing is rolled, and the fight waits no longer for
+## somebody with an animation than it did. PROPOSAL.
+
+static var faces := true
+static var strikes := true
+static var gathers := true
+static var tells := true
+const OWN_ANIMATION_SHARE := 0.5
+## How many of each there were, for a suite.
+static var felt := {}
+
+
+## `user` begins `skill` aimed at `aim`: they face it, wind up and go into it, and a spell gathers its light about them.
+## Returns how long until the blow lands for somebody with no animation of their own, in seconds (0: no waiting).
+static func strike(combat: Combat, user: Dictionary, skill: SkillDefinition, aim: Vector2i) -> float:
+	var sprite = user.get("sprite")
+	if not shown() or sprite == null or not is_instance_valid(sprite) or not sprite is CombatantSprite or not user.has("position"):
+		return 0.0
+	var from := middle_of(combat, user)
+	var there := combat.sprite_point({}, aim)
+	var toward := there - from
+	var at_somebody_else := toward.length() > 1.0
+	if faces and at_somebody_else and absf(toward.x) > Grid.TILE_SIZE * 0.25 and not sprite.laid:
+		sprite.set_facing(toward.x < 0.0)
+		felt[&"faced"] = int(felt.get(&"faced", 0)) + 1
+	if gathers and skill.spell_slot_level > 0:
+		var element := _element_of(combat, user, skill)
+		spawn(combat, &"gather", from, {"colour": Projectile.colour_for(skill, element), "on": user, "on_offset": combat.drawing_offset(user),
+			"strength": clampf(0.55 + 0.15 * float(skill.spell_slot_level), 0.0, 1.6)})
+		felt[&"gathered"] = int(felt.get(&"gathered", 0)) + 1
+	if not strikes or not at_somebody_else or not (skill.deals_damage or skill.melee):
+		return 0.0
+	var own: bool = sprite.has_skill_animation(skill.animation)
+	var lands: float = sprite.strike(toward, skill.melee, OWN_ANIMATION_SHARE if own else 1.0)
+	if lands > 0.0:
+		felt[&"struck"] = int(felt.get(&"struck", 0)) + 1
+	return 0.0 if own else lands
+
+
+## A blow `target` resisted: dull, a pale arc glancing off them.
+static func resisted(combat: Combat, target: Dictionary):
+	if not tells or not shown():
+		return
+	felt[&"resisted"] = int(felt.get(&"resisted", 0)) + 1
+	sound(combat, null, "impact_dull", target, -3.0)
+	spawn(combat, &"glance", middle_of(combat, target), {"colour": Color(0.8, 0.84, 0.9), "on": target, "on_offset": combat.drawing_offset(target)})
+
+
+## A blow of `type` that `target` is vulnerable to: it rings, a bright ring in its colour.
+static func vulnerable(combat: Combat, target: Dictionary, type: int):
+	if not tells or not shown():
+		return
+	felt[&"vulnerable"] = int(felt.get(&"vulnerable", 0)) + 1
+	sound(combat, null, "impact_ring", target, -2.0)
+	spawn(combat, &"shockwave", middle_of(combat, target), {"colour": Damage.type_colour(type), "reach": Grid.TILE_SIZE * 0.75, "strength": 1.0})
+
+
 ## --- Where a move lands ---
 
 
@@ -237,6 +309,9 @@ static func impact(combat: Combat, attacker: Dictionary, target: Dictionary, ski
 		if skill.deals_damage:
 			burst(combat, at, element, 0.6 if grazed else 1.0)
 		sound(combat, skill.impact_sound, _impact_sound_of(skill, element, grazed), target)
+	# A blow that lands on somebody standing in water throws some up.
+	if skill.deals_damage and target.get("sprite") != null and is_instance_valid(target.sprite) and target.sprite is CombatantSprite:
+		LightView.land_in_water(LightView.feet_of(target.sprite), 0.3 if grazed else 0.55)
 	var look := impact_look_of(skill)
 	if look == SkillDefinition.ImpactLook.NONE:
 		return
@@ -281,6 +356,14 @@ static func impact(combat: Combat, attacker: Dictionary, target: Dictionary, ski
 ## `centre` - a dome settling, a storm turning, a stream running, ice spreading,
 ## a wing sweeping, a great glyph drawn round its user.
 static func over_area(combat: Combat, attacker: Dictionary, skill: SkillDefinition, centre: Vector2i, tiles: Array):
+	# A blast over water throws it up, where its middle is and at a few of its tiles (LightView "Water, the next steps").
+	if skill.deals_damage and shown():
+		var thrown := 0
+		for tile in [centre] + tiles:
+			if typeof(tile) == TYPE_VECTOR2I and thrown < 4 and LightView.land_in_water(combat.sprite_point({}, tile), 0.7 if thrown == 0 else 0.35):
+				thrown += 1
+		# The grass and the banners about it bend away from it (MapLife, the proposals of 2026-11-16, section 11).
+		MapLife.blast_at(combat.get_tree(), combat.sprite_point({}, centre), sqrt(float(maxi(tiles.size(), 1))) * 0.6)
 	var look := impact_look_of(skill)
 	var area_looks := [SkillDefinition.ImpactLook.DOME, SkillDefinition.ImpactLook.STORM, SkillDefinition.ImpactLook.STREAM,
 		SkillDefinition.ImpactLook.ICE_SPREAD, SkillDefinition.ImpactLook.WING, SkillDefinition.ImpactLook.GLYPH_CIRCLE,
@@ -357,6 +440,8 @@ static func falls(combat: Combat, comb: Dictionary):
 	var sprite = comb.get("sprite")
 	if sprite == null or not is_instance_valid(sprite):
 		return
+	# The music gives way for the blow that felled them (SoundFollows).
+	SoundFollows.give_way(SoundFollows.FALL_SECONDS)
 	var at: Vector2 = middle_of(combat, comb)
 	var hurt: Dictionary = comb.get("last_hurt", {})
 	var element: int = hurt.get("element", -1)
@@ -368,6 +453,8 @@ static func falls(combat: Combat, comb: Dictionary):
 		combat.camera.punch_in()
 	sound(combat, null, "impact_thud")
 	sprite.fall(away, element)
+	# A body down in water: a splash (LightView "Water, the next steps").
+	LightView.land_in_water(LightView.feet_of(sprite), 1.0)
 	match element:
 		Damage.Type.FIRE, Damage.Type.PLASMA:
 			spawn(combat, &"motes", at, {"colour": Color(0.32, 0.3, 0.28), "on": comb, "on_offset": combat.drawing_offset(comb)})
@@ -891,6 +978,20 @@ func _draw():
 				var angle := _clock * 5.0 + TAU * float(i) / 3.0
 				var spot := head + Vector2(cos(angle) * tile * 0.22, sin(angle) * tile * 0.07)
 				draw_colored_polygon(_star(spot, 5, tile * 0.07, tile * 0.03, angle), Color(1.0, 0.92, 0.4, minf(1.0, (1.0 - t) * 3.0)))
+		&"gather":
+			# A spell's light about its caster as it gathers: rings closing in on them, and a glow that swells and goes.
+			var swell := sin(t * PI)
+			for i in 4:
+				draw_circle(Vector2(0, tile * 0.1), tile * (0.5 - 0.09 * float(i)) * (0.7 + 0.3 * swell), Color(colour.r, colour.g, colour.b, 0.07 * swell * strength))
+			for i in 2:
+				var own := clampf(t * 1.3 - 0.3 * float(i), 0.0, 1.0)
+				if own > 0.0 and own < 1.0:
+					_draw_ellipse_ring(Vector2(0, tile * 0.3), tile * 0.75 * (1.0 - own * 0.8), tile * 0.3 * (1.0 - own * 0.8), Color(colour.lerp(Color.WHITE, 0.4), 0.6 * own * (1.0 - own) * 2.0 * strength), 4.0)
+		&"glance":
+			# A blow resisted: a pale arc before them, sliding off.
+			var off := 1.0 - t
+			draw_arc(Vector2(0, tile * 0.05), tile * (0.36 + 0.06 * t), -PI * 0.8, -PI * 0.2, 14, Color(colour.r, colour.g, colour.b, 0.75 * off), 6.0 * off + 1.0, true)
+			draw_arc(Vector2(0, tile * 0.05), tile * (0.3 + 0.04 * t), -PI * 0.7, -PI * 0.3, 10, Color(1, 1, 1, 0.5 * off), 2.0, true)
 		&"shockwave":
 			for i in 2:
 				var own := clampf((t - 0.15 * i) / 0.75, 0.0, 1.0)

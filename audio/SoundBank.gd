@@ -82,6 +82,12 @@ class_name SoundBank
 @export var voice_tick: AudioStream
 ## A button refused: something that cannot be done just now.
 @export var refused: AudioStream
+## The place's own bed, looping quietly under everything (SoundFollows): a room's hush indoors, drips underground. Out of doors the
+## day's own sound plays. Empty: silence, not a stand-in.
+@export var indoors: AudioStream
+@export var underground: AudioStream
+## A low pulse under the music while a watched map is on edge, faster when Alarmed (SoundFollows). Empty: a stand-in heartbeat.
+@export var danger: AudioStream
 
 @export_group("Menus")
 ## Every button there is, but those that say otherwise (GameSounds.quiet).

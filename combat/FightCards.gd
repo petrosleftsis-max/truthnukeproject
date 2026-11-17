@@ -139,6 +139,8 @@ func _play_opening():
 	_hold_the_board(true)
 	var subject := _reveal_subject()
 	if combat.encounter.boss_reveal and not subject.is_empty():
+		# The music gives way for the reveal (SoundFollows).
+		SoundFollows.give_way(SoundFollows.REVEAL_SECONDS)
 		await _reveal(subject)
 	if not _skipped and combat.still_running():
 		await _shatter_and_title()

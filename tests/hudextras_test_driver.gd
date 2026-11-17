@@ -135,9 +135,12 @@ func run_test():
 
 	log_line("======== the buttons ========")
 	var end_turn: Button = ui.get_node("Actions/EndTurnButton")
-	var box = end_turn.get_theme_stylebox("normal") as StyleBoxFlat
-	ok(box != null and box.bg_color == Color("2d5a8c"), "End Turn is the accent button", "%s" % (box.bg_color if box != null else "none"))
 	var undo: Button = ui.get_node("Actions/UndoMoveButton")
+	# The interface's look T (SkyLook): End Turn the filled main button, the rest rings of light.
+	var box = end_turn.get_theme_stylebox("normal")
+	ok(end_turn.theme_type_variation == SkyLook.MAIN_BUTTON and box != null and box != undo.get_theme_stylebox("normal")
+		and (box.bg_color == SkyLook.MAIN_FILL if box is StyleBoxFlat else true),
+		"End Turn is the main button", "%s" % (box.bg_color if box is StyleBoxFlat else box))
 	ok(not undo.has_theme_stylebox_override("normal") and not undo.has_theme_color_override("font_color"),
 		"Undo Move wears the theme's own look rather than End Turn's")
 	ok(end_turn.tooltip_text.contains("1-9") and end_turn.tooltip_text.contains("Shift"), "End Turn's tooltip lists the keys")
@@ -290,9 +293,11 @@ func run_test():
 	face.set_turn_taken(false)
 	var party_face = ui._icon_for(column, hero)
 	party_face.mouse_entered.emit()
-	var lit_box = party_face.get_theme_stylebox("panel") as StyleBoxFlat
-	ok(party_face.is_lit() and lit_box != null and lit_box.border_color == party_face.HOVER_EDGE,
-		"a party portrait lights up in gold when pointed at")
+	var lit_box = party_face.get_theme_stylebox("panel")
+	# Ringed in it on the interface's night (SkyLook), its edge recoloured on a flat box.
+	var lit_edge = lit_box.ring if lit_box is SkyLook.SkyPanel else (lit_box.border_color if lit_box is StyleBoxFlat else null)
+	ok(party_face.is_lit() and lit_edge == party_face.HOVER_EDGE,
+		"a party portrait lights up in gold when pointed at", "%s" % lit_box)
 	party_face.mouse_exited.emit()
 	ok(not party_face.is_lit(), "and goes back when the cursor leaves")
 	var acting_portrait = ui.get_node("Actions/StatusIcon")

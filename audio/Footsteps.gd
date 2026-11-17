@@ -24,6 +24,13 @@ const WET_PRINTS := 7
 static var _wet_left := 0
 
 
+## Told as they walk, every frame they move (ExplorationParty): whoever is at `at` is in water now, so their next steps out of
+## it are wet. A step is heard only every stride, and by then they may be out of the water they crossed.
+static func walked_through(at: Vector2):
+	if LightView.in_water(at):
+		_wet_left = WET_PRINTS
+
+
 ## A step at `at`, a place in the world.
 static func step(at: Vector2, softly: bool = false):
 	var now := Time.get_ticks_msec()

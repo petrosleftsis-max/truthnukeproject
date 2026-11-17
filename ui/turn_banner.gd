@@ -21,8 +21,8 @@ func _init():
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
 	var band := StyleBoxFlat.new()
-	band.bg_color = Color(0.098, 0.129, 0.173, 0.92)
-	band.border_color = Color("4a86c8")
+	band.bg_color = Color(SkyLook.NIGHT_TOP, 0.92)
+	band.border_color = SkyLook.EDGE
 	band.border_width_top = 1
 	band.border_width_bottom = 1
 	band.content_margin_left = 40

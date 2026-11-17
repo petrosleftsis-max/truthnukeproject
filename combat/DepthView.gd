@@ -712,7 +712,30 @@ func _tell_the_shade():
 
 ## On a map, every figure takes its z from where it stands, so the nearer is drawn over the further and a lifted row over whoever
 ## is behind it; and, on a map or in a fight, whoever stands behind a lifted row opens a cutaway in it.
+## --- A step up or down, on a map ---
+##
+## Whoever on a map comes to stand on something lifted is drawn up on it, as in a fight, and goes up or comes down with a short
+## hop and a puff of dust (the proposals of 2026-11-16, section 4: "A step down that looks like one"). Raised ground stops a
+## walker on a map as it does in a fight, so today this shows only for whoever is put there or goes over it (Fly); it is here so
+## that the day raised ground can be climbed on a map, it already looks right. Only the drawing. PROPOSAL.
+const MAP_HOP_SECONDS := 0.2
+
+
+func _keep_the_height(figure: CombatantSprite):
+	var lift := 0.0
+	if not figure.off_ground:
+		lift = height_at(_tile_map.local_to_map(_tile_map.to_local(figure.global_position)))
+	if is_equal_approx(lift, figure.ground_lift):
+		return
+	var up := lift > figure.ground_lift
+	figure.hop(CombatantSprite.Hop.UP if up else CombatantSprite.Hop.DOWN, MAP_HOP_SECONDS, lift)
+	var parent := figure.get_parent()
+	if parent != null:
+		MapFeel.spawn(parent, &"hop_dust", figure.position + Vector2(0.0, float(Grid.TILE_SIZE) * 0.4 - lift), {"toward": Vector2.ZERO, "z": figure.z_index - 1})
+
+
 func _sort_the_figures():
+
 	var cuts := PackedVector3Array()
 	var shapes := PackedVector2Array()
 	var tile := float(Grid.TILE_SIZE)
@@ -722,6 +745,8 @@ func _sort_the_figures():
 		var at: Vector2 = figure.global_position
 		if _layer == null and not figure.z_as_relative and figure.z_index >= ExplorationParty.PARTY_Z_BOTTOM and figure.z_index <= ExplorationParty.PARTY_Z_TOP:
 			figure.z_index = Depth.z_at(at.y, _top)
+		if _layer == null:
+			_keep_the_height(figure)
 		if _layer != null and figure.get_parent() == _layer:
 			_keep_the_big_over(figure)
 		if cuts.size() >= Depth.MOST_CUTS or (_rise.is_empty() and _upright_rise.is_empty()):
@@ -878,6 +903,11 @@ class _Upright extends Node2D:
 	var painter := Callable()
 	var top_painter := Callable()
 
+	## All of what stands, from its top to the ground in front of it, as if nothing stood south of it.
+	func whole_rect() -> Rect2:
+		var tile := float(Grid.TILE_SIZE)
+		return Rect2(-tile * 0.5 + foot.position.x * tile, foot.position.y * tile - lift, foot.size.x * tile, foot.size.y * tile + lift)
+
 	func _draw():
 		if lift <= 0.0:
 			return
@@ -885,7 +915,8 @@ class _Upright extends Node2D:
 		var half := tile * 0.5
 		var above := Rect2(-half + foot.position.x * tile, foot.position.y * tile - lift, foot.size.x * tile, top_deep * tile)
 		if top_painter.is_valid():
-			top_painter.call(self, above)
+			# All of it, top to ground, for a picture to be shared out over its top and its front (a door's: StealthDoor).
+			top_painter.call(self, above, whole_rect())
 			return
 		draw_rect(above, top)
 		draw_rect(above.grow(-3.0), top.darkened(0.3), false, 6.0)
@@ -905,7 +936,7 @@ class _Front extends Node2D:
 		if front.size.y <= 0.0:
 			return
 		if upright.painter.is_valid():
-			upright.painter.call(self, front)
+			upright.painter.call(self, front, upright.whole_rect())
 		else:
 			draw_rect(front, upright.top.darkened(0.25))
 		# The lip's own shadow along the top of the front.
@@ -936,6 +967,8 @@ func _keep_the_uprights():
 			top_deep = clampf(node.depth_top_deep(side_on), 0.0, foot.size.y)
 		if "depth_handle_west" in node:
 			node.depth_handle_west = side_on and inside > 0
+		if "depth_side_on" in node:
+			node.depth_side_on = side_on
 		var whole: bool = foot.size.x >= 0.99 and foot.size.y >= 0.99
 		# Its front: all of it, unless it reaches its tile's south edge, where only what stands over the tile to the south shows.
 		var face: float = lift

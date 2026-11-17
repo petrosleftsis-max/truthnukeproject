@@ -265,6 +265,8 @@ func _vault_along(delta: float):
 	if t >= 1.0:
 		leader.position = _vault_to
 		vaulting = false
+		# Landing: a puff of dust at their feet (the proposals of 2026-11-16, section 4).
+		MapFeel.spawn(self, &"hop_dust", leader.position + FEET, {"toward": Vector2.ZERO, "z": PARTY_Z_BOTTOM - 1})
 
 
 ## Which way the movement keys or the left stick are held right now, or zero.
@@ -480,6 +482,7 @@ func _step(direction: Vector2, delta: float, speed: float = -1.0) -> bool:
 	_record_trail(before, moved_to)
 	_place_followers()
 	moved.emit(moved_to)
+	Footsteps.walked_through(leader.global_position)
 	# Heard as they go: a step every stride, softer at a creep's pace (Footsteps).
 	_strode += before.distance_to(moved_to)
 	if _strode >= Grid.tiles(Footsteps.STRIDE_TILES):

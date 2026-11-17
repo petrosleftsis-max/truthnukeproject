@@ -24,18 +24,18 @@ class_name CharacterSheet
 
 ## Palette, matching ui/blue_theme.tres - the small print a shade lighter than
 ## the menus' grey, since this is the page of small print.
-const INK := Color("dce8f5")
-const INK_DIM := Color("c2ceda")
+const INK := SkyLook.INK
+const INK_DIM := SkyLook.INK_DIM
 const MUTED := Color("97abbf")
-const ACCENT := Color("4a86c8")
+const ACCENT := SkyLook.ACCENT
 ## An attribute raised or lowered by what is on them, and the small badges a move
 ## carries ("from level 32", "known", "not learned").
 const GOOD := Color("9fe0a0")
 const BAD := Color("f0a090")
 const SOON := Color("e8c872")
 ## The small boxes a state or a passive sits in, matching the menu's cards.
-const TAG_FILL := Color("1c2531")
-const TAG_EDGE := Color("2b3947")
+const TAG_FILL := SkyLook.CARD
+const TAG_EDGE := SkyLook.CARD_EDGE
 
 ## How large the idle animation is drawn. Frames are a tile across (192px) and
 ## the panel is not, so they come down to something that leaves room for the

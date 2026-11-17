@@ -58,7 +58,7 @@ func depth_top() -> Color:
 
 
 ## Its front, drawn on `canvas` in `front`: its own picture, or courses of stone with a crack down them.
-func depth_paint(canvas: CanvasItem, front: Rect2):
+func depth_paint(canvas: CanvasItem, front: Rect2, _whole: Rect2 = Rect2()):
 	if look != null:
 		canvas.draw_texture_rect(look, front, false)
 		return

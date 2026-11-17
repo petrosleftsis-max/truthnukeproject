@@ -663,6 +663,21 @@ func layers():
 		ok(stood != null and stood.visible and stood.foot.size.x < 0.5 and stood.foot.size.y > 0.99 and stood.face == Depth.WALL_LIFT and not scene.depth_view._upright_rise.has(Vector2i(6, 7))
 			and is_equal_approx(stood.top_deep, 1.0), "open, a leaf along the side of its frame, the way through clear beside it")
 		door.set_open(false)
+		await settle(2)
+		# Its pictures (the designer, 2026-11-15: "I'd like doors to have a slot for my artist's pictures"): with none in the slots
+		# it is drawn in code; with one of its own it shows that, its top and its front each taking their own share of it.
+		ok(door.depth_picture() == null, "a door with no picture in its slots is drawn in code")
+		var picture := ImageTexture.create_from_image(Image.create(256, 448, false, Image.FORMAT_RGBA8))
+		door.own_shut = picture
+		ok(door.depth_picture() == picture and not door.depth_side_on, "given a picture of its own, shut and facing us, it shows that")
+		var whole := Rect2(-128.0, -192.0, 256.0, 448.0)
+		var top := StealthDoor.picture_source(Vector2(256, 448), Rect2(-128.0, -192.0, 256.0, 41.0), whole)
+		var front := StealthDoor.picture_source(Vector2(256, 448), Rect2(-128.0, -151.0, 256.0, 407.0), whole)
+		ok(top.is_equal_approx(Rect2(0, 0, 256, 41)) and front.is_equal_approx(Rect2(0, 41, 256, 407)), "its top and its front each take their own share of it",
+			"%s, %s" % [top, front])
+		door.own_shut = null
+	if not hall_door.is_empty():
+		ok(hall_door[0].depth_side_on, "and a door in a wall we look along is told so, for its pictures seen edge on and open")
 	ok(LightView.open_sky_colour() == Color.WHITE, "at noon a roof is as bright as day")
 	Campaign.set_clock(23)
 	await wait(0.5)

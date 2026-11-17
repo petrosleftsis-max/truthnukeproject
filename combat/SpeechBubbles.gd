@@ -188,6 +188,8 @@ func _say(figure: Node2D, line: String, edge: Color):
 	bubble.edge = edge
 	bubble.seconds = clampf(SECONDS_AT_LEAST + SECONDS_A_LETTER * float(line.length()), SECONDS_AT_LEAST, SECONDS_AT_MOST)
 	add_child(bubble)
+	# The music gives way while it is up (SoundFollows).
+	SoundFollows.give_way(bubble.seconds)
 	_on_figure[figure] = bubble
 	for each in _on_figure.keys():
 		if not is_instance_valid(each) or not is_instance_valid(_on_figure[each]):

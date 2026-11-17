@@ -18,14 +18,14 @@ class_name InventoryUI
 signal closed
 
 ## Palette, shared with the other menus.
-const INK := Color("dce8f5")
-const INK_DIM := Color("c2ceda")
+const INK := SkyLook.INK
+const INK_DIM := SkyLook.INK_DIM
 const MUTED := Color("8296a9")
-const ACCENT := Color("4a86c8")
-const PANEL := Color("19212c")
-const CARD := Color("1c2531")
-const CARD_LIT := Color("24344a")
-const CARD_EDGE := Color("2b3947")
+const ACCENT := SkyLook.ACCENT
+const PANEL := SkyLook.PANEL
+const CARD := SkyLook.CARD
+const CARD_LIT := SkyLook.CARD_LIT
+const CARD_EDGE := SkyLook.CARD_EDGE
 ## The belt (the Baldric) - what comes into a fight - is marked out from the rest of the bag.
 const COMBAT_EDGE := Color("c8a24a")
 
@@ -137,7 +137,7 @@ func _rebuild():
 	if _columns == null:
 		return
 	if _gold != null:
-		_gold.text = "%d gold" % Campaign.gold
+		UiFeel.count_to(_gold, Campaign.gold, func(shown: int) -> String: return "%d gold" % shown)
 	for child in _columns.get_children():
 		_columns.remove_child(child)
 		child.queue_free()

@@ -326,6 +326,24 @@ func _actor(actor: String, may_spawn: bool = true) -> Node2D:
 	return _spawn(actor)
 
 
+## The figure of `actor` on the map now, or null - never building one, and saying nothing if there is none: for what only looks
+## (DialogueBalloon's speaker stepping up), where a speaker who is not on the map is no mistake.
+func figure_of(actor: String) -> Node2D:
+	if actor.is_empty():
+		return null
+	var key = actor.to_lower()
+	if _spawned.has(key) and is_instance_valid(_spawned[key]):
+		return _spawned[key]
+	if _scene == null or not is_instance_valid(_scene):
+		return null
+	var party = _scene.get("party")
+	if party != null and party.has_method("sprite_for"):
+		var member = party.sprite_for(actor)
+		if member != null:
+			return member
+	return _find_named(_scene, actor)
+
+
 ## Any Node2D in the scene answering to `wanted`, so an NPC placed on the map by
 ## hand can be walked about without being in the party or the database.
 func _find_named(node: Node, wanted: String) -> Node2D:

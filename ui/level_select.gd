@@ -20,14 +20,14 @@ extends Control
 
 ## Palette. Kept in one place so the whole menu can be re-tinted by editing
 ## these seven colours rather than hunting through the builders below.
-const INK := Color("dce8f5")        ## Headings.
-const INK_DIM := Color("c2ceda")    ## Body text on an unfocused card.
+const INK := SkyLook.INK        ## Headings.
+const INK_DIM := SkyLook.INK_DIM    ## Body text on an unfocused card.
 const MUTED := Color("8296a9")      ## Labels, descriptions, counts.
-const ACCENT := Color("4a86c8")     ## Focus, and the party panel's edge.
-const PANEL := Color("19212c")      ## Party panel.
-const CARD := Color("1c2531")       ## A card at rest.
-const CARD_LIT := Color("24344a")   ## A card under the cursor or focus.
-const CARD_EDGE := Color("2b3947")
+const ACCENT := SkyLook.ACCENT     ## Focus, and the party panel's edge.
+const PANEL := SkyLook.PANEL      ## Party panel.
+const CARD := SkyLook.CARD       ## A card at rest.
+const CARD_LIT := SkyLook.CARD_LIT   ## A card under the cursor or focus.
+const CARD_EDGE := SkyLook.CARD_EDGE
 const TRACK := Color("2b3542")      ## Empty part of a health bar.
 
 ## Health bar fill, by how much is left. Red is only for the dead.
@@ -109,15 +109,8 @@ func _unhandled_input(event):
 
 
 func _style_party_panel():
-	var box := StyleBoxFlat.new()
-	box.bg_color = PANEL
-	box.border_width_left = 3
-	box.border_color = ACCENT
-	box.content_margin_left = 11
-	box.content_margin_right = 11
-	box.content_margin_top = 9
-	box.content_margin_bottom = 9
-	_party_panel.add_theme_stylebox_override("panel", box)
+	# The interface's night (SkyLook), as every panel is.
+	_party_panel.add_theme_stylebox_override("panel", SkyLook.panel(true, Vector4(11, 9, 11, 9)))
 
 
 func _build_party_panel(wiped: bool):

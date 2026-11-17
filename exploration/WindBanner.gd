@@ -26,6 +26,20 @@ const EDITOR_WIND := Vector2(0.55, 0.1)
 var _clock := 0.0
 var _phase := 0.0
 
+## Every banner on the map, for a blast to find (MapLife.blast_at).
+const GROUP := &"wind_banners"
+## Cloth pushed by somebody walking by or a blast (the proposals of 2026-11-16, section 11: "grass and banners that bend as somebody
+## passes or a blast goes off beside them"): how near somebody brushes it, how hard, and how fast a push eases off.
+const BRUSHED_TILES := 1.0
+const BRUSHED := 0.7
+const PUSH_EASES := 1.6
+var _push := Vector2.ZERO
+
+
+## Pushed `by` (a way and how hard, as the wind is): a blast beside it.
+func push(by: Vector2):
+	_push = (_push + by).limit_length(1.5)
+
 
 func _set_kind(value: Kind):
 	kind = value
@@ -39,19 +53,40 @@ func _set_cloth(value: Color):
 
 func _ready():
 	_phase = fmod(absf(global_position.x * 0.013 + global_position.y * 0.007), TAU)
+	if not Engine.is_editor_hint():
+		add_to_group(GROUP)
 
 
 func _process(delta: float):
 	_clock += delta
 	if not Engine.is_editor_hint():
 		modulate = LightView.lit_colour_at(global_position)
+		_brushed()
+		_push = _push.move_toward(Vector2.ZERO, delta * PUSH_EASES)
 	queue_redraw()
 
 
-## The wind as it blows on the screen, and how hard, 0 to 1: north and south foreshortened.
+## Somebody of the party walking by brushes it aside, away from them.
+func _brushed():
+	var tile := float(Grid.TILE_SIZE)
+	for one in get_tree().get_nodes_in_group(Depth.PARTY):
+		if is_instance_valid(one) and one is Node2D and one.is_inside_tree() and Depth.same_scene(one, self):
+			var far: float = one.global_position.distance_to(global_position)
+			if far < BRUSHED_TILES * tile and far > 1.0:
+				var away: Vector2 = (global_position - one.global_position).normalized() * BRUSHED * (1.0 - far / (BRUSHED_TILES * tile))
+				if away.length() > _push.length():
+					_push = away
+
+
+## The wind as it blows on the screen, and how hard, 0 to 1: north and south foreshortened; with whatever has pushed it.
 func _wind() -> Vector2:
-	var wind: Vector2 = EDITOR_WIND if Engine.is_editor_hint() else CombatantSprite.wind_blows
+	var wind: Vector2 = EDITOR_WIND if Engine.is_editor_hint() else CombatantSprite.wind_blows + _push
 	return Vector2(wind.x, wind.y * 0.45)
+
+
+## How it is pushed now, for a suite.
+func pushed() -> Vector2:
+	return _push
 
 
 ## Which way a cloth goes from where it is held: down, slack, in still air; out with the wind the harder it blows.

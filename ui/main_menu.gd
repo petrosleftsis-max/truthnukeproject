@@ -11,13 +11,13 @@ class_name MainMenu
 ## menu and the game it opens read as one thing.
 
 ## Palette, shared with the battle selector.
-const INK := Color("dce8f5")        ## Headings.
-const INK_DIM := Color("c2ceda")    ## Body text.
+const INK := SkyLook.INK        ## Headings.
+const INK_DIM := SkyLook.INK_DIM    ## Body text.
 const MUTED := Color("8296a9")      ## Descriptions and labels.
-const ACCENT := Color("4a86c8")     ## Focus.
-const PANEL := Color("19212c")
+const ACCENT := SkyLook.ACCENT     ## Focus.
+const PANEL := SkyLook.PANEL
 ## Behind everything.
-const BACKDROP := Color("19212c") * Color(0.65, 0.65, 0.65, 1.0)
+const BACKDROP := SkyLook.PANEL * Color(0.65, 0.65, 0.65, 1.0)
 
 ## The picture behind the menu.
 const BACKGROUND_ART := "res://art/ui/main_menu_background.png"
@@ -41,9 +41,9 @@ void fragment() {
 	COLOR = vec4(mix(paper.rgb, ink.rgb, line * ink.a * strength), 1.0);
 }
 """
-const CARD := Color("1c2531")       ## A card at rest.
-const CARD_LIT := Color("24344a")   ## Under the cursor or focus.
-const CARD_EDGE := Color("2b3947")
+const CARD := SkyLook.CARD       ## A card at rest.
+const CARD_LIT := SkyLook.CARD_LIT   ## Under the cursor or focus.
+const CARD_EDGE := SkyLook.CARD_EDGE
 
 const BATTLE_SELECT := "res://scenes/level_select.tscn"
 ## The point-and-click demo: clues, the journal, locks, a torn letter.
@@ -493,11 +493,12 @@ func _dress(button: Button):
 	button.add_theme_color_override("font_color", INK)
 	button.add_theme_color_override("font_hover_color", INK)
 	button.add_theme_color_override("font_focus_color", INK)
-	button.add_theme_stylebox_override("normal", _box(CARD))
-	button.add_theme_stylebox_override("hover", _box(CARD_LIT))
-	button.add_theme_stylebox_override("focus", _box(CARD_LIT, ACCENT))
-	button.add_theme_stylebox_override("pressed", _box(CARD_LIT, ACCENT))
-	button.add_theme_stylebox_override("hover_pressed", _box(CARD_LIT, ACCENT))
+	# Pills, as every button in the interface's look is (SkyLook); the ways-in cards below keep their corners.
+	button.add_theme_stylebox_override("normal", _box(CARD, CARD_EDGE, true))
+	button.add_theme_stylebox_override("hover", _box(CARD_LIT, CARD_EDGE, true))
+	button.add_theme_stylebox_override("focus", _box(CARD_LIT, ACCENT, true))
+	button.add_theme_stylebox_override("pressed", _box(CARD_LIT, ACCENT, true))
+	button.add_theme_stylebox_override("hover_pressed", _box(CARD_LIT, ACCENT, true))
 	button.add_theme_color_override("font_pressed_color", INK)
 	button.add_theme_color_override("font_hover_pressed_color", INK)
 
@@ -563,12 +564,13 @@ func _back_button() -> Button:
 	return back
 
 
-func _box(fill: Color, edge: Color = CARD_EDGE) -> StyleBoxFlat:
+func _box(fill: Color, edge: Color = CARD_EDGE, pill: bool = false) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = fill
 	box.border_color = edge
 	box.set_border_width_all(1)
-	box.set_corner_radius_all(6)
+	box.set_corner_radius_all(64 if pill else 8)
+	box.anti_aliasing = true
 	box.content_margin_left = 14
 	box.content_margin_right = 14
 	box.content_margin_top = 8

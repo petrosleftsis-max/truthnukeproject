@@ -34,13 +34,13 @@ const TOAST_LAYER := 45
 ## The scenes J opens it in, besides anywhere a picture is up.
 const OPENS_IN := ["res://scenes/exploration.tscn", "res://scenes/game.tscn"]
 
-const INK := Color("dce8f5")
+const INK := SkyLook.INK
 const MUTED := Color("8296a9")
 const GOLD := Color(1.0, 0.84, 0.35)
-const PANEL := Color("19212c")
-const CARD := Color("1c2531")
-const CARD_LIT := Color("24344a")
-const CARD_EDGE := Color("2b3947")
+const PANEL := SkyLook.PANEL
+const CARD := SkyLook.CARD
+const CARD_LIT := SkyLook.CARD_LIT
+const CARD_EDGE := SkyLook.CARD_EDGE
 
 enum Mode { BROWSE, PRESENT }
 
@@ -242,7 +242,8 @@ func _build():
 	_layer.add_child(centre)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(1000, 580)
-	panel.add_theme_stylebox_override("panel", _box(PANEL, CARD_EDGE, 18))
+	# The interface's night (SkyLook), as every panel is.
+	panel.add_theme_stylebox_override("panel", SkyLook.panel(true, Vector4(18, 18, 18, 18)))
 	centre.add_child(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)

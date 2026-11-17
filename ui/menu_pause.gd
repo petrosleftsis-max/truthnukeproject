@@ -33,6 +33,8 @@ static func hold(who: Node) -> void:
 	var id := who.get_instance_id()
 	if not _holders.has(id):
 		_holders.append(id)
+		# A menu coming up stops whatever was buzzing in the hands (Rumble).
+		Rumble.stop()
 		# In co-op, whoever opened it has it alone until it closes (Coop).
 		var coop = who.get_node_or_null("/root/Coop") if who.is_inside_tree() else null
 		if coop != null:

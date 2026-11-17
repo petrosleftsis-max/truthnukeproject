@@ -413,6 +413,11 @@ func stage_light():
 	torch.carries_light_tiles = 7.0
 	torch.minds_his_own_business = true
 	torch.can_be_taken_down = false
+	# He talks to himself on his round, a line now and then while the party is near (MapLife, Chatter; the proposals of 2026-11-16,
+	# section 11: "a city's people with bubbles of their own"). Placeholder lines, for the designer's own.
+	var chatter := map_life(root, "TorchBearerChatter", Vector2i(35, 12), MapLife.Kind.CHATTER, Vector2i(1, 1), 1)
+	chatter.lines = PackedStringArray(["Another round, another night.", "Who keeps leaving that door open?", "Cold down by the cellar.", "Quiet. Too quiet."])
+	chatter.speaker = NodePath("../TorchBearer")
 	light_sign(root, "SignTorch", Vector2i(34, 11), "A GUARD WITH A TORCH (a Guard's Carries Light Tiles): it lights the ground round him as he walks, and the light glides after him. This one is set to Minds His Own Business, so he can be looked at; knock an ordinary one out and it goes out.")
 	var ward = guard(root, "Ward", "mimic", Vector2i(46, 25))
 	ward.kind = Guard.Kind.WARD
@@ -494,6 +499,12 @@ func _light_the_stage(terrain_path: String):
 	washing.cloth = Color(0.62, 0.22, 0.2)
 	place(root, washing, "Washing", Vector2i(2, 12))
 	place(root, ChimneySmoke.new(), "HallChimney", Vector2i(29, 8))
+	# Life about the place (MapLife; the proposals of 2026-11-16, section 11): birds pecking in the yard, grass by the gate and along
+	# the pond, and a cat on the yard's north wall.
+	map_life(root, "YardBirds", Vector2i(10, 15), MapLife.Kind.BIRDS, Vector2i(3, 2), 5)
+	map_life(root, "GrassByTheGate", Vector2i(1, 15), MapLife.Kind.GRASS, Vector2i(2, 2), 9)
+	map_life(root, "GrassByThePond", Vector2i(13, 15), MapLife.Kind.GRASS, Vector2i(4, 1), 8)
+	map_life(root, "WallCat", Vector2i(11, 7), MapLife.Kind.CAT, Vector2i(1, 1), 1)
 	# Layers over and under the ground (DepthPiece; docs/depth_on_maps.md): a roof over the hall, resting on its walls, which fades
 	# as the party comes near; an arch over the way between the yard's two gateposts, which faces us (over a way through a wall
 	# that runs north to south an arch shows only its top, and the designer took it for a door, 2026-11-14: those two ways have
@@ -506,10 +517,29 @@ func _light_the_stage(terrain_path: String):
 	var balcony := depth_piece(root, "HallBalcony", Vector2i(16, 20), DepthPiece.Kind.BALCONY, Vector2i(2, 3))
 	# Three quarters of the way up the hall's wall.
 	balcony.height = Depth.WALL_LIFT * 0.75
+	# The next steps of depth (the proposals of 2026-11-16, section 4): one of each thing that stands, along the yard's south side,
+	# and a bough at the screen's edge over its south-west corner. Placeholders until the artist has pictures for them; they stop
+	# nobody, being only to look at.
+	depth_piece(root, "YardCrate", Vector2i(6, 21), DepthPiece.Kind.CRATE, Vector2i(1, 1))
+	depth_piece(root, "YardPillar", Vector2i(8, 21), DepthPiece.Kind.PILLAR, Vector2i(1, 1))
+	depth_piece(root, "YardStatue", Vector2i(10, 21), DepthPiece.Kind.STATUE, Vector2i(1, 1))
+	depth_piece(root, "YardLampPost", Vector2i(12, 21), DepthPiece.Kind.LAMP_POST, Vector2i(1, 1))
+	depth_piece(root, "YardRailing", Vector2i(5, 19), DepthPiece.Kind.RAILING, Vector2i(2, 1))
+	depth_piece(root, "YardBough", Vector2i(0, 20), DepthPiece.Kind.EDGE, Vector2i(4, 4))
 	var town := depth_piece(root, "TownBelow", Vector2i(0, 0), DepthPiece.Kind.BACKDROP, Vector2i(1, 1))
 	town.layer = DepthPiece.Layer.BEHIND
 	town.everywhere = true
 	_save(root, terrain_path)
+
+
+## Life about the place on `tile`: birds, rats, a cat, grass or chatter over a patch `size` tiles.
+func map_life(root: Node, called: String, tile: Vector2i, kind: MapLife.Kind, size: Vector2i, many: int) -> MapLife:
+	var life := MapLife.new()
+	life.kind = kind
+	life.size_tiles = size
+	life.count = many
+	place(root, life, called, tile)
+	return life
 
 
 ## A layer over or under the ground, on `tile`.

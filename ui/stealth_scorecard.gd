@@ -5,7 +5,7 @@ class_name StealthScorecard
 ## Continue carries on to wherever the way out goes. See
 ## StealthWatch.scorecard for what goes on it.
 
-const PANEL := Color(0.08, 0.1, 0.14, 0.96)
+const PANEL := Color(0.047, 0.086, 0.25, 0.96)
 const EDGE := Color("f2d38a")
 const INK := Color("e8e2d4")
 const MUTED := Color("8296a9")

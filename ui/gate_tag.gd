@@ -66,13 +66,16 @@ func _colour() -> Color:
 
 
 func _show(gate: int, left: int, most: int, short_name: String, colour: Color, full_name: String):
+	# A casting spent or given back: the tag pops (UiFeel "Numbers that count").
+	if level == gate and _most == most and _left != left:
+		UiFeel.pop(self)
 	level = gate
 	_left = left
 	_most = most
 	_name.text = short_name.left(1) if compact else short_name
 	_name.add_theme_color_override("font_color", colour)
 	var box := StyleBoxFlat.new()
-	box.bg_color = Color(0.07, 0.09, 0.12, 0.92)
+	box.bg_color = Color(SkyLook.NIGHT_TOP, 0.92)
 	box.border_color = Color(colour, 0.75)
 	box.set_border_width_all(1)
 	box.set_corner_radius_all(4)

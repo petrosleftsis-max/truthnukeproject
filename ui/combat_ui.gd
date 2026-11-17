@@ -93,6 +93,8 @@ func _ready():
 	var toggle = $Actions.get_node_or_null("LogToggle")
 	if toggle != null:
 		toggle.pressed.connect(toggle_log)
+		# The interface's pill (SkyLook) is wider than the 26 the button is placed at: it grows into the log, not past its edge.
+		toggle.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_apply_log_state()
 	_build_undo_button()
 	_build_ready_button()
@@ -584,37 +586,27 @@ func _on_device_changed():
 		close_pad_panel()
 
 
-## End Turn is what every turn ends on, so it is the one button in the accent;
-## Undo Move beside it takes the theme's ordinary look rather than the flat grey
-## it was copied with.
+## End Turn is what every turn ends on, so it is the one button of the look's main
+## kind (SkyLook.MAIN_BUTTON, filled); Undo Move beside it takes the theme's ordinary
+## look rather than the flat grey it was copied with. The skill slots are square, so
+## they are the look's rounded squares (SkyLook.SLOT_BUTTON) rather than its pills.
 func _style_turn_buttons():
 	var end_turn: Button = $Actions/EndTurnButton
-	end_turn.add_theme_stylebox_override("normal", _accent_box(Color("2d5a8c"), Color("7fb4ea")))
-	end_turn.add_theme_stylebox_override("hover", _accent_box(Color("3a6fa8"), Color("a5ccf2")))
-	end_turn.add_theme_stylebox_override("pressed", _accent_box(Color("24496f"), Color("7fb4ea")))
-	end_turn.add_theme_color_override("font_color", Color("eef4fb"))
-	end_turn.add_theme_color_override("font_hover_color", Color.WHITE)
-	end_turn.add_theme_color_override("font_pressed_color", Color.WHITE)
-	for button in [_undo_button, _prone_button]:
+	for style in ["normal", "hover", "pressed", "disabled", "focus"]:
+		end_turn.remove_theme_stylebox_override(style)
+	end_turn.theme_type_variation = SkyLook.MAIN_BUTTON
+	for slot in $Actions/ActionsPanel/ActionsGrid.get_children():
+		if slot is Button:
+			slot.theme_type_variation = SkyLook.SLOT_BUTTON
+	for button in [_undo_button, _prone_button, _ready_button]:
 		if button == null:
 			continue
+		# Ready is a copy of End Turn taken before End Turn was dressed: the ordinary kind, not the main one.
+		button.theme_type_variation = &""
 		for style in ["normal", "hover", "pressed", "disabled", "focus"]:
 			button.remove_theme_stylebox_override(style)
 		for colour in ["font_color", "font_disabled_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 			button.remove_theme_color_override(colour)
-
-
-func _accent_box(fill: Color, edge: Color) -> StyleBoxFlat:
-	var box := StyleBoxFlat.new()
-	box.bg_color = fill
-	box.border_color = edge
-	box.set_border_width_all(1)
-	box.set_corner_radius_all(4)
-	box.content_margin_left = 10
-	box.content_margin_right = 10
-	box.content_margin_top = 5
-	box.content_margin_bottom = 5
-	return box
 
 
 ## A small number in the corner of each of the first nine action buttons - the
@@ -1740,6 +1732,9 @@ func show_combatant_status_main(comb: Dictionary):
 	showing_spells = false
 	set_skill_panel(SkillPanel.MAIN)
 	_show_skills_for(comb)
+	# Their action bar deals itself in (UiFeel "Whose turn"): once laid out, for a turn the player takes.
+	if comb.side == 0 and not exploration_mode and not _deployment_mode:
+		UiFeel.deal_in.call_deferred(action_buttons())
 	# The queue has to be redrawn on every turn change, not only when someone
 	# takes damage, or the ring stays on whoever acted last.
 	if combat != null:
@@ -1834,6 +1829,63 @@ func end_turn_held() -> bool:
 	return _end_turn_hold > 0.0
 
 
+## --- The pad in your hands (the proposals of 2026-11-16, section 7; the designer: "Do all of these but do them last") ---
+##
+## A press a moment early still counts: End Turn or a skill's key pressed while the last of something plays out (the controller
+## locked or not idle, on the player's own turn) is kept EARLY_SECONDS and acted on as it ends; later than that it was too early
+## and is dropped. A click let go of meanwhile is the controller's to keep (CController "A press a moment early"). And a heartbeat
+## in a pad's hands while one of the party is near death (Rumble.heartbeat).
+
+const EARLY_SECONDS := 0.2
+const NEAR_DEATH := 0.2
+var _early := {}
+
+
+## Whether `event` is a press to keep for a moment, and if so keeps it.
+func _keep_early(event: InputEvent) -> bool:
+	if exploration_mode or _deployment_mode or combat == null or controller == null or not controller.player_turn:
+		return false
+	var hotkey: bool = event is InputEventKey and event.physical_keycode >= KEY_1 and event.physical_keycode <= KEY_9
+	if not hotkey and not Pad.went_down(event, &"end_turn"):
+		return false
+	if not (controller.action_locked or not controller.is_idle()) or controller.is_skill_selected():
+		return false
+	if controller.has_method("a_menu_is_over_the_map") and controller.a_menu_is_over_the_map():
+		return false
+	_early = {"event": event, "at": Time.get_ticks_msec()}
+	return true
+
+
+## Acts on a press kept a moment early, once what was playing is over, or lets it go once it was too early.
+func _play_early():
+	if _early.is_empty():
+		return
+	if Time.get_ticks_msec() - int(_early.at) > int(EARLY_SECONDS * 1000.0):
+		_early = {}
+		return
+	if controller == null or not controller.player_turn or controller.action_locked or not controller.is_idle():
+		return
+	var event: InputEvent = _early.event
+	_early = {}
+	_unhandled_input(event)
+
+
+## Whether a press is being kept, for a suite.
+func early_kept() -> bool:
+	return not _early.is_empty()
+
+
+## A heartbeat in the hands while anybody of the party standing is at NEAR_DEATH of their health or less.
+func _near_death_beats(delta: float):
+	if exploration_mode or combat == null or combat.combat_over:
+		return
+	for comb in combat.combatants:
+		if comb.get("side", 1) == 0 and comb.get("alive", false) and not comb.get("illusion", false) and not comb.has("object") \
+				and float(comb.hp) <= float(combat.get_effective_stat(comb, "max_hp")) * NEAR_DEATH:
+			Rumble.heartbeat(delta / maxf(Engine.time_scale, 0.05))
+			return
+
+
 func _process(delta):
 	_tuck_moves_panel(delta)
 	if _turn_block != null:
@@ -1841,6 +1893,8 @@ func _process(delta):
 	if _grid_button != null:
 		_grid_button.visible = not exploration_mode and not _deployment_mode and not ui_hidden
 	_refresh_round_mark()
+	_play_early()
+	_near_death_beats(delta)
 	if _end_turn_hold <= 0.0:
 		return
 	# The button is Begin Battle for now: nothing to hold.
@@ -1868,6 +1922,9 @@ func _process(delta):
 ## it cannot end a turn the button would not.
 func _unhandled_input(event):
 	if not event.is_pressed() or event.is_echo():
+		return
+	if _keep_early(event):
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed(&"moves_panel") and exploration_mode:
 		moves_held_up = not moves_held_up
