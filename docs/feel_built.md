@@ -426,7 +426,9 @@ meanwhile.
   carry between them.
 - **A look at what you face** (`FightCards` "A look at what you face"): a fight without a boss's reveal opens with the view gliding
   to the middle of whoever of the other side the party can see, holding a moment and coming back, before the title (about 1.7 s
-  all told; `FACE_GLIDE_SECONDS`, `FACE_HOLD_SECONDS`). Any press skips it, with the rest of the opening.
+  all told; `FACE_GLIDE_SECONDS`, `FACE_HOLD_SECONDS`). Any press skips it, with the rest of the opening. All of them are framed
+  in the part of the screen the HUD leaves the map, the zoom pulled back as far as that takes and put back after, as a blow is
+  framed (the designer, 2026-11-17: zoomed in, it did not fit them).
 - **Placed with a thump** (`MoveFeel` "Into a fight"): placing the party before a fight, whoever is put on a tile hops onto it and
   lands with a puff (`PLACED_SECONDS`, `PLACED_HOP_TILES`); whoever made way slides past to the tile they left (`MADE_WAY_SECONDS`).
 

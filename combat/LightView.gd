@@ -1197,10 +1197,12 @@ void fragment() {
 	COLOR = vec4(col.rgb, col.a * step(0.5, m.r));
 }
 """
-## Wet ground, darker and cooler, and the pools on it: multiplied over what is there, so the tiles show through.
+## Wet ground, darker and cooler, and the pools on it: multiplied over what is there, so the tiles show through. Unshaded, so it
+## multiplies by its own damp alone: shaded, the day's tone (`_tone`) went into it too and was laid over the ground a second time,
+## all of it a little darker in the rain at any hour (found with the tree's shade, the designer, 2026-11-17).
 const WET_SHADER := """
 shader_type canvas_item;
-render_mode blend_mul;
+render_mode blend_mul, unshaded;
 uniform sampler2D mask : filter_linear, repeat_disable;
 uniform sampler2D noise : repeat_enable, filter_linear;
 uniform vec2 tiles = vec2(1.0);

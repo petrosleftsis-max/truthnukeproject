@@ -66,8 +66,13 @@ static func _moves(control: Control) -> bool:
 	return is_instance_valid(control) and control.is_inside_tree() and not control.has_meta(NO_FEEL) and shown()
 
 
+## The meta `key` on `object`, or null if it has none. get_meta's own default does not do: a null default prints an error.
+static func _meta(object: Object, key: StringName) -> Variant:
+	return object.get_meta(key) if object.has_meta(key) else null
+
+
 static func _tween_of(control: Control, key: StringName) -> Tween:
-	var old = control.get_meta(key, null)
+	var old = _meta(control, key)
 	if old is Tween and old.is_valid():
 		old.kill()
 	var tween := control.create_tween()
@@ -184,10 +189,10 @@ static func step_forward(face: Control, rest: Vector2):
 ## `label` counts from the number it last showed to `to`, written each step by `write` (a number -> the text). The first time,
 ## and headless, it is simply written.
 static func count_to(label: Label, to: int, write: Callable):
-	var from = label.get_meta(&"_feel_number", null)
+	var from = _meta(label, &"_feel_number")
 	label.set_meta(&"_feel_number", to)
 	if from == null or int(from) == to or not _moves(label) or not label.is_visible_in_tree():
-		var old = label.get_meta(&"_feel_count", null)
+		var old = _meta(label, &"_feel_count")
 		if old is Tween and old.is_valid():
 			old.kill()
 		label.text = write.call(to)

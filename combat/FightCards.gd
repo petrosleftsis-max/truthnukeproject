@@ -155,7 +155,9 @@ func _play_opening():
 ##
 ## The proposals of 2026-11-17, section 7. A fight with no boss's reveal opens with the view passing over the other side - the middle
 ## of whoever of them the party can see - and coming back to where it was, before the title; any press skips it, as it does the
-## rest of the opening. Each machine shows its own. PROPOSAL.
+## rest of the opening. Each machine shows its own. PROPOSAL. All of them are framed in the part of the screen the HUD leaves the
+## map, the view pulling back as far as that takes and going back to its own zoom after (the designer, 2026-11-17: "if the camera
+## is too zoomed, it doesnt fit the enemies when it tries showing them"); it never pushes in.
 const FACE_GLIDE_SECONDS := 0.55
 const FACE_HOLD_SECONDS := 0.6
 ## How many fights opened with a look at the other side, for a suite.
@@ -165,24 +167,42 @@ static var looked := 0
 func _look_at_what_you_face():
 	if combat.camera == null or not is_instance_valid(combat.camera):
 		return
-	var middle := Vector2.ZERO
+	var camera = combat.camera
+	var box := Rect2()
+	var boxed := false
 	var seen := 0
 	for comb in combat.combatants:
 		if comb.get("alive", false) and comb.get("side", -1) != Combat.Group.PLAYERS and comb.has("position") and not comb.has("object") \
 				and not comb.get("illusion", false) and not combat.unseen_by_party(comb):
-			middle += combat.sprite_point(comb) + combat.drawing_offset(comb)
+			# Where they are drawn, and every tile they cover, so somebody big is seen whole.
+			var points := [combat.sprite_point(comb) + combat.drawing_offset(comb)]
+			for tile in Combat.tiles_of(comb):
+				points.append(Grid.tile_to_world(tile))
+			for point in points:
+				box = box.expand(point) if boxed else Rect2(point, Vector2.ZERO)
+				boxed = true
 			seen += 1
 	if seen == 0:
 		return
 	looked += 1
-	middle /= float(seen)
-	var back: Vector2 = combat.camera.position
-	if middle.distance_to(back) < Grid.TILE_SIZE * 2.0:
+	# As a blow is framed (CameraController.frame): room round them, in the part of the screen the HUD leaves the map, the zoom
+	# pulled back only if they will not fit at the one the view has.
+	box = box.grow(Grid.tiles(CameraController.FRAME_ROOM_TILES))
+	var room: Rect2 = combat.game_ui.map_view_rect() if combat.game_ui != null and combat.game_ui.has_method("map_view_rect") \
+			else camera.get_viewport_rect()
+	var back: Vector2 = camera.position
+	var back_zoom: float = camera.zoom.x
+	var needed := minf(room.size.x / maxf(box.size.x, 1.0), room.size.y / maxf(box.size.y, 1.0))
+	var to_zoom := clampf(minf(needed, back_zoom), camera.min_zoom, camera.max_zoom)
+	var middle: Vector2 = camera.get_viewport_rect().size * 0.5
+	var aim := box.get_center() - (room.get_center() - middle) / to_zoom
+	var pulls_back := to_zoom < back_zoom - CameraController.GLIDE_THERE_ZOOM
+	if aim.distance_to(back) < Grid.TILE_SIZE * 2.0 and not pulls_back:
 		return
-	combat.camera.glide_to(middle)
+	camera.glide_to(aim, to_zoom if pulls_back else 0.0)
 	await _wait(FACE_GLIDE_SECONDS + FACE_HOLD_SECONDS)
 	if is_instance_valid(combat) and combat.camera != null and is_instance_valid(combat.camera):
-		combat.camera.glide_to(back)
+		combat.camera.glide_to(back, back_zoom if pulls_back else 0.0)
 	if not _skipped:
 		await _wait(FACE_GLIDE_SECONDS)
 

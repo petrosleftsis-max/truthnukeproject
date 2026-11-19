@@ -151,23 +151,33 @@ static func panel(stars: bool = true, margins: Vector4 = Vector4(10, 8, 10, 8), 
 	return box
 
 
+## A skill's slot: its icon reaches the slot's ring of light, and the corners are rounded only as far as a square icon can follow
+## (the designer, 2026-11-17: "make sure the skill icons occupy the entire skill slot of the UI, right now there are gaps around
+## it"; it was 6 and 5 in, with corners of 10; and then "make the skill outlines a bit thicker": the ring 2 for 1, the icon just
+## inside it).
+const SLOT_RING := 2
+const SLOT_EDGE := 2.0
+const SLOT_CORNER := 3
+
+
 ## A button in one `state` (normal, hover, pressed, disabled, focus) of a `kind`: &"" a ring of light (a pill), &"main" filled,
 ## &"slot" a rounded square for a skill's icon. The artist's picture from its slot if there is one (a nine-slice 64 x 32,
 ## corners 10).
 static func button(state: StringName, kind: StringName) -> StyleBox:
+	var slot := kind == &"slot"
 	var picture := _picture(("main_button_" if kind == &"main" else "button_") + String(state))
 	if picture != null:
-		return _nine(picture, 10.0, Vector4(14, 5, 14, 5))
+		return _nine(picture, 10.0, Vector4.ONE * SLOT_EDGE if slot else Vector4(14, 5, 14, 5))
 	var main := kind == &"main"
 	var box := StyleBoxFlat.new()
 	box.anti_aliasing = true
 	box.corner_detail = 10
-	box.set_corner_radius_all(10 if kind == &"slot" else 64)
-	box.set_border_width_all(2 if state == &"focus" else 1)
-	box.content_margin_left = 6 if kind == &"slot" else 14
-	box.content_margin_right = 6 if kind == &"slot" else 14
-	box.content_margin_top = 5
-	box.content_margin_bottom = 5
+	box.set_corner_radius_all(SLOT_CORNER if slot else 64)
+	box.set_border_width_all((SLOT_RING if slot else 1) + (1 if state == &"focus" else 0))
+	box.content_margin_left = SLOT_EDGE if slot else 14.0
+	box.content_margin_right = SLOT_EDGE if slot else 14.0
+	box.content_margin_top = SLOT_EDGE if slot else 5.0
+	box.content_margin_bottom = SLOT_EDGE if slot else 5.0
 	match state:
 		&"hover":
 			box.bg_color = MAIN_FILL.lightened(0.15) if main else BUTTON_HOVER_FILL

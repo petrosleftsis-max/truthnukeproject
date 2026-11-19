@@ -203,9 +203,11 @@ const STAND_HEIGHTS := {Kind.CRATE: 210.0, Kind.PILLAR: 400.0, Kind.STATUE: 340.
 const IRON := Color(0.2, 0.2, 0.23)
 const PALE_STONE := Color(0.62, 0.62, 0.6)
 
+## Unshaded, so what it multiplies the ground by is its own dark alone. Shaded, the day's tone (LightView's CanvasModulate) went
+## into it too and was laid over the ground a second time: a tinted square about the tree at dawn and dusk (the designer, 2026-11-17).
 const SHADE_SHADER := """
 shader_type canvas_item;
-render_mode blend_mul;
+render_mode blend_mul, unshaded;
 uniform sampler2D dapple : repeat_enable, filter_linear;
 uniform vec2 drift = vec2(0.0);
 uniform float strength = 0.3;

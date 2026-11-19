@@ -102,6 +102,11 @@ holds the game for both).
   Maps and fights stay two scenes (the designer, 2026-11-17: anybody else on the map would be caught in the fight, or keep to its
   time and wait for their turn, so nothing would go on around it - "proceed as is then"). Felled fighters keep the grey (the
   designer, 2026-11-17, told what else shows somebody down, and that a prone fighter lies on their side much as a body does).
+  Fixed the same day, from the designer's play: a tree's shade and wet ground took the day's tone a second time (a tinted square
+  under a tree at dawn and dusk, wet ground darker in all rain) - both multiply layers are unshaded now; the look at what you face
+  pulls back until all of them fit; UiFeel no longer asks for a meta that is not there (red errors as numbers counted); and a
+  skill's icon fills its slot to the slot's ring, which is thicker (`SkyLook.SLOT_RING` 2, `SLOT_EDGE` 2, `SLOT_CORNER` 3; it
+  was a ring of 1 with the icon 6 and 5 in, corners 10).
 - **How the game feels, from 2026-11-16** (`docs/feel_built.md`, kept current as each part goes in; suite `feel`). The designer on
   the proposals of 2026-11-16: "in general i love all of these recommendations", and a line for each section. Built so far:
   the Comfort dials (12), walking (1: ease in and out, followers that fan out, wet prints, the dash), the map's camera (2: soft

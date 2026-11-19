@@ -708,6 +708,47 @@ func into_a_fight():
 	card.queue_free()
 	CameraController.moves_headless = false
 	await close_fight()
+	# Zoomed right in, the look pulls back until every one of them is in view, and goes back to the zoom it had (the designer,
+	# 2026-11-17: "if the camera is too zoomed, it doesnt fit the enemies when it tries showing them").
+	await open_fight(true, "res://data/encounters/encounter_02_sappers.tres")
+	CameraController.moves_headless = true
+	var looker := FightCards.new()
+	looker.combat = combat
+	combat.add_child(looker)
+	var foes := combat.combatants.filter(func(c): return c.get("alive", false) and c.get("side", -1) != Combat.Group.PLAYERS and c.has("position") and not c.has("object") and not c.get("illusion", false) and not combat.unseen_by_party(c))
+	var room: Rect2 = combat.game_ui.map_view_rect()
+	var closest: float = combat.camera.max_zoom
+	# Too far apart to be seen together that close: the last of them moved away from the first, if they are not already.
+	var fit_close := func() -> bool:
+		var spread := Rect2(combat.sprite_point(foes[0]), Vector2.ZERO)
+		for foe in foes:
+			spread = spread.expand(combat.sprite_point(foe))
+		return room.size.x / closest >= spread.size.x + Grid.tiles(3.0) and room.size.y / closest >= spread.size.y + Grid.tiles(3.0)
+	if foes.size() >= 2 and fit_close.call():
+		for reach in range(6, 16):
+			if combat.teleport_to(foes[-1], foes[0].position + Vector2i(reach, 0)) or combat.teleport_to(foes[-1], foes[0].position - Vector2i(reach, 0)):
+				if not fit_close.call():
+					break
+	combat.camera.zoom = Vector2.ONE * closest
+	await settle(2)
+	var start_at: Vector2 = combat.camera.position
+	var done := [false]
+	(func(): await looker._look_at_what_you_face(); done[0] = true).call()
+	await wait(FightCards.FACE_GLIDE_SECONDS + 0.25)
+	var middle: Vector2 = combat.camera.get_viewport_rect().size * 0.5
+	var shown := Rect2(combat.camera.position + (room.position - middle) / combat.camera.zoom.x, room.size / combat.camera.zoom.x)
+	var outside := foes.filter(func(c): return not shown.has_point(combat.sprite_point(c) + combat.drawing_offset(c)))
+	ok(foes.size() >= 2 and not fit_close.call() and outside.is_empty() and combat.camera.zoom.x < closest - 0.01,
+			"zoomed right in, the look at what you face pulls back until every one of them is in view",
+			"%d of %d outside, zoom %.2f from %.2f" % [outside.size(), foes.size(), combat.camera.zoom.x, closest])
+	var until_back := Time.get_ticks_msec() + 4000
+	while (not done[0] or combat.camera.is_gliding()) and Time.get_ticks_msec() < until_back:
+		await get_tree().process_frame
+	ok(absf(combat.camera.zoom.x - closest) < 0.01 and combat.camera.position.distance_to(start_at) < Grid.tiles(1.0),
+			"and goes back to the zoom and the place it had", "zoom %.2f, %.0f away" % [combat.camera.zoom.x, combat.camera.position.distance_to(start_at)])
+	looker.queue_free()
+	CameraController.moves_headless = false
+	await close_fight()
 	# Placed with a thump.
 	await open_fight(false)
 	MoveFeel.plays_headless = true
