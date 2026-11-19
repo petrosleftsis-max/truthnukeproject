@@ -4272,7 +4272,7 @@ func wear_disguise(comb: Dictionary):
 
 ## `effect` calls up what it calls, as many as it says, or as a wall (Phantom Wall, Phantom Company).
 func _summon_all(caster: Dictionary, effect: EffectDefinition, tile: Vector2i, skill: SkillDefinition):
-	if effect.summon_across > 0:
+	if effect.wall_length > 0:
 		var tiles: Array = wall_tiles(caster, effect, tile, _wall_ends_at)
 		var first := -1
 		var called := ""
@@ -4332,7 +4332,7 @@ static func wall_effect_of(skill: SkillDefinition) -> EffectDefinition:
 	if skill == null:
 		return null
 	for effect in skill.all_effects():
-		if effect != null and effect.type == EffectDefinition.EffectType.SUMMON and effect.summon_across > 0:
+		if effect != null and effect.type == EffectDefinition.EffectType.SUMMON and effect.wall_length > 0:
 			return effect
 	return null
 
@@ -4342,9 +4342,10 @@ static func places_a_wall(skill: SkillDefinition) -> bool:
 	return wall_effect_of(skill) != null
 
 
-## How many tiles long a wall goes, at most.
+## How many tiles long a wall goes, at most (EffectDefinition.wall_length: six for both walls, one more than the five
+## they were, the designer, 2026-11-17). The pieces filling a diagonal's corners do not count (wall_line).
 static func wall_length(effect: EffectDefinition) -> int:
-	return effect.summon_across * 2 + 1
+	return effect.wall_length
 
 
 ## Where a wall from `start` ends, pointed at `pointed` (the designer, 2026-11-07: "allow me to choose two
@@ -4385,14 +4386,19 @@ static func wall_line(effect: EffectDefinition, start: Vector2i, end: Vector2i) 
 
 
 ## The tiles a wall `effect` calls up would stand on: from `tile` to `end`, or with no end given (the AI, a
-## script), across the line from `caster`, through `tile`.
+## script), as long as it goes, across the line from `caster` with `tile` in the middle. An even length has one
+## more on one side: the side away from the caster, if one is; else down or right.
 func wall_tiles(caster: Dictionary, effect: EffectDefinition, tile: Vector2i, end: Vector2i = NO_AREA) -> Array:
 	if end != NO_AREA:
 		return wall_line(effect, tile, end)
 	var way: Vector2i = tile - nearest_tile_of(caster, tile)
 	var along := Vector2i(0, 1) if absi(way.x) >= absi(way.y) else Vector2i(1, 0)
+	var length := wall_length(effect)
+	var before: int = (length - 1) / 2
+	if length % 2 == 0 and (way.x if along.x != 0 else way.y) < 0:
+		before += 1
 	var tiles := []
-	for step in range(-effect.summon_across, effect.summon_across + 1):
+	for step in range(-before, length - before):
 		tiles.append(tile + along * step)
 	return tiles
 
@@ -17928,21 +17934,114 @@ func _condition_lands(comb: Dictionary, sprite: CombatantSprite, condition: Cond
 		SpeechBubbles.on_event(self, comb, &"afflicted", condition.resource_path.get_file().get_basename())
 
 
-## Where what `holder`'s tether holds is: everybody it has anything on, whatever it called up, the middle of a zone. Tiles.
+## Where the threads from `holder`'s tether go (tether_threads), in tiles: a whole number is the middle of a tile, a
+## half the line between two.
 func what_a_tether_holds(holder: Dictionary) -> Array:
-	var points := []
-	if not holds_tether(holder):
-		return points
+	return tether_threads(holder).map(func(thread): return thread.at)
+
+
+## How a tether's thread is drawn (TetherThreads): with its light, or without it.
+enum ThreadLight { LIT, UNLIT }
+
+
+## Whether `comb` is hidden or invisible, in any of the ways there are, or somebody the party cannot see at all.
+func out_of_sight(comb: Dictionary) -> bool:
+	return is_hidden(comb) or is_invisible(comb) or unseen_by_party(comb)
+
+
+## The threads from `holder`'s tether, as CController's TetherThreads draws them. A thread to each thing it holds
+## (everybody it has anything on, whatever it called up, a zone), and only one to those that touch each other, side by
+## side or corner to corner (the designer, 2026-11-17: "whenever a caster is tethered to one spell that occupies multiple
+## but adjacent tiles, show only one tether"): to the middle of a wall, of images or people held side by side, and a
+## zone's to its own middle, with whoever it holds in it. Things apart keep a thread each, so a wall somebody stood in the
+## way of has one to each part.
+## With anybody hidden or invisible at either end (the designer, the same day: "if the spell effect is connected to
+## something invisible or hidden, have it also hide if it is an opponent's, or keep it without light if its an ally"),
+## the party's is UNLIT, and the other side's is not here at all. Nor is a thread to anybody the party cannot see.
+## Each is {"at": where it goes, in tiles; "held": the combatants it goes to; "zones": the zones; "light": ThreadLight}.
+func tether_threads(holder: Dictionary) -> Array:
+	if not holds_tether(holder) or not holder.get("alive", false):
+		return []
+	var theirs: bool = holder.get("side", Group.PLAYERS) != Group.PLAYERS
+	var unseen_holder := out_of_sight(holder)
+	if theirs and unseen_holder:
+		return []
 	var id: int = holder.tether.id
+	# Each thing held, by the tiles it covers; a zone with its middle.
+	var held := []
 	for comb in combatants:
-		if not comb.get("alive", false) or not comb.has("position") or is_same(comb, holder) or unseen_by_party(comb):
+		if not comb.get("alive", false) or not comb.has("position") or is_same(comb, holder):
 			continue
-		if comb.get("tether_of", -1) == id or comb.get("status_effects", []).any(func(entry): return entry.get("tether_of", -1) == id):
-			points.append(comb.position)
+		# Who it holds first, and only then whether the party sees them: drawn every frame, and seeing takes looking.
+		if comb.get("tether_of", -1) != id and not comb.get("status_effects", []).any(func(entry): return entry.get("tether_of", -1) == id):
+			continue
+		if unseen_by_party(comb):
+			continue
+		var covered: Array = tiles_of(comb)
+		held.append({"tiles": covered if not covered.is_empty() else [comb.position], "comb": comb, "unseen": is_hidden(comb) or is_invisible(comb)})
 	for zone in zones:
 		if zone.get("tether_of", -1) == id and (zone.side == Group.PLAYERS or not zone.get("unseen", false)):
-			points.append(zone.centre)
-	return points
+			held.append({"tiles": zone.tiles if not zone.tiles.is_empty() else [zone.centre], "centre": zone.centre, "zone": zone,
+				"unseen": zone.get("unseen", false)})
+	var threads := []
+	for group in _touching(held):
+		var hidden: bool = unseen_holder or group.any(func(thing): return thing.unseen)
+		if hidden and theirs:
+			continue
+		threads.append({"at": _middle_of_held(group), "light": ThreadLight.UNLIT if hidden else ThreadLight.LIT,
+			"held": group.filter(func(thing): return thing.has("comb")).map(func(thing): return thing.comb),
+			"zones": group.filter(func(thing): return thing.has("zone")).map(func(thing): return thing.zone)})
+	return threads
+
+
+## `held`, each with the "tiles" it covers, in groups of those that touch: side by side, corner to corner, or on the
+## same tiles. In the order they were found.
+static func _touching(held: Array) -> Array:
+	var parent: Array = range(held.size())
+	var root := func(index: int) -> int:
+		while parent[index] != index:
+			index = parent[index]
+		return index
+	var on := {}
+	for index in held.size():
+		for tile in held[index].tiles:
+			if not on.has(tile):
+				on[tile] = []
+			on[tile].append(index)
+	for index in held.size():
+		for tile in held[index].tiles:
+			for dy in [-1, 0, 1]:
+				for dx in [-1, 0, 1]:
+					for other in on.get(tile + Vector2i(dx, dy), []):
+						var a: int = root.call(index)
+						var b: int = root.call(other)
+						if a != b:
+							parent[maxi(a, b)] = mini(a, b)
+	var groups := {}
+	for index in held.size():
+		var first: int = root.call(index)
+		if not groups.has(first):
+			groups[first] = []
+		groups[first].append(held[index])
+	return groups.values()
+
+
+## Where the one thread to `group` goes, in tiles: the middle of the biggest zone in it, if there is one; else the
+## middle of all it covers, corner to corner, which on a wall straight or diagonal is the middle of the wall.
+static func _middle_of_held(group: Array) -> Vector2:
+	var zone := {}
+	for thing in group:
+		if thing.has("centre") and (zone.is_empty() or thing.tiles.size() > zone.tiles.size()):
+			zone = thing
+	if not zone.is_empty():
+		return Vector2(zone.centre)
+	var low: Vector2i = group[0].tiles[0]
+	var high: Vector2i = low
+	for thing in group:
+		for tile in thing.tiles:
+			low = Vector2i(mini(low.x, tile.x), mini(low.y, tile.y))
+			high = Vector2i(maxi(high.x, tile.x), maxi(high.y, tile.y))
+	return (Vector2(low) + Vector2(high)) / 2.0
 
 
 ## --- Cyrus and the dark, Alithia and the light ---

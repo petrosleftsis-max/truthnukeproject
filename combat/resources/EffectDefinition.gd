@@ -282,9 +282,10 @@ enum DispelScope {
 @export var with_summoners_attributes: bool = false
 ## How many it calls up, each on the nearest free tile to where it was aimed. Phantom Company.
 @export_range(1, 12) var summon_count: int = 1
-## Called up as a wall: this many tiles to each side of where it was aimed, across the line from
-## the caster. A tile with no room is left out. Phantom Wall.
-@export_range(0, 10) var summon_across: int = 0
+## Called up as a wall, up to this many tiles long: from where it was aimed first to where it was aimed
+## next, straight or diagonal (Combat.wall_line). A tile with no room is left out. 0: not a wall. Phantom
+## Wall, Wall of Stone.
+@export_range(0, 20, 1, "or_greater") var wall_length: int = 0
 ## What it calls up are images, not creatures: one hit shatters each, nothing to command and no turns,
 ## and the other side takes them for the real thing (Combat "Images"). Phantom Company.
 @export var summon_as_images: bool = false
@@ -430,7 +431,7 @@ const FIELDS_BY_TYPE := {
 	# One size bigger for Duration of their turns (0: the rest of the fight).
 	EffectType.GROW: ["duration", "wears_off_at_start"],
 	# Who, and whether it takes on its caller's attributes.
-	EffectType.SUMMON: ["summons", "with_summoners_attributes", "summon_count", "summon_across", "summon_as_images", "summon_shakes"],
+	EffectType.SUMMON: ["summons", "with_summoners_attributes", "summon_count", "wall_length", "summon_as_images", "summon_shakes"],
 	# Nothing to configure: the summon it is aimed at acts, now.
 	EffectType.COMMAND: [],
 	# Nothing to configure: everything on the body comes off it.

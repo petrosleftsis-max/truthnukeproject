@@ -2801,8 +2801,11 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.SUMMON:
 			var called: CombatantDefinition = CombatantDatabase.combatants.get(effect.summons)
 			var named: String = called.name if called != null else effect.summons
-			if effect.summon_across > 0:
-				return "Puts up a %s up to %d tiles long, from where you click to where you click next, straight or diagonal: only the other side believes in it" % [named, effect.summon_across * 2 + 1]
+			if effect.wall_length > 0:
+				# Phantom Wall is believed in; Wall of Stone is really there.
+				var believed: bool = called is BattleObjectDefinition and (called as BattleObjectDefinition).illusion
+				return "Puts up a %s up to %d tiles long, from where you click to where you click next, straight or diagonal: %s" % [named, Combat.wall_length(effect),
+					"only the other side believes in it" if believed else "it is really there, and stops both sides"]
 			if effect.summon_as_images:
 				return "Puts %d images of a %s round where it is aimed: the other side takes them for real, one hit shatters each%s" % [
 					effect.summon_count, named, ", and whoever sees them arrive loses some nerve" if effect.summon_shakes > 0 else ""]

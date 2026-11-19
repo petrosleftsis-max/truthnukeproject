@@ -2073,6 +2073,7 @@ const STEP_ARRIVAL_TIMEOUT = 15.0
 var _step_arrival_finished := false
 
 func _process(delta):
+	_keep_the_threads()
 	_keep_other_pointing(delta)
 	_fade_the_grid(delta)
 	_play_early_click()
@@ -3354,8 +3355,10 @@ func _note_hover(tile: Vector2i):
 ## of it: a thin violet bar along the bottom of their square - for the
 ## other side's casters too, whose portraits are not on the HUD.
 const TETHER_COLOUR := Color("9d7fe0")
-const TETHER_THREAD_THINNEST := 2.0
-const TETHER_THREAD_THICKEST := 9.0
+## The threads from whoever holds a tether to what it holds are drawn by two of these (_keep_the_threads).
+const TetherThreads := preload("res://control/TetherThreads.gd")
+var _threads_lit: Node2D = null
+var _threads_unlit: Node2D = null
 
 ## A wall about to go up: how it will run, over the tiles it will take, up to the far edges of its ends as it is drawn.
 func _draw_wall_to_be():
@@ -3369,11 +3372,14 @@ func _draw_wall_to_be():
 	draw_line(from - way, _ally_target_position + way, WALL_TO_BE_COLOUR, Grid.TILE_SIZE * 0.5)
 
 
+## The bar under whoever holds a tether. The thread from them to what it holds - who is doing this to whom, and where to
+## right click (the designer, 2026-11-07) - is TetherThreads'. Nothing of the other side's shows while they are hidden or
+## invisible (the designer, 2026-11-17: "have it also hide if it is an opponent's").
 func _draw_tether():
 	for comb in combat.combatants:
 		if not comb.get("alive", false) or not Combat.holds_tether(comb) or comb.has("riding"):
 			continue
-		if combat.unseen_by_party(comb):
+		if combat.unseen_by_party(comb) or (comb.get("side", Combat.Group.PLAYERS) != Combat.Group.PLAYERS and combat.out_of_sight(comb)):
 			continue
 		var square := combat.rect_of(comb)
 		var top_left := _tile_rect(square.position).position
@@ -3384,13 +3390,28 @@ func _draw_tether():
 		var held: Dictionary = comb.tether
 		var share := clampf(held.bar / maxf(held.max, 1.0), 0.0, 1.0)
 		draw_rect(Rect2(under.position, Vector2(under.size.x * share, under.size.y)), TETHER_COLOUR)
-		# A thread to what it holds, in the colour of its gate, thinning as the bar wears: who is doing this to
-		# whom, and where to right click (the designer, 2026-11-07).
-		var spell: SkillDefinition = SkillDatabase.skills.get(held.get("skill", ""))
-		var thread: Color = Stats.gate_colour(spell.spell_slot_level) if spell != null and spell.spell_slot_level > 0 else TETHER_COLOUR
-		var from := (top_left + bottom_right) / 2.0
-		for tile in combat.what_a_tether_holds(comb):
-			draw_line(from, _tile_rect(tile).get_center(), Color(thread, 0.35 + 0.35 * share), lerpf(TETHER_THREAD_THINNEST, TETHER_THREAD_THICKEST, share))
+
+
+## Keeps the two that draw the tethers' threads (TetherThreads): the lit one over the figures, the unlit one with this
+## board's own marks, over the floor and its shade and under the figures.
+func _keep_the_threads():
+	if combat == null or not is_instance_valid(combat) or not TetherThreads.shown():
+		return
+	if combat.get_node_or_null("../Terrain/TileMap") == null:
+		return
+	if _threads_lit == null or not is_instance_valid(_threads_lit):
+		_threads_lit = TetherThreads.new()
+		_threads_lit.combat = combat
+		_threads_lit.controller = self
+		_threads_lit.z_as_relative = false
+		_threads_lit.z_index = TetherThreads.LIT_Z
+		combat.combatant_layer().add_child(_threads_lit)
+	if _threads_unlit == null or not is_instance_valid(_threads_unlit):
+		_threads_unlit = TetherThreads.new()
+		_threads_unlit.lit = false
+		_threads_unlit.combat = combat
+		_threads_unlit.controller = self
+		add_child(_threads_unlit)
 
 
 ## A small bar under somebody while they are hurt or the pointer is on them, or all of them while the danger key is held (the

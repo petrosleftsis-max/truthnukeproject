@@ -346,14 +346,16 @@ shoves needs an entry through `_foresee_one`. `shoveaim` covers it.
 "Illusions that are called up", "Going to look", "False Ground"; `illusions`, and `outsidespells` on a map).
 All on the Illusory Shepherd's path; numbers PROPOSAL. Phantom Noise: `drawn_to_aim` (`_noise_they_heard`,
 `_go_and_look`, from `_advance_turn` after a terror's run); on a map a Lure with `lure_tiles`. Phantom Wall:
-`summon_across` (`_summon_all`, `summon(..., only_there)`), a `wall` object with `illusion`: a wall to the
+`EffectDefinition.wall_length` (`_summon_all`, `summon(..., only_there)`), a `wall` object with `illusion`: a wall to the
 believer's sight only, no wall to aim at, no light stopped unless `illusion_stops_light`. It is placed by two
 points: `CController.aimed_twice` is true for it, the first click is where it starts, and the second, snapped
-to the nearest of eight directions and held to `Combat.wall_length` (`2 * summon_across + 1`), is where it ends
+to the nearest of eight directions and held to `Combat.wall_length` (the effect's `wall_length`: 6 for both walls,
+the designer, 2026-11-17; it was `summon_across`, 5 as `2 * across + 1`), is where it ends
 (`wall_end_for`, `wall_ends_from`, `aiming_a_walls_end`, `wall_end_at`). `wall_line` fills the corners of a
 diagonal, since walking and sight cut them, and those fillers don't count towards the length. The end goes
 as the move's destination (`_wall_ends_at`); with no end, `wall_tiles` is the old "across" for the AI or a
-script. Each piece is drawn along the wall (`_lay_wall_piece` -> `CombatantSprite.lay_along`): its picture turned
+script: as long, the aimed tile in the middle, an even length's extra tile on the side away from the caster (else
+down or right). Each piece is drawn along the wall (`_lay_wall_piece` -> `CombatantSprite.lay_along`): its picture turned
 to the line and, on a diagonal, stretched corner to corner, so the pieces join; a filler draws nothing and still
 blocks, and the tile marks show which tiles it takes. `_draw_wall_to_be` shows the same line while aiming. Her side
 walks through it; see "Seen through, one by one" below. Phantom Company: `summon_count`, `summon_as_images`,
@@ -596,8 +598,21 @@ the designer's "normal maps without extra art", to try), by the light's height (
 the frame (`shine_path_for`: `_shine` for `_color`; red how shiny, green how like metal; `docs/shine_masks.md`) and where they are `wet`. What is on them: `ConditionDefinition`'s "On The Figure" group (`figure_tint`, `round_them`,
 `off_them`, `figure_priority`, `figure_pose`, `arrival_word`, slots for pictures), `Combat._show_conditions_on_figures` from
 `update_combatants`, `ConditionLook.choose_from` (one at a time, the strongest, equals taking turns), a ring under the feet, a pose
-that falls back to idle (`set_pose`, `play_idle`). `CController._draw_tether` draws a thread to what a tether holds
-(`Combat.what_a_tether_holds`).
+that falls back to idle (`set_pose`, `play_idle`). **A tether's thread** (the designer, 2026-11-17): `CController._draw_tether`
+draws the bar under whoever holds one; the threads are `control/TetherThreads.gd` (no class_name, preloaded), two kept by
+`_keep_the_threads`: the lit one in the figures' layer at `LIT_Z` (880), the unlit one a child of the controller, with the board's
+marks. Where they go is `Combat.tether_threads`: one to each thing held, and only one to those that touch, side by side or
+corner to corner (`_touching`, `_middle_of_held`): a wall's to its middle, a zone's to its centre with whoever it holds in it, a
+wall broken by somebody in the way one to each part; `at` in tiles as a `Vector2` (`TetherThreads.ground_of`), and
+`what_a_tether_holds` is just those. `ThreadLight`: with anybody `out_of_sight` (hidden, invisible, faded into the dark) at either
+end, the party's is UNLIT and the other side's is not there at all, nor the bar under them ("have it also hide if it is an
+opponent's, or keep it without light if its an ally"). Lit: from the middle of their drawn picture (`_figure_middle`, so raised
+ground, hops and recoils too) to the middle of what it holds, a laid wall or a zone a little above the ground (`LANDS_ABOVE`,
+`depth_view.height_at`), hanging and swaying; a glow under a core, unshaded, with knots at the ends and motes in
+`SkyLook.STAR_COLOURS`; frays below `FRAYS_BELOW` (gaps, loose pixels, a flicker under `FLICKERS_BELOW`); a shiver whenever its bar
+drops; a snap when its tether is gone (never when it only goes out of sight); brighter while the pointer is on its holder or what
+it holds. Unlit: the same line, plain. Slot `art/fx/tether_thread.png`. Nothing is drawn headless unless `plays_headless`
+(`figures`). On a map a tether holds one thing and draws no thread.
 
 **The board without its squares** (`CController` section of that name, `control/SoftAreas.gd`, `maps/grid_overlay.gd`; `hudlook`; the designer's
 "A" of 2026-11-07, section 13). The rules stay on tiles. `_draw_area` hands everything to two `SoftAreas` under the controller's own

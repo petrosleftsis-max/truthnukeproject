@@ -235,12 +235,13 @@ func phantom_wall():
 	var alithia := who("alithia")
 	var foe: Dictionary = foes()[0]
 	await their_turn(alithia)
-	# Well clear of anybody, straight along a row.
+	# Well clear of anybody, straight along a row: six tiles across her line, two above where it is aimed and three
+	# below, since neither side is further from her (Combat.wall_tiles).
 	var at: Vector2i = alithia.position
 	for gap in range(2, 7):
 		var there: Vector2i = alithia.position + Vector2i.RIGHT * gap
 		var clear := true
-		for step in range(-2, 3):
+		for step in range(-2, 4):
 			var tile: Vector2i = there + Vector2i(0, step)
 			if not combat.get_combatant_at(tile).is_empty() or not controller.is_on_map(tile) or controller.is_tile_blocking(tile, 0):
 				clear = false
@@ -251,10 +252,13 @@ func phantom_wall():
 	await combat.use_skill("phantom_wall", alithia, at, false)
 	await settle()
 	var pieces: Array = combat.combatants.filter(func(comb): return comb.get("alive", false) and comb.has("object") and comb.object.name == "Phantom Wall")
-	ok(pieces.size() == 5, "five tiles of it", "%d" % pieces.size())
+	ok(pieces.size() == 6, "six tiles of it, one more than it was (the designer, 2026-11-17)", "%d" % pieces.size())
 	ok(pieces.all(func(piece): return piece.position.x == at.x), "across the line from her")
+	ok(pieces.all(func(piece): return piece.position.y >= at.y - 2 and piece.position.y <= at.y + 3), "the sixth below, where it is aimed in the middle", "%s" % [pieces.map(func(piece): return piece.position)])
 	ok(pieces.all(func(piece): return piece.get("tether_of", -1) == alithia.tether.id), "held on her tether", "%d" % alithia.tether.max)
 	ok(alithia.tether.max == 100, "a tether of 100")
+	var threads: Array = combat.what_a_tether_holds(alithia)
+	ok(threads == [Vector2(at) + Vector2(0, 0.5)], "one thread for all six, to the middle of the wall", "%s" % [threads])
 	# To the enemy's mind a wall; to hers nothing.
 	ok(not controller.blocks_sight(at), "it stops nothing that happens")
 	combat.ai_believes = true
@@ -281,7 +285,10 @@ func a_wall_by_two_clicks():
 	ok(Combat.wall_line(effect, o, o + Vector2i(3, 0)) == [o, o + Vector2i(1, 0), o + Vector2i(2, 0), o + Vector2i(3, 0)], "along a row")
 	ok(Combat.wall_line(effect, o, o + Vector2i(0, -2)) == [o, o + Vector2i(0, -1), o + Vector2i(0, -2)], "or a column")
 	ok(Combat.wall_line(effect, o, o) == [o], "one tile, if that is all it is asked for")
+	ok(Combat.wall_length(effect) == 6, "six tiles at most, one more than it was (the designer, 2026-11-17)", "%d" % Combat.wall_length(effect))
 	ok(Combat.wall_line(effect, o, o + Vector2i(40, 0)).size() == Combat.wall_length(effect), "no longer than it ever was", "%d" % Combat.wall_length(effect))
+	ok(Combat.wall_ends_from(effect, o).size() == 1 + 8 * (Combat.wall_length(effect) - 1), "its end anywhere up to five steps on, each of the eight ways", "%d" % Combat.wall_ends_from(effect, o).size())
+	ok(Combat.wall_end_for(effect, o, o + Vector2i(-9, -9)) == o + Vector2i(-5, -5), "a diagonal goes as far, its corners not counted", "%s" % Combat.wall_end_for(effect, o, o + Vector2i(-9, -9)))
 	ok(Combat.wall_end_for(effect, o, o + Vector2i(3, 1)) == o + Vector2i(3, 0), "pointing just off the row, along the row")
 	ok(Combat.wall_end_for(effect, o, o + Vector2i(2, 3)) == o + Vector2i(3, 3), "or nearer the diagonal, along the diagonal")
 	var slant: Array = Combat.wall_line(effect, o, o + Vector2i(2, 2))
@@ -313,7 +320,7 @@ func a_wall_by_two_clicks():
 	ok(controller._range_preview_positions.all(func(tile): return controller.is_on_map(tile)), "nothing off the map is offered")
 	var region: Rect2i = controller._astargrid.region
 	var far_left := Vector2i(region.position.x - 40, start.y)
-	ok(controller.wall_end_at(far_left) == Vector2i(maxi(start.x - 4, region.position.x), start.y), "pointing past the edge, it stops at the edge", "%s" % controller.wall_end_at(far_left))
+	ok(controller.wall_end_at(far_left) == Vector2i(maxi(start.x - (Combat.wall_length(effect) - 1), region.position.x), start.y), "pointing past the edge, it stops at the edge", "%s" % controller.wall_end_at(far_left))
 	ok(alithia.spell_slots == gates and not combat.holds_tether(alithia), "with nothing spent yet")
 	ok(controller.refusal_at(start + _wall_along * 2 + Vector2i(_wall_along.y, _wall_along.x), {}) != "", "off the straight lines is no end for it")
 	ok(controller.wall_end_at(start + _wall_along * 3 + Vector2i(_wall_along.y, _wall_along.x)) == start + _wall_along * 3, "and a click there is pulled onto the nearest")
@@ -324,6 +331,8 @@ func a_wall_by_two_clicks():
 	ok(pieces.size() == 4, "four tiles, as chosen", "%d" % pieces.size())
 	ok(pieces.any(func(piece): return piece.position == start) and pieces.any(func(piece): return piece.position == start + _wall_along * 3), "from one to the other")
 	ok(combat.holds_tether(alithia) and pieces.all(func(piece): return piece.get("tether_of", -1) == alithia.tether.id), "on her tether")
+	var threads: Array = combat.what_a_tether_holds(alithia)
+	ok(threads == [Vector2(start) + Vector2(_wall_along) * 1.5], "one thread, to the middle of the four", "%s" % [threads])
 	var straight: float = Vector2(_wall_along).angle() - PI / 2.0
 	ok(pieces.all(func(piece): return absf(angle_difference(piece.sprite._drawn().rotation, straight)) < 0.01 and is_equal_approx(piece.sprite._drawn().scale.y, 1.0)), "each drawn along the wall, tile to tile")
 	# On a diagonal, the wall is drawn on the diagonal, and what fills its corners only blocks.
@@ -350,6 +359,8 @@ func a_wall_by_two_clicks():
 	ok(on_it.all(func(piece): return is_equal_approx(piece.sprite._drawn().scale.y * piece.sprite._drawn().texture.get_height(), Grid.TILE_SIZE * Vector2(slope).length())), "reaching corner to corner, so they join")
 	ok(corners.all(func(piece): return not piece.sprite._drawn().visible), "those filling the corners draw nothing")
 	ok(corners.all(func(piece): return not combat.can_land_on(probe, piece.position)), "and still block")
+	threads = combat.what_a_tether_holds(alithia)
+	ok(threads == [Vector2(from_tile) + Vector2(slope)], "one thread to all five, to the middle of the diagonal", "%s" % [threads])
 	# Called off between the two.
 	combat.snap_tether(alithia, "test")
 	await their_turn(alithia)
