@@ -115,12 +115,18 @@ func run_test():
 		if row.get_child_count() > 0 and row.get_child(0) is Label and row.get_child(0).text == "Passive Skills":
 			passive_row = row
 	var momentum_tag := []
+	var eye_tag := []
 	if passive_row != null:
 		for tag in passive_row.get_child(1).get_children():
 			if texts_under(tag).has("Momentum I"):
 				momentum_tag = texts_under(tag)
-	ok(momentum_tag.has("from level 32") and not momentum_tag.any(func(text): return "Always active" in text),
-		"Enfina at 14: Momentum I is from level 32, not \"Always active\"", "%s" % [momentum_tag])
+			if texts_under(tag).has("Measured Eye"):
+				eye_tag = texts_under(tag)
+	# Not reached yet, not on the Sheet page at all (the designer, 2026-11-17: "On the sheet tab don't show passives that
+	# havent been acquired yet").
+	ok(passive_row != null and momentum_tag.is_empty() and not texts_under(passive_row).any(func(text): return "from level" in text),
+		"Enfina at 14: Momentum I (from 32) is not on her Sheet page, nor anything else she has not reached", "%s" % [texts_under(passive_row) if passive_row != null else "no row"])
+	ok(not eye_tag.is_empty(), "  while Measured Eye, hers from level 1, is", "%s" % [eye_tag])
 
 	log_line("======== Moves: Prometheus learns his ========")
 	await turn_to(sheet, "prometheus", 1)
@@ -164,9 +170,9 @@ func run_test():
 	var chapters: Array = headings_of(sheet).filter(func(text): return text.begins_with("Chapter"))
 	ok(chapters == ["Chapter I", "Chapter II", "Chapter III", "Chapter IV"], "under the chapters they are reached in", "%s" % [chapters])
 	var twenty_four := row_named(sheet, "Level_24")
-	ok(twenty_four != null and texts_under(twenty_four).any(func(text): return "Cat Burglar II" in text)
-		and row_named(sheet, "Level_1") != null and texts_under(row_named(sheet, "Level_1")).any(func(text): return "Cat Burglar I" in text),
-		"Cat Burglar I at 1, Cat Burglar II at 24")
+	ok(twenty_four != null and texts_under(twenty_four).any(func(text): return "Cat Burglar" in text)
+		and row_named(sheet, "Level_1") != null and not texts_under(row_named(sheet, "Level_1")).any(func(text): return "Cat Burglar" in text),
+		"Cat Burglar at 24, and nothing of it at 1 (its old rank I folded in, 2026-11-19)")
 	ok(twenty_four != null and texts_under(twenty_four).any(func(text): return "Chooses a path" in text), "at 24, the path")
 	var now := row_named(sheet, "Level_14")
 	ok(now != null and is_equal_approx(now.modulate.a, 1.0) and row_named(sheet, "Level_20").modulate.a < 1.0,

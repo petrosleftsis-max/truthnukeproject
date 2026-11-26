@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Sanctified"
 tag = "Sa"
-description = "Standing in a sanctuary of light: 15% less from every blow, and one attack in four strikes a copy of them and misses."
+description = "Standing in a sanctuary of light: 15% Damage Mitigation, and one attack in four strikes a copy of them and misses."
 duration = 2
 damage_taken_change = -0.15
 miss_chance = 25

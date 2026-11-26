@@ -10,7 +10,7 @@
 [sub_resource type="Resource" id="Passive_0"]
 script = ExtResource("1_passive")
 name = "Adrenaline"
-description = "While she is burning, her hits deal three tenths more damage, and set whoever they land on burning too."
+description = "While she is burning, her hits have +30% Output Efficiency, and set whoever they land on burning too."
 required_level = 24
 empowered_by = ExtResource("4_burn")
 empowered_damage_bonus = 0.3
@@ -19,7 +19,7 @@ spreads_it = true
 [sub_resource type="Resource" id="Passive_1"]
 script = ExtResource("1_passive")
 name = "Leading Charge"
-description = "After walking three tiles or more in a turn, her next hit that turn lands a fifth harder - Momentum's other half: stand, or charge."
+description = "After walking three tiles or more in a turn, her next hit that turn has +20% Output Efficiency - Momentum's other half: stand, or charge."
 required_level = 32
 charge_bonus = 0.2
 charge_tiles = 3

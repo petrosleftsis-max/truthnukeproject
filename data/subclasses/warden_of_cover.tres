@@ -22,7 +22,7 @@ holds_the_line = true
 [sub_resource type="Resource" id="Passive_2"]
 script = ExtResource("1_passive")
 name = "Interceptor"
-description = "Half of any hit on an ally within two tiles of her is taken by her instead - Iron Hide III, further."
+description = "50% of any hit on an ally within two tiles of her is taken by her instead - Iron Hide II, further."
 required_level = 54
 guards_within = 2
 guard_share = 0.5

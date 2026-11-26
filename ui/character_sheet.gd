@@ -509,7 +509,11 @@ static func map_entry_of(member: Dictionary) -> Dictionary:
 		weapon_base = weapon.weapon_base
 	var armour := EquipmentDefinition.named(Campaign.equipped_in(member.key, "armour"))
 	if armour != null:
-		stats["defense"] = armour.defense
+		stats["defense"] = armour.defense_at(Campaign.party_level)
+	else:
+		# Nothing better on: their basic armour's, as in a fight (CombatantDefinition.defense_at) -
+		# held at its first in a dungeon that says so (Campaign.basic_armour_level).
+		stats["defense"] = definition.defense_at(Campaign.basic_armour_level(member.key, Campaign.party_level))
 	# Brought back from falling in a fight, and weaker for it until a long rest (see
 	# Combat.weaken). Their health already is: it is what they were last
 	# fielded with.
@@ -869,8 +873,8 @@ func _show_attributes(entry: Dictionary):
 		var reading := "%s %d" % [Stats.NAMES[i], now]
 		if i == Stats.Type.DEFENSE:
 			var cut := roundi((1.0 - Stats.DEFENSE_PIVOT / (Stats.DEFENSE_PIVOT + maxf(now, 0.0))) * 100.0)
-			note = "-%d%% a hit" % cut
-			reading += "\nEvery hit on them is multiplied by %d / (%d + Defense): this takes %d%% off, before resistances." % [int(Stats.DEFENSE_PIVOT), int(Stats.DEFENSE_PIVOT), cut]
+			note = "%d%% Damage Mitigation" % cut
+			reading += "\nEvery hit on them is multiplied by %d / (%d + Defense): this is %d%% Damage Mitigation, before resistances." % [int(Stats.DEFENSE_PIVOT), int(Stats.DEFENSE_PIVOT), cut]
 		elif entry.get("casts", false) and i == entry.get("spellcasting_stat", -1):
 			note = "spells"
 			reading += "\nTheir spells are worked out from it, whatever stat the spell names."
@@ -1052,7 +1056,7 @@ func _show_resistances(entry: Dictionary):
 		for type in found[0]:
 			var amount: int = resistances[type]
 			var element := Damage.type_name(type)
-			var reading := "%s: shrugs off %d%% of it" % [element, amount] if amount > 0 else "%s: takes %d%% more of it" % [element, -amount]
+			var reading := "%s: %d%% Damage Mitigation against it" % [element, amount] if amount > 0 else "%s: +%d%% Output Efficiency against them" % [element, -amount]
 			tags.add_child(_tag(element, found[2], "%+d%%" % amount, reading))
 
 
@@ -1073,32 +1077,28 @@ func _skill_icon(skill: SkillDefinition, subject: Dictionary) -> Control:
 ## on the action panel, so this is the one place it can be read. A tag each,
 ## named and saying whether it is working, with what it does on hover: written
 ## out in full they took over the sheet, and there will be more of them.
+##
+## Only what they have: a passive not reached yet is not on this page at all (the
+## designer, 2026-11-17: "On the sheet tab don't show passives that havent been
+## acquired yet") - the Levels page says when each comes.
 func _show_passives(entry: Dictionary):
-	var passives: Array = entry.get("passives", [])
-	if passives.is_empty():
+	var level: int = entry.get("level", 1)
+	var reached := []
+	for ranks in passive_families(entry.get("passives", [])):
+		# One passive in ranks (Combat "Ranks of a passive"): only the highest
+		# unlocked shows, its description giving the totals.
+		var passive := shown_rank(ranks, level)
+		if passive.required_level <= level:
+			reached.append(passive)
+	if reached.is_empty():
 		return
 	var subject: Dictionary = entry.get("combatant", {})
-	var level: int = entry.get("level", 1)
 	var tags := _labelled_tags("Passive Skills")
-	var later := []
-	for ranks in passive_families(passives):
-		# One passive in ranks (Combat "Ranks of a passive"): only the highest
-		# unlocked shows, its description giving the totals - the first rank
-		# until any is.
-		var passive := shown_rank(ranks, level)
+	for passive in reached:
 		var reading := [passive.name, passive.describe_when()]
 		if passive.description != "":
 			reading.append_array(["", passive.description])
-		# Not reached yet: said so, dimmed, and after the ones that are working -
-		# never "Always active" for something they do not have.
-		if passive.required_level > level:
-			var tag := _tag(passive.name, INK, "from level %d" % passive.required_level, "\n".join(reading), passive.icon)
-			tag.modulate.a = 0.5
-			later.append(tag)
-			continue
 		tags.add_child(_tag(passive.name, INK, _note_for(passive, subject), "\n".join(reading), passive.icon))
-	for tag in later:
-		tags.add_child(tag)
 
 
 ## Which of `ranks` (one family, in order) the sheet shows at `level`: the
@@ -1432,22 +1432,25 @@ func _show_gear(entry: Dictionary):
 	for i in EquipmentDefinition.GEAR_SLOTS:
 		var slot: String = EquipmentDefinition.SLOT_KEYS[i]
 		var piece := EquipmentDefinition.named(Campaign.equipped_in(key, slot))
+		# No armour on: their basic armour is (CombatantDefinition.basic_armour).
+		var basic: EquipmentDefinition = null
+		if piece == null and slot == "armour" and CombatantDatabase.combatants.has(key):
+			basic = CombatantDatabase.combatants[key].basic_armour_piece()
 		var button := Button.new()
 		button.name = "Gear_" + slot
-		button.text = "%s: %s" % [EquipmentDefinition.SLOT_NAMES[i], piece.name if piece != null else "-"]
-		button.tooltip_text = TooltipText.wrap(_gear_reading(piece) if piece != null else "Nothing worn. Press to choose from the stash.")
+		var shown: EquipmentDefinition = piece if piece != null else basic
+		button.text = "%s: %s" % [EquipmentDefinition.SLOT_NAMES[i], shown.name if shown != null else "-"]
+		if piece != null:
+			button.tooltip_text = TooltipText.wrap(piece.reading())
+		elif basic != null:
+			button.tooltip_text = TooltipText.wrap("%s\nDefense %d for them now.\n\nTheir own, worn while nothing better is. Press to choose from the stash." % [
+				basic.reading(), basic.defense_at(Campaign.basic_armour_level(key, entry.get("level", Campaign.party_level)))])
+		else:
+			button.tooltip_text = TooltipText.wrap("Nothing worn. Press to choose from the stash.")
 		button.pressed.connect(_choose_gear_slot.bind(slot))
 		tags.add_child(button)
 	if _gear_slot_open != "":
 		_show_gear_choices(key, _gear_slot_open)
-
-
-## What a piece is and does, for its tooltip.
-func _gear_reading(piece: EquipmentDefinition) -> String:
-	var lines := [piece.name, piece.summary()]
-	if piece.description != "":
-		lines.append_array(["", piece.description])
-	return "\n".join(lines)
 
 
 func _choose_gear_slot(slot: String):
@@ -1464,7 +1467,7 @@ func _show_gear_choices(key: String, slot: String):
 		var button := Button.new()
 		button.name = "Wear_" + piece_key
 		button.text = "Wear %s" % piece.name
-		button.tooltip_text = TooltipText.wrap(_gear_reading(piece))
+		button.tooltip_text = TooltipText.wrap(piece.reading())
 		button.pressed.connect(func(): _wear(key, piece_key))
 		tags.add_child(button)
 	if Campaign.equipped_in(key, slot) != "":

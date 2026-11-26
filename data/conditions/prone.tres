@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_cond")
 display_name = "Prone"
-description = "Lying flat: half the damage from ranged moves and areas, double from melee. Going down costs nothing; getting up takes half their movement, and until then they do not walk."
+description = "Lying flat: 50% Damage Mitigation against ranged moves and areas, but melee against them has +100% Output Efficiency. Going down costs nothing; getting up takes half their movement, and until then they do not walk."
 duration = 999
 prevents_movement = true
 getting_up_share = 0.5

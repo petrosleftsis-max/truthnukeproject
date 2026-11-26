@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Braced"
 tag = "Bc"
-description = "The next blow lands at half its strength."
+description = "50% Damage Mitigation against the next blow."
 duration = 1
 wears_off_at_start = true
 damage_taken_change = -0.5

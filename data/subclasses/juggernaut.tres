@@ -9,7 +9,7 @@
 [sub_resource type="Resource" id="Passive_0"]
 script = ExtResource("1_passive")
 name = "Immovable"
-description = "A tenth less from every hit, and nothing shoves or pulls her anywhere."
+description = "10% Damage Mitigation from every hit, and nothing shoves or pulls her anywhere."
 required_level = 54
 damage_reduction = 0.1
 immune_to = Array[int]([0])
@@ -17,7 +17,7 @@ immune_to = Array[int]([0])
 [sub_resource type="Resource" id="Passive_1"]
 script = ExtResource("1_passive")
 name = "Tremor"
-description = "Every hit of hers also hits everybody beside whoever it lands on for half, and shoves them all a tile - into something solid, they are dazed. Then she steps a tile after whoever she hit, free."
+description = "Every hit of hers also hits everybody beside whoever it lands on for 50%, and shoves them all a tile - into something solid, they are dazed. Then she steps a tile after whoever she hit, free."
 required_level = 64
 tremor_share = 0.5
 tremor_impact_condition = ExtResource("3_dazed")

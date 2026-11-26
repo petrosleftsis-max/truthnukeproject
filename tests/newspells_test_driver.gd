@@ -36,7 +36,8 @@ func whose_they_are():
 	ok(prometheus.skills.has("mesmerise"), "Mesmerise is Prometheus's to learn too")
 	ok(ItemDatabase.item("mesmerise_spellbook") != null and ItemDatabase.item("mesmerise_spellbook").teaches == "mesmerise", "from a book")
 	var store: StoreDefinition = load("res://data/stores/travelling_merchant.tres")
-	ok(store.stock.has("mesmerise_spellbook"), "at the travelling merchant")
+	# The merchant sells no spellbooks (the designer, 2026-11-19).
+	ok(not store.stock.has("mesmerise_spellbook"), "though not at the travelling merchant, who sells no books")
 	# The designer's own marks on what they changed by hand, paying through what it says.
 	ok(OutsideMoves.iris_gate_for(SkillDatabase.skills.seeming) == 1, "Seeming, marked Iris, is paid through Iris")
 	log_line("")

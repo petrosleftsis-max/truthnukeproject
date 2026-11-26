@@ -543,7 +543,7 @@ func seen_through_one_by_one():
 	await combat.use_skill("phantom_wall", alithia, c + Vector2i(0, -1), false, false, c + Vector2i(0, 1))
 	await settle()
 	var third: Dictionary = combat.get_combatant_at(c)
-	var night_eyes: PassiveDefinition = load("res://data/passives/night_eyes.tres")
+	var night_eyes: PassiveDefinition = load("res://data/passives/cat_eyes.tres")
 	saw["ai_smarts"] = CombatantDefinition.AiSmarts.TRAINED
 	missed["ai_smarts"] = CombatantDefinition.AiSmarts.TRAINED
 	combat.put_condition(trained, load("res://data/conditions/blind.tres"), 9, "test", true)

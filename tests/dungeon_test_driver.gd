@@ -41,6 +41,7 @@ func _ready():
 	await swapping_the_fight()
 	await going_in()
 	await in_a_fight()
+	await basic_armour_in_the_demo()
 	await resting()
 	await recovering_gates()
 	await the_rest_panel()
@@ -228,6 +229,60 @@ func in_a_fight():
 		"%s" % [prometheus.get("spell_slots")])
 	game.queue_free()
 	await settle(3)
+	Campaign.reset()
+	log_line("")
+
+
+## Basic armour in the demo (the designer, 2026-11-19): everybody's stays at its first
+## Defense - Enfina's 18, the others' 12 - so the store's armour is worth buying; out of
+## the dungeon theirs keeps up with their level.
+func basic_armour_in_the_demo():
+	log_line("======== basic armour in the demo ========")
+	var dungeon: DungeonDefinition = load(DUNGEON)
+	ok(["cyrus", "alithia", "prometheus", "enfina"].all(func(key): return dungeon.basic_armour_at_first.has(key)),
+		"the demo holds everybody's basic armour at its first", "%s" % [dungeon.basic_armour_at_first])
+	var store: StoreDefinition = load("res://data/stores/%s.tres" % dungeon.store)
+	ok(store != null and store.stock.has("brigandine") and EquipmentDefinition.named("brigandine").defense == 27,
+		"and its store sells the Brigandine, 27, the heavy armour of her level")
+	Campaign.reset()
+	Campaign.dungeon = dungeon
+	Campaign.set_party(dungeon.party + ["enfina"], 14)
+	# The tiles' own Defense left at 0, so what they wear is what counts.
+	var sewer: EncounterDefinition = dungeon.stages[0].encounter.duplicate(true)
+	for spawn in sewer.spawns:
+		if spawn.side == 0:
+			spawn.defense = 0
+	var game = await open_fight(sewer)
+	var enfina := fighter(game, "enfina")
+	var cyrus := fighter(game, "cyrus")
+	ok(enfina.get("stats", {}).get("defense", -1) == 18 and enfina.get("gear", []).has("Basic Heavy Armour"),
+		"Enfina at 14 with nothing on: 18, her Basic Heavy Armour's first", "%d, %s" % [enfina.get("stats", {}).get("defense", -1), enfina.get("gear", [])])
+	ok(cyrus.get("stats", {}).get("defense", -1) == 12 and cyrus.get("gear", []).has("Basic Armour"),
+		"and Cyrus at 14: 12, his Basic Armour's first", "%d, %s" % [cyrus.get("stats", {}).get("defense", -1), cyrus.get("gear", [])])
+	var sheets: Dictionary = {}
+	for member in Campaign.party_members():
+		sheets[member.key] = CharacterSheet.map_entry_of(member).get("stats", {}).get("defense", -1)
+	ok(sheets == {"cyrus": 12, "alithia": 12, "prometheus": 9, "enfina": 18}, "their sheets on the map say so too (Prometheus's cloth, 9)", "%s" % [sheets])
+	game.queue_free()
+	await settle(3)
+	Campaign.give_gear("brigandine")
+	Campaign.give_gear("studded_leather")
+	ok(Campaign.equip("enfina", "brigandine") and Campaign.equip("cyrus", "studded_leather"), "bought and put on")
+	game = await open_fight(sewer)
+	enfina = fighter(game, "enfina")
+	cyrus = fighter(game, "cyrus")
+	ok(enfina.get("stats", {}).get("defense", -1) == 27 and enfina.get("gear", []).has("Brigandine")
+		and not enfina.get("gear", []).has("Basic Heavy Armour"), "in the Brigandine, 27", "%d" % enfina.get("stats", {}).get("defense", -1))
+	ok(cyrus.get("stats", {}).get("defense", -1) == 20 and cyrus.get("gear", []).has("Studded Leather")
+		and not cyrus.get("gear", []).has("Basic Armour"), "and Cyrus in Studded Leather, 20", "%d" % cyrus.get("stats", {}).get("defense", -1))
+	game.queue_free()
+	await settle(3)
+	ok(Campaign.basic_armour_level("enfina", 14) == 1 and Campaign.basic_armour_level("cyrus", 14) == 1
+		and Campaign.basic_armour_level("somebody_else", 14) == 14, "held for the four of them, nobody else")
+	Campaign.dungeon = null
+	ok(Campaign.basic_armour_level("enfina", 14) == 14 and CombatantDatabase.combatants.enfina.defense_at(Campaign.basic_armour_level("enfina", 14)) == 27
+		and CombatantDatabase.combatants.cyrus.defense_at(Campaign.basic_armour_level("cyrus", 14)) == 20,
+		"out of the dungeon theirs keeps up: 27 and 20 at 14")
 	Campaign.reset()
 	log_line("")
 

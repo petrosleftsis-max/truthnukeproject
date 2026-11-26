@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "DoT Master I"
-description = "His poisons and burns bite deeper: a tenth harder."
+description = "His poisons and burns bite deeper: +10% Output Efficiency."
 required_level = 16
 dot_bonus = 0.1

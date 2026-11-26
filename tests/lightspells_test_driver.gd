@@ -60,7 +60,8 @@ func whose_they_are():
 	ok(alithia.skills.has("daylight") and skills.daylight.spell_slot_level == 2 and skills.daylight.tethered, "Daylight is hers, through Hermes, on a tether")
 	for book in ["flare_spellbook", "dancing_lights_spellbook"]:
 		ok(ItemDatabase.item(book) != null, "%s is there" % book)
-		ok(load("res://data/stores/travelling_merchant.tres").stock.has(book), "  and on sale")
+		# The merchant sells no spellbooks (the designer, 2026-11-19: "Remove the spellbooks from this store").
+		ok(not load("res://data/stores/travelling_merchant.tres").stock.has(book), "  and not at the travelling merchant, who sells no books")
 	ok(ItemDatabase.item("unveil_spellbook") == null, "and the old book is not")
 	ok(skills.votive_flame.all_effects().any(func(effect): return effect != null and effect.condition != null and effect.condition.cannot_hide), "Votive Flame marks")
 	log_line("")

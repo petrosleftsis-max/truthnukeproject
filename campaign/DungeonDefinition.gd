@@ -38,6 +38,11 @@ class_name DungeonDefinition
 ## first (Campaign.stow_item). Their bags are emptied as the dungeon starts, so
 ## this is all they carry - and what they use is gone for the fights after.
 @export var kit: Dictionary = {}
+## Whose basic armour (CombatantDefinition.basic_armour) stays at its first Defense
+## in here, whatever their level, so armour from the store is worth buying
+## (Campaign.basic_armour_level). The Dungeon Demo: everybody's - Enfina's 18, the
+## others' 12 - with the store's armour, 20 to 27, to buy (the designer, 2026-11-19).
+@export var basic_armour_at_first: Array[String] = []
 
 @export_group("Stages")
 ## In order. Winning the last one finishes the dungeon.

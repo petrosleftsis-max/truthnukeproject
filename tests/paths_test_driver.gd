@@ -319,10 +319,13 @@ func enfina_paths():
 
 
 func cyrus_paths():
-	log_line("======== Cyrus, every path: Elusive and Catalyst ========")
+	log_line("======== Cyrus, every path: Slip Past as a secondary action, and Catalyst ========")
 	await open_fight({})
 	var cyrus := who("cyrus")
-	ok(combat.secondary_skills_of(cyrus).has("slip_past"), "Slip Past as a secondary action, on no path at all (Elusive)")
+	# Light Footed's, now Elusive is gone (the designer, 2026-11-17: "Light Footed should take care of that").
+	ok(combat.secondary_skills_of(cyrus).has("slip_past") and combat.secondary_grant_from(cyrus, "slip_past") != null
+		and combat.secondary_grant_from(cyrus, "slip_past").name == "Light Footed",
+		"Slip Past as a secondary action, on no path at all (Light Footed)")
 	var young: Dictionary = combat.create_combatant(CombatantDatabase.combatants["cyrus"], "cyrus", "", null, 1)
 	ok(combat.secondary_skills_of(young).has("slip_past"), "from level 1")
 	var foe: Dictionary = enemies()[0]

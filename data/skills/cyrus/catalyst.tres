@@ -13,7 +13,7 @@ applies_to_caster = true
 [resource]
 script = ExtResource("3_skill")
 name = "Catalyst"
-description = "Once a short rest: every lingering condition of his, on every enemy, goes off at once, for twice what it had left - and then starts again, as long as it ever lasted."
+description = "Once a short rest: every lingering condition of his, on every enemy, goes off at once - all it had left, with +100% Output Efficiency - and then starts again, as long as it ever lasted."
 max_range = 0
 required_level = 64
 targets_ally = true

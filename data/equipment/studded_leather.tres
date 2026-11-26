@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Studded Leather"
+description = "Hard leather set with rivets, light enough to run and climb in."
+slot = 1
+price = 100
+defense = 20

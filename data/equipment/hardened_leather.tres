@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Hardened Leather"
+description = "Leather boiled hard and shaped to the body: as much guard as light armour gets."
+slot = 1
+price = 225
+defense = 28

@@ -8,7 +8,7 @@
 [sub_resource type="Resource" id="Passive_0"]
 script = ExtResource("1_passive")
 name = "Righteous"
-description = "Her damaging spells heal the most hurt of her side within two tiles of her for a fifth of the damage they did."
+description = "Her damaging spells heal the most hurt of her side within two tiles of her for 20% of the damage they did."
 required_level = 54
 righteous_share = 0.2
 righteous_reach = 2
@@ -16,7 +16,7 @@ righteous_reach = 2
 [sub_resource type="Resource" id="Passive_1"]
 script = ExtResource("1_passive")
 name = "Crusade"
-description = "Allies within two tiles of her hit 15% harder."
+description = "Allies within two tiles of her have +15% Output Efficiency."
 required_level = 64
 crusade_bonus = 0.15
 crusade_reach = 2

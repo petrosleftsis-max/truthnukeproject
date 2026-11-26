@@ -249,10 +249,10 @@ func formulas():
 		row("Formula", item.name, "", "Heal", formula_of(item), "EXISTING_BASELINE", file_of(item),
 			"scales from nothing (flat item power or a share of the target's health); price %d; %s" % [item.price, notes])
 	row("Formula", "Revitalizer Gate Nade", "", "Heal", "-", "", "-", "Replaced by the Communion Gate Nade (designer, 2026-10-24)", "ABSENT")
-	row("Formula", "Mercy I (Alithia)", "", "Heal bonus", "+10% on every heal of hers (heal_bonus 0.1, from level 1)", "EXISTING_BASELINE",
+	row("Formula", "Mercy I (Alithia)", "", "Heal bonus", "+10% on every heal of hers (heal_bonus 0.1, from level 16 since 2026-11-19), and lifts one harmful condition", "EXISTING_BASELINE",
 		"data/passives/mercy.tres", "multiplies the heal before the share of health is added")
-	row("Formula", "Mercy II / III (Alithia)", "", "With every heal", "II (16): lifts one harmful condition; III (41): Sheltered, a fifth less damage until their turn",
-		"EXISTING_BASELINE", "data/passives/mercy_ii.tres; mercy_iii.tres", "")
+	row("Formula", "Mercy II (Alithia)", "", "With every heal", "II (41): Sheltered, 20% Damage Mitigation until their turn",
+		"EXISTING_BASELINE", "data/passives/mercy_ii.tres", "")
 	row("Formula", "Aura II (Alithia) - Soothed", "", "Mends at turn start", "5% of max health a turn (Soothed, mends_share 0.05)", "EXISTING_BASELINE",
 		"data/passives/aura_ii.tres; data/conditions/soothed.tres", "allies near her; a share of health, so it scales already")
 	row("Formula", "Elemental Tactician (Prometheus, 24+)", "", "Overheal", "0.4 x his power on an ally a spell of his lands on", "EXISTING_BASELINE",

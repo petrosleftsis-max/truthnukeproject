@@ -4,7 +4,8 @@
 
 [resource]
 script = ExtResource("1_passive")
-name = "Agile I"
-description = "Hard to pin down in cover: a twentieth less damage there."
-required_level = 8
+name = "Agile"
+description = "Hard to pin down in cover - 5% Damage Mitigation there - and into cover before anybody can strike: stepping into cover sets nothing off."
+required_level = 32
 damage_reduction_in_cover = 0.05
+slips_into_cover = true

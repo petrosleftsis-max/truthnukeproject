@@ -16,7 +16,7 @@ step_tiles = 2
 [sub_resource type="Resource" id="Passive_1"]
 script = ExtResource("1_passive")
 name = "Flanker"
-description = "His Rapier lands a quarter harder on anybody standing beside one of his allies."
+description = "His Rapier has +25% Output Efficiency on anybody standing beside one of his allies."
 required_level = 32
 flanking_bonus = 0.25
 flanking_skills = Array[String](["rapier"])
@@ -24,7 +24,7 @@ flanking_skills = Array[String](["rapier"])
 [sub_resource type="Resource" id="Passive_2"]
 script = ExtResource("1_passive")
 name = "Ambush Strike"
-description = "His first hit on each enemy in a fight - with anything - deals double."
+description = "His first hit on each enemy in a fight - with anything - has +100% Output Efficiency."
 required_level = 41
 opener_bonus = 1.0
 
@@ -38,7 +38,7 @@ afterimage = true
 [sub_resource type="Resource" id="Passive_4"]
 script = ExtResource("1_passive")
 name = "Thousand Cuts"
-description = "The Rapier is his secondary action as well as a main one, and each Rapier strike after the first in a turn lands a quarter harder."
+description = "The Rapier is his secondary action as well as a main one, and each Rapier strike after the first in a turn has +25% Output Efficiency."
 required_level = 64
 secondary_skills = Array[String](["rapier"])
 repeat_bonus = 0.25

@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Radiant Guardian"
-description = "While she stands, the party takes a tenth less damage."
+description = "While she stands, the party has 10% Damage Mitigation."
 required_level = 64
 party_damage_reduction = 0.1

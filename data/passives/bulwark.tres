@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Bulwark I"
-description = "Allies beside her are bulwarked: a tenth less damage."
+description = "Allies beside her are bulwarked: 10% Damage Mitigation."
 required_level = 8
 aura_radius = 1
 aura_on_allies = ExtResource("2_cond")

@@ -38,11 +38,8 @@ He also can provide with utility, such as weakening enemies or teleporting allie
 class_t = 2
 max_hp = 30
 max_hp_level_20 = 58
-defense_by_level = {
-1: 12,
-8: 20,
-17: 28
-}
+basic_armour = "basic_cloth_armour"
+armour_kinds = 8
 movement = 6
 initiative = 6
 main_stat = 2

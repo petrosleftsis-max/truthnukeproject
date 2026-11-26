@@ -51,7 +51,8 @@ func whose_they_are():
 		ok(not definition.starting_spells.has(key), "to be learned")
 		var book = ItemDatabase.items.get(key + "_spellbook")
 		ok(book != null and book.teaches == key and book.price == prices[wanted[key]], "from a book at the usual price", "%d" % (book.price if book != null else -1))
-		ok(stock.has(key + "_spellbook"), "which the merchant has")
+		# The merchant sells no spellbooks (the designer, 2026-11-19).
+		ok(not stock.has(key + "_spellbook"), "which the merchant does not sell")
 	ok(SkillDatabase.skills.shrink.tether_strength == 100 and SkillDatabase.skills.shrink.outside_gate == 1, "Shrink: a tether of 100, and the Gates of Iris on a map")
 	ok(SkillDatabase.skills.blight.tether_strength == 200, "Blight: a tether of 200")
 	ok(SkillDatabase.skills.wall_of_stone.tether_strength == 200, "Wall of Stone: a tether of 200")

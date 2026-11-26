@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Sheltered"
 tag = "Sh"
-description = "Healed and steadied: takes a fifth less damage until their next turn starts."
+description = "Healed and steadied: 20% Damage Mitigation until their next turn starts."
 duration = 1
 damage_taken_change = -0.2
 wears_off_at_start = true

@@ -1,10 +1,11 @@
 [gd_resource type="Resource" script_class="PassiveDefinition" format=3]
 
 [ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+[ext_resource type="Resource" path="res://data/conditions/sheltered.tres" id="2_cond"]
 
 [resource]
 script = ExtResource("1_passive")
 name = "Mercy II"
-description = "Her heals mend a tenth more, and lift one harmful condition as well."
-required_level = 16
-heals_lift = 1
+description = "Her heals have +10% Output Efficiency and lift one harmful condition, and whoever she heals is sheltered: 20% Damage Mitigation until their next turn starts."
+required_level = 41
+heals_leave = ExtResource("2_cond")

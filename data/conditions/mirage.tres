@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Mirage"
 tag = "Mi"
-description = "Cloaked in illusions: a quarter less from every blow, and one in four misses outright, while they stand in the mirage."
+description = "Cloaked in illusions: 25% Damage Mitigation, and one blow in four misses outright, while they stand in the mirage."
 duration = 1
 wears_off_at_start = true
 damage_taken_change = -0.25

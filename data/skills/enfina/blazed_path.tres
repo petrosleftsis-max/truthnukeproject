@@ -27,7 +27,7 @@ zone_colour = Color(0.95, 0.45, 0.12, 0.22)
 [resource]
 script = ExtResource("2_skill")
 name = "Blazed Path"
-description = "The ground she walked while burning. Her side walks it unhemmed, and the other side catches fire on it."
+description = "The ground she walked while burning. Her side walks it for one movement a tile, never double, and gets +1 movement starting a turn on it; the other side catches fire stepping onto it."
 required_level = 8
 icon = ExtResource("4_icon")
 can_be_copied = false

@@ -38,6 +38,7 @@ func _ready():
 	await paid_for_a_win()
 	await on_the_map()
 	await at_a_rest()
+	await the_demos_shelf()
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
 
@@ -191,4 +192,39 @@ func at_a_rest():
 	layer.queue_free()
 	await settle(2)
 	Campaign.reset()
+	log_line("")
+
+
+## The Dungeon Demo's store and pay (the designer, 2026-11-19 and 20): no spellbooks;
+## light, medium and heavy armour of its level and of the next; every piece's kind in
+## its preview, never in its name; 400 gold from the first fight, 800 from the second,
+## and 200 found in the sewer.
+func the_demos_shelf():
+	log_line("======== the demo's shelf and pay ========")
+	var store: StoreDefinition = load("res://data/stores/%s.tres" % STORE)
+	ok(not store.stock.any(func(key): return key.ends_with("_spellbook")), "no spellbooks for sale")
+	var armour := {}
+	for key in store.stock:
+		var piece := EquipmentDefinition.named(key)
+		if piece != null and piece.slot == EquipmentDefinition.Slot.ARMOUR and piece.defense_at(14) > 12:
+			armour[key] = "%s %d" % [piece.kind(), piece.defense_at(14)]
+	ok(armour == {"studded_leather": "Light armour 20", "mail_shirt": "Medium armour 23", "brigandine": "Heavy armour 27",
+		"hardened_leather": "Light armour 28", "scale_coat": "Medium armour 32", "plate_harness": "Heavy armour 36"},
+		"light, medium and heavy armour of the demo's level (20, 23, 27) and of the next (28, 32, 36)", "%s" % [armour])
+	var unsaid := []
+	for key in store.stock:
+		var piece := EquipmentDefinition.named(key)
+		if piece != null and (piece.name.contains("(") or not piece.reading().split("\n")[1].begins_with(piece.kind())):
+			unsaid.append(key)
+	ok(unsaid.is_empty(), "every piece's preview says what kind it is, under a name that is only its name", "%s" % [unsaid])
+	var satchel := EquipmentDefinition.named("satchel")
+	ok(satchel.name == "Satchel" and satchel.reading().split("\n")[1].begins_with("Backpack")
+		and EquipmentDefinition.named("simple_belt").reading().split("\n")[1].begins_with("Baldric"),
+		"  a Satchel's preview says Backpack, a Simple Baldric's Baldric", satchel.reading().replace("\n", " / "))
+	var dungeon: DungeonDefinition = load("res://data/dungeons/dungeon_demo.tres")
+	ok(dungeon.stages[0].encounter.gold_reward == 400 and dungeon.stages[1].encounter.gold_reward == 800,
+		"400 gold from the first fight, 800 from the second", "%d, %d" % [dungeon.stages[0].encounter.gold_reward, dungeon.stages[1].encounter.gold_reward])
+	var loot: String = FileAccess.get_file_as_string("res://dialogue/intro_sewer_guard_loot.dialogue")
+	ok(loot.contains("if Campaign.in_dungeon()") and loot.contains("do Campaign.give_gold(200)"),
+		"and 200 found in the sewer with the guards' things, in a dungeon only")
 	log_line("")

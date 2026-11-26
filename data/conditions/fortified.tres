@@ -6,6 +6,6 @@
 script = ExtResource("1_cond")
 display_name = "Fortified"
 tag = "Fo"
-description = "Within Enfina's reach: takes a tenth less damage."
+description = "Within Enfina's reach: 10% Damage Mitigation."
 duration = 1
 damage_taken_change = -0.1

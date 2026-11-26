@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Kindling I"
-description = "Every spell he casts in a fight stokes the next: each one after it burns 5% hotter, up to 15%."
+description = "Every spell he casts in a fight stokes the next: each one after it has +5% Output Efficiency, up to +15%."
 required_level = 1
 kindling_step = 0.05
 kindling_most = 0.15

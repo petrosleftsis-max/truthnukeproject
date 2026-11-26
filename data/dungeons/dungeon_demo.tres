@@ -32,6 +32,7 @@ party = Array[String](["cyrus", "alithia", "prometheus"])
 level = 14
 knows_every_spell = true
 prepares_spells = true
+basic_armour_at_first = Array[String](["cyrus", "alithia", "prometheus", "enfina"])
 stages = Array[ExtResource("2_0kadc")]([SubResource("Resource_ojrih"), SubResource("Resource_3ppxl"), SubResource("Resource_0yr4t")])
 short_rests = true
 store = "travelling_merchant"

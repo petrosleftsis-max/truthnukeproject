@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Basic Armour"
+description = "Their own leathers and padding, worn whenever they have nothing better on. They keep up with them as they grow."
+slot = 1
+defense = 12
+defense_by_level = {
+1: 12,
+8: 20,
+17: 28
+}

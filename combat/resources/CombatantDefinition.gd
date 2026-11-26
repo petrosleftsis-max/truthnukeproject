@@ -50,10 +50,20 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ## The same at level 64, climbing evenly from Defense the way health climbs
 ## (see defense_at). Zero means the same as level 1 all the way up.
 @export_range(0, 100) var defense_level_64: int = 0
-## Defense in steps instead, level -> Defense from that level on: the party's
-## armour bands from docs/player_hp_defense_progression.csv ({1: 12, 8: 20,
+## Defense in steps instead, level -> Defense from that level on ({1: 12, 8: 20,
 ## 17: 28}). Filled in, it stands in for the two above.
 @export var defense_by_level: Dictionary = {}
+## The armour they wear when they wear nothing better (EquipmentDefinition, by key):
+## its Defense at their level stands in for all three above wherever nobody has
+## said otherwise - a fight with their armour slot empty, Arena Mode, the sheet on a
+## map. The party's (the designer, 2026-11-19: armour instead of the Defense bands of
+## docs/player_hp_defense_progression.csv): Enfina's Basic Heavy Armour, the others'
+## Basic Armour.
+@export var basic_armour: String = ""
+## The kinds of armour they can put on (EquipmentDefinition.ArmourCategory, a bit each):
+## every kind unless said otherwise. The designer, 2026-11-20: Cyrus light only,
+## Alithia light and medium, Prometheus cloth only, Enfina any. Read through `wears`.
+@export_flags("Cloth:8", "Light:1", "Medium:4", "Heavy:2") var armour_kinds: int = 15
 ## How big they are - see Sizes. A Human is one tile; Tiny and Small share a
 ## tile with their own side; Large and up cover 2 x 2 tiles and more.
 @export var size: Sizes.Size = Sizes.Size.HUMAN
@@ -431,9 +441,12 @@ func hp_at(level: int) -> int:
 	return roundi(lerpf(max_hp, max_hp_level_20, Stats.level_progress(level)))
 
 
-## Their own Defense at `level`: the step it has reached (Defense By Level), or
-## Defense at 1 climbing to Defense Level 64 at the top.
+## Their own Defense at `level`: their basic armour's, the step it has reached
+## (Defense By Level), or Defense at 1 climbing to Defense Level 64 at the top.
 func defense_at(level: int) -> int:
+	var armour := basic_armour_piece()
+	if armour != null:
+		return armour.defense_at(level)
 	if not defense_by_level.is_empty():
 		var reached := -1
 		var value := defense
@@ -445,6 +458,19 @@ func defense_at(level: int) -> int:
 	if defense_level_64 <= 0:
 		return defense
 	return roundi(lerpf(defense, defense_level_64, Stats.level_progress(level)))
+
+
+## Their basic armour (Basic Armour), or null for nobody's.
+func basic_armour_piece() -> EquipmentDefinition:
+	return EquipmentDefinition.named(basic_armour) if basic_armour != "" else null
+
+
+## Whether they can wear `piece` as far as its kind goes: armour of a kind in Armour
+## Kinds, and anything that is not armour.
+func wears(piece: EquipmentDefinition) -> bool:
+	if piece == null or piece.slot != EquipmentDefinition.Slot.ARMOUR:
+		return true
+	return (armour_kinds & (1 << piece.armour_category)) != 0
 
 
 ## What this combatant may cast at `level`: their level's allowance if they have

@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Quick Hands"
-description = "Items can be used as his secondary action as well as his main one, and he reaches for the secondary first - so he can drink a potion and still attack in the same turn. Interact can be too."
+description = "Items can be used as his secondary action as well as his main one, and he reaches for the secondary first - so he can drink a potion and still attack in the same turn. Interact can be too. Gate Nades as well: he throws any of them, whatever spell is in it - everybody else only those whose spell they know or could learn - and with his secondary action, where the spell would take the main one."
 secondary_skills = Array[String](["use"])
 items_as_secondary = true
+gate_nades_as_secondary = true
+any_gate_nade = true

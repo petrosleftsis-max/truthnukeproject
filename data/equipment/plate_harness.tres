@@ -9,5 +9,5 @@ description = "Full plate, made for her."
 slot = 1
 for_characters = Array[String](["enfina"])
 price = 320
-defense = 28
+defense = 36
 armour_category = 1

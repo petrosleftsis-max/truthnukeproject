@@ -589,7 +589,9 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 	# in this fight rather than how developed they are.
 	# Left at 0 on the spawn, or with no spawn at all (a summon, a guard off a
 	# stealth map), it is their own at this level.
-	stats["defense"] = spawn.defense if spawn != null and spawn.defense > 0 else definition.defense_at(level)
+	# In a dungeon that holds their basic armour at its first Defense, that (Campaign.basic_armour_level).
+	stats["defense"] = spawn.defense if spawn != null and spawn.defense > 0 \
+		else definition.defense_at(Campaign.basic_armour_level(combatant_key, level) if from_story else level)
 	var comb = {
 		"name" = definition.name,
 		"max_hp" = definition.hp_at(level),
@@ -767,6 +769,11 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 	# for whoever loots them once they are down ("Loot").
 	comb["pocket_size"] = definition.pocket_size
 	comb["carried"] = _carried_from(spawn, definition.pocket_size)
+	# Their basic armour, on while nothing better is (CombatantDefinition.basic_armour; the
+	# designer, 2026-11-19): named among what they wear, unless the spawn set a Defense of its own.
+	if not (spawn != null and spawn.defense > 0) and definition.basic_armour_piece() != null:
+		comb["basic_armour"] = definition.basic_armour_piece().name
+		comb["gear"] = [comb.basic_armour]
 	_wear_spawn_equipment(comb, spawn)
 	# More castings through their deepest gate, if a passive gives them ("Progression").
 	add_deepest_castings(comb)
@@ -813,8 +820,12 @@ func wear_gear(comb: Dictionary, key: String):
 		worn.append(weapon.name)
 	var armour := EquipmentDefinition.named(Campaign.equipped_in(key, "armour"))
 	if armour != null:
-		comb.stats["defense"] = armour.defense
+		comb.stats["defense"] = armour.defense_at(comb.get("level", 1))
 		worn.append(armour.name)
+		comb.erase("basic_armour")
+	elif comb.has("basic_armour"):
+		# Nothing on but their basic armour (CombatantDefinition.basic_armour).
+		worn.append(comb.basic_armour)
 	var charm := EquipmentDefinition.named(Campaign.equipped_in(key, "charm"))
 	if charm != null:
 		if charm.passive != null and not comb.passives.has(charm.passive):
@@ -1407,7 +1418,7 @@ func passive_stat_bonus(comb: Dictionary, stat: String) -> int:
 	var bonus := 0
 	for passive in active_passives(comb):
 		bonus += passive.movement_bonus if stat == "movement" else passive.defense_bonus
-		# More on a turn begun in cover (Cat Burglar I).
+		# More on a turn begun in cover (Cat Burglar).
 		if stat == "movement" and comb.get("started_in_cover", false):
 			bonus += passive.movement_in_cover
 	return bonus
@@ -1416,7 +1427,7 @@ func passive_stat_bonus(comb: Dictionary, stat: String) -> int:
 ## --- Ranks of a passive ---
 ##
 ## Passives that share a name but for the numeral on the end - Momentum I and II,
-## Iron Hide I to III - are one passive in ranks (the designer, 2026-10-25). Each
+## Iron Hide I and II - are one passive in ranks (the designer, 2026-10-25). Each
 ## rank adds its numbers to the ones before, as separate passives always did; the
 ## character sheet shows only the highest unlocked, whose description gives the
 ## totals (CharacterSheet.passive_families).
@@ -1959,8 +1970,8 @@ func has_action_left(comb: Dictionary) -> bool:
 ## somebody who knows the spell or could learn it - it is in their own list, at
 ## any level, or on any of their paths (knows_or_can_learn) - so a Communion
 ## Nade is Alithia's to throw and not Prometheus's. A passive with Any Gate Nade
-## (Cyrus's Nade Juggler) throws whatever is in it. One with Gate Nades As
-## Secondary (Nade Juggler again) throws them with the secondary action.
+## (Cyrus's Quick Hands) throws whatever is in it. One with Gate Nades As
+## Secondary (Quick Hands again) throws them with the secondary action.
 
 func is_gate_nade(skill) -> bool:
 	return skill is GateNadeDefinition
@@ -2681,7 +2692,7 @@ func check_reactive_skills(mover: Dictionary, previous_position: Vector2i, new_p
 	if mover.get("reactions_suppressed", false):
 		# Slipped past: leaving somebody's reach is not an opening this turn.
 		return
-	# Into cover, for somebody whose stepping into it sets nothing off (Agile II).
+	# Into cover, for somebody whose stepping into it sets nothing off (Agile).
 	if in_cover(mover) and active_passives(mover).any(func(passive): return passive.slips_into_cover):
 		return
 	for reactor in _by_initiative(combatants):
@@ -3561,9 +3572,11 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 				warding["held_by_tether"] = true
 			target.status_effects.append(warding)
 			update_combatants.emit(combatants)
-			var direction = "harder" if effect.modifier_amount > 0 else "easier"
-			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill,
-				"%s to hurt with %s" % [direction, Damage.type_name(resisting).to_lower()]))
+			# In numbers, as Damage Mitigation and Output Efficiency (the designer, 2026-11-17).
+			var element_named := Damage.type_name(resisting).to_lower()
+			var resisted := ("%d%% Damage Mitigation against %s" % [effect.modifier_amount, element_named]) if effect.modifier_amount > 0 \
+				else ("+%d%% Output Efficiency for %s against them" % [-effect.modifier_amount, element_named])
+			update_information.emit(describe_condition(attacker, target, effect, skill, mention_skill, resisted))
 		EffectDefinition.EffectType.INVISIBLE:
 			make_invisible(target)
 			if effect.unnoticed_until_acting and is_invisible(target):
@@ -3790,7 +3803,7 @@ func can_still_walk(comb: Dictionary) -> bool:
 
 ## How `target` lying down changes a blow of `skill`'s from `attacker`: more from
 ## melee, less from anything else - but not from somebody whose ranged moves it
-## gives no cover from (Low Shot), when they are a foe. 1 standing, or with no skill
+## gives no cover from (Cat Eyes), when they are a foe. 1 standing, or with no skill
 ## behind it. One place, read by damage_dealt_multiplier, so the hit that lands and
 ## the prompt that promised it agree.
 func prone_damage_factor(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> float:
@@ -4907,7 +4920,7 @@ static func _is_harm(entry: Dictionary) -> bool:
 ## --- Cleansing: choosing what comes off ---
 ##
 ## A cleanse that lifts only so much (Dispel Count) and a heal that lifts some
-## harmful conditions too (Heals Lift - Mercy II) take what the player chooses
+## harmful conditions too (Heals Lift - Mercy I) take what the player chooses
 ## when there is more on them than comes off: asked once per thing lifted,
 ## before the skill lands on them, as a Steal's container is (_choose_lifts in
 ## use_skill). Anybody else lifts the most recent first.
@@ -6151,7 +6164,7 @@ func _advance_turn():
 		comb.erase("movement_left_when_grabbed")
 		comb.erase("movement_left_when_down")
 		# Not walked yet this turn (Momentum), and whether they start it in cover
-		# (Cat Burglar I) - "Progression".
+		# (Cat Burglar) - "Progression".
 		comb.erase("moved_this_turn")
 		comb.erase("struck_this_turn")
 		comb["started_in_cover"] = in_cover(comb)
@@ -7178,7 +7191,7 @@ func _wounded_bonus(attacker: Dictionary, skill: SkillDefinition, struck: Array)
 		if target.hp * 2 <= get_effective_stat(target, "max_hp"):
 			spent.append(target.get("id", -1))
 			attacker["wounded_bonus_on"] = spent
-			update_information.emit("[color=yellow]%s[/color] finishes on a wounded foe, and mends twice over.\n" % attacker.name)
+			update_information.emit("[color=yellow]%s[/color] finishes on a wounded foe, and mends with +100%% Output Efficiency.\n" % attacker.name)
 			return 2.0
 	return 1.0
 
@@ -7662,7 +7675,7 @@ func do_heal(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	var before_heal: int = target.hp
 	target.hp = mini(target.hp + amount, get_effective_stat(target, "max_hp"))
 	_metric("heal", {"who": attacker, "target": target, "amount": target.hp - before_heal, "skill": skill})
-	# What the healer's heals do besides (Mercy II and III - "Progression").
+	# What the healer's heals do besides (Mercy I and II - "Progression").
 	_after_heal(attacker, target)
 	float_number(target, "+" + str(amount), Color("7fe08a"))
 	# Motes rising off them; their health bar is seen filling (MoveFeel, HealthBarMarks.fill).
@@ -8299,7 +8312,7 @@ func _offer_ward(attacker: Dictionary, target: Dictionary, skill: SkillDefinitio
 			var take := true
 			if warder.side == 0 and reaction_prompt != null and reaction_prompt.has_method("ask_about"):
 				take = await reaction_prompt.ask_about("%s can ward" % warder.name,
-					"%s is about to be hit by %s. Ward them, taking %d%% off it?\nThis spends %s's one reaction until their next turn." % [
+					"%s is about to be hit by %s. Ward them, for %d%% Damage Mitigation against it?\nThis spends %s's one reaction until their next turn." % [
 						target.name, skill.name, roundi(passive.ward_reduction * 100), warder.name])
 			if not take:
 				return 1.0
@@ -9550,7 +9563,7 @@ func stagger(comb: Dictionary):
 	# A crack across its bar, and the world slowed a beat (MoveFeel).
 	MoveFeel.staggered(self, comb)
 	slow_motion(SLOW_MOTION_SECONDS, SLOW_MOTION_SHARE)
-	update_information.emit("[color=yellow]%s is staggered![/color] It loses %s, and is hit %d%% harder until then.\n" % [
+	update_information.emit("[color=yellow]%s is staggered![/color] It loses %s, and every blow on it has +%d%% Output Efficiency until then.\n" % [
 		comb.name, "its next turn" if bar.turns_lost == 1 else "its next %d turns" % bar.turns_lost,
 		roundi((bar.damage_taken - 1.0) * 100.0)])
 	_banner(comb.name, "Staggered!", STAGGER_COLOUR)
@@ -10485,7 +10498,7 @@ func wasted_on(comb: Dictionary, skill: SkillDefinition) -> String:
 	if skill != null and skill.reaction_only:
 		return "%s only goes off as a reaction - when %s." % [skill.name, skill.describe_triggers()]
 	if skill != null and skill.only_in_shadow and comb.has("position") and not tile_in_shadow(comb.position):
-		return "%s only goes from the Dim or the Dark." % skill.name
+		return "%s only goes from a Dim or Dark Area." % skill.name
 	if skill != null and skill.spell_slot_level > 0 and cannot_cast_here(comb):
 		return "%s cannot cast spells here." % comb.get("name", "They")
 	if skill is GateNadeDefinition and not can_use_gate_nade(comb, skill):
@@ -12435,9 +12448,14 @@ func _wear_spawn_equipment(comb: Dictionary, spawn: SpawnDefinition):
 	var keys := []
 	var worn := []
 	if spawn != null:
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(comb.get("combatant_key", ""))
 		for key in spawn.equipment:
 			var piece := EquipmentDefinition.named(key)
 			if piece == null:
+				continue
+			# Armour of a kind they cannot wear stays off (CombatantDefinition.armour_kinds).
+			if definition != null and not definition.wears(piece):
+				push_warning("%s cannot wear %s (Armour Kinds), so the encounter's %s is left off." % [definition.name, piece.kind().to_lower(), piece.name])
 				continue
 			keys.append(key)
 			worn.append(piece.name)
@@ -12445,11 +12463,15 @@ func _wear_spawn_equipment(comb: Dictionary, spawn: SpawnDefinition):
 				EquipmentDefinition.Slot.WEAPON:
 					comb.weapon_base = piece.weapon_base
 				EquipmentDefinition.Slot.ARMOUR:
-					comb.stats["defense"] = piece.defense
+					comb.stats["defense"] = piece.defense_at(comb.get("level", 1))
+					comb.erase("basic_armour")
 				EquipmentDefinition.Slot.CHARM:
 					if piece.passive != null and not comb.passives.has(piece.passive):
 						comb.passives.append(piece.passive)
 	comb["equipment"] = keys
+	# Under no armour of the encounter's, their basic armour is still on.
+	if not worn.is_empty() and comb.has("basic_armour"):
+		worn.push_front(comb.basic_armour)
 	if not worn.is_empty():
 		comb["gear"] = worn
 
@@ -14356,9 +14378,9 @@ func refusal_for(attacker: Dictionary, skill: SkillDefinition, impact: Vector2i)
 				return "%s's nerve still holds" % shaken_one.name
 	if skill.only_in_shadow:
 		if not tile_in_shadow(attacker.position):
-			return "%s only goes from the Dim or the Dark" % skill.name
+			return "%s only goes from a Dim or Dark Area" % skill.name
 		if not tile_in_shadow(impact):
-			return "%s only goes to the Dim or the Dark" % skill.name
+			return "%s only goes to a Dim or Dark Area" % skill.name
 	if skill.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.DISGUISE):
 		return disguise_refusal(attacker)
 	# A standing breakable wall is a wall: nothing is done to it but knocking it

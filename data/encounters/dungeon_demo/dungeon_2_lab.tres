@@ -85,6 +85,6 @@ display_name = "Dungeon: The Lab"
 description = "The lab fight, with everybody at level 14."
 terrain_scene = ExtResource("3_5dlq4")
 victory_dialogue = ExtResource("4_q2ht3")
-gold_reward = 45
+gold_reward = 800
 spawns = Array[ExtResource("2_c72ca")]([SubResource("Resource_5dlq4"), SubResource("Resource_q2ht3"), SubResource("Resource_vfttt"), SubResource("Resource_oaq50"), SubResource("Resource_kghme"), SubResource("Resource_cc7y0"), SubResource("Resource_kvnbw"), SubResource("Resource_na2k4"), SubResource("Resource_t6r7r"), SubResource("Resource_r3oer")])
 music = "Elegy_of_the_End"

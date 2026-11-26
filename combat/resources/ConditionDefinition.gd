@@ -86,7 +86,7 @@ const DOT_STRENGTH_NAMES := {
 ## Added to every hit-chance roll the afflicted makes. Fear's -20 lives here.
 @export var accuracy_change: int = 0
 ## Damage taken changes by this share while it is on them: -0.1 takes a tenth
-## less (Bulwark's, Mercy III's Sheltered), 0.2 a fifth more.
+## less (Bulwark's, Mercy II's Sheltered), 0.2 a fifth more.
 @export_range(-0.9, 2.0, 0.05) var damage_taken_change: float = 0.0
 ## Mends this share of their health as each of their turns starts (Aura II).
 @export_range(0.0, 1.0, 0.05) var mends_share: float = 0.0
@@ -281,9 +281,9 @@ func describe() -> String:
 	elif prevents_movement:
 		parts.append("cannot move")
 	if less_from_ranged > 0.0:
-		parts.append("%d%% less from ranged moves and areas" % roundi(less_from_ranged * 100))
+		parts.append("%d%% Damage Mitigation against ranged moves and areas" % roundi(less_from_ranged * 100))
 	if more_from_melee > 0.0:
-		parts.append("%d%% more from melee" % roundi(more_from_melee * 100))
+		parts.append("+%d%% Output Efficiency for melee against them" % roundi(more_from_melee * 100))
 	if prevents_approach:
 		parts.append("cannot advance on enemies")
 	if prevents_secondary:
@@ -315,7 +315,12 @@ func describe() -> String:
 	if not immune_to_conditions.is_empty():
 		parts.append("immune to %s" % ", ".join(immune_to_conditions.map(func(each): return each.display_name if each != null else "?")))
 	if weapon_damage_change != 0.0:
-		parts.append("%s weapon attack %+d%% damage" % ["next" if ends_after_weapon_attack else "every", roundi(weapon_damage_change * 100)])
+		# Less is Damage Mitigation, more Output Efficiency (the designer, 2026-11-17).
+		var which := "their next weapon attack" if ends_after_weapon_attack else "their weapon attacks"
+		if weapon_damage_change < 0.0:
+			parts.append("%d%% Damage Mitigation against %s" % [roundi(-weapon_damage_change * 100), which])
+		else:
+			parts.append("+%d%% Output Efficiency on %s" % [roundi(weapon_damage_change * 100), which])
 	if drift_tiles > 0:
 		parts.append("blown %d tiles each turn" % drift_tiles)
 	if parts.is_empty():

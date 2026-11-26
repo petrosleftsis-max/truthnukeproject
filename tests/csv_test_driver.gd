@@ -25,22 +25,19 @@ const MAP := {
 	"Enfina|Double Strike": ["follow_up_attack", 0, "skill"],
 	"Enfina|Momentum I": ["momentum", 0, "passive"],
 	"Enfina|Short Stun": ["stunning_blow", 0, "skill"],
-	"Enfina|Iron Hide III": ["iron_hide_iii", 0, "passive"],
 	"Enfina|AOE Sweep": ["sweep_strike", 0, "skill"],
 	"Enfina|Bulwark III": ["bulwark_iii", 0, "passive"],
 	"Enfina|Ultimate Smash": ["greatsword_attack", 64, "skill"],
 	"Enfina|Momentum II": ["momentum_ii", 0, "passive"],
 	"Cyrus|Basic Shot": ["gun", 0, "skill"],
-	"Cyrus|Cover Runner I": ["cat_burglar_i", 0, "passive"],
 	"Cyrus|Poison Strike": ["poison_dart", 0, "skill"],
-	"Cyrus|Agile I": ["agile", 0, "passive"],
+	"Cyrus|Agile": ["agile", 0, "passive"],
 	"Cyrus|Burn Bomb": ["burning_shot", 0, "skill"],
 	"Cyrus|DoT Master I": ["dot_master", 0, "passive"],
 	"Cyrus|Wide Poison": ["venom_fan", 0, "skill"],
-	"Cyrus|Cover Runner II": ["cat_burglar", 0, "passive"],
+	"Cyrus|Cover Runner": ["cat_burglar", 0, "passive"],
 	"Cyrus|Strong Burn": ["burning_shot", 32, "skill"],
 	"Cyrus|Minor Slow Shot": ["warning_shot", 0, "skill"],
-	"Cyrus|Agile II": ["agile_ii", 0, "passive"],
 	"Cyrus|DoT Master II": ["dot_master_ii", 0, "passive"],
 	"Cyrus|Synergy I": ["synergy", 0, "passive"],
 	"Cyrus|Synergy II": ["synergy_ii", 0, "passive"],
@@ -78,7 +75,6 @@ const MAP := {
 	"Alithia|Reserved Power I": ["reserved_power", 0, "passive"],
 	"Alithia|Frozen AOE": ["glacial_tide", 0, "skill"],
 	"Alithia|Advanced Cleanse": ["purification", 0, "skill"],
-	"Alithia|Mercy III": ["mercy_iii", 0, "passive"],
 	"Alithia|Level-9 Penetration Spell": ["divine_verdict", 0, "skill"],
 	"Alithia|Elite Heal": ["restoration", 0, "skill"],
 	"Alithia|Reserved Power II": ["reserved_power_ii", 0, "passive"],
@@ -370,8 +366,8 @@ func the_switches():
 	enfina.status_effects.clear()
 	alithia.status_effects.clear()
 	var radiant: bool = combat.active_passives(alithia).any(func(p): return p.party_damage_reduction > 0.0)
-	ok(radiant and is_equal_approx(combat.damage_reduction_of(enfina), 0.3),
-		"Enfina takes a fifth less (Iron Hide I and II) and a tenth more less while Alithia stands (Radiant Guardian)", "%.2f" % combat.damage_reduction_of(enfina))
+	ok(radiant and is_equal_approx(combat.damage_reduction_of(enfina), 0.2),
+		"Enfina takes a tenth less (Iron Hide I; the old rank I went into her heavy armour, 2026-11-19) and a tenth more less while Alithia stands (Radiant Guardian)", "%.2f" % combat.damage_reduction_of(enfina))
 
 	# Momentum.
 	enfina.erase("moved_this_turn")
@@ -399,16 +395,17 @@ func the_switches():
 	var momentum_ii: PassiveDefinition = load("res://data/passives/momentum_ii.tres")
 	ok(Combat.passive_family(momentum) == "Momentum" and Combat.passive_family(momentum_ii) == "Momentum"
 		and Combat.passive_rank(momentum_ii) == 2, "Momentum I and II are one passive in two ranks")
-	ok(is_equal_approx(momentum.still_damage_bonus + momentum_ii.still_damage_bonus, 0.15) and momentum_ii.description.contains("fifteen hundredths"),
-		"  II adds 5% to I's 10%, and says fifteen hundredths in all")
+	# In numbers, as Output Efficiency (the designer, 2026-11-17).
+	ok(is_equal_approx(momentum.still_damage_bonus + momentum_ii.still_damage_bonus, 0.15) and momentum_ii.description.contains("+15% Output Efficiency"),
+		"  II adds 5% to I's 10%, and says +15% Output Efficiency in all")
 	var bulwark: PassiveDefinition = load("res://data/passives/bulwark.tres")
 	var families := CharacterSheet.passive_families([momentum, bulwark, momentum_ii])
 	ok(families.size() == 2 and families[0] == [momentum, momentum_ii], "the sheet gathers Momentum into one")
 	ok(CharacterSheet.shown_rank(families[0], 32) == momentum and CharacterSheet.shown_rank(families[0], 64) == momentum_ii
 		and CharacterSheet.shown_rank(families[0], 8) == momentum, "  and shows only the highest unlocked: I at 32, II at 64")
 	var iron: Array = [load("res://data/passives/iron_hide.tres"), load("res://data/passives/iron_hide_ii.tres")]
-	ok(is_equal_approx(iron[0].damage_reduction + iron[1].damage_reduction, 0.2) and iron[1].description.contains("a fifth"),
-		"Iron Hide II: a tenth more on I's tenth, said as a fifth")
+	ok(is_equal_approx(iron[0].damage_reduction + iron[1].damage_reduction, 0.1) and iron[1].description.contains("10% Damage Mitigation"),
+		"Iron Hide II: nothing more on I's tenth, said as 10% Damage Mitigation (the old Iron Hide I is in her heavy armour, 2026-11-19)")
 	var kindling: Array = [load("res://data/passives/kindling.tres"), load("res://data/passives/kindling_ii.tres"), load("res://data/passives/kindling_iii.tres")]
 	ok(is_equal_approx(kindling.reduce(func(total, rank): return total + rank.kindling_most, 0.0), 0.45) and kindling[2].description.contains("45%"),
 		"Kindling III: up to 45% in all, and says so")
@@ -461,9 +458,9 @@ func the_switches():
 	combat.put_condition(enfina, load("res://data/conditions/poisoned.tres"), 3, "test", true)
 	var heal: SkillDefinition = SkillDatabase.skills["heal"]
 	combat.apply_effect(alithia, enfina, heal.effects[0], heal, false)
-	ok(not combat.conditions_of(enfina).any(func(c): return c.display_name == "Poisoned"), "her heal lifts the poison (Mercy II)")
-	ok(combat.conditions_of(enfina).any(func(c): return c.display_name == "Sheltered") and combat.damage_reduction_of(enfina) > 0.45,
-		"and leaves her sheltered (Mercy III)", "%.2f" % combat.damage_reduction_of(enfina))
+	ok(not combat.conditions_of(enfina).any(func(c): return c.display_name == "Poisoned"), "her heal lifts the poison (Mercy I)")
+	ok(combat.conditions_of(enfina).any(func(c): return c.display_name == "Sheltered") and combat.damage_reduction_of(enfina) > 0.35,
+		"and leaves her sheltered (Mercy II): its fifth on her tenth and Radiant Guardian's", "%.2f" % combat.damage_reduction_of(enfina))
 	enfina.hp = 10
 	var restoration: SkillDefinition = SkillDatabase.skills["restoration"]
 	combat.apply_effect(alithia, enfina, restoration.effects[0], restoration, false)
@@ -498,8 +495,8 @@ func the_switches():
 	cyrus["started_in_cover"] = true
 	var in_cover_moves: int = combat.get_effective_stat(cyrus, "movement")
 	cyrus["started_in_cover"] = false
-	ok(in_cover_moves == combat.get_effective_stat(cyrus, "movement") + 2, "starting in cover, Cyrus has two more tiles (Cat Burglar I)")
-	ok(combat.damage_reduction_of(cyrus) >= 0.05 + 0.1 - 0.001, "and takes a twentieth less there (Agile I)", "%.2f" % combat.damage_reduction_of(cyrus))
+	ok(in_cover_moves == combat.get_effective_stat(cyrus, "movement") + 2, "starting in cover, Cyrus has two more tiles (Cat Burglar, its old rank I folded in)")
+	ok(combat.damage_reduction_of(cyrus) >= 0.05 + 0.1 - 0.001, "and takes a twentieth less there (Agile, its old rank I folded in)", "%.2f" % combat.damage_reduction_of(cyrus))
 	cyrus.position = was_at
 	# Cover Leap is gone (the designer, 2026-10-31).
 	ok(not SkillDatabase.skills.has("cover_leap") and not CombatantDatabase.combatants.values().any(func(who): return who.skills.has("cover_leap")),

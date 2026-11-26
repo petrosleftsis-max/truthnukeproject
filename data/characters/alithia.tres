@@ -14,7 +14,6 @@
 [ext_resource type="Resource" path="res://data/passives/kindled_faith.tres" id="p_kindled_faith"]
 [ext_resource type="Resource" path="res://data/passives/mercy.tres" id="p_mercy"]
 [ext_resource type="Resource" path="res://data/passives/mercy_ii.tres" id="p_mercy_ii"]
-[ext_resource type="Resource" path="res://data/passives/mercy_iii.tres" id="p_mercy_iii"]
 [ext_resource type="Resource" path="res://data/passives/nowhere_to_hide.tres" id="p_nowhere_to_hide"]
 [ext_resource type="Resource" path="res://data/passives/radiant_guardian.tres" id="p_radiant_guardian"]
 [ext_resource type="Resource" path="res://data/passives/reserved_power.tres" id="p_reserved_power"]
@@ -47,11 +46,8 @@ She is also capable of weakening enemies to mitigate their offensive capabilitie
 class_t = 2
 max_hp = 75
 max_hp_level_20 = 115
-defense_by_level = {
-1: 12,
-8: 20,
-17: 28
-}
+basic_armour = "basic_armour"
+armour_kinds = 5
 movement = 6
 initiative = 7
 main_stat = 1
@@ -61,7 +57,7 @@ icon = ExtResource("1_nj2rw")
 map_sprite = ExtResource("1_nj2rw")
 sprite_frames = ExtResource("4_1v0ks")
 skills = Array[String](["votive_flame", "daylight", "calling_out", "beckoning_light", "water_spike", "sass_club", "heal", "light_heal", "holy_lance", "flash", "river_flow", "frozen_river", "resuscitate", "cleanse", "intuition", "persuade", "slip_past", "run", "holy_splash", "communion", "piercing_light", "judgment", "glacial_tide", "purification", "divine_verdict", "restoration", "revelation", "grace", "dread_visage", "bewilder", "find_familiar", "compel", "steady_heart", "ecstasy", "silence", "restorative_aura", "composure", "clear_sight", "terror", "elemental_ward", "shared_burden", "sleep", "calm", "suggestion", "detect_magic", "arcane_eye"])
-passives = Array[ExtResource("2_t7133")]([ExtResource("p_mercy"), ExtResource("p_aura"), ExtResource("p_mercy_ii"), ExtResource("p_aura_ii"), ExtResource("p_reserved_power"), ExtResource("p_mercy_iii"), ExtResource("p_reserved_power_ii"), ExtResource("p_radiant_guardian"), ExtResource("p_devotion"), ExtResource("p_blessed_in_the_light"), ExtResource("p_nowhere_to_hide"), ExtResource("p_unbowed"), ExtResource("p_unbowed_ii"), ExtResource("p_unbowed_iii"), ExtResource("p_unbowed_iv"), ExtResource("p_unbowed_v"), ExtResource("p_unbowed_vi"), ExtResource("p_unbowed_vii"), ExtResource("p_kindled_faith")])
+passives = Array[ExtResource("2_t7133")]([ExtResource("p_mercy"), ExtResource("p_aura"), ExtResource("p_mercy_ii"), ExtResource("p_aura_ii"), ExtResource("p_reserved_power"), ExtResource("p_reserved_power_ii"), ExtResource("p_radiant_guardian"), ExtResource("p_devotion"), ExtResource("p_blessed_in_the_light"), ExtResource("p_nowhere_to_hide"), ExtResource("p_unbowed"), ExtResource("p_unbowed_ii"), ExtResource("p_unbowed_iii"), ExtResource("p_unbowed_iv"), ExtResource("p_unbowed_v"), ExtResource("p_unbowed_vi"), ExtResource("p_unbowed_vii"), ExtResource("p_kindled_faith")])
 subclasses = Array[String](["battle_chaplain", "illusory_shepherd", "inquisitor"])
 future_changed_lines = Array[String](["Didn't expect to let you do that, did you now?", "Not this time.", "Our actions shape our future!", "So very obvious of you."])
 starting_items = Array[String](["medicine", "cure_potion", "cure_potion"])

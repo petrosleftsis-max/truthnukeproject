@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Kindled Faith"
-description = "Standing in Bright as her turn starts, she mends 3 and a twentieth of her Mindfulness."
+description = "Standing in a Bright Area as her turn starts, she mends 3 and 5% of her Mindfulness."
 required_level = 24
 mends_in_bright = 3.0
 mends_in_bright_per_stat = 0.05

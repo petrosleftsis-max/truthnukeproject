@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Blazed Path"
-description = "While she burns, the tiles she walks stay lit until her next turn. Her side walks them unhemmed and starts a turn on them a tile further; the other side catches fire stepping there."
+description = "While she burns, every tile she walks in her turn stays alight until her next turn. Her side walks onto those tiles for one movement a tile, never double - not even when hemmed in, or in snow or tar - and anybody of her side who starts a turn on one gets +1 movement that turn. The other side catches fire stepping onto one."
 required_level = 8
 blazes_a_path = true

@@ -6,6 +6,6 @@
 [resource]
 script = ExtResource("2_passive")
 name = "Exposed"
-description = "Turn away from a champion at your peril: anybody of the other side who ends a turn within two tiles of them without hurting them is Exposed - a fifth more from the champion until their next turn."
+description = "Turn away from a champion at your peril: anybody of the other side who ends a turn within two tiles of them without hurting them is Exposed - the champion has +20% Output Efficiency against them until their next turn."
 exposes_within = 2
 exposes_with = ExtResource("1_exposed")

@@ -6,6 +6,6 @@
 script = ExtResource("1_cond")
 display_name = "Bulwarked"
 tag = "Bw"
-description = "Behind Enfina's guard: takes less damage."
+description = "Behind Enfina's guard: 10% Damage Mitigation."
 duration = 1
 damage_taken_change = -0.1

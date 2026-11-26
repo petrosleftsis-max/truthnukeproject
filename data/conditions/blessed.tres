@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Blessed"
 tag = "Bs"
-description = "In Alithia's grace: takes less damage."
+description = "In Alithia's grace: 10% Damage Mitigation."
 duration = 1
 damage_taken_change = -0.1
 off_them = 4

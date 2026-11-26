@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Basic Heavy Armour"
+description = "Her own plates and mail, worn whenever she has nothing better on. They keep up with her as she grows."
+slot = 1
+for_characters = Array[String](["enfina"])
+defense = 18
+armour_category = 1
+defense_by_level = {
+1: 18,
+8: 27,
+17: 36
+}

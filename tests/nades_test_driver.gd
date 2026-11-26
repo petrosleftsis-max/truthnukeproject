@@ -3,7 +3,7 @@ extends Node
 ## opened, no level needed, the nade's own power - and gone once thrown. But only
 ## by somebody who knows the spell or could learn it (their skills, at any level,
 ## or any of their paths): a Communion Nade is Alithia's, not Prometheus's or
-## Enfina's. Cyrus's Nade Juggler throws any of them, and with the secondary
+## Enfina's. Cyrus's Quick Hands throws any of them, and with the secondary
 ## action.
 
 var LOG_PATH := HarnessLog.path_for("nades")
@@ -171,7 +171,7 @@ func whose_nade_it_is():
 	ok(not combat.meets_level_for(young, SkillDatabase.skills.communion) and combat.can_use_gate_nade(young, communion),
 		"a spell she is not old enough for yet is one she could learn")
 	ok(combat.can_use_gate_nade(cyrus, communion) and combat.can_use_gate_nade(cyrus, nade("wildfire_gate_nade")),
-		"and Cyrus, through Nade Juggler, can throw any of them")
+		"and Cyrus, through Quick Hands, can throw any of them")
 	log_line("")
 	log_line("======== on the panel ========")
 	Campaign.set_inventory("prometheus", ["communion_gate_nade", "crystalise_gate_nade"])
@@ -232,22 +232,21 @@ func throwing_them():
 
 
 func the_juggler():
-	log_line("======== Cyrus's Nade Juggler ========")
+	# Nade Juggler is part of Quick Hands (the designer, 2026-11-17: "merge nade juggler with quick hands, and keep the latter title").
+	log_line("======== Cyrus's Quick Hands, with the nades ========")
 	var cyrus := who("cyrus")
 	var foe := a_foe()
 	foe.hp = 999
 	foe.max_hp = 999
-	var juggler: PassiveDefinition = load("res://data/passives/nade_juggler.tres")
-	ok(juggler.any_gate_nade and juggler.gate_nades_as_secondary, "any nade at all, and with the secondary action")
-	ok(" ".join(juggler.describe_effects()).contains("any Gate Nade"), "and his sheet says so")
-	# Quick Hands takes every item to the secondary anyway, so it is set aside to
-	# see Nade Juggler do it on its own.
 	var quick_hands: PassiveDefinition = load("res://data/passives/quick_hands.tres")
-	cyrus.passives.erase(quick_hands)
+	ok(quick_hands.any_gate_nade and quick_hands.gate_nades_as_secondary and quick_hands.items_as_secondary,
+		"Quick Hands: any nade at all, and with the secondary action, as every item")
+	ok(" ".join(quick_hands.describe_effects()).contains("any Gate Nade"), "and his sheet says so")
+	ok(not cyrus.passives.any(func(passive): return passive != null and passive.name == "Nade Juggler"), "and there is no Nade Juggler beside it")
 	var wildfire: SkillDefinition = nade("wildfire_gate_nade")
 	ok(ui._consumable_spends_secondary(cyrus, wildfire), "a nade goes from his secondary action")
-	ok(not ui._consumable_spends_secondary(cyrus, SkillDatabase.skills.small_bomb), "a bomb, without Quick Hands, does not")
-	ok(ui.build_skill_tooltip(wildfire, cyrus).contains("Secondary through Nade Juggler"), "and the nade's preview says whose doing that is")
+	ok(ui._consumable_spends_secondary(cyrus, SkillDatabase.skills.small_bomb), "and so does a bomb")
+	ok(ui.build_skill_tooltip(wildfire, cyrus).contains("Secondary through Quick Hands"), "and the nade's preview says whose doing that is")
 	Campaign.set_inventory("cyrus", ["wildfire_gate_nade", "communion_gate_nade"])
 	combat.teleport_to(cyrus, within(cyrus, foe, 6))
 	await settle(1)
@@ -258,5 +257,4 @@ func the_juggler():
 	ok(foe.hp < 999 and cyrus.secondary_used_this_turn and not cyrus.skill_used_this_turn,
 		"he throws a Wildfire nobody else can with his secondary action, his main still to come", "%d" % foe.hp)
 	ok(items_button(cyrus, "communion_gate_nade")[1], "and Alithia's Communion nade is his to throw too")
-	cyrus.passives.append(quick_hands)
 	log_line("")

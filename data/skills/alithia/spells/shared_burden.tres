@@ -14,7 +14,7 @@ held_by_tether = true
 [resource]
 script = ExtResource("3_skill")
 name = "Shared Burden"
-description = "She takes half of what would hurt an ally, for as long as she holds the tether. That frays neither her tether nor theirs."
+description = "She takes 50% of what would hurt an ally, for as long as she holds the tether. That frays neither her tether nor theirs."
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 min_range = 1

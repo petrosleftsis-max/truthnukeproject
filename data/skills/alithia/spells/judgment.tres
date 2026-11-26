@@ -9,7 +9,7 @@
 script = ExtResource("3_skill")
 impact_sound = ExtResource("sfx_impact_sound")
 name = "Judgment"
-description = "The idol's verdict on one enemy: half their defence counts for nothing."
+description = "The idol's verdict on one enemy: 50% of their Defense counts for nothing."
 min_range = 1
 max_range = 15
 ability_modifier = 3.4

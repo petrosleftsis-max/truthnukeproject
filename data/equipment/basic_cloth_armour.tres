@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EquipmentDefinition.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+name = "Basic Cloth Armour"
+description = "His own robes and wraps, worn whenever he has nothing better on. They keep up with him as he grows."
+slot = 1
+for_characters = Array[String](["prometheus"])
+defense = 9
+armour_category = 3
+defense_by_level = {
+1: 9,
+8: 17,
+17: 24
+}

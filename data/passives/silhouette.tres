@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Silhouette"
-description = "The archer in the shadows, shooting into the firelight: somebody standing in Bright, shot from the Dark, takes a fifth more."
+description = "The archer in the shadows, shooting into the firelight: his ranged moves from a Dark Area at somebody standing in a Bright Area have +20% Output Efficiency."
 required_level = 8
 silhouette_bonus = 0.2

@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Composed"
 tag = "Cs"
-description = "Half the damage from anything, and what gets through frays no tether of theirs."
+description = "50% Damage Mitigation, and what gets through frays no tether of theirs."
 duration = 4
 damage_taken_change = -0.5
 keeps_tether_when_hurt = true

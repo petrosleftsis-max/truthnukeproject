@@ -2,7 +2,7 @@ extends Node
 ## Prone (Combat "Prone"; the designer, 2026-11-05): anybody lies down for nothing
 ## and gets up for half their movement, walking only once up; lying there, half from
 ## ranged moves and areas, double from melee, which the prompt and the blow agree on.
-## Cyrus's Low Shot takes the cover away from his ranged moves; the Saboteur's Kip-Up
+## Cyrus's Cat Eyes takes the cover away from his ranged moves; the Saboteur's Kip-Up
 ## takes the cost away from his getting up. Undo Move takes lying down and getting
 ## up back ("allow undo move to work on prone").
 
@@ -225,7 +225,7 @@ func what_it_does_to_a_blow():
 
 
 func low_shot():
-	log_line("======== Low Shot: Cyrus's ranged moves give no cover ========")
+	log_line("======== Cat Eyes: Cyrus's ranged moves give no cover ========")
 	var cyrus := who("cyrus")
 	var alithia := who("alithia")
 	var enfina := who("enfina")
@@ -368,7 +368,7 @@ func the_button():
 	var whole: int = controller.movement
 	ui._refresh_prone()
 	ok(ui._prone_button.visible and ui._prone_button.text == "Go Prone" and not ui._prone_button.disabled, "on her turn, Go Prone", ui._prone_button.text)
-	ok(ui._prone_button.tooltip_text.contains("half damage"), "  saying what it does")
+	ok(ui._prone_button.tooltip_text.contains("50% Damage Mitigation"), "  saying what it does")
 	ok(InputMap.has_action(&"prone"), "there is a key for it", Pad.key(&"prone"))
 	ui._prone_button.pressed.emit()
 	await settle()

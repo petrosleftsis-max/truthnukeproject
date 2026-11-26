@@ -26,7 +26,7 @@ extra_traps = 1
 [sub_resource type="Resource" id="Passive_2"]
 script = ExtResource("1_passive")
 name = "Grand Snare"
-description = "Anybody held fast by one of his traps takes a quarter more from him."
+description = "He has +25% Output Efficiency against anybody held fast by one of his traps."
 required_level = 64
 bonus_vs_trapped = 0.25
 

@@ -18,7 +18,7 @@ zone_colour = Color(1, 0.95, 0.7, 0.1)
 [resource]
 script = ExtResource("3_skill")
 name = "Daylight"
-description = "Bright daylight on the ground she points at, and no darkness holds there, Light Void included. Aimed at somebody of her side, it goes on their weapon and goes where they go. It lasts as long as she holds the tether."
+description = "Daylight on the ground she points at: a Bright Area, where no darkness holds, Light Void included. Aimed at somebody of her side, it goes on their weapon and goes where they go. It lasts as long as she holds the tether."
 max_range = 10
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])

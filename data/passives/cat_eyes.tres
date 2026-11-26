@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_passive")
-name = "Low Shot"
-description = "He aims low: an enemy lying prone gets no cover from his ranged moves."
+name = "Cat Eyes"
+description = "He sees in the dark: nobody in darkness is invisible to him. And he aims low: an enemy lying prone gets no cover from his ranged moves."
+sees_in_darkness = true
 ignores_prone_cover = true

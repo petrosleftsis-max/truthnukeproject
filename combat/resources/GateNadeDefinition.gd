@@ -13,7 +13,7 @@ class_name GateNadeDefinition
 ## Item Power (a nade is the same nade whoever throws it, like a bomb) and its
 ## price. So a change to the spell changes every nade of it.
 ##
-## Which action it costs is the spell's. Cyrus's Nade Juggler throws any of
+## Which action it costs is the spell's. Cyrus's Quick Hands throws any of
 ## them, whatever spell is in it (PassiveDefinition.any_gate_nade), and with the
 ## secondary action (gate_nades_as_secondary).
 

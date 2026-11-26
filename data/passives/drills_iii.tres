@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Drills III"
-description = "Riposte and Step In, and every reaction of hers lands a quarter harder."
+description = "Riposte and Step In, and every reaction of hers has +25% Output Efficiency."
 required_level = 41
 reactions_harder = 0.25

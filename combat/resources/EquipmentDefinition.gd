@@ -19,8 +19,12 @@ class_name EquipmentDefinition
 ## (Campaign "Containers"), worn rather than equipped. Appended: a slot is stored
 ## by number.
 enum Slot { WEAPON, ARMOUR, CHARM, BELT, POUCH, BACKPACK }
-## Light and heavy are kinds of armour to tell apart; for now they wear the same.
-enum ArmourCategory { LIGHT, HEAVY }
+## Cloth, light, medium and heavy are kinds of armour; who can wear which is each
+## character's own (CombatantDefinition.armour_kinds, asked through Campaign.can_use).
+## Stored by number, so Medium (the designer, 2026-11-19) and Cloth (2026-11-20) are on
+## the end. Cloth is Prometheus's: frailer than light, with better secondary effects to
+## come - "Cloth" only until the designer names it.
+enum ArmourCategory { LIGHT, HEAVY, MEDIUM, CLOTH }
 
 ## The keys the slots are stored under (Campaign.equipped, Campaign.containers),
 ## in Slot order.
@@ -30,7 +34,7 @@ const SLOT_NAMES := ["Weapon", "Armour", "Charm", "Baldric", "Pouch", "Backpack"
 ## The slots of what is equipped (the character sheet's Gear) - the rest are
 ## containers, changed on the inventory screen.
 const GEAR_SLOTS := 3
-const CATEGORY_NAMES := ["Light", "Heavy"]
+const CATEGORY_NAMES := ["Light", "Heavy", "Medium", "Cloth"]
 
 @export var name: String = ""
 @export_multiline var description: String = ""
@@ -52,6 +56,12 @@ const CATEGORY_NAMES := ["Light", "Heavy"]
 @export_range(0, 100) var defense: int = 10
 ## Used when slot is ARMOUR.
 @export var armour_category: ArmourCategory = ArmourCategory.LIGHT
+## Used when slot is ARMOUR: Defense in steps by the wearer's level instead, level ->
+## Defense from that level on ({1: 12, 8: 20, 17: 28}). Filled in, it stands in for
+## Defense above. For a basic armour (CombatantDefinition.basic_armour), worn by
+## somebody of any level whenever they wear nothing better (the designer, 2026-11-19:
+## the party has armour instead of Defense bands).
+@export var defense_by_level: Dictionary = {}
 
 @export_group("Charm")
 ## Used when slot is CHARM: what wearing it does, as a passive - its Required
@@ -101,9 +111,57 @@ func is_container() -> bool:
 	return slot >= Slot.BELT
 
 
-## Whether `character_key` can use it.
+## Whether it was made for `character_key`, or for anybody. Whether they can use it -
+## armour of a kind they wear, too - is Campaign.can_use.
 func fits(character_key: String) -> bool:
 	return for_characters.is_empty() or for_characters.has(character_key)
+
+
+## What sort of thing it is, in a word or two: Weapon, Light / Medium / Heavy armour,
+## Charm, Baldric, Pouch, Backpack.
+func kind() -> String:
+	if slot == Slot.ARMOUR:
+		return "%s armour" % CATEGORY_NAMES[armour_category]
+	return SLOT_NAMES[slot]
+
+
+## What it is and does, for a preview (the store's, the stash's, the sheet's): its name,
+## then its kind and what it does (summary - "Backpack - 2 slots"), any `extra` lines
+## (who can use it), and its description. The kind is said here and never in the name
+## (the designer, 2026-11-20: "not in their name/ title, but in the preview of their
+## description").
+func reading(extra: Array = []) -> String:
+	var lines := [name, summary()]
+	lines.append_array(extra)
+	if description != "":
+		lines.append_array(["", description])
+	return "\n".join(lines)
+
+
+## The Defense it gives somebody of `level`: Defense, or the step of Defense By Level
+## they have reached.
+func defense_at(level: int) -> int:
+	if defense_by_level.is_empty():
+		return defense
+	var reached := -1
+	var value := defense
+	for from in defense_by_level:
+		if int(from) <= level and int(from) > reached:
+			reached = int(from)
+			value = int(defense_by_level[from])
+	return value
+
+
+## "12 from level 1, 20 from 8, 28 from 17" for armour in steps; "" otherwise.
+func defense_steps() -> String:
+	if defense_by_level.is_empty():
+		return ""
+	var levels: Array = defense_by_level.keys()
+	levels.sort_custom(func(a, b): return int(a) < int(b))
+	var said := []
+	for from in levels:
+		said.append(("%d from level %d" if said.is_empty() else "%d from %d") % [int(defense_by_level[from]), int(from)])
+	return ", ".join(said)
 
 
 ## What it does, in a line - for a tooltip, a store, the sheet.
@@ -112,6 +170,8 @@ func summary() -> String:
 		Slot.WEAPON:
 			return "Weapon - weapon base %d" % weapon_base
 		Slot.ARMOUR:
+			if not defense_by_level.is_empty():
+				return "%s armour - defence %s" % [CATEGORY_NAMES[armour_category], defense_steps()]
 			return "%s armour - defence %d" % [CATEGORY_NAMES[armour_category], defense]
 		Slot.CHARM:
 			return "Charm - %s" % (passive.name if passive != null else "does nothing yet")
@@ -130,7 +190,7 @@ func _set_slot(value: Slot):
 
 const _FIELDS_BY_SLOT := {
 	Slot.WEAPON: ["weapon_base"],
-	Slot.ARMOUR: ["defense", "armour_category"],
+	Slot.ARMOUR: ["defense", "armour_category", "defense_by_level"],
 	Slot.CHARM: ["passive"],
 	Slot.BELT: ["slots", "bombs_per_slot"],
 	Slot.POUCH: ["slots", "bombs_per_slot"],

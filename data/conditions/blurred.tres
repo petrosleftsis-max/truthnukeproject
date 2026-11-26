@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Blurred"
 tag = "Br"
-description = "Hard to make out from afar: a fifth less from anything thrown or shot from more than a tile away, until their next turn starts."
+description = "Hard to make out from afar: 20% Damage Mitigation against anything thrown or shot from more than a tile away, until their next turn starts."
 duration = 1
 wears_off_at_start = true
 less_from_afar = 0.2

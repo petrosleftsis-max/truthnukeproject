@@ -76,6 +76,6 @@ display_name = "Dungeon: The Sewer"
 description = "The whole party, at level 14, ambushed in the sewer - with more of them than before."
 terrain_scene = ExtResource("3_ge6on")
 victory_dialogue = ExtResource("4_1iwxu")
-gold_reward = 45
+gold_reward = 400
 spawns = Array[ExtResource("2_iaqug")]([SubResource("Resource_ge6on"), SubResource("Resource_1iwxu"), SubResource("Resource_5yis8"), SubResource("Resource_87osr"), SubResource("Resource_lvpvi"), SubResource("Resource_irf0o"), SubResource("Resource_jg4ma"), SubResource("Resource_v857l"), SubResource("Resource_ilk6v")])
 music = "My_Gospel_is_Gunpowder_feat_The_Epoch_House_Choir_Instrumental_Version"

@@ -24,14 +24,14 @@ spellstrike_skills = Array[String](["flame_edge", "frost_edge", "storm_edge", "s
 [sub_resource type="Resource" id="Passive_2"]
 script = ExtResource("1_passive")
 name = "Elemental Armour"
-description = "Wrapped in what he last struck with: a fifth less of that element."
+description = "Wrapped in what he last struck with: 20% Damage Mitigation against that element."
 required_level = 54
 elemental_armour = 0.2
 
 [sub_resource type="Resource" id="Passive_3"]
 script = ExtResource("1_passive")
 name = "Avatar"
-description = "His Edges hit half as hard again."
+description = "His Edges have +50% Output Efficiency."
 required_level = 64
 skill_bonuses = {
 "flame_edge": 0.5,

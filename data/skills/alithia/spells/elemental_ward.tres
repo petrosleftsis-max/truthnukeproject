@@ -14,7 +14,7 @@ held_by_tether = true
 [resource]
 script = ExtResource("3_skill")
 name = "Elemental Ward"
-description = "An ally of hers, and one base element she chooses as it lands: half of it, for as long as she holds the tether."
+description = "An ally of hers, and one base element she chooses as it lands: 50% Damage Mitigation against it, for as long as she holds the tether."
 icon = ExtResource("2_icon")
 effects = Array[ExtResource("1_effect")]([SubResource("Effect_0")])
 max_range = 6

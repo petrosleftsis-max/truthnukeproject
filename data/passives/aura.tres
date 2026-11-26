@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Aura I"
-description = "Allies within two tiles of her are blessed: a tenth less damage."
+description = "Allies within two tiles of her are blessed: 10% Damage Mitigation."
 required_level = 8
 aura_radius = 2
 aura_on_allies = ExtResource("2_cond")

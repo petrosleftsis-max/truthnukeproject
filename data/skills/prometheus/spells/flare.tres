@@ -21,7 +21,7 @@ zone_bare = true
 [resource]
 script = ExtResource("3_skill")
 name = "Flare"
-description = "Shot up over where he points: a big area is Bright for two of his turns, and every enemy there who is invisible or hidden is seen. Light Void wins over it. On a map it goes up ahead of him, and every guard hears it."
+description = "Shot up over where he points: a big Bright Area for two of his turns, and every enemy there who is invisible or hidden is seen. Light Void wins over it. On a map it goes up ahead of him, and every guard hears it."
 max_range = 10
 icon = ExtResource("2_icon")
 can_be_copied = false

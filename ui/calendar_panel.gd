@@ -29,7 +29,7 @@ const WEATHER_SAYS := {
 	"haze": "A soft, pale light. Nothing changes in a fight.",
 	"overcast": "Grey, and the shadows soft. Nothing changes in a fight.",
 	"rain": "A light rain: steps are heard further on a map, prints are left in the mud, whoever starts a turn under it is Soaked, and fire on the ground burns out sooner.",
-	"fog": "Thick: in a fight whoever can hide is lost past 3 tiles; on a map a guard sees only as far as his Dim sight. Close by, both see as ever.",
+	"fog": "Thick: in a fight whoever can hide is lost past 3 tiles; on a map a guard sees only as far as he would in a Dim Area. Close by, both see as ever.",
 	"storm": "A hard rain: steps are drowned on a map, whoever starts a turn under it is Soaked, and fire on the ground burns out sooner.",
 	"snow": "Snow lies and deepens through the day: deep snow costs twice to walk, Frozen lasts longer in the cold, and steps leave prints.",
 	"sleet": "Rain and hail: whoever starts a turn under it is Soaked, and Frozen lasts longer in the cold.",

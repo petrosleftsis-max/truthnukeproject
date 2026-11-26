@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_passive")
 name = "Nowhere to Hide"
-description = "Anybody of the other side standing in Bright within six tiles of her, in her sight, cannot hide, and is Exposed to her if they try."
+description = "Anybody of the other side standing in a Bright Area within six tiles of her, in her sight, cannot hide, and is Exposed to her if they try."
 required_level = 16
 nowhere_to_hide_tiles = 6

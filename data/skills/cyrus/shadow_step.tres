@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_skill")
 name = "Shadow Step"
-description = "A secondary action. From one Dim or Dark tile to another within four, with a clear line between them. Nobody can react to it, and nobody sees him go."
+description = "A secondary action. From one tile in a Dim or Dark Area to another within four, with a clear line between them. Nobody can react to it, and nobody sees him go."
 max_range = 4
 icon = ExtResource("2_icon")
 respects_blocking = true

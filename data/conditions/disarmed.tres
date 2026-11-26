@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_cond")
 display_name = "Disarmed"
-description = "Their grip knocked loose: their next weapon attack deals half damage."
+description = "Their grip knocked loose: 50% Damage Mitigation against their next weapon attack."
 duration = 2
 weapon_damage_change = -0.5
 ends_after_weapon_attack = true

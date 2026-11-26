@@ -572,7 +572,7 @@ func tour_the_weathers():
 	await load(CALENDAR_PANEL).tour(get_tree())
 
 
-## Whether `key` sees in the dark, as far as their passives go (Cyrus's Night Eyes).
+## Whether `key` sees in the dark, as far as their passives go (Cyrus's Cat Eyes).
 func sees_in_darkness(key: String) -> bool:
 	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
 	if definition == null:
@@ -1989,6 +1989,16 @@ func in_dungeon() -> bool:
 	return dungeon != null
 
 
+## The level `key`'s basic armour (CombatantDefinition.basic_armour) counts as at, for
+## somebody of `level`: theirs, or its first step in a dungeon that holds it there
+## (DungeonDefinition.basic_armour_at_first - the whole party in the Dungeon Demo, the
+## designer, 2026-11-19).
+func basic_armour_level(key: String, level: int) -> int:
+	if dungeon != null and dungeon.basic_armour_at_first.has(key):
+		return 1
+	return level
+
+
 ## The stage the party is on, or null.
 func current_dungeon_stage() -> DungeonStage:
 	if dungeon == null or dungeon_stage < 0 or dungeon_stage >= dungeon.stages.size():
@@ -3022,11 +3032,21 @@ func equipped_in(character: String, slot: String) -> String:
 	return equipped.get(character, {}).get(slot, "")
 
 
+## Whether `character` can use `piece`: made for them or for anybody
+## (EquipmentDefinition.fits), and for armour, of a kind they wear
+## (CombatantDefinition.armour_kinds; the designer, 2026-11-20).
+func can_use(character: String, piece: EquipmentDefinition) -> bool:
+	if piece == null or not piece.fits(character):
+		return false
+	var who: CombatantDefinition = CombatantDatabase.combatants.get(character)
+	return who == null or who.wears(piece)
+
+
 ## Puts `key`, from the stash, on `character` - whatever was in that slot goes
 ## back to the stash. False if it is not in the stash or not theirs to use.
 func equip(character: String, key: String) -> bool:
 	var piece := EquipmentDefinition.named(key)
-	if piece == null or not gear.has(key) or not piece.fits(character):
+	if piece == null or not gear.has(key) or not can_use(character, piece):
 		return false
 	# Something to carry things in, with what is in it (see "Containers").
 	if piece.is_container():
@@ -3061,7 +3081,7 @@ func gear_for(character: String, slot: String) -> Array:
 	var found := []
 	for key in gear:
 		var piece := EquipmentDefinition.named(key)
-		if piece != null and piece.slot_key() == slot and piece.fits(character) and not found.has(key):
+		if piece != null and piece.slot_key() == slot and can_use(character, piece) and not found.has(key):
 			found.append(key)
 	return found
 

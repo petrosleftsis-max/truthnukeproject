@@ -16,7 +16,7 @@ zone_colour = Color(0.02, 0.02, 0.06, 0.62)
 [resource]
 script = ExtResource("2_item")
 name = "Ink Bottle"
-description = "Light Void in a bottle: the ground it breaks on is Dark for three of the thrower's turns, and no ordinary light shines in it. Anybody there is invisible to whoever cannot see in the dark."
+description = "Light Void in a bottle: the ground it breaks on is a Dark Area for three of the thrower's turns, and no ordinary light shines in it. Anybody there is invisible to whoever cannot see in the dark."
 max_range = 5
 aoe_radius = 2
 icon = ExtResource("4_icon")

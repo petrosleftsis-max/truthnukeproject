@@ -356,7 +356,7 @@ func _build_undo_button():
 ## A button over Ready, and Ctrl: the one acting lies down, for nothing, or gets up,
 ## for half their movement. Undo Move takes either back.
 
-const PRONE_TIP := "Lie flat, for nothing: half damage from ranged moves and areas, double from melee, and no walking until you get up"
+const PRONE_TIP := "Lie flat, for nothing: 50% Damage Mitigation against ranged moves and areas, but melee against you has +100% Output Efficiency, and no walking until you get up"
 const GET_UP_TIP := "Get up, for %d of your movement, and walk again"
 
 var _prone_button: Button = null
@@ -1217,7 +1217,13 @@ func _refresh_amplify(comb):
 	var steps: int = comb.get("amplify", 0)
 	amplify_toggle.text = "Amplify: off" if steps == 0 else "Amplify: +%d gate%s" % [steps, "" if steps == 1 else "s"]
 	var free_left: int = combat.free_amplifies(comb) - comb.get("free_amplifies_used", 0)
-	amplify_toggle.tooltip_text = "Cast the next spell through a deeper gate for more damage.\n%d free until a short rest." % maxi(free_left, 0)
+	# How much more, in numbers (the designer, 2026-11-17: Output Efficiency).
+	var per_gate := 0.0
+	for passive in combat.active_passives(comb):
+		if passive.amplifies_spells:
+			per_gate = maxf(per_gate, passive.amplify_bonus_per_gate)
+	amplify_toggle.tooltip_text = "Cast the next spell through a deeper gate: +%d%% Output Efficiency for each gate deeper.\n%d free until a short rest." % [
+		roundi(per_gate * 100.0), maxi(free_left, 0)]
 
 
 ## Off, one gate deeper, two, and off again.
@@ -2125,7 +2131,7 @@ func _consumable_spends_secondary(comb: Dictionary, item: SkillDefinition) -> bo
 		return false
 	if combat == null:
 		return false
-	# Any item from the secondary (Quick Hands), or a Gate Nade (Nade Juggler).
+	# Any item from the secondary (Quick Hands), or a Gate Nade (Quick Hands too).
 	var either_slot: bool = combat.items_as_secondary(comb) \
 		or (combat.is_gate_nade(item) and combat.gate_nades_as_secondary(comb))
 	if not either_slot:
@@ -2527,7 +2533,7 @@ func _build_skill_tooltip(skill: SkillDefinition) -> String:
 			beaten_by = "%d" % skill.item_power
 		lines.append("Lands on anyone with %s below %s. %s" % [
 			Stats.stat_name(skill.contest_stat), beaten_by,
-			"Everyone else takes half damage and none of the rest." if hurts
+			"Everyone else takes it with 50% Damage Mitigation, and none of the rest." if hurts
 				else "Everyone else shrugs it off entirely."
 		])
 	else:
@@ -2685,7 +2691,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			if share_of > 0.0:
 				share = "%d%% of %s health" % [roundi(share_of * 100), "their own" if effect.applies_to_caster else "their"]
 				if effect.share_doubled_on_wounded:
-					share += " (twice the first time on a foe at half health)"
+					share += " (+100% Output Efficiency the first time on a foe at half health)"
 				if mended <= 0:
 					return "Heal: %s" % share
 			if mended >= 0:
@@ -2704,12 +2710,12 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Raises the element of their next damaging spell (%s), %s" % [
 				", ".join(pairs), _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)]
 		EffectDefinition.EffectType.RESISTANCE:
-			var harder = effect.modifier_amount > 0
-			return "%s %s resistance by %d%% %s" % [
-				"Raises" if harder else "Lowers",
-				Damage.type_name(effect.damage_type).to_lower(),
-				absi(effect.modifier_amount), _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)
-			]
+			# A resistance raised is Damage Mitigation, one lowered Output Efficiency against them (the designer, 2026-11-17).
+			var element_named := Damage.type_name(effect.damage_type).to_lower()
+			var lasting := _how_long(effect.duration, effect.wears_off_at_start, effect.applies_to_caster)
+			if effect.modifier_amount > 0:
+				return "%d%% Damage Mitigation against %s %s" % [effect.modifier_amount, element_named, lasting]
+			return "+%d%% Output Efficiency for %s against them %s" % [-effect.modifier_amount, element_named, lasting]
 		EffectDefinition.EffectType.MOVEMENT_CLASS:
 			var moving_as = Stats.movement_class_name(effect.movement_class).to_lower()
 			if effect.movement_class == 1:
@@ -2862,7 +2868,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.DISGUISE:
 			return "Puts on a disguise that fits, and walks in plain sight"
 		EffectDefinition.EffectType.CATALYST:
-			return "Every lingering condition of yours, on every enemy, goes off at once, x%s what it had left - then starts again" % String.num(effect.catalyst_times, 2)
+			return "Every lingering condition of yours, on every enemy, goes off at once - all it had left, with +%d%% Output Efficiency - then starts again" % roundi((effect.catalyst_times - 1.0) * 100.0)
 		EffectDefinition.EffectType.SWALLOW:
 			return "Swallows whoever it has hold of, whole - digested in %d of its turns unless they get out" % maxi(effect.duration, 1)
 		EffectDefinition.EffectType.REVEAL:
@@ -2887,7 +2893,7 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 		EffectDefinition.EffectType.SHAKE:
 			return "Shakes their nerve (%d-%d), toward fleeing or surrendering" % [effect.min_amount, effect.max_amount]
 		EffectDefinition.EffectType.CLIMB:
-			return "Climbs onto them, to fight from on top: every blow on them lands, and harder, until they shake you off"
+			return "Climbs onto them, to fight from on top: every blow on them lands, with +%d%% Output Efficiency, until they shake you off" % roundi((Combat.RIDING_BONUS - 1.0) * 100.0)
 		EffectDefinition.EffectType.BRIBE:
 			return "Pays their price to leave the fight"
 		EffectDefinition.EffectType.BREAK_FREE:
@@ -3452,7 +3458,7 @@ func _hit_row(caster: Dictionary, target: Dictionary, skill: SkillDefinition, hi
 		if hit.wins:
 			verdict = "lands in full"
 		elif hit.deals_damage:
-			verdict = "shrugged off - half damage, nothing else"
+			verdict = "shrugged off - 50% Damage Mitigation, nothing else"
 		else:
 			verdict = "shrugged off - nothing lands"
 		# Whose number is whose: the caster's own attribute, or the bottle's
@@ -3850,7 +3856,7 @@ func close_ammo_picker():
 ## --- Which action an item spends ---
 ##
 ## Somebody who can use an item with either action (Cyrus's Quick Hands, or a
-## Gate Nade through Nade Juggler) is asked which, when both are still there -
+## Gate Nade through Gate Nades As Secondary) is asked which, when both are still there -
 ## the main action to keep the secondary for something else, or the other way
 ## round. With only one left, that one is spent without asking.
 

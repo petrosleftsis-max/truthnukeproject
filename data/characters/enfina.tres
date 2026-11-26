@@ -20,7 +20,6 @@
 [ext_resource type="Resource" path="res://data/passives/drills_iii.tres" id="p_drills_iii"]
 [ext_resource type="Resource" path="res://data/passives/iron_hide.tres" id="p_iron_hide"]
 [ext_resource type="Resource" path="res://data/passives/iron_hide_ii.tres" id="p_iron_hide_ii"]
-[ext_resource type="Resource" path="res://data/passives/iron_hide_iii.tres" id="p_iron_hide_iii"]
 [ext_resource type="Resource" path="res://data/passives/momentum.tres" id="p_momentum"]
 [ext_resource type="Resource" path="res://data/passives/momentum_ii.tres" id="p_momentum_ii"]
 [ext_resource type="Resource" path="res://data/passives/reads_the_form.tres" id="p_reads_the_form"]
@@ -47,11 +46,7 @@ Her foes fear her reactive skill, so staying close to one will either force them
 As a frontliner, she controls where the fight takes place. Make sure she is always in front of your allies and at the part of the map where you want the fight to take place."
 max_hp = 130
 max_hp_level_20 = 190
-defense_by_level = {
-1: 12,
-8: 20,
-17: 28
-}
+basic_armour = "basic_heavy_armour"
 movement = 6
 initiative = 5
 secondary_stat = 2
@@ -59,7 +54,7 @@ icon = ExtResource("1_8oq43")
 map_sprite = ExtResource("1_8oq43")
 sprite_frames = ExtResource("4_yrjjv")
 skills = Array[String](["study", "greatsword_attack", "fire_burst", "light_swing", "shoving_strike", "sweep_strike", "blink_strike", "guard", "slip_past", "run", "trailblaze", "follow_up_attack", "intimidate", "hurl", "grab", "climb", "battle_cry", "disarm", "stunning_blow", "flashover", "cauterise", "share_the_fire", "arrest"])
-passives = Array[ExtResource("2_1e8p3")]([ExtResource("5_eye"), ExtResource("p_iron_hide"), ExtResource("p_bulwark"), ExtResource("p_iron_hide_ii"), ExtResource("p_momentum"), ExtResource("p_iron_hide_iii"), ExtResource("p_bulwark_iii"), ExtResource("p_momentum_ii"), ExtResource("p_blazed_path"), ExtResource("p_through_the_fire"), ExtResource("p_burning_titanfall"), ExtResource("p_reads_the_form"), ExtResource("p_drills"), ExtResource("p_drills_ii"), ExtResource("p_drills_iii"), ExtResource("p_throw_a_friend"), ExtResource("p_anything_is_a_weapon"), ExtResource("p_carries_them")])
+passives = Array[ExtResource("2_1e8p3")]([ExtResource("5_eye"), ExtResource("p_iron_hide"), ExtResource("p_bulwark"), ExtResource("p_iron_hide_ii"), ExtResource("p_momentum"), ExtResource("p_bulwark_iii"), ExtResource("p_momentum_ii"), ExtResource("p_blazed_path"), ExtResource("p_through_the_fire"), ExtResource("p_burning_titanfall"), ExtResource("p_reads_the_form"), ExtResource("p_drills"), ExtResource("p_drills_ii"), ExtResource("p_drills_iii"), ExtResource("p_throw_a_friend"), ExtResource("p_anything_is_a_weapon"), ExtResource("p_carries_them")])
 subclasses = Array[String](["vanguard", "juggernaut", "warden_of_cover"])
 keeps_codex = true
 breaks_walls = true

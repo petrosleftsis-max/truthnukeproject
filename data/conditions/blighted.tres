@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Blighted"
 tag = "Bg"
-description = "Rotting where they stand: armour a tenth worse, and whatever mends them does only half."
+description = "Rotting where they stand: -10% Defense, and whatever mends them mends 50% less."
 duration = 99
 defense_change = -0.1
 healing_taken_change = -0.5

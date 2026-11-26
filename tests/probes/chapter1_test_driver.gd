@@ -127,8 +127,8 @@ func party():
 			var section := "Party" if level <= LAST_LEVEL else "Party (level-64 regression)"
 			row(section, who.name, level, "HP", who.hp_at(level), "EXISTING_BASELINE", source + ": max_hp / max_hp_level_20 (linear)",
 				"", "player_hp_defense_progression.csv repeats it")
-			row(section, who.name, level, "Defense (no armour worn)", who.defense_at(level), "APPROVED_TRIAL", source + ": defense_by_level",
-				"armour worn in the story replaces it", "from player_hp_defense_progression.csv (applied 2026-10-24)")
+			row(section, who.name, level, "Defense (basic armour)", who.defense_at(level), "APPROVED_TRIAL", source + ": basic_armour (%s)" % who.basic_armour,
+				"armour worn in the story replaces it", "player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)")
 			row(section, who.name, level, "Initiative", who.initiative, "EXISTING_BASELINE", source + ": initiative")
 			row(section, who.name, level, "Movement", movement_text(comb), "EXISTING_BASELINE", source + ": movement + passives (movement_bonus, movement_in_cover)",
 				"passives by level")

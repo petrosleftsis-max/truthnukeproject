@@ -51,9 +51,9 @@ func describe_broken() -> String:
 		Broken.ROOTED:
 			return "cannot move"
 		Broken.WEAKENED:
-			return "hits for %d%%" % roundi(weakened_to * 100)
+			return "%d%% Damage Mitigation against its hits" % roundi((1.0 - weakened_to) * 100)
 		Broken.EXPOSED:
-			return "takes %d%% more" % roundi((exposed_by - 1.0) * 100)
+			return "+%d%% Output Efficiency against it" % roundi((exposed_by - 1.0) * 100)
 		Broken.STAGGERED:
 			return "reels"
 		Broken.DISARMED:

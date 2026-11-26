@@ -6,6 +6,6 @@
 script = ExtResource("1_cond")
 display_name = "Soothed"
 tag = "So"
-description = "Alithia's grace mends a little of their health as each turn starts."
+description = "Alithia's grace mends 5% of their health as each turn starts."
 duration = 1
 mends_share = 0.05

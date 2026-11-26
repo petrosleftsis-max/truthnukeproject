@@ -16,7 +16,7 @@ zone_colour = Color(0.32, 0.42, 0.18, 0.32)
 [resource]
 script = ExtResource("2_skill")
 name = "Blight"
-description = "An area where everything standing rots, for as long as he holds the tether: its armour a tenth worse, and whatever mends it does only half."
+description = "An area where everything standing rots, for as long as he holds the tether: -10% Defense, and whatever mends it mends 50% less."
 min_range = 0
 max_range = 10
 aoe_radius = 2

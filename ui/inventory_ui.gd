@@ -196,7 +196,8 @@ func _container_header(key: String, kind: String) -> Button:
 	var held: bool = _holding_container.get("key", "") == key and _holding_container.get("kind", "") == kind
 	header.add_theme_color_override("font_color", ACCENT if held else (COMBAT_EDGE if kind == "belt" else MUTED))
 	header.text = "%s: %s" % [EquipmentDefinition.slot_name_of(kind), piece.name if piece != null else "none"]
-	header.tooltip_text = TooltipText.wrap(piece.summary() if piece != null else "No %s worn. Press, then press one in the stash to put it on." % kind)
+	header.tooltip_text = TooltipText.wrap(piece.reading() if piece != null
+		else "No %s worn. Press, then press one in the stash to put it on." % EquipmentDefinition.slot_name_of(kind).to_lower())
 	header.pressed.connect(_on_container_pressed.bind(key, kind))
 	return header
 
@@ -221,7 +222,7 @@ func _show_stash():
 		button.focus_mode = Control.FOCUS_NONE
 		var count := Campaign.gear.count(piece_key)
 		button.text = piece.name + (" x%d" % count if count > 1 else "")
-		button.tooltip_text = TooltipText.wrap(piece.summary())
+		button.tooltip_text = TooltipText.wrap(piece.reading())
 		if _holding_container.get("stash", "") == piece_key:
 			button.add_theme_color_override("font_color", ACCENT)
 		button.pressed.connect(_on_stash_pressed.bind(piece_key))

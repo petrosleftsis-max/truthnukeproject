@@ -8,5 +8,5 @@ name = "Brigandine"
 description = "Plates riveted inside a canvas coat."
 slot = 1
 price = 180
-defense = 20
+defense = 27
 armour_category = 1

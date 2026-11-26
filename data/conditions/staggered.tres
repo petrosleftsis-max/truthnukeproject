@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Staggered"
 tag = "Sg"
-description = "Reeling from a full stagger bar: loses their turn, and is hit harder until it is over."
+description = "Reeling from a full stagger bar: loses their turn, and every blow on them has +50% Output Efficiency until it is over (or as much as their stagger bar says)."
 duration = 1
 skips_turn = true
 round_them = 1

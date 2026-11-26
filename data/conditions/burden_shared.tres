@@ -6,7 +6,7 @@
 script = ExtResource("1_cond")
 display_name = "Burden Shared"
 tag = "Bd"
-description = "Whoever put this on them takes half of what would hurt them, and neither of their tethers frays for it."
+description = "Whoever put this on them takes 50% of what would hurt them, and neither of their tethers frays for it."
 duration = 1
 source_takes_share = 0.5
 keeps_tether_when_hurt = true

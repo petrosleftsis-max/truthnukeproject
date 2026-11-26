@@ -7,7 +7,7 @@
 script = ExtResource("1_cond")
 display_name = "Soaked"
 tag = "Sk"
-description = "Wet through from the rain: ice and lightning hurt a quarter more, and Frozen holds a turn longer. It dries off two turns out of the rain."
+description = "Wet through from the rain: ice and lightning have +25% Output Efficiency against them, and Frozen holds a turn longer. It dries off two turns out of the rain."
 duration = 2
 damage_taken_of = Array[int]([8, 9])
 damage_taken_of_change = 0.25

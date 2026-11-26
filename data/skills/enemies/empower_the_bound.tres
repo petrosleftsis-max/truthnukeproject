@@ -23,7 +23,7 @@ duration = 2
 [resource]
 script = ExtResource("3_skill")
 name = "Empower the Bound"
-description = "Floods an ally with strength: harder blows and a tougher hide, for two turns."
+description = "Floods an ally with strength: +30% Physical and +30% Defense, for two turns."
 max_range = 6
 icon = ExtResource("2_icon")
 targets_ally = true

@@ -1,134 +1,134 @@
 Section,Subject,Level,Variable,CurrentValue,ImplementationState,DecisionStatus,Source,Dependencies,Notes
 Party,Enfina,1,HP,130,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Enfina,1,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Enfina,1,Defense (basic armour),18,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: basic_armour (basic_heavy_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Enfina,1,Initiative,6,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: initiative,,
 Party,Enfina,1,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Enfina,1,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: resist_*,,
 Party,Enfina,1,Main / secondary stat,Physical 10 / Intellect 10,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Enfina,1,Skills (not spells),Study; Greatsword Attack x1.0; Fire Burst x0.7; Light Swing x1.0; Shoving Strike x1.0; Blink Strike x0.8; Guard; Slip Past; Run; Intimidate; Hurl x1.0; Grab; Climb,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: skills, required_level, ranks",,
-Party,Enfina,1,Passives active,Measured Eye; Iron Hide I; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
+Party,Enfina,1,Passives active,Measured Eye; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
 Party,Enfina,4,HP,133,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Enfina,4,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Enfina,4,Defense (basic armour),18,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: basic_armour (basic_heavy_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Enfina,4,Initiative,6,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: initiative,,
 Party,Enfina,4,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Enfina,4,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: resist_*,,
 Party,Enfina,4,Main / secondary stat,Physical 14 / Intellect 10,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Enfina,4,Skills (not spells),Study; Greatsword Attack x1.0; Fire Burst x0.7; Light Swing x1.0; Shoving Strike x1.0; Blink Strike x0.8; Guard; Slip Past; Run; Trailblaze; Intimidate; Hurl x1.0; Grab; Climb,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: skills, required_level, ranks",,
-Party,Enfina,4,Passives active,Measured Eye; Iron Hide I; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
+Party,Enfina,4,Passives active,Measured Eye; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
 Party,Enfina,8,HP,137,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Enfina,8,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Enfina,8,Defense (basic armour),27,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: basic_armour (basic_heavy_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Enfina,8,Initiative,6,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: initiative,,
 Party,Enfina,8,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Enfina,8,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: resist_*,,
 Party,Enfina,8,Main / secondary stat,Physical 18 / Intellect 10,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Enfina,8,Skills (not spells),Study; Greatsword Attack x1.5; Fire Burst x0.7; Light Swing x1.0; Shoving Strike x1.0; Blink Strike x0.8; Guard; Slip Past; Run; Trailblaze; Intimidate; Hurl x1.0; Grab; Climb,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: skills, required_level, ranks",,
-Party,Enfina,8,Passives active,Measured Eye; Iron Hide I; Bulwark I; Blazed Path; Drills I; Throw a Friend; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
+Party,Enfina,8,Passives active,Measured Eye; Bulwark I; Blazed Path; Drills I; Throw a Friend; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
 Party,Enfina,11,HP,140,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Enfina,11,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Enfina,11,Defense (basic armour),27,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: basic_armour (basic_heavy_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Enfina,11,Initiative,6,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: initiative,,
 Party,Enfina,11,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Enfina,11,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: resist_*,,
 Party,Enfina,11,Main / secondary stat,Physical 22 / Intellect 11,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Enfina,11,Skills (not spells),Study; Greatsword Attack x1.5; Fire Burst x0.7; Light Swing x1.0; Shoving Strike x1.0; Blink Strike x0.8; Guard; Slip Past; Run; Trailblaze; Intimidate; Hurl x1.0; Grab; Climb,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: skills, required_level, ranks",,
-Party,Enfina,11,Passives active,Measured Eye; Iron Hide I; Bulwark I; Blazed Path; Drills I; Throw a Friend; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
+Party,Enfina,11,Passives active,Measured Eye; Bulwark I; Blazed Path; Drills I; Throw a Friend; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
 Party,Enfina,14,HP,142,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Enfina,14,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Enfina,14,Defense (basic armour),27,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: basic_armour (basic_heavy_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Enfina,14,Initiative,6,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: initiative,,
 Party,Enfina,14,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Enfina,14,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: resist_*,,
 Party,Enfina,14,Main / secondary stat,Physical 25 / Intellect 13,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Enfina,14,Skills (not spells),Study; Greatsword Attack x1.5; Fire Burst x0.7; Light Swing x1.0; Shoving Strike x1.0; Blink Strike x0.8; Guard; Slip Past; Run; Trailblaze; Intimidate; Hurl x1.0; Grab; Climb,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: skills, required_level, ranks",,
-Party,Enfina,14,Passives active,Measured Eye; Iron Hide I; Bulwark I; Blazed Path; Drills I; Throw a Friend; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
+Party,Enfina,14,Passives active,Measured Eye; Bulwark I; Blazed Path; Drills I; Throw a Friend; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
 Party,Enfina,16,HP,144,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Enfina,16,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Enfina,16,Defense (basic armour),27,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: basic_armour (basic_heavy_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Enfina,16,Initiative,6,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: initiative,,
 Party,Enfina,16,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Enfina,16,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: resist_*,,
 Party,Enfina,16,Main / secondary stat,Physical 28 / Intellect 14,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Enfina,16,Skills (not spells),Study; Greatsword Attack x1.5; Fire Burst x0.7; Light Swing x1.0; Shoving Strike x1.0; Blink Strike x0.8; Guard; Slip Past; Run; Trailblaze; Intimidate; Hurl x1.0; Grab; Climb; Battle Cry x0.6; Flashover x0.6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: skills, required_level, ranks",,
-Party,Enfina,16,Passives active,Measured Eye; Iron Hide I; Bulwark I; Iron Hide II; Blazed Path; Drills I; Throw a Friend; Anything Is a Weapon; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
+Party,Enfina,16,Passives active,Measured Eye; Iron Hide I; Bulwark I; Blazed Path; Drills I; Throw a Friend; Anything Is a Weapon; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
 Party,Enfina,18,HP,146,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Enfina,18,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Enfina,18,Defense (basic armour),36,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: basic_armour (basic_heavy_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Enfina,18,Initiative,6,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: initiative,,
 Party,Enfina,18,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Enfina,18,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: resist_*,,
 Party,Enfina,18,Main / secondary stat,Physical 30 / Intellect 15,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Enfina,18,Skills (not spells),Study; Greatsword Attack x1.5; Fire Burst x0.7; Light Swing x1.0; Shoving Strike x1.0; Blink Strike x0.8; Guard; Slip Past; Run; Trailblaze; Intimidate; Hurl x1.0; Grab; Climb; Battle Cry x0.6; Flashover x0.6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: skills, required_level, ranks",,
-Party,Enfina,18,Passives active,Measured Eye; Iron Hide I; Bulwark I; Iron Hide II; Blazed Path; Drills I; Throw a Friend; Anything Is a Weapon; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
+Party,Enfina,18,Passives active,Measured Eye; Iron Hide I; Bulwark I; Blazed Path; Drills I; Throw a Friend; Anything Is a Weapon; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
 Party (level-64 regression),Enfina,64,HP,190,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party (level-64 regression),Enfina,64,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party (level-64 regression),Enfina,64,Defense (basic armour),36,PRESENT,APPROVED_TRIAL,data/characters/enfina.tres: basic_armour (basic_heavy_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party (level-64 regression),Enfina,64,Initiative,6,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: initiative,,
 Party (level-64 regression),Enfina,64,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party (level-64 regression),Enfina,64,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/enfina.tres: resist_*,,
 Party (level-64 regression),Enfina,64,Main / secondary stat,Physical 85 / Intellect 43,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party (level-64 regression),Enfina,64,Skills (not spells),Study; Greatsword Attack x3.0; Fire Burst x0.7; Light Swing x1.0; Shoving Strike x1.0; Sweep Strike x1.4; Blink Strike x0.8; Guard; Slip Past; Run; Trailblaze; Follow Up Attack x1.5; Intimidate; Hurl x1.0; Grab; Climb; Battle Cry x0.6; Disarm x0.8; Stunning Blow x0.8; Flashover x0.6; Cauterise; Share the Fire; Arrest,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: skills, required_level, ranks",,
-Party (level-64 regression),Enfina,64,Passives active,Measured Eye; Iron Hide I; Bulwark I; Iron Hide II; Momentum I; Iron Hide III; Bulwark III; Momentum II; Blazed Path; Through the Fire; Burning Titanfall; Reads the Form; Drills I; Drills II; Drills III; Throw a Friend; Anything Is a Weapon; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
+Party (level-64 regression),Enfina,64,Passives active,Measured Eye; Iron Hide I; Bulwark I; Iron Hide II; Momentum I; Bulwark III; Momentum II; Blazed Path; Through the Fire; Burning Titanfall; Reads the Form; Drills I; Drills II; Drills III; Throw a Friend; Anything Is a Weapon; Carries Them,PRESENT,EXISTING_BASELINE,"data/characters/enfina.tres: passives, required_level",,
 Party,Cyrus,1,HP,75,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Cyrus,1,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Cyrus,1,Defense (basic armour),12,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Cyrus,1,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: initiative,,
 Party,Cyrus,1,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,1,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,1,Main / secondary stat,Self 10 / Physical 10,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Cyrus,1,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Steal; Deceive; Stealth; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
-Party,Cyrus,1,Passives active,Light Footed; Quick Hands; Nade Juggler; Low Shot; Night Eyes; Cat Burglar I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
+Party,Cyrus,1,Passives active,Light Footed; Quick Hands; Cat Eyes,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,4,HP,77,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Cyrus,4,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Cyrus,4,Defense (basic armour),12,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Cyrus,4,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: initiative,,
 Party,Cyrus,4,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,4,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,4,Main / secondary stat,Self 14 / Physical 10,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Cyrus,4,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Steal; Deceive; Stealth; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
-Party,Cyrus,4,Passives active,Light Footed; Quick Hands; Nade Juggler; Low Shot; Night Eyes; Cat Burglar I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
+Party,Cyrus,4,Passives active,Light Footed; Quick Hands; Cat Eyes,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,8,HP,79,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Cyrus,8,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Cyrus,8,Defense (basic armour),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Cyrus,8,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: initiative,,
 Party,Cyrus,8,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,8,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,8,Main / secondary stat,Self 18 / Physical 10,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Cyrus,8,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Steal; Deceive; Stealth; Slip Past; Shadow Step; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
-Party,Cyrus,8,Passives active,Light Footed; Quick Hands; Nade Juggler; Low Shot; Night Eyes; Silhouette; Cat Burglar I; Agile I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
+Party,Cyrus,8,Passives active,Light Footed; Quick Hands; Cat Eyes; Silhouette,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,11,HP,81,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Cyrus,11,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Cyrus,11,Defense (basic armour),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Cyrus,11,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: initiative,,
 Party,Cyrus,11,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,11,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,11,Main / secondary stat,Self 22 / Physical 11,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Cyrus,11,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Steal; Deceive; Stealth; Slip Past; Shadow Step; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
-Party,Cyrus,11,Passives active,Light Footed; Quick Hands; Nade Juggler; Low Shot; Night Eyes; Silhouette; Cat Burglar I; Agile I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
+Party,Cyrus,11,Passives active,Light Footed; Quick Hands; Cat Eyes; Silhouette,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,14,HP,83,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Cyrus,14,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Cyrus,14,Defense (basic armour),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Cyrus,14,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: initiative,,
 Party,Cyrus,14,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,14,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,14,Main / secondary stat,Self 25 / Physical 13,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Cyrus,14,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Steal; Deceive; Stealth; Slip Past; Shadow Step; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
-Party,Cyrus,14,Passives active,Light Footed; Quick Hands; Nade Juggler; Low Shot; Night Eyes; Silhouette; Cat Burglar I; Agile I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
+Party,Cyrus,14,Passives active,Light Footed; Quick Hands; Cat Eyes; Silhouette,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,16,HP,85,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Cyrus,16,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Cyrus,16,Defense (basic armour),20,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Cyrus,16,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: initiative,,
 Party,Cyrus,16,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,16,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,16,Main / secondary stat,Self 28 / Physical 14,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Cyrus,16,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Burning Shot x0.8; Steal; Deceive; Stealth; Slip Past; Shadow Step; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
-Party,Cyrus,16,Passives active,Light Footed; Quick Hands; Nade Juggler; Low Shot; Night Eyes; Silhouette; Cat Burglar I; Agile I; DoT Master I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
+Party,Cyrus,16,Passives active,Light Footed; Quick Hands; Cat Eyes; Silhouette; DoT Master I,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Cyrus,18,HP,86,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Cyrus,18,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Cyrus,18,Defense (basic armour),28,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Cyrus,18,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: initiative,,
 Party,Cyrus,18,Movement,6 (8 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Cyrus,18,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party,Cyrus,18,Main / secondary stat,Self 30 / Physical 15,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party,Cyrus,18,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Burning Shot x0.8; Steal; Deceive; Stealth; Slip Past; Shadow Step; Run,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
-Party,Cyrus,18,Passives active,Light Footed; Quick Hands; Nade Juggler; Low Shot; Night Eyes; Silhouette; Cat Burglar I; Agile I; DoT Master I; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
+Party,Cyrus,18,Passives active,Light Footed; Quick Hands; Cat Eyes; Silhouette; DoT Master I,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party (level-64 regression),Cyrus,64,HP,115,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party (level-64 regression),Cyrus,64,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party (level-64 regression),Cyrus,64,Defense (basic armour),28,PRESENT,APPROVED_TRIAL,data/characters/cyrus.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party (level-64 regression),Cyrus,64,Initiative,8,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: initiative,,
 Party (level-64 regression),Cyrus,64,Movement,8 (10 on a turn started in cover),PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party (level-64 regression),Cyrus,64,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/cyrus.tres: resist_*,,
 Party (level-64 regression),Cyrus,64,Main / secondary stat,Self 85 / Physical 43,PRESENT,EXISTING_BASELINE,combat/Stats.gd: main_stat_at / secondary_stat_at,,
 Party (level-64 regression),Cyrus,64,Skills (not spells),Rapier x1.5; Blink Strike x0.8; Gun x1.0; Poison Dart x0.9; Warning Shot x0.9; Burning Shot x0.95; Steal; Deceive; Stealth; Slip Past; Shadow Step; Run; Venom Fan x0.7; Catalyst,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: skills, required_level, ranks",,
-Party (level-64 regression),Cyrus,64,Passives active,Light Footed; Quick Hands; Nade Juggler; Low Shot; Night Eyes; Silhouette; Cat Burglar II; Cat Burglar I; Agile I; DoT Master I; Agile II; DoT Master II; Synergy I; Synergy II; Elusive,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
+Party (level-64 regression),Cyrus,64,Passives active,Light Footed; Quick Hands; Cat Eyes; Silhouette; Cat Burglar; Agile; DoT Master I; DoT Master II; Synergy I; Synergy II,PRESENT,EXISTING_BASELINE,"data/characters/cyrus.tres: passives, required_level",,
 Party,Prometheus,1,HP,30,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Prometheus,1,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Prometheus,1,Defense (basic armour),9,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: basic_armour (basic_cloth_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19); cloth, a step below light (2026-11-20)
 Party,Prometheus,1,Initiative,5,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: initiative,,
 Party,Prometheus,1,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Prometheus,1,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: resist_*,,
@@ -139,7 +139,7 @@ Party,Prometheus,1,Spells - Arena Mode,Fire Blast; Wind Shot; Rock Throw; Quicke
 Party,Prometheus,1,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,1,Passives active,Prying Mind; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,4,HP,31,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Prometheus,4,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Prometheus,4,Defense (basic armour),9,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: basic_armour (basic_cloth_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19); cloth, a step below light (2026-11-20)
 Party,Prometheus,4,Initiative,5,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: initiative,,
 Party,Prometheus,4,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Prometheus,4,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: resist_*,,
@@ -150,7 +150,7 @@ Party,Prometheus,4,Spells - Arena Mode,Fire Blast; Wind Shot; Rock Throw; Quicke
 Party,Prometheus,4,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,4,Passives active,Prying Mind; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,8,HP,33,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Prometheus,8,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Prometheus,8,Defense (basic armour),17,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: basic_armour (basic_cloth_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19); cloth, a step below light (2026-11-20)
 Party,Prometheus,8,Initiative,5,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: initiative,,
 Party,Prometheus,8,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Prometheus,8,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: resist_*,,
@@ -161,7 +161,7 @@ Party,Prometheus,8,Spells - Arena Mode,Fire Blast; Wind Shot; Rock Throw; Quicke
 Party,Prometheus,8,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,8,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,11,HP,34,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Prometheus,11,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Prometheus,11,Defense (basic armour),17,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: basic_armour (basic_cloth_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19); cloth, a step below light (2026-11-20)
 Party,Prometheus,11,Initiative,5,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: initiative,,
 Party,Prometheus,11,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Prometheus,11,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: resist_*,,
@@ -172,7 +172,7 @@ Party,Prometheus,11,Spells - Arena Mode,Fire Blast; Wind Shot; Rock Throw; Quick
 Party,Prometheus,11,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,11,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,14,HP,36,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Prometheus,14,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Prometheus,14,Defense (basic armour),17,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: basic_armour (basic_cloth_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19); cloth, a step below light (2026-11-20)
 Party,Prometheus,14,Initiative,5,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: initiative,,
 Party,Prometheus,14,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Prometheus,14,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: resist_*,,
@@ -183,7 +183,7 @@ Party,Prometheus,14,Spells - Arena Mode,InstaHack; Dispel Magic; Fire Blast; Win
 Party,Prometheus,14,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,14,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,16,HP,37,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Prometheus,16,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Prometheus,16,Defense (basic armour),17,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: basic_armour (basic_cloth_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19); cloth, a step below light (2026-11-20)
 Party,Prometheus,16,Initiative,5,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: initiative,,
 Party,Prometheus,16,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Prometheus,16,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: resist_*,,
@@ -194,7 +194,7 @@ Party,Prometheus,16,Spells - Arena Mode,InstaHack; Dispel Magic; Fire Blast; Win
 Party,Prometheus,16,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,16,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Kindling II; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Prometheus,18,HP,38,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Prometheus,18,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Prometheus,18,Defense (basic armour),24,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: basic_armour (basic_cloth_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19); cloth, a step below light (2026-11-20)
 Party,Prometheus,18,Initiative,5,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: initiative,,
 Party,Prometheus,18,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Prometheus,18,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: resist_*,,
@@ -205,7 +205,7 @@ Party,Prometheus,18,Spells - Arena Mode,InstaHack; Dispel Magic; Fire Blast; Win
 Party,Prometheus,18,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party,Prometheus,18,Passives active,Prying Mind; Elemental Affinity I; Kindling I; Kindling II; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party (level-64 regression),Prometheus,64,HP,58,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party (level-64 regression),Prometheus,64,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party (level-64 regression),Prometheus,64,Defense (basic armour),24,PRESENT,APPROVED_TRIAL,data/characters/prometheus.tres: basic_armour (basic_cloth_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19); cloth, a step below light (2026-11-20)
 Party (level-64 regression),Prometheus,64,Initiative,5,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: initiative,,
 Party (level-64 regression),Prometheus,64,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party (level-64 regression),Prometheus,64,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: resist_*,,
@@ -216,7 +216,7 @@ Party (level-64 regression),Prometheus,64,Spells - Arena Mode,InstaHack; Dispel 
 Party (level-64 regression),Prometheus,64,"Spells - story, before any book",Fire Blast; Wind Shot; Rock Throw; Quicken; Invisibility,PRESENT,EXISTING_BASELINE,data/characters/prometheus.tres: starting_spells; the rest from spellbooks,spellbooks found or bought,
 Party (level-64 regression),Prometheus,64,Passives active,Prying Mind; Elemental Affinity I; Contest Insight I; Elemental Affinity II; Contest Insight II; Elemental Mastery; Kindling I; Kindling II; Kindling III; Meditate,PRESENT,EXISTING_BASELINE,"data/characters/prometheus.tres: passives, required_level",,
 Party,Alithia,1,HP,75,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Alithia,1,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Alithia,1,Defense (basic armour),12,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Alithia,1,Initiative,7,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: initiative,,
 Party,Alithia,1,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Alithia,1,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: resist_*,,
@@ -225,9 +225,9 @@ Party,Alithia,1,Gates,World 2,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_ST
 Party,Alithia,1,Skills (not spells),Votive Flame x0.7; Water Spike x0.7; Sass Club x1.5; Intuition; Persuade; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: skills, required_level, ranks",,
 Party,Alithia,1,Spells - Arena Mode,Heal; Light Heal; Cleanse; Compel; Steady Heart; Ecstasy; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: skills (Arena knows everything),,
 Party,Alithia,1,"Spells - story, before any book",Heal; Light Heal; Cleanse; Compel; Steady Heart; Ecstasy; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: grows into them by level,,
-Party,Alithia,1,Passives active,Mercy I; Devotion; Unbowed I,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
+Party,Alithia,1,Passives active,Devotion; Unbowed I,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
 Party,Alithia,4,HP,77,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Alithia,4,Defense (no armour worn),12,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Alithia,4,Defense (basic armour),12,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Alithia,4,Initiative,7,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: initiative,,
 Party,Alithia,4,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Alithia,4,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: resist_*,,
@@ -236,9 +236,9 @@ Party,Alithia,4,Gates,World 3,PRESENT,EXISTING_BASELINE,combat/Stats.gd: GATE_ST
 Party,Alithia,4,Skills (not spells),Votive Flame x0.7; Water Spike x0.7; Sass Club x1.5; Intuition; Persuade; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: skills, required_level, ranks",,
 Party,Alithia,4,Spells - Arena Mode,Heal; Light Heal; Cleanse; Compel; Steady Heart; Ecstasy; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: skills (Arena knows everything),,
 Party,Alithia,4,"Spells - story, before any book",Heal; Light Heal; Cleanse; Compel; Steady Heart; Ecstasy; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: grows into them by level,,
-Party,Alithia,4,Passives active,Mercy I; Devotion; Unbowed I,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
+Party,Alithia,4,Passives active,Devotion; Unbowed I,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
 Party,Alithia,8,HP,79,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Alithia,8,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Alithia,8,Defense (basic armour),20,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Alithia,8,Initiative,7,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: initiative,,
 Party,Alithia,8,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Alithia,8,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: resist_*,,
@@ -247,9 +247,9 @@ Party,Alithia,8,Gates,World 4 / Hermes 2,PRESENT,EXISTING_BASELINE,combat/Stats.
 Party,Alithia,8,Skills (not spells),Votive Flame x0.7; Calling Out; Water Spike x0.7; Sass Club x1.5; Intuition; Persuade; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: skills, required_level, ranks",,
 Party,Alithia,8,Spells - Arena Mode,Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Cleanse; Holy Splash; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Composure; Clear Sight; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: skills (Arena knows everything),,
 Party,Alithia,8,"Spells - story, before any book",Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Cleanse; Holy Splash; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Composure; Clear Sight; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: grows into them by level,,
-Party,Alithia,8,Passives active,Mercy I; Aura I; Devotion; Blessed in the Light; Unbowed I; Unbowed II,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
+Party,Alithia,8,Passives active,Aura I; Devotion; Blessed in the Light; Unbowed I; Unbowed II,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
 Party,Alithia,11,HP,81,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Alithia,11,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Alithia,11,Defense (basic armour),20,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Alithia,11,Initiative,7,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: initiative,,
 Party,Alithia,11,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Alithia,11,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: resist_*,,
@@ -258,9 +258,9 @@ Party,Alithia,11,Gates,World 4 / Hermes 3,PRESENT,EXISTING_BASELINE,combat/Stats
 Party,Alithia,11,Skills (not spells),Votive Flame x0.7; Calling Out; Water Spike x0.7; Sass Club x1.5; Intuition; Persuade; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: skills, required_level, ranks",,
 Party,Alithia,11,Spells - Arena Mode,Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Cleanse; Holy Splash; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Composure; Clear Sight; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: skills (Arena knows everything),,
 Party,Alithia,11,"Spells - story, before any book",Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Cleanse; Holy Splash; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Composure; Clear Sight; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: grows into them by level,,
-Party,Alithia,11,Passives active,Mercy I; Aura I; Devotion; Blessed in the Light; Unbowed I; Unbowed II,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
+Party,Alithia,11,Passives active,Aura I; Devotion; Blessed in the Light; Unbowed I; Unbowed II,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
 Party,Alithia,14,HP,83,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Alithia,14,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Alithia,14,Defense (basic armour),20,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Alithia,14,Initiative,7,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: initiative,,
 Party,Alithia,14,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Alithia,14,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: resist_*,,
@@ -269,9 +269,9 @@ Party,Alithia,14,Gates,World 4 / Hermes 3 / Pandora 2,PRESENT,EXISTING_BASELINE,
 Party,Alithia,14,Skills (not spells),Votive Flame x0.7; Calling Out; Water Spike x0.7; Sass Club x1.5; Intuition; Persuade; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: skills, required_level, ranks",,
 Party,Alithia,14,Spells - Arena Mode,Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Frozen River; Resuscitate; Cleanse; Holy Splash; Communion; Dread Visage; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Mesmerise; Restorative Aura; Composure; Clear Sight; Terror; Elemental Ward; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: skills (Arena knows everything),,
 Party,Alithia,14,"Spells - story, before any book",Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Frozen River; Resuscitate; Cleanse; Holy Splash; Communion; Dread Visage; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Mesmerise; Restorative Aura; Composure; Clear Sight; Terror; Elemental Ward; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: grows into them by level,,
-Party,Alithia,14,Passives active,Mercy I; Aura I; Devotion; Blessed in the Light; Unbowed I; Unbowed II,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
+Party,Alithia,14,Passives active,Aura I; Devotion; Blessed in the Light; Unbowed I; Unbowed II,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
 Party,Alithia,16,HP,85,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Alithia,16,Defense (no armour worn),20,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Alithia,16,Defense (basic armour),20,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Alithia,16,Initiative,7,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: initiative,,
 Party,Alithia,16,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Alithia,16,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: resist_*,,
@@ -280,9 +280,9 @@ Party,Alithia,16,Gates,World 4 / Hermes 3 / Pandora 2,PRESENT,EXISTING_BASELINE,
 Party,Alithia,16,Skills (not spells),Votive Flame x0.7; Calling Out; Water Spike x0.7; Sass Club x1.5; Intuition; Persuade; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: skills, required_level, ranks",,
 Party,Alithia,16,Spells - Arena Mode,Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Frozen River; Resuscitate; Cleanse; Holy Splash; Communion; Dread Visage; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Mesmerise; Restorative Aura; Composure; Clear Sight; Terror; Elemental Ward; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: skills (Arena knows everything),,
 Party,Alithia,16,"Spells - story, before any book",Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Frozen River; Resuscitate; Cleanse; Holy Splash; Communion; Dread Visage; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Mesmerise; Restorative Aura; Composure; Clear Sight; Terror; Elemental Ward; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: grows into them by level,,
-Party,Alithia,16,Passives active,Mercy I; Aura I; Mercy II; Devotion; Blessed in the Light; Nowhere to Hide; Unbowed I; Unbowed II; Unbowed III,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
+Party,Alithia,16,Passives active,Mercy I; Aura I; Devotion; Blessed in the Light; Nowhere to Hide; Unbowed I; Unbowed II; Unbowed III,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
 Party,Alithia,18,HP,86,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party,Alithia,18,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party,Alithia,18,Defense (basic armour),28,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party,Alithia,18,Initiative,7,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: initiative,,
 Party,Alithia,18,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party,Alithia,18,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: resist_*,,
@@ -291,9 +291,9 @@ Party,Alithia,18,Gates,World 4 / Hermes 3 / Pandora 3,PRESENT,EXISTING_BASELINE,
 Party,Alithia,18,Skills (not spells),Votive Flame x0.7; Calling Out; Water Spike x0.7; Sass Club x1.5; Intuition; Persuade; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: skills, required_level, ranks",,
 Party,Alithia,18,Spells - Arena Mode,Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Frozen River; Resuscitate; Cleanse; Holy Splash; Communion; Dread Visage; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Mesmerise; Restorative Aura; Composure; Clear Sight; Terror; Elemental Ward; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: skills (Arena knows everything),,
 Party,Alithia,18,"Spells - story, before any book",Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Frozen River; Resuscitate; Cleanse; Holy Splash; Communion; Dread Visage; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Mesmerise; Restorative Aura; Composure; Clear Sight; Terror; Elemental Ward; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: grows into them by level,,
-Party,Alithia,18,Passives active,Mercy I; Aura I; Mercy II; Devotion; Blessed in the Light; Nowhere to Hide; Unbowed I; Unbowed II; Unbowed III,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
+Party,Alithia,18,Passives active,Mercy I; Aura I; Devotion; Blessed in the Light; Nowhere to Hide; Unbowed I; Unbowed II; Unbowed III,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
 Party (level-64 regression),Alithia,64,HP,115,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: max_hp / max_hp_level_20 (linear),,player_hp_defense_progression.csv repeats it
-Party (level-64 regression),Alithia,64,Defense (no armour worn),28,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: defense_by_level,armour worn in the story replaces it,from player_hp_defense_progression.csv (applied 2026-10-24)
+Party (level-64 regression),Alithia,64,Defense (basic armour),28,PRESENT,APPROVED_TRIAL,data/characters/alithia.tres: basic_armour (basic_armour),armour worn in the story replaces it,player_hp_defense_progression.csv; basic armour instead of Defense bands (2026-11-19)
 Party (level-64 regression),Alithia,64,Initiative,7,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: initiative,,
 Party (level-64 regression),Alithia,64,Movement,6,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: movement + passives (movement_bonus, movement_in_cover)",passives by level,
 Party (level-64 regression),Alithia,64,Resistances,none,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: resist_*,,
@@ -302,7 +302,7 @@ Party (level-64 regression),Alithia,64,Gates,World 4 / Hermes 3 / Pandora 3 / Ch
 Party (level-64 regression),Alithia,64,Skills (not spells),Votive Flame x0.7; Calling Out; Water Spike x0.7; Sass Club x1.5; Intuition; Persuade; Slip Past; Run,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: skills, required_level, ranks",,
 Party (level-64 regression),Alithia,64,Spells - Arena Mode,Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Frozen River; Resuscitate; Cleanse; Holy Splash; Communion; Piercing Light; Judgment; Glacial Tide; Purification; Divine Verdict; Restoration; Revelation; Grace; Dread Visage; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Mesmerise; Restorative Aura; Composure; Clear Sight; Terror; Elemental Ward; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: skills (Arena knows everything),,
 Party (level-64 regression),Alithia,64,"Spells - story, before any book",Daylight; Heal; Light Heal; Holy Lance; Flash; River Flow; Frozen River; Resuscitate; Cleanse; Holy Splash; Communion; Piercing Light; Judgment; Glacial Tide; Purification; Divine Verdict; Restoration; Revelation; Grace; Dread Visage; Bewilder; Compel; Steady Heart; Ecstasy; Silence; Mesmerise; Restorative Aura; Composure; Clear Sight; Terror; Elemental Ward; Shared Burden; Sleep; Calm; Detect Magic,PRESENT,EXISTING_BASELINE,data/characters/alithia.tres: grows into them by level,,
-Party (level-64 regression),Alithia,64,Passives active,Mercy I; Aura I; Mercy II; Aura II; Reserved Power I; Mercy III; Reserved Power II; Radiant Guardian; Devotion; Blessed in the Light; Nowhere to Hide; Unbowed I; Unbowed II; Unbowed III; Unbowed IV; Unbowed V; Unbowed VI; Unbowed VII,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
+Party (level-64 regression),Alithia,64,Passives active,Mercy I; Aura I; Mercy II; Aura II; Reserved Power I; Reserved Power II; Radiant Guardian; Devotion; Blessed in the Light; Nowhere to Hide; Unbowed I; Unbowed II; Unbowed III; Unbowed IV; Unbowed V; Unbowed VI; Unbowed VII,PRESENT,EXISTING_BASELINE,"data/characters/alithia.tres: passives, required_level",,
 Enemies,Alchemist (weapon base 8),14,HP,44,PRESENT,EXISTING_BASELINE,data/enemies/alchemist.tres: max_hp / max_hp_level_20,,curve set from enemy_progression.csv
 Enemies,Alchemist (weapon base 8),14,Defense,12,PRESENT,EXISTING_BASELINE,data/enemies/alchemist.tres: defense / defense_level_64,,
 Enemies,Alchemist (weapon base 8),14,Initiative / movement,4 / 7,PRESENT,EXISTING_BASELINE,"data/enemies/alchemist.tres: initiative, movement",,

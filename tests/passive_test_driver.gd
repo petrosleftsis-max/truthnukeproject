@@ -263,7 +263,11 @@ func run_test():
 	log_line("======== Cyrus's quick feet and quick hands are passives ========")
 	var cyrus_def: CombatantDefinition = CombatantDatabase.combatants["cyrus"]
 	var passive_names := cyrus_def.passives.map(func(p): return p.name)
-	ok(passive_names.slice(0, 3) == ["Light Footed", "Quick Hands", "Nade Juggler"] and passive_names.has("Cat Burglar I") and passive_names.has("Cat Burglar II"), "Cyrus has Light Footed, Quick Hands, Nade Juggler and Cat Burglar I and II", "%s" % [passive_names])
+	ok(passive_names.slice(0, 3) == ["Light Footed", "Quick Hands", "Cat Eyes"] and passive_names.has("Cat Burglar"), "Cyrus has Light Footed, Quick Hands, Cat Eyes and Cat Burglar", "%s" % [passive_names])
+	# Elusive was Light Footed's Slip Past again; Nade Juggler went into Quick Hands, Low Shot and Night Eyes into Cat Eyes
+	# (the designer, 2026-11-17).
+	ok(not passive_names.any(func(named): return named in ["Elusive", "Nade Juggler", "Low Shot", "Night Eyes", "Cat Burglar I", "Cat Burglar II", "Agile I", "Agile II"]),
+		"and no Elusive, Nade Juggler, Low Shot or Night Eyes beside them, nor ranks of Cat Burglar and Agile (one rank each from 2026-11-19)", "%s" % [passive_names])
 	ok(cyrus_def.secondary_skills.is_empty() and not cyrus_def.items_as_secondary,
 		"and nothing unseen on his definition does the same")
 	var light_footed: PassiveDefinition = cyrus_def.passives[0]

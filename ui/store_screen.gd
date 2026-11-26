@@ -239,12 +239,22 @@ func _reading_of(key: String) -> String:
 	var piece := EquipmentDefinition.named(key)
 	if piece == null:
 		return key
-	var lines := [piece.name, piece.summary()]
-	if not piece.for_characters.is_empty():
-		lines.append("For " + ", ".join(piece.for_characters.map(func(who): return Campaign.display_name_of(who))))
-	if piece.description != "":
-		lines.append_array(["", piece.description])
-	return "\n".join(lines)
+	return piece.reading(who_can_use(piece))
+
+
+## Who of the party can use `piece`, as a line for its reading - "For Alithia, Enfina" -
+## when not all of them can (Campaign.can_use: made for somebody, or armour of a kind
+## some do not wear); none when all can.
+static func who_can_use(piece: EquipmentDefinition) -> Array:
+	var party: Array = Campaign.party_order
+	if party.is_empty():
+		party = piece.for_characters
+	var users := party.filter(func(who): return Campaign.can_use(who, piece))
+	if users.size() == party.size() and piece.for_characters.is_empty():
+		return []
+	if users.is_empty():
+		return ["Nobody in the party can use it"]
+	return ["For " + ", ".join(users.map(func(who): return Campaign.display_name_of(who)))]
 
 
 func _on_buy(key: String):

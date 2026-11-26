@@ -9,7 +9,7 @@
 script = ExtResource("3_skill")
 impact_sound = ExtResource("sfx_impact_sound")
 name = "Divine Verdict"
-description = "Judgment from on high on everything near where it lands: half their defence counts for nothing."
+description = "Judgment from on high on everything near where it lands: 50% of their Defense counts for nothing."
 min_range = 1
 max_range = 15
 ability_modifier = 4.2

@@ -137,7 +137,7 @@ func dark_fight():
 	combat.sync_zones()
 	ok(combat.hidden_from(enfina, foe), "Enfina cannot see them, four tiles off")
 	ok(combat.targets_if_aimed(enfina, SkillDatabase.skills.greatsword_attack, foe.position).is_empty(), "nor aim at them")
-	ok(not combat.hidden_from(cyrus, foe), "Cyrus can (Night Eyes)")
+	ok(not combat.hidden_from(cyrus, foe), "Cyrus can (Cat Eyes)")
 	ok(not combat.unseen_by_party(foe), "so the player sees them, through him")
 	combat.teleport_to(enfina, tile_at_gap(foe.position, 1, enfina))
 	combat.sync_zones()

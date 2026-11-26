@@ -75,6 +75,6 @@ func describe() -> String:
 		lines.append("Fills faster while it is readying something.")
 	if drain_per_round > 0.0:
 		lines.append("Drains by %d each round." % roundi(drain_per_round))
-	lines.append("Full, it is staggered: %s lost, and hit %d%% harder until then." % [
+	lines.append("Full, it is staggered: %s lost, and every blow on it has +%d%% Output Efficiency until then." % [
 		"a turn" if turns_lost == 1 else "%d turns" % turns_lost, roundi((damage_taken - 1.0) * 100.0)])
 	return "\n".join(lines)

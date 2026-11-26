@@ -8,7 +8,7 @@
 [sub_resource type="Resource" id="Passive_0"]
 script = ExtResource("1_passive")
 name = "Overcharge"
-description = "Amplify a spell by casting it through a deeper gate - half as much damage again for each gate deeper. Once a short rest he can do it without spending the deeper gate."
+description = "Amplify a spell by casting it through a deeper gate - +50% Output Efficiency for each gate deeper. Once a short rest he can do it without spending the deeper gate."
 required_level = 24
 amplifies_spells = true
 amplify_bonus_per_gate = 0.5
@@ -17,7 +17,7 @@ free_amplifies_at = Array[int]([24])
 [sub_resource type="Resource" id="Passive_1"]
 script = ExtResource("1_passive")
 name = "Chain"
-description = "His fire and lightning spells leap from whoever they hit to one more of the other side within two tiles, at half the damage."
+description = "His fire and lightning spells leap from whoever they hit to one more of the other side within two tiles, for 50% of the damage."
 required_level = 32
 chain_share = 0.5
 chain_reach = 2
@@ -26,7 +26,7 @@ chain_elements = Array[int]([1, 9])
 [sub_resource type="Resource" id="Passive_2"]
 script = ExtResource("1_passive")
 name = "Resonance"
-description = "A spell of another element than his last one hits 15% harder."
+description = "A spell of another element than his last one has +15% Output Efficiency."
 required_level = 41
 resonance = 0.15
 

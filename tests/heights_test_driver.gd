@@ -294,7 +294,7 @@ func run_test():
 	ok(not burglar_steps.call().has(Vector2i(6, 9)), "before level 24, Cyrus needs the climb tile like anybody")
 	cyrus.level = 24
 	ok(combat.climbs_anywhere(cyrus) and combat.get_effective_stat(cyrus, "movement") == 8,
-		"at level 24, Cat Burglar II: two more tiles of movement, eight in all", "%d" % combat.get_effective_stat(cyrus, "movement"))
+		"at level 24, Cat Burglar: two more tiles of movement, eight in all", "%d" % combat.get_effective_stat(cyrus, "movement"))
 	ok(burglar_steps.call().has(Vector2i(6, 9)), "and straight up onto the barrels from beside them")
 	ok(controller.hop_for(cyrus, Vector2i(5, 10), Vector2i(6, 9)) == CombatantSprite.Hop.UP
 		and controller.hop_for(cyrus, Vector2i(6, 9), Vector2i(5, 10)) == CombatantSprite.Hop.DOWN,

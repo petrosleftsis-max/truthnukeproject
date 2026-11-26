@@ -250,14 +250,15 @@ func run_test():
 		log_line("  NOTE  every contested skill in the game deals damage, so there is nothing to check here")
 	else:
 		var said = ui.build_skill_tooltip(harmless, combat.combatants[0])
-		ok(not said.contains("half damage"),
-			"%s does not mention half damage" % harmless.name,
+		# Half the damage is said as 50% Damage Mitigation (the designer, 2026-11-17).
+		ok(not said.contains("50% Damage Mitigation") and not said.contains("half damage"),
+			"%s does not mention half damage (50%% Damage Mitigation)" % harmless.name,
 			"%s" % [said.split("
 ")])
 		ok(said.contains("shrugs it off"), "and says what really happens instead")
 	if harmful != null:
 		var said = ui.build_skill_tooltip(harmful, combat.combatants[0])
-		ok(said.contains("half damage"),
+		ok(said.contains("50% Damage Mitigation"),
 			"while %s, which does deal damage, still says so" % harmful.name)
 	log_line("")
 

@@ -8,7 +8,7 @@
 [sub_resource type="Resource" id="Passive_0"]
 script = ExtResource("1_passive")
 name = "Ward"
-description = "Reaction: when an ally within five tiles - or Prometheus himself - is about to be hit, take four tenths off it."
+description = "Reaction: when an ally within five tiles - or Prometheus himself - is about to be hit, give them 40% Damage Mitigation against it."
 required_level = 24
 wards_allies = true
 ward_reduction = 0.4
