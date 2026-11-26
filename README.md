@@ -445,7 +445,7 @@ more: `light_footed.tres` lets him use Stealth, Slip Past and Run as a secondary
 action too, and `quick_hands.tres` does the same for items and Interact. Those skills still
 show on his Secondary tab, and their previews say which passive allows it. With
 both of his actions still there, using an item asks which one to spend.
-`nade_juggler.tres` lets him throw any Gate Nade, and as a secondary action (below).
+Quick Hands also lets him throw any Gate Nade, and as a secondary action (below).
 
 ### Gate Nades
 
@@ -473,7 +473,7 @@ Two passive switches change that:
 - **Gate Nades As Secondary** throws them with the secondary action where the
   spell would take the main one.
 
-Cyrus's **Nade Juggler** has both.
+Cyrus's **Quick Hands** has both.
 
 The examples are the Wildfire, Heal, Crystalise and Communion Gate Nades,
 which the travelling merchant sells. Their power and prices are placeholders. Like every
@@ -571,9 +571,9 @@ can be brought in weak early and dangerous later. Those are what a fight from
 Arena Mode uses. Defence left at 0 is the creature's own at that level: every
 CombatantDefinition has a **Defense** at level 1 and a **Defense Level 64**,
 climbing evenly between them as health does (**Max Hp** to **Max Hp Level 20**,
-which is level 64) - or **Defense By Level**, steps that stand in for both. The
-party's are steps, from `docs/player_hp_defense_progression.csv`: 12 from level
-1, 20 from 8, 28 from 17 (the armour bands), the same for all four; their
+which is level 64) - or **Defense By Level**, steps that stand in for both - or a
+**Basic Armour** (an armour piece, by key), whose own Defense By Level keeps up with
+them. The party's is that, from `docs/player_hp_defense_progression.csv`: Enfina's Basic Heavy Armour 18 from level 1, 27 from 8, 36 from 17; Cyrus's and Alithia's Basic Armour 12, 20, 28 (the designer, 2026-11-19: armour instead of the old bands); Prometheus's Basic Cloth Armour 9, 17, 24 (2026-11-20: a kind a step below light). Their
 health there is what it already was. Armour worn in the story stands in for
 it. The enemies' are set from `docs/enemy_progression.csv`:
 frail ones (Sorcerer, Summoner, Bomber, Alchemist, rats, imps, gnawers) 5 to 30,
@@ -682,7 +682,7 @@ Up on high ground, you see as a flier does: anything low between you and
 anybody - anything that doesn't stop a flier - is no cover, either way. A body is
 still a body.
 
-A passive that **Climbs Anywhere** (Cyrus's **Cat Burglar II**, from level 24, which
+A passive that **Climbs Anywhere** (Cyrus's **Cat Burglar**, from level 24, which
 also gives him two more tiles of movement) needs no climb tile: he gets onto
 high ground from any tile beside it, on any map, and up a wall or a pillar onto
 the floor above it - from open ground, beside something solid with standing
@@ -809,7 +809,7 @@ lie down. It is no harm
 done, so no heal, cleanse or dispel lifts it.
 
 On a passive, **Ignores Prone Cover** takes the half away from the bearer's ranged
-moves at a foe (Cyrus's **Low Shot**) and **Gets Up Free** takes the cost away from
+moves at a foe (Cyrus's **Cat Eyes**) and **Gets Up Free** takes the cost away from
 their getting up (the Saboteur's **Kip-Up**, from level 24).
 
 On an enemy's CombatantDefinition, **Goes Prone** has it lie down as its turn ends
@@ -1442,7 +1442,7 @@ ones after it hotter, up to **Kindling Most**), **Lingering** (harder and longer
 **Contests** (+ to the stat), **Gates** (more castings through the deepest gate),
 **Cover** (more movement on a turn begun in cover, stepping into cover unpunished)
 and Healing's **Heals Lift** and **Heals Leave**. A cleanse that lifts only so much
-(an effect's **Dispel Count** - Medicine's one) and a heal that lifts some (Heals Lift, Mercy II)
+(an effect's **Dispel Count** - Medicine's one) and a heal that lifts some (Heals Lift, Mercy I)
 let the player choose which comes off when there is more on them, the most recent offered
 first; anybody else lifts the most recent. Lifting what held somebody in place
 (Crystallised) in their own turn gives them back what they had not yet walked. Conditions can change the damage
@@ -1453,7 +1453,7 @@ potions heal only that: a quarter, two fifths and more than half. A heal on the
 healer's healing stat + **Heal Per Weapon** × their weapon base, rather than a share of
 their power: Heal is 12 + 0.25 × Mindfulness + 0.3 × weapon base, Light Heal and
 Communion 8 + 0.15 + 0.2, Restoration half the target's health + 0.25 × Mindfulness,
-and the Summoner's Mend the Bound as Heal. Mercy I adds a tenth to all of it, never
+and the Summoner's Mend the Bound as Heal. Mercy I (from 16) adds 10% to all of it, never
 to the share of health; a Gate Nade keeps its own flat power. In
 cover means beside something that blocks sight.
 
@@ -1477,7 +1477,8 @@ Alithia grows into her spells. Prometheus learns his: he knows Fire Blast, Wind
 Shot, Rock Throw and Quicken (his **Starting Spells**), and every other spell of
 his - his path's too - once he has learned it from a spellbook, or by taking a
 Gate Nade of it apart. A book is an item with **Teaches** set
-(`data/items/*_spellbook.tres`), found on the enemy or bought; the Moves page
+(`data/items/*_spellbook.tres`), found on the enemy (no store sells them: the
+designer, 2026-11-19); the Moves page
 shows a **Learn** button beside a spell when something in the party's bags
 teaches it, and uses that up. Only his own spells can be learned at all - no book
 teaches him Communion. In a fight walked into from the map he has what he has
@@ -1486,7 +1487,7 @@ learned; Arena Mode gives him everything. A conversation can teach one outright:
 
 ### Speeds
 
-The party walks 6 tiles a turn (Cyrus too - 8 on a turn he starts in cover, from Cat Burglar I; 8 always from 24, Cat Burglar II, and 10 in cover - and
+The party walks 6 tiles a turn (Cyrus too until 24 - then 8, and 10 on a turn he starts in cover, from Cat Burglar - and
 Prometheus 8 once he is an Elemental Vanguard). The other side was scaled the same way,
 half again, rounded down: 4 became 6, 5 became 7, 3 became 4, the 6-tile summons
 9 and the Illusory Dragon 18.
@@ -1603,9 +1604,17 @@ faction yet - which sides there are is the story's to say.
 
 A weapon, armour and a charm for each of the party: `EquipmentDefinition`s in
 `data/equipment/`. A weapon's **Weapon Base** and armour's **Defense** stand in
-for a story fight's own numbers; a charm adds its **Passive**. Armour is **Light**
-or **Heavy** - a label for now, both wear the same. **For Characters** limits who
-can use it. Gear the party owns and is not wearing waits in a shared stash; put it
+for a story fight's own numbers; a charm adds its **Passive**. Armour is **Cloth**,
+**Light**, **Medium** or **Heavy** - cloth is Prometheus's, a step frailer than light,
+with better secondary effects to come, and "Cloth" only until the designer names it -
+and each character wears only the kinds in their own **Armour Kinds**
+(CombatantDefinition; the designer, 2026-11-20: Cyrus light, Alithia light and medium,
+Prometheus cloth, Enfina any). `Campaign.can_use` asks it, and
+equipping, the sheet's choices, a store's "For ..." line and an encounter's own
+equipment all follow it. **For Characters** limits who can use a piece besides. Every
+preview of a piece - the store's, the stash's, the sheet's - says its kind on the
+line under its name (`EquipmentDefinition.reading`), never in the name itself. Gear
+the party owns and is not wearing waits in a shared stash; put it
 on from the character sheet (C), a button a slot. Give gear with
 `do Campaign.give_gear("fencers_rapier")`.
 
@@ -1653,6 +1662,8 @@ consumable by tier (I for levels 1-16, II 17-32, III 33-48, IV 49-64).
 600, armour 60 / 180 / 320 / 640, a charm 40 / 120 / 260 / 520 - says a store
 buys back at half (the travelling merchant's Sell Rate), and puts a fight's pay
 at a contract's: 30-50 in tier I, 150-300 in II, 300-600 in III, 800-1200 in IV.
+The Dungeon Demo pays more, on purpose, for its store: 400 and 800 gold for its first
+two fights and 200 found in the sewer (the designer, 2026-11-19).
 What it says of whole missions (500-1000 gold in tier I, up to 8000-12000),
 rarer and junkier goods selling for less (a quarter, three tenths), and services
 (an inn, a horse, a healer, having a Gate Nade made) has nothing in the game to
@@ -2225,6 +2236,22 @@ The game is a download for Windows, macOS and Linux, on itch.io:
 best (Windows a `.zip`, Linux a `.tar.gz`, the Mac Godot's own `.zip` of the
 app), and `--publish` pushes them there, to the channels `windows`, `linux` and
 `mac`. There is no browser build any more - the game has got too heavy for one.
+
+There are two builds. Plain `tools/release.sh` is the **playtest build**, with
+everything in it (the Stealth Stages, the demos, the lab sequence), and
+`--publish` sends it to the private, restricted page for testers. `--release`
+is the **public build**:
+- it runs the release check first (`tests/run.sh release`), and stops while
+  anything still points at what a release leaves out, or still shows the
+  stand-in picture (`--allow-stand-ins` lets those through once);
+- it exports with the three "... Release" presets, whose `release` feature
+  hides the stages and demos from the title screen and quiets the stand-in
+  sounds, and whose Exclude Filter leaves the test content out of the download;
+- `--publish` sends it to the public page.
+
+The check's report, with every sound and picture still to make, is
+`export/release_report.md`. A machine without the release presets gets them
+from `tools/release_presets.cfg` the first time.
 
 `export_presets.cfg` is gitignored - it can hold signing credentials - so
 export settings do not travel with the repo. On a fresh clone, recreate the

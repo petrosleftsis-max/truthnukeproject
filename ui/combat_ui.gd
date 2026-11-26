@@ -93,8 +93,6 @@ func _ready():
 	var toggle = $Actions.get_node_or_null("LogToggle")
 	if toggle != null:
 		toggle.pressed.connect(toggle_log)
-		# The interface's pill (SkyLook) is wider than the 26 the button is placed at: it grows into the log, not past its edge.
-		toggle.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_apply_log_state()
 	_build_undo_button()
 	_build_ready_button()
@@ -152,7 +150,9 @@ func _build_turn_block():
 	var end_turn: Button = $Actions/EndTurnButton
 	_turn_block = Panel.new()
 	_turn_block.name = "TurnBlock"
-	_turn_block.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# A click on it between the buttons is a click on the panel, not on the board under it (the designer, 2026-11-21: "it doesnt
+	# ignore the map and there are times i click through and a character moves").
+	_turn_block.mouse_filter = Control.MOUSE_FILTER_STOP
 	var style := get_theme_stylebox("panel", "PanelContainer")
 	if style != null:
 		_turn_block.add_theme_stylebox_override("panel", style)
@@ -586,27 +586,37 @@ func _on_device_changed():
 		close_pad_panel()
 
 
-## End Turn is what every turn ends on, so it is the one button of the look's main
-## kind (SkyLook.MAIN_BUTTON, filled); Undo Move beside it takes the theme's ordinary
-## look rather than the flat grey it was copied with. The skill slots are square, so
-## they are the look's rounded squares (SkyLook.SLOT_BUTTON) rather than its pills.
+## End Turn is what every turn ends on, so it is the one button in the accent;
+## Undo Move beside it takes the theme's ordinary look rather than the flat grey
+## it was copied with. (The look before T, SkyLook: the designer, 2026-11-21.)
 func _style_turn_buttons():
 	var end_turn: Button = $Actions/EndTurnButton
-	for style in ["normal", "hover", "pressed", "disabled", "focus"]:
-		end_turn.remove_theme_stylebox_override(style)
-	end_turn.theme_type_variation = SkyLook.MAIN_BUTTON
-	for slot in $Actions/ActionsPanel/ActionsGrid.get_children():
-		if slot is Button:
-			slot.theme_type_variation = SkyLook.SLOT_BUTTON
+	end_turn.add_theme_stylebox_override("normal", _accent_box(Color("2d5a8c"), Color("7fb4ea")))
+	end_turn.add_theme_stylebox_override("hover", _accent_box(Color("3a6fa8"), Color("a5ccf2")))
+	end_turn.add_theme_stylebox_override("pressed", _accent_box(Color("24496f"), Color("7fb4ea")))
+	end_turn.add_theme_color_override("font_color", Color("eef4fb"))
+	end_turn.add_theme_color_override("font_hover_color", Color.WHITE)
+	end_turn.add_theme_color_override("font_pressed_color", Color.WHITE)
 	for button in [_undo_button, _prone_button, _ready_button]:
 		if button == null:
 			continue
-		# Ready is a copy of End Turn taken before End Turn was dressed: the ordinary kind, not the main one.
-		button.theme_type_variation = &""
 		for style in ["normal", "hover", "pressed", "disabled", "focus"]:
 			button.remove_theme_stylebox_override(style)
 		for colour in ["font_color", "font_disabled_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 			button.remove_theme_color_override(colour)
+
+
+func _accent_box(fill: Color, edge: Color) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = fill
+	box.border_color = edge
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(4)
+	box.content_margin_left = 10
+	box.content_margin_right = 10
+	box.content_margin_top = 5
+	box.content_margin_bottom = 5
+	return box
 
 
 ## A small number in the corner of each of the first nine action buttons - the
@@ -2195,6 +2205,14 @@ func _fill_action(action: Button, skill_key: String, skill_used: bool, as_second
 		action.disabled = true
 	action.icon = skill.icon
 	SkillLook.decorate(action, skill, tag)
+	# Its ring in the colour its icon is painted on, tinted as the icon is (SkyLook "A slot's ring in its icon's colour"; the designer,
+	# 2026-11-19, and on the look before T again, 2026-11-21: "I'd like the coloured rings of the skill icons back").
+	var tint: Color = action.get_theme_color(&"icon_normal_color") if action.has_theme_color_override(&"icon_normal_color") else Color.WHITE
+	var ring := SkyLook.icon_ring(skill.icon, tint)
+	if action.theme_type_variation == SkyLook.SLOT_BUTTON:
+		SkyLook.ring_slot(action, ring)
+	else:
+		SkyLook.ring_plain_slot(action, ring)
 	var key_mark = action.get_node_or_null(HOTKEY_MARK)
 	if key_mark != null:
 		key_mark.visible = not exploration_mode and not Pad.using_pad
@@ -2243,6 +2261,10 @@ func _empty_action(action: Button, skill_used: bool = true):
 	action.icon = null
 	action.tooltip_text = ""
 	SkillLook.decorate(action, null)
+	if action.theme_type_variation == SkyLook.SLOT_BUTTON:
+		SkyLook.ring_slot(action, Color.TRANSPARENT)
+	else:
+		SkyLook.ring_plain_slot(action, Color.TRANSPARENT)
 	_gate_up(action, {}, null)
 	var key_mark = action.get_node_or_null(HOTKEY_MARK)
 	if key_mark != null:
@@ -3273,6 +3295,19 @@ func map_view_rect() -> Rect2:
 		if child is Control and child.visible and child.get_global_rect().position.y > view.get_center().y:
 			bottom = minf(bottom, child.get_global_rect().position.y)
 	return Rect2(left, top, right - left, bottom - top).grow(-PAD_MARGIN)
+
+
+## Where words can go over the map for a moment without covering the HUD (FightCards' name plate for somebody arriving): the part
+## the HUD leaves the map (map_view_rect), and right of everything beside the party's portraits as well - their condition marks
+## and their summons' faces, which stand out past the column (the designer, 2026-11-20: the name sat on the portraits).
+func words_room() -> Rect2:
+	var room := map_view_rect()
+	var left := room.position.x
+	if $Status.visible:
+		for part in $Status.find_children("*", "Control", true, false):
+			if part.is_visible_in_tree() and part.size.x > 0.0:
+				left = maxf(left, part.get_global_rect().end.x + PAD_MARGIN)
+	return Rect2(left, room.position.y, maxf(room.end.x - left, 0.0), room.size.y)
 
 
 ## --- What a hit will do, while aiming ---

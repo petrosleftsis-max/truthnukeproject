@@ -397,6 +397,26 @@ func copycat():
 		ok(mimic.position == stood and cyrus.hp == hp, "with nothing done yet, it has nothing to copy and waits",
 			"%s -> %s" % [stood, mimic.position])
 	await end_fight()
+
+	# A move learned above its level is copied all the same (the designer, 2026-11-19: "Copies skip the level"): a level 1 Mimic
+	# was told it had not learned Poison Dart, learned at 8, and lost its turn.
+	combat = await start_fight(cast)
+	cyrus = who(combat, "cyrus", 0)
+	mimic = who(combat, "mimic", 1)
+	if standing_as_laid_out(combat, cast):
+		var dart: SkillDefinition = SkillDatabase.skills["poison_dart"]
+		mimic.level = 1
+		# Only what it copies (the designer, 2026-11-20): before the party has used it, it has not got it.
+		combat.last_player_skill_used = ""
+		ok(not combat.meets_level_for(mimic, dart), "a level 1 Mimic with nothing to copy has no Poison Dart of its own")
+		combat.last_player_skill_used = "poison_dart"
+		ok(dart.required_level > 1 and combat.meets_level_for(mimic, dart),
+			"a level 1 Mimic copying Poison Dart can use it, learned at %d" % dart.required_level)
+		var said := []
+		combat.update_information.connect(func(text): said.append(String(text)))
+		await enemy_turn(combat, mimic)
+		ok(not said.any(func(text): return "has not learned" in text), "and copying it, its turn is not lost", "%s" % [said])
+	await end_fight()
 	log_line("")
 
 

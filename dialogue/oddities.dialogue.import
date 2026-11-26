@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://pdmdd7ot4iur"
+path="res://.godot/imported/oddities.dialogue-abfcc9483a3890ecf0ad286c75270155.tres"
+
+[deps]
+
+source_file="res://dialogue/oddities.dialogue"
+dest_files=["res://.godot/imported/oddities.dialogue-abfcc9483a3890ecf0ad286c75270155.tres"]
+
+[params]
+
+defaults=true

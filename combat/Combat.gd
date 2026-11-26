@@ -1049,6 +1049,11 @@ func add_combatant(combatant: Dictionary, side: int, position: Vector2i):
 	if side == 1 and Campaign.knows_faction(combatant.get("faction", "")):
 		combatant["studied"] = true
 		combatant["known_faction"] = combatant.faction
+	# A rehearsal's blessing, given in the dream-place (Rehearsal): on everybody of the party while that run lasts.
+	if side == Group.PLAYERS and Campaign.run_blessing != "" and not combatant.has("object"):
+		var blessing = load("res://data/passives/%s.tres" % Campaign.run_blessing)
+		if blessing is PassiveDefinition:
+			combatant.passives.append(blessing)
 	combatants.append(combatant)
 	_number_duplicates(combatant)
 	# Something on the map belongs to no side: not counted for who has won, not
@@ -1105,6 +1110,12 @@ func get_current_combatant():
 ## cannot use yet is left out of their panels entirely rather than shown greyed
 ## out - the panel is what they can do now, not a preview of later.
 func meets_level_for(comb: Dictionary, skill: SkillDefinition) -> bool:
+	# What it copies it has, at any level (PassiveDefinition.needs_no_learning: the Mimic's copies) - only that, the last thing
+	# the party did (ai_copycat), never a move of its own or anybody else's (the designer, 2026-11-20: "Copies skip the level").
+	if skill != null and last_player_skill_used != "" and skill_key_of(skill) == last_player_skill_used:
+		for passive in active_passives(comb):
+			if passive.needs_no_learning:
+				return true
 	# Learned at a level of their own (CombatantDefinition.skill_levels).
 	var own_levels: Dictionary = comb.get("skill_levels", {})
 	if skill != null and not own_levels.is_empty():
@@ -1322,6 +1333,9 @@ func gate_opened_for(comb: Dictionary, skill: SkillDefinition) -> bool:
 
 ## Whether `comb` can currently afford `skill` at all. Free skills always can.
 func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
+	# Forgotten for now (Lethe's touch): not to be had at any price.
+	if _is_forgotten(comb, skill):
+		return false
 	if skill.spell_slot_level <= 0:
 		return true
 	# Nobody casts in a silence (ConditionDefinition.prevents_spells).
@@ -2674,6 +2688,9 @@ func _pay_for_cast(attacker: Dictionary, skill: SkillDefinition):
 	# The gate it came through, for what it leaves on people ("Dispelling").
 	_casting_skill = skill
 	_casting_gate = maxi(maxi(spent, through), skill.spell_slot_level if skill != null else 0)
+	# The first casting through a gate in the whole run: it speaks (GateVoice; the proposals of 2026-11-19).
+	if attacker.get("side", 1) == Group.PLAYERS and spent > 0 and not Net.catching_up():
+		GateVoice.speak(self, _casting_gate)
 
 
 ## Call after `mover` takes a single movement step, from `previous_position`
@@ -6403,6 +6420,20 @@ func _pace_turn(comb: Dictionary):
 var _turn_scale := 1.0
 
 
+## Where each of the party still standing is: combatant key -> their tile. For the map the fight was started from, if it is fought
+## on that map's own ground (Campaign.after_fight): there they stand again, and walk over to whoever leads.
+func party_places() -> Dictionary:
+	var places := {}
+	for comb in combatants:
+		if comb.get("side", 1) != Group.PLAYERS or not comb.get("alive", false) or comb.has("summoner") or comb.has("object") \
+				or comb.get("illusion", false) or not comb.has("position"):
+			continue
+		var key: String = comb.get("combatant_key", "")
+		if key != "" and Campaign.party_order.has(key) and not places.has(key):
+			places[key] = comb.position
+	return places
+
+
 func combat_finish():
 	# Nothing left buzzing in the hands once it is over (Rumble), and the music whole again (The turn of a fight, in the music).
 	Rumble.stop()
@@ -9300,6 +9331,14 @@ func put_condition(target: Dictionary, condition: ConditionDefinition, stored: i
 		"source_id" = source_id,
 	})
 	_metric("condition", {"target": target, "condition": condition, "by": combatant_with_id(source_id) if source_id >= 0 else {}, "by_name": source, "turns": stored})
+	# Lethe's touch (the proposals of 2026-11-19): one of their own moves forgotten while it lasts, chosen by the fight's rolls.
+	if condition.forgets_a_move:
+		var theirs: Array = main_skills_of(target).filter(func(key): return SkillDatabase.skills.has(key) and not forgotten_moves(target).has(key))
+		if not theirs.is_empty():
+			var forgot: String = theirs[rng.randi_range(0, theirs.size() - 1)]
+			target.status_effects[-1]["forgotten"] = forgot
+			update_information.emit("[color=yellow]%s[/color] has forgotten %s.\n" % [target.name, SkillDatabase.skills[forgot].name])
+			MapFeel.sound(&"lethe", -4.0, 1.0, sprite_point(target) if target.has("position") else Vector2.INF)
 	if condition.movement_change != 0:
 		resync_live_movement(target, movement_before)
 	if condition.getting_up_share > 0.0 and not was_down:
@@ -10492,7 +10531,27 @@ func only_gets_you_moving(skill: SkillDefinition) -> bool:
 ## Why `skill` would do nothing at all for `comb` right now, or "" when it
 ## would do something. The action panel greys it out and says this; the AI
 ## leaves it alone. Rooted, Run doubles a movement that is not there.
+## The moves `comb` has forgotten for now (ConditionDefinition.forgets_a_move): skill keys.
+func forgotten_moves(comb: Dictionary) -> Array:
+	var keys := []
+	for entry in comb.get("status_effects", []):
+		if entry is Dictionary and entry.has("forgotten"):
+			keys.append(entry.forgotten)
+	return keys
+
+
+func _is_forgotten(comb: Dictionary, skill: SkillDefinition) -> bool:
+	if skill == null or comb.is_empty():
+		return false
+	for key in forgotten_moves(comb):
+		if SkillDatabase.skills.get(key) == skill:
+			return true
+	return false
+
+
 func wasted_on(comb: Dictionary, skill: SkillDefinition) -> String:
+	if _is_forgotten(comb, skill):
+		return "%s has forgotten %s for now (Lethe)." % [comb.get("name", "They"), skill.name]
 	if skill != null and skill.needs_own_burn and burn_turns_of(comb) <= 0:
 		return "Only while %s burns" % comb.get("name", "they")
 	if skill != null and skill.reaction_only:
@@ -12580,8 +12639,10 @@ func go_on_from_carried():
 		camera.position = on_to.at
 		camera.zoom = Vector2.ONE * float(on_to.zoom)
 		return
-	camera.glide_to(on_to.at, on_to.zoom)
-	var until := Time.get_ticks_msec() + 1200
+	# At the opening's slower pace (the designer, 2026-11-21: "Make the starting effects of a fight slower"; it was the usual glide,
+	# waited for at most 1.2 s).
+	camera.glide_over(on_to.at, on_to.zoom, FightCards.CARRY_GLIDE_SECONDS)
+	var until := Time.get_ticks_msec() + int((FightCards.CARRY_GLIDE_SECONDS + 0.3) * 1000.0)
 	while is_instance_valid(camera) and camera.is_gliding() and Time.get_ticks_msec() < until and still_running():
 		await get_tree().process_frame
 
@@ -13825,10 +13886,12 @@ const AI_PACK_WAITS := 2
 const AI_PACK_TOGETHER_TILES := 3
 
 ## Whether `comb` is waiting for its pack: enough of them left and on the field to wait for, not gathered yet, nobody of the
-## other side beside it, nobody that enough of them could reach yet - and it has not waited AI_PACK_WAITS turns already.
+## other side beside it, nobody that enough of them could reach yet - and it has not waited AI_PACK_WAITS turns already, nor
+## gone in with its pack once already (_ai_pack_goes_in).
 func _ai_holds_back(comb: Dictionary) -> bool:
 	var needed: int = comb.get("ai_pack", 0)
-	if needed < 2 or movement_budget_of(comb) <= 0 or is_held(comb) or int(comb.get("held_back", 0)) >= AI_PACK_WAITS:
+	if needed < 2 or movement_budget_of(comb) <= 0 or is_held(comb) or int(comb.get("held_back", 0)) >= AI_PACK_WAITS \
+			or comb.get("pack_gone_in", false):
 		return false
 	var pack := combatants.filter(func(other): return other.get("alive", false) and other.get("side", -1) == comb.get("side", -2) \
 		and other.get("ai_pack", 0) > 0 and not other.has("object") and not has_restriction(other, "skips_turn") \
@@ -13850,6 +13913,19 @@ func _ai_holds_back(comb: Dictionary) -> bool:
 		if can >= needed:
 			return false
 	return true
+
+
+## A pack creature not hanging back goes in, and with it every one of its pack gathered round it: none of them waits for the
+## others again, however far apart they end up. Before this they went in by turns - the first ahead, the second hanging back
+## for it, then the first falling back to wait for the second - and both backed away from the party and never fought (the
+## designer, 2026-11-20, of the Glutton's first two Gnawers: "they waited for allies that didnt exist yet and ran away").
+func _ai_pack_goes_in(comb: Dictionary):
+	if int(comb.get("ai_pack", 0)) < 2 or comb.get("pack_gone_in", false):
+		return
+	for mate in combatants:
+		if mate.get("alive", false) and mate.get("side", -1) == comb.get("side", -2) and int(mate.get("ai_pack", 0)) > 0 \
+				and mate.has("position") and get_distance(mate, comb) <= AI_PACK_TOGETHER_TILES:
+			mate["pack_gone_in"] = true
 
 
 ## What a creature of its own ways does before anything else. True when that was the turn.
@@ -13874,6 +13950,7 @@ func _ai_ways_of_its_own(comb: Dictionary) -> bool:
 		if still_running() and comb.alive and not combat_over:
 			await advance_turn()
 		return true
+	_ai_pack_goes_in(comb)
 	var ward := _ai_ward_of(comb)
 	if not ward.is_empty() and get_distance(comb, ward) > comb.get("ai_guards_within", 3) and movement_budget_of(comb) > 0 and not is_held(comb):
 		update_information.emit("[color=red]%s[/color] goes back to [color=red]%s[/color].\n" % [comb.name, ward.name])
@@ -17332,7 +17409,7 @@ func move_zone(comb: Dictionary, tile: Vector2i, skill: SkillDefinition = null):
 ## Anybody in darkness is invisible (the designer, 2026-11-05) - to whoever cannot see in
 ## it: `comb.invisible`, through a zone's (_zone_invisibility) or the map's own dark ("Light"),
 ## so acting against the other side gives them away until their next turn. Whoever sees in the
-## dark (PassiveDefinition or ConditionDefinition .sees_in_darkness - Cyrus's Night Eyes, Clear
+## dark (PassiveDefinition or ConditionDefinition .sees_in_darkness - Cyrus's Cat Eyes, Clear
 ## Sight), and whoever sees the unseen (sees_the_unseen - Clear Sight), has them in plain sight;
 ## and everybody sees SEEN_IN_THE_DARK_TILES in the dark (the designer, 2026-11-06, option A), so
 ## melee still works and the dark punishes range. hidden_from is what to ask, with who is looking,
@@ -17340,7 +17417,8 @@ func move_zone(comb: Dictionary, tile: Vector2i, skill: SkillDefinition = null):
 ## sides in a dark cave nobody is forced into view (last_in_sight, reveal_anyone_now_seen), and the
 ## AI goes looking (_ai_search_the_dark). The player sees whoever anybody of theirs still standing
 ## sees (unseen_by_party, dress_for_hiding): faintly, as a hidden ally is drawn, though only they
-## can aim at them.
+## can aim at them. Only standing in it hides: the dark lying between two people hides neither of
+## them (the designer, 2026-11-20, "Darkness is cover" below).
 
 ## How far everybody sees in the dark, whatever else: right beside them.
 const SEEN_IN_THE_DARK_TILES := 1
@@ -17381,9 +17459,9 @@ func sees_the_unseen(viewer: Dictionary) -> bool:
 	return conditions_of(viewer).any(func(condition): return condition.sees_the_unseen)
 
 
-## Whether `comb` is out of `viewer`'s sight: hidden, or invisible, and nothing about
-## them lets them see past that - or behind darkness, which nobody sees into or past but
-## whoever sees in the dark ("Darkness is cover").
+## Whether `comb` is out of `viewer`'s sight: hidden, or invisible - lost in the dark too ("In
+## the dark") - and nothing about them lets them see past that. Darkness between them hides
+## nobody now ("Darkness is cover").
 func hidden_from(viewer: Dictionary, comb: Dictionary) -> bool:
 	if not is_hidden(comb):
 		return _behind_the_dark(viewer, comb)
@@ -17402,28 +17480,22 @@ func hidden_from(viewer: Dictionary, comb: Dictionary) -> bool:
 		return true
 	if sees_in_darkness(viewer):
 		return false
-	return viewer.has("position") and (rect_gap(rect_of(viewer), rect_of(comb)) > SEEN_IN_THE_DARK_TILES or _behind_the_dark(viewer, comb))
+	return viewer.has("position") and rect_gap(rect_of(viewer), rect_of(comb)) > SEEN_IN_THE_DARK_TILES
 
 
 ## --- Darkness is cover ---
 ##
-## The designer, 2026-11-07: "darkness should work as a visual cover. creatures can go through it but cannot see in
-## or behind it, except if they have a passive like cyrus does that allows them to". In it is "In the dark" above;
-## behind it is here: a line from `viewer` to `comb` across a Dark tile - the map's, or a dark zone's (Light Void),
-## which the LightMap has as Dark either way - is a line they cannot see along, unless they see in the dark. The
-## tiles right round the viewer (SEEN_IN_THE_DARK_TILES) and the tiles `comb` stands on do not count, so whoever
-## stands at the edge of the dark sees out of it. Asked by hidden_from for anybody at all, so everything that asks
-## who can see whom follows: the AI's looking and aiming, reactions, the player's aiming; is_seen_by_opponents for
-## who hides; and dress_for_hiding draws the other side's people the party cannot see as it draws the hidden.
-## Only sight: walking, and an area thrown at the ground, go on as ever. Marked by Flame and Calling Out see past it.
+## No longer (the designer, 2026-11-20: "No longer have darkness hide somebody by simply being in the middle of them", of
+## the dark lying between two people). It was (2026-11-07: "darkness should work as a visual cover. creatures can go
+## through it but cannot see in or behind it"): a line from `viewer` to `comb` across a Dark tile was one they could not
+## see along. Now the dark hides only whoever stands in it ("In the dark" above); somebody out of it, beyond it, is seen
+## across it like anybody. _behind_the_dark is kept, always false, for all that asked it (hidden_from, last_in_sight,
+## _ai_saw_them_go, _dark_keeps_from_party), and dark_between, the line itself, for what still wants to know where the
+## dark lies. A stealth map's own (StealthWatch._dark_between) is apart, and as it was.
 
-## Whether darkness stands between `viewer` and `comb` for `viewer`'s eyes.
-func _behind_the_dark(viewer: Dictionary, comb: Dictionary) -> bool:
-	if light == null or not light.varies or viewer.is_empty() or not viewer.has("position") or not comb.has("position"):
-		return false
-	if sees_in_darkness(viewer) or sees_the_unseen(viewer) or has_restriction(comb, "cannot_hide") or _called_out_to(viewer, comb):
-		return false
-	return dark_between(nearest_across(viewer, nearest_tile_of(comb, viewer.position)), nearest_tile_of(comb, viewer.position), tiles_of(comb))
+## Whether darkness standing between `viewer` and `comb` hides `comb` from `viewer`'s eyes: never, now.
+func _behind_the_dark(_viewer: Dictionary, _comb: Dictionary) -> bool:
+	return false
 
 
 ## Whether a Dark tile lies on the line from `from` to `to`: not those right round `from`, and not `to` itself or

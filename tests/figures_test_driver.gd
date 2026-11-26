@@ -405,8 +405,15 @@ func how_a_thread_looks():
 	alithia.tether.bar = alithia.tether.max * 0.08
 	await settle(60)
 	drawn = lit.threads_now.filter(func(thread): return thread.id == id)
-	ok(not drawn.is_empty() and drawn[0].gaps > 0.0, "worn, gaps open in it", "%s" % [drawn[0].gaps if not drawn.is_empty() else "-"])
-	ok(not lit.loose.is_empty(), "and pixels come loose from it", "%d" % lit.loose.size())
+	ok(not drawn.is_empty() and drawn[0].gaps > 0.0, "worn, bits of it hold by one strand", "%s" % [drawn[0].gaps if not drawn.is_empty() else "-"])
+	ok(not drawn.is_empty() and lit.worn_through(drawn[0]).has(true), "(those bits, along it)")
+	ok(not lit.loose.is_empty(), "and fibres come loose from it", "%d" % lit.loose.size())
+	# Fraying in the air (the designer, 2026-11-20): what comes loose floats, slowing, and falls nowhere.
+	var fibre: Dictionary = lit.loose[0] if not lit.loose.is_empty() else {}
+	var speed: float = fibre.get("v", Vector2.ZERO).length()
+	await settle(20)
+	ok(not fibre.is_empty() and fibre.v.length() <= speed + 0.001 and fibre.has("angle"), "drifting slower as it goes, turning, never falling",
+		"%.1f then %.1f" % [speed, fibre.get("v", Vector2.ZERO).length()])
 	var flickered := false
 	for each in 20:
 		await settle(1)
@@ -460,7 +467,7 @@ func how_a_thread_looks():
 	log_line("")
 
 
-## In the dark, whoever has faded into it is hidden (Combat "Darkness is cover"), so a thread of the party's to or from them
+## In the dark, whoever has faded into it is hidden (Combat "In the dark"), so a thread of the party's to or from them
 ## is kept without its light, under the shade: a glowing one would light them up.
 func a_thread_in_the_dark():
 	log_line("======== a thread in the dark ========")

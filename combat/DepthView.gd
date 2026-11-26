@@ -444,6 +444,12 @@ static func _cut_out(source: TileSetAtlasSource, atlas: Vector2i) -> Dictionary:
 			piece.fill_rect(Rect2i(last + 1, y, w - 1 - last, 1), clear)
 		var span := Rect2i(first, y, last - first + 1, 1)
 		box = span if box.size == Vector2i.ZERO else box.merge(span)
+	# Its smaller copies made again from what is left (the designer, 2026-11-21: "I can see a 'shadow' of the bigger version ...
+	# keep them one size"). get_region keeps the sheet's mipmaps but fills only the biggest picture, and the floor is drawn smooth
+	# from its mipmaps since 2026-11-20: pulled back, the thing faded to nothing and the one painted on the floor under it showed.
+	if piece.has_mipmaps():
+		piece.clear_mipmaps()
+	piece.generate_mipmaps()
 	found.texture = ImageTexture.create_from_image(piece)
 	found.box = Rect2(box)
 	return found

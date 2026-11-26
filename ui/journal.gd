@@ -34,13 +34,13 @@ const TOAST_LAYER := 45
 ## The scenes J opens it in, besides anywhere a picture is up.
 const OPENS_IN := ["res://scenes/exploration.tscn", "res://scenes/game.tscn"]
 
-const INK := SkyLook.INK
+const INK := Color("dce8f5")
 const MUTED := Color("8296a9")
 const GOLD := Color(1.0, 0.84, 0.35)
-const PANEL := SkyLook.PANEL
-const CARD := SkyLook.CARD
-const CARD_LIT := SkyLook.CARD_LIT
-const CARD_EDGE := SkyLook.CARD_EDGE
+const PANEL := Color("19212c")
+const CARD := Color("1c2531")
+const CARD_LIT := Color("24344a")
+const CARD_EDGE := Color("2b3947")
 
 enum Mode { BROWSE, PRESENT }
 
@@ -242,8 +242,7 @@ func _build():
 	_layer.add_child(centre)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(1000, 580)
-	# The interface's night (SkyLook), as every panel is.
-	panel.add_theme_stylebox_override("panel", SkyLook.panel(true, Vector4(18, 18, 18, 18)))
+	panel.add_theme_stylebox_override("panel", _box(PANEL, CARD_EDGE, 18))
 	centre.add_child(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
@@ -340,10 +339,20 @@ func _rebuild():
 		none.text = "Nothing written down yet."
 		none.add_theme_color_override("font_color", MUTED)
 		_list.add_child(none)
+	var lost := 0
 	for key in clues:
 		var clue: ClueDefinition = ClueBook.clue(key)
+		# Lost to Lethe until found again (Campaign.lose_clue).
+		if Campaign.lost_clues.has(key):
+			lost += 1
+			continue
 		if clue != null:
 			_list.add_child(_entry(key, clue.title if clue.title != "" else key, clue.icon, clue.is_deduction()))
+	if lost > 0:
+		var gone := Label.new()
+		gone.text = "Something you knew is gone." if lost == 1 else "%d things you knew are gone." % lost
+		gone.add_theme_color_override("font_color", MUTED)
+		_list.add_child(gone)
 	if _mode == Mode.PRESENT:
 		var items = _bag_items()
 		if not items.is_empty():
@@ -391,7 +400,7 @@ func _show_detail():
 	if entry.kind == "clue":
 		var clue: ClueDefinition = ClueBook.clue(entry.key)
 		_detail_title.text = clue.title if clue != null else entry.key
-		_detail_text.text = clue.text if clue != null else ""
+		_detail_text.text = ClueBook.shown_text(clue.text) if clue != null else ""
 		_detail_from.text = ""
 		if clue != null and clue.is_deduction():
 			_detail_from.text = "Worked out from: %s and %s" % [_title_of(clue.from_clues[0]), _title_of(clue.from_clues[1])]

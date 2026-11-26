@@ -210,9 +210,10 @@ static func _element_of(combat: Combat, user: Dictionary, skill: SkillDefinition
 ##
 ## - **Facing**: its user turns to face where it is aimed, and whoever a blow from the other side lands on turns to whoever
 ##   threw it (Combat.flash_target). `faces`.
-## - **Wind-up, follow-through and stepping in**: CombatantSprite.strike. All of it for somebody with no animation of their own
-##   for the move, whom it also gives a moment to land the blow in; OWN_ANIMATION_SHARE of it over an animation of their own,
-##   which already shows the blow. `strikes`.
+## - **Wind-up, follow-through and stepping in**: CombatantSprite.strike, for somebody with no animation of their own for the
+##   move, whom it also gives a moment to land the blow in. None of it over an animation of their own, which already shows the
+##   blow (the designer, 2026-11-21: "because there is already an attack animation, it looks weird. Whatever motion already has
+##   an animation looks a bit weird basically, anything else is completely fine"; it was half of it). `strikes`.
 ## - **The caster's light**: a spell lights its caster in its own colour as it gathers, brighter the deeper its gate
 ##   (`gather`). `gathers`.
 ## - **Resisted and vulnerable, felt**: a blow resisted lands dull, with a pale arc glancing off; one they are vulnerable to
@@ -225,7 +226,6 @@ static var faces := true
 static var strikes := true
 static var gathers := true
 static var tells := true
-const OWN_ANIMATION_SHARE := 0.5
 ## How many of each there were, for a suite.
 static var felt := {}
 
@@ -253,11 +253,13 @@ static func strike(combat: Combat, user: Dictionary, skill: SkillDefinition, aim
 		voice(combat, user, &"effort")
 	if not strikes or not at_somebody_else or not (skill.deals_damage or skill.melee):
 		return 0.0
-	var own: bool = sprite.has_skill_animation(skill.animation)
-	var lands: float = sprite.strike(toward, skill.melee, OWN_ANIMATION_SHARE if own else 1.0)
+	# Their own animation shows the blow alone: nothing stepped back and forth on top of it.
+	if sprite.has_skill_animation(skill.animation):
+		return 0.0
+	var lands: float = sprite.strike(toward, skill.melee)
 	if lands > 0.0:
 		felt[&"struck"] = int(felt.get(&"struck", 0)) + 1
-	return 0.0 if own else lands
+	return lands
 
 
 ## A blow `target` resisted: dull, a pale arc glancing off them.
@@ -498,7 +500,8 @@ static func mended(combat: Combat, target: Dictionary):
 ## - **Placed with a thump** (placed): placing the party before a fight, whoever is put on a tile hops onto it and lands with a
 ##   puff; whoever made way for them slides past to the tile they left (CController._swap_deployed).
 const BOARD_OUT_TILES := 7.0
-const BOARD_OUT_SECONDS := 1.0
+## Slower with the rest of a fight's opening (the designer, 2026-11-21; it was 1.0).
+const BOARD_OUT_SECONDS := 1.5
 const PLACED_SECONDS := 0.28
 const PLACED_HOP_TILES := 0.35
 const MADE_WAY_SECONDS := 0.24

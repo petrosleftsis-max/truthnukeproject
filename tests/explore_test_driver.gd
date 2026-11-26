@@ -384,6 +384,52 @@ func run_test():
 	ok(not still_there, "the beaten fight is no longer offered")
 	log_line("")
 
+	log_line("======== back from a fight on this ground ========")
+	# Won on the map's own ground: whoever leads stands where they stood as it ended, the rest where they stood, and they walk over
+	# to the leader (the designer, 2026-11-20: "keep them where they were when the fight finished and have everyone go towards the
+	# player character that leads").
+	var ground_path: String = returned.own_ground()
+	var fight_here: EncounterDefinition = Campaign.current_encounter
+	ok(ground_path != "" and Campaign.map_ground == ground_path, "the map says what ground it is laid on", ground_path)
+	var from_tile: Vector2i = returned._tile_of(stood_at)
+	var open: Array = []
+	for radius in range(2, 6):
+		for dy in range(-radius, radius + 1):
+			for dx in range(-radius, radius + 1):
+				var tile := from_tile + Vector2i(dx, dy)
+				if maxi(absi(dx), absi(dy)) == radius and returned.is_walkable(returned.party.to_local(returned._middle_of(tile))) \
+						and not returned.walking_route(from_tile, tile).is_empty():
+					open.append(tile)
+	var lead_key: String = Campaign.leader()
+	var followers_back: Array = Campaign.party_order.filter(func(key): return key != lead_key and Campaign.is_alive(key))
+	var places := {lead_key: open[0] if not open.is_empty() else from_tile}
+	for i in followers_back.size():
+		if open.size() > i + 3:
+			places[followers_back[i]] = open[open.size() - 1 - i * 2]
+	Campaign.begin_battle_from_exploration(fight_here, MAP, stood_at, "")
+	Campaign.finish_battle_from_exploration(true, [], places, ground_path)
+	ok(not Campaign.after_fight.is_empty(), "a win on the map's own ground keeps where everybody stood", "%s" % [places])
+	var back = await load_exploration()
+	ok(Campaign.after_fight.is_empty(), "taken by the map as it opens")
+	ok(back._tile_of(back.party_position()) == places[lead_key], "whoever leads stands where they stood as the fight ended",
+		"%s, wanted %s" % [back._tile_of(back.party_position()), places[lead_key]])
+	var apart: Array = followers_back.filter(func(key): return places.has(key))
+	ok(not apart.is_empty() and apart.all(func(key): return back.coming.has(key) and back.staying.has(key)),
+		"the rest stand where they stood, and walk over to the leader", "%s coming of %s" % [back.coming.keys(), apart])
+	var waited := 0.0
+	while waited < 12.0 and not back.coming.is_empty():
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+	ok(back.coming.is_empty() and back.staying.is_empty() and back.party.followers.size() == followers_back.size(),
+		"and fall in behind on reaching them", "after %.1f s: %d following" % [waited, back.party.followers.size()])
+	# A fight on other ground leaves them lined up where it began, as ever.
+	Campaign.begin_battle_from_exploration(fight_here, MAP, stood_at, "")
+	Campaign.finish_battle_from_exploration(true, [], places, "res://maps/some_other_ground.tscn")
+	var elsewhere = await load_exploration()
+	ok(elsewhere.party_position() == stood_at and elsewhere.coming.is_empty() and elsewhere.staying.is_empty(),
+		"fought on other ground, they come back in line where they left", "%s" % elsewhere.party_position())
+	log_line("")
+
 	log_line("======== doors ========")
 	Campaign.travel_to_map("res://maps/crossroads_explore.tscn", "start")
 	ok(Campaign.target_entry == "start" and not Campaign.return_to_position,

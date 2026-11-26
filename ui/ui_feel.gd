@@ -154,24 +154,45 @@ static func arrive(panel: Control):
 
 
 ## `buttons` deal themselves in, one after the next: a turn's action bar.
+##
+## The fade has a tween of its own (`_feel_deal`), apart from the size's (`_feel_scale`), which the pointer going over a button or
+## a press takes over: when the two were one, the pointer crossing the bar as a turn began stopped the fade where it was, and those
+## buttons stayed see-through - their slots empty for the rest of the fight, since the next deal leaves alone a button it finds
+## see-through (the designer, 2026-11-20: Cyrus's Gun, Poison Dart, Run and Slip Past, "Nothing where the skills were"). A fade of
+## ours found unfinished is dealt again.
 static func deal_in(buttons: Array):
 	_note(&"dealt")
 	var nth := 0
 	for button in buttons:
 		# Dealt a moment after they were asked for (call_deferred), so some may be gone already: the bar rebuilt meanwhile.
-		if not is_instance_valid(button) or not button is Control or not _moves(button) or not button.is_visible_in_tree() or button.modulate.a < 0.99:
+		if not is_instance_valid(button) or not button is Control or not _moves(button) or not button.is_visible_in_tree():
+			continue
+		# One whose alpha the game keeps for its own reasons is left alone; one left part-faded by a deal of ours, never.
+		if button.modulate.a < 0.99 and not deal_left_unfinished(button):
 			continue
 		var rest := rest_of(button)
 		button.set_meta(&"_feel_moved", true)
+		button.set_meta(&"_feel_dealing", true)
 		button.pivot_offset = button.size * 0.5
 		button.modulate.a = 0.0
 		button.scale = rest * 0.82
-		var tween := _tween_of(button, &"_feel_scale")
-		tween.tween_interval(DEAL_EVERY * nth)
-		tween.tween_property(button, "modulate:a", 1.0, DEAL_SECONDS)
-		tween.parallel().tween_property(button, "scale", rest, DEAL_SECONDS).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-		tween.tween_callback(func(): button.set_meta(&"_feel_moved", false))
+		var fade := _tween_of(button, &"_feel_deal")
+		fade.tween_interval(DEAL_EVERY * nth)
+		fade.tween_property(button, "modulate:a", 1.0, DEAL_SECONDS)
+		fade.tween_callback(func(): button.set_meta(&"_feel_dealing", false))
+		var grow := _tween_of(button, &"_feel_scale")
+		grow.tween_interval(DEAL_EVERY * nth)
+		grow.tween_property(button, "scale", rest, DEAL_SECONDS).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		grow.tween_callback(func(): button.set_meta(&"_feel_moved", false))
 		nth += 1
+
+
+## Whether `button` was being dealt in and its fade is not running any more: see-through because of us, not the game.
+static func deal_left_unfinished(button: Control) -> bool:
+	if not button.get_meta(&"_feel_dealing", false):
+		return false
+	var fade = _meta(button, &"_feel_deal")
+	return not (fade is Tween and fade.is_valid() and fade.is_running())
 
 
 ## `face` steps forward: whoever's turn it is, in the queue. From the size of the rest it swells past `rest` (the size the

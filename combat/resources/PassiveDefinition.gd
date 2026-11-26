@@ -44,6 +44,10 @@ enum ActiveWhen {
 ## just watched somebody else do, and without this it copies a spell and then
 ## cannot pay for it, which is a turn spent doing nothing at all.
 @export var casts_without_gates: bool = false
+## What they copy - the last thing the party did - they have, whatever level it is learned at (Combat.meets_level_for); only
+## that, not their own moves or anybody else's (the designer, 2026-11-19: "Copies skip the level"): a level 1 Mimic copying
+## Poison Dart, learned at 8, was told it had not learned it yet and lost its turn.
+@export var needs_no_learning: bool = false
 ## Skills, by key, they can also use as their secondary action - still on the
 ## main panel as well, so either action will do. Cyrus's Light Footed: it is why he
 ## can Run twice in one turn.
@@ -53,10 +57,10 @@ enum ActiveWhen {
 ## swing in the same turn.
 @export var items_as_secondary: bool = false
 ## Gate Nades whose spell would cost the main action are thrown with the
-## secondary one instead. Cyrus's Nade Juggler.
+## secondary one instead. Cyrus's Quick Hands.
 @export var gate_nades_as_secondary: bool = false
 ## Any Gate Nade at all, whatever spell is in it - not only those whose spell
-## they know or could learn. Cyrus's Nade Juggler.
+## they know or could learn. Cyrus's Quick Hands.
 @export var any_gate_nade: bool = false
 ## Can hack (HackDefinition): wards, machines, the spell a foe is winding up.
 ## Prometheus's Prying Mind.
@@ -83,7 +87,7 @@ var scales_every_skill_with: int = -1
 ## Burglar.
 @export var climbs_anywhere: bool = false
 ## They see in the dark: anybody in darkness is in plain sight to them, and the player
-## sees them too while they stand (Combat "In the dark"). Cyrus's Night Eyes.
+## sees them too while they stand (Combat "In the dark"). Cyrus's Cat Eyes.
 @export var sees_in_darkness: bool = false
 ## Squeezes into room too small for them: folded a size narrower, a size
 ## shorter, or both - only as much as the room needs - while they are in there,
@@ -148,9 +152,9 @@ var scales_every_skill_with: int = -1
 ## A spell of theirs landing on an ally gives that ally this much more movement
 ## until the end of their next turn.
 @export var ally_spell_movement: int = 0
-## Their heals lift this many harmful conditions as well. Alithia's Mercy II.
+## Their heals lift this many harmful conditions as well. Alithia's Mercy I.
 @export_range(0, 5) var heals_lift: int = 0
-## Their heals leave this on whoever they heal - Mercy III's Sheltered.
+## Their heals leave this on whoever they heal - Mercy II's Sheltered.
 @export var heals_leave: ConditionDefinition
 ## And a shield of this share of their health (overheal), gone after Heals
 ## Shield Turns of theirs (0: the fight's end). Veil of Mercy III.
@@ -163,7 +167,7 @@ var scales_every_skill_with: int = -1
 @export_subgroup("Taking less")
 ## They take this share less of every hit: 0.1 is a tenth. Iron Hide.
 @export_range(0.0, 0.9, 0.05) var damage_reduction: float = 0.0
-## And this share less while in cover (Combat.in_cover). Agile I.
+## And this share less while in cover (Combat.in_cover). Agile.
 @export_range(0.0, 0.9, 0.05) var damage_reduction_in_cover: float = 0.0
 ## While they stand, everybody on their side takes this share less. Radiant
 ## Guardian.
@@ -207,9 +211,9 @@ var scales_every_skill_with: int = -1
 @export_range(0, 5) var extra_deepest_castings: int = 0
 
 @export_subgroup("Cover")
-## More movement on a turn they start in cover (Combat.in_cover). Cat Burglar I.
+## More movement on a turn they start in cover (Combat.in_cover). Cat Burglar.
 @export_range(0, 6) var movement_in_cover: int = 0
-## Stepping into cover sets off nothing as they leave somebody's reach. Agile II.
+## Stepping into cover sets off nothing as they leave somebody's reach. Agile.
 @export var slips_into_cover: bool = false
 
 @export_subgroup("Holding attention")
@@ -339,7 +343,7 @@ var scales_every_skill_with: int = -1
 ## Final Judgment.
 @export var pierce_read_with: Array[String] = []
 ## A foe lying prone gets no cover from their ranged moves: nothing off for it
-## (Combat "Prone"). Cyrus's Low Shot.
+## (Combat "Prone"). Cyrus's Cat Eyes.
 @export var ignores_prone_cover: bool = false
 ## Getting up from prone takes none of their movement. The Saboteur's Kip-Up.
 @export var gets_up_free: bool = false
@@ -377,8 +381,8 @@ var scales_every_skill_with: int = -1
 @export var forewarn_effects: Array[EffectDefinition] = []
 
 @export_group("Fire she pays for")
-## While she burns, the tiles she walks stay lit until her next turn: her side walks on them unhemmed and starts a turn on them a tile
-## further, and the other side catches fire stepping there (Blazed Path; Combat "Enfina").
+## While she burns, the tiles she walks stay alight until her next turn: her side walks onto them for one movement a tile, never double
+## (hem_cost), with +1 movement for a turn started on one, and the other side catches fire stepping there (Blazed Path; Combat "Enfina").
 @export var blazes_a_path: bool = false
 ## While she burns, fire on the ground does her no harm, and none of these can take hold of her (Through the Fire).
 @export var through_the_fire: bool = false
@@ -423,6 +427,8 @@ func describe_effects() -> Array:
 	var lines := []
 	if casts_without_gates:
 		lines.append("Casts without opening a gate, however deep a gate the spell calls for.")
+	if needs_no_learning:
+		lines.append("Uses whatever it copies, whatever level it is learned at.")
 	if not secondary_skills.is_empty():
 		lines.append("Can use %s as a secondary action as well as a main one." % _named(secondary_skills))
 	if items_as_secondary:
@@ -459,23 +465,23 @@ func describe_effects() -> Array:
 	if not step_after.is_empty() and step_tiles > 0:
 		lines.append("After %s, can step up to %d tiles away in a straight line, provoking nothing." % [_named(step_after), step_tiles])
 	if amplifies_spells:
-		lines.append("Can amplify a spell, casting it through a higher gate for %d%% more damage a gate." % roundi(amplify_bonus_per_gate * 100))
+		lines.append("Can amplify a spell, casting it through a higher gate for +%d%% Output Efficiency a gate." % roundi(amplify_bonus_per_gate * 100))
 	if not free_amplifies_at.is_empty():
 		lines.append("Amplifies for free once a short rest from level %s." % ", once more from level ".join(free_amplifies_at.map(str)))
 	if overheals_allies > 0.0:
 		lines.append("A spell on an ally leaves them overhealed - extra health, taken first, gone by the fight's end.")
 	if wards_allies:
-		lines.append("Reaction: when an ally within %d tiles is hit, takes %d%% off it." % [ward_range, roundi(ward_reduction * 100)])
+		lines.append("Reaction: when an ally within %d tiles is hit, gives them %d%% Damage Mitigation against it." % [ward_range, roundi(ward_reduction * 100)])
 	if guards_within > 0:
 		lines.append("Takes %d%% of any hit on an ally within %d tiles." % [roundi(guard_share * 100), guards_within])
 	if heal_bonus > 0.0:
-		lines.append("Heals mend %d%% more." % roundi(heal_bonus * 100))
+		lines.append("Their heals have +%d%% Output Efficiency." % roundi(heal_bonus * 100))
 	if heal_self_share > 0.0:
 		lines.append("%d%% of what a heal mends on somebody else comes back to them." % roundi(heal_self_share * 100))
 	if ally_spell_movement != 0:
 		lines.append("A spell on an ally gives them %+d movement for a turn." % ally_spell_movement)
 	if empowered_by != null:
-		var empowered := "While %s: %d%% more damage" % [empowered_by.display_name, roundi(empowered_damage_bonus * 100)]
+		var empowered := "While %s: +%d%% Output Efficiency" % [empowered_by.display_name, roundi(empowered_damage_bonus * 100)]
 		lines.append(empowered + (", and every hit spreads it." if spreads_it else "."))
 	var unless := ""
 	if aura_contested:
@@ -489,7 +495,7 @@ func describe_effects() -> Array:
 	if not forewarn_effects.is_empty():
 		lines.append("Whoever a read blow is aimed at is forewarned: %s." % _effects_named(forewarn_effects))
 	if thwarted_damage_bonus > 0.0:
-		lines.append("%d%% more damage to an enemy whose foreseen turn the party changed, until its next turn." % roundi(thwarted_damage_bonus * 100))
+		lines.append("+%d%% Output Efficiency against an enemy whose foreseen turn the party changed, until its next turn." % roundi(thwarted_damage_bonus * 100))
 	if heals_lift > 0:
 		lines.append("Heals lift %s harmful condition%s too." % ["one" if heals_lift == 1 else str(heals_lift), "" if heals_lift == 1 else "s"])
 	if heals_leave != null:
@@ -499,27 +505,27 @@ func describe_effects() -> Array:
 	if heals_shield > 0.0:
 		lines.append("Their heals leave a shield of %d%% of health%s." % [roundi(heals_shield * 100), (" for %d turns" % heals_shield_turns) if heals_shield_turns > 0 else ""])
 	if damage_reduction > 0.0:
-		lines.append("Takes %d%% less damage." % roundi(damage_reduction * 100))
+		lines.append("%d%% Damage Mitigation from every hit." % roundi(damage_reduction * 100))
 	if damage_reduction_in_cover > 0.0:
-		lines.append("Takes %d%% less damage in cover." % roundi(damage_reduction_in_cover * 100))
+		lines.append("%d%% Damage Mitigation in cover." % roundi(damage_reduction_in_cover * 100))
 	if party_damage_reduction > 0.0:
-		lines.append("While they stand, their side takes %d%% less damage." % roundi(party_damage_reduction * 100))
+		lines.append("While they stand, their side has %d%% Damage Mitigation." % roundi(party_damage_reduction * 100))
 	if still_damage_bonus > 0.0:
-		lines.append("%d%% more damage on a turn they have not walked." % roundi(still_damage_bonus * 100))
+		lines.append("+%d%% Output Efficiency on a turn they have not walked." % roundi(still_damage_bonus * 100))
 	if bonus_vs_weak > 0.0:
-		lines.append("%d%% more damage on anybody weak to the hit's element." % roundi(bonus_vs_weak * 100))
+		lines.append("+%d%% Output Efficiency on anybody weak to the hit's element." % roundi(bonus_vs_weak * 100))
 	if bonus_vs_lingering > 0.0:
-		lines.append("%d%% more damage on anybody taking lingering damage." % roundi(bonus_vs_lingering * 100))
+		lines.append("+%d%% Output Efficiency on anybody taking lingering damage." % roundi(bonus_vs_lingering * 100))
 	if party_bonus_vs_afflicted > 0.0:
-		lines.append("Their side hits anybody carrying a harmful condition %d%% harder." % roundi(party_bonus_vs_afflicted * 100))
+		lines.append("Their side has +%d%% Output Efficiency against anybody carrying a harmful condition." % roundi(party_bonus_vs_afflicted * 100))
 	if party_bonus_vs_own > 0.0:
-		lines.append("And %d%% harder again on anybody carrying one of theirs." % roundi(party_bonus_vs_own * 100))
+		lines.append("And +%d%% more against anybody carrying one of theirs." % roundi(party_bonus_vs_own * 100))
 	if kindling_step > 0.0:
-		lines.append("Each spell they cast in a fight makes the ones after it %d%% harder, up to %d%%." % [roundi(kindling_step * 100), roundi(kindling_most * 100)])
+		lines.append("Each spell they cast in a fight gives the ones after it +%d%% Output Efficiency, up to +%d%%." % [roundi(kindling_step * 100), roundi(kindling_most * 100)])
 	elif kindling_most > 0.0:
-		lines.append("Kindling builds up to %d%% further." % roundi(kindling_most * 100))
+		lines.append("Kindling builds up to +%d%% Output Efficiency further." % roundi(kindling_most * 100))
 	if dot_bonus > 0.0:
-		lines.append("Their lingering damage is %d%% harder." % roundi(dot_bonus * 100))
+		lines.append("Their lingering damage has +%d%% Output Efficiency." % roundi(dot_bonus * 100))
 	if dot_extra_turns > 0:
 		lines.append("Their lingering damage lasts %d turn%s longer." % [dot_extra_turns, "" if dot_extra_turns == 1 else "s"])
 	if contest_bonus > 0:
@@ -551,7 +557,7 @@ func _describe_paths() -> Array:
 	if unstoppable:
 		lines.append("Nothing lowers their movement or roots them.")
 	if charge_bonus > 0.0:
-		lines.append("Having walked %d tiles or more in a turn, their next hit lands %d%% harder." % [charge_tiles, roundi(charge_bonus * 100)])
+		lines.append("Having walked %d tiles or more in a turn, their next hit has +%d%% Output Efficiency." % [charge_tiles, roundi(charge_bonus * 100)])
 	if felling_refreshes:
 		lines.append("Felling somebody on their turn gives their main action back%s." % ((" and %d more movement" % felling_movement) if felling_movement > 0 else ""))
 	if tremor_share > 0.0:
@@ -566,14 +572,14 @@ func _describe_paths() -> Array:
 	if last_wall > 0:
 		lines.append("While they stand, a blow cannot fell an ally within %d: it stops at 1 health, and the rest lands on them." % last_wall)
 	if flanking_bonus > 0.0:
-		lines.append("%s %d%% harder on anybody standing beside one of their allies." % [
-			"Their hits land" if flanking_skills.is_empty() else "%s lands" % _skill_names(flanking_skills), roundi(flanking_bonus * 100)])
+		lines.append("%s +%d%% Output Efficiency on anybody standing beside one of their allies." % [
+			"Their hits have" if flanking_skills.is_empty() else "%s has" % _skill_names(flanking_skills), roundi(flanking_bonus * 100)])
 	if opener_bonus > 0.0:
-		lines.append("Their first hit on each enemy in a fight lands %d%% harder." % roundi(opener_bonus * 100))
+		lines.append("Their first hit on each enemy in a fight has +%d%% Output Efficiency." % roundi(opener_bonus * 100))
 	if afterimage:
 		lines.append("In cover, the first attack at them each round misses.")
 	if repeat_bonus > 0.0:
-		lines.append("Each %s after the first in a turn lands %d%% harder." % [_skill_names(repeat_skills), roundi(repeat_bonus * 100)])
+		lines.append("Each %s after the first in a turn has +%d%% Output Efficiency." % [_skill_names(repeat_skills), roundi(repeat_bonus * 100)])
 	if overload:
 		lines.append("A Gun hit makes each of their lingering conditions on the target tick once more, at once.")
 	if contagion:
@@ -581,13 +587,13 @@ func _describe_paths() -> Array:
 	if extra_traps > 0:
 		lines.append("%d more trap%s set at once." % [extra_traps, "" if extra_traps == 1 else "s"])
 	if bonus_vs_trapped > 0.0:
-		lines.append("Anybody held by their traps takes %d%% more from them." % roundi(bonus_vs_trapped * 100))
+		lines.append("+%d%% Output Efficiency against anybody held by their traps." % roundi(bonus_vs_trapped * 100))
 	if spellstrike > 0.0:
 		lines.append("%s that lands strikes again with its element, x%s, free." % [_skill_names(spellstrike_skills), String.num(spellstrike, 2)])
 	if elemental_armour > 0.0:
-		lines.append("Takes %d%% less of the element they last used." % roundi(elemental_armour * 100))
+		lines.append("%d%% Damage Mitigation against the element they last used." % roundi(elemental_armour * 100))
 	for key in skill_bonuses:
-		lines.append("%s hits %d%% harder." % [_skill_names([key]), roundi(float(skill_bonuses[key]) * 100)])
+		lines.append("%s has +%d%% Output Efficiency." % [_skill_names([key]), roundi(float(skill_bonuses[key]) * 100)])
 	if control_extra_turns > 0:
 		lines.append("Their roots and slows last %d turn%s longer." % [control_extra_turns, "" if control_extra_turns == 1 else "s"])
 	if push_extra > 0:
@@ -598,28 +604,28 @@ func _describe_paths() -> Array:
 		lines.append("Their %s spells leap to one more within %d, at %d%%." % [
 			"/".join(chain_elements.map(func(element): return Damage.type_name(element).to_lower())), chain_reach, roundi(chain_share * 100)])
 	if resonance > 0.0:
-		lines.append("A spell of another element than their last hits %d%% harder." % roundi(resonance * 100))
+		lines.append("A spell of another element than their last has +%d%% Output Efficiency." % roundi(resonance * 100))
 	if silhouette_bonus > 0.0:
-		lines.append("Somebody in Bright, shot from the Dark, takes %d%% more." % roundi(silhouette_bonus * 100))
+		lines.append("Their ranged moves from a Dark Area at somebody in a Bright Area: +%d%% Output Efficiency." % roundi(silhouette_bonus * 100))
 	if slips_away_after_felling:
 		lines.append("Felling somebody from hiding, they slip out of sight again, even while watched: once a turn.")
 	if blessed_in_bright > 0.0:
-		lines.append("On somebody in Bright, their heals mend and their Idol damage lands %d%% more." % roundi(blessed_in_bright * 100))
+		lines.append("On somebody in a Bright Area, their heals and their Idol damage have +%d%% Output Efficiency." % roundi(blessed_in_bright * 100))
 	if mends_in_bright > 0.0 or mends_in_bright_per_stat > 0.0:
-		lines.append("Standing in Bright as their turn starts, they mend %s%s." % [str(roundi(mends_in_bright)),
+		lines.append("Standing in a Bright Area as their turn starts, they mend %s%s." % [str(roundi(mends_in_bright)),
 			(" and %d%% of their spellcasting attribute" % roundi(mends_in_bright_per_stat * 100)) if mends_in_bright_per_stat > 0.0 else ""])
 	if nowhere_to_hide_tiles > 0:
-		lines.append("Nobody of the other side in Bright within %d tiles can hide, and they are Exposed if they try." % nowhere_to_hide_tiles)
+		lines.append("Nobody of the other side in a Bright Area within %d tiles can hide, and they are Exposed if they try." % nowhere_to_hide_tiles)
 	if conduit:
 		lines.append("Once a short rest, a spell through their deepest gate is cast twice.")
 	if righteous_share > 0.0:
 		lines.append("Their damaging spells heal the most hurt ally within %d for %d%% of the damage." % [righteous_reach, roundi(righteous_share * 100)])
 	if crusade_bonus > 0.0:
-		lines.append("Allies within %d of them hit %d%% harder." % [crusade_reach, roundi(crusade_bonus * 100)])
+		lines.append("Allies within %d of them have +%d%% Output Efficiency." % [crusade_reach, roundi(crusade_bonus * 100)])
 	if guards_first_blow:
 		lines.append("While they stand, each ally's first blow taken in a fight misses.")
 	if bonus_vs_read > 0.0:
-		lines.append("Their hits land %d%% harder on anybody they have read." % roundi(bonus_vs_read * 100))
+		lines.append("Their hits have +%d%% Output Efficiency on anybody they have read." % roundi(bonus_vs_read * 100))
 	if not pierce_read_with.is_empty():
 		lines.append("%s goes through all defence on anybody they have read." % _skill_names(pierce_read_with))
 	if ignores_prone_cover:

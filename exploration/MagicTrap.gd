@@ -20,6 +20,12 @@ class_name MagicTrap
 @export_range(0.0, 20.0, 0.5, "suffix:tiles") var noise_tiles: float = 8.0
 ## The quick time event an answer is played as; empty for the default.
 @export var quick_time: QuickTimeDefinition
+## Not drawn, and so unknown to the party, until it goes off. A way worked out for them (ExplorationScene "Called over") goes round
+## a trap they know of and walks over a hidden one as if it were not there (the designer, 2026-11-19).
+@export var concealed: bool = false:
+	set(value):
+		concealed = value
+		queue_redraw()
 
 const DEFAULT_QUICK_TIME := "res://data/quick_times/counter_trap.tres"
 const GLYPH := Color(0.62, 0.45, 0.95, 0.32)
@@ -38,6 +44,11 @@ func _ready():
 	z_index = ExplorationParty.PARTY_Z_BOTTOM - 3
 
 
+## Whether the party knows of it: armed and drawn, not Concealed.
+func known_to_party() -> bool:
+	return armed and not concealed
+
+
 ## The flag it is kept spent in, on the map at `map_path`.
 func flag_for(map_path: String) -> String:
 	return flag if flag != "" else "trap_spent:%s::%s" % [map_path, name]
@@ -49,7 +60,7 @@ func quick_time_event() -> QuickTimeDefinition:
 
 
 func _draw():
-	if not armed and not Engine.is_editor_hint():
+	if (not armed or concealed) and not Engine.is_editor_hint():
 		return
 	var tile := float(Grid.TILE_SIZE)
 	draw_arc(Vector2.ZERO, tile * 0.34, 0.0, TAU, 32, GLYPH, 5.0)
@@ -58,4 +69,4 @@ func _draw():
 		var a := TAU * i / 6.0
 		draw_line(Vector2.RIGHT.rotated(a) * tile * 0.22, Vector2.RIGHT.rotated(a + PI / 6.0) * tile * 0.34, GLYPH, 3.0)
 	if Engine.is_editor_hint():
-		draw_string(ThemeDB.fallback_font, Vector2(-tile / 2.0 + 8, -tile / 2.0 + 28), "Magic trap", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(1.0, 0.85, 0.3, 0.9))
+		draw_string(ThemeDB.fallback_font, Vector2(-tile / 2.0 + 8, -tile / 2.0 + 28), "Magic trap (concealed)" if concealed else "Magic trap", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, Color(1.0, 0.85, 0.3, 0.9))

@@ -228,7 +228,32 @@ func the_buttons():
 	hud.set_skill_list(["greatsword_attack", "guard", "grab"], false, false)
 	shown = grid.get_children().filter(func(slot): return slot.visible)
 	ok(shown.size() == 3, "and back when there are more", "%d" % shown.size())
+	# The look before T, SkyLook (the designer, 2026-11-21: "the style before the sky style i chose"), with each slot's ring in the
+	# colour its icon is painted on, as on T (2026-11-19; and again, 2026-11-21: "I'd like the coloured rings of the skill icons back").
+	var rings := []
+	var matching := true
+	for slot in shown:
+		var tint: Color = slot.get_theme_color(&"icon_normal_color") if slot.has_theme_color_override(&"icon_normal_color") else Color.WHITE
+		var want := SkyLook.icon_ring(slot.icon, tint)
+		var box := slot.get_theme_stylebox(&"normal") as StyleBoxFlat
+		var got: Color = box.border_color if box != null else Color.TRANSPARENT
+		rings.append(got.to_html(false))
+		if slot.theme_type_variation != &"" or want.a <= 0.0 or not slot.has_theme_stylebox_override(&"normal") or not got.is_equal_approx(want) \
+				or box.border_width_left != SkyLook.SLOT_RING:
+			matching = false
+	ok(matching, "each slot is the theme's own button, ringed in the colour of its own icon", ", ".join(rings))
+	var kinds := {}
+	for ring in rings:
+		kinds[ring] = true
+	ok(kinds.size() > 1, "so slots with icons on different grounds have different rings", ", ".join(rings))
+	hud.set_skill_list(["greatsword_attack"], false, false)
+	var emptied := grid.get_children().filter(func(slot): return not slot.visible)
+	ok(not emptied.is_empty() and emptied.all(func(slot): return not slot.has_theme_stylebox_override(&"normal")), "and an emptied slot has the theme's own edge again", "%d emptied" % emptied.size())
+	hud.set_skill_list(["greatsword_attack", "guard", "grab"], false, false)
 	ok(hud._turn_block != null and hud._turn_block.get_parent() == hud.get_node("Actions"), "the turn's buttons have a block round them")
+	# A click on it between them is the block's, not the board's under it (the designer, 2026-11-21: "there are times i click
+	# through and a character moves").
+	ok(hud._turn_block.mouse_filter == Control.MOUSE_FILTER_STOP, "and a click on it between them stays off the board")
 	var spells: Control = hud.get_node("Actions/SpellsToggle")
 	var tabs: Control = hud.get_node("Actions/SkillPanelTabs")
 	ok(is_equal_approx(spells.offset_top, tabs.offset_top), "Spells is on the tabs' line")

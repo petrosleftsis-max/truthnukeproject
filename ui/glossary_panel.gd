@@ -25,13 +25,13 @@ const CAST := ["cyrus", "enfina", "prometheus", "alithia"]
 ## ones - a skill is free to inflict the same condition differently.
 const DEFAULTS_NOTE := "These are the defaults, and subject to change: a skill that inflicts this can carry its own duration, and any damage it deals scales with whoever inflicted it."
 
-const INK := SkyLook.INK
-const INK_DIM := SkyLook.INK_DIM
+const INK := Color("dce8f5")
+const INK_DIM := Color("c2ceda")
 const MUTED := Color("8296a9")
-const ACCENT := SkyLook.ACCENT
-const CARD := SkyLook.CARD
-const CARD_LIT := SkyLook.CARD_LIT
-const CARD_EDGE := SkyLook.CARD_EDGE
+const ACCENT := Color("4a86c8")
+const CARD := Color("1c2531")
+const CARD_LIT := Color("24344a")
+const CARD_EDGE := Color("2b3947")
 
 var _title: Label
 var _blurb: Label
@@ -298,7 +298,7 @@ func _page_for_passive(passive: PassiveDefinition):
 
 ## Every passive in the game, in alphabetical order.
 ##
-## Asked of the characters first, for the reason conditions() asks the skills:
+## Asked of the characters (and the dream's blessings) first, for the reason conditions() asks the skills:
 ## an exported build has converted res://data/passives/ into something a scan for
 ## "*.tres" does not find, while what a character points at comes through
 ## intact. The folder is still scanned, so a passive written but not yet given
@@ -312,6 +312,10 @@ static func passives() -> Array:
 		for passive in definition.passives:
 			if passive != null:
 				found[passive.resource_path] = passive
+	# And the dream's blessings, which nobody holds and a rehearsal gives for a run (Rehearsal.BLESSINGS).
+	for passive in Rehearsal.BLESSINGS:
+		if passive != null:
+			found[passive.resource_path] = passive
 	var dir = DirAccess.open("res://data/passives")
 	if dir != null:
 		for file in dir.get_files():

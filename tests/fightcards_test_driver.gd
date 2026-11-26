@@ -133,15 +133,24 @@ func the_opening():
 	ok(await until(func(): var card = the_card(); return card != null and card.saying != "", 5.0), "it has its words")
 	ok(the_card().saying == "Conflict Endless", "the words", the_card().saying)
 	ok(ui.ui_hidden and controller.action_locked, "the board is nobody's meanwhile")
-	# Any press and it is over.
+	ok(combat.camera.held, "and the view is held still for it")
+	# A press, or a turn of the wheel, does not cut it short (the designer, 2026-11-21: "Make the starting effects of a fight slower
+	# and unskippable (right now if i zoom in or out during them it sorta skips them)"): it plays to its end.
 	var press := InputEventKey.new()
 	press.keycode = KEY_SPACE
 	press.pressed = true
 	the_card()._input(press)
-	ok(await until(func(): return not combat.cards_playing, 5.0), "any press skips it")
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_UP
+	wheel.pressed = true
+	the_card()._input(wheel)
+	await settle(3)
+	ok(combat.cards_playing and the_card() != null and not the_card()._skipped, "a press or a turn of the wheel does not skip it")
+	ok(await until(func(): return not combat.cards_playing, 15.0), "it plays to its end")
 	await settle(3)
 	ok(combat.deployment_active or combat.turn >= 0, "and then the fight begins")
 	ok(not ui.ui_hidden and not controller.action_locked, "the board is back")
+	ok(not combat.camera.held, "and the view is the player's again")
 	ok(combat.rng.state == state, "and not a roll spent on it")
 	# Without it, in every other suite, nothing is waited for.
 	await open_fight(WATCHER, false)
@@ -204,8 +213,17 @@ func the_closing():
 	ok(the_card().saying == "Will Subdued", "won", the_card().saying)
 	ok(Engine.time_scale < 1.0, "the last of it slowed", "%s" % Engine.time_scale)
 	ok(the_card()._layer.get_node_or_null("Drain") != null, "the colour draining")
-	the_card().skip()
-	ok(await until(func(): return finished[0], 5.0), "skipped: on to what comes after")
+	# A turn of the wheel is the view being zoomed, not a press: the card stays (2026-11-21); a press cuts it short.
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	the_card()._input(wheel)
+	ok(not the_card()._skipped, "a turn of the wheel does not skip the end's card")
+	var press := InputEventKey.new()
+	press.keycode = KEY_SPACE
+	press.pressed = true
+	the_card()._input(press)
+	ok(await until(func(): return finished[0], 5.0), "a press does: on to what comes after")
 	ok(is_equal_approx(Engine.time_scale, 1.0), "at the ordinary speed", "%s" % Engine.time_scale)
 	# Lost.
 	await open_fight(WATCHER, false)

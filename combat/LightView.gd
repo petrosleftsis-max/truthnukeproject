@@ -2071,7 +2071,8 @@ func _keep_the_grade_on_the_screen():
 ## - Distant lightning: on a close summer night before a storm, far flashes at one edge of the view, with no thunder
 ##   (_far_lightning_wanted, FAR_FLASH, FAR_FLASH_GAP; far_lightning_now for a look).
 ## - The sky's pixels showing: at dawn and dusk, now and then, for a moment the light's edges step into pixels and the open sky with
-##   them, a hint that it is not what it seems (_pixels_due, PIXELS_EVERY; sky_pixels_now for a look; the shaders' `pixels`).
+##   them, a hint that it is not what it seems (_pixels_due, PIXELS_EVERY; sky_pixels_now for a look; the shaders' `pixels`). OFF
+##   since 2026-11-21 (`sky_pixels`, the designer: "Turn it off").
 ## - Water that moves: a map's WaterPatch ripples the way the wind blows, foams where it meets the land, takes the rain's rings, and
 ##   the sun glints on it on the side where the sun stands at the hour, the moon faintly at night (_water, WATER_SHADER, under the dark
 ##   as the ground is, and lit by lamps).
@@ -2087,6 +2088,9 @@ const GROUND_MIST_MOST := 0.42
 const FAR_FLASH := 0.22
 const FAR_FLASH_GAP := [4.0, 15.0]
 const PIXELS_EVERY := [45.0, 120.0]
+## Whether the sky's pixels show by themselves at dawn and dusk. Off since the designer's 2026-11-21 ("Why does the screen here and
+## there become pixely" - "Turn it off"); sky_pixels_now still plays it once, for a look.
+static var sky_pixels := false
 ## The next day's weathers a far flash comes before.
 const STORMY := ["storm", "thunderstorm", "rain"]
 const LEAF_PICTURE := "res://art/fx/leaf.png"
@@ -2825,6 +2829,8 @@ func _set_far_flash(value: float):
 
 
 func _pixels_due(delta: float):
+	if not sky_pixels:
+		return
 	_next_pixels -= delta
 	if _next_pixels > 0.0:
 		return

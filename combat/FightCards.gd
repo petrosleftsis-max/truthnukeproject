@@ -4,12 +4,15 @@ class_name FightCards
 ## behind slots (EncounterDefinition's and BossDefinition's "Title cards"), none of it
 ## rolled and none of it changing the fight, so each machine shows its own: not while a
 ## fight is played through to catch up (Net.catching_up), and headless only for a suite
-## that asks (plays_headless). Any press skips what is up.
+## that asks (plays_headless). Any press skips what is up, but for the opening, which plays to its
+## end with the view held (the designer, 2026-11-21); a turn of the wheel never does.
 ##
-## Opening (opening): on an encounter with Boss Reveal ticked, the view goes to whoever it
-## names between letterbox bars - a silhouette lighting up on the sting, its entrance, then
-## its name and title with a large portrait over the dimmed arena, shorter once it has been
-## seen - and then the screen freezes and shatters, and "Conflict Endless" slams in.
+## Opening (opening): first of all the screen freezes and shatters (the designer, 2026-11-21).
+## Then, on an encounter with Boss Reveal ticked, the view goes to whoever it names between
+## letterbox bars - a silhouette lighting up on the sting, its entrance, then its name and
+## title with a large portrait over the dimmed arena, shorter once it has been seen - and
+## "Conflict Endless" slams in after; with no reveal, it slams in as the view pulls back to
+## show the other side ("A look at what you face").
 ##
 ## Closing (closing): the last blow slows and drains the colour, then "Will Subdued" - or
 ## the fight's or the boss's own words, or a defeat's, or those for somebody getting away.
@@ -26,10 +29,12 @@ const FLED_TEXT := "They Got Away"
 const DRAW_TEXT := "Nobody Stands"
 const BAR_SHARE := 0.13
 const BAR_SECONDS := 0.22
-const FREEZE_SECONDS := 0.14
-const SHATTER_SECONDS := 0.55
+## The opening's, slower since the designer's 2026-11-21 ("Make the starting effects of a fight slower"): they were 0.14, 0.55
+## and 1.15.
+const FREEZE_SECONDS := 0.3
+const SHATTER_SECONDS := 0.95
 const SLAM_SECONDS := 0.16
-const TITLE_HOLD_SECONDS := 1.15
+const TITLE_HOLD_SECONDS := 1.9
 const DRAIN_SECONDS := 0.8
 const CLOSING_SLOW := 0.3
 const CLOSING_HOLD_SECONDS := 1.6
@@ -63,6 +68,8 @@ var _bars: Array = []
 var _lit: Array = []
 ## What the card says, for a suite to read.
 var saying := ""
+## Whether this is a fight's opening, which plays to its end whatever is pressed (_input).
+var playing_the_opening := false
 
 
 static func shown() -> bool:
@@ -121,6 +128,7 @@ static func opening(on: Combat):
 		return
 	var card := FightCards.new()
 	card.combat = on
+	card.playing_the_opening = true
 	on.add_child(card)
 	on.cards_playing = true
 	await card._play_opening()
@@ -134,38 +142,55 @@ func _play_opening():
 	# The fight's scene has to be up to be frozen.
 	await get_tree().process_frame
 	await get_tree().process_frame
+	# The view is the opening's from the first, while the map's last picture dissolves too.
+	_hold_the_view(true)
 	while SceneTransition.is_changing():
 		await get_tree().process_frame
+	_hold_the_board(true)
+	# The very start: the screen as it stands, the board without the HUD, frozen and shattered before anything else (the designer,
+	# 2026-11-21: "Show battle starting effects of the screen shattering at the very start of combat"; it came after the look at
+	# the other side, just before the words).
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not _skipped and combat.still_running():
+		await _freeze_and_shatter()
 	# Carried in from the map: on to the party, the board drawn out from them (Combat "The map becomes the board").
 	await combat.go_on_from_carried()
-	_hold_the_board(true)
 	var subject := _reveal_subject()
 	if combat.encounter.boss_reveal and not subject.is_empty():
 		# The music gives way for the reveal (SoundFollows).
 		SoundFollows.give_way(SoundFollows.REVEAL_SECONDS)
 		await _reveal(subject)
+		if not _skipped and combat.still_running():
+			await _the_words()
 	elif not _skipped and combat.still_running():
+		# The words come as the view pulls back to show who is faced (the designer, 2026-11-21: "show the 'conflict endless' while
+		# zooming out to show the enemies"), on their own if there is nobody to look at.
 		await _look_at_what_you_face()
-	if not _skipped and combat.still_running():
-		await _shatter_and_title()
 	_hold_the_board(false)
+	playing_the_opening = false
 
 
 ## --- A look at what you face ---
 ##
 ## The proposals of 2026-11-17, section 7. A fight with no boss's reveal opens with the view passing over the other side - the middle
-## of whoever of them the party can see - and coming back to where it was, before the title; any press skips it, as it does the
+## of whoever of them the party can see - and coming back to where it was, the fight's words up while it goes and is there (the
+## designer, 2026-11-21: "show the 'conflict endless' while zooming out to show the enemies"); any press skips it, as it does the
 ## rest of the opening. Each machine shows its own. PROPOSAL. All of them are framed in the part of the screen the HUD leaves the
 ## map, the view pulling back as far as that takes and going back to its own zoom after (the designer, 2026-11-17: "if the camera
 ## is too zoomed, it doesnt fit the enemies when it tries showing them"); it never pushes in.
-const FACE_GLIDE_SECONDS := 0.55
-const FACE_HOLD_SECONDS := 0.6
+## Slower since 2026-11-21 (they were 0.55 and 0.6), each glide over exactly that (CameraController.glide_over); and the push
+## in on the party, come from a map (Combat.go_on_from_carried), over CARRY_GLIDE_SECONDS.
+const FACE_GLIDE_SECONDS := 0.9
+const FACE_HOLD_SECONDS := 1.0
+const CARRY_GLIDE_SECONDS := 1.4
 ## How many fights opened with a look at the other side, for a suite.
 static var looked := 0
 
 
 func _look_at_what_you_face():
 	if combat.camera == null or not is_instance_valid(combat.camera):
+		await _the_words()
 		return
 	var camera = combat.camera
 	var box := Rect2()
@@ -183,6 +208,7 @@ func _look_at_what_you_face():
 				boxed = true
 			seen += 1
 	if seen == 0:
+		await _the_words()
 		return
 	looked += 1
 	# As a blow is framed (CameraController.frame): room round them, in the part of the screen the HUD leaves the map, the zoom
@@ -198,11 +224,15 @@ func _look_at_what_you_face():
 	var aim := box.get_center() - (room.get_center() - middle) / to_zoom
 	var pulls_back := to_zoom < back_zoom - CameraController.GLIDE_THERE_ZOOM
 	if aim.distance_to(back) < Grid.TILE_SIZE * 2.0 and not pulls_back:
+		await _the_words()
 		return
-	camera.glide_to(aim, to_zoom if pulls_back else 0.0)
+	camera.glide_over(aim, to_zoom if pulls_back else 0.0, FACE_GLIDE_SECONDS)
+	# The words slam in as it goes, are up while it is there, and go as it comes back.
+	var words := _slam_in_the_words()
 	await _wait(FACE_GLIDE_SECONDS + FACE_HOLD_SECONDS)
 	if is_instance_valid(combat) and combat.camera != null and is_instance_valid(combat.camera):
-		combat.camera.glide_to(back, back_zoom if pulls_back else 0.0)
+		combat.camera.glide_over(back, back_zoom if pulls_back else 0.0, FACE_GLIDE_SECONDS)
+	_words_away(words)
 	if not _skipped:
 		await _wait(FACE_GLIDE_SECONDS)
 
@@ -321,20 +351,29 @@ func _portrait_and_plate(subject: Dictionary, boss: BossDefinition, seconds: flo
 			node.queue_free()
 
 
-func _shatter_and_title():
+## The fight's words ("Conflict Endless", or its own or a boss's) slammed in between the bars with their sting: the label, for
+## _words_away.
+func _slam_in_the_words() -> Label:
 	var encounter: EncounterDefinition = combat.encounter
 	var bosses: Array = combat.living_bosses().map(func(comb): return comb.boss)
 	saying = opening_text(encounter, bosses)
-	await _freeze_and_shatter()
-	if not combat.still_running():
-		return
 	_bars_in()
 	var title := _title(saying, INK)
 	_sting(encounter.card_sound if encounter.card_sound != null else GameSounds.stream(&"card_opening"))
 	combat.shake_camera(14.0)
-	await _wait(TITLE_HOLD_SECONDS)
+	return title
+
+
+func _words_away(title: Label):
 	_fade_out(title)
 	_bars_out()
+
+
+## The words on their own: after a boss's reveal, or with nobody of the other side to look at.
+func _the_words():
+	var title := _slam_in_the_words()
+	await _wait(TITLE_HOLD_SECONDS)
+	_words_away(title)
 	await _wait(BAR_SECONDS)
 
 
@@ -492,6 +531,25 @@ func _show_fallen(comb: Dictionary):
 	queue_free()
 
 
+## Where the name plate of somebody arriving comes to rest: low on the left of the screen, but right of the party's portraits and
+## everything beside them, and above the HUD along the bottom, wherever the HUD has put them (CombatUI.words_room; the designer,
+## 2026-11-20: it sat on the portraits, hard to read). PROPOSAL.
+const PLATE_LEFT := 48.0
+const PLATE_HEIGHT_AT := 0.72
+const PLATE_ROOM := 24.0
+
+
+## The top-left corner the plate, `size` big, rests at.
+func plate_rest(size: Vector2, screen: Vector2) -> Vector2:
+	var rest := Vector2(PLATE_LEFT, screen.y * PLATE_HEIGHT_AT)
+	var hud = combat.game_ui if combat != null and is_instance_valid(combat) else null
+	if hud != null and is_instance_valid(hud) and hud.has_method("words_room"):
+		var room: Rect2 = hud.words_room()
+		rest.x = maxf(rest.x, room.position.x + PLATE_ROOM)
+		rest.y = clampf(room.end.y - size.y - PLATE_ROOM, screen.y * 0.3, rest.y)
+	return rest
+
+
 ## Somebody arriving: their name and what they are, low on the screen, and a sting.
 static func plate(on: Combat, comb: Dictionary):
 	if not shown() or on == null:
@@ -508,10 +566,12 @@ func _show_plate(comb: Dictionary):
 	saying = comb.get("name", "")
 	var line := _words(saying, 34, INK)
 	line.name = "Plate"
-	line.position = Vector2(-420.0, screen.y * 0.72)
 	layer.add_child(line)
+	line.reset_size()
+	var rest := plate_rest(line.size, screen)
+	line.position = Vector2(minf(-420.0, -line.size.x - 40.0), rest.y)
 	var sliding := line.create_tween().set_ignore_time_scale(true)
-	sliding.tween_property(line, "position:x", 48.0, 0.18).set_ease(Tween.EASE_OUT)
+	sliding.tween_property(line, "position:x", rest.x, 0.18).set_ease(Tween.EASE_OUT)
 	sliding.tween_interval(0.9)
 	sliding.tween_property(line, "modulate:a", 0.0, 0.25)
 	_sting(PlaceholderSounds.make("card_sting"))
@@ -551,12 +611,20 @@ static func entrance(on: Combat, comb: Dictionary):
 func _input(event: InputEvent):
 	if not (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton):
 		return
+	# A fight's opening plays to its end whatever is pressed, and nothing else answers meanwhile (the designer, 2026-11-21: "Make
+	# the starting effects of a fight slower and unskippable (right now if i zoom in or out during them it sorta skips them)").
+	if playing_the_opening:
+		get_viewport().set_input_as_handled()
+		return
+	# Anything else up is skipped by a press; a turn of the wheel is the view being zoomed, not a press.
+	if event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]:
+		return
 	if event.is_pressed() and not event.is_echo():
 		_skipped = true
 		get_viewport().set_input_as_handled()
 
 
-## Whether a press has skipped it, for a suite.
+## Cuts it short, for a suite: a player's press no longer does, not of the opening.
 func skip():
 	_skipped = true
 
@@ -579,6 +647,13 @@ func _overlay() -> CanvasLayer:
 func _hold_the_board(on: bool):
 	if combat.controller != null and is_instance_valid(combat.controller):
 		combat.controller.action_locked = on
+	_hold_the_view(on)
+
+
+## The view, which only the opening moves meanwhile (CameraController.held).
+func _hold_the_view(on: bool):
+	if combat.camera != null and is_instance_valid(combat.camera) and "held" in combat.camera:
+		combat.camera.held = on
 	var hud = combat.game_ui
 	if hud != null and is_instance_valid(hud) and hud.has_method("set_ui_hidden"):
 		hud.set_ui_hidden(on)

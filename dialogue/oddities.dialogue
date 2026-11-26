@@ -1,0 +1,33 @@
+~ statue
+Statue: {{Campaign.fight_review()}}
+- What are you?
+	Statue: A critic. Someone has to be. I was carved for it.
+- Any advice?
+	Statue: Stand still. It has worked for me for three hundred years.
+- Nothing.
+=> END
+
+~ bin
+if Campaign.flag("bin_errand_done")
+	Bin: You brought me something shiny once. I think about it daily.
+	=> END
+if Campaign.party_carries("shiny_button")
+	Bin: Is that... a button? A shiny one? Give it here.
+	- Give the button
+		do Campaign.hand_over_item("shiny_button")
+		do Campaign.give_item(Campaign.leader(), "childs_shoe")
+		do Campaign.set_flag("bin_errand_done")
+		Bin: Marvellous. Take this, then. I found it. I find a lot of things. That is the job.
+	- Keep it
+		Bin: Fine. I will remember this. I remember everything. It is all in here.
+	=> END
+Bin: People put things in me without asking. Rude.
+- What do you want?
+	Bin: Something shiny. A button, a coin. There was one by the well, if the rain has not had it.
+- Sorry.
+	Bin: You are forgiven. Partly.
+=> END
+
+~ lamp_post
+Lamp post: {{Campaign.remembered_line("lamp_post")}}
+=> END

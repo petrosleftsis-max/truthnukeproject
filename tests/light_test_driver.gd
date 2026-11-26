@@ -201,8 +201,9 @@ func darkness_is_cover():
 	ok(combat.light_level(enfina.position) == Light.Level.BRIGHT and combat.light_level(foe.position) == Light.Level.BRIGHT, "both stand in light")
 	ok(not combat.is_hidden(foe) and not combat.is_hidden(enfina), "so neither is hidden")
 	ok(combat.dark_between(enfina.position, foe.position, combat.tiles_of(foe)), "and the dark lies between them")
-	ok(combat.hidden_from(enfina, foe) and combat.hidden_from(foe, enfina), "they cannot see each other past it")
-	ok(combat.targets_if_aimed(enfina, SkillDatabase.skills.greatsword_attack, foe.position).is_empty(), "nor aim at each other")
+	# The dark hides only whoever stands in it; lying between two people, it hides neither (the designer, 2026-11-20: "No
+	# longer have darkness hide somebody by simply being in the middle of them").
+	ok(not combat.hidden_from(enfina, foe) and not combat.hidden_from(foe, enfina), "but they see each other across it")
 	# Beside her, with a clear line: bodies stop sight in a fight, hers too.
 	for way in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT, Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
 		if combat.can_land_on(cyrus, enfina.position + way):
@@ -211,12 +212,12 @@ func darkness_is_cover():
 				break
 	combat.sync_zones()
 	ok(combat.sees_tile(cyrus, foe.position, foe), "Cyrus has a clear line to them")
-	ok(not combat.hidden_from(cyrus, foe), "Cyrus sees past it (Night Eyes)")
-	ok(not combat.unseen_by_party(foe), "so the player sees them, through him")
-	# Without his Night Eyes, he is as the rest.
+	ok(not combat.hidden_from(cyrus, foe), "Cyrus sees them")
+	ok(not combat.unseen_by_party(foe), "so the player sees them")
+	# Without his Cat Eyes, the same: there is nothing to see past.
 	cyrus.passives = cyrus.passives.filter(func(passive): return not passive.sees_in_darkness)
 	combat.sync_zones()
-	ok(combat.unseen_by_party(foe), "without Night Eyes, nobody of the party sees them",
+	ok(not combat.unseen_by_party(foe), "without Cat Eyes, the party sees them all the same",
 		"%s" % [combat.groups[0].map(func(index): return [combat.combatants[index].name, combat.combatants[index].position, combat.hidden_from(combat.combatants[index], foe)])])
 	# Lit all the way: nothing between.
 	combat._placed_lights.clear()

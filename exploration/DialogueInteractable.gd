@@ -35,11 +35,38 @@ const BALLOON_SCENE = "res://ui/dialogue_balloon.tscn"
 @export var encounter_trigger_id: String = ""
 
 
+@export_group("Lethe")
+## Flags it forgets each time the map is come to (the proposals of 2026-11-19, Lethe's touch): whatever it knew of the party. Its
+## conversation reads them as ever ("met_the_party") and finds them gone; talking to it again the first time, a hush (SoundBank
+## "lethe").
+@export var forgets_flags: Array[String] = []
+
+var _forgot := false
+
+
 func _init():
 	prompt = "Talk"
 
 
+func _ready():
+	super()
+	if Engine.is_editor_hint():
+		return
+	for flag_name in forgets_flags:
+		if Campaign.flag(flag_name):
+			_forgot = true
+		Campaign.flags.erase(flag_name)
+
+
+## Whether it has forgotten the party since they last came.
+func has_forgotten() -> bool:
+	return _forgot
+
+
 func interact(scene: Node):
+	if _forgot:
+		_forgot = false
+		MapFeel.sound(&"lethe", -4.0, 1.0, global_position)
 	if dialogue == null:
 		push_warning("DialogueInteractable '%s' has no dialogue resource assigned." % name)
 		return

@@ -11,13 +11,13 @@ class_name MainMenu
 ## menu and the game it opens read as one thing.
 
 ## Palette, shared with the battle selector.
-const INK := SkyLook.INK        ## Headings.
-const INK_DIM := SkyLook.INK_DIM    ## Body text.
+const INK := Color("dce8f5")        ## Headings.
+const INK_DIM := Color("c2ceda")    ## Body text.
 const MUTED := Color("8296a9")      ## Descriptions and labels.
-const ACCENT := SkyLook.ACCENT     ## Focus.
-const PANEL := SkyLook.PANEL
+const ACCENT := Color("4a86c8")     ## Focus.
+const PANEL := Color("19212c")
 ## Behind everything.
-const BACKDROP := SkyLook.PANEL * Color(0.65, 0.65, 0.65, 1.0)
+const BACKDROP := Color("19212c") * Color(0.65, 0.65, 0.65, 1.0)
 
 ## The picture behind the menu.
 const BACKGROUND_ART := "res://art/ui/main_menu_background.png"
@@ -41,9 +41,9 @@ void fragment() {
 	COLOR = vec4(mix(paper.rgb, ink.rgb, line * ink.a * strength), 1.0);
 }
 """
-const CARD := SkyLook.CARD       ## A card at rest.
-const CARD_LIT := SkyLook.CARD_LIT   ## Under the cursor or focus.
-const CARD_EDGE := SkyLook.CARD_EDGE
+const CARD := Color("1c2531")       ## A card at rest.
+const CARD_LIT := Color("24344a")   ## Under the cursor or focus.
+const CARD_EDGE := Color("2b3947")
 
 const BATTLE_SELECT := "res://scenes/level_select.tscn"
 ## The point-and-click demo: clues, the journal, locks, a torn letter.
@@ -135,6 +135,11 @@ const STEALTH_STAGES := [
 		"name": "Light",
 		"map": "res://maps/stealth_stages/stealth_9.tscn",
 		"description": "Not a puzzle: everything light can do, to walk round and look at. A sundial runs the clock and the calendar, signs say what each thing is and how it is placed, and there is a fight in the dark to try projectiles, fire, a Phantom Wall and the rest in.",
+	},
+	{
+		"name": "The Wanderer's Quarter",
+		"map": "res://maps/stealth_stages/wander.tscn",
+		"description": "Wandering, to walk round: N opens the map (click to pin; an arrow points the way), secrets to find (notes, stashes, a cracked wall, marks only Cyrus's eyes or a lamp show), a ledge and its ladder, a door barred from the far side, a pond that freezes and a lane that floods, people keeping hours, a foe on the roam, rest spots to travel between by Iris's rainbow, things that talk, and an archive that will not stay put. Sleep by the yard's fire to dream.",
 	},
 ]
 ## The panel a stage's way out comes back to - see StealthGoal.ends_at_menu.
@@ -287,10 +292,12 @@ func _build_root() -> Control:
 	var players := _menu_button("Players", func(): _show("players"))
 	players.name = "Players"
 	buttons.add_child(players)
-	buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
-	buttons.add_child(_menu_button("Stealth Stages", func(): _show(STEALTH_PANEL)))
-	buttons.add_child(_menu_button("Clues Demo", func(): SceneTransition.change_scene(CLUES_DEMO)))
-	buttons.add_child(_menu_button("Dungeon Demo", func(): Campaign.start_dungeon(load(DUNGEON_DEMO))))
+	# What is there to test with stays out of a release build, whose download leaves it out too (Release; the designer, 2026-11-19).
+	if not Release.on():
+		buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
+		buttons.add_child(_menu_button("Stealth Stages", func(): _show(STEALTH_PANEL)))
+		buttons.add_child(_menu_button("Clues Demo", func(): SceneTransition.change_scene(CLUES_DEMO)))
+		buttons.add_child(_menu_button("Dungeon Demo", func(): Campaign.start_dungeon(load(DUNGEON_DEMO))))
 	buttons.add_child(_menu_button("Options", func(): _show("options")))
 	buttons.add_child(_menu_button("Glossary", func(): _open_glossary()))
 	buttons.add_child(_menu_button("Exit", _quit))
@@ -493,12 +500,11 @@ func _dress(button: Button):
 	button.add_theme_color_override("font_color", INK)
 	button.add_theme_color_override("font_hover_color", INK)
 	button.add_theme_color_override("font_focus_color", INK)
-	# Pills, as every button in the interface's look is (SkyLook); the ways-in cards below keep their corners.
-	button.add_theme_stylebox_override("normal", _box(CARD, CARD_EDGE, true))
-	button.add_theme_stylebox_override("hover", _box(CARD_LIT, CARD_EDGE, true))
-	button.add_theme_stylebox_override("focus", _box(CARD_LIT, ACCENT, true))
-	button.add_theme_stylebox_override("pressed", _box(CARD_LIT, ACCENT, true))
-	button.add_theme_stylebox_override("hover_pressed", _box(CARD_LIT, ACCENT, true))
+	button.add_theme_stylebox_override("normal", _box(CARD))
+	button.add_theme_stylebox_override("hover", _box(CARD_LIT))
+	button.add_theme_stylebox_override("focus", _box(CARD_LIT, ACCENT))
+	button.add_theme_stylebox_override("pressed", _box(CARD_LIT, ACCENT))
+	button.add_theme_stylebox_override("hover_pressed", _box(CARD_LIT, ACCENT))
 	button.add_theme_color_override("font_pressed_color", INK)
 	button.add_theme_color_override("font_hover_pressed_color", INK)
 
@@ -564,13 +570,12 @@ func _back_button() -> Button:
 	return back
 
 
-func _box(fill: Color, edge: Color = CARD_EDGE, pill: bool = false) -> StyleBoxFlat:
+func _box(fill: Color, edge: Color = CARD_EDGE) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = fill
 	box.border_color = edge
 	box.set_border_width_all(1)
-	box.set_corner_radius_all(64 if pill else 8)
-	box.anti_aliasing = true
+	box.set_corner_radius_all(6)
 	box.content_margin_left = 14
 	box.content_margin_right = 14
 	box.content_margin_top = 8

@@ -1502,6 +1502,8 @@ func _step_cost(tile: Vector2i) -> int:
 func _ready():
 	add_to_group(&"tether_board")
 	tile_map = get_node("../Terrain/TileMap")
+	# Drawn smooth, so zooming does not make its lines blink (CameraController "A smooth floor").
+	CameraController.smooth_the_floor(tile_map)
 	_set_up_soft_board()
 	# The board a pad's pointer moves over - see Pad.
 	add_to_group(&"pad_board")
@@ -3681,7 +3683,9 @@ func _fade_the_grid(delta: float):
 const NO_HOVER := Vector2i(-99999, -99999)
 ## Quiet, so what is on the ground still shows through (the designer, 2026-11-07: "a bit too bright"). PROPOSAL.
 const MOVE_FILL := Color(0.55, 0.72, 0.9, 0.035)
-const MOVE_EDGE := Color(0.62, 0.8, 0.95, 0.32)
+## Its outline a bit brighter (the designer, 2026-11-21: "make the outline of the blue area that shows where a player can move a
+## bit brighter"; it was 0.62, 0.8, 0.95 at 0.45).
+const MOVE_EDGE := Color(0.7, 0.87, 1.0, 0.62)
 const MOVE_EDGE_WIDTH := 4.0
 ## How far they can walk from here, worked out only when something it goes by has changed.
 var _walk_reach: Array = []

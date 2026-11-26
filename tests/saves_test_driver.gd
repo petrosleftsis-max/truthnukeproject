@@ -21,7 +21,9 @@ const NOT_SAVED := ["current_encounter", "return_position", "return_to_position"
 	# The clock's own workings: it is saved as calendar_minutes.
 	"time_passing", "_clock_part", "_calendar",
 	# Set again by the map on arriving.
-	"knows_every_spell_here"]
+	"knows_every_spell_here", "map_ground",
+	# Where the party stood as a fight on the map's ground ended: taken by the map as it opens, before anything can be saved.
+	"after_fight"]
 ## Saved, but not as they are kept (Campaign.snapshot names them itself).
 const SAVED_ITS_OWN_WAY := ["party_order", "dungeon", "current_map"]
 

@@ -40,11 +40,24 @@ func _set_broken(value: bool):
 	queue_redraw()
 
 
+## Light shows through its crack while it stands (the proposals of 2026-11-19, "Secrets worth finding"): a hint there is something
+## behind it. A secret is counted on the map screen and found once broken.
+@export var light_through: bool = true
+@export var secret: bool = false
+
+
 func _ready():
 	z_as_relative = false
 	z_index = ExplorationParty.PARTY_Z_BOTTOM - 2
 	if not Engine.is_editor_hint():
 		add_to_group(Depth.UPRIGHTS)
+		if secret:
+			add_to_group(&"secrets")
+
+
+## A secret found: broken through.
+func is_found() -> bool:
+	return broken
 
 
 ## Standing, it is as tall as the walls beside it (DepthView "What a map's own nodes stand up"); broken, it is the rubble drawn
@@ -70,6 +83,9 @@ func depth_paint(canvas: CanvasItem, front: Rect2, _whole: Rect2 = Rect2()):
 	for point in [Vector2(0.4, 0.0), Vector2(0.55, 0.35), Vector2(0.42, 0.6), Vector2(0.6, 1.0)]:
 		crack.append(front.position + point * front.size)
 	canvas.draw_polyline(crack, CRACK, 5.0)
+	# Light from whatever is behind it, along the crack.
+	if light_through:
+		canvas.draw_polyline(crack, Color(1.0, 0.86, 0.55, 0.85), 2.0)
 	canvas.draw_rect(front, MORTAR, false, 6.0)
 
 

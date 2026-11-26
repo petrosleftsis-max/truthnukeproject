@@ -202,6 +202,21 @@ func on_the_stage():
 	ok(view._far_flash.visible and float(view._far_flash.material.get_shader_parameter("flash")) > 0.0, "a far flash")
 	await wait(1.0)
 	ok(not view._far_flash.visible, "and it is gone")
+	# The sky's pixels: off since the designer's 2026-11-21 ("Turn it off"). Due at dawn, they show by themselves only switched on.
+	Campaign.set_clock(6)
+	await wait(0.2)
+	LightView.sky_pixels = true
+	view._next_pixels = 0.0
+	view._pixels_due(0.1)
+	await wait(0.05)
+	var on_shows: bool = view._pixels == 1.0
+	await wait(1.4)
+	LightView.sky_pixels = false
+	view._next_pixels = 0.0
+	view._pixels_due(0.1)
+	await wait(0.05)
+	ok(on_shows and view._pixels == 0.0, "the sky's pixels are off: due at dawn, they show only when switched on", "switched on, shown %s" % on_shows)
+	# Still there, once, for a look.
 	view.sky_pixels_now()
 	await wait(0.05)
 	ok(view._pixels == 1.0 and float(view._shade.material.get_shader_parameter("pixels")) == 1.0, "the sky's pixels show for a moment")

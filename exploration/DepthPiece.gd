@@ -550,6 +550,9 @@ func _keep_shaking(delta: float):
 func _move_with_the_view():
 	var camera := get_viewport().get_camera_2d()
 	var offset := offset_for(camera.get_screen_center_position()) if camera != null else Vector2.ZERO
+	# By whole pixels of the screen, as the view itself is (CameraController "On whole pixels"): a piece moved by part of one
+	# would blink as the board did.
+	offset = CameraController.on_whole_pixels(camera, offset)
 	# A tree stands on ground that may itself be raised: its trunk starts on top of that.
 	var raised := 0.0
 	if kind == Kind.TREE and DepthView.showing != null and is_instance_valid(DepthView.showing):

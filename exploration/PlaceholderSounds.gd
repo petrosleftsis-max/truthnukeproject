@@ -99,14 +99,52 @@ const RECIPES := {
 	"body_drag": [[700, 320, 0.28, "noise", 0.035]],
 	# A kind of creature's sheet, opened on it studied for the first time.
 	"reveal": [[392, 784, 0.12, "sine", 0.12], [784, 1175, 0.14, "sine", 0.11], [1568, 1568, 0.25, "sine", 0.08]],
+	# Wandering (the proposals of 2026-11-19): a secret's chime, a hidden mark's shimmer, a rest's settling breath, Iris's rainbow, a
+	# foe's call on seeing you, a climb's scuff, the archive shifting, the dream opening, Lethe's hush, a gate's voice.
+	"secret_found": [[660, 660, 0.09, "sine", 0.1], [990, 990, 0.12, "sine", 0.09], [1320, 1320, 0.2, "sine", 0.07]],
+	"mark_seen": [[1800, 2400, 0.25, "sine", 0.05], [2400, 3000, 0.3, "sine", 0.03]],
+	"rest": [[220, 180, 0.4, "sine", 0.1], [330, 260, 0.5, "sine", 0.06]],
+	"rainbow": [[392, 523, 0.1, "sine", 0.1], [523, 659, 0.1, "sine", 0.1], [659, 784, 0.1, "sine", 0.1], [784, 1047, 0.3, "sine", 0.09]],
+	"roamer_sees": [[300, 520, 0.12, "square", 0.08], [520, 410, 0.1, "square", 0.06]],
+	"climb": [[900, 500, 0.06, "noise", 0.08], [140, 110, 0.05, "sine", 0.12]],
+	"shift": [[60, 48, 0.6, "sine", 0.22], [400, 120, 0.5, "noise", 0.04]],
+	"dream": [[262, 330, 0.5, "sine", 0.07], [330, 392, 0.5, "sine", 0.07], [392, 523, 0.8, "sine", 0.06]],
+	"lethe": [[1200, 300, 0.7, "noise", 0.04], [440, 220, 0.6, "sine", 0.05]],
+	"gate_voice": [[110, 110, 0.35, "square", 0.05], [0, 0, 0.08, "rest", 0.0], [110, 98, 0.45, "square", 0.04]],
+	# Beds of sound for a place (SoundArea), looped: wind, a city's murmur, drips, the dream's hum.
+	"ambience_wind": [[500, 380, 1.6, "noise", 0.03], [380, 520, 1.6, "noise", 0.03]],
+	"ambience_city": [[260, 300, 1.2, "noise", 0.025], [700, 640, 0.9, "noise", 0.012], [300, 260, 1.1, "noise", 0.025]],
+	"ambience_drips": [[0, 0, 0.7, "rest", 0.0], [1500, 900, 0.05, "sine", 0.06], [0, 0, 1.1, "rest", 0.0], [1700, 1100, 0.05, "sine", 0.05],
+		[0, 0, 0.6, "rest", 0.0]],
+	"ambience_dream": [[196, 196, 1.5, "sine", 0.03], [247, 247, 1.5, "sine", 0.03]],
+	# Steps by what is underfoot (SoundArea's surface).
+	"step_stone": [[1400, 600, 0.04, "noise", 0.07], [180, 120, 0.03, "sine", 0.08]],
+	"step_wood": [[320, 180, 0.06, "sine", 0.12], [900, 400, 0.03, "noise", 0.05]],
+	"step_grass": [[3000, 1800, 0.07, "noise", 0.035]],
 }
 
 static var _made := {}
+static var _silent: AudioStreamWAV = null
+
+
+## A moment of nothing, for a stand-in a release keeps quiet.
+static func _silence() -> AudioStreamWAV:
+	if _silent == null:
+		_silent = AudioStreamWAV.new()
+		_silent.format = AudioStreamWAV.FORMAT_16_BITS
+		_silent.mix_rate = RATE
+		var data := PackedByteArray()
+		data.resize(64)
+		_silent.data = data
+	return _silent
 
 
 ## The blip for `event`, made once and kept. A plain click for anything without
 ## a recipe.
 static func make(event: String) -> AudioStreamWAV:
+	# A release build plays no stand-in but the few it keeps (Release.STAND_INS_KEPT).
+	if Release.silences(event):
+		return _silence()
 	if _made.has(event):
 		return _made[event]
 	var notes: Array = RECIPES.get(event, [[700, 700, 0.03, "sine", 0.2]])

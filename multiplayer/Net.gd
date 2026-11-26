@@ -139,7 +139,7 @@ const CATCH_UP_SPEED := 8.0
 const HOSTS_PRESSES: Array[StringName] = [&"interact", &"swap_leader", &"dash", &"listen", &"vault",
 	&"ambush", &"take_off_disguise", &"next_disguise", &"take_down", &"pick_pocket"]
 ## Presses acted on by both: what they change is the joiner's own line.
-const BOTH_PRESSES: Array[StringName] = [&"stay_here"]
+const BOTH_PRESSES: Array[StringName] = [&"stay_here", &"call_party"]
 
 enum Role { NONE, HOST, JOINER }
 

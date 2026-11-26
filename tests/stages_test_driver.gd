@@ -11,6 +11,9 @@ const BALLOON := "res://ui/dialogue_balloon.tscn"
 const STAGES := ["res://maps/stealth_stages/stealth_1.tscn", "res://maps/stealth_stages/stealth_2.tscn", "res://maps/stealth_stages/stealth_3.tscn", "res://maps/stealth_stages/stealth_4.tscn",
 	"res://maps/stealth_stages/stealth_5.tscn", "res://maps/stealth_stages/stealth_6.tscn", "res://maps/stealth_stages/stealth_7.tscn",
 	"res://maps/stealth_stages/stealth_8.tscn", "res://maps/stealth_stages/stealth_9.tscn"]
+## Listed on the title screen after the nine (the proposals of 2026-11-19). It is a map to wander rather than a stage of
+## stealth_stages.dialogue, so its own suite, wander, plays it and check_stage does not.
+const WANDER := "res://maps/stealth_stages/wander.tscn"
 
 var _log: FileAccess = null
 var _fail = 0
@@ -45,11 +48,11 @@ func settle(frames: int = 3):
 func run_test():
 	log_line("======== the title screen lists every stage ========")
 	var on_title: Array = MainMenu.STEALTH_STAGES.map(func(s): return s.map)
-	ok(on_title == STAGES, "all nine, in order", "%s" % [on_title])
+	ok(on_title == STAGES + [WANDER], "all ten, in order", "%s" % [on_title])
 	for stage in MainMenu.STEALTH_STAGES:
 		ok(ResourceLoader.exists(stage.map) and stage.name != "" and stage.description != "", "%s is there, and says what it is" % stage.name)
 	var listed: Array = load(MENU.replace(".tscn", ".gd")).stages().map(func(s): return s.map)
-	ok(listed == STAGES + ["res://demos/stealth_demo.tscn"], "and the editor's own list has them, and the lab demo", "%s" % [listed])
+	ok(listed == STAGES + [WANDER, "res://demos/stealth_demo.tscn"], "and the editor's own list has them, and the lab demo", "%s" % [listed])
 	await from_the_title_screen()
 	var talk = load(TALK)
 	var script_text = FileAccess.get_file_as_string(TALK)
@@ -57,6 +60,7 @@ func run_test():
 		await check_stage(n + 1, talk, script_text)
 	await bag_kept_after_a_fight()
 	await back_to_the_list()
+	await in_a_release()
 	log_line("FAILURES: %d" % _fail)
 	get_tree().quit(0 if _fail == 0 else 1)
 
@@ -73,6 +77,26 @@ func button_on(panel: Control, text: String) -> Button:
 		if node.text == text:
 			return node
 	return null
+
+
+## A release build (Release, the export's "release" feature; the designer, 2026-11-19): the title screen leaves out what there is
+## to test with, and the stand-in sounds are quiet but a footstep.
+func in_a_release():
+	log_line("======== in a release build ========")
+	Release.pretend = true
+	var menu: MainMenu = load("res://scenes/main_menu.tscn").instantiate()
+	get_tree().root.add_child(menu)
+	await settle()
+	var front = menu._panels["root"]
+	ok(button_on(front, "Play") != null and button_on(front, "Arena Mode") == null and button_on(front, "Stealth Stages") == null
+		and button_on(front, "Clues Demo") == null and button_on(front, "Dungeon Demo") == null,
+		"the title screen has no Arena Mode, Stealth Stages or demos")
+	ok(PlaceholderSounds.make("look").data.size() < 100 and PlaceholderSounds.make("step_stone").data.size() > 100,
+		"a stand-in sound is quiet, but a stand-in footstep is kept")
+	menu.queue_free()
+	Release.pretend = false
+	await settle()
+	ok(PlaceholderSounds.make("look").data.size() > 100, "and outside a release, the stand-ins are back")
 
 
 ## Stealth Stages on the front door, a button a stage, and Back.

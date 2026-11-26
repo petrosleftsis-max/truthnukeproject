@@ -75,10 +75,12 @@ static func step(at: Vector2, softly: bool = false):
 		_wet_left -= 1
 	var wet := LightView.rainy_at(at) or LightView.in_water(at)
 	var db: float = (WET_DB if wet else DRY_DB) + (SOFTLY_DB if softly else 0.0)
-	last = {"wet": wet, "db": db}
+	# What is underfoot, where a SoundArea says (the proposals of 2026-11-19, "Sound by place"): stone, wood or grass.
+	var surface := "" if wet else SoundArea.surface_at(at)
+	last = {"wet": wet, "db": db, "surface": surface}
 	if DisplayServer.get_name() == "headless":
 		return
-	var sound: AudioStream = GameSounds.stream(&"footstep_wet" if wet else &"footstep")
+	var sound: AudioStream = GameSounds.stream(StringName("step_" + surface) if surface != "" else (&"footstep_wet" if wet else &"footstep"))
 	if sound == null:
-		sound = PlaceholderSounds.make("step_wet" if wet else "step")
+		sound = PlaceholderSounds.make(("step_" + surface) if surface != "" else ("step_wet" if wet else "step"))
 	GameSounds._start_at(sound, at, db)

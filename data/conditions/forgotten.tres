@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Forgotten"
+tag = "FM"
+description = "Lethe has touched them: one of their own moves is gone from them while this lasts. It comes back when it ends."
+duration = 2
+forgets_a_move = true
+round_them = 1
+figure_priority = 2
+arrival_word = "Forgotten!"

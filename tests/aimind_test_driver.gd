@@ -615,6 +615,18 @@ func towards_the_light():
 	game.get_node("Terrain").add_child(lamp)
 	var lit_at: Vector2i = tile_away(foe.position, 8, foe)
 	lamp.global_position = game.get_node("Terrain/TileMap").to_global(game.get_node("Terrain/TileMap").map_to_local(lit_at))
+	# Nobody of the party where it could see them: all in the dark, off from the lamp and from it. The dark between hides
+	# nobody now (the designer, 2026-11-20), so one of them in the lamp's light would be something to go on.
+	for member in combat.combatants:
+		if member.get("side", 1) != 0 or not member.get("alive", false) or member.has("object"):
+			continue
+		for tile in controller.tile_map.get_used_cells(0):
+			if combat.get_position_distance(tile, foe.position) >= 4 and combat.get_position_distance(tile, lit_at) >= 6 \
+					and combat.can_land_on(member, tile) and combat.get_combatant_at(tile).is_empty():
+				combat.teleport_to(member, tile)
+				break
+	# Put there by hand, not seen going: forgotten again.
+	combat._ai_seen[1] = {}
 	var encounter: EncounterDefinition = Campaign.current_encounter.duplicate()
 	encounter.ambient = Light.Ambient.UNDERGROUND
 	combat.encounter = encounter
@@ -623,9 +635,12 @@ func towards_the_light():
 	var gap: int = combat.get_position_distance(foe.position, lit_at)
 	await their_turn(foe)
 	controller.movement = 3
+	# Whatever it saw them do as they were set down and the light came on is nothing it went by.
+	combat._ai_seen[1] = {}
 	await combat._ai_search_the_dark(foe)
 	await settle()
-	ok(combat.get_position_distance(foe.position, lit_at) < gap, "with nothing to go on, it makes for the light", "%d from %d" % [combat.get_position_distance(foe.position, lit_at), gap])
+	ok(combat.get_position_distance(foe.position, lit_at) < gap, "with nothing to go on, it makes for the light", "%d from %d, its memory %s" % [
+		combat.get_position_distance(foe.position, lit_at), gap, combat._ai_seen.get(1, {})])
 	log_line("")
 
 

@@ -31,8 +31,9 @@ func run_test():
 		ok(item.name != "", "  it has a name", item.name)
 		ok(item.description != "", "  and says what it does")
 		ok(item.icon != null, "  and has an icon")
-		ok(String(key) == item.name.to_lower().replace(" ", "_"),
-			"  its key is its name", item.name.to_lower().replace(" ", "_"))
+		# Without its apostrophes, as a skill's key is (skillkeys) and the gear's files are (fencers_rapier): Child's Shoe is childs_shoe.
+		ok(String(key) == item.name.to_lower().replace(" ", "_").replace("'", ""),
+			"  its key is its name", item.name.to_lower().replace(" ", "_").replace("'", ""))
 		# A disguise is taken off again rather than used up, and a lantern lights the way for as long as it is carried.
 		var kept: bool = item.is_disguise() or item.light_tiles > 0.0
 		ok(item.consumed_on_use != kept,

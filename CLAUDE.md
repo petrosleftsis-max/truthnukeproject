@@ -147,7 +147,7 @@ enough - except a skill's heal on the **flat rule** (APPROVED_TRIAL 2026-10-24,
 stat + Heal Per Weapon x their weapon base). Light Heal, Heal, Communion,
 Restoration and Mend the Bound use it; the healing stat is `scaling_stat_of`, so
 Self for the Mimic. Items (Gate Nades copying Heal) keep their flat item power.
-`heal_amount` works out both; the heal bonus (Mercy I) multiplies the whole
+`heal_amount` works out both; the heal bonus (Mercy I, from 16) multiplies the whole
 amount and never the share of health (`heal_share_on`). `docs/healing_revision.md`
 has the numbers.
 
@@ -258,7 +258,7 @@ Free to lie down on one's own turn (`lie_down`, `lie_down_refusal`); getting up 
 had, absent when it is all of it (`movement_if_up`). `can_still_walk` is what the
 turn's running out asks, since 0 is not spent. Damage: `prone_damage_factor`, in
 `damage_dealt_multiplier`, so prompt and blow agree - `is_melee` is more, anything
-else less, `_splashing` an area, no skill unchanged; `ignores_prone_cover` (Low Shot)
+else less, `_splashing` an area, no skill unchanged; `ignores_prone_cover` (Cat Eyes)
 and `gets_up_free` (Kip-Up) on PassiveDefinition. `_lying_down` keeps it from
 `_harmful` and `should_dispel`. The player's way in is `CController.toggle_prone` (the
 `prone` action, Ctrl, and `combat_ui`'s `_prone_button`), told to the other machine
@@ -314,9 +314,12 @@ shoves needs an entry through `_foresee_one`. `shoveaim` covers it.
   and end), `zone_colour` for its placeholder tint. `zone_condition` may be null now, so
   ask before reading it.
 - **In the dark** (Combat "In the dark"): a zone condition with `is_darkness` makes them
-  invisible through `_zone_invisibility`. `hidden_from(viewer, comb)` is what to ask when
+  invisible through `_zone_invisibility` (`_fade_into_the_dark`). Only standing in it hides: since
+  2026-11-20 the dark lying between two people hides neither ("Darkness is cover", below; the
+  designer: "No longer have darkness hide somebody by simply being in the middle of them" - a first
+  reading the other way round was undone the same day). `hidden_from(viewer, comb)` is what to ask when
   somebody in particular is looking; the AI's looking about and aiming ask it, in place of
-  `is_hidden`. `sees_in_darkness` (passive or condition; Cyrus's Night Eyes) and
+  `is_hidden`. `sees_in_darkness` (passive or condition; Cyrus's Cat Eyes) and
   `sees_the_unseen` (condition). `unseen_by_party` is what the player can see at all:
   whoever anybody of theirs standing sees is drawn faintly (`dress_for_hiding`,
   `_redress_the_hidden`), though only they can aim at them. Stealth maps have their own
@@ -432,7 +435,9 @@ close goes in after them (`_ai_hunts_in_the_dark`); the dark's edge is cover (`_
 `_ai_dispel_a_zone`, then `_ai_dispel` (`_ai_best_dispel`, `_ai_dispel_worth` in blows, `AI_DISPEL_*`, through `cast_through`) before a blow.
 What has to be worth a casting falls with the gates its caster has open (`_ai_gate_cost`, never under `AI_GATE_COST_LEAST`; `_ai_dispel_wanted`), and
 what a spell left counts for more the deeper the gate it came through (`_ai_gate_worth`, `AI_DISPEL_PER_GATE`; the designer, 2026-11-12).
-**A pack waits only so long** (`_ai_holds_back`, `AI_PACK_WAITS`, `AI_PACK_TOGETHER_TILES`, `comb.held_back`). **A turn after one of theirs**
+**A pack waits only so long** (`_ai_holds_back`, `AI_PACK_WAITS`, `AI_PACK_TOGETHER_TILES`, `comb.held_back`), and once in, stays in:
+`_ai_ways_of_its_own` calls `_ai_pack_goes_in` whenever it does not hang back, marking it and its pack within `AI_PACK_TOGETHER_TILES`
+`pack_gone_in` (the designer, 2026-11-20: two Gnawers took turns hanging back for each other). `_ai_holds_back` stays a pure question. **A turn after one of theirs**
 (`CombatantDefinition.turn_after_one_of_them`, the Mimic's: `_turns_after_one_of_them` at each round's top and before the first, by `rng`, never
 the same one twice running). Several are shared out so nobody has two more behind them than another (`_share_out`), and two behind one stay one after
 the other with no extra turn between (`_follows`, read by `_spread_turn_queue`).
@@ -504,7 +509,8 @@ light after dark (`_add_bloom`, `BLOOM`, by `_dark_round`) and the view's edges 
 `_grade_wanted`); low mist in sheltered ground and by water at night, thinning as the sun climbs (`_ground_mist_wanted`, GROUND_MIST_SHADER,
 `_ground_mist_mask`); far flashes with no thunder on a close summer night before a storm (`_far_lightning_wanted`, `STORMY`,
 `far_lightning_now`, FAR_FLASH_SHADER); at dawn and dusk, now and then, the light's edges and the open sky stepping into pixels for a moment
-(`_pixels_due`, `sky_pixels_now`, the shaders' `pixels`). Nothing in it rolls from `Combat.rng`. **On maps:** `WaterPatch` (water: a size in
+(`_pixels_due`, `sky_pixels_now`, the shaders' `pixels`; OFF since 2026-11-21, `LightView.sky_pixels`, the designer: "Turn it off").
+Nothing in it rolls from `Combat.rng`. **On maps:** `WaterPatch` (water: a size in
 tiles, a colour, foam or not; drawn by the view under the dark, `_gather_the_water`, WATER_SHADER: ripples with the wind, foam where it meets
 land, rain's rings, the sun's glint on its side at the hour; only to look at, Blocks still decides walking; whoever wades sends rings out from their feet and is mirrored in it, `_keep_the_waders`, `_Mirrored`, `in_water`, and the rain's rings are whole; the designer, 2026-11-14), `WindBanner` (a banner, a pennant
 or a washing line streaming the wind's way) and `ChimneySmoke`, both darkened with the night through `LightView.lit_colour_at`. The Light
@@ -527,7 +533,8 @@ the tile a fight's pointer is on (`more_cuts`, from `CController._note_hover`) a
 `Depth.THINGS`). Somebody bigger than a tile is seen through about the middle of what they cover, as far round as they are big (`body_middle`,
 `_covered`), and is drawn over a barrel or raised ground among their own feet (`_keep_the_big_over`: z 2 in the figures' layer while any lies in the
 rows they cover below their first). A thing that Stands is cut out of its tile until its slot has a picture (`_cut_out`, `_object_entry`) and drawn `OBJECT_SCALE`
-bigger from where it stands. Whoever is `up` is drawn `depth_view.height_at(tile)` higher (`CombatantSprite.ground_lift`, `set_ground_lift` from
+bigger from where it stands; the cut-out's mipmaps are made again from it (`get_region` copies only the biggest of the sheet's, and
+with the smooth floor pulled back it faded and the one painted on the floor showed: the designer, 2026-11-21, "keep them one size"). Whoever is `up` is drawn `depth_view.height_at(tile)` higher (`CombatantSprite.ground_lift`, `set_ground_lift` from
 `Combat.place_sprites`; `hop`'s `to_lift` carries the drawing between heights; `_home` is where it rests), their shadow and health bar with them.
 A shadow off every edge leans with the sun as the figures' do (`_cast_the_shadows`, a mask eight samples a tile under the shade). A map's own nodes
 that stand - a `StealthDoor`, a `BreakableWall` not yet broken - are in `Depth.UPRIGHTS` and say `depth_lift`, `depth_top`, `depth_paint`;
@@ -598,8 +605,12 @@ the designer's "normal maps without extra art", to try), by the light's height (
 the frame (`shine_path_for`: `_shine` for `_color`; red how shiny, green how like metal; `docs/shine_masks.md`) and where they are `wet`. What is on them: `ConditionDefinition`'s "On The Figure" group (`figure_tint`, `round_them`,
 `off_them`, `figure_priority`, `figure_pose`, `arrival_word`, slots for pictures), `Combat._show_conditions_on_figures` from
 `update_combatants`, `ConditionLook.choose_from` (one at a time, the strongest, equals taking turns), a ring under the feet, a pose
-that falls back to idle (`set_pose`, `play_idle`). **A tether's thread** (the designer, 2026-11-17): `CController._draw_tether`
-draws the bar under whoever holds one; the threads are `control/TetherThreads.gd` (no class_name, preloaded), two kept by
+that falls back to idle (`set_pose`, `play_idle`). All of it - and the shadow (`_Shadow.feet_at`), the wading water, the drips, steam
+and breath - hangs from `CombatantSprite.drawn_middle()` (= `size_offset`, the lift in it), never the node: a big one's node is its
+top-left tile (`_follow_the_drawing`; the designer, 2026-11-20). **A tether's thread** (the designer, 2026-11-17): `CController._draw_tether`
+draws the bar under whoever holds one; the threads are `control/TetherThreads.gd` (no class_name, preloaded; drawn as a string of
+`STRANDS` that splay as it wears, worn bits held by one strand, `worn_through` and `pieces_of` agreeing, fibres in `loose` floating,
+not falling: the designer, 2026-11-20, look only), two kept by
 `_keep_the_threads`: the lit one in the figures' layer at `LIT_Z` (880), the unlit one a child of the controller, with the board's
 marks. Where they go is `Combat.tether_threads`: one to each thing held, and only one to those that touch, side by side or
 corner to corner (`_touching`, `_middle_of_held`): a wall's to its middle, a zone's to its centre with whoever it holds in it, a
@@ -626,7 +637,8 @@ bar under anybody hurt or pointed at, or all while the danger key is held. None 
 **The fight's interface, the picks of 2026-11-07** (`ui/combat_ui.gd`, `hudlook`; section 11). `GateTag`: a shape per gate (`shape_of`), `compact`
 past `GATES_NAMED_IN_FULL` gates, the row an `HFlowContainer` whose foot stays over the tabs (`_seat_gate_row`). `ConditionStrip`: turns left on the
 mark, `ConditionDefinition.mark_picture` in place of the placeholder and its letters. The grid hides empty slots (`_empty_action`, `_fill_action`);
-`_turn_block` behind Ready, Go Prone, Undo and End Turn. `_refresh_round_mark` over the queue; `light_face_of`, from `CController._note_hover`.
+`_turn_block` behind Ready, Go Prone, Undo and End Turn, stopping the mouse so a click between the buttons never reaches the board (the
+designer, 2026-11-21: "there are times i click through and a character moves"). `_refresh_round_mark` over the queue; `light_face_of`, from `CController._note_hover`.
 `_by_side`: yellow and red in the log go by who a name is, in the one place the log is written. A wall has one line each way
 (`_quiet_summons`, `_wall_said_gone`). On a map `_tuck_moves_panel`: the moves panel only while the pointer is low, the key says (`moves_panel`, M) or
 a pad is in use, which has no pointer to bring it up. `apply_ui_scale`, from `GameSettings.ui_scale` and `UiScalePicker` in both Options: each part
@@ -642,12 +654,12 @@ weapon (`zone_on_a_weapon`, `follows_id`). Dancing Lights: `zone_lights`, `zone_
 `cannot_hide` (`set_hidden`, `make_invisible`, `_fade_into_the_dark`, `_invisibility_refusal`), `dispellable` (`spell_gate` 0).
 
 **Darkness is cover** (Combat section of that name, `StealthWatch._dark_between`; `light`; the designer, 2026-11-07: "creatures can
-go through it but cannot see in or behind it, except if they have a passive like cyrus does"). In it is "In the dark"; behind it: a line
-across a Dark tile is one nobody sees along but whoever sees in the dark (`dark_between`, `_behind_the_dark`, asked by `hidden_from` for
-anybody at all, and by `is_seen_by_opponents`). The tiles right round the viewer (`SEEN_IN_THE_DARK_TILES`; a guard's `dark_sight_tiles`)
-and the target's own don't count. Marked by Flame and Calling Out see past it. The player is shown the other side's people the dark keeps
-from every one of the party (`_dark_keeps_from_party`, in `unseen_by_party` and `dress_for_hiding`); walls alone hide nobody, as ever. On a
-map it cuts a guard's `_seen` (`_sees_in_the_dark` by his creature's passives). Only sight: walking, and an area at the ground, go on.
+go through it but cannot see in or behind it, except if they have a passive like cyrus does"). In a fight, no longer behind it (the
+designer, 2026-11-20): `_behind_the_dark` is always false, so the dark lying between two people hides neither, and only standing in it
+does (In the dark). `dark_between`, the line itself, is kept for what wants to know where the dark lies. A stealth map's
+`StealthWatch._dark_between` is as it was, and stays so (the designer, 2026-11-20: "No, keep it"): a guard still cannot see past the
+dark (the tiles round him, `dark_sight_tiles`, apart), it
+cuts his `_seen` (`_sees_in_the_dark` by his creature's passives). `_dark_keeps_from_party` (in `unseen_by_party`) is false now with it.
 **Night Hunter** (Cyrus's from 24; the designer's E, 2026-11-12): felling somebody from hiding on his own turn (`hidden_as_it_began`, set at the top of
 `_use_skill`; `felled_from_hiding`, from `_after_felling`), he slips out of sight again after the reveal (`_slips_away`:
 `PassiveDefinition.slips_away_after_felling`), even while watched, once a turn (`slipped_away`, cleared as his turn begins); hiding's other rules
@@ -655,7 +667,7 @@ stand. `stealth` covers it.
 
 **The round of 2026-11-12** (the designer's messages of that day). Cones go eight ways: on a diagonal the quarter between the two
 straight ways (`get_cone_tiles`, `get_octant_direction`; `blast`). The ground one can walk to is drawn quieter (`CController.MOVE_FILL`,
-`MOVE_EDGE`, `MOVE_EDGE_WIDTH`). The first time the sheet shows a kind studied, it reveals it (CharacterSheet "A new kind, studied":
+`MOVE_EDGE`, `MOVE_EDGE_WIDTH`; its outline a bit brighter again on 2026-11-21, 0.7, 0.87, 1.0 at 0.62). The first time the sheet shows a kind studied, it reveals it (CharacterSheet "A new kind, studied":
 `_maybe_reveal`, `_reveal`, `_reveal_over_the_panel`, `_finish_reveal` on any press; `Campaign.sheets_revealed`, saved; SoundBank
 "codex_reveal"; `reveals_headless`; `sheet`). `docs/sound_slots.md` lists every sound slot and what fills it (made by a script over the
 data). Alithia's changed-future lines are the designer's own; the Gun has the torch from afar for now.
@@ -749,10 +761,20 @@ BossDefinition's "Title cards"; the designer, 2026-11-05). `opening` from `Comba
 before deployment, `closing` from `combat_finish` before `combat_finished`; `Combat.cards_playing`
 holds `Net._play_moves` back. Boss Reveal is a switch per encounter (ticked on `boss_*`): bars,
 silhouette, sting, entrance or roar, portrait (`BossDefinition.reveal_portrait`) and plate,
-shorter once flagged `reveal_seen:`. Then the screen freezes and shatters and the words slam in.
-Any press skips. Nothing is rolled; not while `Net.catching_up`; headless only with
+shorter once flagged `reveal_seen:`. The screen freezes and shatters first of all, the HUD put away (the designer, 2026-11-21: "at the very
+start of combat"), then the carried-in view goes on to the party; the words slam in after a reveal (`_the_words`), or, with none, as the view
+pulls back over the other side and go as it comes back (`_look_at_what_you_face`, `_slam_in_the_words`, `_words_away`; "show the 'conflict
+endless' while zooming out to show the enemies"), on their own if there is nobody to look at. The opening cannot be skipped and
+is slower (the designer, 2026-11-21: "slower and unskippable (right now if i zoom in or out during them it sorta skips them)"):
+`playing_the_opening` swallows every press, `_hold_the_board` holds the view too (`CameraController.held`: no wheel, drag, keys or
+stick, nothing takes a glide back), its glides over a set time (`CameraController.glide_over`, eased in and out, there when the
+time is up: `glide_to`'s ease made slower was still on its way when the look wanted it there), `FREEZE_SECONDS` 0.3,
+`SHATTER_SECONDS` 0.95, `FACE_GLIDE_SECONDS` 0.9, `FACE_HOLD_SECONDS` 1.0, `TITLE_HOLD_SECONDS` 1.9, `CARRY_GLIDE_SECONDS` 1.4 (the
+push in on the party, `Combat.go_on_from_carried`), `MoveFeel.BOARD_OUT_SECONDS` 1.5; the boss reveal's own pace as it was. Any press skips
+every other card; a turn of the wheel never does. `skip()` is for the suites. Nothing is rolled; not while `Net.catching_up`; headless only with
 `FightCards.plays_headless`. `CombatantDefinition.entrance_style` (`FightCards.entrance`, from
-`_show_arrivals`, with `plate`). `SpawnDefinition.warned_by_flag` and `warned_by_reading`:
+`_show_arrivals`, with `plate`; it rests at `plate_rest`, right of the party column and above the bottom HUD by
+`CombatUI.words_room`). `SpawnDefinition.warned_by_flag` and `warned_by_reading`:
 `arrival_warnings`, drawn a turn ahead. **Falling**: `Combat._falls` -> `MoveFeel.falls` (flash,
 `camera.punch_in`, `CombatantSprite.fall`, by `comb.last_hurt`; a "dead_<element>" animation is
 the slot); one of the party: `slow_motion`, a crack across the portrait, `FightCards.fallen`, and
@@ -824,16 +846,22 @@ nobody). `DepthView._keep_the_height`: a map's figures drawn up on what is lifte
 `land_in_water` (from `MoveFeel.impact`, `over_area`, `falls` and a stealth throw); `Footsteps.walked_through` every frame walked.
 `Combat._play_the_move` is what plays a move's animation now (three call sites): `MoveFeel.strike` first (facing, `CombatantSprite.strike`,
 the `gather` light; switches `MoveFeel.strikes`, `faces`, `gathers`, `tells`; nothing unless `MoveFeel.shown()`), and only somebody with no
-animation of their own is waited for, the moment the blow takes. `MoveFeel.resisted` and `vulnerable` from `show_damage`'s `how`.
+animation of their own is waited for, the moment the blow takes. Over an animation of their own (`has_skill_animation`) no wind-up or step at
+all: the designer, 2026-11-21, "because there is already an attack animation, it looks weird. Whatever motion already has an animation
+looks a bit weird basically, anything else is completely fine" (it was half, `OWN_ANIMATION_SHARE`, gone). `MoveFeel.resisted` and `vulnerable` from `show_damage`'s `how`.
 `UiFeel` (`ui/ui_feel.gd`), listened for from SceneTransition: every BaseButton and PanelContainer added to the tree, once (`_feel_on`);
 whatever scales a control does it about `rest_of` (the scale it rests at), never back to 1, and a panel only fades (`arrive`), since
-`apply_ui_scale` scales and places the HUD's parts; `deal_in` (deferred, so it skips what is freed), `step_forward`, `count_to`, `pop`,
-`refuse`; `no_feel` meta, `plays_headless`, `seen`. **The interface's look is T** (`ui/sky_look.gd`, `SkyLook.apply` after
-`GameFonts.apply`; the designer, 2026-11-17): `SkyPanel`, a scripted StyleBox (the night by a gradient or the slot's picture through a
-rounded polygon, `strew_stars` seeded by the canvas item and size, `edge` broken at the lower left, `loosen`), the button styles (theme
-variations `MAIN_BUTTON` for End Turn and `SLOT_BUTTON` for the skill slots), and the old palette's names (`INK`, `ACCENT`, `PANEL`,
-`CARD`, `CARD_LIT`, `CARD_EDGE`) that the screens drawing their own cards take. A health bar's fill stays a StyleBoxFlat its owner
-recolours. A door's pictures: `StealthDoor.depth_picture`, `picture_source`, the painters' third argument `whole`
+`apply_ui_scale` scales and places the HUD's parts; `deal_in` (deferred, so it skips what is freed; its fade on `_feel_deal`, apart
+from the size's `_feel_scale` that hover and press take over, or a crossed button stays see-through: `deal_left_unfinished`), `step_forward`, `count_to`, `pop`,
+`refuse`; `no_feel` meta, `plays_headless`, `seen`. **The interface's look is the one from before T again** (the designer, 2026-11-21:
+"the style before the sky style i chose"): `ui/blue_theme.tres` as it stands, End Turn in the accent (`combat_ui._style_turn_buttons`,
+`_accent_box`), and each screen that draws its own cards with its own palette as before (`INK` dce8f5, `INK_DIM` c2ceda, `ACCENT` 4a86c8,
+`PANEL` 19212c, `CARD` 1c2531, `CARD_LIT` 24344a, `CARD_EDGE` 2b3947; the map screen's and a rest spot's panels, made under T, a journal's box).
+T (`ui/sky_look.gd`, built 2026-11-17) is kept but never put on: `SkyLook.apply` is not called from SceneTransition, and
+`status_icon`'s gold ring runs only on T's styles. Its rings in the icons' colours (2026-11-19) are back on this look (the designer,
+2026-11-21: "I'd like the coloured rings of the skill icons back"): `combat_ui._fill_action` and `_empty_action` call
+`SkyLook.ring_plain_slot` (the theme's own button in each state, its edge `SLOT_RING` 2 wide in `icon_ring`'s colour, `_ring_in`). Bringing it back is commit
+`fca4fa6`'s state of those call sites. `TetherThreads` still takes its motes from `SkyLook.STAR_COLOURS`. A door's pictures: `StealthDoor.depth_picture`, `picture_source`, the painters' third argument `whole`
 (`DepthView._Upright.whole_rect`). `SoundFollows` (`audio/SoundFollows.gd`, a child of the Music autoload): its own low-pass
 on Music and SFX, amplify on Music, reverb on SFX, eased each frame to `wants()` (menu, slow motion, the view's tile under the
 sky or not and dark or not, the map having any sky, rain, `Campaign.stealth_watch.alert`); `give_way(seconds)` from
@@ -870,9 +898,61 @@ terrain is the map's own, `_ground_of`; MAP_SCENE back to `_fought_on` once `_wo
 too; `_run_carry` hides the scene's CanvasLayers, takes the picture after `frame_post_draw` and keeps `_carried_view` for
 `take_carried_view()` (Combat `_open_where_carried` and `go_on_from_carried`, awaited by FightCards' opening; ExplorationScene
 `_spawn_party`); never headless. `FightCards._look_at_what_you_face`. `CameraController.drift_now()` in the offset (`drifts`).
+The board blinked as the view moved by part of a pixel (terrain scenes draw `texture_filter` nearest; at zoom 0.5 half a pixel
+changed the floor 25 times as much as a whole one), so the view is on whole pixels (the designer, 2026-11-20): CameraController
+"On whole pixels" (`whole_pixels`, `pixels_per_unit` - headless counts unstretched - `on_whole_pixels`, `_put_on_whole_pixels` after
+`_move_the_view`, a nudge in `offset`, which `_shake_step` makes afresh each frame), and `DepthPiece._move_with_the_view` rounds its
+lean the same way. And zooming (the designer, 2026-11-20, "Smooth the floor"): the floor's TileMap alone is drawn
+`LINEAR_WITH_MIPMAPS` (`CameraController.smooth_the_floor`, from `CController._ready` and the map's `_build_map`), its picture
+`first_area_tiles.png` imported with mipmaps and `terrain_tileset.tres` with `use_texture_padding = false` - the padded copy
+dropped the mipmaps; a notch of zoom then changes the floor half to a third as much (measured). The Terrain node stays nearest, so
+figures and DepthPieces stay sharp (linear with mipmaps on the whole Terrain node ghosted the DepthPieces). Changed the .import:
+import the real project, or the Project Manager's run keeps the old picture without them.
 `LightView` "Weather near the eye" (`_NearTheEye`, z `NEAR_Z`). `Music` "Music in layers": `_start_parts` loads a track's
 `_wary` and `_fighting` beside it, `_process` eases them by `standing_now()`, `thin`, `swell`; `Combat._turn_the_music`,
 `_last_leader_felled`.
+
+**Exploring, maps and the weirdness** (`docs/wander_built.md`, the proposals of 2026-11-19: sections 2 and 3 but the forgetting dark,
+pages ahead of time and the sky slips; `wander`; every number PROPOSAL, the art, sound and words placeholders behind slots).
+`MapMemory` (one per map, made by `ExplorationScene` after `_spawn_party`) keeps `Campaign.exploration[map]` (saved: the tiles seen,
+`SEEN_TILES` round the leader, and the pins) and owns `MapScreen` (`ui/map_screen.gd`; the `map` action, N; in the `pad_menu` round at
+4) and `WayArrow` (`ui/way_arrow.gd`; `way_target`: the newest pin, else the `StealthGoal`). A secret joins the group
+`MapMemory.SECRETS` and answers `is_found()`: `Interactable.secret` (found on first use, `found_flag`), `WallNote` (read by pointing),
+`Stash`, `HiddenMark` (IN_THE_DARK for a lead who `sees_in_darkness`, `Campaign.lead_here`, near a Dark tile, IN_THE_LIGHT by `LightMap.glow`; it uncovers
+`reveals`, an Interactable `kept_hidden` till then, which `is_available` asks), a `BreakableWall` with `secret` (`light_through` draws
+the crack). Climbing (the designer, 2026-11-19): `_build_blocking` gathers `_climbable` (HIGH, not Stands, Lift 0 or more), which
+`is_walkable` lets through on every map; getting up onto it from the floor is `may_cross(from, to, group)`'s, asked by
+`ExplorationParty._step`: by a `Ladder` (`by_ladder`; `_gather_climbing`, after `_build_blocking`) for anybody, else only for a
+leader who `Campaign.climbs_anywhere` (Cyrus's Cat Burglar), after pushing against that edge `CLIMB_PUSH_SECONDS`, who goes up
+alone (`_climbs_alone`: the rest of the line into `staying`); a `Ledge` only draws. `set_tile_opened` is the override a frozen pond uses. Called over: `call_party` (the `call_party`
+action, C; Stay Here when `leads_alone`, a pad's way; the moves panel's `CallParty`) walks those staying to the leader by
+`walking_route` (A* over tiles the party has seen, by `steps_between`; `_known_dangers` and `_danger_at`: a trap
+`MagicTrap.known_to_party` never, dearer within `GAZE_TILES` of a guard or roamer it sees), in `coming`, by `_bring_the_called`;
+`_pick_up_stayers` takes only one who `steps_between` to the leader, then `keep_places({})`. Back from a fight won on the map's own
+ground (`Campaign.map_ground`, set from `own_ground()` as a map opens, equal to the encounter's terrain): result_ui passes
+`Combat.party_places()` (tiles) to `finish_battle_from_exploration`, which keeps `Campaign.after_fight` and moves `return_position`
+to the leader's tile; `_back_from_the_fight` stands the rest on theirs and starts them in `coming` (not through `call_party`, which
+refuses while holding). `MagicTrap.concealed` is not drawn and
+not gone round (not `hidden`: that is a signal of every CanvasItem, and a property of that name will not compile). `StealthDoor.opens_only_from`
+(`DoorSide` - an enum named `Side` clashes with Godot's own), `unbarred_flag`. `Hours` under a node (`here_now`; a guard's shift
+is `StealthWatch` "Shifts": `off_shift` out of `guards`, `_keep_the_shifts` every `SHIFT_CHECK_SECONDS` on the host, the one going
+off on the appended errand `Guard.Mood.LEAVING_SHIFT` to his Hours' Elsewhere, the one coming on in from it by `back_to_beat`; a
+puppet keeps every guard and shows what the host's state says; the Light stage's DayWatch and NightWatch), `FloodPatch` (by `Campaign.ground_now().wet`), `WaterPatch.freezes` and
+`deep`. `Roamer` extends `EncounterInteractable` (`Mood`, `sees_party`, `hold_still`; `use(scene)` on meeting). `RestSpot`
+(`Campaign.rest_spots`; `rest_here`, and from its menu `_rest_from_menu` puts up `RestPanel` with `on_a_map` when `_rest_has_choices`:
+Meditate, Resuscitate; once a day a spot, `rested_today` by the flag `rested_on:`, and no preparing of spells; `travel_to` by `Campaign.travel_to_map(map, RestSpot.ENTRY_PREFIX + id)`, which
+`_start_position` reads; `dream`). `SoundArea` (`surface_at`, read by `Footsteps.step`; its ambience a looped stand-in). `Memento.use`
+from `OutsideMoves.use` for the appended Uses STOP_TIME, LOOK_BACK and FIND_THE_WAY (SkillDefinition `outside_use` 25-27).
+`ShiftingRoom` (its layouts are its hidden TileMap children; `shift` reads the blocking, climbing, light and depth again) and
+`LoopingCorridor` (`breaks_on_flag`). `ClueBook.shown_text` (`[struck=flag]...[/struck]`) in the Journal; `Campaign.lose_clue` and
+`find_clue` (`lost_clues`, saved). `GateVoice.speak` from `_pay_for_cast` (once a gate, flag `gate_voice:`). `TalkingThing`
+(`dialogue/oddities.dialogue`; `Campaign.fight_review`, `count_visit`, `remembered_line`, `hand_over_item`). The dream: `DreamPlace`
+(its shader over the world), `DreamZone`, `DreamLamp` (`<puzzle>_solved`), `Rehearsal` (`Campaign.run_blessing`, saved, put on each of
+the party by `Combat.add_combatant`; `Rehearsal.end_run_if_over` as a map comes up; `Rehearsal.BLESSINGS` is every blessing, which
+`GlossaryPanel.passives` reads since nobody holds one - a new blessing goes there too), `DreamWake` (flag `dreamt_from`). Lethe:
+`DialogueInteractable.forgets_flags`, `MapLabel.fades_after_days`, `ConditionDefinition.forgets_a_move` (the status entry's
+`forgotten`; `Combat.forgotten_moves`, `_is_forgotten`, in `can_afford_skill` and `wasted_on`). Sounds: the SoundBank's "Wandering"
+group. The stage: `tools/build_stealth_stages.gd` `stage_wander` and `stage_dream` (`MOT_STAGES="wander,dream"` builds only those).
 
 ## Stealth maps
 
@@ -1620,7 +1700,19 @@ subclass, weapon and defence. `Campaign.set_party`'s level is a floor and raises
 through `reach_level`, never lowers. A spawn's defence of 0 (the default) is
 `CombatantDefinition.defense_at(level)` - `defense` to `defense_level_64`, like
 `hp_at`, or the steps of `defense_by_level` - and so is anybody created without
-a spawn. The enemies' health and defence follow `docs/enemy_progression.csv`
+a spawn. The party's is their basic armour's instead (`basic_armour`, an
+EquipmentDefinition whose `defense_by_level` keeps up with them; the designer,
+2026-11-19): Enfina's Basic Heavy Armour, Prometheus's Basic Cloth Armour (2026-11-20),
+the others' Basic Armour, worn whenever
+the armour slot is empty and named in `comb.gear` (`basic_armour`); the map sheet's
+Defense is the same (`CharacterSheet.map_entry_of`). A dungeon can hold somebody's at
+its first Defense (`DungeonDefinition.basic_armour_at_first`, read through
+`Campaign.basic_armour_level`): the Dungeon Demo's whole party (Enfina 18, Cyrus and
+Alithia 12, Prometheus 9), so its store's armour is worth buying. Who may put on which
+kind of armour is `CombatantDefinition.armour_kinds` (the designer, 2026-11-20: Cyrus
+light, Alithia light and medium, Prometheus cloth - `ArmourCategory.CLOTH`, a placeholder
+name, a step below light - Enfina any): ask `Campaign.can_use`, never
+`EquipmentDefinition.fits` alone, which is only who a piece was made for. The enemies' health and defence follow `docs/enemy_progression.csv`
 (frail / average / tanky, per tier), the party's
 `docs/player_hp_defense_progression.csv`, Cyrus's shot multipliers
 `docs/cyrus_damage_adjustments.csv`; prices and fight pay follow
@@ -1668,7 +1760,10 @@ counted in `_use_skill` after the effects, `add_deepest_castings` at
 creation and after gear). `in_cover` is beside a tile that blocks sight. An
 enemy with one of the party's moves keeps its own learning level for it
 (`CombatantDefinition.skill_levels`, read by `meets_level_for`), so a move moved
-later for the party (Sweep Strike, 54) is not taken off the Barbarian. The
+later for the party (Sweep Strike, 54) is not taken off the Barbarian; a passive's
+`needs_no_learning` (Mimicry: what it copies, the designer, 2026-11-19) skips the
+level for the move it copies, `last_player_skill_used`, and nothing else (2026-11-20: handed
+to Enfina in the `passive` suite it was opening every move she had). The
 Sorcerer and the Priest share the party's Burner, Wind Swoon, Crystalise, Gust
 Blast and River Flow, so the condition proposal of 2026-10-25
 (`docs/perplexity_condition_dot_proposal.md`) changed theirs too (the designer:
@@ -1685,7 +1780,8 @@ the scroll (`_pinned`) and has Unlocks Only on its toolbar. Its Moves page lists
 skills, then spells on a shelf per gate, a line of numbers each (`facts_of`,
 `expected_damage`, `expected_heal`) and a role filter (`roles_of`, `ROLES`). The
 Sheet page shows what is on them folded in (`stat_of`), castings and uses as pips
-(`_pools_of`), and a passive not reached yet as "from level N" - and no moves:
+(`_pools_of`), and only the passives reached (the designer, 2026-11-17; the Levels
+page says when the rest come) - and no moves:
 those are the Moves page's, an ally's or a studied enemy's alike. One chip
 (`_tag`) serves all three; tests find rows by their first Label, so keep a
 heading's text first. Tab or the right trigger (`skill_tab`, read in `_input`
@@ -2271,9 +2367,24 @@ fails on any clash.
 browser build is dropped - the game has got too heavy for it.
 
 ```bash
-tools/release.sh                 # build all three and pack them
-tools/release.sh --publish       # and push them to itch, after asking
+tools/release.sh                      # the playtest build: everything in, all three platforms, packed
+tools/release.sh --release            # the public build: the release check, then the "... Release" presets
+tools/release.sh [--release] --publish  # and push it, after asking: the playtest build to the private page,
+                                        # the release to the public one
 ```
+
+**Two builds, two pages** (the designer, 2026-11-19, `docs/itch_release_proposals.md`, all five ways). The playtest build has
+everything and goes to the restricted page, "Messengers of Playtesting" (`PLAYTEST` in the script: `eplogos/messengers-of-playtesting`).
+The release build goes to the public page (`PUBLIC`, `eplogos/messengersoftruth`). It uses the three "... Release" presets, kept
+in `tools/release_presets.cfg` and added to `export_presets.cfg` by the script on a machine that lacks them. Their `release`
+feature is what `Release.on()` asks: the title screen drops Arena Mode, the Stealth Stages and the demos, and
+`PlaceholderSounds.make` is silent but for `Release.STAND_INS_KEPT`. `Release.pretend` does the same for a suite. Their Exclude
+Filter leaves the stages, demos, the lab sequence and their conversations out of the download. The release check
+(`tests/probes/release_test_driver.gd`, `tests/run.sh release`) reads that filter from the preset and fails on anything kept that
+depends on or names a file left out (`NAMES_ALLOWED`: the title screen), and on anything showing the stand-in picture
+(`art/placeholders/stand_in.png`, which every borrowed icon points at) unless `--allow-stand-ins` sets `MOT_ALLOW_STAND_INS`. Its
+`release_report.md` lists the empty sound and picture slots, and goes into `export/` with a release. A new piece of test content
+goes into all three presets' filter, and into `tools/release_presets.cfg`.
 
 `export_presets.cfg` is git-ignored, so a fresh clone has to set its export
 presets up before either that or `tests/run_packed.sh` will work. The scripts

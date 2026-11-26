@@ -46,6 +46,8 @@ var _current_target: Interactable = null
 var _blocking_interaction := false
 ## The guards' side of a stealth map, or null on any other map.
 var stealth: StealthWatch = null
+## What is remembered of this map: its screen, its pins and secrets, the arrow at the screen's edge (MapMemory).
+var memory: MapMemory = null
 ## The window choosing who has prepared what, while it is up.
 var preparing: PrepareSpells = null
 
@@ -111,7 +113,14 @@ func _ready():
 	_paths_due = true
 	if not Campaign.store_requested.is_connected(_on_store_requested):
 		Campaign.store_requested.connect(_on_store_requested)
+	# Back from a rehearsal's last fight, its blessing is gone (Rehearsal).
+	Rehearsal.end_run_if_over()
 	_spawn_party()
+	# What is remembered of the map, its screen and the arrow at the screen's edge (MapMemory; the proposals of 2026-11-19).
+	memory = MapMemory.new()
+	memory.name = "MapMemory"
+	memory.scene = self
+	add_child(memory)
 	# The familiar's keeper, on every map (Find Familiar - FamiliarKeeper).
 	familiar_keeper = FamiliarKeeper.new()
 	familiar_keeper.name = "FamiliarKeeper"
@@ -129,6 +138,7 @@ func _ready():
 		moves_panel = OutsideMovesPanel.new()
 		moves_panel.scene = self
 		game_ui.show_outside_moves(moves_panel)
+	_back_from_the_fight()
 	_refresh_party_panel()
 	_update_prompt()
 	# Anything automatic the party has arrived standing on fires now rather than
@@ -210,6 +220,10 @@ func _build_map():
 			if found != null:
 				_tile_map = found
 				break
+	# What a fight fought on this same ground shares with it (Campaign.after_fight).
+	Campaign.map_ground = own_ground()
+	# Drawn smooth, so the view's ease and any zoom do not make its lines blink (CameraController "A smooth floor").
+	CameraController.smooth_the_floor(_tile_map)
 	# The camera's own path only reaches a TileMap straight under the map.
 	if _tile_map != null and camera != null and camera.has_method("use_tile_map"):
 		camera.use_tile_map(_tile_map)
@@ -222,6 +236,7 @@ func _build_map():
 	# lay things out against in the editor.
 	_hide_grid(map)
 	_build_blocking()
+	_gather_climbing()
 	_interactables = []
 	_collect_interactables(map)
 	_collect_walls(map)
@@ -470,6 +485,7 @@ func _build_blocking():
 	_blocking.clear()
 	_blocking_fliers.clear()
 	_small_gaps.clear()
+	_climbable.clear()
 	if _tile_map == null:
 		return
 	var used = _tile_map.get_used_rect()
@@ -488,6 +504,9 @@ func _build_blocking():
 				_blocking_fliers[tile] = true
 			if SMALL_GAP in blocks:
 				_small_gaps[tile] = true
+			# Raised ground, climbed onto (Climbing): what stops walkers but not fliers, not a thing standing, not water.
+			if Depth.kind_of_blocks(blocks) == Depth.Kind.HIGH and not data.get_custom_data("Stands") and float(data.get_custom_data("Lift")) >= 0.0:
+				_climbable[tile] = true
 
 
 ## Whether the party may stand at this world position. Outside the map counts
@@ -500,7 +519,114 @@ func is_walkable(world_position: Vector2) -> bool:
 		return false
 	# Flying (Fly - OutsideMoves), over whatever stops only walkers.
 	var walls: Dictionary = _blocking_fliers if flying() else _blocking
+	# Ground given over for a while: a frozen pond walked on (WaterPatch), a path the flood has left.
+	if _opened.has(tile) and not _shut.has(tile):
+		return true
+	# Raised ground is stood on, on a map; getting up onto it is may_cross's to say: a ladder, or Cyrus alone (the designer, 2026-11-19).
+	if walls.has(tile) and _climbable.has(tile):
+		return not _shut.has(tile)
 	return not walls.has(tile) and not _shut.has(tile) and (shrunk() or not _small_gaps.has(tile))
+
+
+## --- Climbing and shortcuts ---
+##
+## The proposals of 2026-11-19 ("Climbing and shortcuts"; the designer: "Do all"), and the designer's rule of the same day: raised
+## ground (`_climbable`: what stops walkers but not fliers, not a thing standing, not water) is climbed only where a Ladder stands,
+## by anybody, or anywhere by whoever climbs anywhere (Campaign.climbs_anywhere: Cyrus, once he has Cat Burglar) - and he goes up
+## alone, the rest staying below where they stand (_climbs_alone) until he comes back to them or calls them over (call_party).
+## Dropped from anywhere. Once up, raised ground is walked like any other. A Ledge is only how a sheer edge looks now. A door barred
+## on one side opens only from the other (StealthDoor.opens_only_from). PROPOSAL.
+
+## Raised ground; the tiles a ladder stands on; ground given over a while (_opened).
+var _climbable := {}
+var _ladder_tiles := {}
+var _opened := {}
+
+
+## Whether `tile` is raised ground: climbed onto by a ladder, or by whoever climbs anywhere.
+func climbable(tile: Vector2i) -> bool:
+	return _climbable.has(tile)
+
+
+## Gives `tile` over to walking, or takes it back: a frozen pond, a flood gone down (WaterPatch).
+func set_tile_opened(tile: Vector2i, opened: bool):
+	if opened:
+		_opened[tile] = true
+	else:
+		_opened.erase(tile)
+
+
+## Whether the leader of `group` (the party, when null) may go from `from` to `to` (world points). Up from the floor onto raised
+## ground only by a ladder at either end, or by a leader who climbs anywhere, who goes up alone (_climbs_alone). A climb is heard
+## (MapFeel "climb").
+func may_cross(from: Vector2, to: Vector2, group: ExplorationParty = null) -> bool:
+	if _tile_map == null:
+		return true
+	var a := _tile_map.local_to_map(_tile_map.to_local(from))
+	var b := _tile_map.local_to_map(_tile_map.to_local(to))
+	if a == b or not climbs_up(a, b) or flying():
+		return true
+	if not by_ladder(a, b):
+		var walker: ExplorationParty = group if group != null else party
+		var key: String = walker.leader.get_meta("combatant_key", "") if walker != null and walker.leader != null else ""
+		if not Campaign.climbs_anywhere(key):
+			return false
+		# Only after a push against the same edge, so brushing one in passing splits nobody off.
+		var now := Time.get_ticks_msec()
+		if _push_edge != [a, b] or now - _push_last_ms > 150:
+			_push_edge = [a, b]
+			_push_since_ms = now
+		_push_last_ms = now
+		if now - _push_since_ms < CLIMB_PUSH_SECONDS * 1000.0:
+			return false
+		_push_edge = []
+		_climbs_alone(walker)
+	MapFeel.sound(&"climb", -8.0, 1.0, to)
+	return true
+
+
+## How long a leader who climbs anywhere pushes against raised ground before going up it alone. PROPOSAL.
+const CLIMB_PUSH_SECONDS := 0.35
+var _push_edge: Array = []
+var _push_since_ms := 0
+var _push_last_ms := 0
+
+
+## Whether going from tile `a` to tile `b` beside it is a climb: up from the floor onto raised ground.
+func climbs_up(a: Vector2i, b: Vector2i) -> bool:
+	return _climbable.has(b) and not _climbable.has(a) and not _opened.has(b)
+
+
+## Whether a ladder stands at either end of a step from `a` to `b`.
+func by_ladder(a: Vector2i, b: Vector2i) -> bool:
+	return _ladder_tiles.has(a) or _ladder_tiles.has(b)
+
+
+## The leader of `walker` climbs up alone: whoever follows stays below where they stand, out of the line as if told to Stay Here,
+## until the leader walks back up to them or calls them over (call_party).
+func _climbs_alone(walker: ExplorationParty):
+	if walker == null or walker.leader == null or walker.followers.is_empty():
+		return
+	var names := []
+	for sprite in walker.followers.duplicate():
+		var key: String = sprite.get_meta("combatant_key", "")
+		staying[key] = sprite.position
+		_left_behind.erase(key)
+		walker.stay(sprite, sprite.position)
+		names.append("[color=yellow]%s[/color]" % Campaign.display_name_of(key))
+	var listed: String = names[0] if names.size() == 1 else ", ".join(names.slice(0, names.size() - 1)) + " and " + names[-1]
+	log_message("[color=yellow]%s[/color] climbs up alone; %s %s below.\n" % [
+		Campaign.display_name_of(walker.leader.get_meta("combatant_key", "")), listed, "waits" if names.size() == 1 else "wait"])
+
+
+## Reads the map's ladders (Ladder): the tile each stands on.
+func _gather_climbing():
+	_ladder_tiles.clear()
+	var map := get_node_or_null(MAP_NODE)
+	if map == null or _tile_map == null:
+		return
+	for ladder in map.find_children("*", "Ladder", true, false):
+		_ladder_tiles[_tile_map.local_to_map(_tile_map.to_local(ladder.global_position))] = true
 
 
 ## --- Small gaps ---
@@ -622,6 +748,15 @@ func _start_position() -> Vector2:
 		var ground = _first_standable_position()
 		push_warning("Exploration map '%s' has no EntryPoint - starting the party on the first ground found, at %s. Add one to say where they should arrive." % [map_path(), ground])
 		return ground
+	# Come by Iris's rainbow to a rest spot (RestSpot.travel_to): just below it.
+	if Campaign.target_entry.begins_with(RestSpot.ENTRY_PREFIX):
+		var wanted := Campaign.target_entry.trim_prefix(RestSpot.ENTRY_PREFIX)
+		var map := get_node_or_null(MAP_NODE)
+		if map != null:
+			for spot in map.find_children("*", "RestSpot", true, false):
+				if spot.spot_id() == wanted:
+					Campaign.target_entry = ""
+					return spot.arrival_point()
 	if Campaign.target_entry != "":
 		for entry in entries:
 			if entry.entry_name == Campaign.target_entry:
@@ -969,6 +1104,10 @@ func _unhandled_input(event):
 	if Pad.went_down(event, &"stay_here"):
 		get_viewport().set_input_as_handled()
 		stay_here()
+		return
+	if Pad.went_down(event, &"call_party"):
+		get_viewport().set_input_as_handled()
+		call_party()
 		return
 	if event.is_action_pressed(&"swap_leader"):
 		get_viewport().set_input_as_handled()
@@ -1348,6 +1487,7 @@ func _process(delta):
 		if not Net.follows():
 			Campaign.prepare_due = false
 	_hurry_on(delta)
+	_bring_the_called(delta)
 	# Over a network the host's map springs the traps, whoever steps on them;
 	# here, one sprung there goes dark (Net).
 	if Net.follows():
@@ -1861,6 +2001,9 @@ func stay_here() -> bool:
 			next = key
 			break
 	if next == "":
+		# Alone, with somebody waiting who can reach them, it calls them over instead (a pad's only way to: Touchpad).
+		if can_call_party():
+			return call_party()
 		log_message("Nobody else to lead - [color=yellow]%s[/color] keeps the lead.\n" % Campaign.display_name_of(leading))
 		return false
 	staying[leading] = party_position()
@@ -1905,11 +2048,350 @@ func _pick_up_stayers(leader_position: Vector2, group: ExplorationParty = null):
 			if gap >= Grid.tiles(LEFT_BEHIND_TILES):
 				_left_behind[key] = true
 			continue
-		if gap <= Grid.tiles(PICK_UP_TILES):
+		# Only somebody who could step straight up to the leader: not from below while the leader stands on raised ground.
+		if gap <= Grid.tiles(PICK_UP_TILES) and steps_between(_tile_of(staying[key]), _tile_of(leader_position)):
+			coming.erase(key)
 			staying.erase(key)
 			_left_behind.erase(key)
 			group.rejoin(sprite)
+			# The line laid through where they all stand, so nobody is put back on a trail the leader climbed.
+			group.keep_places({})
 			log_message("[color=yellow]%s[/color] falls in behind.\n" % Campaign.display_name_of(key))
+
+
+## --- Called over ---
+##
+## Somebody staying - told to (Stay Here), or left below as Cyrus climbed - can be called to the leader (call_party: C; Stay Here
+## does it too with nobody else in the line, a pad's only way; the moves panel's Call). They walk to the leader by walking_route:
+## the shortest and safest way the party knows of, over ground it has seen (MapMemory), up raised ground only by a ladder, round
+## every trap it knows of and dearer near a guard or a roamer it can see where they stand. What they do not know of they walk into
+## like anybody: a hidden trap on the way goes off (_watch_traps). On reaching the leader they fall in behind (the designer,
+## 2026-11-19). PROPOSAL.
+
+## How near a guard or a roamer a way grows dearer, in tiles, and by how much a tile for each tile nearer.
+const GAZE_TILES := 4
+const GAZE_COST := 3.0
+## How often whether anybody can be called is worked out again, in seconds.
+const CALL_CHECK_SECONDS := 0.4
+## The eight steps, straight ones first.
+const STEPS := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+	Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]
+
+## Those walking to the leader: key -> {"route": tiles, "next": the index of the tile they are making for}.
+var coming := {}
+var _callable: Array = []
+var _call_checked_ms := -1000000
+
+
+## The tile a point of the party's (the groups' own space, which is the map's) stands on.
+func _tile_of(point: Vector2) -> Vector2i:
+	return _tile_map.local_to_map(_tile_map.to_local(point)) if _tile_map != null else Vector2i.ZERO
+
+
+## The middle of `tile`, in the same space.
+func _middle_of(tile: Vector2i) -> Vector2:
+	return _tile_map.to_global(_tile_map.map_to_local(tile))
+
+
+## Whether somebody who does not climb may step from tile `a` onto `b` beside it (or stay on it): ground they may stand on, and not
+## up onto raised ground but by a ladder. A step to a corner needs both tiles beside it open and all four at one height, since
+## walking cuts no corners.
+func steps_between(a: Vector2i, b: Vector2i) -> bool:
+	if a == b:
+		return true
+	if absi(a.x - b.x) > 1 or absi(a.y - b.y) > 1 or not is_walkable(_tile_map.map_to_local(b)):
+		return false
+	if climbs_up(a, b) and not by_ladder(a, b):
+		return false
+	if a.x != b.x and a.y != b.y:
+		for side in [Vector2i(b.x, a.y), Vector2i(a.x, b.y)]:
+			if not is_walkable(_tile_map.map_to_local(side)) or _climbable.has(side) != _climbable.has(a):
+				return false
+		if _climbable.has(b) != _climbable.has(a):
+			return false
+	return true
+
+
+## What the party knows of that a way should keep from: the tiles of the traps it knows of (MagicTrap.known_to_party, on ground it
+## has seen), and the tiles guards and roamers stand on where it can see them now. A trap it has not seen, or a hidden one, is not
+## here, and is walked over.
+func _known_dangers() -> Dictionary:
+	var traps := {}
+	for trap in _traps:
+		if is_instance_valid(trap) and trap.known_to_party():
+			var at := _tile_of(trap.global_position)
+			if memory == null or memory.has_seen(at):
+				traps[at] = true
+	var foes: Array = []
+	var watchers: Array = stealth.guards.duplicate() if stealth != null else []
+	var map := get_node_or_null(MAP_NODE)
+	if map != null:
+		watchers.append_array(map.find_children("*", "Roamer", true, false))
+	for foe in watchers:
+		if not is_instance_valid(foe) or not foe.is_visible_in_tree() or foe.get("knocked_out") == true:
+			continue
+		var at := _tile_of(foe.global_position)
+		if memory == null or memory.has_seen(at):
+			foes.append(at)
+	return {"traps": traps, "foes": foes}
+
+
+## What stepping onto `tile` costs a way beyond its length: INF onto a trap the party knows of, more the nearer a foe it can see.
+func _danger_at(tile: Vector2i, dangers: Dictionary) -> float:
+	if dangers.traps.has(tile):
+		return INF
+	var cost := 0.0
+	for foe in dangers.foes:
+		var near: int = maxi(absi(foe.x - tile.x), absi(foe.y - tile.y))
+		if near < GAZE_TILES:
+			cost += (GAZE_TILES - near) * GAZE_COST
+	return cost
+
+
+## The way somebody of the party who does not climb would walk from tile `from` to tile `to`: the tiles after `from`, ending on
+## `to`, or empty with none. Only over ground the party has seen, by steps_between, round the dangers it knows of (_danger_at),
+## shortest first (A*).
+func walking_route(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+	var route: Array[Vector2i] = []
+	if _tile_map == null:
+		return route
+	if from == to:
+		route.append(to)
+		return route
+	if memory != null and not memory.has_seen(to):
+		return route
+	var dangers := _known_dangers()
+	var best := {from: 0.0}
+	var came := {}
+	var done := {}
+	var open: Array = []
+	_heap_push(open, [_octile(from, to), from])
+	var left := 40000
+	while not open.is_empty() and left > 0:
+		left -= 1
+		var here: Vector2i = _heap_pop(open)[1]
+		if done.has(here):
+			continue
+		done[here] = true
+		if here == to:
+			break
+		for step in STEPS:
+			var next: Vector2i = here + step
+			if done.has(next) or (memory != null and not memory.has_seen(next)) or not steps_between(here, next):
+				continue
+			var danger := _danger_at(next, dangers)
+			if is_inf(danger):
+				continue
+			var cost: float = best[here] + (1.41421 if step.x != 0 and step.y != 0 else 1.0) + danger
+			if cost < best.get(next, INF):
+				best[next] = cost
+				came[next] = here
+				_heap_push(open, [cost + _octile(next, to), next])
+	if not came.has(to):
+		return route
+	var at := to
+	while at != from:
+		route.push_front(at)
+		at = came[at]
+	return route
+
+
+func _octile(a: Vector2i, b: Vector2i) -> float:
+	var dx := absi(a.x - b.x)
+	var dy := absi(a.y - b.y)
+	return maxi(dx, dy) + 0.41421 * mini(dx, dy)
+
+
+static func _heap_push(heap: Array, item: Array):
+	heap.append(item)
+	var i := heap.size() - 1
+	while i > 0:
+		var up := (i - 1) / 2
+		if heap[up][0] <= heap[i][0]:
+			break
+		var swap = heap[up]
+		heap[up] = heap[i]
+		heap[i] = swap
+		i = up
+
+
+static func _heap_pop(heap: Array) -> Array:
+	var top: Array = heap[0]
+	var last: Array = heap.pop_back()
+	if heap.is_empty():
+		return top
+	heap[0] = last
+	var i := 0
+	while true:
+		var small := i
+		for child in [2 * i + 1, 2 * i + 2]:
+			if child < heap.size() and heap[child][0] < heap[small][0]:
+				small = child
+		if small == i:
+			break
+		var swap = heap[small]
+		heap[small] = heap[i]
+		heap[i] = swap
+		i = small
+	return top
+
+
+## Whether the leader of the party has nobody else in the line: Stay Here calls those waiting then.
+func leads_alone() -> bool:
+	return party != null and party.leader != null and party.followers.is_empty()
+
+
+## The terrain scene this map is laid on: its TileMap's own scene, or the scene it was made in (as SceneTransition._ground_of).
+func own_ground() -> String:
+	if _tile_map == null:
+		return ""
+	if _tile_map.scene_file_path != "":
+		return _tile_map.scene_file_path
+	return _tile_map.owner.scene_file_path if _tile_map.owner != null else ""
+
+
+## --- Back from a fight on this ground ---
+##
+## A fight won on the map's own ground (Campaign.after_fight: a stealth map caught, a fight on the map) does not line the party up
+## again where it began: whoever leads stands where they stood as it ended, everybody else where they stood, and they walk over to
+## the leader as if called (call_party: by the ways the party knows). Whoever has nowhere to stand here, or no way over, falls in
+## behind at once. The party as one line only, not split between players (the designer, 2026-11-20). PROPOSAL.
+func _back_from_the_fight():
+	var after: Dictionary = Campaign.after_fight
+	Campaign.after_fight = {}
+	if after.is_empty() or party == null or party.leader == null or _tile_map == null or Coop.on():
+		return
+	if own_ground() == "" or after.get("ground", "") != own_ground():
+		return
+	var places: Dictionary = after.get("places", {})
+	var leading: String = party.leader.get_meta("combatant_key", "")
+	if places.has(leading):
+		var at: Vector2 = party.to_local(_middle_of(places[leading]))
+		if is_walkable(at):
+			party.teleport(at)
+			_follow_camera(party.position_of_leader())
+	var apart := []
+	for sprite in party.followers.duplicate():
+		var key: String = sprite.get_meta("combatant_key", "")
+		if not places.has(key):
+			continue
+		var spot: Vector2 = party.to_local(_middle_of(places[key]))
+		if not is_walkable(spot) or spot.distance_to(party.position_of_leader()) <= Grid.tiles(PICK_UP_TILES):
+			continue
+		staying[key] = spot
+		_left_behind[key] = true
+		party.stay(sprite, spot)
+		apart.append(key)
+	if apart.is_empty():
+		return
+	# Over to the leader, as if called; nobody stands about with no way over: they fall in at once.
+	var to := _tile_of(party.position_of_leader())
+	var fell_in := false
+	for key in apart:
+		var sprite = party.own_sprite_for(key)
+		var route := walking_route(_tile_of(sprite.position), to) if sprite != null else ([] as Array[Vector2i])
+		if not route.is_empty():
+			coming[key] = {"route": route, "next": 0}
+			sprite.play_walk()
+			continue
+		staying.erase(key)
+		_left_behind.erase(key)
+		if sprite != null:
+			party.rejoin(sprite)
+			fell_in = true
+	if fell_in:
+		party.keep_places({})
+	_call_checked_ms = -1000000
+
+
+## Those staying with the party's leader whom a call would bring: not on their way already, and with a way to the leader. Worked
+## out again at most every CALL_CHECK_SECONDS, since the moves panel asks every frame.
+func callable_keys() -> Array:
+	var now := Time.get_ticks_msec()
+	if now - _call_checked_ms < CALL_CHECK_SECONDS * 1000.0:
+		return _callable
+	_call_checked_ms = now
+	_callable = []
+	if party == null or party.leader == null or _tile_map == null:
+		return _callable
+	var to := _tile_of(party.position_of_leader())
+	for key in staying.keys():
+		var sprite = party.own_sprite_for(key)
+		if sprite != null and party.stayers.has(sprite) and not coming.has(key) and Campaign.is_alive(key) \
+				and not walking_route(_tile_of(sprite.position), to).is_empty():
+			_callable.append(key)
+	return _callable
+
+
+func can_call_party() -> bool:
+	return not callable_keys().is_empty()
+
+
+## Calls those staying who can reach the leader over to them (see "Called over"). False, and nobody moved, with nobody to call.
+func call_party() -> bool:
+	if party == null or party.leader == null or is_holding() or controlling_familiar():
+		return false
+	_call_checked_ms = -1000000
+	var to := _tile_of(party.position_of_leader())
+	var called := []
+	for key in callable_keys():
+		var sprite = party.own_sprite_for(key)
+		var route := walking_route(_tile_of(sprite.position), to)
+		if route.is_empty():
+			continue
+		coming[key] = {"route": route, "next": 0}
+		sprite.play_walk()
+		called.append("[color=yellow]%s[/color]" % Campaign.display_name_of(key))
+	_call_checked_ms = -1000000
+	var leader_name := Campaign.display_name_of(party.leader.get_meta("combatant_key", ""))
+	if called.is_empty():
+		log_message("Nobody waiting can reach [color=yellow]%s[/color] by a way they know.\n" % leader_name)
+		return false
+	var listed: String = called[0] if called.size() == 1 else ", ".join(called.slice(0, called.size() - 1)) + " and " + called[-1]
+	log_message("%s %s over to [color=yellow]%s[/color].\n" % [listed, "comes" if called.size() == 1 else "come", leader_name])
+	return true
+
+
+## Those called over walk on, at the party's pace, and fall in behind on reaching the leader (as _pick_up_stayers has them). One who
+## reaches the end of the way with the leader gone on is given a new way to where the leader is, or waits there with none.
+func _bring_the_called(delta: float):
+	for key in coming.keys():
+		var group := _group_of(key)
+		var sprite = group.own_sprite_for(key) if group != null else null
+		if sprite == null or not group.stayers.has(sprite) or not Campaign.is_alive(key) or not staying.has(key):
+			coming.erase(key)
+			continue
+		var leader_at: Vector2 = group.position_of_leader()
+		if sprite.position.distance_to(leader_at) <= Grid.tiles(PICK_UP_TILES) and steps_between(_tile_of(sprite.position), _tile_of(leader_at)):
+			coming.erase(key)
+			staying.erase(key)
+			_left_behind.erase(key)
+			group.rejoin(sprite)
+			group.keep_places({})
+			sprite.play_idle()
+			log_message("[color=yellow]%s[/color] falls in behind.\n" % Campaign.display_name_of(key))
+			continue
+		var walk: Dictionary = coming[key]
+		if walk.next >= walk.route.size():
+			var here := _tile_of(sprite.position)
+			var again := walking_route(here, _tile_of(leader_at))
+			if again.is_empty() or (again.size() == 1 and again[0] == here):
+				coming.erase(key)
+				sprite.play_idle()
+				continue
+			walk.route = again
+			walk.next = 0
+		var goal: Vector2 = group.to_local(_middle_of(walk.route[walk.next]))
+		var to_go: Vector2 = goal - sprite.position
+		var stride: float = group.move_speed * delta
+		if to_go.length() <= stride:
+			sprite.position = goal
+			walk.next += 1
+		else:
+			sprite.position += to_go.normalized() * stride
+		if absf(to_go.x) > 1.0:
+			sprite.set_facing(to_go.x < 0.0)
+		staying[key] = sprite.position
 
 
 ## --- The familiar, on any map (FamiliarKeeper) ---

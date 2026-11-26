@@ -1,0 +1,16 @@
+[remap]
+
+importer="dialogue_manager"
+importer_version=18
+type="Resource"
+uid="uid://ce2twj6uu2p11"
+path="res://.godot/imported/wander.dialogue-bf48c0cf47d1af62c0a2b6137482210a.tres"
+
+[deps]
+
+source_file="res://dialogue/wander.dialogue"
+dest_files=["res://.godot/imported/wander.dialogue-bf48c0cf47d1af62c0a2b6137482210a.tres"]
+
+[params]
+
+defaults=true

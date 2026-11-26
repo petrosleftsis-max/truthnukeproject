@@ -492,7 +492,16 @@ func layers():
 		"the weather is over a piece in front, as it is over the walls")
 	ok(roof.ground_in_world() == Rect2(Vector2(19, 8) * tile, Vector2(13, 15) * tile), "the roof stands over the hall's floor", "%s" % [roof.ground_in_world()])
 	ok(roof.drawn_in_world() == Rect2(Vector2(19, 8) * tile - Vector2(0.0, Depth.WALL_LIFT), Vector2(13, 15) * tile), "and is drawn as high as the walls it rests on")
-	# The roof, and the party.
+	# The roof, and the party. The hall's shift post (a day watch and a night watch under the roof, 2026-11-19) is set aside, out of
+	# the watch's lists and unseen, so the only figure under the roof below is the one placed here.
+	var watch: StealthWatch = scene.stealth
+	for called in ["DayWatch", "NightWatch"]:
+		var keeper: Guard = scene.get_node("Map").find_child(called, true, false)
+		if watch != null and keeper != null:
+			watch.guards.erase(keeper)
+			watch.off_shift.erase(keeper)
+			keeper.visible = false
+			keeper.process_mode = Node.PROCESS_MODE_DISABLED
 	scene.party.teleport(Grid.tile_to_world(Vector2i(8, 15)))
 	await wait(0.6)
 	await settle(3)

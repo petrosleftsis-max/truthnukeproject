@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://cbf4gnjv5w62v" path="res://combat/resources/ItemDefinition.gd" id="2_item"]
+[ext_resource type="Texture2D" path="res://art/placeholders/stand_in.png" id="3_icon"]
+
+[resource]
+script = ExtResource("2_item")
+keepsake = true
+name = "Stopped Clock"
+description = "A pocket watch stopped at twenty past four. Wound back, it holds the world near it still for a breath - guards stand blind a moment."
+icon = ExtResource("3_icon")
+targets_ally = true
+deals_damage = false
+outside_use = 25

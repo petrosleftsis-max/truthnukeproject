@@ -1,0 +1,133 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://maps/stealth_stages/dream_terrain.tscn" id="1_3r3ea"]
+[ext_resource type="Script" path="res://exploration/EntryPoint.gd" id="2_n7csy"]
+[ext_resource type="Script" path="res://exploration/MapSetup.gd" id="3_id15p"]
+[ext_resource type="Script" path="res://exploration/DreamPlace.gd" id="4_mne48"]
+[ext_resource type="Script" path="res://exploration/DreamZone.gd" id="5_58ba1"]
+[ext_resource type="Script" path="res://exploration/DreamLamp.gd" id="6_pfxiu"]
+[ext_resource type="Script" path="res://exploration/Rehearsal.gd" id="7_4vlli"]
+[ext_resource type="Script" path="res://combat/resources/EncounterDefinition.gd" id="8_p0uxe"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_01_ambush.tres" id="9_balqu"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_02_sappers.tres" id="10_8xxx6"]
+[ext_resource type="Script" path="res://exploration/DreamWake.gd" id="11_ceam0"]
+[ext_resource type="Script" path="res://exploration/DialogueInteractable.gd" id="12_5wn38"]
+[ext_resource type="Resource" path="res://dialogue/wander.dialogue" id="13_h0l7s"]
+[ext_resource type="SpriteFrames" path="res://art/interactables/sparkle/sparkle_frames.tres" id="14_vskkf"]
+[ext_resource type="Script" path="res://exploration/SoundArea.gd" id="15_feaov"]
+
+[node name="Dream" type="Node2D" unique_id=960550120]
+
+[node name="Terrain" type="Node2D" parent="." unique_id=1981493509 instance=ExtResource("1_3r3ea")]
+
+[node name="EntryPoint" type="Marker2D" parent="." unique_id=262814405]
+position = Vector2(896, 3200)
+script = ExtResource("2_n7csy")
+entry_name = "start"
+
+[node name="MapSetup" type="Node" parent="." unique_id=1235309067]
+script = ExtResource("3_id15p")
+members = Array[String](["cyrus", "enfina", "alithia", "prometheus"])
+level = 10
+asks_for_paths = false
+place_name = "The Dream"
+
+[node name="DreamPlace" type="Node2D" parent="." unique_id=21898902]
+position = Vector2(384, 384)
+script = ExtResource("4_mne48")
+
+[node name="Bigger" type="Node2D" parent="." unique_id=1770928985]
+position = Vector2(640, 640)
+script = ExtResource("5_58ba1")
+size_tiles = Vector2i(5, 4)
+figure_scale = 1.7
+
+[node name="Smaller" type="Node2D" parent="." unique_id=734812434]
+position = Vector2(4224, 640)
+script = ExtResource("5_58ba1")
+size_tiles = Vector2i(5, 4)
+figure_scale = 0.6
+
+[node name="Tilted" type="Node2D" parent="." unique_id=563599626]
+position = Vector2(1664, 2688)
+script = ExtResource("5_58ba1")
+size_tiles = Vector2i(10, 3)
+drift = Vector2(2, 0)
+
+[node name="DreamLamp1" type="Node2D" parent="." unique_id=347479707]
+position = Vector2(3200, 1152)
+script = ExtResource("6_pfxiu")
+prompt = "Light"
+interaction_radius = 320.0
+
+[node name="DreamLamp2" type="Node2D" parent="." unique_id=740634500]
+position = Vector2(1920, 1920)
+script = ExtResource("6_pfxiu")
+order = 2
+prompt = "Light"
+interaction_radius = 320.0
+
+[node name="DreamLamp3" type="Node2D" parent="." unique_id=1500073208]
+position = Vector2(4480, 2176)
+script = ExtResource("6_pfxiu")
+order = 3
+prompt = "Light"
+interaction_radius = 320.0
+
+[node name="Rehearsal" type="Node2D" parent="." unique_id=744431708]
+position = Vector2(3200, 2432)
+script = ExtResource("7_4vlli")
+encounters = Array[ExtResource("8_p0uxe")]([ExtResource("9_balqu"), ExtResource("10_8xxx6")])
+prompt = "Rehearse"
+interaction_radius = 320.0
+requires_flag = "dream_lamps_solved"
+locked_message = "A doorway of light, closed. The lamps, perhaps."
+
+[node name="Wake" type="Node2D" parent="." unique_id=587357322]
+position = Vector2(640, 3456)
+script = ExtResource("11_ceam0")
+fallback_map = "res://maps/stealth_stages/wander.tscn"
+prompt = "Wake"
+interaction_radius = 320.0
+
+[node name="EchoCyrus" type="Node2D" parent="." unique_id=12032293]
+position = Vector2(1152, 2176)
+script = ExtResource("12_5wn38")
+dialogue = ExtResource("13_h0l7s")
+dialogue_title = "echo_cyrus"
+prompt = "Talk"
+interaction_radius = 320.0
+sprite_frames = ExtResource("14_vskkf")
+
+[node name="EchoEnfina" type="Node2D" parent="." unique_id=992177550]
+position = Vector2(2688, 3456)
+script = ExtResource("12_5wn38")
+dialogue = ExtResource("13_h0l7s")
+dialogue_title = "echo_enfina"
+prompt = "Talk"
+interaction_radius = 320.0
+sprite_frames = ExtResource("14_vskkf")
+
+[node name="EchoAlithia" type="Node2D" parent="." unique_id=1421296197]
+position = Vector2(3712, 1664)
+script = ExtResource("12_5wn38")
+dialogue = ExtResource("13_h0l7s")
+dialogue_title = "echo_alithia"
+prompt = "Talk"
+interaction_radius = 320.0
+sprite_frames = ExtResource("14_vskkf")
+
+[node name="EchoPrometheus" type="Node2D" parent="." unique_id=1443754938]
+position = Vector2(5248, 3200)
+script = ExtResource("12_5wn38")
+dialogue = ExtResource("13_h0l7s")
+dialogue_title = "echo_prometheus"
+prompt = "Talk"
+interaction_radius = 320.0
+sprite_frames = ExtResource("14_vskkf")
+
+[node name="Sound1_1" type="Node2D" parent="." unique_id=27446122]
+position = Vector2(384, 384)
+script = ExtResource("15_feaov")
+size_tiles = Vector2i(22, 14)
+ambience = 4

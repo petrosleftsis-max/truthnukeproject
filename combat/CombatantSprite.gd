@@ -298,11 +298,11 @@ class _Shadow extends Node2D:
 
 	func feet_at() -> Vector2:
 		var figure: CombatantSprite = get_parent()
-		var feet := Vector2(0.0, float(Grid.TILE_SIZE) * 0.42)
+		# Under the drawing, wherever it is off the node (the middle of the square somebody bigger covers) and however high it is
+		# drawn up on raised ground (drawn_middle).
+		var feet := figure.drawn_middle() + Vector2(0.0, float(Grid.TILE_SIZE) * 0.42)
 		if figure.off_ground:
 			feet.y += float(Grid.TILE_SIZE) * CombatantSprite.OFF_GROUND_DROP
-		# Up on raised ground, so is their shadow.
-		feet.y -= figure.ground_lift / (figure.scale.y if figure.scale.y != 0.0 else 1.0)
 		return feet
 
 	func _draw():
@@ -680,7 +680,6 @@ func _keep_drips(on: bool):
 		_drips.lifetime = 0.55
 		_drips.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 		_drips.emission_rect_extents = Vector2(Grid.tiles(0.18), Grid.tiles(0.25))
-		_drips.position = Vector2(0, -Grid.tiles(0.35))
 		_drips.direction = Vector2.DOWN
 		_drips.spread = 5.0
 		_drips.gravity = Vector2(0, Grid.tiles(5.0))
@@ -688,6 +687,7 @@ func _keep_drips(on: bool):
 		_drips.initial_velocity_max = Grid.tiles(0.2)
 		_drips.scale_amount_min = 2.0
 		_drips.scale_amount_max = 3.0
+	_drips.position = drawn_middle() + Vector2(0, -Grid.tiles(0.35))
 	_drips.emitting = on
 
 
@@ -700,7 +700,6 @@ func _keep_steam(on: bool):
 		_steam.lifetime = 1.6
 		_steam.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 		_steam.emission_rect_extents = Vector2(Grid.tiles(0.2), Grid.tiles(0.3))
-		_steam.position = Vector2(0, -Grid.tiles(0.5))
 		_steam.direction = Vector2.UP
 		_steam.spread = 25.0
 		_steam.gravity = Vector2(0, -Grid.tiles(0.3))
@@ -712,6 +711,7 @@ func _keep_steam(on: bool):
 		fading.set_color(0, Color(1, 1, 1, 0.5))
 		fading.set_color(1, Color(1, 1, 1, 0.0))
 		_steam.color_ramp = fading
+	_steam.position = drawn_middle() + Vector2(0, -Grid.tiles(0.5))
 	_steam.emitting = on
 
 
@@ -740,7 +740,7 @@ func _breathe(delta: float, cold: bool):
 		fading.set_color(1, Color(1, 1, 1, 0.0))
 		_breath.color_ramp = fading
 	var facing: float = -1.0 if (_animated != null and _animated.flip_h) or (_static != null and _static.flip_h) else 1.0
-	_breath.position = Vector2(facing * Grid.tiles(0.08), -maxf(head_height(), Grid.tiles(0.6)))
+	_breath.position = drawn_middle() + Vector2(facing * Grid.tiles(0.08), -maxf(head_height(), Grid.tiles(0.6)))
 	_breath.direction = Vector2(facing, -0.2)
 	_breath.restart()
 
@@ -1900,7 +1900,7 @@ class _Wade extends Node2D:
 			return
 		var tile := float(Grid.TILE_SIZE)
 		var down: float = absf(figure.scale.y) if figure.scale.y != 0.0 else 1.0
-		var feet := Vector2(0.0, tile * 0.42)
+		var feet := figure.drawn_middle() + Vector2(0.0, tile * 0.42)
 		var deep: float = figure.wading / down
 		var half := tile * CombatantSprite.WADE_HALF_WIDTH
 		var surface := feet.y - deep
@@ -1950,6 +1950,14 @@ t: float, peak: float) -> float:
 
 ## Where the drawing sits off the node, in the node's own units.
 var size_offset := Vector2.ZERO
+
+
+## The middle of their drawing at rest, in the node's own units: off the node for somebody bigger or smaller than a tile, and up on
+## raised ground. What goes on them goes from here - their shadow, the water they wade in, what is on them (ConditionLook), what
+## the weather does to them - not from the node, which stays on their anchor tile, the top-left one of the square somebody bigger
+## covers (the designer, 2026-11-20: Burn and Poison showed on a big creature's left part).
+func drawn_middle() -> Vector2:
+	return size_offset
 
 
 ## Puts the drawing `offset` away from the node, as measured on the map.

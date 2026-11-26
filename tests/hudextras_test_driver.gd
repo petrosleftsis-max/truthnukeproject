@@ -136,11 +136,11 @@ func run_test():
 	log_line("======== the buttons ========")
 	var end_turn: Button = ui.get_node("Actions/EndTurnButton")
 	var undo: Button = ui.get_node("Actions/UndoMoveButton")
-	# The interface's look T (SkyLook): End Turn the filled main button, the rest rings of light.
+	# The look before T, SkyLook (the designer, 2026-11-21: "the style before the sky style i chose"): End Turn the one button in
+	# the accent.
 	var box = end_turn.get_theme_stylebox("normal")
-	ok(end_turn.theme_type_variation == SkyLook.MAIN_BUTTON and box != null and box != undo.get_theme_stylebox("normal")
-		and (box.bg_color == SkyLook.MAIN_FILL if box is StyleBoxFlat else true),
-		"End Turn is the main button", "%s" % (box.bg_color if box is StyleBoxFlat else box))
+	ok(end_turn.has_theme_stylebox_override("normal") and box is StyleBoxFlat and box.bg_color == Color("2d5a8c") and box != undo.get_theme_stylebox("normal"),
+		"End Turn is the one button in the accent", "%s" % (box.bg_color if box is StyleBoxFlat else box))
 	ok(not undo.has_theme_stylebox_override("normal") and not undo.has_theme_color_override("font_color"),
 		"Undo Move wears the theme's own look rather than End Turn's")
 	ok(end_turn.tooltip_text.contains("1-9") and end_turn.tooltip_text.contains("Shift"), "End Turn's tooltip lists the keys")

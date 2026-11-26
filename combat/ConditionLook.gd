@@ -44,7 +44,18 @@ func _put_the_ring_under():
 		return
 	_figure.add_child(_ring)
 	_figure.move_child(_ring, 0)
+	_follow_the_drawing()
 	_ring.queue_redraw()
+
+
+## On the middle of what is drawn of them, not on the node: for somebody bigger than a tile that is the middle of the square they
+## cover, where the node stays on its top-left tile (CombatantSprite.drawn_middle). What comes off them comes from here too.
+func _follow_the_drawing():
+	if _figure == null or not is_instance_valid(_figure):
+		return
+	position = _figure.drawn_middle()
+	if _ring != null and is_instance_valid(_ring):
+		_ring.position = position
 
 
 ## Says what is on them. An empty list and it all goes, quietly.
@@ -113,6 +124,7 @@ func _process(delta: float):
 	if _figure != null:
 		modulate.a = _figure.hidden_alpha
 		_figure.set_condition_tint(_tint_now())
+		_follow_the_drawing()
 	if not entries.is_empty() or _faded_from != null:
 		queue_redraw()
 		if _ring != null:

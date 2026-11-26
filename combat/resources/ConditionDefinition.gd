@@ -139,6 +139,9 @@ const DOT_STRENGTH_NAMES := {
 ## They cast no spells while it is on them: nothing through a gate, as an action,
 ## a reaction or something readied. A Gate Nade is thrown, not cast. Silenced.
 @export var prevents_spells: bool = false
+## One of their own moves is forgotten while it is on them, chosen by the fight's rolls as it lands: not to be used, by them or the
+## AI, its slot greyed and its tooltip saying so (Combat.forgotten_moves; the proposals of 2026-11-19, Lethe's touch). Forgotten.
+@export var forgets_a_move: bool = false
 ## Their next turn is not theirs: they do what they were ordered to as it landed,
 ## and end it (Combat "Orders"). Compelled.
 @export var obeys_order: bool = false

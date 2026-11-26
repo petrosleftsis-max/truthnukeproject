@@ -69,6 +69,9 @@ class_name MapSetup
 ## restart it.
 @export var music: String = ""
 
+## The place's name, at the top of the map screen (MapScreen). Empty: the map's file name, tidied.
+@export var place_name: String = ""
+
 ## Whether the party arrives carrying nothing, whatever their database entry
 ## says they start with. For a map that opens before the story has handed
 ## anybody anything.

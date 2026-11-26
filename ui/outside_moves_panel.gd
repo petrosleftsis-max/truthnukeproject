@@ -114,6 +114,19 @@ func _ready():
 		scene.stay_here()
 		Net.pressed_here(&"stay_here", Coop.controller_of(who())))
 	top.add_child(stay)
+	_stay = stay
+	# Those staying called over to the leader, while anybody can come (ExplorationScene "Called over").
+	_call = Button.new()
+	_call.name = "CallParty"
+	_call.focus_mode = Control.FOCUS_NONE
+	_call.flat = true
+	_call.visible = false
+	_call.add_theme_font_size_override("font_size", 13)
+	_call.tooltip_text = "Those waiting walk over to the leader by the shortest, safest way they know: over ground the party has seen, round the traps it knows of, keeping from the guards it can see. What they do not know of, they walk into."
+	_call.pressed.connect(func():
+		scene.call_party()
+		Net.pressed_here(&"call_party", Coop.controller_of(who())))
+	top.add_child(_call)
 	# Wrapping, or at high levels they run off past the panel and over the log.
 	_gates = HFlowContainer.new()
 	_gates.name = "Gates"
@@ -182,7 +195,25 @@ func _process(delta):
 	_since += delta
 	if _since >= REFRESH_SECONDS:
 		refresh()
+	_freshen_calling()
 	_keep_on_the_screen()
+
+
+var _stay: Button = null
+var _call: Button = null
+
+
+## Call shows while anybody staying can come to the leader. A leader alone has nobody to pass the lead to, so then Stay Here calls
+## them instead, and only Call shows - with the Stay key, a pad's only way to call.
+func _freshen_calling():
+	if _call == null or scene == null or not scene.has_method("can_call_party"):
+		return
+	var can: bool = scene.can_call_party()
+	var alone: bool = can and scene.leads_alone()
+	_call.visible = can
+	_call.text = Pad.hint("Call", [&"call_party", &"stay_here"] if alone else [&"call_party"])
+	if _stay != null:
+		_stay.visible = not alone
 
 
 ## Where it stands, and off the bottom of the screen it grows upwards instead: at high levels the

@@ -153,6 +153,7 @@ enum Mood {
 	FRIGHTENED,     ## Scared off by one (Dread Visage, Intimidate): runs from whoever did it, seeing nothing behind him.
 	BEWILDERED,     ## Bewildered by one: wanders off a little way, slowly, his mind on nothing.
 	RELIGHTING,     ## His light put out from afar (the dart): off to light it again at the nearest lamp, walking dark.
+	LEAVING_SHIFT,  ## His shift over (an Hours under him): off to where it changes, to be gone from there (StealthWatch "Shifts").
 }
 var mood: Mood = Mood.PATROLLING
 ## Knocked out: lying where they fell, watching nothing, fighting nobody -
@@ -379,7 +380,7 @@ func is_free() -> bool:
 
 ## The moods that are errands: walked to, stayed at, then left for the beat.
 const ERRANDS := [Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING,
-	Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED, Mood.RELIGHTING]
+	Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED, Mood.RELIGHTING, Mood.LEAVING_SHIFT]
 ## The moods nothing draws them out of: being sick, too unwell to stand, or
 ## asleep. Somebody running to tell a guard what they saw has no mind for
 ## anything else either, and nor has anybody a spell is working on.
@@ -652,7 +653,7 @@ func _process(delta):
 				sprite.play_idle()
 			return
 		Mood.CHATTING, Mood.EATING, Mood.RETCHING, Mood.SICK, Mood.TENDING, Mood.REPORTING, Mood.WAKING, \
-				Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED, Mood.RELIGHTING:
+				Mood.BLINDED, Mood.FRIGHTENED, Mood.BEWILDERED, Mood.RELIGHTING, Mood.LEAVING_SHIFT:
 			_run_errand(delta)
 			return
 		Mood.WATCHING, Mood.SUSPICIOUS:

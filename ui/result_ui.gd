@@ -54,7 +54,8 @@ func _on_combat_finished():
 	# A battle started from an exploration map retires its trigger on a win, so
 	# the same fight isn't waiting there when the party walks back past it.
 	if Campaign.has_map_to_return_to():
-		Campaign.finish_battle_from_exploration(not enemies_left and not lost_anyway, combat.arriving())
+		var ground: String = combat.encounter.terrain_scene.resource_path if combat.encounter != null and combat.encounter.terrain_scene != null else ""
+		Campaign.finish_battle_from_exploration(not enemies_left and not lost_anyway, combat.arriving(), combat.party_places(), ground)
 		$Panel/VBox/BackButton.text = "Continue"
 		# A milestone fight, won in the story: the party goes up a level.
 		if won and not Campaign.in_dungeon() and combat.encounter != null and combat.encounter.party_reaches_level > 0:

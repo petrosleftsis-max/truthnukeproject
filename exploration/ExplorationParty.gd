@@ -452,6 +452,26 @@ func _fan_spot(i: int) -> Vector2:
 	return Vector2.ZERO
 
 
+## The map that says what may be crossed (ExplorationScene.may_cross), found once among this party's own.
+var _map_for_crossing: Node = null
+
+
+## Whether the leader may go from `from` to `to` by what lies between: a ledge climbed only by its ladder, say (Ledge), asked of
+## the map. True with no map to ask.
+func _may_cross(from: Vector2, to: Vector2) -> bool:
+	if _map_for_crossing == null or not is_instance_valid(_map_for_crossing):
+		_map_for_crossing = null
+		var up := get_parent()
+		while up != null:
+			if up.has_method("may_cross"):
+				_map_for_crossing = up
+				break
+			up = up.get_parent()
+		if _map_for_crossing == null:
+			return true
+	return _map_for_crossing.may_cross(from, to, self)
+
+
 ## Whether a body fits at `centre`, by the map alone (no leash: this is where a follower stands, not where the group goes).
 func _fits(centre: Vector2) -> bool:
 	if not _walkable_test.is_valid():
@@ -488,10 +508,10 @@ func _step(direction: Vector2, delta: float, speed: float = -1.0) -> bool:
 	# instead of stopping dead.
 	var moved_to = leader.position
 	var candidate = Vector2(moved_to.x + step.x, moved_to.y)
-	if _can_stand(candidate):
+	if _can_stand(candidate) and _may_cross(moved_to, candidate):
 		moved_to = candidate
 	candidate = Vector2(moved_to.x, moved_to.y + step.y)
-	if _can_stand(candidate):
+	if _can_stand(candidate) and _may_cross(moved_to, candidate):
 		moved_to = candidate
 	if moved_to == before:
 		# Pressed into a wall: still facing that way, but not walking anywhere.

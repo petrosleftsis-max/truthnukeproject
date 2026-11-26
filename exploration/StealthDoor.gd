@@ -257,7 +257,38 @@ func passable() -> bool:
 	return is_open or held
 
 
+## --- Barred on one side ---
+##
+## A shortcut (the proposals of 2026-11-19, "Climbing and shortcuts"; the designer: "Do all"): a door that opens only from one side,
+## and from then on from both (kept in the flags, "unbarred:" and where it is). NONE: either side, as any door. PROPOSAL.
+enum DoorSide { NONE, NORTH, SOUTH, EAST, WEST }
+@export var opens_only_from: DoorSide = DoorSide.NONE
+
+
+func unbarred_flag() -> String:
+	return "unbarred:" + hack_id()
+
+
+## Which side of the door `point` (in the world) is on.
+func side_of(point: Vector2) -> DoorSide:
+	var off := point - global_position
+	if absf(off.x) > absf(off.y):
+		return DoorSide.EAST if off.x > 0.0 else DoorSide.WEST
+	return DoorSide.SOUTH if off.y > 0.0 else DoorSide.NORTH
+
+
+## Whether the party, where it stands, may open it.
+func opens_for(point: Vector2) -> bool:
+	return opens_only_from == DoorSide.NONE or is_open or Campaign.flag(unbarred_flag()) or side_of(point) == opens_only_from
+
+
 func interact(scene: Node):
+	if not opens_for(scene.party_position()):
+		scene.log_message("It's barred from the other side.\n")
+		MapFeel.sound(&"refused", -6.0, 1.0, global_position)
+		return
+	if opens_only_from != DoorSide.NONE:
+		Campaign.set_flag(unbarred_flag())
 	var watch = scene.get("stealth")
 	if watch != null and watch.has_method("set_door"):
 		watch.set_door(self, not is_open, true)

@@ -5,13 +5,12 @@ class_name ActionPips
 ## used, but the shape of the turn - what is left of it - had to be worked out
 ## from which buttons were grey.
 
-## In the interface's look (SkyLook): a mark still to spend is lit as the main button is, a spent one dark with a dim edge.
-const LIVE_FILL := SkyLook.MAIN_FILL
-const LIVE_EDGE := SkyLook.MAIN_EDGE
-const SPENT_FILL := Color(0.03, 0.06, 0.19, 0.55)
-const SPENT_EDGE := Color(0.73, 0.77, 0.92, 0.25)
-const LIVE_INK := SkyLook.NAME
-const SPENT_INK := SkyLook.BUTTON_TEXT_OFF
+const LIVE_FILL := Color("2d5a8c")
+const LIVE_EDGE := Color("7fb4ea")
+const SPENT_FILL := Color("141b23")
+const SPENT_EDGE := Color("2b3947")
+const LIVE_INK := Color("dce8f5")
+const SPENT_INK := Color("5d6b79")
 
 var _main: PanelContainer = null
 var _second: PanelContainer = null
@@ -61,10 +60,9 @@ func _light(pip: PanelContainer, live: bool, tip: String):
 	box.bg_color = LIVE_FILL if live else SPENT_FILL
 	box.border_color = LIVE_EDGE if live else SPENT_EDGE
 	box.set_border_width_all(1)
-	box.set_corner_radius_all(64)
-	box.anti_aliasing = true
-	box.content_margin_left = 8
-	box.content_margin_right = 8
+	box.set_corner_radius_all(3)
+	box.content_margin_left = 6
+	box.content_margin_right = 6
 	box.content_margin_top = 1
 	box.content_margin_bottom = 1
 	pip.add_theme_stylebox_override("panel", box)

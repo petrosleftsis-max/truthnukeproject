@@ -213,9 +213,13 @@ func run_test():
 	ok(passives_listed.size() == every_passive.size(), "every passive has a button",
 		"%s" % [passives_listed])
 	# The same export trap as the conditions: reached through the characters
-	# holding them, not by listing a folder the build reshapes.
+	# holding them, or the dream's blessings that nobody holds
+	# (Rehearsal.BLESSINGS, 2026-11-19), not by listing a folder the build reshapes.
 	var held := 0
 	for passive in every_passive:
+		if Rehearsal.BLESSINGS.has(passive):
+			held += 1
+			continue
 		for key in CombatantDatabase.combatants:
 			if CombatantDatabase.combatants[key].passives.has(passive):
 				held += 1

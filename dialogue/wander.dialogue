@@ -1,0 +1,31 @@
+~ neighbour
+if Campaign.flag("met_neighbour")
+	Neighbour: You again. Good. People come and go so quickly here.
+else
+	Neighbour: Hello, strangers. Have we met? No... I would remember a face like yours. I think.
+	do Campaign.set_flag("met_neighbour")
+=> END
+
+~ shopkeeper
+Shopkeeper: Open from dawn till the lamps go out. After that you will find me at home, and the shutters down.
+=> END
+
+~ townsman
+Townsman: By day I am out here. By night I am by my own door. Some of us keep hours.
+=> END
+
+~ echo_cyrus
+Cyrus: This place again. The dark here sees me back.
+=> END
+
+~ echo_enfina
+Enfina: I dream of fire and wake up warm. I prefer the other way round.
+=> END
+
+~ echo_alithia
+Alithia: The futures are loud here. Three lamps. Light them in their order.
+=> END
+
+~ echo_prometheus
+Prometheus: Everything in a dream is a rehearsal. Light the lamps, and we can practise.
+=> END

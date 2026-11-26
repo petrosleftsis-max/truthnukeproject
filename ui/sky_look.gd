@@ -1,4 +1,10 @@
 class_name SkyLook
+## NOT PUT ON since 2026-11-21: the designer went back to the look before it ("the style before the sky style i chose"), the
+## theme's own (ui/blue_theme.tres) and each screen's own palette. Kept whole for a return: SceneTransition would call apply()
+## again, and the call sites that took its colours, panels and button kinds would be as in commit fca4fa6. What is still used:
+## TetherThreads' STAR_COLOURS, and the skill slots' rings in their icons' colours on the look before T (icon_ring,
+## ring_plain_slot; the designer, 2026-11-21: "I'd like the coloured rings of the skill icons back").
+##
 ## The interface's look: T, "K, lighter" (the designer, 2026-11-17, of the looks drawn on 2026-11-13: "Do T: K, Lighter"). Every
 ## panel is a smooth blue night, deeper at the top, with stars strewn over it as real ones are, never on a pattern; and at its
 ## lower left corner a few small pixels have come loose, the rest of its edge smooth: the sky beginning to come apart, which the
@@ -195,6 +201,124 @@ static func button(state: StringName, kind: StringName) -> StyleBox:
 			box.bg_color = MAIN_FILL if main else BUTTON_FILL
 			box.border_color = MAIN_EDGE if main else BUTTON_EDGE
 	return box
+
+
+## --- A slot's ring in its icon's colour ---
+##
+## The designer, 2026-11-19 (direction 3 of docs/proposals_2026-11-19.md, on T as it stays): each skill slot's ring takes the colour its
+## icon is painted on, worked out from the picture itself - the pixels a little inside its edge - and lifted so a dark ground still
+## reads as a ring on the night. A shared skill's icon is tinted by its element (SkillLook), and its ring with it. PROPOSAL.
+
+## How far in from the icon's edge its ground is read, in its own pixels; how much the ring is lifted; the least brightness it has.
+const RING_INSET := 4
+const RING_LIFT := 0.15
+const RING_LEAST_VALUE := 0.5
+
+## icon -> the colour of its ground (transparent when it cannot be read); the ring styles by colour and state.
+static var _icon_grounds := {}
+static var _ring_boxes := {}
+
+
+## The ring for a slot showing `icon`, drawn in `tint` (SkillLook's, white for most): transparent when the icon cannot be read.
+static func icon_ring(icon: Texture2D, tint: Color = Color.WHITE) -> Color:
+	if icon == null:
+		return Color.TRANSPARENT
+	if not _icon_grounds.has(icon):
+		_icon_grounds[icon] = ground_of(icon.get_image())
+	var ground: Color = _icon_grounds[icon]
+	if ground.a <= 0.0:
+		return Color.TRANSPARENT
+	var ring := Color(ground.r * tint.r, ground.g * tint.g, ground.b * tint.b).lightened(RING_LIFT)
+	if ring.v < RING_LEAST_VALUE:
+		ring.v = RING_LEAST_VALUE
+	return ring
+
+
+## The colour a picture is painted on: the average of its opaque pixels in a ring RING_INSET in from its edge.
+static func ground_of(image: Image) -> Color:
+	if image == null or image.is_empty():
+		return Color.TRANSPARENT
+	if image.is_compressed():
+		image.decompress()
+	var w := image.get_width()
+	var h := image.get_height()
+	if w <= RING_INSET * 2 + 1 or h <= RING_INSET * 2 + 1:
+		return Color.TRANSPARENT
+	var total := Color(0, 0, 0, 0)
+	var count := 0
+	var points := []
+	for x in range(RING_INSET, w - RING_INSET):
+		points.append(Vector2i(x, RING_INSET))
+		points.append(Vector2i(x, h - 1 - RING_INSET))
+	for y in range(RING_INSET + 1, h - 1 - RING_INSET):
+		points.append(Vector2i(RING_INSET, y))
+		points.append(Vector2i(w - 1 - RING_INSET, y))
+	for point in points:
+		var pixel := image.get_pixelv(point)
+		if pixel.a > 0.5:
+			total += pixel
+			count += 1
+	if count == 0:
+		return Color.TRANSPARENT
+	var mean: Color = total / float(count)
+	mean.a = 1.0
+	return mean
+
+
+## Puts a ring in `colour` on skill slot `slot` in every state - lighter under the pointer and pressed, faint while it cannot be used -
+## or, with a transparent colour, gives it back the theme's own.
+static func ring_slot(slot: Button, colour: Color):
+	for state in [&"normal", &"hover", &"pressed", &"disabled", &"focus"]:
+		if colour.a <= 0.0:
+			slot.remove_theme_stylebox_override(state)
+			continue
+		var key := "%s/%s" % [colour.to_html(false), state]
+		if not _ring_boxes.has(key):
+			var box := button(state, &"slot")
+			var ring := _ring_in(colour, state)
+			var flat_box := box as StyleBoxFlat
+			if flat_box != null:
+				flat_box.border_color = ring
+			var picture_box := box as StyleBoxTexture
+			if picture_box != null:
+				picture_box.modulate_color = ring
+			_ring_boxes[key] = box
+		slot.add_theme_stylebox_override(state, _ring_boxes[key])
+
+
+## The same on the look from before T, which the interface is in again (the designer, 2026-11-21: "about the UI style, I'd like the
+## coloured rings of the skill icons back"): the theme's own button in each state, its edge SLOT_RING wide in the ring's colour.
+## A transparent colour gives the slot back the theme's own.
+static func ring_plain_slot(slot: Button, colour: Color):
+	for state in [&"normal", &"hover", &"pressed", &"disabled", &"focus"]:
+		if colour.a <= 0.0:
+			slot.remove_theme_stylebox_override(state)
+			continue
+		var key := "plain:%s/%s" % [colour.to_html(false), state]
+		if not _ring_boxes.has(key):
+			var theme := ThemeDB.get_project_theme()
+			var base: StyleBox = theme.get_stylebox(state, &"Button") if theme != null and theme.has_stylebox(state, &"Button") \
+				else ThemeDB.get_default_theme().get_stylebox(state, &"Button")
+			var box := base.duplicate() as StyleBoxFlat
+			if box == null:
+				box = StyleBoxFlat.new()
+				box.draw_center = false
+			box.set_border_width_all(SLOT_RING + (1 if state == &"focus" else 0))
+			box.border_color = _ring_in(colour, state)
+			_ring_boxes[key] = box
+		slot.add_theme_stylebox_override(state, _ring_boxes[key])
+
+
+## A ring's colour in `state`: lighter under the pointer and pressed, faint while it cannot be used.
+static func _ring_in(colour: Color, state: StringName) -> Color:
+	match state:
+		&"hover", &"focus":
+			return colour.lightened(0.3)
+		&"pressed":
+			return colour.lightened(0.5)
+		&"disabled":
+			return Color(colour, 0.45)
+	return colour
 
 
 static func _flat(fill: Color, edge: Color, width: int, corner: float) -> StyleBoxFlat:

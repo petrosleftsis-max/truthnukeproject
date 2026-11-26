@@ -52,6 +52,10 @@ class_name CameraController
 ## the edge is where the framing says it is. A stealth map turns it back on
 ## (see StealthWatch) - seeing where the guards look is the point there.
 @export var allow_zoom := true
+## While true the view is not the player's: no wheel, drag, keys or stick move it, and nothing they do takes it back from a glide
+## (a fight's opening, FightCards; the designer, 2026-11-21: "Make the starting effects of a fight slower and unskippable (right
+## now if i zoom in or out during them it sorta skips them)"). Whatever glides, frames or shakes it still does.
+var held := false
 
 var _tile_map: TileMap = null
 var _dragging := false
@@ -139,6 +143,8 @@ func zoom_at_screen_point(new_zoom_level: float, screen_point: Vector2):
 
 
 func _unhandled_input(event):
+	if held:
+		return
 	# Anything the player does to the view takes it back from whatever was moving it.
 	if event is InputEventMouseButton and event.pressed and allow_zoom and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_MIDDLE]:
 		_take_back()
@@ -243,10 +249,63 @@ func _shake_step(delta: float):
 
 
 func _process(delta):
+	_move_the_view(delta)
+	_put_on_whole_pixels()
+
+
+## --- On whole pixels ---
+##
+## The designer, 2026-11-20 ("We can draw the view on whole pixels"): the board is drawn sharp (nearest) at a fraction of its
+## size, so a view moved by part of a screen pixel shows other texels and the thin lines between the tiles blink. So after
+## everything else has moved it each frame, what the view shows is put on whole pixels of the screen - the window's own, past
+## the stretch - by a nudge of less than one through `offset`, which _shake_step makes afresh every frame and nothing else
+## keeps. The drift, the glides, the panning and a shake go on as ever, a pixel at a time. Raised pieces lean by whole pixels
+## too (DepthPiece, on_whole_pixels). A zoom still changes the picture's size as it goes.
+static var whole_pixels := true
+
+
+## How many of the screen's own pixels one unit of the world is, as `camera` draws now.
+static func pixels_per_unit(camera: Camera2D) -> float:
+	if camera == null or not camera.is_inside_tree():
+		return 0.0
+	# Headless there is no screen to stretch to: its pixels are the viewport's own.
+	var stretch: float = 1.0 if DisplayServer.get_name() == "headless" else camera.get_viewport().get_final_transform().get_scale().x
+	return camera.zoom.x * (stretch if stretch > 0.0 else 1.0)
+
+
+## `amount`, in the world's units, put on whole pixels of the screen as `camera` draws now: as it is with whole_pixels off.
+static func on_whole_pixels(camera: Camera2D, amount: Vector2) -> Vector2:
+	var per := pixels_per_unit(camera)
+	if not whole_pixels or per <= 0.0:
+		return amount
+	return (amount * per).round() / per
+
+
+## --- A smooth floor ---
+##
+## The designer, 2026-11-20 ("Smooth the floor"): whole pixels keep the board still while the view moves, but a zoom draws it at
+## a new size each time, and drawn sharp at a fraction of its size the floor skipped other texels at each - its lines between
+## the tiles blinking. So the floor's tile layer alone is drawn smooth from its picture's mipmaps (art/terrain/first_area_tiles.png
+## imported with them; the tile set without its padded copy, which dropped them): at a zoom and the next it stays two to three
+## times as steady (measured, 2026-11-20), a touch softer far out, as a painting made smaller is. Figures, raised pieces and all
+## else stay sharp. Called for the fight's floor (CController._ready) and a map's (ExplorationScene._build_map).
+static func smooth_the_floor(floor_tiles: TileMap):
+	if floor_tiles != null:
+		floor_tiles.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+
+
+func _put_on_whole_pixels():
+	if not whole_pixels:
+		return
+	var centre := global_position + offset
+	offset += on_whole_pixels(self, centre) - centre
+
+
+func _move_the_view(delta: float):
 	_shake_step(delta)
 	_keep_frame(delta)
 	# The keys or a stick take the view back from whatever was moving it.
-	if (_gliding or _framing) and free_look and get_viewport().gui_get_focus_owner() == null \
+	if not held and (_gliding or _framing) and free_look and get_viewport().gui_get_focus_owner() == null \
 			and Pad.direction(&"pan_left", &"pan_right", &"pan_up", &"pan_down") != Vector2.ZERO:
 		_take_back()
 	if _gliding:
@@ -267,6 +326,8 @@ func _process(delta):
 		# since every combat HUD button is focus_mode = None and so can never
 		# take it. Leave the arrow keys to walk that menu's buttons instead of
 		# dragging the map around underneath it.
+		return
+	if held:
 		return
 	# Keys or stick, never the two added together (Pad.direction).
 	var pan := Pad.direction(&"pan_left", &"pan_right", &"pan_up", &"pan_down")
@@ -325,6 +386,11 @@ const LEAN_GONE_PIXELS := 0.5
 static var moves_headless := false
 
 var _gliding := false
+## A glide over a set time (glide_over): how long it takes, how much of it is spent and where it set out from; 0 for glide_to's.
+var _glide_seconds := 0.0
+var _glide_spent := 0.0
+var _glide_from := Vector2.ZERO
+var _glide_zoom_from := 0.0
 var _glide_aim := Vector2.ZERO
 var _glide_zoom_aim := 0.0
 var _framing := false
@@ -353,6 +419,7 @@ func punch_in(share: float = 1.1, seconds: float = 0.34):
 func glide_to(at: Vector2, zoom_level: float = 0.0):
 	if not moves():
 		return
+	_glide_seconds = 0.0
 	if _zoom_tween != null and _zoom_tween.is_valid() and zoom_level > 0.0:
 		_zoom_tween.kill()
 	var map_rect = get_map_rect()
@@ -361,12 +428,36 @@ func glide_to(at: Vector2, zoom_level: float = 0.0):
 	_gliding = true
 
 
+## The same, over exactly `seconds`: setting out gently, gathering speed and settling, there when they are up (a fight's
+## opening, FightCards; the designer, 2026-11-21: "Make the starting effects of a fight slower"). glide_to's ease is quickest at
+## once and slow to arrive, so made slower it was still on its way when the opening wanted it there.
+func glide_over(at: Vector2, zoom_level: float, seconds: float):
+	glide_to(at, zoom_level)
+	if not _gliding:
+		return
+	_glide_seconds = maxf(seconds, 0.01)
+	_glide_spent = 0.0
+	_glide_from = position
+	_glide_zoom_from = zoom.x
+
+
 ## Whether the view is on its way somewhere.
 func is_gliding() -> bool:
 	return _gliding
 
 
 func _glide_step(delta: float):
+	if _glide_seconds > 0.0:
+		_glide_spent += delta
+		var t := clampf(_glide_spent / _glide_seconds, 0.0, 1.0)
+		var eased := t * t * (3.0 - 2.0 * t)
+		position = _glide_from.lerp(_glide_aim, eased)
+		if _glide_zoom_aim > 0.0:
+			zoom = Vector2.ONE * lerpf(_glide_zoom_from, _glide_zoom_aim, eased)
+		if t >= 1.0:
+			_glide_seconds = 0.0
+			_gliding = false
+		return
 	var share := 1.0 - exp(-GLIDE_RATE * delta)
 	position = position.lerp(_glide_aim, share)
 	if _glide_zoom_aim > 0.0:

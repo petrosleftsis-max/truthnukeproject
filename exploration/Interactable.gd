@@ -82,6 +82,9 @@ class_name Interactable
 ## The node doing the animating, made only for interactables that have frames.
 var _animated: AnimatedSprite2D = null
 
+## Kept out of sight and out of use until something uncovers it: a mark only the dark or a light shows (HiddenMark.reveals).
+var kept_hidden := false
+
 ## Whether an automatic one has already gone off where the party is standing.
 ##
 ## Without it, anything automatic that leaves the party on the map - a
@@ -95,6 +98,9 @@ func _ready():
 	# To be found: drawn over raised ground it lies on, and seen through a wall in front of it (DepthView).
 	if not Engine.is_editor_hint():
 		add_to_group(Depth.THINGS)
+		# Counted on the map screen (MapMemory.SECRETS).
+		if secret:
+			add_to_group(&"secrets")
 	_rebuild_animation()
 	queue_redraw()
 
@@ -183,6 +189,11 @@ func _draw():
 ## hack_locked:<id> as the hack says (hack_id), for a conversation to act on.
 @export var hack: HackDefinition
 
+@export_group("Secret")
+## A secret to find: counted on the map screen ("Secrets found: 2 of 5") and found the first time it is used (found_flag). The
+## proposals of 2026-11-19, "Secrets worth finding".
+@export var secret: bool = false
+
 
 ## Whether this can be used right now. An encounter trigger already beaten says
 ## no, and stops offering its prompt.
@@ -194,7 +205,7 @@ func is_available() -> bool:
 	# only in the walk-into check, because an automatic thing was also being
 	# offered to the interact key: the party could stand on a scene that had
 	# already played and press E to watch it again.
-	return not (only_once and contact_spent)
+	return not kept_hidden and not (only_once and contact_spent)
 
 
 ## Whether the flag this waits on has been set. Anything with no requires_flag
@@ -233,10 +244,23 @@ func use(scene: Node):
 	# interact() rather than before, so a locked one that did nothing is not
 	# spent by having been tried.
 	contact_spent = true
+	if secret and not is_found():
+		Campaign.set_flag(found_flag())
+		MapFeel.sound(&"secret_found", 0.0, 1.0, global_position)
 	if sets_flag != "":
 		Campaign.set_flag(sets_flag, _flag_value_to_store())
 	if settles_alert:
 		Campaign.settle_alert()
+
+
+## The flag a secret is found by: its map and its place in it.
+func found_flag() -> String:
+	return "found:" + hack_id()
+
+
+## Whether this secret has been found.
+func is_found() -> bool:
+	return Campaign.flag(found_flag())
 
 
 ## What its hack is known by on Campaign: its map and its place in it.

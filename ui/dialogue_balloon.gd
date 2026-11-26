@@ -446,10 +446,10 @@ func _build_skip_button() -> void:
 ## is made here rather than placed in the scene still looks like it belongs to
 ## the game it sits on top of.
 func _dress(button: Button) -> void:
-	const INK := SkyLook.INK
-	const CARD := SkyLook.CARD
-	const CARD_LIT := SkyLook.CARD_LIT
-	const CARD_EDGE := SkyLook.CARD_EDGE
+	const INK := Color("dce8f5")
+	const CARD := Color("1c2531")
+	const CARD_LIT := Color("24344a")
+	const CARD_EDGE := Color("2b3947")
 	button.add_theme_font_size_override("font_size", 15)
 	for role in ["font_color", "font_hover_color", "font_pressed_color"]:
 		button.add_theme_color_override(role, INK)

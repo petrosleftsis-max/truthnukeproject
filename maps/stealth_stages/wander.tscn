@@ -1,0 +1,312 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://maps/stealth_stages/wander_terrain.tscn" id="1_ag0px"]
+[ext_resource type="Script" path="res://exploration/EntryPoint.gd" id="2_1c42d"]
+[ext_resource type="Script" path="res://exploration/MapSetup.gd" id="3_xg8ln"]
+[ext_resource type="Script" path="res://exploration/RestSpot.gd" id="4_egp0y"]
+[ext_resource type="Script" path="res://exploration/WallNote.gd" id="5_f1hnf"]
+[ext_resource type="Script" path="res://exploration/Stash.gd" id="6_fe05r"]
+[ext_resource type="Script" path="res://exploration/BreakableWall.gd" id="7_iryob"]
+[ext_resource type="Script" path="res://exploration/AmbientArea.gd" id="8_2e6qf"]
+[ext_resource type="Script" path="res://exploration/HiddenMark.gd" id="9_2shud"]
+[ext_resource type="Script" path="res://exploration/Ledge.gd" id="10_jjmrg"]
+[ext_resource type="Script" path="res://exploration/Ladder.gd" id="11_xlc7d"]
+[ext_resource type="Script" path="res://exploration/WaterPatch.gd" id="12_nr6hm"]
+[ext_resource type="Script" path="res://exploration/FloodPatch.gd" id="13_w45an"]
+[ext_resource type="Script" path="res://exploration/StealthDoor.gd" id="14_q8wnu"]
+[ext_resource type="Script" path="res://exploration/DialogueInteractable.gd" id="15_6cu0d"]
+[ext_resource type="Resource" path="res://dialogue/wander.dialogue" id="16_qwat7"]
+[ext_resource type="SpriteFrames" path="res://art/interactables/sparkle/sparkle_frames.tres" id="17_7bgrl"]
+[ext_resource type="Script" path="res://exploration/Hours.gd" id="18_07xv0"]
+[ext_resource type="Script" path="res://exploration/Lamp.gd" id="19_qedwe"]
+[ext_resource type="Script" path="res://exploration/TalkingThing.gd" id="20_b2i15"]
+[ext_resource type="Resource" path="res://dialogue/oddities.dialogue" id="21_eckm4"]
+[ext_resource type="Script" path="res://exploration/Roamer.gd" id="22_7d1fe"]
+[ext_resource type="Resource" path="res://data/encounters/encounter_03_watcher.tres" id="23_je0mg"]
+[ext_resource type="Script" path="res://exploration/ShiftingRoom.gd" id="24_2siu2"]
+[ext_resource type="TileSet" path="res://maps/tilesets/terrain_tileset.tres" id="25_efrk8"]
+[ext_resource type="Script" path="res://exploration/LoopingCorridor.gd" id="26_4tlyp"]
+[ext_resource type="Script" path="res://exploration/MapLabel.gd" id="27_kb1yu"]
+[ext_resource type="Script" path="res://exploration/SoundArea.gd" id="28_fwbk2"]
+
+[node name="WandererQuarter" type="Node2D" unique_id=51333409]
+
+[node name="Terrain" type="Node2D" parent="." unique_id=317952304 instance=ExtResource("1_ag0px")]
+
+[node name="EntryPoint" type="Marker2D" parent="." unique_id=762157919]
+position = Vector2(1664, 1664)
+script = ExtResource("2_1c42d")
+entry_name = "start"
+
+[node name="MapSetup" type="Node" parent="." unique_id=1313684903]
+script = ExtResource("3_xg8ln")
+members = Array[String](["cyrus", "enfina", "alithia", "prometheus"])
+level = 10
+asks_for_paths = false
+place_name = "The Wanderer's Quarter"
+
+[node name="YardFire" type="Node2D" parent="." unique_id=1143594358]
+position = Vector2(1152, 1152)
+script = ExtResource("4_egp0y")
+spot_name = "Yard fire"
+dream_map = "res://maps/stealth_stages/dream.tscn"
+prompt = "Rest"
+interaction_radius = 320.0
+
+[node name="ArchiveBench" type="Node2D" parent="." unique_id=325381888]
+position = Vector2(8576, 3968)
+script = ExtResource("4_egp0y")
+spot_name = "Archive bench"
+prompt = "Rest"
+interaction_radius = 320.0
+
+[node name="YardNote" type="Node2D" parent="." unique_id=1868655681]
+position = Vector2(640, 384)
+script = ExtResource("5_f1hnf")
+text = "Whoever reads this: the archive's corridor only ends when you notice the note that does not belong."
+prompt = "Read"
+interaction_radius = 320.0
+secret = true
+
+[node name="StashByTheWell" type="Node2D" parent="." unique_id=1221751683]
+position = Vector2(1408, 2688)
+script = ExtResource("6_fe05r")
+items = Array[String](["shiny_button"])
+prompt = "Search"
+interaction_radius = 320.0
+secret = true
+
+[node name="CrackedWall" type="Node2D" parent="." unique_id=1220206963]
+position = Vector2(5248, 896)
+script = ExtResource("7_iryob")
+secret = true
+
+[node name="HiddenRoomDark" type="Node2D" parent="." unique_id=1123121742]
+position = Vector2(5376, 512)
+script = ExtResource("8_2e6qf")
+size_tiles = Vector2i(3, 4)
+ambient = 3
+
+[node name="StashInTheDark" type="Node2D" parent="." unique_id=582246732]
+position = Vector2(6016, 640)
+script = ExtResource("6_fe05r")
+items = Array[String](["lighthouse_lens"])
+gold = 40
+prompt = "Search"
+interaction_radius = 320.0
+secret = true
+
+[node name="MarkInTheDark" type="Node2D" parent="." unique_id=870841281]
+position = Vector2(5760, 1152)
+script = ExtResource("9_2shud")
+text = "Look up."
+reveals = NodePath("../StashInTheDark")
+
+[node name="TerraceLedge" type="Node2D" parent="." unique_id=401100595]
+position = Vector2(2176, 896)
+script = ExtResource("10_jjmrg")
+size_tiles = Vector2i(5, 1)
+
+[node name="TerraceLadder" type="Node2D" parent="." unique_id=1789427591]
+position = Vector2(2688, 1152)
+script = ExtResource("11_xlc7d")
+
+[node name="Pond" type="Node2D" parent="." unique_id=321101441]
+position = Vector2(640, 2176)
+script = ExtResource("12_nr6hm")
+freezes = true
+deep = true
+
+[node name="LaneFlood" type="Node2D" parent="." unique_id=364020171]
+position = Vector2(1664, 3968)
+script = ExtResource("13_w45an")
+size_tiles = Vector2i(3, 2)
+
+[node name="ArchiveDoor" type="Node2D" parent="." unique_id=1582135713]
+position = Vector2(5248, 3968)
+script = ExtResource("14_q8wnu")
+opens_only_from = 3
+prompt = "Open"
+interaction_radius = 332.8
+
+[node name="Shopkeeper" type="Node2D" parent="." unique_id=1855038608]
+position = Vector2(4224, 1408)
+script = ExtResource("15_6cu0d")
+dialogue = ExtResource("16_qwat7")
+dialogue_title = "shopkeeper"
+prompt = "Talk"
+interaction_radius = 320.0
+sprite_frames = ExtResource("17_7bgrl")
+
+[node name="Hours" type="Node" parent="Shopkeeper" unique_id=982300095]
+script = ExtResource("18_07xv0")
+
+[node name="TownsmanHome" type="Marker2D" parent="." unique_id=1111118908]
+position = Vector2(1152, 5248)
+
+[node name="Townsman" type="Node2D" parent="." unique_id=326743552]
+position = Vector2(2176, 3200)
+script = ExtResource("15_6cu0d")
+dialogue = ExtResource("16_qwat7")
+dialogue_title = "townsman"
+prompt = "Talk"
+interaction_radius = 320.0
+sprite_frames = ExtResource("17_7bgrl")
+
+[node name="Hours" type="Node" parent="Townsman" unique_id=323073801]
+script = ExtResource("18_07xv0")
+elsewhere = NodePath("../../TownsmanHome")
+
+[node name="Neighbour" type="Node2D" parent="." unique_id=840335978]
+position = Vector2(3200, 2176)
+script = ExtResource("15_6cu0d")
+dialogue = ExtResource("16_qwat7")
+dialogue_title = "neighbour"
+forgets_flags = Array[String](["met_neighbour"])
+prompt = "Talk"
+interaction_radius = 320.0
+sprite_frames = ExtResource("17_7bgrl")
+
+[node name="LanePostLight" type="Node2D" parent="." unique_id=944271138]
+position = Vector2(3968, 3712)
+script = ExtResource("19_qedwe")
+light_tiles = 3.0
+prompt = "Put out"
+interaction_radius = 332.8
+
+[node name="MarkInTheLight" type="Node2D" parent="." unique_id=1643150156]
+position = Vector2(4224, 3968)
+script = ExtResource("9_2shud")
+shown_in = 1
+text = "Iris was here."
+
+[node name="Statue" type="Node2D" parent="." unique_id=1733768604]
+position = Vector2(4480, 2944)
+script = ExtResource("20_b2i15")
+remarks = Array[String](["Hm.", "Your stance is poor.", "I have seen worse. Once."])
+dialogue = ExtResource("21_eckm4")
+dialogue_title = "statue"
+prompt = "Talk"
+interaction_radius = 320.0
+
+[node name="Bin" type="Node2D" parent="." unique_id=1445531253]
+position = Vector2(1664, 2432)
+script = ExtResource("20_b2i15")
+kind = 1
+remarks = Array[String](["Something shiny would be nice.", "Mind where you step."])
+dialogue = ExtResource("21_eckm4")
+dialogue_title = "bin"
+prompt = "Talk"
+interaction_radius = 320.0
+
+[node name="LampPost" type="Node2D" parent="." unique_id=824863528]
+position = Vector2(3968, 4224)
+script = ExtResource("20_b2i15")
+kind = 2
+remarks = Array[String](["I know you.", "Evening. Or is it?"])
+dialogue = ExtResource("21_eckm4")
+dialogue_title = "lamp_post"
+prompt = "Talk"
+interaction_radius = 320.0
+
+[node name="FieldRoamer" type="Node2D" parent="." unique_id=1358682500]
+position = Vector2(7808, 1664)
+script = ExtResource("22_7d1fe")
+encounter = ExtResource("23_je0mg")
+trigger_id = "wander_roamer"
+prompt = "Fight"
+interaction_radius = 320.0
+
+[node name="ShiftingRoom" type="Node2D" parent="." unique_id=1870073264]
+position = Vector2(7040, 3968)
+script = ExtResource("24_2siu2")
+size_tiles = Vector2i(5, 4)
+
+[node name="Layout1" type="TileMap" parent="ShiftingRoom" unique_id=2014988109]
+position = Vector2(-128, -128)
+tile_set = ExtResource("25_efrk8")
+format = 2
+layer_0/tile_data = PackedInt32Array(0, 262144, 2, 1, 196608, 2, 2, 262144, 2, 3, 196608, 2, 4, 262144, 2, 65536, 262144, 2, 65537, 0, 2, 65538, 262144, 2, 65539, 0, 2, 65540, 262144, 2, 131072, 262144, 2, 131073, 0, 2, 131074, 262144, 2, 131075, 0, 2, 131076, 262144, 2, 196608, 262144, 2, 196609, 196608, 2, 196610, 262144, 2, 196611, 196608, 2, 196612, 262144, 2)
+
+[node name="Layout2" type="TileMap" parent="ShiftingRoom" unique_id=315733063]
+position = Vector2(-128, -128)
+tile_set = ExtResource("25_efrk8")
+format = 2
+layer_0/tile_data = PackedInt32Array(0, 262144, 2, 1, 196608, 2, 2, 262144, 2, 3, 196608, 2, 4, 262144, 2, 65536, 0, 2, 65537, 0, 2, 65538, 0, 2, 65539, 196608, 2, 65540, 262144, 2, 131072, 262144, 2, 131073, 196608, 2, 131074, 262144, 2, 131075, 196608, 2, 131076, 262144, 2, 196608, 262144, 2, 196609, 196608, 2, 196610, 0, 2, 196611, 131072, 1610612739, 196612, 131072, 1610612739)
+
+[node name="Layout3" type="TileMap" parent="ShiftingRoom" unique_id=623820060]
+position = Vector2(-128, -128)
+tile_set = ExtResource("25_efrk8")
+format = 2
+layer_0/tile_data = PackedInt32Array(0, 262144, 2, 1, 196608, 2, 2, 0, 2, 3, 196608, 2, 4, 262144, 2, 65536, 262144, 2, 65537, 196608, 2, 65538, 0, 2, 65539, 196608, 2, 65540, 262144, 2, 131072, 262144, 2, 131073, 196608, 2, 131074, 262144, 2, 131075, 196608, 2, 131076, 262144, 2, 196608, 0, 2, 196609, 196608, 2, 196610, 262144, 2, 196611, 196608, 2, 196612, 0, 2)
+
+[node name="LoopingCorridor" type="Node2D" parent="." unique_id=487901054]
+position = Vector2(8320, 5504)
+script = ExtResource("26_4tlyp")
+way = Vector2i(-1, 0)
+loop_tiles = 5
+breaks_on_flag = "corridor_noticed"
+
+[node name="OddNote" type="Node2D" parent="." unique_id=638947222]
+position = Vector2(7552, 5504)
+script = ExtResource("5_f1hnf")
+text = "This note is upside down. So, you realise, is the corridor."
+prompt = "Read"
+interaction_radius = 320.0
+sets_flag = "corridor_noticed"
+
+[node name="StashAtTheEnd" type="Node2D" parent="." unique_id=1731922797]
+position = Vector2(6016, 5504)
+script = ExtResource("6_fe05r")
+items = Array[String](["stopped_clock", "lethe_water"])
+prompt = "Search"
+interaction_radius = 320.0
+secret = true
+
+[node name="LabelTheYard" type="Node2D" parent="." unique_id=1043629353]
+position = Vector2(2432, 1664)
+script = ExtResource("27_kb1yu")
+text = "The Yard"
+
+[node name="LabelTheEastField" type="Node2D" parent="." unique_id=168038062]
+position = Vector2(7552, 896)
+script = ExtResource("27_kb1yu")
+text = "The East Field"
+
+[node name="LabelTheArchive" type="Node2D" parent="." unique_id=422445453]
+position = Vector2(7040, 3712)
+script = ExtResource("27_kb1yu")
+text = "The Archive"
+fades_after_days = 3
+
+[node name="LabelTheLane" type="Node2D" parent="." unique_id=346994032]
+position = Vector2(3200, 4224)
+script = ExtResource("27_kb1yu")
+text = "The Lane"
+
+[node name="Sound1_1" type="Node2D" parent="." unique_id=158274797]
+position = Vector2(384, 384)
+script = ExtResource("28_fwbk2")
+size_tiles = Vector2i(19, 13)
+ambience = 1
+surface = 3
+
+[node name="Sound25_1" type="Node2D" parent="." unique_id=243282249]
+position = Vector2(6528, 384)
+script = ExtResource("28_fwbk2")
+size_tiles = Vector2i(10, 11)
+ambience = 1
+surface = 3
+
+[node name="Sound21_14" type="Node2D" parent="." unique_id=1156248535]
+position = Vector2(5504, 3712)
+script = ExtResource("28_fwbk2")
+size_tiles = Vector2i(14, 9)
+ambience = 3
+surface = 1
+
+[node name="Sound1_18" type="Node2D" parent="." unique_id=166972474]
+position = Vector2(384, 4736)
+script = ExtResource("28_fwbk2")
+size_tiles = Vector2i(6, 5)
+surface = 2

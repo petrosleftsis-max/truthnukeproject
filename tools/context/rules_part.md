@@ -29,7 +29,7 @@ How it is laid out:
 | Who | What they are | Main / secondary attribute | Spells from |
 |---|---|---|---|
 | **Enfina** | A greatsword fighter and the party's wall. Big melee blows, Guard, Grab and Hurl, Climb onto monsters. Her Measured Eye studies whoever she hits. | Physical / Self | (no spells) |
-| **Cyrus** | A rogue: rapier and gun, poison and burning ammunition, Steal, Stealth, Slip Past, Deceive. He is light-footed (Stealth, Slip Past and Run as secondary actions), has Quick Hands (items as a secondary action), Nade Juggler (throws any Gate Nade, as a secondary action) and Cat Burglar (I: +2 movement on a turn started in cover, from level 1; II: +2 always and climbs anywhere, from 24). | see Part 3 | (no spells) |
+| **Cyrus** | A rogue: rapier and gun, poison and burning ammunition, Steal, Stealth, Slip Past, Deceive. He is light-footed (Stealth, Slip Past and Run as secondary actions), has Quick Hands (items as a secondary action, and any Gate Nade at all), Cat Eyes (sees in the dark; a foe lying prone gets no cover from his ranged moves) and Cat Burglar (from 24: +2 movement, +4 on a turn started in cover, and climbs anywhere). | see Part 3 | (no spells) |
 | **Prometheus** | An elemental mage of the five elements, and the party's hacker. He **learns** his spells from spellbooks (or by taking a Gate Nade apart). He can Hack an enemy's declared move, InstaHack a spell as it is cast, and Dispel Magic. | see Part 3 | Intellect |
 | **Alithia** | A priestess: heals, cleanses, revives (Resuscitate), Idol (holy) and water spells, and illusions. Her Intuition reads what an enemy will do next turn and holds it to that. She **grows into** her spells by level. | see Part 3 | Mindfulness |
 
@@ -54,7 +54,7 @@ A path hands something out at 24, 32, 41, 54 and 64. The Illusory Shepherd hands
   - The secondary is half of the main, but never below 10.
   - Every other attribute stays at 10.
 - **Defense** is not worked out from the attributes:
-  - The party's follows the player sheet's armour bands, the same for all four: 12 from level 1, 20 from 8, 28 from 17 to 64. Armour worn in the story stands in for it (Padded Jacket 12, Brigandine 20, Plate Harness 28).
+  - The party's is their basic armour, worn whenever they wear nothing better (2026-11-19, in place of the old bands): Enfina's Basic Heavy Armour 18 from level 1, 27 from 8, 36 from 17; the others' Basic Armour 12, 20, 28. Armour worn in the story stands in for it (Padded Jacket 12; the heavy Brigandine 27 and Plate Harness 36, raised on 2026-11-19 to carry what Enfina's old Iron Hide I gave).
   - Every creature has its own Defense by level: a level-1 value climbing evenly to a level-64 value, or steps (the party's). A fight can override it per combatant.
   - The enemies' come from the enemy progression sheet: frail enemies 5 → 30, average 10 → 60, tanky 18 → 65.
 - **Health** also climbs evenly from a level-1 value to a level-64 value. Part 3 gives both for everyone.
@@ -77,7 +77,7 @@ A path hands something out at 24, 32, 41, 54 and 64. The Illusory Shepherd hands
   - Warning Shot's -1 movement for 2 turns holds through 2 of the target's turns. A 3-turn Burn ticks 3 times, 4 with Cyrus's DoT Master II.
   - Landing on whoever is acting, the rest of the current turn comes on top: Run 1 is this turn and the next. Kept by the designer (APPROVED_DESIGN, 2026-10-24).
   - Most effects wear off as their last turn ends. Some (Guard) wear off as the turn after starts, so they cover the enemies' turns in between.
-- **Movement:** the party walks 6 tiles a turn. Cyrus walks 8 on a turn he starts in cover (Cat Burglar I), and 8 always (10 in cover) from 24 (Cat Burglar II); Prometheus 8 as an Elemental Vanguard. Enemies have their own speeds: 4, 6, 7, 9, up to 18 for the Illusory Dragon.
+- **Movement:** the party walks 6 tiles a turn. Cyrus walks 8 from 24, 10 on a turn he starts in cover (Cat Burglar); Prometheus 8 as an Elemental Vanguard. Enemies have their own speeds: 4, 6, 7, 9, up to 18 for the Illusory Dragon.
 - **Milestone tiers:** the progression plan puts milestones at levels 1, 8, 16, 24, 32, 41, 54 and 64 (tiers 0-7).
   - Skill multipliers climb by tier. Melee goes 1.0 → 1.5 (8) → 2.2 (54) → 2.5 (64).
   - Caster nukes go 3.1 (32), 4.2 (41), 5.4 (54), 6.0 (64).
@@ -99,7 +99,7 @@ A path hands something out at 24, 32, 41, 54 and 64. The Illusory Shepherd hands
   - a gate (spells),
   - **Uses Per Short Rest**,
   - or **Needs Read** (only on somebody Alithia's Intuition has read).
-- **Leaving somebody's reach** can set off their reaction (an attack of opportunity). **Slip Past** lets you leave reach without doing so. It is a secondary action for Cyrus from level 1, through his Elusive passive.
+- **Leaving somebody's reach** can set off their reaction (an attack of opportunity). **Slip Past** lets you leave reach without doing so. It is a secondary action for Cyrus from level 1, through his Light Footed passive.
 
 ## 4. How a hit is worked out
 
@@ -132,7 +132,7 @@ Final damage  = Base x Ability Modifier x 40 / (40 + Defense), rounded, never be
   - a faction the party knows (+15%);
   - passives that hit harder against the afflicted, the weak to an element, those taking lingering damage, or on a turn spent standing still;
   - the paths' bonuses (Flanker, Ambush Strike, Righteous, Crusade...).
-- **A passive's ranks are one passive** (Momentum I and II, Iron Hide I-III): each rank adds to the ones before, and only the highest unlocked is shown, with the totals.
+- **A passive's ranks are one passive** (Momentum I and II, Iron Hide I and II): each rank adds to the ones before, and only the highest unlocked is shown, with the totals.
 - **Damage over time** (Burn, Poisoned, Frozen, Corroded...) ticks at the start of the victim's turns.
   - Each tick is the inflicter's base damage times the condition's own dial. The skill's Ability Modifier does not apply: that sizes the hit, not the burn after it.
   - Passives make lingering damage harder or longer.

@@ -29,17 +29,249 @@ const OUT := "res://maps/stealth_stages/"
 
 func _ready():
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
-	stage_tools()
-	stage_watch()
-	stage_escort()
-	stage_disguise()
-	stage_lights_out()
-	stage_supper()
-	stage_checkpoint()
-	stage_familiar()
-	stage_light()
+	# MOT_STAGES names only some to build ("wander,dream"); empty, all of them.
+	var only := OS.get_environment("MOT_STAGES").split(",", false)
+	var stages := {"tools": stage_tools, "watch": stage_watch, "escort": stage_escort, "disguise": stage_disguise,
+		"lights_out": stage_lights_out, "supper": stage_supper, "checkpoint": stage_checkpoint, "familiar": stage_familiar,
+		"light": stage_light, "wander": stage_wander, "dream": stage_dream}
+	for key in stages:
+		if only.is_empty() or only.has(key):
+			stages[key].call()
 	print("Stealth stages built.")
 	get_tree().quit()
+
+
+## --- The Wanderer's Quarter and the dream (the proposals of 2026-11-19, sections 2 and 3) ---
+##
+## An open map, not a watched one, with one of everything built for wandering: the map screen's ground to fill in, pins, secrets
+## (notes, stashes, a cracked wall, marks only the dark or a lamp shows), raised ground with a ledge and its ladder, a door barred from
+## the far side, a pond that freezes and a lane that floods, people keeping hours and one who forgets you, a foe on the roam, two rest
+## spots to travel between and one leading into the dream, sound by place, things that talk, and an archive wing whose room shifts
+## and whose corridor loops.
+const WANDER_TALK := "res://dialogue/wander.dialogue"
+const ODDITIES := "res://dialogue/oddities.dialogue"
+const DREAM_MAP := "res://maps/stealth_stages/dream.tscn"
+const WANDER_MAP := "res://maps/stealth_stages/wander.tscn"
+const SHIFT_LAYOUTS := [
+	[".....", ".#.#.", ".#.#.", "....."],
+	[".....", "###..", ".....", "..###"],
+	["..#..", "..#..", ".....", "#...#"],
+]
+
+
+func stage_wander():
+	var c := Carve.new(36, 24)
+	c.room(1, 1, 19, 13)
+	c.room(8, 2, 12, 3, "r")
+	c.room(21, 2, 23, 5)
+	c.put(20, 3, ".")
+	c.room(20, 8, 24, 9)
+	c.room(25, 1, 34, 11)
+	c.room(1, 15, 19, 16)
+	c.put(10, 14, ".")
+	c.room(1, 18, 6, 22)
+	c.put(3, 17, ".")
+	c.room(21, 14, 34, 19)
+	c.room(30, 12, 30, 13)
+	c.put(20, 15, ".")
+	c.room(22, 21, 33, 21)
+	c.put(33, 20, ".")
+	for y in SHIFT_LAYOUTS[0].size():
+		for x in String(SHIFT_LAYOUTS[0][y]).length():
+			c.put(27 + x, 15 + y, String(SHIFT_LAYOUTS[0][y])[x])
+	var terrain := make_terrain("wander", c)
+	var root := begin_stage(terrain, "WandererQuarter")
+	entry(root, Vector2i(6, 6))
+	map_setup(root, ["cyrus", "enfina", "alithia", "prometheus"], [], 10)
+	root.get_node("MapSetup").set("empty_handed", false)
+	root.get_node("MapSetup").set("place_name", "The Wanderer's Quarter")
+	# Rest spots: one in the yard leading into the dream, one in the archive to travel to.
+	var yard_rest := RestSpot.new()
+	yard_rest.spot_name = "Yard fire"
+	yard_rest.dream_map = DREAM_MAP
+	place(root, yard_rest, "YardFire", Vector2i(4, 4))
+	var archive_rest := RestSpot.new()
+	archive_rest.spot_name = "Archive bench"
+	place(root, archive_rest, "ArchiveBench", Vector2i(33, 15))
+	# Secrets: a note, a stash by the well with the bin's button, a cracked wall with a dark room behind it.
+	var note := WallNote.new()
+	note.text = "Whoever reads this: the archive's corridor only ends when you notice the note that does not belong."
+	note.secret = true
+	place(root, note, "YardNote", Vector2i(2, 1))
+	var by_the_well := Stash.new()
+	by_the_well.items = ["shiny_button"]
+	place(root, by_the_well, "StashByTheWell", Vector2i(5, 10))
+	var cracked := BreakableWall.new()
+	cracked.secret = true
+	place(root, cracked, "CrackedWall", Vector2i(20, 3))
+	ambient_area(root, Vector2i(21, 2), "HiddenRoomDark", Vector2i(3, 4), Light.Ambient.UNDERGROUND)
+	var behind := Stash.new()
+	behind.items = ["lighthouse_lens"]
+	behind.gold = 40
+	place(root, behind, "StashInTheDark", Vector2i(23, 2))
+	var dark_mark := HiddenMark.new()
+	dark_mark.shown_in = HiddenMark.Shown.IN_THE_DARK
+	dark_mark.text = "Look up."
+	place(root, dark_mark, "MarkInTheDark", Vector2i(22, 4))
+	dark_mark.reveals = dark_mark.get_path_to(behind)
+	# Raised ground with a sheer south edge, climbed by its ladder.
+	var ledge := Ledge.new()
+	ledge.size_tiles = Vector2i(5, 1)
+	place(root, ledge, "TerraceLedge", Vector2i(8, 3))
+	place(root, Ladder.new(), "TerraceLadder", Vector2i(10, 4))
+	# The pond freezes in winter and is too deep to wade otherwise; the lane floods after rain.
+	var pond := WaterPatch.new()
+	pond.size_tiles = Vector2i(3, 2)
+	pond.freezes = true
+	pond.deep = true
+	place(root, pond, "Pond", Vector2i(2, 8))
+	var flood := FloodPatch.new()
+	flood.size_tiles = Vector2i(3, 2)
+	place(root, flood, "LaneFlood", Vector2i(6, 15))
+	# A door barred on the lane's side: from the archive it opens, and is a way back.
+	var barred := door(root, Vector2i(20, 15), "ArchiveDoor")
+	barred.opens_only_from = StealthDoor.DoorSide.EAST
+	# People keeping hours, and one who forgets.
+	var shop := _wander_talk(root, "Shopkeeper", Vector2i(16, 5), "shopkeeper")
+	var shop_hours := Hours.new()
+	shop_hours.name = "Hours"
+	shop.add_child(shop_hours)
+	shop_hours.owner = root
+	var home := Marker2D.new()
+	place(root, home, "TownsmanHome", Vector2i(4, 20))
+	var townsman := _wander_talk(root, "Townsman", Vector2i(8, 12), "townsman")
+	var his_hours := Hours.new()
+	his_hours.name = "Hours"
+	townsman.add_child(his_hours)
+	his_hours.owner = root
+	his_hours.elsewhere = his_hours.get_path_to(home)
+	var neighbour := _wander_talk(root, "Neighbour", Vector2i(12, 8), "neighbour")
+	neighbour.forgets_flags = ["met_neighbour"]
+	# Light that finds things: a mark only the lamp's light shows.
+	var lamp_post_light := lamp(root, Vector2i(15, 14), "LanePostLight", 3.0)
+	lamp_post_light.visible = true
+	var lit_mark := HiddenMark.new()
+	lit_mark.shown_in = HiddenMark.Shown.IN_THE_LIGHT
+	lit_mark.text = "Iris was here."
+	place(root, lit_mark, "MarkInTheLight", Vector2i(16, 15))
+	# Things that talk.
+	_oddity(root, "Statue", Vector2i(17, 11), TalkingThing.Kind.STATUE, "statue", ["Hm.", "Your stance is poor.", "I have seen worse. Once."])
+	_oddity(root, "Bin", Vector2i(6, 9), TalkingThing.Kind.BIN, "bin", ["Something shiny would be nice.", "Mind where you step."])
+	_oddity(root, "LampPost", Vector2i(15, 16), TalkingThing.Kind.LAMP_POST, "lamp_post", ["I know you.", "Evening. Or is it?"])
+	# A foe on the roam in the east field.
+	var roamer := Roamer.new()
+	roamer.encounter = load("res://data/encounters/encounter_03_watcher.tres")
+	roamer.trigger_id = "wander_roamer"
+	place(root, roamer, "FieldRoamer", Vector2i(30, 6))
+	# The archive: a room that shifts while out of sight, a corridor that loops until its odd note is read, and at its end a stash.
+	var room := ShiftingRoom.new()
+	room.size_tiles = Vector2i(5, 4)
+	place(root, room, "ShiftingRoom", Vector2i(27, 15))
+	for i in SHIFT_LAYOUTS.size():
+		var layout := TileMap.new()
+		layout.name = "Layout%d" % (i + 1)
+		layout.tile_set = load(TILESET)
+		StagePainter.paint(layout, PackedStringArray(SHIFT_LAYOUTS[i]))
+		layout.position = -Vector2.ONE * Grid.TILE_SIZE / 2.0
+		room.add_child(layout)
+		layout.owner = root
+	var corridor := LoopingCorridor.new()
+	corridor.way = Vector2i(-1, 0)
+	corridor.loop_tiles = 5
+	corridor.breaks_on_flag = "corridor_noticed"
+	place(root, corridor, "LoopingCorridor", Vector2i(32, 21))
+	var odd_note := WallNote.new()
+	odd_note.text = "This note is upside down. So, you realise, is the corridor."
+	odd_note.sets_flag = "corridor_noticed"
+	place(root, odd_note, "OddNote", Vector2i(29, 21))
+	var at_the_end := Stash.new()
+	at_the_end.items = ["stopped_clock", "lethe_water"]
+	place(root, at_the_end, "StashAtTheEnd", Vector2i(23, 21))
+	# Names on the map, one that Lethe wears away.
+	_label(root, "The Yard", Vector2i(9, 6), 0)
+	_label(root, "The East Field", Vector2i(29, 3), 0)
+	_label(root, "The Archive", Vector2i(27, 14), 3)
+	_label(root, "The Lane", Vector2i(12, 16), 0)
+	# Sound by place.
+	_sound_area(root, Vector2i(1, 1), Vector2i(19, 13), SoundArea.Ambience.WIND, SoundArea.Surface.GRASS)
+	_sound_area(root, Vector2i(25, 1), Vector2i(10, 11), SoundArea.Ambience.WIND, SoundArea.Surface.GRASS)
+	_sound_area(root, Vector2i(21, 14), Vector2i(14, 9), SoundArea.Ambience.DRIPS, SoundArea.Surface.STONE)
+	_sound_area(root, Vector2i(1, 18), Vector2i(6, 5), SoundArea.Ambience.NONE, SoundArea.Surface.WOOD)
+	finish_stage(root, WANDER_MAP)
+
+
+func stage_dream():
+	var c := Carve.new(24, 16)
+	c.room(1, 1, 22, 14)
+	var terrain := make_terrain("dream", c)
+	var root := begin_stage(terrain, "Dream")
+	entry(root, Vector2i(3, 12))
+	map_setup(root, ["cyrus", "enfina", "alithia", "prometheus"], [], 10)
+	root.get_node("MapSetup").set("empty_handed", false)
+	root.get_node("MapSetup").set("place_name", "The Dream")
+	place(root, DreamPlace.new(), "DreamPlace", Vector2i(1, 1))
+	_dream_zone(root, "Bigger", Vector2i(2, 2), Vector2i(5, 4), 1.7, Vector2.ZERO)
+	_dream_zone(root, "Smaller", Vector2i(16, 2), Vector2i(5, 4), 0.6, Vector2.ZERO)
+	_dream_zone(root, "Tilted", Vector2i(6, 10), Vector2i(10, 3), 1.0, Vector2(2.0, 0.0))
+	for lamp_spot in [[Vector2i(12, 4), 1], [Vector2i(7, 7), 2], [Vector2i(17, 8), 3]]:
+		var dream_lamp := DreamLamp.new()
+		dream_lamp.order = lamp_spot[1]
+		place(root, dream_lamp, "DreamLamp%d" % lamp_spot[1], lamp_spot[0])
+	var rehearsal := Rehearsal.new()
+	rehearsal.requires_flag = "dream_lamps_solved"
+	rehearsal.locked_message = "A doorway of light, closed. The lamps, perhaps."
+	rehearsal.encounters = [load("res://data/encounters/encounter_01_ambush.tres"), load("res://data/encounters/encounter_02_sappers.tres")]
+	place(root, rehearsal, "Rehearsal", Vector2i(12, 9))
+	var wake := DreamWake.new()
+	wake.fallback_map = WANDER_MAP
+	place(root, wake, "Wake", Vector2i(2, 13))
+	var echoes := {"cyrus": Vector2i(4, 8), "enfina": Vector2i(10, 13), "alithia": Vector2i(14, 6), "prometheus": Vector2i(20, 12)}
+	for key in echoes:
+		_wander_talk(root, "Echo" + String(key).capitalize(), echoes[key], "echo_" + key)
+	_sound_area(root, Vector2i(1, 1), Vector2i(22, 14), SoundArea.Ambience.DREAM, SoundArea.Surface.AS_IT_IS)
+	finish_stage(root, DREAM_MAP)
+
+
+func _wander_talk(root: Node, called: String, tile: Vector2i, cue: String) -> DialogueInteractable:
+	var node := DialogueInteractable.new()
+	node.dialogue = load(WANDER_TALK)
+	node.dialogue_title = cue
+	node.prompt = "Talk"
+	node.sprite_frames = load(SPARKLE)
+	place(root, node, called, tile)
+	return node
+
+
+func _oddity(root: Node, called: String, tile: Vector2i, kind: int, cue: String, remarks: Array[String]):
+	var thing := TalkingThing.new()
+	thing.kind = kind
+	thing.dialogue = load(ODDITIES)
+	thing.dialogue_title = cue
+	thing.remarks = remarks
+	place(root, thing, called, tile)
+
+
+func _label(root: Node, text: String, tile: Vector2i, fades: int):
+	var label := MapLabel.new()
+	label.text = text
+	label.fades_after_days = fades
+	place(root, label, "Label" + text.replace(" ", "").replace("'", ""), tile)
+
+
+func _sound_area(root: Node, tile: Vector2i, size: Vector2i, ambience: int, surface: int):
+	var area := SoundArea.new()
+	area.size_tiles = size
+	area.ambience = ambience
+	area.surface = surface
+	place(root, area, "Sound%d_%d" % [tile.x, tile.y], tile)
+
+
+func _dream_zone(root: Node, called: String, tile: Vector2i, size: Vector2i, scale_by: float, drift: Vector2):
+	var zone := DreamZone.new()
+	zone.size_tiles = size
+	zone.figure_scale = scale_by
+	zone.drift = drift
+	place(root, zone, called, tile)
 
 
 ## --- Carving ---
@@ -471,8 +703,31 @@ func stage_light():
 	marker.set("sprite_frames", load(SPARKLE))
 	place(root, marker, "FightMarker", Vector2i(47, 5))
 	light_sign(root, "SignFight", Vector2i(46, 6), "A FIGHT, Underground, for what only happens in one. Fire and lightning light the way as they fly, and flare where they land. Somebody burning gives light, as does burning ground. Prometheus's Light Void and Alithia's Phantom Wall take it away: a Phantom Wall stops light as a wall does. His Illusory Dragon gives light, though it is not there. Break the brazier and watch its light ease out. Rats will not walk beside fire. Prometheus knows every spell here, and Alithia has the Illusory Shepherd's. Right click what a tether holds to end it.")
+	# Shifts (an Hours under each Guard; the designer, 2026-11-19: "Change while I watch"): a day watch and a night watch keep one post
+	# by the hall's north wall, facing it, and the shift changes at the cellar door, where they come up from below and go down.
+	var changeover := Marker2D.new()
+	place(root, changeover, "ShiftChange", Vector2i(31, 15))
+	shift_watch(root, "DayWatch", "barbarian", Vector2i(30, 9), true, changeover)
+	shift_watch(root, "NightWatch", "ranger", Vector2i(30, 9), false, changeover)
+	light_sign(root, "SignShifts", Vector2i(22, 13), "SHIFTS (an Hours under a Guard). Two guards keep the post by the north wall over there, one by day and one by night. At dusk and at dawn the one going off walks to the cellar door - his Hours' Elsewhere, where the shift changes - and is gone, and the other comes up from it to the post. Off his shift a guard is not on the map at all. Run the sundial on to dusk or dawn, and watch.")
 	goal(root, Vector2i(2, 9), 9, "s9_goal")
 	finish_stage(root, OUT + "stealth_9.tscn")
+
+
+## A guard keeping a shift at `post`, facing north: by day and dawn, or by dusk and night, changing over at `changeover` (an Hours
+## under him, its Elsewhere).
+func shift_watch(root: Node, called: String, key: String, post: Vector2i, by_day: bool, changeover: Node2D) -> Guard:
+	var watcher := guard(root, called, key, post, -90.0)
+	var hours := Hours.new()
+	hours.name = "Hours"
+	hours.by_day = by_day
+	hours.at_dawn = by_day
+	hours.at_dusk = not by_day
+	hours.at_night = not by_day
+	watcher.add_child(hours)
+	hours.owner = root
+	hours.elsewhere = hours.get_path_to(changeover)
+	return watcher
 
 
 ## What lights the stage, on its terrain: the map and a fight walked into from it are lit the same.

@@ -110,7 +110,9 @@ func run_test():
 		if property.name in ["door_creak", "door_shut", "picked_up", "lamp_out", "wall_breaks", "water_splash", "voice_tick", "refused", "indoors", "underground", "danger"]:
 			continue
 		# And the next round's (the proposals of 2026-11-17: stealth felt, voices in a fight): stand-ins, or silence for a voice.
-		if property.name in ["guard_step", "takedown", "clatter", "rustle", "creak", "body_drag", "voice_effort", "voice_hurt", "voice_healed"]:
+		if property.name in ["guard_step", "takedown", "clatter", "rustle", "creak", "body_drag", "voice_effort", "voice_hurt", "voice_healed",
+				"secret_found", "mark_seen", "rest", "rainbow", "roamer_sees", "climb", "shift", "dream", "lethe", "gate_voice",
+				"ambience_wind", "ambience_city", "ambience_drips", "ambience_dream", "step_stone", "step_wood", "step_grass"]:
 			continue
 		if property.usage & PROPERTY_USAGE_STORAGE and property.type == TYPE_OBJECT and bank.get(property.name) == null:
 			empty.append(property.name)

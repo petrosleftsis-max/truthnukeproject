@@ -17,13 +17,13 @@ class_name PlayersPanel
 
 signal closed
 
-const INK := SkyLook.INK
+const INK := Color("dce8f5")
 const MUTED := Color("8296a9")
 const CHARACTERS := "res://data/characters/"
 ## A character's button: room for their portrait over their name.
 const PICK_SIZE := Vector2(96, 118)
 ## Behind a player's slot, over the dimmed game; half as much behind an open one.
-const SLOT_FILL := Color(0.04, 0.08, 0.24, 0.8)
+const SLOT_FILL := Color(0.043, 0.063, 0.094, 0.8)
 ## An open slot's dashes, and how thick.
 const DASH := 10.0
 const DASH_WIDTH := 2.0

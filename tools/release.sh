@@ -1,12 +1,32 @@
 #!/usr/bin/env bash
-# Builds the Windows, macOS and Linux releases, and optionally publishes them to
+# Builds the Windows, macOS and Linux games, and optionally publishes them to
 # itch. The game is a download only (the designer, 2026-10-29): the browser
 # build was dropped - the game had got too heavy for it - and macOS and Linux
 # joined Windows the same day.
 #
-#   tools/release.sh                    build all three, and pack them
-#   tools/release.sh --publish          build, pack, and push to itch (asks first)
-#   tools/release.sh --publish --yes    the same without being asked
+# Two builds (the designer, 2026-11-19, docs/itch_release_proposals.md):
+#
+#   the playtest build   everything in, the Stealth Stages, the demos and the
+#                        lab sequence too - for the private, restricted page
+#                        ("Messengers of Playtesting"), for testers
+#   the release build    the "... Release" export presets: their "release"
+#                        feature hides the stages and demos from the title
+#                        screen and quiets the stand-in sounds (Release), and
+#                        their Exclude Filter leaves the test content out of the
+#                        download - for the public page. The release check
+#                        (tests/run.sh release) runs first, and a release is not
+#                        built while anything still points at what it leaves
+#                        out, or still shows the stand-in picture
+#
+#   tools/release.sh                              the playtest build, packed
+#   tools/release.sh --release                    the release build, packed
+#   tools/release.sh --release --allow-stand-ins  the same, letting stand-in
+#                                                 pictures through this once
+#   tools/release.sh [--release] --publish        and push it to its page:
+#                                                 the playtest build to the
+#                                                 private one, the release to
+#                                                 the public one (asks first)
+#   ... --publish --yes                           without being asked
 #
 # Run it from anywhere; it finds the project itself.
 #
@@ -27,24 +47,48 @@ set -eu
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/tools/find_godot.sh"
-ITCH="eplogos/messengersoftruth"
+# The public page, and the private, restricted one for testers.
+PUBLIC="eplogos/messengersoftruth"
+PLAYTEST="eplogos/messengers-of-playtesting"
 
 publish=false
 assume_yes=false
+release=false
+allow_stand_ins=false
 for arg in "$@"; do
 	case "$arg" in
 		--publish) publish=true ;;
 		--yes|-y) assume_yes=true ;;
-		*) echo "Unknown option: $arg"; echo "Usage: tools/release.sh [--publish] [--yes]"; exit 1 ;;
+		--release) release=true ;;
+		--allow-stand-ins) allow_stand_ins=true ;;
+		*) echo "Unknown option: $arg"
+			echo "Usage: tools/release.sh [--release [--allow-stand-ins]] [--publish [--yes]]"
+			exit 1 ;;
 	esac
 done
+
+if [ "$release" = true ]; then
+	ITCH="$PUBLIC"
+	WHO_SEES="everyone sees it"
+	WIN_PRESET="Windows Desktop Release"
+	LINUX_PRESET="Linux Release"
+	MAC_PRESET="macOS Release"
+	NAME="messengers-of-truth"
+else
+	ITCH="$PLAYTEST"
+	WHO_SEES="the private page, for testers"
+	WIN_PRESET="Windows Desktop"
+	LINUX_PRESET="Linux"
+	MAC_PRESET="macOS"
+	NAME="messengers-of-truth-playtest"
+fi
 
 # Everything that has to be true before a two minute build, checked first.
 #
 # butler is found here rather than at the point of pushing because a --publish
 # that discovers it is missing after building has wasted the build. And the yes
-# is asked for here for a better reason: --publish uploads to a public page,
-# and it should not be reachable by accident - it was, once, by a run that
+# is asked for here for a better reason: --publish uploads to a page people
+# see, and it should not be reachable by accident - it was, once, by a run that
 # expected this very check to stop it.
 if [ "$publish" = true ]; then
 	BUTLER="$(command -v butler 2>/dev/null || true)"
@@ -63,14 +107,15 @@ if [ "$publish" = true ]; then
 	fi
 	if [ "$assume_yes" = false ]; then
 		if [ -t 0 ]; then
-			printf 'This will upload to https://%s.itch.io/%s - everyone sees it. Continue? [y/N] ' 				"${ITCH%%/*}" "${ITCH##*/}"
+			printf 'This will upload to https://%s.itch.io/%s - %s. Continue? [y/N] ' \
+				"${ITCH%%/*}" "${ITCH##*/}" "$WHO_SEES"
 			read -r answer </dev/tty || answer=""
 			case "$answer" in
 				[yY]*) ;;
 				*) echo "Not publishing. Built nothing."; exit 1 ;;
 			esac
 		else
-			echo "Refusing to publish without being asked to: this uploads to a public page."
+			echo "Refusing to publish without being asked to: this uploads to https://${ITCH%%/*}.itch.io/${ITCH##*/}."
 			echo "Run it in a terminal, or pass --yes if you really mean it."
 			exit 1
 		fi
@@ -84,6 +129,39 @@ if [ -z "$GODOT" ] || { [ ! -x "$GODOT" ] && ! command -v "$GODOT" >/dev/null 2>
 	exit 1
 fi
 
+# The release presets live in export_presets.cfg, which git keeps out (it is this
+# machine's own); one without them gets them from tools/release_presets.cfg,
+# numbered after the presets it has.
+if [ "$release" = true ] && ! grep -q '^name="Windows Desktop Release"' "$ROOT/export_presets.cfg" 2>/dev/null; then
+	next="$(grep -c '^\[preset\.[0-9]*\]$' "$ROOT/export_presets.cfg" 2>/dev/null || true)"
+	next="${next:-0}"
+	sed -e "s/^\[preset\.4\]$/[preset.$next]/; s/^\[preset\.4\.options\]$/[preset.$next.options]/" \
+		-e "s/^\[preset\.5\]$/[preset.$((next + 1))]/; s/^\[preset\.5\.options\]$/[preset.$((next + 1)).options]/" \
+		-e "s/^\[preset\.6\]$/[preset.$((next + 2))]/; s/^\[preset\.6\.options\]$/[preset.$((next + 2)).options]/" \
+		-e '/^;/d' "$ROOT/tools/release_presets.cfg" >> "$ROOT/export_presets.cfg"
+	echo "Added the release presets to export_presets.cfg, from tools/release_presets.cfg."
+fi
+
+# The release check, before a release is built: nothing kept may point at what is
+# left out, and nothing may still show the stand-in picture unless allowed this
+# once. Its report - and the lists of sounds and pictures still to make - goes
+# beside the builds.
+CHECK_WORK="${TMPDIR:-/tmp}/mot-release-check"
+if [ "$release" = true ]; then
+	echo "===== The release check ====="
+	allow=""
+	[ "$allow_stand_ins" = true ] && allow=1
+	if ! MOT_ALLOW_STAND_INS="$allow" MOT_TEST_WORK="$CHECK_WORK" MOT_TEST_USER_DIR="Messengers of Truth release check" \
+			"$ROOT/tests/run.sh" release; then
+		echo
+		cat "$CHECK_WORK/logs/release_report.md" 2>/dev/null || true
+		echo
+		echo "Not building a release: see the check above (the report: $CHECK_WORK/logs/release_report.md)."
+		[ "$allow_stand_ins" = false ] && echo "If only stand-ins stopped it and you want them through this once: --allow-stand-ins"
+		exit 1
+	fi
+fi
+
 rm -rf "$ROOT/export"
 mkdir -p "$ROOT/export/windows" "$ROOT/export/linux" "$ROOT/export/macos" "$ROOT/export/tmp"
 # The builds land inside the project, and Godot scans the project before every
@@ -91,22 +169,23 @@ mkdir -p "$ROOT/export/windows" "$ROOT/export/linux" "$ROOT/export/macos" "$ROOT
 # web build's icons once went into the Windows game, and the Mac's icon, made in
 # export/tmp, went into the Mac game.
 : > "$ROOT/export/.gdignore"
+[ "$release" = true ] && cp "$CHECK_WORK/logs/release_report.md" "$ROOT/export/release_report.md" 2>/dev/null || true
 "$GODOT" --headless --path "$ROOT" --import >/dev/null 2>&1 || true
 
-echo "===== Windows ====="
-"$GODOT" --headless --path "$ROOT" --export-release "Windows Desktop" \
+echo "===== Windows ($WIN_PRESET) ====="
+"$GODOT" --headless --path "$ROOT" --export-release "$WIN_PRESET" \
 	"$ROOT/export/windows/MessengersOfTruth.exe" 2>&1 | tail -5
-echo "===== Linux ====="
-"$GODOT" --headless --path "$ROOT" --export-release "Linux" \
+echo "===== Linux ($LINUX_PRESET) ====="
+"$GODOT" --headless --path "$ROOT" --export-release "$LINUX_PRESET" \
 	"$ROOT/export/linux/MessengersOfTruth.x86_64" 2>&1 | tail -5
-echo "===== macOS ====="
+echo "===== macOS ($MAC_PRESET) ====="
 # The .app is put together in the temp folder before it is zipped. In the
 # system's one, on this PC, the export stalled for good writing the 170 MB
 # program (twice in three runs: Godot idle, the file a few hundred bytes short)
 # - most likely something scanning big new programs there. In export/tmp it
 # has not.
 TMP="$(cygpath -w "$ROOT/export/tmp")" TEMP="$(cygpath -w "$ROOT/export/tmp")" \
-	"$GODOT" --headless --path "$ROOT" --export-release "macOS" \
+	"$GODOT" --headless --path "$ROOT" --export-release "$MAC_PRESET" \
 	"$ROOT/export/macos/MessengersOfTruth.zip" 2>&1 | tail -5
 
 # A build with no game in it is the failure worth catching here: the export
@@ -134,27 +213,26 @@ cp "$ROOT/export/linux/"* "$ROOT/export/pack/linux/MessengersOfTruth/"
 win_path() { cygpath -w "$1"; }
 powershell -NoProfile -NonInteractive -Command "
 	\$ErrorActionPreference = 'Stop'
-	\$z = '$(win_path "$ROOT/messengers-of-truth-windows.zip")'
+	\$z = '$(win_path "$ROOT/$NAME-windows.zip")'
 	if (Test-Path \$z) { Remove-Item \$z -Force }
 	Compress-Archive -Path '$(win_path "$ROOT/export/pack/windows/MessengersOfTruth")' -DestinationPath \$z -CompressionLevel Optimal
 "
 # Nothing on this disk says the Linux game may be run, so the tarball is told:
 # the folder and the game 755, the pack 644, and no name from this machine as
 # their owner.
-linux_tar="$ROOT/messengers-of-truth-linux.tar"
+linux_tar="$ROOT/$NAME-linux.tar"
 rm -f "$linux_tar" "$linux_tar.gz"
 tar_linux() { tar -C "$ROOT/export/pack/linux" --owner=0 --group=0 --numeric-owner "$@"; }
 tar_linux -cf "$linux_tar" --no-recursion --mode=755 MessengersOfTruth
 tar_linux -rf "$linux_tar" --mode=644 MessengersOfTruth/MessengersOfTruth.pck
 tar_linux -rf "$linux_tar" --mode=755 MessengersOfTruth/MessengersOfTruth.x86_64
 gzip -9 "$linux_tar"
-cp "$ROOT/export/macos/MessengersOfTruth.zip" "$ROOT/messengers-of-truth-macos.zip"
-ls -la "$ROOT/messengers-of-truth-windows.zip" "$ROOT/messengers-of-truth-linux.tar.gz" \
-	"$ROOT/messengers-of-truth-macos.zip"
+cp "$ROOT/export/macos/MessengersOfTruth.zip" "$ROOT/$NAME-macos.zip"
+ls -la "$ROOT/$NAME-windows.zip" "$ROOT/$NAME-linux.tar.gz" "$ROOT/$NAME-macos.zip"
 
 if [ "$publish" = false ]; then
 	echo
-	echo "Built. To publish these to itch as well: tools/release.sh --publish"
+	echo "Built. To publish these to https://${ITCH%%/*}.itch.io/${ITCH##*/} as well: add --publish"
 	exit 0
 fi
 

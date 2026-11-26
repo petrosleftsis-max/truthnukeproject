@@ -33,7 +33,7 @@ class_name OutsideMoves
 
 enum Use { NONE, MEND, REVIVE, SPEED, INVISIBILITY, FAMILIAR, BLIND, SCARE, CONFUSE, READ, SWITCH_OFF_MAGIC,
 	AMBUSH, BLINK, FLY, LURE, HIDING_SPOT, TRAP, COUNTER_TRAP, COMPANY, SEEMING, MISLEAD, SUGGEST, DETECT_MAGIC, ARCANE_EYE, FLARE, SHRINK,
-	BECKON }
+	BECKON, STOP_TIME, LOOK_BACK, FIND_THE_WAY }
 
 const USE_NAMES := {
 	Use.NONE: "Only in a fight",
@@ -63,12 +63,15 @@ const USE_NAMES := {
 	Use.FLARE: "Goes up ahead of him: lights the ground, and every guard hears it",
 	Use.SHRINK: "Whoever leads gets small enough for grates and small gaps",
 	Use.BECKON: "A light leads a guard off, his eyes on nothing else",
+	Use.STOP_TIME: "Holds whoever is near still a moment",
+	Use.LOOK_BACK: "Shows the marks of how a place was",
+	Use.FIND_THE_WAY: "Glowing prints lead the way to a pin",
 }
 
 ## SkillDefinition.outside_use, as a Use - -1 for Automatic.
 const FROM_FIELD := [-1, Use.NONE, Use.MEND, Use.REVIVE, Use.SPEED, Use.BLIND, Use.SCARE, Use.CONFUSE, Use.READ,
 	Use.SWITCH_OFF_MAGIC, Use.BLINK, Use.FLY, Use.LURE, Use.HIDING_SPOT, Use.TRAP, Use.COUNTER_TRAP, Use.COMPANY, Use.SEEMING, Use.MISLEAD,
-	Use.SUGGEST, Use.DETECT_MAGIC, Use.ARCANE_EYE, Use.FLARE, Use.SHRINK, Use.BECKON]
+	Use.SUGGEST, Use.DETECT_MAGIC, Use.ARCANE_EYE, Use.FLARE, Use.SHRINK, Use.BECKON, Use.STOP_TIME, Use.LOOK_BACK, Use.FIND_THE_WAY]
 
 ## How long each lasts when the move gives no Outside Seconds - PROPOSAL test
 ## values, as are the rest below.
@@ -475,6 +478,9 @@ static func use(scene: Node, key: String, move: String) -> bool:
 		Use.INVISIBILITY:
 			watch.stealth_bar().open_picker()
 			return true
+		Use.STOP_TIME, Use.LOOK_BACK, Use.FIND_THE_WAY:
+			# Things that remember (Memento): never used up.
+			return Memento.use(scene, key, skill, kind)
 	var who := Campaign.display_name_of(key)
 	var said := ""
 	var target: Guard = guard_for(watch, skill, kind)

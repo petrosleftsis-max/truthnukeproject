@@ -326,6 +326,14 @@ func begin(the_scene: Node, the_setup: StealthSetup, tile_map: TileMap):
 			points.append(at)
 		guard.start(points, Actors.route)
 		guard.puppet = puppet
+	# Off his shift at this hour (Hours): kept off the map until it comes round ("Shifts"). On a puppet every guard stays listed and
+	# the host's state shows whoever is on (apply_net_state), so one off his shift starts unseen.
+	for guard in guards.duplicate():
+		if _off_his_shift(guard):
+			if puppet:
+				guard.visible = false
+			else:
+				_take_off_shift(guard)
 	_collect_chats()
 	_collect_edibles()
 	_collect_objectives()
@@ -3136,10 +3144,11 @@ func _notification(what: int):
 ##
 ## Gravel, puddles and broken glass (see NoisyFloor) give away whoever walks
 ## across them at an ordinary pace: a noise every STEP_SECONDS, heard as far as
-## the ground says. Creeping crosses them without a sound, at CREEP_PACE.
+## the ground says. Creeping crosses them without a sound, at CREEP_PACE: just under walking (the designer, 2026-11-19: "Have
+## creep be faster, just a bit slower than walking"; it was 0.45). Below 0.9 a step is still heard as soft (Footsteps).
 
 const STEP_SECONDS := 0.5
-const CREEP_PACE := 0.45
+const CREEP_PACE := 0.85
 
 ## Map tile -> the NoisyFloor covering it.
 var _noisy := {}
@@ -3866,6 +3875,120 @@ func _draw_ghosts():
 		draw_set_transform(centre + frame.offset, 0.0, Vector2(-1.0 if frame.flip else 1.0, 1.0))
 		draw_texture_rect_region(frame.texture, Rect2(-size / 2.0, size), frame.region, GHOST_TINT)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## --- Shifts ---
+##
+## A guard with an Hours under him keeps a shift: on the map only in his parts of the day - two on one post, one by day and one by
+## night, say. Off it he is kept off the map (`off_shift`): hidden, still, out of `guards`, so he sees nothing, nobody sees him and
+## no fight has him. As the hour turns with the party on the map, the shifts change while they watch (the designer, 2026-11-19:
+## "Change while I watch"): the one going off walks to where the shift changes - his Hours' Elsewhere, a door or a gate - once his
+## beat leaves him free (patrolling, or on his way back to it), and is gone from there; the one coming on walks in from there to
+## his beat. Going off, he is still a guard: whatever catches his eye on the way draws him off it, and he goes again after. With no
+## Elsewhere he fades off, and on, where he stands. The host keeps the shifts; a puppet shows them as the host's state says.
+## PROPOSAL.
+
+## How often the shifts are looked at, in seconds; how long a guard with nowhere to walk to takes to fade.
+const SHIFT_CHECK_SECONDS := 1.0
+const SHIFT_FADE_SECONDS := 0.8
+
+## Guards off their shift, kept off the map until it comes round.
+var off_shift: Array = []
+var _shift_check := 0.0
+
+
+## The Hours `guard` keeps, or null.
+func _hours_of(guard: Node) -> Hours:
+	for child in guard.get_children():
+		if child is Hours:
+			return child
+	return null
+
+
+## Whether `guard` keeps hours and this is not one of his.
+func _off_his_shift(guard: Node) -> bool:
+	var hours := _hours_of(guard)
+	return hours != null and not hours.here_now()
+
+
+## Where `guard`'s shift changes (his Hours' Elsewhere), or INF with nowhere.
+func _changeover_of(guard: Node) -> Vector2:
+	var hours := _hours_of(guard)
+	var spot: Node2D = hours.get_node_or_null(hours.elsewhere) as Node2D if hours != null and hours.elsewhere != NodePath() else null
+	return spot.global_position if spot != null else Vector2.INF
+
+
+## `guard` off the map, his shift over.
+func _take_off_shift(guard: Guard):
+	guards.erase(guard)
+	suspicion.erase(guard)
+	if not off_shift.has(guard):
+		off_shift.append(guard)
+	guard.end_errand()
+	guard.visible = false
+	guard.modulate.a = 1.0
+	guard.process_mode = Node.PROCESS_MODE_DISABLED
+	_world_version += 1
+	# A light he carried goes with him (carried_lights_moved only looks at those on the map).
+	if _carried_light_tiles.has(guard):
+		_carried_light_tiles.erase(guard)
+		_relight()
+
+
+## `guard` on his shift: in from where it changes, or faded in where he left off, and off to his beat.
+func _bring_on_shift(guard: Guard):
+	off_shift.erase(guard)
+	if not guards.has(guard):
+		guards.append(guard)
+	suspicion[guard] = 0.0
+	guard.process_mode = Node.PROCESS_MODE_INHERIT
+	var changeover := _changeover_of(guard)
+	if changeover.is_finite():
+		guard.global_position = changeover
+	else:
+		guard.modulate.a = 0.0
+		create_tween().tween_property(guard, "modulate:a", 1.0, SHIFT_FADE_SECONDS)
+	guard.visible = guard_shown(guard)
+	guard.back_to_beat()
+	_world_version += 1
+
+
+## Every SHIFT_CHECK_SECONDS on the host: whoever's shift is over goes, once free to; whoever's has come round comes on.
+func _keep_the_shifts(delta: float):
+	_shift_check -= delta
+	if _shift_check > 0.0:
+		return
+	_shift_check = SHIFT_CHECK_SECONDS
+	for guard in guards.duplicate():
+		if not is_instance_valid(guard) or _hours_of(guard) == null or guard.knocked_out or _stashed.has(guard):
+			continue
+		var going := _off_his_shift(guard)
+		if guard.mood == Guard.Mood.LEAVING_SHIFT:
+			if not going:
+				guard.end_errand()
+			elif guard.errand_arrived():
+				_take_off_shift(guard)
+		elif going and guard.mood in [Guard.Mood.PATROLLING, Guard.Mood.RETURNING] and guard.modulate.a >= 1.0:
+			var changeover := _changeover_of(guard)
+			if changeover.is_finite():
+				guard.send_on_errand(Guard.Mood.LEAVING_SHIFT, changeover, INF)
+			else:
+				create_tween().tween_property(guard, "modulate:a", 0.0, SHIFT_FADE_SECONDS).finished.connect(_faded_off.bind(guard))
+	for guard in off_shift.duplicate():
+		if not is_instance_valid(guard):
+			off_shift.erase(guard)
+		elif not _off_his_shift(guard):
+			_bring_on_shift(guard)
+
+
+## Faded off with nowhere to walk to: gone, unless something caught his eye meanwhile, or his shift came round again.
+func _faded_off(guard: Guard):
+	if not is_instance_valid(guard):
+		return
+	if _off_his_shift(guard) and guard.mood in [Guard.Mood.PATROLLING, Guard.Mood.RETURNING] and guards.has(guard):
+		_take_off_shift(guard)
+	else:
+		guard.modulate.a = 1.0
 
 
 ## --- What the player sees ---
@@ -4924,6 +5047,7 @@ func _process(delta):
 	_wear_off_seeming(delta)
 	_fray_outside(delta)
 	_company_goes_on(delta)
+	_keep_the_shifts(delta)
 	_watch_readied()
 	if _changing_into != "":
 		_change_left -= delta

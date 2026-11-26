@@ -130,8 +130,10 @@ Dropping a file there is all it takes: the next run draws it. This is the single
 
 `MoveFeel` "A blow, from the side of whoever throws it"; `CombatantSprite` "Striking"; `Combat._play_the_move`. The designer:
 "Some of these are experimental because the characters already have attack animations". So each has a switch in `MoveFeel`
-(`strikes`, `faces`, `gathers`, `tells`), and somebody with an animation of their own for the move gets half of the motion
-(`OWN_ANIMATION_SHARE` 0.5) over it and is not waited for any longer than before.
+(`strikes`, `faces`, `gathers`, `tells`), and somebody with an animation of their own for the move gets none of the motion over
+it and is not waited for any longer than before (the designer, 2026-11-21: "because there is already an attack animation, it looks
+weird. Whatever motion already has an animation looks a bit weird basically, anything else is completely fine"; it was half,
+`OWN_ANIMATION_SHARE` 0.5, gone).
 
 - **Wind-up and follow-through.** The figure as drawn leans back, goes into the blow and settles over 0.42 s: a lean of up to 0.1
   radians about its feet and a step of the drawing, no new frames. `STRIKE_SECONDS`, `STRIKE_LANDS`, `STRIKE_BACK_TILES`,
@@ -147,9 +149,8 @@ Dropping a file there is all it takes: the next run draws it. This is the single
 - **Resisted and vulnerable, felt.** A blow resisted lands with a dull thud and a pale arc glancing off; one they are vulnerable
   to rings, with a bright ring in its colour. `MoveFeel.resisted`, `vulnerable`, from `Combat.show_damage`.
 
-**To judge by eye, since the party has animations:** whether the half-strength lean over Cyrus's and Enfina's own attack
-animations helps or fights them. If it fights them, `OWN_ANIMATION_SHARE` at 0 leaves their animations alone and keeps the
-motion for everybody without one.
+**Judged by eye, 2026-11-21:** the half-strength lean over the party's own attack animations fought them, so it is gone: their
+animations alone, and the motion kept for everybody without one.
 
 ## 7. The pad in your hands (built last, as the designer asked)
 
@@ -412,7 +413,7 @@ meanwhile.
   picture of the world, its HUD left out, is held while the scene changes under it; the new scene opens its view where the old one's
   was; the picture dissolves into it over 0.55 s (`CARRY_DISSOLVE`). Into a fight the view then pushes in from the map's zoom to
   the board's and the board's lines draw themselves out from the party over 7 tiles of floor (`MoveFeel.board_out`,
-  `BOARD_OUT_TILES`, `BOARD_OUT_SECONDS`); back to the map, the board's view first pulls back to where the party will stand there,
+  `BOARD_OUT_TILES`, `BOARD_OUT_SECONDS`, 1.5 s since 2026-11-21, the push in at the opening's slower glide); back to the map, the board's view first pulls back to where the party will stand there,
   at the map's own zoom (`MAP_ZOOM` 0.25). It goes by itself wherever the ground matches - a stealth map caught, a fight on a map's
   own terrain - and on a joiner's machine too; anything else, and headless, is the fade it always was.
   **On one scene for maps and fights** (the designer's question): not needed for this, and not done. The two scenes already share
@@ -425,8 +426,9 @@ meanwhile.
   'time' and wait for their 'turn'", so nothing would carry on around a fight; "proceed as is then". The two scenes stay, with the
   carry between them.
 - **A look at what you face** (`FightCards` "A look at what you face"): a fight without a boss's reveal opens with the view gliding
-  to the middle of whoever of the other side the party can see, holding a moment and coming back, before the title (about 1.7 s
-  all told; `FACE_GLIDE_SECONDS`, `FACE_HOLD_SECONDS`). Any press skips it, with the rest of the opening. All of them are framed
+  to the middle of whoever of the other side the party can see, holding a moment and coming back, the title up as it goes (about
+  2.8 s all told since 2026-11-21, when the opening was made slower and could no longer be skipped: zooming had cut it short;
+  `FACE_GLIDE_SECONDS`, `FACE_HOLD_SECONDS`, each glide over exactly its time, `CameraController.glide_over`). All of them are framed
   in the part of the screen the HUD leaves the map, the zoom pulled back as far as that takes and put back after, as a blow is
   framed (the designer, 2026-11-17: zoomed in, it did not fit them).
 - **Placed with a thump** (`MoveFeel` "Into a fight"): placing the party before a fight, whoever is put on a tile hops onto it and

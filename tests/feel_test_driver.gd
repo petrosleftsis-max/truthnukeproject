@@ -657,26 +657,35 @@ func blows():
 	foe.sprite.set_facing(foe_is_east)
 	var hp: int = foe.hp
 	await combat.use_skill("rapier", cyrus, foe.position, false)
-	ok(cyrus.sprite.strikes == before + 1 and int(MoveFeel.felt.get(&"struck", 0)) == 1, "Cyrus's rapier winds up and goes into the blow", "%d" % (cyrus.sprite.strikes - before))
+	# His own attack animation shows the blow alone: nothing stepped back and forth on top of it (the designer, 2026-11-21:
+	# "because there is already an attack animation, it looks weird"; it was half of the wind-up and the step).
+	var own: bool = cyrus.sprite.has_skill_animation(SkillDatabase.skills["rapier"].animation)
+	ok(own and cyrus.sprite.strikes == before and int(MoveFeel.felt.get(&"struck", 0)) == 0, "Cyrus's rapier, an attack animation of his own: that alone, no wind-up or step on top", "own %s, %d struck" % [own, cyrus.sprite.strikes - before])
 	ok(cyrus.sprite._drawn().flip_h == (not foe_is_east), "he turns to face what he aims at")
 	ok(foe.hp < hp, "the blow lands as ever", "%d -> %d" % [hp, foe.hp])
 	ok(foe.sprite._drawn().flip_h == foe_is_east, "and whoever is hit turns to whoever hit them")
+	var lands: float = MoveFeel.strike(combat, cyrus, SkillDatabase.skills["rapier"], foe.position)
+	ok(lands == 0.0 and cyrus.sprite.strikes == before, "over his own animation nothing is waited for", "%.2f s" % lands)
+	# Somebody with no animation of their own for it (his frames swapped for some with none) winds up and goes into the blow.
+	cyrus.sprite.show_as(SpriteFrames.new())
+	var bare_lands: float = MoveFeel.strike(combat, cyrus, SkillDatabase.skills["rapier"], foe.position)
+	ok(bare_lands > 0.0 and cyrus.sprite.strikes == before + 1 and int(MoveFeel.felt.get(&"struck", 0)) == 1, "without one, he winds up and goes into the blow, and is given the moment it takes", "%.2f s" % bare_lands)
 	await wait(CombatantSprite.STRIKE_SECONDS + 0.3)
 	ok(cyrus.sprite._drawn().rotation == 0.0 and cyrus.sprite._drawn().position.distance_to(cyrus.sprite.size_offset) < 0.01, "afterwards he stands as he stood")
 	ok(cyrus.position == spot, "and never left his tile: only the picture moved")
-	# With an animation of his own, less of it, and the fight waits no longer for it.
-	var own: bool = cyrus.sprite.has_skill_animation(SkillDatabase.skills["rapier"].animation)
-	var lands: float = MoveFeel.strike(combat, cyrus, SkillDatabase.skills["rapier"], foe.position)
-	ok((own and lands == 0.0) or (not own and lands > 0.0), "somebody with an animation of their own is not waited for; somebody without is given the moment the blow takes", "own %s, %.2f s" % [own, lands])
 	cyrus.sprite.end_strike()
+	cyrus.sprite.show_as(null)
 	# A spell gathers its light; a blade does not.
 	var gathered := int(MoveFeel.felt.get(&"gathered", 0))
 	var alithia := who("alithia")
-	# Played as the fight plays a move, whether or not she could reach him from where she stands.
+	# Played as the fight plays a move, whether or not she could reach him from where she stands; with no animation of her own, so
+	# that a lunge would show.
+	alithia.sprite.show_as(SpriteFrames.new())
 	var alithia_struck: int = alithia.sprite.strikes
 	await combat._play_the_move(alithia, SkillDatabase.skills["sleep"], foe.position)
 	ok(int(MoveFeel.felt.get(&"gathered", 0)) == gathered + 1, "a spell lights its caster as it gathers")
 	ok(alithia.sprite.strikes == alithia_struck, "and one that hurts nobody is not a blow: she does not lunge")
+	alithia.sprite.show_as(null)
 	await combat._play_the_move(cyrus, SkillDatabase.skills["rapier"], foe.position)
 	ok(int(MoveFeel.felt.get(&"gathered", 0)) == gathered + 1, "a rapier gathers none")
 	# Resisted and vulnerable, felt.
@@ -778,6 +787,25 @@ func interface_motion():
 	ok(dealt[3].modulate.a < 0.5, "a turn's action bar deals itself in: the last button is not there yet", "%.2f" % dealt[3].modulate.a)
 	await wait(0.5)
 	ok(dealt.all(func(one): return is_equal_approx(one.modulate.a, 1.0) and one.scale.is_equal_approx(Vector2.ONE)), "then all of it is, each at its own size")
+	# The pointer crossing the bar as it deals in takes over the size only, never the fade (the designer, 2026-11-20: four of Cyrus's
+	# slots went empty as his turn began, "Nothing where the skills were").
+	UiFeel.deal_in(dealt)
+	for one in dealt:
+		UiFeel._hover(one, true)
+		UiFeel._hover(one, false)
+	UiFeel._press(dealt[2], true)
+	UiFeel._press(dealt[2], false)
+	await wait(0.5)
+	ok(dealt.all(func(one): return is_equal_approx(one.modulate.a, 1.0) and one.scale.is_equal_approx(Vector2.ONE)),
+		"the pointer going over the bar as it deals in leaves every button whole", "%s" % [dealt.map(func(one): return snappedf(one.modulate.a, 0.01))])
+	# And one left see-through by a deal cut short is dealt again with the next, not left so for the rest of the fight.
+	UiFeel.deal_in(dealt)
+	var cut = dealt[1].get_meta(&"_feel_deal")
+	cut.kill()
+	ok(dealt[1].modulate.a < 0.99 and UiFeel.deal_left_unfinished(dealt[1]), "(a deal cut short leaves a button see-through)", "%.2f" % dealt[1].modulate.a)
+	UiFeel.deal_in(dealt)
+	await wait(0.5)
+	ok(dealt.all(func(one): return is_equal_approx(one.modulate.a, 1.0)), "and the next deal brings it back whole")
 	# And their face steps forward in the queue, settling where the current face stands.
 	var face = load("res://ui/tq_icon.tscn").instantiate()
 	holder.add_child(face)

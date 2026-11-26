@@ -100,6 +100,30 @@ class_name SoundBank
 ## A body dragged along the ground, a moment of it a step (StealthWatch "A body dragged"). Empty: a stand-in.
 @export var body_drag: AudioStream
 
+@export_group("Wandering")
+## The proposals of 2026-11-19, sections 2 and 3. Empty: a stand-in each. A secret found; a mark that only the dark or a light shows,
+## seen; a rest taken at a rest spot; a journey by Iris's rainbow; a foe on the roam that has seen the party; a climb up onto raised
+## ground; a room of the archive changing out of sight; the dream-place opening; something forgotten to Lethe; a gate's voice.
+@export var secret_found: AudioStream
+@export var mark_seen: AudioStream
+@export var rest: AudioStream
+@export var rainbow: AudioStream
+@export var roamer_sees: AudioStream
+@export var climb: AudioStream
+@export var shift: AudioStream
+@export var dream: AudioStream
+@export var lethe: AudioStream
+@export var gate_voice: AudioStream
+## Beds of sound for a place (SoundArea): wind out in the open, a city's murmur, drips underground, the dream's own. Looped quietly.
+@export var ambience_wind: AudioStream
+@export var ambience_city: AudioStream
+@export var ambience_drips: AudioStream
+@export var ambience_dream: AudioStream
+## Steps by what is underfoot (SoundArea's surface): stone, wood, grass. Water's is step_wet.
+@export var step_stone: AudioStream
+@export var step_wood: AudioStream
+@export var step_grass: AudioStream
+
 @export_group("Voices in a fight")
 ## One of each for everybody, pitched for who it is as their voice ticks are (SoundFollows.voice_pitch): an effort with a blow
 ## they throw, a cry when they are hurt, a breath when they are healed. A creature's own (CombatantDefinition's Voice) is played in

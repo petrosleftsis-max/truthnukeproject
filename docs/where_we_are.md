@@ -91,6 +91,61 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The designer's round of 2026-11-21** (ledger rows "The interface's look" and "Barrels one size, pulled back" to "No step over
+  an animation of their own"). The interface is in the look from before T again (the theme's own, End Turn in the accent, each
+  screen's own palette; SkyLook kept, not put on, and its coloured rings with it). Barrels are one size however far the view is
+  pulled back. A click between the turn's buttons no longer walks anybody. The move area's outline is brighter. A fight opens with
+  the shatter, and "Conflict Endless" comes as the view pulls back over the other side. Nobody with an animation of their own for
+  a blow steps back and forth on top of it. Later: the opening is slower and cannot be skipped, the view held still for it
+  (zooming had cut it short); a turn of the wheel skips no card. The sky's pixels at dawn and dusk are switched off, and the
+  skill slots' rings in their icons' colours are back, on the old look.
+- **A playtest of the Glutton fight, 2026-11-20** (ledger rows "Arrival name plate" to "Back from a fight on the map's
+  ground"; suites `ways`, `explore`, `fightcards`, `sizes`, `figures`). An arrival's name rests right of the portraits and their
+  marks, above the bottom HUD; a big creature's condition look, ring, shadow, wading water and weather hang from the middle of
+  its drawing; a pack that goes in stays in (the Gnawers took turns hanging back and backed away); back from a fight won on the
+  map's own ground, everybody stands where they ended and walks over to the leader. Later that day: Cyrus's four blank slots
+  (the pointer crossing the action bar as it dealt in stopped its fade: `UiFeel`'s fade now has a tween of its own; `feel`),
+  the dark between two people hiding neither in a fight, only standing in it hiding (`light`, `aimind`; built the other way
+  round first by mistake, and undone),
+  and the tether drawn as a string of strands that frays, its fibres floating (`figures`; look only). Then the board no longer
+  blinking: the view on whole pixels, raised pieces too, and the floor's tiles drawn smooth from their mipmaps for zooming
+  (`camera`; measured in a real window).
+- **The designer's passive list and armour, 2026-11-17 to 20** (ledger rows from "Elusive" on; suites `passive`, `gear_wear`,
+  `dungeon`, `store`). Elusive gone (Light Footed covers it); Nade Juggler into Quick Hands; Low Shot and Night Eyes into Cat Eyes;
+  Cat Burglar I, Agile I and Mercy I folded into the next rank and renumbered (Cat Burglar 24, Agile 32, Mercy I 16 and II 41);
+  Iron Hide I into heavy armour (Brigandine 27, Plate Harness 36; the old II and III are now Iron Hide I, 16, and II, 41); the
+  sheet shows only the passives reached; "a Bright Area", "a Dim Area", "a Dark Area"; player text says "N% Damage Mitigation"
+  and "+N% Output Efficiency". Everybody wears a basic armour in place of the Defense bands (Enfina's Basic Heavy Armour 18 / 27 /
+  36, Cyrus's and Alithia's Basic Armour 12 / 20 / 28, Prometheus's Basic Cloth Armour 9 / 17 / 24 - cloth, a fourth kind a step
+  below light, with secondary effects to come), and only their own kinds of armour (Cyrus light, Alithia light and medium,
+  Prometheus cloth, Enfina any). The Dungeon Demo holds everybody's basic armour at its first (Enfina 18, Cyrus and Alithia 12,
+  Prometheus 9); its
+  store sells no spellbooks, has Studded Leather (light) and a Mail Shirt (medium) beside the Brigandine and Hardened Leather
+  (light) and a Scale Coat (medium) beside the Plate Harness; every piece's preview says its kind under its name; it pays 400
+  and 800 gold for its first two fights and 200 found in the sewer.
+- **Exploring, maps and some weirdness, 2026-11-19** (`docs/wander_built.md`; suite `wander`; the designer on the proposals of that
+  day: "2. Do all / 3. Do all except the ones kin to Alan wake and the Sky Slips"). Section 2, all of it: a map to open (N) drawn
+  from what the party has seen, with pins and a count of secrets; an arrow at the screen's edge to the newest pin or the goal;
+  secrets (notes on walls read by pointing, stashes, cracked walls with light through them); marks only the dark (Cat Eyes) or a
+  light shows; climbing (raised ground by a ladder, or by Cyrus alone once he has Cat Burglar, the others called over by the safest
+  way they know; doors barred from one side); the hours (a shop
+  shut at night, a townsman at home, guards' shifts) and the weather (floods after rain, ponds frozen in winter); foes that roam and
+  chase; rest spots (a short rest once a day each, then Meditate or Resuscitate on the rest's own panel) and travel between them
+  by Iris's rainbow; a bed of sound per area and steps by what is underfoot. Section 3 but the Alan Wake pieces and the sky slips:
+  an archive with a room that changes out of sight and a corridor that loops until noticed; the stopped clock, the lighthouse lens
+  and the child's shoe as moves outside a fight; struck-out words in clues and a gate that speaks as it opens; a statue, a bin and
+  a lamp post with things to say; a dream-place reached by sleeping at a rest spot (scale and drift zones, a lamp puzzle, fights
+  rehearsed with a blessing drawn for the run); Lethe's touch (a neighbour who forgets the party, names fading on the map, a clue
+  lost until found again, Lethe Water forgetting a move for two turns). All of it is in The Wanderer's Quarter, the tenth of the
+  Stealth Stages, and its dream. Every number is a PROPOSAL; all art, sound and writing are placeholders behind slots.
+- **Publishing to itch without the test stages, 2026-11-19** (`docs/itch_release_proposals.md`; the designer: "Go with all five
+  suggestions, I like them"). Two builds: `tools/release.sh` is the playtest build, everything in, and `--publish` sends it to
+  the restricted page "Messengers of Playtesting" (`eplogos/messengers-of-playtesting`); `--release` is the public build - the
+  release check first (`tests/run.sh release`), then the three "... Release" presets (`tools/release_presets.cfg`), whose
+  `release` feature (`Release`) hides the stages and demos from the title screen and quiets the stand-in sounds but footsteps,
+  and whose Exclude Filter leaves the test content out. One stand-in picture (`art/placeholders/stand_in.png`) for the eight
+  items that borrowed Study's icon; a release stops while any shows it unless `--allow-stand-ins`. The playtest build was
+  published to the restricted page that evening, as the designer asked; the public page is untouched.
 - **How the game feels, the second round, 2026-11-17** (`docs/feel_built.md` "The second round"; suite `feel2`). The proposals
   of that day as the designer chose them: the idle's pace (slower hurt, faster with the nerve broken, slower a while settled), a
   rush that stops (a shove slides and skids; a charge skids beside a foe), the party as a party (a friend falls, a heal answered,
@@ -106,7 +161,9 @@ holds the game for both).
   under a tree at dawn and dusk, wet ground darker in all rain) - both multiply layers are unshaded now; the look at what you face
   pulls back until all of them fit; UiFeel no longer asks for a meta that is not there (red errors as numbers counted); and a
   skill's icon fills its slot to the slot's ring, which is thicker (`SkyLook.SLOT_RING` 2, `SLOT_EDGE` 2, `SLOT_CORNER` 3; it
-  was a ring of 1 with the icon 6 and 5 in, corners 10).
+  was a ring of 1 with the icon 6 and 5 in, corners 10). Kept as they are (the designer, 2026-11-19): the view's drift
+  (`CameraController.drifts`), and the Mimic's turn even when it follows the last of the party, which lands it where its own
+  initiative would have.
 - **How the game feels, from 2026-11-16** (`docs/feel_built.md`, kept current as each part goes in; suite `feel`). The designer on
   the proposals of 2026-11-16: "in general i love all of these recommendations", and a line for each section. Built so far:
   the Comfort dials (12), walking (1: ease in and out, followers that fan out, wet prints, the dash), the map's camera (2: soft
@@ -491,14 +548,41 @@ holds the game for both).
 
 ## Waiting on the designer
 
+0. **A card game like Slay the Spire, 2026-11-26** (`docs/proposals_2026-11-26_card_game.md`): where it lives (a mode of its own,
+   "The Ascent", framed as a dream - my pick - a game inside the world, or the dungeon run), sixteen twists from this game's world
+   (gates as the energy, the four characters as suits with the artist's icons, intents shown only in the light, Lethe and
+   un-forgetting, winning by Evidence and Accusation, Erysichthon eating the deck, Moira's die...), and six questions.
+0. **A dungeon run, and Erysichthon again, 2026-11-20** (`docs/proposals_2026-11-20_dungeon.md`): three maps and three fights,
+   the designer making them; ideas for the run's through-line, the maps, fights 1 and 2, four ways to redesign Erysichthon (my pick:
+   one Hunger bar), and five questions (level and party, beast or king, carry-over, rests, the demo's place).
+0. **The passive list, armour and the Dungeon Demo's store, 2026-11-17 to 20** (ledger rows from "Elusive" on): the name of
+   Prometheus's armour kind ("Cloth" for now) and the secondary effects that make it worth wearing, then cloth pieces to buy;
+   Hardened Leather (light, 28 Defense, 225 gold) and the Scale Coat (medium, 32, 275 gold) are proposals, names too; in the
+   demo the Padded Jacket (12) gives nobody anything (Cyrus's and Alithia's basic armour is 12 there, Enfina's 18, and Prometheus
+   cannot wear it). Outside the demo, bought armour hardly beats the basic armour (the Padded Jacket is worse than none from
+   level 8).
+0. **The proposals of 2026-11-19** (`docs/proposals_2026-11-19.md`, the mock-up `proposals_2026-11-19_interface.png` beside it): the
+   interface nearer the artist's style or another theme (four directions), exploring and maps, and some weirdness after Honkai Star
+   Rail, Control and Alan Wake. The designer kept T and took only 3's coloured rings (built 2026-11-19: each skill slot's ring in its
+   icon's colour, `SkyLook.icon_ring`). Sections 2 and 3 were answered and built the same day (`docs/wander_built.md`), and the
+   designer's answers of that evening built too: raised ground by a ladder or by Cyrus alone (from Cat Burglar), the rest called
+   over by the safest way they know; rest spots a short rest once a day each, no preparing of spells (only a long rest, from the
+   story); rainbow travel free and timeless; the dream with no rest; Forgotten's mark FM; guard shifts that change while the party
+   watches (the Light stage's post by the hall's north wall). Theirs now: every number by feel; the writing (the notes, the
+   oddities' lines, the ten gate lines, the echoes); sounds for the new slots and pictures for the pieces drawn in code; Lethe Water
+   (they are looking at it); and the rest of the proposals, which they will answer later.
+0. **Publishing to itch** (`docs/itch_release_proposals.md`, all five built 2026-11-19): icons for the eight items on the stand-in
+   picture (the four keepsakes, the archive ledger, the forged letter, the magnifying glass, the sealed requisition), or
+   `--allow-stand-ins`, before a public release; which stand-in sounds a release keeps (`Release.STAND_INS_KEPT`: the footsteps,
+   my pick); and when to publish publicly. The playtest build goes to the restricted page whenever they ask.
 0. **How the game feels** (`docs/feel_built.md`): every number in it, by feel; whether the banner at the top should go now that the
-   prompt is beside the thing in reach; whether a thing that stands (a crate, a pillar) should stop people by itself, and whether
-   raised ground should be climbable on a map (both are rules, so theirs); and the two experiments' switches: the attacker's
-   motion over the party's own attack animations (`MoveFeel.OWN_ANIMATION_SHARE`) and the speaker stepping up
-   (`DialogueBalloon.speaker_steps_up`). All twelve sections of the proposals of 2026-11-16 are built.
+   prompt is beside the thing in reach; whether a thing that stands (a crate, a pillar) should stop people by itself (a rule, so
+   theirs; raised ground climbable on a map was answered 2026-11-19, "Do all", and built); and the speaker stepping up
+   (`DialogueBalloon.speaker_steps_up`), an experiment with a switch (the attacker's motion over the party's own attack animations was
+   the other: gone on 2026-11-21, "it looks weird"). All twelve sections of the proposals of 2026-11-16 are built.
 0. **The second round of feel** (`docs/feel_built.md` "The second round", built 2026-11-17): every number by feel; the sounds for
    the new slots (a guard's step, a takedown, a clatter, a rustle and a creak, a body dragged, voices in a fight) and the music in
-   parts (`<track>_wary`, `<track>_fighting`); `CameraController.drifts`, the view's drift, is an experiment with a switch.
+   parts (`<track>_wary`, `<track>_fighting`).
 0. **From the 2.5D work, 2026-11-15** (ledger, the rows' NextAction): the box at the party's feet (they are trying it); whether the cutaway reads right now; and
    every depth number by feel, with the water's rings and mirror.
 0. **From later on 2026-11-13:** how strong and how often the new atmosphere is, by feel (the interface's look is chosen: T, built
@@ -588,7 +672,8 @@ holds the game for both).
 - **For story mode, when it is made:** Prometheus knows Invisibility from the
   start for now (`starting_spells`; the designer, 2026-10-31: "when we actually
   start making the story mode, he won't know it here yet") - take it out, or
-  give it by the story, then. Its book is at the travelling merchant.
+  give it by the story, then. Its book (`invisibility_spellbook`) is no longer sold:
+  no store sells spellbooks (the designer, 2026-11-19).
 - To try the familiar with guards: Stealth Stages, stage 8, The Familiar
   (Alithia and Cyrus at level 10; grates, an arcane ward, a cracked wall).
   It is built by `tools/build_stealth_stages.gd` (`stage_familiar`). Or use any

@@ -20,6 +20,20 @@ static func all() -> Dictionary:
 
 
 ## The clue for `key`, or null.
+## A clue's text as the Journal shows it (the proposals of 2026-11-19, "Struck-out words"; the designer: "Do all"): words written
+## [struck=flag]like this[/struck] are blacked out, a bar a letter, until that flag is set; then they show.
+static func shown_text(text: String) -> String:
+	var struck := RegEx.create_from_string("\\[struck=([^\\]]+)\\](.*?)\\[/struck\\]")
+	var shown := text
+	for found in struck.search_all(text):
+		var words := found.get_string(2)
+		var bars := ""
+		for letter in words:
+			bars += " " if letter == " " else "█"
+		shown = shown.replace(found.get_string(0), words if Campaign.flag(found.get_string(1)) else bars)
+	return shown
+
+
 static func clue(key: String) -> ClueDefinition:
 	return all().get(key)
 

@@ -351,6 +351,25 @@ func packs():
 	await settle()
 	ok(combat.get_distance(lone, mate) > Combat.AI_PACK_TOGETHER_TILES or not combat._ai_holds_back(lone), "gathered, they go in together",
 		"%d apart" % combat.get_distance(lone, mate))
+	# Gone in, they stay in: the first a turn's walk ahead, the one behind does not hang back for it (the designer, 2026-11-20: the
+	# Glutton's first two Gnawers took turns hanging back for each other and backed away from the party, never fighting).
+	combat.teleport_to(mate, tile_away(lone.position, 1, mate))
+	await settle()
+	var behind_was := combat._ai_holds_back(mate)
+	combat._ai_pack_goes_in(lone)
+	ok(lone.get("pack_gone_in", false) and mate.get("pack_gone_in", false), "going in, it takes the pack gathered round it in with it",
+		"%d apart" % combat.get_distance(lone, mate))
+	combat.teleport_to(lone, tile_away(alithia.position, 4, lone))
+	combat.teleport_to(mate, tile_away(alithia.position, 12, mate))
+	mate.skill_list = []
+	await settle()
+	ok(not combat._ai_holds_back(mate) and not combat._ai_holds_back(lone), "and once in, neither waits for the other, however far apart",
+		"%d apart; before, it would have hung back: %s" % [combat.get_distance(lone, mate), behind_was])
+	lone.erase("pack_gone_in")
+	mate.erase("pack_gone_in")
+	var behind_beside: bool = combat.combatants.any(func(comb): return comb.get("alive", false) and comb.get("side", 1) == 0 and combat.get_distance(mate, comb) <= 1)
+	ok(behind_beside or combat._ai_holds_back(mate), "(where, never having gone in, the one behind would hang back)", "%s" % behind_beside)
+	mate.skill_list = mate_list
 	# And it waits only so long, whatever the others do.
 	combat.teleport_to(mate, tile_away(alithia.position, 14, mate))
 	mate.skill_list = []

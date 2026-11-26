@@ -580,6 +580,15 @@ func sees_in_darkness(key: String) -> bool:
 	return definition.passives.any(func(passive): return passive != null and passive.sees_in_darkness and party_level >= passive.required_level)
 
 
+## Whether `key` climbs anywhere on a map: a passive of theirs with Climbs Anywhere, reached at the party's level - Cyrus's Cat
+## Burglar, from 24. Only they go up raised ground with no ladder, and alone (ExplorationScene.may_cross; the designer, 2026-11-19).
+func climbs_anywhere(key: String) -> bool:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+	if definition == null:
+		return false
+	return definition.passives.any(func(passive): return passive != null and passive.climbs_anywhere and party_level >= passive.required_level)
+
+
 ## --- Preparing spells ---
 ##
 ## Whoever casts goes into a fight with only the spells they have prepared, so many by
@@ -1114,6 +1123,14 @@ var target_entry := ""
 ## Ids of encounter triggers already beaten, so a fight doesn't restart every
 ## time you walk back past where it happened.
 var cleared_triggers := {}
+## Where the party stood as a fight won from a map on that map's own ground ended (a stealth map caught, a fight on the map):
+## {"ground": the terrain, "places": combatant key -> tile}. Back on the map each of them stands there, whoever leads coming back
+## to their own (return_position), and everybody walks over to the leader (ExplorationScene "Back from a fight on this ground"; the
+## designer, 2026-11-20: "keep them where they were when the fight finished and have everyone go towards the player character that
+## leads"). Taken by the map as it opens.
+var after_fight := {}
+## The terrain the map the party is on is laid on, set by the map as it opens: what a fight fought on the same ground shares.
+var map_ground := ""
 
 
 ## Remembers where the party is standing and starts `encounter`. Call this
@@ -1142,10 +1159,21 @@ func has_map_to_return_to() -> bool:
 ## `still_coming` is the enemy spawns that had not arrived when it ended (see
 ## Combat.arriving): on a stealth map, a guard still on the way never fought,
 ## and is still on watch when the party walks back in.
-func finish_battle_from_exploration(won: bool, still_coming: Array = []):
+##
+## `places` is where each of the party stood as it ended (Combat.party_places) and `ground` the terrain it was fought on: a win on
+## the map's own ground keeps them for the map (after_fight).
+func finish_battle_from_exploration(won: bool, still_coming: Array = [], places: Dictionary = {}, ground: String = ""):
 	if won and _pending_trigger != "":
 		cleared_triggers[_pending_trigger] = true
 	_pending_trigger = ""
+	after_fight = {}
+	if won and not places.is_empty() and ground != "" and ground == map_ground:
+		after_fight = {"ground": ground, "places": places}
+		# Whoever leads comes back where they stood as it ended: the fight's view goes there first (SceneTransition), the map
+		# puts them there.
+		var leading := leader()
+		if places.has(leading):
+			return_position = Grid.tile_to_world(places[leading])
 	if won and stealth_state.has(current_map):
 		var state: Dictionary = stealth_state[current_map]
 		var late := still_coming.map(func(spawn): return spawn.get_meta("guard", ""))
@@ -1251,7 +1279,8 @@ const SAVED := ["party_level", "party_state", "subclasses", "path_change_open", 
 	"gold", "flags", "cleared_triggers", "stealth_state", "dungeon_stage", "gate_recoveries_left", "gates_spent_outside", "outside_spent",
 	"meditated", "free_familiar_used", "parley", "chapter", "levels_unveiled", "sheets_revealed", "learned_spells", "containers", "stacks",
 	"controllers", "prepared_spells", "locked_spells", "last_prepared", "spells_readied", "prepare_due",
-	"time_of_day", "map_ambient", "map_no_moon", "calendar_minutes", "map_sky_tint", "weather_fixed", "moon_fixed"]
+	"time_of_day", "map_ambient", "map_no_moon", "calendar_minutes", "map_sky_tint", "weather_fixed", "moon_fixed",
+	"exploration", "rest_spots", "lost_clues", "run_blessing"]
 
 
 ## Everything to save, standing at `at` on `map` ("" for a dungeon's fight with
@@ -1370,6 +1399,7 @@ func travel_to_map(map_path: String, entry_name: String):
 	current_map = map_path
 	target_entry = entry_name
 	return_to_position = false
+	after_fight = {}
 
 
 var _pending_trigger := ""
@@ -1712,6 +1742,7 @@ func reset():
 	_encounter_answer = EncounterAnswer.UNANSWERED
 	party_state.clear()
 	cleared_triggers.clear()
+	after_fight = {}
 	stealth_state.clear()
 	stealth_checkpoint = {}
 	party_order.clear()
@@ -1736,6 +1767,10 @@ func reset():
 	# Starting over starts over: what the last playthrough had read, pulled and
 	# opened is not true of this one.
 	flags.clear()
+	exploration.clear()
+	rest_spots.clear()
+	lost_clues.clear()
+	run_blessing = ""
 
 
 ## One-line summary of the party's condition for the level select, e.g.
@@ -1792,6 +1827,83 @@ func is_party_wiped() -> bool:
 ## name -> value. Usually true, but anything can be stored: a count of how many
 ## times something was asked, which of three endings was taken.
 var flags := {}
+
+## --- Wandering: what is remembered of maps (the proposals of 2026-11-19, sections 2 and 3) ---
+##
+## map path -> {"origin": Vector2i, "size": Vector2i, "seen": PackedByteArray (a bit a tile of the map's used rect), "pins": Array of
+## Vector2i}: what the party has seen of each map and the pins put on it (MapMemory, MapScreen).
+var exploration := {}
+## rest spot id -> {"map": path, "at": Vector2, "name": String}: every rest spot found, to travel between (RestSpot).
+var rest_spots := {}
+## clue key -> true: clues lost to Lethe, out of the Journal until found again (lose_clue, find_clue).
+var lost_clues := {}
+## The blessing a rehearsal in the dream-place was given, a PassiveDefinition's file name, "" when none (DreamPlace).
+var run_blessing := ""
+
+
+## --- For the things that talk (TalkingThing; the proposals of 2026-11-19, "Friendly oddities") ---
+
+
+## A statue's view of the last fight, from last_fight: a line to say.
+func fight_review() -> String:
+	if last_fight.is_empty():
+		return "You have not fought since I was put here. I have been here some time."
+	var fell: Array = last_fight.get("fell", [])
+	var got_away: Array = last_fight.get("got_away", [])
+	if not got_away.is_empty():
+		return "%d of them walked away from you. I would not have allowed it. I would also not have moved." % got_away.size()
+	if fell.size() >= 4:
+		return "%d down. Untidy, but thorough. I approve of thorough." % fell.size()
+	if fell.is_empty():
+		return "Nobody fell. Either you are merciful, or you are slow. I suspect slow."
+	return "Adequate. I have seen better. I have also seen pigeons."
+
+
+## How many times the party has come to `who` (counted on each call): a thing that remembers you.
+func count_visit(who: String) -> int:
+	var flag_name := "visits:" + who
+	var visits := int(flags.get(flag_name, 0)) + 1
+	flags[flag_name] = visits
+	return visits
+
+
+## What a thing that remembers you says, by how many times you have come (counted here).
+func remembered_line(who: String) -> String:
+	var visits := count_visit(who)
+	if visits == 1:
+		return "Oh. Hello. Nobody talks to lamp posts."
+	if visits == 2:
+		return "You again. I remember you. The tall one, and the others."
+	return "That is %d times now. I keep count. Nobody else does." % visits
+
+
+## Whether anybody in the party carries `item_id`.
+func party_carries(item_id: String) -> bool:
+	return living_party().any(func(key): return count_of(key, item_id) > 0)
+
+
+## Takes one `item_id` from whoever in the party carries it. True when one was taken.
+func hand_over_item(item_id: String) -> bool:
+	for key in living_party():
+		if count_of(key, item_id) > 0:
+			return take_item(key, item_id)
+	return false
+
+
+## A clue taken from the Journal by Lethe until it is found again (the designer, 2026-11-19, Lethe's touch).
+func lose_clue(key: String):
+	if knows_clue(key):
+		lost_clues[key] = true
+
+
+## A lost clue found again: back in the Journal.
+func find_clue(key: String):
+	lost_clues.erase(key)
+
+
+## Whether `key` is in the Journal now: learned, and not lost.
+func clue_in_journal(key: String) -> bool:
+	return knows_clue(key) and not lost_clues.has(key)
 
 
 ## Sets `flag_name`. The value is true unless you say otherwise, because

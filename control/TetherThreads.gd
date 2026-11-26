@@ -8,9 +8,10 @@ extends Node2D
 ## A lit thread runs from the middle of whoever holds it to the middle of what it holds, at their height, up on raised
 ## ground too, hanging a little and swaying. A soft glow lies under a bright core in its gate's colour, neither darkened by
 ## the dark nor by the hour (unshaded), with a knot of light at each end, and motes in the stars' colours (SkyLook) drift
-## along it from the caster, slower as the tether wears. As it wears it frays: gaps open in it, loose pixels fall off it,
+## along it from the caster, slower as the tether wears. Its core is a string of twisted strands (A string, fraying in the
+## air): as it wears they loosen and splay, its worn bits hold by one strand with frayed ends, fibres drift off it and float,
 ## and when it is nearly gone it flickers. Whatever frays it sends a shiver along it, a blow the most; when it ends it snaps,
-## both halves whipping back to their ends and fading, bits flying from the break. Pointing at whoever holds it, or at
+## both halves whipping back to their ends, unravelling, and fading, fibres flying from the break. Pointing at whoever holds it, or at
 ## anything it holds, lights it up.
 ## An unlit thread (the party's, with somebody hidden or invisible at either end, faded into the dark too) is the same
 ## thread, plain: no glow, no knots, no motes, nothing unshaded about it, under the figures and in the hour's tone as the
@@ -76,14 +77,13 @@ const MOTES_MOST := 8
 const MOTE_SPEED := 170.0
 const MOTE_SLOWEST := 0.3
 const MOTE_RADIUS := 3.5
-## Fraying, from this share of its strength down: gaps over at most this much of it, in bits this long; up to this many
-## loose pixels a second, for as long as these seconds, falling this fast (pixels a second).
+## Fraying, from this share of its strength down: bits worn through to one strand over at most this much of it, in bits
+## this long; up to this many fibres a second coming loose, each for about as long as these seconds (A string, below).
 const FRAYS_BELOW := 0.6
 const GAPS_MOST := 0.5
 const GAP_PIXELS := 28.0
 const LOOSE_A_SECOND := 14.0
 const LOOSE_LIFE := 0.9
-const LOOSE_FALL := 50.0
 const LOOSE_MOST := 240
 ## It flickers below this share, by as much as this.
 const FLICKERS_BELOW := 0.25
@@ -95,6 +95,26 @@ const SHIVER_PIXELS := 14.0
 const SNAP_SECONDS := 0.4
 const SNAP_WHIP := 22.0
 const SNAP_BITS := 10
+
+## --- A string, fraying in the air ---
+##
+## The designer, 2026-11-20: "Have the tether act a bit more like a string which frays in space ... visually, no change gameplay
+## wise". Its core is STRANDS thin strands twisted round each other, a turn every TWIST_PIXELS, tight while it is whole; as it
+## wears they work loose and splay apart (to SPLAY_MOST of its width); where it is worn through (its gaps) it holds by one strand,
+## with the broken ones' frayed ends (WHISKERS) sticking out either side; what comes off it is fibres that drift and turn slowly
+## where they came loose (FIBRE_DRIFT, FIBRE_SPIN), slowing to a float, nothing falling; and a slow ripple runs along it. A snap
+## unravels the halves' free ends. Only the drawing: Combat.tether_threads and the tether itself are as they were.
+const STRANDS := 3
+const TWIST_PIXELS := 26.0
+const TWIST_RATE := 0.25
+const SPLAY_MOST := 1.6
+const WHISKERS := 3
+const WHISKER_PIXELS := 9.0
+const FIBRE_DRIFT := 16.0
+const FIBRE_SPIN := 1.6
+const FIBRE_SLOWS := 1.2
+const RIPPLE_PIXELS := 2.5
+const RIPPLE_RATE := 0.35
 
 var combat: Combat = null
 ## Whose pointer lights a thread up (its _hover_tile).
@@ -315,6 +335,8 @@ func _curve(from: Vector2, to: Vector2, seed: int, state: Dictionary) -> PackedV
 	for step in steps + 1:
 		var t := float(step) / float(steps)
 		var at := from.lerp(pull, t).lerp(pull.lerp(to, t), t)
+		# A slow ripple along it, still at its ends: a string, not a rod.
+		at += across * RIPPLE_PIXELS * sin(PI * t) * sin(TAU * (2.0 * t - _clock * RIPPLE_RATE) + float(seed))
 		if shiver > 0.0:
 			at += across * SHIVER_PIXELS * float(state.shake) * shiver * sin(PI * t) * sin(TAU * (3.0 * t - _clock * 4.0))
 		points.append(at)
@@ -353,21 +375,17 @@ static func _point_along(points: PackedVector2Array, t: float) -> Vector2:
 	return points[points.size() - 1]
 
 
-## The thread's points in runs, with the gaps its fraying has opened left out. Never at its ends.
+## The thread's points in runs, with the gaps its fraying has opened left out. Never at its ends. (Drawn, a gap is where
+## it holds by one strand: _draw_strands.)
 func pieces_of(thread: Dictionary) -> Array:
 	var points: PackedVector2Array = thread.points
 	if float(thread.gaps) <= 0.0 or points.size() < 3:
 		return [points]
-	var total := _length_of(points)
+	var through := worn_through(thread)
 	var runs := []
 	var run := PackedVector2Array()
-	var along := 0.0
 	for index in points.size():
-		if index > 0:
-			along += points[index].distance_to(points[index - 1])
-		var bit := int(along / GAP_PIXELS)
-		var open := along > GAP_PIXELS and along < total - GAP_PIXELS and _noise(int(thread.seed), bit) < float(thread.gaps)
-		if open:
+		if through[index]:
 			if run.size() >= 2:
 				runs.append(run)
 			run = PackedVector2Array()
@@ -376,6 +394,40 @@ func pieces_of(thread: Dictionary) -> Array:
 	if run.size() >= 2:
 		runs.append(run)
 	return runs
+
+
+## For each of the thread's points, whether it is in a bit worn through: the same bits as it wears, never at its ends.
+func worn_through(thread: Dictionary) -> Array:
+	var points: PackedVector2Array = thread.points
+	var through := []
+	through.resize(points.size())
+	through.fill(false)
+	if float(thread.gaps) <= 0.0 or points.size() < 3:
+		return through
+	var total := _length_of(points)
+	var along := 0.0
+	for index in points.size():
+		if index > 0:
+			along += points[index].distance_to(points[index - 1])
+		var bit := int(along / GAP_PIXELS)
+		through[index] = along > GAP_PIXELS and along < total - GAP_PIXELS and _noise(int(thread.seed), bit) < float(thread.gaps)
+	return through
+
+
+## How worn it is: nothing until it frays, all the way at nothing left.
+static func _worn(share: float) -> float:
+	return 0.0 if share >= FRAYS_BELOW else (FRAYS_BELOW - share) / FRAYS_BELOW
+
+
+## Across the line at each of `points`, a unit long.
+static func _normals_of(points: PackedVector2Array) -> PackedVector2Array:
+	var normals := PackedVector2Array()
+	for index in points.size():
+		var before: Vector2 = points[maxi(index - 1, 0)]
+		var after: Vector2 = points[mini(index + 1, points.size() - 1)]
+		var along := after - before
+		normals.append(Vector2(-along.y, along.x).normalized() if along.length() > 0.001 else Vector2.UP)
+	return normals
 
 
 ## `thread` has gone with its tether: it breaks in the middle, each half whipping back to its end (_draw_snap), and bits
@@ -387,29 +439,35 @@ func _snap(thread: Dictionary):
 	snaps.append({"points": points, "colour": thread.colour, "width": thread.width, "age": 0.0})
 	var middle := points[points.size() / 2]
 	for each in SNAP_BITS:
-		loose.append({"p": middle, "v": Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(60.0, 160.0),
-			"colour": Color(thread.colour).lerp(Color.WHITE, 0.3), "age": 0.0, "life": LOOSE_LIFE * _rng.randf_range(0.5, 1.0),
-			"size": _rng.randf_range(2.5, 4.5)})
+		loose.append(_fibre(middle, Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(60.0, 160.0),
+			Color(thread.colour).lerp(Color.WHITE, 0.3), LOOSE_LIFE * _rng.randf_range(0.5, 1.0)))
 
 
-## What comes loose from the worn: owed by how worn each is, from anywhere along it, falling and fading.
+## A fibre come loose at `at`, going off at `velocity` and slowing to a float, turning as it goes.
+func _fibre(at: Vector2, velocity: Vector2, colour: Color, life: float) -> Dictionary:
+	return {"p": at, "v": velocity, "colour": colour, "age": 0.0, "life": life, "size": _rng.randf_range(2.5, 4.5),
+		"angle": _rng.randf() * TAU, "spin": _rng.randf_range(-FIBRE_SPIN, FIBRE_SPIN), "curl": _rng.randf_range(-0.6, 0.6)}
+
+
+## What comes loose from the worn: owed by how worn each is, from anywhere along it, drifting off and fading where it came
+## loose, never falling.
 func _shed(delta: float):
 	for thread in threads_now:
-		var worn: float = 0.0 if thread.share >= FRAYS_BELOW else (FRAYS_BELOW - thread.share) / FRAYS_BELOW
+		var worn: float = _worn(thread.share)
 		if worn <= 0.0:
 			continue
 		var state: Dictionary = thread.state
 		state.owed += delta * LOOSE_A_SECOND * worn * clampf(_length_of(thread.points) / 400.0, 0.5, 2.0)
 		while state.owed >= 1.0 and loose.size() < LOOSE_MOST:
 			state.owed -= 1.0
-			loose.append({"p": _point_along(thread.points, _rng.randf()), "v": Vector2(_rng.randf_range(-12.0, 12.0),
-				_rng.randf_range(LOOSE_FALL * 0.5, LOOSE_FALL)), "colour": thread.colour, "age": 0.0,
-				"life": LOOSE_LIFE * _rng.randf_range(0.7, 1.3), "size": _rng.randf_range(2.5, 4.5)})
+			loose.append(_fibre(_point_along(thread.points, _rng.randf()), Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(4.0, FIBRE_DRIFT),
+				thread.colour, LOOSE_LIFE * _rng.randf_range(1.0, 1.8)))
 		state.owed = minf(state.owed, 1.0)
 	for bit in loose:
 		bit.age += delta
 		bit.p = bit.p + bit.v * delta
-		bit.v = bit.v + Vector2(0.0, 30.0 * delta)
+		bit.v = bit.v * maxf(1.0 - FIBRE_SLOWS * delta, 0.0)
+		bit.angle = float(bit.get("angle", 0.0)) + float(bit.get("spin", 0.0)) * delta
 	loose = loose.filter(func(bit): return bit.age < bit.life)
 
 
@@ -444,11 +502,57 @@ func _draw_core(canvas: CanvasItem, thread: Dictionary):
 		alpha = (0.6 + 0.35 * float(thread.share)) * float(thread.flicker)
 	else:
 		alpha = (0.35 + 0.35 * float(thread.share) + (0.2 if thread.pointed else 0.0)) * float(thread.flicker)
-	for piece in pieces_of(thread):
-		if picture != null:
+	if picture != null:
+		for piece in pieces_of(thread):
 			_strip(canvas, piece, float(thread.width) * 2.0, Color(colour, alpha))
-		else:
-			canvas.draw_polyline(piece, Color(colour, alpha), float(thread.width), true)
+		return
+	_draw_strands(canvas, thread, Color(colour, alpha))
+
+
+## The thread as STRANDS twisted round its line, meeting at its ends, tight while whole and splaying apart as it wears; where
+## it is worn through it holds by one strand, close to the line, with frayed ends sticking out where the others broke.
+func _draw_strands(canvas: CanvasItem, thread: Dictionary, colour: Color):
+	var points: PackedVector2Array = thread.points
+	if points.size() < 2:
+		return
+	var width: float = thread.width
+	var worn := _worn(float(thread.share))
+	var spread: float = width * (0.35 + SPLAY_MOST * worn)
+	var strand_width: float = maxf(width / float(STRANDS) * 1.5, 1.2)
+	var total := _length_of(points)
+	var normals := _normals_of(points)
+	var through := worn_through(thread)
+	var seed: int = int(thread.seed)
+	for strand in STRANDS:
+		var run := PackedVector2Array()
+		var along := 0.0
+		for index in points.size():
+			if index > 0:
+				along += points[index].distance_to(points[index - 1])
+			if through[index] and strand > 0:
+				if run.size() >= 2:
+					canvas.draw_polyline(run, colour, strand_width, true)
+				run = PackedVector2Array()
+				continue
+			var turn := along / TWIST_PIXELS * TAU + float(strand) * TAU / float(STRANDS) + (_clock * TWIST_RATE + float(seed) * 0.13) * TAU
+			var ends := minf(minf(along, total - along) / 18.0, 1.0)
+			var off := sin(turn) * spread * 0.5 * ends * (0.3 if through[index] else 1.0)
+			run.append(points[index] + normals[index] * off)
+		if run.size() >= 2:
+			canvas.draw_polyline(run, colour, strand_width, true)
+	# Where a worn bit begins and ends, the broken strands' ends stick out, stirring a little.
+	for index in range(1, points.size()):
+		if through[index] == through[index - 1]:
+			continue
+		var at: Vector2 = points[index - 1] if through[index] else points[index]
+		var way: Vector2 = (points[index] - points[index - 1]).normalized() * (1.0 if through[index] else -1.0)
+		for whisker in WHISKERS:
+			var lean := (float(whisker) - float(WHISKERS - 1) * 0.5) * 0.7 + 0.25 * sin(_clock * 1.7 + float(seed + index + whisker))
+			var length := WHISKER_PIXELS * (0.6 + 0.6 * _noise(seed + index, whisker))
+			var root: Vector2 = at + normals[index] * (float(whisker) - 1.0) * spread * 0.3
+			var tip := root + way.rotated(lean) * length
+			canvas.draw_polyline(PackedVector2Array([root, root.lerp(tip, 0.5) + normals[index] * lean * 2.0, tip]), Color(colour, colour.a * 0.8),
+				maxf(strand_width * 0.7, 1.0), true)
 
 
 func _draw_glow(canvas: CanvasItem, thread: Dictionary):
@@ -478,11 +582,15 @@ func _draw_motes(canvas: CanvasItem, thread: Dictionary):
 		canvas.draw_circle(at, MOTE_RADIUS, Color(colour, 0.85 * fade))
 
 
+## What has come loose: fibres, short and a little curled, turning where they drift.
 func _draw_loose(canvas: CanvasItem):
 	for bit in loose:
 		var fade: float = 1.0 - bit.age / bit.life
 		var size: float = bit.size
-		canvas.draw_rect(Rect2(bit.p - Vector2.ONE * size * 0.5, Vector2.ONE * size), Color(bit.colour, (0.8 if lit else 0.5) * fade))
+		var way := Vector2.from_angle(float(bit.get("angle", 0.0))) * size * 1.4
+		var bend := way.orthogonal() * float(bit.get("curl", 0.0))
+		canvas.draw_polyline(PackedVector2Array([bit.p - way, bit.p + bend, bit.p + way]), Color(bit.colour, (0.8 if lit else 0.5) * fade),
+			maxf(size * 0.45, 1.0), true)
 
 
 ## A snap playing: each half drawn back from the break to its end, its free end whipping, fading as it goes.
@@ -506,9 +614,19 @@ func _draw_snap(canvas: CanvasItem, snap: Dictionary, glow: bool):
 		var width: float = snap.width
 		if glow:
 			canvas.draw_polyline(run, Color(snap.colour, GLOW_ALPHA * 1.5 * alpha), width * GLOW_TIMES, true)
-		else:
+		elif picture != null:
 			var colour: Color = Color(snap.colour).lerp(Color.WHITE, CORE_WHITENS) if lit else snap.colour
 			canvas.draw_polyline(run, Color(colour, 0.8 * alpha), width, true)
+		else:
+			# Its strands, unravelling towards the broken end.
+			var colour: Color = Color(snap.colour).lerp(Color.WHITE, CORE_WHITENS) if lit else snap.colour
+			var normals := _normals_of(run)
+			for strand in STRANDS:
+				var apart := PackedVector2Array()
+				for index in run.size():
+					var free := float(index) / float(maxi(run.size() - 1, 1))
+					apart.append(run[index] + normals[index] * (float(strand) - float(STRANDS - 1) * 0.5) * width * (0.4 + 3.0 * free * free))
+				canvas.draw_polyline(apart, Color(colour, 0.8 * alpha), maxf(width / float(STRANDS) * 1.5, 1.2), true)
 
 
 ## The slot's picture laid along `points`, `width` across, tiled along its length.

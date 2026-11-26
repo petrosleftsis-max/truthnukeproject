@@ -146,5 +146,54 @@ func run_test():
 		_failures += 1
 	log_line("")
 
+	# On whole pixels (the designer, 2026-11-20): wherever it is put, what it shows lands on whole pixels of the screen, by a
+	# nudge of less than one in its offset; its position is left where it was put.
+	log_line("on whole pixels:")
+	cam.zoom = Vector2.ONE * 0.5
+	var put: Vector2 = map_centre + Vector2(0.37, 1.61)
+	cam.position = put
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var per: float = CameraController.pixels_per_unit(cam)
+	var centre: Vector2 = cam.global_position + cam.offset
+	var on_whole := absf(centre.x * per - roundf(centre.x * per)) < 0.001 and absf(centre.y * per - roundf(centre.y * per)) < 0.001
+	var nudged_less_than_a_pixel: bool = (cam.offset * per).length() < 1.5
+	var whole_ok: bool = on_whole and nudged_less_than_a_pixel and cam.position.is_equal_approx(put)
+	log_line("  %s  the view's middle %s on whole pixels (%s a unit), nudged %s, still at %s" % ["PASS" if whole_ok else "FAIL", centre, per, cam.offset, cam.position])
+	if not whole_ok:
+		_failures += 1
+	CameraController.whole_pixels = false
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var left_alone: bool = cam.offset.is_zero_approx()
+	log_line("  %s  switched off, nothing nudged: offset %s" % ["PASS" if left_alone else "FAIL", cam.offset])
+	if not left_alone:
+		_failures += 1
+	CameraController.whole_pixels = true
+	var rounded: Vector2 = CameraController.on_whole_pixels(cam, Vector2(3.3, -7.9))
+	var rounded_ok := absf(rounded.x * per - roundf(rounded.x * per)) < 0.001 and absf(rounded.y * per - roundf(rounded.y * per)) < 0.001 \
+		and rounded.distance_to(Vector2(3.3, -7.9)) <= 1.0 / per
+	log_line("  %s  what a raised piece leans by is put on whole pixels too: %s" % ["PASS" if rounded_ok else "FAIL", rounded])
+	if not rounded_ok:
+		_failures += 1
+	log_line("")
+
+	# A smooth floor (the designer, 2026-11-20: "Smooth the floor"): the floor's tiles drawn smooth from their picture's
+	# mipmaps, the tile set without its padded copy (which dropped them); the rest of the board as sharp as ever.
+	log_line("a smooth floor:")
+	var floor_tiles: TileMap = get_tree().root.find_child("TileMap", true, false)
+	var source: TileSetAtlasSource = floor_tiles.tile_set.get_source(floor_tiles.tile_set.get_source_id(0)) if floor_tiles != null else null
+	var imported_with_mipmaps := FileAccess.get_file_as_string("res://art/terrain/first_area_tiles.png.import").contains("mipmaps/generate=true")
+	var terrain: CanvasItem = floor_tiles.get_parent() if floor_tiles != null else null
+	var smooth_ok: bool = floor_tiles != null and floor_tiles.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS \
+		and source != null and not source.use_texture_padding and imported_with_mipmaps \
+		and terrain != null and terrain.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST
+	log_line("  %s  the floor smooth (filter %s), no padded copy (%s), its picture with mipmaps (%s); the rest sharp (%s)" % [
+		"PASS" if smooth_ok else "FAIL", floor_tiles.texture_filter if floor_tiles != null else -1, source.use_texture_padding if source != null else "-",
+		imported_with_mipmaps, terrain.texture_filter if terrain != null else -1])
+	if not smooth_ok:
+		_failures += 1
+	log_line("")
+
 	log_line("FAILURES: %d" % _failures)
 	get_tree().quit(0 if _failures == 0 else 1)

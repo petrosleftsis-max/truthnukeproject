@@ -40,6 +40,9 @@ var chosen_outside: Array = []
 var offered_to := ""
 ## Whether what is offered is their Meditate rather than the dungeon's recovery.
 var meditating := false
+## Shown at a rest spot on a map (RestSpot) rather than between a dungeon's fights: a short rest's words, Continue reads Done and
+## only closes it, and there is no Main Menu or store (the proposals of 2026-11-19, "Rest and travel"). Set before it is added.
+var on_a_map := false
 
 var _gate_box: VBoxContainer = null
 var _party: Label = null
@@ -92,7 +95,7 @@ func _ready():
 	bags.pressed.connect(open_inventory)
 	column.add_child(bags)
 	# A store to visit between fights, when the dungeon has one.
-	if Campaign.dungeon != null and StoreDefinition.named(Campaign.dungeon.store) != null:
+	if not on_a_map and Campaign.dungeon != null and StoreDefinition.named(Campaign.dungeon.store) != null:
 		var visit := Button.new()
 		visit.name = "Store"
 		visit.text = "Visit %s" % StoreDefinition.named(Campaign.dungeon.store).name
@@ -100,16 +103,17 @@ func _ready():
 		column.add_child(visit)
 	_continue = Button.new()
 	_continue.name = "Continue"
-	_continue.text = "Continue"
+	_continue.text = "Done" if on_a_map else "Continue"
 	_continue.pressed.connect(func(): continued.emit())
 	column.add_child(_continue)
 	# Out of the run - the victory screen's Main Menu, which the rest stands in
-	# for between a dungeon's fights.
-	var leave := Button.new()
-	leave.name = "MainMenu"
-	leave.text = "Main menu"
-	leave.pressed.connect(func(): left_for_menu.emit())
-	column.add_child(leave)
+	# for between a dungeon's fights. Not at a rest spot on a map.
+	if not on_a_map:
+		var leave := Button.new()
+		leave.name = "MainMenu"
+		leave.text = "Main menu"
+		leave.pressed.connect(func(): left_for_menu.emit())
+		column.add_child(leave)
 	_offer_resuscitate()
 	_offer_gates()
 	FocusOnDemand.attach(self, _first_button())
@@ -117,14 +121,28 @@ func _ready():
 
 ## What the rest gave: a full one's, or a short one's.
 func _rested_text() -> String:
-	if Campaign.dungeon != null and Campaign.dungeon.short_rests:
+	if on_a_map or (Campaign.dungeon != null and Campaign.dungeon.short_rests):
 		return "A short rest: everybody standing gets back %d%% of what they lost. Nobody fallen gets up by themselves, and no gates come back. Whatever was not used, they still carry." % roundi(Campaign.SHORT_REST_MENDS * 100.0)
 	return "Everyone is back to full health. Whatever was not used, they still carry."
 
 
 func _describe_party():
-	var described := Campaign.describe_party()
+	var described := _party_on_a_map() if on_a_map else Campaign.describe_party()
 	_party.text = "Party: " + described if described != "" else ""
+
+
+## On a map somebody may not have been fielded yet, and Campaign.describe_party names only those who have: so everybody in the
+## party, with what they were last fielded with, else whole.
+func _party_on_a_map() -> String:
+	var parts := []
+	for key in Campaign.party_order:
+		var stored: Dictionary = Campaign.party_state.get(key, {})
+		if not stored.get("alive", true):
+			parts.append("%s (dead)" % Campaign.display_name_of(key))
+			continue
+		var most: int = stored.get("max_hp", Campaign._full_health(key))
+		parts.append("%s %d/%d" % [Campaign.display_name_of(key), stored.get("hp", most), most])
+	return ", ".join(parts)
 
 
 ## --- Resuscitate ---
