@@ -375,6 +375,13 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 @export var lifts_from_user: Array[ConditionDefinition] = []
 ## As a reaction: its user takes a single blow meant for whoever it is aimed at (Step In).
 @export var steps_in: bool = false
+## A charge in a straight line, as far as their movement, at the tile aimed at (Breakthrough, Combat "Breakthrough"): anybody of
+## the other side their size or smaller in the way is shoved aside to a tile off the line, hit for Charge Aside of the blow and
+## their Guard broken; somebody bigger stops the charge and takes the whole blow. What breaks in the way breaks if they burn
+## through it, else stops them. Burning, the way becomes Blazed Path, a tile wider on each side.
+@export var charges_through: bool = false
+## The share of the blow whoever is shoved aside by the charge takes.
+@export_range(0.0, 2.0, 0.05) var charge_aside_share: float = 0.5
 ## Aimed twice, at two people: they change places (Transposition). Contested for whoever is of the other side.
 @export var swaps_places: bool = false
 ## Only on somebody whose nerve has gone this far towards breaking, as a share of it (Arrest).

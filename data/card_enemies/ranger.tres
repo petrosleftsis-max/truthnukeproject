@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_3p1cd"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_311p6"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_atcu8"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_fqdfs"]
+
+[sub_resource type="Resource" id="Resource_xgj7v"]
+script = ExtResource("1_3p1cd")
+name = "Snare"
+damage = 5
+apply_status = &"entangled"
+apply_amount = 1
+weight = 2
+not_twice_running = true
+
+[sub_resource type="Resource" id="Resource_8sj0t"]
+script = ExtResource("1_3p1cd")
+name = "Pickpocket"
+damage = 4
+weight = 2
+most_times = 2
+steals = 1
+
+[sub_resource type="Resource" id="Resource_bmwpg"]
+script = ExtResource("1_3p1cd")
+name = "Arrow"
+damage = 9
+weight = 3
+
+[resource]
+script = ExtResource("4_fqdfs")
+name = "Ranger"
+max_hp_least = 26
+max_hp_most = 30
+moves = Array[ExtResource("1_3p1cd")]([SubResource("Resource_xgj7v"), SubResource("Resource_8sj0t"), SubResource("Resource_bmwpg")])
+borrow_picture_from = "ranger"

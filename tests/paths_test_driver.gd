@@ -248,8 +248,9 @@ func enfina_paths():
 		"pinned and snared, she walks as ever (Unstoppable)", "%d" % combat.get_effective_stat(enfina, "movement"))
 	ok(combat.immune_to_condition(enfina, condition("grappled")), "and nobody gets a grip on her")
 	enfina.status_effects.clear()
-	ok(enfina.skill_list.has("daunting_roar") and SkillDatabase.skills.daunting_roar.deals_damage
-		and is_equal_approx(SkillDatabase.skills.daunting_roar.ability_modifier, 0.6), "Daunting Roar hits now, x0.6")
+	# Daunting Roar went to the Warden of Cover, and Firebrand came in its place at 41 (the designer, 2026-11-27).
+	ok(not enfina.skill_list.has("daunting_roar") and combat.active_passives(enfina).any(func(passive): return passive.firebrand),
+		"Firebrand, not Daunting Roar, at 41")
 	foe.hp = 1
 	give_turn(enfina)
 	combat.controller.movement = 0
@@ -315,6 +316,12 @@ func enfina_paths():
 	await strike(foe, cyrus)
 	ok(cyrus.alive and cyrus.hp == 1 and enfina.hp < enfina_hp, "a blow that would fell him stops at 1, the rest is hers (Last Wall)",
 		"%d / %d" % [cyrus.hp, enfina_hp - enfina.hp])
+	# The Vanguard's roar is the Warden's now (2026-11-27): a roar that stops them coming closer protects.
+	ok(enfina.skill_list.has("daunting_roar") and SkillDatabase.skills.daunting_roar.deals_damage
+		and is_equal_approx(SkillDatabase.skills.daunting_roar.ability_modifier, 0.6), "Daunting Roar is hers, and hits, x0.6")
+	# Interceptor, reworked: Step In reaches 3 tiles, burning or not (tests/enfina_test_driver.gd "Interceptor" runs to one).
+	ok(combat.burn_turns_of(enfina) <= 0 and combat.intercept_reach(enfina) == 3, "not burning, her Step In reaches 3 tiles (Interceptor)",
+		"%d" % combat.intercept_reach(enfina))
 	log_line("")
 
 

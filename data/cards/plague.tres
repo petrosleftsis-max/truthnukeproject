@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_ii6x5"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_ey08n"]
+
+[sub_resource type="Resource" id="Resource_2d5xq"]
+script = ExtResource("1_ii6x5")
+kind = 4
+amount = 6
+upgraded_amount = 8
+status = &"poison"
+
+[resource]
+script = ExtResource("2_ey08n")
+name = "Plague"
+type = 1
+rarity = 3
+cost = 2
+target = 1
+effects = Array[ExtResource("1_ii6x5")]([SubResource("Resource_2d5xq")])
+trace = 2

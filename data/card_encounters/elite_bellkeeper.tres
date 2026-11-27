@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="CardEncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEncounterDefinition.gd" id="1_24ya0"]
+
+[resource]
+script = ExtResource("1_24ya0")
+tier = 2
+enemies = Array[String](["bellkeeper"])

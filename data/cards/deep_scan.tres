@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_8v2i5"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_f2yf6"]
+
+[sub_resource type="Resource" id="Resource_424jo"]
+script = ExtResource("1_8v2i5")
+kind = 4
+amount = 1
+status = &"scanned"
+
+[sub_resource type="Resource" id="Resource_mah4o"]
+script = ExtResource("1_8v2i5")
+kind = 2
+amount = 1
+
+[sub_resource type="Resource" id="Resource_4ob42"]
+script = ExtResource("1_8v2i5")
+kind = 4
+amount = 1
+upgraded_amount = 2
+status = &"exposed"
+struck = true
+
+[resource]
+script = ExtResource("2_f2yf6")
+name = "Deep Scan"
+type = 1
+rarity = 2
+upgraded_cost = 0
+target = 1
+effects = Array[ExtResource("1_8v2i5")]([SubResource("Resource_424jo"), SubResource("Resource_mah4o"), SubResource("Resource_4ob42")])
+flavour = "All of it, laid open."

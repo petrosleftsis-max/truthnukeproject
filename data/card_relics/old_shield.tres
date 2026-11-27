@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardRelicDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_f3rtf"]
+[ext_resource type="Script" path="res://cards/CardRelicDefinition.gd" id="2_x5k8x"]
+
+[sub_resource type="Resource" id="Resource_as06u"]
+script = ExtResource("1_f3rtf")
+kind = 1
+amount = 3
+
+[resource]
+script = ExtResource("2_x5k8x")
+name = "Old Shield"
+when = 3
+effect = SubResource("Resource_as06u")
+rarity = 2

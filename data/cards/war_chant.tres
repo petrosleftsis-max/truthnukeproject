@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_rpxka"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_nelqx"]
+
+[sub_resource type="Resource" id="Resource_tjbog"]
+script = ExtResource("1_rpxka")
+kind = 5
+amount = 1
+upgraded_amount = 1
+status = &"frenzy"
+
+[resource]
+script = ExtResource("2_nelqx")
+name = "War Chant"
+type = 2
+rarity = 3
+cost = 2
+upgraded_cost = 1
+target = 2
+effects = Array[ExtResource("1_rpxka")]([SubResource("Resource_tjbog")])

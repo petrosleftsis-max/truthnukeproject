@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_6jy4v"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_py2f6"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="2_r4g08"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_ppy74"]
+
+[sub_resource type="Resource" id="Resource_py2f6"]
+script = ExtResource("1_6jy4v")
+name = "Take Aim"
+block = 6
+gain_status = &"might"
+gain_amount = 1
+first = true
+
+[sub_resource type="Resource" id="Resource_ppy74"]
+script = ExtResource("1_6jy4v")
+name = "Loose"
+damage = 9
+
+[sub_resource type="Resource" id="Resource_52wxn"]
+script = ExtResource("1_6jy4v")
+name = "Volley"
+damage = 4
+hits = 2
+
+[sub_resource type="Resource" id="Resource_c8s6i"]
+script = ExtResource("3_ppy74")
+when = 4
+number = 25
+move = "Loose"
+from_tier = 1
+
+[resource]
+script = ExtResource("2_r4g08")
+name = "Hired Bow"
+max_hp_least = 18
+max_hp_most = 22
+moves = Array[ExtResource("1_6jy4v")]([SubResource("Resource_py2f6"), SubResource("Resource_ppy74"), SubResource("Resource_52wxn")])
+pattern = 0
+borrow_picture_from = "hired_bow"
+rules = Array[ExtResource("3_ppy74")]([SubResource("Resource_c8s6i")])

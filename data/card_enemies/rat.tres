@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_bvsbo"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_b6mm2"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="2_spkls"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_aq72j"]
+
+[sub_resource type="Resource" id="Resource_b6mm2"]
+script = ExtResource("1_bvsbo")
+name = "Bite"
+damage = 6
+weight = 3
+
+[sub_resource type="Resource" id="Resource_aq72j"]
+script = ExtResource("1_bvsbo")
+name = "Gnaw"
+damage = 3
+apply_status = &"weakened"
+apply_amount = 1
+weight = 2
+lean_when = 6
+lean_status = &"weakened"
+
+[resource]
+script = ExtResource("2_spkls")
+name = "Rat"
+max_hp_least = 11
+max_hp_most = 15
+moves = Array[ExtResource("1_bvsbo")]([SubResource("Resource_b6mm2"), SubResource("Resource_aq72j")])
+starting_statuses = {
+"pack": 1
+}
+borrow_picture_from = "rat"

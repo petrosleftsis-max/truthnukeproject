@@ -188,7 +188,8 @@ func run_test():
 						var gap = combat.get_position_distance(from, tile)
 						if gap > far or gap < near:
 							continue
-						if not skill.respects_blocking or (not controller.terrain_blocks_sight(tile, archer.movement_class)
+						# A barrel or crate is aimed at as it stands, so a blast can land on it (Combat "Things that break").
+						if not skill.respects_blocking or ((not controller.terrain_blocks_sight(tile, archer.movement_class) or combat.is_breakable_tile(tile))
 								and _clear_without(combat, controller, archer, from, tile)):
 							aims[tile] = true
 							break

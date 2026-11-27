@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardCharacterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardCharacterDefinition.gd" id="1_ndh0x"]
+
+[resource]
+script = ExtResource("1_ndh0x")
+name = "Hermes"
+gate = 2
+starting_deck = Array[String](["thrust", "thrust", "thrust", "thrust", "guard", "guard", "guard", "guard", "lunge", "twin_cut", "scan"])
+starting_relic = "gate_quick_hands"
+playstyle = "Fast and light: many cheap cards a turn, drawing as it goes.
+The messenger: cards that cost nothing, drawing, and a bonus for every few cards played in a turn (a Relay: every third card draws one). Suggested cards: zero-cost attacks, cards that grow cheaper as the turn goes, a finisher dealing more for every card played this turn. Weak against Overtime and Toll."

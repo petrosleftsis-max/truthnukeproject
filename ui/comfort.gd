@@ -67,7 +67,32 @@ static func set_slow_motion(on: bool):
 	config.save(GameSettings.PATH)
 
 
+## --- The card game's pace (docs/proposals_2026-11-26_card_juice.md, item 48) ---
+##
+## Whether the card game plays its cards and blows out at Fast (CardFeel.FAST of every gap and flight) rather than Normal.
+const CARD_FAST_KEY := "card_game_fast"
+static var _card_fast := -1
+
+
+static func card_fast() -> bool:
+	if _card_fast < 0:
+		var config := ConfigFile.new()
+		_card_fast = 0
+		if config.load(GameSettings.PATH) == OK:
+			_card_fast = 1 if config.get_value(SECTION, CARD_FAST_KEY, false) else 0
+	return _card_fast == 1
+
+
+static func set_card_fast(on: bool):
+	_card_fast = 1 if on else 0
+	var config := ConfigFile.new()
+	config.load(GameSettings.PATH)
+	config.set_value(SECTION, CARD_FAST_KEY, on)
+	config.save(GameSettings.PATH)
+
+
 ## Forgets what was read, so the next ask reads the file again (the tests, after writing one).
 static func forget():
 	_shares.clear()
 	_slow = -1
+	_card_fast = -1

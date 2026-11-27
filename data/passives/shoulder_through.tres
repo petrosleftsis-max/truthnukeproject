@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Shoulder Through"
+description = "While she burns, she walks through anybody of the other side smaller than her, shoving each a tile aside with 20% of her blow - each hurt only once a turn."
+required_level = 24
+shoulders_through = true
+shoulder_damage = 0.2

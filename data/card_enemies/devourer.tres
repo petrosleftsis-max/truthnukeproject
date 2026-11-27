@@ -1,0 +1,72 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_7aeew"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_nbbsx"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_p2dum"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_l0xb2"]
+
+[sub_resource type="Resource" id="Resource_yh7wg"]
+script = ExtResource("1_7aeew")
+name = "Devour"
+first = true
+not_twice_running = true
+steals = 2
+
+[sub_resource type="Resource" id="Resource_iw3vc"]
+script = ExtResource("1_7aeew")
+name = "Gnash"
+damage = 7
+weight = 2
+damage_per_held = 3
+
+[sub_resource type="Resource" id="Resource_x46yk"]
+script = ExtResource("1_7aeew")
+name = "Regurgitate"
+damage = 4
+not_twice_running = true
+adds_card = "slimed"
+adds_count = 2
+adds_to = 1
+
+[sub_resource type="Resource" id="Resource_5seeq"]
+script = ExtResource("1_7aeew")
+name = "Digest"
+block = 12
+gain_status = &"might"
+gain_amount = 2
+cooldown = 2
+
+[sub_resource type="Resource" id="Resource_1qvfn"]
+script = ExtResource("1_7aeew")
+name = "Gorge"
+damage = 10
+rule_only = true
+not_twice_running = true
+damage_per_held = 4
+
+[sub_resource type="Resource" id="Resource_2ffwq"]
+script = ExtResource("2_nbbsx")
+line = "It is starving. It eats faster."
+statuses = {
+"might": 2
+}
+
+[sub_resource type="Resource" id="Resource_4qstd"]
+script = ExtResource("3_p2dum")
+when = 7
+number = 3
+status = &"holding"
+move = "Gorge"
+
+[resource]
+script = ExtResource("4_l0xb2")
+name = "The Devourer"
+max_hp_least = 170
+max_hp_most = 180
+moves = Array[ExtResource("1_7aeew")]([SubResource("Resource_yh7wg"), SubResource("Resource_iw3vc"), SubResource("Resource_x46yk"), SubResource("Resource_5seeq"), SubResource("Resource_1qvfn")])
+starting_statuses = {
+"glutton": 1
+}
+borrow_picture_from = "glutton"
+rules = Array[ExtResource("3_p2dum")]([SubResource("Resource_4qstd")])
+phases = Array[ExtResource("2_nbbsx")]([SubResource("Resource_2ffwq")])

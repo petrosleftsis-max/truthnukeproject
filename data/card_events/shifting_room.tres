@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_sxne7"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_1087r"]
+
+[sub_resource type="Resource" id="Resource_wrgyu"]
+script = ExtResource("1_sxne7")
+label = "Let it rewrite a card"
+outcome = "The room rewrites it while you hold it."
+action = 5
+
+[sub_resource type="Resource" id="Resource_udc3a"]
+script = ExtResource("1_sxne7")
+label = "Hold everything still (trace +5; upgrade a card)"
+outcome = "You hold on until it gives. It noticed."
+action = 3
+trace = 5
+
+[sub_resource type="Resource" id="Resource_ywfnn"]
+script = ExtResource("1_sxne7")
+label = "Leave before it notices"
+outcome = "You slip out between two of its shapes."
+
+[resource]
+script = ExtResource("2_1087r")
+title = "The Shifting Room"
+text = "Walls of data rearrange themselves as you watch. A card in your hand begins to change with them."
+options = Array[ExtResource("1_sxne7")]([SubResource("Resource_wrgyu"), SubResource("Resource_udc3a"), SubResource("Resource_ywfnn")])

@@ -3690,3 +3690,131 @@ func _devices_here() -> Array:
 	if devices.is_empty():
 		devices.append(_device_here())
 	return devices
+
+
+## --- The card game, played together (the designer's "try them all", 2026-11-27) ---
+##
+## "During a dungeon or story mode, both players still get to play the hacking game together": both machines play the same run of
+## the card game (CardGame), from the same setup and seed, by the same rules, every choice a move (CardGame.act -> card_move) that
+## goes to the host, is numbered there, and comes back to both in that order (_card_moved -> CardGame.take_move). Each machine
+## plays its own player: the host's is the run's first, the joiner's its second. Either machine begins one (begin_card_game: a hack
+## there - in a fight, the other's Net.decided waits for how it went - or the title screen's card game, which the joiner follows the
+## host into) with a setup the other opens the same game from (_card_begin). A hack begun on the other machine opens here over the
+## world as there, held as a menu (only this machine's party standing) while it is open.
+
+## The card game played together open on this machine, and its session.
+var card_game_here: CardGame = null
+var _card_session := ""
+## The host: the last move numbered.
+var _card_numbered := 0
+## A setup come in before its game is open here (the joiner still following the host into the card game's scene).
+var _card_setup_waiting := {}
+## The moves there are, by name.
+const CARD_MOVES := ["play", "ready", "let_go", "character", "vote", "leave", "challenge", "bless", "take", "skip", "patch", "cover",
+	"mend", "upgrade", "remove", "transform", "buy_card", "buy_relic", "buy_removal", "event", "grow", "leave_room"]
+
+
+## This machine's player's place in a run played together: the host's the first, the joiner's the second.
+func card_player_here() -> int:
+	return 0 if is_host() else 1
+
+
+## Begins a card game played together from this machine: `game` is open here; `setup` ({seed}, and a hack's {hack}:
+## CardGame.hack_data) goes to the other machine, which opens the same game from it.
+func begin_card_game(game: CardGame, setup: Dictionary):
+	_card_session = "%d:%d" % [multiplayer.get_unique_id(), Time.get_ticks_usec()]
+	_card_numbered = 0
+	setup["session"] = _card_session
+	card_game_here = game
+	game.play_together(setup, card_player_here())
+	_card_begin.rpc(setup)
+
+
+@rpc("any_peer", "reliable")
+func _card_begin(setup):
+	if typeof(setup) != TYPE_DICTIONARY or not is_plain(setup) or typeof(setup.get("session")) != TYPE_STRING:
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if (is_host() and not _seated_peers().has(sender)) or (follows() and sender != 1):
+		return
+	_card_session = str(setup.session)
+	_card_numbered = 0
+	if setup.get("hack") is Dictionary:
+		# The other machine's hack: the same game here, over the world, holding only this machine's party.
+		var game := CardGame.open_hack(CardGame.hack_from(setup.hack))
+		if game == null:
+			return
+		MenuPause.hold(game)
+		game.hack_done.connect(_card_hack_over.bind(game), CONNECT_ONE_SHOT)
+		card_game_here = game
+		game.play_together(setup, card_player_here())
+		return
+	# The title screen's: played once the card game is open here (the joiner follows the host into it).
+	if card_game_here != null and is_instance_valid(card_game_here) and card_game_here.net_session == "":
+		card_game_here.play_together(setup, card_player_here())
+		return
+	_card_setup_waiting = setup
+
+
+func _card_hack_over(_won: bool, _left: bool, game: CardGame):
+	MenuPause.release(game)
+	card_game_gone(game)
+
+
+## The joiner's card game open, followed into the host's: played together once the host's setup is here.
+func card_game_opened(game: CardGame):
+	card_game_here = game
+	if not _card_setup_waiting.is_empty():
+		var setup := _card_setup_waiting
+		_card_setup_waiting = {}
+		game.play_together(setup, card_player_here())
+
+
+## A card game played together gone from this machine.
+func card_game_gone(game: CardGame):
+	if card_game_here == game:
+		card_game_here = null
+		_card_session = ""
+
+
+## A move of this machine's player's in the card game played together (CardGame.act): the host numbers it and has it done on both;
+## the joiner sends it to the host. Whether it went.
+func card_move(session: String, kind: StringName, player: int, args: Array) -> bool:
+	if session == "" or session != _card_session or not is_plain(args) or not CARD_MOVES.has(String(kind)):
+		return false
+	if is_host():
+		_card_numbered += 1
+		var number := _card_numbered
+		if with_another():
+			_card_moved.rpc(session, number, String(kind), player, args)
+		_card_moved_here(session, number, String(kind), player, args)
+		return true
+	if follows():
+		_card_move_to_host.rpc_id(1, session, String(kind), player, args)
+		return true
+	return false
+
+
+@rpc("any_peer", "reliable")
+func _card_move_to_host(session, kind, player, args):
+	if not is_host() or typeof(session) != TYPE_STRING or typeof(kind) != TYPE_STRING or typeof(player) != TYPE_INT \
+			or typeof(args) != TYPE_ARRAY or not is_plain(args) or not CARD_MOVES.has(kind):
+		return
+	# The joiner plays only its own player, the run's second.
+	if not _seated_peers().has(multiplayer.get_remote_sender_id()) or player != 1:
+		return
+	card_move(session, StringName(kind), player, args)
+
+
+@rpc("authority", "reliable")
+func _card_moved(session, number, kind, player, args):
+	if not follows() or typeof(session) != TYPE_STRING or typeof(number) != TYPE_INT or typeof(kind) != TYPE_STRING \
+			or typeof(player) != TYPE_INT or typeof(args) != TYPE_ARRAY or not is_plain(args) or not CARD_MOVES.has(kind):
+		return
+	_card_moved_here(session, number, kind, player, args)
+
+
+func _card_moved_here(session: String, number: int, kind: String, player: int, args: Array):
+	if card_game_here == null or not is_instance_valid(card_game_here) or session != _card_session or player < 0 or player > 1:
+		return
+	card_game_here.take_move(number, StringName(kind), player, args)

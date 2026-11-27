@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardMessageWord" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_8ol00"]
+[ext_resource type="Script" path="res://cards/CardMessageWord.gd" id="2_dtbht"]
+
+[sub_resource type="Resource" id="Resource_m7ldx"]
+script = ExtResource("1_8ol00")
+kind = 2
+amount = 1
+
+[resource]
+script = ExtResource("2_dtbht")
+line = "The system was built to forget."
+effect = SubResource("Resource_m7ldx")

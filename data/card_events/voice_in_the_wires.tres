@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_n5fsx"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_jd510"]
+
+[sub_resource type="Resource" id="Resource_hjklu"]
+script = ExtResource("1_n5fsx")
+label = "Write it down (the Message)"
+outcome = "You write it down, word for word. It means more each time you read it."
+action = 7
+
+[sub_resource type="Resource" id="Resource_83m8d"]
+script = ExtResource("1_n5fsx")
+label = "Sell it to whoever is listening (50 gold; trace +5)"
+outcome = "Something buys it from you. You hear it somewhere else, later."
+gold = 50
+trace = 5
+
+[sub_resource type="Resource" id="Resource_6tfum"]
+script = ExtResource("1_n5fsx")
+label = "Let it fade"
+outcome = "It goes on, more quietly, without you."
+
+[resource]
+script = ExtResource("2_jd510")
+title = "A Voice in the Wires"
+text = "Somewhere under the hum, a voice repeats a sentence it was never meant to finish."
+options = Array[ExtResource("1_n5fsx")]([SubResource("Resource_hjklu"), SubResource("Resource_83m8d"), SubResource("Resource_6tfum")])

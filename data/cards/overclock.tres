@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_l635h"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_vs6ur"]
+
+[sub_resource type="Resource" id="Resource_phuph"]
+script = ExtResource("1_l635h")
+kind = 3
+amount = 2
+upgraded_amount = 3
+
+[resource]
+script = ExtResource("2_vs6ur")
+name = "Overclock"
+type = 1
+rarity = 3
+target = 3
+effects = Array[ExtResource("1_l635h")]([SubResource("Resource_phuph")])
+exhausts = true
+coop_only = true
+flavour = "Run hot, for both of you."

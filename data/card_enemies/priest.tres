@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_mxigs"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_hkbdt"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="2_t8o4k"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_xawxu"]
+
+[sub_resource type="Resource" id="Resource_hkbdt"]
+script = ExtResource("1_mxigs")
+name = "Smite"
+damage = 7
+
+[sub_resource type="Resource" id="Resource_xawxu"]
+script = ExtResource("1_mxigs")
+name = "Blessing"
+gain_status = &"ward"
+gain_amount = 2
+helps = 1
+
+[sub_resource type="Resource" id="Resource_tsuo8"]
+script = ExtResource("1_mxigs")
+name = "Condemn"
+damage = 5
+apply_status = &"brittle"
+apply_amount = 2
+
+[sub_resource type="Resource" id="Resource_c4mk4"]
+script = ExtResource("1_mxigs")
+name = "Mend"
+rule_only = true
+cooldown = 2
+helps = 1
+heal = 8
+
+[sub_resource type="Resource" id="Resource_ih28t"]
+script = ExtResource("3_xawxu")
+when = 9
+number = 50
+move = "Mend"
+
+[resource]
+script = ExtResource("2_t8o4k")
+name = "Priest"
+max_hp_least = 24
+max_hp_most = 28
+moves = Array[ExtResource("1_mxigs")]([SubResource("Resource_hkbdt"), SubResource("Resource_xawxu"), SubResource("Resource_tsuo8"), SubResource("Resource_c4mk4")])
+pattern = 0
+starting_statuses = {
+"curiosity": 2
+}
+borrow_picture_from = "priest"
+rules = Array[ExtResource("3_xawxu")]([SubResource("Resource_ih28t")])

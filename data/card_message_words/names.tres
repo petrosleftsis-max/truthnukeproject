@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardMessageWord" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_xnke0"]
+[ext_resource type="Script" path="res://cards/CardMessageWord.gd" id="2_3vuim"]
+
+[sub_resource type="Resource" id="Resource_23ogp"]
+script = ExtResource("1_xnke0")
+kind = 5
+amount = 1
+status = &"might"
+
+[resource]
+script = ExtResource("2_3vuim")
+line = "Everything here has a name, and names can be spoken."
+effect = SubResource("Resource_23ogp")

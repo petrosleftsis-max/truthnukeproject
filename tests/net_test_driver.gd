@@ -92,6 +92,8 @@ func run_sections():
 	Campaign.controllers.clear()
 	Net.discovery_port = TEST_BEACON
 	Net.beacon_to = "127.0.0.1"
+	# The strongbox is played on its board (a hack is the card game unless it asks for its board, since 2026-11-27).
+	Hacking.boards_for_tests = true
 	get_tree().process_frame.connect(_done_on_joins)
 	if joining_half():
 		await joiners_half()
@@ -847,6 +849,125 @@ func played_here():
 	say("ready no")
 	await hear("quick done")
 	QuickTime.answer = -1
+	log_line("")
+
+
+## --- The card game, played together (the designer's "try them all", 2026-11-27) ---
+
+
+## A card of player `p`'s in `battle` that can be played now: [its id, the enemy it goes at (-1 for none)], or [].
+func _playable(battle: CardBattle, p: int) -> Array:
+	var was := battle.active
+	battle.active = p
+	var found := []
+	var living := battle.living()
+	for card in battle.players[p].hand:
+		var at: int = battle.hand.find(card)
+		var who: int = (living[0] if not living.is_empty() else -1) if battle.needs_target(at) else -1
+		if battle.refusal(at, who) == "":
+			found = [int(card.id), who]
+			break
+	battle.active = was
+	return found
+
+
+## The fight as both machines must have it alike: the turn, each player's health, Block and hand, each enemy's health.
+static func _card_state(battle: CardBattle) -> String:
+	var parts := [battle.turn]
+	for each in battle.players:
+		parts.append([int(each.hp), int(each.block), each.hand.map(func(card): return int(card.id))])
+	for enemy in battle.enemies:
+		parts.append(int(enemy.hp))
+	return var_to_str(parts).replace("\n", "")
+
+
+func _cards_hack(hack: HackDefinition, into: Dictionary):
+	var outcome: Dictionary = await Hacking.run(hack)
+	into.merge(outcome)
+
+
+func cards_together_host():
+	log_line("======== the card game, played together ========")
+	CardUnlocks.all_open = true
+	Hacking.boards_for_tests = false
+	var hack := HackDefinition.new()
+	hack.title = "A Shared Lock"
+	var outcome := {}
+	_cards_hack(hack, outcome)
+	ok(await until(func(): return Hacking.card_game != null and Hacking.card_game.networked(), 10.0), "a card hack here with the joiner seated: played together")
+	var game: CardGame = Hacking.card_game
+	if game == null:
+		Hacking.boards_for_tests = true
+		CardUnlocks.all_open = false
+		return
+	ok(game.local_players == [0], "  this machine plays the run's first player")
+	ok(await hear("cards: choosing", 15.0), "  and the same game is open on the joiner, its gate being chosen")
+	game._character_chosen("world")
+	ok(await until(func(): return game.view == "battle" and game.battle != null, 15.0), "both gates chosen: into the fight, here as there", game.view)
+	if game.battle == null:
+		game.leave_game()
+		Hacking.boards_for_tests = true
+		CardUnlocks.all_open = false
+		return
+	var battle: CardBattle = game.battle
+	ok(battle.together() and battle.players[0].character == "world" and battle.players[1].character == "hermes", "  World here, Hermes there")
+	ok(game.stage.both_hands and game.stage._seat_plays_here(0) and not game.stage._seat_plays_here(1), "  both hands shown, only this machine's played here")
+	say("cards: fighting")
+	ok(await hear("cards: joiner played", 20.0), "the joiner plays a card and says Ready")
+	ok(await until(func(): return bool(battle.players[1].ready), 10.0), "  done here too, in the host's order")
+	var mine := _playable(battle, 0)
+	if not mine.is_empty():
+		var hand_was: int = battle.players[0].hand.size()
+		game.act(&"play", 0, mine)
+		ok(battle.players[0].hand.size() == hand_was - 1, "this machine's card, played here at once")
+	game.act(&"ready", 0, [true])
+	ok(await until(func(): return battle.turn == 2, 10.0), "  both Ready: the enemies' turn, and the next", "%d" % battle.turn)
+	say("cards: state " + _card_state(battle))
+	ok(await hear("cards: same state", 20.0), "  and the fight is the same on both machines, to the last card", heard_after("cards: other state "))
+	game.leave_game()
+	ok(await until(func(): return not Hacking.running(), 10.0) and outcome.get("result", "") == "walked_away", "left: both leave, and the hack is walked away from",
+		"%s" % [outcome])
+	ok(await hear("cards: closed", 15.0), "  closed there too")
+	Hacking.boards_for_tests = true
+	CardUnlocks.all_open = false
+	log_line("")
+
+
+func cards_together_joiner():
+	log_line("======== the card game, played together ========")
+	CardUnlocks.all_open = true
+	ok(await until(func(): return Net.card_game_here != null and is_instance_valid(Net.card_game_here) and Net.card_game_here.view == "characters", 20.0),
+		"the host's card hack opens here too, over the world")
+	var game: CardGame = Net.card_game_here
+	if game == null:
+		CardUnlocks.all_open = false
+		return
+	ok(game.local_players == [1] and game.hacking != null and game.networked(), "  this machine plays the run's second player")
+	say("cards: choosing")
+	game._character_chosen("hermes")
+	ok(await until(func(): return game.view == "battle" and game.battle != null, 15.0), "  both chosen: the same fight here", game.view)
+	await hear("cards: fighting", 15.0)
+	var battle: CardBattle = game.battle
+	if battle == null:
+		CardUnlocks.all_open = false
+		return
+	var mine := _playable(battle, 1)
+	if not mine.is_empty():
+		game.act(&"play", 1, mine)
+		ok(await until(func(): return not battle.players[1].hand.any(func(card): return int(card.id) == int(mine[0])), 10.0),
+			"its own card, sent to the host, comes back and is done here")
+	game.act(&"ready", 1, [true])
+	await until(func(): return bool(battle.players[1].ready), 10.0)
+	say("cards: joiner played")
+	ok(await until(func(): return battle.turn == 2, 15.0), "the host's card and Ready: the enemies' turn here too", "%d" % battle.turn)
+	await until(func(): return heard_after("cards: state ") != "", 15.0)
+	var theirs := heard_after("cards: state ")
+	var here := _card_state(battle)
+	ok(theirs == here, "  the fight here is the host's, to the last card", "%s / %s" % [here, theirs])
+	say("cards: same state" if theirs == here else "cards: other state " + here)
+	ok(await until(func(): return Net.card_game_here == null and not is_instance_valid(game), 15.0), "the host leaves it: closed here too")
+	say("cards: closed")
+	CardUnlocks.all_open = false
 	log_line("")
 
 
@@ -1891,6 +2012,7 @@ func hosts_half():
 	await hosts_familiar()
 	await hosts_preparing()
 	await played_there()
+	await cards_together_host()
 	merge_rules()
 	await pictures_there()
 	await hosts_look()
@@ -2259,6 +2381,7 @@ func joiners_half():
 	await joiners_familiar()
 	await joiners_preparing()
 	await played_here()
+	await cards_together_joiner()
 	await pictures_here()
 	await joiners_look()
 

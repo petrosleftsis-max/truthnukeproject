@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_i7dk0"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_bivnp"]
+
+[sub_resource type="Resource" id="Resource_wuiql"]
+script = ExtResource("1_i7dk0")
+kind = 1
+amount = 8
+upgraded_amount = 11
+
+[resource]
+script = ExtResource("2_bivnp")
+name = "Brace"
+type = 1
+target = 2
+effects = Array[ExtResource("1_i7dk0")]([SubResource("Resource_wuiql")])

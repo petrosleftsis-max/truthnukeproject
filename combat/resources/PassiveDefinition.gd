@@ -409,6 +409,36 @@ var scales_every_skill_with: int = -1
 ## changed, until that enemy's next turn begins (0.25 is a quarter more).
 @export_range(0.0, 2.0, 0.05) var thwarted_damage_bonus: float = 0.0
 
+@export_group("Through, not around")
+## Enfina's (docs/proposals_2026-11-26_enfina.md, the designer's picks of 2026-11-26; Combat "Things that break"). "Cyrus gets
+## around obstacles by finding ways around them. Enfina gets around obstacles by moving straight through them."
+## Any blow of theirs breaks whatever can be broken at once, however much health it has: a barrel or a crate of the map, a thing
+## that breaks, a Cracked Wall (Breaker; the designer: "enfina instantly destroys them no matter what").
+@export var breaks_things: bool = false
+## Burning, they walk straight through whatever can be broken, and it breaks as they come to it - a keg goes off, on them too (Burn
+## Through).
+@export var burns_through: bool = false
+## What they burst through throws splinters at everybody beside it: this share of their own blow, and Exposed for a turn
+## (Splinters). 0 for none.
+@export_range(0.0, 2.0, 0.05) var splinters: float = 0.0
+## Burning, they walk through anybody of the other side smaller than them, shoving each a tile aside, hurt for Shoulder Damage of
+## their own blow - each only once a turn (Shoulder Through).
+@export var shoulders_through: bool = false
+@export_range(0.0, 2.0, 0.05) var shoulder_damage: float = 0.2
+## Burning, their Step In reaches an ally this many tiles away: they run to them first, and pay a tile of their next turn's walk
+## for it (Intercept). 0: only beside them, as Step In is.
+@export_range(0, 5, 1) var intercept_reach: int = 0
+## This one's Intercept Reach holds burning or not (the Warden of Cover's Interceptor, 2026-11-27).
+@export var intercept_unburnt: bool = false
+## Running to an ally to take the blow costs them nothing of their next walk (the Warden of Cover's Interceptor).
+@export var intercept_free: bool = false
+## Whoever their charge drives aside (Breakthrough) catches fire, and so does anybody of the other side their splinters hit (the
+## Vanguard's Firebrand, 2026-11-27).
+@export var firebrand: bool = false
+## They see what breaks and what goes off, marked on the board on their turn; on a map, a hidden Cracked Wall from further (Weak
+## Points).
+@export var sees_weak_points: bool = false
+
 
 ## When it works, as the character sheet says it.
 func describe_when() -> String:
@@ -632,6 +662,25 @@ func _describe_paths() -> Array:
 		lines.append("A foe lying prone gets no cover from their ranged moves.")
 	if gets_up_free:
 		lines.append("Getting up from prone takes none of their movement.")
+	# "Through, not around" (Enfina's, 2026-11-26).
+	if breaks_things:
+		lines.append("Any blow of theirs breaks whatever can be broken at once, however much health it has.")
+	if burns_through:
+		lines.append("Burning, they walk straight through whatever can be broken, and it breaks as they come to it.")
+	if splinters > 0.0:
+		lines.append("What they burst through hits everybody beside it for %d%% of their blow, and Exposes them for a turn." % roundi(splinters * 100))
+	if shoulders_through:
+		lines.append("Burning, they walk through anybody smaller of the other side, shoving each aside for %d%% of their blow, each once a turn."
+			% roundi(shoulder_damage * 100))
+	if intercept_reach > 0:
+		lines.append("%s, their Step In reaches an ally %d tiles away%s." % ["Burning or not" if intercept_unburnt else "Burning", intercept_reach,
+			"" if intercept_free else ", for a tile of their next walk"])
+	elif intercept_free:
+		lines.append("Running to an ally to take a blow costs them none of their next walk.")
+	if firebrand:
+		lines.append("Whoever their charge drives aside catches fire, and so does anybody of the other side their splinters hit.")
+	if sees_weak_points:
+		lines.append("They see what breaks, and what goes off, marked on the board on their turn.")
 	return lines
 
 

@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_dvf8j"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_ic1bj"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_3h60p"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_4cppf"]
+
+[sub_resource type="Resource" id="Resource_63dte"]
+script = ExtResource("1_dvf8j")
+name = "Call"
+first = true
+rule_only = true
+cooldown = 2
+summons = Array[String](["imp"])
+
+[sub_resource type="Resource" id="Resource_q226x"]
+script = ExtResource("1_dvf8j")
+name = "Bolt"
+damage = 10
+weight = 2
+
+[sub_resource type="Resource" id="Resource_w4msj"]
+script = ExtResource("1_dvf8j")
+name = "Bulwark"
+block = 6
+helps = 2
+
+[sub_resource type="Resource" id="Resource_1676a"]
+script = ExtResource("3_3h60p")
+when = 11
+move = "Call"
+
+[sub_resource type="Resource" id="Resource_2rqx1"]
+script = ExtResource("3_3h60p")
+when = 9
+number = 40
+move = "Bulwark"
+from_tier = 1
+
+[resource]
+script = ExtResource("4_4cppf")
+name = "Summoner"
+max_hp_least = 36
+max_hp_most = 40
+moves = Array[ExtResource("1_dvf8j")]([SubResource("Resource_63dte"), SubResource("Resource_q226x"), SubResource("Resource_w4msj")])
+starting_statuses = {
+"command": 2
+}
+borrow_picture_from = "summoner"
+rules = Array[ExtResource("3_3h60p")]([SubResource("Resource_1676a"), SubResource("Resource_2rqx1")])

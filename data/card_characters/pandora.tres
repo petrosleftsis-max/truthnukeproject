@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardCharacterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardCharacterDefinition.gd" id="1_jx8fy"]
+
+[resource]
+script = ExtResource("1_jx8fy")
+name = "Pandora"
+gate = 3
+starting_deck = Array[String](["thrust", "thrust", "thrust", "thrust", "guard", "guard", "guard", "guard", "poison_vial", "feint", "scan"])
+starting_relic = "gate_dot_master"
+playstyle = "Opens the box: poisons and curses on the enemy, and her own junk turned into weapons.
+What comes out cannot be put back: Poison, Weakened and Exposed on the enemies, and Status cards in her own deck (Wounds, Glitches) played for effects rather than dead draws. Suggested cards: one growing stronger for each Status card in the deck, one throwing a Status card at an enemy, a Power that draws a card whenever a Status card is drawn."

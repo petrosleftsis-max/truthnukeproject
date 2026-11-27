@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardRelicDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_b2a6j"]
+[ext_resource type="Script" path="res://cards/CardRelicDefinition.gd" id="2_g6qlc"]
+
+[sub_resource type="Resource" id="Resource_4wesq"]
+script = ExtResource("1_b2a6j")
+kind = 4
+amount = 3
+status = &"poison"
+
+[resource]
+script = ExtResource("2_g6qlc")
+name = "Vial of Bile"
+effect = SubResource("Resource_4wesq")

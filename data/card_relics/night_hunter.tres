@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardRelicDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_2eod8"]
+[ext_resource type="Script" path="res://cards/CardRelicDefinition.gd" id="2_burw0"]
+
+[sub_resource type="Resource" id="Resource_kx7ol"]
+script = ExtResource("1_2eod8")
+kind = 3
+amount = 1
+
+[resource]
+script = ExtResource("2_burw0")
+name = "Night Hunter"
+when = 5
+effect = SubResource("Resource_kx7ol")
+rarity = 3
+flavour = "One down, and on to the next."
+learned_from = "Cyrus's Night Hunter"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_ybp5o"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_3e1va"]
+
+[sub_resource type="Resource" id="Resource_ijlrs"]
+script = ExtResource("1_ybp5o")
+kind = 5
+amount = 2
+upgraded_amount = 3
+status = &"might"
+
+[resource]
+script = ExtResource("2_3e1va")
+name = "Battle Hymn"
+type = 2
+rarity = 2
+target = 2
+effects = Array[ExtResource("1_ybp5o")]([SubResource("Resource_ijlrs")])

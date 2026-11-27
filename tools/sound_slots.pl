@@ -9,13 +9,16 @@ my $bank_gd = slurp("$root/audio/SoundBank.gd");
 my $bank = slurp("$root/audio/sound_bank.tres");
 my %filled = map { $_ => 1 } ($bank =~ /^([a-z_]+) = ExtResource/mg);
 my %stand_in = (footstep => "a soft thud", footstep_wet => "a splash", codex_reveal => "three rising notes");
+# And every slot with a recipe of its own in PlaceholderSounds, made on the spot until a file fills it (MapFeel, CardFeel, ...).
+my $placeholders = slurp("$root/exploration/PlaceholderSounds.gd");
+my %recipe = map { $_ => 1 } ($placeholders =~ /^\t"([a-z_]+)": \[\[/mg);
 my @rows;
 my $group = "";
 for my $line (split /\n/, $bank_gd) {
 	if ($line =~ /^\@export_group\("([^"]+)"\)/) { $group = $1; next; }
 	if ($line =~ /^\@export var ([a-z_]+): AudioStream/) {
 		my $slot = $1;
-		my $state = $filled{$slot} ? "yours" : ($stand_in{$slot} ? "stand-in: $stand_in{$slot}" : "**empty, silent**");
+		my $state = $filled{$slot} ? "yours" : ($stand_in{$slot} ? "stand-in: $stand_in{$slot}" : ($recipe{$slot} ? "stand-in" : "**empty, silent**"));
 		push @rows, "| $group | `$slot` | $state |";
 	}
 }
@@ -59,7 +62,7 @@ closedir($dh);
 
 my $out = "";
 $out .= "# Sound slots: what is filled, what plays a stand-in, what is silent\n\n";
-$out .= "Every sound the game asks for, as of 2026-11-12 (made by `perl tools/sound_slots.pl` over the data; run it again when sounds go in). **Yours** is a\n";
+$out .= "Every sound the game asks for, as of 2026-11-27 (made by `perl tools/sound_slots.pl` over the data; run it again when sounds go in). **Yours** is a\n";
 $out .= "file you placed. A **stand-in** is a placeholder made in code on the spot (`exploration/PlaceholderSounds.gd`), heard until a file\n";
 $out .= "fills the slot. **Silent** is a slot that plays nothing until filled. Fill a slot in the editor: the sound bank is\n";
 $out .= "`audio/sound_bank.tres`, the pictures' `pictures/feedback.tres`, a move's or a condition's own file (its Sound fields).\n\n";

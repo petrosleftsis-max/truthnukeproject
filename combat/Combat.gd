@@ -2147,6 +2147,10 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 	if valid and skill.throws:
 		await _hurl(attacker, skill, impact_position, destination, end_turn_after, as_secondary)
 		return
+	# A charge through a line (Breakthrough) is its own business too - see "Breakthrough".
+	if valid and skill.charges_through:
+		await _charge_through(attacker, skill, impact_position, end_turn_after, as_secondary)
+		return
 	# Going through a fallen enemy - see "Loot".
 	if valid and loots(skill):
 		if as_secondary:
@@ -2284,7 +2288,8 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			tiles = attacker.landing_tiles
 		# Confused, they hit whoever is there, friend or foe; deceived, their own.
 		var targets = get_targets_in_tiles(tiles, attacker, skill.targets_ally,
-			skill.affects_both_sides or has_restriction(attacker, "confuses") or has_restriction(attacker, "turns_on_own_side"))
+			skill.affects_both_sides or has_restriction(attacker, "confuses") or has_restriction(attacker, "turns_on_own_side")
+			or _grabs_a_friend(attacker, get_combatant_at(impact_position), skill))
 		if skill.targets_fallen:
 			# Aimed at the fallen, it lands on nobody standing.
 			targets = fallen_in_tiles(tiles, attacker)
@@ -2473,6 +2478,8 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 				_after_landing(attacker, target, skill)
 			if skill.deals_damage and target.get("side", -1) != attacker.get("side", -1):
 				struck.append(target)
+		# A barrel, a crate - whatever the map has that breaks - under the blow or in the blast (see "Things that break").
+		_hurt_breakables_in(attacker, skill, tiles)
 		# Every blow told: whatever is still flying has hit (Projectile). What it
 		# leaves on the ground, and how it looks over the whole of an area - a dome
 		# settling, a storm turning (MoveFeel).
@@ -2815,6 +2822,9 @@ func confirm_reaction(reactor: Dictionary, mover: Dictionary, skill: SkillDefini
 func use_reactive_skill(skill_key: String, attacker: Dictionary, target: Dictionary, trigger_position: Vector2i, why: String = ""):
 	var skill: SkillDefinition = SkillDatabase.skills[skill_key]
 	if skill.respects_blocking and not is_same(attacker, target) and not sees_tile(attacker, trigger_position, target):
+		return
+	# Further than beside them, burning: she runs to them first (Intercept).
+	if skill.steps_in and rect_gap(rect_of(attacker), rect_of(target)) > 1 and not _intercept_to(attacker, target):
 		return
 	_spend_the_reaction(attacker, target)
 	# Taking it for them: nothing flies, and the blow is hers as it lands (_take_blows_stepped_into).
@@ -3202,6 +3212,9 @@ func get_range_tiles(skill: SkillDefinition, caster_position: Vector2i, movement
 		if laid.is_empty():
 			return []
 		return get_diamond_tiles(laid.centre, skill.max_range).filter(func(tile): return controller.is_on_map(tile) and tile != laid.centre)
+	# A charge (Breakthrough): along the eight straight lines, as far as they can walk - stopped where it would be stopped.
+	if skill.charges_through and not caster.is_empty():
+		return charge_tiles(caster)
 	var tiles = []
 	var reach = effective_max_range(caster, skill) if not caster.is_empty() else skill.max_range
 	var viewer: int = caster.get("size", Sizes.Size.HUMAN)
@@ -4658,6 +4671,12 @@ func condition_range_cap(comb: Dictionary) -> int:
 ## combatant can't be shown or offered a shot they can't take.
 func effective_max_range(caster: Dictionary, skill: SkillDefinition) -> int:
 	var reach := skill.max_range + range_bonus(caster, skill)
+	# Burning, Step In reaches further: she runs to them first (Intercept, see "Things that break").
+	if skill.steps_in:
+		reach = maxi(reach, intercept_reach(caster))
+	# A charge goes as far as they can walk (Breakthrough).
+	if skill.charges_through and not caster.is_empty():
+		reach = maxi(reach, charge_reach(caster))
 	var cap = condition_range_cap(caster)
 	if cap > 0:
 		return mini(reach, cap)
@@ -7054,7 +7073,15 @@ func wins_contest(attacker: Dictionary, target: Dictionary, skill: SkillDefiniti
 		# way its damage is its own - see ItemDefinition.item_power for what the
 		# thrower's hidden scaling_stat used to do to this.
 		return stat_of(target, skill.contest_stat) < skill.item_power
+	# A grip on a friend always takes (Grab on an ally, the designer, 2026-11-26): they let themselves be taken hold of.
+	if _grabs_a_friend(attacker, target, skill):
+		return true
 	return stat_of(target, skill.contest_stat) + doubt < stat_of(attacker, scaling_stat_of(attacker, skill)) + contest_bonus_of(attacker, target)
+
+
+## Whether `skill` (Grab) takes hold of `target` as a friend of `user`'s: one of their own side, not a thing.
+func _grabs_a_friend(user: Dictionary, target: Dictionary, skill: SkillDefinition) -> bool:
+	return holding_condition(skill) != null and not target.has("object") and target.get("side", -1) == user.get("side", -2)
 
 
 ## What one DAMAGE effect of `skill` does to `target`, before resistances.
@@ -7641,6 +7668,9 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	# damage at all - a condition burning away, a shove into a wall.
 	var raw = skill_damage(attacker, target, skill, power) if skill != null else rng.randi_range(effect.min_amount, effect.max_amount)
 	var damage = resisted_damage(target, element, raw)
+	# Whatever can be broken breaks under the blow of somebody who breaks things, however much it would take (Breaker).
+	if target.has("object") and target.object.breakable and breaks_things(attacker):
+		damage = maxi(damage, target.hp)
 	var flavour = "%s damage%s" % [Damage.type_name(element).to_lower(), Damage.describe_resistance(resistance)]
 	# Being hit gives you away, whoever was aimed at. A blast thrown at somebody
 	# else that happens to catch a hidden combatant has found them, even though
@@ -9233,6 +9263,11 @@ func _turn_begins_for(comb: Dictionary):
 	_calling_out_ends(comb)
 	if not comb.alive:
 		return
+	# A friend's hold lets go as their own turn begins: they were only being carried, and go their own way now.
+	if is_held(comb) and holder_of(comb).get("side", -1) == comb.get("side", -2):
+		_let_go(comb, "%s sets [color=yellow]%s[/color] down" % [holder_of(comb).get("name", "Somebody"), comb.name])
+	# Whoever they shouldered aside last turn can be hurt by it again (Shoulder Through).
+	_shoulders_rested(comb)
 	_auras_on(comb)
 	_ground_under(comb)
 	_zones_on_their_turn(comb)
@@ -10211,6 +10246,616 @@ func _object_gone(thing: Dictionary, how: String):
 	if sprite != null and is_instance_valid(sprite):
 		sprite.set_dead()
 	combatant_died.emit(thing)
+
+
+## --- Things that break ---
+##
+## The designer, 2026-11-26: "objects like the barrels have hp", "Allow me to choose what is breakable and how much hp", "Anybody
+## can break barrels and whatever has hp, but they have to deplete the hp, while enfina instantly destroys them no matter what".
+##
+## A tile of the map breaks when the TileSet gives it Health (its "Health" custom data: the barrels and crates have some to begin
+## with; 0, never). A blow aimed at it, or a blast over it, hurts it by what it would do to somebody with no Defense (hurt_tile);
+## at nothing it breaks (break_tile): it becomes the floor most of its neighbours are, and everything that reads the map reads it
+## again - walking, sight and cover (CController.retile), its drawing (DepthView.build), the light (relight). Whoever stood up on
+## it is down on the floor. A battle object that is Breakable (a Powder Keg, a Brazier, a Cracked Wall...) breaks as it always has.
+##
+## Enfina's (PassiveDefinition "Through, not around"): Breaker breaks either outright with any blow (breaks_things). Burn
+## Through: burning, she walks straight through either, breaking it as she comes to it (bursts_for, burst_through) - a keg goes
+## off with her beside it. Splinters: what she bursts through throws splinters at everybody beside it. Shoulder Through: burning,
+## she walks through anybody of the other side smaller than her, shoving them aside (shoulder_through), each hurt once a turn.
+
+const TILE_HEALTH := "Health"
+const EXPOSED_CONDITION := "res://data/conditions/exposed.tres"
+## Whose blow splinters and a shoulder are a share of: the attack every fighter of the party has, else this.
+const SPLINTER_SKILL := "greatsword_attack"
+
+## Breakable tiles hurt but still standing: tile -> health left.
+var tile_health := {}
+## Tiles broken this fight, for a test.
+var broken_tiles := {}
+var _breakables := {}
+var _breakables_read := false
+## Who has been shouldered aside this turn (their ids), each hurt only once.
+var _shouldered := {}
+
+
+## The Health of what stands on `tile` as the TileSet gives it: 0 for what never breaks.
+func breakable_health(tile: Vector2i) -> int:
+	if controller == null:
+		return 0
+	return health_on(controller.tile_map, tile)
+
+
+## The TileSet's Health of what stands on `tile` of `tile_map` - on a map as in a fight (ExplorationScene "Things that break, on a
+## map"): 0 for what never breaks.
+static func health_on(tile_map: TileMap, tile: Vector2i) -> int:
+	if tile_map == null or tile_map.tile_set == null or tile_map.tile_set.get_custom_data_layer_by_name(TILE_HEALTH) < 0:
+		return 0
+	var data = tile_map.get_cell_tile_data(0, tile)
+	if data == null:
+		return 0
+	return maxi(int(data.get_custom_data(TILE_HEALTH)), 0)
+
+
+## Whether something on `tile` breaks: read off the map once a fight (breakable_tiles), so asking is cheap - aiming asks it of every
+## tile in reach.
+func is_breakable_tile(tile: Vector2i) -> bool:
+	return breakable_tiles().has(tile)
+
+
+## How much more `tile` takes before it breaks.
+func tile_health_of(tile: Vector2i) -> int:
+	return int(tile_health.get(tile, breakable_health(tile)))
+
+
+## Every breakable tile of the map, read once a fight and kept as they break.
+func breakable_tiles() -> Dictionary:
+	if not _breakables_read and controller != null and controller.tile_map != null:
+		_breakables_read = true
+		_breakables = {}
+		for tile in controller.tile_map.get_used_cells(0):
+			if breakable_health(tile) > 0:
+				_breakables[tile] = true
+	return _breakables
+
+
+## Whether `comb` breaks whatever can be broken with any blow (Breaker).
+func breaks_things(comb: Dictionary) -> bool:
+	return not comb.is_empty() and _has_passive_switch(comb, &"breaks_things")
+
+
+## Whether `comb`, burning, walks through whatever can be broken (Burn Through).
+func burns_through(comb: Dictionary) -> bool:
+	return not comb.is_empty() and burn_turns_of(comb) > 0 and _has_passive_switch(comb, &"burns_through")
+
+
+## Whether `comb`, burning, walks through the other side's smaller ones (Shoulder Through).
+func shoulders_through(comb: Dictionary) -> bool:
+	return not comb.is_empty() and burn_turns_of(comb) > 0 and _has_passive_switch(comb, &"shoulders_through")
+
+
+## A thing that breaks, standing alone on `tile` (not an illusion): what Burn Through goes through. {} for none.
+func breakable_thing_at(tile: Vector2i) -> Dictionary:
+	for comb in combatants_at(tile):
+		if comb.alive and comb.has("object") and comb.object.breakable and not comb.get("illusion", false) and footprint(comb) == Vector2i.ONE:
+			return comb
+	return {}
+
+
+## Somebody `mover` would shoulder aside on `tile` (Shoulder Through): of the other side, smaller than them, and not a thing.
+func shouldered_at(mover: Dictionary, tile: Vector2i) -> Dictionary:
+	if not shoulders_through(mover):
+		return {}
+	for comb in combatants_at(tile):
+		if comb.alive and not comb.has("object") and not comb.get("illusion", false) and comb.get("side", -1) != mover.get("side", -2) \
+				and comb.get("size", Sizes.Size.HUMAN) < mover.get("size", Sizes.Size.HUMAN) and footprint(comb) == Vector2i.ONE:
+			return comb
+	return {}
+
+
+## The tiles `mover` walks onto as if they were floor, breaking or shoving what is there as they come (Burn Through, Shoulder
+## Through): {} for anybody else, or anybody bigger than a tile.
+func bursts_for(mover: Dictionary) -> Dictionary:
+	var found := {}
+	if mover.is_empty() or footprint(mover) != Vector2i.ONE:
+		return found
+	if burns_through(mover):
+		for tile in breakable_tiles():
+			found[tile] = true
+		for comb in combatants:
+			if comb.alive and comb.has("object") and comb.object.breakable and not comb.get("illusion", false) and footprint(comb) == Vector2i.ONE:
+				found[comb.position] = true
+	if shoulders_through(mover):
+		for comb in combatants:
+			if comb.alive and not shouldered_at(mover, comb.position).is_empty():
+				found[comb.position] = true
+	return found
+
+
+## Hurts the breakable tile `tile` by `amount`, `by` somebody: at nothing, or at once for somebody who breaks things, it breaks.
+func hurt_tile(tile: Vector2i, amount: int, by: Dictionary = {}):
+	if not is_breakable_tile(tile):
+		return
+	if breaks_things(by):
+		break_tile(tile, by)
+		return
+	var left := tile_health_of(tile) - maxi(amount, 0)
+	_metric("tile_hurt", {"tile": tile, "amount": amount})
+	if left <= 0:
+		break_tile(tile, by)
+		return
+	tile_health[tile] = left
+	MoveFeel.puff(self, sprite_point({}, tile))
+	update_information.emit("%s it: %d left before it breaks.\n" % ["[color=yellow]%s[/color] cracks" % by.name if not by.is_empty() else "It cracks", left])
+
+
+## Breaks the tile `tile`: what stood there is floor now, the floor most of its neighbours are, and everything that reads the map
+## reads it again.
+func break_tile(tile: Vector2i, by: Dictionary = {}):
+	if not is_breakable_tile(tile) or controller == null:
+		return
+	var tile_map: TileMap = controller.tile_map
+	var ground := _floor_around(tile)
+	if ground.is_empty():
+		return
+	tile_map.set_cell(0, tile, ground.source, ground.atlas, ground.alternative)
+	tile_health.erase(tile)
+	_breakables.erase(tile)
+	broken_tiles[tile] = true
+	controller.retile(tile)
+	if DepthView.showing != null and is_instance_valid(DepthView.showing):
+		DepthView.showing.build()
+	relight()
+	controller.refresh_occupancy()
+	if get_current_combatant().get("alive", false):
+		controller.update_points_weight()
+	var at := sprite_point({}, tile)
+	MoveFeel.shatter(self, at)
+	MoveFeel.sound(self, GameSounds.stream(&"thing_breaks"), "thing_breaks", {}, 0.0, at)
+	shake_camera(4.0)
+	_metric("tile_broken", {"tile": tile, "by": by})
+	update_information.emit("%s\n" % ("[color=yellow]%s[/color] smashes it to pieces." % by.name if not by.is_empty() else "It breaks apart."))
+	update_combatants.emit(combatants)
+
+
+## The floor most of the tiles round `tile` are, for what it is once broken: {source, atlas, alternative}, or {} with none about.
+func _floor_around(tile: Vector2i) -> Dictionary:
+	return floor_around(controller.tile_map, tile)
+
+
+## The floor most of the tiles round `tile` of `tile_map` are: nothing that blocks, nothing that breaks. {} with none about.
+static func floor_around(tile_map: TileMap, tile: Vector2i) -> Dictionary:
+	var counts := {}
+	var best := {}
+	var most := 0
+	for reach in [1, 2, 3]:
+		for dx in range(-reach, reach + 1):
+			for dy in range(-reach, reach + 1):
+				var near := tile + Vector2i(dx, dy)
+				if near == tile or maxi(absi(dx), absi(dy)) != reach:
+					continue
+				var data = tile_map.get_cell_tile_data(0, near)
+				if data == null or data.get_custom_data("Blocks").size() > 0 or health_on(tile_map, near) > 0:
+					continue
+				var key := [tile_map.get_cell_source_id(0, near), tile_map.get_cell_atlas_coords(0, near), tile_map.get_cell_alternative_tile(0, near)]
+				counts[key] = int(counts.get(key, 0)) + 1
+				if counts[key] > most:
+					most = counts[key]
+					best = {"source": key[0], "atlas": key[1], "alternative": key[2]}
+		if not best.is_empty():
+			return best
+	return best
+
+
+## Every breakable tile `skill` of `attacker`'s covers, hurt by what it would do to somebody with no Defense: once it has landed on
+## everybody (_use_skill).
+func _hurt_breakables_in(attacker: Dictionary, skill: SkillDefinition, tiles: Array):
+	if skill == null or not skill.deals_damage or skill.targets_ally:
+		return
+	# A thing has no Defense, faction or parts to weigh: the blow as its attacker strikes, with their path's share.
+	var blow := Stats.final_damage(power_behind(attacker, skill), modifier_of(attacker, skill) * path_damage_multiplier(attacker, skill), 0)
+	for tile in tiles:
+		if is_breakable_tile(tile):
+			hurt_tile(tile, blow, attacker)
+
+
+## `mover` has come to `tile`, burning through: what is there breaks - a keg going off as it does, on them too - and throws
+## splinters; or whoever smaller of the other side stood there is shouldered aside.
+func burst_through(mover: Dictionary, tile: Vector2i, heading: Vector2i = Vector2i.ZERO):
+	var shoved := shouldered_at(mover, tile)
+	if not shoved.is_empty():
+		shoulder_aside(mover, shoved, heading)
+		return
+	if not burns_through(mover):
+		return
+	var thing := breakable_thing_at(tile)
+	if not thing.is_empty():
+		update_information.emit("[color=yellow]%s[/color] bursts through the [color=orange]%s[/color]!\n" % [mover.name, thing.name])
+		thing.hp = 0
+		combatant_die(thing)
+		_splinters(mover, tile)
+		return
+	if is_breakable_tile(tile):
+		update_information.emit("[color=yellow]%s[/color] bursts straight through!\n" % mover.name)
+		break_tile(tile, mover)
+		_splinters(mover, tile)
+
+
+## What `mover` burst through at `tile` showers everybody beside it with splinters: a share of their own blow, and Exposed a turn.
+func _splinters(mover: Dictionary, tile: Vector2i):
+	var share := 0.0
+	for passive in active_passives(mover):
+		share = maxf(share, passive.splinters)
+	if share <= 0.0:
+		return
+	var blow: SkillDefinition = _own_blow(mover)
+	var exposed: ConditionDefinition = load(EXPOSED_CONDITION) if ResourceLoader.exists(EXPOSED_CONDITION) else null
+	for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN, Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]:
+		for near in combatants_at(tile + way):
+			if is_same(near, mover) or not near.alive or near.has("object") or near.get("illusion", false):
+				continue
+			if blow != null:
+				do_damage(mover, near, _splinter_effect(), blow, false, share)
+			if exposed != null and near.alive:
+				var effect := EffectDefinition.new()
+				effect.type = EffectDefinition.EffectType.CONDITION
+				effect.condition = exposed
+				effect.condition_duration = 1
+				apply_effect(mover, near, effect, blow)
+			_firebrand(mover, near)
+	update_information.emit("Splinters fly from where [color=yellow]%s[/color] burst through.\n" % mover.name)
+
+
+## Firebrand (the Vanguard's, PassiveDefinition.firebrand): `target` of the other side, driven aside by `comb`'s charge or caught
+## by their splinters, catches fire - Burn as it comes, as Adrenaline sets whoever it hits alight.
+func _firebrand(comb: Dictionary, target: Dictionary):
+	if not target.get("alive", false) or target.has("object") or target.get("illusion", false):
+		return
+	if target.get("side", -1) == comb.get("side", -2) or not _has_passive_switch(comb, &"firebrand"):
+		return
+	var burn: ConditionDefinition = load(BURN_CONDITION)
+	if burn == null:
+		return
+	var effect := EffectDefinition.new()
+	effect.type = EffectDefinition.EffectType.CONDITION
+	effect.condition = burn
+	apply_effect(comb, target, effect, _own_blow(comb), false)
+
+
+## The blow a share of which splinters and shoulders deal: their own first attack, else Enfina's greatsword.
+func _own_blow(comb: Dictionary) -> SkillDefinition:
+	for key in comb.get("skill_list", []):
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if skill != null and skill.deals_damage and skill.melee and not skill.is_secondary and skill.spell_slot_level <= 0:
+			return skill
+	return SkillDatabase.skills.get(SPLINTER_SKILL)
+
+
+static var _splinter_damage: EffectDefinition = null
+
+
+static func _splinter_effect() -> EffectDefinition:
+	if _splinter_damage == null:
+		_splinter_damage = EffectDefinition.new()
+		_splinter_damage.type = EffectDefinition.EffectType.DAMAGE
+		_splinter_damage.damage_type = Damage.Type.PHYSICAL
+	return _splinter_damage
+
+
+## `mover` shoulders `shoved` aside as they come through (Shoulder Through): onto a free tile beside, off their way if it can be,
+## hurt the first time this turn.
+func shoulder_aside(mover: Dictionary, shoved: Dictionary, heading: Vector2i = Vector2i.ZERO):
+	var from: Vector2i = shoved.position
+	var to := _aside_tile(shoved, from, heading, mover)
+	if to.x == -99999:
+		return
+	_break_holds_on(shoved)
+	shoved.position = to
+	if shoved.get("sprite") != null and is_instance_valid(shoved.sprite):
+		shoved.sprite.position = sprite_point(shoved)
+	controller.reposition_combatant(from, to)
+	update_information.emit("[color=yellow]%s[/color] shoulders [color=red]%s[/color] aside!\n" % [mover.name, shoved.name])
+	var share := 0.0
+	for passive in active_passives(mover):
+		if passive.shoulders_through:
+			share = maxf(share, passive.shoulder_damage)
+	var id: int = shoved.get("id", -1)
+	if share > 0.0 and not _shouldered.has(id):
+		_shouldered[id] = true
+		var blow := _own_blow(mover)
+		if blow != null:
+			do_damage(mover, shoved, _splinter_effect(), blow, false, share)
+
+
+## A free tile beside `from` for `who`, to the side of `heading` if it can be (off the way), else any; Vector2i(-99999) for none.
+func _aside_tile(who: Dictionary, from: Vector2i, heading: Vector2i, mover: Dictionary) -> Vector2i:
+	var ways: Array = []
+	if heading != Vector2i.ZERO:
+		ways.append(Vector2i(-heading.y, heading.x))
+		ways.append(Vector2i(heading.y, -heading.x))
+	for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN, Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]:
+		if not ways.has(way) and way != heading:
+			ways.append(way)
+	for way in ways:
+		var tile: Vector2i = from + way
+		if tile == mover.get("position", Vector2i(-99999, -99999)):
+			continue
+		if can_land_on(who, tile) and not controller.is_tile_blocking(tile, who.get("movement_class", 0)):
+			return tile
+	return Vector2i(-99999, -99999)
+
+
+## A new turn of `comb`'s: whoever they shouldered last turn can be hurt by it again.
+func _shoulders_rested(comb: Dictionary):
+	if shoulders_through(comb) or _has_passive_switch(comb, &"shoulders_through"):
+		_shouldered = {}
+
+
+## --- Intercept ---
+##
+## Enfina's Step In, while she burns, reaches an ally Intercept Reach tiles away (PassiveDefinition.intercept_reach): she runs to a
+## free tile beside them first (use_reactive_skill, _intercept_to), and the blow lands on her as Step In's does. Her next turn's
+## walk is a tile shorter for it (`walk_owed`, paid in CController.set_controlled_combatant).
+
+## How far `comb`'s Step In reaches now: Intercept Reach while they burn and are free to run, else 0 (Step In's own).
+func intercept_reach(comb: Dictionary) -> int:
+	if comb.is_empty() or is_held(comb) or has_restriction(comb, "prevents_movement"):
+		return 0
+	# Burning, as Intercept asks; or not, for one that holds either way (the Warden's Interceptor).
+	var burning := burn_turns_of(comb) > 0
+	var reach := 0
+	for passive in active_passives(comb):
+		if burning or passive.intercept_unburnt:
+			reach = maxi(reach, passive.intercept_reach)
+	return reach
+
+
+## A free tile beside `ally` that `reactor` can run to, nearest them first; Vector2i(-99999) for none.
+func _intercept_tile(reactor: Dictionary, ally: Dictionary) -> Vector2i:
+	if rect_gap(rect_of(reactor), rect_of(ally)) <= 1:
+		return reactor.position
+	var best := Vector2i(-99999, -99999)
+	var nearest := 9999
+	for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN, Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]:
+		var tile: Vector2i = ally.position + way
+		if not can_land_on(reactor, tile) or controller.is_tile_blocking(tile, reactor.get("movement_class", 0)):
+			continue
+		var gap := get_position_distance(reactor.position, tile)
+		if gap < nearest and gap <= intercept_reach(reactor):
+			nearest = gap
+			best = tile
+	return best
+
+
+## `reactor` runs to `ally` to take the blow (Intercept): onto the free tile beside them, a tile of next turn's walk owed.
+func _intercept_to(reactor: Dictionary, ally: Dictionary) -> bool:
+	var tile := _intercept_tile(reactor, ally)
+	if tile.x == -99999:
+		return false
+	if tile == reactor.position:
+		return true
+	var from: Vector2i = reactor.position
+	_break_holds_on(reactor)
+	reactor.position = tile
+	if reactor.get("sprite") != null and is_instance_valid(reactor.sprite):
+		reactor.sprite.position = sprite_point(reactor)
+		MoveFeel.puff(self, sprite_point({}, from))
+	controller.reposition_combatant(from, tile)
+	# Free with the Warden's Interceptor (PassiveDefinition.intercept_free).
+	if not _has_passive_switch(reactor, &"intercept_free"):
+		reactor["walk_owed"] = int(reactor.get("walk_owed", 0)) + 1
+	update_information.emit("[color=yellow]%s[/color] runs to [color=yellow]%s[/color]!\n" % [reactor.name, ally.name])
+	return true
+
+
+## The walk `comb` owes this turn (Intercept), taken off as their turn begins.
+func take_walk_owed(comb: Dictionary) -> int:
+	var owed: int = comb.get("walk_owed", 0)
+	comb.erase("walk_owed")
+	return owed
+
+
+## --- Weak Points ---
+##
+## Somebody who sees weak points (PassiveDefinition.sees_weak_points, Enfina's) sees, on their own turn, every tile and thing
+## that breaks marked on the board (weak_point_tiles), and in a hotter colour whatever goes off when it breaks (goes_off_tiles).
+
+## Whether the marks are up: the party's own turn, of somebody who sees weak points.
+func weak_points_shown() -> bool:
+	var now: Dictionary = get_current_combatant()
+	return not now.is_empty() and plays_for_party(now) and _has_passive_switch(now, &"sees_weak_points")
+
+
+## Every tile that breaks, and every thing that breaks and does not go off.
+func weak_point_tiles() -> Array:
+	var found: Array = breakable_tiles().keys()
+	for comb in combatants:
+		if comb.alive and comb.has("object") and comb.object.breakable and not comb.get("illusion", false) and not _goes_off(comb):
+			found.append_array(tiles_of(comb))
+	return found
+
+
+## Every thing that goes off when it breaks: a blast, a stagger, a line.
+func goes_off_tiles() -> Array:
+	var found: Array = []
+	for comb in combatants:
+		if comb.alive and comb.has("object") and comb.object.breakable and not comb.get("illusion", false) and _goes_off(comb):
+			found.append_array(tiles_of(comb))
+	return found
+
+
+static func _goes_off(thing: Dictionary) -> bool:
+	var object: BattleObjectDefinition = thing.object
+	return object.blast_radius > 0 or object.blast_damage > 0 or object.stagger > 0.0 or object.blast_condition != null
+
+
+## --- Breakthrough ---
+##
+## Enfina's charge (SkillDefinition.charges_through; docs/proposals_2026-11-26_enfina.md, the designer: "Breakthrough should also
+## make the fiery path she leaves behind bigger (one extra tile on the right and left of her)"). In a straight line - along a row,
+## a column or a diagonal - as far as her movement, at the tile aimed at:
+## - anybody of the other side her size or smaller in the way is shoved off the line, hit for Charge Aside of the blow, and their
+##   Guard is broken (a defence of theirs that lasts until their next turn); one of her own side is only stepped round;
+## - somebody bigger stops her: she ends beside them, and they take the whole blow, Guard broken too;
+## - what breaks in the way breaks if she can burn through it (or breaks things anyway), throwing splinters; anything else that
+##   stands in the way - a wall, rock, something that does not break - stops her before it;
+## - burning, every tile she charged over and one each side of it stays alight as Blazed Path.
+
+## Whether `tile` is on a straight line from `from`: a row, a column or a diagonal.
+static func on_a_straight_line(from: Vector2i, tile: Vector2i) -> bool:
+	var gap := tile - from
+	return gap != Vector2i.ZERO and (gap.x == 0 or gap.y == 0 or absi(gap.x) == absi(gap.y))
+
+
+## How far `charger` can charge: their movement.
+func charge_reach(charger: Dictionary) -> int:
+	return maxi(int(get_effective_stat(charger, "movement")), 1)
+
+
+## Every tile `charger` could charge at: along each straight line, up to their reach, until ground or a thing that would stop
+## them (somebody in the way does not: they are driven aside, or stop the charge where they stand).
+func charge_tiles(charger: Dictionary) -> Array:
+	var found: Array = []
+	var smashes := burns_through(charger) or breaks_things(charger)
+	for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN, Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]:
+		var tile: Vector2i = charger.position
+		for step in charge_reach(charger):
+			tile += way
+			if not controller.is_on_map(tile):
+				break
+			var solid: bool = controller.is_tile_blocking(tile, charger.get("movement_class", 0))
+			if (solid and not (is_breakable_tile(tile) and smashes)) or (not breakable_thing_at(tile).is_empty() and not smashes):
+				break
+			found.append(tile)
+	return found
+
+
+func _charge_through(charger: Dictionary, skill: SkillDefinition, aimed: Vector2i, end_turn_after: bool, as_secondary: bool):
+	var from: Vector2i = charger.position
+	if not on_a_straight_line(from, aimed) or footprint(charger) != Vector2i.ONE:
+		update_information.emit("[color=yellow]%s[/color] can only charge in a straight line.\n" % charger.name)
+		if ai_plays(charger) and end_turn_after:
+			await advance_turn()
+		return
+	var heading := (aimed - from).sign()
+	controller.action_locked = true
+	game_ui.lock_action_buttons()
+	await charger.sprite.play_skill_and_wait(skill.animation)
+	if not still_running():
+		return
+	play_skill_sound(skill, charger)
+	controller.action_locked = false
+	game_ui.refresh_action_buttons()
+	update_information.emit("[color=yellow]%s[/color] charges!\n" % charger.name)
+	var burning := burn_turns_of(charger) > 0
+	var smashes := burns_through(charger) or breaks_things(charger)
+	var walked: Array = []
+	var stopper := {}
+	var tile := from
+	for step in mini(maxi(absi(aimed.x - from.x), absi(aimed.y - from.y)), charge_reach(charger)):
+		tile += heading
+		if not controller.is_on_map(tile):
+			break
+		# What stands in the way: a thing that breaks, or ground that does.
+		var thing := breakable_thing_at(tile)
+		var solid := controller.is_tile_blocking(tile, charger.get("movement_class", 0))
+		if (solid and not (is_breakable_tile(tile) and smashes)) or (not thing.is_empty() and not smashes):
+			break
+		var blocked := false
+		for there in combatants_at(tile).duplicate():
+			if not there.get("alive", false) or there.get("illusion", false) or there.has("object"):
+				continue
+			if there.get("side", -1) == charger.get("side", -2):
+				# Their own: stepped round, unhurt.
+				var aside := _aside_tile(there, tile, heading, charger)
+				if aside.x == -99999:
+					blocked = true
+					break
+				_move_aside(there, aside)
+				continue
+			if there.get("size", Sizes.Size.HUMAN) > charger.get("size", Sizes.Size.HUMAN) or footprint(there) != Vector2i.ONE:
+				stopper = there
+				blocked = true
+				break
+			var away := _aside_tile(there, tile, heading, charger)
+			if away.x == -99999:
+				stopper = there
+				blocked = true
+				break
+			_move_aside(there, away)
+			update_information.emit("[color=yellow]%s[/color] drives [color=red]%s[/color] aside!\n" % [charger.name, there.name])
+			_break_guard(there)
+			_charge_blow(charger, there, skill, skill.charge_aside_share)
+			_firebrand(charger, there)
+		if blocked:
+			break
+		if not thing.is_empty():
+			update_information.emit("[color=yellow]%s[/color] smashes through the [color=orange]%s[/color]!\n" % [charger.name, thing.name])
+			thing.hp = 0
+			combatant_die(thing)
+			_splinters(charger, tile)
+		elif is_breakable_tile(tile):
+			break_tile(tile, charger)
+			_splinters(charger, tile)
+		if not charger.get("alive", false):
+			break
+		walked.append(tile)
+	# Where she ends: the last tile she got to.
+	if not walked.is_empty() and charger.get("alive", false):
+		var end: Vector2i = walked.back()
+		_break_holds_on(charger)
+		var start_point := MoveFeel.middle_of(self, charger)
+		charger.position = end
+		charger.sprite.position = sprite_point(charger)
+		controller.reposition_combatant(from, end)
+		charger.sprite.skid(Vector2(heading), start_point - MoveFeel.middle_of(self, charger))
+		charger["moved_this_turn"] = true
+		charger["walked_this_turn"] = int(charger.get("walked_this_turn", 0)) + walked.size()
+	if not stopper.is_empty() and stopper.get("alive", false) and charger.get("alive", false):
+		update_information.emit("[color=red]%s[/color] stops the charge, and takes the whole of it!\n" % stopper.name)
+		_break_guard(stopper)
+		_charge_blow(charger, stopper, skill, 1.0)
+	# Burning, the way stays alight, a tile wider each side (Blazed Path).
+	if burning and charger.get("alive", false):
+		var across := Vector2i(-heading.y, heading.x)
+		for along in walked:
+			for side in [Vector2i.ZERO, across, -across]:
+				var lit: Vector2i = along + side
+				if controller.is_on_map(lit) and not controller.is_tile_blocking(lit, 0):
+					blaze_where_they_walk(charger, lit)
+	update_combatants.emit(combatants)
+	reveal_anyone_now_seen()
+	await _hack_spends_action(charger, as_secondary, end_turn_after)
+
+
+## `who` moved aside onto `tile` by a charge (Breakthrough).
+func _move_aside(who: Dictionary, tile: Vector2i):
+	var from: Vector2i = who.position
+	_break_holds_on(who)
+	who.position = tile
+	if who.get("sprite") != null and is_instance_valid(who.sprite):
+		who.sprite.position = sprite_point(who)
+	controller.reposition_combatant(from, tile)
+
+
+## A defence of `who`'s that lasts until their next turn (Guard) broken by a charge.
+func _break_guard(who: Dictionary):
+	var kept: Array = who.get("status_effects", []).filter(func(entry): return not (entry.get("stat", "") == "defense" \
+		and entry.get("op", "") == "add" and float(entry.get("amount", 0)) >= 0.0 and entry.get("ends_at_start", false)))
+	if kept.size() != who.get("status_effects", []).size():
+		who.status_effects = kept
+		update_information.emit("[color=red]%s[/color]'s guard is broken!\n" % who.name)
+
+
+## The charge's blow on `target`: its Damage effects at `share` of their strength, and the rest of what it does at full.
+func _charge_blow(charger: Dictionary, target: Dictionary, skill: SkillDefinition, share: float):
+	if not target.get("alive", false):
+		return
+	MoveFeel.impact(self, charger, target, skill, false, false)
+	for effect in skill.all_effects():
+		if effect == null or effect.applies_to_caster:
+			continue
+		apply_effect(charger, target, effect, skill, false, share if effect.type == EffectDefinition.EffectType.DAMAGE else 1.0)
 
 
 ##AI
@@ -11807,10 +12452,11 @@ func ai_melee_rush(comb: Dictionary):
 
 ## The glutton's way of fighting (Erysichthon's). Whoever it has hold of it
 ## means to swallow - its Devour announced, free, for the party to answer.
-## Whoever it has caught the scent of (Scented) it lunges for and grabs. Anybody
-## else in reach it bites - staying put while it holds anybody, since walking
-## off would let them go. With its secondary it catches the scent of somebody
-## new, and it eats, free, whatever it ends its move beside ("Gluttony").
+## Whoever it has caught the scent of (Scented) it lunges for and grabs, with its
+## secondary. Anybody in reach it bites, with its main action - staying put while
+## it holds anybody, since walking off would let them go. With its secondary,
+## unless a grab took it, it catches the scent of somebody new, and it eats,
+## free, whatever it ends its move beside ("Gluttony").
 const GLUTTON_GRAB := "grab"
 const GLUTTON_SCENT := "catch_the_scent"
 const SCENTED := preload("res://data/conditions/scented.tres")
@@ -11822,22 +12468,26 @@ func ai_glutton(comb: Dictionary):
 		return
 	var budget: int = movement_budget_of(comb) if holding.is_empty() else 0
 	var acted := false
-	if holding.size() < comb.get("holds_at_once", 1) and comb.skill_list.has(GLUTTON_GRAB):
+	# Its Grab is a secondary action, as everybody's is (the designer, 2026-11-27: "make grab for enemies also secondary"): the
+	# main action is still there after it, for a bite.
+	if holding.size() < comb.get("holds_at_once", 1) and comb.skill_list.has(GLUTTON_GRAB) \
+			and not comb.get("secondary_used_this_turn", false) and not has_restriction(comb, "prevents_secondary"):
 		var prey := _ai_scented_prey(comb)
 		var grab: SkillDefinition = SkillDatabase.skills.get(GLUTTON_GRAB)
 		if not prey.is_empty() and grab != null and _grip_refusal(comb, grab, prey) == "" \
 				and await move_into_range_of(comb, prey.position, grab, budget):
 			if still_running() and comb.alive and prey.alive:
-				await use_skill(GLUTTON_GRAB, comb, nearest_tile_of(prey, comb.position), false)
-				acted = true
+				await use_skill(GLUTTON_GRAB, comb, nearest_tile_of(prey, comb.position), false, true)
 				if holder_of(prey).get("id", -2) == comb.get("id", -1):
 					await _ai_announce_devour(comb, [prey])
 	if not still_running() or not comb.alive:
 		return
-	if not acted and not comb.get("skill_used_this_turn", false):
+	if not comb.get("skill_used_this_turn", false):
 		var keys: Array = _ai_main_keys(comb).filter(func(key): return key != GLUTTON_GRAB \
 			and not _swallows(SkillDatabase.skills[key]))
-		var plan := ai_plan_attack(comb, keys, budget)
+		# Holding anybody now, it stays where it is, since walking off would let them go; else what is left of its walk.
+		var left: int = 0 if not held_by(comb).is_empty() else mini(budget, controller.movement)
+		var plan := ai_plan_attack(comb, keys, left)
 		acted = await _ai_carry_out(comb, plan, keys)
 		if not acted and held_by(comb).is_empty() and still_running() and comb.alive:
 			await approach_with_remaining_movement(comb, _ai_most_wanted(comb, keys))
@@ -14446,6 +15096,8 @@ func refusal_for(attacker: Dictionary, skill: SkillDefinition, impact: Vector2i)
 		return "%s only goes off as a reaction" % skill.name
 	if skill.needs_own_burn and burn_turns_of(attacker) <= 0:
 		return "%s only while %s burns" % [skill.name, attacker.get("name", "they")]
+	if skill.charges_through and not on_a_straight_line(attacker.get("position", impact), impact):
+		return "%s goes only in a straight line" % skill.name
 	if skill.needs_nerve_shaken > 0.0:
 		var shaken_one := get_combatant_at(impact)
 		if not shaken_one.is_empty() and shaken_one.get("side", -1) != attacker.get("side", -2):
@@ -15382,10 +16034,15 @@ func _drag_back(held: Dictionary, holder: Dictionary, tile: Vector2i):
 
 ## What each tile `mover` walks costs, times: 2 while they drag somebody not a
 ## size or more smaller than them, 1 otherwise. CController pays steps with it
-## and get_reachable_tiles shares the budget out by it.
+## and get_reachable_tiles shares the budget out by it. A friend on their feet
+## goes along with them for nothing (the designer, 2026-11-26: Grab on an ally
+## "If the ally isn't stunned or dead, they don't lower her movement"); one who
+## is stunned is dead weight like anybody else.
 func drag_cost(mover: Dictionary) -> int:
 	var size: int = mover.get("size", Sizes.Size.HUMAN)
 	for held in held_by(mover):
+		if held.get("side", -1) == mover.get("side", -2) and not held.has("object") and not has_restriction(held, "skips_turn"):
+			continue
 		if held.get("size", Sizes.Size.HUMAN) > size - 1:
 			return 2
 	return 1
@@ -15591,6 +16248,9 @@ func blocks_for(comb: Dictionary, tile: Vector2i, size: int = -1) -> bool:
 ## Whether a target at `tile` is hidden by the very ground they stand on - which
 ## nobody raised (up on it, or big enough to stand over it) is.
 func _aim_blocked(tile: Vector2i, movement_class: int) -> bool:
+	# Something that breaks can be aimed at, as its own end of the line (see "Things that break").
+	if is_breakable_tile(tile):
+		return false
 	return controller.terrain_blocks_sight(tile, movement_class) and controller.raised_at(tile) <= 0
 
 
@@ -19981,6 +20641,9 @@ func _reaction_target(reactor: Dictionary, skill: SkillDefinition, enemy: Dictio
 	if skill.respects_blocking and not sees_tile(reactor, nearest_across(target, reactor.position), target):
 		return {}
 	if _grip_refusal(reactor, skill, target) != "":
+		return {}
+	# Stepping in from further away needs somewhere beside them to run to (Intercept).
+	if skill.steps_in and gap > 1 and _intercept_tile(reactor, target).x == -99999:
 		return {}
 	return target
 

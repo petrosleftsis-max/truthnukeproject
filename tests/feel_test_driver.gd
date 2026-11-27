@@ -160,7 +160,7 @@ func comfort():
 	var dials := ComfortDials.new()
 	add_child(dials)
 	await settle(2)
-	ok(dials.controls().size() == Comfort.DIALS.size() + 1, "Options has a slider for each and a switch for slow motion", "%d" % dials.controls().size())
+	ok(dials.controls().size() == Comfort.DIALS.size() + 2, "Options has a slider for each, a switch for slow motion and one for the card game's pace", "%d" % dials.controls().size())
 	var slider: HSlider = dials.controls()[0]
 	slider.value = 0.3
 	ok(is_equal_approx(Comfort.share(Comfort.DIALS[0].key), 0.3), "moving a slider moves its dial")

@@ -13,7 +13,8 @@ condition = ExtResource("4_held")
 [resource]
 script = ExtResource("3_skill")
 name = "Grab"
-description = "Take hold of somebody beside you - your size or smaller, or one size bigger at most - and keep them there: they cannot move until they spend their main action breaking free. Your Physical against theirs: it never misses anyone weaker than you, and anyone as strong or stronger twists out of it. Also a reaction: grab somebody as they leave your reach, and drag them back beside you."
+description = "A secondary action. Take hold of somebody beside you - your size or smaller, or one size bigger at most - and keep them there: they cannot move until they spend their main action breaking free. Your Physical against theirs: it never misses anyone weaker than you, and anyone as strong or stronger twists out of it. An ally is always taken hold of, goes along wherever you walk for nothing (unless stunned), and is set down as their own turn begins. Also a reaction: grab somebody as they leave your reach, and drag them back beside you."
+is_secondary = true
 min_range = 1
 max_range = 1
 icon = ExtResource("2_icon")

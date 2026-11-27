@@ -134,7 +134,9 @@ func run(hack: HackDefinition, id: String = "", combat = null, hacker: Dictionar
 	_hack = hack
 	_id = id
 	var net = get_node_or_null("/root/Net")
-	if combat == null and net != null and net.plays_afar(Coop.acting):
+	# A board is played by whoever it is for, on their own screen; the card game is played by both together, from here (_run_cards).
+	var as_cards := hack.minigame == HackDefinition.Minigame.CARDS and not boards_for_tests
+	if combat == null and net != null and net.plays_afar(Coop.acting) and not as_cards:
 		_running = true
 		var played: Dictionary = await net.hack_afar(Coop.acting, hack, id, _hacker_key)
 		_running = false
@@ -145,6 +147,12 @@ func run(hack: HackDefinition, id: String = "", combat = null, hacker: Dictionar
 	_failed_once = false
 	_rng.randomize()
 	var intellect := _intellect()
+	# The card game, the main hacking minigame since 2026-11-27; the boards for a hack that asks for one (or a suite of them).
+	if hack.minigame == HackDefinition.Minigame.CARDS and not boards_for_tests:
+		var played_cards: Dictionary = await _run_cards(hack, intellect)
+		_running = false
+		_settle(played_cards)
+		return played_cards
 	_tries_total = tries_for(hack, intellect)
 	_tries_left = _tries_total
 	_retry_cost = retry_cost_for(hack, intellect)
@@ -158,6 +166,76 @@ func run(hack: HackDefinition, id: String = "", combat = null, hacker: Dictionar
 	_running = false
 	_settle(outcome)
 	return outcome
+
+
+## --- The card game as the hack (the designer, 2026-11-27) ---
+
+## For a suite of the three boards: every hack played on its board, as before the card game became the main one.
+var boards_for_tests := false
+## The card game of the hack on screen now (for the tests to play), or null.
+var card_game: CardGame = null
+## The least and most share of their health the gates' decks come in with, by the hacker's Intellect (1 at INTELLECT_PIVOT).
+const CARD_HEALTH_LEAST := 0.6
+const CARD_HEALTH_MOST := 1.4
+
+
+## How much of their health the decks come in with for a hacker of `intellect`: a share, CARD_HEALTH_LEAST to CARD_HEALTH_MOST,
+## 1 at INTELLECT_PIVOT and a tenth more or less for every 7.5 either side (PROPOSAL).
+func health_share_for(intellect: float) -> float:
+	return clampf(0.6 + 0.4 * intellect / INTELLECT_PIVOT, CARD_HEALTH_LEAST, CARD_HEALTH_MOST)
+
+
+## `hack` played as the card game over the world (CardGame.open_hack): won is "success", lost (or traced) "failed", left before the
+## end "walked_away". Got through, a fragment of its gate's code is found (fragment_of).
+##
+## Both players play it (the designer, 2026-11-27: "During a dungeon or story mode, both players still get to play the hacking game
+## together"): with two players on this screen, a game for two here, each on their own device; over a network, the same game on both
+## machines, each playing their own (Net.begin_card_game; in a fight, the other machine's Net.decided waits for how it went).
+func _run_cards(hack: HackDefinition, intellect: float) -> Dictionary:
+	var card_hack := CardHack.new()
+	card_hack.length = hack.card_length
+	card_hack.encounter = hack.card_encounter
+	card_hack.tier = hack.card_tier
+	card_hack.layer = hack.card_layer
+	card_hack.health_share = health_share_for(intellect)
+	card_hack.seed = _rng.randi() | 1
+	var net = get_node_or_null("/root/Net")
+	var together: bool = net != null and net.with_another()
+	card_hack.players = CardBattle.MOST_PLAYERS if together or Coop.local_players().size() >= 2 else 1
+	_scene_at_start = get_tree().current_scene
+	_hold_world()
+	card_game = CardGame.open_hack(card_hack, LAYER)
+	if together:
+		net.begin_card_game(card_game, {"seed": card_hack.seed, "hack": CardGame.hack_data(card_hack)})
+	var said: Array = await card_game.hack_done
+	card_game = null
+	_release_world()
+	var won: bool = said[0]
+	var left: bool = said[1]
+	var outcome := {"result": "success" if won else ("walked_away" if left else "failed")}
+	if outcome.result == "failed":
+		outcome["set_off"] = hack.sets_off
+		outcome["locked_out"] = hack.locks_for_good
+	if won and hack.fragment_of != "":
+		find_fragment(hack.fragment_of)
+	return outcome
+
+
+## A code fragment of `character`'s deck found (twist 4), as a conversation or a pickup gives one: `do Hacking.find_fragment("hermes")`.
+## True if that one opened the deck.
+func find_fragment(character: String) -> bool:
+	var definition := CardDatabase.character(character)
+	if definition == null:
+		push_warning("Hacking.find_fragment: there is no character '%s' in %s." % [character, CardDatabase.CHARACTERS])
+		return false
+	var opened := CardUnlocks.add_fragment(character)
+	if opened:
+		Campaign.announce("[color=lightgreen]The last fragment of %s's code: the gate's deck can be played now.[/color]\n" % definition.name)
+	else:
+		Campaign.announce("[color=lightblue]A fragment of %s's code (%d of %d).[/color]\n" % [definition.name, CardUnlocks.fragments(character),
+			definition.fragments_needed])
+	GameSounds.play(&"card_fragment")
+	return opened
 
 
 ## --- How good the hacker is ---
@@ -411,7 +489,7 @@ func _settle(outcome: Dictionary):
 ## Escape, the pad's back button or a right click: walking away - and nothing
 ## underneath (a picture, the pause menu) hears it.
 func _input(event: InputEvent):
-	if not _running or _done:
+	if not _running or _done or card_game != null:
 		return
 	var cancel: bool = event.is_action_pressed("ui_cancel") \
 		or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT)
@@ -421,7 +499,7 @@ func _input(event: InputEvent):
 
 
 func _process(delta: float):
-	if not _running or _done:
+	if not _running or _done or card_game != null:
 		return
 	# A move on the board may have made a new hint worth buying.
 	if _hint_button != null and is_instance_valid(_hint_button) and _board != null and _board.has_method("hint_available"):

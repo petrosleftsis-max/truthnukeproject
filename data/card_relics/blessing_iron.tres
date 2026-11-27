@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardRelicDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_tjp3m"]
+[ext_resource type="Script" path="res://cards/CardRelicDefinition.gd" id="2_r6nlv"]
+
+[sub_resource type="Resource" id="Resource_txbta"]
+script = ExtResource("1_tjp3m")
+kind = 8
+amount = 10
+
+[resource]
+script = ExtResource("2_r6nlv")
+name = "Blessing of Iron"
+when = 0
+effect = SubResource("Resource_txbta")
+rarity = 4
+flavour = "Given in a dream, for one run."

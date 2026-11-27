@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardCharacterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardCharacterDefinition.gd" id="1_gn8bh"]
+
+[resource]
+script = ExtResource("1_gn8bh")
+name = "Yaldabaoth"
+gate = 10
+starting_deck = Array[String](["thrust", "thrust", "thrust", "thrust", "guard", "guard", "guard", "guard", "sweep", "crushing_blow", "scan"])
+starting_relic = "gate_elemental_affinity"
+playstyle = "The demiurge: rewrites the code, makes and corrupts cards; loud.
+Cards in the hand rewritten into others, cards copied, a card corrupted to be stronger and louder (raising the trace each time it is played). High risk, a high trace. Suggested cards: one turning the hand into random cards a rarity higher, a Power copying the first card played each turn, loud cards that pay off big."

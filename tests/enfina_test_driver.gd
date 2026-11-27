@@ -45,14 +45,33 @@ func run_sections():
 	await anything_is_a_weapon()
 	await open_fight()
 	await arrest()
+	await open_fight()
+	await things_that_break()
+	await open_fight()
+	await burn_through()
+	await open_fight()
+	await breakthrough()
+	await open_fight()
+	await intercept()
+	await open_fight({"enfina": "vanguard"})
+	await firebrand()
+	await open_fight({"enfina": "warden_of_cover"})
+	await interceptor()
+	await open_fight()
+	await grab_a_friend()
+	await open_fight()
+	await weak_points_and_the_kit()
 	await close_fight()
 	await carries_them()
+	await smashing_on_a_map()
 
 
-func open_fight():
+func open_fight(paths: Dictionary = {}):
 	await close_fight()
 	Campaign.reset()
 	Campaign.set_party(["enfina", "cyrus", "prometheus", "alithia"], 64)
+	for key in paths:
+		Campaign.choose_subclass(key, paths[key])
 	Campaign.current_map = "res://maps/crossroads_explore.tscn"
 	Campaign.return_to_position = true
 	Campaign.current_encounter = load("res://data/encounters/encounter_03_watcher.tres").duplicate()
@@ -466,6 +485,376 @@ func carries_them():
 	ok(watch._carries_at_full_pace(), "she leads: at her full pace", Campaign.leader())
 	Campaign.party_order = ["cyrus", "enfina"]
 	ok(not watch._carries_at_full_pace(), "he leads: not", Campaign.leader())
+	close_map(m)
+	await settle()
+	Campaign.reset()
+	log_line("")
+
+
+## --- Through, not around (docs/proposals_2026-11-26_enfina.md, the designer's picks of 2026-11-26; Combat "Things that break") ---
+
+
+## A barrel of the TileSet's (Health 12) put on `tile` for a check, read as the map reads it.
+func put_barrel(tile: Vector2i):
+	controller.tile_map.set_cell(0, tile, 0, Vector2i(5, 2))
+	controller.retile(tile)
+	combat._breakables_read = false
+	controller.update_points_weight()
+
+
+func has_condition(comb: Dictionary, path: String) -> bool:
+	return comb.get("status_effects", []).any(func(entry): return entry.get("condition") != null and entry.condition.resource_path == path)
+
+
+func add_keg(at: Vector2i) -> Dictionary:
+	var keg: Dictionary = combat.create_combatant(load("res://data/objects/powder_keg.tres"), "powder_keg")
+	combat.add_combatant(keg, 1, at)
+	return keg
+
+
+## A damaging blow of `comb`'s that reaches a tile away, by key, or "".
+func a_blow_of(comb: Dictionary) -> String:
+	for skill_key in comb.skill_list:
+		var skill: SkillDefinition = SkillDatabase.skills.get(skill_key)
+		if skill == null or not skill.deals_damage or skill.targets_ally or skill.reaction_only or skill.spell_slot_level > 0:
+			continue
+		if skill.min_range <= 1 and skill.max_range >= 1 and skill.aoe_radius == 0:
+			return skill_key
+	return ""
+
+
+func things_that_break():
+	log_line("======== Things that break ========")
+	var enfina := who("enfina")
+	var cyrus := who("cyrus")
+	var there := open_ground(cyrus, 3)
+	ok(there != Combat.NO_AREA, "room for it", "%s" % there)
+	combat.teleport_to(cyrus, there)
+	var barrel: Vector2i = there + Vector2i(2, 0)
+	put_barrel(barrel)
+	ok(combat.breakable_health(barrel) == 12 and combat.is_breakable_tile(barrel), "a barrel has the TileSet's Health, 12", "%d" % combat.breakable_health(barrel))
+	ok(controller.is_tile_blocking(barrel, 0), "and stands in the way")
+	combat.hurt_tile(barrel, 5, cyrus)
+	ok(combat.tile_health_of(barrel) == 7 and controller.is_tile_blocking(barrel, 0), "anybody wears it down: 7 left, still standing")
+	combat.hurt_tile(barrel, 7, cyrus)
+	ok(combat.broken_tiles.has(barrel) and not combat.is_breakable_tile(barrel) and not controller.is_tile_blocking(barrel, 0),
+		"at nothing it breaks, floor now")
+	# A blow aimed at it.
+	var foe: Dictionary = foes()[0]
+	var key := a_blow_of(foe)
+	var crate: Vector2i = there + Vector2i(0, 2)
+	put_barrel(crate)
+	ok(not combat._aim_blocked(crate, 0), "what breaks can be aimed at")
+	if key != "" and combat.can_land_on(foe, crate + Vector2i.LEFT):
+		combat.teleport_to(foe, crate + Vector2i.LEFT)
+		await their_turn(foe)
+		await combat.use_skill(key, foe, crate, false)
+		await settle(4)
+		ok(combat.tile_health_of(crate) < 12 or combat.broken_tiles.has(crate), "a blow aimed at it wears it down", "%s: %d" % [key, combat.tile_health_of(crate)])
+	# Enfina breaks it outright, whatever its Health (Breaker).
+	var third: Vector2i = there + Vector2i(-2, 0)
+	put_barrel(third)
+	combat.hurt_tile(third, 1, enfina)
+	ok(combat.broken_tiles.has(third), "Enfina breaks it with any blow at all (Breaker)")
+	var spot := open_ground(enfina, 2)
+	combat.teleport_to(enfina, spot)
+	var keg := add_keg(spot + Vector2i(0, 2))
+	await settle()
+	combat.do_damage(enfina, keg, Combat._splinter_effect(), SkillDatabase.skills.greatsword_attack, false, 0.01)
+	await settle()
+	ok(not keg.alive, "and a Powder Keg goes in one blow of hers, however light")
+	log_line("")
+
+
+func burn_through():
+	log_line("======== Burn Through and Splinters ========")
+	var enfina := who("enfina")
+	var there := open_ground(enfina, 3)
+	combat.teleport_to(enfina, there)
+	var barrel: Vector2i = there + Vector2i(1, 0)
+	put_barrel(barrel)
+	await their_turn(enfina)
+	ok(not combat.bursts_for(enfina).has(barrel), "not burning, a barrel stops her")
+	await light_her(enfina)
+	controller.update_points_weight()
+	ok(combat.bursts_for(enfina).has(barrel), "burning, she goes straight through it")
+	ok(controller.get_reachable_tiles(enfina.position, 0, 6, enfina).has(barrel), "  somewhere she can walk to")
+	var foe: Dictionary = foes()[0]
+	combat.teleport_to(foe, barrel + Vector2i(0, 1))
+	var foe_hp: int = foe.hp
+	enfina.position = barrel
+	combat.burst_through(enfina, barrel, Vector2i.RIGHT)
+	controller.refresh_occupancy()
+	await settle()
+	ok(combat.broken_tiles.has(barrel), "she bursts through it")
+	ok(foe.hp < foe_hp and has_condition(foe, Combat.EXPOSED_CONDITION), "splinters: the one beside it hurt and Exposed", "%d to %d" % [foe_hp, foe.hp])
+	# A keg in her way goes off, on her too.
+	var keg := add_keg(enfina.position + Vector2i(1, 0))
+	await settle()
+	var hers: int = enfina.hp
+	ok(combat.bursts_for(enfina).has(keg.position), "a keg she can burst through too")
+	var at: Vector2i = keg.position
+	enfina.position = at
+	combat.burst_through(enfina, at, Vector2i.RIGHT)
+	controller.refresh_occupancy()
+	await settle(3)
+	ok(not keg.alive and enfina.hp < hers, "it goes off as she comes to it, and catches her", "%d to %d" % [hers, enfina.hp])
+	# Shoulder Through: a smaller foe of the other side, shoved aside, hurt once a turn.
+	foe["size"] = Sizes.Size.SMALL
+	if combat.can_land_on(foe, enfina.position + Vector2i(1, 0)):
+		combat.teleport_to(foe, enfina.position + Vector2i(1, 0))
+	await settle()
+	ok(not combat.shouldered_at(enfina, foe.position).is_empty(), "burning, she walks through somebody smaller of the other side")
+	var spot: Vector2i = foe.position
+	var hp: int = foe.hp
+	enfina.position = spot
+	combat.burst_through(enfina, spot, Vector2i.RIGHT)
+	controller.refresh_occupancy()
+	await settle()
+	ok(foe.position != spot and foe.hp < hp, "shouldered aside, with a bit of damage", "%d to %d" % [hp, foe.hp])
+	var after: int = foe.hp
+	enfina.position = foe.position
+	combat.burst_through(enfina, foe.position, Vector2i.RIGHT)
+	controller.refresh_occupancy()
+	await settle()
+	ok(foe.hp == after, "  hurt only once a turn")
+	foe["size"] = Sizes.Size.HUMAN
+	log_line("")
+
+
+## A tile with `length` free tiles to its right, and free tiles above and below each of them, for a charge along a row.
+func open_row(probe: Dictionary, length: int) -> Vector2i:
+	var region: Rect2i = controller._astargrid.region
+	for y in range(region.position.y + 1, region.end.y - 1):
+		for x in range(region.position.x, region.end.x - length):
+			var tile := Vector2i(x, y)
+			var clear := true
+			for step in range(0, length + 1):
+				for side in [-1, 0, 1]:
+					var near := tile + Vector2i(step, side)
+					if not controller.is_on_map(near) or not combat.can_land_on(probe, near):
+						clear = false
+			if clear:
+				return tile
+	return Combat.NO_AREA
+
+
+func breakthrough():
+	log_line("======== Breakthrough ========")
+	var enfina := who("enfina")
+	var there := open_row(enfina, 5)
+	ok(there != Combat.NO_AREA, "room for it", "%s" % there)
+	combat.teleport_to(enfina, there)
+	var foe: Dictionary = foes()[0]
+	combat.teleport_to(foe, there + Vector2i(2, 0))
+	put_barrel(there + Vector2i(3, 0))
+	await light_her(enfina)
+	await their_turn(enfina)
+	var charge: SkillDefinition = SkillDatabase.skills.breakthrough
+	ok(combat.refusal_for(enfina, charge, there + Vector2i(2, 1)) != "", "only in a straight line")
+	ok(combat.get_range_tiles(charge, enfina.position, 0, enfina).has(there + Vector2i(4, 0)), "as far as she walks, through what she can smash")
+	var hp: int = foe.hp
+	await combat.use_skill("breakthrough", enfina, there + Vector2i(4, 0), false)
+	await settle(5)
+	ok(enfina.position == there + Vector2i(4, 0), "the charge carries her the whole way", "%s" % enfina.position)
+	ok(foe.position.y != there.y and foe.hp < hp, "the one in the way driven aside and hurt", "%s, %d to %d" % [foe.position, hp, foe.hp])
+	ok(combat.broken_tiles.has(there + Vector2i(3, 0)), "the barrel in the way smashed")
+	var lit: Array = []
+	for zone in combat.zones:
+		if zone.has("blazed_by"):
+			lit.append_array(zone.tiles)
+	ok(lit.has(there + Vector2i(1, 1)) and lit.has(there + Vector2i(1, -1)) and lit.has(there + Vector2i(1, 0)), "burning, the way stays alight a tile wider each side")
+	# Somebody bigger stops her.
+	var start: Vector2i = enfina.position
+	var big: Dictionary = foes()[0]
+	big["size"] = Sizes.Size.LARGE
+	if combat.can_land_on(big, start + Vector2i(-2, 0)):
+		combat.teleport_to(big, start + Vector2i(-2, 0))
+		enfina.skill_used_this_turn = false
+		var big_hp: int = big.hp
+		await combat.use_skill("breakthrough", enfina, start + Vector2i(-4, 0), false)
+		await settle(5)
+		ok(enfina.position == start + Vector2i(-1, 0) and big.hp < big_hp, "somebody bigger stops her beside them, and takes the blow", "%s" % enfina.position)
+	big["size"] = Sizes.Size.HUMAN
+	log_line("")
+
+
+func intercept():
+	log_line("======== Intercept ========")
+	var enfina := who("enfina")
+	var cyrus := who("cyrus")
+	var foe: Dictionary = foes()[0]
+	var there := open_ground(enfina, 3)
+	combat.teleport_to(enfina, there)
+	combat.teleport_to(cyrus, there + Vector2i(2, 0))
+	combat.teleport_to(foe, there + Vector2i(3, 0))
+	var step_in: SkillDefinition = SkillDatabase.skills.step_in
+	ok(combat.intercept_reach(enfina) == 0 and combat._reaction_target(enfina, step_in, foe, cyrus).is_empty(), "not burning, two tiles is too far")
+	await light_her(enfina)
+	ok(combat.intercept_reach(enfina) == 2 and not combat._reaction_target(enfina, step_in, foe, cyrus).is_empty(), "burning, Step In reaches him")
+	enfina.reaction_used = false
+	_answering = true
+	_saying_yes = true
+	_keep_answering()
+	var his: int = cyrus.hp
+	var hers: int = enfina.hp
+	await their_turn(foe)
+	await combat.use_skill("greatsword_attack", foe, cyrus.position, false)
+	await settle(5)
+	_answering = false
+	await settle()
+	ok(cyrus.hp == his and enfina.hp < hers, "she runs to him and takes it", "%d, %d to %d" % [cyrus.hp, hers, enfina.hp])
+	ok(combat.rect_gap(combat.rect_of(enfina), combat.rect_of(cyrus)) <= 1, "  beside him now")
+	ok(int(enfina.get("walk_owed", 0)) == 1, "  a tile of her next walk owed")
+	var full := int(combat.get_effective_stat(enfina, "movement")) + combat.blazed_path_bonus(enfina)
+	await their_turn(enfina)
+	ok(controller.movement == full - 1, "  paid as her turn begins", "%d of %d" % [controller.movement, full])
+	log_line("")
+
+
+## The Vanguard's Firebrand (2026-11-27): whoever Breakthrough drives aside catches fire, and so does anybody of the other side
+## her splinters hit. Not burning herself, so Adrenaline (which sets alight only while she burns) cannot be what lit them.
+func firebrand():
+	log_line("======== Firebrand (Vanguard) ========")
+	const BURN := "res://data/conditions/burn.tres"
+	var enfina := who("enfina")
+	ok(combat._has_passive_switch(enfina, &"firebrand") and not enfina.skill_list.has("daunting_roar"), "a Vanguard has Firebrand, and no Daunting Roar")
+	var there := open_row(enfina, 5)
+	ok(there != Combat.NO_AREA, "room for it", "%s" % there)
+	combat.teleport_to(enfina, there)
+	var the_foes := foes()
+	var driven: Dictionary = the_foes[0]
+	var beside_it: Dictionary = the_foes[1]
+	combat.teleport_to(driven, there + Vector2i(1, 0))
+	put_barrel(there + Vector2i(3, 0))
+	combat.teleport_to(beside_it, there + Vector2i(3, 1))
+	for foe in [driven, beside_it]:
+		foe.status_effects = foe.status_effects.filter(func(entry): return entry.get("condition") == null or entry.condition.resource_path != BURN)
+		foe.hp = 9999
+		foe.max_hp = 9999
+	await their_turn(enfina)
+	ok(combat.burn_turns_of(enfina) <= 0, "  she is not burning")
+	await combat.use_skill("breakthrough", enfina, there + Vector2i(4, 0), false)
+	await settle(5)
+	ok(driven.position.y != there.y and has_condition(driven, BURN), "the one she drove aside is burning", "%s" % driven.position)
+	ok(combat.broken_tiles.has(there + Vector2i(3, 0)) and has_condition(beside_it, BURN), "and so is the one her splinters hit beside the barrel")
+	log_line("")
+
+
+## The Warden of Cover's Interceptor, reworked (2026-11-27): Step In reaches 3 tiles, burning or not, and costs her no walk.
+func interceptor():
+	log_line("======== Interceptor (Warden of Cover) ========")
+	var enfina := who("enfina")
+	var cyrus := who("cyrus")
+	var foe: Dictionary = foes()[0]
+	var there := open_row(enfina, 5)
+	ok(there != Combat.NO_AREA, "room for it", "%s" % there)
+	combat.teleport_to(enfina, there)
+	combat.teleport_to(cyrus, there + Vector2i(3, 0))
+	combat.teleport_to(foe, there + Vector2i(4, 0))
+	var step_in: SkillDefinition = SkillDatabase.skills.step_in
+	ok(combat.burn_turns_of(enfina) <= 0 and combat.intercept_reach(enfina) == 3 and not combat._reaction_target(enfina, step_in, foe, cyrus).is_empty(),
+		"not burning, Step In reaches him 3 tiles off", "%d" % combat.intercept_reach(enfina))
+	ok(enfina.skill_list.has("daunting_roar"), "and Daunting Roar is hers")
+	enfina.reaction_used = false
+	_answering = true
+	_saying_yes = true
+	_keep_answering()
+	var his: int = cyrus.hp
+	var hers: int = enfina.hp
+	await their_turn(foe)
+	await combat.use_skill("greatsword_attack", foe, cyrus.position, false)
+	await settle(5)
+	_answering = false
+	await settle()
+	ok(cyrus.hp == his and enfina.hp < hers, "she runs to him and takes it", "%d, %d to %d" % [cyrus.hp, hers, enfina.hp])
+	ok(int(enfina.get("walk_owed", 0)) == 0, "  and owes none of her next walk")
+	log_line("")
+
+
+func grab_a_friend():
+	log_line("======== Grab, on a friend ========")
+	var enfina := who("enfina")
+	var cyrus := who("cyrus")
+	var grab: SkillDefinition = SkillDatabase.skills.grab
+	var there := open_ground(enfina, 2)
+	combat.teleport_to(enfina, there)
+	combat.teleport_to(cyrus, there + Vector2i.RIGHT)
+	await their_turn(enfina)
+	ok(grab.is_secondary, "Grab is a secondary action")
+	ok(combat.wins_contest(enfina, cyrus, grab), "a friend is always taken hold of")
+	controller.set_selected_skill("grab")
+	ok(controller.is_valid_skill_target(cyrus), "and can be aimed at")
+	await combat.use_skill("grab", enfina, cyrus.position, false, true)
+	await settle()
+	ok(combat.is_held(cyrus) and combat.holder_of(cyrus).get("id", -1) == enfina.id, "she has hold of him")
+	ok(combat.drag_cost(enfina) == 1, "on his feet, he costs her nothing to carry")
+	var stun: ConditionDefinition = load("res://data/conditions/stunned.tres")
+	combat.put_condition(cyrus, stun, 2, "test", false)
+	ok(combat.drag_cost(enfina) == 2, "stunned, he is dead weight", "%d" % combat.drag_cost(enfina))
+	cyrus.status_effects = cyrus.status_effects.filter(func(entry): return entry.get("condition") != stun)
+	combat._turn_begins_for(cyrus)
+	ok(not combat.is_held(cyrus), "set down as his own turn begins")
+	log_line("")
+
+
+func weak_points_and_the_kit():
+	log_line("======== Weak Points, and her kit ========")
+	var enfina := who("enfina")
+	var cyrus := who("cyrus")
+	var there := open_ground(enfina, 3)
+	combat.teleport_to(enfina, there)
+	put_barrel(there + Vector2i(2, 0))
+	var keg := add_keg(there + Vector2i(0, 2))
+	await settle()
+	await their_turn(enfina)
+	ok(combat.weak_points_shown(), "on her turn she sees weak points")
+	ok(combat.weak_point_tiles().has(there + Vector2i(2, 0)) and combat.goes_off_tiles().has(keg.position), "what breaks, and what goes off")
+	await their_turn(cyrus)
+	ok(not combat.weak_points_shown(), "  not on anybody else's")
+	ok(not combat.active_passives(enfina).any(func(passive): return passive.still_damage_bonus > 0.0), "Momentum (Planted) is out of her kit")
+	var caught: EffectDefinition = SkillDatabase.skills.blazed_path.effects[0]
+	ok(caught.condition_duration == 5 and is_equal_approx(caught.condition_dot_modifier, 0.4), "Blazed Path burns the other side longer and harder: 5 turns at 0.4")
+	ok(enfina.skill_list.has("breakthrough"), "Breakthrough is hers")
+	log_line("")
+
+
+func smashing_on_a_map():
+	log_line("======== Smashing things on a map ========")
+	var m := await open_map()
+	Campaign.set_party(["enfina", "cyrus"], 64)
+	var scene: ExplorationScene = m.scene
+	var tile_map: TileMap = m.tile_map
+	var near: Vector2i = tile_map.local_to_map(tile_map.to_local(scene.party_position()))
+	var spot := Vector2i(-99999, -99999)
+	for reach in range(2, 6):
+		for way in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]:
+			var tile: Vector2i = near + way * reach
+			if spot.x == -99999 and scene.is_walkable(tile_map.map_to_local(tile)):
+				spot = tile
+	ok(spot.x != -99999, "a spot of floor near the party", "%s" % spot)
+	if spot.x == -99999:
+		close_map(m)
+		return
+	tile_map.set_cell(0, spot, 0, Vector2i(5, 2))
+	scene._build_blocking()
+	scene.map_sight().retile(spot)
+	ok(not scene.is_walkable(tile_map.map_to_local(spot)) and scene.things_on([spot]) == [spot], "a barrel on the map stands in the way, and breaks")
+	ok(OutsideMoves.smashes_things("enfina") and not OutsideMoves.smashes_things("cyrus"), "out here it is hers to smash")
+	scene.break_thing(spot)
+	await settle()
+	ok(scene.is_walkable(tile_map.map_to_local(spot)) and Campaign.flag(ExplorationScene.BROKEN_THING_FLAG % [scene.map_path(), spot.x, spot.y]),
+		"smashed: floor now, and kept in the flags")
+	ok(not scene.map_sight().stops_sight(spot), "  and seen across")
+	# Kept broken as the map loads again.
+	var other: Vector2i = spot + Vector2i(1, 0) if scene.is_walkable(tile_map.map_to_local(spot + Vector2i(1, 0))) else spot + Vector2i(0, 1)
+	tile_map.set_cell(0, other, 0, Vector2i(5, 2))
+	Campaign.set_flag(ExplorationScene.BROKEN_THING_FLAG % [scene.map_path(), other.x, other.y])
+	scene._apply_broken_things()
+	ok(Combat.health_on(tile_map, other) == 0, "what was smashed before is smashed again as the map loads")
+	ok(scene.party_sees_weak_points(), "with her in the party, what breaks near them is marked")
+	Campaign.set_party(["cyrus", "alithia"], 64)
+	ok(not scene.party_sees_weak_points(), "  and without her, not")
 	close_map(m)
 	await settle()
 	Campaign.reset()

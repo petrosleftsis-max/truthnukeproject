@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_ojou1"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_8k60c"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="2_dc7yw"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_qfgik"]
+
+[sub_resource type="Resource" id="Resource_8k60c"]
+script = ExtResource("1_ojou1")
+name = "Slash"
+damage = 11
+weight = 3
+
+[sub_resource type="Resource" id="Resource_qfgik"]
+script = ExtResource("1_ojou1")
+name = "Shield Bash"
+damage = 6
+block = 6
+weight = 2
+not_twice_running = true
+
+[sub_resource type="Resource" id="Resource_hvmje"]
+script = ExtResource("1_ojou1")
+name = "Taunt"
+apply_status = &"exposed"
+apply_amount = 2
+
+[sub_resource type="Resource" id="Resource_tr1wg"]
+script = ExtResource("3_qfgik")
+when = 3
+number = 10
+move = "Taunt"
+from_tier = 1
+
+[resource]
+script = ExtResource("2_dc7yw")
+name = "Sellsword"
+max_hp_least = 30
+max_hp_most = 34
+moves = Array[ExtResource("1_ojou1")]([SubResource("Resource_8k60c"), SubResource("Resource_qfgik"), SubResource("Resource_hvmje")])
+borrow_picture_from = "sellsword"
+rules = Array[ExtResource("3_qfgik")]([SubResource("Resource_tr1wg")])

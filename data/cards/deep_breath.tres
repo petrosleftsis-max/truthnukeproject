@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_svbnv"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_3tynl"]
+
+[sub_resource type="Resource" id="Resource_rmacs"]
+script = ExtResource("1_svbnv")
+kind = 3
+amount = 2
+upgraded_amount = 3
+
+[sub_resource type="Resource" id="Resource_em2hd"]
+script = ExtResource("1_svbnv")
+kind = 2
+amount = 2
+upgraded_amount = 2
+struck = true
+
+[resource]
+script = ExtResource("2_3tynl")
+name = "Deep Breath"
+type = 1
+rarity = 3
+cost = 0
+target = 2
+effects = Array[ExtResource("1_svbnv")]([SubResource("Resource_rmacs"), SubResource("Resource_em2hd")])
+exhausts = true

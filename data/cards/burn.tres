@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_60v1e"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_0rrdr"]
+
+[resource]
+script = ExtResource("2_0rrdr")
+name = "Burn"
+type = 3
+rarity = 0
+cost = 0
+target = 2
+unplayable = true
+burns = 2
+flavour = "It is still burning."

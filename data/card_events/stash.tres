@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_f050w"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_530gp"]
+
+[sub_resource type="Resource" id="Resource_tnuhi"]
+script = ExtResource("1_f050w")
+label = "Take the gold (60 gold; trace +5)"
+outcome = "You empty it."
+gold = 60
+trace = 5
+
+[sub_resource type="Resource" id="Resource_npq3a"]
+script = ExtResource("1_f050w")
+label = "Take a card"
+outcome = "One of them is worth keeping."
+action = 1
+
+[sub_resource type="Resource" id="Resource_8j7ie"]
+script = ExtResource("1_f050w")
+label = "Wipe it, leaving no trace (trace -10)"
+outcome = "Nothing was ever here."
+trace = -10
+
+[resource]
+script = ExtResource("2_530gp")
+title = "A Stash"
+text = "A hidden partition, full of what someone hid from the system."
+options = Array[ExtResource("1_f050w")]([SubResource("Resource_tnuhi"), SubResource("Resource_npq3a"), SubResource("Resource_8j7ie")])

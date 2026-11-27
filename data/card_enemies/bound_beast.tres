@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_wu7pg"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_081wq"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_yp4vf"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_vpw4k"]
+
+[sub_resource type="Resource" id="Resource_n6u07"]
+script = ExtResource("1_wu7pg")
+name = "Thrash"
+damage = 5
+hits = 3
+weight = 2
+
+[sub_resource type="Resource" id="Resource_u2goq"]
+script = ExtResource("1_wu7pg")
+name = "Maul"
+damage = 15
+weight = 2
+adds_card = "wound"
+adds_to = 1
+
+[sub_resource type="Resource" id="Resource_koqti"]
+script = ExtResource("1_wu7pg")
+name = "Howl"
+block = 10
+gain_status = &"might"
+gain_amount = 2
+not_twice_running = true
+
+[sub_resource type="Resource" id="Resource_eaycu"]
+script = ExtResource("1_wu7pg")
+name = "Rend"
+damage = 9
+apply_status = &"exposed"
+apply_amount = 2
+weight = 2
+
+[resource]
+script = ExtResource("4_vpw4k")
+name = "Bound Beast"
+max_hp_least = 90
+max_hp_most = 96
+moves = Array[ExtResource("1_wu7pg")]([SubResource("Resource_n6u07"), SubResource("Resource_u2goq"), SubResource("Resource_koqti"), SubResource("Resource_eaycu")])
+starting_statuses = {
+"reactive": 1
+}
+borrow_picture_from = "bound_beast"

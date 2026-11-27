@@ -23,12 +23,10 @@ const MAP := {
 	"Enfina|Iron Hide II": ["iron_hide_ii", 0, "passive"],
 	"Enfina|Disarm": ["disarm", 0, "skill"],
 	"Enfina|Double Strike": ["follow_up_attack", 0, "skill"],
-	"Enfina|Momentum I": ["momentum", 0, "passive"],
 	"Enfina|Short Stun": ["stunning_blow", 0, "skill"],
 	"Enfina|AOE Sweep": ["sweep_strike", 0, "skill"],
 	"Enfina|Bulwark III": ["bulwark_iii", 0, "passive"],
 	"Enfina|Ultimate Smash": ["greatsword_attack", 64, "skill"],
-	"Enfina|Momentum II": ["momentum_ii", 0, "passive"],
 	"Cyrus|Basic Shot": ["gun", 0, "skill"],
 	"Cyrus|Poison Strike": ["poison_dart", 0, "skill"],
 	"Cyrus|Agile": ["agile", 0, "passive"],
@@ -369,40 +367,37 @@ func the_switches():
 	ok(radiant and is_equal_approx(combat.damage_reduction_of(enfina), 0.2),
 		"Enfina takes a tenth less (Iron Hide I; the old rank I went into her heavy armour, 2026-11-19) and a tenth more less while Alithia stands (Radiant Guardian)", "%.2f" % combat.damage_reduction_of(enfina))
 
-	# Momentum.
+	# Momentum ("Planted") is out of her kit (the designer, 2026-11-26: "Take planted out"): standing still is worth nothing more.
 	enfina.erase("moved_this_turn")
 	foe.status_effects.clear()
-	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sword), 1.15), "planted, she hits fifteen hundredths harder (Momentum I and II)",
+	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sword), 1.0), "planted, she hits no harder than after a walk (Momentum taken out)",
 		"%.2f" % combat.progression_damage_bonus(enfina, foe, sword))
-	enfina["moved_this_turn"] = true
-	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sword), 1.0), "and not after a walk")
-	# Sweep Strike too (docs/handoff_0.1/finisher_removal_momentum_synergy.md):
-	# Momentum is on every blow of a turn not walked, the whole sweep included.
+	ok(not combat.active_passives(enfina).any(func(p): return p.still_damage_bonus > 0.0), "  she has no Momentum")
+	# Sweep Strike: its own x1.4 at 54 and 64, planted or not (it was x1.54 and x1.61 planted with Momentum I and II).
 	var sweep: SkillDefinition = SkillDatabase.skills["sweep_strike"]
 	enfina.erase("moved_this_turn")
 	enfina.level = 54
-	ok(is_equal_approx(Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep), 1.54),
-		"at 54, planted, Sweep Strike lands x1.54 (Momentum I)", "x%.2f" % (Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep)))
+	ok(is_equal_approx(Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep), 1.4),
+		"at 54, planted, Sweep Strike lands x1.4", "x%.2f" % (Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep)))
 	enfina.level = 64
-	ok(is_equal_approx(Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep), 1.61),
-		"at 64, x1.61: Momentum I's tenth and II's twentieth", "x%.2f" % (Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep)))
-	enfina["moved_this_turn"] = true
-	ok(is_equal_approx(combat.progression_damage_bonus(enfina, foe, sweep), 1.0), "  and nothing more after a walk")
+	ok(is_equal_approx(Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep), 1.4),
+		"at 64, x1.4 too", "x%.2f" % (Combat.modifier_of(enfina, sweep) * combat.progression_damage_bonus(enfina, foe, sweep)))
 
 	# Ranks of a passive (the designer, 2026-10-25): each rank adds to the ones
 	# before, and the sheet shows only the highest unlocked, with the totals.
-	var momentum: PassiveDefinition = load("res://data/passives/momentum.tres")
-	var momentum_ii: PassiveDefinition = load("res://data/passives/momentum_ii.tres")
-	ok(Combat.passive_family(momentum) == "Momentum" and Combat.passive_family(momentum_ii) == "Momentum"
-		and Combat.passive_rank(momentum_ii) == 2, "Momentum I and II are one passive in two ranks")
-	# In numbers, as Output Efficiency (the designer, 2026-11-17).
-	ok(is_equal_approx(momentum.still_damage_bonus + momentum_ii.still_damage_bonus, 0.15) and momentum_ii.description.contains("+15% Output Efficiency"),
-		"  II adds 5% to I's 10%, and says +15% Output Efficiency in all")
+	# Shown on Cyrus's Contest Insight since Momentum, the example this was written on, left the game (2026-11-26).
+	var insight: PassiveDefinition = load("res://data/passives/contest_insight.tres")
+	var insight_ii: PassiveDefinition = load("res://data/passives/contest_insight_ii.tres")
+	ok(Combat.passive_family(insight) == "Contest Insight" and Combat.passive_family(insight_ii) == "Contest Insight"
+		and Combat.passive_rank(insight_ii) == 2, "Contest Insight I and II are one passive in two ranks")
+	# In numbers (the designer, 2026-11-17).
+	ok(insight.contest_bonus == 10 and insight_ii.contest_bonus_vs_afflicted == 10 and insight_ii.description.contains("+20 against"),
+		"  II adds 10 against the afflicted to I's 10, and says +20 in all")
 	var bulwark: PassiveDefinition = load("res://data/passives/bulwark.tres")
-	var families := CharacterSheet.passive_families([momentum, bulwark, momentum_ii])
-	ok(families.size() == 2 and families[0] == [momentum, momentum_ii], "the sheet gathers Momentum into one")
-	ok(CharacterSheet.shown_rank(families[0], 32) == momentum and CharacterSheet.shown_rank(families[0], 64) == momentum_ii
-		and CharacterSheet.shown_rank(families[0], 8) == momentum, "  and shows only the highest unlocked: I at 32, II at 64")
+	var families := CharacterSheet.passive_families([insight, bulwark, insight_ii])
+	ok(families.size() == 2 and families[0] == [insight, insight_ii], "the sheet gathers Contest Insight into one")
+	ok(CharacterSheet.shown_rank(families[0], 24) == insight and CharacterSheet.shown_rank(families[0], 41) == insight_ii
+		and CharacterSheet.shown_rank(families[0], 8) == insight, "  and shows only the highest unlocked: I at 24, II at 41")
 	var iron: Array = [load("res://data/passives/iron_hide.tres"), load("res://data/passives/iron_hide_ii.tres")]
 	ok(is_equal_approx(iron[0].damage_reduction + iron[1].damage_reduction, 0.1) and iron[1].description.contains("10% Damage Mitigation"),
 		"Iron Hide II: nothing more on I's tenth, said as 10% Damage Mitigation (the old Iron Hide I is in her heavy armour, 2026-11-19)")

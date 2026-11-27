@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_m2dss"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_3gkdl"]
+
+[resource]
+script = ExtResource("2_3gkdl")
+name = "Wound"
+type = 3
+rarity = 0
+cost = 0
+target = 2
+unplayable = true
+flavour = "A cut that slows the hand."

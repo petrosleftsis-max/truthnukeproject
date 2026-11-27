@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_0afrd"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_yb21c"]
+
+[resource]
+script = ExtResource("2_yb21c")
+name = "Slimed"
+type = 3
+rarity = 0
+target = 2
+exhausts = true
+flavour = "Sticky, and in the way."

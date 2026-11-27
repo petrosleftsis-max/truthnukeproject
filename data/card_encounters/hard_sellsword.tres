@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="CardEncounterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEncounterDefinition.gd" id="1_bwetb"]
+
+[resource]
+script = ExtResource("1_bwetb")
+tier = 1
+enemies = Array[String](["sellsword"])

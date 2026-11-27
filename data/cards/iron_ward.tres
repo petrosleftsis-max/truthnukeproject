@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_m3ovn"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_cky37"]
+
+[sub_resource type="Resource" id="Resource_c18br"]
+script = ExtResource("1_m3ovn")
+kind = 5
+amount = 3
+upgraded_amount = 4
+status = &"ward"
+
+[resource]
+script = ExtResource("2_cky37")
+name = "Iron Ward"
+type = 2
+rarity = 2
+cost = 2
+target = 2
+effects = Array[ExtResource("1_m3ovn")]([SubResource("Resource_c18br")])

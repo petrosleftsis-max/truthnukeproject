@@ -1,6 +1,6 @@
 # Messengers of Truth: the four player characters
 
-Who Cyrus, Prometheus, Enfina and Alithia are, what they are like, and what they can do, in the story and in play. The game is a grid tactical RPG in development, and this describes it as of 7 November 2026.
+Who Cyrus, Prometheus, Enfina and Alithia are, what they are like, and what they can do, in the story and in play. The game is a grid tactical RPG in development, and this describes it as of 7 November 2026 (Enfina's abilities and paths as of 27 November 2026).
 
 **If you are an AI reading this:** this is a briefing from the game's designer, for thinking and writing about these characters. Keep to what it says. Much of the story is undecided, and each character has a list of what has not been said yet. Treat those as open: ask, or offer ideas labelled as ideas, and do not state them as facts.
 
@@ -358,7 +358,7 @@ Short sentences, often one line. Little or no decoration, and no explaining hers
 
 - **Trailblaze** (4; secondary): "Blaze your way through." She sets herself alight for five turns: it hurts every turn, and she moves two tiles further.
 - **Guard** (1): stays on her guard, defence up until her next turn.
-- **Grab** (1; Physical against Physical; also a reaction): holds somebody her size, smaller, or one size bigger. As a reaction, she drags them back as they try to leave.
+- **Grab** (1; **secondary**; Physical against Physical; also a reaction): holds somebody her size, smaller, or one size bigger. As a reaction, she drags them back as they try to leave. An ally is always taken hold of and carried along wherever she walks, at no cost to her unless they are stunned, and set down as their own turn begins.
 - **Hurl** (1; x1.0): throws somebody. Throw them into somebody else and both are hurt.
 - **Climb** (1): climbs onto something Monstrous or bigger and fights it from on top. It will try to throw her off.
 - **Study** (1; secondary): takes the measure of an enemy.
@@ -370,9 +370,8 @@ Short sentences, often one line. Little or no decoration, and no explaining hers
 - **Measured Eye:** every blow she lands studies whoever it hits, opening their sheet to the party and sharpening her next blows.
 - **Iron Hide** (1, 16, 41): takes less damage from everything. From 41, half of any hit on an ally beside her is hers instead.
 - **Bulwark** (8, 54): allies beside her take less, and from 54 her guard reaches two tiles.
-- **Momentum** (32, 64): hits harder on a turn she has not walked.
 
-**On a map:** she can break breakable walls, which only she and spells or items can do.
+**On a map:** she can break breakable walls, which only she and spells or items can do, and she smashes barrels and crates with any move, for good, loudly enough for guards to hear.
 
 **New** (7 November 2026)
 
@@ -397,17 +396,29 @@ Short sentences, often one line. Little or no decoration, and no explaining hers
 - **Arrest:** a contested order on somebody whose nerve is nearly gone. They surrender and can be questioned afterwards.
 - **Carries Them** (on a map): she drags a body or a fallen ally at full pace.
 
+*Through, not around* (**New**, 26 November 2026). The designer's direction: she is a mobile vanguard, and "Cyrus gets around obstacles by finding ways around them. Enfina gets around obstacles by moving straight through them." Barrels and crates now have health: anybody can wear one down, and she breaks them at once.
+
+- **Breaker** (1): any blow of hers breaks whatever can be broken at once, a barrel, a keg, a cracked wall.
+- **Weak Points** (1): on her turn the board marks what breaks, and what goes off.
+- **Burn Through** (4): while burning, she walks straight through anything breakable; it breaks as she comes to it, and a keg goes off on her.
+- **Splinters** (16): what she bursts through hits everybody beside it a little and leaves them exposed for a turn.
+- **Breakthrough** (16): a charge in a straight line as far as she walks. Anybody her size or smaller is driven aside and hurt; somebody bigger stops her and takes the whole blow. Burning, the way stays alight three tiles wide.
+- **Shoulder Through** (24): while burning, she walks through smaller enemies, shoving each aside with a little hurt.
+- **Intercept** (24): while burning, Step In reaches an ally two tiles away. She runs to them and takes the blow.
+- **Blazed Path** now burns foes who step on it longer and harder. Her old **Momentum** (hitting harder on a turn she has not walked) was taken out: standing still is no longer her thing.
+
 ### Paths (level 24)
 
-- **Vanguard.** "The charge. Enfina burns, runs at them and does not stop: harder after a charge, through everything that would hold her, and on from one fallen to the next." Adrenaline (while burning, her hits deal 30% more and spread the fire), Leading Charge, Daunting Roar, Unstoppable, and at 64 Rampage.
-- **Juggernaut.** "The immovable. Enfina drags them in, cuts their legs from under them and pins them where they stand - and nothing moves her." Chain Hook, Hamstring, Pin Down, Immovable, and at 64 Tremor.
-- **Warden of Cover.** "The protector. Enfina stands between her friends and harm - frightening it back, guarding them as she guards herself, and taking what gets through." Shield Bash, Covering Stance, Hold the Line, Interceptor, and at 64 Last Wall: while she stands, no blow fells an ally within two tiles. It stops at 1 health, and the rest lands on her.
+- **Vanguard.** "The charge. Enfina burns, runs at them and does not stop: harder after a charge, setting alight whoever she drives aside, through everything that would hold her, and on from one fallen to the next." Adrenaline (while burning, her hits deal 30% more and spread the fire), Leading Charge, **Firebrand** (41: whoever her Breakthrough drives aside catches fire, and so do the foes her splinters hit), Unstoppable, and at 64 Rampage.
+- **Juggernaut.** "The immovable. Enfina drags them in, cuts their legs from under them and pins them where they stand - and nothing moves her." Chain Hook, Hamstring, Pin Down, Immovable, and at 64 Tremor. **Open:** the designer does not want the Juggernaut to be about her being immovable, and is rethinking what it is.
+- **Warden of Cover.** "The protector. Enfina stands between her friends and harm - frightening it back, running to them when it comes, guarding them as she guards herself, and taking what gets through." Shield Bash, Covering Stance, Hold the Line, **Daunting Roar** (41: a roar that hurts those in front of her and stops them coming closer), **Interceptor** (54: her Step In reaches an ally 3 tiles away, burning or not, for free), and at 64 Last Wall: while she stands, no blow fells an ally within two tiles. It stops at 1 health, and the rest lands on her.
 
 ### Where the story and the play meet
 
 - "She raises it for everyone else" is written all over her kit: Iron Hide takes half of a hit on an ally, Bulwark shelters them, and Last Wall takes the killing blow.
 - "Trained and studied": every blow she lands studies its target. She learns you by fighting you.
 - "I'll carve a path ahead" is what Trailblaze says, and what Blazed Path does.
+- The designer's direction (26 November 2026): she believes she has to become an imposing warrior like Theron, but her real strength is reaching people, protecting them and making openings. Her Intellect is for reading the field, not people: she is not social or manipulative. Breakthrough, Intercept and Grab carrying an ally are that strength in play.
 - *Reading:* nobody gives her a rank, so her reward in play is only that everybody else is still standing. Setting herself on fire to be faster is a very exact picture of a person who has decided her own cost does not count.
 
 ---

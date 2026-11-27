@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_rpg74"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_50qvp"]
+
+[sub_resource type="Resource" id="Resource_qfqyi"]
+script = ExtResource("1_rpg74")
+label = "Take it (a code fragment; trace +10)"
+outcome = "It fits nowhere in your deck yet. But it is a piece of something."
+trace = 10
+fragment = true
+
+[sub_resource type="Resource" id="Resource_26jyy"]
+script = ExtResource("1_rpg74")
+label = "Leave it be (trace -5)"
+outcome = "You leave no mark on it."
+trace = -5
+
+[resource]
+script = ExtResource("2_50qvp")
+title = "A Memento"
+text = "Something kept, wrapped in a loop of its own: a piece of another gate's code."
+options = Array[ExtResource("1_rpg74")]([SubResource("Resource_qfqyi"), SubResource("Resource_26jyy")])

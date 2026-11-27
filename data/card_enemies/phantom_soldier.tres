@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_1gi84"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_wejxp"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_khif2"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_ma20b"]
+
+[sub_resource type="Resource" id="Resource_e7ses"]
+script = ExtResource("1_1gi84")
+name = "Strike"
+damage = 7
+weight = 3
+
+[sub_resource type="Resource" id="Resource_ejlf5"]
+script = ExtResource("1_1gi84")
+name = "Shroud"
+block = 7
+weight = 2
+helps = 1
+
+[sub_resource type="Resource" id="Resource_vu1xf"]
+script = ExtResource("1_1gi84")
+name = "Dread"
+damage = 4
+apply_status = &"weakened"
+apply_amount = 1
+weight = 2
+not_twice_running = true
+
+[resource]
+script = ExtResource("4_ma20b")
+name = "Phantom Soldier"
+max_hp_least = 18
+max_hp_most = 22
+moves = Array[ExtResource("1_1gi84")]([SubResource("Resource_e7ses"), SubResource("Resource_ejlf5"), SubResource("Resource_vu1xf")])
+starting_statuses = {
+"linked": 2
+}
+borrow_picture_from = "phantom_soldier"

@@ -1,0 +1,84 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_3ppg7"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_3uach"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="2_7wgr4"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_tfu3h"]
+
+[sub_resource type="Resource" id="Resource_3uach"]
+script = ExtResource("1_3ppg7")
+name = "Rise"
+block = 12
+gain_status = &"might"
+gain_amount = 2
+
+[sub_resource type="Resource" id="Resource_tfu3h"]
+script = ExtResource("1_3ppg7")
+name = "Sweep"
+damage = 9
+hits = 2
+
+[sub_resource type="Resource" id="Resource_oigmc"]
+script = ExtResource("1_3ppg7")
+name = "Quake"
+damage = 6
+apply_status = &"weakened"
+apply_amount = 2
+
+[sub_resource type="Resource" id="Resource_uie4e"]
+script = ExtResource("1_3ppg7")
+name = "Crush"
+damage = 28
+
+[sub_resource type="Resource" id="Resource_1jhgi"]
+script = ExtResource("1_3ppg7")
+name = "Brace"
+block = 20
+
+[sub_resource type="Resource" id="Resource_4wg1t"]
+script = ExtResource("1_3ppg7")
+name = "Sweep"
+damage = 9
+hits = 2
+
+[sub_resource type="Resource" id="Resource_7udry"]
+script = ExtResource("1_3ppg7")
+name = "Quake"
+damage = 6
+apply_status = &"weakened"
+apply_amount = 2
+
+[sub_resource type="Resource" id="Resource_v81e4"]
+script = ExtResource("1_3ppg7")
+name = "Crush"
+damage = 28
+wind_up = 1
+
+[sub_resource type="Resource" id="Resource_0tej6"]
+script = ExtResource("1_3ppg7")
+name = "Stamp"
+damage = 12
+block = 12
+
+[sub_resource type="Resource" id="Resource_5e2vc"]
+script = ExtResource("2_3uach")
+line = "The Colossus rises to its full height!"
+moves = Array[ExtResource("1_3ppg7")]([SubResource("Resource_4wg1t"), SubResource("Resource_7udry"), SubResource("Resource_v81e4"), SubResource("Resource_0tej6")])
+statuses = {
+"invincible": 30,
+"might": 2
+}
+clears_harm = true
+
+[resource]
+script = ExtResource("2_7wgr4")
+name = "Colossus"
+max_hp_least = 160
+max_hp_most = 170
+moves = Array[ExtResource("1_3ppg7")]([SubResource("Resource_3uach"), SubResource("Resource_tfu3h"), SubResource("Resource_oigmc"), SubResource("Resource_uie4e"), SubResource("Resource_1jhgi")])
+pattern = 0
+starting_statuses = {
+"mode_shift": 40
+}
+borrow_picture_from = "colossus"
+phases = Array[ExtResource("2_3uach")]([SubResource("Resource_5e2vc")])

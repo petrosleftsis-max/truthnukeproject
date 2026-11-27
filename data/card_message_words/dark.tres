@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardMessageWord" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_r32wi"]
+[ext_resource type="Script" path="res://cards/CardMessageWord.gd" id="2_dyojt"]
+
+[sub_resource type="Resource" id="Resource_ww41c"]
+script = ExtResource("1_r32wi")
+kind = 5
+amount = 1
+status = &"footing"
+
+[resource]
+script = ExtResource("2_dyojt")
+line = "The dark is only what has not been read yet."
+effect = SubResource("Resource_ww41c")

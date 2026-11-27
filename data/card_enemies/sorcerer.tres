@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_7l4ok"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_10nvv"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_ffqwg"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_udhu8"]
+
+[sub_resource type="Resource" id="Resource_0me2l"]
+script = ExtResource("1_7l4ok")
+name = "Bewilder"
+block = 5
+apply_status = &"confused"
+apply_amount = 2
+weight = 2
+not_twice_running = true
+
+[sub_resource type="Resource" id="Resource_38u50"]
+script = ExtResource("1_7l4ok")
+name = "Hex Bolt"
+damage = 11
+weight = 3
+
+[sub_resource type="Resource" id="Resource_wy81x"]
+script = ExtResource("1_7l4ok")
+name = "Siphon"
+damage = 6
+gain_status = &"might"
+gain_amount = 1
+weight = 2
+
+[resource]
+script = ExtResource("4_udhu8")
+name = "Sorcerer"
+max_hp_least = 30
+max_hp_most = 34
+moves = Array[ExtResource("1_7l4ok")]([SubResource("Resource_0me2l"), SubResource("Resource_38u50"), SubResource("Resource_wy81x")])
+borrow_picture_from = "sorcerer"
+shows = 2

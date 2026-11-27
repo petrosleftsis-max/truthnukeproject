@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_2tksm"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_wa2f6"]
+
+[sub_resource type="Resource" id="Resource_1r42i"]
+script = ExtResource("1_2tksm")
+label = "Walk on, and on (lose 6 health; trace -10)"
+outcome = "You walk until the loop forgets you. Nobody saw you go."
+hp = -6
+trace = -10
+
+[sub_resource type="Resource" id="Resource_qekan"]
+script = ExtResource("1_2tksm")
+label = "Break the loop (trace +8; a card)"
+outcome = "You force it open. Loud, but something was caught in it."
+action = 1
+trace = 8
+
+[sub_resource type="Resource" id="Resource_r5ads"]
+script = ExtResource("1_2tksm")
+label = "Turn back"
+outcome = "You step back the way you came."
+
+[resource]
+script = ExtResource("2_wa2f6")
+title = "The Looping Corridor"
+text = "The same hallway of code, again. The same flickering lamp, again. Something wants you to stay."
+options = Array[ExtResource("1_2tksm")]([SubResource("Resource_1r42i"), SubResource("Resource_qekan"), SubResource("Resource_r5ads")])

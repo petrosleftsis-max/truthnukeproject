@@ -629,10 +629,18 @@ func grabbing():
 	var grab: SkillDefinition = SkillDatabase.skills.grab
 	var grappled := condition("grappled")
 	ok(enfina.skill_list.has("grab") and CombatantDatabase.combatants.barbarian.skills.has("grab"), "Enfina and the Barbarian can Grab")
-	ok(grab.is_reactive and not grab.is_secondary, "a main action, and a reaction")
+	# A secondary action since 2026-11-26 (the designer, for Enfina's Grab), and a reaction.
+	ok(grab.is_reactive and grab.is_secondary, "a secondary action, and a reaction")
 	ok(grappled.holds and grappled.prevents_movement, "Grappled holds them still")
 	var foe := named("Sellsword 2")
 	var other := named("Hired Bow 1")
+	# Theirs too (the designer, 2026-11-27: "make grab for enemies also secondary"): no AI weighs it as a main action.
+	var had_grab: bool = foe.skill_list.has("grab")
+	if not had_grab:
+		foe.skill_list.append("grab")
+	ok(not combat._ai_main_keys(foe).has("grab") and not combat._ai_main_keys(enfina).has("grab"), "nobody's AI spends a main action on Grab")
+	if not had_grab:
+		foe.skill_list.erase("grab")
 	sturdy(foe)
 	sturdy(other)
 	sturdy(enfina)
@@ -837,6 +845,21 @@ func grabbing():
 		"the prompt is back to Use and Skip")
 	combat._let_go(foe)
 	combat._let_go(other)
+	# The other side grabs with its secondary, after whatever its main action did (Combat.ai_secondary_attack).
+	set_stat(enfina, Stats.Type.PHYSICAL, 0)
+	set_stat(foe, Stats.Type.PHYSICAL, 300)
+	if not had_grab:
+		foe.skill_list.append("grab")
+	ok(pair_up(enfina, foe), "a sellsword who can Grab, beside her")
+	give_turn(foe)
+	foe.skill_used_this_turn = true
+	await combat.ai_secondary_attack(foe)
+	await settle(1)
+	ok(held_by(enfina, foe) and foe.secondary_used_this_turn, "its main action spent, it grabs her with its secondary",
+		"%s" % [combat.holder_of(enfina).get("name", "nobody")])
+	combat._let_go(enfina)
+	if not had_grab:
+		foe.skill_list.erase("grab")
 	set_stat(enfina, Stats.Type.PHYSICAL, her_physical)
 	set_stat(foe, Stats.Type.PHYSICAL, its_physical)
 	set_stat(other, Stats.Type.PHYSICAL, bow_physical)
@@ -1321,6 +1344,8 @@ func rebinding():
 	var spot := a_tile(prometheus, func(tile): return combat.distance_to(golem, tile) <= 3 and combat.distance_to(golem, tile) >= 1)
 	combat.teleport_to(prometheus, spot)
 	give_turn(prometheus)
+	# Its board, as it was (a hack is the card game unless it asks for its board, since 2026-11-27).
+	Hacking.boards_for_tests = true
 	var running := func(): await combat.use_skill("hack", prometheus, combat.nearest_tile_of(golem, prometheus.position), false)
 	running.call()
 	ok(await until(func(): return Hacking.running() and Hacking.board() != null), "the hack begins")
@@ -1330,6 +1355,7 @@ func rebinding():
 		board.change(move[0], move[1])
 	board.commit()
 	await until(func(): return not Hacking.running())
+	Hacking.boards_for_tests = false
 	await settle(3)
 	ok(golem.side == 0 and golem.has("turncoat"), "rewritten, it fights for the party")
 	ok(golem.turncoat.turns == golem.rebind_turns, "for as many turns as it says", "%d" % golem.turncoat.get("turns", -1))

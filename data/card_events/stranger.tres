@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_whn6e"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_jcl2h"]
+
+[sub_resource type="Resource" id="Resource_0xkhg"]
+script = ExtResource("1_whn6e")
+label = "Pay 50 gold (remove a card)"
+outcome = "The stranger pockets the coins, and something you carried is gone."
+gold = -50
+action = 2
+
+[sub_resource type="Resource" id="Resource_0wvkb"]
+script = ExtResource("1_whn6e")
+label = "Decline"
+outcome = "The stranger shrugs and walks on."
+
+[resource]
+script = ExtResource("2_jcl2h")
+title = "The Stranger"
+text = "A stranger in a grey coat offers to lighten your load - for a price."
+options = Array[ExtResource("1_whn6e")]([SubResource("Resource_0xkhg"), SubResource("Resource_0wvkb")])

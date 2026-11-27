@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_c27g1"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_7t4en"]
+
+[sub_resource type="Resource" id="Resource_kxdcs"]
+script = ExtResource("1_c27g1")
+kind = 4
+amount = 1
+status = &"scanned"
+
+[sub_resource type="Resource" id="Resource_us4ra"]
+script = ExtResource("1_c27g1")
+kind = 2
+amount = 1
+
+[resource]
+script = ExtResource("2_7t4en")
+name = "Scan"
+type = 1
+rarity = 0
+cost = 0
+effects = Array[ExtResource("1_c27g1")]([SubResource("Resource_kxdcs"), SubResource("Resource_us4ra")])
+flavour = "Read what it is about to do."

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_f47pc"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_y5s0t"]
+
+[sub_resource type="Resource" id="Resource_udd8t"]
+script = ExtResource("1_f47pc")
+kind = 1
+amount = 7
+upgraded_amount = 10
+
+[resource]
+script = ExtResource("2_y5s0t")
+name = "Shared Shield"
+type = 1
+target = 3
+effects = Array[ExtResource("1_f47pc")]([SubResource("Resource_udd8t")])
+coop_only = true
+flavour = "Cover them."

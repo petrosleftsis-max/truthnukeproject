@@ -114,6 +114,11 @@ func run_test():
 				"secret_found", "mark_seen", "rest", "rainbow", "roamer_sees", "climb", "shift", "dream", "lethe", "gate_voice",
 				"ambience_wind", "ambience_city", "ambience_drips", "ambience_dream", "step_stone", "step_wood", "step_grass"]:
 			continue
+		# And 2026-11-26's: a barrel or crate breaking (Combat "Things that break") and every one of the card game's
+		# (cards/CardFeel.gd; the designer: "Anything that uses music, sound or art, will be slots for me to fill in later"):
+		# a stand-in plays for each, and the card game's music and its rest fire are silence until there is a sound for them.
+		if property.name == "thing_breaks" or property.name.begins_with("card_"):
+			continue
 		if property.usage & PROPERTY_USAGE_STORAGE and property.type == TYPE_OBJECT and bank.get(property.name) == null:
 			empty.append(property.name)
 	ok(empty.is_empty(), "every slot in the bank is filled", "%s" % [empty])

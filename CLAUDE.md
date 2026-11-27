@@ -398,6 +398,27 @@ Through the Fire: `walks_through_fire`, `immune_while_burning`. Burning Titanfal
 `_react`; off the action bar), Riposte, Step In (`steps_in`, `_stepped_in`, `_take_blows_stepped_into`), `reactions_harder`. Reads the Form: `_spend_the_reaction`. Throw a Friend and Anything Is a Weapon:
 `throws_friends`, `throws_things`, `BattleObjectDefinition.can_be_thrown`, in `_grip_refusal`, `throw_destinations`, `_hurl` and `CController.is_valid_skill_target`. Arrest: `needs_nerve_shaken`,
 EffectType ARREST. Carries Them: `StealthWatch._carries_at_full_pace`, whoever leads.
+**Through, not around** (`docs/proposals_2026-11-26_enfina.md`, the designer's picks of 2026-11-26; PassiveDefinition group of that
+name; suite `enfina`). Things that break: a tile with the TileSet's **Health** custom data (`maps/tilesets/terrain_tileset.tres`, layer
+5; barrels and crates 12, PROPOSAL) is `Combat.breakable_health`/`health_on`; blows and blasts hurt it after a move lands
+(`_hurt_breakables_in`, `hurt_tile`, `tile_health`), `_aim_blocked` lets it be aimed at, CController.refusal_at lets an empty one be;
+at nothing `break_tile` sets the cell to `floor_around`'s floor and reads the map again (`CController.retile`, `DepthView.build`,
+`relight`). Breaker (`breaks_things`): any blow breaks a tile or a breakable object at once (`do_damage`). Burn Through and Shoulder
+Through (`burns_through`, `shoulders_through`): `bursts_for` is ground to the walker in `get_reachable_tiles`, `update_points_weight`,
+`_fits_as`/`_add_step` (`_bursts`), and `_handle_step_arrival` calls `burst_through` (a thing broken or set off, `_splinters`; or
+`shoulder_aside`, hurt once a turn by `_shouldered`). Intercept (`intercept_reach`): Step In's `effective_max_range` while burning,
+`_reaction_target` needs `_intercept_tile`, `use_reactive_skill` runs her there (`_intercept_to`), `walk_owed` paid in
+`set_controlled_combatant`. Breakthrough (`SkillDefinition.charges_through`, `_charge_through`, `charge_tiles`, `on_a_straight_line`,
+`_break_guard`, Blazed Path three wide). Weak Points (`sees_weak_points`): `weak_points_shown`, `weak_point_tiles`, `goes_off_tiles`,
+drawn in `_draw_board`; on a map `ExplorationScene._WeakMarks`. Grab: a secondary action; `_grabs_a_friend` wins the contest, is a
+valid target (CController.is_valid_skill_target), costs no `drag_cost` unless stunned, and is let go in `_turn_begins_for`. On a map
+she smashes what breaks (`OutsideMoves.smashes_things`, `struck_at`'s `things`, `ExplorationScene.break_thing`, flag
+`BROKEN_THING_FLAG`, `_apply_broken_things` before `_build_blocking`, `StealthSight.retile`). Momentum (Planted) is out of her kit
+(its files set aside in `docs/set_aside/passives/`). Her paths (2026-11-27): the Vanguard's Firebrand (`firebrand`, `_firebrand`,
+called from `_charge_through` for whoever is driven aside and from `_splinters`); the Warden of Cover's Daunting Roar and reworked
+Interceptor (`intercept_unburnt` lets `intercept_reach` hold unburnt, `intercept_free` skips `walk_owed`); the Juggernaut is the
+designer's to rethink. The other side's Grab is secondary too (2026-11-27): the Barbarian's through `ai_secondary_attack`, the
+Glutton's in `ai_glutton` before its bite.
 
 **Prometheus's other magic** (Combat of that name; `prometheus`; section 16). Shrink: an effect's `shrinks` on GROW; on a map `OutsideMoves.Use.SHRINK`, `ExplorationScene.shrink_party`, `shrunk`
 (small gaps walkable, `_shrink_on` waiting if it runs out inside one). Transposition: `swaps_places`, `transpose`, `can_transpose`, aimed twice (`CController.is_valid_landing_tile`, `landable_tiles`).
@@ -1590,6 +1611,84 @@ The probe `healing` writes `healing_inventory.csv` (every heal at 1 / 8 / 14 / 1
 the gates Meditate would bring back, and the heal cap's triggers level by level)
 for `docs/healing_and_rest_proposal.md`, `docs/healing_cap_proposal.md` (an optional
 tuning tool) and `docs/healing_revision.md` (the revised flat heals).
+
+## The card game
+
+A deck-building run in the manner of Slay the Spire (the designer, 2026-11-26), first built as the genre's plain baseline. It is
+**Prometheus's hacking, and since 2026-11-27 the main hacking minigame** (below, "As Prometheus's hacking"); the twists the designer
+chose are built (7, 10 and 15 too, "try them all", below), the rest (2, 5, 9, 12) are not to be added unasked. It is also the title screen's
+"Card Game" (left out of a release). `docs/card_game.md` is the guide (rules,
+statuses, every field, "How it feels", "Slots"). Code in `cards/`: `CardBattle` (a fight's rules, no nodes: piles, energy, `play`,
+`end_turn`, `attack_damage`, `block_gained`, `intent_of`, `preview_damage`; what wears off counts down at the end of the round, and
+what the enemies put on that round skips it, `_enemies_acting`/`fresh`; it tells the screen every `beat` as it happens and never
+listens to them), `CardRun` (the map of `FLOORS` floors and `PATHS` paths, rooms, rewards, rests, the shop, events, relics,
+`relic_used`), `CardGame` (`scenes/card_game.tscn`, the run's screen, built in code; `CardGame.play(back_to)` opens it from a map and
+comes back), `CardStage` (a fight's screen: it queues the beats and plays them back one at a time, then `_settle` puts the views
+right from the rules), `CardView`/`CardHand`/`CardFighter`/`CardFigure`/`CardBadge`/`CardPile`/`CardOrb`/`CardAim`/`CardFx`/`CardIcon`
+(what it draws), `CardLooks` (`data/card_looks.tres`, every picture slot), `CardFeel` (the pace, sounds by SoundBank slot through
+MapFeel.sound, a blow's stop and shake by Combat's own thresholds), `CardDatabase` (reads the folders with `DataFolder`),
+`CardStatus` (the statuses, by key). **The juice** (`docs/proposals_2026-11-26_card_juice.md`, built 2026-11-26 but section 11):
+only to look at; headless nothing moves and every beat plays at once, `CardFeel.plays_headless` for a suite; every timing PROPOSAL;
+every sound, tune and picture a slot (SoundBank "The card game", `data/card_looks.tres`) with a stand-in. Enemies stand as their
+borrowed main-game figure with its own idle (slower when hurt, CombatantSprite's HURT_* constants) and its own attack. A blow's stop
+sets `Engine.time_scale` (restored by static callbacks and in `_exit_tree`). Options' "Card game: fast" is `Comfort.card_fast`.
+Data: `data/cards/`, `data/card_enemies/` (Borrow Picture From a main-game combatant), `data/card_encounters/`, `data/card_relics/`,
+`data/card_events/`, first written by `tools/build_card_content.gd` (re-running it overwrites them). Suite `cards`.
+**How enemies choose** (`docs/proposals_2026-11-27_card_ai.md`, all 22 built 2026-11-27, no twists; `docs/card_game.md` "How
+enemies choose"): `CardBattle._decide` takes asleep/curled/winding first, then `CardEnemyRule`s (by `tier`, raised by a run's
+`challenge`), an opening move, then the plan `_plan_after` made a turn ahead (Second Sight shows it as `intent_of`'s "then") or a
+fresh `_pattern_pick`, all within `_allowed` (a move's limits). Traits are statuses (`CardStatus`): hooks in `_after_a_card`
+(Enrage, Curiosity, Toll, Overtime ending the turn from inside `play`), `_struck` (Reactive, Once Hit), `_lose` (waking, Mode Shift
+`_curl`, `_check_phases`, `_capped` for Invincible), `_falls` (Linked `rising`, Pack, giving back what it `held`). Status cards
+(`CardDefinition.Type.STATUS`: `unplayable`, `ethereal`, `burns`) never offered (`offered()`). Summons and splits take a fallen
+one's place or append, `MOST_ENEMIES` standing; the screen's `_joined` replaces or adds the view. All enemies lose their Block as
+their turn begins, at once. Content: `tools/build_card_ai_content.gd` (adds only what is missing).
+**As Prometheus's hacking** (the designer, 2026-11-27; `docs/proposals_2026-11-27_card_hacking.md`, `docs/card_game.md` "Hacking";
+every number PROPOSAL). **Two players:** `CardBattle.players` (each {name, hp, block, statuses, piles, hand, energy, relics, ready,
+down, character}) and `active`; `player`, `hand`, `draw_pile`, `energy`, `relics`... are properties onto `players[active]`, so the
+one-player code and suites read the player now. `who_of`: -1 the first player, -2 the second (`player_index`), an enemy's index, or
+`NOBODY` (-99). Beats about a hand carry "player"; CardStage plays only the shown one's on the hand (`OWN_BEATS`, `_elsewhere`).
+`add_player` before `start`; enemies hit every one `standing()`, `_enemy_block` doubles their Block, `_rescale` makes their health
+from `base_hp` by layer (`LAYER_*`), players (`COOP_LAYER_FACTOR`), trace (`TRACE_*`) and Challenge, so the setters (`set_layer`,
+`set_trace`, `set_challenge`, `set_darkness`, `add_player`) can come in any order before `start`. `set_ready` (Ready each; `play`
+takes it back; `_all_ready` ends the turn), `play_as` (a move from the other machine, for the network still to come), `_down` (a
+player at nothing, the fight lost only when all are). `CardRun.players` and `me` likewise (`deck`, `hp`, `gold`, `rewards`, `shop`
+are `players[me]`'s); `vote`; `CardGame._begin_turns`/`_done_here` give each player their turn of a room (never `_go(_show_map)` at
+the end of a room: `_done_here`). **The gates** are `CardCharacterDefinition`s (`data/card_characters/`), unlocked by
+`CardUnlocks` (Campaign flags `card_fragments:<key>`, `card_read:<card>`; `CardDefinition.is_read` reads the latter by Campaign's
+path, so CardDefinition leans on no database and a `--script` tool can still save cards). **The twists:** layers (`CardRun.layers`,
+`layer`, `next_layer`, `long_rest`; `CardEncounterDefinition.layer`; `CardDatabase.bosses_of`, `encounters_for`), the trace
+(`CardRun.add_trace`, `CardDefinition.trace`, `CardBattle.trace_gained`), half-read code (`CardEffect.struck`, the "read" beat),
+scanning (`darkness`, `encrypted`, `intent_hidden`, the `scanned` status), Lethe (`forgotten`, `_lethe_returns`), the Glutton
+(`_steal` eats, `_choke`, `_spills`, `CardEnemyMove.damage_per_held`), rests (`Rest`, `rest_with`), oddities (`CardEventOption`'s
+trace, fragment, adds_card, TRANSFORM_CARD, READ_ALL). **As the hack:** `HackDefinition.minigame` (CARDS, the default, or BOARD) and
+its card fields; `Hacking.run` -> `_run_cards` -> `CardGame.open_hack(CardHack)` over the world (process ALWAYS, the tree paused as
+for a board), `hack_done(won, left)`; a suite of the boards sets `Hacking.boards_for_tests`.
+Content: `tools/build_hack_content.gd` (adds only what is missing).
+**"Try them all"** (the designer, 2026-11-27 afternoon; `docs/proposals_2026-11-27_card_hacking.md` section 8; every number PROPOSAL).
+**Tethers** (twist 7): `CardDefinition.Type.TETHER` (appended) and its Tether group, `CardEffect.Kind.DRAIN` (appended);
+`CardBattle` "Tethers": `tethers` ({id, key, upgraded, card, holder, on, strength, most, hurt}, holder/on as `who_of`), played
+through `play` (`card_gone` to "tether", `_tie`), worked at the end of each holder's turn from `end_turn` (`_tether_turn` ->
+`_tether_does`, `_fray`), `_snap` (off the table first, then its snap: never twice), `let_go`, `_loosen` (from `_falls`, `_down`),
+`_strain_tethers` (from `_lose`), `CardEnemyMove.ties`/`cuts_tethers`; `cards/CardTethers.gd` draws them on the stage.
+**The Message** (twist 10): `CardDefinition.MESSAGE`, its words on its deck entry ({message: {words, cost, lightened}}, copied into
+the fight's piles), `CardRun.message_offers`/`grow_message`/`event_options` (a Listen option on every event that offers a word),
+`CardBattle.truth_spoken` (the run's last boss), `CardMessageWord` (`data/card_message_words/`), `CardGame._show_message`.
+**Twist 15:** each gate's `starting_relic`, the Blessings (`CardRelicDefinition.Rarity.BLESSING`, appended; `offered()`,
+`CardRun.blessing_choices`/`choose_blessing`, `CardGame._show_blessings`), the party's rare relics (`When.ENEMY_FALLS`, appended).
+A run's random rolls are the rules', made in the same order on both machines (blessing offers in `_init`, shops at `go_to`, chests
+`open_chest` as the room opens, an event's cards and words in `choose`); never roll in a screen builder. **Both hands at once**:
+`CardStage` seats (`_Seat`; `hand`, `orb`, the piles, `end_button`, `selected_id`, `target`... are properties onto `seats[_at]`;
+`_use(s)` sets the seat and `battle.active`, `_each_seat` runs a refresh on every seat; a beat about a hand plays on its player's
+seat), `CardGame.devices`/`player_of_event`. **The rooms together**: `CardGame` halves (`_together`; while a half is built or
+played, `_half` and `run.me` are its player's and `_room()` is it; `_here0`/`_here1` carry a half into any button or later callback
+made there - a new builder must use `_room()`, `_button`, `_here0` and `_view_key`, never `_body` or a bare `tween_callback`).
+**Moves and the network**: every fight action and room choice goes through `CardGame.act(kind, player, args)` (here at once;
+over a network to the host, numbered, and done on both in order: `Net` "The card game, played together", `take_move`,
+`_move_fits`); a room action starts with `if _sending(&"kind", args): return`, and `_press_for`/`_rules_only` say what each kind
+does for this machine's player and for the other's. **Hacks for both**: `CardHack.players`, `Hacking._run_cards` (two local players,
+or `Net.begin_card_game`). Content: `tools/build_card_twists.gd` (adds only what is missing). Suites `cards`, and `net` (a card hack
+played together).
 
 ## Point-and-click pictures
 

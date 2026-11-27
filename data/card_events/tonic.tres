@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_4bh3e"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_krekh"]
+
+[sub_resource type="Resource" id="Resource_2vde7"]
+script = ExtResource("1_4bh3e")
+label = "Drink it (5 most health)"
+outcome = "Vile. You feel sturdier all the same."
+max_hp = 5
+
+[sub_resource type="Resource" id="Resource_0a6c8"]
+script = ExtResource("1_4bh3e")
+label = "Sell it on (30 gold)"
+outcome = "Someone else's swamp now."
+gold = 30
+
+[sub_resource type="Resource" id="Resource_c1vmn"]
+script = ExtResource("1_4bh3e")
+label = "Leave"
+outcome = "You keep walking."
+
+[resource]
+script = ExtResource("2_krekh")
+title = "Bitter Tonic"
+text = "A peddler swears this tonic will make you strong. It smells like a swamp."
+options = Array[ExtResource("1_4bh3e")]([SubResource("Resource_2vde7"), SubResource("Resource_0a6c8"), SubResource("Resource_c1vmn")])

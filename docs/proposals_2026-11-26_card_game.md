@@ -7,6 +7,31 @@ Nothing here is built. Section 1 is where it could live, section 2 the baseline 
 this game's own (each with why it fits and a rough size), section 4 my pick, section 5 what is already in the game to build it
 from, and section 6 the questions that decide it.
 
+**Decided, 2026-11-27: Prometheus's hacking.** The designer: "This will be Prometheus' hacking game afterall." (Question 1 of
+section 6 answered: neither 1a, 1b nor 1c, but the fourth place named on 2026-11-26.) The twists below were written for a mode of
+its own; how each reads as hacking is in the table, and which to build is still the designer's (none is built). The hacking juice
+of `docs/proposals_2026-11-26_card_juice.md` section 11 now applies: cards as fragments of code typing across as they are played,
+a hit as a glitch tearing the picture into strips, a faint scanline and terminal beeps, the map a network of nodes.
+
+| Twist | As hacking |
+|---|---|
+| 1 Climb to the Dome's ceiling | Down through a system's layers to its core, the sky of pixels its deepest layer |
+| 2 Gates are the energy | Prometheus's gates as the power he hacks with (as his hacks' hints already cost a gate) |
+| 3 The Dome is watching | A trace meter: the system noticing him ("ENTRY RECORDED. PROCEED."), its answers harder |
+| 4 Struck-out cards | Code half read: what a card does is not all known until it runs |
+| 5 Four suits | Prometheus alone at the keys, or the party's knowledge as his tools |
+| 6 Light and dark | What the system shows him: an intent unseen until scanned (or lit) |
+| 7 Tethers | A held connection on a target, fraying until renewed |
+| 8 Lethe and un-forgetting | Deleted is forgotten; at the core, everything deleted comes back changed |
+| 9 Evidence and Accusation | Proving what the system hides, to win without breaking it |
+| 10 The Message | The payload, a card that cannot be lost, delivered at the end |
+| 11 Erysichthon eats the deck | A program that devours his code |
+| 12 Moira's die | Chance in the machine: once a fight, change an intent or a number |
+| 13 Rests | A safe node: patch (mend) or study a card |
+| 14 Oddities as events | Strange nodes in the network |
+| 15 Passives as relics, Blessings to start | Exploits and tools as relics; the first choice before the first node |
+| 16 Two players | Two at the keys (`docs/proposals_2026-11-27_card_coop.md`) |
+
 ---
 
 ## 1. Where it lives

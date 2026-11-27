@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_kel5h"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_je4ef"]
+
+[sub_resource type="Resource" id="Resource_kqkl3"]
+script = ExtResource("1_kel5h")
+kind = 4
+amount = 1
+status = &"weakened"
+
+[sub_resource type="Resource" id="Resource_tb3p6"]
+script = ExtResource("1_kel5h")
+amount = 6
+upgraded_amount = 9
+
+[resource]
+script = ExtResource("2_je4ef")
+name = "Leash"
+type = 4
+rarity = 2
+effects = Array[ExtResource("1_kel5h")]([SubResource("Resource_kqkl3")])
+flavour = "Held short, it cannot swing."
+upgraded_tether_strength = 4
+snap_effects = Array[ExtResource("1_kel5h")]([SubResource("Resource_tb3p6")])

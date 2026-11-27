@@ -7,13 +7,11 @@ Enfina,Base,16,2,Active,Taunting Shout,CC,0.6,,,,,Taunts enemies
 Enfina,Base,16,2,Passive,Iron Hide I,Defense,,,,+Defense scaling,,+10% DR (the old Iron Hide I's 10% is in her heavy armour)
 Enfina,Base,24,3,Active,Disarm,Control,0.8,,,,,"Next weapon attack deals half damage (replaces Armor Shred, 2026-10-25)"
 Enfina,Base,32,4,Active,Double Strike,DPS,1.5,,,,,Two melee attacks per action
-Enfina,Base,32,4,Passive,Momentum I,DPS,,,,,,+10% dmg if stationary
 Enfina,Base,41,5,Active,Short Stun,CC,0.8,,1,,,Brief melee stun
 Enfina,Base,41,5,Passive,Iron Hide II,Defense,,,,+Reaction intercept,,Can intercept attacks
 Enfina,Base,54,6,Active,AOE Sweep,DPS/CC,1.4,,,,,Cleave with light CC
 Enfina,Base,54,6,Passive,Bulwark III,Defense,,,,+DR aura,,DR aura to allies
 Enfina,Base,64,7,Active,Ultimate Smash,DPS,2.5,,,,,Encounter-defining melee ultimate
-Enfina,Base,64,7,Passive,Momentum II,DPS,,,,,,Extra crit-like bonus when stationary
 Enfina,Vanguard,24,3,Passive,Vanguard Tier 1,Subclass,,,,,,First Vanguard feature at L24
 Enfina,Vanguard,32,4,Passive,Vanguard Tier 2,Subclass,,,,,,Core Vanguard loop online at L32
 Enfina,Vanguard,41,5,Passive,Vanguard Tier 3,Subclass,,,,,,Stronger CC/DR or DPS

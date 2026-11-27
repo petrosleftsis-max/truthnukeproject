@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Intercept"
+description = "While she burns, Step In reaches an ally two tiles away: she runs to them first, and her next turn's walk is a tile shorter for it."
+required_level = 24
+intercept_reach = 2

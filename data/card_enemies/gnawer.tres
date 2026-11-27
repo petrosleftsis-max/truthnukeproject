@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_gh80u"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="2_bnfiq"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_cfgmc"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_ewjaa"]
+
+[sub_resource type="Resource" id="Resource_cfgmc"]
+script = ExtResource("1_gh80u")
+name = "Claw"
+damage = 4
+hits = 2
+weight = 3
+
+[sub_resource type="Resource" id="Resource_ewjaa"]
+script = ExtResource("1_gh80u")
+name = "Hiss"
+block = 4
+gain_status = &"might"
+gain_amount = 1
+first = true
+not_twice_running = true
+
+[resource]
+script = ExtResource("2_bnfiq")
+name = "Gnawer"
+max_hp_least = 14
+max_hp_most = 18
+moves = Array[ExtResource("1_gh80u")]([SubResource("Resource_cfgmc"), SubResource("Resource_ewjaa")])
+borrow_picture_from = "gnawer"

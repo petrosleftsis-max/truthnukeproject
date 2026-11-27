@@ -761,7 +761,7 @@ static func _strike_shape(from: Vector2i, skill: SkillDefinition, aim: Vector2i)
 ## What `skill` used by `key` and aimed at `aim` catches: {"tiles", "guards", "placed", "walls"}.
 static func struck_at(scene: Node, key: String, skill: SkillDefinition, aim: Vector2i) -> Dictionary:
 	var tiles := strike_tiles(scene, key, skill, aim)
-	var found := {"tiles": tiles, "guards": [], "placed": null, "walls": []}
+	var found := {"tiles": tiles, "guards": [], "placed": null, "walls": [], "things": []}
 	var watch = scene.get("stealth")
 	if watch != null and is_instance_valid(watch):
 		for guard in watch.guards:
@@ -772,7 +772,16 @@ static func struck_at(scene: Node, key: String, skill: SkillDefinition, aim: Vec
 	# A wall is what stops the rest: whatever the shape of it touches is hit.
 	if scene.has_method("walls_on"):
 		found.walls = scene.walls_on(_strike_shape(member_tile(scene, key), skill, aim))
+	# And a barrel or a crate, whatever the TileSet gives Health (ExplorationScene "Things that break, on a map").
+	if scene.has_method("things_on") and skill.deals_damage:
+		found.things = scene.things_on(_strike_shape(member_tile(scene, key), skill, aim))
 	return found
+
+
+## Whether `key` smashes what breaks on a map, at once (Enfina: whoever Breaks Walls with her strength).
+static func smashes_things(key: String) -> bool:
+	var definition: CombatantDefinition = CombatantDatabase.combatants.get(key) if CombatantDatabase != null else null
+	return definition != null and definition.breaks_walls
 
 
 ## Why `key` could not let `skill` go at `aim`, or "". Nothing spent by asking.
@@ -788,6 +797,8 @@ static func aim_refusal(scene: Node, key: String, skill: SkillDefinition, aim: V
 		return ""
 	if not struck.walls.is_empty():
 		return "" if breaks_walls(key, skill) else "Only a spell, an item or Enfina's strength knocks a wall down"
+	if not struck.things.is_empty():
+		return "" if smashes_things(key) else "Only Enfina's strength smashes that out here"
 	return "" if skill.aoe_radius > 0 else "Nobody there to hit"
 
 
@@ -884,10 +895,17 @@ static func fire_at(scene: Node, key: String, move: String, aim: Vector2i) -> bo
 		for wall in struck.walls:
 			scene.break_wall(wall)
 			broke += 1
+	if smashes_things(key) and scene.has_method("break_thing"):
+		for tile in struck.things:
+			scene.break_thing(tile)
+			broke += 1
 	if scene.has_method("show_burst"):
 		scene.show_burst(struck.tiles, Damage.type_colour(skill.damage_type))
 	if scene.has_method("log_message"):
-		scene.log_message(("[color=yellow]%s[/color] uses %s%s: the wall comes down.\n" if broke > 0 else "[color=yellow]%s[/color] uses %s%s, and it lands on nobody.\n") % [who, skill.name, paid_through(paid)])
+		var landed := "[color=yellow]%s[/color] uses %s%s, and it lands on nobody.\n"
+		if broke > 0:
+			landed = "[color=yellow]%s[/color] uses %s%s: the wall comes down.\n" if not struck.walls.is_empty() else "[color=yellow]%s[/color] uses %s%s, and smashes it to pieces.\n"
+		scene.log_message(landed % [who, skill.name, paid_through(paid)])
 	# Heard from where it lands, not from whoever let it go.
 	if watch != null:
 		if skill.noise_tiles > 0.0 and (skill.noise == SkillDefinition.Loudness.QUIET or skill.noise == SkillDefinition.Loudness.LOUD):

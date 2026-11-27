@@ -735,16 +735,24 @@ func on_the_board():
 	controller.begin_target_selection()
 	await settle(3)
 	var aimed: Array = controller.pad_tiles()
+	# Whoever it can hit, or a barrel or crate it can (Combat "Things that break", 2026-11-26) - never bare floor.
 	var at_somebody: bool = not aimed.is_empty() and aimed.all(func(tile):
 		var comb = controller.get_combatant_at_position(tile)
-		return comb != null and controller.refusal_at(tile, comb) == "")
-	ok(at_somebody, "a gun: only whoever it can hit", "%s" % [aimed])
+		if comb == null:
+			return combat.is_breakable_tile(tile) and controller.refusal_at(tile, {}) == ""
+		return controller.refusal_at(tile, comb) == "")
+	ok(at_somebody, "a gun: only whoever, or whatever that breaks, it can hit", "%s" % [aimed])
 	var hittable := 0
 	for comb in combat.combatants:
 		if comb.alive and controller._range_preview_positions.has(comb.position) and controller.refusal_at(comb.position, comb) == "":
 			hittable += 1
+	for tile in controller._range_preview_positions:
+		if combat.is_breakable_tile(tile) and controller.refusal_at(tile, {}) == "":
+			hittable += 1
 	ok(aimed.size() == hittable, "every one of them", "%d of %d" % [aimed.size(), hittable])
 	ok(aimed.has(controller.pad_cursor()), "the cursor on one already")
+	ok(controller.get_combatant_at_position(controller.pad_cursor()) != null, "  on somebody, not a crate",
+		"%s" % controller.pad_cursor())
 	await settle(2)
 	ok(on_tile.call(), "and the pointer with it, so what the shot would do is showing")
 	seen = {}

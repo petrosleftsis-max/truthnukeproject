@@ -99,6 +99,24 @@ enum RetryCost {
 ## How near each dial has to be to its mark, out of a hundred.
 @export_range(1, 30, 1) var tolerance: int = 6
 
+## Which minigame it is played as (the designer, 2026-11-27: "from now on this is the main hacking minigame"): the card game, or
+## the board of its Kind above (kept, "we might use them later on").
+enum Minigame { CARDS, BOARD }
+
+@export_group("Played as")
+@export var minigame: Minigame = Minigame.CARDS
+
+@export_group("The card game")
+## How long it is: one fight, a short layer, a whole layer, or the whole system (CardHack.Length).
+@export var card_length: CardHack.Length = CardHack.Length.FIGHT
+## For one fight: who is fought (data/card_encounters/ key); empty for one of Card Tier on Card Layer at random.
+@export var card_encounter: String = ""
+@export var card_tier: CardEncounterDefinition.Tier = CardEncounterDefinition.Tier.EASY
+## The layer of the system it is on (1 to 3): how strong and how dark its fights are.
+@export_range(1, 3, 1) var card_layer: int = 1
+## Got through, a code fragment of this gate's deck is found (data/card_characters/ key: world, hermes...); empty for none.
+@export var fragment_of: String = ""
+
 
 ## The kind, as the screen names it.
 func kind_name() -> String:

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_qu74e"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_w8crk"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_svov8"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_dthts"]
+
+[sub_resource type="Resource" id="Resource_spavt"]
+script = ExtResource("1_qu74e")
+name = "Scratch"
+damage = 5
+weight = 3
+
+[sub_resource type="Resource" id="Resource_fx5m2"]
+script = ExtResource("1_qu74e")
+name = "Jeer"
+damage = 2
+apply_status = &"weakened"
+apply_amount = 1
+weight = 2
+
+[resource]
+script = ExtResource("4_dthts")
+name = "Imp"
+max_hp_least = 12
+max_hp_most = 15
+moves = Array[ExtResource("1_qu74e")]([SubResource("Resource_spavt"), SubResource("Resource_fx5m2")])
+borrow_picture_from = "imp"

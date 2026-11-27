@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_rrtig"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_f01sm"]
+
+[sub_resource type="Resource" id="Resource_aqas1"]
+script = ExtResource("1_rrtig")
+kind = 1
+amount = 24
+upgraded_amount = 24
+
+[resource]
+script = ExtResource("2_f01sm")
+name = "Fortress"
+type = 1
+rarity = 3
+cost = 3
+upgraded_cost = 2
+target = 2
+effects = Array[ExtResource("1_rrtig")]([SubResource("Resource_aqas1")])
+trace = 1

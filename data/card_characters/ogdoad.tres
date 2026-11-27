@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardCharacterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardCharacterDefinition.gd" id="1_dpome"]
+
+[resource]
+script = ExtResource("1_dpome")
+name = "Ogdoad"
+gate = 8
+starting_deck = Array[String](["thrust", "thrust", "thrust", "thrust", "guard", "guard", "guard", "guard", "twin_cut", "twin_cut", "scan"])
+starting_relic = "gate_agile"
+playstyle = "The eight: pairs and cycles.
+Cards that come in twos (playing one draws its twin), effects that change on even and odd turns, and a count to eight that pays off on every eighth card played. Suggested cards: twins sharing a name, a Power counting the cards played, a card stronger on an even turn."

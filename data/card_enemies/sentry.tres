@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_wvgta"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_cpmws"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_7neha"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_160k3"]
+
+[sub_resource type="Resource" id="Resource_fnjda"]
+script = ExtResource("1_wvgta")
+name = "Ping"
+damage = 5
+weight = 2
+
+[sub_resource type="Resource" id="Resource_vffe6"]
+script = ExtResource("1_wvgta")
+name = "Flag"
+apply_status = &"exposed"
+apply_amount = 1
+
+[sub_resource type="Resource" id="Resource_i7ttn"]
+script = ExtResource("1_wvgta")
+name = "Shield"
+block = 6
+helps = 1
+
+[resource]
+script = ExtResource("4_160k3")
+name = "Sentry"
+max_hp_least = 18
+max_hp_most = 22
+moves = Array[ExtResource("1_wvgta")]([SubResource("Resource_fnjda"), SubResource("Resource_vffe6"), SubResource("Resource_i7ttn")])
+borrow_picture_from = "kindled_hound"

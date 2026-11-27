@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_k6q36"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_vw453"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_46duf"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_rawdf"]
+
+[sub_resource type="Resource" id="Resource_v3fad"]
+script = ExtResource("1_k6q36")
+name = "Purge"
+damage = 12
+
+[sub_resource type="Resource" id="Resource_cs8l5"]
+script = ExtResource("1_k6q36")
+name = "Trace Route"
+damage = 6
+apply_status = &"exposed"
+apply_amount = 2
+
+[sub_resource type="Resource" id="Resource_766xo"]
+script = ExtResource("1_k6q36")
+name = "Recompile"
+block = 16
+gain_status = &"might"
+gain_amount = 2
+
+[sub_resource type="Resource" id="Resource_5hudj"]
+script = ExtResource("1_k6q36")
+name = "Overclock"
+damage = 28
+wind_up = 1
+
+[sub_resource type="Resource" id="Resource_t8573"]
+script = ExtResource("1_k6q36")
+name = "Spawn Sentries"
+rule_only = true
+most_times = 1
+summons = Array[String](["sentry", "sentry"])
+
+[sub_resource type="Resource" id="Resource_yojxt"]
+script = ExtResource("2_vw453")
+health_under = 30
+line = "The Core rewrites itself."
+statuses = {
+"might": 3
+}
+clears_harm = true
+
+[sub_resource type="Resource" id="Resource_watb4"]
+script = ExtResource("3_46duf")
+when = 2
+number = 60
+move = "Spawn Sentries"
+
+[resource]
+script = ExtResource("4_rawdf")
+name = "The Core"
+max_hp_least = 230
+max_hp_most = 240
+moves = Array[ExtResource("1_k6q36")]([SubResource("Resource_v3fad"), SubResource("Resource_cs8l5"), SubResource("Resource_766xo"), SubResource("Resource_5hudj"), SubResource("Resource_t8573")])
+pattern = 0
+borrow_picture_from = "illusory_dragon"
+rules = Array[ExtResource("3_46duf")]([SubResource("Resource_watb4")])
+phases = Array[ExtResource("2_vw453")]([SubResource("Resource_yojxt")])
+shows = 1

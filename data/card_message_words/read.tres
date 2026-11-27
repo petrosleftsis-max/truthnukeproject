@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardMessageWord" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_eoe6y"]
+[ext_resource type="Script" path="res://cards/CardMessageWord.gd" id="2_t32in"]
+
+[sub_resource type="Resource" id="Resource_ti7p6"]
+script = ExtResource("1_eoe6y")
+kind = 4
+amount = 1
+status = &"exposed"
+
+[resource]
+script = ExtResource("2_t32in")
+line = "Every program can be read."
+effect = SubResource("Resource_ti7p6")

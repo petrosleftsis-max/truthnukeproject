@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardCharacterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardCharacterDefinition.gd" id="1_u0uus"]
+
+[resource]
+script = ExtResource("1_u0uus")
+name = "Charon"
+gate = 4
+starting_deck = Array[String](["thrust", "thrust", "thrust", "thrust", "guard", "guard", "guard", "guard", "crushing_blow", "study", "scan"])
+starting_relic = "gate_bandolier"
+playstyle = "Pays the ferryman: health for power, cards exhausted for good.
+The toll: cards paid for in health rather than energy, strong effects for exhausting a card (ferried across), and gold that counts in a fight. Suggested cards: one costing 3 health and hitting hard, cards that exhaust a card from the hand for a bonus, a Power mending a little whenever a card is exhausted."

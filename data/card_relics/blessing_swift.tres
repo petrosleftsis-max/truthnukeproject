@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardRelicDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_qu6f7"]
+[ext_resource type="Script" path="res://cards/CardRelicDefinition.gd" id="2_qyvi5"]
+
+[sub_resource type="Resource" id="Resource_0n315"]
+script = ExtResource("1_qu6f7")
+kind = 2
+amount = 2
+
+[resource]
+script = ExtResource("2_qyvi5")
+name = "Blessing of the Swift"
+when = 2
+effect = SubResource("Resource_0n315")
+rarity = 4
+flavour = "Given in a dream, for one run."

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_2u0ds"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_wtwt6"]
+
+[sub_resource type="Resource" id="Resource_rrmw6"]
+script = ExtResource("1_2u0ds")
+label = "Kneel and pray (lose 7 health, upgrade a card)"
+outcome = "Something steadies your hands."
+hp = -7
+action = 3
+
+[sub_resource type="Resource" id="Resource_fjlsd"]
+script = ExtResource("1_2u0ds")
+label = "Leave"
+outcome = "You leave the candles to burn."
+
+[resource]
+script = ExtResource("2_wtwt6")
+title = "A Quiet Shrine"
+text = "Candles burn low before a weathered statue. Someone has left a bowl for offerings, and a whetstone worn thin."
+options = Array[ExtResource("1_2u0ds")]([SubResource("Resource_rrmw6"), SubResource("Resource_fjlsd")])

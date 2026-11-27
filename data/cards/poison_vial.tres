@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_rqcim"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_rsefu"]
+
+[sub_resource type="Resource" id="Resource_ubpp4"]
+script = ExtResource("1_rqcim")
+kind = 4
+amount = 4
+upgraded_amount = 6
+status = &"poison"
+
+[resource]
+script = ExtResource("2_rsefu")
+name = "Poison Vial"
+type = 1
+effects = Array[ExtResource("1_rqcim")]([SubResource("Resource_ubpp4")])

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CardRelicDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardRelicDefinition.gd" id="1_ic11g"]
+
+[resource]
+script = ExtResource("1_ic11g")
+name = "Second Sight"
+rarity = 2
+flavour = "You see the blow after the blow."
+shows_next_moves = true

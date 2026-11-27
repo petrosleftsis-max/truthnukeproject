@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_dlkvw"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_71gac"]
+
+[resource]
+script = ExtResource("2_71gac")
+name = "Glitch"
+type = 3
+rarity = 0
+cost = 0
+target = 2
+unplayable = true
+ethereal = true
+flavour = "Something in the code that should not be there."

@@ -19,10 +19,17 @@ spreads_it = true
 [sub_resource type="Resource" id="Passive_1"]
 script = ExtResource("1_passive")
 name = "Leading Charge"
-description = "After walking three tiles or more in a turn, her next hit that turn has +20% Output Efficiency - Momentum's other half: stand, or charge."
+description = "After walking three tiles or more in a turn, her next hit that turn has +20% Output Efficiency."
 required_level = 32
 charge_bonus = 0.2
 charge_tiles = 3
+
+[sub_resource type="Resource" id="Passive_firebrand"]
+script = ExtResource("1_passive")
+name = "Firebrand"
+description = "Whoever her Breakthrough drives aside catches fire, and so does anybody of the other side her splinters hit."
+required_level = 41
+firebrand = true
 
 [sub_resource type="Resource" id="Passive_2"]
 script = ExtResource("1_passive")
@@ -43,6 +50,6 @@ felling_movement = 3
 [resource]
 script = ExtResource("2_path")
 name = "Vanguard"
-description = "The charge. Enfina burns, runs at them and does not stop: harder after a charge, through everything that would hold her, and on from one fallen to the next."
-skills = Array[String](["daunting_roar"])
-passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_2"), SubResource("Passive_3")])
+description = "The charge. Enfina burns, runs at them and does not stop: harder after a charge, setting alight whoever she drives aside, through everything that would hold her, and on from one fallen to the next."
+skills = Array[String]([])
+passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_firebrand"), SubResource("Passive_2"), SubResource("Passive_3")])

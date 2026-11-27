@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_1jfcu"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_uc3yt"]
+
+[sub_resource type="Resource" id="Resource_yqwrk"]
+script = ExtResource("1_1jfcu")
+kind = 10
+amount = 2
+
+[resource]
+script = ExtResource("2_uc3yt")
+name = "Leech Line"
+type = 4
+rarity = 0
+cost = 0
+target = 2
+effects = Array[ExtResource("1_1jfcu")]([SubResource("Resource_yqwrk")])
+flavour = "Hit what holds it, and it comes loose."
+enemy_only = true

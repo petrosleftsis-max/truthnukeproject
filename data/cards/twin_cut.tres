@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_cu1j5"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_644kv"]
+
+[sub_resource type="Resource" id="Resource_tc4dc"]
+script = ExtResource("1_cu1j5")
+amount = 4
+upgraded_amount = 5
+times = 2
+upgraded_times = 2
+
+[resource]
+script = ExtResource("2_644kv")
+name = "Twin Cut"
+effects = Array[ExtResource("1_cu1j5")]([SubResource("Resource_tc4dc")])

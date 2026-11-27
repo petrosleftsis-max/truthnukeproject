@@ -361,6 +361,8 @@ func the_ai():
 	await settle(4)
 	ok(combat.holder_of(cyrus).get("id", -1) == glutton.id or combat.is_inside(cyrus) or heard("twists out"),
 		"its turn: it goes for its prey, and gets hold of him", "%s" % [said.slice(-6)])
+	# With its secondary, as everybody's Grab is (the designer, 2026-11-27), so its main action is left for a bite.
+	ok(glutton.secondary_used_this_turn, "  with its secondary action")
 	ok(glutton.has("declared") or combat.is_inside(cyrus) or not combat.is_held(cyrus), "and means to swallow him")
 	game.queue_free()
 	await settle()

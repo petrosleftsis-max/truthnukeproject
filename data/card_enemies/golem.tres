@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_57bai"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="2_40u0c"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_kpsjn"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_esk5d"]
+
+[sub_resource type="Resource" id="Resource_kpsjn"]
+script = ExtResource("1_57bai")
+name = "Harden"
+block = 14
+
+[sub_resource type="Resource" id="Resource_esk5d"]
+script = ExtResource("1_57bai")
+name = "Slam"
+damage = 13
+
+[sub_resource type="Resource" id="Resource_ofngw"]
+script = ExtResource("1_57bai")
+name = "Crush"
+damage = 7
+hits = 2
+
+[resource]
+script = ExtResource("2_40u0c")
+name = "Golem"
+max_hp_least = 66
+max_hp_most = 72
+moves = Array[ExtResource("1_57bai")]([SubResource("Resource_kpsjn"), SubResource("Resource_esk5d"), SubResource("Resource_ofngw")])
+pattern = 0
+starting_statuses = {
+"asleep": 3,
+&"spines": 3
+}
+borrow_picture_from = "golem"
+sleep_block = 8

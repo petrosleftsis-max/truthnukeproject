@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_mrppt"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_77nij"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="2_l5sw4"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_saco2"]
+
+[sub_resource type="Resource" id="Resource_77nij"]
+script = ExtResource("1_mrppt")
+name = "Roar"
+gain_status = &"might"
+gain_amount = 2
+first = true
+
+[sub_resource type="Resource" id="Resource_saco2"]
+script = ExtResource("1_mrppt")
+name = "Smash"
+damage = 16
+
+[sub_resource type="Resource" id="Resource_u66i4"]
+script = ExtResource("1_mrppt")
+name = "Stomp"
+damage = 8
+apply_status = &"exposed"
+apply_amount = 2
+
+[sub_resource type="Resource" id="Resource_hqqv7"]
+script = ExtResource("1_mrppt")
+name = "Smash"
+damage = 16
+
+[resource]
+script = ExtResource("2_l5sw4")
+name = "Ogre"
+max_hp_least = 58
+max_hp_most = 64
+moves = Array[ExtResource("1_mrppt")]([SubResource("Resource_77nij"), SubResource("Resource_saco2"), SubResource("Resource_u66i4"), SubResource("Resource_hqqv7")])
+pattern = 0
+starting_statuses = {
+"enrage": 2
+}
+borrow_picture_from = "ogre"

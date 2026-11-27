@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_2vctd"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_7y00n"]
+
+[sub_resource type="Resource" id="Resource_10vm7"]
+script = ExtResource("1_2vctd")
+kind = 1
+amount = 5
+upgraded_amount = 8
+
+[resource]
+script = ExtResource("2_7y00n")
+name = "Guard"
+type = 1
+rarity = 0
+target = 2
+effects = Array[ExtResource("1_2vctd")]([SubResource("Resource_10vm7")])

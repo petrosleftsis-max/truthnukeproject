@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_ryd6j"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_d521f"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_4oewf"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_0qupd"]
+
+[sub_resource type="Resource" id="Resource_3edde"]
+script = ExtResource("1_ryd6j")
+name = "Embers"
+damage = 6
+weight = 2
+adds_card = "burn"
+adds_to = 2
+
+[sub_resource type="Resource" id="Resource_gut5m"]
+script = ExtResource("1_ryd6j")
+name = "Searing Slam"
+damage = 17
+weight = 2
+
+[sub_resource type="Resource" id="Resource_2s2t4"]
+script = ExtResource("1_ryd6j")
+name = "Stoke"
+block = 8
+gain_status = &"might"
+gain_amount = 2
+not_twice_running = true
+
+[sub_resource type="Resource" id="Resource_tqpbq"]
+script = ExtResource("3_4oewf")
+when = 4
+number = 40
+move = "Searing Slam"
+from_tier = 2
+
+[resource]
+script = ExtResource("4_0qupd")
+name = "Ash Warden"
+max_hp_least = 80
+max_hp_most = 86
+moves = Array[ExtResource("1_ryd6j")]([SubResource("Resource_3edde"), SubResource("Resource_gut5m"), SubResource("Resource_2s2t4")])
+starting_statuses = {
+"overtime": 8
+}
+borrow_picture_from = "ash_warden"
+rules = Array[ExtResource("3_4oewf")]([SubResource("Resource_tqpbq")])

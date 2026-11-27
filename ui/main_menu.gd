@@ -298,6 +298,8 @@ func _build_root() -> Control:
 		buttons.add_child(_menu_button("Stealth Stages", func(): _show(STEALTH_PANEL)))
 		buttons.add_child(_menu_button("Clues Demo", func(): SceneTransition.change_scene(CLUES_DEMO)))
 		buttons.add_child(_menu_button("Dungeon Demo", func(): Campaign.start_dungeon(load(DUNGEON_DEMO))))
+		# The card game (docs/card_game.md), here until it has its place in the world (the designer, 2026-11-26).
+		buttons.add_child(_menu_button("Card Game", func(): CardGame.play()))
 	buttons.add_child(_menu_button("Options", func(): _show("options")))
 	buttons.add_child(_menu_button("Glossary", func(): _open_glossary()))
 	buttons.add_child(_menu_button("Exit", _quit))

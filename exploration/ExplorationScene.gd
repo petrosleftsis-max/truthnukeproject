@@ -235,11 +235,21 @@ func _build_map():
 	# remember. The scene on disk is untouched, so the grid is still there to
 	# lay things out against in the editor.
 	_hide_grid(map)
+	# What was broken here before stays broken (Things that break, on a map).
+	_apply_broken_things()
 	_build_blocking()
 	_gather_climbing()
 	_interactables = []
 	_collect_interactables(map)
 	_collect_walls(map)
+	# What breaks near the party, marked for whoever sees weak points (Things that break, on a map).
+	if _tile_map != null:
+		var marks := _WeakMarks.new()
+		marks.name = "WeakPoints"
+		marks.scene = self
+		marks.z_as_relative = false
+		marks.z_index = ExplorationParty.PARTY_Z_TOP + 5
+		_tile_map.add_child(marks)
 	# Gaps placed as nodes, on a map whose tileset paints none (SmallGap).
 	if _tile_map != null:
 		for gap in map.find_children("*", "SmallGap", true, false):
@@ -2734,6 +2744,103 @@ func break_wall(wall: BreakableWall):
 	if stealth != null:
 		stealth.wall_broken(tile)
 		stealth.make_noise(wall.global_position, WALL_NOISE_TILES, true)
+
+
+## --- Things that break, on a map ---
+##
+## Enfina smashes a barrel or a crate on a map - whatever the TileSet gives Health (Combat "Things that break") - with any move she
+## uses at it out here (OutsideMoves.smashes_things), as she brings a Cracked Wall down: floor from then on, kept in the flags, and
+## heard on a watched map. Wearing something down by its Health is a fight's rule; out here it is hers alone, at once. Somebody of
+## the party who sees weak points marks what breaks near them (_WeakMarks). PROPOSAL.
+
+const BROKEN_THING_FLAG := "broken_thing:%s:%d,%d"
+const THING_NOISE_TILES := 6.0
+## How near the party what breaks is marked, for somebody who sees weak points.
+const WEAK_POINTS_TILES := 6
+
+
+## The tiles of `tiles` with something on them that breaks.
+func things_on(tiles: Array) -> Array:
+	if _tile_map == null:
+		return []
+	return tiles.filter(func(tile): return Combat.health_on(_tile_map, tile) > 0)
+
+
+## Smashes what stands on `tile`: floor now, for good, and heard.
+func break_thing(tile: Vector2i):
+	if _tile_map == null or Combat.health_on(_tile_map, tile) <= 0:
+		return
+	var ground := Combat.floor_around(_tile_map, tile)
+	if ground.is_empty():
+		return
+	_tile_map.set_cell(0, tile, ground.source, ground.atlas, ground.alternative)
+	Campaign.set_flag(BROKEN_THING_FLAG % [map_path(), tile.x, tile.y])
+	_build_blocking()
+	map_sight().retile(tile)
+	Actors.refresh_tile(tile)
+	if depth_view != null and is_instance_valid(depth_view):
+		depth_view.build()
+	relight_map()
+	var at := _tile_map.to_global(_tile_map.map_to_local(tile))
+	var way: Vector2 = at - party_position()
+	way = way.normalized() if way.length() > 1.0 else Vector2.RIGHT
+	MapFeel.spawn(_tile_map, &"rubble", _tile_map.map_to_local(tile), {"toward": way, "colour": Color("7a5236")})
+	MapFeel.sound(&"thing_breaks", -3.0, 1.0, at)
+	MapLife.blast_at(get_tree(), at, 1.2)
+	Rumble.tap(0.5, 0.15)
+	if stealth != null:
+		stealth.make_noise(at, THING_NOISE_TILES, true)
+
+
+## What was smashed on this map before, smashed again as it loads: before its walls are read.
+func _apply_broken_things():
+	if _tile_map == null:
+		return
+	for tile in _tile_map.get_used_cells(0):
+		if Combat.health_on(_tile_map, tile) > 0 and Campaign.flag(BROKEN_THING_FLAG % [map_path(), tile.x, tile.y]):
+			var ground := Combat.floor_around(_tile_map, tile)
+			if not ground.is_empty():
+				_tile_map.set_cell(0, tile, ground.source, ground.atlas, ground.alternative)
+
+
+## Whether somebody in the party sees weak points (Enfina's passive), at their level.
+func party_sees_weak_points() -> bool:
+	for member in Campaign.party_members():
+		var key: String = member.get("key", "") if member is Dictionary else str(member)
+		var definition: CombatantDefinition = CombatantDatabase.combatants.get(key)
+		if definition == null:
+			continue
+		for passive in definition.passives:
+			if passive != null and passive.sees_weak_points and Campaign.party_level >= passive.required_level:
+				return true
+	return false
+
+
+## What breaks near the party, marked for somebody who sees weak points: an outline over it.
+class _WeakMarks extends Node2D:
+	var scene = null
+	var _wait := 0.0
+
+	func _process(delta: float):
+		_wait -= delta
+		if _wait <= 0.0:
+			_wait = 0.25
+			queue_redraw()
+
+	func _draw():
+		if scene == null or not is_instance_valid(scene) or scene._tile_map == null or not scene.party_sees_weak_points():
+			return
+		var tile_map: TileMap = scene._tile_map
+		var near: Vector2i = tile_map.local_to_map(tile_map.to_local(scene.party_position()))
+		var reach: int = ExplorationScene.WEAK_POINTS_TILES
+		var size := Vector2(Grid.TILE_SIZE, Grid.TILE_SIZE)
+		for dx in range(-reach, reach + 1):
+			for dy in range(-reach, reach + 1):
+				var tile := near + Vector2i(dx, dy)
+				if Combat.health_on(tile_map, tile) <= 0:
+					continue
+				var centre: Vector2 = to_local(tile_map.to_global(tile_map.map_to_local(tile)))
+				draw_rect(Rect2(centre - size / 2.0, size), Color(1.0, 0.88, 0.55, 0.75), false, 6.0)
 
 
 ## A wall broken, seen (the proposals of 2026-11-16, section 3): rubble thrown the way of the blow - away from whoever broke it -

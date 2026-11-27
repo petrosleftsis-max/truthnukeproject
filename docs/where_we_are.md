@@ -2,8 +2,8 @@
 
 A handoff for a new Claude session, local or in the cloud. Read this, then
 `CLAUDE.md` (which a session loads by itself) and the plans named below. Last
-updated 2026-11-07, after the designer's messages of that day (see "Done
-recently"); before that 2026-10-31, after Steps 2 and 3 of the network play (LAN, and online
+updated 2026-11-27 for the card game's "try them all" and as Prometheus's hacking (see "Done recently"); before that 2026-11-07, after the
+designer's messages of that day; before that 2026-10-31, after Steps 2 and 3 of the network play (LAN, and online
 by UPnP), the designer's additions to it, the pictures, stores and dragging
 across the network, the placeholder projectiles, and everything in
 `docs/move_feel_proposals.md` but moves coming down from above or up from
@@ -91,6 +91,64 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **The card game: "try them all", 2026-11-27 afternoon** (`docs/proposals_2026-11-27_card_hacking.md` section 8; `docs/card_game.md`
+  "Hacking"; ledger rows "Card game: Tethers", "the Message", "relics and Blessings", "both hands, own devices, rooms together",
+  "played together over a network", "hacks for both"; suites `cards` and `net`). Everything waiting there but the gates' own cards:
+  **Tethers** (a card type held on the table, fraying and snapping; Leash, Siphon, Guard Link; the Leech ties one, the Severer cuts);
+  **the Message** in every deck, growing by the player's choice among an event's random offers, every word twice at the last boss
+  (never a win by itself); **each gate's own starting relic** (placeholders, from the main game's passives), **the Blessings** as the
+  run's first choice (three so far; the designer will add more), **the party's passives as rare relics**; **both hands at once**,
+  **each on their own device**, **the rooms together** on one screen; **network co-op** (one seed, every choice a move the host
+  numbers, done on both in order); **every card hack played by both** (one screen or two machines; in a dungeon or story). Iron
+  Buckle's fight-start Block now lasts its first turn (a bug). Not committed yet.
+- **The card game as Prometheus's hacking, 2026-11-27** (`docs/proposals_2026-11-27_card_hacking.md`; `docs/card_game.md`
+  "Hacking"; ledger rows "Card game: the gates as characters", "the hacking twists", "two players", "Card game as the hacking
+  minigame"; suite `cards`). The designer's answers to the twists, co-op and characters. **The ten gates are the characters**
+  (`data/card_characters/`), equal in power, World open and the others opened by 3 code fragments each; placeholder decks and
+  suggested playstyles. **The twists built:** three layers with their own bosses (the Colossus, the Devourer, the Core), harder and
+  darker deeper, the map pixelating; the trace meter and its answers; half-read code; encrypted intents and Scan; Lethe; the Devourer
+  (eats cards, chokes on a Status card); short rests and the long rest; six oddities; section 11's hacking juice. **Two players**
+  Slay the Spire 2's way, on one screen (Swap, Ready each, votes, rooms in turn); network co-op not built (the plan is in the
+  proposals file). **The main hacking minigame:** every hack plays as the card game unless its Minigame is Board (the three boards
+  kept); `Hacking.boards_for_tests` keeps the board suites on their boards. Twists 7 (Tethers) and 10 (The Message) are explained
+  and 15 suggested there. Not committed yet.
+- **The card game's enemies choose, 2026-11-27** (`docs/proposals_2026-11-27_card_ai.md` "Chosen, and built"; `docs/card_game.md`
+  "How enemies choose"; ledger row "Card game: how enemies choose"; suite `cards`). All 22 suggestions, no twists: rules before the
+  pattern, opening moves, limits, countdowns, leans, phases and splits, traits (Enrage, Curiosity, Overtime, Toll, Reactive,
+  Asleep, Mode Shift, Invincible, Command, Pack, Linked), Status cards (Wound, Dazed, Slimed, Burn), Entangled, Confused, cards
+  taken, help for allies, summons, hidden intents, the Second Sight relic and a run Challenge. The ten enemies got them, and nine
+  new ones in eight fights (`tools/build_card_ai_content.gd`); the doc has an overview of Slay the Spire's decks the designer
+  asked for. The designer will make cards for the archetypes later. Not committed yet.
+
+- **Enfina's paths, 2026-11-27** (`docs/proposals_2026-11-26_enfina.md` "Her paths, chosen and built"; ledger rows "Enfina:
+  Vanguard path (Firebrand)" to "Grab on the other side"). The Vanguard has Firebrand at 41 (whoever Breakthrough drives aside
+  catches fire, and so does anybody her splinters hit) in place of Daunting Roar, which went to the Warden of Cover; the Warden's
+  Interceptor now lets Step In reach 3 tiles, burning or not, for no walk. The Juggernaut is unchanged and open. Barrels as
+  targets: blasts, aim and the pad's lock-on take them in (an aim starts on somebody, not a crate). The Barbarian's and the
+  Glutton's Grab is a secondary action too. Not committed yet.
+
+- **Enfina: through, not around, 2026-11-26** (`docs/proposals_2026-11-26_enfina.md` "Chosen, and built"; ledger rows from
+  "Enfina: through, not around"; suite `enfina`). Barrels and crates break: the TileSet's Health (12 for now, the designer's to
+  set per tile), worn down by anybody, broken at once by Enfina (Breaker). Burning, she walks straight through what breaks (Burn
+  Through; a keg goes off on her), splinters fly (Splinters), smaller foes are shouldered aside (Shoulder Through), and Step In
+  reaches two tiles (Intercept). Breakthrough, a charge in a line that leaves fire three tiles wide. Grab is a secondary action that
+  carries an ally for free. Weak Points marks what breaks. Blazed Path burns longer and harder. On a map she smashes barrels and
+  crates. Momentum (Planted) is out of her kit. Not committed yet.
+
+- **The card game's juice, 2026-11-26** (`docs/proposals_2026-11-26_card_juice.md`, `docs/card_game.md` "How it feels" and
+  "Slots"; ledger row "Card game: juice"; suite `cards`). Everything the designer chose ("All" for sections 1 to 10; item 29 as
+  the enemies' own idle animations, slower when hurt; every sound, tune and picture a slot). A fight is played back a beat at a
+  time over views that stay, with the hand as a fan, cards dealt, played, exhausted and shuffled, an aiming arrow, drag to play,
+  blows that knock, flash, stop and shake, statuses as badges, intents as pictures, the enemies as their main-game figures acting
+  one at a time, and a victory and a defeat of their own. Around the run: a wipe into each room, the map walked, reward cards
+  turned over, gold and relics flying to the bar, a chest, a fire, an event typing out. Options has "Card game: fast". Section 11
+  waits on the card game's place in the world. Not committed yet.
+- **The card game, 2026-11-26** (`docs/card_game.md`; ledger row "Card game: the baseline"; suite `cards`). A deck-building run in the
+  manner of Slay the Spire, the genre's plain baseline with none of the twists: a map to a boss, fights with energy, Block and
+  intents, card rewards, upgrades and removals, rests, shops, events and relics, all in data files with placeholder names and
+  numbers. On the title screen as "Card Game" until it has its place in the world (Prometheus's hacking or Enfina's game).
+  Also that day: the work of 2026-11-17 to 21 committed in two commits (the passives session's and this one's), and the playtest
+  build `1cddc90` published to the restricted page.
 - **The designer's round of 2026-11-21** (ledger rows "The interface's look" and "Barrels one size, pulled back" to "No step over
   an animation of their own"). The interface is in the look from before T again (the theme's own, End Turn in the accent, each
   screen's own palette; SkyLook kept, not put on, and its coloured rings with it). Barrels are one size however far the view is
@@ -548,10 +606,16 @@ holds the game for both).
 
 ## Waiting on the designer
 
-0. **A card game like Slay the Spire, 2026-11-26** (`docs/proposals_2026-11-26_card_game.md`): where it lives (a mode of its own,
-   "The Ascent", framed as a dream - my pick - a game inside the world, or the dungeon run), sixteen twists from this game's world
-   (gates as the energy, the four characters as suits with the artist's icons, intents shown only in the light, Lethe and
-   un-forgetting, winning by Evidence and Accusation, Erysichthon eating the deck, Moira's die...), and six questions.
+0. **Enfina's Juggernaut, 2026-11-27** (`docs/proposals_2026-11-26_enfina.md`, "Her paths, chosen and built"): the Vanguard and
+   Warden changes are built; the designer: "i don't want juggernaut to be about her being immovable. ill need to think about it".
+   Also theirs: whether Planted comes back anywhere, which tiles break and their Health (the TileSet), and the levels of the new
+   pieces. (Answered 2026-11-27: the Vanguard keeps its name for now; the enemies' Grab is secondary too, built.)
+
+0. **The card game as Prometheus's hacking, 2026-11-27** (`docs/proposals_2026-11-27_card_hacking.md`, sections 7 and 8): built
+   (above), twists 7, 10 and 15 and all the co-op ways too ("try them all"). Theirs: the gates' own cards and playstyles ("which I'll
+   refine later"; their starting relics are placeholder picks), more Blessings (remind them), which hacks in the world are how long
+   and give which gate's fragment (every hack is one easy fight for now), and every number (all PROPOSAL). Every sound, tune and
+   picture is a slot (`docs/card_game.md` "Slots").
 0. **A dungeon run, and Erysichthon again, 2026-11-20** (`docs/proposals_2026-11-20_dungeon.md`): three maps and three fights,
    the designer making them; ideas for the run's through-line, the maps, fights 1 and 2, four ways to redesign Erysichthon (my pick:
    one Hunger bar), and five questions (level and party, beast or king, carry-over, rests, the demo's place).

@@ -232,7 +232,16 @@ func _work_out_pad_tiles() -> Array:
 ## A different set of tiles: the cursor goes onto the one that makes most
 ## sense, unless it is on one of them already.
 func _pad_set_changed():
-	if _pad_set.is_empty() or _pad_set.has(_pad_cursor):
+	if _pad_set.is_empty():
+		return
+	# Somebody before something: a barrel in reach is in the set so a pad can reach it too (Combat "Things that break"), but
+	# an aim starts on whoever is nearest, not on the crate beside the caster - nor on one the last aim left the cursor on.
+	var start_among: Array = _pad_set
+	if _skill_selected:
+		var people: Array = _pad_set.filter(func(tile): return combat == null or not combat.is_breakable_tile(tile))
+		if not people.is_empty():
+			start_among = people
+	if start_among.has(_pad_cursor):
 		return
 	var near := _pad_cursor
 	if _skill_selected:
@@ -242,7 +251,7 @@ func _pad_set_changed():
 			if comb.side == 0 and comb.alive:
 				near = comb.position
 				break
-	_pad_move_cursor(nearest_tile(_pad_set, near))
+	_pad_move_cursor(nearest_tile(start_among, near))
 
 
 ## Where the cursor is on the screen, for Pad to put the pointer on - or null
@@ -265,6 +274,9 @@ func pad_cursor_screen():
 		var inside := screen.clamp(room.position, room.end)
 		var under := tile_map.local_to_map(get_canvas_transform().affine_inverse() * inside)
 		var candidates: Array = tiles.filter(func(tile): return _in_room(_screen_of_tile(tile), room))
+		# Somebody before something (_pad_set_changed): with anybody to aim at, the cursor does not come along onto a crate.
+		if _skill_selected and combat != null and tiles.any(func(tile): return not combat.is_breakable_tile(tile)):
+			candidates = candidates.filter(func(tile): return not combat.is_breakable_tile(tile))
 		if tiles.is_empty():
 			if is_in_bounds(under):
 				_pad_cursor = under
@@ -774,7 +786,8 @@ var _see_through := {}
 ## the commonest question in the game a fifteen-hundred-element scan.
 ##
 ## Kept alongside the arrays rather than replacing them: other code walks them
-## in order, and nothing ever removes a blocking tile, so the two cannot drift.
+## in order; a tile that changes in a fight (a barrel broken) is taken out of both and read again by retile, so the two
+## cannot drift.
 var _blocking_lookup: Array[Dictionary] = [{}, {}, {}]
 
 ## Whether `tile` blocks movement for `movement_class` (0=Ground, 1=Flying,
@@ -965,6 +978,8 @@ func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: 
 	var refused: Dictionary = combat.false_ground_for(mover) if combat != null else {}
 	# Walked through, not stopped on (Combat "Seen through, one by one").
 	var passing: Dictionary = combat.illusions_to_pass(mover) if combat != null else {}
+	# Walked straight through, broken or shoved as they come (Combat "Things that break").
+	var bursts: Dictionary = combat.bursts_for(mover) if combat != null else {}
 	var costs = {start: 0}
 	var frontier = [start]
 	while frontier.size() > 0:
@@ -982,13 +997,13 @@ func get_reachable_tiles(start: Vector2i, movement_class: int, movement_budget: 
 			var neighbor = current + offset
 			if not is_in_bounds(neighbor):
 				continue
-			if is_tile_blocking(neighbor, movement_class):
+			if is_tile_blocking(neighbor, movement_class) and not bursts.has(neighbor):
 				continue
-			if neighbor != start and neighbor in _occupied_spaces and not passing.has(neighbor):
+			if neighbor != start and neighbor in _occupied_spaces and not passing.has(neighbor) and not bursts.has(neighbor):
 				continue
 			if refused.has(neighbor):
 				continue
-			if neighbor != start and _astargrid.is_point_solid(neighbor) and not passing.has(neighbor):
+			if neighbor != start and _astargrid.is_point_solid(neighbor) and not passing.has(neighbor) and not bursts.has(neighbor):
 				# Whatever the pathfinder currently refuses to route through -
 				# which includes tiles Fear has closed off - isn't somewhere the
 				# AI should be offered either, or it picks a destination its own
@@ -1077,6 +1092,8 @@ var _hemmed := {}
 var _refused := {}
 ## And what they may walk through but not stop on, while a walk is being searched (Combat "Seen through, one by one").
 var _passing := {}
+## Tiles the walker goes straight through, breaking or shoving what is there (Combat.bursts_for): ground to them.
+var _bursts := {}
 ## How raised whoever stands on each tile is, where it is more than nothing:
 ## up on high ground counts one, and every size above Human one more (Combat
 ## "Heights" - somebody bigger than the barrels sees over them, and gets no cover
@@ -1277,7 +1294,8 @@ func _fits_as(mover: Dictionary, anchor: Vector2i, size: int, shape: Vector2i, s
 			var tile: Vector2i = anchor + Vector2i(dx, dy)
 			if not is_on_map(tile) or combat.floor_of(tile) != here:
 				return false
-			if is_tile_blocking(tile, movement_class) and not (combat.is_high(tile) and (shape == Vector2i.ONE or steps_over)):
+			if is_tile_blocking(tile, movement_class) and not (combat.is_high(tile) and (shape == Vector2i.ONE or steps_over)) \
+					and not _bursts.has(tile):
 				return false
 	if anchor == start:
 		return true
@@ -1287,7 +1305,8 @@ func _fits_as(mover: Dictionary, anchor: Vector2i, size: int, shape: Vector2i, s
 		for dy in shape.y:
 			for dx in shape.x:
 				var tile: Vector2i = anchor + Vector2i(dx, dy)
-				if _occupied_spaces.has(tile) and (mover.is_empty() or not combat.covers(mover, tile)) and not _passing.has(tile):
+				if _occupied_spaces.has(tile) and (mover.is_empty() or not combat.covers(mover, tile)) and not _passing.has(tile) \
+						and not _bursts.has(tile):
 					return false
 		return true
 	# Small enough to share: as many as fit, of their own side.
@@ -1381,8 +1400,9 @@ func _add_step(found: Array, next: Vector2i, mover: Dictionary, start: Vector2i,
 	if shape == Vector2i.ZERO:
 		return
 	var full := _full_size(mover)
+	# Something that breaks, she goes straight through rather than up (Combat "Things that break": Burn Through).
 	if shape == Vector2i.ONE and movement_class != 1 and not Combat.steps_over_size(full, movement_class) \
-			and combat.is_high(next) and not may_climb and not combat.climbs_anywhere(mover):
+			and combat.is_high(next) and not may_climb and not combat.climbs_anywhere(mover) and not _bursts.has(next):
 		return
 	stances[next] = shape
 	var folded: bool = shape != _square_of(mover, full)
@@ -1403,6 +1423,8 @@ func _height_search(start: Vector2i, movement_class: int, budget: int, parents: 
 	_hemmed = combat.hemmed_tiles(mover) if combat != null else {}
 	_refused = combat.false_ground_for(mover) if combat != null else {}
 	_passing = combat.illusions_to_pass(mover) if combat != null else {}
+	# What she walks straight through, burning (Combat "Things that break").
+	_bursts = combat.bursts_for(mover) if combat != null else {}
 	var costs := {start: 0}
 	var lengths := {start: 0.0}
 	var high := {}
@@ -1577,6 +1599,38 @@ func _mark_unpainted_cells_as_blocking():
 				_blocking_lookup[movement_class][tile] = true
 
 
+## Reads `tile` of the map again, its tile changed in the fight (Combat.break_tile: a barrel broken, floor now): out of every
+## list of what blocks and what is see-through, and back into those its tile now says, and on the walking grid as it is.
+func retile(tile: Vector2i):
+	for movement_class in _blocking_spaces.size():
+		_blocking_spaces[movement_class].erase(tile)
+		_blocking_lookup[movement_class].erase(tile)
+	_all_blocking_spaces.erase(tile)
+	_see_through.erase(tile)
+	var data = tile_map.get_cell_tile_data(0, tile)
+	var stops_somebody := data == null
+	if data == null:
+		for movement_class in _blocking_spaces.size():
+			_blocking_spaces[movement_class].append(tile)
+			_blocking_lookup[movement_class][tile] = true
+	else:
+		for block in data.get_custom_data("Blocks"):
+			if block == SEE_THROUGH:
+				_see_through[tile] = true
+				continue
+			if block < 0 or block >= _blocking_spaces.size():
+				continue
+			stops_somebody = true
+			_blocking_spaces[block].append(tile)
+			_blocking_lookup[block][tile] = true
+	if stops_somebody:
+		_all_blocking_spaces.append(tile)
+	elif is_in_bounds(tile) and not _occupied_spaces.has(tile):
+		_astargrid.set_point_solid(tile, false)
+		_astargrid.set_point_weight_scale(tile, 1)
+	queue_redraw()
+
+
 func combatant_added(_combatant):
 	refresh_occupancy()
 
@@ -1634,7 +1688,8 @@ func set_controlled_combatant(combatant: Dictionary):
 	# In co-op the board is theirs alone whose character this is (Coop).
 	Coop.fight_turn(combat.player_of(combatant) if player_turn else Coop.ANYONE)
 	controlled_node = combatant.sprite
-	movement = maxi(combat.get_effective_stat(combatant, "movement") + combat.blazed_path_bonus(combatant), 0)
+	# Less a tile for every one owed, run to an ally last round (Combat "Intercept").
+	movement = maxi(combat.get_effective_stat(combatant, "movement") + combat.blazed_path_bonus(combatant) - combat.take_walk_owed(combatant), 0)
 	if combat.has_restriction(combatant, "prevents_movement") or combat.is_prone(combatant):
 		# Crystallised - rooted for the turn, whatever their movement stat says.
 		# Lying down, nobody walks, whatever else lets them (Combat "Prone").
@@ -1939,6 +1994,11 @@ func update_points_weight():
 		else:
 			_astargrid.set_point_weight_scale(space, 1)
 			_astargrid.set_point_solid(space, false)
+	# What they walk straight through, burning, is open to them (Combat "Things that break": Burn Through, Shoulder Through).
+	for tile in combat.bursts_for(current_comb):
+		if is_in_bounds(tile):
+			_astargrid.set_point_weight_scale(tile, 1)
+			_astargrid.set_point_solid(tile, false)
 	# Somebody bigger or smaller than a tile goes only where they fit.
 	if Combat.footprint(current_comb) != Vector2i.ONE:
 		_fit_points_to_big(current_comb)
@@ -2217,6 +2277,8 @@ func _handle_step_arrival():
 	# Twice as dear near anybody hemming them in (Combat "Hemmed In and Exposed").
 	var hemmed: int = combat.hem_cost(mover, new_position)
 	mover.position = new_position
+	# Burning through what stood there - broken, gone off, or shouldered aside (Combat "Things that break").
+	combat.burst_through(mover, new_position, new_position - Vector2i(old_position))
 	# Walked this turn (Momentum - Combat "Progression"), and how far (Leading
 	# Charge - Combat "The paths").
 	mover["moved_this_turn"] = true
@@ -2949,11 +3011,21 @@ func refusal_at(tile: Vector2i, comb: Dictionary) -> String:
 	# Moving what they laid: any tile in its reach (Combat "Zones").
 	if Combat.moves_zone(skill):
 		return "" if tile in _range_preview_positions else OUT_OF_REACH
+	# A charge (Breakthrough): any tile of a straight line in its reach, whoever is there or nobody (Combat "Breakthrough").
+	if skill.charges_through:
+		if tile not in _range_preview_positions:
+			return OUT_OF_REACH
+		return combat.refusal_for(caster, skill, tile)
 	if radius == 0:
 		# Aimed at a light (Cyrus's Gun): any in reach.
 		if skill.shoots_out_lights and not combat.light_to_shoot_at(tile).is_empty():
 			if tile in _range_preview_positions:
 				return ""
+		# Aimed at something that breaks, a barrel or a crate, with a blow (Combat "Things that break").
+		if comb.is_empty() and skill.deals_damage and not skill.targets_ally and combat.is_breakable_tile(tile):
+			if tile not in _range_preview_positions:
+				return OUT_OF_REACH
+			return combat.refusal_for(caster, skill, tile)
 		# Aimed at somebody, so it is the somebody who has to be right.
 		if comb.is_empty():
 			return "Nobody there"
@@ -3117,6 +3189,9 @@ func is_valid_skill_target(target: Dictionary, tile = null) -> bool:
 		# A friend to throw, or a thing (Combat "Enfina").
 		if skill.throws and not right_side and (combat.throws_friends(caster) or (target.has("object") and combat.throws_things(caster))):
 			right_side = combat._grip_refusal(caster, skill, target) == ""
+		# A friend to take hold of (Grab on an ally: carried along, Combat.drag_cost).
+		if not right_side and combat._grabs_a_friend(caster, target, skill):
+			right_side = combat._grip_refusal(caster, skill, target) == ""
 		if not right_side:
 			return false
 	var aimed: Vector2i = tile if tile != null else combat.nearest_tile_of(target, caster.position)
@@ -3232,6 +3307,11 @@ const BAD_GROUND_EDGE := Color(0.9, 0.25, 0.35, 0.8)
 ## The party's traps (Combat "Traps"), seen only by them: a dull bronze.
 const TRAP_FILL := Color(0.7, 0.55, 0.25, 0.3)
 const TRAP_EDGE := Color(0.85, 0.65, 0.3, 0.85)
+## What breaks, and what goes off as it breaks, to somebody who sees weak points (Combat "Weak Points"). PROPOSAL.
+const WEAK_POINT_FILL := Color(0.95, 0.85, 0.55, 0.12)
+const WEAK_POINT_EDGE := Color(1.0, 0.88, 0.55, 0.75)
+const GOES_OFF_FILL := Color(1.0, 0.42, 0.2, 0.18)
+const GOES_OFF_EDGE := Color(1.0, 0.5, 0.25, 0.9)
 ## Zones on the ground (Combat "Zones"): the party's, and the other side's.
 const ZONE_ALLY_FILL := Color(0.95, 0.85, 0.45, 0.16)
 const ZONE_ALLY_EDGE := Color(1.0, 0.9, 0.5, 0.7)
@@ -3805,6 +3885,10 @@ func _draw_board():
 		_draw_area(combat.hazard_warning_tiles(), HAZARD_WARNING_FILL, HAZARD_WARNING_EDGE)
 		# The party's own traps, which nobody else can see.
 		_draw_area(combat.trap_tiles(), TRAP_FILL, TRAP_EDGE)
+		# What breaks, and hotter what goes off as it does, to somebody who sees weak points (Combat "Weak Points").
+		if combat.weak_points_shown():
+			_draw_area(combat.weak_point_tiles(), WEAK_POINT_FILL, WEAK_POINT_EDGE)
+			_draw_area(combat.goes_off_tiles(), GOES_OFF_FILL, GOES_OFF_EDGE)
 		# How lit the ground is, plainly, while the danger view is up (Light).
 		if _showing_danger:
 			_draw_area(combat.tiles_at_light(Light.Level.DARK), Color(0.1, 0.12, 0.34, 0.42), Color(0.42, 0.5, 0.95, 0.75))

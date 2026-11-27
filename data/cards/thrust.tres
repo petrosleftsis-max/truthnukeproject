@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_r1dj0"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_ye8dr"]
+
+[sub_resource type="Resource" id="Resource_jipa8"]
+script = ExtResource("1_r1dj0")
+amount = 6
+upgraded_amount = 9
+
+[resource]
+script = ExtResource("2_ye8dr")
+name = "Thrust"
+rarity = 0
+effects = Array[ExtResource("1_r1dj0")]([SubResource("Resource_jipa8")])

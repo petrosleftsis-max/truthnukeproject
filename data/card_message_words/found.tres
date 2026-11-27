@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardMessageWord" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_h8k2x"]
+[ext_resource type="Script" path="res://cards/CardMessageWord.gd" id="2_2w3dw"]
+
+[sub_resource type="Resource" id="Resource_q1k34"]
+script = ExtResource("1_h8k2x")
+kind = 6
+amount = 3
+
+[resource]
+script = ExtResource("2_2w3dw")
+line = "The messengers have already found the truth."
+effect = SubResource("Resource_q1k34")
+step = 2

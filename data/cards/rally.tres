@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_unwbo"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_cawcf"]
+
+[sub_resource type="Resource" id="Resource_5rgpd"]
+script = ExtResource("1_unwbo")
+kind = 3
+amount = 2
+upgraded_amount = 2
+
+[sub_resource type="Resource" id="Resource_dioda"]
+script = ExtResource("1_unwbo")
+kind = 2
+amount = 1
+upgraded_amount = 1
+struck = true
+
+[resource]
+script = ExtResource("2_cawcf")
+name = "Rally"
+type = 1
+rarity = 2
+upgraded_cost = 0
+target = 2
+effects = Array[ExtResource("1_unwbo")]([SubResource("Resource_5rgpd"), SubResource("Resource_dioda")])
+exhausts = true

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_ncvx4"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_5no47"]
+
+[sub_resource type="Resource" id="Resource_s8iuh"]
+script = ExtResource("1_ncvx4")
+amount = 5
+upgraded_amount = 7
+
+[sub_resource type="Resource" id="Resource_xest8"]
+script = ExtResource("1_ncvx4")
+kind = 4
+amount = 3
+upgraded_amount = 4
+status = &"poison"
+struck = true
+
+[resource]
+script = ExtResource("2_5no47")
+name = "Venom Strike"
+rarity = 2
+effects = Array[ExtResource("1_ncvx4")]([SubResource("Resource_s8iuh"), SubResource("Resource_xest8")])

@@ -141,38 +141,39 @@ func place(comb: Dictionary, tile: Vector2i):
 
 func the_charge():
 	log_line("======== Demolition Charge ========")
-	var enfina := who("enfina")
+	# Cyrus, not Enfina: her Breaker (2026-11-26) breaks anything at once, and this is about wearing its health down.
+	var striker := who("cyrus")
 	var the_foes := foes()
 	var near: Dictionary = the_foes[0]
 	var far: Dictionary = the_foes[1]
-	var run := a_run(9, enfina)
+	var run := a_run(9, striker)
 	ok(not run.is_empty(), "room for it", "%s" % [run])
 	var charge := await put_thing("demolition_charge", run[0] + run[1] * 4)
 	ok(charge.hp == 60 and charge.object.blast_radius == 3 and charge.object.blast_damage == 120, "its health, area and damage are its own to set", "%d" % charge.hp)
 	place(near, run[0] + run[1] * 5)
 	place(far, run[0] + run[1] * 8)
-	place(enfina, run[0] + run[1] * 3)
+	place(striker, run[0] + run[1] * 3)
 	var keg := await put_thing("powder_keg", run[0] + run[1] * 6)
-	await their_turn(enfina)
+	await their_turn(striker)
 	var blow: SkillDefinition = SkillDatabase.skills.greatsword_attack
 	# Enough damage needed: a blow that does not break it does nothing.
 	charge.hp = 9999
 	var near_hp: int = near.hp
-	await combat.use_skill("greatsword_attack", enfina, charge.position, false)
+	await combat.use_skill("greatsword_attack", striker, charge.position, false)
 	await settle()
 	ok(charge.hp < 9999 and charge.alive and near.hp == near_hp, "hit, it takes it, and holds", "%d" % charge.hp)
 	# Broken: everybody and everything round it, whichever side.
 	charge.hp = 1
 	near_hp = near.hp
-	var her_hp: int = enfina.hp
+	var their_hp: int = striker.hp
 	var far_hp: int = far.hp
-	await their_turn(enfina)
-	enfina.skill_used_this_turn = false
-	await combat.use_skill("greatsword_attack", enfina, charge.position, false)
+	await their_turn(striker)
+	striker.skill_used_this_turn = false
+	await combat.use_skill("greatsword_attack", striker, charge.position, false)
 	await settle(4)
 	ok(not charge.alive, "broken, it goes up")
 	ok(near.hp < near_hp, "the enemy round it is hurt", "%d" % (near_hp - near.hp))
-	ok(enfina.hp < her_hp, "and so is whoever set it off, on their own side", "%d" % (her_hp - enfina.hp))
+	ok(striker.hp < their_hp, "and so is whoever set it off, on their own side", "%d" % (their_hp - striker.hp))
 	ok(far.hp == far_hp or combat.distance_to(far, charge.position) <= 3, "not those out of its area", "%d" % (far_hp - far.hp))
 	ok(not keg.alive, "and the keg in its area goes off too: whatever is there")
 	log_line("")

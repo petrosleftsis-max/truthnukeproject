@@ -9,8 +9,8 @@
 script = ExtResource("1_effect")
 type = 8
 condition = ExtResource("3_burn")
-condition_duration = 3
-condition_dot_modifier = 0.2
+condition_duration = 5
+condition_dot_modifier = 0.4
 
 [sub_resource type="Resource" id="Effect_ground"]
 script = ExtResource("1_effect")

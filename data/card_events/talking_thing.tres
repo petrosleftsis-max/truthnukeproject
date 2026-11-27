@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_718ae"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_0r06p"]
+
+[sub_resource type="Resource" id="Resource_t7303"]
+script = ExtResource("1_718ae")
+label = "Trade (pay 40 gold; a relic)"
+outcome = "It takes the gold and leaves something behind."
+gold = -40
+action = 4
+
+[sub_resource type="Resource" id="Resource_u0mwt"]
+script = ExtResource("1_718ae")
+label = "Listen (75 gold; a Glitch in your deck)"
+outcome = "It tells you its secrets, and leaves one of them inside you."
+gold = 75
+adds_card = "glitch"
+
+[sub_resource type="Resource" id="Resource_y223g"]
+script = ExtResource("1_718ae")
+label = "Ignore it"
+outcome = "It goes on talking after you have gone."
+
+[resource]
+script = ExtResource("2_0r06p")
+title = "The Talking Thing"
+text = "A process speaks to you in a voice it stole from someone. It offers to trade."
+options = Array[ExtResource("1_718ae")]([SubResource("Resource_t7303"), SubResource("Resource_u0mwt"), SubResource("Resource_y223g")])

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardRelicDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_4e7p6"]
+[ext_resource type="Script" path="res://cards/CardRelicDefinition.gd" id="2_b7sbt"]
+
+[sub_resource type="Resource" id="Resource_v5uwl"]
+script = ExtResource("1_4e7p6")
+kind = 6
+amount = 2
+
+[resource]
+script = ExtResource("2_b7sbt")
+name = "Mercy"
+when = 3
+effect = SubResource("Resource_v5uwl")
+rarity = 3
+flavour = "A little mended, every turn."
+learned_from = "Alithia's Mercy"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardRelicDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_yi7nw"]
+[ext_resource type="Script" path="res://cards/CardRelicDefinition.gd" id="2_0qlfv"]
+
+[sub_resource type="Resource" id="Resource_q06vb"]
+script = ExtResource("1_yi7nw")
+kind = 3
+amount = 1
+
+[resource]
+script = ExtResource("2_0qlfv")
+name = "Contest Insight"
+when = 2
+effect = SubResource("Resource_q06vb")
+rarity = 0
+flavour = "Sophia's: she read the fight before it began."

@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CardEventDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEventOption.gd" id="1_ow4vv"]
+[ext_resource type="Script" path="res://cards/CardEventDefinition.gd" id="2_oistg"]
+
+[sub_resource type="Resource" id="Resource_wq8wo"]
+script = ExtResource("1_ow4vv")
+label = "Read them (every half-read card in your deck read)"
+outcome = "The crossed-out words come clear."
+action = 6
+
+[sub_resource type="Resource" id="Resource_jiv2d"]
+script = ExtResource("1_ow4vv")
+label = "Copy them out (trace +6; a card)"
+outcome = "You take the time to copy one of their tricks."
+action = 1
+trace = 6
+
+[sub_resource type="Resource" id="Resource_a26vc"]
+script = ExtResource("1_ow4vv")
+label = "Leave them"
+outcome = "You leave them for whoever comes next."
+
+[resource]
+script = ExtResource("2_oistg")
+title = "Notes on the Wall"
+text = "Someone was here before you. Their notes are scrawled across the code: what the struck-out lines mean."
+options = Array[ExtResource("1_ow4vv")]([SubResource("Resource_wq8wo"), SubResource("Resource_jiv2d"), SubResource("Resource_a26vc")])

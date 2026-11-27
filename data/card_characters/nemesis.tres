@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardCharacterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardCharacterDefinition.gd" id="1_vmvj8"]
+
+[resource]
+script = ExtResource("1_vmvj8")
+name = "Nemesis"
+gate = 6
+starting_deck = Array[String](["thrust", "thrust", "thrust", "thrust", "guard", "guard", "guard", "guard", "riposte", "riposte", "scan"])
+starting_relic = "gate_drills"
+playstyle = "Retribution: hurts whoever hurts her.
+Spines, blows struck back when struck, and damage growing with the damage taken this fight (a grudge). Suggested cards: Riposte's kin, a Grudge status adding to every hit for each hit taken, a Taunt that draws every enemy's attack to her (in co-op, keeping the partner safe)."

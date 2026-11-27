@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardMessageWord" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_27qhw"]
+[ext_resource type="Script" path="res://cards/CardMessageWord.gd" id="2_x2x6t"]
+
+[sub_resource type="Resource" id="Resource_xcjfq"]
+script = ExtResource("1_27qhw")
+amount = 4
+
+[resource]
+script = ExtResource("2_x2x6t")
+line = "Its walls are only code."
+effect = SubResource("Resource_xcjfq")
+step = 2
+weight = 2

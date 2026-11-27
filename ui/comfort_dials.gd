@@ -8,6 +8,7 @@ const INK_DIM := Color("c2ceda")
 const MUTED := Color("8296a9")
 
 var _slow: CheckButton = null
+var _card_fast: CheckButton = null
 
 
 func _ready():
@@ -22,6 +23,14 @@ func _ready():
 	_slow.toggled.connect(func(on: bool): Comfort.set_slow_motion(on))
 	_slow.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	add_child(_slow)
+	_card_fast = CheckButton.new()
+	_card_fast.name = "CardGameFast"
+	_card_fast.text = "Card game: fast"
+	_card_fast.tooltip_text = "The card game plays its cards and blows out at twice the speed"
+	_card_fast.button_pressed = Comfort.card_fast()
+	_card_fast.toggled.connect(func(on: bool): Comfort.set_card_fast(on))
+	_card_fast.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	add_child(_card_fast)
 
 
 func _row(dial: Dictionary) -> Control:
@@ -81,4 +90,5 @@ func controls() -> Array:
 	for child in find_children("*", "HSlider", true, false):
 		found.append(child)
 	found.append(_slow)
+	found.append(_card_fast)
 	return found

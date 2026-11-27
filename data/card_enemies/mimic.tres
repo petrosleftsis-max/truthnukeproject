@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_6b088"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_3koi8"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_ib6gl"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_d3vld"]
+
+[sub_resource type="Resource" id="Resource_doxg8"]
+script = ExtResource("1_6b088")
+name = "Chomp"
+damage = 8
+weight = 2
+
+[sub_resource type="Resource" id="Resource_0okdq"]
+script = ExtResource("1_6b088")
+name = "Sticky Ichor"
+block = 6
+weight = 2
+adds_card = "slimed"
+adds_count = 2
+
+[sub_resource type="Resource" id="Resource_tgc08"]
+script = ExtResource("1_6b088")
+name = "Gnash"
+damage = 5
+hits = 2
+weight = 2
+
+[sub_resource type="Resource" id="Resource_5121i"]
+script = ExtResource("2_3koi8")
+line = "The Mimic bursts apart!"
+splits_into = Array[String](["imp", "imp"])
+
+[resource]
+script = ExtResource("4_d3vld")
+name = "Mimic"
+max_hp_least = 46
+max_hp_most = 50
+moves = Array[ExtResource("1_6b088")]([SubResource("Resource_doxg8"), SubResource("Resource_0okdq"), SubResource("Resource_tgc08")])
+borrow_picture_from = "mimic"
+phases = Array[ExtResource("2_3koi8")]([SubResource("Resource_5121i")])

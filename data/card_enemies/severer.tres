@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_2tf85"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_la3ji"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_7cs6t"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_5l1vb"]
+
+[sub_resource type="Resource" id="Resource_gyvvt"]
+script = ExtResource("1_2tf85")
+name = "Sever"
+damage = 8
+weight = 2
+not_twice_running = true
+cuts_tethers = 1
+
+[sub_resource type="Resource" id="Resource_p00gj"]
+script = ExtResource("1_2tf85")
+name = "Cleave"
+damage = 12
+not_twice_running = true
+
+[sub_resource type="Resource" id="Resource_784u2"]
+script = ExtResource("1_2tf85")
+name = "Guard"
+block = 10
+
+[resource]
+script = ExtResource("4_5l1vb")
+name = "Severer"
+max_hp_least = 40
+max_hp_most = 46
+moves = Array[ExtResource("1_2tf85")]([SubResource("Resource_gyvvt"), SubResource("Resource_p00gj"), SubResource("Resource_784u2")])
+borrow_picture_from = "pit_champion"

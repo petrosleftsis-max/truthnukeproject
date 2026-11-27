@@ -53,6 +53,20 @@ func region() -> Rect2i:
 	return _region
 
 
+## Reads `tile` again, its tile changed: something smashed (ExplorationScene "Things that break, on a map").
+func retile(tile: Vector2i):
+	_stops_sight.erase(tile)
+	if _tile_map == null:
+		return
+	var data = _tile_map.get_cell_tile_data(0, tile)
+	if data == null:
+		_stops_sight[tile] = true
+		return
+	var blocks = data.get_custom_data("Blocks")
+	if 0 in blocks and not SEE_THROUGH in blocks:
+		_stops_sight[tile] = true
+
+
 ## Tiles shut off for now - a closed door - on top of the painted walls.
 var _shut := {}
 

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardCharacterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardCharacterDefinition.gd" id="1_sglah"]
+
+[resource]
+script = ExtResource("1_sglah")
+name = "Tartarus"
+gate = 5
+starting_deck = Array[String](["thrust", "thrust", "thrust", "thrust", "guard", "guard", "guard", "guard", "brace", "heavy_swing", "scan"])
+starting_relic = "gate_bulwark"
+playstyle = "The pit: Block piled high and kept, enemies held down.
+Nothing gets out: Block that stays from turn to turn, Entangled and Brittle on the enemy, slow heavy blows that land through Block. Suggested cards: a Power keeping Block between turns (Slay the Spire's Barricade), a blow dealing damage equal to your Block, cards that Entangle."

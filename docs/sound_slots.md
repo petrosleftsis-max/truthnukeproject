@@ -1,6 +1,6 @@
 # Sound slots: what is filled, what plays a stand-in, what is silent
 
-Every sound the game asks for, as of 2026-11-12 (made by `perl tools/sound_slots.pl` over the data; run it again when sounds go in). **Yours** is a
+Every sound the game asks for, as of 2026-11-27 (made by `perl tools/sound_slots.pl` over the data; run it again when sounds go in). **Yours** is a
 file you placed. A **stand-in** is a placeholder made in code on the spot (`exploration/PlaceholderSounds.gd`), heard until a file
 fills the slot. **Silent** is a slot that plays nothing until filled. Fill a slot in the editor: the sound bank is
 `audio/sound_bank.tres`, the pictures' `pictures/feedback.tres`, a move's or a condition's own file (its Sound fields).
@@ -18,6 +18,7 @@ fills the slot. **Silent** is a slot that plays nothing until filled. Fill a slo
 | Falling | `party_falls` | yours |
 | Falling | `enemy_falls` | yours |
 | Moves | `travel` | yours |
+| Moves | `thing_breaks` | stand-in |
 | The day | `birds_at_dawn` | **empty, silent** |
 | The day | `insects_at_dusk` | **empty, silent** |
 | The day | `crickets_at_night` | **empty, silent** |
@@ -35,6 +36,43 @@ fills the slot. **Silent** is a slot that plays nothing until filled. Fill a slo
 | Hacks and the world | `mechanism_opened` | yours |
 | Hacks and the world | `caught` | yours |
 | Hacks and the world | `levels_unveiled` | yours |
+| On a map | `door_creak` | stand-in |
+| On a map | `door_shut` | stand-in |
+| On a map | `picked_up` | stand-in |
+| On a map | `lamp_out` | stand-in |
+| On a map | `wall_breaks` | stand-in |
+| On a map | `water_splash` | stand-in |
+| On a map | `voice_tick` | stand-in |
+| On a map | `refused` | stand-in |
+| On a map | `indoors` | **empty, silent** |
+| On a map | `underground` | **empty, silent** |
+| On a map | `danger` | stand-in |
+| On a map | `guard_step` | stand-in |
+| On a map | `takedown` | stand-in |
+| On a map | `clatter` | stand-in |
+| On a map | `rustle` | stand-in |
+| On a map | `creak` | stand-in |
+| On a map | `body_drag` | stand-in |
+| Wandering | `secret_found` | stand-in |
+| Wandering | `mark_seen` | stand-in |
+| Wandering | `rest` | stand-in |
+| Wandering | `rainbow` | stand-in |
+| Wandering | `roamer_sees` | stand-in |
+| Wandering | `climb` | stand-in |
+| Wandering | `shift` | stand-in |
+| Wandering | `dream` | stand-in |
+| Wandering | `lethe` | stand-in |
+| Wandering | `gate_voice` | stand-in |
+| Wandering | `ambience_wind` | stand-in |
+| Wandering | `ambience_city` | stand-in |
+| Wandering | `ambience_drips` | stand-in |
+| Wandering | `ambience_dream` | stand-in |
+| Wandering | `step_stone` | stand-in |
+| Wandering | `step_wood` | stand-in |
+| Wandering | `step_grass` | stand-in |
+| Voices in a fight | `voice_effort` | **empty, silent** |
+| Voices in a fight | `voice_hurt` | **empty, silent** |
+| Voices in a fight | `voice_healed` | **empty, silent** |
 | Menus | `menu_press` | yours |
 | Menus | `ping` | yours |
 | Menus | `bag_open` | yours |
@@ -43,6 +81,75 @@ fills the slot. **Silent** is a slot that plays nothing until filled. Fill a slo
 | Menus | `coin` | yours |
 | Menus | `page` | yours |
 | Menus | `learned_spell` | yours |
+| The card game | `card_drawn` | stand-in |
+| The card game | `card_shuffled` | stand-in |
+| The card game | `card_discarded` | stand-in |
+| The card game | `card_exhausted` | stand-in |
+| The card game | `card_played_attack` | stand-in |
+| The card game | `card_played_skill` | stand-in |
+| The card game | `card_played_power` | stand-in |
+| The card game | `card_hover` | stand-in |
+| The card game | `card_hit` | stand-in |
+| The card game | `card_hit_heavy` | stand-in |
+| The card game | `card_block_gained` | stand-in |
+| The card game | `card_block_struck` | stand-in |
+| The card game | `card_block_broken` | stand-in |
+| The card game | `card_status_good` | stand-in |
+| The card game | `card_status_bad` | stand-in |
+| The card game | `card_poison` | stand-in |
+| The card game | `card_spines` | stand-in |
+| The card game | `card_mend` | stand-in |
+| The card game | `card_energy_filled` | stand-in |
+| The card game | `card_enemy_falls` | stand-in |
+| The card game | `card_woke` | stand-in |
+| The card game | `card_countdown` | stand-in |
+| The card game | `card_curled` | stand-in |
+| The card game | `card_phase` | stand-in |
+| The card game | `card_junk` | stand-in |
+| The card game | `card_stolen` | stand-in |
+| The card game | `card_summoned` | stand-in |
+| The card game | `card_rose` | stand-in |
+| The card game | `card_overtime` | stand-in |
+| The card game | `card_terminal_beep` | stand-in |
+| The card game | `card_code_tick` | stand-in |
+| The card game | `card_glitch` | stand-in |
+| The card game | `card_scanned` | stand-in |
+| The card game | `card_choked` | stand-in |
+| The card game | `card_trace_rose` | stand-in |
+| The card game | `card_fragment` | stand-in |
+| The card game | `card_tether_tied` | stand-in |
+| The card game | `card_tether_frayed` | stand-in |
+| The card game | `card_tether_snapped` | stand-in |
+| The card game | `card_tether_cut` | stand-in |
+| The card game | `card_message_grows` | stand-in |
+| The card game | `card_truth_spoken` | stand-in |
+| The card game | `card_blessing` | stand-in |
+| The card game | `card_end_turn` | stand-in |
+| The card game | `card_your_turn` | stand-in |
+| The card game | `card_enemy_turn` | stand-in |
+| The card game | `card_fight_begins` | stand-in |
+| The card game | `card_elite_arrives` | stand-in |
+| The card game | `card_boss_arrives` | stand-in |
+| The card game | `card_fight_won` | stand-in |
+| The card game | `card_fight_lost` | stand-in |
+| The card game | `card_reward_turned` | stand-in |
+| The card game | `card_reward_rare` | stand-in |
+| The card game | `card_taken` | stand-in |
+| The card game | `card_gold` | stand-in |
+| The card game | `card_gold_spent` | stand-in |
+| The card game | `card_relic_gained` | stand-in |
+| The card game | `card_relic_used` | stand-in |
+| The card game | `card_map_step` | stand-in |
+| The card game | `card_room_entered` | stand-in |
+| The card game | `card_chest_opened` | stand-in |
+| The card game | `card_upgraded` | stand-in |
+| The card game | `card_removed` | stand-in |
+| The card game | `card_text_tick` | stand-in |
+| The card game | `card_rest_fire` | **empty, silent** |
+| The card game | `card_music_map` | **empty, silent** |
+| The card game | `card_music_fight` | **empty, silent** |
+| The card game | `card_music_elite` | **empty, silent** |
+| The card game | `card_music_boss` | **empty, silent** |
 
 ## Pictures and puzzles (`pictures/feedback.tres`)
 
@@ -103,6 +210,7 @@ and by element.
 | Blinding Bomb | stand-in | stand-in | stand-in |
 | Burn Bottle | stand-in | stand-in | yours |
 | Burner Spellbook | stand-in | stand-in | stand-in |
+| Child's Shoe | stand-in | stand-in | stand-in |
 | Cling Spellbook | stand-in | stand-in | stand-in |
 | Company Unseen Spellbook | stand-in | stand-in | stand-in |
 | Crystal Bottle | yours | stand-in | stand-in |
@@ -136,7 +244,9 @@ and by element.
 | Kindled Hound Spellbook | stand-in | stand-in | stand-in |
 | Knockout Drops | stand-in | stand-in | stand-in |
 | Lantern | stand-in | stand-in | stand-in |
+| Lethe Water | stand-in | stand-in | stand-in |
 | Light Void Spellbook | stand-in | stand-in | stand-in |
+| Lighthouse Lens | stand-in | stand-in | stand-in |
 | Magnifying Glass | stand-in | stand-in | stand-in |
 | Medicine | stand-in | stand-in | stand-in |
 | Mediocre Cure Potion | stand-in | stand-in | stand-in |
@@ -151,6 +261,7 @@ and by element.
 | Retching Dart | stand-in | stand-in | stand-in |
 | Seal of Office | stand-in | stand-in | stand-in |
 | Sealed Requisition | stand-in | stand-in | stand-in |
+| Shiny Button | stand-in | stand-in | stand-in |
 | Shock Bottle | stand-in | stand-in | stand-in |
 | Shrink Spellbook | stand-in | stand-in | stand-in |
 | Sleep Dart | stand-in | stand-in | stand-in |
@@ -160,6 +271,7 @@ and by element.
 | Stolen Signet | stand-in | stand-in | stand-in |
 | Stolen Sun Spellbook | stand-in | stand-in | stand-in |
 | Stone Edge Spellbook | stand-in | stand-in | stand-in |
+| Stopped Clock | stand-in | stand-in | stand-in |
 | Storm Cloud Spellbook | stand-in | stand-in | stand-in |
 | Storm Edge Spellbook | stand-in | stand-in | stand-in |
 | Tartarus Flame Spellbook | stand-in | stand-in | stand-in |
@@ -354,6 +466,7 @@ and by element.
 | Arrest | stand-in | stand-in | stand-in |
 | Battle Cry | yours | stand-in | stand-in |
 | Blazed Path | stand-in | stand-in | stand-in |
+| Breakthrough | stand-in | stand-in | stand-in |
 | Cauterise | stand-in | stand-in | stand-in |
 | Climb | stand-in | stand-in | stand-in |
 | Disarm | yours | stand-in | stand-in |
@@ -381,16 +494,11 @@ and by element.
 | Hamstring | yours | stand-in | stand-in |
 | Pin Down | yours | stand-in | stand-in |
 
-### `data/skills/enfina/paths/vanguard`
-
-| Move | Launch | Travel | Impact |
-| --- | --- | --- | --- |
-| Daunting Roar | yours | stand-in | stand-in |
-
 ### `data/skills/enfina/paths/warden_of_cover`
 
 | Move | Launch | Travel | Impact |
 | --- | --- | --- | --- |
+| Daunting Roar | yours | stand-in | stand-in |
 | Shield Bash | yours | stand-in | stand-in |
 
 ### `data/skills/prometheus`

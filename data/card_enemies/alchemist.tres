@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_4150c"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="2_4k7e0"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_jnlv6"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_x4qnk"]
+
+[sub_resource type="Resource" id="Resource_jnlv6"]
+script = ExtResource("1_4150c")
+name = "Toxic Flask"
+apply_status = &"poison"
+apply_amount = 4
+weight = 2
+lean_when = 6
+lean_status = &"poison"
+
+[sub_resource type="Resource" id="Resource_x4qnk"]
+script = ExtResource("1_4150c")
+name = "Acid Splash"
+damage = 7
+weight = 2
+
+[sub_resource type="Resource" id="Resource_x3wr7"]
+script = ExtResource("1_4150c")
+name = "Drink"
+block = 8
+rule_only = true
+most_times = 1
+heal = 10
+
+[sub_resource type="Resource" id="Resource_qv85l"]
+script = ExtResource("1_4150c")
+name = "Sticky Flask"
+damage = 3
+adds_card = "slimed"
+adds_count = 2
+
+[sub_resource type="Resource" id="Resource_k1j4x"]
+script = ExtResource("3_x4qnk")
+when = 2
+number = 50
+move = "Drink"
+
+[resource]
+script = ExtResource("2_4k7e0")
+name = "Alchemist"
+max_hp_least = 22
+max_hp_most = 26
+moves = Array[ExtResource("1_4150c")]([SubResource("Resource_jnlv6"), SubResource("Resource_x4qnk"), SubResource("Resource_x3wr7"), SubResource("Resource_qv85l")])
+borrow_picture_from = "alchemist"
+rules = Array[ExtResource("3_x4qnk")]([SubResource("Resource_k1j4x")])

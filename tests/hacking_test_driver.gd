@@ -38,6 +38,8 @@ func _ready():
 	if booted != null:
 		booted.queue_free()
 		await settle()
+	# The three boards, as they were: since 2026-11-27 a hack is the card game unless it asks for its board.
+	Hacking.boards_for_tests = true
 	Campaign.reset()
 	Campaign.set_party(["cyrus", "enfina", "prometheus", "alithia"], 10)
 	the_numbers()

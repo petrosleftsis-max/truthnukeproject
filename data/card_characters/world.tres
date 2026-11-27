@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardCharacterDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardCharacterDefinition.gd" id="1_y3mp8"]
+
+[resource]
+script = ExtResource("1_y3mp8")
+name = "World"
+starting_deck = Array[String](["thrust", "thrust", "thrust", "thrust", "thrust", "guard", "guard", "guard", "guard", "heavy_swing", "scan"])
+starting_relic = "gate_iron_hide"
+playstyle = "Steady and plain: strikes, guards, a heavy swing.
+The first deck, and the measure of the others: a little of everything, nothing it leans on. Suggested cards: plain attacks and Block that grow with upgrades, and a card or two rewarding a balanced turn (an Attack and a Skill played together)."
+fragments_needed = 0

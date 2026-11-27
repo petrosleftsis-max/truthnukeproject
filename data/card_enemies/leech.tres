@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="CardEnemyDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEnemyMove.gd" id="1_4qmyb"]
+[ext_resource type="Script" path="res://cards/CardEnemyPhase.gd" id="2_fm86j"]
+[ext_resource type="Script" path="res://cards/CardEnemyRule.gd" id="3_otp7g"]
+[ext_resource type="Script" path="res://cards/CardEnemyDefinition.gd" id="4_at3rs"]
+
+[sub_resource type="Resource" id="Resource_8mmxv"]
+script = ExtResource("1_4qmyb")
+name = "Latch"
+first = true
+cooldown = 2
+ties = "leech_line"
+
+[sub_resource type="Resource" id="Resource_xcmmy"]
+script = ExtResource("1_4qmyb")
+name = "Bite"
+damage = 6
+weight = 2
+
+[sub_resource type="Resource" id="Resource_f5rcn"]
+script = ExtResource("1_4qmyb")
+name = "Swell"
+block = 6
+gain_status = &"might"
+gain_amount = 1
+
+[resource]
+script = ExtResource("4_at3rs")
+name = "Leech"
+max_hp_least = 24
+max_hp_most = 28
+moves = Array[ExtResource("1_4qmyb")]([SubResource("Resource_8mmxv"), SubResource("Resource_xcmmy"), SubResource("Resource_f5rcn")])
+borrow_picture_from = "imp"

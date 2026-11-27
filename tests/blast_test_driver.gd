@@ -102,7 +102,8 @@ func run_test():
 			var from_landing = combat.get_impact_tiles(subject, origin, aim, 0)
 			var from_caster := []
 			for tile in combat.get_diamond_tiles(aim, subject.aoe_radius):
-				if combat.controller.is_tile_blocking(tile, 0):
+				# A barrel or crate is caught as it stands (Combat "Things that break", 2026-11-26); only what never breaks is no target.
+				if combat.controller.is_tile_blocking(tile, 0) and not combat.is_breakable_tile(tile):
 					continue
 				if combat.has_line_of_sight(origin, tile, 0):
 					from_caster.append(tile)
@@ -190,7 +191,8 @@ func run_test():
 	var wall_tile = Vector2i.ZERO
 	var found_wall := false
 	for candidate in ctrl._all_blocking_spaces:
-		if not found_wall and ctrl.is_tile_blocking(candidate, 0):
+		# A wall, not a barrel: what breaks is aimed at on purpose (Combat "Things that break").
+		if not found_wall and ctrl.is_tile_blocking(candidate, 0) and not combat.is_breakable_tile(candidate):
 			wall_tile = candidate
 			found_wall = true
 	ok(found_wall, "there is a wall on this map to try it on", "%s" % wall_tile)

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardDefinition" format=3]
+
+[ext_resource type="Script" path="res://cards/CardEffect.gd" id="1_2vw25"]
+[ext_resource type="Script" path="res://cards/CardDefinition.gd" id="2_6py2l"]
+
+[resource]
+script = ExtResource("2_6py2l")
+name = "Dazed"
+type = 3
+rarity = 0
+cost = 0
+target = 2
+unplayable = true
+ethereal = true
+flavour = "Ringing ears."

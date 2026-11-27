@@ -22,10 +22,11 @@ holds_the_line = true
 [sub_resource type="Resource" id="Passive_2"]
 script = ExtResource("1_passive")
 name = "Interceptor"
-description = "50% of any hit on an ally within two tiles of her is taken by her instead - Iron Hide II, further."
+description = "Her Step In reaches an ally 3 tiles away, burning or not, and running to them costs her none of her next walk."
 required_level = 54
-guards_within = 2
-guard_share = 0.5
+intercept_reach = 3
+intercept_unburnt = true
+intercept_free = true
 
 [sub_resource type="Resource" id="Passive_3"]
 script = ExtResource("1_passive")
@@ -37,6 +38,6 @@ last_wall = 2
 [resource]
 script = ExtResource("2_path")
 name = "Warden of Cover"
-description = "The protector. Enfina stands between her friends and harm - frightening it back, guarding them as she guards herself, and taking what gets through."
-skills = Array[String](["shield_bash"])
+description = "The protector. Enfina stands between her friends and harm - frightening it back, running to them when it comes, guarding them as she guards herself, and taking what gets through."
+skills = Array[String](["shield_bash", "daunting_roar"])
 passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_2"), SubResource("Passive_3")])
