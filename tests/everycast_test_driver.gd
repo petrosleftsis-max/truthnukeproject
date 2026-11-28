@@ -173,6 +173,10 @@ func run_test():
 		# Devour swallows only somebody already held - the glutton suite plays it.
 		if Combat._swallows(skill):
 			continue
+		# Over the whole field (Feast) it lands on everybody of the other side at once and would end this fight here - the
+		# erysichthon suite plays it.
+		if skill.whole_field:
+			continue
 		# Loot wants somebody fallen with something on them - the loot suite
 		# plays it.
 		if Combat.loots(skill):

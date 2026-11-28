@@ -50,6 +50,9 @@ class_name ItemDefinition
 ## A bomb - which a container with Bombs Per Slot above one holds that many of
 ## to a slot (Campaign "Containers").
 @export var bomb: bool = false
+## Food: devoured out of somebody's hands (EffectType.DEVOUR, Feast), it does to whoever devoured it what it does to whoever
+## eats it - and it is eaten, never given back (Combat "Devouring"). The Rotten Meal.
+@export var devoured_like_eaten: bool = false
 
 @export_group("Light")
 ## Lights the way from the Baldric, this many tiles out, the nearer half Bright. In a pouch or a backpack it gives none.

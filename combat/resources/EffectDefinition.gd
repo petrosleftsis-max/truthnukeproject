@@ -49,6 +49,7 @@ enum EffectType {
 	DISGUISE,          ## Its user slips into a disguise they carry that fits those they fight, while hidden - Put On Disguise (Combat "Disguises").
 	ARREST,            ## They give up, and can be questioned afterwards (Arrest; Combat "Enfina").
 	OVERHEAL,          ## Health on top of their own, taken first, gone by the end of the fight (False Life).
+	DEVOUR,            ## Devours from the one it lands on, into its user's belly: main stat, most health, the first item they have ready, the spell they are casting (Combat "Devouring") - Chomp, Feast, Gate Devour.
 }
 
 enum DispelScope {
@@ -388,6 +389,30 @@ enum DispelScope {
 ## Type - the caster's to choose (Elemental Ward).
 @export var chooses_element: bool = false
 
+@export_group("Devour")
+## Points off their main stat, for the fight - never below Stat Floor or Stat Floor Share of what it was, whichever is more.
+## Chomp's 5, Feast's 10 (the designer, 2026-11-27).
+@export_range(0, 50, 1) var devour_stat: int = 0
+@export_range(0, 50, 1) var devour_stat_floor: int = 10
+@export_range(0.0, 1.0, 0.05) var devour_stat_floor_share: float = 0.25
+## Most health off them, for the fight, in place of what the user's Vitality Devour drains with this hit - never below Health
+## Floor Share of what they had - healing the user by as much. Feast's 30, three times Vitality Devour's.
+@export_range(0, 200, 1) var devour_health: int = 0
+@export_range(0.0, 1.0, 0.05) var devour_health_floor_share: float = 0.25
+## The first item they have ready (their Items tab's first), out of their hands: Feast's.
+@export var devour_item: bool = false
+## The spell they are casting, as it is torn apart (with Cancel Casting before it): kept in the user's belly, and theirs to
+## cast no more while it is there - Gate Devour's.
+@export var devour_spell: bool = false
+## With Devour Spell: only a spell whose caster's casting stat is below the user's main stat - a contest, no dice. Equal at the
+## same level, so spells get through until Chomp and Feast wear the caster down (the designer, 2026-11-27, a trial: "Let's try
+## contest for now").
+@export var devour_spell_contested: bool = false
+## Somebody under this share of their maximum health is swallowed whole instead of hit (EffectType.SWALLOW's way: inside, with
+## Condition on them, digested in Duration of the user's turns) - into the user's belly, and out when it is torn open. 0: never.
+## Chomp's and Feast's 0.25 (the designer, 2026-11-27).
+@export_range(0.0, 1.0, 0.05) var devour_swallows_under: float = 0.0
+
 
 ## Which fields each effect type actually reads. Everything not listed for a
 ## type is hidden while that type is selected - see _validate_property.
@@ -452,6 +477,8 @@ const FIELDS_BY_TYPE := {
 	EffectType.MOVE_IMAGE: [],
 	# Nothing to configure: which disguise is what they carry (Combat "Disguises").
 	EffectType.DISGUISE: [],
+	EffectType.DEVOUR: ["devour_stat", "devour_stat_floor", "devour_stat_floor_share", "devour_health", "devour_health_floor_share",
+		"devour_item", "devour_spell", "devour_spell_contested", "devour_swallows_under", "condition", "duration"],
 }
 
 

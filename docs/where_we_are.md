@@ -91,6 +91,35 @@ holds the game for both).
 
 ## Done recently (newest first)
 
+- **Two versions and the Town Demo, 2026-11-27 night** (`docs/itch_release_proposals.md` "Two versions"; CLAUDE.md "The Town
+  Demo"; suites `stages`, `towndemo`, the `release` probe). The playtest build hid Arena Mode, the demos and the Card Game because
+  the game asked Godot's own "release" feature, which every export has; the public build's is `public_build` now. The public build:
+  Play, the saves, Arena Mode's first 3 stages, Options and Exit; every stand-in sound silent; my stand-in picture files the plain
+  stand-in. The Town Demo walkable from the title screen (playtest only), at dusk with street lamps: four doors and a door to a map
+  not made yet, a cracked wall drawn like the walls that hides the path behind it until it breaks, and what the party has not seen
+  in darkness (HiddenPlaces). A shut door stands in a fight on its map's own ground as a door object, broken there and broken here.
+  Not published yet.
+
+- **Erysichthon started over, 2026-11-27 evening** (`docs/erysichthon.md`; ledger rows from "Erysichthon: started over"; suite
+  `erysichthon`). The designer's kit: 4 x 4, movement 8, initiative 6, immune to fire and earth, weak to poison; Hollow Frame kept;
+  **Boss Immunities** (a passive for bosses: Prone, Stunned, and never breaking, taken alive or thrown); **Vitality Devour** (10
+  maximum health a hit, healing him, never below a quarter); **Claw** and **Chomp** (2 tiles; Chomp takes 5 of the main stat), two
+  Claws and a Chomp a turn, a second set at somebody else from half health, lunging from 6 tiles; **Gate Devour** (InstaHack at 20
+  tiles, three reactions a round, two spells held, a third pushes the first out, no items); **the belly**, grown by everything he
+  devours and giving it all back when torn open (a prize the first time); **Feast** once at half health and every turn from a
+  quarter (the whole party, x4.8, 10 main stat, 30 maximum health, the first item ready); the **Rotten Meal** (25 to whoever eats
+  it, him too); **Demeter's sacred trees**, eaten from with a Claw and weak to fire. The arena stage is new
+  (`boss_erysichthon.tres` in place of `boss_glutton.tres`) and the laboratory's Stage C copies it; the old Erysichthon and stage
+  are test fixtures for the systems he no longer uses.
+  **The second round, the same night:** no per-hit cap on Vitality Devour (only the quarter floor); the Rotten Meal is poison (31 on
+  him); Boss Immunities also Hesitating, Confused, Deceived, Compelled, Fear, Blind, Deafened, Off Guard; Gate Devour's **contest**
+  (a trial: only casters whose casting stat is below his Physical); **Starving** (+10% Output Efficiency a round he devours
+  nothing, up to +30%); a Chomp or a Feast on somebody under a quarter of their health **swallows** them (out when the belly is torn
+  open, he is staggered or he falls; digested in two of his turns); a stagger bar that costs him no turn (**Reeling**: hit harder
+  until the next turn of whoever's turn he was staggered in); no phase marks on the boss bar and no unseen phases in the codex.
+  **The Ash Warden and the Bellkeeper left the game** (test fixtures for the `bosses` suite; their lab variant set aside). The
+  Feast table is at the level-22 party's armour.
+
 - **The card game: "try them all", 2026-11-27 afternoon** (`docs/proposals_2026-11-27_card_hacking.md` section 8; `docs/card_game.md`
   "Hacking"; ledger rows "Card game: Tethers", "the Message", "relics and Blessings", "both hands, own devices, rooms together",
   "played together over a network", "hacks for both"; suites `cards` and `net`). Everything waiting there but the gates' own cards:
@@ -605,6 +634,11 @@ holds the game for both).
 - **Disarm, Deep Corrosion and Light Swing** handoff done.
 
 ## Waiting on the designer
+
+0. **Erysichthon, 2026-11-27** (`docs/erysichthon.md`, "Still open"): whether the card game's Ash Warden and Bellkeeper elites go
+   too; what Alithia's Unbowed VI gives now that nothing inflicts Choking Ash; stagger for any other boss ("I'll think about stagger
+   and tell you"); and how my picks play (they are trials now: tree numbers, the prize, his poison weakness's -25, the Rotten Meal's
+   price, phase names, when he eats from a tree, the belly growing by a swallowed body's health).
 
 0. **Enfina's Juggernaut, 2026-11-27** (`docs/proposals_2026-11-26_enfina.md`, "Her paths, chosen and built"): the Vanguard and
    Warden changes are built; the designer: "i don't want juggernaut to be about her being immovable. ill need to think about it".

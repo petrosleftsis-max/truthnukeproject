@@ -22,6 +22,11 @@ class_name BossPhase
 @export var ai_function: String = ""
 ## Turns a round from now on. 0 keeps it.
 @export_range(0, 4, 1, "or_greater") var turns_per_round: int = 0
+## More blows a turn from now on (AttackSet), after the ones it has: Erysichthon's second set.
+@export var attack_sets_added: Array[AttackSet] = []
+## Skills, by key, it can use as often as it likes from now on, whatever their Uses Per Short Rest: Erysichthon's Feast, every
+## turn under a quarter of his health.
+@export var unlimited_skills: Array[String] = []
 ## A different stagger bar, started empty. Empty keeps the one it has.
 @export var stagger: StaggerDefinition
 ## Every condition on it gone.

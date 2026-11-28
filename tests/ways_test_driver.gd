@@ -126,10 +126,12 @@ func who_is_what():
 	var c: Dictionary = CombatantDatabase.combatants
 	ok(c.glutton.ai_smarts == S.CUNNING, "Erysichthon is cunning")
 	ok(c.bomber.ai_smarts == S.INSTINCT, "the Bomber goes on instinct")
-	ok(c.ash_warden.ai_smarts == S.ALL_KNOWING, "the Ash Warden is All Knowing")
 	ok(S.ALL_KNOWING == S.values().max(), "the highest there is")
-	ok(Combat._ai_knows_of(c.ash_warden) & K.KITS != 0 and Combat._ai_knows_of(c.ash_warden) & K.SET_UPS != 0, "and knows the party's kits as well as all the rest")
-	var mastermind: CombatantDefinition = c.ash_warden.duplicate()
+	# The Ash Warden was the All Knowing one until he left the game (2026-11-27): a stand-in, made so.
+	var all_knowing: CombatantDefinition = c.rat.duplicate()
+	all_knowing.ai_smarts = S.ALL_KNOWING
+	ok(Combat._ai_knows_of(all_knowing) & K.KITS != 0 and Combat._ai_knows_of(all_knowing) & K.SET_UPS != 0, "All Knowing knows the party's kits as well as all the rest")
+	var mastermind: CombatantDefinition = c.rat.duplicate()
 	mastermind.ai_smarts = S.MASTERMIND
 	ok(Combat._ai_knows_of(mastermind) & K.KITS == 0, "a mastermind knows nobody's kit")
 	ok(c.sorcerer.ai_commands_tiles == 0 and c.sorcerer.ai_learns, "the Sorcerer commands nobody, and learns")
@@ -139,7 +141,6 @@ func who_is_what():
 	ok(c.sellsword.ai_guards == "alchemist" and c.golem.ai_guards == "sorcerer", "the Sellsword and the Golem guard somebody")
 	ok(c.gnawer.ai_pack >= 2 and c.rat.ai_pack >= 2, "rats and gnawers run in packs")
 	ok(c.rat.ai_fears.has(Damage.Type.FIRE), "and rats fear fire")
-	ok(c.ash_warden.ai_learns, "the Ash Warden learns")
 	ok(c.imp.ai_greedy and c.imp.skills.has("steal"), "the Imp is greedy, and can steal")
 	log_line("")
 
@@ -472,8 +473,6 @@ func moods():
 	combat._begin_phase(boss, phase)
 	ok(is_equal_approx(boss.ai_aggression, 1.9) and is_equal_approx(boss.ai_caution, 0.2), "a phase changes its dials")
 	ok(is_equal_approx(boss.ai_focus, 1.1), "and leaves the rest as they were")
-	var warden: CombatantDefinition = CombatantDatabase.combatants.ash_warden
-	ok(warden.boss.phases.any(func(each): return each.ai_aggression > 1.0), "the Ash Warden turns reckless as it is hurt")
 	log_line("")
 
 

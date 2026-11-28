@@ -79,6 +79,10 @@ tar -C "$SRC" --exclude="./.git" --exclude="./export" --exclude="./tests" \
 cp "$HERE/HarnessLog.gd" "$DST/HarnessLog.gd"
 # What the stealth suites share: a map to sneak about on, and the helpers.
 cp "$HERE/StealthHarness.gd" "$DST/StealthHarness.gd"
+# What only the suites load (tests/fixtures), at res://test_fixtures/: Erysichthon and his stage as they were before the
+# designer started him over (2026-11-27), kept for the systems he no longer uses - swallowing, eating, parts growing back.
+mkdir -p "$DST/test_fixtures"
+cp "$HERE"/fixtures/*.tres "$DST/test_fixtures/" 2>/dev/null || true
 missing=""
 for d in $DRIVERS; do
 	if [ -f "$HERE/${d}_test_driver.gd" ]; then

@@ -1,136 +1,95 @@
 [gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://dk56apih3egrf"]
 
 [ext_resource type="Script" uid="uid://ch1kwtah6ul2i" path="res://combat/resources/BossPhase.gd" id="1_phase"]
-[ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="2_8oyj2"]
-[ext_resource type="Script" uid="uid://bd10mcywbkueh" path="res://combat/resources/StaggerDefinition.gd" id="2_stagger"]
 [ext_resource type="Script" uid="uid://du4vctmb8r6pi" path="res://combat/resources/BossDefinition.gd" id="3_boss"]
-[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="3_g0h36"]
 [ext_resource type="Script" uid="uid://bjgk7xwb778vc" path="res://combat/resources/BodyPartDefinition.gd" id="4_part"]
+[ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="4_pnht0"]
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="5_comb"]
-[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="6_effect"]
+[ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="5_jg5ff"]
+[ext_resource type="Script" uid="uid://bdbdeb4xla32t" path="res://combat/resources/AttackSet.gd" id="6_set"]
 [ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="7_frames"]
-[ext_resource type="Resource" path="res://data/conditions/bile_soaked.tres" id="8_bile"]
 [ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="9_passive"]
+[ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="10_2rx0t"]
 [ext_resource type="Resource" path="res://data/passives/hollow_frame.tres" id="10_hollow"]
-[ext_resource type="Resource" path="res://data/conditions/prone.tres" id="11_prone"]
+[ext_resource type="Resource" path="res://data/passives/vitality_devour.tres" id="11_vitality"]
+[ext_resource type="Resource" path="res://data/passives/boss_immunities.tres" id="12_immunities"]
+[ext_resource type="Resource" path="res://data/passives/starving.tres" id="13_starving"]
+[ext_resource type="Script" path="res://combat/resources/StaggerDefinition.gd" id="14_stagger"]
 [ext_resource type="AudioStream" uid="uid://5sewqeiwj8k1" path="res://audio/sfx/fights/erysichthon_growl.wav" id="sfx_phase_sound"]
 [ext_resource type="AudioStream" uid="uid://d02yh5xpdu38n" path="res://audio/sfx/fights/eerie_revelation_2.wav" id="sfx_reveal_second_sound"]
 
-[sub_resource type="Resource" id="Part_second_head"]
-script = ExtResource("4_part")
-name = "Second Head"
-tiles = Array[Vector2i]([Vector2i(2, 0), Vector2i(3, 0), Vector2i(2, 1), Vector2i(3, 1)])
-health_share = 0.1
-when_broken = 1
-regrows_after = 3
-regrows_when_eating = true
+[sub_resource type="Resource" id="Set_first"]
+script = ExtResource("6_set")
+skills = Array[String](["claw", "claw", "chomp"])
 
-[sub_resource type="Resource" id="Phase_gorge"]
+[sub_resource type="Resource" id="Set_second"]
+script = ExtResource("6_set")
+skills = Array[String](["claw", "claw", "chomp"])
+reach = 6
+lunges = true
+another_target = true
+
+[sub_resource type="Resource" id="Phase_famished"]
 script = ExtResource("1_phase")
-name = "Gorge"
-at_health = 0.66
-message = "A second head tears its way out of its shoulder, snapping - now it can hold two."
-parts_added = Array[ExtResource("4_part")]([SubResource("Part_second_head")])
-holds_at_once = 2
-ai_aggression = 1.3
+name = "Famished"
+message = "Half eaten by its own hunger, it opens its jaws wider than its body - and it is hungry for all of you."
+skills_added = Array[String](["feast"])
+attack_sets_added = Array[ExtResource("6_set")]([SubResource("Set_second")])
 
-[sub_resource type="Resource" id="Part_rib_maws"]
-script = ExtResource("4_part")
-name = "Rib Maws"
-tiles = Array[Vector2i]([Vector2i(2, 2), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 3)])
-health_share = 0.1
-when_broken = 4
-disarms = Array[String](["rib_maws"])
-regrows_after = 2
-regrows_when_eating = true
-
-[sub_resource type="Resource" id="Phase_hollow"]
+[sub_resource type="Resource" id="Phase_insatiable"]
 script = ExtResource("1_phase")
-name = "The Hollow"
-at_health = 0.33
-message = "Its ribs split into mouths - and with nothing left in reach, it starts on itself."
-skills_added = Array[String](["rib_maws"])
-parts_added = Array[ExtResource("4_part")]([SubResource("Part_rib_maws")])
-eats_itself = 0.04
-ai_aggression = 1.6
-ai_caution = 0.3
-ai_focus = 1.5
+name = "Insatiable"
+at_health = 0.25
+message = "Nothing is left of it but the hunger."
+unlimited_skills = Array[String](["feast"])
 
 [sub_resource type="Resource" id="Stagger_bar"]
-script = ExtResource("2_stagger")
-hint = "Feed it what it should not eat, and hit it hard. Staggered, it heaves up whoever it has swallowed."
+script = ExtResource("14_stagger")
+hint = "Hit it hard, and try on it what it shrugs off. Staggered, it heaves up whoever it has swallowed, and is hit harder until whoever staggered it acts again."
 max_value = 150.0
 per_damage = 0.6
 per_blocked_condition = 15.0
+harder_until = 1
 
 [sub_resource type="Resource" id="Boss"]
 script = ExtResource("3_boss")
-title = "The Hunger That Ate Itself"
 stagger = SubResource("Stagger_bar")
+title = "The Hunger That Ate Itself"
 reveal_sound = ExtResource("sfx_phase_sound")
 reveal_second_sound = ExtResource("sfx_reveal_second_sound")
 phase_sound = ExtResource("sfx_phase_sound")
-phases = Array[ExtResource("1_phase")]([SubResource("Phase_gorge"), SubResource("Phase_hollow")])
-codex_second_page = "It never stops eating, and nothing it eats stays in it: there is a hole through its belly, gnawed by its own teeth. Whoever it swallows falls through that hole in the end - alive, if the hole is torn open first."
-
-[sub_resource type="Resource" id="Effect_gorged"]
-script = ExtResource("6_effect")
-type = 2
-display_name = "Gorged"
-stat = "physical"
-modifier_amount = 4
-duration = 3
-
-[sub_resource type="Resource" id="Part_jaws"]
-script = ExtResource("4_part")
-name = "Jaws"
-tiles = Array[Vector2i]([Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(2, 1), Vector2i(3, 1)])
-health_share = 0.12
-when_broken = 4
-disarms = Array[String](["ravenous_bite", "devour"])
-regrows_after = 3
-regrows_when_eating = true
+phases = Array[ExtResource("1_phase")]([SubResource("Phase_famished"), SubResource("Phase_insatiable")])
+codex_second_page = "A king once, who cut down Demeter's grove; she gave him a hunger nothing fills. Whatever it bites, it drains, and whatever it devours - strength, spells, what you carry - stays in its belly. Tear the belly open and all of it comes back."
 
 [sub_resource type="Resource" id="Part_belly"]
 script = ExtResource("4_part")
-name = "Belly Hole"
+name = "Belly"
 tiles = Array[Vector2i]([Vector2i(0, 2), Vector2i(1, 2), Vector2i(0, 3), Vector2i(1, 3)])
-health_share = 0.1
-when_broken = 2
-regrows_after = 2
-regrows_when_eating = true
+when_broken = 5
 frees_the_swallowed = true
-
-[sub_resource type="Resource" id="Part_legs"]
-script = ExtResource("4_part")
-name = "Hind Legs"
-tiles = Array[Vector2i]([Vector2i(2, 2), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 3)])
-health_share = 0.1
-regrows_after = 3
-regrows_when_eating = true
 
 [resource]
 script = ExtResource("5_comb")
 name = "Erysichthon"
-glossary_text = "An undead wolf grown to an abomination, that never stops eating and is never full: whatever it swallows falls out through the hole in its belly. It catches the scent of its prey, grabs it, and swallows it whole - and it eats anything it finds in reach, even its own."
+glossary_text = "An undead wolf grown to an abomination, that never stops eating and is never full. Whatever it bites, it drains; whatever it devours - strength, spells, the things you carry - goes into its belly, where it can be torn back out."
 max_hp = 300
 max_hp_level_20 = 2100
 size = 4
-movement = 7
-initiative = 4
+movement = 8
+initiative = 6
 sprite_frames = ExtResource("7_frames")
 tint = Color(0.62, 0.72, 0.52, 1)
-skills = Array[String](["ravenous_bite", "grab", "devour", "catch_the_scent", "rending_claws"])
-passives = Array[ExtResource("9_passive")]([ExtResource("10_hollow")])
-resist_fire = -25
-immune_to_conditions = Array[ExtResource("3_g0h36")]([ExtResource("11_prone")])
-immune_to = Array[int]([9, 10, 12])
+skills = Array[String](["claw", "chomp", "gate_devour"])
+passives = Array[ExtResource("9_passive")]([ExtResource("10_hollow"), ExtResource("11_vitality"), ExtResource("12_immunities"), ExtResource("13_starving")])
+resist_fire = 100
+resist_earth = 100
+resist_poison = -25
+reactions_per_round = 3
+attack_sets = Array[ExtResource("6_set")]([SubResource("Set_first")])
 boss = SubResource("Boss")
-parts = Array[ExtResource("4_part")]([SubResource("Part_jaws"), SubResource("Part_belly"), SubResource("Part_legs")])
-eats = 3
-meal_heals = 0.06
-fed_effects = Array[ExtResource("6_effect")]([SubResource("Effect_gorged")])
-spat_out_with = ExtResource("8_bile")
-ai_function = "ai_glutton"
+parts = Array[ExtResource("4_part")]([SubResource("Part_belly")])
+feeds_with = Array[String](["claw"])
+belly_prize = Array[String](["potent_cure_potion", "big_bomb", "wildfire_gate_nade"])
+ai_function = "ai_attack_sets"
 ai_smarts = 2
 ai_never_knows = 4

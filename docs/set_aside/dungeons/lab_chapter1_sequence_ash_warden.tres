@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://campaign/DungeonStage.gd" id="2_stage"]
 [ext_resource type="Resource" path="res://data/encounters/lab/lab_a_city.tres" id="3_a"]
 [ext_resource type="Resource" path="res://data/encounters/lab/lab_b_hired_blades.tres" id="4_b"]
-[ext_resource type="Resource" path="res://data/encounters/lab/lab_c_ash_warden.tres" id="5_c"]
+[ext_resource type="Resource" path="res://docs/set_aside/encounters/lab_c_ash_warden.tres" id="5_c"]
 
 [sub_resource type="Resource" id="Stage_a"]
 script = ExtResource("2_stage")

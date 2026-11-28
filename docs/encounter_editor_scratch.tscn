@@ -1,0 +1,130 @@
+[gd_scene format=3 uid="uid://cnxcojo3yrgsi"]
+
+[ext_resource type="Script" uid="uid://bhijbic2jorww" path="res://tools/encounter_editor.gd" id="1_editor"]
+[ext_resource type="Resource" uid="uid://lbf7bddqjp8d" path="res://data/encounters/dungeon_demo/dungeon_3_city.tres" id="2_oiong"]
+[ext_resource type="PackedScene" uid="uid://bg6jpyiju3kft" path="res://maps/city_fight.tscn" id="3_8tcre"]
+[ext_resource type="Texture2D" uid="uid://bswamhyohs8qy" path="res://art/characters/prometheus/idle/prometheus_idle_0000.png" id="4_6msx2"]
+[ext_resource type="Texture2D" uid="uid://nx1negu4ijrl" path="res://art/characters/enfina/idle/enfina_idle_color0000.png" id="4_7khms"]
+[ext_resource type="Texture2D" uid="uid://2onmiskhubuo" path="res://art/characters/cyrus/idle/cyrus_idle_loop0000.png" id="5_7khms"]
+[ext_resource type="Script" uid="uid://bq7xydje3fups" path="res://tools/spawn_marker.gd" id="6_rd23k"]
+[ext_resource type="Texture2D" uid="uid://j18c0awsyfjm" path="res://art/characters/alithia/idle/alithia_idle_color0000.png" id="6_wx6oa"]
+[ext_resource type="Texture2D" uid="uid://calkfde00u6u5" path="res://art/enemies/mimic/mimic.png" id="9_2cu7l"]
+[ext_resource type="Texture2D" uid="uid://blb4nfemrao0x" path="res://art/enemies/priest/priest.png" id="9_5ppaw"]
+[ext_resource type="Texture2D" uid="uid://bewcayi5doecc" path="res://art/enemies/bomber/bomber.png" id="10_qb1u0"]
+[ext_resource type="Texture2D" uid="uid://67ak0ta2g84d" path="res://art/enemies/barbarian/barbarian.png" id="11_ggh5v"]
+[ext_resource type="Texture2D" uid="uid://bs6ustairtbut" path="res://art/enemies/caster/caster.png" id="12_bj77x"]
+[ext_resource type="Texture2D" uid="uid://csklyp2dx77aj" path="res://art/enemies/ranger/ranger.png" id="13_o526y"]
+
+[node name="EncounterEditor" type="Node2D" unique_id=1480793127]
+script = ExtResource("1_editor")
+encounter = ExtResource("2_oiong")
+status = "Map: tiles (-1, -1) to (26, 19) are painted. Select a marker and press F to look at it.
+Ready: 11 spawns, 0 ways out and 0 climb tiles to save.
+Note: no ways out, so Ranger, Bomber, Barbarian, Sorcerer, Priest, Mimic - who run when broken - can never get away. Add a way out, or set their When Broken to Surrender."
+
+[node name="TerrainPreview" type="Node2D" parent="." unique_id=2126087205 instance=ExtResource("3_8tcre")]
+
+[node name="Spawns" type="Node2D" parent="." unique_id=1884210695]
+
+[node name="Spawn_cyrus" type="Sprite2D" parent="Spawns" unique_id=1617080352]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(1152, 640)
+texture = ExtResource("5_7khms")
+script = ExtResource("6_rd23k")
+combatant_key = "cyrus"
+level = 14
+
+[node name="Spawn_alithia" type="Sprite2D" parent="Spawns" unique_id=825323363]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(384, 1152)
+texture = ExtResource("6_wx6oa")
+script = ExtResource("6_rd23k")
+combatant_key = "alithia"
+level = 14
+
+[node name="Spawn_prometheus" type="Sprite2D" parent="Spawns" unique_id=1989088466]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(6272, 3712)
+texture = ExtResource("4_6msx2")
+script = ExtResource("6_rd23k")
+combatant_key = "prometheus"
+level = 14
+
+[node name="Spawn_enfina" type="Sprite2D" parent="Spawns" unique_id=498197303]
+modulate = Color(0.6, 0.8, 1, 1)
+position = Vector2(5504, 4480)
+texture = ExtResource("4_7khms")
+script = ExtResource("6_rd23k")
+combatant_key = "enfina"
+level = 14
+
+[node name="Spawn_ranger" type="Sprite2D" parent="Spawns" unique_id=1878449774]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(5248, 640)
+texture = ExtResource("13_o526y")
+script = ExtResource("6_rd23k")
+combatant_key = "ranger"
+side = 1
+level = 14
+
+[node name="Spawn_bomber" type="Sprite2D" parent="Spawns" unique_id=1200441250]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(3456, 1152)
+texture = ExtResource("10_qb1u0")
+script = ExtResource("6_rd23k")
+combatant_key = "bomber"
+side = 1
+level = 14
+
+[node name="Spawn_barbarian" type="Sprite2D" parent="Spawns" unique_id=745165935]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(1408, 1920)
+texture = ExtResource("11_ggh5v")
+script = ExtResource("6_rd23k")
+combatant_key = "barbarian"
+side = 1
+display_name = "Striker"
+level = 14
+
+[node name="Spawn_sorcerer" type="Sprite2D" parent="Spawns" unique_id=1198094625]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(1920, 2176)
+texture = ExtResource("12_bj77x")
+script = ExtResource("6_rd23k")
+combatant_key = "sorcerer"
+side = 1
+display_name = "Caster 1"
+level = 14
+
+[node name="@Sprite2D@20980" type="Sprite2D" parent="Spawns" unique_id=1745346577]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(5760, 2176)
+texture = ExtResource("12_bj77x")
+script = ExtResource("6_rd23k")
+combatant_key = "sorcerer"
+side = 1
+display_name = "Caster 2"
+level = 14
+
+[node name="Spawn_priest" type="Sprite2D" parent="Spawns" unique_id=645799479]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(1152, 2432)
+texture = ExtResource("9_5ppaw")
+script = ExtResource("6_rd23k")
+combatant_key = "priest"
+side = 1
+level = 14
+
+[node name="Spawn_mimic" type="Sprite2D" parent="Spawns" unique_id=1388288303]
+modulate = Color(1, 0.6, 0.6, 1)
+position = Vector2(4480, 2688)
+texture = ExtResource("9_2cu7l")
+script = ExtResource("6_rd23k")
+combatant_key = "mimic"
+side = 1
+display_name = "Mimic"
+level = 14
+
+[node name="WaysOut" type="Node2D" parent="." unique_id=614029627]
+
+[node name="ClimbPoints" type="Node2D" parent="." unique_id=1993868847]

@@ -355,7 +355,7 @@ static func _passive_name(passive: PassiveDefinition) -> String:
 ## things on the map. Reached through them, so they survive an export too.
 static func conditions_from_combatants() -> Array:
 	# What Combat puts on itself: a stagger, riding something (Climb), legs broken, the rain (Soaked).
-	var found: Array = [Combat.STAGGERED, Combat.RIDING, Combat.CRIPPLED, Combat.SOAKED]
+	var found: Array = [Combat.STAGGERED, Combat.REELING, Combat.RIDING, Combat.CRIPPLED, Combat.SOAKED]
 	for key in CombatantDatabase.combatants:
 		var definition: CombatantDefinition = CombatantDatabase.combatants[key]
 		if definition == null:
@@ -363,6 +363,9 @@ static func conditions_from_combatants() -> Array:
 		for passive in definition.passives:
 			if passive != null:
 				found.append_array([passive.aura_on_foes, passive.aura_on_allies, passive.heals_leave, passive.exposes_with])
+				# And what a passive guards against: Alithia's Unbowed VI names Choking Ash, which nobody inflicts since the Ash
+				# Warden left the game (2026-11-27).
+				found.append_array(passive.immune_to_conditions)
 		if definition.boss != null:
 			for phase in definition.boss.phases:
 				if phase == null:
@@ -382,6 +385,7 @@ static func conditions_from_combatants() -> Array:
 		for passive in path.passives:
 			if passive != null:
 				found.append_array([passive.aura_on_foes, passive.aura_on_allies, passive.heals_leave, passive.exposes_with, passive.tremor_impact_condition])
+				found.append_array(passive.immune_to_conditions)
 	return found.filter(func(condition): return condition != null)
 
 

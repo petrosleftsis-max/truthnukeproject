@@ -53,3 +53,24 @@ none of them is built.
 **My pick:** 1, 2 and 3 together. The feature hides the test content, the filters keep it out of the download, and the check makes sure
 nothing reaches what was left out and tells you which slots still want your art and sound. Do 4 alongside them, and 5 once you have
 testers to give the stages to.
+
+## Two versions, 2026-11-27
+
+The designer: "The playtesting version in the restricted site doesnt have the stuff i can see... I want two different versions"
+- "Restricted page: As I see it for now, playtesting, keeping your placeholders, access to all the stages, modes etc"
+- "Public page: No art or sound you have generated (except for the simple placeholder for the slots that are unfilled), only the
+  Play section and the first stages of arena and anything else i tell you"
+
+**Why the playtest build hid Arena Mode, the demos and the Card Game:** `Release.on()` asked `OS.has_feature("release")`, and Godot
+gives every build exported from a release template a feature of that very name. So every export, the playtest one too, behaved
+as the public one. The public build's own feature is now `public_build` (the three "... Release" presets in `export_presets.cfg`
+and `tools/release_presets.cfg`); the playtest presets have none, so the playtest build shows everything again.
+
+**The public build now** (`campaign/Release.gd`): the title screen has Continue and Load Game (once there are saves), Play, Arena
+Mode with only its first stages (`Release.PUBLIC_ARENA_STAGES`, 3: the Ambush, the Sappers, the Watcher), Options and Exit -
+no Players, Stealth Stages, demos, Card Game, Town Demo or Glossary. Every stand-in sound is silent, footsteps too
+(`STAND_INS_KEPT` is empty). My stand-in picture files (`Release.GENERATED_PICTURES`: the sacred tree's, the door's) show the
+plain grey stand-in in their place; what is drawn in code is unchanged so far (open: whether that counts as "art you have
+generated"). The release check no longer stops a release for the stand-in picture: it lists where it still shows.
+
+**The playtest build** has everything, as in the editor, and the Town Demo on the title screen too.

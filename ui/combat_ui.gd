@@ -2225,6 +2225,12 @@ func _fill_action(action: Button, skill_key: String, skill_used: bool, as_second
 			Stats.gate_name(skill.spell_slot_level), Stats.gate_name(paying), tip]
 	if wasted != "":
 		tip = "%s\n\n%s" % [wasted, tip]
+	# A spell in somebody's belly (Gate Devour, Combat "Devouring"): an X over it, and that is all it says (the designer,
+	# 2026-11-27: "An X appears on the skill's icon and the preview changes into 'Devoured by Erysichthon'").
+	var devourer: Dictionary = combat.devoured_by(comb, skill) if combat != null and not comb.is_empty() else {}
+	_mark_devoured(action, not devourer.is_empty())
+	if not devourer.is_empty():
+		tip = "Devoured by %s" % devourer.get("name", "something")
 	action.tooltip_text = TooltipText.wrap(tip)
 	clear_action_button_connections(action)
 	# Pressable or not, it can be looked at: a greyed-out button does not press,
@@ -2266,6 +2272,7 @@ func _empty_action(action: Button, skill_used: bool = true):
 	else:
 		SkyLook.ring_plain_slot(action, Color.TRANSPARENT)
 	_gate_up(action, {}, null)
+	_mark_devoured(action, false)
 	var key_mark = action.get_node_or_null(HOTKEY_MARK)
 	if key_mark != null:
 		key_mark.visible = false
@@ -2273,6 +2280,30 @@ func _empty_action(action: Button, skill_used: bool = true):
 	action.set_meta(SKILL_META, "")
 	# Only as many slots as are full: an empty one looks like something missing.
 	action.visible = false
+
+
+## The X over a slot whose spell is in somebody's belly (Gate Devour, Combat "Devouring") - made the first time it is needed.
+const DEVOURED_MARK := "DevouredMark"
+
+
+func _mark_devoured(action: Button, devoured: bool):
+	var mark := action.get_node_or_null(DEVOURED_MARK) as Label
+	if mark == null:
+		if not devoured:
+			return
+		mark = Label.new()
+		mark.name = DEVOURED_MARK
+		mark.text = "X"
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		mark.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		mark.add_theme_font_size_override(&"font_size", 34)
+		mark.add_theme_color_override(&"font_color", Color("ff4d4d"))
+		mark.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.9))
+		mark.add_theme_constant_override(&"outline_size", 8)
+		action.add_child(mark)
+	mark.visible = devoured
 
 
 func _finish_action_panel():
@@ -2681,6 +2712,25 @@ func _how_long(duration: int, at_start: bool, on_self: bool = false) -> String:
 	return "for %d of their turns, gone as the last ends" % turns
 
 
+## What a DEVOUR effect takes, in a line (Combat "Devouring"): Chomp's main stat, Feast's maximum health and first item, Gate
+## Devour's spell.
+func _devour_line(effect: EffectDefinition) -> String:
+	if effect.devour_spell:
+		return "Swallows the spell they are casting into its belly: they cannot cast it until the belly is torn open"
+	var takes: Array[String] = []
+	if effect.devour_stat > 0:
+		takes.append("%d of their main stat (never below %d, or %d%% of it)" % [effect.devour_stat, effect.devour_stat_floor,
+			roundi(effect.devour_stat_floor_share * 100.0)])
+	if effect.devour_health > 0:
+		takes.append("%d of their maximum health (never below %d%% of it)" % [effect.devour_health, roundi(effect.devour_health_floor_share * 100.0)])
+	if effect.devour_item:
+		takes.append("the first item they have ready")
+	if takes.is_empty():
+		return "Devours nothing"
+	return "Devours %s, into its belly - until it is torn open, or the fight ends" % (takes[0] if takes.size() == 1 \
+		else "%s and %s" % [", ".join(takes.slice(0, takes.size() - 1)), takes[-1]])
+
+
 func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) -> String:
 	match effect.type:
 		EffectDefinition.EffectType.DAMAGE:
@@ -2893,6 +2943,8 @@ func describe_effect(effect: EffectDefinition, skill: SkillDefinition = null) ->
 			return "Every lingering condition of yours, on every enemy, goes off at once - all it had left, with +%d%% Output Efficiency - then starts again" % roundi((effect.catalyst_times - 1.0) * 100.0)
 		EffectDefinition.EffectType.SWALLOW:
 			return "Swallows whoever it has hold of, whole - digested in %d of its turns unless they get out" % maxi(effect.duration, 1)
+		EffectDefinition.EffectType.DEVOUR:
+			return _devour_line(effect)
 		EffectDefinition.EffectType.REVEAL:
 			return "Lays their character sheet open to you for the rest of the battle"
 		EffectDefinition.EffectType.REVIVE:

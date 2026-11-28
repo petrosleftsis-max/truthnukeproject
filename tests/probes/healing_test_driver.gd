@@ -17,7 +17,7 @@ const LEVELS := [1, 8, 14, 18, 24, 41, 54, 64]
 const CAP_HEALERS := {"alithia": ["light_heal", "heal", "communion", "restoration"], "priest": ["heal", "communion"],
 	"ranger": ["heal"], "summoner": ["heal"], "mimic": ["light_heal", "heal", "communion", "restoration"]}
 ## The bosses and giants, whose health the cap is for.
-const BIG := ["ash_warden", "bellkeeper", "glutton", "behemoth", "colossus"]
+const BIG := ["glutton", "behemoth", "colossus"]
 ## The party's own summons, which are not enemies.
 const NOT_ENEMIES := ["kindled_hound", "illusory_dragon"]
 const GATE_LEVELS := [1, 8, 14, 18, 24, 33, 45, 55, 64]

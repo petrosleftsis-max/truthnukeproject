@@ -93,6 +93,12 @@ rename of that kind.
 line that has one, and the game goes on loading the old file without a word: Share the
 Fire wore Trailblaze's icon that way. Take the uid off in the same edit.
 
+**In a `[sub_resource]`, the `script = ` line comes first.** A property written above it
+is set while the resource is still a plain Resource, which has no such property, and is
+dropped without a word: Erysichthon's stagger bar, written above its BossDefinition's
+`script`, loaded as no bar at all (2026-11-27). When adding a line to a sub_resource by
+hand, put it after `script`.
+
 ## Writing files into this project
 
 **Never write a project file as UTF-8 with a BOM.** PowerShell 5.1's
@@ -266,7 +272,7 @@ as the fight move "prone" (`change_stance`). Undo: `board_fingerprint` leaves th
 walker's own lying down out, and `undo_move` puts it back (`_turn_start_prone`,
 `_turn_start_kept`, `_stance_changed`, `put_back_lying`). AI: `_ai_turn` gets up first unless
 `_ai_stays_down`; `goes_prone` (per creature, the Ranger's) lies down at its turn's
-end (`_ai_consider_lying_down`). Erysichthon is immune (`immune_to_conditions`).
+end (`_ai_consider_lying_down`). Erysichthon is immune (his Boss Immunities passive, `PassiveDefinition.immune_to_conditions`).
 `CombatantSprite.set_lying` is a placeholder, with
 a `prone` animation as its slot. `prone` covers it, and `net` plays it across.
 
@@ -418,7 +424,7 @@ she smashes what breaks (`OutsideMoves.smashes_things`, `struck_at`'s `things`, 
 called from `_charge_through` for whoever is driven aside and from `_splinters`); the Warden of Cover's Daunting Roar and reworked
 Interceptor (`intercept_unburnt` lets `intercept_reach` hold unburnt, `intercept_free` skips `walk_owed`); the Juggernaut is the
 designer's to rethink. The other side's Grab is secondary too (2026-11-27): the Barbarian's through `ai_secondary_attack`, the
-Glutton's in `ai_glutton` before its bite.
+old Erysichthon's in `ai_glutton` before its bite (kept for anybody else; Erysichthon himself was started over the same day).
 
 **Prometheus's other magic** (Combat of that name; `prometheus`; section 16). Shrink: an effect's `shrinks` on GROW; on a map `OutsideMoves.Use.SHRINK`, `ExplorationScene.shrink_party`, `shrunk`
 (small gaps walkable, `_shrink_on` waiting if it runs out inside one). Transposition: `swaps_places`, `transpose`, `can_transpose`, aimed twice (`CController.is_valid_landing_tile`, `landable_tiles`).
@@ -932,6 +938,17 @@ import the real project, or the Project Manager's run keeps the old picture with
 `LightView` "Weather near the eye" (`_NearTheEye`, z `NEAR_Z`). `Music` "Music in layers": `_start_parts` loads a track's
 `_wary` and `_fighting` beside it, `_process` eases them by `standing_now()`, `thin`, `swell`; `Combat._turn_the_music`,
 `_last_leader_felled`.
+
+**The Town Demo, 2026-11-27** (`maps/TownDemo.tscn`, the designer's painting; on the title screen but in the public build; suite
+`towndemo`): an `EntryPoint` at 10,12, a `MapSetup` (the four at level 8, Dusk), thirteen `LightSource` street lamps, four
+`StealthDoor`s and one with `leads_elsewhere` (no `leads_to_map` yet: "It doesn't open - not yet"), a `BreakableWall` with
+`like_the_walls` (the wall tile beside it, `_wall_beside`, cracked: `_draw_cracks`, also its `depth_paint_top`/`depth_paint`) that
+`hides` 34,16-34,23 (`hidden_tiles`), and a `HiddenPlaces` (`exploration/HiddenPlaces.gd`): each of the party sees within `reach`
+by `StealthSight.clear`, its own copy kept in step with the doors and walls; seen tiles kept in `Campaign.flags["places_seen:<map>"]`;
+never seen drawn `never_seen`, out of sight `out_of_sight`; a standing wall's `hidden_tiles` never seen, all seen once it breaks.
+`ExplorationScene._collect_doors` shuts a shut door's tile on a map nobody watches (before, only a watched map's doors blocked) and
+reads `StealthDoor.broken` (`broken_flag_for`); `StealthWatch.build_fight` puts a `door` object (`data/objects/door.tres`) on every
+shut door's tile with that flag as its `wall_flag`, as a standing `breakable_wall`.
 
 **Exploring, maps and the weirdness** (`docs/wander_built.md`, the proposals of 2026-11-19: sections 2 and 3 but the forgetting dark,
 pages ahead of time and the sky slips; `wander`; every number PROPOSAL, the art, sound and words placeholders behind slots).
@@ -1593,8 +1610,8 @@ screen and every fresh start leave it. `dungeon` covers it, `restuses` the uses,
 `restcycle` the rests, Meditate, Devotion, the Smelling Salts and the Trapper's bomb.
 
 The late-Chapter-I laboratory sequence (`data/dungeons/lab_chapter1_sequence.tres`,
-boss Erysichthon; `lab_chapter1_sequence_ash_warden.tres` the same with the Ash
-Warden; `docs/lab_sequence.md`) is a TEMPORARY test harness, not story content. It
+boss Erysichthon; its Ash Warden variant went with the Ash Warden on 2026-11-27, set
+aside in `docs/set_aside/`; `docs/lab_sequence.md`) is a TEMPORARY test harness, not story content. It
 takes short rests and carries a kit, Cyrus's Smelling Salts in it (designer, 2026-10-25); `skips_rests`, which
 made `ResultUI` skip the RestPanel, is used by nothing now. Its `logs_metrics` makes `GameScene` add a `LabMetrics`
 (`tools/lab_metrics.gd`) under Combat. That listens to `Combat.metric` - emitted
@@ -2439,6 +2456,25 @@ one section each, and every rule is a per-creature switch:
   `_eat_itself`) from advance_turn after `_turn_begins_for`; `ai_glutton` feeds
   again after moving. A body eaten gets `eaten` (fallen_at, prisoners skip it).
   `part_index_at` asks the newest part first; `part_marks` drops covered tiles.
+- **"Devouring"** and **"A turn of several blows"** (Erysichthon, started over 2026-11-27; `docs/erysichthon.md`; suite
+  `erysichthon`): `comb.drained` (by stat key) comes off in `fold_stat_changes`; `comb.devoured_spells` (key -> devourer id)
+  makes `can_afford_skill` false and `wasted_on` say "Devoured by"; `comb.belly` is the GIVES_BACK part (absent while
+  `most` is 0: `_part_absent` keeps it out of `part_index_at` and `part_marks`), grown by `_feed_belly`, emptied by
+  `give_back_all` (from `_break_part`, `combatant_die`, `combat_finish`). EffectType.DEVOUR (Chomp, Feast, Gate Devour after
+  CANCEL_CASTING); Vitality Devour from `_after_landing`; trees eaten from in `do_damage` (`_eat_from`). `reactions_per_round`
+  through `use_up_a_reaction`. `ai_attack_sets` plays `whole_turn` skills first, then each AttackSet (`set_reach` read by
+  `effective_max_range`, `lunge_at`); `whole_field` skills skip reach, the one-target narrowing and whoever `is_inside`. The
+  second round (same day): Gate Devour's contest (`out_devours`, `devour_spell_contested`, in `_react_to_casting`'s answerable,
+  so nothing is spent); Starving (`_starving_turn_begins` after `_glutton_turn_begins`, `starving_bonus` in
+  `damage_dealt_multiplier`, `_fed` from `_feed_belly`); a Chomp or Feast on somebody under `devour_swallows_under` swallows
+  them instead (`_swallowing_effect` in `_use_skill`'s targets loop, `swallow_whole` -> `_take_inside`, Swallow's body split out
+  of `swallow`; the GIVES_BACK branch of `_break_part` frees them); a bar with `StaggerDefinition.harder_until` at
+  THE_STAGGERERS_NEXT_TURN puts `REELING` (no lost turn) with `reeling_until`, ended by `_reeling_ends_for` at that one's next
+  turn start (`is_staggered` counts both). Phases are hidden from the boss bar (no marks) and from the codex past
+  `Campaign.codex_phases_seen` (`CodexPage.second_page(definition, phases_seen)`). The old Erysichthon and stage, the Ash Warden,
+  the Bellkeeper, the Ash Warden's aura and the bell live in `tests/fixtures/` (copied to `res://test_fixtures/` by
+  `tests/run.sh`) for the `glutton`, `growth` and `bosses` suites, which register them in `CombatantDatabase` themselves. The
+  glossary reaches a condition a passive guards against (`conditions_from_combatants`), so Choking Ash (Unbowed VI) stays in it.
 - **"Quick time"**: `quick_time_power` / `quick_time_governs`. The QuickTime
   autoload (`quicktime/`, layer 36) answers false headless unless a test sets
   `answer` or `play_headless`.
@@ -2475,13 +2511,17 @@ tools/release.sh [--release] --publish  # and push it, after asking: the playtes
 **Two builds, two pages** (the designer, 2026-11-19, `docs/itch_release_proposals.md`, all five ways). The playtest build has
 everything and goes to the restricted page, "Messengers of Playtesting" (`PLAYTEST` in the script: `eplogos/messengers-of-playtesting`).
 The release build goes to the public page (`PUBLIC`, `eplogos/messengersoftruth`). It uses the three "... Release" presets, kept
-in `tools/release_presets.cfg` and added to `export_presets.cfg` by the script on a machine that lacks them. Their `release`
-feature is what `Release.on()` asks: the title screen drops Arena Mode, the Stealth Stages and the demos, and
-`PlaceholderSounds.make` is silent but for `Release.STAND_INS_KEPT`. `Release.pretend` does the same for a suite. Their Exclude
+in `tools/release_presets.cfg` and added to `export_presets.cfg` by the script on a machine that lacks them. Their `public_build`
+feature is what `Release.on()` asks - never Godot's own `release` feature, which every export from a release template has (that
+hid Arena Mode and the rest from the playtest build until 2026-11-27). In the public build (the designer, 2026-11-27: "only the
+Play section and the first stages of arena") the title screen has Play, the saves, Arena Mode with `Release.arena_stages` (its
+first `PUBLIC_ARENA_STAGES`), Options and Exit; `PlaceholderSounds.make` is silent (`STAND_INS_KEPT` empty); and
+`CombatantDefinition.portrait`/`map_still` pass my stand-in picture files (`Release.GENERATED_PICTURES` - add each new one)
+through `Release.picture`, the plain stand-in there. `Release.pretend` does the same for a suite. Their Exclude
 Filter leaves the stages, demos, the lab sequence and their conversations out of the download. The release check
 (`tests/probes/release_test_driver.gd`, `tests/run.sh release`) reads that filter from the preset and fails on anything kept that
-depends on or names a file left out (`NAMES_ALLOWED`: the title screen), and on anything showing the stand-in picture
-(`art/placeholders/stand_in.png`, which every borrowed icon points at) unless `--allow-stand-ins` sets `MOT_ALLOW_STAND_INS`. Its
+depends on or names a file left out (`NAMES_ALLOWED`: the title screen), and lists what still shows the stand-in picture
+(`art/placeholders/stand_in.png`): since 2026-11-27 that no longer stops a release ("except for the simple placeholder"). Its
 `release_report.md` lists the empty sound and picture slots, and goes into `export/` with a release. A new piece of test content
 goes into all three presets' filter, and into `tools/release_presets.cfg`.
 

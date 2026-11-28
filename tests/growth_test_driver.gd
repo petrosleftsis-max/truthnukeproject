@@ -243,7 +243,7 @@ func run_test():
 	log_line("")
 
 	log_line("======== parts stretch ========")
-	var glutton: Dictionary = combat.create_combatant(load("res://data/enemies/glutton.tres"), "glutton", "", null, 14)
+	var glutton: Dictionary = combat.create_combatant(load("res://test_fixtures/glutton_before.tres"), "glutton_before", "", null, 14)
 	var spot := Vector2i(-99999, -99999)
 	for y in range(region.position.y, region.end.y - 3):
 		for x in range(region.position.x, region.end.x - 3):

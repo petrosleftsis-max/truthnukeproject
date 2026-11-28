@@ -1,8 +1,8 @@
 extends PanelContainer
 class_name BossBars
 ## The bosses on the field, along the top of the screen (Combat's "Bosses"):
-## each one's name and title, its health with a mark where each of its phases
-## begins, and - for a boss with one - its stagger bar under that, with the
+## each one's name and title, its health - no marks where its phases begin
+## (2026-11-27) - and, for a boss with one, its stagger bar under that, with the
 ## fight's hint for filling it. There from the moment a boss is announced, gone
 ## when it falls.
 
@@ -165,7 +165,9 @@ func _fill(row: VBoxContainer, comb: Dictionary, combat):
 	top.get_node("Health").text = "%d / %d" % [maxi(comb.hp, 0), most]
 	var health: Gauge = row.get_node("HealthBar")
 	health.value = float(comb.hp) / float(maxi(most, 1))
-	health.marks = boss.phases_in_order().map(func(phase): return phase.at_health)
+	# No marks where its phases begin: the bar says neither where nor that there are any (the designer, 2026-11-27, of what
+	# Study does not show: "Yes those should be hidden too").
+	health.marks = []
 	health.queue_redraw()
 	var bar: StaggerDefinition = comb.get("stagger_def")
 	var stagger_row := row.get_node("Stagger")

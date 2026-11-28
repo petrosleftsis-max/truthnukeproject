@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="BattleObjectDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/objects/sacred_tree_icon.png" id="1_icon"]
+[ext_resource type="Texture2D" path="res://art/objects/sacred_tree_sheet.png" id="2_sheet"]
+[ext_resource type="Script" path="res://combat/resources/BattleObjectDefinition.gd" id="3_object"]
+
+[resource]
+script = ExtResource("3_object")
+interactable = false
+breakable = true
+fed_on = true
+name = "Sacred Tree"
+glossary_text = "One of Demeter's trees, still standing in what was her grove. Erysichthon eats from them when he can - a Claw at a tree instead of anybody - healing by what he tears off and filling his belly with it. They burn easily."
+max_hp = 40
+max_hp_level_20 = 400
+defense = 0
+movement = 1
+icon = ExtResource("1_icon")
+map_sprite = ExtResource("2_sheet")
+resist_fire = -50

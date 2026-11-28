@@ -82,8 +82,10 @@ static func first_page(definition: CombatantDefinition) -> String:
 	return "\n".join(lines)
 
 
-## The second page, for a boss: its notes, its phases and its stagger bar.
-static func second_page(definition: CombatantDefinition) -> String:
+## The second page, for a boss: its notes, its phases and its stagger bar. Only the first `phases_seen` of its phases, the ones
+## that had begun when it was studied (Campaign.codex_phases_seen; the designer, 2026-11-27): nothing of those to come, nor that
+## there are any. -1 tells them all, for a check of the text.
+static func second_page(definition: CombatantDefinition, phases_seen: int = -1) -> String:
 	if not has_second_page(definition):
 		return ""
 	var boss: BossDefinition = definition.boss
@@ -97,6 +99,8 @@ static func second_page(definition: CombatantDefinition) -> String:
 	var phases: Array = boss.phases_in_order()
 	if phases.is_empty():
 		lines.append("It fights the same way to the end.")
+	if phases_seen >= 0:
+		phases = phases.slice(0, phases_seen)
 	for phase in phases:
 		var said := "At %d%% health: %s." % [roundi(phase.at_health * 100.0), phase.name if phase.name != "" else "it changes"]
 		var changes: Array[String] = []

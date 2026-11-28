@@ -15,14 +15,12 @@ const FIGHTS := [
 	"res://data/encounters/encounter_bound_golem.tres",
 	"res://data/encounters/alchemist_den.tres",
 	"res://data/encounters/summoner_den.tres",
-	"res://data/encounters/boss_bellkeeper.tres",
-	"res://data/encounters/boss_ash_warden.tres",
-	"res://data/encounters/boss_glutton.tres",
+	"res://data/encounters/boss_erysichthon.tres",
 	"res://data/encounters/level_64_showdown.tres",
 ]
 ## Played out with the AI on both sides too, which is slow: real time, whatever Engine.time_scale says.
 const BOTH_SIDES := ["res://data/encounters/encounter_02_sappers.tres", "res://data/encounters/encounter_hired_blades.tres",
-	"res://data/encounters/boss_ash_warden.tres"]
+	"res://data/encounters/boss_erysichthon.tres"]
 const SEEDS := [11]
 const MOST_ROUNDS := 20
 const MOST_SECONDS := 300.0

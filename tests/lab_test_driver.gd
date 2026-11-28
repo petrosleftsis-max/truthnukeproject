@@ -5,17 +5,14 @@ extends Node
 ## of what was lost back, no gates, the fallen down unless Resuscitated there), a
 ## kit of consumables filling every belt and used up as it goes, and every
 ## fight logged (LabMetrics) - a tick laid at its source's door. Its boss is
-## Erysichthon; the Ash Warden variant (lab_chapter1_sequence_ash_warden.tres)
-## differs only in the last fight.
+## Erysichthon. (Its Ash Warden variant went with the Ash Warden, 2026-11-27: set aside in docs/set_aside/dungeons/.)
 
 var LOG_PATH := HarnessLog.path_for("lab")
 const LAB := "res://data/dungeons/lab_chapter1_sequence.tres"
-const ASH_WARDEN_LAB := "res://data/dungeons/lab_chapter1_sequence_ash_warden.tres"
 const DEMO := "res://data/dungeons/dungeon_demo.tres"
 const SOURCES := ["res://data/encounters/encounter_03_watcher.tres", "res://data/encounters/encounter_hired_blades.tres",
-	"res://data/encounters/boss_glutton.tres"]
-const ASH_WARDEN := "res://data/encounters/boss_ash_warden.tres"
-const LEVELS := [16, 17, 18, 18]
+	"res://data/encounters/boss_erysichthon.tres"]
+const LEVELS := [16, 17, 18]
 
 var _log: FileAccess = null
 var _fail = 0
@@ -95,21 +92,10 @@ func the_data():
 	var demo: DungeonDefinition = load(DEMO)
 	ok(not demo.skips_rests and demo.short_rests and not demo.logs_metrics and demo.kit.is_empty(),
 		"the Dungeon Demo takes short rests too (2026-10-25), carries no kit, and logs nothing")
-	var variant: DungeonDefinition = load(ASH_WARDEN_LAB)
-	ok(variant != null and variant.stages.size() == 3, "the Ash Warden variant: three stages")
-	ok(variant.party == lab.party and variant.level == lab.level and variant.knows_every_spell == lab.knows_every_spell
-		and variant.short_rests and not variant.skips_rests and variant.logs_metrics and not variant.rest_revives and variant.gate_recoveries == 0
-		and variant.store == "" and variant.kit == lab.kit, "  the same party, level, rules, kit and logging")
-	ok(variant.stages[0].encounter == lab.stages[0].encounter and variant.stages[1].encounter == lab.stages[1].encounter,
-		"  the same first two fights")
-	ok(lab.stages[2].encounter.resource_path.ends_with("lab_c_erysichthon.tres")
-		and variant.stages[2].encounter.resource_path.ends_with("lab_c_ash_warden.tres"),
-		"  the last: Erysichthon in the primary, the Ash Warden in the variant")
+	ok(lab.stages[2].encounter.resource_path.ends_with("lab_c_erysichthon.tres"), "  the last: Erysichthon")
 	var copies := lab.stages.map(func(stage): return stage.encounter)
-	copies.append(variant.stages[2].encounter)
 	var sources := SOURCES.duplicate()
-	sources.append(ASH_WARDEN)
-	for i in 4:
+	for i in copies.size():
 		var copy: EncounterDefinition = copies[i]
 		var source: EncounterDefinition = load(sources[i])
 		var same := copy.spawns.size() == source.spawns.size()
@@ -251,6 +237,13 @@ func the_run():
 	ok(not boss.is_empty() and boss.level == 18, "Erysichthon, at 18", "%d" % boss.get("level", 0))
 	enfina = fighter(combat, "enfina")
 	cyrus = fighter(combat, "cyrus")
+	# Started over by the designer (2026-11-27), he has no declared move and no stagger bar of his own any more: what the
+	# summary keeps of them is what is tried here, so he is lent the ones he had.
+	var bar := StaggerDefinition.new()
+	bar.max_value = 150.0
+	bar.per_blocked_condition = 15.0
+	combat._set_stagger_bar(boss, bar)
+	boss.skill_list.append("devour")
 	await combat.declare(boss, "devour", enfina.position)
 	combat.add_stagger(boss, 10.0, "damage")
 	combat.drop_declared(boss, "a test")

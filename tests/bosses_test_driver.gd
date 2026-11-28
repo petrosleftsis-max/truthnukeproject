@@ -6,10 +6,16 @@ extends Node
 ## up, by bells on the map - and the arena: ash falling a round after it is
 ## marked, ground that hurts. Things on the map take no turns and never keep a
 ## fight going. The turn queue runs down the right of the screen.
+##
+## The Ash Warden and the Bellkeeper left the game (the designer, 2026-11-27: "Remove ash warden and bell keeper from the
+## game"); they live on in tests/fixtures/ (copied to res://test_fixtures/ by tests/run.sh) as what these systems are tried
+## on, registered here under their own keys with the bell they ring.
 
 var LOG_PATH := HarnessLog.path_for("bosses")
-const WARDEN_FIGHT := "res://data/encounters/boss_ash_warden.tres"
-const BELL_FIGHT := "res://data/encounters/boss_bellkeeper.tres"
+const WARDEN_FIGHT := "res://test_fixtures/boss_ash_warden.tres"
+const BELL_FIGHT := "res://test_fixtures/boss_bellkeeper.tres"
+const FIXTURES := {"ash_warden": "res://test_fixtures/ash_warden.tres", "bellkeeper": "res://test_fixtures/bellkeeper.tres",
+	"bell": "res://test_fixtures/bell.tres"}
 
 var _log: FileAccess = null
 var _fail = 0
@@ -37,6 +43,8 @@ func _ready():
 	_log = FileAccess.open(LOG_PATH, FileAccess.WRITE)
 	get_tree().create_timer(300.0, true, false, true).timeout.connect(func(): log_line("DID NOT FINISH"); get_tree().quit(2))
 	await get_tree().process_frame
+	for key in FIXTURES:
+		CombatantDatabase.combatants[key] = load(FIXTURES[key])
 	var booted = get_tree().current_scene
 	if booted != null:
 		booted.queue_free()
@@ -144,7 +152,8 @@ func the_warden_appears():
 	ok(bars.visible and bars.row_for(warden.id) != null, "its bar along the top")
 	var row: Control = bars.row_for(warden.id)
 	ok(row.get_node("Stagger").visible and row.get_node("Hint").text.begins_with("Hit it hard"), "with its stagger bar, and how to fill it")
-	ok(row.get_node("HealthBar").marks.size() == 2, "and a mark on its health where each phase begins")
+	# No marks where its phases begin: the bar says neither where nor that there are any (the designer, 2026-11-27).
+	ok(row.get_node("HealthBar").marks.is_empty(), "and no mark on its health where a phase begins")
 	var screen: Vector2 = ui.get_viewport_rect().size
 	var bar_box: Rect2 = bars.get_global_rect()
 	ok(absf(bar_box.get_center().x - screen.x * 0.5) < 2.0 and bar_box.position.y < 20.0, "at the top, in the middle",

@@ -152,7 +152,7 @@ func _new_enemies():
 	var peal := _move("Peal", 6)
 	peal.adds_card = "dazed"
 	peal.adds_count = 2
-	_save_new(_enemy("Bellkeeper", 70, 76, CYCLE, [peal, _move("Clang", 14), _move("Hush", 0, 1, 12, &"weakened", 1)], {"toll": 1}, "bellkeeper"),
+	_save_new(_enemy("Bellkeeper", 70, 76, CYCLE, [peal, _move("Clang", 14), _move("Hush", 0, 1, 12, &"weakened", 1)], {"toll": 1}, "sorcerer"),
 		ENEMIES + "bellkeeper.tres")
 	# An elite with Overtime (10), a Burn in the hand (14), and a rule for a player low on health (5, 22).
 	var embers := _move("Embers", 6, 1, 0, &"", 0, &"", 0, 2)
@@ -160,7 +160,7 @@ func _new_enemies():
 	embers.adds_to = CardEnemyMove.Pile.HAND
 	var stoke := _move("Stoke", 0, 1, 8, &"", 0, &"might", 2, 1)
 	stoke.not_twice_running = true
-	var warden := _enemy("Ash Warden", 80, 86, RANDOM, [embers, _move("Searing Slam", 17, 1, 0, &"", 0, &"", 0, 2), stoke], {"overtime": 8}, "ash_warden")
+	var warden := _enemy("Ash Warden", 80, 86, RANDOM, [embers, _move("Searing Slam", 17, 1, 0, &"", 0, &"", 0, 2), stoke], {"overtime": 8}, "barbarian")
 	warden.rules.append(CardEnemyRule.of(W.PLAYER_HEALTH_UNDER, "Searing Slam", 40, &"", T.ELITE))
 	_save_new(warden, ENEMIES + "ash_warden.tres")
 	# An elite that changes its mind whenever an attack hits it (11), and Wounds the deck (14).

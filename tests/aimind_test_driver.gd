@@ -158,13 +158,15 @@ func smarts_table():
 	var rat: CombatantDefinition = CombatantDatabase.combatants.rat
 	var barbarian: CombatantDefinition = CombatantDatabase.combatants.barbarian
 	var sorcerer: CombatantDefinition = CombatantDatabase.combatants.sorcerer
-	var warden: CombatantDefinition = CombatantDatabase.combatants.ash_warden
 	ok(rat.ai_smarts == CombatantDefinition.AiSmarts.INSTINCT and Combat._ai_knows_of(rat) == 0, "a rat knows nothing")
 	ok(barbarian.ai_smarts == CombatantDefinition.AiSmarts.TRAINED and Combat._ai_knows_of(barbarian) & K.GROUND != 0, "a barbarian is trained: he knows the ground")
 	ok(Combat._ai_knows_of(barbarian) & K.TETHERS == 0, "not what a tether is")
 	ok(sorcerer.ai_smarts == CombatantDefinition.AiSmarts.CUNNING and Combat._ai_knows_of(sorcerer) & K.TETHERS != 0, "a sorcerer is cunning: she does")
 	ok(Combat._ai_knows_of(sorcerer) & K.SET_UPS == 0, "not set-ups")
-	ok(warden.ai_smarts == CombatantDefinition.AiSmarts.ALL_KNOWING and Combat._ai_knows_of(warden) & K.KITS != 0, "the Ash Warden has everything, kits too", "%d" % Combat._ai_knows_of(warden))
+	# The Ash Warden was the All Knowing one until he left the game (2026-11-27): a stand-in, made so.
+	var all_knowing: CombatantDefinition = rat.duplicate()
+	all_knowing.ai_smarts = CombatantDefinition.AiSmarts.ALL_KNOWING
+	ok(Combat._ai_knows_of(all_knowing) & K.KITS != 0, "All Knowing has everything, kits too", "%d" % Combat._ai_knows_of(all_knowing))
 	var tweaked: CombatantDefinition = rat.duplicate()
 	tweaked.ai_also_knows = K.GROUND
 	ok(Combat._ai_knows_of(tweaked) == K.GROUND, "one creature can know more than its smarts")

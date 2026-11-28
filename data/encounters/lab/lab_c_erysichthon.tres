@@ -28,7 +28,7 @@ combatant_key = "cyrus"
 position = Vector2i(48, -12)
 level = 18
 weapon_base = 12
-starting_items = Array[String](["cure_potion", "medium_bomb", "medicine"])
+starting_items = Array[String](["rotten_meal", "cure_potion", "medium_bomb", "medicine"])
 
 [sub_resource type="Resource" id="Spawn_prometheus"]
 script = ExtResource("2_spawn")
@@ -47,18 +47,32 @@ level = 18
 weapon_base = 12
 defense = 20
 
-[sub_resource type="Resource" id="Spawn_carrion"]
+[sub_resource type="Resource" id="Spawn_tree_a"]
 script = ExtResource("2_spawn")
-combatant_key = "carrion_heap"
+combatant_key = "sacred_tree"
 side = 1
 position = Vector2i(56, -20)
 level = 22
 
-[sub_resource type="Resource" id="Spawn_keg"]
+[sub_resource type="Resource" id="Spawn_tree_b"]
 script = ExtResource("2_spawn")
-combatant_key = "bait_keg"
+combatant_key = "sacred_tree"
 side = 1
 position = Vector2i(53, -5)
+level = 22
+
+[sub_resource type="Resource" id="Spawn_tree_c"]
+script = ExtResource("2_spawn")
+combatant_key = "sacred_tree"
+side = 1
+position = Vector2i(49, -15)
+level = 22
+
+[sub_resource type="Resource" id="Spawn_tree_d"]
+script = ExtResource("2_spawn")
+combatant_key = "sacred_tree"
+side = 1
+position = Vector2i(49, -18)
 level = 22
 
 [sub_resource type="Resource" id="Spawn_wave1_a"]
@@ -86,7 +100,7 @@ side = 1
 position = Vector2i(44, -25)
 level = 18
 weapon_base = 8
-arrives_on_cue = "broke:Jaws"
+arrives_on_cue = "broke:Belly"
 
 [sub_resource type="Resource" id="Spawn_wave2_b"]
 script = ExtResource("2_spawn")
@@ -95,7 +109,7 @@ side = 1
 position = Vector2i(46, -25)
 level = 18
 weapon_base = 8
-arrives_on_cue = "broke:Jaws"
+arrives_on_cue = "broke:Belly"
 
 [sub_resource type="Resource" id="Spawn_wave3_a"]
 script = ExtResource("2_spawn")
@@ -118,7 +132,7 @@ arrives_after_deaths = 3
 [resource]
 script = ExtResource("1_enc")
 display_name = "Lab C: Erysichthon (18)"
-description = "TEST HARNESS, not story content - the laboratory sequence's boss, its primary variant: Erysichthon at 18, with its Gnawers, carrion and bait keg, and what is left from the first two."
+description = "TEST HARNESS, not story content - the laboratory sequence's boss, its primary variant: Erysichthon at 18, with its Gnawers and four of Demeter's sacred trees, and what is left from the first two."
 terrain_scene = ExtResource("3_map")
-spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_alithia"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_glutton"), SubResource("Spawn_carrion"), SubResource("Spawn_keg"), SubResource("Spawn_wave1_a"), SubResource("Spawn_wave1_b"), SubResource("Spawn_wave2_a"), SubResource("Spawn_wave2_b"), SubResource("Spawn_wave3_a"), SubResource("Spawn_wave3_b")])
+spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_alithia"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_glutton"), SubResource("Spawn_tree_a"), SubResource("Spawn_tree_b"), SubResource("Spawn_tree_c"), SubResource("Spawn_tree_d"), SubResource("Spawn_wave1_a"), SubResource("Spawn_wave1_b"), SubResource("Spawn_wave2_a"), SubResource("Spawn_wave2_b"), SubResource("Spawn_wave3_a"), SubResource("Spawn_wave3_b")])
 music = "Mehul ShaRma - CURSE"

@@ -1,7 +1,7 @@
 extends Node
-## The first boss, Erysichthon (data/enemies/glutton.tres, boss_glutton.tres), and
-## what it is built from: enemies arriving late on a cue or once so many have
-## fallen (Combat "Arriving late"), eating (Combat "Gluttony") - food on the map,
+## Erysichthon as he was before the designer started him over (2026-11-27) - kept in tests/fixtures (glutton_before.tres,
+## boss_glutton_before.tres, under the key "glutton_before") for the systems he was built from, which stay in the game for
+## anybody else: enemies arriving late on a cue or once so many have fallen (Combat "Arriving late"), eating (Combat "Gluttony") - food on the map,
 ## a carcass tainted by a Use, a keg in meat, its own dead, itself - parts that
 ## grow back, and swallowing whoever it holds (Combat "Swallowing"), with every
 ## way out of it and the one way that ends it.
@@ -100,7 +100,9 @@ func swallow(glutton: Dictionary, prey: Dictionary):
 
 func run_test():
 	Campaign.reset()
-	Campaign.current_encounter = load("res://data/encounters/boss_glutton.tres")
+	# What he was, under a key of its own: the database has the new one under "glutton".
+	CombatantDatabase.combatants["glutton_before"] = load("res://test_fixtures/glutton_before.tres")
+	Campaign.current_encounter = load("res://test_fixtures/boss_glutton_before.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await settle(8)
@@ -110,7 +112,7 @@ func run_test():
 		await settle(1)
 	combat.reaction_prompt = null
 	combat.update_information.connect(func(line): said.append(line))
-	var glutton := who("glutton")
+	var glutton := who("glutton_before")
 	var cyrus := who("cyrus")
 	var alithia := who("alithia")
 	var enfina := who("enfina")
@@ -257,7 +259,7 @@ func run_test():
 	ok(combat.is_inside(alithia), "Alithia swallowed")
 	combat._break_part(glutton, belly)
 	ok(alithia.alive and not combat.is_inside(alithia) and alithia.sprite.visible, "its Belly Hole torn open: she falls out alive")
-	ok(combat.conditions_of(alithia).has(load("res://data/conditions/bile_soaked.tres")), "covered in bile")
+	ok(combat.conditions_of(alithia).has(load("res://test_fixtures/bile_soaked.tres")), "covered in bile")
 	combat._regrow_part(glutton, belly)
 	alithia.status_effects.clear()
 	await swallow(glutton, alithia)
@@ -282,7 +284,7 @@ func run_test():
 ## The fight again, fresh, for what changes as it goes down.
 func open_fresh() -> Node:
 	Campaign.reset()
-	Campaign.current_encounter = load("res://data/encounters/boss_glutton.tres")
+	Campaign.current_encounter = load("res://test_fixtures/boss_glutton_before.tres")
 	var game = load("res://scenes/game.tscn").instantiate()
 	get_tree().root.add_child(game)
 	await settle(8)
@@ -302,7 +304,7 @@ func open_fresh() -> Node:
 func phases():
 	log_line("======== Gorge: a second head ========")
 	var game = await open_fresh()
-	var glutton := who("glutton")
+	var glutton := who("glutton_before")
 	var most: int = combat.get_effective_stat(glutton, "max_hp")
 	glutton.hp = roundi(most * 0.7)
 	combat.lose_hp(glutton, roundi(most * 0.05))
@@ -342,7 +344,7 @@ func phases():
 func the_ai():
 	log_line("======== how it fights ========")
 	var game = await open_fresh()
-	var glutton := who("glutton")
+	var glutton := who("glutton_before")
 	var cyrus := who("cyrus")
 	combat.current_combatant = combat.combatants.find(glutton)
 	combat.controller.set_controlled_combatant(glutton)
@@ -389,7 +391,7 @@ func open_block(w: int, h: int, avoid := Rect2i()) -> Vector2i:
 func squeezing():
 	log_line("======== Hollow Frame: it folds to fit ========")
 	var game = await open_fresh()
-	var glutton := who("glutton")
+	var glutton := who("glutton_before")
 	var cyrus := who("cyrus")
 	var alithia := who("alithia")
 	var controller = combat.controller

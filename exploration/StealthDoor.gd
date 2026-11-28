@@ -45,8 +45,8 @@ func _set_starts_open(value: bool):
 
 func _ready():
 	super()
-	is_open = starts_open
-	prompt = "Close" if is_open else "Open"
+	is_open = starts_open and not leads_elsewhere
+	prompt = "Go through" if leads_elsewhere else ("Close" if is_open else "Open")
 	# Over the floor, under anybody walking through it.
 	z_as_relative = false
 	z_index = ExplorationParty.PARTY_Z_BOTTOM - 2
@@ -117,7 +117,8 @@ func _set_depth_stood(value: bool):
 ## A door is as tall as the walls beside it, shut or open (the designer, 2026-11-14: "the door would be the same height as the
 ## wall"). DepthView "What a map's own nodes stand up".
 func depth_lift() -> float:
-	return Depth.lift_of(Depth.Kind.WALL)
+	# Broken in a fight, nothing of it stands.
+	return 0.0 if broken else Depth.lift_of(Depth.Kind.WALL)
 
 
 ## The part of its tile it stands on, in tiles from the tile's north-west corner. `side_on` is a door in a wall that runs north to
@@ -254,7 +255,38 @@ func depth_paint(canvas: CanvasItem, front: Rect2, whole: Rect2 = Rect2()):
 
 ## Whether anybody can walk and see through it right now.
 func passable() -> bool:
-	return is_open or held
+	return is_open or held or broken
+
+
+## --- Leading elsewhere ---
+##
+## A door to another map (the designer, 2026-11-27: "instead of opening when interacting, it should transition the scene into an
+## other map which I'll make later"): E takes the party through to Leads To Map, arriving at its EntryPoint named Leads To Entry
+## (empty: its first), as a DoorInteractable does. It never opens here, so it stands shut, as a wall. With no map named yet it
+## does not open at all, and says so.
+@export_group("Leading elsewhere")
+@export var leads_elsewhere: bool = false
+@export_file("*.tscn") var leads_to_map: String = ""
+@export var leads_to_entry: String = ""
+@export_group("")
+
+
+## --- Broken in a fight ---
+##
+## In a fight on the map's own ground a shut door stands as a door that can be broken and gives cover (StealthWatch.build_fight,
+## data/objects/door.tres; the designer, 2026-11-27: "The doors should stay during combat and be breakable objects that give
+## cover"). Broken there, it is gone from its frame here too: kept in the flags ("broken_door:" and where it is), always open.
+var broken := false : set = _set_broken
+
+
+func _set_broken(value: bool):
+	broken = value
+	queue_redraw()
+
+
+## The flag it is kept broken in, on the map at `map_path`.
+func broken_flag_for(map_path: String) -> String:
+	return "broken_door:%s::%s" % [map_path, name]
 
 
 ## --- Barred on one side ---
@@ -283,6 +315,18 @@ func opens_for(point: Vector2) -> bool:
 
 
 func interact(scene: Node):
+	if broken:
+		return
+	# A door to another map: through it, or, with nowhere made yet for it to go, nowhere.
+	if leads_elsewhere:
+		if leads_to_map == "" or not ResourceLoader.exists(leads_to_map):
+			scene.log_message("It doesn't open - not yet.\n")
+			MapFeel.sound(&"refused", -6.0, 1.0, global_position)
+			return
+		GameSounds.play_at(&"mechanism_opened", global_position)
+		Campaign.travel_to_map(leads_to_map, leads_to_entry)
+		scene.reload_map()
+		return
 	if not opens_for(scene.party_position()):
 		scene.log_message("It's barred from the other side.\n")
 		MapFeel.sound(&"refused", -6.0, 1.0, global_position)
@@ -310,7 +354,11 @@ func set_open(value: bool):
 func _draw():
 	var tile := float(Grid.TILE_SIZE)
 	var half := tile / 2.0
-	if depth_stood:
+	if broken:
+		# Splinters in an empty frame.
+		for at in [Vector2(-0.3, 0.25), Vector2(0.2, 0.32), Vector2(0.32, -0.2), Vector2(-0.18, -0.3)]:
+			draw_rect(Rect2(at * tile, Vector2(tile * 0.16, tile * 0.05)), WOOD_DARK)
+	elif depth_stood:
 		# Drawn standing by the view: only its sill is on the floor.
 		draw_rect(Rect2(-half, -half, tile, tile), Color(WOOD_DARK, 0.22))
 	elif passable():

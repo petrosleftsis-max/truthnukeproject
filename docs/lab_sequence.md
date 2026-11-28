@@ -2,41 +2,32 @@
 
 A **temporary test harness, not story content.** It is the boss-sequence test proposed in `docs/chapter1_audit.md` (section 7), prepared at the designer's request on 2026-10-24.
 
-The boss is **Erysichthon at 18, the primary variant**, since it is the boss that closes Chapter I (designer, 2026-10-24). The Ash Warden at 18 is a **second variant**, kept for what Erysichthon does not test.
+The boss is **Erysichthon at 18**, since it is the boss that closes Chapter I (designer, 2026-10-24). The Ash Warden at 18 was a second variant until the Ash Warden left the game (designer, 2026-11-27: "Remove ash warden and bell keeper from the game"); its dungeon, stage and demo scenes are set aside in `docs/set_aside/`.
 
 Nothing about balance changed to make it: no health, damage, gear, rewards, boss stats or enemy compositions. What it adds is a dungeon's short rests (with Resuscitate at the rest) and a kit of consumables, both at the designer's request of 2026-10-25. Before then it skipped the rests altogether (`skips_rests`), and whoever fell stayed down for the rest of the run.
 
 ## How to run it
 
-The primary variant, Erysichthon:
-
 1. Open **`demos/lab_sequence_conservation.tscn`** in the editor and press **F6**. Play the three fights spending as few gates and items as the fights allow.
 2. Open **`demos/lab_sequence_free_spending.tscn`** and press **F6**. Play them again, spending whatever helps, as soon as it helps.
-
-The second variant, the Ash Warden, the same way:
-
-3. `demos/lab_sequence_ash_warden_conservation.tscn`
-4. `demos/lab_sequence_ash_warden_free_spending.tscn`
 
 Each run writes two files to **`docs/lab_runs/`** (or `user://lab_runs/` in an exported build):
 
 - `<date>_<label>.md` - a summary per fight;
 - `<date>_<label>_events.csv` - every counted moment.
 
-The labels are `erysichthon-conservation`, `erysichthon-free-spending`, `ash-warden-conservation` and `ash-warden-free-spending`. The combat log names the file after each fight. Keep expert and newcomer runs apart: label them in the file names, or move them into folders of their own.
+The labels are `erysichthon-conservation` and `erysichthon-free-spending`. The combat log names the file after each fight. Keep expert and newcomer runs apart: label them in the file names, or move them into folders of their own.
 
 ## What it is
 
 | | |
 |---|---|
-| Dungeon (primary) | `data/dungeons/lab_chapter1_sequence.tres` |
-| Dungeon (second variant) | `data/dungeons/lab_chapter1_sequence_ash_warden.tres` - the same in everything but stage C |
+| Dungeon | `data/dungeons/lab_chapter1_sequence.tres` |
 | Party | Enfina, Cyrus, Prometheus, Alithia, all at **18**. No path yet (paths come at 24); no gear (the story gives none in Chapter I). Each starts with a **kit** that fills the four slots of their Simple Baldric (`kit`, PROPOSAL test values: tier II, as `docs/consumables.csv` has it for 17-32, about 1,570 gold of stock): Enfina two Mediocre Cure Potions, a Cure Potion and a Medicine; Cyrus a Small Bomb, Smelling Salts (to bring somebody fallen round in a fight; since 2026-10-25, in place of his second Small Bomb), a Blinding Bomb and a Mediocre Cure Potion; Prometheus two Medicines (24 each is 63% of his 38), a Mediocre Cure Potion and a Wildfire Gate Nade; Alithia a Communion Gate Nade, a Heal Gate Nade, a Mediocre Cure Potion and a Medicine. **The kit is all they have for the three fights**: what is used is gone. At each rest the bags can be opened and repacked - who carries what, and what is on the baldric for the next fight. |
 | Spells | Every spell of theirs (`knows_every_spell`), as in the Dungeon Demo. Which spells Prometheus would really have by 18 is OPEN, since nothing in the story teaches him any (audit, rows 4 and 6). |
 | Stage A | `data/encounters/lab/lab_a_city.tres` - the City Fight's ten enemies, at **16** |
 | Stage B | `data/encounters/lab/lab_b_hired_blades.tres` - the Hired Blades, at **17** |
-| Stage C (primary) | `data/encounters/lab/lab_c_erysichthon.tres` - Erysichthon at **18**, with its carrion heap and bait keg, and its six Gnawers: two at round 3, two when its Jaws break, two after three deaths. The Gnawers are at 18; the heap and the keg keep their own 22. |
-| Stage C (second variant) | `data/encounters/lab/lab_c_ash_warden.tres` - the Ash Warden (with its powder kegs, hazards, phases and stagger bar), at **18** |
+| Stage C | `data/encounters/lab/lab_c_erysichthon.tres` - Erysichthon at **18** (started over 2026-11-27, `docs/erysichthon.md`), a copy of the arena stage `boss_erysichthon.tres`: four of Demeter's sacred trees, and his six Gnawers - two at round 3, two when his belly first breaks, two after three deaths. The Gnawers are at 18; the trees keep their own 22. |
 | Between the fights | **A short rest** (`short_rests`, `Campaign.short_rest`): everybody standing gets back half of what they lost (a PROPOSAL test value), the uses spent until a rest, and one of Alithia's two Devotion castings. No gates come back - but Prometheus may Meditate, once in the run (there is no long rest in it) - and there is no store. **The fallen stay down** - unless somebody standing who knows Resuscitate (Alithia) spends a casting of it on them at the rest, through Pandora or deeper: up with half their health, a tenth weaker until a long rest, as in a fight, and then rested like the others. If Alithia is the one down, nobody can. |
 | Logging | `logs_metrics`, through `tools/lab_metrics.gd` |
 
@@ -44,17 +35,17 @@ The fights are copies of the existing ones. The `lab` suite checks that they kee
 
 The levels (16, 17, 18, and the party at 18) are the harness's own choice inside the audit's 16-18. Change them in the copies and the dungeons.
 
-### What each boss tests
+### What the boss tests
 
-| | Erysichthon (primary) | The Ash Warden (second variant) |
-|---|---|---|
-| Turns a round | 1 | 2 |
-| Immune to | being broken, taken alive, thrown - **no condition** | Stunned (until 33%), Confused; being shoved, teleported, broken |
-| Phases | Gorge (66%: a second head, holds two at once), The Hollow (33%: rib maws, eats itself) | The Ash Rises (66%: Rockfall, and burning ash every other round, marked a round ahead), Cinders and Fury (33%: clears its conditions, can be stunned, two imps, a new bar) |
-| Stagger bar | 150; 0.6 per damage, 15 per condition it shrugs off | 120, 20 per condition it shrugs off, doubled while it readies a Ground Pound; at 33% a bar of 90, 1.2 per damage, draining 45 a round |
-| Its own | Catch the Scent (Scented), Grab, Devour (declared: swallows), Ravenous Bite, Rending Claws; eats the carrion, the keg and its own; parts that regrow | Ground Pound (declared), its Ash Vents (a part), the powder kegs |
+| | Erysichthon (since 2026-11-27) |
+|---|---|
+| Turns a round | 1: two Claws and a Chomp at one target; from half health the same again at another, lunging from 6 tiles |
+| Immune to | Boss Immunities: Prone, Stunned, Hesitating, Confused, Deceived, Compelled, Fear, Blind, Deafened, Off Guard; being broken, taken alive, thrown |
+| Phases | Famished (50%: Feast, once; the second set), Insatiable (25%: Feast every turn) |
+| Stagger bar | 150; 0.6 per damage, 15 per condition it shrugs off; full, it is Reeling and keeps its turn |
+| Its own | Vitality Devour, Chomp, Gate Devour (three reactions, a contest), Feast, Starving; the belly; swallowing whoever is badly hurt; eating from Demeter's sacred trees |
 
-So Erysichthon is the one whose turns can be taken from it: it acts once a round and can be stunned. The Ash Warden is the one that tests several turns a round, condition immunities, phases, hazards and stagger.
+So Erysichthon tests what is drained, devoured and given back, and turns that cannot be taken from it.
 
 ## What is logged
 
@@ -125,8 +116,7 @@ The automatic lethality review (`docs/chapter1_inventory.csv`, section "Lethalit
 
 | Attack | Prediction | Reading |
 |---|---|---|
-| Stage C: Erysichthon's Devour at 18 | Downs anybody it digests, Enfina included, after two of its turns inside | Telegraphed (the Grab, the declaration, two turns inside), with three ways out: tear its Belly Hole open, stagger it, or down it. Allowed by the rule only as a major boss attack - the designer's to read (audit, section 9). Its other blows down nobody in one: the best, Ravenous Bite, is 23 against Prometheus's 38. |
-| Stage C (second variant): the Ash Warden's Ground Pound at 18 | Can down only Prometheus | Telegraphed: FAIR by the rule |
+| Stage C: Erysichthon's Feast at 18 (since 2026-11-27) | Against the party's basic armour: Enfina 75 (of 146), Cyrus 93 (of 86), Alithia 93 (of 86), Prometheus 99 (of 38) - three of the four down from full health | Not telegraphed, the designer's choice ("No, but study allows them to read it"); once at half health, every turn under a quarter. The designer has the numbers (`docs/erysichthon.md`). |
 | Stage A: the Bombers' Self Destruct at 16 | Can down Prometheus in one blow | Not telegraphed. Kept as it is by the designer (2026-10-24): it teaches the player to read enemy moves. |
 
 ## Removing it
@@ -135,7 +125,7 @@ The harness is these files:
 
 | What | Files |
 |---|---|
-| The dungeons and their fights | `data/dungeons/lab_chapter1_sequence.tres`, `data/dungeons/lab_chapter1_sequence_ash_warden.tres`, `data/encounters/lab/` |
+| The dungeon and its fights | `data/dungeons/lab_chapter1_sequence.tres`, `data/encounters/lab/` |
 | The launchers | `demos/lab_sequence*.tscn`, `demos/lab_sequence.gd` |
 | The logger | `tools/lab_metrics.gd` |
 | The suite | `tests/lab_test_driver.gd` (and `lab` in `tests/suites.txt`) |

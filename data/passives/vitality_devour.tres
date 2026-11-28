@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/PassiveDefinition.gd" id="1_passive"]
+
+[resource]
+script = ExtResource("1_passive")
+name = "Vitality Devour"
+description = "Every hit that lands drains 10 maximum health from whoever it lands on, for the fight, and heals it by as much - never below a quarter of what they had. What it drains goes into its belly, and comes back when the belly is torn open."
+devours_health = 10
+devours_down_to = 0.25

@@ -62,6 +62,10 @@ class_name BattleObjectDefinition
 @export_range(0.0, 500.0, 1.0, "or_greater") var eaten_stagger: float = 0.0
 ## A part of theirs it breaks from the inside, by name ("Belly Hole").
 @export var eaten_breaks: String = ""
+## Fed on, a bite at a time: a blow of somebody who Feeds With that skill (CombatantDefinition.feeds_with) can go at it
+## instead of anybody, and what the blow takes off it they eat - healed by as much, and into their belly (Combat
+## "Devouring"). It needs Breakable, for the blow to take anything. Demeter's sacred trees, for Erysichthon.
+@export var fed_on: bool = false
 
 @export_group("Hack")
 ## Has to be hacked to be Used (Hacking) - by somebody who can hack. Failing,

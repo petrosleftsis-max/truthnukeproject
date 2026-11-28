@@ -1681,7 +1681,7 @@ static func roles_of(skill: SkillDefinition) -> Array:
 				add.call("Healing")
 			EffectDefinition.EffectType.PUSH, EffectDefinition.EffectType.PULL, EffectDefinition.EffectType.STEAL, \
 					EffectDefinition.EffectType.CANCEL_CASTING, EffectDefinition.EffectType.DISPEL_MAGIC, \
-					EffectDefinition.EffectType.SWALLOW, EffectDefinition.EffectType.TRAP:
+					EffectDefinition.EffectType.SWALLOW, EffectDefinition.EffectType.TRAP, EffectDefinition.EffectType.DEVOUR:
 				add.call("Control")
 			EffectDefinition.EffectType.CONDITION, EffectDefinition.EffectType.DAMAGE_OVER_TIME, \
 					EffectDefinition.EffectType.STAT_MODIFIER, EffectDefinition.EffectType.STAT_MULTIPLIER, \

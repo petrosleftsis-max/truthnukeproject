@@ -51,5 +51,4 @@ felling_movement = 3
 script = ExtResource("2_path")
 name = "Vanguard"
 description = "The charge. Enfina burns, runs at them and does not stop: harder after a charge, setting alight whoever she drives aside, through everything that would hold her, and on from one fallen to the next."
-skills = Array[String]([])
 passives = Array[ExtResource("1_passive")]([SubResource("Passive_0"), SubResource("Passive_1"), SubResource("Passive_firebrand"), SubResource("Passive_2"), SubResource("Passive_3")])

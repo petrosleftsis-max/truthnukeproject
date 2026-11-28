@@ -79,9 +79,8 @@ func _rebuild():
 	_build_party_panel(wiped)
 
 	var buttons: Array = []
-	for encounter in encounters:
-		if encounter == null:
-			continue
+	# Every one, or in the public build its first few (Release.arena_stages).
+	for encounter in Release.arena_stages(encounters):
 		var card = _build_encounter_card(encounter, wiped)
 		_list.add_child(card)
 		if not wiped:

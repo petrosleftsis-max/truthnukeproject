@@ -79,24 +79,34 @@ func button_on(panel: Control, text: String) -> Button:
 	return null
 
 
-## A release build (Release, the export's "release" feature; the designer, 2026-11-19): the title screen leaves out what there is
-## to test with, and the stand-in sounds are quiet but a footstep.
+## The public build (Release, the export's "public_build" feature - not Godot's own "release", which every export template has; the
+## designer, 2026-11-19 and 2026-11-27): the title screen has Play and the first stages of Arena Mode, and every stand-in sound is
+## quiet.
 func in_a_release():
-	log_line("======== in a release build ========")
+	log_line("======== in the public build ========")
+	ok(not Release.on(), "an export's own release feature is not the public build", "%s" % OS.has_feature("release"))
 	Release.pretend = true
 	var menu: MainMenu = load("res://scenes/main_menu.tscn").instantiate()
 	get_tree().root.add_child(menu)
 	await settle()
 	var front = menu._panels["root"]
-	ok(button_on(front, "Play") != null and button_on(front, "Arena Mode") == null and button_on(front, "Stealth Stages") == null
-		and button_on(front, "Clues Demo") == null and button_on(front, "Dungeon Demo") == null,
-		"the title screen has no Arena Mode, Stealth Stages or demos")
-	ok(PlaceholderSounds.make("look").data.size() < 100 and PlaceholderSounds.make("step_stone").data.size() > 100,
-		"a stand-in sound is quiet, but a stand-in footstep is kept")
+	ok(button_on(front, "Play") != null and button_on(front, "Arena Mode") != null and button_on(front, "Options") != null
+		and button_on(front, "Exit") != null, "the title screen has Play, Arena Mode, Options and Exit")
+	ok(button_on(front, "Stealth Stages") == null and button_on(front, "Clues Demo") == null and button_on(front, "Dungeon Demo") == null
+		and button_on(front, "Card Game") == null and button_on(front, "Players") == null and button_on(front, "Glossary") == null,
+		"and nothing else: no Stealth Stages, demos, Card Game, Players or Glossary")
+	var arena: Array = Release.arena_stages(load("res://scenes/level_select.tscn").instantiate().encounters)
+	ok(arena.size() == Release.PUBLIC_ARENA_STAGES and arena[0].resource_path.ends_with("encounter_01_ambush.tres"),
+		"Arena Mode offers its first %d stages" % Release.PUBLIC_ARENA_STAGES, "%s" % [arena.map(func(each): return each.resource_path.get_file())])
+	ok(PlaceholderSounds.make("look").data.size() < 100 and PlaceholderSounds.make("step_stone").data.size() < 100,
+		"every stand-in sound is quiet, footsteps too")
 	menu.queue_free()
 	Release.pretend = false
 	await settle()
-	ok(PlaceholderSounds.make("look").data.size() > 100, "and outside a release, the stand-ins are back")
+	ok(PlaceholderSounds.make("look").data.size() > 100 and PlaceholderSounds.make("step_stone").data.size() > 100,
+		"and outside the public build, the stand-ins are back")
+	ok(Release.arena_stages(load("res://scenes/level_select.tscn").instantiate().encounters).size() > Release.PUBLIC_ARENA_STAGES,
+		"with every stage of Arena Mode")
 
 
 ## Stealth Stages on the front door, a button a stage, and Back.

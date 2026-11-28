@@ -730,6 +730,14 @@ func create_combatant(definition: CombatantDefinition, combatant_key: String = "
 	if not definition.parts.is_empty():
 		comb["parts"] = definition.parts.filter(func(p): return p != null)
 		comb["parts_hp"] = comb.parts.map(func(p): return maxi(roundi(comb.max_hp * p.health_share), 1))
+	# What they are built around, for what devours it ("Devouring"); their reactions between turns, their blows a turn ("A turn
+	# of several blows"); their belly, not there yet.
+	comb["main_stat"] = definition.main_stat
+	if definition.reactions_per_round > 1:
+		comb["reactions_per_round"] = definition.reactions_per_round
+	if not definition.attack_sets.is_empty():
+		comb["attack_sets"] = definition.attack_sets.filter(func(each): return each != null)
+	_set_up_devouring(comb, definition)
 	# The size they are without anything making them bigger ("Growing").
 	comb["base_size"] = definition.size
 	# And the size they began as, which a melee blow's area is measured from
@@ -1333,8 +1341,8 @@ func gate_opened_for(comb: Dictionary, skill: SkillDefinition) -> bool:
 
 ## Whether `comb` can currently afford `skill` at all. Free skills always can.
 func can_afford_skill(comb: Dictionary, skill: SkillDefinition) -> bool:
-	# Forgotten for now (Lethe's touch): not to be had at any price.
-	if _is_forgotten(comb, skill):
+	# Forgotten for now (Lethe's touch): not to be had at any price. Nor a spell in somebody's belly (Gate Devour).
+	if _is_forgotten(comb, skill) or not devoured_by(comb, skill).is_empty():
 		return false
 	if skill.spell_slot_level <= 0:
 		return true
@@ -2082,7 +2090,8 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 	attacker.erase("felled_from_hiding")
 	# Something declared lands where it was declared, wherever its user has gone
 	# since - it was in reach when they called it.
-	var valid = landing or (distance <= _wind_reach(attacker, skill, effective_max_range(attacker, skill), nearest_tile_of(attacker, impact_position), impact_position) \
+	# Over the whole field, it is in reach wherever it is aimed (Feast).
+	var valid = landing or skill.whole_field or (distance <= _wind_reach(attacker, skill, effective_max_range(attacker, skill), nearest_tile_of(attacker, impact_position), impact_position) \
 		and distance >= skill.min_range)
 	# Moving what they laid ("Zones"): its reach is from there, not from them.
 	if moves_zone(skill):
@@ -2293,9 +2302,14 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 		if skill.targets_fallen:
 			# Aimed at the fallen, it lands on nobody standing.
 			targets = fallen_in_tiles(tiles, attacker)
+		if skill.whole_field:
+			# Everybody it is for, wherever they are (Feast): no thing on the map, no image.
+			targets = combatants.filter(func(each): return each.get("alive", false) and not each.has("object") \
+				and not each.get("illusion", false) and (each.get("side", -1) == attacker.get("side", -2)) == skill.targets_ally \
+				and not is_same(each, attacker) and not is_inside(each))
 		# One target, on a tile several small ones share: only the one picked
 		# (aim_choice - whoever the pointer was over), or else the first.
-		if radius == 0 and aoe_shape_of(attacker, skill) == SkillDefinition.AoEShape.DIAMOND and targets.size() > 1:
+		if radius == 0 and aoe_shape_of(attacker, skill) == SkillDefinition.AoEShape.DIAMOND and targets.size() > 1 and not skill.whole_field:
 			var picked = targets.filter(func(each): return each.get("id", -1) == aim_choice)
 			targets = [picked[0] if not picked.is_empty() else targets[0]]
 		aim_choice = -1
@@ -2403,6 +2417,12 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 					MoveFeel.shatter(self, MoveFeel.middle_of(self, target))
 				continue
 			connected = true
+			# Somebody badly hurt is swallowed whole instead of hit (a Chomp, a Feast - "Devouring").
+			var swallowing := _swallowing_effect(attacker, target, skill)
+			if swallowing != null:
+				Projectile.verdict(target, Projectile.Verdict.HIT)
+				swallow_whole(attacker, target, swallowing, skill)
+				continue
 			# Only the first effect on each target names the skill, so a
 			# multi-effect hit reads as one action rather than repeating
 			# "used Poison Dart" for every effect it carries.
@@ -2589,6 +2609,10 @@ func _use_skill(skill_key: String, attacker: Dictionary, impact_position: Vector
 			attacker.secondary_used_this_turn = true
 		else:
 			attacker.skill_used_this_turn = true
+		# A whole turn's move takes the rest of it too (Feast).
+		if skill.whole_turn:
+			attacker.skill_used_this_turn = true
+			attacker.secondary_used_this_turn = true
 		# Given back as it was spent: a kill that spurs them on (Rampage), or the
 		# first spell of a Grand Design.
 		if is_spell(skill) and has_restriction(attacker, "casts_freely") and not attacker.get("designed", false):
@@ -3616,6 +3640,8 @@ func _apply_effect_by_type(attacker: Dictionary, target: Dictionary, effect: Eff
 			wear_disguise(target)
 		EffectDefinition.EffectType.CANCEL_CASTING:
 			cancel_casting(attacker, target)
+		EffectDefinition.EffectType.DEVOUR:
+			_devour(attacker, target, effect)
 		EffectDefinition.EffectType.SWALLOW:
 			swallow(attacker, target, effect, skill)
 		EffectDefinition.EffectType.GROW:
@@ -4671,6 +4697,9 @@ func condition_range_cap(comb: Dictionary) -> int:
 ## combatant can't be shown or offered a shot they can't take.
 func effective_max_range(caster: Dictionary, skill: SkillDefinition) -> int:
 	var reach := skill.max_range + range_bonus(caster, skill)
+	# A set of blows that reaches further (AttackSet.reach - Erysichthon's second set), while it is under way.
+	if _set_reach(caster) > 0 and skill.deals_damage:
+		reach = maxi(reach, _set_reach(caster))
 	# Burning, Step In reaches further: she runs to them first (Intercept, see "Things that break").
 	if skill.steps_in:
 		reach = maxi(reach, intercept_reach(caster))
@@ -5876,7 +5905,8 @@ func get_effective_stat(comb: Dictionary, stat: String) -> int:
 ## "stats" - and a buff applies to either in exactly the same way. Two callers
 ## that know where a base value lives, one that knows what a buff does to it.
 func fold_stat_changes(comb: Dictionary, stat: String, value: int) -> int:
-	var additive = passive_stat_bonus(comb, stat)
+	# Less what has been devoured of it, for the fight ("Devouring").
+	var additive = passive_stat_bonus(comb, stat) - drained_of(comb, stat)
 	var multiplier = 1.0
 	for eff in comb.status_effects:
 		if eff.get("stat", "") == "condition":
@@ -6193,6 +6223,10 @@ func _advance_turn():
 		comb.skill_used_this_turn = false
 		comb.secondary_used_this_turn = false
 		comb.reaction_used = false
+		comb.erase("reactions_spent")
+		comb.erase("set_reach")
+		# A boss Reeling since this one's last turn steadies now (stagger, The Staggerer's Next Turn).
+		_reeling_ends_for(comb)
 		comb.erase("free_reaction_spent")
 		comb.reactions_suppressed = false
 		comb.erase("slipped_away")
@@ -6232,8 +6266,10 @@ func _advance_turn():
 		if not still_running() or combat_over:
 			return
 		# Whoever is inside them digested a turn more, their parts a turn nearer
-		# grown back, and - free - a meal ("Swallowing", "Gluttony").
+		# grown back, and - free - a meal ("Swallowing", "Gluttony"); a round with
+		# nothing devoured, a step more starving ("Devouring").
 		_glutton_turn_begins(comb)
+		_starving_turn_begins(comb)
 		if not still_running() or combat_over:
 			return
 		if not comb.alive:
@@ -6467,6 +6503,8 @@ func combat_finish():
 	if combat_over:
 		return
 	combat_over = true
+	# Nothing devoured outlasts the fight: the items back in their bags before anything is kept ("Devouring").
+	_give_back_everything()
 	# Whatever comes after is everybody's again (Coop).
 	Coop.fight_turn(Coop.ANYONE)
 	var enemies_alive = groups[Group.ENEMIES].size() > 0
@@ -7156,6 +7194,8 @@ func damage_dealt_multiplier(attacker: Dictionary, target: Dictionary, skill: Sk
 			multiplier *= 1.0 + passive.thwarted_damage_bonus
 	# Momentum, Elemental Affinity, Synergy ("Progression").
 	multiplier *= progression_damage_bonus(attacker, target, skill)
+	# Rounds of devouring nothing (Starving - "Devouring").
+	multiplier *= 1.0 + starving_bonus(attacker)
 	# Disarmed, a weapon attack lands for less ("Disarmed").
 	multiplier *= weapon_damage_factor(attacker, skill)
 	# Lying down, less from afar and more from close to ("Prone").
@@ -7463,7 +7503,16 @@ func _spend_the_reaction(reactor: Dictionary, target: Dictionary):
 		reactor["free_reaction_spent"] = true
 		update_information.emit("[color=yellow]%s[/color] knows this one, and it costs her nothing.\n" % reactor.name)
 		return
-	reactor.reaction_used = true
+	use_up_a_reaction(reactor)
+
+
+## One of `comb`'s reactions spent: the last of them (CombatantDefinition.reactions_per_round - one, for nearly everybody) and
+## they have none until their next turn.
+func use_up_a_reaction(comb: Dictionary):
+	var spent: int = int(comb.get("reactions_spent", 0)) + 1
+	comb["reactions_spent"] = spent
+	if spent >= int(comb.get("reactions_per_round", 1)):
+		comb["reaction_used"] = true
 
 
 ## Whether `thrower` can throw allies, or things.
@@ -7686,11 +7735,14 @@ func do_damage(attacker: Dictionary, target: Dictionary, effect: EffectDefinitio
 	damage = _burden_share(target, damage, element, attacker)
 	# And a blow that would fell them stops short, somebody walling them (Last Wall).
 	damage = _last_wall(target, damage)
+	var hp_before: int = target.hp
 	lose_hp(target, damage, element, attacker)
 	if target.get("side", -1) != attacker.get("side", -2):
 		_dealt_now += damage
+	# A bite off a sacred tree, for whoever feeds with this blow ("Devouring").
+	_eat_from(attacker, target, skill, mini(damage, maxi(hp_before, 0)))
 	# Aimed at a part of somebody big, the part takes it too (see "Body parts").
-	_hit_part(target, damage)
+	_hit_part(target, damage, attacker)
 	# A hit on a boss counts on its stagger bar, beyond the damage it did.
 	_stagger_from_hit(target, skill)
 	# Resisted, or found weak: the number says which (FloatingNumber).
@@ -7804,6 +7856,9 @@ func _say_of_the_fallen(fallen: Dictionary):
 
 
 func combatant_die(combatant: Dictionary):
+	# Whatever it devoured comes back out of it ("Devouring").
+	if belly_open(combatant):
+		give_back_all(combatant, "falls")
 	if not combatant.has("object") and not combatant.get("illusion", false):
 		_say_of_the_fallen(combatant)
 	# A thing on the map does not fall either: broken, it goes off and is gone
@@ -8417,6 +8472,8 @@ func _after_landing(attacker: Dictionary, target: Dictionary, skill: SkillDefini
 		_splash(attacker, target, skill)
 	if not target.alive:
 		return
+	# Their most health drained with the blow, into the belly (Vitality Devour - "Devouring").
+	_vitality_devour(attacker, target, skill)
 	var spell := skill.spell_slot_level > 0
 	for passive in active_passives(attacker):
 		if spell and target.side == attacker.side:
@@ -9410,6 +9467,8 @@ func _metric(event: String, data: Dictionary):
 ## staggered, and starts again from empty, bigger by Grows By.
 
 const STAGGERED := preload("res://data/conditions/staggered.tres")
+## Staggered but keeping its turn (StaggerDefinition.HarderUntil.THE_STAGGERERS_NEXT_TURN - Erysichthon's).
+const REELING := preload("res://data/conditions/reeling.tres")
 ## How hard the view shakes as a phase begins, and as a boss is staggered.
 const PHASE_SHAKE := 18.0
 const STAGGER_SHAKE := 12.0
@@ -9505,12 +9564,23 @@ func _begin_phase(comb: Dictionary, phase: BossPhase):
 		comb.ai_function = phase.ai_function
 	if phase.turns_per_round > 0:
 		set_turns_per_round(comb, phase.turns_per_round)
+	# More blows a turn, and skills as often as it likes ("A turn of several blows").
+	for attack_set in phase.attack_sets_added:
+		if attack_set != null:
+			var sets: Array = comb.get("attack_sets", [])
+			sets.append(attack_set)
+			comb["attack_sets"] = sets
+	for key in phase.unlimited_skills:
+		var unlimited: Array = comb.get("unlimited", [])
+		if not unlimited.has(key):
+			unlimited.append(key)
+		comb["unlimited"] = unlimited
 	if phase.stagger != null:
 		_set_stagger_bar(comb, phase.stagger)
 	if phase.clears_conditions:
 		# Everything but a stagger: the party earned that.
 		comb.status_effects = comb.status_effects.filter(func(eff):
-			return eff.get("stat", "") != "condition" or eff.get("condition") == STAGGERED)
+			return eff.get("stat", "") != "condition" or eff.get("condition") == STAGGERED or eff.get("condition") == REELING)
 	for condition in phase.immunities_gained:
 		if condition != null and not condition.resource_path in comb.immune_conditions:
 			comb.immune_conditions.append(condition.resource_path)
@@ -9580,6 +9650,9 @@ func is_staggered(comb: Dictionary) -> bool:
 	for condition in conditions_of(comb):
 		if condition == STAGGERED or condition.resource_path == STAGGERED.resource_path:
 			return true
+		# Or Reeling - staggered, its turn kept (Harder Until The Staggerer's Next Turn).
+		if condition == REELING or condition.resource_path == REELING.resource_path:
+			return true
 	return false
 
 
@@ -9617,16 +9690,23 @@ func stagger(comb: Dictionary):
 	_metric("staggered", {"who": comb, "turns_lost": bar.turns_lost})
 	comb.stagger_max = bar.max_value * pow(1.0 + bar.grows_by, comb.staggers)
 	comb["stagger_hit_bonus"] = bar.damage_taken
+	# Keeping its turn (the designer, 2026-11-27, Erysichthon's): Reeling, hit harder until the next turn of whoever's turn this
+	# is begins (_reeling_ends_for).
+	var keeps_its_turn := bar.harder_until == StaggerDefinition.HarderUntil.THE_STAGGERERS_NEXT_TURN
 	# Straight on, whatever they are immune to: staggering is the way past that.
 	# Stored as the turns it takes, each lost turn taking one off.
 	replace_matching_tick(comb, "condition", STAGGERED, 0)
+	replace_matching_tick(comb, "condition", REELING, 0)
 	comb.status_effects.append({
 		"stat" = "condition",
-		"condition" = STAGGERED,
-		"duration" = bar.turns_lost,
+		"condition" = REELING if keeps_its_turn else STAGGERED,
+		"duration" = 999 if keeps_its_turn else bar.turns_lost,
 		"ends_at_start" = false,
 		"source_name" = "Stagger",
 	})
+	var whose_turn: Dictionary = get_current_combatant() if current_combatant >= 0 and current_combatant < combatants.size() else comb
+	if keeps_its_turn:
+		comb["reeling_until"] = whose_turn.get("id", comb.get("id", -1))
 	drop_declared(comb, "staggered")
 	drop_readied(comb, "staggered")
 	# Reeling, it heaves up whoever it has swallowed (Swallow).
@@ -9637,11 +9717,31 @@ func stagger(comb: Dictionary):
 	# A crack across its bar, and the world slowed a beat (MoveFeel).
 	MoveFeel.staggered(self, comb)
 	slow_motion(SLOW_MOTION_SECONDS, SLOW_MOTION_SHARE)
-	update_information.emit("[color=yellow]%s is staggered![/color] It loses %s, and every blow on it has +%d%% Output Efficiency until then.\n" % [
-		comb.name, "its next turn" if bar.turns_lost == 1 else "its next %d turns" % bar.turns_lost,
-		roundi((bar.damage_taken - 1.0) * 100.0)])
+	if keeps_its_turn:
+		update_information.emit("[color=yellow]%s is staggered![/color] Every blow on it has +%d%% Output Efficiency until %s next turn.\n" % [
+			comb.name, roundi((bar.damage_taken - 1.0) * 100.0), "its" if is_same(whose_turn, comb) else "%s's" % whose_turn.get("name", "the next")])
+	else:
+		update_information.emit("[color=yellow]%s is staggered![/color] It loses %s, and every blow on it has +%d%% Output Efficiency until then.\n" % [
+			comb.name, "its next turn" if bar.turns_lost == 1 else "its next %d turns" % bar.turns_lost,
+			roundi((bar.damage_taken - 1.0) * 100.0)])
 	_banner(comb.name, "Staggered!", STAGGER_COLOUR)
 	update_combatants.emit(combatants)
+
+
+## A turn of `starting`'s begins: whoever is Reeling until it (stagger, Harder Until The Staggerer's Next Turn) steadies, and its
+## stagger bar fills again. Reeling until somebody no longer standing, it ends as the next turn begins.
+func _reeling_ends_for(starting: Dictionary):
+	for comb in combatants:
+		if not comb.has("reeling_until"):
+			continue
+		var by := combatant_with_id(int(comb.reeling_until))
+		if int(comb.reeling_until) != starting.get("id", -2) and not by.is_empty() and by.get("alive", false):
+			continue
+		comb.erase("reeling_until")
+		comb.status_effects = comb.status_effects.filter(func(entry): return entry.get("condition") != REELING)
+		if comb.get("alive", false):
+			update_information.emit("[color=red]%s[/color] steadies itself - its stagger bar fills again.\n" % comb.name)
+		update_combatants.emit(combatants)
 
 
 ## Every boss's bar, drained by its Drain Per Round at the top of a round.
@@ -11197,6 +11297,12 @@ func _is_forgotten(comb: Dictionary, skill: SkillDefinition) -> bool:
 func wasted_on(comb: Dictionary, skill: SkillDefinition) -> String:
 	if _is_forgotten(comb, skill):
 		return "%s has forgotten %s for now (Lethe)." % [comb.get("name", "They"), skill.name]
+	var devourer := devoured_by(comb, skill)
+	if not devourer.is_empty():
+		return "Devoured by %s." % devourer.get("name", "something")
+	# A whole turn's move, with something of the turn already done (Feast).
+	if skill != null and skill.whole_turn and (comb.get("skill_used_this_turn", false) or comb.get("secondary_used_this_turn", false)):
+		return "%s takes a whole turn." % skill.name
 	if skill != null and skill.needs_own_burn and burn_turns_of(comb) <= 0:
 		return "Only while %s burns" % comb.get("name", "they")
 	if skill != null and skill.reaction_only:
@@ -17384,6 +17490,9 @@ func _righteous(attacker: Dictionary, skill: SkillDefinition):
 func uses_left(comb: Dictionary, skill: SkillDefinition) -> int:
 	if skill == null or skill.uses_per_short_rest <= 0:
 		return -1
+	# As often as they like, since a phase said so (BossPhase.unlimited_skills - Feast, under a quarter of his health).
+	if comb.get("unlimited", []).has(skill_key_of(skill)):
+		return -1
 	return maxi(uses_a_rest(comb, skill) - int(comb.get("uses", {}).get(skill_key_of(skill), 0)), 0)
 
 
@@ -20296,6 +20405,12 @@ func swallow(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	if target.get("size", Sizes.Size.HUMAN) >= attacker.get("size", Sizes.Size.HUMAN):
 		update_information.emit("[color=yellow]%s[/color] is too big for [color=red]%s[/color] to swallow.\n" % [target.name, attacker.name])
 		return
+	_take_inside(attacker, target, effect.condition, effect.duration, skill)
+
+
+## `attacker` takes `target` inside them, whole: off the board, with `condition` on them (Swallowed), digested in `turns` of
+## `attacker`'s turns - Swallow's way, and a Chomp's or a Feast's on somebody badly hurt (swallow_whole).
+func _take_inside(attacker: Dictionary, target: Dictionary, condition: ConditionDefinition, turns: int, skill: SkillDefinition):
 	_break_holds_on(target)
 	if target.has("riding"):
 		dismount(target)
@@ -20306,17 +20421,17 @@ func swallow(attacker: Dictionary, target: Dictionary, effect: EffectDefinition,
 	target["inside"] = true
 	target["ride_offset"] = Vector2i.ZERO
 	_metric("swallowed", {"who": target, "by": attacker})
-	target["digest_left"] = maxi(effect.duration, 1)
+	target["digest_left"] = maxi(turns, 1)
 	var riders: Array = attacker.get("riders", [])
 	riders.append(target.id)
 	attacker["riders"] = riders
-	if effect.condition != null:
-		target["inside_condition"] = effect.condition
-		replace_matching_tick(target, "condition", effect.condition, 0)
+	if condition != null:
+		target["inside_condition"] = condition
+		replace_matching_tick(target, "condition", condition, 0)
 		target.status_effects.append({
 			"stat" = "condition",
-			"condition" = effect.condition,
-			"dot_base" = dot_base_damage(attacker, skill, effect.condition.dot_modifier),
+			"condition" = condition,
+			"dot_base" = dot_base_damage(attacker, skill, condition.dot_modifier),
 			"duration" = 999,
 			"ends_at_start" = false,
 			"source_name" = attacker.name,
@@ -20755,7 +20870,11 @@ func _choose_option(reactor: Dictionary, enemy: Dictionary, options: Array, why:
 			# Cancelling a spell only when it is worth the casting it costs (_ai_cancel_worth).
 			if not options[i].readied and _cancels_casting(options[i].skill):
 				var cancelling := _ai_cancel_worth(reactor, enemy, SkillDatabase.skills.get(enemy.get("casting", "")))
-				if cancelling < _ai_cancel_wanted(reactor, options[i].skill):
+				# A hunger for spells (Gate Devour): any spell is worth swallowing, whatever it would have done.
+				var hungry := _devours_spells(options[i].skill)
+				if hungry:
+					cancelling = maxf(cancelling, 1.0)
+				if not hungry and cancelling < _ai_cancel_wanted(reactor, options[i].skill):
 					continue
 				if cancelling > most:
 					most = cancelling
@@ -20816,6 +20935,22 @@ static func _cancels_casting(skill: SkillDefinition) -> bool:
 	return skill.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.CANCEL_CASTING)
 
 
+## Whether `skill` devours the spell it tears apart (EffectType.DEVOUR's Devour Spell - Gate Devour).
+static func _devours_spells(skill: SkillDefinition) -> bool:
+	return skill.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.DEVOUR and effect.devour_spell)
+
+
+## Whether `devourer`'s `reacting` (Gate Devour) may devour `caster`'s `spell`: always, unless it is contested
+## (EffectDefinition.devour_spell_contested), when the caster's casting stat for it has to be below the devourer's main stat.
+func out_devours(devourer: Dictionary, caster: Dictionary, reacting: SkillDefinition, spell: SkillDefinition) -> bool:
+	var contested := reacting.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.DEVOUR \
+		and effect.devour_spell and effect.devour_spell_contested)
+	if not contested:
+		return true
+	var casting := stat_of(caster, scaling_stat_of(caster, spell)) if spell != null else stat_of(caster, caster.get("spellcasting_stat", Stats.Type.INTELLECT))
+	return casting < stat_of(devourer, devourer.get("main_stat", Stats.Type.PHYSICAL))
+
+
 ## `attacker` casting `skill_key`, a spell: whoever sees it can answer it
 ## (Casts), before any of it happens. True when one of them cancelled it
 ## (cancel_casting) - and once it is, there is nothing left to answer.
@@ -20826,6 +20961,14 @@ func _react_to_casting(attacker: Dictionary, skill_key: String, skill: SkillDefi
 			return false
 		# Spells locked against hacking (a Hack's Locks For Good) can't be.
 		if _cancels_casting(reacting) and attacker.get("hack_locked", false):
+			return false
+		# What devours a spell (Gate Devour) leaves a spell out of a bottle alone - a Gate Nade, any item (the designer,
+		# 2026-11-27: "Anything InstaHack catches except items").
+		if _devours_spells(reacting) and (is_item(skill_key) or skill is GateNadeDefinition):
+			return false
+		# A contest, for one that devours only the weaker (a trial, the designer, 2026-11-27): the caster's casting stat under
+		# the devourer's main stat, or it is not even tried - no reaction spent.
+		if _devours_spells(reacting) and not out_devours(reactor, attacker, reacting, skill):
 			return false
 		return sees_tile(reactor, nearest_tile_of(attacker, reactor.position), attacker)
 	await _react(Trigger.CASTS, attacker, "%s casts %s" % [attacker.name, skill.name], Callable(), answerable)
@@ -21121,7 +21264,7 @@ func _fire_readied(reactor: Dictionary, target: Dictionary, why: String):
 	var readied: Dictionary = reactor.readied
 	reactor.erase("readied")
 	var skill: SkillDefinition = SkillDatabase.skills[readied.skill]
-	reactor.reaction_used = true
+	use_up_a_reaction(reactor)
 	# Standing in a silence now, what they readied dies on their lips; its gate is spent.
 	if skill.spell_slot_level > 0 and cannot_cast_here(reactor):
 		update_information.emit("[color=yellow]%s[/color]'s readied %s comes to nothing: no spell can be cast there.\n" % [reactor.name, skill.name])
@@ -21613,6 +21756,9 @@ func part_index_at(comb: Dictionary, tile: Vector2i) -> int:
 		return -1
 	var cells := _unfolded(comb, tile - comb.position)
 	for i in range(comb.parts.size() - 1, -1, -1):
+		# A belly with nothing in it is not there to aim at ("Devouring").
+		if _part_absent(comb, i):
+			continue
 		for cell in cells:
 			if comb.parts[i].tiles.has(cell):
 				return i
@@ -21658,12 +21804,15 @@ func part_note(comb: Dictionary, tile: Vector2i) -> String:
 	var part: BodyPartDefinition = comb.parts[index]
 	if part_broken(comb, index):
 		return "%s - broken" % part.name
+	# A belly says what it holds, out of how much ("Devouring").
+	if comb.has("belly") and comb.belly.index == index:
+		return "%s - %d / %d to break: %s" % [part.name, comb.parts_hp[index], int(comb.belly.most), part.describe_broken()]
 	return "%s - %d to break: %s" % [part.name, comb.parts_hp[index], part.describe_broken()]
 
 
 ## A hit of `damage` on `target`, aimed at one of their parts: the part takes
-## it too, and breaks once it has taken its share.
-func _hit_part(target: Dictionary, damage: int):
+## it too, and breaks once it has taken its share. `by`: whoever struck it.
+func _hit_part(target: Dictionary, damage: int, by: Dictionary = {}):
 	if _aimed_tile == null or damage <= 0 or not target.has("parts") or not target.get("alive", false):
 		return
 	var index := part_index_at(target, _aimed_tile)
@@ -21676,11 +21825,23 @@ func _hit_part(target: Dictionary, damage: int):
 			MoveFeel.part_struck(self, mark.tiles, CController.PART_COLOURS.get(mark.kind, Color.WHITE))
 			break
 	if target.parts_hp[index] == 0:
-		_break_part(target, index)
+		_break_part(target, index, by)
 
 
-func _break_part(target: Dictionary, index: int):
+func _break_part(target: Dictionary, index: int, by: Dictionary = {}):
 	var part: BodyPartDefinition = target.parts[index]
+	# A belly torn open gives back all it devoured, and is gone until the next thing goes in ("Devouring").
+	if part.when_broken == BodyPartDefinition.Broken.GIVES_BACK:
+		if _part_absent(target, index):
+			return
+		update_information.emit("[color=red]%s[/color]'s %s is torn open!\n" % [target.name, part.name.to_lower()])
+		float_number(target, "%s broken!" % part.name, PART_COLOUR)
+		# Whoever it swallowed falls out through it, alive.
+		_free_the_swallowed(target, true, "falls out of the torn belly, alive")
+		give_back_all(target, "heaves", by)
+		cue("broke:%s" % part.name)
+		update_combatants.emit(combatants)
+		return
 	var broken: Array = target.get("parts_broken", [])
 	broken.append(index)
 	target["parts_broken"] = broken
@@ -21736,6 +21897,9 @@ func part_marks() -> Array:
 		if not comb.get("alive", false) or not comb.has("parts"):
 			continue
 		for i in comb.parts.size():
+			# Not a belly with nothing in it ("Devouring").
+			if _part_absent(comb, i):
+				continue
 			var part: BodyPartDefinition = comb.parts[i]
 			# Not where a part grown since covers it; folded, where it is folded to.
 			var showing: Array = []
@@ -21748,6 +21912,612 @@ func part_marks() -> Array:
 			marks.append({"tiles": showing.map(func(offset): return comb.position + offset), "broken": part_broken(comb, i),
 				"name": part.name, "kind": part.when_broken, "id": comb.get("id", -1)})
 	return marks
+
+
+## --- Devouring ---
+##
+## Erysichthon's (the designer, 2026-11-27; docs/erysichthon.md). What somebody devours goes into their belly - the part of
+## theirs that Gives Back (BodyPartDefinition.Broken.GIVES_BACK), not there until the first thing goes in:
+## - most health, with every hit of theirs that lands (Vitality Devour, PassiveDefinition.devours_health), healing them as much;
+## - a main stat (EffectType.DEVOUR's Devour Stat - Chomp's, Feast's), never below its floor;
+## - the first item somebody has ready (Devour Item - Feast's); food (ItemDefinition.devoured_like_eaten - the Rotten Meal) does
+##   to them what it does to whoever eats it, and is eaten for good;
+## - the spell somebody is casting (Devour Spell - Gate Devour, with Cancel Casting before it): theirs to cast no more while it
+##   is in there, an X on its slot and "Devoured by" for its tooltip; one more past Spells Held pushes the first back out, to
+##   whoever cast it;
+## - a meal off something that can be fed on (BattleObjectDefinition.fed_on - a sacred tree), with a blow of a skill they Feed
+##   With: what the blow takes off it.
+## Each grows the belly's health and most health (CombatantDefinition "Devouring"); a hit on the belly comes off them too, as on
+## any part. Broken, it gives everything back to whoever it came from - most health, main stat, spells, items (not what was
+## eaten) - and the first time a prize falls out too (belly_prize); the next thing devoured grows it again. Everything comes
+## back when they fall, and when the fight is over.
+##
+## `comb.drained` is what has been drained from somebody, by stat key ("max_hp", "physical"...), taken off in
+## fold_stat_changes; `comb.devoured_spells` their spells devoured, key -> the devourer's id; `comb.belly` the belly's own:
+## {index (of the part), most, inside ([{kind, from, amount, key, free}]), prized, and what it grows by}.
+
+## How much bigger the devourer looks for each thing inside, up to the most (CombatantSprite.set_swell).
+const BELLY_SWELL_EACH := 0.04
+const BELLY_SWELL_MOST := 0.2
+const DEVOUR_COLOUR := Color("c8e06a")
+
+
+## `comb`'s belly and what it grows by, as `definition` has them - not there yet.
+func _set_up_devouring(comb: Dictionary, definition: CombatantDefinition):
+	if not definition.feeds_with.is_empty():
+		comb["feeds_with"] = definition.feeds_with.duplicate()
+	var parts: Array = comb.get("parts", [])
+	for i in parts.size():
+		if parts[i].when_broken != BodyPartDefinition.Broken.GIVES_BACK:
+			continue
+		comb.parts_hp[i] = 0
+		comb["belly"] = {"index": i, "most": 0, "inside": [], "prized": false,
+			"per_health": definition.belly_per_health, "per_stat": definition.belly_per_stat,
+			"per_spell": definition.belly_per_spell, "per_item": definition.belly_per_item,
+			"per_meal": definition.belly_per_meal, "spells_held": definition.spells_held,
+			"prize": definition.belly_prize.duplicate()}
+		return
+
+
+## Whether `comb`'s part `index` is a belly with nothing in it yet - not there to be aimed at, drawn or broken.
+func _part_absent(comb: Dictionary, index: int) -> bool:
+	var belly: Dictionary = comb.get("belly", {})
+	return not belly.is_empty() and belly.index == index and int(belly.most) <= 0
+
+
+## Whether `comb`'s belly is there: something is in it.
+func belly_open(comb: Dictionary) -> bool:
+	return comb.has("belly") and int(comb.belly.most) > 0
+
+
+## How much `stat` of `comb`'s has been drained ("max_hp", or an attribute's key).
+static func drained_of(comb: Dictionary, stat: String) -> int:
+	return int(comb.get("drained", {}).get(stat, 0))
+
+
+static func _drain_into(comb: Dictionary, stat: String, amount: int):
+	var drained: Dictionary = comb.get("drained", {})
+	drained[stat] = maxi(int(drained.get(stat, 0)) + amount, 0)
+	if int(drained[stat]) == 0:
+		drained.erase(stat)
+	comb["drained"] = drained
+
+
+## The most health `comb` had before anything drained it.
+func _undrained_most(comb: Dictionary) -> int:
+	return get_effective_stat(comb, "max_hp") + drained_of(comb, "max_hp")
+
+
+## Grows `devourer`'s belly by `amount` for `record`, the thing that went in ({kind, from, ...}): there, if it was not.
+func _feed_belly(devourer: Dictionary, amount: int, record: Dictionary):
+	_fed(devourer)
+	if not devourer.has("belly") or not devourer.get("alive", false):
+		return
+	var belly: Dictionary = devourer.belly
+	var index: int = belly.index
+	var grown := maxi(amount, 0)
+	if int(belly.most) <= 0:
+		# Out of nothing: the first thing in it, or the first since it was torn open.
+		belly.most = grown
+		devourer.parts_hp[index] = grown
+		devourer.get("parts_broken", []).erase(index)
+		if grown > 0:
+			update_information.emit("[color=red]%s[/color]'s %s swells into being.\n" % [devourer.name, devourer.parts[index].name.to_lower()])
+			cue("belly:%s" % devourer.name)
+	else:
+		belly.most = int(belly.most) + grown
+		devourer.parts_hp[index] = int(devourer.parts_hp[index]) + grown
+	belly.inside.append(record)
+	_swell(devourer)
+	update_combatants.emit(combatants)
+
+
+## The Output Efficiency `comb`'s blows have from rounds devouring nothing (Starving, PassiveDefinition.starving_step): 0.2 is +20%.
+func starving_bonus(comb: Dictionary) -> float:
+	return float(comb.get("starving", 0.0))
+
+
+## `comb`'s turn begins: a round since their last turn with nothing devoured, and they starve a step more, up to the most - from
+## their second turn, a first having no round before it (Starving; the designer, 2026-11-27).
+func _starving_turn_begins(comb: Dictionary):
+	var step := 0.0
+	var most := 0.0
+	for passive in active_passives(comb):
+		step = maxf(step, passive.starving_step)
+		most = maxf(most, passive.starving_most)
+	if step <= 0.0:
+		return
+	var had_a_turn: bool = int(comb.get("turns_begun", 0)) > 0
+	comb["turns_begun"] = int(comb.get("turns_begun", 0)) + 1
+	if had_a_turn and not comb.get("devoured_since_turn", false):
+		var before := starving_bonus(comb)
+		comb["starving"] = minf(before + step, most)
+		if starving_bonus(comb) > before:
+			update_information.emit("[color=red]%s[/color] is starving: its blows have +%d%% Output Efficiency.\n" % [comb.name, roundi(starving_bonus(comb) * 100.0)])
+			float_number(comb, "Starving +%d%%" % roundi(starving_bonus(comb) * 100.0), DEVOUR_COLOUR)
+	comb["devoured_since_turn"] = false
+
+
+## Something devoured by `devourer`: their starving is over (Starving).
+func _fed(devourer: Dictionary):
+	devourer["devoured_since_turn"] = true
+	if starving_bonus(devourer) > 0.0:
+		devourer["starving"] = 0.0
+		update_information.emit("[color=red]%s[/color] has fed - its starving is over.\n" % devourer.get("name", "It"))
+
+
+## `devourer` drawn bigger by what is inside them (CombatantSprite.set_swell).
+func _swell(devourer: Dictionary):
+	var sprite = devourer.get("sprite")
+	if sprite == null or not is_instance_valid(sprite) or not sprite.has_method("set_swell"):
+		return
+	var count: int = devourer.belly.inside.size() if devourer.has("belly") and belly_open(devourer) else 0
+	sprite.set_swell(minf(BELLY_SWELL_EACH * count, BELLY_SWELL_MOST))
+
+
+## `devourer` drains `amount` of `target`'s most health - no more than Down To leaves them, however much one hit would take (the
+## designer, 2026-11-27: "If a single hit reaches an ally to the quarter floor, then that's fine") - healing by as much, into the
+## belly. What was drained, after the floor.
+func drain_health(devourer: Dictionary, target: Dictionary, amount: int, down_to: float) -> int:
+	if amount <= 0 or not _devourable(target):
+		return 0
+	var had := _undrained_most(target)
+	var now := get_effective_stat(target, "max_hp")
+	var floor_at := ceili(had * down_to)
+	var taken := mini(amount, maxi(now - floor_at, 0))
+	if taken <= 0:
+		return 0
+	_drain_into(target, "max_hp", taken)
+	target.hp = mini(target.hp, get_effective_stat(target, "max_hp"))
+	float_number(target, "-%d maximum health" % taken, DEVOUR_COLOUR)
+	update_information.emit("[color=red]%s[/color] devours %d of [color=yellow]%s[/color]'s maximum health.\n" % [devourer.name, taken, target.name])
+	_mend_by(devourer, taken)
+	_feed_belly(devourer, roundi(taken * float(devourer.get("belly", {}).get("per_health", 1.0))),
+		{"kind": "max_hp", "from": target.get("id", -1), "amount": taken})
+	return taken
+
+
+## `devourer` drains `amount` of `target`'s main stat for the fight, never below `floor` or `floor_share` of what it was,
+## into the belly. What was drained.
+func drain_stat(devourer: Dictionary, target: Dictionary, amount: int, floor: int, floor_share: float) -> int:
+	if amount <= 0 or not _devourable(target) or not target.has("main_stat"):
+		return 0
+	var key := Stats.stat_key(target.main_stat)
+	if key == "":
+		return 0
+	var had: int = int(target.get("stats", {}).get(key, Stats.BASE_STAT))
+	var now := stat_of(target, target.main_stat)
+	var floor_at := maxi(floor, ceili(had * floor_share))
+	var taken := mini(amount, maxi(now - floor_at, 0))
+	if taken <= 0:
+		return 0
+	_drain_into(target, key, taken)
+	float_number(target, "-%d %s" % [taken, Stats.stat_name(target.main_stat)], DEVOUR_COLOUR)
+	update_information.emit("[color=red]%s[/color] devours %d of [color=yellow]%s[/color]'s %s.\n" % [
+		devourer.name, taken, target.name, Stats.stat_name(target.main_stat)])
+	_feed_belly(devourer, roundi(taken * float(devourer.get("belly", {}).get("per_stat", 3.0))),
+		{"kind": "stat", "from": target.get("id", -1), "key": key, "amount": taken})
+	return taken
+
+
+## Whether there is anything of `target` to devour: somebody standing, not a thing on the map nor an image.
+static func _devourable(target: Dictionary) -> bool:
+	return target.get("alive", false) and not target.has("object") and not target.get("illusion", false)
+
+
+## `devourer` devours the first item `target` has ready (their Items tab's first). Food is eaten instead (devoured_like_eaten):
+## what it does to whoever eats it, it does to the devourer, and it is gone. The key, or "".
+func devour_item(devourer: Dictionary, target: Dictionary) -> String:
+	if not _devourable(target):
+		return ""
+	var ready: Array = items_of(target)
+	if ready.is_empty():
+		return ""
+	var key: String = ready[0]
+	var item: ItemDefinition = ItemDatabase.item(key)
+	if item == null:
+		return ""
+	var free := free_items_of(target).has(key) and not Campaign.combat_items_of(target.get("combatant_key", "")).has(key)
+	if free:
+		var used: Array = target.get("free_items_used", [])
+		used.append(key)
+		target["free_items_used"] = used
+	elif target.side != 0:
+		var pocket: Array = target.get("pocket", [])
+		pocket.erase(key)
+	elif not Campaign.take_item(target.get("combatant_key", ""), key):
+		return ""
+	if item.devoured_like_eaten:
+		update_information.emit("[color=red]%s[/color] devours [color=yellow]%s[/color]'s %s - and it does not sit well.\n" % [devourer.name, target.name, item.name])
+		# Its damage too, which is no entry of its own (SkillDefinition.all_effects).
+		for effect in item.all_effects():
+			if effect != null and devourer.get("alive", false):
+				apply_effect(devourer, devourer, effect, item, false)
+		if devourer.get("alive", false) and devourer.hp <= 0:
+			combatant_die(devourer)
+		return key
+	update_information.emit("[color=red]%s[/color] devours [color=yellow]%s[/color]'s %s.\n" % [devourer.name, target.name, item.name])
+	float_number(target, "%s devoured" % item.name, DEVOUR_COLOUR)
+	_feed_belly(devourer, int(devourer.get("belly", {}).get("per_item", 15)),
+		{"kind": "item", "from": target.get("id", -1), "key": key, "free": free, "owner": target.get("combatant_key", "")})
+	if game_ui != null and game_ui.has_method("refresh_action_buttons"):
+		game_ui.refresh_action_buttons()
+	return key
+
+
+## `devourer` devours the spell `caster` is casting, torn apart as it is cast (Gate Devour): theirs to cast no more while it is
+## in the belly. One more past what it holds pushes the first out, back to its caster.
+func devour_spell(devourer: Dictionary, caster: Dictionary):
+	var key: String = caster.get("casting", "")
+	var spell: SkillDefinition = SkillDatabase.skills.get(key)
+	# Only what was torn apart (cancel_casting, just before): not a spell locked against hacking.
+	if spell == null or not _devourable(caster) or not caster.get("cast_cancelled", false):
+		return
+	var held: Dictionary = caster.get("devoured_spells", {})
+	held[key] = devourer.get("id", -1)
+	caster["devoured_spells"] = held
+	update_information.emit("[color=red]%s[/color] swallows [color=yellow]%s[/color]'s %s whole - it is gone into its belly.\n" % [devourer.name, caster.name, spell.name])
+	float_number(caster, "%s devoured" % spell.name, DEVOUR_COLOUR)
+	_feed_belly(devourer, int(devourer.get("belly", {}).get("per_spell", 25)),
+		{"kind": "spell", "from": caster.get("id", -1), "key": key})
+	if not devourer.has("belly"):
+		return
+	var spells: Array = devourer.belly.inside.filter(func(record): return record.kind == "spell")
+	while spells.size() > int(devourer.belly.get("spells_held", 2)):
+		var first: Dictionary = spells.pop_front()
+		devourer.belly.inside.erase(first)
+		var owner := combatant_with_id(int(first.from))
+		_give_back(devourer, first)
+		update_information.emit("[color=red]%s[/color] heaves %s back up - [color=yellow]%s[/color] can cast it again.\n" % [
+			devourer.name, SkillDatabase.skills[first.key].name if SkillDatabase.skills.has(first.key) else first.key, owner.get("name", "its caster")])
+	_swell(devourer)
+	if game_ui != null and game_ui.has_method("refresh_action_buttons"):
+		game_ui.refresh_action_buttons()
+
+
+## Who has devoured `comb`'s `skill`, or {} - nobody, or it is not theirs to lose.
+func devoured_by(comb: Dictionary, skill: SkillDefinition) -> Dictionary:
+	if skill == null or comb.is_empty() or not comb.has("devoured_spells"):
+		return {}
+	var key := skill_key_of(skill)
+	if not comb.devoured_spells.has(key):
+		return {}
+	return combatant_with_id(int(comb.devoured_spells[key]))
+
+
+## What a blow of `attacker`'s with `skill` took off `thing` that can be fed on, `amount`: eaten, if they feed with that skill.
+func _eat_from(attacker: Dictionary, thing: Dictionary, skill: SkillDefinition, amount: int):
+	if amount <= 0 or skill == null or not thing.has("object") or not thing.object.fed_on:
+		return
+	if not attacker.get("feeds_with", []).has(skill_key_of(skill)) or not attacker.get("alive", false):
+		return
+	update_information.emit("[color=red]%s[/color] tears %d off the [color=orange]%s[/color] and eats it.\n" % [attacker.name, amount, thing.name])
+	_mend_by(attacker, amount)
+	_feed_belly(attacker, roundi(amount * float(attacker.get("belly", {}).get("per_meal", 1.0))),
+		{"kind": "meal", "from": thing.get("id", -1), "amount": amount})
+
+
+## Heals `comb` by `amount`, up to their most health, with its number over them.
+func _mend_by(comb: Dictionary, amount: int):
+	if amount <= 0 or not comb.get("alive", false):
+		return
+	var before: int = comb.hp
+	comb.hp = mini(comb.hp + amount, get_effective_stat(comb, "max_hp"))
+	if comb.hp > before:
+		float_number(comb, "+%d" % (comb.hp - before), Color("7fe08a"))
+
+
+## One thing out of `devourer`'s belly, back to whoever it came from.
+func _give_back(devourer: Dictionary, record: Dictionary):
+	var owner := combatant_with_id(int(record.get("from", -1)))
+	match record.get("kind", ""):
+		"max_hp":
+			if not owner.is_empty():
+				_drain_into(owner, "max_hp", -int(record.amount))
+		"stat":
+			if not owner.is_empty():
+				_drain_into(owner, String(record.key), -int(record.amount))
+		"spell":
+			if not owner.is_empty() and owner.has("devoured_spells") and int(owner.devoured_spells.get(record.key, -2)) == devourer.get("id", -1):
+				owner.devoured_spells.erase(record.key)
+		"item":
+			if bool(record.get("free", false)):
+				if not owner.is_empty():
+					owner.get("free_items_used", []).erase(record.key)
+			elif not owner.is_empty() and owner.get("side", 0) != 0:
+				owner.get("pocket", []).append(record.key)
+			elif String(record.get("owner", "")) != "":
+				Campaign.give_item(String(record.owner), String(record.key))
+
+
+## Everything in `devourer`'s belly back to whoever it came from: torn open (`why`), or the devourer fallen or the fight over.
+## The belly is gone until the next thing devoured. `by`: whoever broke it, for the prize.
+func give_back_all(devourer: Dictionary, why: String = "", by: Dictionary = {}):
+	if not devourer.has("belly"):
+		return
+	var belly: Dictionary = devourer.belly
+	var inside: Array = belly.inside.duplicate()
+	belly.inside = []
+	belly.most = 0
+	devourer.parts_hp[belly.index] = 0
+	for record in inside:
+		_give_back(devourer, record)
+	if why != "" and not inside.is_empty():
+		update_information.emit("[color=red]%s[/color] %s - everything it devoured comes back out.\n" % [devourer.name, why])
+	# Something an earlier victim carried, the first time it is torn open.
+	if not by.is_empty() and not belly.prized and not belly.prize.is_empty():
+		belly.prized = true
+		var key: String = belly.prize[rng.randi_range(0, belly.prize.size() - 1)]
+		var item: ItemDefinition = ItemDatabase.item(key)
+		if item != null and by.get("side", 1) == 0 and by.get("combatant_key", "") != "" and Campaign.give_item(by.combatant_key, key):
+			update_information.emit("Out of the torn belly falls %s, from somebody it ate long ago - [color=yellow]%s[/color] takes it.\n" % [item.name, by.name])
+			float_number(by, "+%s" % item.name, Color("ffd36b"))
+	_swell(devourer)
+	if game_ui != null and game_ui.has_method("refresh_action_buttons"):
+		game_ui.refresh_action_buttons()
+	update_combatants.emit(combatants)
+
+
+## Every devourer's belly emptied, the fight being over: nothing devoured outlasts it.
+func _give_back_everything():
+	for comb in combatants:
+		if comb.has("belly"):
+			give_back_all(comb)
+
+
+## What `devourer`'s belly holds, for the board to show over it (CController._draw_bellies): [{tiles, icons}].
+func belly_marks() -> Array:
+	var marks := []
+	for comb in combatants:
+		if not comb.get("alive", false) or not belly_open(comb):
+			continue
+		var icons := []
+		for record in comb.belly.inside:
+			var shown: SkillDefinition = SkillDatabase.skills.get(record.get("key", "")) if record.kind in ["spell", "item"] else null
+			if shown != null and shown.icon != null:
+				icons.append(shown.icon)
+		var tiles := []
+		for cell in comb.parts[comb.belly.index].tiles:
+			var tile: Vector2i = comb.position + _folded(comb, cell)
+			if not tiles.has(tile):
+				tiles.append(tile)
+		marks.append({"tiles": tiles, "icons": icons, "id": comb.get("id", -1)})
+	return marks
+
+
+## Vitality Devour: a hit of `attacker`'s with `skill` landing on `target` drains their most health - unless the skill devours
+## most health of its own (EffectType.DEVOUR), which it has done.
+func _vitality_devour(attacker: Dictionary, target: Dictionary, skill: SkillDefinition):
+	if not skill.deals_damage or target.get("side", -1) == attacker.get("side", -1) or not _devourable(target):
+		return
+	if skill.all_effects().any(func(effect): return effect != null and effect.type == EffectDefinition.EffectType.DEVOUR and effect.devour_health > 0):
+		return
+	for passive in active_passives(attacker):
+		if passive.devours_health > 0:
+			drain_health(attacker, target, passive.devours_health, passive.devours_down_to)
+			return
+
+
+## The DEVOUR effect of `skill` that swallows `target` whole instead of hitting them (Devour Swallows Under - Chomp's, Feast's),
+## if they are badly hurt enough, smaller than `attacker`, of the other side and not inside already; else null.
+func _swallowing_effect(attacker: Dictionary, target: Dictionary, skill: SkillDefinition) -> EffectDefinition:
+	if skill == null or not _devourable(target) or is_inside(target) or target.get("side", -1) == attacker.get("side", -1):
+		return null
+	if target.get("size", Sizes.Size.HUMAN) >= attacker.get("size", Sizes.Size.HUMAN):
+		return null
+	for effect in skill.all_effects():
+		if effect == null or effect.type != EffectDefinition.EffectType.DEVOUR or effect.devour_swallows_under <= 0.0:
+			continue
+		if float(target.hp) < effect.devour_swallows_under * float(get_effective_stat(target, "max_hp")):
+			return effect
+	return null
+
+
+## `devourer` swallows `target` whole (a Chomp, a Feast on somebody under a quarter of their health): inside, Swallowed, digested in
+## the effect's Duration of `devourer`'s turns - and into the belly, which grows by what health they have left (PROPOSAL), and
+## lets them out when it is torn open.
+func swallow_whole(devourer: Dictionary, target: Dictionary, effect: EffectDefinition, skill: SkillDefinition):
+	update_information.emit("[color=red]%s[/color] opens wide for [color=yellow]%s[/color], too hurt to get away.\n" % [devourer.name, target.name])
+	var left: int = maxi(target.hp, 1)
+	_take_inside(devourer, target, effect.condition, effect.duration, skill)
+	_feed_belly(devourer, left, {"kind": "swallowed", "from": target.get("id", -1), "amount": left})
+
+
+## What a DEVOUR effect of `skill` does to `target`, from `devourer`.
+func _devour(devourer: Dictionary, target: Dictionary, effect: EffectDefinition):
+	if effect.devour_spell:
+		devour_spell(devourer, target)
+	if not _devourable(target):
+		return
+	if effect.devour_health > 0:
+		drain_health(devourer, target, effect.devour_health, effect.devour_health_floor_share)
+	if effect.devour_stat > 0:
+		drain_stat(devourer, target, effect.devour_stat, effect.devour_stat_floor, effect.devour_stat_floor_share)
+	if effect.devour_item:
+		devour_item(devourer, target)
+
+
+## --- A turn of several blows ---
+##
+## Somebody with attack sets (CombatantDefinition.attack_sets, AttackSet; BossPhase.attack_sets_added for more), driven by
+## ai_attack_sets: each set is its blows one after another at one target, every set in its turn - Erysichthon's two Claws and a
+## Chomp, and from half health the same again at somebody else, springing at them from up to 6 tiles (the designer,
+## 2026-11-27). A move that takes the whole turn (SkillDefinition.whole_turn - Feast) goes before anything else, whenever it
+## can be had. A set's target is chosen once; if they fall, the rest of its blows go at whoever else is in reach. A blow of a
+## skill they Feed With goes at something that can be fed on instead (a sacred tree) when there is nobody in its reach, or
+## when they are under half their health - once a set.
+
+## Under this share of their health, one blow of each set that can feed goes at a tree in reach, if there is one.
+const AI_FEEDS_BELOW := 0.5
+
+
+## The reach of a set's blows while it is under way (AttackSet.reach), on top of the skill's own.
+func _set_reach(caster: Dictionary) -> int:
+	return int(caster.get("set_reach", 0))
+
+
+func ai_attack_sets(comb: Dictionary):
+	# A move that takes the whole turn - Feast - first, whenever it can be had.
+	for key in comb.skill_list:
+		var skill: SkillDefinition = SkillDatabase.skills.get(key)
+		if skill == null or not skill.whole_turn or not can_afford_skill(comb, skill) or not meets_level_for(comb, skill) \
+				or uses_left(comb, skill) == 0 or wasted_on(comb, skill) != "":
+			continue
+		await use_skill(key, comb, comb.position, false)
+		if still_running() and comb.alive and not combat_over and current_combatant == combatants.find(comb):
+			await advance_turn()
+		return
+	var gone_for: Array = []
+	var sets: Array = comb.get("attack_sets", [])
+	for i in sets.size():
+		if not still_running() or not comb.alive or combat_over:
+			return
+		await _ai_attack_set(comb, sets[i], gone_for, i == 0)
+	comb.erase("set_reach")
+	if still_running() and comb.alive and not combat_over and current_combatant == combatants.find(comb):
+		await advance_turn()
+
+
+## One set of `comb`'s blows: whom it goes at (not anybody in `gone_for`, for a set at another target), a spring at them if it
+## lunges, then each blow. The first set may walk to reach them; with nobody to reach, it closes on whoever is most wanted.
+func _ai_attack_set(comb: Dictionary, attack_set: AttackSet, gone_for: Array, first: bool):
+	var keys: Array = attack_set.skills.filter(func(key): return SkillDatabase.skills.has(key) and comb.skill_list.has(key))
+	if keys.is_empty():
+		return
+	comb["set_reach"] = attack_set.reach
+	var opener: SkillDefinition = SkillDatabase.skills[keys[0]]
+	var target := {}
+	if first:
+		var plan := ai_plan_attack(comb, [keys[0]], mini(movement_budget_of(comb), controller.movement))
+		if plan.skill != "":
+			if plan.tile != comb.position:
+				await controller.ai_move(plan.tile)
+				if not still_running() or not comb.alive:
+					return
+			target = _ai_primary(comb, plan.skill, comb.position, plan.aim)
+		elif _ai_tree_in_reach(comb, opener).is_empty():
+			# Nobody to reach, nothing to eat: closer, for next turn.
+			await approach_with_remaining_movement(comb, _ai_most_wanted(comb, keys))
+			if not still_running() or not comb.alive:
+				return
+	else:
+		target = _ai_set_target(comb, opener, gone_for, attack_set.another_target)
+		if target.is_empty():
+			return
+	if not target.is_empty():
+		gone_for.append(target.get("id", -1))
+		if attack_set.lunges and reach_gap(comb, target, opener) > opener.max_range:
+			await lunge_at(comb, target, opener)
+			if not still_running() or not comb.alive:
+				return
+	var fed := false
+	for key in keys:
+		if not still_running() or not comb.alive or combat_over:
+			return
+		var skill: SkillDefinition = SkillDatabase.skills[key]
+		var feeds: bool = comb.get("feeds_with", []).has(key)
+		# Gone, or out of reach: whoever else this blow reaches.
+		if target.is_empty() or not target.get("alive", false) or not _ai_in_reach(comb, target, skill):
+			target = _ai_set_target(comb, skill, [], false)
+		var hungry := feeds and not fed and float(comb.hp) < float(get_effective_stat(comb, "max_hp")) * AI_FEEDS_BELOW
+		if feeds and (target.is_empty() or hungry):
+			var tree := _ai_tree_in_reach(comb, skill)
+			if not tree.is_empty():
+				fed = true
+				_ai_shooting_thing = tree.get("id", -1)
+				await use_skill(key, comb, nearest_tile_of(tree, comb.position), false)
+				_ai_shooting_thing = -1
+				continue
+		if target.is_empty():
+			continue
+		await use_skill(key, comb, nearest_tile_of(target, comb.position), false)
+
+
+## Whether `skill` in `comb`'s hands reaches `target` from where they stand, with a clear line if it needs one.
+func _ai_in_reach(comb: Dictionary, target: Dictionary, skill: SkillDefinition) -> bool:
+	var gap = reach_gap(comb, target, skill)
+	if gap < skill.min_range or gap > effective_max_range(comb, skill):
+		return false
+	return not skill.respects_blocking or sees_tile(comb, nearest_across(target, comb.position), target)
+
+
+## Whoever of the other side `skill` reaches from where `comb` stands and is worth the most to it - not anybody in `not_them`,
+## nor, `another`, anybody earlier sets went for. {} for nobody.
+func _ai_set_target(comb: Dictionary, skill: SkillDefinition, not_them: Array, another: bool) -> Dictionary:
+	var best := {}
+	var most := -INF
+	for other in combatants:
+		if not other.get("alive", false) or other.get("side", -1) == comb.get("side", -1) or other.has("object") \
+				or other.get("illusion", false) or hidden_from(comb, other):
+			continue
+		if another and other.get("id", -1) in not_them:
+			continue
+		if not _ai_in_reach(comb, other, skill):
+			continue
+		var worth := ai_target_value(comb, other, skill)
+		if worth > most:
+			most = worth
+			best = other
+	return best
+
+
+## A sacred tree (something that can be fed on) `skill` reaches from where `comb` stands, the one with the most left - or {}.
+func _ai_tree_in_reach(comb: Dictionary, skill: SkillDefinition) -> Dictionary:
+	if not comb.get("feeds_with", []).has(skill_key_of(skill)):
+		return {}
+	var best := {}
+	for thing in combatants:
+		if not thing.get("alive", false) or not thing.has("object") or not thing.object.fed_on or not thing.object.breakable:
+			continue
+		if not _ai_in_reach(comb, thing, skill):
+			continue
+		if best.is_empty() or thing.hp > best.hp:
+			best = thing
+	return best
+
+
+## `comb` springs at `target` (AttackSet.lunges): onto the free ground nearest them that `skill` reaches them from, the nearest
+## such spot to where they are - provoking nothing, as a blink does. Nowhere to land, and they stay where they are, the set's
+## reach still theirs.
+func lunge_at(comb: Dictionary, target: Dictionary, skill: SkillDefinition) -> bool:
+	var reach := maxi(skill.max_range, 1)
+	var span: int = comb.get("span", 1)
+	var best := Vector2i(-99999, -99999)
+	var best_gap := INF
+	var around := Rect2i(target.position - Vector2i(span + reach, span + reach), Vector2i(span + reach, span + reach) * 2 + footprint(target))
+	for y in range(around.position.y, around.end.y + 1):
+		for x in range(around.position.x, around.end.x + 1):
+			var anchor := Vector2i(x, y)
+			if not room_for(comb, anchor):
+				continue
+			var gap := rect_gap(Rect2i(anchor, footprint(comb)), rect_of(target))
+			if gap < skill.min_range or gap > reach:
+				continue
+			var from_here := float((anchor - comb.position).length_squared())
+			if from_here < best_gap:
+				best_gap = from_here
+				best = anchor
+	if best.x == -99999:
+		return false
+	var from: Vector2i = comb.position
+	var sprite = comb.get("sprite")
+	var from_point: Vector2 = sprite.position if sprite != null and is_instance_valid(sprite) else Vector2.ZERO
+	comb.position = best
+	controller.reposition_combatant(from, best)
+	_break_holds_on(comb)
+	update_information.emit("[color=red]%s[/color] lunges at [color=yellow]%s[/color]!\n" % [comb.name, target.name])
+	cue("lunged:%s" % comb.name)
+	if sprite != null and is_instance_valid(sprite):
+		var to_point := sprite_point(comb)
+		if MoveFeel.shown():
+			sprite.position = from_point
+			var spring := create_tween()
+			spring.tween_property(sprite, "position", to_point, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			await spring.finished
+		sprite.position = to_point
+	sync_zones()
+	update_combatants.emit(combatants)
+	return true
 
 
 ## --- Rebinding ---
@@ -21809,6 +22579,9 @@ func _write_codex(student: Dictionary, target: Dictionary):
 		Campaign.write_codex(key, 1)
 	elif pages == 1 and target.has("boss") and _second_page_due(target):
 		Campaign.write_codex(key, 2)
+	# How far into its phases it was, for what its second page tells (CodexPage.second_page).
+	if target.has("boss"):
+		Campaign.note_codex_phases(key, int(target.get("phase", 0)))
 
 
 ## Whether a boss has shown enough of itself for its second page.

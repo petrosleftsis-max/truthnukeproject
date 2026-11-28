@@ -13,6 +13,10 @@ enum Broken {
 	EXPOSED,    ## An armour plate: every hit on them lands for more (Exposed By).
 	STAGGERED,  ## A boss's weak point: Stagger added to their stagger bar.
 	DISARMED,   ## A weapon arm: the skills in Disarms are gone.
+	## A belly, for somebody who devours (Combat "Devouring"): not there until they devour something, its health and most
+	## health growing with each thing that goes in (CombatantDefinition "Devouring"), Health Share not counting. Broken,
+	## everything in it goes back to whoever it came from - and the next thing devoured grows it again. Erysichthon's.
+	GIVES_BACK,
 }
 
 @export var name: String = ""
@@ -58,4 +62,6 @@ func describe_broken() -> String:
 			return "reels"
 		Broken.DISARMED:
 			return "loses a weapon"
+		Broken.GIVES_BACK:
+			return "gives back all it devoured"
 	return ""

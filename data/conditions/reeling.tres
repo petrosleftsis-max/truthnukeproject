@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ConditionDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://combat/resources/ConditionDefinition.gd" id="1_cond"]
+
+[resource]
+script = ExtResource("1_cond")
+display_name = "Reeling"
+tag = "Re"
+description = "Staggered, but keeping its turn: every blow on it has +50% Output Efficiency (or as much as its stagger bar says) until whoever staggered it acts again. Its stagger bar fills again after that."
+duration = 1
+round_them = 1
+figure_pose = &"stunned"
+figure_priority = 6
+arrival_word = "Staggered!"

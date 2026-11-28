@@ -342,7 +342,7 @@ and only when there is nothing they could hit this turn - never spending their
 last casting of a gate on it, and something free over a spell where they can:
 - **Covers The Approach** (the Ranger, the Hired Bow): something ranged over the
   way the nearest of the party would come, just short of them.
-- **Guards Its Post** (the Rat, by the Bellkeeper's bells): stays put rather
+- **Guards Its Post** (the Rat): stays put rather
   than chase, watching the thing on the map beside it (or where it started) -
   or, with nothing ranged, its own reach.
 - **Counters Casters** (the Sorcerer): with somebody who casts in sight, readied
@@ -949,38 +949,33 @@ whatever their size:
   Then the bar starts again, bigger by **Grows By**. The **Hint** under the bar
   tells the player what to do.
 
-Two examples in Arena Mode:
-- **The Ash Warden** is Large, with two turns a round and an aura of choking
-  ash. It has three phases: ash falling on the party, then imps arriving and a
-  burst-only bar, and its armour cracks so it can be stunned at last. Powder
-  kegs stand nearby.
-- **The Bellkeeper** is half a tile wide and shrugs off every kind of control.
-  Only its three bells fill its bar. In its second phase the floor rings and the
-  bar switches to a burst bar.
-- **Erysichthon** (`glutton.tres`, the "Erysichthon" fight, level 22 on the
-  sewer map for now), the first boss: an Enormous undead wolf, four tiles a
-  side, that can never eat enough.
-  - It **Catches the Scent** of somebody (Scented, with its secondary), lunges
-    and **Grabs** them, and announces **Devour** on whoever it holds - Hackable.
-    Still held when it lands, they are **swallowed**: off the board, eaten by
-    acid, able only to claw at its belly. Its **Belly Hole** broken, they fall
-    out alive (Bile-Soaked); staggered, it heaves them up; dead, it drops them.
-    Two of its turns, and they are digested - dead, the body out of the hole.
-  - It **eats** whatever it ends beside, free: the Carrion Heap heals it and
-    grows its parts back - Use the heap first and it is Tainted Carrion, which
-    poisons and staggers it instead - and the **Meat-Wrapped Keg** goes off
-    inside it and tears its Belly Hole open. It eats its own dead too.
-  - **Parts** - Jaws (no Devour or Bite), Belly Hole, Hind Legs - grow back after
-    a few of its turns, or at once when it eats. **Gorge** (two thirds) grows a
-    Second Head over half its Jaws, and it can hold two; **The Hollow** (a third)
-    splits its ribs into Rib Maws that bite whoever steps beside it, and with
-    nothing in reach it eats itself.
-  - **Gnawers** arrive on round 3, when its Jaws first break, and once three of
-    its side have fallen.
-  - **Hollow Frame**: it folds itself to fit gaps too small for it (see
+A bar's **Harder Until** can instead be **The Staggerer's Next Turn**: the boss
+keeps its turn and is **Reeling** - hit harder until the start of the next turn
+of whoever's turn it was staggered in, its bar not filling until then.
+
+In Arena Mode (the Ash Warden and the Bellkeeper left the game on 2026-11-27;
+the `bosses` suite still tries these systems on them, in `tests/fixtures/`):
+- **Erysichthon** (`glutton.tres`, the "Erysichthon" fight, level 22), the first
+  boss, started over by the designer on 2026-11-27 (`docs/erysichthon.md`): an
+  Enormous undead wolf, four tiles a side, that devours.
+  - Each turn two **Claws** and a **Chomp** at one target; from half health the
+    same again at somebody else, lunging from 6 tiles. A Claw can eat from one of
+    **Demeter's sacred trees** instead (they burn easily).
+  - **Vitality Devour** drains maximum health with every hit, **Chomp** a main
+    stat, **Gate Devour** (three reactions a round) the spells of casters weaker
+    than him, **Feast** (once at half health, every turn under a quarter) all of
+    that from the whole party and the first item each has ready. A Chomp or a
+    Feast on somebody badly hurt **swallows** them instead.
+  - All of it goes into his **belly**, which grows with it; torn open, it gives
+    everything back and lets out whoever is inside.
+  - **Starving**: rounds devouring nothing make his blows harder. His stagger bar
+    costs him no turn (Reeling). **Boss Immunities**, a passive for bosses.
+  - **Gnawers** arrive on round 3, when his belly first breaks, and once three of
+    his side have fallen.
+  - **Hollow Frame**: he folds himself to fit gaps too small for him (see
     Squeezing).
 
-All of their numbers are placeholders. Erysichthon's look is the barbarian's,
+All of the numbers are placeholders. Erysichthon's look is the barbarian's,
 tinted (**Tint** under Visual), until it has its own.
 
 ### The arena
@@ -1233,7 +1228,7 @@ them: each tinted in the colour of what breaking it does (blue Rooted, yellow
 Weakened, red Exposed, purple Staggered, orange Disarmed) with its name written
 on it. The one under the pointer lights up and says what's left to break it and
 what that does; a broken one is grey and crossed out. The hit preview names the
-one aimed at too. The golem, the behemoth and the Ash Warden have them.
+one aimed at too. The golem and the behemoth have them, and Erysichthon his belly.
 
 **Hurl** (Enfina and the Barbarian) grabs somebody beside you, up to one size
 bigger (**Lifts Sizes Above**), and throws them **Throw Range** tiles, one more
@@ -1366,9 +1361,9 @@ then the next stage. Winning the last ends the dungeon and goes back to the
 title screen; losing any of them offers to start the dungeon again.
 
 * **Test harness** - TEMPORARY, for the late-Chapter-I laboratory sequence only
-  (`data/dungeons/lab_chapter1_sequence.tres`, with Erysichthon as its boss, and
-  `lab_chapter1_sequence_ash_warden.tres`, the same with the Ash Warden; how to run
-  them and what they log: `docs/lab_sequence.md`). The laboratory takes **Short Rests** and
+  (`data/dungeons/lab_chapter1_sequence.tres`, with Erysichthon as its boss; its Ash
+  Warden variant is set aside in `docs/set_aside/`; how to run it and what it logs:
+  `docs/lab_sequence.md`). The laboratory takes **Short Rests** and
   carries a **Kit** that fills every belt. **Skips Rests** leaves out the rest between the
   fights altogether (no dungeon uses it now). **Logs Metrics** writes every fight's numbers to
   `docs/lab_runs/` (`tools/lab_metrics.gd`). Not for story content; both come

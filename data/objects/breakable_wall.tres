@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="BattleObjectDefinition" format=3 uid="uid://c6niud5utmfka"]
 
+[ext_resource type="Script" uid="uid://bdbdeb4xla32t" path="res://combat/resources/AttackSet.gd" id="1_7utln"]
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_rxkfu"]
 [ext_resource type="Script" uid="uid://uuir1227wuma" path="res://combat/resources/BattleObjectDefinition.gd" id="1_wall"]
 [ext_resource type="Texture2D" uid="uid://bp0kl5b00jjdv" path="res://art/terrain/first_area_tiles.png" id="2_tiles"]

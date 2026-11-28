@@ -199,6 +199,11 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ## At the top of each round its turn moves to just after one of the other side's, picked at random, a different one each
 ## round (the designer, 2026-11-07, for the Mimic: "right after the turn of one player character, a different one each time").
 @export var turn_after_one_of_them: bool = false
+## Reactions they have between two of their own turns: everybody has one. Erysichthon has three (the designer, 2026-11-27).
+@export_range(1, 6, 1) var reactions_per_round: int = 1
+## A turn of several blows (AttackSet, Combat "A turn of several blows"): each set its blows one after another at one target,
+## the sets one after another - for somebody driven by ai_attack_sets. Erysichthon's two Claws and a Chomp.
+@export var attack_sets: Array[AttackSet] = []
 
 @export_group("Boss")
 ## Makes them a boss, whatever their size: their name across the screen as they
@@ -285,6 +290,25 @@ enum EntranceStyle { AUTOMATIC, BURSTS_FROM_GROUND, DROPS_IN, KICKS_DOOR }
 ## What being spat out alive leaves on whoever they swallowed (EffectType.SWALLOW):
 ## covered in bile, say. Empty: nothing.
 @export var spat_out_with: ConditionDefinition
+
+@export_subgroup("Devouring")
+## What they devour (Combat "Devouring": most health, a main stat, a spell, an item, a meal off a tree) goes into their belly -
+## the part of theirs that Gives Back (BodyPartDefinition) - and grows it: its health and most health go up by this much for
+## each point of most health, each point of a main stat, each spell, each item and each point eaten off something.
+## Erysichthon's (the designer, 2026-11-27).
+@export_range(0.0, 20.0, 0.5) var belly_per_health: float = 1.0
+@export_range(0.0, 20.0, 0.5) var belly_per_stat: float = 3.0
+@export_range(0, 200, 1) var belly_per_spell: int = 25
+@export_range(0, 200, 1) var belly_per_item: int = 15
+@export_range(0.0, 20.0, 0.5) var belly_per_meal: float = 1.0
+## How many spells they can hold devoured at once (Gate Devour): one more pushes the first out, back to whoever cast it.
+@export_range(1, 6, 1) var spells_held: int = 2
+## Skills, by key, whose blow can go at something on the map that can be fed on (BattleObjectDefinition.fed_on) instead of
+## anybody: what it takes off it, they eat - healed by as much, and into their belly. Erysichthon's Claw, at a sacred tree.
+@export var feeds_with: Array[String] = []
+## What falls out of their belly the first time it breaks, besides what it gives back: one of these items, at random - something
+## an earlier victim carried - for whoever broke it.
+@export var belly_prize: Array[String] = []
 
 @export_group("Party")
 ## Whether this one actually fights. Turn it off for someone who travels with
@@ -528,12 +552,20 @@ func resistance_table() -> Dictionary:
 ## The still that stands for them in the turn queue, the party panel and the
 ## battle selector.
 func portrait() -> Texture2D:
-	return icon if icon != null else first_frame()
+	return _as_shown(icon if icon != null else first_frame())
 
 
 ## The still used on the map for anyone with no animation set at all.
 func map_still() -> Texture2D:
-	return map_sprite if map_sprite != null else first_frame()
+	return _as_shown(map_sprite if map_sprite != null else first_frame())
+
+
+## `texture` as this build shows it: one of my stand-in picture files is the plain stand-in in the public build (Release.picture).
+## The editor shows what there is.
+func _as_shown(texture: Texture2D) -> Texture2D:
+	if Engine.is_editor_hint():
+		return texture
+	return Release.picture(texture)
 
 
 ## The first frame of their idle, or of whatever animation they do have. Null

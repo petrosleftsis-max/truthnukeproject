@@ -1487,7 +1487,7 @@ func pair_up(mover: Dictionary, target: Dictionary) -> bool:
 
 func the_codex():
 	log_line("======== The enemy codex ========")
-	ok(Campaign.codex_enemies().has("sellsword") and Campaign.codex_enemies().has("ash_warden"), "every enemy has a page")
+	ok(Campaign.codex_enemies().has("sellsword") and Campaign.codex_enemies().has("glutton"), "every enemy has a page")
 	ok(not Campaign.codex_enemies().has("enfina") and not Campaign.codex_enemies().has("powder_keg"), "and nobody else does")
 	ok(Campaign.codex_pages("sellsword") == 1, "Enfina's blow wrote the sellsword's page")
 	var cyrus := who("cyrus")
@@ -1517,18 +1517,18 @@ func the_codex():
 func the_boss_codex():
 	log_line("======== A boss's second page ========")
 	Campaign.reset()
-	await open_fight("res://data/encounters/boss_ash_warden.tres")
-	var warden := who("ash_warden")
+	await open_fight("res://data/encounters/boss_erysichthon.tres")
+	var warden := who("glutton")
 	var enfina := who("enfina")
-	ok(CodexPage.pages_of(CombatantDatabase.combatants.ash_warden) == 2, "a boss has two pages")
+	ok(CodexPage.pages_of(CombatantDatabase.combatants.glutton) == 2, "a boss has two pages")
 	combat.study(enfina, warden)
-	ok(Campaign.codex_pages("ash_warden") == 1, "studied, the first is written")
+	ok(Campaign.codex_pages("glutton") == 1, "studied, the first is written")
 	combat.study(enfina, warden)
-	ok(Campaign.codex_pages("ash_warden") == 1, "studied again in its first phase, nothing more")
+	ok(Campaign.codex_pages("glutton") == 1, "studied again in its first phase, nothing more")
 	warden.phase = 1
 	combat.study(enfina, warden)
-	ok(Campaign.codex_pages("ash_warden") == 2, "past its first phase, the second is written")
-	ok("Stagger" in CodexPage.second_page(CombatantDatabase.combatants.ash_warden), "with its stagger bar on it")
+	ok(Campaign.codex_pages("glutton") == 2, "past its first phase, the second is written")
+	ok("Stagger" in CodexPage.second_page(CombatantDatabase.combatants.glutton), "with its stagger bar on it")
 	log_line("======== Somebody who must not get away ========")
 	warden.when_fled = 2
 	combat._taken(warden, "fled")

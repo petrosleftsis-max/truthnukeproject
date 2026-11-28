@@ -283,6 +283,9 @@ enum TeleportWho { NOBODY, CASTER, TARGET }
 ## deeper - asked as it is cast - and what it does reaches as deep as that
 ## gate. Dispel Magic.
 @export var chooses_gate: bool = false
+## Takes its user's whole turn: only with nothing else done in it yet, and nothing after it - their turn ends as it lands.
+## Erysichthon's Feast (the designer, 2026-11-27).
+@export var whole_turn: bool = false
 ## A quick time event (QuickTimeDefinition) that pops up as it is used. For the
 ## Attacker, when the party uses it: done in time, it lands Quick Time Bonus
 ## harder. For the Defender, when it is used on the party: done in time, it
@@ -531,6 +534,9 @@ var outside_use: int = 0
 @export_range(0.0, 10.0, 0.05) var tether_per_damage: float = 1.0
 
 @export_group("Area of Effect")
+## Lands on everybody it is for, wherever they are on the field - no reach, no line, no area: aimed anywhere, at its user's
+## own tile say. Erysichthon's Feast, on the whole party.
+@export var whole_field: bool = false
 ## 0 = single tile only (classic single-target). Any higher number gives this
 ## skill an area: for DIAMOND it's the radius around the clicked tile; for
 ## LINE and CONE it's how many tiles the shape reaches out from the caster.

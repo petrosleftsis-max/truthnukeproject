@@ -242,6 +242,7 @@ func _build_map():
 	_interactables = []
 	_collect_interactables(map)
 	_collect_walls(map)
+	_collect_doors(map)
 	# What breaks near the party, marked for whoever sees weak points (Things that break, on a map).
 	if _tile_map != null:
 		var marks := _WeakMarks.new()
@@ -2708,6 +2709,16 @@ func _collect_walls(map: Node):
 			# Not a door: nobody has the key, guards included.
 			if Actors._scene == self:
 				Actors.refresh_tile(tile)
+
+
+## The map's doors (StealthDoor): one broken in a fight stays broken (its flag); on a map nobody watches, each shut one shuts its tile
+## as it opens - a watched map's StealthWatch keeps its own doors.
+func _collect_doors(map: Node):
+	for door in map.find_children("*", "StealthDoor", true, false):
+		door.broken = Campaign.flag(door.broken_flag_for(map_path()))
+		if stealth == null and _tile_map != null:
+			var tile := _tile_map.local_to_map(_tile_map.to_local(door.global_position))
+			set_tile_shut(tile, not door.passable())
 
 
 ## The standing wall nearest the leader within `reach` tiles (the fight's count),

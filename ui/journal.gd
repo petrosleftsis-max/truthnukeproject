@@ -601,7 +601,7 @@ func toggle_codex():
 	if _heading != null:
 		_heading.text = "Enemy Codex" if _codex else "Journal"
 	if _hint != null:
-		_hint.text = "A page for every enemy - written when Enfina or Prometheus study one. A boss has a second page, once it is studied past its first phase." \
+		_hint.text = "A page for every enemy - written when Enfina or Prometheus study one. A boss has a second page, once it has shown more of itself." \
 			if _codex else "Pick two clues and Connect them to work something out."
 	if _tab_button != null:
 		_tab_button.text = "Clues" if _codex else "Enemy Codex"
@@ -671,10 +671,10 @@ func _show_codex():
 	var pages := Campaign.codex_pages(_codex_key)
 	var all: int = CodexPage.pages_of(definition)
 	_detail_title.text = definition.name
-	_detail_text.text = CodexPage.second_page(definition) if _codex_page == 2 else CodexPage.first_page(definition)
+	_detail_text.text = CodexPage.second_page(definition, Campaign.codex_phases_seen(_codex_key)) if _codex_page == 2 else CodexPage.first_page(definition)
 	_detail_from.text = "Page %d of %d" % [_codex_page, all] if all > 1 else ""
 	if all > pages:
-		_detail_from.text += " - the next is written once they are studied past their first phase"
+		_detail_from.text += " - the next is written once they have shown more of themselves"
 	if _page_button != null:
 		_page_button.visible = pages >= 2
 		_page_button.text = "First page" if _codex_page == 2 else "Next page"

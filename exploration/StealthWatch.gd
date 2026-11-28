@@ -1097,6 +1097,8 @@ const WANDER_PACE := 0.5
 var _opener := {}
 ## The object a breakable wall is in a fight (data/objects/).
 const BREAKABLE_WALL := "breakable_wall"
+## What a shut door is in a fight on the map's own ground (data/objects/door.tres).
+const DOOR := "door"
 
 
 ## The guard the pointer is on, or null - for another machine's player, their
@@ -5861,6 +5863,20 @@ func build_fight(ambushed: bool = false) -> EncounterDefinition:
 			var standing := _spawn(BREAKABLE_WALL, 1, tile, 1)
 			standing.set_meta("wall_flag", wall.flag_for(scene.map_path()))
 			spawns.append(standing)
+	# A door shut on the map stands in the fight as a door: in the way, cover beside it, broken by anybody - and one broken there
+	# stays broken here, by its flag as a wall's (the designer, 2026-11-27: "The doors should stay during combat and be breakable
+	# objects that give cover"). An open one is out of the way.
+	if CombatantDatabase.combatants.has(DOOR) and scene.has_method("map_path"):
+		for door in _doors:
+			if not is_instance_valid(door) or door.passable():
+				continue
+			var tile := tile_of(door.global_position)
+			if taken.has(tile):
+				continue
+			taken[tile] = true
+			var shut := _spawn(DOOR, 1, tile, maxi(Campaign.party_level, 1))
+			shut.set_meta("wall_flag", door.broken_flag_for(scene.map_path()))
+			spawns.append(shut)
 	fight.spawns = spawns
 	fight.fighters = fighters
 	return fight

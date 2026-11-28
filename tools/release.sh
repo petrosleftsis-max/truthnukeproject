@@ -9,19 +9,21 @@
 #   the playtest build   everything in, the Stealth Stages, the demos and the
 #                        lab sequence too - for the private, restricted page
 #                        ("Messengers of Playtesting"), for testers
-#   the release build    the "... Release" export presets: their "release"
-#                        feature hides the stages and demos from the title
-#                        screen and quiets the stand-in sounds (Release), and
-#                        their Exclude Filter leaves the test content out of the
-#                        download - for the public page. The release check
+#   the release build    the "... Release" export presets: their "public_build"
+#                        feature (not Godot's own "release", which every export
+#                        has) leaves only Play and Arena Mode's first stages on
+#                        the title screen, quiets every stand-in sound and shows
+#                        the plain stand-in for my stand-in pictures (Release),
+#                        and their Exclude Filter leaves the test content out of
+#                        the download - for the public page. The release check
 #                        (tests/run.sh release) runs first, and a release is not
 #                        built while anything still points at what it leaves
-#                        out, or still shows the stand-in picture
+#                        out; what still shows the stand-in picture is listed
 #
 #   tools/release.sh                              the playtest build, packed
 #   tools/release.sh --release                    the release build, packed
-#   tools/release.sh --release --allow-stand-ins  the same, letting stand-in
-#                                                 pictures through this once
+#   tools/release.sh --release --allow-stand-ins  the same (stand-ins no longer
+#                                                 stop it: 2026-11-27)
 #   tools/release.sh [--release] --publish        and push it to its page:
 #                                                 the playtest build to the
 #                                                 private one, the release to
@@ -46,6 +48,12 @@
 set -eu
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# A machine with no export presets of its own - a fresh clone - takes the copy kept in tools/ (export_presets.cfg is git-ignored
+# as this machine's own; docs/new_machine.md).
+if [ ! -f "$ROOT/export_presets.cfg" ] && [ -f "$ROOT/tools/export_presets.cfg" ]; then
+	cp "$ROOT/tools/export_presets.cfg" "$ROOT/export_presets.cfg"
+	echo "No export presets here: took the copy in tools/export_presets.cfg."
+fi
 . "$ROOT/tools/find_godot.sh"
 # The public page, and the private, restricted one for testers.
 PUBLIC="eplogos/messengersoftruth"

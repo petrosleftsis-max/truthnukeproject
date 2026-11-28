@@ -50,6 +50,8 @@ const BATTLE_SELECT := "res://scenes/level_select.tscn"
 const CLUES_DEMO := "res://demos/try_pictures_demo.tscn"
 ## The fights one after another, with rests between (see DungeonDefinition).
 const DUNGEON_DEMO := "res://data/dungeons/dungeon_demo.tres"
+## The designer's town, to walk (the designer, 2026-11-27): its doors, its cracked wall and what the party has not seen yet.
+const TOWN_DEMO := "res://maps/TownDemo.tscn"
 const EXPLORATION := "res://scenes/exploration.tscn"
 const BATTLE := "res://scenes/game.tscn"
 const STORY := "res://scenes/story.tscn"
@@ -289,19 +291,24 @@ func _build_root() -> Control:
 	load_game.visible = has_saves
 	buttons.add_child(load_game)
 	buttons.add_child(_menu_button("Play", func(): _show("play")))
-	var players := _menu_button("Players", func(): _show("players"))
-	players.name = "Players"
-	buttons.add_child(players)
-	# What is there to test with stays out of a release build, whose download leaves it out too (Release; the designer, 2026-11-19).
-	if not Release.on():
-		buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
+	# The public build: Play and the first stages of Arena Mode, and nothing else until the designer says (Release; 2026-11-27).
+	var public := Release.on()
+	if not public:
+		var players := _menu_button("Players", func(): _show("players"))
+		players.name = "Players"
+		buttons.add_child(players)
+	buttons.add_child(_menu_button("Arena Mode", func(): SceneTransition.change_scene(BATTLE_SELECT)))
+	# What is there to test with stays out of the public build, whose download leaves it out too (Release; the designer, 2026-11-19).
+	if not public:
 		buttons.add_child(_menu_button("Stealth Stages", func(): _show(STEALTH_PANEL)))
 		buttons.add_child(_menu_button("Clues Demo", func(): SceneTransition.change_scene(CLUES_DEMO)))
 		buttons.add_child(_menu_button("Dungeon Demo", func(): Campaign.start_dungeon(load(DUNGEON_DEMO))))
+		buttons.add_child(_menu_button("Town Demo", func(): _start({"map": TOWN_DEMO})))
 		# The card game (docs/card_game.md), here until it has its place in the world (the designer, 2026-11-26).
 		buttons.add_child(_menu_button("Card Game", func(): CardGame.play()))
 	buttons.add_child(_menu_button("Options", func(): _show("options")))
-	buttons.add_child(_menu_button("Glossary", func(): _open_glossary()))
+	if not public:
+		buttons.add_child(_menu_button("Glossary", func(): _open_glossary()))
 	buttons.add_child(_menu_button("Exit", _quit))
 	holder.add_child(buttons)
 	return holder

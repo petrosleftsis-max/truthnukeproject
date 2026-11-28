@@ -91,6 +91,7 @@ pictures
 demos
 stealthkit
 stages
+towndemo
 alarm
 ambush
 stealthworld
@@ -119,6 +120,7 @@ sentries
 invisibility
 triggers
 glutton
+erysichthon
 growth
 heights
 summons

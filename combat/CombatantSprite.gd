@@ -1226,6 +1226,22 @@ func lay_along(way: Vector2i, filler: bool = false):
 var laid := false
 ## The picture's size when nothing is happening to it: other than 1 for a piece of a wall.
 var _rest_scale := Vector2.ONE
+var _swell_tween: Tween = null
+
+
+## Drawn bigger by what they have devoured (Combat "Devouring"): `share` wider - 0.2 is a fifth - and half that taller, eased
+## there. 0 is their own size again.
+func set_swell(share: float):
+	if laid:
+		return
+	_rest_scale = Vector2(1.0 + share, 1.0 + share * 0.5)
+	var drawn := _drawn()
+	if drawn == null:
+		return
+	if _swell_tween != null and _swell_tween.is_valid():
+		_swell_tween.kill()
+	_swell_tween = create_tween()
+	_swell_tween.tween_property(drawn, "scale", _rest_scale, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 ## Flashes this combatant to show something landed on them: red from the other

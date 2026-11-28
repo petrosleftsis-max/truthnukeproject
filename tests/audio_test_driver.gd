@@ -127,8 +127,6 @@ func run_test():
 	var glutton: CombatantDefinition = load("res://data/enemies/glutton.tres")
 	ok(glutton.boss.reveal_sound.resource_path.ends_with("erysichthon_growl.wav") and glutton.boss.reveal_second_sound.resource_path.ends_with("eerie_revelation_2.wav"), "Erysichthon's reveal is his growl and the eerie revelation")
 	ok(glutton.boss.phase_sound != null, "and he growls as a phase begins")
-	var bellkeeper: CombatantDefinition = load("res://data/enemies/bellkeeper.tres")
-	ok(bellkeeper.boss.reveal_sound.resource_path.ends_with("tiny_bells.wav"), "the Bellkeeper's is the bells")
 	ok(load("res://data/conditions/burn.tres").tick_sound.resource_path.ends_with("weak_fire_damage.wav"), "Burn ticks as a small fire")
 	var feedback: PictureFeedback = load("res://pictures/feedback.tres")
 	ok(feedback.journal.resource_path.ends_with("glossary_page.wav") and feedback.solved.resource_path.ends_with("puzzle_success.wav") and feedback.deduction.resource_path.ends_with("eerie_revelation_1.wav"), "the pictures' slots have theirs")

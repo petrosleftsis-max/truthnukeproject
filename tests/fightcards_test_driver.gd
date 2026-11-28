@@ -5,7 +5,7 @@ extends Node
 
 const LOG_NAME := "fightcards"
 const WATCHER := "res://data/encounters/encounter_03_watcher.tres"
-const BOSS_FIGHT := "res://data/encounters/boss_ash_warden.tres"
+const BOSS_FIGHT := "res://data/encounters/boss_erysichthon.tres"
 const PARTY := ["enfina", "cyrus", "alithia"]
 
 var LOG_PATH := HarnessLog.path_for(LOG_NAME)

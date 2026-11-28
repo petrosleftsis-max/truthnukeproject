@@ -1,5 +1,6 @@
-[gd_resource type="Resource" script_class="CombatantDefinition" format=3 uid="uid://cifc2c88ejoi3"]
+[gd_resource type="Resource" script_class="CombatantDefinition" format=3]
 
+[ext_resource type="Script" uid="uid://bdbdeb4xla32t" path="res://combat/resources/AttackSet.gd" id="1_4eeyp"]
 [ext_resource type="Script" uid="uid://ch1kwtah6ul2i" path="res://combat/resources/BossPhase.gd" id="1_ir0ey"]
 [ext_resource type="Script" uid="uid://xg051bnhyymg" path="res://combat/resources/HazardDefinition.gd" id="2_omeb0"]
 [ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="3_plvun"]

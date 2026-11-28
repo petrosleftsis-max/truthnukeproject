@@ -3797,6 +3797,21 @@ func codex_pages(key: String) -> int:
 	return int(flags.get(CODEX_PREFIX + key, 0))
 
 
+const CODEX_PHASES_PREFIX := "codex_phases:"
+
+
+## How many of `key`'s phases had begun the furthest time one of them was studied: all a boss's second page tells of them (the
+## designer, 2026-11-27: Study reads only what is there at the time, not what the phases to come will change, nor that there are
+## any).
+func codex_phases_seen(key: String) -> int:
+	return int(flags.get(CODEX_PHASES_PREFIX + key, 0))
+
+
+func note_codex_phases(key: String, begun: int):
+	if begun > codex_phases_seen(key):
+		flags[CODEX_PHASES_PREFIX + key] = begun
+
+
 ## Writes `key`'s page `page` - the first, or a boss's second once the first is
 ## written. False when it already was, or cannot be yet.
 func write_codex(key: String, page: int) -> bool:

@@ -1,0 +1,43 @@
+- [Godot path on this machine](godot-path-this-machine.md) — E:\Godot\ (4.7.2), all templates installed; presets Windows/Linux/macOS; tools/find_godot.sh finds it
+- [Clone line endings](truthnuke-clone-line-endings.md) — CRLF broke stealth/mend; .gitattributes fixes it; Git Bash hides \r
+- [UI screenshot workflow](ui-screenshot-workflow.md) — run a driver windowed from a project copy to see layout; headless tests cannot
+- [Balance numbers are the user's](balance-numbers-are-the-users.md) — report balance shifts with numbers; never retune skills or bend tests to pass
+- [Commit means publish](commit-means-publish.md) — commit + push to GitHub AND (since 2026-11-26) publish the playtest build to the restricted itch page every time; PUBLIC page never until the user says
+- [Autoloads need an editor reload](autoloads-need-editor-reload.md) — hand-added autoloads break an open editor; tell user to reload; @tool scripts look them up by path
+- [Bash tool eats backslashes](bash-tool-eats-backslashes.md) — "\\" reaches perl/sed as "\"; use Edit for patterns with backslashes, Write+cat for big blocks
+- [Placeholder assets with slots](placeholder-assets-with-slots.md) — all my art/sound is placeholder behind fillable slots; the user makes the real art and sound
+- [Plays with a PlayStation pad](user-plays-with-playstation-pad.md) — Square=JOY_BUTTON_X, Circle=JOY_BUTTON_B; screenshots show PS names
+- [Systems per creature, not per category](systems-per-creature-not-per-category.md) — traits as per-creature switches (immunities, boss bits, stagger kinds); no rules tied to boss/size
+- [Gate ladder and level cap plan](gate-ladder-and-level-cap-plan.md) — cap 64 built, gates open 1/8/14/21/28/34/41/47/54/61; five-chapter leveling being planned; Moira never a gate
+- [Never shut down without permission](never-shut-down-without-permission.md) — PC off/restart/sleep only on a clear yes for that time; finish runs first, delayed shutdown
+- [Progression CSV is the power level](progression-csv-power-level.md) — docs/progression.csv: tiers 1/8/16/24/32/41/54/64, multipliers; pitch every suggestion against it; user decisions on applying it
+- [Remind: container effects](remind-container-effects.md) — user wants a reminder to add effects to later backpacks (first: bombs stack 2/slot)
+- [Consumable prices reference](consumable-prices-reference.md) — docs/consumables.csv tiers I-IV prices; check and suggest whenever the user prices anything
+- [Design CSVs are the spec](design-csvs-are-the-spec.md) — docs/*.csv (progression, enemies, consumables, economy): apply as written, ask where silent
+- [Level-64 balance is open](party-health-at-64-open.md) — playtest: party wins Sixty-Four easily (initiative, area spells, Illusory Guardian); whoever acts first wins; party HP undecided
+- [Context files for other AIs](context-files-for-other-ais.md) — docs/perplexity_combat_context.md, chatgpt_narrative_context.md and chatgpt_party_characters.md; refdump probe regenerates the data
+- [Durations are exact](durations-count-one-more.md) — "N turns" = N of the target's turns (user, 2026-10-24); the actor gets the rest of the current turn on top
+- [Working rules for numbers](numbers-are-open-until-playtested.md) — handoff 0.1: repo is truth; PRESENT/ABSENT/VERIFY + EXISTING_BASELINE/APPROVED_TRIAL/PROPOSAL/OPEN/APPROVED_DESIGN; implement only approved trials
+- [Lethality rule](lethality-rule.md) — ignored telegraphs may down Prometheus; Cyrus/Alithia survive ordinary ones; fair vs unfair; Self Destruct flagged but kept by the designer
+- [Healing policy](healing-policy.md) — flat heals + modest Mind/weapon scaling; share heals rare; no global cap (OPTIONAL_TUNING_TOOL); boss heals only as telegraphed mechanics
+- [Uses per short rest](uses-per-short-rest.md) — use limits recover on short rests, triggers stay per fight; rest details still to come from the user; Tremor/Dazed control trial
+- [Say when effort can drop](say-when-effort-can-drop.md) — user runs max effort for quality; tell them when the work turns mechanical so they can lower it
+- [Move feel built](move-feel-proposals-pending.md) — all move-feel proposals built 2026-10-31 but from above/below (refused); timings PROPOSAL
+- [Sounds off GitHub](sounds-off-github.md) — on the designer's own drive, never converted; tools/place_sfx.ps1; a sword sound is coming for Sweep Strike, Chain Hook, Disarm
+- [Spells have no levels](spells-have-no-levels.md) — a spell comes when its gate opens; never required_level; progression.csv's spell levels are ignored
+- [Import after new scripts](import-after-new-scripts.md) — designer runs from the Project Manager (no scan): import the real project and commit .uid files, or black screen
+- [Read the err files after a pass](read-the-err-files-after-a-pass.md) — my usual summary filter hides [SCRIPT ERRORS]; list *_err.txt; a cut-off aicompare fight is no loss
+- [Designer edits in an open editor](designer-edits-in-open-editor.md) — uncommitted .tres changes are theirs: read the values, keep and commit them; run tools only in a scratch copy
+- [Stopping a test pass](stopping-a-test-pass.md) — TaskStop or an outer timeout leaves Godot running and a .run.lock folder; kill by pid, rm -rf the lock; no outer timeout on run.sh
+- [Interface look: back to before T](interface-look-direction.md) — 2026-11-21 the designer went back to the pre-sky look (blue_theme.tres, old palette); SkyLook kept, not applied
+- [2.5D built: A+B+C](two-and-a-half-d-chosen.md) — built 2026-11-13/15; docs/2_5d_plan.md, depth_on_maps.md; what the designer liked, disliked and still has to answer; their remarks can name the wrong thing
+- [Human size is Cyrus's idle](human-size-is-cyrus-idle.md) — human-size creatures will be Cyrus's idle size (384 frame, ~330 px, 1.3 tiles); judge heights and slots against him
+- [Damage wording rule](damage-wording-rule.md) — player text: "N% Damage Mitigation", "+N% Output Efficiency", numbers not words; "a Bright Area", never bare "Bright"
+- [Resume side sessions on continue](resume-side-sessions-on-continue.md) — after a usage-limit stop, "continue" means waking every linked side session too
+- [Commit own lines in a shared folder](commit-own-lines-in-shared-folder.md) — others' lines stay out (git apply --cached); never leave mine staged; test an export of the index
+- [Offer side sessions](offer-side-sessions.md) — when tasks could go to a side session, tell the user; they decide
+- [Commit titles a programmer can read](commit-titles-for-programmers.md) — since 2026-11-26: written for a programmer new to the project; plain technical titles, explain game names in bodies
+- [Card game: the main hacking minigame](card-game-direction.md) — StS-like; 2026-11-27 gates as characters, all chosen twists (7/10/15 too), one-screen + network co-op, hacks for both; 2/5/9/12 not wanted; designer makes the gates' cards
+- [Enfina: through, not around](enfina-direction.md) — mobile vanguard on Trailblaze; breaks/bursts/shoulders through; built 2026-11-26; paths 2026-11-27, Juggernaut open (not "immovable")
+- [Godot stalls can be the machine](godot-stalls-are-the-machine.md) — net suite failing only on the joiner's exit: time an empty project's --quit first; 2026-11-27 the PC stalled every Godot
+- [Remind: more Blessings](remind-more-blessings.md) — designer wants a reminder to add more card-game Blessings (run's first choice; built with Iron/Patient/Swift)

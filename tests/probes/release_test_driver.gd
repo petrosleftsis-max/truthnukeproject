@@ -4,7 +4,8 @@ extends Node
 ## build leaves out it reads from the export presets themselves ("Windows Desktop Release"'s Exclude Filter), and then:
 ## - fails on anything the release keeps that still points at what it leaves out: a scene or a resource depending on it, or a
 ##   script or a conversation naming it - but the title screen's, which shows that only outside a release (MainMenu, Release);
-## - fails on anything still showing the stand-in picture (art/placeholders/), unless MOT_ALLOW_STAND_INS is set (--allow-stand-ins);
+## - lists whatever still shows the stand-in picture (art/placeholders/): the public build may show it where a slot is still empty
+##   (the designer, 2026-11-27: "except for the simple placeholder for the slots that are unfilled") - it stopped a release until then;
 ## - lists, for the artist and the designer, every sound slot still empty (the SoundBank's, and the moves with no sound of their
 ##   own, which play a stand-in) and every picture slot still empty (skills and items with no icon, and pictures the code names
 ##   that are not there).
@@ -97,11 +98,9 @@ func run_check():
 
 	log_line("")
 	log_line("======== stand-ins ========")
-	var allowing := OS.get_environment("MOT_ALLOW_STAND_INS") != ""
-	if allowing:
-		log_line("  stand-ins allowed this time (MOT_ALLOW_STAND_INS): %d" % stand_ins.size())
-	else:
-		ok(stand_ins.is_empty(), "nothing still shows the stand-in picture", "%s" % [stand_ins])
+	# Allowed since 2026-11-27: the plain stand-in is what the public build shows where a picture slot is still empty.
+	var allowing := true
+	log_line("  still showing the stand-in picture: %d (release_report.md)" % stand_ins.size())
 
 	var sounds := _empty_sound_slots()
 	var pictures := _empty_picture_slots(kept)

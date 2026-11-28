@@ -34,4 +34,4 @@ pattern = 0
 starting_statuses = {
 "toll": 1
 }
-borrow_picture_from = "bellkeeper"
+borrow_picture_from = "sorcerer"

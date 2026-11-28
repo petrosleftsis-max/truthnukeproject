@@ -389,7 +389,8 @@ func run_test():
 
 	log_line("======== nothing carries a condition it never inflicts ========")
 	# Only a CONDITION effect reads the condition field - and a SWALLOW, whose
-	# condition is what being inside does to them. A DAMAGE_OVER_TIME one
+	# condition is what being inside does to them, and a DEVOUR that swallows the
+	# badly hurt (Devour Swallows Under: Chomp's, Feast's). A DAMAGE_OVER_TIME one
 	# ignores it and lays an anonymous tick instead, so filling both in looks
 	# like a skill that inflicts a condition and is not one. Burner was exactly
 	# that for three commits: a fire skill leaving a physical wound called
@@ -403,7 +404,8 @@ func run_test():
 			for carried in carrier.all_effects():
 				if carried == null or carried.condition == null:
 					continue
-				if carried.type != EffectDefinition.EffectType.CONDITION and carried.type != EffectDefinition.EffectType.SWALLOW:
+				var swallows := carried.type == EffectDefinition.EffectType.DEVOUR and carried.devour_swallows_under > 0.0
+				if carried.type != EffectDefinition.EffectType.CONDITION and carried.type != EffectDefinition.EffectType.SWALLOW and not swallows:
 					dead_links.append("%s holds %s on a %s effect" % [carrier.name,
 						carried.condition.display_name,
 						EffectDefinition.EffectType.keys()[carried.type]])

@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Texture2D" path="res://art/icons/devour_skill.png" id="1_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="2_skill"]
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="3_effect"]
+[ext_resource type="AudioStream" path="res://audio/sfx/SciFi_Water_-_Free_Sound_Effect.wav" id="90_sfx"]
+[ext_resource type="Resource" path="res://data/conditions/swallowed.tres" id="4_swallowed"]
+
+[sub_resource type="Resource" id="Effect_devour"]
+script = ExtResource("3_effect")
+type = 43
+devour_swallows_under = 0.25
+condition = ExtResource("4_swallowed")
+duration = 2
+devour_stat = 10
+devour_stat_floor = 10
+devour_stat_floor_share = 0.25
+devour_health = 30
+devour_health_floor_share = 0.25
+devour_item = true
+
+[resource]
+script = ExtResource("2_skill")
+impact_look = 6
+name = "Feast"
+description = "Its whole turn: it falls on everybody of the party, wherever they are on the field - each hit four times as hard as a Chomp, devouring 10 of their main stat and 30 of their maximum health, and the first item they have ready. Anybody under a quarter of their health it swallows whole instead."
+max_range = 0
+icon = ExtResource("1_icon")
+animation = "attack"
+ability_modifier = 4.8
+uses_per_short_rest = 1
+whole_turn = true
+whole_field = true
+effects = Array[ExtResource("3_effect")]([SubResource("Effect_devour")])
+sound = ExtResource("90_sfx")
+can_be_copied = false

@@ -439,6 +439,19 @@ var scales_every_skill_with: int = -1
 ## Points).
 @export var sees_weak_points: bool = false
 
+@export_group("Devouring")
+## Every hit of theirs that lands drains this much of the most health of whoever it lands on, for the fight, and heals them by
+## as much; what it drains goes into their belly (Combat "Devouring").
+## Erysichthon's Vitality Devour: 10 (the designer, 2026-11-27). A hit that devours most health of its own (EffectType.DEVOUR,
+## Feast's) drains that instead.
+@export_range(0, 100, 1) var devours_health: int = 0
+## Never below this share of the most health they had.
+@export_range(0.0, 1.0, 0.05) var devours_down_to: float = 0.25
+## Each round they devour nothing, their blows land this much harder (0.1 is +10% Output Efficiency), up to Starving Most; the
+## next thing they devour ends it (Combat "Devouring"). Erysichthon's Starving: 0.1, up to 0.3 (the designer, 2026-11-27).
+@export_range(0.0, 1.0, 0.05) var starving_step: float = 0.0
+@export_range(0.0, 3.0, 0.05) var starving_most: float = 0.0
+
 
 ## When it works, as the character sheet says it.
 func describe_when() -> String:
@@ -572,6 +585,12 @@ func describe_effects() -> Array:
 		lines.append("Tiles within %d of them cost the other side twice the movement." % hems_in)
 	if exposes_within > 0 and exposes_with != null:
 		lines.append("Anybody of the other side ending a turn within %d of them without hurting them is %s." % [exposes_within, exposes_with.display_name.to_lower()])
+	if devours_health > 0:
+		lines.append("Every hit drains %d maximum health from whoever it lands on and heals them as much - never below %d%% of what they had." % [
+			devours_health, roundi(devours_down_to * 100)])
+	if starving_step > 0.0:
+		lines.append("Each round they devour nothing, +%d%% Output Efficiency, up to +%d%%; the next thing they devour ends it." % [
+			roundi(starving_step * 100), roundi(starving_most * 100)])
 	lines.append_array(_describe_paths())
 	return lines
 

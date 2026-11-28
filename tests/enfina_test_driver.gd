@@ -434,7 +434,7 @@ func anything_is_a_weapon():
 	var keg: Dictionary = combat.create_combatant(definition, "powder_keg")
 	combat.add_combatant(keg, 1, there + Vector2i.RIGHT)
 	await settle()
-	var bell: Dictionary = combat.create_combatant(load("res://data/objects/bell.tres"), "bell")
+	var bell: Dictionary = combat.create_combatant(load("res://test_fixtures/bell.tres"), "bell")
 	combat.add_combatant(bell, 1, there + Vector2i.LEFT)
 	await settle()
 	await their_turn(enfina)

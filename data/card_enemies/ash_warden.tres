@@ -43,5 +43,5 @@ moves = Array[ExtResource("1_ryd6j")]([SubResource("Resource_3edde"), SubResourc
 starting_statuses = {
 "overtime": 8
 }
-borrow_picture_from = "ash_warden"
+borrow_picture_from = "barbarian"
 rules = Array[ExtResource("3_4oewf")]([SubResource("Resource_tqpbq")])

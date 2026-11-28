@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://chikxpj0tcyq6" path="res://combat/resources/ConditionDefinition.gd" id="1_ays1r"]
 [ext_resource type="Script" uid="uid://dehsr7dduivu1" path="res://combat/resources/EffectDefinition.gd" id="1_et57q"]
+[ext_resource type="Script" uid="uid://bdbdeb4xla32t" path="res://combat/resources/AttackSet.gd" id="1_n6ejo"]
 [ext_resource type="Script" uid="uid://d3or4wilvncum" path="res://combat/resources/CombatantDefinition.gd" id="1_who"]
 [ext_resource type="SpriteFrames" uid="uid://cuxcvfs00mqv8" path="res://art/enemies/barbarian/barbarian_frames.tres" id="2_frames"]
 [ext_resource type="Script" uid="uid://drmt8gnps0f2o" path="res://combat/resources/PassiveDefinition.gd" id="3_et57q"]

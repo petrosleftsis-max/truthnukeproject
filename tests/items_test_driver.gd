@@ -84,17 +84,17 @@ func run_test():
 	# Hesitating and Deceived from talking somebody round (Persuade, Deceive),
 	# Exposed from a champion turned away from, Riding from Climb, Crippled from legs
 	# broken (a body part), Grappled from Grab - a hold needs somebody holding.
-	# Scented, Swallowed and Bile-Soaked are the glutton's: its nose, its
-	# stomach, and what it spits up.
+	# Scented and Swallowed are the old glutton's (its Bile-Soaked is a test fixture now): its nose and
+	# its stomach.
 	# Blessed, Soothed, Bulwarked, Fortified and Sheltered are the party's own
 	# good news, from passives: Alithia's Aura and Mercy, Enfina's Bulwark.
 	# And the paths': Snared from a trap, Corroded from a round, Veiled, Blurred,
 	# a Phantom Body, Sanctified, Mirage, Accused, Recanted and Grand Design from
 	# their spells and passives - and Dazed from Enfina's Tremor, Disarmed from
 	# her Disarm, Deeply Corroded from Corrosive Round's Deep Corrosion.
-	var not_bottled := ["surprised", "confused", "staggered", "choking_ash", "deafened",
+	var not_bottled := ["surprised", "confused", "staggered", "reeling", "choking_ash", "deafened",
 		"hesitating", "deceived", "exposed", "riding", "crippled", "grappled",
-		"scented", "swallowed", "bile_soaked",
+		"scented", "swallowed",
 		"blessed", "soothed", "bulwarked", "fortified", "sheltered",
 		"snared", "corroded", "veiled", "blurred", "phantom_body", "sanctified", "mirage", "accused", "recanted", "grand_design",
 		"reflected", "dazed", "disarmed", "deeply_corroded",

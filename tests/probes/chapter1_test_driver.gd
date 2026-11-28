@@ -322,7 +322,7 @@ func fights():
 
 
 func bosses():
-	for path in ["res://data/encounters/boss_ash_warden.tres", "res://data/encounters/boss_bellkeeper.tres", "res://data/encounters/boss_glutton.tres"]:
+	for path in ["res://data/encounters/boss_erysichthon.tres"]:
 		var fight: EncounterDefinition = load(path)
 		for spawn in fight.spawns:
 			var who: CombatantDefinition = CombatantDatabase.combatants.get(spawn.combatant_key)

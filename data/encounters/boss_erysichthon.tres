@@ -26,7 +26,7 @@ combatant_key = "cyrus"
 position = Vector2i(48, -12)
 level = 22
 weapon_base = 12
-starting_items = Array[String](["cure_potion", "medium_bomb", "medicine"])
+starting_items = Array[String](["rotten_meal", "cure_potion", "medium_bomb", "medicine"])
 
 [sub_resource type="Resource" id="Spawn_prometheus"]
 script = ExtResource("2_spawn")
@@ -45,18 +45,32 @@ level = 22
 weapon_base = 12
 defense = 20
 
-[sub_resource type="Resource" id="Spawn_carrion"]
+[sub_resource type="Resource" id="Spawn_tree_a"]
 script = ExtResource("2_spawn")
-combatant_key = "carrion_heap"
+combatant_key = "sacred_tree"
 side = 1
 position = Vector2i(56, -20)
 level = 22
 
-[sub_resource type="Resource" id="Spawn_keg"]
+[sub_resource type="Resource" id="Spawn_tree_b"]
 script = ExtResource("2_spawn")
-combatant_key = "bait_keg"
+combatant_key = "sacred_tree"
 side = 1
 position = Vector2i(53, -5)
+level = 22
+
+[sub_resource type="Resource" id="Spawn_tree_c"]
+script = ExtResource("2_spawn")
+combatant_key = "sacred_tree"
+side = 1
+position = Vector2i(49, -15)
+level = 22
+
+[sub_resource type="Resource" id="Spawn_tree_d"]
+script = ExtResource("2_spawn")
+combatant_key = "sacred_tree"
+side = 1
+position = Vector2i(49, -18)
 level = 22
 
 [sub_resource type="Resource" id="Spawn_wave1_a"]
@@ -84,7 +98,7 @@ side = 1
 position = Vector2i(44, -25)
 level = 22
 weapon_base = 8
-arrives_on_cue = "broke:Jaws"
+arrives_on_cue = "broke:Belly"
 
 [sub_resource type="Resource" id="Spawn_wave2_b"]
 script = ExtResource("2_spawn")
@@ -93,7 +107,7 @@ side = 1
 position = Vector2i(46, -25)
 level = 22
 weapon_base = 8
-arrives_on_cue = "broke:Jaws"
+arrives_on_cue = "broke:Belly"
 
 [sub_resource type="Resource" id="Spawn_wave3_a"]
 script = ExtResource("2_spawn")
@@ -117,7 +131,7 @@ arrives_after_deaths = 3
 script = ExtResource("1_enc")
 boss_reveal = true
 display_name = "Erysichthon"
-description = "A boss: an undead glutton that smells out its prey, grabs it and swallows it whole - and eats whatever it finds in reach. Tear its Belly Hole open to free whoever it swallowed, taint the carrion before it eats it, and feed it the meat-wrapped keg. Gnawers come in waves: on round 3, when its Jaws first break, and once three of its side have fallen."
+description = "A boss: Erysichthon, the hunger that ate itself. Whatever it bites it drains, and what it devours - strength, spells, the first thing you have ready - goes into its belly; tear the belly open and all of it comes back. It eats from Demeter's sacred trees to heal: they burn easily. Gnawers come in waves: on round 3, when its belly first breaks, and once three of its side have fallen."
 terrain_scene = ExtResource("3_map")
-spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_alithia"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_glutton"), SubResource("Spawn_carrion"), SubResource("Spawn_keg"), SubResource("Spawn_wave1_a"), SubResource("Spawn_wave1_b"), SubResource("Spawn_wave2_a"), SubResource("Spawn_wave2_b"), SubResource("Spawn_wave3_a"), SubResource("Spawn_wave3_b")])
+spawns = Array[ExtResource("2_spawn")]([SubResource("Spawn_enfina"), SubResource("Spawn_alithia"), SubResource("Spawn_cyrus"), SubResource("Spawn_prometheus"), SubResource("Spawn_glutton"), SubResource("Spawn_tree_a"), SubResource("Spawn_tree_b"), SubResource("Spawn_tree_c"), SubResource("Spawn_tree_d"), SubResource("Spawn_wave1_a"), SubResource("Spawn_wave1_b"), SubResource("Spawn_wave2_a"), SubResource("Spawn_wave2_b"), SubResource("Spawn_wave3_a"), SubResource("Spawn_wave3_b")])
 music = "Mehul ShaRma - CURSE"

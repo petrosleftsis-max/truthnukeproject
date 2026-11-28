@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="SkillDefinition" format=3]
+
+[ext_resource type="Script" path="res://combat/resources/EffectDefinition.gd" id="1_effect"]
+[ext_resource type="Texture2D" path="res://art/icons/instahack_skill.png" id="2_icon"]
+[ext_resource type="Script" path="res://combat/resources/SkillDefinition.gd" id="3_skill"]
+[ext_resource type="AudioStream" path="res://audio/sfx/world/glitch_corrupted_data.wav" id="sfx_sound"]
+
+[sub_resource type="Resource" id="Effect_cancel"]
+script = ExtResource("1_effect")
+type = 25
+
+[sub_resource type="Resource" id="Effect_devour"]
+script = ExtResource("1_effect")
+type = 43
+devour_spell = true
+devour_spell_contested = true
+
+[resource]
+script = ExtResource("3_skill")
+sound = ExtResource("sfx_sound")
+name = "Gate Devour"
+description = "A spell cast within 20 tiles, in its sight, by somebody whose casting stat is below its own strength, it tears apart as it is cast and swallows: into its belly, where its caster cannot cast it again until the belly is torn open. It holds two; a third pushes the first back out. Not a spell out of a Gate Nade or any other item. Only ever a reaction - and it has three a round."
+min_range = 1
+max_range = 20
+icon = ExtResource("2_icon")
+respects_blocking = true
+is_reactive = true
+reacts_when = 32
+reaction_only = true
+can_be_copied = false
+effects = Array[ExtResource("1_effect")]([SubResource("Effect_cancel"), SubResource("Effect_devour")])
+deals_damage = false
+projectile_look = 11
+impact_look = 25

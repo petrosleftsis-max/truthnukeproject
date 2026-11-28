@@ -3295,6 +3295,7 @@ const PART_COLOURS := {
 	BodyPartDefinition.Broken.EXPOSED: Color("ff6b6b"),
 	BodyPartDefinition.Broken.STAGGERED: Color("c38bff"),
 	BodyPartDefinition.Broken.DISARMED: Color("ff9f43"),
+	BodyPartDefinition.Broken.GIVES_BACK: Color("c8e06a"),
 }
 const PART_BROKEN_COLOUR := Color(0.55, 0.5, 0.45)
 ## How big a part's name is written on it, against a tile.
@@ -3503,6 +3504,8 @@ const HEALTH_BAR_BACK := Color(0.05, 0.05, 0.08, 0.85)
 const HEALTH_BAR_ALLY := Color(0.42, 0.85, 0.5)
 const HEALTH_BAR_FOE := Color(0.92, 0.36, 0.32)
 const HEALTH_BAR_OVER := Color(0.85, 0.92, 1.0)
+## The end of the bar that has been devoured (Combat "Devouring"): health no heal reaches until it comes back.
+const HEALTH_BAR_DEVOURED := Color(0.55, 0.62, 0.22, 0.95)
 
 
 func _draw_health():
@@ -3527,10 +3530,39 @@ func _draw_health():
 		var most: float = maxf(float(comb.get("max_hp", 1)), 1.0)
 		var share: float = clampf(float(comb.hp) / most, 0.0, 1.0)
 		draw_rect(Rect2(whole.position, Vector2(whole.size.x * share, whole.size.y)), HEALTH_BAR_ALLY if comb.get("side", 0) == 0 else HEALTH_BAR_FOE)
+		# What has been devoured of their maximum health (Combat "Devouring"), at the bar's end: no heal reaches it.
+		var devoured := clampf(float(Combat.drained_of(comb, "max_hp")) / most, 0.0, 1.0)
+		if devoured > 0.0:
+			draw_rect(Rect2(Vector2(whole.end.x - whole.size.x * devoured, whole.position.y), Vector2(whole.size.x * devoured, whole.size.y)), HEALTH_BAR_DEVOURED)
 		var over: float = float(comb.get("temp_hp", 0))
 		if over > 0.0:
 			var over_share: float = clampf(over / most, 0.0, 1.0 - share)
 			draw_rect(Rect2(whole.position + Vector2(whole.size.x * share, 0.0), Vector2(whole.size.x * over_share, whole.size.y)), HEALTH_BAR_OVER)
+
+
+## What is in a devourer's belly (Combat "Devouring", belly_marks), always on show: the spells and items it holds, their icons
+## in a row over the belly, so everybody can see what tearing it open gives back.
+const BELLY_ICON_SHARE := 0.42
+
+
+func _draw_bellies():
+	for mark in combat.belly_marks():
+		if mark.icons.is_empty() or mark.tiles.is_empty():
+			continue
+		var middle := Vector2.ZERO
+		for tile in mark.tiles:
+			middle += tile_map.map_to_local(tile)
+		middle /= float(mark.tiles.size())
+		var side := Grid.TILE_SIZE * BELLY_ICON_SHARE
+		var gap := side * 0.12
+		var width: float = mark.icons.size() * side + (mark.icons.size() - 1) * gap
+		var at := middle - Vector2(width / 2.0, side / 2.0)
+		for icon in mark.icons:
+			var box := Rect2(at, Vector2(side, side))
+			draw_rect(box.grow(side * 0.08), Color(0.08, 0.1, 0.05, 0.75))
+			draw_texture_rect(icon, box, false)
+			draw_rect(box.grow(side * 0.08), PART_COLOURS[BodyPartDefinition.Broken.GIVES_BACK], false, EDGE_WIDTH)
+			at.x += side + gap
 
 
 func _draw_parts():
@@ -3966,6 +3998,7 @@ func _draw_board():
 	# parts"): while aiming, and while the pointer is on whoever has them.
 	if combat != null:
 		_draw_parts()
+		_draw_bellies()
 		_draw_tether()
 		_draw_health()
 	# Where to climb, and who is on another floor (Combat "Heights").
